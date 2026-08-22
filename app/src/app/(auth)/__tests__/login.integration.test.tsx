@@ -107,6 +107,13 @@ const mockedFetchOAuthAuthorizationUrl = jest.mocked(fetchOAuthAuthorizationUrl)
 const mockedOpenOAuthBrowserSession = jest.mocked(openOAuthBrowserSession);
 type AuthSessionResult = Awaited<ReturnType<typeof openAuthSessionAsync>>;
 
+const expectAlert = (title: string, message: RegExp) =>
+  waitFor(() =>
+    expect(mockDialogApi.alert).toHaveBeenCalledWith(
+      expect.objectContaining({ title, message: expect.stringMatching(message) }),
+    ),
+  );
+
 describe('Login screen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -543,14 +550,7 @@ describe('Login screen', () => {
       fireEvent.press(screen.getByText('Continue with Google'));
     });
 
-    await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "Couldn't sign in",
-          message: expect.stringMatching(YOU_DENIED_ACCESS_PATTERN),
-        }),
-      );
-    });
+    await expectAlert("Couldn't sign in", YOU_DENIED_ACCESS_PATTERN);
   });
 
   it('shows platform-specific retry guidance on native OAuth failure', async () => {
@@ -566,14 +566,7 @@ describe('Login screen', () => {
       fireEvent.press(screen.getByText('Continue with Google'));
     });
 
-    await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "Couldn't sign in",
-          message: expect.stringMatching(ENSURE_DEVICE_INTERNET_PATTERN),
-        }),
-      );
-    });
+    await expectAlert("Couldn't sign in", ENSURE_DEVICE_INTERNET_PATTERN);
   });
 
   it('retries session validation after OAuth success', async () => {
@@ -616,14 +609,7 @@ describe('Login screen', () => {
       fireEvent.press(screen.getByText('Continue with Google'));
     });
 
-    await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Account suspended',
-          message: expect.stringMatching(ACCOUNT_SUSPENDED_PATTERN),
-        }),
-      );
-    });
+    await expectAlert('Account suspended', ACCOUNT_SUSPENDED_PATTERN);
   });
 
   it('navigates back to browsing on button press', async () => {
@@ -651,14 +637,7 @@ describe('Login screen', () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
-    await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: 'Account suspended',
-          message: expect.stringMatching(ACCOUNT_SUSPENDED_PATTERN),
-        }),
-      );
-    });
+    await expectAlert('Account suspended', ACCOUNT_SUSPENDED_PATTERN);
   });
 
   it('shows error when OAuth setup fails (auth endpoint unreachable)', async () => {
@@ -714,14 +693,7 @@ describe('Login screen', () => {
       fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
-    await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "Couldn't sign in",
-          message: expect.stringMatching(UNABLE_TO_RETRIEVE_USER_PATTERN),
-        }),
-      );
-    });
+    await expectAlert("Couldn't sign in", UNABLE_TO_RETRIEVE_USER_PATTERN);
   });
 
   it('shows error when OAuth provider returns an unsafe authorization URL on web', async () => {
@@ -738,14 +710,7 @@ describe('Login screen', () => {
       fireEvent.press(screen.getByText('Continue with GitHub'));
     });
 
-    await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "Couldn't sign in",
-          message: expect.stringMatching(UNEXPECTED_AUTHORIZATION_URL_PATTERN),
-        }),
-      );
-    });
+    await expectAlert("Couldn't sign in", UNEXPECTED_AUTHORIZATION_URL_PATTERN);
   });
 
   it('shows error when OAuth provider returns an unsafe authorization URL on native', async () => {

@@ -68,6 +68,16 @@ describe('CamerasScreen', () => {
   const mockRefetch = jest.fn();
   const mockSetOptions = jest.fn();
 
+  const camerasQuery = (over: Record<string, unknown> = {}) => ({
+    data: [],
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+    refetch: mockRefetch,
+    ...over,
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({
@@ -83,14 +93,7 @@ describe('CamerasScreen', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'user-1', email: 'test@example.com' },
     });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(camerasQuery());
     mockUseLocalConnection.mockReturnValue({
       mode: 'relay',
       localBaseUrl: null,
@@ -116,21 +119,18 @@ describe('CamerasScreen', () => {
   });
 
   it('renders camera cards and navigates to the detail screen', () => {
-    mockUseCamerasQuery.mockReturnValue({
-      data: [
-        {
-          id: 'cam-1',
-          name: 'Workbench Camera',
-          description: 'Bench setup',
-          status: { connection: 'online' },
-        },
-      ],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [
+          {
+            id: 'cam-1',
+            name: 'Workbench Camera',
+            description: 'Bench setup',
+            status: { connection: 'online' },
+          },
+        ],
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -146,21 +146,18 @@ describe('CamerasScreen', () => {
   });
 
   it('treats a locally reachable camera as online even when relay status is offline', () => {
-    mockUseCamerasQuery.mockReturnValue({
-      data: [
-        {
-          id: 'cam-1',
-          name: 'Direct Camera',
-          description: 'Ethernet setup',
-          status: { connection: 'offline', last_seen_at: null, details: null },
-        },
-      ],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [
+          {
+            id: 'cam-1',
+            name: 'Direct Camera',
+            description: 'Ethernet setup',
+            status: { connection: 'offline', last_seen_at: null, details: null },
+          },
+        ],
+      }),
+    );
     mockUseLocalConnection.mockReturnValue({
       mode: 'local',
       localBaseUrl: 'http://192.168.7.1:8018',
@@ -175,14 +172,13 @@ describe('CamerasScreen', () => {
   });
 
   it('shows an error state and retries loading', async () => {
-    mockUseCamerasQuery.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isFetching: false,
-      isError: true,
-      error: new Error('Broken camera list'),
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: undefined,
+        isError: true,
+        error: new Error('Broken camera list'),
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -193,14 +189,12 @@ describe('CamerasScreen', () => {
   });
 
   it('shows loading spinner and no camera list when isLoading is true', () => {
-    mockUseCamerasQuery.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: undefined,
+        isLoading: true,
+      }),
+    );
     renderWithProviders(<CamerasScreen />, { withDialog: true });
     // Loading state renders an ActivityIndicator; no list or empty-state text
     expect(screen.queryByText('No cameras yet')).toBeNull();
@@ -209,14 +203,11 @@ describe('CamerasScreen', () => {
 
   it('parses array product param and enables capture mode', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: ['42'] });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -227,14 +218,11 @@ describe('CamerasScreen', () => {
 
   it('does not enable capture mode for non-numeric product param', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: 'not-a-number' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -245,14 +233,11 @@ describe('CamerasScreen', () => {
 
   it('shows success snackbar after capture with no failures', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '7' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
     mockCaptureMutate.mockImplementation((...args: unknown[]) => {
       const opts = args[1] as {
         onSuccess: (r: { total: number; succeeded: number; failed: number }) => void;
@@ -270,14 +255,11 @@ describe('CamerasScreen', () => {
 
   it('shows partial-failure snackbar when some captures fail', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '7' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
     mockCaptureMutate.mockImplementation((...args: unknown[]) => {
       const opts = args[1] as {
         onSuccess: (r: { total: number; succeeded: number; failed: number }) => void;
@@ -295,14 +277,11 @@ describe('CamerasScreen', () => {
 
   it('shows error snackbar on capture mutation error', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '7' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
     mockCaptureMutate.mockImplementation((...args: unknown[]) => {
       const opts = args[1] as { onError: (err: Error) => void };
       opts.onError(new Error('timeout'));
@@ -335,14 +314,11 @@ describe('CamerasScreen', () => {
 
   it('long-press on an online card WITHOUT ?product param does not enter selection mode', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
-    mockUseCamerasQuery.mockReturnValue({
-      data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -353,17 +329,14 @@ describe('CamerasScreen', () => {
 
   it('long-press in selection mode toggles the camera id in selectedIds', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '7' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [
-        { id: 'cam-1', name: 'Cam A', description: '', status: { connection: 'online' } },
-        { id: 'cam-2', name: 'Cam B', description: '', status: { connection: 'online' } },
-      ],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [
+          { id: 'cam-1', name: 'Cam A', description: '', status: { connection: 'online' } },
+          { id: 'cam-2', name: 'Cam B', description: '', status: { connection: 'online' } },
+        ],
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -382,17 +355,14 @@ describe('CamerasScreen', () => {
 
   it('long-pressing an offline camera in capture mode shows snackbar and does not toggle', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '7' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [
-        { id: 'cam-1', name: 'Online Cam', description: '', status: { connection: 'online' } },
-        { id: 'cam-2', name: 'Offline Cam', description: '', status: { connection: 'offline' } },
-      ],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [
+          { id: 'cam-1', name: 'Online Cam', description: '', status: { connection: 'online' } },
+          { id: 'cam-2', name: 'Offline Cam', description: '', status: { connection: 'offline' } },
+        ],
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -408,18 +378,15 @@ describe('CamerasScreen', () => {
 
   it('"Select all" fills selectedIds with exactly the online cameras', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '7' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [
-        { id: 'cam-1', name: 'Cam A', description: '', status: { connection: 'online' } },
-        { id: 'cam-2', name: 'Cam B', description: '', status: { connection: 'online' } },
-        { id: 'cam-3', name: 'Cam C', description: '', status: { connection: 'offline' } },
-      ],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [
+          { id: 'cam-1', name: 'Cam A', description: '', status: { connection: 'online' } },
+          { id: 'cam-2', name: 'Cam B', description: '', status: { connection: 'online' } },
+          { id: 'cam-3', name: 'Cam C', description: '', status: { connection: 'offline' } },
+        ],
+      }),
+    );
 
     renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -435,14 +402,11 @@ describe('CamerasScreen', () => {
 
   it('"Capture N" fires useCaptureAllMutation with selected ids + productId and clears selection on success', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '7' });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
     mockCaptureMutate.mockImplementation((...args: unknown[]) => {
       const opts = args[1] as {
         onSuccess: (r: { total: number; succeeded: number; failed: number }) => void;
@@ -471,14 +435,7 @@ describe('CamerasScreen', () => {
   // ── Pull-to-refresh ────────────────────────────────────────────────────────
 
   it('pull-to-refresh calls refetch()', async () => {
-    mockUseCamerasQuery.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(camerasQuery());
 
     const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -493,14 +450,7 @@ describe('CamerasScreen', () => {
 
   it('desktop layout uses 3 columns', () => {
     mockUseBreakpoint.mockReturnValue({ isMd: true, isLg: false });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(camerasQuery());
 
     const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />, { withDialog: true });
 
@@ -510,14 +460,7 @@ describe('CamerasScreen', () => {
 
   it('mobile layout uses 2 columns', () => {
     mockUseBreakpoint.mockReturnValue({ isMd: false, isLg: false });
-    mockUseCamerasQuery.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isFetching: false,
-      isError: false,
-      error: null,
-      refetch: mockRefetch,
-    });
+    mockUseCamerasQuery.mockReturnValue(camerasQuery());
 
     const { UNSAFE_getByProps } = renderWithProviders(<CamerasScreen />, { withDialog: true });
 

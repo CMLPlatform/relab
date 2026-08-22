@@ -224,6 +224,14 @@ function setWindowEventListeners() {
   });
 }
 
+const twoImages = {
+  ...baseProduct,
+  images: [
+    { id: '1', url: 'file://photo1.jpg', description: '' },
+    { id: '2', url: 'file://photo2.jpg', description: '' },
+  ],
+} as Product;
+
 describe('ProductImages', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -311,15 +319,7 @@ describe('ProductImages', () => {
   });
 
   it('shows main gallery chevrons and advances selection when pressed', async () => {
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
@@ -377,15 +377,7 @@ describe('ProductImages', () => {
   });
 
   it('opens lightbox when image is pressed', async () => {
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
@@ -421,16 +413,8 @@ describe('ProductImages', () => {
   });
 
   it('passes the lightbox layout metrics to the modal list and supports arrow navigation', async () => {
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
     const { UNSAFE_getAllByProps } = renderWithProviders(
-      <ProductImages product={productWithImages} editMode={false} />,
+      <ProductImages product={twoImages} editMode={false} />,
       { withDialog: true },
     );
 
@@ -487,16 +471,8 @@ describe('ProductImages', () => {
     setWindowImageConstructor();
     setWindowEventListeners();
 
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
     const { UNSAFE_getAllByType } = renderWithProviders(
-      <ProductImages product={productWithImages} editMode={false} />,
+      <ProductImages product={twoImages} editMode={false} />,
       { withDialog: true },
     );
 
@@ -535,15 +511,7 @@ describe('ProductImages', () => {
     setWindowImageConstructor();
     setWindowEventListeners();
 
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
@@ -609,16 +577,8 @@ describe('ProductImages', () => {
   });
 
   it('keeps the gallery counter and thumbnail highlight in sync after swiping', async () => {
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
     const { getAllByLabelText } = renderWithProviders(
-      <ProductImages product={productWithImages} editMode={false} />,
+      <ProductImages product={twoImages} editMode={false} />,
       { withDialog: true },
     );
 
@@ -650,15 +610,7 @@ describe('ProductImages', () => {
   });
 
   it('persists the active image when swiping in the lightbox and closing it', async () => {
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
@@ -853,15 +805,7 @@ describe('ProductImages', () => {
   });
 
   it('advances the lightbox index when a zoomed image requests a swipe navigation', async () => {
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
@@ -892,15 +836,7 @@ describe('ProductImages', () => {
   // chevron (or an arrow key) left it set, so `scrollEnabled` stayed false and
   // paging/swiping were permanently disabled on the next slide.
   it('clears the zoom flag when navigating with the lightbox chevron', async () => {
-    const productWithImages = {
-      ...baseProduct,
-      images: [
-        { id: '1', url: 'file://photo1.jpg', description: '' },
-        { id: '2', url: 'file://photo2.jpg', description: '' },
-      ],
-    } as Product;
-
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 

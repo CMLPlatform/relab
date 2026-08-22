@@ -44,6 +44,16 @@ jest.mock('@/services/api/oauthFlow', () => ({
 describe('useOAuthAssociations', () => {
   const mockDialog = { input: jest.fn() };
 
+  const renderAssociations = () =>
+    renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
+      }),
+    );
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.mocked(createURL).mockReturnValue('relab-app://account');
@@ -66,14 +76,7 @@ describe('useOAuthAssociations', () => {
   });
 
   it('returns grouped youtube state and named provider link actions', () => {
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     expect(result.current.youtube.authPending).toBe(false);
     expect(typeof result.current.youtube.toggle).toBe('function');
@@ -81,14 +84,7 @@ describe('useOAuthAssociations', () => {
   });
 
   it('enables YouTube and refetches on successful YouTube authorization', async () => {
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.youtube.toggle(true);
@@ -100,14 +96,7 @@ describe('useOAuthAssociations', () => {
   });
 
   it('disables YouTube immediately when toggled off', async () => {
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.youtube.toggle(false);
@@ -123,14 +112,7 @@ describe('useOAuthAssociations', () => {
       url: 'relab-app://account#status=error&error=access_denied',
     }));
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.youtube.toggle(true);
@@ -144,14 +126,7 @@ describe('useOAuthAssociations', () => {
   });
 
   it('refetches after linking Google successfully', async () => {
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('google');
@@ -184,14 +159,7 @@ describe('useOAuthAssociations', () => {
         authorizationUrl: 'https://accounts.google.com/o/oauth2/auth',
       });
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('google');
@@ -233,14 +201,7 @@ describe('useOAuthAssociations', () => {
         authorizationUrl: undefined,
       });
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('google');
@@ -269,14 +230,7 @@ describe('useOAuthAssociations', () => {
       detail: 'Association endpoint unavailable',
     }));
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('github');
@@ -291,14 +245,7 @@ describe('useOAuthAssociations', () => {
   it('rejects an unexpected provider authorization URL before opening the browser', async () => {
     jest.mocked(isAllowedOAuthRedirectUrl).mockReturnValue(false);
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('github');
@@ -315,14 +262,7 @@ describe('useOAuthAssociations', () => {
   it('rejects an unexpected association callback URL before refetching', async () => {
     jest.mocked(isExpectedOAuthCallbackUrl).mockReturnValue(false);
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('google');
@@ -338,6 +278,16 @@ describe('useOAuthAssociations', () => {
 
 describe('linkOAuth callback status', () => {
   const mockDialog = { input: jest.fn() };
+
+  const renderAssociations = () =>
+    renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
+      }),
+    );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -364,14 +314,7 @@ describe('linkOAuth callback status', () => {
       url: 'relab-app://account#status=error&error=access_denied',
     }));
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('github');
@@ -387,14 +330,7 @@ describe('linkOAuth callback status', () => {
       url: 'relab-app://account#status=success',
     }));
 
-    const { result } = renderHook(() =>
-      useOAuthAssociations({
-        feedback: mockFeedback,
-        refetch: mockRefetch,
-        setYoutubeEnabled: mockSetYoutubeEnabled,
-        dialog: mockDialog,
-      }),
-    );
+    const { result } = renderAssociations();
 
     await act(async () => {
       await result.current.actions.linkOAuth('google');

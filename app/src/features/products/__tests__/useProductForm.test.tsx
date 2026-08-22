@@ -75,15 +75,15 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('useProductForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async () => undefined),
+    });
   });
 
   it('initializes with existing product data', async () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
       mutateAsync: jest.fn(async () => 123),
-    });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
     });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
@@ -99,9 +99,6 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
       mutateAsync: jest.fn(async () => 123),
-    });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
     });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
@@ -121,9 +118,6 @@ describe('useProductForm', () => {
     const mockMutate = jest.fn(async () => 123);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -158,9 +152,6 @@ describe('useProductForm', () => {
     const mockMutate = jest.fn(async () => 55);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
@@ -193,9 +184,6 @@ describe('useProductForm', () => {
       .mockImplementationOnce(async () => 77);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
@@ -232,9 +220,6 @@ describe('useProductForm', () => {
     const mockMutate = jest.fn(async () => 123);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
     await waitFor(() => expect(result.current.product.id).toBe(123));
@@ -259,9 +244,6 @@ describe('useProductForm', () => {
     const mockMutate = jest.fn(async () => 123);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
     await waitFor(() => expect(result.current.product.id).toBe(123));
@@ -282,9 +264,6 @@ describe('useProductForm', () => {
     const mockMutate = jest.fn(() => new Promise<number>((resolve) => (release = resolve)));
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -314,9 +293,6 @@ describe('useProductForm', () => {
     (useSaveProductMutation as jest.Mock).mockReturnValue({
       mutateAsync: jest.fn(async () => 123),
     });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true, onSaveSuccess }),
@@ -341,9 +317,6 @@ describe('useProductForm', () => {
     });
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -378,9 +351,6 @@ describe('useProductForm', () => {
       mutateAsync: jest.fn(async () => {
         throw new MediaSyncError(123, new Error('413'));
       }),
-    });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
     });
 
     const { result } = renderHook(
@@ -421,9 +391,6 @@ describe('useProductForm', () => {
       .mockImplementationOnce(async () => 55);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
@@ -469,9 +436,6 @@ describe('useProductForm', () => {
       mutateAsync: jest.fn(async () => 123),
       isPaused: true,
     });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
     await waitFor(() => expect(result.current.product.id).toBe(123));
@@ -490,9 +454,6 @@ describe('useProductForm', () => {
     (useSaveProductMutation as jest.Mock).mockReturnValue({
       mutateAsync: jest.fn(async () => 123),
       isPaused: false,
-    });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
     });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
@@ -556,9 +517,6 @@ describe('useProductForm', () => {
     (useSaveProductMutation as jest.Mock).mockReturnValue({
       mutateAsync: jest.fn(async () => 123),
     });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
-    });
 
     const { result } = renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
@@ -598,9 +556,6 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
       mutateAsync: jest.fn(async () => 123),
-    });
-    (useDeleteProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => undefined),
     });
 
     const { result } = renderHook(

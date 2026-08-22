@@ -56,6 +56,17 @@ describe('setupWebHlsVideo', () => {
   const markLive = jest.fn();
   const markError = jest.fn();
 
+  type Opts = Parameters<typeof setupWebHlsVideo>[0];
+  const hlsOpts = (video: Opts['video'], over: Partial<Opts> = {}): Opts => ({
+    video,
+    src: 'https://cam.test/live.m3u8',
+    withCredentials: true,
+    markLive,
+    markError,
+    isCancelled: () => false,
+    ...over,
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -63,14 +74,7 @@ describe('setupWebHlsVideo', () => {
   it('configures native HLS playback and cleans up listeners', async () => {
     const video = createVideoMock('probably');
 
-    const cleanup = await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-    });
+    const cleanup = await setupWebHlsVideo(hlsOpts(video));
 
     expect(video.crossOrigin).toBe('use-credentials');
     expect(video.src).toBe('https://cam.test/live.m3u8');
@@ -90,14 +94,11 @@ describe('setupWebHlsVideo', () => {
   it('uses anonymous CORS for native HLS when credentials are disabled', async () => {
     const video = createVideoMock('maybe');
 
-    await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: false,
-      markLive,
-      markError,
-      isCancelled: () => false,
-    });
+    await setupWebHlsVideo(
+      hlsOpts(video, {
+        withCredentials: false,
+      }),
+    );
 
     expect(video.crossOrigin).toBe('anonymous');
   });
@@ -106,15 +107,11 @@ describe('setupWebHlsVideo', () => {
     const video = createVideoMock('');
     const { Hls, hlsInstance } = createHlsMock();
 
-    const cleanup = await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => ({ default: Hls }) as never,
-    });
+    const cleanup = await setupWebHlsVideo(
+      hlsOpts(video, {
+        importHls: async () => ({ default: Hls }) as never,
+      }),
+    );
 
     expect(Hls).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -135,15 +132,11 @@ describe('setupWebHlsVideo', () => {
     const video = createVideoMock('');
     const { Hls, hlsInstance } = createHlsMock();
 
-    await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => ({ default: Hls }) as never,
-    });
+    await setupWebHlsVideo(
+      hlsOpts(video, {
+        importHls: async () => ({ default: Hls }) as never,
+      }),
+    );
 
     errorHandlerOf(hlsInstance)(null, { fatal: false, type: ERROR_TYPES.NETWORK_ERROR });
 
@@ -155,15 +148,11 @@ describe('setupWebHlsVideo', () => {
     const video = createVideoMock('');
     const { Hls, hlsInstance } = createHlsMock();
 
-    await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => ({ default: Hls }) as never,
-    });
+    await setupWebHlsVideo(
+      hlsOpts(video, {
+        importHls: async () => ({ default: Hls }) as never,
+      }),
+    );
     const onError = errorHandlerOf(hlsInstance);
 
     onError(null, { fatal: true, type: ERROR_TYPES.NETWORK_ERROR, details: 'manifestLoadError' });
@@ -179,15 +168,11 @@ describe('setupWebHlsVideo', () => {
     const video = createVideoMock('');
     const { Hls, hlsInstance } = createHlsMock();
 
-    await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => ({ default: Hls }) as never,
-    });
+    await setupWebHlsVideo(
+      hlsOpts(video, {
+        importHls: async () => ({ default: Hls }) as never,
+      }),
+    );
     const onError = errorHandlerOf(hlsInstance);
 
     onError(null, { fatal: true, type: ERROR_TYPES.MEDIA_ERROR, details: 'bufferStalledError' });
@@ -203,15 +188,11 @@ describe('setupWebHlsVideo', () => {
     const video = createVideoMock('');
     const { Hls, hlsInstance } = createHlsMock();
 
-    await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => ({ default: Hls }) as never,
-    });
+    await setupWebHlsVideo(
+      hlsOpts(video, {
+        importHls: async () => ({ default: Hls }) as never,
+      }),
+    );
     const onError = errorHandlerOf(hlsInstance);
 
     onError(null, { fatal: true, type: ERROR_TYPES.NETWORK_ERROR });
@@ -226,15 +207,11 @@ describe('setupWebHlsVideo', () => {
     const video = createVideoMock('');
     const { Hls, hlsInstance } = createHlsMock();
 
-    await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => ({ default: Hls }) as never,
-    });
+    await setupWebHlsVideo(
+      hlsOpts(video, {
+        importHls: async () => ({ default: Hls }) as never,
+      }),
+    );
 
     errorHandlerOf(hlsInstance)(null, { fatal: true, type: 'muxError', details: 'fatal boom' });
 
@@ -251,30 +228,22 @@ describe('setupWebHlsVideo', () => {
       ErrorTypes: ERROR_TYPES,
     });
 
-    await setupWebHlsVideo({
-      video: unsupportedVideo,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => ({ default: UnsupportedHls }) as never,
-    });
+    await setupWebHlsVideo(
+      hlsOpts(unsupportedVideo, {
+        importHls: async () => ({ default: UnsupportedHls }) as never,
+      }),
+    );
 
     expect(markError).toHaveBeenCalledWith('Live preview is not supported in this browser.');
 
     const failingVideo = createVideoMock('');
-    await setupWebHlsVideo({
-      video: failingVideo,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => false,
-      importHls: async () => {
-        throw new Error('no hls');
-      },
-    });
+    await setupWebHlsVideo(
+      hlsOpts(failingVideo, {
+        importHls: async () => {
+          throw new Error('no hls');
+        },
+      }),
+    );
 
     expect(markError).toHaveBeenCalledWith('Live preview unavailable');
   });
@@ -283,15 +252,12 @@ describe('setupWebHlsVideo', () => {
     const video = createVideoMock('');
     const { Hls } = createHlsMock();
 
-    const cleanup = await setupWebHlsVideo({
-      video,
-      src: 'https://cam.test/live.m3u8',
-      withCredentials: true,
-      markLive,
-      markError,
-      isCancelled: () => true,
-      importHls: async () => ({ default: Hls }) as never,
-    });
+    const cleanup = await setupWebHlsVideo(
+      hlsOpts(video, {
+        isCancelled: () => true,
+        importHls: async () => ({ default: Hls }) as never,
+      }),
+    );
 
     expect(Hls).not.toHaveBeenCalled();
     cleanup();
