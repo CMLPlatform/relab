@@ -23,7 +23,7 @@ Three voices, one family:
 | Data / labels   | IBM Plex Mono 400     | Measurements, IDs, small data labels, code    |
 
 Type scale (web): display 38/44, title 24/30, heading 19/24, body 16/26, label 13 caps
-(+0.1em tracking, weight 500), caption 13/18, micro 12/16, data 14 mono with `tabular-nums`. Docs maps
+(+0.1em tracking, weight 400), caption 13/18, micro 12/16, data 14 mono with `tabular-nums`. Docs maps
 this scale onto Starlight's `--sl-text-h1/h2/h3` tokens; www sets it directly. The app
 adds an `eyebrow` variant — label metrics, rendered uppercase, muted (or accent) ink for
 compact tags — and caps Dynamic Type scaling app-wide at 2x so fixed layouts survive

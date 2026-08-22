@@ -54,7 +54,7 @@ typography:
   label:
     fontFamily: IBM Plex Mono, monospace
     fontSize: 0.8125rem
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 1.4
     letterSpacing: 0.1em
   data:
@@ -292,7 +292,7 @@ ignore would also silence a genuinely new raw hex at the same value.
 
 **Display Font:** IBM Plex Serif 600 (with Georgia, serif)
 **Body Font:** IBM Plex Sans 400–600 (with Segoe UI, sans-serif)
-**Label/Mono Font:** IBM Plex Mono 400–500 (with monospace)
+**Label/Mono Font:** IBM Plex Mono 400 (with monospace)
 
 **The Expo app deliberately diverges.** `app/` stays on platform system fonts (native feel,
 Dynamic Type support, zero load cost) and adopts only the *scale and palette*, not the typeface.
@@ -357,7 +357,7 @@ viewport, not per step.
   the 75-character comfort ceiling.
 - **Body Compact** (Sans 400, `0.95rem`/`1.62`): read-mode pages and the denser landing blocks.
   This is a deliberate density tier, not drift. `tokens.css` labels it as such.
-- **Label** (Mono 500, `0.8125rem`, `+0.1em`, uppercase, muted): phase names, colophon terms, the
+- **Label** (Mono 400, `0.8125rem`, `+0.1em`, uppercase, muted): phase names, colophon terms, the
   stats subhead. A label names a *different* thing from the heading near it; it is never a
   restatement.
 - **Data** (Mono 400, `data` token = 0.875rem, `tabular-nums`): the hero metric line and other
