@@ -14,7 +14,6 @@ from app.api.auth.schemas import UserCreate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.common.audit import AuditAction, AuditContext
-from tests.factories.models import UserFactory
 
 from .shared import (
     COOKIE_EMAIL,
@@ -29,7 +28,7 @@ from .shared import (
     TEST_PASSWORD,
     TEST_USERNAME,
     UNIQUE_USERNAME,
-    hash_test_password,
+    create_password_user,
     login_session,
 )
 
@@ -247,12 +246,7 @@ async def test_authenticated_totp_setup_enables_mfa(
     db_session: AsyncSession,
 ) -> None:
     """An authenticated user should be able to opt in to TOTP MFA."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="totp-opt-in@example.com",
-        username="totp_opt_in_user",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="totp-opt-in@example.com", username="totp_opt_in_user")
     await login_bearer_and_authorize(api_client, email=user.email)
 
     setup_data = await start_totp_setup(api_client)
@@ -273,12 +267,7 @@ async def test_totp_setup_confirm_requires_authentication(
     mock_redis_dependency: Redis,
 ) -> None:
     """A valid setup token should not be confirmable without an authenticated user."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="totp-confirm-auth@example.com",
-        username="totp_confirm_auth",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="totp-confirm-auth@example.com", username="totp_confirm_auth")
     setup_token = await mfa_service.create_totp_setup(
         mock_redis_dependency,
         user_id=user.id,
@@ -302,18 +291,8 @@ async def test_totp_setup_confirm_rejects_another_users_setup_token(
     db_session: AsyncSession,
 ) -> None:
     """A signed-in user should not be able to confirm another user's setup token."""
-    first_user = await UserFactory.create_async(
-        db_session,
-        email="totp-owner@example.com",
-        username="totp_owner",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
-    second_user = await UserFactory.create_async(
-        db_session,
-        email="totp-other@example.com",
-        username="totp_other",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    first_user = await create_password_user(db_session, email="totp-owner@example.com", username="totp_owner")
+    second_user = await create_password_user(db_session, email="totp-other@example.com", username="totp_other")
 
     await login_bearer_and_authorize(api_client, email=first_user.email)
     first_setup = await start_totp_setup(api_client)
@@ -337,12 +316,7 @@ async def test_totp_setup_retry_allows_valid_code_after_invalid_code(
     db_session: AsyncSession,
 ) -> None:
     """An invalid setup code should not consume the setup token."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="totp-retry@example.com",
-        username="totp_retry_user",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="totp-retry@example.com", username="totp_retry_user")
     await login_bearer_and_authorize(api_client, email=user.email)
     setup_data = await start_totp_setup(api_client)
     valid_code = mfa_service.generate_totp_code(setup_data["secret"])
@@ -370,12 +344,7 @@ async def test_totp_setup_start_can_be_retried_before_confirmation(
     db_session: AsyncSession,
 ) -> None:
     """Starting setup twice should not consume the first-factor MFA token."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="remount@example.com",
-        username="remount_user",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="remount@example.com", username="remount_user")
     await login_bearer_and_authorize(api_client, email=user.email)
 
     first_setup = await api_client.post("/v1/auth/mfa/totp/setup")
@@ -392,12 +361,7 @@ async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
     db_session: AsyncSession,
 ) -> None:
     """Older setup tokens from repeated setup starts must not overwrite a confirmed enrollment."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="stale-setup@example.com",
-        username="stale_setup_user",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="stale-setup@example.com", username="stale_setup_user")
     await login_bearer_and_authorize(api_client, email=user.email)
     first_setup = await start_totp_setup(api_client)
     second_setup = await start_totp_setup(api_client)
@@ -429,11 +393,10 @@ async def test_bearer_login_with_enabled_totp_requires_challenge(
 ) -> None:
     """Users with enabled TOTP must complete an MFA challenge before tokens are issued."""
     secret = mfa_service.generate_totp_secret()
-    user = await UserFactory.create_async(
+    user = await create_password_user(
         db_session,
         email="mfa-enabled@example.com",
         username="mfa_enabled",
-        hashed_password=hash_test_password(TEST_PASSWORD),
         mfa_enabled=True,
         mfa_totp_secret=secret,
     )
@@ -467,11 +430,10 @@ async def test_mfa_challenge_emits_failure_and_success_events(
 ) -> None:
     """MFA challenge attempts should be visible in structured auth events."""
     secret = mfa_service.generate_totp_secret()
-    user = await UserFactory.create_async(
+    user = await create_password_user(
         db_session,
         email="mfa-event@example.com",
         username="mfa_event",
-        hashed_password=hash_test_password(TEST_PASSWORD),
         mfa_enabled=True,
         mfa_totp_secret=secret,
     )
@@ -506,11 +468,10 @@ async def test_invalid_totp_challenge_does_not_consume_login_token(
 ) -> None:
     """A mistyped TOTP challenge should allow retrying with the same login challenge."""
     secret = mfa_service.generate_totp_secret()
-    user = await UserFactory.create_async(
+    user = await create_password_user(
         db_session,
         email="mfa-retry@example.com",
         username="mfa_retry",
-        hashed_password=hash_test_password(TEST_PASSWORD),
         mfa_enabled=True,
         mfa_totp_secret=secret,
     )
@@ -540,12 +501,7 @@ async def test_enabled_totp_user_cannot_start_new_setup(
     db_session: AsyncSession,
 ) -> None:
     """Users with enabled TOTP must not be able to create fresh setup material."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="mfa-setup-blocked@example.com",
-        username="mfa_setup_blocked",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="mfa-setup-blocked@example.com", username="mfa_setup_blocked")
 
     await login_bearer_and_authorize(api_client, email=user.email)
     user.mfa_enabled = True
@@ -645,12 +601,7 @@ async def test_revoke_all_sessions_emits_structured_event(
     db_session: AsyncSession,
 ) -> None:
     """Revoking all sessions should emit a structured auth event."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="revoke-all-event@example.com",
-        username="revoke_all_event",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="revoke-all-event@example.com", username="revoke_all_event")
     await login_bearer_and_authorize(api_client, email=user.email)
 
     with patch("app.api.auth.services.session_flow.audit_event") as log_event:

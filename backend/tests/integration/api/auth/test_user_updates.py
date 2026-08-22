@@ -24,7 +24,7 @@ from .shared import (
     USER2_EMAIL,
     USER2_USERNAME,
     assert_refresh_session_revoked,
-    hash_test_password,
+    create_password_user,
     login_bearer,
 )
 
@@ -210,12 +210,7 @@ async def test_password_update_requires_current_password(
     db_session: AsyncSession,
 ) -> None:
     """Password changes through the self-management endpoint require reauthentication."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="reauth-required@example.com",
-        username="reauth_required",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="reauth-required@example.com", username="reauth_required")
     token = await _login_bearer(api_client, user)
 
     response = await api_client.patch(
@@ -234,12 +229,7 @@ async def test_password_update_accepts_valid_current_password(
     mock_email_sending: AsyncMock,
 ) -> None:
     """A valid current password allows a password change and sends a security notification."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="reauth-valid@example.com",
-        username="reauth_valid",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="reauth-valid@example.com", username="reauth_valid")
     token = await _login_bearer(api_client, user)
 
     response = await api_client.patch(
@@ -264,12 +254,7 @@ async def test_password_update_revokes_existing_refresh_sessions(
     mock_redis_dependency: Redis,
 ) -> None:
     """A reauthenticated password change should terminate existing refresh sessions."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="password-revokes@example.com",
-        username="password_revokes",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="password-revokes@example.com", username="password_revokes")
     old_refresh_token = await _create_refresh_session(mock_redis_dependency, user)
     token = await _login_bearer(api_client, user)
 
@@ -290,12 +275,7 @@ async def test_username_update_does_not_require_current_password(
     db_session: AsyncSession,
 ) -> None:
     """Non-sensitive updates keep working without a current password."""
-    user = await UserFactory.create_async(
-        db_session,
-        email="reauth-username@example.com",
-        username="reauth_username",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-    )
+    user = await create_password_user(db_session, email="reauth-username@example.com", username="reauth_username")
     token = await _login_bearer(api_client, user)
 
     response = await api_client.patch(
@@ -323,11 +303,10 @@ async def test_update_me_rejects_privileged_fields_without_mutating_user(
     value: object,
 ) -> None:
     """Self-service updates must reject account-control fields at request validation."""
-    user = await UserFactory.create_async(
+    user = await create_password_user(
         db_session,
         email=f"mass-assignment-{field_name.replace('_', '-')}@example.com",
         username=f"mass_assignment_{field_name}",
-        hashed_password=hash_test_password(TEST_PASSWORD),
         is_active=True,
         is_superuser=False,
         is_verified=False,
@@ -356,13 +335,7 @@ async def test_email_update_verifies_new_address_and_notifies_old_address(
     """Changing email should update canonical identity and run both safety notifications."""
     old_email = "old-address@example.com"
     new_email = "New-Address@Example.com"
-    user = await UserFactory.create_async(
-        db_session,
-        email=old_email,
-        username="email_update_user",
-        hashed_password=hash_test_password(TEST_PASSWORD),
-        is_verified=True,
-    )
+    user = await create_password_user(db_session, email=old_email, username="email_update_user", is_verified=True)
     token = await _login_bearer(api_client, user)
 
     response = await api_client.patch(
@@ -390,11 +363,10 @@ async def test_email_update_revokes_existing_refresh_sessions(
     mock_redis_dependency: Redis,
 ) -> None:
     """A reauthenticated email change should terminate existing refresh sessions."""
-    user = await UserFactory.create_async(
+    user = await create_password_user(
         db_session,
         email="email-revokes@example.com",
         username="email_revokes",
-        hashed_password=hash_test_password(TEST_PASSWORD),
         is_verified=True,
     )
     old_refresh_token = await _create_refresh_session(mock_redis_dependency, user)

@@ -5,9 +5,13 @@ from typing import TYPE_CHECKING, Any
 from fastapi import status
 
 from app.api.auth.services.password_hashing import build_password_helper
+from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.auth.models import User
 
 TEST_EMAIL = "newuser@example.com"
 TEST_PASSWORD = "correct-horse-battery-staple-v42"
@@ -39,6 +43,17 @@ TEST_STATE_JWT_SECRET = "test-state-jwt-secret-32-bytes-long"
 def hash_test_password(password: str) -> str:
     """Hash a password with a real supported scheme for auth-focused tests."""
     return build_password_helper().hash(password)
+
+
+async def create_password_user(db_session: AsyncSession, *, email: str, username: str, **overrides: Any) -> User:
+    """Create a user whose password is really hashed, for password-auth tests."""
+    return await UserFactory.create_async(
+        db_session,
+        email=email,
+        username=username,
+        hashed_password=hash_test_password(TEST_PASSWORD),
+        **overrides,
+    )
 
 
 async def login_bearer(api_client: AsyncClient, *, email: str, password: str) -> dict[str, Any]:

@@ -19,6 +19,17 @@ from app.api.auth.services import mfa_flow, mfa_service
 from app.api.common.audit import AuditAction
 
 
+def build_mfa_user(**flags: object) -> tuple[MagicMock, MagicMock]:
+    """Build the (user, user_manager) pair every MFA flow test stubs."""
+    user = MagicMock()
+    user.id = "user-id"
+    for name, value in flags.items():
+        setattr(user, name, value)
+    user_manager = MagicMock()
+    user_manager.get = AsyncMock(return_value=user)
+    return user, user_manager
+
+
 async def test_get_mfa_token_applies_fingerprint_rate_limit() -> None:
     """Raw MFA tokens should be extracted through the shared token rate limiter."""
     with patch(
@@ -49,12 +60,7 @@ async def test_complete_mfa_challenge_invalid_code_does_not_consume_login_challe
     """Invalid TOTP codes should keep the login challenge available for retry."""
     challenge = MagicMock()
     challenge.user_id = "user-id"
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    _user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
@@ -78,12 +84,7 @@ async def test_complete_mfa_challenge_invalid_code_does_not_consume_login_challe
 
 async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None:
     """TOTP setup confirmation should consume setup state only after verification succeeds."""
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = False
-    user.mfa_totp_secret = None
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(mfa_enabled=False, mfa_totp_secret=None)
     user_manager.password_helper.verify_and_update = MagicMock(return_value=(True, None))
     setup = MagicMock()
     setup.secret = "secret"
@@ -125,12 +126,7 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
 
 async def test_confirm_totp_setup_rejects_wrong_password() -> None:
     """Enrollment must not enable MFA when the reauth password is wrong."""
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = False
-    user.mfa_totp_secret = None
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(mfa_enabled=False, mfa_totp_secret=None)
     user_manager.password_helper.verify_and_update = MagicMock(return_value=(False, None))
     setup = MagicMock()
     setup.secret = "secret"
@@ -159,13 +155,7 @@ async def test_confirm_totp_setup_allows_oauth_only_account_without_password() -
     Google/GitHub (random password, has_usable_password=False) got 401 and could never
     turn MFA on.
     """
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = False
-    user.mfa_totp_secret = None
-    user.has_usable_password = False
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(mfa_enabled=False, mfa_totp_secret=None, has_usable_password=False)
 
     setup = MagicMock()
     setup.secret = "secret"
@@ -195,13 +185,7 @@ async def test_confirm_totp_setup_allows_oauth_only_account_without_password() -
 
 async def test_confirm_totp_setup_requires_password_when_account_has_one() -> None:
     """An account with a usable password must still supply it (400 when omitted)."""
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = False
-    user.mfa_totp_secret = None
-    user.has_usable_password = True
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(mfa_enabled=False, mfa_totp_secret=None, has_usable_password=True)
     setup = MagicMock()
     setup.secret = "secret"
 
@@ -224,12 +208,7 @@ async def test_confirm_totp_setup_requires_password_when_account_has_one() -> No
 
 async def test_disable_totp_clears_enrollment_after_valid_code() -> None:
     """Disabling TOTP with a current code should clear the enrollment."""
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)),
@@ -251,12 +230,7 @@ async def test_disable_totp_clears_enrollment_after_valid_code() -> None:
 
 async def test_disable_totp_invalid_code_keeps_enrollment() -> None:
     """An invalid code must not clear the TOTP enrollment."""
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=False)),
@@ -281,13 +255,9 @@ async def test_complete_mfa_challenge_accepts_recovery_code() -> None:
     challenge = MagicMock()
     challenge.user_id = "user-id"
     challenge.transport = "bearer"
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user.mfa_recovery_codes = ["hash-a", "hash-b"]
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(
+        mfa_enabled=True, mfa_totp_secret="totp-secret", mfa_recovery_codes=["hash-a", "hash-b"]
+    )
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
@@ -322,13 +292,7 @@ async def test_complete_mfa_challenge_rejects_bad_recovery_code() -> None:
     """An unknown recovery code must not consume the login challenge."""
     challenge = MagicMock()
     challenge.user_id = "user-id"
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user.mfa_recovery_codes = ["hash-a"]
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    _user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret", mfa_recovery_codes=["hash-a"])
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
@@ -352,12 +316,7 @@ async def test_complete_mfa_challenge_rejects_bad_recovery_code() -> None:
 
 async def test_regenerate_recovery_codes_reissues_after_valid_code() -> None:
     """Regenerating with a current TOTP code should return a fresh set of codes."""
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)),
@@ -382,13 +341,9 @@ async def test_regenerate_recovery_codes_reissues_after_valid_code() -> None:
 
 async def test_disable_totp_accepts_recovery_code() -> None:
     """A user who lost their authenticator can disable MFA with a recovery code."""
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user.mfa_recovery_codes = ["hash-a", "hash-b"]
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    user, user_manager = build_mfa_user(
+        mfa_enabled=True, mfa_totp_secret="totp-secret", mfa_recovery_codes=["hash-a", "hash-b"]
+    )
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock()) as verify_totp,
@@ -412,13 +367,9 @@ async def test_complete_mfa_challenge_keeps_recovery_code_when_challenge_consume
     """A failed challenge-consume must not burn the one-time recovery code."""
     challenge = MagicMock()
     challenge.user_id = "user-id"
-    user = MagicMock()
-    user.id = "user-id"
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user.mfa_recovery_codes = ["hash-a", "hash-b"]
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    _user, user_manager = build_mfa_user(
+        mfa_enabled=True, mfa_totp_secret="totp-secret", mfa_recovery_codes=["hash-a", "hash-b"]
+    )
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
@@ -467,13 +418,7 @@ async def test_complete_mfa_challenge_rejects_deactivated_user() -> None:
     """A deactivated user must not be able to complete a pending MFA challenge."""
     challenge = MagicMock()
     challenge.user_id = "user-id"
-    user = MagicMock()
-    user.id = "user-id"
-    user.is_active = False
-    user.mfa_enabled = True
-    user.mfa_totp_secret = "totp-secret"
-    user_manager = MagicMock()
-    user_manager.get = AsyncMock(return_value=user)
+    _user, user_manager = build_mfa_user(is_active=False, mfa_enabled=True, mfa_totp_secret="totp-secret")
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),

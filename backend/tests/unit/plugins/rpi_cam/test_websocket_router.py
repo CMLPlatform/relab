@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import re
 import secrets
 import time
 from types import SimpleNamespace
@@ -405,94 +406,51 @@ async def test_accepts_valid_assertion() -> None:
     assert payload["kid"] == key_id
 
 
-async def test_rejects_assertion_lifetime_over_cap() -> None:
-    """An assertion whose lifetime exceeds the replay-tracking cap is rejected."""
-    key_id = "key-1"
+@pytest.fixture
+def device_assertion() -> tuple[ec.EllipticCurvePrivateKey, MagicMock, AsyncMock]:
+    """The key pair, camera and redis stub every assertion-rejection test needs."""
     private_key, jwk = _make_key()
-    camera = _make_camera(key_id, jwk)
-    redis = AsyncMock()
-    redis.set = AsyncMock(return_value=True)
-
-    assertion = _make_assertion(private_key, str(camera.id), key_id, exp_offset=MAX_ASSERTION_TTL_SECONDS + 60)
-    with pytest.raises(jwt.InvalidTokenError, match="lifetime"):
-        await _verify_device_assertion(assertion, camera, redis)
+    return private_key, _make_camera("key-1", jwk), AsyncMock()
 
 
-async def test_rejects_expired_assertion() -> None:
-    """An assertion with exp in the past should be rejected."""
-    key_id = "key-1"
-    private_key, jwk = _make_key()
-    camera = _make_camera(key_id, jwk)
-    redis = AsyncMock()
+@pytest.mark.parametrize(
+    ("kid", "claims", "match"),
+    [
+        pytest.param(
+            "key-1",
+            {"exp_offset": MAX_ASSERTION_TTL_SECONDS + 60},
+            "Assertion lifetime exceeds allowed maximum",
+            id="lifetime-over-cap",
+        ),
+        pytest.param("key-1", {"exp_offset": -10}, "Signature has expired", id="expired"),
+        pytest.param("key-1", {"aud": "wrong-audience"}, "Audience doesn't match", id="wrong-audience"),
+        pytest.param(
+            "key-1",
+            {"sub": f"camera:{uuid4()}"},
+            "Assertion subject does not match camera",
+            id="wrong-subject",
+        ),
+        pytest.param("key-1", {"omit_claims": {"iss"}}, 'missing the "iss" claim', id="missing-issuer"),
+        pytest.param(
+            "key-1",
+            {"iss": f"camera:{uuid4()}"},
+            "Assertion issuer does not match camera",
+            id="wrong-issuer",
+        ),
+        pytest.param("wrong-kid", {}, "Assertion key id does not match camera credential", id="wrong-kid"),
+    ],
+)
+async def test_rejects_assertion_with_bad_claim(
+    device_assertion: tuple[ec.EllipticCurvePrivateKey, MagicMock, AsyncMock],
+    kid: str,
+    claims: dict[str, object],
+    match: str,
+) -> None:
+    """Each malformed or mis-scoped claim should be rejected, naming its own reason."""
+    private_key, camera, redis = device_assertion
 
-    assertion = _make_assertion(private_key, str(camera.id), key_id, exp_offset=-10)
-    with pytest.raises(jwt.InvalidTokenError):
-        await _verify_device_assertion(assertion, camera, redis)
-
-
-async def test_rejects_wrong_audience() -> None:
-    """An assertion with the wrong audience should be rejected."""
-    key_id = "key-1"
-    private_key, jwk = _make_key()
-    camera = _make_camera(key_id, jwk)
-    redis = AsyncMock()
-
-    assertion = _make_assertion(private_key, str(camera.id), key_id, aud="wrong-audience")
-    with pytest.raises(jwt.InvalidTokenError):
-        await _verify_device_assertion(assertion, camera, redis)
-
-
-async def test_rejects_wrong_subject() -> None:
-    """An assertion whose sub doesn't match the camera id should be rejected."""
-    key_id = "key-1"
-    private_key, jwk = _make_key()
-    camera = _make_camera(key_id, jwk)
-    redis = AsyncMock()
-    redis.set = AsyncMock(return_value=True)
-
-    # Sign with a different camera id in the subject
-    other_id = uuid4()
-    assertion = _make_assertion(private_key, str(camera.id), key_id, sub=f"camera:{other_id}")
-    with pytest.raises(jwt.InvalidTokenError, match="subject"):
-        await _verify_device_assertion(assertion, camera, redis)
-
-
-async def test_rejects_missing_issuer() -> None:
-    """An assertion without iss should be rejected."""
-    key_id = "key-1"
-    private_key, jwk = _make_key()
-    camera = _make_camera(key_id, jwk)
-    redis = AsyncMock()
-    redis.set = AsyncMock(return_value=True)
-
-    assertion = _make_assertion(private_key, str(camera.id), key_id, omit_claims={"iss"})
-    with pytest.raises(jwt.InvalidTokenError):
-        await _verify_device_assertion(assertion, camera, redis)
-
-
-async def test_rejects_wrong_issuer() -> None:
-    """An assertion whose iss doesn't match the camera id should be rejected."""
-    key_id = "key-1"
-    private_key, jwk = _make_key()
-    camera = _make_camera(key_id, jwk)
-    redis = AsyncMock()
-    redis.set = AsyncMock(return_value=True)
-
-    assertion = _make_assertion(private_key, str(camera.id), key_id, iss=f"camera:{uuid4()}")
-    with pytest.raises(jwt.InvalidTokenError, match="issuer"):
-        await _verify_device_assertion(assertion, camera, redis)
-
-
-async def test_rejects_wrong_kid() -> None:
-    """An assertion whose kid doesn't match the stored key_id should be rejected."""
-    key_id = "key-1"
-    private_key, jwk = _make_key()
-    camera = _make_camera(key_id, jwk)
-    redis = AsyncMock()
-
-    # Sign with a different kid
-    assertion = _make_assertion(private_key, str(camera.id), "wrong-kid")
-    with pytest.raises(jwt.InvalidTokenError, match="key id"):
+    assertion = _make_assertion(private_key, str(camera.id), kid, **claims)
+    with pytest.raises(jwt.InvalidTokenError, match=re.escape(match)):
         await _verify_device_assertion(assertion, camera, redis)
 
 
