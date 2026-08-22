@@ -12,8 +12,9 @@ variable "state_passphrase" {
   description = <<-EOT
     Passphrase encrypting local state and plan files (>= 16 characters). Export
     TF_VAR_state_passphrase before any plan or apply that touches real Cloudflare
-    credentials. Empty (the default) leaves state unencrypted, which keeps
-    `just cloudflare-check` runnable without secrets.
+    credentials. Empty (the default) keeps `just cloudflare-check` runnable without
+    secrets; encryption is enforced, so an empty value fails closed rather than
+    writing plaintext state.
   EOT
   type        = string
   sensitive   = true

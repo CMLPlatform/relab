@@ -21,17 +21,20 @@ variable "cloudflare_zone_name" {
   default     = "cml-relab.org"
 }
 
-variable "telemetry_ingress_authorization" {
+variable "telemetry_edge_key" {
   description = <<-EOT
-    Exact Authorization header value that identifies the telemetry shipper to `logs.`
-    and `otlp.`, used to skip Cloudflare's bot and managed-security products for it.
-    Export as TF_VAR_telemetry_ingress_authorization; it must never be written into the
-    repo. Empty (the default) omits the rule entirely, which keeps `just cloudflare-check`
-    runnable without secrets.
+    Value of the `X-Relab-Telemetry-Key` header that identifies the telemetry shippers
+    to `otlp.`, used to skip Cloudflare's bot and managed-security products for them.
+    Export as TF_VAR_telemetry_edge_key; it must never be written into the repo. Empty
+    (the default) omits the rule entirely, which keeps `just cloudflare-check` runnable
+    without secrets.
 
-    The whole header value, scheme included. The CML monitoring stack issues
-    `Bearer <OTLP_AUTH_TOKEN>`; an older Basic credential predates it. It must match
-    OTEL_EXPORTER_OTLP_HEADERS on the deploy hosts exactly, so the two rotate together.
+    Deliberately NOT the OTLP bearer token: Cloudflare stores ruleset expressions in
+    cleartext and returns them from the rulesets API and the dashboard, so whatever this
+    rule matches is readable by any zone-read grant. A dedicated key limits that
+    exposure to the managed-security skip, and the two credentials rotate independently.
+    It must equal TELEMETRY_EDGE_KEY in the deploy hosts' root `.env` (the api's
+    OTEL_EXPORTER_OTLP_HEADERS and Alloy both send it).
 
     NOTE: `otlp.` is the monitoring stack's hostname, not Relab's. That stack manages its
     own Cloudflare config but declares no rulesets, so this root stays the single owner of

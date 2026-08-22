@@ -87,7 +87,7 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
   command = plan
 
   variables {
-    telemetry_ingress_authorization = "Basic dGVzdDp0ZXN0"
+    telemetry_edge_key = "test-edge-key"
   }
 
   assert {
@@ -95,9 +95,19 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref == "relab_telemetry_ingress_skip_managed_security" &&
       strcontains(rule.expression, "otlp.cml-relab.org") &&
-      strcontains(rule.expression, "authorization")
+      strcontains(rule.expression, "x-relab-telemetry-key")
     ])
     error_message = "the telemetry skip rule must match the ingress host AND the credential header."
+  }
+
+  # The whole point of the dedicated header: the collector's Authorization bearer
+  # token must never be readable from a ruleset expression.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      !strcontains(rule.expression, "authorization")
+    ])
+    error_message = "no firewall expression may match (and thereby store) the Authorization header value."
   }
 
   # A skip rule that also matched the API would hand an attacker a way past the WAF.
@@ -130,7 +140,7 @@ run "expressions_stay_inside_the_zone_plan_entitlements" {
   command = plan
 
   variables {
-    telemetry_ingress_authorization = "Basic dGVzdDp0ZXN0"
+    telemetry_edge_key = "test-edge-key"
   }
 
   # The `matches` (regex) operator needs a Business or WAF Advanced plan. Using it

@@ -60,6 +60,11 @@ locals {
   # ledger; the RPi pairing, image and websocket routes carry their own limiter
   # dependencies (app/api/common/rate_limiting.py). None of them is left with no limit.
   #
+  # Accepted residual risk: those app-layer limiters fail OPEN when Redis is
+  # unreachable (rate_limiting.py logs "failing open"), and with the plan capped at one
+  # edge rule there is no second layer behind them during a Redis outage. The upload
+  # ledger (a Postgres count, unaffected by Redis) still bounds total volume per user.
+  #
   # 10 requests / 10s is deliberately far looser than the application limits it sits in
   # front of (login is 3/min, register and reset 3-5/hour — app/api/auth/config.py). The
   # backend does the precise per-endpoint enforcement; this rule only stops volume, and
@@ -84,13 +89,18 @@ locals {
   # separates the real shipper from anyone else who finds the hostname, so it is a
   # variable rather than a literal — and the rule disappears when it is not supplied,
   # rather than degrading into "skip security for anyone hitting this host".
-  telemetry_ingress_rules = var.telemetry_ingress_authorization == "" ? [] : [
+  #
+  # The rule matches a DEDICATED header, never the Authorization bearer token: ruleset
+  # expressions are stored and served in cleartext by the Cloudflare API, so matching
+  # the token would disclose the collector credential to any zone-read grant. The
+  # jsonencode keeps a key containing `"` or `\` from producing a malformed expression.
+  telemetry_ingress_rules = var.telemetry_edge_key == "" ? [] : [
     {
       ref         = "relab_telemetry_ingress_skip_managed_security"
       description = "Skip managed WAF and bot products for authenticated telemetry ingress"
       expression = join(" and ", [
         local.telemetry_ingress_hosts_expression,
-        "any(http.request.headers[\"authorization\"][*] eq \"${var.telemetry_ingress_authorization}\")",
+        "any(http.request.headers[\"x-relab-telemetry-key\"][*] eq ${jsonencode(var.telemetry_edge_key)})",
       ])
       action = "skip"
       action_parameters = {

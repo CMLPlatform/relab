@@ -28,7 +28,7 @@ dropping them would have been a silent regression:
 - **`relab_prod_html_bypass`** — the prod web and app entry points bypass the edge
   cache. Their URLs do not change between deploys, so a cached entry point keeps
   serving the previous build.
-- **`relab_telemetry_ingress_skip_managed_security`** — `logs.` and `otlp.` accept
+- **`relab_telemetry_ingress_skip_managed_security`** — `otlp.` accepts
   shipped telemetry from a non-browser client that Cloudflare's bot products would
   otherwise challenge, and a challenged log push is a silently dropped log.
 
@@ -42,12 +42,15 @@ The telemetry rule is gated on a shared secret, supplied as a variable so it nev
 enters the repository:
 
 ```bash
-export TF_VAR_telemetry_ingress_authorization='Bearer ...'  # same value as OTEL_EXPORTER_OTLP_HEADERS
+export TF_VAR_telemetry_edge_key='...'  # same value as TELEMETRY_EDGE_KEY in the deploy hosts' .env
 ```
 
-It is the **whole header value, scheme included**. The CML monitoring stack issues
-`Bearer <OTLP_AUTH_TOKEN>`; a Basic credential predates it and is what the rule carried
-when it was adopted.
+It is matched against a dedicated `X-Relab-Telemetry-Key` header, **not** the OTLP
+bearer token: Cloudflare stores ruleset expressions in cleartext and returns them from
+the rulesets API, so matching the Authorization value (as the adopted rule originally
+did) would disclose the collector credential to any zone-read grant. The deploy hosts
+send both headers — the token authenticates at the collector, the key only buys the
+managed-security skip — and the two rotate independently.
 
 > **Sharing the zone with the monitoring stack is fine today — keep it that way.**
 > `otlp.cml-relab.org` belongs to CMLPlatform/monitoring, which runs its own Cloudflare

@@ -56,7 +56,11 @@ esac
 # this script exists to prevent.
 lookup_dns_record() {
     local hostname="$1" id
-    id="$(api "zones/$zone/dns_records?name=$hostname" | jq -r '.result[0].id // empty')"
+    # Type-filtered: the module manages CNAMEs, and at the zone apex the same name also
+    # carries TXT/MX records. An unfiltered `.result[0]` could bind one of those, and
+    # the apply would then rewrite it into a proxied CNAME — destroying an SPF/DMARC
+    # record while leaving the real CNAME unmanaged.
+    id="$(api "zones/$zone/dns_records?name=$hostname&type=CNAME" | jq -r '.result[0].id // empty')"
     [[ -n "$id" ]] || return 1
     printf '%s' "$id"
 }

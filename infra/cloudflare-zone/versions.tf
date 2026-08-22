@@ -1,7 +1,9 @@
 terraform {
   required_version = ">= 1.8"
 
-  # State is local, in terraform.tfstate.d/, and encrypted (see below). A remote
+  # State is local, in terraform.tfstate (single default workspace — the
+  # per-environment terraform.tfstate.d/ layout is the edge root's), and
+  # encrypted (see below). A remote
   # backend would buy locking, which needs more than one operator to be worth its
   # credentials — and durability, which generate-imports.sh already provides: losing
   # this state costs a re-import, not a rebuild.

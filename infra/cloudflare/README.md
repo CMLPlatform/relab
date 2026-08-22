@@ -38,19 +38,37 @@ The zone rulesets deliberately match **both** environments' api hosts, so the si
 owner protects both. There is no `manage_shared_zone_rulesets` variable any more; the
 split replaced it.
 
-### One-time: completing the split
+### One-time: completing the split (done on the staging host, 2026-08-20)
 
-The `staging` workspace was adopted before the split, so its state still holds the
-three zone settings that now belong to the zone root. Hand them over once — `state rm`
-forgets them **without** deleting anything from Cloudflare, then the zone root imports
-them:
+Any edge workspace applied before the split can still hold the three zone settings
+and — because the pre-split root declared the zone entrypoint rulesets behind a
+default-TRUE variable — the three rulesets that now belong to the zone root. A plan
+for such a workspace would DESTROY the live rate-limit and firewall rules.
+
+**Check first.** In each edge workspace:
 
 ```bash
 cd infra/cloudflare
-tofu workspace select staging
+tofu workspace select staging   # and any other workspace that was ever applied
+tofu state list
+```
+
+A clean workspace lists only `cloudflare_dns_record.edge[...]` and the two tunnel
+resources — that is the verified state of the staging host's workspace, and nothing
+below applies to it. `state rm` on a clean workspace fails with "No matching objects
+found", which is confirmation, not an error.
+
+If the list DOES show `cloudflare_zone_setting.*` or `cloudflare_ruleset.*`, hand
+them over — `state rm` forgets them **without** deleting anything from Cloudflare,
+then the zone root imports them:
+
+```bash
 tofu state rm cloudflare_zone_setting.minimum_tls_version \
               cloudflare_zone_setting.tls_1_3 \
               cloudflare_zone_setting.always_use_https
+tofu state rm 'cloudflare_ruleset.rate_limiting[0]' \
+              'cloudflare_ruleset.cache_settings[0]' \
+              'cloudflare_ruleset.custom_firewall[0]' || true
 
 ./generate-imports.sh zone > ../cloudflare-zone/imports.tf
 just cloudflare-zone-plan            # 0 to add; the TLS floor may show 1.0 -> 1.2
@@ -59,7 +77,8 @@ rm ../cloudflare-zone/imports.tf
 ```
 
 Order matters: `state rm` before the zone import, or two states briefly claim the same
-resources.
+resources. Either way: a plan that proposes destroying a ruleset is this handover left
+unfinished, not something to approve.
 
 Current hostnames:
 
