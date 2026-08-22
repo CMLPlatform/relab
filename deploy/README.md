@@ -8,12 +8,10 @@ one-time migration off `main`.
 | **Routine release**    | [DEPLOY-PROD.md](DEPLOY-PROD.md)   | [DEPLOY-STAGING.md](DEPLOY-STAGING.md)   |
 | **One-time migration** | [CUTOVER-PROD.md](CUTOVER-PROD.md) | [CUTOVER-STAGING.md](CUTOVER-STAGING.md) |
 
-[MONITORING-DESIGN.md](MONITORING-DESIGN.md) is the architecture review the observability
-work came from — the reasoning, the trade-offs, and the claims it could not verify.
-[MONITORING-HANDOVER.md](MONITORING-HANDOVER.md) is now a stub: the central stack's
-half of the work moved to `docs/HANDOVER.md` in CMLPlatform/monitoring, and the target
-architecture is that repo's ADR 0002. The stub keeps only the tripwire that gates
-deleting Relab's local watchdog checks.
+The monitoring architecture is owned by
+[CMLPlatform/monitoring](https://github.com/CMLPlatform/monitoring): its ADR 0002 records
+the hub-and-spoke design and `docs/HANDOVER.md` the open migration work. Relab is one
+spoke; everything Relab-specific about it lives in the `DEPLOY-*` runbooks.
 
 `DEPLOY-*` is permanent and self-contained: first-time host setup, the routine release
 loop, and recovery. Start there for anything you do more than once.
