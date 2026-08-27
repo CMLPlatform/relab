@@ -29,6 +29,7 @@ class TelemetryState:
     fastapi_instrumentor: FastAPIInstrumentor | None = None
     sqlalchemy_instrumentor: SQLAlchemyInstrumentor | None = None
     httpx_instrumentor: HTTPXClientInstrumentor | None = None
+    meter_provider: Any = field(default=None)
     # Log export
     log_provider: Any = field(default=None)
     log_handler: logging.Handler | None = None
@@ -82,6 +83,11 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
         resource_cls = import_module("opentelemetry.sdk.resources").Resource
         tracer_provider_cls = import_module("opentelemetry.sdk.trace").TracerProvider
         batch_span_processor_cls = import_module("opentelemetry.sdk.trace.export").BatchSpanProcessor
+        otel_metrics = import_module("opentelemetry.metrics")
+        metric_exporter_mod = import_module("opentelemetry.exporter.otlp.proto.http.metric_exporter")
+        otlp_metric_exporter = metric_exporter_mod.OTLPMetricExporter
+        meter_provider_cls = import_module("opentelemetry.sdk.metrics").MeterProvider
+        periodic_reader_cls = import_module("opentelemetry.sdk.metrics.export").PeriodicExportingMetricReader
     except ImportError:
         logger.warning("OpenTelemetry is enabled but instrumentation dependencies are not installed")
         return False
@@ -97,8 +103,20 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
     tracer_provider.add_span_processor(batch_span_processor_cls(exporter))
     trace.set_tracer_provider(tracer_provider)
 
+    # ADR 0002 moved RED metrics off Tempo's span-metrics generator and onto the app's
+    # own OTLP metrics, which means this provider IS the RED pipeline. Without it the
+    # instrumentors below record their durations into the API's no-op default meter:
+    # no error, no warning, and no metric ever leaves the process.
+    meter_provider = meter_provider_cls(
+        resource=resource,
+        metric_readers=[periodic_reader_cls(otlp_metric_exporter())],
+    )
+    otel_metrics.set_meter_provider(meter_provider)
+
     fastapi_instrumentor = fastapi_instrumentor_cls()
-    fastapi_instrumentor.instrument_app(app)
+    # Explicit rather than relying on the global: instrument_app resolves the meter
+    # provider once, at call time, so a global set later would be silently ignored.
+    fastapi_instrumentor.instrument_app(app, meter_provider=meter_provider)
 
     sqlalchemy_instrumentor = sqlalchemy_instrumentor_cls()
     sqlalchemy_instrumentor.instrument(engine=async_engine.sync_engine)
@@ -108,6 +126,7 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
 
     _telemetry_state.initialized = True
     _telemetry_state.tracer_provider = tracer_provider
+    _telemetry_state.meter_provider = meter_provider
     _telemetry_state.fastapi_instrumentor = fastapi_instrumentor
     _telemetry_state.sqlalchemy_instrumentor = sqlalchemy_instrumentor
     _telemetry_state.httpx_instrumentor = httpx_instrumentor
@@ -136,6 +155,9 @@ def shutdown_telemetry(app: FastAPI) -> None:
     if _telemetry_state.tracer_provider is not None:
         _telemetry_state.tracer_provider.shutdown()
 
+    if _telemetry_state.meter_provider is not None:
+        _telemetry_state.meter_provider.shutdown()
+
     if _telemetry_state.log_handler is not None:
         logging.root.removeHandler(_telemetry_state.log_handler)
 
@@ -144,6 +166,7 @@ def shutdown_telemetry(app: FastAPI) -> None:
 
     _telemetry_state.initialized = False
     _telemetry_state.tracer_provider = None
+    _telemetry_state.meter_provider = None
     _telemetry_state.fastapi_instrumentor = None
     _telemetry_state.sqlalchemy_instrumentor = None
     _telemetry_state.httpx_instrumentor = None

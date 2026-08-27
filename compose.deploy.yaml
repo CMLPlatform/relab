@@ -99,6 +99,14 @@ services:
       # would silently stop all telemetry.
       OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
       OTEL_SERVICE_NAME: relab-api
+      # The other identity labels the central stack keys alerts and dashboards on.
+      # Alloy stamps project/env on everything IT ships, but the SDK's own traces and
+      # metrics bypass Alloy entirely, so without this they arrive attributable to no
+      # project and ProjectTelemetrySilent cannot see them. The SDK reads this variable
+      # itself and merges it into every Resource — no code involved. host.name is
+      # deliberately absent: the API is a service-level signal and Alloy owns host
+      # identity, which is the one producer rule from ADR 0002.
+      OTEL_RESOURCE_ATTRIBUTES: project=relab,env=${ENVIRONMENT}
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
