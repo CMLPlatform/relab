@@ -107,6 +107,13 @@ services:
       # deliberately absent: the API is a service-level signal and Alloy owns host
       # identity, which is the one producer rule from ADR 0002.
       OTEL_RESOURCE_ATTRIBUTES: project=relab,env=${ENVIRONMENT}
+      # Stable HTTP semantic conventions. Not cosmetic: the legacy metrics label every
+      # series with http_target, the RAW request path, so one API with path parameters
+      # mints an unbounded number of series. The stable names carry http_route instead —
+      # the templated path — which is bounded by the route table. This is the cardinality
+      # rule from ADR 0002 (ids belong in span attributes, never labels) applied to
+      # metrics, and it is what the central Service Health dashboard already queries.
+      OTEL_SEMCONV_STABILITY_OPT_IN: http
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
