@@ -93,6 +93,16 @@ services:
       # Read positions survive restarts; without this every restart re-ships whatever
       # the containers still have on disk.
       - alloy_data:/var/lib/alloy/data
+    # cAdvisor finds containers by walking the cgroup hierarchy, NOT through the Docker
+    # API — the socket proxy only supplies names and metadata for cgroups it has already
+    # found. Under Docker's default private cgroup namespace this container sees just its
+    # own cgroup, as "/", so every container_* metric collapses to a single root series
+    # with no `name` label: the central ContainerRestarting rule matches zero series and
+    # ContainerOOMKilled cannot say which container died. Joining the host's namespace is
+    # the whole fix; mounting /sys/fs/cgroup as well is redundant, verified on cgroup v2.
+    # It grants read access to the host's cgroup tree, which is strictly less than the
+    # /rootfs and /var/lib/docker mounts above already give.
+    cgroup: host
     # cAdvisor reads OOM-kill events from the kernel log; without the device AND
     # CAP_SYSLOG (kernel.dmesg_restrict gates /dev/kmsg reads) container_oom_events_total
     # never increments and the central ContainerOOMKilled rule can never fire ("Could

@@ -154,9 +154,12 @@ prometheus.exporter.unix "host" {
 // signal, and container_oom_events_total says why. The incident that produced these
 // runbooks — 668 restarts over 19 hours, every monitor green — is detected by
 //
-//     changes(container_start_time_seconds{name!=""}[15m]) > 2
+//     changes(container_start_time_seconds{name!=""}[1h]) > 3
 //
 // which is a rule on the central stack, not here. This side only has to ship the series.
+// Shipping them at all needs `cgroup: host` on this container: see the note in
+// compose.logging.alloy.yaml, without which cAdvisor reports one root series and the
+// rule above matches nothing.
 prometheus.exporter.cadvisor "containers" {
 	docker_host = "tcp://docker-socket-proxy:2375"
 
