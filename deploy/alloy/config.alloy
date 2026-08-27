@@ -179,9 +179,30 @@ prometheus.exporter.cadvisor "containers" {
 
 prometheus.scrape "cadvisor" {
 	targets         = prometheus.exporter.cadvisor.containers.targets
-	forward_to      = [prometheus.relabel.host.receiver]
+	forward_to      = [prometheus.relabel.cadvisor_scope.receiver]
 	scrape_interval = "30s"
 	job_name        = "cadvisor"
+}
+
+// cAdvisor walks the host's cgroup tree, so it sees EVERY container on the box. The
+// COMPOSE_PROJECT_NAME filter on discovery.docker above scopes log tailing only — it
+// does not reach this exporter. On a host that also runs a dev stack, an unrelated
+// tool, or the monitoring stack itself, those containers otherwise arrive stamped with
+// THIS deployment's project and env, firing this project's alerts for something it does
+// not own and double-reporting anything that ships its own telemetry. Keep only this
+// project's containers, using the compose label the allowlist above preserves.
+//
+// The unlabelled root-cgroup series drops out with them, which is correct: it carries no
+// `name`, so no container rule can match it, and node_exporter above already owns
+// host-level totals.
+prometheus.relabel "cadvisor_scope" {
+	forward_to = [prometheus.relabel.host.receiver]
+
+	rule {
+		source_labels = ["container_label_com_docker_compose_project"]
+		regex         = sys.env("COMPOSE_PROJECT_NAME")
+		action        = "keep"
+	}
 }
 
 prometheus.scrape "host" {
