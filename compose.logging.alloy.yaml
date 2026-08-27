@@ -99,8 +99,18 @@ services:
     # not configure a source for OOM detection" in the agent log is this exact gap).
     devices:
       - /dev/kmsg:/dev/kmsg
+    # Root, but not root-with-everything: the default capability set is dropped like the
+    # other hardened services here (socket proxy above, backup). DAC_READ_SEARCH is what
+    # lets the collectors read root-only files under /host/proc, /host/sys and /rootfs;
+    # unlike the default set's DAC_OVERRIDE it grants no write-side permission bypass,
+    # and the rest (SETUID, MKNOD, NET_RAW, ...) is nothing a metrics agent needs.
+    cap_drop:
+      - ALL
     cap_add:
       - SYSLOG
+      - DAC_READ_SEARCH
+    security_opt:
+      - no-new-privileges:true
     # Bounded like every other service on the host: during a collector outage the
     # export queue grows in memory, and without a ceiling the OOM killer picks by RSS —
     # the plausible victim being postgres or the API, i.e. the agent taking down the

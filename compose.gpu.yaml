@@ -38,6 +38,13 @@ services:
               capabilities: [gpu]
     mem_limit: 256m
     pids_limit: 256
+    # The exporter only reads NVML and serves HTTP; the driver files arrive as runtime
+    # mounts, so a read-only root and an empty capability set cost it nothing.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     # No published ports and no host network: Alloy reaches it over the Compose network,
     # discovers it by its Compose service label, and nothing else can.
     networks:

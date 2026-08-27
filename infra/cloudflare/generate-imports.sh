@@ -20,8 +20,10 @@
 set -euo pipefail
 
 api() {
-    curl -fsS "https://api.cloudflare.com/client/v4/$1" \
-        -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+    # The token rides a curl config read from stdin, not argv: /proc/<pid>/cmdline is
+    # readable by every local user for the life of each call.
+    curl -fsS --config - "https://api.cloudflare.com/client/v4/$1" \
+        <<<"header = \"Authorization: Bearer ${CLOUDFLARE_API_TOKEN}\""
 }
 
 die() {
