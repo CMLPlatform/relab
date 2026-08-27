@@ -1089,6 +1089,26 @@ Only two things are specific to this cutover:
     -f compose.yaml -f compose.deploy.yaml --profile backups rm -sf backup
   ```
 
+- **Reclaim `/var` once the old directory is genuinely dead.** The plain-copy backups
+  are the largest thing on that filesystem and they are not small: as of 2026-08-27 the
+  host carried 25.5 GB under `/var/backups/relab` — 9 daily, 4 weekly and 6
+  monthly `user_uploads` tarballs at ~1.5 GB each — against 12.1 GB free on an 86 GB
+  `/var`. The daily tier grows 1.5 GB a day and showed no sign of pruning, so the
+  headroom is a matter of days, and a full `/var` takes Docker, Loki, Tempo and
+  Prometheus down together on that host.
+
+  These are full tarballs, not incrementals, which is most of why they are that large;
+  restic dedup should collapse the same history to a fraction. Delete the old directory
+  only when all of these hold, in order:
+
+  1. `just backup-restore-smoke prod` passes against a restic snapshot;
+  1. every §0b abort condition is satisfied, so there is no path back that needs the
+     old copies;
+  1. at least one restic snapshot has been verified **offsite** — the point of the
+     migration is that the backup does not share a disk with the thing it protects.
+
+  Until all three hold, keep them and free space elsewhere instead.
+
 Do not declare this step done until `just backup-restore-smoke prod` passes — §0b
 depends on it.
 
