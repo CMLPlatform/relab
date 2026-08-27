@@ -13,6 +13,9 @@ Description=Relab health watchdog schedule (%i)
 
 [Timer]
 OnCalendar=hourly
+# Fire on boot when downtime crossed an hourly boundary, like the other two timers:
+# the first thing a host that was just down should do is check itself.
+Persistent=true
 RandomizedDelaySec=5m
 
 [Install]

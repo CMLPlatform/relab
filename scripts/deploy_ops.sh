@@ -544,6 +544,10 @@ stack_command() {
             # --name is required, not cosmetic: the container is a child of dockerd,
             # not of the systemd unit, so the unit's ExecStopPost needs a stable name
             # to reap it if systemd kills the run on timeout.
+            # A host crash or dockerd death can skip ExecStopPost and leave the previous
+            # run's container holding the name, which would then block every later run.
+            # Same guard verify_postgres_restore uses for its deterministic name.
+            docker rm -f "relab-backup-$env" >/dev/null 2>&1 || true
             run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
                 --name "relab-backup-$env" backup
             ;;

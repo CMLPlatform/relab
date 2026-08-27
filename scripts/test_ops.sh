@@ -210,6 +210,70 @@ assert_eq "unknown Result still reports the failure" \
     "$(timer enabled active yes '')"
 
 # ---------------------------------------------------------------------------
+# deploy_watchdog.sh check 1: container state classification
+# ---------------------------------------------------------------------------
+state() {
+    local out status
+    out="$(service_state_alerts prod api "$1" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "running without healthcheck is silent" "0|" "$(state running)"
+assert_eq "running and healthy is silent" "0|" "$(state 'running healthy')"
+assert_eq "missing container is reported" "1|ALERT[prod]: api container is not running" "$(state '')"
+assert_eq "unhealthy container is reported" "1|ALERT[prod]: api container state is 'running unhealthy'" \
+    "$(state 'running unhealthy')"
+assert_eq "restarting container is reported" "1|ALERT[prod]: api container state is 'restarting'" \
+    "$(state restarting)"
+
+# ---------------------------------------------------------------------------
+# deploy_watchdog.sh check 3b: dead-man's-switch wiring. The regression that
+# matters most: a root-owned 0600 host env file with the URL filled in must NOT
+# read as "empty" — systemd already delivered the value into the unit's
+# environment, and judging the unreadable file used to alert forever.
+# ---------------------------------------------------------------------------
+value_of() {
+    local out status
+    out="$(ping_url_value "$1" "$2" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+ping_env="$(mktemp)"
+printf 'RELAB_PING_BACKUP=https://hc.example/first\nRELAB_PING_BACKUP=https://hc.example/ping\n' >"$ping_env"
+
+assert_eq "readable file answers with its value" "0|https://hc.example/ping" \
+    "$(value_of "$ping_env" RELAB_PING_BACKUP)"
+assert_eq "variable absent from the file resolves empty" "0|" \
+    "$(value_of "$ping_env" RELAB_PING_WATCHDOG)"
+
+chmod 000 "$ping_env"
+assert_eq "unreadable file falls back to the unit environment" "0|https://hc.example/ping" \
+    "$(RELAB_PING_BACKUP=https://hc.example/ping value_of "$ping_env" RELAB_PING_BACKUP)"
+# Root reads through mode 000, so this branch is only reachable unprivileged.
+if [[ ! -r "$ping_env" ]]; then
+    assert_eq "no readable source is unresolvable, not empty" "1|" \
+        "$(value_of "$ping_env" RELAB_PING_BACKUP)"
+fi
+rm -f "$ping_env"
+
+ping_alert() {
+    local out status
+    out="$(ping_url_alerts prod RELAB_PING_BACKUP /etc/relab/relab.env "$1" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "filled ping URL is silent" "0|" "$(ping_alert https://hc.example/ping)"
+assert_eq "empty ping URL is reported" \
+    "1|ALERT[prod]: RELAB_PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "$(ping_alert '')"
+assert_eq "whitespace-only ping URL reads as empty" \
+    "1|ALERT[prod]: RELAB_PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "$(ping_alert ' ')"
+
+# ---------------------------------------------------------------------------
 # secrets-restore: the parsed key becomes a filename under secrets/<env>/, so a
 # key carrying a path traversal must be rejected rather than written outside
 # that directory.

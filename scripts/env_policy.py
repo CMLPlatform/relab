@@ -311,7 +311,9 @@ def assert_offsite_remote_is_configured() -> None:
         repo = ""
         for line in env_file.read_text().splitlines():
             if line.startswith("RESTIC_OFFSITE_REPOSITORY="):
-                repo = line.partition("=")[2].strip()
+                # Match the shell reader (backup_restic_ops.sh read_deploy_env_var):
+                # a quoted value must not silently skip the rclone: prefix test.
+                repo = line.partition("=")[2].strip().strip("\"'")
         if not repo.startswith("rclone:"):
             continue
         remote = repo.removeprefix("rclone:").partition(":")[0]

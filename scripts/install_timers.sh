@@ -71,7 +71,7 @@ cmd_install() {
     if [[ ! -f "$HOST_ENV" ]]; then
         echo "Seeding ${HOST_ENV} (fill in the healthchecks.io URLs)..."
         sudo install -d -m 0755 "$(dirname "$HOST_ENV")"
-        sudo install -m 0600 /dev/null "$HOST_ENV"
+        sudo install -m 0600 -o "$(id -un)" /dev/null "$HOST_ENV"
         sudo tee "$HOST_ENV" >/dev/null <<'EOF'
 # Dead-man's-switch URLs for the Relab scheduled jobs (healthchecks.io or compatible).
 # This is the one monitoring path that does not share fate with the Grafana stack: it is
@@ -88,6 +88,12 @@ RELAB_PING_WATCHDOG=
 RELAB_PING_RESTORE_CHECK=
 EOF
     fi
+
+    # The file must be readable by the deploy user, not only by root: the watchdog's
+    # check 3b and the emptiness warning below both read it directly, and the watchdog
+    # service runs as this user. Earlier installs seeded it root-owned, which made every
+    # such read fail with EACCES — fix that on existing hosts too, keeping 0600.
+    sudo chown "$(id -un)" "$HOST_ENV"
 
     sudo systemctl daemon-reload
     for job in "${JOBS[@]}"; do

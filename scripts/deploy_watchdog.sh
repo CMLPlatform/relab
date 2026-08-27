@@ -93,6 +93,58 @@ backup_timer_alerts() {
     return "$found"
 }
 
+# Reducer for check 1, in a function so scripts/test_ops.sh can drive the real code.
+# `state` is `docker inspect`'s status plus health ("running healthy"), bare status
+# for services without a healthcheck, or "" when the container does not exist at all.
+service_state_alerts() {
+    local env="$1" service="$2" state="$3"
+    case "$state" in
+        "")
+            echo "ALERT[$env]: $service container is not running" >&2
+            return 1
+            ;;
+        running | "running healthy") ;;
+        *)
+            echo "ALERT[$env]: $service container state is '$state'" >&2
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+# Reducers for check 3b, in functions so scripts/test_ops.sh can drive the real code.
+#
+# ping_url_value resolves one RELAB_PING_* value the way the running unit sees it:
+# from the host env file when it is readable, otherwise from this process's own
+# environment — systemd reads EnvironmentFile= as root, so a root-owned 0600 file
+# still delivers its values to the unit. Judging the unreadable file directly would
+# alert on every correctly-filled-in URL, permanently. Returns 1 when neither source
+# can answer.
+ping_url_value() {
+    local host_env_file="$1" ping_var="$2"
+    if [[ -r "$host_env_file" ]]; then
+        # Last assignment wins, matching how systemd loads EnvironmentFile=.
+        sed -n "s/^${ping_var}=//p" "$host_env_file" | tail -n 1
+        return 0
+    fi
+    if [[ -n "${!ping_var+set}" ]]; then
+        printf '%s' "${!ping_var}"
+        return 0
+    fi
+    return 1
+}
+
+# An empty or whitespace-only URL means run_scheduled.sh treats pinging as
+# deliberately off, so that job's failures never leave this host.
+ping_url_alerts() {
+    local env="$1" ping_var="$2" host_env_file="$3" value="$4"
+    if [[ -z "${value//[[:space:]]/}" ]]; then
+        echo "ALERT[$env]: ${ping_var} is empty in ${host_env_file}; that job's failures are invisible outside this host" >&2
+        return 1
+    fi
+    return 0
+}
+
 # Sourcing this script (scripts/test_ops.sh) only wants SNAPSHOT_AGE_PY; the live
 # checks below must not run.
 [[ "${BASH_SOURCE[0]}" == "$0" ]] || return 0
@@ -138,10 +190,16 @@ mapfile -t compose_command < <(compose_args "$env")
 # them and profile-gated one-shots (backup, migrator, clamav) are not demanded.
 # Every docker call is time-bounded: a wedged dockerd must produce an alert, not
 # park this job until systemd kills it without a ping.
-if ! expected_services="$(timeout 60 "${compose_command[@]}" config --services 2>&1)"; then
+stderr_file="$(mktemp)"
+trap 'rm -f "$stderr_file"' EXIT
+
+# Stderr stays out of the captured value even on success: Compose writes warnings
+# there (an unset ${VAR}, a deprecation), and merged into the list they would
+# word-split into bogus service names that all read "not running".
+if ! expected_services="$(timeout 60 "${compose_command[@]}" config --services 2>"$stderr_file")"; then
     # A stack that cannot even be resolved (missing .env value, no daemon) is its
     # own failure mode; reporting it as "api down" would send the operator hunting.
-    echo "ALERT[$env]: cannot resolve the stack: $expected_services" >&2
+    echo "ALERT[$env]: cannot resolve the stack: $(tr '\n' ' ' <"$stderr_file")" >&2
     failures=$((failures + 1))
     expected_services=""
 fi
@@ -151,22 +209,13 @@ for service in $expected_services; do
     # stack into a false alarm, so stderr is dropped here — a resolve failure is
     # already reported above, and an empty id is an alert regardless of the cause.
     service_id="$(timeout 60 "${compose_command[@]}" ps -q "$service" 2>/dev/null || true)"
-    if [[ -z "$service_id" ]]; then
-        echo "ALERT[$env]: $service container is not running" >&2
-        failures=$((failures + 1))
-        continue
+    service_state=""
+    if [[ -n "$service_id" ]]; then
+        service_state="$(timeout 60 docker inspect \
+            --format '{{.State.Status}}{{if .State.Health}} {{.State.Health.Status}}{{end}}' \
+            "$service_id" 2>/dev/null || echo unknown)"
     fi
-    # Services without a healthcheck report bare `running`; both forms are healthy.
-    service_state="$(timeout 60 docker inspect \
-        --format '{{.State.Status}}{{if .State.Health}} {{.State.Health.Status}}{{end}}' \
-        "$service_id" 2>/dev/null || echo unknown)"
-    case "$service_state" in
-        running | "running healthy") ;;
-        *)
-            echo "ALERT[$env]: $service container state is '$service_state'" >&2
-            failures=$((failures + 1))
-            ;;
-    esac
+    service_state_alerts "$env" "$service" "$service_state" || failures=$((failures + 1))
 done
 
 # Check 2: newest restic snapshot age, read through the backup image because the
@@ -178,9 +227,6 @@ done
 # `timeout` wraps it because a hung docker or restic would otherwise park this cron
 # job forever and silently stop watching. compose_args is used directly instead of
 # run_deploy_compose so `timeout` can prefix the real command.
-stderr_file="$(mktemp)"
-trap 'rm -f "$stderr_file"' EXIT
-
 newest_epoch=0
 snapshot_error=""
 snapshot_status=0
@@ -251,8 +297,10 @@ fi
 host_env_file="${RELAB_HOST_ENV:-/etc/relab/relab.env}"
 if [[ -f "$host_env_file" ]]; then
     for ping_var in RELAB_PING_BACKUP RELAB_PING_WATCHDOG RELAB_PING_RESTORE_CHECK; do
-        if ! grep -qE "^${ping_var}=." "$host_env_file"; then
-            echo "ALERT[$env]: ${ping_var} is empty in ${host_env_file}; that job's failures are invisible outside this host" >&2
+        if ping_value="$(ping_url_value "$host_env_file" "$ping_var")"; then
+            ping_url_alerts "$env" "$ping_var" "$host_env_file" "$ping_value" || failures=$((failures + 1))
+        else
+            echo "ALERT[$env]: cannot read ${host_env_file} and ${ping_var} is not in the environment; re-run 'just timers-install $env' to fix the file's ownership" >&2
             failures=$((failures + 1))
         fi
     done
