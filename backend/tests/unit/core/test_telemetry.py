@@ -241,3 +241,29 @@ def test_init_telemetry_exports_app_metrics(monkeypatch: pytest.MonkeyPatch) -> 
 
     meter_provider.shutdown.assert_called_once_with()
     assert _telemetry_state.meter_provider is None
+
+
+def test_init_telemetry_rebuilds_the_middleware_stack(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Instrumenting from inside the lifespan must force the ASGI stack to rebuild.
+
+    instrument_app wraps app.build_middleware_stack rather than inserting middleware, so
+    it only bites the next time that stack is built. The lifespan is Starlette's first
+    __call__, so without an explicit rebuild the wrapper is installed and never invoked:
+    no HTTP spans, no RED metrics, and no error to say so.
+    """
+    app = FastAPI()
+    async_engine = MagicMock()
+
+    monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces")
+    monkeypatch.setattr("app.core.telemetry.settings.environment", "testing")
+
+    # Stand in for the stack Starlette already built before the lifespan ran.
+    stale_stack = object()
+    app.middleware_stack = stale_stack
+
+    fake_modules = _build_fake_otel_modules(MagicMock(), MagicMock(), MagicMock())
+
+    with patch.dict(sys.modules, fake_modules):
+        assert init_telemetry(app, async_engine) is True
+
+    assert app.middleware_stack is not stale_stack

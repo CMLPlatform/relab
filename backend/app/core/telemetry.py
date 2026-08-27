@@ -118,6 +118,15 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
     # provider once, at call time, so a global set later would be silently ignored.
     fastapi_instrumentor.instrument_app(app, meter_provider=meter_provider)
 
+    # instrument_app does not insert middleware directly — it wraps
+    # app.build_middleware_stack, so it only takes effect the next time that stack is
+    # built. Starlette builds it on the first __call__, and the lifespan that calls us
+    # IS that first call, so the wrapper is installed and then never invoked: the OTel
+    # ASGI middleware never enters the live stack. No HTTP spans, no RED metrics, and
+    # nothing anywhere reports an error. Forcing the rebuild here is what makes
+    # instrumenting from inside the lifespan actually work.
+    app.middleware_stack = app.build_middleware_stack()
+
     sqlalchemy_instrumentor = sqlalchemy_instrumentor_cls()
     sqlalchemy_instrumentor.instrument(engine=async_engine.sync_engine)
 
