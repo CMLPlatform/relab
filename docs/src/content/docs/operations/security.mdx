@@ -61,7 +61,7 @@ Unexpected application errors are handled by the backend catch-all exception han
 
 ## Inbound edge
 
-Production and staging are HTTPS-only behind Cloudflare Tunnel. Source-controlled Cloudflare configuration in `infra/cloudflare/` owns DNS records, public hostnames, tunnel ingress rules, TLS minimums, HTTPS redirects, and Relab-specific rate limiting for auth, upload, and RPi camera traffic.
+Production and staging are HTTPS-only behind Cloudflare Tunnel. Source-controlled Cloudflare configuration owns the public edge: `infra/cloudflare/` holds the per-environment DNS records, public hostnames, and tunnel ingress rules, and `infra/cloudflare-zone/` holds the zone-wide TLS minimums, HTTPS redirects, and rulesets. Edge rate limiting covers the authentication endpoints only (the zone's plan allows a single rate-limit rule); upload and RPi camera limits are enforced in the application's Redis-backed limiters, which fail open when Redis is unreachable — during a Redis outage the per-user upload ledger is the remaining bound.
 
 Unknown tunnel hostnames fall through to a final `http_status:404` rule. Compose still owns runtime services; OpenTofu owns only the public edge.
 

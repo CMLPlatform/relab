@@ -210,13 +210,14 @@ One token, two consumers: Compose folds it into the SDK's percent-encoded header
 for the API, and Alloy reads it directly. There is no separate Loki push hostname — the
 monitoring stack does not publish one, because Loki has no authentication of its own.
 
-Alloy mounts the Docker socket (read-only) to attach container names to log lines, and
-the host's `/proc`, `/sys` and `/` (read-only) for node metrics. Both are real grants:
-anything that can reach the Docker socket can start a privileged container, and `/rootfs`
-exposes the host filesystem for reading. It is no more than a host-installed
-node_exporter running as root already has, but it is worth knowing rather than
-discovering. The hardening step, if it ever matters, is a docker-socket-proxy restricted
-to the container endpoints.
+Alloy never touches the Docker socket: a `docker-socket-proxy` container holds it and
+exposes only the read-only endpoints discovery and log tailing need (containers, events,
+info, version, ping) over an internal network, with POST refused — nothing behind the
+proxy can start or exec a container. Alloy does mount the host's `/proc`, `/sys` and `/`
+(read-only) for node metrics, running as root with the capability set dropped to
+`SYSLOG` + `DAC_READ_SEARCH`. The `/rootfs` read access is still a real grant, but it is
+no more than a host-installed node_exporter running as root already has, and it is worth
+knowing rather than discovering.
 
 On a host with an NVIDIA card, add `GPU_METRICS=1` as well. That is the entire GPU
 setup: the deploy recipes then include `compose.gpu.yaml`, Alloy discovers the exporter

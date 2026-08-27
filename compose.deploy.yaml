@@ -465,6 +465,7 @@ secrets:
 
 networks:
   scanning:
-  # Outbound-only network for the backup container's offsite copy. Not internal, and
-  # nothing else joins it.
+  # Outbound-only network for services that push to external endpoints: the backup
+  # container's offsite copy, plus — when their overlays are included — the Alloy
+  # agent and the GPU exporter (compose.logging.alloy.yaml, compose.gpu.yaml).
   egress:
