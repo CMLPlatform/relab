@@ -183,9 +183,10 @@ as a missed or failed ping rather than as a line nobody reads.
 
 **Do not delete the service-health, snapshot-age or timer checks until the central
 monitoring stack's `ProjectTelemetrySilent` and container-lifecycle rules are live and
-verified** (tracked in CMLPlatform/monitoring, `docs/HANDOVER.md`). Until then this
-script is the only detector for those failures; deleting a weak local signal before its
-central replacement exists trades a weak signal for none.
+verified for this environment** — live meaning bootstrap has been run for it (§1.5
+below), not merely that the stack has the rules. Until then this script is the only
+detector for those failures; deleting a weak local signal before its central replacement
+exists trades a weak signal for none. See CMLPlatform/monitoring, ADR 0002.
 
 ### 1.5 Telemetry
 
@@ -210,6 +211,18 @@ Grafana Alloy agent that ships two things the API cannot report about itself:
   speeds. That last one is not decoration: the incident that produced these runbooks was
   a backup crash-looping for 19 hours, noticed by ear from fan noise while every monitor
   read green.
+
+**Then run `./bootstrap.sh <project> <env>` on the monitoring host — in the same change,
+not afterwards.** Setting the endpoint above starts telemetry flowing; bootstrap is what
+creates the rule that notices when it *stops*. A host can ship perfect telemetry and be
+completely unmonitored, because the detector for its silence lives on the other side.
+Skipping this is the one failure this whole design exists to prevent, and it leaves no
+trace on this host — nothing here can tell you the safety net is missing.
+
+The arguments must match `PROJECT` and `ENVIRONMENT` from
+`deploy/env/<env>.compose.env`, since those are the label values the rule matches on.
+Bootstrap also prints the `.env` block and the commands that vendor the agent files at a
+pinned tag, so run it before wiring this host rather than after.
 
 One token, two consumers: Compose folds it into the SDK's percent-encoded header format
 for the API, and Alloy reads it directly. There is no separate Loki push hostname — the

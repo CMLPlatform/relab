@@ -10,7 +10,7 @@ one-time migration off `main`.
 
 The monitoring architecture is owned by
 [CMLPlatform/monitoring](https://github.com/CMLPlatform/monitoring): its ADR 0002 records
-the hub-and-spoke design and `docs/HANDOVER.md` the open migration work. Relab is one
+the hub-and-spoke design and `templates/README.md` how a project onboards. Relab is one
 spoke; everything Relab-specific about it lives in the `DEPLOY-*` runbooks.
 
 `DEPLOY-*` is permanent and self-contained: first-time host setup, the routine release

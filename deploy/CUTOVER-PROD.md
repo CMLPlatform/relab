@@ -715,7 +715,10 @@ Log labels changed with the collection path: what used to be Loki's
 > (the WAF-skip header value, below). The endpoint switch turns
 > on the API's own OpenTelemetry exporter **and** auto-includes
 > `compose.telemetry.yml`, a Grafana Alloy agent that forwards every other
-> container's stdout to the same endpoint. `just deploy-secrets-check` fails if
+> container's stdout to the same endpoint. **Then run `./bootstrap.sh relab prod` on
+> the monitoring host as part of this step** — telemetry flowing and telemetry being
+> *watched* are two different things, and only the second one survives this host going
+> quiet. `just deploy-secrets-check` fails if
 > the endpoint is set without both credentials.
 >
 > Compose derives `OTEL_EXPORTER_OTLP_HEADERS` from the token, so the SDK's

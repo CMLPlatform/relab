@@ -35,6 +35,11 @@ Set telemetry the same way as prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5):
 separated by the `env` resource attribute, which Compose derives from `ENVIRONMENT`, so nothing
 needs configuring for that beyond using the right host's `.env`.
 
+That separation cuts both ways: staging needs **its own** `./bootstrap.sh relab staging`
+run on the monitoring host. Prod's rule matches `env="prod"` and will not notice staging
+going quiet. As on prod, run it in the same change that turns telemetry on — this host
+cannot tell you the rule is missing.
+
 Staging's offsite remote is named `surfdrive_staging` and its committed repository is
 `rclone:surfdrive_staging:` — a SURFdrive share link scoped to staging's own folder, so
 staging cannot reach prod's. The remote name is the only committed thing distinguishing
