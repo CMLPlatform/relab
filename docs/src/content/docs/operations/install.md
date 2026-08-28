@@ -219,14 +219,14 @@ migrations, verify health.
 
    Leaving `MALWARE_SCAN_ENABLED=true` without the `scanning` profile fails all uploads closed.
 
-   For a local production-like backup rehearsal, prefer staging — `backup-run` seeds the
+   For a local production-like backup rehearsal, prefer staging — `backup` seeds the
    first snapshot, the same way the timer runs it:
 
    ```bash
    just staging-up YES
    just staging-migrate YES
-   just backup-run staging
-   just backup-restore-smoke staging
+   just backup staging
+   just restore-check staging
    ```
 
 1. For Cloudflare edge changes, plan from the repo checkout or an ops machine
@@ -298,12 +298,12 @@ just timers-install staging               # renders, installs, enables (needs su
 systemctl list-timers 'relab-*@staging.timer'   # confirm NEXT times are scheduled
 ```
 
-The installer also seeds `/etc/relab/relab.env` with empty `RELAB_PING_*` URLs. Fill
+The installer also seeds `/etc/relab/relab.env` with empty `PING_*` URLs. Fill
 them in with per-job [healthchecks.io](https://healthchecks.io) check URLs: until you
 do, the jobs run but their failures are invisible outside the host, and
 `just watchdog <env>` will keep saying so.
 
-`just backup-run <env>` runs one cycle immediately — use it for the first run, which
+`just backup <env>` runs one cycle immediately — use it for the first run, which
 initializes the repository. Without the timer installed you have no recurring backups,
 and `just watchdog <env>` reports exactly that.
 
@@ -353,7 +353,7 @@ ship to it without any code changes:
    Grafana Alloy agent that collects every other container's stdout and forwards it over the same
    OTLP endpoint.
 
-1. The `prod-up` / `staging-up` recipes auto-include `compose.logging.alloy.yaml` when the endpoint
+1. The `prod-up` / `staging-up` recipes auto-include `compose.telemetry.yml` when the endpoint
    is non-empty. Hosts without it ship nothing and keep `docker logs` as the only log path.
 
 Alloy reads the Docker socket to attach container names to log lines, so it runs as root with the

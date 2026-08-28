@@ -23,7 +23,7 @@ variable "cloudflare_zone_name" {
 
 variable "telemetry_edge_key" {
   description = <<-EOT
-    Value of the `X-Relab-Telemetry-Key` header that identifies the telemetry shippers
+    Value of the `X-Telemetry-Key` header that identifies the telemetry shippers
     to `otlp.`, used to skip Cloudflare's bot and managed-security products for them.
     Export as TF_VAR_telemetry_edge_key; it must never be written into the repo. Empty
     (the default) omits the rule entirely, which keeps `just cloudflare-check` runnable

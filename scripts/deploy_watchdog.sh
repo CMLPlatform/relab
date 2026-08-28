@@ -114,7 +114,7 @@ service_state_alerts() {
 
 # Reducers for check 3b, in functions so scripts/test_ops.sh can drive the real code.
 #
-# ping_url_value resolves one RELAB_PING_* value the way the running unit sees it:
+# ping_url_value resolves one PING_* value the way the running unit sees it:
 # from the host env file when it is readable, otherwise from this process's own
 # environment — systemd reads EnvironmentFile= as root, so a root-owned 0600 file
 # still delivers its values to the unit. Judging the unreadable file directly would
@@ -296,7 +296,7 @@ fi
 # unfinished state, while a missing file just means this machine runs no timers.
 host_env_file="${RELAB_HOST_ENV:-/etc/relab/relab.env}"
 if [[ -f "$host_env_file" ]]; then
-    for ping_var in RELAB_PING_BACKUP RELAB_PING_WATCHDOG RELAB_PING_RESTORE_CHECK; do
+    for ping_var in PING_BACKUP PING_WATCHDOG PING_RESTORE_CHECK; do
         if ping_value="$(ping_url_value "$host_env_file" "$ping_var")"; then
             ping_url_alerts "$env" "$ping_var" "$host_env_file" "$ping_value" || failures=$((failures + 1))
         else

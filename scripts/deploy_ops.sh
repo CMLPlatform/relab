@@ -17,7 +17,7 @@ telemetry_overlay_args() {
     # quoted-empty value would otherwise pull in the overlay, whose `:?` guards then
     # abort every compose command on the host.
     if [[ -f "$root_env_file" ]] && grep -qE '^OTEL_EXPORTER_OTLP_ENDPOINT=["'\'']?http' "$root_env_file"; then
-        printf '%s\n' -f compose.logging.alloy.yaml
+        printf '%s\n' -f compose.telemetry.yml
 
         # GPU collection is a second opt-in on top, because a card is a property of the
         # host rather than of the environment. Nested on purpose: the exporter is only
@@ -25,7 +25,7 @@ telemetry_overlay_args() {
         # or =false must mean OFF — on a host without the NVIDIA runtime, including the
         # overlay makes `up` abort with "could not select device driver".
         if grep -qiE '^GPU_METRICS=["'\'']?(1|true|yes)["'\'']?[[:space:]]*(#.*)?$' "$root_env_file"; then
-            printf '%s\n' -f compose.gpu.yaml
+            printf '%s\n' -f compose.telemetry.gpu.yml
         fi
     fi
 }
@@ -56,6 +56,7 @@ compose_env_file() {
 # from .env, so an exported shell value must not reach the container and quietly turn
 # scanning on without the clamav profile.
 COMPOSE_SCRUBBED_ENV_NAMES=(
+    PROJECT
     ENVIRONMENT
     API_PUBLIC_URL
     APP_PUBLIC_URL
@@ -144,7 +145,7 @@ compose_config() {
         # absent from the validation env.
         local -a base_args=()
         mapfile -t base_args < <(compose_args "$env" "$validation_env")
-        "${base_args[@]}" -f compose.gpu.yaml config >/dev/null
+        "${base_args[@]}" -f compose.telemetry.gpu.yml config >/dev/null
     done
     local e2e_config="$tmp_root/e2e.json"
     docker compose -p relab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"
@@ -513,6 +514,13 @@ stack_command() {
     case "$action" in
         up)
             parse_profiles "$env" "migrations backups scanning" "$@"
+            # Root env policy, on the host, before anything starts. The telemetry overlay
+            # used to hard-require TELEMETRY_EDGE_KEY with a `:?` guard; the vendored file
+            # cannot, because only projects behind a WAF need it. Relab is behind one, and
+            # an empty key means the Cloudflare skip rule stops matching and every export
+            # is bot-challenged — silently, since the SDK swallows the response. This check
+            # owns that pairing (scripts/env_policy.py), so call it rather than restate it.
+            uv run python scripts/env_policy.py check
             # `up` no longer starts backups: the backup service is a one-shot driven
             # by a systemd timer (deploy/systemd/), not a long-running container.
             # `build` still defaults to the backups profile so the image exists.
@@ -537,7 +545,7 @@ stack_command() {
             require_confirmation "start the $env stack" "just $env-up YES [profiles...]" "FORCE=1 just $env-up [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
             ;;
-        backup-run)
+        backup)
             # One backup cycle, foreground, for the systemd timer. --no-deps: the
             # timer must not start postgres as a side effect; if the stack is down
             # the run fails and systemd records it, which is the correct signal.

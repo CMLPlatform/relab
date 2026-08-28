@@ -1,13 +1,16 @@
-# compose.logging.alloy.yaml (OPTIONAL OVERLAY — ship container stdout over OTLP)
+# compose.telemetry.yml — VENDORED from the central monitoring repo at a pinned tag.
 #
-# The API instruments itself and sends its own telemetry. This overlay adds a Grafana
-# Alloy agent that collects two things the API cannot report on itself and forwards them
-# to the same OTLP endpoint with the same token:
+# One Grafana Alloy agent per deploy host. Vendor it as-is; everything that differs
+# between projects arrives as an environment variable. See templates/README.md.
 #
-#   - the stdout of every OTHER container in the stack (postgres, redis, cloudflared,
-#     the frontends, backup), as logs;
-#   - host resource metrics — CPU, memory, load, disk, network, and hwmon temperatures
-#     and fan speeds.
+# An instrumented application sends its own telemetry. This overlay adds a Grafana
+# Alloy agent that collects three things the application cannot report on itself and
+# forwards them to the same OTLP endpoint with the same token:
+#
+#   - the stdout of every OTHER container in the stack, as logs;
+#   - host resource metrics — CPU, memory, load, disk, network, hwmon;
+#   - per-container resources and lifecycle from cAdvisor, which is what makes a crash
+#     loop visible centrally.
 #
 # It replaces the older Loki Docker-driver overlay. That approach needed a Loki push
 # hostname exposed to the internet, which the monitoring stack deliberately does not
@@ -67,18 +70,23 @@ services:
       # from another container.
       - --server.http.listen-addr=127.0.0.1:12345
     environment:
-      ENVIRONMENT: ${ENVIRONMENT}
-      # Alloy only reads containers belonging to this project, so it must know which
-      # one it is; Compose does not inject the project name automatically.
-      COMPOSE_PROJECT_NAME: relab_${ENVIRONMENT}
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?alloy overlay requires OTEL_EXPORTER_OTLP_ENDPOINT}
-      OTLP_AUTH_TOKEN: ${OTLP_AUTH_TOKEN:?alloy overlay requires OTLP_AUTH_TOKEN}
+      ENVIRONMENT: ${ENVIRONMENT:?telemetry overlay requires ENVIRONMENT}
+      # The project identity every signal is labelled with, and what the central
+      # ProjectTelemetrySilent rule keys on. Must match the value bootstrap.sh was run with.
+      PROJECT: ${PROJECT:?telemetry overlay requires PROJECT}
+      # Alloy only reads containers belonging to this Compose project, so it must know
+      # which one it is; Compose does not inject the project name automatically. This is
+      # the COMPOSE project (docker's -p), not PROJECT above.
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-${PROJECT}_${ENVIRONMENT}}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?telemetry overlay requires OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTLP_AUTH_TOKEN: ${OTLP_AUTH_TOKEN:?telemetry overlay requires OTLP_AUTH_TOKEN}
       # Second, weaker credential: matched by the Cloudflare WAF-skip rule for the
       # telemetry hostname (infra/cloudflare-zone), so the bearer token itself never
       # appears in a Cloudflare ruleset expression. Rotates independently of the token.
-      TELEMETRY_EDGE_KEY: ${TELEMETRY_EDGE_KEY:?alloy overlay requires TELEMETRY_EDGE_KEY (see .env.example)}
+      # Optional: only projects whose egress crosses a WAF need this. Empty is fine.
+      TELEMETRY_EDGE_KEY: ${TELEMETRY_EDGE_KEY:-}
     volumes:
-      - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro  # vendored, never edited
       # node_exporter's collectors read the host's own /proc, /sys and filesystems.
       # All read-only. Note this does give the container read access to the host
       # filesystem via /rootfs, which is the price of host disk-usage metrics from a

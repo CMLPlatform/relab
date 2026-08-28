@@ -343,11 +343,11 @@ main() {
         backup-offsite-copy)
             backup_offsite_copy "${2:-staging}"
             ;;
-        backup-restore-smoke)
+        restore-check)
             backup_restore_smoke "${2:-prod}"
             ;;
         *)
-            echo "Usage: $0 {docker-smoke-backups|backup-offsite-copy ENV|backup-restore-smoke ENV}" >&2
+            echo "Usage: $0 {docker-smoke-backups|backup-offsite-copy ENV|restore-check ENV}" >&2
             exit 2
             ;;
     esac

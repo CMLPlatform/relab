@@ -173,8 +173,8 @@ secret-file layout, not the least-privilege roles, not restic. Staging shares
 just staging-build
 just staging-up YES scanning
 just staging-migrate YES
-just backup-run staging          # initializes the repo; the smoke test needs a snapshot
-just backup-restore-smoke staging
+just backup staging          # initializes the repo; the smoke test needs a snapshot
+just restore-check staging
 ```
 
 Every step below that surprises you on staging would have surprised you on prod.
@@ -219,7 +219,7 @@ until all of the following hold:
 
 - the post-upgrade verification in step 9 passes,
 - an upload, an OAuth login, and a product page have been exercised by hand,
-- `just backup-restore-smoke prod` succeeds.
+- `just restore-check prod` succeeds.
 
 The migration runs as a **single transaction** (`backend/alembic/env.py` never
 sets `transaction_per_migration`), so any failure during step 8 rolls the schema
@@ -714,7 +714,7 @@ Log labels changed with the collection path: what used to be Loki's
 > (a bearer token from the monitoring stack operator) and `TELEMETRY_EDGE_KEY`
 > (the WAF-skip header value, below). The endpoint switch turns
 > on the API's own OpenTelemetry exporter **and** auto-includes
-> `compose.logging.alloy.yaml`, a Grafana Alloy agent that forwards every other
+> `compose.telemetry.yml`, a Grafana Alloy agent that forwards every other
 > container's stdout to the same endpoint. `just deploy-secrets-check` fails if
 > the endpoint is set without both credentials.
 >
@@ -735,7 +735,7 @@ Log labels changed with the collection path: what used to be Loki's
 > configuration.
 >
 > The Cloudflare firewall rule `relab_telemetry_ingress_skip_managed_security`
-> matches a separate `X-Relab-Telemetry-Key` header (never the bearer token —
+> matches a separate `X-Telemetry-Key` header (never the bearer token —
 > ruleset expressions are readable through the Cloudflare API). Set
 > `TELEMETRY_EDGE_KEY` in this host's `.env` and supply the same value to
 > OpenTofu as `TF_VAR_telemetry_edge_key`. Rotate that pair together, or
@@ -756,6 +756,45 @@ Check it:
 just env-policy-check
 just compose-config
 ```
+
+### Two renames that have no code migrating them
+
+Both are one-time and manual on purpose: a shim carried in the repo for a
+transition that happens once outlives the transition and is never removed.
+
+**1. The WAF header — deploy the hosts, then apply OpenTofu. In that order.**
+
+The skip rule now matches `X-Telemetry-Key`; the hosts used to send
+`X-Relab-Telemetry-Key`. `infra/cloudflare-zone` is zone-global, so a single
+`tofu apply` lands on prod and staging together. Apply it while a host still sends
+the old name and that host's exports are bot-challenged — and a challenged export is
+dropped with no error anywhere, which is the failure this whole section exists to
+avoid. So:
+
+1. `just prod-up YES` and `just staging-up YES` on both hosts, on this release.
+2. Confirm both are sending: on the monitoring host,
+   `count({project="relab"})` is non-zero for `env="prod"` and `env="staging"`.
+3. Only then `just cloudflare-zone-apply YES`.
+
+Rolling back the deploy after step 3 reintroduces the old header and silently
+loses telemetry; roll the zone back with it.
+
+**2. The ping variables — rename them on each host before the next job fires.**
+
+`run_scheduled.sh` is vendored and carries no project prefix, so it reads `PING_*`
+where the units' env file still says `RELAB_PING_*`. An unset variable disables
+pinging *silently*, which is precisely what the dead-man's switch exists to prevent.
+On each host:
+
+```bash
+sudo sed -i 's/^RELAB_PING_/PING_/' /etc/relab/relab.env
+just timers-install prod        # re-render the units; warns if any URL is still unset
+just watchdog prod              # check 3b confirms all three resolve
+```
+
+`just timers-install` warns about missing *and* empty `PING_*` names, so a host
+skipped here reports itself the next time it is touched — and healthchecks.io fires
+its own "no ping received" alarm within the job's period regardless.
 
 ______________________________________________________________________
 
@@ -1101,7 +1140,7 @@ Only two things are specific to this cutover:
   restic dedup should collapse the same history to a fraction. Delete the old directory
   only when all of these hold, in order:
 
-  1. `just backup-restore-smoke prod` passes against a restic snapshot;
+  1. `just restore-check prod` passes against a restic snapshot;
   1. every §0b abort condition is satisfied, so there is no path back that needs the
      old copies;
   1. at least one restic snapshot has been verified **offsite** — the point of the
@@ -1109,7 +1148,7 @@ Only two things are specific to this cutover:
 
   Until all three hold, keep them and free space elsewhere instead.
 
-Do not declare this step done until `just backup-restore-smoke prod` passes — §0b
+Do not declare this step done until `just restore-check prod` passes — §0b
 depends on it.
 
 ______________________________________________________________________

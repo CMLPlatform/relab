@@ -39,8 +39,8 @@ up root-owned and the backup container (uid 1001) cannot initialize the reposito
 mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
 sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
 
-just backup-run prod             # initializes the repo and takes the first snapshot
-just backup-restore-smoke prod   # needs that snapshot to exist
+just backup prod             # initializes the repo and takes the first snapshot
+just restore-check prod   # needs that snapshot to exist
 ```
 
 The repository is encrypted with `secrets/prod/restic_password`. **Never rotate it** —
@@ -83,9 +83,9 @@ dead-man's-switch URL per job. Fill them in from healthchecks.io — one check p
 because sharing a URL lets the hourly job's pings mask the monthly job's silence:
 
 ```ini
-RELAB_PING_BACKUP=https://hc-ping.com/...          # period 1 day
-RELAB_PING_WATCHDOG=https://hc-ping.com/...        # period 1 hour
-RELAB_PING_RESTORE_CHECK=https://hc-ping.com/...   # period 35 days
+PING_BACKUP=https://hc-ping.com/...          # period 1 day
+PING_WATCHDOG=https://hc-ping.com/...        # period 1 hour
+PING_RESTORE_CHECK=https://hc-ping.com/...   # period 35 days
 ```
 
 Each job pings on success, and on failure pings `/fail` with its own output as the body,
@@ -158,6 +158,11 @@ still succeeds** — deliberately, so a missing credential does not leave the al
 permanently red, which is the same as no alert. For an on-demand copy outside the
 nightly cycle: `just backup-offsite-copy prod`.
 
+> If you add periodic `restic check --read-data-subset`: there is **no official cadence
+> recommendation** for it. The commonly repeated "1/12 monthly" is forum folklore, not
+> upstream guidance. Pick a cadence, write down why you picked it, and treat the number
+> as arbitrary-but-declared rather than authoritative.
+
 **This does not give immutability.** restic must delete in order to prune, so no
 credential arrangement makes the offsite copy append-only. A compromised share token can
 erase prod's off-host backups, leaving the local repository as the only copy. Object-lock
@@ -169,7 +174,7 @@ defence; WebDAV is neither.
 `just watchdog prod` — run hourly by the timer above, and worth running by hand after
 any change — checks every stack service (running, and healthy where a healthcheck
 exists), newest snapshot age, all three scheduled-job timers (installed, enabled,
-active, last run not failed), that the `RELAB_PING_*` URLs are actually filled in, and
+active, last run not failed), that the `PING_*` URLs are actually filled in, and
 deployment drift (uncommitted changes, or commits that exist nowhere else). It exits
 non-zero with one `ALERT[...]` line per problem.
 
@@ -196,7 +201,7 @@ OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
 The endpoint is the on/off switch for the whole telemetry path. Setting it turns on the
-API's own OpenTelemetry exporter **and** auto-includes `compose.logging.alloy.yaml`, a
+API's own OpenTelemetry exporter **and** auto-includes `compose.telemetry.yml`, a
 Grafana Alloy agent that ships two things the API cannot report about itself:
 
 - **container stdout** from every other service — postgres, redis, cloudflared, the
@@ -220,7 +225,7 @@ no more than a host-installed node_exporter running as root already has, and it 
 knowing rather than discovering.
 
 On a host with an NVIDIA card, add `GPU_METRICS=1` as well. That is the entire GPU
-setup: the deploy recipes then include `compose.gpu.yaml`, Alloy discovers the exporter
+setup: the deploy recipes then include `compose.telemetry.gpu.yml`, Alloy discovers the exporter
 over the Compose network and scrapes it, and utilisation, VRAM, temperature, power,
 throttle reasons and XID faults start arriving under the same `host_name`. Nothing else
 changes — a GPU host is one extra overlay, not a different design.
@@ -229,7 +234,7 @@ Verify the whole path end to end with a real job, which is also the fastest way 
 discovery, labelling and export at once:
 
 ```bash
-just backup-run prod
+just backup prod
 ```
 
 Then look for `service.name=backup` and the line `Backup run completed` in Grafana.
@@ -248,7 +253,7 @@ just prod-up YES scanning migrations   # migrator runs, THEN the API starts
 
 Before you start: CI green on `main`, you know whether the release contains migrations
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
-(`just backup-run prod`).
+(`just backup prod`).
 
 The `migrations` profile is the routine path: the API waits for the migrator to exit 0,
 so a failed migration leaves the old API serving rather than starting a new one against
@@ -297,7 +302,7 @@ just prod-build && just prod-up YES scanning
 Otherwise the backup is the recovery path:
 
 ```bash
-just backup-restore-smoke prod    # proves the snapshot loads, into a scratch DB
+just restore-check prod    # proves the snapshot loads, into a scratch DB
 ```
 
 For a real restore, stop the stack, restore the dump into the live database, and bring

@@ -19,8 +19,8 @@ wrong are the same. In short:
 ```bash
 mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
 sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
-just backup-run staging
-just backup-restore-smoke staging
+just backup staging
+just restore-check staging
 
 just timers-install staging   # backup + watchdog + restore-check timers
 ```

@@ -100,7 +100,12 @@ locals {
       description = "Skip managed WAF and bot products for authenticated telemetry ingress"
       expression = join(" and ", [
         local.telemetry_ingress_hosts_expression,
-        "any(http.request.headers[\"x-relab-telemetry-key\"][*] eq ${jsonencode(var.telemetry_edge_key)})",
+        # This root is zone-global: one apply lands on prod and staging at once. Renaming
+        # this header therefore has an order — deploy both hosts first, apply second —
+        # because in the window where the rule expects a name the hosts do not yet send,
+        # exports are bot-challenged and a challenged export is a silently dropped one.
+        # deploy/CUTOVER-PROD.md carries the step order.
+        "any(http.request.headers[\"x-telemetry-key\"][*] eq ${jsonencode(var.telemetry_edge_key)})",
       ])
       action = "skip"
       action_parameters = {

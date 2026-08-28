@@ -1,9 +1,16 @@
+// SHARED AGENT CONFIG — vendored from the central monitoring repo at a pinned tag.
+// Do not edit it per project: every deployment-specific value arrives as an environment
+// variable (PROJECT, ENVIRONMENT, COMPOSE_PROJECT_NAME, OTEL_EXPORTER_OTLP_ENDPOINT,
+// OTLP_AUTH_TOKEN, TELEMETRY_EDGE_KEY). If you find yourself editing this file to
+// onboard a project, that is a bug in the template — report it upstream instead, so the
+// next project does not hit the same wall.
+//
 // Ship this host's telemetry to the department OpenTelemetry collector: container
 // stdout/stderr as logs, and host resource metrics.
 //
-// The API instruments itself and sends its own traces, metrics and logs over OTLP.
-// Everything else in the stack — postgres, redis, cloudflared, the three frontends,
-// backup — only writes to stdout, so this agent picks those up and forwards them on the
+// An instrumented application sends its own traces and metrics over OTLP directly.
+// Everything else in the stack — databases, caches, proxies, frontends, batch jobs —
+// only writes to stdout, so this agent picks those up and forwards them on the
 // same OTLP endpoint with the same token. Nothing new is published at the edge: the
 // monitoring stack exposes `otlp.` and deliberately does not expose Loki, which has no
 // authentication of its own.
@@ -16,7 +23,7 @@ local.file "hostname" {
 }
 
 // Discovery and log reading both talk to the Docker API — through the socket proxy
-// (compose.logging.alloy.yaml), never the socket itself, so this container cannot
+// (compose.telemetry.yml), never the socket itself, so this container cannot
 // mutate the daemon. The API is what makes container NAMES available; reading the
 // on-disk json logs instead would label everything by container id.
 discovery.docker "containers" {
@@ -51,7 +58,7 @@ discovery.relabel "containers" {
 	}
 
 	// The Compose service name is the stable per-deployable identifier the monitoring
-	// stack's conventions ask for: `relab-api`, never `relab-api-prod-2`.
+	// stack's conventions ask for: `api`, never `api-prod-2`.
 	rule {
 		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
 		target_label  = "service_name"
@@ -68,7 +75,7 @@ loki.source.docker "containers" {
 	targets    = discovery.relabel.containers.output
 	labels     = {
 		env     = sys.env("ENVIRONMENT"),
-		project = "relab",
+		project = sys.env("PROJECT"),
 
 		// Without this every host collapses onto one identity: Alloy scrapes its OWN
 		// in-container exporter, so the address Prometheus derives `instance` from is
@@ -103,7 +110,8 @@ otelcol.processor.transform "resource_attributes" {
 		statements = [
 			`set(resource.attributes["service.name"], attributes["service_name"]) where attributes["service_name"] != nil`,
 			`set(resource.attributes["env"], attributes["env"]) where attributes["env"] != nil`,
-			`set(resource.attributes["project"], "relab")`,
+			`set(resource.attributes["project"], "${PROJECT}")`,
+			`set(resource.attributes["host.name"], attributes["host_name"]) where attributes["host_name"] != nil`,
 		]
 	}
 
@@ -158,7 +166,7 @@ prometheus.exporter.unix "host" {
 //
 // which is a rule on the central stack, not here. This side only has to ship the series.
 // Shipping them at all needs `cgroup: host` on this container: see the note in
-// compose.logging.alloy.yaml, without which cAdvisor reports one root series and the
+// compose.telemetry.yml, without which cAdvisor reports one root series and the
 // rule above matches nothing.
 prometheus.exporter.cadvisor "containers" {
 	docker_host = "tcp://docker-socket-proxy:2375"
@@ -225,7 +233,7 @@ prometheus.relabel "host" {
 
 	rule {
 		target_label = "project"
-		replacement  = "relab"
+		replacement  = sys.env("PROJECT")
 		action       = "replace"
 	}
 
@@ -253,7 +261,7 @@ prometheus.scrape "alloy" {
 }
 
 // ---------------------------------------------------------------------------
-// GPU metrics, present only on hosts that run compose.gpu.yaml. This produces no targets
+// GPU metrics, present only on hosts that run compose.telemetry.gpu.yml. No targets
 // and costs nothing when the exporter container is absent, so the same config file is
 // correct on every host — a GPU host is not a different design, it is one extra overlay.
 //
@@ -319,10 +327,13 @@ otelcol.exporter.otlphttp "central" {
 		headers = {
 			Authorization = "Bearer " + sys.env("OTLP_AUTH_TOKEN"),
 
-			// Matched by the Cloudflare WAF-skip rule for the telemetry hostname, so
-			// the bearer token itself never appears in a ruleset expression readable
-			// through the Cloudflare API. Grants only the managed-security skip.
-			"X-Relab-Telemetry-Key" = sys.env("TELEMETRY_EDGE_KEY"),
+			// Second, weaker credential for projects whose egress crosses a WAF: the
+			// project's WAF-skip rule matches THIS header, so the bearer token itself
+			// never appears in a ruleset expression readable through the provider's
+			// API. It grants only the managed-security skip. Projects with no WAF in
+			// front of their egress can leave TELEMETRY_EDGE_KEY empty; the header is
+			// then sent empty and ignored.
+			"X-Telemetry-Key" = sys.env("TELEMETRY_EDGE_KEY"),
 		}
 	}
 

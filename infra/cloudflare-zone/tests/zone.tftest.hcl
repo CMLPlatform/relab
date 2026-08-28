@@ -95,7 +95,7 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref == "relab_telemetry_ingress_skip_managed_security" &&
       strcontains(rule.expression, "otlp.cml-relab.org") &&
-      strcontains(rule.expression, "x-relab-telemetry-key")
+      strcontains(rule.expression, "x-telemetry-key")
     ])
     error_message = "the telemetry skip rule must match the ingress host AND the credential header."
   }

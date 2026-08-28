@@ -27,7 +27,7 @@ $BACKUP_HOST_DIR/restic
 
 For the Compose backup service, `BACKUP_HOST_DIR` is read from the host-local root
 `.env` file and defaults to `./backups`. Manual shell helpers such as
-`just backup-restore-smoke` use already-exported environment variables instead
+`just restore-check` use already-exported environment variables instead
 of parsing `.env`; export `BACKUP_HOST_DIR` first when you need a non-default path.
 Non-secret prod/staging Compose interpolation lives in `deploy/env/*.compose.env`;
 do not put real secrets under `deploy/`.
@@ -43,7 +43,7 @@ create missing files, then replace the placeholder values. `just deploy-secrets-
 From the repo root, restore the latest database dump into a disposable Postgres container:
 
 ```bash
-just backup-restore-smoke prod
+just restore-check prod
 ```
 
 The smoke test restores the latest `postgres` snapshot, runs `pg_restore`, and verifies `SELECT 1` plus the `public.alembic_version` table.

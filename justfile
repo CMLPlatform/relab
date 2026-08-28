@@ -506,8 +506,8 @@ staging-migrate confirm='':
     @bash scripts/deploy_ops.sh stack staging migrate {{ quote(confirm) }}
 
 # Run one backup cycle now (what the systemd timer calls; see deploy/systemd/)
-backup-run env:
-    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup-run
+backup env:
+    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
 
 # Print the scheduled-job systemd units rendered for this host (review before installing)
 timers-render:
@@ -587,8 +587,8 @@ backup-offsite-copy env='staging':
     @bash scripts/backup_restic_ops.sh backup-offsite-copy {{ quote(env) }}
 
 # Restore the latest restic PostgreSQL dump into a disposable Postgres container
-backup-restore-smoke env='prod':
-    @bash scripts/backup_restic_ops.sh backup-restore-smoke {{ quote(env) }}
+restore-check env='prod':
+    @bash scripts/backup_restic_ops.sh restore-check {{ quote(env) }}
 
 # Smoke test: compose-level backend orchestration (service wiring + migrations)
 docker-orchestration-smoke:

@@ -11,7 +11,7 @@
 
 # --- Reusable fragments ------------------------------------------------------
 # Shipping the other containers' stdout to the central collector is opt-in: include
-# compose.logging.alloy.yaml alongside this file (the deploy recipes do this
+# compose.telemetry.yml alongside this file (the deploy recipes do this
 # automatically when OTEL_EXPORTER_OTLP_ENDPOINT is set in the host's root .env). Hosts
 # without it get Docker's default json-file driver — no config needed.
 
@@ -92,7 +92,7 @@ services:
       # The edge key is the second header the Cloudflare WAF-skip rule matches; both
       # must be set together with the endpoint — `just deploy-secrets-check` enforces
       # the pairing, because the SDK swallows a 401 and telemetry would vanish silently.
-      OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${OTLP_AUTH_TOKEN:-},X-Relab-Telemetry-Key=${TELEMETRY_EDGE_KEY:-}
+      OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${OTLP_AUTH_TOKEN:-},X-Telemetry-Key=${TELEMETRY_EDGE_KEY:-}
       # Pinned rather than left to the SDK default: the collector is reached through
       # a Cloudflare tunnel, which routes HTTPS to the HTTP receiver only. There is no
       # public gRPC path, so a dependency change that flipped the default protocol
@@ -106,7 +106,7 @@ services:
       # itself and merges it into every Resource — no code involved. host.name is
       # deliberately absent: the API is a service-level signal and Alloy owns host
       # identity, which is the one producer rule from ADR 0002.
-      OTEL_RESOURCE_ATTRIBUTES: project=relab,env=${ENVIRONMENT}
+      OTEL_RESOURCE_ATTRIBUTES: project=${PROJECT},env=${ENVIRONMENT}
       # Stable HTTP semantic conventions. Not cosmetic: the legacy metrics label every
       # series with http_target, the RAW request path, so one API with path parameters
       # mints an unbounded number of series. The stable names carry http_route instead —
@@ -482,5 +482,5 @@ networks:
   scanning:
   # Outbound-only network for services that push to external endpoints: the backup
   # container's offsite copy, plus — when their overlays are included — the Alloy
-  # agent and the GPU exporter (compose.logging.alloy.yaml, compose.gpu.yaml).
+  # agent and the GPU exporter (compose.telemetry.yml, compose.telemetry.gpu.yml).
   egress:

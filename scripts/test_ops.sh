@@ -241,36 +241,36 @@ value_of() {
 }
 
 ping_env="$(mktemp)"
-printf 'RELAB_PING_BACKUP=https://hc.example/first\nRELAB_PING_BACKUP=https://hc.example/ping\n' >"$ping_env"
+printf 'PING_BACKUP=https://hc.example/first\nPING_BACKUP=https://hc.example/ping\n' >"$ping_env"
 
 assert_eq "readable file answers with its value" "0|https://hc.example/ping" \
-    "$(value_of "$ping_env" RELAB_PING_BACKUP)"
+    "$(value_of "$ping_env" PING_BACKUP)"
 assert_eq "variable absent from the file resolves empty" "0|" \
-    "$(value_of "$ping_env" RELAB_PING_WATCHDOG)"
+    "$(value_of "$ping_env" PING_WATCHDOG)"
 
 chmod 000 "$ping_env"
 assert_eq "unreadable file falls back to the unit environment" "0|https://hc.example/ping" \
-    "$(RELAB_PING_BACKUP=https://hc.example/ping value_of "$ping_env" RELAB_PING_BACKUP)"
+    "$(PING_BACKUP=https://hc.example/ping value_of "$ping_env" PING_BACKUP)"
 # Root reads through mode 000, so this branch is only reachable unprivileged.
 if [[ ! -r "$ping_env" ]]; then
     assert_eq "no readable source is unresolvable, not empty" "1|" \
-        "$(value_of "$ping_env" RELAB_PING_BACKUP)"
+        "$(value_of "$ping_env" PING_BACKUP)"
 fi
 rm -f "$ping_env"
 
 ping_alert() {
     local out status
-    out="$(ping_url_alerts prod RELAB_PING_BACKUP /etc/relab/relab.env "$1" 2>&1)"
+    out="$(ping_url_alerts prod PING_BACKUP /etc/relab/relab.env "$1" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$out"
 }
 
 assert_eq "filled ping URL is silent" "0|" "$(ping_alert https://hc.example/ping)"
 assert_eq "empty ping URL is reported" \
-    "1|ALERT[prod]: RELAB_PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "1|ALERT[prod]: PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
     "$(ping_alert '')"
 assert_eq "whitespace-only ping URL reads as empty" \
-    "1|ALERT[prod]: RELAB_PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "1|ALERT[prod]: PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
     "$(ping_alert ' ')"
 
 # ---------------------------------------------------------------------------
@@ -300,6 +300,36 @@ assert_eq "valid key still restores" 0 "$(
     cd "$(mktemp -d)" && printf 'foo=bar\n' >input && deploy_secrets_restore dev input >/dev/null 2>&1
     echo $?
 )"
+
+# ---------------------------------------------------------------------------
+# run_scheduled.sh resolves <job> to a `just` recipe of the same name. That coupling
+# is invisible from either side: rename a recipe and the nightly unit starts failing
+# with "Justfile does not contain recipe", which nothing here would otherwise catch.
+# JUST_BIN=echo turns the invocation into observable output without running anything.
+# ---------------------------------------------------------------------------
+scheduled_cmd() {
+    local out status
+    out="$(env -u PING_BACKUP -u PING_WATCHDOG -u PING_RESTORE_CHECK \
+        JUST_BIN=echo bash scripts/run_scheduled.sh "$1" "$2" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$(printf '%s' "$out" | head -n1)"
+}
+
+assert_eq "job name is the recipe name" "0|backup prod" "$(scheduled_cmd backup prod)"
+assert_eq "hyphenated job passes through unchanged" "0|restore-check staging" \
+    "$(scheduled_cmd restore-check staging)"
+assert_eq "missing arguments are rejected" "2|usage: scripts/run_scheduled.sh <job> <env>" \
+    "$(scheduled_cmd backup '')"
+assert_eq "a job name that cannot be an env var suffix is rejected" \
+    "2|error: job and env must match [A-Za-z0-9_-]+" "$(scheduled_cmd 'back;up' prod)"
+
+# Every job the systemd units invoke must therefore exist as a recipe.
+for unit_job in $(sed -n 's|.*run_scheduled\.sh \([a-z-]*\) %i.*|\1|p' deploy/systemd/*.service); do
+    assert_eq "just recipe '${unit_job}' exists for the systemd unit" 0 "$(
+        just --show "$unit_job" >/dev/null 2>&1
+        echo $?
+    )"
+done
 
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1

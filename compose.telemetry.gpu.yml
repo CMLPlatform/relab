@@ -1,9 +1,11 @@
-# compose.gpu.yaml (OPTIONAL OVERLAY — GPU metrics on a host with NVIDIA hardware)
+# compose.telemetry.gpu.yml — VENDORED from the central monitoring repo at a pinned tag.
+#
+# OPTIONAL OVERLAY — GPU metrics on a host with NVIDIA hardware.
 #
 # Adds a GPU exporter that the Alloy agent discovers and scrapes automatically. Include
 # it only on hosts that have a card:
 #
-#   docker compose ... -f compose.logging.alloy.yaml -f compose.gpu.yaml up -d
+#   docker compose ... -f compose.telemetry.yml -f compose.telemetry.gpu.yml up -d
 #
 # or set GPU_METRICS=1 in the host's root `.env` and let the deploy recipes include it.
 #
@@ -15,7 +17,7 @@
 # fields are empty too. What remains is the NVML field set, which is exactly what this
 # exporter reads.
 #
-# If CML ever buys datacentre silicon (A100/H100/L40S), profiling, ECC, NVLink and MIG
+# If the department ever buys datacentre silicon (A100/H100/L40S), profiling, ECC, NVLink and MIG
 # all light up and dcgm-exporter becomes strictly better. That is a one-container swap
 # plus one dashboard — do not pre-build for it.
 

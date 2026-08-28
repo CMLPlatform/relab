@@ -83,9 +83,9 @@ cmd_install() {
 # Leave a value empty to disable pinging for that job.
 #
 # Suggested check periods: backup 1 day, watchdog 1 hour, restore-check 35 days.
-RELAB_PING_BACKUP=
-RELAB_PING_WATCHDOG=
-RELAB_PING_RESTORE_CHECK=
+PING_BACKUP=
+PING_WATCHDOG=
+PING_RESTORE_CHECK=
 EOF
     fi
 
@@ -107,11 +107,15 @@ EOF
     # Empty ping URLs are indistinguishable from deliberately-off, and the jobs run
     # fine without them — which is exactly how a host ends up failing silently
     # forever. Be loud about the unfinished state; the watchdog alerts on it too.
-    if grep -qE '^RELAB_PING_(BACKUP|WATCHDOG|RESTORE_CHECK)=[[:space:]]*$' "$HOST_ENV"; then
-        echo "WARNING: ${HOST_ENV} has empty RELAB_PING_* URLs. The timers will run,"
-        echo "WARNING: but their failures are INVISIBLE outside this host until you"
-        echo "WARNING: create the healthchecks.io checks and fill in the URLs."
-    fi
+    # Missing and empty disable pinging identically, so check for both — a renamed or
+    # mistyped variable leaves no empty line for a grep to find.
+    for var in PING_BACKUP PING_WATCHDOG PING_RESTORE_CHECK; do
+        if ! grep -qE "^${var}=[^[:space:]]" "$HOST_ENV"; then
+            echo "WARNING: ${var} is missing or empty in ${HOST_ENV}. That job runs,"
+            echo "WARNING: but its failures are INVISIBLE outside this host until you"
+            echo "WARNING: create the healthchecks.io check and fill the URL in."
+        fi
+    done
     echo "Next: fill in ${HOST_ENV}, then verify with 'just watchdog ${env}'."
 }
 

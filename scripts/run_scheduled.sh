@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# Run one scheduled Relab job and report the result to a dead-man's switch.
+# VENDORED from the central monitoring repo at a pinned tag. Generic: nothing here
+# names a project or a job list.
 #
-# Usage: run_scheduled.sh <backup|watchdog|restore-check> <prod|staging>
+# Run one scheduled job and report the result to a dead-man's switch.
 #
-# Called by the systemd units in deploy/systemd/. This is the ONE piece of monitoring
+# Usage: run_scheduled.sh <job> <env>
+#   job  — any name; it selects the ping URL variable and the command below.
+#   env  — the deployment environment, passed through to the command.
+#
+# Called by this host's systemd units. This is the ONE piece of monitoring
 # that does not share fate with the observability stack, and that is its whole reason to
 # exist. Everything else — logs, traces, host metrics — flows through Alloy to the
 # department collector, so a dead host, a dead collector, a broken tunnel or an expired
@@ -13,8 +18,8 @@
 #
 # The ping lives here rather than in each unit so the reporting is written once.
 #
-# Ping URLs come from the host file loaded by the units (default /etc/relab/relab.env),
-# never from the repository — they are capability URLs. An unset URL disables the ping
+# Ping URLs come from the host file loaded by the units, never from the repository —
+# they are capability URLs. bootstrap.sh on the central host prints the PING_* block. An unset URL disables the ping
 # for that job without failing it, so a host that has not been wired up yet still runs
 # its jobs.
 set -uo pipefail
@@ -22,20 +27,17 @@ set -uo pipefail
 job="${1:-}"
 env_name="${2:-}"
 
-case "$job" in
-    backup | watchdog | restore-check) ;;
-    *)
-        echo "usage: $0 <backup|watchdog|restore-check> <prod|staging>" >&2
-        exit 2
-        ;;
-esac
-case "$env_name" in
-    prod | staging) ;;
-    *)
-        echo "error: env must be 'prod' or 'staging', got '${env_name}'" >&2
-        exit 2
-        ;;
-esac
+if [[ -z "$job" || -z "$env_name" ]]; then
+    echo "usage: $0 <job> <env>" >&2
+    exit 2
+fi
+# Job and env become part of an environment-variable name below, so keep them to
+# characters that can appear in one — a stray character would silently look up the
+# wrong variable and disable the ping rather than fail.
+if [[ ! "$job" =~ ^[A-Za-z0-9_-]+$ || ! "$env_name" =~ ^[A-Za-z0-9_-]+$ ]]; then
+    echo "error: job and env must match [A-Za-z0-9_-]+" >&2
+    exit 2
+fi
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR" || exit 1
@@ -43,15 +45,14 @@ cd "$ROOT_DIR" || exit 1
 # `just` is resolved at unit-render time and passed in; fall back to PATH for manual runs.
 JUST_BIN="${JUST_BIN:-just}"
 
-case "$job" in
-    backup) command=("$JUST_BIN" backup-run "$env_name") ;;
-    watchdog) command=("$JUST_BIN" watchdog "$env_name") ;;
-    restore-check) command=("$JUST_BIN" backup-restore-smoke "$env_name") ;;
-esac
+# One `just` recipe per job, named the same as the job — that identity is the contract,
+# which is why there is no mapping table here. Projects that do not use `just` can point
+# JUST_BIN at any runner with the same shape.
+command=("$JUST_BIN" "$job" "$env_name")
 
 # One variable per job, so each gets its own check. Sharing a URL would let a frequent
 # job's pings mask a rare one's silence — exactly the failure the rare job exists to catch.
-url_var="RELAB_PING_${job//-/_}"
+url_var="PING_${job//-/_}"
 url_var="${url_var^^}"
 ping_url="${!url_var:-}"
 

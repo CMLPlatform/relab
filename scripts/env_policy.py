@@ -39,8 +39,9 @@ KNOWN_SECRET_PLACEHOLDER_PREFIXES = (
 # source of truth: deploy_ops.sh calls `validation-env` to materialize this same set.
 VALIDATION_ENV_VALUES = {
     "CLOUDFLARE_TUNNEL_TOKEN": "placeholder",
-    # The Alloy telemetry overlay hard-requires both, so compose-config cannot render it
-    # without them.
+    # The telemetry overlay hard-requires the endpoint and the token, so compose-config
+    # cannot render it without them. The edge key is optional to the overlay (only
+    # projects behind a WAF need it) but required here — see assert_telemetry_inputs_are_set_together.
     "OTEL_EXPORTER_OTLP_ENDPOINT": "https://placeholder.test",
     "OTLP_AUTH_TOKEN": "placeholder-otlp-token",
     "TELEMETRY_EDGE_KEY": "placeholder-edge-key",
@@ -59,6 +60,9 @@ DEPLOY_ENV_FILES = (
     ROOT / "deploy" / "env" / "prod.compose.env",
 )
 COMMITTED_DEPLOY_ENV_NAMES = {
+    # Project identity stamped on every telemetry signal. Committed per environment
+    # rather than left to the host's .env: it identifies the project, not the machine.
+    "PROJECT",
     "ENVIRONMENT",
     "API_PUBLIC_URL",
     "APP_PUBLIC_URL",

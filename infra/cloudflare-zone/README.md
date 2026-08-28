@@ -45,7 +45,7 @@ enters the repository:
 export TF_VAR_telemetry_edge_key='...'  # same value as TELEMETRY_EDGE_KEY in the deploy hosts' .env
 ```
 
-It is matched against a dedicated `X-Relab-Telemetry-Key` header, **not** the OTLP
+It is matched against a dedicated `X-Telemetry-Key` header, **not** the OTLP
 bearer token: Cloudflare stores ruleset expressions in cleartext and returns them from
 the rulesets API, so matching the Authorization value (as the adopted rule originally
 did) would disclose the collector credential to any zone-read grant. The deploy hosts
