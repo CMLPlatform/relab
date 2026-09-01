@@ -324,6 +324,8 @@ assert_eq "a job name that cannot be an env var suffix is rejected" \
     "2|error: job and env must match [A-Za-z0-9_-]+" "$(scheduled_cmd 'back;up' prod)"
 
 # Every job the systemd units invoke must therefore exist as a recipe.
+# shellcheck disable=SC2013 # the sed capture is [a-z-]+, so word splitting is exact;
+# a `while read` loop would run the body in a subshell and lose the failure counter.
 for unit_job in $(sed -n 's|.*run_scheduled\.sh \([a-z-]*\) %i.*|\1|p' deploy/systemd/*.service); do
     assert_eq "just recipe '${unit_job}' exists for the systemd unit" 0 "$(
         just --show "$unit_job" >/dev/null 2>&1

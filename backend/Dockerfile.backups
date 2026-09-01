@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Runtime image for encrypted Relab backups.
-FROM postgres:18@sha256:22c89fe0d0f507606260237fd55e51f6137f58b2d5bcf6152242b96d9fe8f9a4
+FROM postgres:18@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
 
 ARG WORKDIR=/opt/relab/backups
 ARG APP_USER=backupuser
@@ -20,6 +20,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # semantics (exit 10 = repository does not exist).
     && apt-get install -y --no-install-recommends ca-certificates \
     "rclone=${RCLONE_VERSION}" "restic=${RESTIC_VERSION}" \
+    # postgres:18 lags Debian's openssl security updates by a rebuild cycle, and
+    # this image talks TLS to the database and to the offsite remote. Upgrade the
+    # openssl packages the base already carries rather than wait for the rebuild.
+    && apt-get install -y --only-upgrade openssl libssl3t64 openssl-provider-legacy \
     && rm -rf /var/lib/apt/lists/* \
     # Postgres ships gosu for its own entrypoint; this image has its own and runs
     # as an unprivileged user, so drop the setuid-capable Go binary.

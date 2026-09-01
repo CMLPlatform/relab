@@ -775,9 +775,9 @@ dropped with no error anywhere, which is the failure this whole section exists t
 avoid. So:
 
 1. `just prod-up YES` and `just staging-up YES` on both hosts, on this release.
-2. Confirm both are sending: on the monitoring host,
+1. Confirm both are sending: on the monitoring host,
    `count({project="relab"})` is non-zero for `env="prod"` and `env="staging"`.
-3. Only then `just cloudflare-zone-apply YES`.
+1. Only then `just cloudflare-zone-apply YES`.
 
 Rolling back the deploy after step 3 reintroduces the old header and silently
 loses telemetry; roll the zone back with it.

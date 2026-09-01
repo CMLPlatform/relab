@@ -445,7 +445,8 @@ def test_multiframe_gif_without_exif_is_left_untouched(tmp_path: Path) -> None:
     process_image_for_storage(path)
 
     assert path.read_bytes() == before, "GIF was re-encoded despite needing no processing"
-    assert PILImage.open(path).n_frames == 3
+    with PILImage.open(path) as reopened:
+        assert reopened.n_frames == 3
 
 
 def test_multiframe_gif_with_exif_is_left_untouched(tmp_path: Path) -> None:
@@ -465,7 +466,8 @@ def test_multiframe_gif_with_exif_is_left_untouched(tmp_path: Path) -> None:
     process_image_for_storage(path)
 
     assert path.read_bytes() == before, "animated original was re-encoded despite carrying EXIF"
-    assert PILImage.open(path).n_frames == 3
+    with PILImage.open(path) as reopened:
+        assert reopened.n_frames == 3
 
 
 def test_lossless_webp_without_exif_is_left_untouched(tmp_path: Path) -> None:

@@ -111,11 +111,11 @@ migrate-reset:
 
 # Compile MJML email templates to HTML
 compile-email:
-    uv run python -m scripts.generate.compile_email_templates
+    ENVIRONMENT=testing uv run python -m scripts.generate.compile_email_templates
 
 # Check that the committed email HTML matches a fresh compile
 email-check:
-    uv run python -m scripts.generate.compile_email_templates --check
+    ENVIRONMENT=testing uv run python -m scripts.generate.compile_email_templates --check
 
 # One-time backfill of upload_size_bytes on existing File/Image rows, for the upload
 # quota ledger. Run once per host after the quota migration; delete with the cutover.

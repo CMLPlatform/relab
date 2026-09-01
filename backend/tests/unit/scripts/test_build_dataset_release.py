@@ -14,9 +14,9 @@ import pytest
 from PIL import Image as PILImage
 from PIL.ExifTags import IFD
 
-import scripts.build_dataset_release as release
 from app.api.auth import terms
 from app.core.images.processing import process_image_for_storage
+from scripts import build_dataset_release as release
 from scripts.build_dataset_release import (
     CATEGORIES_SCHEMA,
     DEFAULT_EXCLUDED_NAME_WORDS,

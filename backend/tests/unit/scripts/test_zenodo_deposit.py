@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import httpx
 import pytest
 
-import scripts.zenodo_deposit as zenodo
+from scripts import zenodo_deposit as zenodo
 from scripts.zenodo_deposit import fetch_deposition, main, release_files, upload_files
 
 if TYPE_CHECKING:

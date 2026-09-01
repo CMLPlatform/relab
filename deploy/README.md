@@ -43,12 +43,12 @@ and must stay byte-identical to it, because a fix upstream is meant to reach eve
 project host unchanged. Everything project-specific arrives as an environment variable;
 if onboarding ever needs one of these edited, that is a bug to report upstream.
 
-| Vendored file | Upstream path |
-| --- | --- |
-| `compose.telemetry.yml` | `templates/compose.telemetry.yml` |
+| Vendored file               | Upstream path                         |
+| --------------------------- | ------------------------------------- |
+| `compose.telemetry.yml`     | `templates/compose.telemetry.yml`     |
 | `compose.telemetry.gpu.yml` | `templates/compose.telemetry.gpu.yml` |
-| `deploy/alloy/config.alloy` | `templates/alloy/config.alloy` |
-| `scripts/run_scheduled.sh` | `templates/run_scheduled.sh` |
+| `deploy/alloy/config.alloy` | `templates/alloy/config.alloy`        |
+| `scripts/run_scheduled.sh`  | `templates/run_scheduled.sh`          |
 
 Vendored at **`v0.2.0`**. Update that tag in the same commit that re-vendors, or the
 next person has no way to tell what they are diffing against:

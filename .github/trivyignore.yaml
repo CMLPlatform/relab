@@ -16,6 +16,46 @@ vulnerabilities:
     expired_at: 2026-10-01
     statement: Go MIME header DoS; fixed in Go 1.26.4, no caddy release built with it yet.
 
+  # The same caddy:2-alpine binary, re-scanned on 2026-09-01: still Go 1.26.3 with
+  # golang.org/x/net v0.55.0, x/text v0.37.0 and grpc v1.81.0, and upstream has
+  # published no release built against the fixed toolchain or deps. Every entry below
+  # is a DoS or parser flaw in a code path this image does not expose: caddy serves a
+  # fixed static /srv root behind the edge, with no DNS resolver, no gRPC/xDS, no
+  # templates, and no XML or ASN.1 decoding. Re-check when the digest is bumped.
+  - id: CVE-2026-33818
+    expired_at: 2026-11-01
+    statement: Go encoding/asn1 recursion DoS; the static file server decodes no ASN.1.
+  - id: CVE-2026-39821
+    expired_at: 2026-11-01
+    statement: x/net/idna Punycode label handling; no IDNA-based authorization decisions here.
+  - id: CVE-2026-46600
+    expired_at: 2026-11-01
+    statement: x/net/dns/dnsmessage parser DoS; caddy runs no DNS resolver in this image.
+  - id: CVE-2026-56852
+    expired_at: 2026-11-01
+    statement: x/text invalid-UTF-8 DoS; fixed in x/text 0.39.0, no caddy build carries it yet.
+  - id: CVE-2026-56853
+    expired_at: 2026-11-01
+    statement: net/http cleartext HTTP/2 DoS; h2c is not enabled, TLS terminates at the edge.
+  - id: CVE-2026-56858
+    expired_at: 2026-11-01
+    statement: html/template XSS via pathological input; caddy renders no templates here.
+  - id: CVE-2026-56859
+    expired_at: 2026-11-01
+    statement: encoding/xml recursion DoS; the static file server decodes no XML.
+  - id: CVE-2026-56860
+    expired_at: 2026-11-01
+    statement: net/url quadratic path parsing DoS; fixed in Go 1.26.6, no caddy release built with it yet.
+  - id: CVE-2026-56862
+    expired_at: 2026-11-01
+    statement: crypto/tls KeyUpdate DoS; fixed in Go 1.26.6, no caddy release built with it yet.
+  - id: CVE-2026-56854
+    expired_at: 2026-11-01
+    statement: x/crypto/ssh source-address bypass; caddy runs no SSH server, and the image exposes only HTTP.
+  - id: GHSA-hrxh-6v49-42gf
+    expired_at: 2026-11-01
+    statement: gRPC-Go xDS RBAC and HTTP/2 flaws; caddy serves no gRPC and loads no xDS config.
+
 misconfigurations: []
 secrets: []
 licenses: []

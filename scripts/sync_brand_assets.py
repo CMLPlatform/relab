@@ -53,7 +53,7 @@ def write_or_check(target: Path, content: str, *, check: bool) -> str | None:
             if target.read_text() == content:
                 return None
         except FileNotFoundError:
-            pass
+            pass  # a target that does not exist yet is stale, same as one that differs
         return relative(target)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content)

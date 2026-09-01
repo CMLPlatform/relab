@@ -7,16 +7,15 @@ on:
   schedule:
     - cron: "0 2 * * 1"
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main ]
+    branches: [main]
   # NOTE: inert until the repository enables the merge queue. Wired up now so a
   # required Security check cannot stall the queue; a merge_group run behaves like
   # a push to main (full scan set) because the event carries no PR context for
   # path filtering.
   merge_group:
   workflow_dispatch:
-
 
 concurrency:
   # Keyed by event too, so a scheduled or merge-queue run never cancels (or is
@@ -166,10 +165,16 @@ jobs:
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48
         with:
           fail-on-severity: moderate
+          # image-size 1.2.1 arrives through metro/@expo/cli. Both advisories cover
+          # every published version (<= 2.0.2) with no fix available, and the parsers
+          # only ever see files the developer already has locally: metro is build
+          # tooling and image-size is not part of any shipped bundle. Drop these two
+          # entries once upstream ships a patched image-size.
+          allow-ghsas: GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr
 
   python-audit:
     name: Python Audit (root + backend)
-    needs: [ changes ]
+    needs: [changes]
     if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-python == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -201,7 +206,7 @@ jobs:
 
   www-node-audit:
     name: Node Audit (www)
-    needs: [ changes ]
+    needs: [changes]
     if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-www == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -225,7 +230,7 @@ jobs:
 
   app-node-audit:
     name: Node Audit (app)
-    needs: [ changes ]
+    needs: [changes]
     if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-app == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -249,7 +254,7 @@ jobs:
 
   docs-node-audit:
     name: Node Audit (docs)
-    needs: [ changes ]
+    needs: [changes]
     if: github.event_name != 'pull_request' && needs.changes.outputs.run-audit-docs == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -292,7 +297,7 @@ jobs:
 
   container-security:
     name: Container Security (${{ matrix.service }})
-    needs: [ changes ]
+    needs: [changes]
     if: needs.changes.outputs.run-container-images == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -360,7 +365,7 @@ jobs:
 
   trivy-iac:
     name: Trivy IaC
-    needs: [ changes ]
+    needs: [changes]
     if: github.event_name != 'branch_protection_rule' && needs.changes.outputs.run-iac == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -396,7 +401,7 @@ jobs:
 
   codeql:
     name: CodeQL (${{ matrix.language }})
-    needs: [ changes ]
+    needs: [changes]
     if: needs.changes.outputs.run-codeql == 'true'
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     timeout-minutes: 30

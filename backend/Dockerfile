@@ -7,7 +7,7 @@
 ARG WORKDIR=/opt/relab/backend
 
 # --- Build stage (prod deps only) ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:b6e3a8825dfb232a6b962228f0b5cf98ee1d2b4263f62c2639f68887f4e634a2 AS build
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:2e5867a06156cb8be272125d32fc5032ed750a1268a9350d87a7d322540eb59f AS build
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups
 
 # --- Dev stage (all groups, hot reload) ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:b6e3a8825dfb232a6b962228f0b5cf98ee1d2b4263f62c2639f68887f4e634a2 AS dev
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:2e5867a06156cb8be272125d32fc5032ed750a1268a9350d87a7d322540eb59f AS dev
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -56,13 +56,17 @@ EXPOSE 8000
 CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app"]
 
 # --- Runtime stage (default) ---
-FROM python:3.14-slim-trixie@sha256:b877e50bd90de10af8d82c57a022fc2e0dc731c5320d762a27986facfc3355c1 AS runtime
+FROM python:3.14-slim-trixie@sha256:656d12e70054d5fda18a045e2494c96701e9792dd1445f95b3d038df954f57e9 AS runtime
 
 ARG WORKDIR
 ARG APP_USER=appuser
 ARG APP_UID=1001
 
-RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER"
+RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
+    # This stage runs only the uv-built venv copied in below, so the base image's
+    # own pip is dead weight: unused at runtime, and its vendored dependencies
+    # keep surfacing in image scans. Drop it.
+    && pip uninstall --yes --quiet pip
 
 WORKDIR $WORKDIR
 
