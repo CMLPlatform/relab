@@ -58,7 +58,7 @@ x-stateful-hardening: &stateful-hardening
 
 services:
   api:
-    <<: *service-hardening
+    !!merge <<: *service-hardening
     build:
       context: ./backend
       cache_from:
@@ -71,6 +71,16 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrator:
+        # Both services mount `user_uploads`, and Docker seeds an empty named
+        # volume from each container's image as it starts. Started together, the
+        # two seedings race and one dies on `mkdir .../images: file exists`.
+        # Waiting also means the API never serves against a schema the migrator
+        # has not finished applying. `required: false` keeps this inert unless
+        # the migrations profile is actually up, so `compose up api` on its own
+        # is unchanged. compose.deploy.yaml repeats this with the prod caveats.
+        condition: service_completed_successfully
+        required: false
     volumes:
       - user_uploads:/opt/relab/backend/data/uploads
     environment:
@@ -78,14 +88,14 @@ services:
       DATABASE_PORT: 5432
       REDIS_HOST: redis # Point to the cache service
     healthcheck:
-      <<: *healthcheck-defaults
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/live', timeout=5)" ]
+      !!merge <<: *healthcheck-defaults
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/live', timeout=5)"]
     networks:
       - edge
       - data
 
   migrator:
-    <<: *service-hardening
+    !!merge <<: *service-hardening
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
@@ -117,12 +127,12 @@ services:
       - data
 
   redis:
-    <<: *stateful-hardening
+    !!merge <<: *stateful-hardening
     image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
     restart: unless-stopped
     healthcheck:
-      <<: *healthcheck-defaults
-      test: [ "CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG" ]
+      !!merge <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "redis-cli $${REDIS_PASSWORD:+-a $${REDIS_PASSWORD}} ping | grep -q PONG"]
       start_period: 5s
     # Roughly double maxmemory: an AOF rewrite forks and can transiently hold a
     # second copy of the changed pages.
@@ -132,12 +142,12 @@ services:
     # revoked token be accepted again. Every key is written with a TTL, so
     # `noeviction` turns a memory blow-up into loud write failures rather than
     # silent security loss.
-    command: [ "sh", "-c", "redis-server --appendonly yes --save 60 1 --maxmemory 512mb --maxmemory-policy noeviction $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}" ]
+    command: ["sh", "-c", "redis-server --appendonly yes --save 60 1 --maxmemory 512mb --maxmemory-policy noeviction $${REDIS_PASSWORD:+--requirepass $${REDIS_PASSWORD}}"]
     networks:
       - data
 
   postgres:
-    <<: *stateful-hardening
+    !!merge <<: *stateful-hardening
     image: postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
     restart: unless-stopped
     # Hard cap matching the tuning below. These two must move together: the
@@ -196,14 +206,14 @@ services:
       # Postgres runs initdb files in sorted order on fresh volumes.
       - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      <<: *healthcheck-defaults
-      test: [ "CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      !!merge <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "pg_isready -h localhost -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       start_period: 5s
     networks:
       - data
 
   docs:
-    <<: *service-hardening
+    !!merge <<: *service-hardening
     build:
       context: .
       dockerfile: docs/Dockerfile
@@ -216,7 +226,7 @@ services:
       - edge
 
   app:
-    <<: *service-hardening
+    !!merge <<: *service-hardening
     build:
       context: .
       dockerfile: app/Dockerfile
@@ -229,7 +239,7 @@ services:
       - edge
 
   www:
-    <<: *service-hardening
+    !!merge <<: *service-hardening
     build:
       context: .
       dockerfile: www/Dockerfile
