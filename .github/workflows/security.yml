@@ -165,12 +165,25 @@ jobs:
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48
         with:
           fail-on-severity: moderate
-          # image-size 1.2.1 arrives through metro/@expo/cli. Both advisories cover
-          # every published version (<= 2.0.2) with no fix available, and the parsers
-          # only ever see files the developer already has locally: metro is build
-          # tooling and image-size is not part of any shipped bundle. Drop these two
-          # entries once upstream ships a patched image-size.
-          allow-ghsas: GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr
+          # Every entry here needs a reachable-but-unfixable justification and a
+          # condition for removing it. Re-check the whole list when expo or metro
+          # moves a major version.
+          #
+          # GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr: image-size 1.2.1 arrives through
+          # metro/@expo/cli. Both cover every published version (<= 2.0.2) with no fix
+          # available, and the parsers only ever see files the developer already has
+          # locally: metro is build tooling, and image-size is in no shipped bundle.
+          # Drop once upstream ships a patched image-size.
+          #
+          # GHSA-vcc3-ghjq-m6fr: decode-uri-component 0.2.2 arrives through
+          # query-string@7, which expo-router depends on -- 57.0.17, the latest, still
+          # pins ^7.1.3, so there is no version of the app's own tree that avoids it.
+          # The patched 0.5.0 is ESM-only and query-string@7 requires it through CJS,
+          # so overriding it breaks routing at runtime. Impact is bounded: a malformed
+          # deep link can stall the JS thread of the app that opened it, which costs
+          # that one user a force-quit and reaches no server and no other user. Drop
+          # when expo-router moves to query-string@8+ or query-string@7 backports.
+          allow-ghsas: GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr, GHSA-vcc3-ghjq-m6fr
 
   python-audit:
     name: Python Audit (root + backend)
