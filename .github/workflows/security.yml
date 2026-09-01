@@ -8,6 +8,11 @@ on:
     - cron: "0 2 * * 1"
   pull_request:
     branches: [main]
+    # `ready_for_review` is on top of the default types: the deep scans below skip
+    # while a PR is a draft, so marking it ready has to trigger the run that fills
+    # them in. Without it, a PR that was drafted through its whole life would reach
+    # the merge button having never been image- or CodeQL-scanned.
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
   # NOTE: inert until the repository enables the merge queue. Wired up now so a
@@ -63,6 +68,7 @@ jobs:
           IS_SCHEDULE: ${{ steps.detect.outputs.is-schedule }}
           IS_DISPATCH: ${{ steps.detect.outputs.is-dispatch }}
           IS_MERGE_GROUP: ${{ steps.detect.outputs.is-merge-group }}
+          IS_DRAFT: ${{ github.event.pull_request.draft || false }}
           SHARED: ${{ steps.detect.outputs.shared }}
           BACKEND: ${{ steps.detect.outputs.backend }}
           DOCS: ${{ steps.detect.outputs.docs }}
@@ -87,6 +93,23 @@ jobs:
             echo "run-audit-app=$([[ "$shared_trigger" == "true" || "$APP" == "true" ]] && echo true || echo false)"
             echo "run-audit-docs=$([[ "$shared_trigger" == "true" || "$DOCS" == "true" ]] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
+
+          # The image scans and the CodeQL matrix are the expensive half of this
+          # workflow: six image builds plus three analyses, against a couple of
+          # minutes for everything above. A draft PR skips them and picks them up on
+          # `ready_for_review`; the merge queue, the weekly schedule, and every push
+          # to main are unaffected, so nothing lands without a full scan. The cheap
+          # gates above (secret scan, dependency review, IaC) still run on drafts,
+          # because those catch the mistakes worth catching early.
+          if [[ "$IS_DRAFT" == "true" ]]; then
+            {
+              echo "run-container-images=false"
+              echo 'container-security-matrix={"include":[]}'
+              echo "run-codeql=false"
+              echo 'codeql-matrix={"include":[]}'
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           # Which subrepos' images to scan. The image definitions themselves live in
           # .github/container-images.json, shared with the release SBOM matrix.
