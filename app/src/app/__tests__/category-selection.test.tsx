@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import CategorySelection from '@/app/category-selection';
@@ -273,10 +273,14 @@ describe('CategorySelection', () => {
     renderWithProviders(<CategorySelection />);
     await screen.findByPlaceholderText('Search');
     fireEvent.changeText(screen.getByPlaceholderText('Search'), 'petroleum');
-    await waitFor(() => {
-      expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
-      expect(screen.queryByText('Agricultural products')).toBeNull();
+    // Step the 300ms debounce off the fake clock instead of letting waitFor poll
+    // for it. Polling costs seconds in this one test where every sibling here
+    // runs in milliseconds, and it crossed the per-test budget on CI hardware.
+    await act(async () => {
+      jest.advanceTimersByTime(300);
     });
+    expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
+    expect(screen.queryByText('Agricultural products')).toBeNull();
   });
 
   it('shows an empty state when the search query matches nothing', async () => {
