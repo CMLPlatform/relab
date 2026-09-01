@@ -9,7 +9,7 @@ import { defineConfig, devices } from '@playwright/test';
  * Preferred local usage:
  *   just test-e2e-full-stack
  *
- * CI: see the e2e-full-stack job in .github/workflows/validate.yml
+ * CI: see the e2e-full-stack job in .github/workflows/ci.yml
  */
 export default defineConfig({
   testDir: './e2e',

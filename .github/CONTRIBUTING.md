@@ -232,7 +232,7 @@ Obscured and 2.4.13 Focus Appearance have no axe rule and are checked by hand.
 The `www/` and `docs/` axe scans gate every PR that touches `www/`, `docs/`, or shared files. The
 `app/` scan needs the full Docker backend, so it runs post-merge or on demand; the per-PR net for
 the app is `eslint-plugin-react-native-a11y`, which validates RN accessibility props on each lint
-run. See [validate.yml](workflows/validate.yml).
+run. See [ci.yml](workflows/ci.yml).
 
 These are automated checks, so a passing run is a floor, not proof of WCAG
 conformance. The `app/` scan runs against the react-native-web build, so it does

@@ -2,7 +2,7 @@
  * Accessibility E2E: runs axe against the Expo web build.
  *
  * Scoped to the guest-accessible core screens so it needs no login/seeding
- * beyond the running full-stack (see e2e-full-stack in validate.yml).
+ * beyond the running full-stack (see e2e-full-stack in ci.yml).
  *
  * We gate on serious + critical violations only. RN-Web rendering emits
  * minor/moderate axe noise (and theme-token color-contrast) that the app

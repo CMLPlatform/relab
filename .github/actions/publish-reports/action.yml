@@ -21,9 +21,6 @@ inputs:
   network-prefix:
     description: Prefix prepended to uploaded report paths before Codecov matches files.
     required: true
-  artifact-name:
-    description: Name of the archived workflow artifact.
-    required: true
   artifact-path:
     description: Path(s) to archive as a workflow artifact.
     required: true
@@ -31,30 +28,35 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Upload coverage
+    - name: Upload coverage to Codecov
       if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-      uses: ./.github/actions/upload-codecov
+      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
       with:
-        token: ${{ inputs.token }}
         files: ${{ inputs.coverage-file }}
         flags: ${{ inputs.flags }}
-        name: validate-${{ inputs.flags }}-coverage
-        disable-search: "true"
-        network-prefix: ${{ inputs.network-prefix }}
+        name: ci-${{ inputs.flags }}-coverage
+        fail_ci_if_error: false
+        token: ${{ inputs.token }}
+        slug: CMLPlatform/relab
+        disable_search: "true"
+        network_prefix: ${{ inputs.network-prefix }}
 
-    - name: Upload test results
+    - name: Upload test results to Codecov
       # Runs even when tests fail so Codecov can track flaky/failing tests.
       if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-      uses: ./.github/actions/upload-test-results
+      uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
       with:
-        token: ${{ inputs.token }}
         files: ${{ inputs.junit-file }}
         flags: ${{ inputs.flags }}
+        token: ${{ inputs.token }}
+        fail_ci_if_error: false
+        disable_search: "true"
+        slug: CMLPlatform/relab
 
     - name: Archive coverage report
       if: always()
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
-        name: ${{ inputs.artifact-name }}
+        name: ci-${{ inputs.flags }}-coverage
         path: ${{ inputs.artifact-path }}
         retention-days: 7

@@ -21,9 +21,7 @@
 # needs its own `scope=`, otherwise every service shares the default scope and
 # the docker-smoke matrix legs overwrite each other's layers. Keep the scope
 # names aligned with the per-service `matrix.service` cache scopes in
-# .github/workflows/security.yml and release.yml. (container-images.json's own
-# "scope" field is coarser — it groups api/migrator/relab-backup under
-# "backend" for change-detection filtering, not for GHA cache scoping.)
+# .github/workflows/ci.yml and release.yml.
 
 x-healthcheck-defaults: &healthcheck-defaults
   interval: 30s

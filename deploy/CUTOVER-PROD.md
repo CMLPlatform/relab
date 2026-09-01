@@ -183,16 +183,16 @@ Do this even if staging's data is uninteresting — what is being rehearsed is t
 
 ### Confirm the CI gate actually blocks merges
 
-`just ci` runs in `.github/workflows/validate.yml`, whose terminal job is
-`validate-result`. Branch protection is **not** stored in the repository, so
-whether that job is a required check cannot be verified from the code:
+`just ci` runs in `.github/workflows/ci.yml`, whose terminal job is
+`ci-result`. Branch protection is **not** stored in the repository, so whether
+that job is a required check cannot be verified from the code:
 
 ```bash
 gh api repos/:owner/:repo/branches/main/protection \
   --jq '.required_status_checks.contexts'
 ```
 
-`validate-result` must appear. If the call 404s, there is no protection at all
+`ci-result` must appear. If the call 404s, there is no protection at all
 and every gate in this release is advisory. Record the answer as launch
 evidence.
 
