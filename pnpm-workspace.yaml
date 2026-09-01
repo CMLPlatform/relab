@@ -31,6 +31,8 @@ overrides:
   "postcss@<8.5.18": ">=8.5.18" # GHSA-r28c-9q8g-f849
   "brace-expansion@<1.1.17": ">=1.1.17 <2" # GHSA-mh99-v99m-4gvg
   "brace-expansion@>=4.0.0 <5.0.8": ">=5.0.8" # GHSA-mh99-v99m-4gvg
+  # 3.15.1 already carries the fix, so only the 4.x range needs lifting.
+  "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1 <5" # GHSA-5p4m-2wfm-xmqj
   # NativeWind v5 requires pinning lightningcss (per its install docs).
   lightningcss: 1.33.0
 
