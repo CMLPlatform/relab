@@ -393,6 +393,11 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    permissions:
+      contents: read
+      # Pull-request findings are uploaded to the Security tab rather than
+      # failing the job; that needs write access to code scanning.
+      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -458,7 +463,38 @@ jobs:
             EXPO_PUBLIC_WEBSITE_URL=https://example.invalid
             EXPO_PUBLIC_DOCS_URL=https://docs.example.invalid
 
-      - name: Scan image with Trivy
+      # A base-image CVE is a "somebody act this week" event, not a "block this
+      # merge" one: advisories land faster than base images rebuild, so a
+      # blocking PR gate fails continuously and stops being read (the rpi-cam
+      # repo measured 27 red runs out of 71 before making this split). Pull
+      # requests report into the Security tab and stay green; the post-merge and
+      # weekly runs are the gate that can go red for a reason. Suppressions stay
+      # in .github/trivyignore.yaml, each with an expiry and a reachability note.
+      - name: Scan image with Trivy (report)
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          exit-code: "0"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          # Without this the SARIF carries every severity, so the Security tab
+          # stops matching what the gate below actually enforces.
+          limit-severities-for-sarif: true
+          trivyignores: .github/trivyignore.yaml
+
+      - name: Upload Trivy results
+        # Fork PRs run with a read-only token that cannot upload SARIF.
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
+          category: trivy-image-${{ matrix.service }}
+
+      - name: Scan image with Trivy (gate)
+        if: github.event_name != 'pull_request'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: ${{ matrix.image }}:${{ github.sha }}
