@@ -51,19 +51,19 @@ repos:
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.9
+    rev: v4.18.0
     hooks:
       - id: commitizen
         stages: [ commit-msg ]
 
   - repo: https://github.com/simonvanlierde/check-json5
-    rev: v1.1.0
+    rev: v1.2.0
     hooks:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.1
+    rev: 0.12.10
     hooks:
       - id: uv-lock
         name: uv-lock-root
