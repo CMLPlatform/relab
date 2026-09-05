@@ -6,6 +6,14 @@ packages:
 engineStrict: true
 preferFrozenLockfile: true
 
+# Mirror of the allow-ghsas list on ci.yml's dependency-review step, which holds
+# the per-advisory justifications and removal conditions. Keep the two in sync.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-5p2g-fcmc-qvqq # image-size (metro build tooling, no fix in range)
+    - GHSA-w3rx-r6r6-pgpr # image-size (same)
+    - GHSA-vcc3-ghjq-m6fr # decode-uri-component (query-string@7 pins ^0.2.2)
+
 # Wait 3 days before accepting newly published packages.
 minimumReleaseAge: 4320
 minimumReleaseAgeStrict: false

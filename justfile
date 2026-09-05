@@ -222,10 +222,7 @@ audit: audit-root
     #!/usr/bin/env bash
     set -euo pipefail
     just backend/audit all
-    for d in www app; do just "$d/audit"; done
-    # NOTE: docs advisories are known low-severity findings with no upstream fix;
-    # they warn instead of failing so they never block the blocking audits above.
-    just docs/audit || echo "⚠️ docs audit found advisories (non-blocking)"
+    for d in docs www app; do just "$d/audit"; done
     echo "✅ Root and subrepo dependency audits complete"
 
 # Canonical security target: secret scanning plus dependency audits

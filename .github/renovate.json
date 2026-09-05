@@ -1,25 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:best-practices",
-    ":approveMajorUpdates",
-    ":maintainLockFilesWeekly",
-    ":preserveSemverRanges",
-    "schedule:weekly"
-  ],
+  "extends": ["config:best-practices", ":approveMajorUpdates", "schedule:weekly"],
+  "timezone": "Europe/Amsterdam",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "prConcurrentLimit": 8,
-  "configMigration": true,
   "pre-commit": {
     "enabled": true
   },
-  "minimumReleaseAge": "14 days",
+  "minimumReleaseAge": "7 days",
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "addLabels": ["security"]
+  },
   "packageRules": [
     {
-      "description": "Expo SDK-managed packages, versions pinned by the SDK, don't bump independently",
+      "description": "Expo SDK-managed packages, versions pinned by the SDK, don't bump independently. NOTE: disabled deps are skipped before lookup, so these get no vulnerability-fix PRs either — watch GitHub's Dependabot alerts and fix via `expo install --check` at the next SDK upgrade",
       "matchFileNames": ["app/package.json"],
       "matchPackageNames": [
         "expo",
@@ -75,17 +72,19 @@
       ]
     },
     {
-      "description": "Batch GitHub Actions updates into one PR, pinned to immutable SHA digests",
+      "description": "Batch GitHub Actions updates into one PR",
       "matchManagers": ["github-actions"],
-      "groupName": "github-actions",
-      "pinDigests": true
+      "groupName": "github-actions"
     },
     {
-      "description": "Batch container image updates into one PR, pinned to immutable SHA digests",
+      "description": "Batch container image updates into one PR",
       "matchManagers": ["dockerfile", "docker-compose"],
-      "groupName": "container-images",
-      "pinDigests": true
+      "groupName": "container-images"
+    },
+    {
+      "description": "7 days everywhere; config:best-practices only waits 3 days on npm (npm's 72h unpublish window, not a security floor)",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "7 days"
     }
-  ],
-  "platformAutomerge": true
+  ]
 }

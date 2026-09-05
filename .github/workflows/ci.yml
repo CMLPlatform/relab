@@ -342,8 +342,9 @@ jobs:
         with:
           fail-on-severity: moderate
           # Every entry here needs a reachable-but-unfixable justification and a
-          # condition for removing it. Re-check the whole list when expo or metro
-          # moves a major version.
+          # condition for removing it, and a matching ignoreGhsas entry in
+          # pnpm-workspace.yaml so `just audit` enforces the same policy.
+          # Re-check the whole list when expo or metro moves a major version.
           #
           # GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr: image-size 1.2.1 arrives through
           # metro/@expo/cli. Both cover every published version (<= 2.0.2) with no fix
@@ -365,6 +366,8 @@ jobs:
     name: Dependency Audit
     # Advisories surface on push and the weekly schedule; PRs get dependency-review.
     # The audits read lockfiles only, so nothing is installed beyond the toolchains.
+    # Known-unfixable advisories are allow-listed in pnpm-workspace.yaml
+    # (ignoreGhsas), mirroring dependency-review's allow-ghsas.
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
