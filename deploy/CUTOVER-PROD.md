@@ -710,7 +710,7 @@ Log labels changed with the collection path: what used to be Loki's
 `host=` need updating.
 
 > **Telemetry is one switch and two credentials now, not a pile of them.** Set
-> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org`, `OTLP_AUTH_TOKEN`
+> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org`, `OTLP_AUTH_TOKEN`
 > (a bearer token from the monitoring stack operator) and `TELEMETRY_EDGE_KEY`
 > (the WAF-skip header value, below). The endpoint switch turns
 > on the API's own OpenTelemetry exporter **and** auto-includes
@@ -727,7 +727,7 @@ Log labels changed with the collection path: what used to be Loki's
 > `LOKI_PUSH_URL` and the Loki Docker-driver overlay are **gone**. Delete both
 > `LOKI_URL` and `LOKI_PUSH_URL` from the host's `.env`; nothing reads them. The
 > monitoring stack (github.com/CMLPlatform/monitoring) publishes only `grafana.`
-> and `otlp.` and deliberately exposes no Loki push hostname, because Loki has no
+> and `otel.` and deliberately exposes no Loki push hostname, because Loki has no
 > authentication of its own.
 >
 > Alloy also ships host metrics — CPU, memory, disk, network and `hwmon`

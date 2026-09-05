@@ -29,14 +29,15 @@ locals {
 
   # The telemetry ingress host, owned by CMLPlatform/monitoring rather than by either
   # Relab environment, so it appears nowhere in the route map. That repo's infra/main.tf
-  # publishes exactly two records in this zone — `grafana.` and `otlp.` — and fronts
+  # publishes exactly two records in this zone — `grafana.` and `otel.` — and fronts
   # Grafana with Cloudflare Access while leaving OTLP to the collector's own bearer
-  # token. This rule keeps Cloudflare's bot products off that token-authenticated path.
+  # token. The ingestion host was renamed from `otlp.` to `otel.` on 2026-09-05; this
+  # expression has to track it, or the skip silently stops matching. This rule keeps Cloudflare's bot products off that token-authenticated path.
   #
   # `logs.` was in the rule when it was adopted and is dropped here: the monitoring stack
   # publishes no such record, because Loki has no authentication of its own.
   telemetry_ingress_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [
-    "otlp.${local.cloudflare_zone}",
+    "otel.${local.cloudflare_zone}",
   ]))}}"
 
   # Stored media is content-addressed: the filename embeds the file's hash, so a changed

@@ -24,7 +24,7 @@ variable "cloudflare_zone_name" {
 variable "telemetry_edge_key" {
   description = <<-EOT
     Value of the `X-Telemetry-Key` header that identifies the telemetry shippers
-    to `otlp.`, used to skip Cloudflare's bot and managed-security products for them.
+    to `otel.`, used to skip Cloudflare's bot and managed-security products for them.
     Export as TF_VAR_telemetry_edge_key; it must never be written into the repo. Empty
     (the default) omits the rule entirely, which keeps `just cloudflare-check` runnable
     without secrets.
@@ -36,7 +36,7 @@ variable "telemetry_edge_key" {
     It must equal TELEMETRY_EDGE_KEY in the deploy hosts' root `.env` (the api's
     OTEL_EXPORTER_OTLP_HEADERS and Alloy both send it).
 
-    NOTE: `otlp.` is the monitoring stack's hostname, not Relab's. That stack manages its
+    NOTE: `otel.` is the monitoring stack's hostname, not Relab's. That stack manages its
     own Cloudflare config but declares no rulesets, so this root stays the single owner of
     the zone entrypoints — see the ownership note in README.md.
   EOT

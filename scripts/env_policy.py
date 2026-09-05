@@ -443,16 +443,17 @@ def assert_telemetry_examples_use_department_contract() -> None:
     """Ensure Relab documents the central telemetry endpoint contract it consumes."""
     contents = (ROOT / ".env.example").read_text(encoding="utf-8")
     # The hostname is owned by CMLPlatform/monitoring, whose infra/main.tf declares a
-    # `cloudflare_dns_record.otlp` for `otlp.<domain>` and routes it to the collector's
-    # HTTP receiver. There is no `otel.` record and no `logs.` record, so those are the
-    # wrong names, not alternatives.
+    # `cloudflare_dns_record.otel` for `otel.<domain>` and routes it to the collector's
+    # HTTP receiver. Renamed from `otlp.` on 2026-09-05; the old record no longer
+    # resolves to an ingress rule, and there is no `logs.` record, so both are wrong
+    # names rather than alternatives.
     require(
-        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org" in contents,
-        ".env.example: OTEL example must use otlp.cml-relab.org, the hostname the monitoring stack actually publishes",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" in contents,
+        ".env.example: OTEL example must use otel.cml-relab.org, the hostname the monitoring stack actually publishes",
     )
     require(
-        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" not in contents,
-        ".env.example: otel.cml-relab.org does not exist; the record is otlp.",
+        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org" not in contents,
+        ".env.example: otlp.cml-relab.org was renamed to otel. on 2026-09-05 and no longer routes",
     )
     # The collector authenticates machines with a bearer token (Cloudflare Access
     # fronts Grafana, not OTLP), so a Basic credential here is stale and 401s.

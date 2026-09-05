@@ -28,7 +28,7 @@ dropping them would have been a silent regression:
 - **`relab_prod_html_bypass`** — the prod web and app entry points bypass the edge
   cache. Their URLs do not change between deploys, so a cached entry point keeps
   serving the previous build.
-- **`relab_telemetry_ingress_skip_managed_security`** — `otlp.` accepts
+- **`relab_telemetry_ingress_skip_managed_security`** — `otel.` accepts
   shipped telemetry from a non-browser client that Cloudflare's bot products would
   otherwise challenge, and a challenged log push is a silently dropped log.
 
@@ -53,9 +53,9 @@ send both headers — the token authenticates at the collector, the key only buy
 managed-security skip — and the two rotate independently.
 
 > **Sharing the zone with the monitoring stack is fine today — keep it that way.**
-> `otlp.cml-relab.org` belongs to CMLPlatform/monitoring, which runs its own Cloudflare
-> Terraform against this same zone. Checked on 2026-08-19: its `infra/main.tf` declares a
-> tunnel, two DNS records (`grafana.`, `otlp.`) and a Zero Trust Access application —
+> `otel.cml-relab.org` belongs to CMLPlatform/monitoring, which runs its own Cloudflare
+> Terraform against this same zone. Checked on 2026-09-05: its `infra/main.tf` declares a
+> tunnel, two DNS records (`grafana.`, `otel.`) and a Zero Trust Access application —
 > and **no `cloudflare_ruleset`**, so nothing there contends with this root.
 >
 > That is a property to preserve, not a guarantee. Cloudflare allows one entrypoint

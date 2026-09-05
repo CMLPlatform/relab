@@ -195,7 +195,7 @@ operator (github.com/CMLPlatform/monitoring), the edge key shared with whoever r
 `infra/cloudflare-zone` (`TF_VAR_telemetry_edge_key` must carry the same value):
 
 ```env
-OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org
 OTLP_AUTH_TOKEN=<bearer token>
 TELEMETRY_EDGE_KEY=<edge key>
 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf

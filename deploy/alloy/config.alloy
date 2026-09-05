@@ -12,7 +12,7 @@
 // Everything else in the stack — databases, caches, proxies, frontends, batch jobs —
 // only writes to stdout, so this agent picks those up and forwards them on the
 // same OTLP endpoint with the same token. Nothing new is published at the edge: the
-// monitoring stack exposes `otlp.` and deliberately does not expose Loki, which has no
+// monitoring stack exposes `otel.` and deliberately does not expose Loki, which has no
 // authentication of its own.
 
 // The host's own name, read from its /etc/hostname through the rootfs mount rather than
