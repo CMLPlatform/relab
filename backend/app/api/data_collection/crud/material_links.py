@@ -1,25 +1,67 @@
 """Bill-of-materials CRUD operations."""
 
-from __future__ import annotations
-
+from collections import Counter
 from typing import TYPE_CHECKING
 
+from sqlalchemy import delete, select
+
 from app.api.common.crud.associations import require_link
+from app.api.common.crud.exceptions import LinkedItemsAlreadyAssignedError
+from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter
 from app.api.common.crud.persistence import update_and_commit
+from app.api.common.crud.query import require_model, require_models
 from app.api.common.crud.utils import validate_linked_items_exist, validate_no_duplicate_linked_items
 from app.api.common.exceptions import InternalServerError
-from app.api.common.schemas.associations import (
+from app.api.data_collection.exceptions import MaterialIDRequiredError
+from app.api.data_collection.filters import MaterialProductLinkFilter
+from app.api.data_collection.models.product import MaterialProductLink, Product
+from app.api.data_collection.schemas import (
     MaterialProductLinkCreateWithinProduct,
     MaterialProductLinkCreateWithinProductAndMaterial,
     MaterialProductLinkUpdate,
 )
-from app.api.data_collection.exceptions import MaterialIDRequiredError
-from app.api.data_collection.models.product import MaterialProductLink
-
-from .shared import get_material_links_for_product, get_product_with_bill_of_materials, validate_product_material_links
+from app.api.reference_data.models import Material
 
 if TYPE_CHECKING:
+    from sqlalchemy import Select
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+def _normalize_material_ids(material_ids: int | set[int]) -> set[int]:
+    return {material_ids} if isinstance(material_ids, int) else material_ids
+
+
+async def _get_product_with_bill_of_materials(db: AsyncSession, product_id: int) -> Product:
+    return await require_model(db, Product, product_id, loaders={"bill_of_materials"})
+
+
+async def _validate_product_material_links(
+    db: AsyncSession,
+    product_id: int,
+    material_ids: int | set[int],
+) -> tuple[Product, set[int]]:
+    normalized = _normalize_material_ids(material_ids)
+    product = await _get_product_with_bill_of_materials(db, product_id)
+    await require_models(db, Material, normalized)
+    return product, normalized
+
+
+async def list_material_links_for_product(
+    db: AsyncSession,
+    *,
+    product_id: int,
+    material_filter: MaterialProductLinkFilter,
+) -> list[MaterialProductLink]:
+    """List bill-of-material rows scoped to one product/component row."""
+    # No explicit join to Material here: apply_filter's relationship-join machinery adds
+    # it only when material_name/description/source is actually filtered or sorted on.
+    # A static join here duplicated that one, producing an ambiguous-join error.
+    statement: Select[tuple[MaterialProductLink]] = select(MaterialProductLink).where(
+        MaterialProductLink.product_id == product_id
+    )
+    statement = apply_filter(statement, material_filter)
+    statement = statement.limit(SUB_RESOURCE_LIMIT)
+    return list((await db.execute(statement)).scalars().unique().all())
 
 
 async def add_materials_to_product(
@@ -27,7 +69,11 @@ async def add_materials_to_product(
 ) -> list[MaterialProductLink]:
     """Add materials to a product."""
     material_ids: set[int] = {material_link.material_id for material_link in material_links}
-    db_product, normalized_material_ids = await validate_product_material_links(db, product_id, material_ids)
+    if len(material_ids) != len(material_links):
+        counts = Counter(material_link.material_id for material_link in material_links)
+        model_name = "Materials"
+        raise LinkedItemsAlreadyAssignedError(model_name, {mid for mid, n in counts.items() if n > 1})
+    db_product, normalized_material_ids = await _validate_product_material_links(db, product_id, material_ids)
 
     if db_product.bill_of_materials:
         validate_no_duplicate_linked_items(
@@ -39,10 +85,14 @@ async def add_materials_to_product(
     ]
     db.add_all(db_material_product_links)
     await db.commit()
-    for link in db_material_product_links:
-        await db.refresh(link)
 
-    return db_material_product_links
+    # MaterialProductLink has a composite (material_id, product_id) PK — no single id.
+    result = await db.execute(
+        select(MaterialProductLink)
+        .where(MaterialProductLink.product_id == product_id)
+        .where(MaterialProductLink.material_id.in_(normalized_material_ids))
+    )
+    return list(result.scalars().all())
 
 
 async def add_material_to_product(
@@ -75,7 +125,7 @@ async def update_material_within_product(
     db: AsyncSession, product_id: int, material_id: int, material_link: MaterialProductLinkUpdate
 ) -> MaterialProductLink:
     """Update material in a product bill of materials."""
-    await get_product_with_bill_of_materials(db, product_id)
+    await _get_product_with_bill_of_materials(db, product_id)
 
     db_material_link: MaterialProductLink = await require_link(
         db,
@@ -91,11 +141,25 @@ async def update_material_within_product(
 
 async def remove_materials_from_product(db: AsyncSession, product_id: int, material_ids: int | set[int]) -> None:
     """Remove materials from a product."""
-    product, normalized_material_ids = await validate_product_material_links(db, product_id, material_ids)
+    product, normalized_material_ids = await _validate_product_material_links(db, product_id, material_ids)
 
     validate_linked_items_exist(normalized_material_ids, product.bill_of_materials, "Materials", id_attr="material_id")
 
-    for material_link in await get_material_links_for_product(db, product_id, normalized_material_ids):
-        await db.delete(material_link)
-
+    await db.execute(
+        delete(MaterialProductLink)
+        .where(MaterialProductLink.product_id == product_id)
+        .where(MaterialProductLink.material_id.in_(normalized_material_ids))
+    )
     await db.commit()
+
+
+async def require_material_link(db: AsyncSession, product_id: int, material_id: int) -> MaterialProductLink:
+    """Load one bill-of-materials link or raise 404. Shared by product and component routes."""
+    return await require_link(
+        db,
+        MaterialProductLink,
+        product_id,
+        material_id,
+        MaterialProductLink.product_id,
+        MaterialProductLink.material_id,
+    )

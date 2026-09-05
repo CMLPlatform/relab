@@ -1,0 +1,82 @@
+export const DEFAULT_API_TIMEOUT_MS = 15_000;
+
+export class TimeoutError extends Error {
+  readonly timeoutMs: number;
+
+  constructor(timeoutMs: number) {
+    super(`Request timed out after ${timeoutMs}ms`);
+    this.name = 'TimeoutError';
+    this.timeoutMs = timeoutMs;
+  }
+}
+
+export type TimedRequestInit = RequestInit & {
+  timeoutMs?: number;
+};
+
+const REQUEST_ID_RANDOM_BYTES = 16;
+let fallbackRequestCounter = 0;
+
+export function createRequestId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+  if (typeof globalThis.crypto?.getRandomValues === 'function') {
+    const bytes = new Uint8Array(REQUEST_ID_RANDOM_BYTES);
+    globalThis.crypto.getRandomValues(bytes);
+    return `req-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+  }
+  // Last-resort correlation ID only; this path is not suitable for secrets.
+  fallbackRequestCounter = (fallbackRequestCounter + 1) % Number.MAX_SAFE_INTEGER;
+  return `req-${Date.now().toString(36)}-${fallbackRequestCounter.toString(36)}`;
+}
+
+export async function fetchWithTimeout(
+  url: string | URL,
+  options: TimedRequestInit = {},
+): Promise<Response> {
+  const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, headers, ...requestOptions } = options;
+
+  // Normalize any HeadersInit. Spreading `headers` would yield `{}` for a
+  // `Headers` instance and `{0: [...]}` for a tuple array, silently dropping
+  // Authorization/Content-Type — both are legal RequestInit values.
+  const requestHeaders = new Headers(headers);
+
+  // Stamp a correlation id on every request (not just authenticated ones) so
+  // backend logs can be traced for public endpoints, login, and password reset
+  // too. Lookup is case-insensitive, so a caller-supplied id (e.g. from
+  // fetchWithAuth, which reuses one id across its 401 retry) is left intact.
+  if (!requestHeaders.has('X-Request-ID')) {
+    requestHeaders.set('X-Request-ID', createRequestId());
+  }
+
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+    return fetch(url, { ...requestOptions, headers: requestHeaders, signal });
+  }
+
+  // setTimeout (not AbortSignal.timeout) so Jest's fake timers can drive it;
+  // AbortSignal.any merges it with any caller-provided signal.
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+
+  // In Node (e.g. Jest) unref the timer so a pending request can't keep the
+  // process alive during teardown.
+  if (timeoutId && typeof timeoutId === 'object' && 'unref' in timeoutId) {
+    (timeoutId as { unref(): void }).unref();
+  }
+
+  const combinedSignal = signal
+    ? AbortSignal.any([signal, timeoutController.signal])
+    : timeoutController.signal;
+
+  try {
+    return await fetch(url, { ...requestOptions, headers: requestHeaders, signal: combinedSignal });
+  } catch (error) {
+    if (timeoutController.signal.aborted && !signal?.aborted) {
+      throw new TimeoutError(timeoutMs);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}

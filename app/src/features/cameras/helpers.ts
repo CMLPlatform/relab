@@ -1,0 +1,67 @@
+import type { ImperativeRouter, NativeStackHeaderBackProps } from 'expo-router';
+import { createElement } from 'react';
+import { HeaderBackButton } from '@/components/base/HeaderBackButton';
+
+const DESKTOP_COLUMNS = 3;
+const MOBILE_COLUMNS = 2;
+
+export function useCameraScreenData<T extends { id: string }>({
+  cameras,
+  isDesktop,
+  isCameraReachable,
+}: {
+  cameras: T[] | undefined;
+  isDesktop: boolean;
+  isCameraReachable: (camera: T) => boolean;
+}) {
+  const rows = cameras ?? [];
+  const onlineCameras = rows.filter(isCameraReachable);
+
+  return {
+    rows,
+    onlineCameras,
+    onlineCount: onlineCameras.length,
+    numColumns: getCameraGridColumns(isDesktop),
+  };
+}
+
+export function getCameraGridColumns(isDesktop: boolean) {
+  return isDesktop ? DESKTOP_COLUMNS : MOBILE_COLUMNS;
+}
+
+export function setCamerasHeaderOptions({
+  navigation,
+  router,
+  captureAllProductId,
+  streamProductId,
+  streamModeEnabled,
+}: {
+  navigation: { setOptions: (options: object) => void };
+  router: Pick<ImperativeRouter, 'navigate'>;
+  captureAllProductId: number | null;
+  streamProductId: number | null;
+  streamModeEnabled: boolean;
+}) {
+  const backProductId = captureAllProductId ?? streamProductId;
+
+  navigation.setOptions({
+    title: streamModeEnabled ? 'Select camera to stream' : 'My cameras',
+    headerLeft: (props: NativeStackHeaderBackProps) =>
+      createElement(HeaderBackButton, {
+        ...props,
+        onPress: () => {
+          // navigate(), not replace(): this hops from the cameras tab to the
+          // products tab, and a replace would resolve above the tab navigator
+          // and swap it out wholesale, resetting every tab's trail.
+          if (backProductId) {
+            router.navigate({
+              pathname: '/products/[id]',
+              params: { id: backProductId.toString() },
+            });
+          } else {
+            router.navigate('/products');
+          }
+        },
+      }),
+  });
+}

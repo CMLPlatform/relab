@@ -29,6 +29,17 @@ _What problem does this solve or why is it worth merging?_
 - [ ] Documentation updated (if applicable)
 - [ ] Database migrations created (if applicable)
 
+## Security, if relevant
+
+For changes touching auth, permissions, browser rendering, dynamic URLs, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets, dependencies, or personal data:
+
+- Assets affected:
+- Trust boundary changed:
+- Secure default/failure mode:
+- Controls and tests:
+
+See the maintainer checklist in [SECURITY.md](SECURITY.md).
+
 ## Notes for reviewers
 
 _Add rollout notes, tradeoffs, follow-up work, or links to related issues._

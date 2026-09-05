@@ -1,220 +1,65 @@
 """Read-focused routers for product and component endpoints."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Literal, cast
 
 from fastapi import HTTPException, Query, Request
-from fastapi.responses import RedirectResponse
 from fastapi_pagination.links import Page
 from pydantic import UUID4, PositiveInt
 from sqlalchemy import select
+from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
 from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
-from app.api.auth.models import User
-from app.api.auth.services.privacy import redact_product_owner, should_redact_owner
-from app.api.background_data.routers.public import RecursionDepthQueryParam
-from app.api.common.crud.exceptions import DependentModelOwnershipError
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
+from app.api.common.rate_limiting import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
-from app.api.common.schemas.base import ProductRead
-from app.api.data_collection.crud.products import (
-    PRODUCT_READ_DETAIL_RELATIONSHIPS,
+from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
+from app.api.data_collection.crud.product_tree_queries import (
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
-    load_product_tree_data,
+    load_component_subtree,
+    require_product_detail,
 )
 from app.api.data_collection.dependencies import ProductFilterWithRelationshipsDep
+from app.api.data_collection.filters import (
+    get_brand_search_statement,
+    get_model_search_statement,
+    get_product_facet_statement,
+)
 from app.api.data_collection.models.product import Product
+from app.api.data_collection.presentation.product_reads import (
+    render_component_tree,
+    to_read_model,
+)
+from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.schemas import (
+    ComponentRead,
     ComponentReadWithRecursiveComponents,
-    ProductReadWithRecursiveComponents,
-    ProductReadWithRelationships,
+    ProductFacetsRead,
+    ProductFacetValue,
     ProductReadWithRelationshipsAndFlatComponents,
 )
-from app.api.data_collection.validators import ProductValidationError, validate_product
+from app.api.reference_data.routers.public_support import RecursionDepthQueryParam
+from app.core.cache import cache
 from app.core.responses import conditional_json_response
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from sqlalchemy import Select
-    from starlette.responses import Response
 
-user_product_redirect_router = PublicAPIRouter(prefix="/users/me/products", tags=["products"])
 user_product_router = PublicAPIRouter(prefix="/users/{user_id}/products", tags=["products"])
 product_read_router = PublicAPIRouter(prefix="/products", tags=["products"])
-
-type IncludeComponentsAsBaseProductsQueryParam = Annotated[
-    bool | None,
-    Query(description="Whether to include components as base products in the response"),
-]
-
-
-def redact_product_owners(products: list[Product], current_user: User | None) -> None:
-    """Apply owner privacy redaction to paginated products in place."""
-    for product in products:
-        redact_product_owner(product, current_user)
-
-
-def assign_shared_owner(product: Product, owner: User | None) -> None:
-    """Assign the same owner to a single product row."""
-    product.owner = owner
-    product.owner_id = owner.id if owner else None
-
-
-def assign_owner_to_components(components: list[Product], owner: User | None) -> None:
-    """Assign the shared owner to direct component rows only."""
-    for component in components:
-        assign_shared_owner(component, owner)
-
-
-def _visible_owner(owner: User | None, viewer: User | None) -> User | None:
-    """Return the owner when privacy rules allow it, otherwise ``None``."""
-    if owner is None:
-        return None
-    if should_redact_owner(owner, viewer):
-        return None
-    return owner
-
-
-def _product_owner_fields(owner: User | None) -> dict[str, str | UUID4 | None]:
-    """Build public owner fields for product responses."""
-    return {
-        "owner_id": owner.id if owner else None,
-        "owner_username": owner.username if owner else None,
-    }
-
-
-def _product_scalar_payload(
-    product: Product,
-    *,
-    owner: User | None,
-) -> dict[str, object]:
-    """Build the scalar payload shared by product and component read schemas."""
-    payload: dict[str, object] = {
-        "id": product.id,
-        "created_at": product.created_at,
-        "updated_at": product.updated_at,
-        "name": product.name,
-        "description": product.description,
-        "brand": product.brand,
-        "model": product.model,
-        "dismantling_notes": product.dismantling_notes,
-        "dismantling_time_start": product.dismantling_time_start,
-        "dismantling_time_end": product.dismantling_time_end,
-        "product_type_id": product.product_type_id,
-        "thumbnail_url": product.thumbnail_url,
-        "parent_id": product.parent_id,
-        "amount_in_parent": product.amount_in_parent,
-        "weight_g": product.weight_g,
-        "height_cm": product.height_cm,
-        "width_cm": product.width_cm,
-        "depth_cm": product.depth_cm,
-        "volume_cm3": product.volume_cm3,
-        "recyclability_observation": product.recyclability_observation,
-        "recyclability_comment": product.recyclability_comment,
-        "recyclability_reference": product.recyclability_reference,
-        "repairability_observation": product.repairability_observation,
-        "repairability_comment": product.repairability_comment,
-        "repairability_reference": product.repairability_reference,
-        "remanufacturability_observation": product.remanufacturability_observation,
-        "remanufacturability_comment": product.remanufacturability_comment,
-        "remanufacturability_reference": product.remanufacturability_reference,
-    }
-    payload.update(_product_owner_fields(owner))
-    return payload
-
-
-def _serialize_component_tree(
-    product: Product,
-    *,
-    owner: User | None,
-    children_by_parent_id: dict[int, list[Product]],
-    max_depth: int,
-    current_depth: int = 0,
-    visited: set[int] | None = None,
-) -> ComponentReadWithRecursiveComponents:
-    """Serialize a component subtree from preloaded nodes without touching ORM relationships."""
-    visited = visited or set()
-    if product.id is None:
-        child_components: list[ComponentReadWithRecursiveComponents] = []
-    elif product.id in visited or current_depth >= max_depth:
-        child_components = []
-    else:
-        next_visited = visited | {product.id}
-        child_components = [
-            _serialize_component_tree(
-                child,
-                owner=owner,
-                children_by_parent_id=children_by_parent_id,
-                max_depth=max_depth,
-                current_depth=current_depth + 1,
-                visited=next_visited,
-            )
-            for child in children_by_parent_id.get(product.id, [])
-        ]
-
-    return ComponentReadWithRecursiveComponents.model_validate(
-        {
-            **_product_scalar_payload(product, owner=owner),
-            "components": child_components,
-        }
-    )
-
-
-def _serialize_product_tree(
-    product: Product,
-    *,
-    viewer: User | None,
-    children_by_parent_id: dict[int, list[Product]],
-    recursion_depth: int,
-) -> ProductReadWithRecursiveComponents:
-    """Serialize a root product plus its bounded child tree."""
-    visible_owner = _visible_owner(product.owner, viewer)
-    base = ProductReadWithRelationships.model_validate(product).model_dump()
-    base.update(_product_owner_fields(visible_owner))
-    components = [
-        _serialize_component_tree(
-            child,
-            owner=visible_owner,
-            children_by_parent_id=children_by_parent_id,
-            max_depth=recursion_depth - 1,
-            visited={product.id} if product.id is not None else None,
-        )
-        for child in ([] if product.id is None else children_by_parent_id.get(product.id, []))
-    ]
-    return ProductReadWithRecursiveComponents.model_validate({**base, "components": components})
-
-
-async def load_product_tree_for_validation(
-    session: AsyncSessionDep,
-    product: Product,
-    *,
-    visited: set[int] | None = None,
-) -> None:
-    """Explicitly load the product tree needed for validation."""
-    visited = visited or set()
-    if product.id in visited:
-        return
-    visited.add(product.id)
-
-    await session.refresh(product, attribute_names=["components", "bill_of_materials"])
-    for component in product.components or []:
-        await load_product_tree_for_validation(session, component, visited=visited)
+CURRENT_USER_OWNER = "me"
+ProductFacetField = Literal["brand", "model"]
+PRODUCT_FACET_BRAND: ProductFacetField = "brand"
 
 
 async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
     """Load one product with the summary relationships used on collection reads."""
     return await require_model(session, Product, product_id, loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS)
-
-
-async def _require_product_detail(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
-    """Load one product with the detail relationships used on detail reads."""
-    return await require_model(session, Product, product_id, loaders=PRODUCT_READ_DETAIL_RELATIONSHIPS)
 
 
 async def _list_direct_components(
@@ -226,70 +71,33 @@ async def _list_direct_components(
     """List direct child components for a product."""
     statement = select(Product).where(Product.parent_id == product_id)
     statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
-    statement = product_filter.filter(statement)
+    statement = apply_filter(statement, product_filter)
     return list((await session.execute(statement)).scalars().unique().all())
 
 
-async def _page_products(
+async def _page_base_products(
     session: AsyncSessionDep,
     *,
     statement: Select[tuple[Product]],
     product_filter: ProductFilterWithRelationshipsDep,
-    current_user: User | None,
-) -> Page[Product]:
-    """Page products from an explicit product read query."""
-    statement = apply_filter(statement, Product, product_filter)
+    viewer: OptionalCurrentActiveUserDep,
+) -> Page[ProductRead]:
+    """Page base products through ProductRead, applying per-owner privacy redaction."""
+    statement = apply_filter(statement, product_filter)
     statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
-    return await paginate_select(
+    page = await paginate_select(
         session,
         statement,
         model=Product,
-        mutate_items=lambda items: redact_product_owners(items, current_user),
+        transform=lambda rows: [to_read_model(r, ProductRead, viewer) for r in rows],
     )
-
-
-async def _load_product_component(
-    session: AsyncSessionDep,
-    *,
-    product_id: PositiveInt,
-    component_id: PositiveInt,
-) -> Product:
-    """Load one component scoped to a parent product."""
-    await _require_product_summary(session, product_id)
-    statement = select(Product).where(Product.id == component_id, Product.parent_id == product_id)
-    statement = apply_loader_profile(statement, Product, PRODUCT_READ_DETAIL_RELATIONSHIPS)
-    product = (await session.execute(statement)).scalars().unique().one_or_none()
-    if product is not None:
-        return product
-
-    existing = await _require_product_detail(session, component_id)
-    if existing.parent_id != product_id:
-        raise DependentModelOwnershipError(Product, component_id, Product, product_id)
-    return existing
-
-
-@user_product_redirect_router.get(
-    "",
-    response_class=RedirectResponse,
-    status_code=307,
-    summary="Redirect to user's products",
-)
-async def redirect_to_current_user_products(
-    current_user: CurrentActiveUserDep,
-    request: Request,
-) -> RedirectResponse:
-    """Redirect /users/me/products to /users/{id}/products for better caching."""
-    query_string = str(request.url.query)
-    redirect_url = f"/users/{current_user.id}/products"
-    if query_string:
-        redirect_url += f"?{query_string}"
-    return RedirectResponse(url=redirect_url, status_code=307)
+    return cast("Page[ProductRead]", page)
 
 
 @user_product_router.get(
     "",
     response_model=Page[ProductRead],
-    summary="Get products collected by a user",
+    summary="Get base products collected by a user",
 )
 async def get_user_products(
     request: Request,
@@ -297,22 +105,17 @@ async def get_user_products(
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    *,
-    include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
-) -> Page[Product] | Response:
-    """Get products collected by a specific user."""
+) -> Page[ProductRead] | Response:
+    """Get base products collected by a specific user."""
     if user_id != current_user.id and not current_user.is_superuser:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
 
-    statement = select(Product).where(Product.owner_id == user_id)
-    if not include_components_as_base_products:
-        statement = statement.where(Product.parent_id.is_(None))
-
-    payload = await _page_products(
+    statement = select(Product).where(Product.owner_id == user_id, Product.parent_id.is_(None))
+    payload = await _page_base_products(
         session,
         statement=statement,
         product_filter=product_filter,
-        current_user=current_user,
+        viewer=current_user,
     )
     return conditional_json_response(request, payload)
 
@@ -320,61 +123,61 @@ async def get_user_products(
 @product_read_router.get(
     "",
     response_model=Page[ProductRead],
-    summary="Get all products",
+    summary="Get all base products",
 )
 async def get_products(
     request: Request,
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    *,
-    include_components_as_base_products: IncludeComponentsAsBaseProductsQueryParam = None,
-) -> Page[Product] | Response:
-    """Get all products."""
-    if include_components_as_base_products:
-        statement: Select[tuple[Product]] = select(Product)
-    else:
-        statement = select(Product).where(Product.parent_id.is_(None))
-
-    payload = await _page_products(
+    owner: Annotated[Literal["me"] | None, Query(description="Use 'me' to list the current user's products")] = None,
+) -> Page[ProductRead] | Response:
+    """Get all base products. Components live under ``/products/{id}/components``."""
+    statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.is_(None))
+    if owner == CURRENT_USER_OWNER:
+        if current_user is None:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        statement = statement.where(Product.owner_id == current_user.id)
+    payload = await _page_base_products(
         session,
         statement=statement,
         product_filter=product_filter,
-        current_user=current_user,
+        viewer=current_user,
     )
     return conditional_json_response(request, payload)
 
 
+# Declared before "/{product_id}" so the single-segment static path wins over the dynamic param.
 @product_read_router.get(
-    "/tree",
-    response_model=list[ProductReadWithRecursiveComponents],
-    summary="Get products tree",
+    "/facets",
+    response_model=ProductFacetsRead,
+    summary="Get derived product facets",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
-async def get_products_tree(
-    request: Request,
+@cache(expire=60)
+async def get_product_facets(
     session: AsyncSessionDep,
-    current_user: OptionalCurrentActiveUserDep,
-    product_filter: ProductFilterWithRelationshipsDep,
-    recursion_depth: RecursionDepthQueryParam = 1,
-) -> list[ProductReadWithRecursiveComponents] | Response:
-    """Get all base products and their components as a bounded hierarchical view."""
-    tree_data = await load_product_tree_data(session, recursion_depth=recursion_depth, product_filter=product_filter)
-    payload = [
-        _serialize_product_tree(
-            product,
-            viewer=current_user,
-            children_by_parent_id=tree_data.children_by_parent_id,
-            recursion_depth=recursion_depth,
-        )
-        for product in tree_data.roots
-    ]
-    return conditional_json_response(request, payload)
+    fields: Annotated[
+        list[ProductFacetField] | None,
+        Query(description="Product fields to facet. Repeat the parameter for multiple fields."),
+    ] = None,
+) -> ProductFacetsRead:
+    """Return derived filter values and counts for product browsing."""
+    facets: ProductFacetsRead = {}
+    for field in fields or [PRODUCT_FACET_BRAND]:
+        rows = (await session.execute(get_product_facet_statement(field))).all()
+        facets[field] = [
+            ProductFacetValue(value=value.title() if field == PRODUCT_FACET_BRAND else value, count=count)
+            for value, count in rows
+            if value
+        ]
+    return facets
 
 
 @product_read_router.get(
     "/{product_id}",
     response_model=ProductReadWithRelationshipsAndFlatComponents,
-    summary="Get product by ID",
+    summary="Get base product by ID",
 )
 async def get_product(
     request: Request,
@@ -382,10 +185,14 @@ async def get_product(
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
 ) -> ProductReadWithRelationshipsAndFlatComponents | Response:
-    """Get product by ID."""
-    product = await _require_product_detail(session, product_id)
-    redact_product_owner(product, current_user)
-    payload = ProductReadWithRelationshipsAndFlatComponents.model_validate(product)
+    """Get a base product by ID. For components, use ``/components/{component_id}``."""
+    product = await require_product_detail(session, product_id)
+    if not product.is_base_product:
+        raise HTTPException(
+            status_code=404,
+            detail="Product is a component; fetch it via /components/{component_id}.",
+        )
+    payload = to_read_model(product, ProductReadWithRelationshipsAndFlatComponents, current_user)
     return conditional_json_response(request, payload)
 
 
@@ -402,29 +209,25 @@ async def get_product_subtree(
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[ComponentReadWithRecursiveComponents]:
     """Get a product's component subtree as a bounded hierarchical view."""
-    parent_product = await _require_product_summary(session, product_id)
-    visible_owner = _visible_owner(parent_product.owner, current_user)
-    tree_data = await load_product_tree_data(
+    await _require_product_summary(session, product_id)
+    tree_data = await load_component_subtree(
         session,
-        recursion_depth=recursion_depth,
         parent_id=product_id,
+        recursion_depth=recursion_depth,
         product_filter=product_filter,
     )
-    return [
-        _serialize_component_tree(
-            product,
-            owner=visible_owner,
-            children_by_parent_id=tree_data.children_by_parent_id,
-            max_depth=recursion_depth - 1,
-            visited={product_id},
-        )
-        for product in tree_data.roots
-    ]
+    return render_component_tree(
+        tree_data.roots,
+        children_by_parent_id=tree_data.children_by_parent_id,
+        max_depth=recursion_depth - 1,
+        viewer=current_user,
+        visited=frozenset({product_id}),
+    )
 
 
 @product_read_router.get(
     "/{product_id}/components",
-    response_model=list[ProductRead],
+    response_model=list[ComponentRead],
     summary="Get product components",
 )
 async def get_product_components(
@@ -432,58 +235,55 @@ async def get_product_components(
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
     product_filter: ProductFilterWithRelationshipsDep,
-) -> list[ProductRead]:
-    """Get all components of a product."""
-    parent_product = await _require_product_summary(session, product_id)
-    products = await _list_direct_components(session, product_id=product_id, product_filter=product_filter)
-    redact_product_owner(parent_product, current_user)
-    for p in products:
-        assign_shared_owner(p, parent_product.owner)
+) -> list[ComponentRead]:
+    """Get all direct components of a product."""
+    await _require_product_summary(session, product_id)
+    components = await _list_direct_components(session, product_id=product_id, product_filter=product_filter)
+    return [to_read_model(c, ComponentRead, current_user) for c in components]
 
-    return [ProductRead.model_validate(p) for p in products]
+
+### Ancillary search/facet routes ###
 
 
 @product_read_router.get(
-    "/{product_id}/components/{component_id}",
-    response_model=ProductReadWithRelationshipsAndFlatComponents,
-    summary="Get product component by ID",
+    "/suggestions/brands",
+    response_model=Page[str],
+    summary="Get product brand suggestions",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
-async def get_product_component(
-    product_id: PositiveInt,
-    component_id: PositiveInt,
-    *,
+@cache(expire=60)
+async def get_brand_suggestions(
     session: AsyncSessionDep,
-    current_user: OptionalCurrentActiveUserDep,
-) -> ProductReadWithRelationshipsAndFlatComponents:
-    """Get component by ID."""
-    product = await _load_product_component(session, product_id=product_id, component_id=component_id)
-    parent_product = await _require_product_summary(session, product_id)
-    redact_product_owner(parent_product, current_user)
-    assign_shared_owner(product, parent_product.owner)
-    assign_owner_to_components(product.components or [], parent_product.owner)
-    return ProductReadWithRelationshipsAndFlatComponents.model_validate(product)
+    search: Annotated[
+        str | None,
+        Query(description="Search brand (case-insensitive)", max_length=MAX_QUERY_TEXT_LENGTH),
+    ] = None,
+    order: Annotated[Literal["asc", "desc"], Query(description="Sort order: 'asc' or 'desc'")] = "asc",
+) -> Page[str]:
+    """Get a paginated, searchable list of unique product brands derived from product data."""
+    statement = get_brand_search_statement(search=search, order=order)
+    page = await paginate_select(session, statement)
+    page.items = [brand.title() for brand in page.items if brand]
+    return page
 
 
-@product_read_router.post(
-    "/{product_id}/validate",
-    summary="Validate product tree",
-    response_model=dict[str, bool | list[str]],
+@product_read_router.get(
+    "/suggestions/models",
+    response_model=Page[str],
+    summary="Get product model suggestions",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
-async def validate_product_tree(
+@cache(expire=60)
+async def get_model_suggestions(
     session: AsyncSessionDep,
-    product_id: PositiveInt,
-) -> dict[str, bool | list[str]]:
-    """Validate the product hierarchy and bill-of-materials constraints.
-
-    Returns ``{"valid": true, "errors": []}`` when the tree passes all checks,
-    or ``{"valid": false, "errors": [...]}`` with human-readable messages otherwise.
-    """
-    product = await require_model(session, Product, product_id)
-    await load_product_tree_for_validation(session, product)
-    try:
-        validate_product(product)
-    except ProductValidationError as exc:
-        return {"valid": False, "errors": [exc.public_message]}
-    except ValueError:
-        return {"valid": False, "errors": ["Product failed validation."]}
-    return {"valid": True, "errors": []}
+    search: Annotated[
+        str | None,
+        Query(description="Search model name (case-insensitive)", max_length=MAX_QUERY_TEXT_LENGTH),
+    ] = None,
+    order: Annotated[Literal["asc", "desc"], Query(description="Sort order: 'asc' or 'desc'")] = "asc",
+) -> Page[str]:
+    """Get a paginated, searchable list of unique product model names derived from product data."""
+    statement = get_model_search_statement(search=search, order=order)
+    page = await paginate_select(session, statement)
+    page.items = [model for model in page.items if model]
+    return page

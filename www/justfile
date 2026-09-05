@@ -1,0 +1,120 @@
+# Frontend Web Task Runner
+# Run `just --list` to see all available commands.
+# For day-to-day work, `pnpm run <script>` works too; see package.json.
+# This file holds composite recipes and anything called from the root justfile.
+
+import '../playwright.just'
+
+# Show available recipes
+default:
+    @just --list
+
+# Install dependencies
+install:
+    pnpm install --frozen-lockfile
+
+# Regenerate the workspace lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+
+# Upgrade Astro and official integrations, then apply in-range pnpm updates.
+# Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
+update:
+    pnpm dlx @astrojs/upgrade
+    pnpm up
+    pnpm dedupe
+
+# Run lint checks
+lint:
+    pnpm run lint
+
+# Run static type checks
+typecheck:
+    pnpm run typecheck
+
+# Start the standalone dev server using the root full-stack dev origins
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export PUBLIC_APP_URL="${PUBLIC_APP_URL:-http://127.0.0.1:8011}"
+    export PUBLIC_DOCS_URL="${PUBLIC_DOCS_URL:-http://127.0.0.1:8012}"
+    export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-http://127.0.0.1:8013}"
+    export PUBLIC_API_URL="${PUBLIC_API_URL:-http://127.0.0.1:8010}"
+    pnpm run dev
+
+# Auto-format code with Biome
+format:
+    pnpm run format
+
+# Auto-fix lint issues and format code
+fix:
+    pnpm run fix
+
+# Run lint + typecheck
+check: lint typecheck
+    @echo "✅ Frontend-web checks passed"
+
+# Build the production site
+build:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ../deploy/env/prod.compose.env
+    export PUBLIC_APP_URL="$APP_PUBLIC_URL"
+    export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
+    export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
+    export PUBLIC_API_URL="$API_PUBLIC_URL"
+    export PUBLIC_FEATURED_PRODUCT_ID="${FEATURED_PRODUCT_ID:-}"
+    pnpm run build
+
+# Run unit tests
+test:
+    pnpm run test
+
+# Run the www CI test suite
+test-ci:
+    pnpm run test:ci
+
+# Run browser end-to-end tests (always builds before preview).
+# CI runs chromium only; locally all configured browsers run. Mirrors app/justfile.
+test-e2e: _browsers
+    pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
+
+# Run the full cross-browser E2E matrix (chromium + firefox + webkit)
+test-e2e-cross-browser: _browsers
+    pnpm run test:e2e
+
+# Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
+e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
+e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
+
+# Build against the running E2E backend so the hero renders a live record.
+# The committed fixture ships one URL per photograph and so cannot produce a
+# srcset; only a real API response carries the width-keyed derivative map.
+build-e2e:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    source ../deploy/env/prod.compose.env
+    export PUBLIC_APP_URL="$APP_PUBLIC_URL"
+    export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
+    export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
+    export PUBLIC_API_URL="{{ e2e_api_url }}"
+    # The seeded Dell XPS 13: the one product whose components carry photographs.
+    # Seeding runs against an empty database, so its id is stable.
+    export PUBLIC_FEATURED_PRODUCT_ID="${E2E_FEATURED_PRODUCT_ID:-2}"
+    pnpm run build
+
+# Run the live-data E2E lane (requires the compose.e2e.yaml stack; see root test-e2e-full-stack)
+test-e2e-live: build-e2e _browsers
+    WWW_E2E_LIVE=1 pnpm run test:e2e --project=chromium
+
+# Run the full www CI pipeline locally
+ci: check test-ci
+    @echo "✅ Frontend-web CI pipeline passed"
+
+# Scan dependencies for known vulnerabilities
+audit:
+    pnpm run audit
+
+# Clean caches and build artifacts
+clean:
+    rm -rf .astro coverage dist playwright-report test-results junit.xml

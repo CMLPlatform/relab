@@ -3,22 +3,24 @@
 Covers custom validators, computed properties, and business-rule constraints.
 Pydantic built-in behavior (required fields, optional defaults, roundtrip) is not tested.
 """
-# spell-checker: ignore KALLAX
 
-from __future__ import annotations
-
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 from pydantic import BaseModel, ValidationError
 
+from app.api.common.schemas.base import MAX_MATERIAL_QUANTITY
 from app.api.data_collection.schemas import (
+    MAX_BOM_ENTRIES,
+    MAX_COMPONENT_AMOUNT,
+    MAX_COMPONENTS_PER_LEVEL,
+    MAX_VIDEOS_PER_PRODUCT,
+    ComponentCreateWithComponents,
     ProductCreateBaseProduct,
+    ProductCreateWithComponents,
     ProductReadWithRelationships,
-    ValidDateTime,
-    ensure_timezone,
-    not_too_old,
+    ProductUpdate,
 )
 from app.api.file_storage.models import MediaParentType
 from app.api.file_storage.schemas import ImageRead
@@ -29,47 +31,6 @@ def _validate_model[T: BaseModel](schema: type[T], data: object) -> T:
     return schema.model_validate(data)
 
 
-class TestValidatorsCommon:
-    """Tests for custom validators used across schemas."""
-
-    def test_ensure_timezone_with_aware_datetime(self) -> None:
-        """Verify ensure_timezone accepts timezone-aware datetime."""
-        dt = datetime.now(UTC)
-        result = ensure_timezone(dt)
-        assert result == dt
-        assert result.tzinfo is not None
-
-    def test_ensure_timezone_rejects_naive_datetime(self) -> None:
-        """Verify ensure_timezone rejects naive datetime."""
-        dt = datetime.now(UTC).replace(tzinfo=None)
-        with pytest.raises(ValueError, match="timezone"):
-            ensure_timezone(dt)
-
-    def test_not_too_old_recent_datetime(self) -> None:
-        """Verify not_too_old accepts recent datetime."""
-        dt = datetime.now(UTC) - timedelta(days=30)
-        result = not_too_old(dt)
-        assert result == dt
-
-    def test_not_too_old_rejects_old_datetime(self) -> None:
-        """Verify not_too_old rejects datetime older than 365 days."""
-        dt = datetime.now(UTC) - timedelta(days=366)
-        with pytest.raises(ValueError, match="365"):
-            not_too_old(dt)
-
-    def test_not_too_old_accepts_boundary_date(self) -> None:
-        """Verify not_too_old accepts datetime within 365 days."""
-        dt = datetime.now(UTC) - timedelta(days=364)
-        result = not_too_old(dt)
-        assert result == dt
-
-    def test_not_too_old_with_custom_delta(self) -> None:
-        """Verify not_too_old respects custom time delta."""
-        old_dt = datetime.now(UTC) - timedelta(days=61)
-        with pytest.raises(ValueError, match="in past"):
-            not_too_old(old_dt, time_delta=timedelta(days=30))
-
-
 @pytest.mark.parametrize(
     ("schema_cls", "field", "max_len"),
     [
@@ -77,9 +38,6 @@ class TestValidatorsCommon:
         (ProductCreateBaseProduct, "description", 500),
         (ProductCreateBaseProduct, "brand", 100),
         (ProductCreateBaseProduct, "model", 100),
-        (ProductCreateBaseProduct, "dismantling_notes", 500),
-        (ProductCreateBaseProduct, "recyclability_observation", 500),
-        (ProductCreateBaseProduct, "recyclability_comment", 100),
     ],
     ids=lambda v: v if isinstance(v, str) else "",
 )
@@ -97,37 +55,160 @@ def test_field_max_length_enforced(schema_cls: type[BaseModel], field: str, max_
         _validate_model(schema_cls, data_bad)
 
 
+@pytest.mark.parametrize("field", ["recyclability", "disassemblability", "remanufacturability"])
+def test_circularity_property_notes_max_length_enforced(field: str) -> None:
+    """Circularity JSON note fields reject inputs that are too long."""
+    base = {"name": "Bosch IXO 7 Screwdriver"}
+
+    data_ok = {**base, "circularity_properties": {field: "a" * 500}}
+    result = _validate_model(ProductCreateBaseProduct, data_ok)
+    assert getattr(result.circularity_properties, field) == "a" * 500
+
+    data_bad = {**base, "circularity_properties": {field: "a" * 501}}
+    with pytest.raises(ValidationError):
+        _validate_model(ProductCreateBaseProduct, data_bad)
+
+
+def test_circularity_properties_reject_unknown_nested_keys() -> None:
+    """Circularity JSON API shape is restricted to the supported note fields."""
+    with pytest.raises(ValidationError):
+        _validate_model(
+            ProductCreateBaseProduct,
+            {
+                "name": "Bosch IXO 7 Screwdriver",
+                "circularity_properties": {"repairability": "old field name"},
+            },
+        )
+
+
+def test_circularity_properties_trim_strings() -> None:
+    """Circularity note strings are stripped consistently with other input strings."""
+    product = _validate_model(
+        ProductCreateBaseProduct,
+        {
+            "name": "Bosch IXO 7 Screwdriver",
+            "circularity_properties": {"recyclability": "  easy to sort  "},
+        },
+    )
+
+    assert product.circularity_properties is not None
+    assert product.circularity_properties.recyclability == "easy to sort"
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {},
+        {"recyclability": None, "disassemblability": None, "remanufacturability": None},
+        {"recyclability": "", "disassemblability": "  ", "remanufacturability": None},
+    ],
+)
+def test_empty_circularity_properties_normalize_to_none(value: object) -> None:
+    """Empty circularity JSON payloads are canonicalized to null."""
+    product = _validate_model(
+        ProductCreateBaseProduct,
+        {"name": "Bosch IXO 7 Screwdriver", "circularity_properties": value},
+    )
+
+    assert product.circularity_properties is None
+
+
 def test_product_name_min_length() -> None:
     """Product name must be at least 2 characters."""
     with pytest.raises(ValidationError):
         _validate_model(ProductCreateBaseProduct, {"name": "A"})
 
 
-class TestProductTimeValidation:
-    """Tests for dismantling time custom validators."""
+def test_incomplete_product_create_remains_valid_for_progressive_collection() -> None:
+    """Progressive data entry allows products before the completed tree is audited."""
+    product = _validate_model(ProductCreateWithComponents, {"name": "Dyson V15 Detect"})
 
-    def test_dismantling_time_start_must_be_in_past(self) -> None:
-        """Verify dismantling_time_start rejects future datetimes."""
-        future = datetime.now(UTC) + timedelta(days=1)
-        with pytest.raises(ValidationError):
-            _validate_model(ProductCreateBaseProduct, {"name": "IKEA KALLAX Shelf", "dismantling_time_start": future})
-
-    def test_dismantling_time_end_must_be_after_start(self) -> None:
-        """Verify dismantling_time_end must be after dismantling_time_start."""
-        start = datetime.now(UTC) - timedelta(hours=2)
-        end = start - timedelta(hours=1)
-        with pytest.raises(ValidationError):
-            _validate_model(
-                ProductCreateBaseProduct,
-                {"name": "IKEA KALLAX Shelf", "dismantling_time_start": start, "dismantling_time_end": end},
-            )
-
-
-def test_product_list_fields_default_to_empty() -> None:
-    """Videos and bill_of_materials default to empty lists."""
-    product = _validate_model(ProductCreateBaseProduct, {"name": "Dyson V15 Detect"})
-    assert product.videos == []
+    assert product.components == []
     assert product.bill_of_materials == []
+
+
+def test_incomplete_component_create_remains_valid_for_progressive_collection() -> None:
+    """Progressive data entry allows components before materials are known."""
+    component = _validate_model(
+        ComponentCreateWithComponents,
+        {"name": "Battery pack", "amount_in_parent": 1},
+    )
+
+    assert component.components == []
+    assert component.bill_of_materials == []
+
+
+@pytest.mark.parametrize(
+    ("schema_cls", "payload"),
+    [
+        (ProductCreateWithComponents, {"name": "Cordless drill", "owner_id": str(uuid4())}),
+        (
+            ComponentCreateWithComponents,
+            {"name": "Battery pack", "amount_in_parent": 1, "owner_id": str(uuid4())},
+        ),
+        (
+            ComponentCreateWithComponents,
+            {"name": "Battery pack", "amount_in_parent": 1, "parent_id": 1},
+        ),
+        (ProductUpdate, {"owner_id": str(uuid4())}),
+        (ProductUpdate, {"parent_id": 1}),
+    ],
+)
+def test_product_write_schemas_reject_client_controlled_ownership_fields(
+    schema_cls: type[BaseModel], payload: dict[str, object]
+) -> None:
+    """Clients cannot set ownership or hierarchy fields that authorization derives server-side."""
+    with pytest.raises(ValidationError):
+        _validate_model(schema_cls, payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "items"),
+    [
+        (
+            "components",
+            [{"name": f"Component {index}", "amount_in_parent": 1} for index in range(MAX_COMPONENTS_PER_LEVEL + 1)],
+        ),
+        (
+            "bill_of_materials",
+            [{"material_id": index + 1, "quantity": 1} for index in range(MAX_BOM_ENTRIES + 1)],
+        ),
+        (
+            "videos",
+            [
+                {"url": f"https://example.com/video-{index}", "title": f"Video {index}"}
+                for index in range(MAX_VIDEOS_PER_PRODUCT + 1)
+            ],
+        ),
+    ],
+)
+def test_product_create_rejects_oversized_lists(field: str, items: list[dict[str, object]]) -> None:
+    """Request-shape limits prevent excessively large nested payloads in one call."""
+    with pytest.raises(ValidationError):
+        _validate_model(ProductCreateWithComponents, {"name": "Cordless drill", field: items})
+
+
+def test_component_create_rejects_excessive_amount_in_parent() -> None:
+    """Component multiplicity has a practical upper business limit."""
+    with pytest.raises(ValidationError):
+        _validate_model(
+            ComponentCreateWithComponents,
+            {"name": "Tiny screw", "amount_in_parent": MAX_COMPONENT_AMOUNT + 1},
+        )
+
+
+def test_bill_of_material_rejects_excessive_quantity() -> None:
+    """Material quantities have a practical upper business limit."""
+    with pytest.raises(ValidationError):
+        _validate_model(
+            ProductCreateWithComponents,
+            {
+                "name": "Cordless drill",
+                "bill_of_materials": [
+                    {"material_id": 1, "quantity": MAX_MATERIAL_QUANTITY + 1},
+                ],
+            },
+        )
 
 
 def test_product_brand_lowercased() -> None:
@@ -139,48 +220,31 @@ def test_product_brand_lowercased() -> None:
     assert product.brand == "bosch"
 
 
-class TestValidDatetimeType:
-    """Tests for ValidDateTime custom type."""
+def test_product_create_normalizes_user_text_to_nfc() -> None:
+    """Product create text fields are normalized before persistence."""
+    product = _validate_model(ProductCreateBaseProduct, {"name": "Cafe\u0301 grinder"})
 
-    def test_valid_recent_past_datetime(self) -> None:
-        """Verify ValidDateTime accepts recent past datetime."""
-        dt = datetime.now(UTC) - timedelta(days=30)
+    assert product.name == "Café grinder"
 
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
 
-        model = TestModel(event_time=dt)
-        assert model.event_time == dt
+def test_product_update_rejects_hidden_control_characters() -> None:
+    """Product update text fields reject invisible control characters."""
+    with pytest.raises(ValidationError):
+        _validate_model(ProductUpdate, {"description": "looks normal\u0000but is not"})
 
-    def test_valid_datetime_rejects_future(self) -> None:
-        """Verify ValidDateTime rejects future datetime."""
-        dt = datetime.now(UTC) + timedelta(hours=1)
 
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
+def test_circularity_note_allows_multiline_text() -> None:
+    """Circularity notes are free-form text and may contain line breaks."""
+    product = _validate_model(
+        ProductCreateBaseProduct,
+        {
+            "name": "Cordless Drill",
+            "circularity_properties": {"recyclability": "Step 1\nStep 2"},
+        },
+    )
 
-        with pytest.raises(ValidationError):
-            TestModel(event_time=dt)
-
-    def test_valid_datetime_requires_timezone(self) -> None:
-        """Verify ValidDateTime requires timezone-aware datetime."""
-        dt = datetime.now(UTC).replace(tzinfo=None)
-
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
-
-        with pytest.raises(ValidationError):
-            TestModel(event_time=dt)
-
-    def test_valid_datetime_rejects_too_old(self) -> None:
-        """Verify ValidDateTime rejects datetime older than 365 days."""
-        dt = datetime.now(UTC) - timedelta(days=400)
-
-        class TestModel(BaseModel):
-            event_time: ValidDateTime
-
-        with pytest.raises(ValidationError):
-            TestModel(event_time=dt)
+    assert product.circularity_properties is not None
+    assert product.circularity_properties.recyclability == "Step 1\nStep 2"
 
 
 def test_product_read_thumbnail_url_with_images() -> None:
@@ -218,7 +282,6 @@ def test_product_read_thumbnail_url_with_images() -> None:
             "owner_id": uuid4(),
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
-            "dismantling_time_start": datetime.now(UTC),
             "images": [image1, image2],
         },
     )
@@ -236,7 +299,6 @@ def test_product_read_thumbnail_url_without_images() -> None:
             "owner_id": uuid4(),
             "created_at": datetime.now(UTC),
             "updated_at": datetime.now(UTC),
-            "dismantling_time_start": datetime.now(UTC),
             "images": [],
         },
     )

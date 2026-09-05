@@ -1,82 +1,227 @@
 """Filtering integration boundary for CRUD queries."""
-# spell-checker: ignore isouter
 
-from __future__ import annotations
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast
 
-from typing import TYPE_CHECKING
+from fastapi import Depends, Query
+from fastapi_filters import FilterField, FilterOperator, FilterSet, SortingValues, create_sorting
+from fastapi_filters.ext.sqlalchemy import apply_filters as apply_fastapi_filters
+from fastapi_filters.ext.sqlalchemy import apply_sorting
+from fastapi_filters.schemas import csv_separator_config
+from pydantic import TypeAdapter
+from sqlalchemy import ColumnElement, Select
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from fastapi_filter.contrib.sqlalchemy import Filter
-from sqlalchemy import Select
-
-from app.api.common.models.custom_types import MT
+from app.api.common.search_utils import apply_ts_rank_ordering, build_contains_clause, build_text_search_clause
+from app.api.common.validation import FILTER_CSV_SEPARATOR, BoundedQueryText, BoundedQueryTextList
 
 if TYPE_CHECKING:
-    from typing import Any
+    from collections.abc import Callable
+
+    from app.api.common.models.base import Base
+
+SUB_RESOURCE_LIMIT: int = 200
+
+# Set at import so every request context inherits the separator before any
+# query param is parsed. The constant itself lives in app.api.common.validation,
+# which owns the normalization that has to split on it.
+csv_separator_config.set(FILTER_CSV_SEPARATOR)
+
+_QUERY_TEXT_ADAPTER = TypeAdapter(BoundedQueryText)
 
 
-def filter_has_values(filter_obj: Filter) -> bool:
-    """Return whether a fastapi-filter instance contains any active value."""
-    for value in filter_obj.__dict__.values():
-        if isinstance(value, Filter):
-            if filter_has_values(value):
-                return True
-        elif value is not None:
-            return True
-    return False
+def filter_field(operators: list[FilterOperator]) -> FilterField[Any]:
+    """FilterField defaulting its operator to the first listed.
 
-
-def apply_relationship_filter_joins(
-    statement: Select[tuple[MT]],
-    model: type[MT],
-    filter_obj: Filter,
-    path: list[str] | None = None,
-) -> Select[tuple[MT]]:
-    """Add joins needed by nested relationship filters.
-
-    fastapi-filter owns the field-level filtering. This helper only bridges its
-    nested filter objects into SQLAlchemy joins, keeping the fragile introspection
-    in one small module.
+    fastapi-filters requires ``default_op`` to be a member of ``operators``; without this
+    a text field limited to ``ilike`` would fall back to ``eq`` and raise at import time.
     """
-    path = path or []
-    if not filter_has_values(filter_obj):
-        return statement
+    return FilterField(operators=operators, default_op=operators[0])
 
-    relationship_filters = {name: value for name, value in filter_obj.__dict__.items() if isinstance(value, Filter)}
-    for rel_name, nested_filter in relationship_filters.items():
-        if not filter_has_values(nested_filter):
+
+@dataclass(frozen=True)
+class RelationshipFilterJoin:
+    """Explicit join metadata for a relationship-backed public filter field."""
+
+    field: str
+    joins: tuple[InstrumentedAttribute[Any], ...]
+    column: ColumnElement[Any] | InstrumentedAttribute[Any]
+    isouter: bool = False
+
+
+class BaseFilterSet(FilterSet):
+    """Base FilterSet with Relab-specific search, sorting, and join metadata."""
+
+    filter_model: ClassVar[type[Any]]
+    relationship_joins: ClassVar[tuple[RelationshipFilterJoin, ...]] = ()
+    sortable_fields: ClassVar[tuple[str, ...]] = ()
+    search_columns: ClassVar[tuple[ColumnElement[Any] | InstrumentedAttribute[Any], ...]] = ()
+
+    _search: str | None = None
+    _sorting: SortingValues | None = None
+
+    @classmethod
+    def __filter_field_adapt_type__(cls, _field: object, tp: type[Any], op: FilterOperator) -> object | None:
+        """Apply shared query bounds to generated FastAPI filter parameters."""
+        if tp is str:
+            if op in {FilterOperator.in_, FilterOperator.not_in}:
+                return BoundedQueryTextList
+            return BoundedQueryText
+        return None
+
+    @property
+    def search(self) -> str | None:
+        """Normalized free-text search term, separate from structured FilterSet fields."""
+        return self._search
+
+    @property
+    def sorting(self) -> SortingValues:
+        """Parsed sorting values."""
+        return self._sorting or []
+
+    def with_search(self, search: str | None) -> Self:
+        """Attach normalized free-text search to this filter set."""
+        self._search = _QUERY_TEXT_ADAPTER.validate_python(search)
+        return self
+
+    def with_sorting(self, sorting: SortingValues | None) -> Self:
+        """Attach parsed sorting values from fastapi-filters."""
+        self._sorting = sorting or []
+        return self
+
+    @classmethod
+    def search_vector_column(cls) -> ColumnElement[Any]:
+        """Return the tsvector column for this filter, when search is supported."""
+        msg = f"{cls.__name__} must implement search_vector_column()"
+        raise NotImplementedError(msg)
+
+    @classmethod
+    def trigram_columns(cls) -> list[Any]:
+        """Return text columns used for trigram fallback search."""
+        return []
+
+    def build_search_clause(self) -> ColumnElement[bool] | None:
+        """Build the free-text search clause for this filter."""
+        if not self.search:
+            return None
+        if self.search_columns:
+            return build_contains_clause(self.search, *self.search_columns)
+        return build_text_search_clause(
+            self.search,
+            self.search_vector_column(),
+            *self.trigram_columns(),
+        )
+
+    def should_apply_rank_ordering(self) -> bool:
+        """Return whether active search should add ts_rank ordering."""
+        return bool(self.search and not self.search_columns and not self.sorting)
+
+
+def _relationship_join_lookup(model_filter: BaseFilterSet) -> dict[str, RelationshipFilterJoin]:
+    return {join.field: join for join in model_filter.relationship_joins}
+
+
+def _relationship_columns(model_filter: BaseFilterSet) -> dict[str, ColumnElement[Any] | InstrumentedAttribute[Any]]:
+    return {join.field: join.column for join in model_filter.relationship_joins}
+
+
+def _apply_relationship_joins[MT: Base](statement: Select[tuple[MT]], model_filter: BaseFilterSet) -> Select[tuple[MT]]:
+    filter_fields = set(model_filter.filter_values)
+    sorting_fields = {field for field, _direction, _nulls in model_filter.sorting}
+    join_lookup = _relationship_join_lookup(model_filter)
+
+    # A relationship may be pulled in by several fields (e.g. category_name and
+    # category_description both join through the same categories relationship). A
+    # sort-only field must use an outer join so rows with no related row still sort
+    # (instead of vanishing); a filtered field keeps an inner join, and filter semantics
+    # dominate when the same field is both filtered and sorted.
+    join_order: list[InstrumentedAttribute[Any]] = []
+    join_isouter: dict[InstrumentedAttribute[Any], bool] = {}
+    for field in filter_fields | sorting_fields:
+        join = join_lookup.get(field)
+        if join is None:
             continue
+        effective_isouter = join.isouter or field not in filter_fields
+        for relationship in join.joins:
+            if relationship not in join_isouter:
+                join_isouter[relationship] = effective_isouter
+                join_order.append(relationship)
+            elif not effective_isouter:
+                join_isouter[relationship] = False
 
-        current_model: Any = model
-        current_path: list[str] = []
-        for ancestor in path:
-            current_model = getattr(current_model, ancestor).property.entity.entity
-            current_path.append(ancestor)
-
-        relationship = getattr(current_model, rel_name)
-        prop = relationship.property
-        target = prop.entity.entity
-
-        if getattr(prop, "secondary", None) is not None:
-            statement = statement.join(prop.secondary, isouter=bool(current_path)).join(
-                target, isouter=bool(current_path)
-            )
-        else:
-            statement = statement.join(target, prop.primaryjoin, isouter=bool(current_path))
-
-        statement = apply_relationship_filter_joins(statement, model, nested_filter, path=[*path, rel_name])
-
+    for relationship in join_order:
+        statement = statement.join(relationship, isouter=join_isouter[relationship])
     return statement
 
 
-def apply_filter(statement: Select[tuple[MT]], model: type[MT], model_filter: Filter | None) -> Select[tuple[MT]]:
-    """Apply fastapi-filter filtering, nested joins, and sorting to a select."""
+def apply_filter[MT: Base](
+    statement: Select[tuple[MT]],
+    model_filter: BaseFilterSet | None,
+) -> Select[tuple[MT]]:
+    """Apply Relab FilterSet filtering, explicit relationship joins, search, and sorting."""
     if model_filter is None:
         return statement
 
-    statement = apply_relationship_filter_joins(statement, model, model_filter)
-    statement = model_filter.filter(statement)
-    if getattr(model_filter, "order_by", None):
-        sort_func = getattr(model_filter, "sort", None)
-        if callable(sort_func):
-            statement = sort_func(statement)
+    statement = _apply_relationship_joins(statement, model_filter)
+    statement = cast(
+        "Select[tuple[MT]]",
+        apply_fastapi_filters(
+            statement,
+            model_filter,
+            additional=_relationship_columns(model_filter),
+        ),
+    )
+
+    search_clause = model_filter.build_search_clause()
+    if search_clause is not None:
+        statement = statement.where(search_clause)
+
+    if model_filter.search and model_filter.should_apply_rank_ordering():
+        statement = apply_ts_rank_ordering(statement, model_filter.search_vector_column(), model_filter.search)
+
+    if model_filter.sorting:
+        relationship_columns = _relationship_columns(model_filter)
+        # Postgres requires every ORDER BY expression under SELECT DISTINCT
+        # (which paginate_select applies to joined queries) to appear in the
+        # select list, and a relationship sort always joins. Sorting on a
+        # joined column would otherwise raise 42P10. Same approach as
+        # apply_ts_rank_ordering; DISTINCT still collapses duplicates because the
+        # added column is functionally dependent on the joined row.
+        sorted_relationship_columns = [
+            column
+            for field, _direction, _nulls in model_filter.sorting
+            if (column := relationship_columns.get(field)) is not None
+        ]
+        if sorted_relationship_columns:
+            statement = statement.add_columns(*sorted_relationship_columns)
+        statement = cast(
+            "Select[tuple[MT]]",
+            apply_sorting(statement, model_filter.sorting, additional=relationship_columns),
+        )
     return statement
+
+
+def create_filter_dependency(
+    filter_cls: type[BaseFilterSet],
+) -> Callable[..., BaseFilterSet]:
+    """Create a FastAPI dependency returning a configured Relab filter set."""
+    if not filter_cls.sortable_fields:
+
+        def dependency_without_sorting(
+            filters: BaseFilterSet = Depends(filter_cls),
+            search: BoundedQueryText = Query(default=None),
+        ) -> BaseFilterSet:
+            return filters.with_search(search).with_sorting([])
+
+        return dependency_without_sorting
+
+    sorting_dependency = create_sorting(*filter_cls.sortable_fields, alias="order_by")
+
+    def dependency(
+        filters: BaseFilterSet = Depends(filter_cls),
+        search: BoundedQueryText = Query(default=None),
+        sorting: SortingValues = Depends(sorting_dependency),
+    ) -> BaseFilterSet:
+        return filters.with_search(search).with_sorting(sorting)
+
+    return dependency

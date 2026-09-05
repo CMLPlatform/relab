@@ -1,13 +1,11 @@
 """Shared device-assertion verification used by the WebSocket relay and HTTP endpoints.
 
 Both transports accept the same ES256 JWT minted by the Pi (``build_device_assertion``
-in ``relab-rpi-cam-plugin/app/utils/device_jwt.py``): the audience is shared, the
+in ``relab-rpi-cam-plugin/app/relay/device_jwt.py``): the audience is shared, the
 replay-protection namespace in Redis is shared, and the verification logic is
 therefore identical. Keeping it in one place prevents drift between the two
 code paths.
 """
-
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
@@ -21,7 +19,7 @@ from pydantic import UUID4
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.models import Camera
 from app.core.logging import sanitize_log_value
-from app.core.runtime import get_connection_redis
+from app.core.runtime import require_connection_redis
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -48,8 +46,8 @@ async def verify_device_assertion(assertion: str, camera: Camera, redis: Redis) 
         msg = "Unsupported assertion algorithm"
         raise InvalidTokenError(msg)
     if header.get("kid") != camera.relay_key_id:
-        msg_0 = "Assertion key id does not match camera credential"
-        raise InvalidTokenError(msg_0)
+        msg = "Assertion key id does not match camera credential"
+        raise InvalidTokenError(msg)
 
     public_key = PyJWK.from_dict(camera.relay_public_key_jwk).key
     payload = jwt.decode(
@@ -57,22 +55,31 @@ async def verify_device_assertion(assertion: str, camera: Camera, redis: Redis) 
         key=public_key,
         algorithms=list(ASSERTION_ALGORITHMS),
         audience=ASSERTION_AUDIENCE,
-        options={"require": ["exp", "iat", "nbf", "jti", "sub"]},
+        options={"require": ["exp", "iat", "iss", "nbf", "jti", "sub"]},
     )
-    expected_subject = f"camera:{camera.id}"
-    if payload.get("sub") != expected_subject:
-        msg_1 = "Assertion subject does not match camera"
-        raise InvalidTokenError(msg_1)
+    expected_camera_claim = f"camera:{camera.id}"
+    if payload.get("iss") != expected_camera_claim:
+        msg = "Assertion issuer does not match camera"
+        raise InvalidTokenError(msg)
+    if payload.get("sub") != expected_camera_claim:
+        msg = "Assertion subject does not match camera"
+        raise InvalidTokenError(msg)
+    # Bound the token lifetime so replay protection (a jti key that lives at most
+    # MAX_ASSERTION_TTL_SECONDS) always covers the token's full validity window.
+    # Don't trust the Pi to keep its mint TTL under the cap.
+    if int(payload["exp"]) - int(payload["iat"]) > MAX_ASSERTION_TTL_SECONDS:
+        msg = "Assertion lifetime exceeds allowed maximum"
+        raise InvalidTokenError(msg)
 
     jti = str(payload.get("jti") or "")
     if not jti:
-        msg_2 = "Missing assertion id"
-        raise InvalidTokenError(msg_2)
+        msg = "Missing assertion id"
+        raise InvalidTokenError(msg)
     ttl = _assertion_replay_ttl(payload)
     was_set = await redis.set(f"{REPLAY_KEY_PREFIX}{camera.id}:{jti}", "1", ex=ttl, nx=True)
     if not was_set:
-        msg_3 = "Assertion replay detected"
-        raise InvalidTokenError(msg_3)
+        msg = "Assertion replay detected"
+        raise InvalidTokenError(msg)
     payload["kid"] = header.get("kid")
     return payload
 
@@ -106,12 +113,7 @@ async def _authenticated_camera(
     if camera is None or not camera.credential_is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed.")
 
-    redis = get_connection_redis(request)
-    if redis is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Authentication service unavailable.",
-        )
+    redis = require_connection_redis(request)
 
     try:
         await verify_device_assertion(assertion, camera, redis)

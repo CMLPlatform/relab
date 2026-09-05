@@ -1,18 +1,20 @@
-# Contributing to RELab
+# Contributing to Relab
 
-Thanks for contributing. RELab is a research platform developed at CML, Leiden University. The goal of this document is simple: get you productive without making you dig through the repo first.
+Thanks for contributing. Relab is a research platform developed at CML, Leiden University. This page
+gets you productive without digging through the repo first.
 
-This page is for code and documentation changes. If you mainly want to run or deploy the stack, see [Install & Self-Host](https://docs.cml-relab.org/architecture/install/).
+This page is for code and documentation changes. If you mainly want to run or deploy the stack, see
+[Install and self-host](https://docs.cml-relab.org/operations/install/).
 
 ## Start Here
 
-| I want to...                            | Start here                                                                               |
-| --------------------------------------- | ---------------------------------------------------------------------------------------- |
-| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                                |
-| run the full stack locally in Docker    | [Docker Development](#docker-development)                                                |
-| work on one subrepo directly            | [Local Development](#local-development)                                                  |
-| understand the system first             | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/)              |
-| understand config ownership             | [engineering configuration](https://docs.cml-relab.org/architecture/engineering-config/) |
+| I want to...                            | Start here                                                                  |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                   |
+| run the full stack locally in Docker    | [Docker Development](#docker-development)                                   |
+| work on one subrepo directly            | [Local Development](#local-development)                                     |
+| understand the system first             | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/) |
+| understand config ownership             | [Tooling and configuration](#tooling-and-configuration)                     |
 
 ## Code of Conduct
 
@@ -32,14 +34,15 @@ This is the recommended path into the repo if you use VS Code.
 
 1. Clone the repository.
 
-1. Create the environment files.
+1. Create local backend secret files.
 
    ```bash
-   cp backend/.env.dev.example backend/.env.dev
-   cp .env.example .env
+   just deploy-secrets-template dev
    ```
 
-1. Fill in the required values in `backend/.env.dev` and `.env`.
+   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email,
+   or bootstrap settings. Runtime secrets live in gitignored files under `secrets/dev/`. Local
+   PostgreSQL and Redis run through Docker Compose.
 
 1. Reopen the repo in the `relab-fullstack` devcontainer.
 
@@ -47,6 +50,8 @@ This is the recommended path into the repo if you use VS Code.
 
    ```bash
    just setup
+   just dev-db
+   just dev-migrate
    just dev
    ```
 
@@ -58,20 +63,20 @@ This is the recommended path into the repo if you use VS Code.
 
 ### Available Configurations
 
-| Configuration        | Purpose                                            |
-| -------------------- | -------------------------------------------------- |
-| `relab-fullstack`    | primary onboarding path for full stack development |
-| `relab-backend`      | focused backend work                               |
-| `relab-frontend-app` | focused Expo app work                              |
-| `relab-frontend-web` | focused public site work                           |
-| `relab-docs`         | focused docs work                                  |
+| Configuration     | Purpose                                            |
+| ----------------- | -------------------------------------------------- |
+| `relab-fullstack` | primary onboarding path for full stack development |
+| `relab-backend`   | focused backend work                               |
+| `relab-app`       | focused Expo app work                              |
+| `relab-www`       | focused public site work                           |
+| `relab-docs`      | focused docs work                                  |
 
 ### Forwarded Ports
 
-- Platform: <http://127.0.0.1:8010>
-- Backend: <http://127.0.0.1:8011>
+- API: <http://127.0.0.1:8010>
+- App frontend: <http://127.0.0.1:8011>
 - Docs: <http://127.0.0.1:8012>
-- App frontend: <http://127.0.0.1:8013>
+- Landing site: <http://127.0.0.1:8013>
 - PostgreSQL: `5432`
 - Redis: `6379`
 
@@ -79,11 +84,25 @@ This is the recommended path into the repo if you use VS Code.
 
 Use this when you want the full stack without configuring each subrepo manually.
 
-1. Create the backend environment file.
+1. Create local backend secret files.
 
    ```bash
-   cp backend/.env.dev.example backend/.env.dev
-   cp .env.example .env
+   just deploy-secrets-template dev
+   ```
+
+   `backend/.env.dev` is optional backend-app-only local configuration. Root `.env` is for deploy
+   hosts, and runtime secrets live in `secrets/dev/`. A typical override file only contains
+   integration-facing values:
+
+   ```text
+   GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id
+   GITHUB_OAUTH_CLIENT_ID=github-oauth-client-id
+   EMAIL_PROVIDER=smtp
+   SMTP_HOST=smtp.example.com
+   SMTP_USERNAME=you@example.com
+   EMAIL_FROM=Your Name <you@example.com>
+   EMAIL_REPLY_TO=you@example.com
+   BOOTSTRAP_SUPERUSER_EMAIL=you@example.com
    ```
 
 1. Install local tooling.
@@ -92,24 +111,31 @@ Use this when you want the full stack without configuring each subrepo manually.
    just setup
    ```
 
+1. Start the containerized database and cache.
+
+   ```bash
+   just dev-db
+   ```
+
+1. Run migrations.
+
+   ```bash
+   just dev-migrate
+   ```
+
 1. Start the stack with file watching.
 
    ```bash
    just dev
    ```
 
-1. Run migrations on first start.
-
-   ```bash
-   just dev-migrate
-   ```
-
 ### Local Service URLs
 
-- Platform: <http://127.0.0.1:8010>
-- Backend: <http://127.0.0.1:8011>
-- Docs: <http://127.0.0.1:8012>
-- App frontend: <http://127.0.0.1:8013>
+The services run on the same URLs as the [forwarded ports](#forwarded-ports) above.
+
+Docker development ports bind to localhost. If you want to test the Expo app from another phone,
+tablet, or computer over your LAN, run the Expo server directly from `app/` with `just dev` instead
+of using the Docker app service.
 
 ### Useful Commands
 
@@ -130,7 +156,7 @@ Install:
 - [Git](https://git-scm.com/)
 - [uv](https://docs.astral.sh/uv/getting-started/installation)
 - [just](https://just.systems/man/en/) recommended
-- Node.js LTS for the frontend subrepos
+- Node.js (version from `.tool-versions`) for the frontend subrepos
 
 Then run:
 
@@ -155,7 +181,72 @@ just security
 ```
 
 Use `just --list` in any directory to see what is available there.
-Manifest ownership, env rules, and infra review guidelines live in the [engineering configuration docs](https://docs.cml-relab.org/architecture/engineering-config/).
+
+## Tooling and Configuration
+
+Use `.tool-versions` as the source of truth for local tool versions. Do not duplicate exact versions
+in docs unless a manifest or generated file requires it.
+
+Each configuration surface has one job:
+
+- root `justfile`: repo-wide orchestration and cross-project workflows
+- subrepo `justfile`: local commands for one project
+- `pyproject.toml`: Python dependencies and Python tool configuration
+- `pnpm-workspace.yaml`: JavaScript workspace membership, package-manager policy, and shared tooling
+  catalogs
+- `package.json`: JavaScript package dependencies and script wrappers
+- env files: runtime and build-time configuration only
+- GitHub workflow YAML: CI/CD wiring; move complex logic to versioned scripts
+- `.pre-commit-config.yaml`: repository policy hooks, run by [`prek`](https://github.com/j178/prek)
+  (a drop-in replacement for `pre-commit`). `just setup` installs the git hooks; `just pre-commit`
+  runs them all
+
+Keep new settings in the smallest surface that actually needs them. If a change adds or renames env
+vars, update the examples, validation rules, and affected docs in the same PR.
+
+## Quality Controls
+
+Run the relevant subrepo checks before opening a pull request:
+
+- backend: unit or integration tests, Ruff, and `ty`
+- app: Jest, TypeScript, and lint checks
+- www: Vitest, Astro checks, and Playwright where browser behavior changes
+- docs: formatting and build smoke check
+
+For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency
+review, container scanning, repository hygiene, and release artifact checks on every push.
+
+### Accessibility
+
+Accessibility is checked automatically. Every axe scan uses the same WCAG 2.0-2.2
+A/AA rule tags and strips animations for deterministic runs. `target-size` (2.5.8)
+is the only 2.2-only rule axe-core ships and it is enforced; 2.4.11 Focus Not
+Obscured and 2.4.13 Focus Appearance have no axe rule and are checked by hand.
+
+| Surface | Runtime axe scan                                                                                    | Static lint (every PR)                           |
+| ------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `www/`  | landing + privacy, contrast checked; ARIA landmark snapshots: `just www/test-e2e`                   | Biome `a11y`                                     |
+| `docs/` | homepage + getting-started `<main>`, contrast checked; snapshots: `just docs/test-e2e`              | Biome `a11y`                                     |
+| `app/`  | products list + detail on the Expo web build (`color-contrast` off): `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
+
+The `www/` and `docs/` axe scans gate every PR that touches `www/`, `docs/`, or shared files. The
+`app/` scan needs the full Docker backend, so it runs post-merge or on demand; the per-PR net for
+the app is `eslint-plugin-react-native-a11y`, which validates RN accessibility props on each lint
+run. See [ci.yml](workflows/ci.yml).
+
+These are automated checks, so a passing run is a floor, not proof of WCAG
+conformance. The `app/` scan runs against the react-native-web build, so it does
+not exercise native VoiceOver/TalkBack. Two `app/` lint rules are deferred
+pending a labelling pass (`has-valid-accessibility-descriptors`,
+`has-valid-accessibility-ignores-invert-colors`, see `../app/eslint.config.mjs`).
+
+## Security
+
+For changes that touch authentication, authorization, uploads, device flows, admin APIs, secrets, or
+personal data, include security context in the pull request and update the relevant docs if behavior
+changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
+
+Use `just security` for local diagnosis.
 
 ## Backend Setup
 
@@ -164,23 +255,32 @@ The backend lives in `backend/`.
 ### Requirements
 
 - `uv`
-- PostgreSQL
-- Redis recommended; required for production-like auth behavior
+- Docker Compose for local PostgreSQL and Redis
 
 ### Setup
 
 ```bash
 cd backend
 uv sync --all-groups --frozen
-cp .env.dev.example .env.dev
-./scripts/local_setup.sh
+cd ..
+just deploy-secrets-template dev
+just dev-db
+just dev-migrate
+cd backend
 just dev
 ```
 
-The API is available at <http://127.0.0.1:8000>.
+`ENVIRONMENT` is required — the backend fails fast if it's unset. `just dev` does not export it, so
+set `ENVIRONMENT=dev` in `backend/.env.dev` or export it in your shell before running `just dev`.
 
-- Public docs: <http://127.0.0.1:8000/docs>
-- Full docs: <http://127.0.0.1:8000/docs/full> after authenticating as a superuser
+The API is available at <http://127.0.0.1:8010>. Use `SEED_DUMMY_DATA=true just dev-migrate` when
+you want sample data. Create `backend/.env.dev` only when you need backend-only local overrides such
+as OAuth, email, or bootstrap settings.
+
+- Public API reference: <http://127.0.0.1:8012/api/public/>
+- Device API reference: <http://127.0.0.1:8012/api/device/>
+- Development/testing-only JSON contracts: <http://127.0.0.1:8010/openapi.json> and
+  <http://127.0.0.1:8010/openapi.admin.json>
 
 ### OpenAPI Examples
 
@@ -188,31 +288,21 @@ Keep examples centralized and predictable:
 
 - Domain-specific examples go in `examples.py` (e.g., `backend/app/api/data_collection/examples.py`)
 - Cross-domain examples go in `backend/app/api/common/openapi_examples.py`
-- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for FastAPI named maps
+- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for
+  FastAPI named maps
 - In routers, pass examples via `openapi_examples=...` parameter
 - Update `backend/tests/integration/api/test_openapi_endpoints.py` when changing examples
 
-### Backend Module Structure
-
-Keep modules small, explicit, and domain-shaped:
-
-- One top-level package per domain: `auth`, `background_data`, `data_collection`, `file_storage`, `newsletter`, `plugins/rpi_cam`
-- Prefer flat modules first: `crud.py`, `dependencies.py`, `examples.py`, `exceptions.py`, `filters.py`, `models.py`, `schemas.py`
-- Use `routers/` only when multiple route files exist; entrypoint goes in `routers/__init__.py`
-- Use `models/` only when both ORM models and storage primitives exist; expose public surface at `models/__init__.py`
-- Use `services/` and `utils/` only when they reflect a real boundary; delete pass-through layers when simple enough to call directly
-- Keep shared behavior in `backend/app/api/common/`
-
 ### Backend Test Architecture
 
-Keep the backend suite organized by execution cost first, then by feature:
+The backend suite is organized by execution cost:
 
-- `backend/tests/unit/`: pure unit tests only, with no database session, testcontainers startup, or real app lifespan
-- `backend/tests/integration/db/`: CRUD, ORM, and persistence behavior against the real schema
-- `backend/tests/integration/api/`: HTTP endpoint behavior against the ASGI app
-- `backend/tests/integration/flows/`: a small set of cross-boundary, multi-step scenarios
-
-Use the backend test commands that match those tiers:
+| Tier            | Path                               | When to use                                                             |
+| --------------- | ---------------------------------- | ----------------------------------------------------------------------- |
+| unit            | `backend/tests/unit/`              | pure logic with mocks/stubs only, no database or app lifespan           |
+| integration/db  | `backend/tests/integration/db/`    | behavior that depends on SQLAlchemy queries, migrations, or constraints |
+| integration/api | `backend/tests/integration/api/`   | HTTP behavior tested against the ASGI app; one behavior per test        |
+| flows           | `backend/tests/integration/flows/` | full multi-step cross-boundary scenarios                                |
 
 ```bash
 cd backend
@@ -223,72 +313,50 @@ just test-flows
 just test-ci
 ```
 
-Fixture conventions should stay explicit and descriptive:
-
-- `db_session` for database access
-- `db_user` and `db_superuser` for persisted auth principals
-- `api_client`, `api_client_user`, and `api_client_superuser` for HTTP tests
-- `redis_client` or feature-local Redis fixtures where applicable
-
-Do not add or reintroduce `session` or `superuser` as in-repo fixture aliases. Use the canonical `db_session` and `db_superuser` names directly.
-
-Do not add compatibility-only test coverage for fixture aliases, re-export modules, or pass-through wrappers unless they protect a deliberate stable external contract. Prefer testing behavior at the canonical fixture or module surface.
-
-Keep fixtures close to the tests that use them when the reuse is local. Reserve `backend/tests/conftest.py` for bootstrap concerns such as testcontainers, test database setup, and global logging behavior. Avoid broad `autouse` fixtures unless they are true cross-suite safety rails.
-
-Keep API tests focused on one behavior per test. Avoid multi-step CRUD journeys in `tests/integration/api/`; move those broader stories to `tests/integration/flows/`.
-
-Path is the primary source of truth for where a test belongs:
-
-- Choose `unit` when the test can run with mocks/stubs only.
-- Choose `integration/db` when the behavior depends on SQLAlchemy queries, migrations, or constraints.
-- Choose `integration/api` when the behavior is expressed as HTTP requests against the app.
-- Choose `flows` only when the value comes from verifying a full multi-step journey.
-
-If a test file starts growing into a mixed “god file”, split it by behavior before adding more cases.
+Standard fixture names: `db_session`, `db_user`, `db_superuser`, `api_client`, `api_client_user`,
+`api_client_superuser`, `redis_client`.
 
 ## Frontend Setup
 
-### `frontend-app`
+### `app`
 
 ```bash
-cd frontend-app
+cd app
 pnpm install --frozen-lockfile
 just dev
 ```
 
-The Expo dev server runs on <http://localhost:8081>.
+The Expo dev server runs on <http://127.0.0.1:8011>.
 
-If you are using a physical device or a non-default backend URL, create `frontend-app/.env.local` and set `EXPO_PUBLIC_API_URL`.
+If you are using a physical device or a non-default backend URL, create `app/.env.local` and set
+`EXPO_PUBLIC_API_URL`.
 
-To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web client ID from Google Cloud Console. The authorized redirect URI for your environment must also be registered there (e.g. `http://localhost:8013/login` for local dev).
+To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web
+client ID from Google Cloud Console. The authorized redirect URI for your environment must also be
+registered there (e.g. `http://127.0.0.1:8011/login` for local dev).
 
 ### Regenerating API types
 
-The frontend TypeScript API types are autogenerated from the backend OpenAPI schema and written to `frontend-app/src/types/api.generated.ts`.
-
-When working on backend API changes, regenerate the types:
+After backend API changes, regenerate the TypeScript types from the OpenAPI schema:
 
 ```bash
-# from repo root
-cd frontend-app
-pnpm run codegen:api
-
-# regenerate and redact embedded JWT examples (recommended)
-pnpm run codegen
+cd app
+just codegen   # regenerate and redact embedded JWT examples
 ```
 
-You can also run `just codegen` inside `frontend-app` (after `just install`) which runs the regeneration and redaction steps.
+See [app/README.md](../app/README.md) for more options.
 
-### `frontend-web`
+### `www`
 
 ```bash
-cd frontend-web
+cd www
 pnpm install --frozen-lockfile
 just dev
 ```
 
-The Astro dev server runs on <http://localhost:8081>.
+The Astro dev server runs on <http://127.0.0.1:8013>. Use the numeric loopback
+host when developing through VS Code Remote port forwarding; Firefox can be
+unreliable with forwarded `localhost` URLs.
 
 ## Docs Setup
 
@@ -300,9 +368,7 @@ pnpm install --frozen-lockfile
 just dev
 ```
 
-The docs site runs on <http://localhost:8000>.
-
-The docs app is the canonical home for public guides, architecture reference, and project context. Keep repo-level setup text in this file short and link back to the docs site when deeper explanation belongs there.
+The docs site runs on <http://127.0.0.1:8012>.
 
 ## Development Workflow
 
@@ -324,7 +390,9 @@ If you are new to the repo, start with the architecture docs before making struc
    just ci
    ```
 
-1. Push your branch and open a PR.
+1. Push your branch.
+
+1. Open a pull request.
 
 1. Address review feedback.
 
@@ -336,120 +404,43 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 <type>(<scope>): <short summary>
 ```
 
-## CI
-
-The repo uses GitHub Actions for:
-
-- normal CI
-- security checks
-- release automation
-
-Locally, the important commands are:
-
-- `just ci`
-- `just test`
-- `just test-integration`
-- `just security`
-
 ## Backend Development
 
-### Backend Code Style
-
-The backend uses:
-
-- Ruff for linting and formatting
-- Ty for static type checking
-- ShellCheck for shell scripts
-
-Useful commands from `backend/`:
-
-```bash
-just lint
-just format
-just fix
-just typecheck
-just shellcheck
-just check
-```
-
-### Backend Testing
-
-Useful commands from `backend/`:
-
-```bash
-just test
-just test-unit
-just test-integration
-just test-cov
-```
-
-When adding backend behavior, add tests close to the change. Prefer small unit tests unless the behavior really depends on routing, persistence, or integration boundaries.
-
-### Database Migrations
-
-When changing schema:
-
-1. Create a migration.
-
-   ```bash
-   cd backend
-   just migrate-create "describe the change"
-   ```
-
-1. Review the generated file in `alembic/versions/`.
-
-1. Apply it.
-
-   ```bash
-   just migrate
-   ```
-
-For Docker-based runs, you can also use `just dev-migrate` from the repo root.
-
-### Email Templates
-
-MJML source templates live in `backend/app/templates/emails/src/`. Compiled HTML lives in `backend/app/templates/emails/build/`.
-
-Do not edit compiled output directly.
-
-To rebuild email templates:
-
-```bash
-cd backend
-just compile-email
-```
+For code style, test commands, migration workflow, and email templates, see
+[backend/README.md](../backend/README.md).
 
 ## Frontend Development
 
 ### Frontend Code Style
 
-- `frontend-app` uses Expo linting and TypeScript-based tooling
-- `frontend-web` uses Biome and Astro validation
+- `app` uses Expo linting and TypeScript-based tooling
+- `www` uses Biome and Astro validation
 - follow the existing folder structure and naming patterns
 - prefer consistency with the current UI and component patterns over novelty
 
 ### Frontend Testing
 
-For `frontend-app`:
+For `app`:
 
 ```bash
-cd frontend-app
+cd app
 just test
 just test-ci
 just check
 ```
 
-For `frontend-web`:
+For `www`:
 
 ```bash
-cd frontend-web
+cd www
 just test
 just test-ci
 just test-e2e
 just check
 ```
 
-When adding a new public-facing page to `frontend-web`, add at least one browser test. When adding app behavior in `frontend-app`, add Jest coverage for the new logic or screen behavior.
+When adding a new public-facing page to `www`, add at least one browser test. When adding app
+behavior in `app`, add Jest coverage for the new logic or screen behavior.
 
 ## Docs Development
 
@@ -476,4 +467,5 @@ just format
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the project [LICENSE](LICENSE).
+By contributing, you agree that your contributions are licensed under the project
+[LICENSE](LICENSE).

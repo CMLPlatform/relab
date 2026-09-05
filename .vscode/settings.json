@@ -1,24 +1,42 @@
 {
-  "editor.formatOnSave": true,
-  "python.analysis.typeCheckingMode": "standard",
-  "python.terminal.activateEnvInCurrentTerminal": true,
-  "python.terminal.activateEnvironment": true,
-  "python.testing.pytestEnabled": true,
-  "[astro][javascript][typescript][javascriptreact][typescriptreact][json][jsonc]": {
-    "editor.defaultFormatter": "biomejs.biome",
+  "[astro][javascript][typescript][javascriptreact][typescriptreact]": {
     "editor.codeActionsOnSave": {
       "source.fixAll.biome": "always",
       "source.organizeImports.biome": "always"
-    }
+    },
+    "editor.defaultFormatter": "biomejs.biome"
   },
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
-      "source.organizeImports.ruff": "explicit"
-    }
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "biomejs.biome"
   },
   "[markdown]": {
     "editor.defaultFormatter": "DavidAnson.vscode-markdownlint"
-  }
+  },
+  "[python]": {
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "biome.lsp.bin": "./node_modules/.bin/biome",
+  "biome.suggestInstallingGlobally": false,
+  "editor.formatOnSave": true,
+  "files.watcherExclude": {
+    "**/.astro/**": true,
+    "**/.git/objects/**": true,
+    "**/.pnpm/**": true,
+    "**/backend/.venv/**": true,
+    "**/dist/**": true,
+    "**/node_modules/**": true,
+    "**/playwright-report/**": true,
+    "**/test-results/**": true
+  },
+  "python.analysis.typeCheckingMode": "standard",
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.terminal.activateEnvironment": true,
+  "python.testing.pytestEnabled": true
 }

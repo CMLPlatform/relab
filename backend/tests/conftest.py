@@ -16,15 +16,10 @@ Architecture:
 - This keeps pure unit test runs from paying the Docker startup cost
 """
 
-from __future__ import annotations
-
-# spell-checker: ignore datname, collectonly
 import asyncio
 import logging
 import os
 import re
-import sys
-from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
@@ -37,14 +32,13 @@ os.environ.setdefault("ENVIRONMENT", "testing")
 import pytest
 from alembic import command
 from alembic.config import Config
-from loguru import logger as loguru_logger
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
 
-from app.core.logging import LOG_FORMAT, setup_logging
+from app.core.logging import setup_logging
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator, Generator
@@ -66,14 +60,30 @@ _MASTER_WORKER = "master"
 _SAFE_DB_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
-# Global container instance for entire test session
-class _PostgresContainerState:
-    """Mutable holder for the session Postgres container."""
+_postgres_container: PostgresContainer | None = None
+# Set on xdist workers: coordinates for the single container the controller owns,
+# so a worker never spins up (nor tears down) its own Postgres.
+_external_container = False
 
-    container: PostgresContainer | None = None
+
+def _is_xdist_worker(config: pytest.Config) -> bool:
+    return hasattr(config, "workerinput")
 
 
-_POSTGRES_CONTAINER_STATE = _PostgresContainerState()
+def _xdist_active(config: pytest.Config) -> bool:
+    return bool(getattr(config.option, "numprocesses", None))
+
+
+def _absorb_shared_container_coords(config: pytest.Config) -> None:
+    """Reuse the controller's shared Postgres container on an xdist worker."""
+    global _external_container
+    workerinput = config.workerinput  # type: ignore[attr-defined]  # present on xdist workers
+    os.environ["DATABASE_HOST"] = workerinput["relab_db_host"]
+    os.environ["DATABASE_PORT"] = workerinput["relab_db_port"]
+    os.environ["POSTGRES_USER"] = "postgres"
+    os.environ["POSTGRES_PASSWORD"] = "postgres"  # Test-password only
+    os.environ["POSTGRES_DB"] = "postgres"
+    _external_container = True
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -83,30 +93,41 @@ def pytest_configure(config: pytest.Config) -> None:
 
     # Initialize logging for the test session
     setup_logging()
-    # Remove all sinks initially to prevent logs from bypassing pytest's capture/filtering
-    loguru_logger.remove()
 
-    # If -s (no capture) is active, add back a stderr sink for live output
-    if config.getoption("capture") == "no":
-        loguru_logger.add(sys.stderr, format=LOG_FORMAT, level="INFO")
+    if _is_xdist_worker(config):
+        # Worker: reuse the single container the controller already started.
+        _absorb_shared_container_coords(config)
+    elif _xdist_active(config):
+        # Controller under xdist: start one shared container eagerly so its
+        # coordinates can be handed to every worker via pytest_configure_node.
+        # (Non-xdist runs stay lazy — see _ensure_testcontainers_postgres — so
+        # unit-only runs never pay the Docker startup cost.)
+        _ensure_testcontainers_postgres()
+
+
+def pytest_configure_node(node: object) -> None:
+    """Hand the shared container's coordinates to each xdist worker (controller-side hook)."""
+    node.workerinput["relab_db_host"] = os.environ["DATABASE_HOST"]  # type: ignore[attr-defined]
+    node.workerinput["relab_db_port"] = os.environ["DATABASE_PORT"]  # type: ignore[attr-defined]
 
 
 def _ensure_testcontainers_postgres() -> None:
     """Start Testcontainers Postgres once and publish its coordinates."""
-    if _POSTGRES_CONTAINER_STATE.container is not None:
+    global _postgres_container
+    if _postgres_container is not None or _external_container:
         return
 
     logger.info("Starting Testcontainers Postgres...")
-    _POSTGRES_CONTAINER_STATE.container = PostgresContainer(
+    _postgres_container = PostgresContainer(
         "postgres:18-alpine",
         username="postgres",
         password="postgres",  # Test-password only
         dbname="postgres",
     )
-    _POSTGRES_CONTAINER_STATE.container.start()
+    _postgres_container.start()
 
-    host = _POSTGRES_CONTAINER_STATE.container.get_container_host_ip()
-    port = _POSTGRES_CONTAINER_STATE.container.get_exposed_port(5432)
+    host = _postgres_container.get_container_host_ip()
+    port = _postgres_container.get_exposed_port(5432)
 
     os.environ["DATABASE_HOST"] = str(host)
     os.environ["DATABASE_PORT"] = str(port)
@@ -117,13 +138,27 @@ def _ensure_testcontainers_postgres() -> None:
     logger.info("Testcontainers Postgres started: %s:%s", host, port)
 
 
+def _validate_test_database_name(database_name: str) -> str:
+    """Return a validated test database name."""
+    if not _SAFE_DB_NAME.fullmatch(database_name):
+        err = f"Unsafe test database name: {database_name!r}"
+        raise ValueError(err)
+    return database_name
+
+
+def _quoted_test_database_identifier(database_name: str) -> str:
+    """Return a quoted test database identifier after validating the allowlist."""
+    return f'"{_validate_test_database_name(database_name)}"'
+
+
 def pytest_unconfigure(config: pytest.Config) -> None:
     """Stop Testcontainers after all tests complete."""
+    global _postgres_container
     del config
-    if _POSTGRES_CONTAINER_STATE.container:
+    if _postgres_container:
         logger.info("Stopping Testcontainers Postgres...")
-        _POSTGRES_CONTAINER_STATE.container.stop()
-        _POSTGRES_CONTAINER_STATE.container = None
+        _postgres_container.stop()
+        _postgres_container = None
 
 
 def _get_worker_test_db_name() -> str:
@@ -135,11 +170,7 @@ def _get_worker_test_db_name() -> str:
     if worker_id and worker_id != _MASTER_WORKER:
         db_name = f"{base_name}_{worker_id}"
 
-    if not _SAFE_DB_NAME.match(db_name):
-        err = f"Unsafe test database name: {db_name!r}"
-        raise ValueError(err)
-
-    return db_name
+    return _validate_test_database_name(db_name)
 
 
 def _build_database_url(driver: str, database_name: str) -> str:
@@ -171,7 +202,8 @@ def _drop_test_database(test_database_name: str) -> None:
             AND pid <> pg_backend_pid();
         """)
         connection.execute(term_query, {"db_name": test_database_name})
-        connection.execute(text(f"DROP DATABASE IF EXISTS {test_database_name}"))
+        quoted_db_name = _quoted_test_database_identifier(test_database_name)
+        connection.exec_driver_sql(f"DROP DATABASE IF EXISTS {quoted_db_name}")
 
     sync_engine.dispose()
 
@@ -183,7 +215,8 @@ def create_test_database(test_database_name: str) -> None:
     sync_admin_url = _build_database_url("psycopg", "postgres")
     sync_engine = create_engine(sync_admin_url, isolation_level="AUTOCOMMIT")
     with sync_engine.connect() as connection:
-        connection.execute(text(f"CREATE DATABASE {test_database_name}"))
+        quoted_db_name = _quoted_test_database_identifier(test_database_name)
+        connection.exec_driver_sql(f"CREATE DATABASE {quoted_db_name}")
     sync_engine.dispose()
 
     logger.info("Test database created successfully: %s", test_database_name)
@@ -195,8 +228,6 @@ def get_alembic_config(test_database_name: str) -> Config:
 
     project_root: Path = Path(__file__).parents[1]
     alembic_cfg = Config(toml_file=str(project_root / "pyproject.toml"))
-    alembic_cfg.set_main_option("script_location", str(project_root / "alembic"))
-    alembic_cfg.set_main_option("is_test", "true")
     alembic_cfg.set_main_option("sqlalchemy.url", sync_test_database_url)
     return alembic_cfg
 
@@ -264,35 +295,14 @@ async def db_session(_setup_test_database: None, async_engine: AsyncEngine) -> A
                 await transaction.rollback()
 
 
-@pytest.fixture(autouse=True, scope="session")
-def cleanup_loguru() -> Generator[None]:
-    """Ensure Loguru background queues are closed cleanly after testing session."""
-    yield
-    loguru_logger.remove()
-
-
 @pytest.fixture(autouse=True)
 def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
     """Automatically mock email sending for all tests."""
-    return mocker.patch(
-        "app.api.auth.services.emails.fm.send_message",
-        new_callable=AsyncMock,
+    send = AsyncMock()
+    provider = mocker.Mock()
+    provider.send = send
+    mocker.patch(
+        "app.api.auth.services.email.service.get_default_email_provider",
+        return_value=provider,
     )
-
-
-@pytest.fixture(autouse=True)
-def caplog_loguru(caplog: pytest.LogCaptureFixture) -> Generator[None]:
-    """Propagate Loguru logs to Pytest's caplog handler.
-
-    This allows loguru logs to be captured by pytest and shown in the CLI
-    according to the log_cli settings in pyproject.toml.
-    """
-    sink_id = loguru_logger.add(
-        caplog.handler,
-        format="{message}",
-        level=0,
-        filter=lambda record: record["level"].no >= caplog.handler.level,
-    )
-    yield
-    with suppress(ValueError):
-        loguru_logger.remove(sink_id)
+    return send

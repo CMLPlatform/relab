@@ -1,274 +1,413 @@
 """Unit tests for refresh token service."""
-# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
 
-from __future__ import annotations
-
+import json
 import uuid
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fakeredis.aioredis import FakeRedis
 
-from app.api.auth.config import settings
 from app.api.auth.exceptions import RefreshTokenInvalidError, RefreshTokenRevokedError
-from app.api.auth.services import refresh_token_service
+from app.api.auth.services.access_token_store import ACCESS_TOKEN_KEY_PREFIX, RevocableRedisStrategy
 from app.api.auth.services.refresh_token_service import (
+    _REUSE_GRACE_SECONDS,
+    _blacklist_key,
+    _refresh_token_key,
+    _user_tokens_key,
     blacklist_token,
     create_refresh_token,
+    revoke_all_user_tokens,
     rotate_refresh_token,
     verify_refresh_token,
 )
+from app.api.auth.services.token_store import token_key
+from app.api.common.audit import AuditAction
+from app.core.constants import HOUR
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
 
-# Constants for test values to avoid magic value warnings
-# Renamed to avoid S105 while keeping meaningful names
 TOKEN_VAL_INVALID = "invalid"
-TOKEN_VAL_REVOKED = "revoked"
-TOKEN_LENGTH = 64
-TTL_MARGIN = 10
-TTL_ABS_MARGIN = 5
 
 
-class TestRefreshTokenService:
-    """Tests for refresh token service functions."""
+def _json_loads_redis(value: bytes | str) -> dict:
+    """Decode a Redis JSON value from either real Redis or fakeredis."""
+    return json.loads(value.decode("utf-8") if isinstance(value, bytes) else value)
 
-    async def test_create_refresh_token(self, redis_client: Redis) -> None:
-        """Token is stored in Redis under the correct key with user_id in the payload."""
-        user_id = uuid.uuid4()
-        token = await create_refresh_token(redis_client, user_id)
 
-        assert len(token) == TOKEN_LENGTH
-        assert isinstance(token, str)
+async def test_create_refresh_token(redis_client: Redis) -> None:
+    """Created refresh tokens should verify for the owning user."""
+    user_id = uuid.uuid4()
+    token = await create_refresh_token(redis_client, user_id)
 
-        stored_data = await redis_client.get(f"auth:rt:{token}")
-        assert stored_data is not None
-        assert (
-            str(user_id) in stored_data.decode("utf-8")
-            if isinstance(stored_data, bytes)
-            else str(user_id) in stored_data
-        )
+    assert isinstance(token, str)
+    assert await verify_refresh_token(redis_client, token) == user_id
 
-    async def test_verify_refresh_token_success(self, redis_client: Redis) -> None:
-        """Test verifying a valid refresh token."""
-        user_id = uuid.uuid4()
-        token = await create_refresh_token(redis_client, user_id)
 
-        result = await verify_refresh_token(redis_client, token)
+async def test_verify_refresh_token_rejects_malformed_token_before_lookup(redis_client: Redis) -> None:
+    """Refresh tokens are untrusted input and must match the generated token shape."""
+    del redis_client
+    redis = AsyncMock()
+    malformed_token = "bad token with spaces"
 
-        assert result == user_id
+    with pytest.raises(RefreshTokenInvalidError):
+        await verify_refresh_token(redis, malformed_token)
 
-    async def test_verify_refresh_token_not_found(self, redis_client: Redis) -> None:
-        """Test verifying a non-existent token raises 401."""
-        with pytest.raises(RefreshTokenInvalidError) as exc_info:
-            await verify_refresh_token(redis_client, "nonexistent-token-123456789012345678901234567890")
+    redis.exists.assert_not_awaited()
+    redis.get.assert_not_awaited()
 
-        assert exc_info.value.http_status_code == 401
-        assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
 
-    async def test_verify_refresh_token_blacklisted(self, redis_client: Redis) -> None:
-        """Test verifying a blacklisted token raises 401."""
-        user_id = uuid.uuid4()
-        token = await create_refresh_token(redis_client, user_id)
-        await blacklist_token(redis_client, token)
+async def test_verify_refresh_token_not_found(redis_client: Redis) -> None:
+    """Test verifying a non-existent token raises 401."""
+    with pytest.raises(RefreshTokenInvalidError) as exc_info:
+        await verify_refresh_token(redis_client, "nonexistent-token-123456789012345678901234567890")
 
-        with pytest.raises(RefreshTokenRevokedError) as exc_info:
-            await verify_refresh_token(redis_client, token)
+    assert exc_info.value.http_status_code == 401
+    assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
 
-        assert exc_info.value.http_status_code == 401
-        assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
 
-    async def test_blacklist_token(self, redis_client: Redis) -> None:
-        """Test blacklisting a refresh token."""
-        user_id = uuid.uuid4()
-        token = await create_refresh_token(redis_client, user_id)
+async def test_blacklist_token_revokes_and_removes_token(redis_client: Redis) -> None:
+    """Blacklisting removes the active token and makes verification fail as revoked."""
+    user_id = uuid.uuid4()
+    token = await create_refresh_token(redis_client, user_id)
 
-        # Verify token exists and is valid
-        result = await verify_refresh_token(redis_client, token)
-        assert result == user_id
+    result = await verify_refresh_token(redis_client, token)
+    assert result == user_id
 
-        # Blacklist the token
-        await blacklist_token(redis_client, token)
+    await blacklist_token(redis_client, token)
 
-        # Token should be blacklisted
-        is_blacklisted = await redis_client.exists(f"auth:rt_blacklist:{token}")
-        assert is_blacklisted
+    with pytest.raises(RefreshTokenRevokedError):
+        await verify_refresh_token(redis_client, token)
 
-        # Original token data should be deleted
-        stored_data = await redis_client.get(f"auth:rt:{token}")
-        assert stored_data is None
 
-        # Verify token is now invalid
+async def test_blacklist_token_expired_ttl_defaults_to_hour(redis_client: Redis) -> None:
+    """A token with no positive remaining TTL gets a bounded HOUR blacklist entry, not one that evaporates instantly."""
+    user_id = uuid.uuid4()
+    token = await create_refresh_token(redis_client, user_id)
+    # Drop the metadata so its remaining TTL reads as expired (-2), exercising the ttl <= 0 fallback.
+    await redis_client.delete(_refresh_token_key(token))
+
+    await blacklist_token(redis_client, token)
+
+    blacklist_ttl = await redis_client.ttl(_blacklist_key(token))
+    assert HOUR - 5 <= blacklist_ttl <= HOUR
+
+
+async def test_rotate_refresh_token(redis_client: Redis) -> None:
+    """Test rotating a refresh token (create new, blacklist old)."""
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+
+    new_token = await rotate_refresh_token(redis_client, old_token)
+
+    assert new_token != old_token
+
+    result = await verify_refresh_token(redis_client, new_token)
+    assert result == user_id
+
+    with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
+        await verify_refresh_token(redis_client, old_token)
+
+
+async def test_rotate_refresh_token_rejects_blacklisted_token(redis_client: Redis) -> None:
+    """Rotation must not accept a token after it appears in the blacklist."""
+    user_id = uuid.uuid4()
+    token = await create_refresh_token(redis_client, user_id)
+    await redis_client.setex(token_key("auth:rt_blacklist", token), 3600, "1")
+
+    with pytest.raises(RefreshTokenRevokedError):
+        await rotate_refresh_token(redis_client, token)
+
+
+async def test_rotate_refresh_token_reuse_revokes_session_family(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Replaying an already-rotated token well after rotation revokes every live token."""
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
+
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+
+    new_token = await rotate_refresh_token(redis_client, old_token)
+
+    # Well past the benign-retry grace window: this is genuine stale-token reuse.
+    now += _REUSE_GRACE_SECONDS + 60
+
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await rotate_refresh_token(redis_client, old_token)
+
+    assert audit.call_args.args[1] is AuditAction.SESSIONS_REVOKED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_reuse_detected"
+
+    for revoked in (new_token, sibling_token):
         with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
-            await verify_refresh_token(redis_client, token)
+            await verify_refresh_token(redis_client, revoked)
 
-    async def test_rotate_refresh_token(self, redis_client: Redis) -> None:
-        """Test rotating a refresh token (create new, blacklist old)."""
-        user_id = uuid.uuid4()
-        old_token = await create_refresh_token(redis_client, user_id)
 
-        # Rotate the token
-        new_token = await rotate_refresh_token(redis_client, old_token)
+async def test_verify_refresh_token_reuse_revokes_session_family(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Reuse detection must fire on the real refresh path, which verifies before rotating.
 
-        # New token should be different
-        assert new_token != old_token
-        assert len(new_token) == TOKEN_LENGTH
+    Regression: ``session_flow.refresh_tokens_for_active_user`` calls ``verify_refresh_token``
+    first, and verify rejected a blacklisted token outright — so the stolen-token family
+    revocation in ``rotate_refresh_token`` was unreachable in production.
+    """
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
 
-        # New token should be valid
-        result = await verify_refresh_token(redis_client, new_token)
-        assert result == user_id
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+    new_token = await rotate_refresh_token(redis_client, old_token)
 
-        # Old token should be blacklisted
-        is_blacklisted = await redis_client.exists(f"auth:rt_blacklist:{old_token}")
-        assert is_blacklisted
+    # Well past the benign-retry grace window: this is genuine stale-token reuse.
+    now += _REUSE_GRACE_SECONDS + 60
 
-        # Old token should be invalid
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await verify_refresh_token(redis_client, old_token)
+
+    assert audit.call_args.args[1] is AuditAction.SESSIONS_REVOKED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_reuse_detected"
+
+    for revoked in (new_token, sibling_token):
         with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
-            await verify_refresh_token(redis_client, old_token)
-
-    async def test_multiple_tokens_per_user(self, redis_client: Redis) -> None:
-        """Test that a user can have multiple active refresh tokens (multi-device)."""
-        user_id = uuid.uuid4()
-        token_1 = await create_refresh_token(redis_client, user_id)
-        token_2 = await create_refresh_token(redis_client, user_id)
-
-        # Both tokens should be valid
-        await verify_refresh_token(redis_client, token_1)
-        await verify_refresh_token(redis_client, token_2)
-
-    async def test_token_expiry_ttl(self, redis_client: Redis) -> None:
-        """Test that tokens have correct TTL set."""
-        user_id = uuid.uuid4()
-        token = await create_refresh_token(redis_client, user_id)
-
-        # Check TTL on token data
-        token_ttl = await redis_client.ttl(f"auth:rt:{token}")
-        expected_ttl = settings.refresh_token_expire_days * 24 * 60 * 60
-
-        # TTL should be close to expected (within 5 seconds)
-        assert abs(token_ttl - expected_ttl) < TTL_ABS_MARGIN
+            await verify_refresh_token(redis_client, revoked)
 
 
-# Private method access is needed for testing in-memory fallback behavior
-class TestRefreshTokenServiceInMemory:
-    """Tests for refresh token service in-memory fallback (redis=None)."""
+async def test_verify_refresh_token_benign_retry_does_not_revoke_family(redis_client: Redis) -> None:
+    """A replay inside the grace window must not revoke siblings when verify sees it first."""
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+    new_token = await rotate_refresh_token(redis_client, old_token)
 
-    async def test_create_refresh_token_in_memory(self) -> None:
-        """Test creating a token with no Redis stores it in memory."""
-        refresh_token_service._memory_tokens.clear()
-        user_id = uuid.uuid4()
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await verify_refresh_token(redis_client, old_token)
 
-        token = await create_refresh_token(None, user_id)
+    assert audit.call_args.args[1] is AuditAction.AUTHORIZATION_DENIED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_replay_within_grace"
 
-        assert isinstance(token, str)
-        assert len(token) == TOKEN_LENGTH
-        assert token in refresh_token_service._memory_tokens
-        stored_user_id, _expire = refresh_token_service._memory_tokens[token]
-        assert stored_user_id == str(user_id)
+    # The winning rotation's new token and the unrelated sibling must both survive.
+    assert await verify_refresh_token(redis_client, new_token) == user_id
+    assert await verify_refresh_token(redis_client, sibling_token) == user_id
 
-        refresh_token_service._memory_tokens.clear()
 
-    async def test_verify_refresh_token_in_memory_success(self) -> None:
-        """Test verifying a valid in-memory token returns the correct user ID."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-        user_id = uuid.uuid4()
+async def test_rotate_refresh_token_benign_retry_does_not_revoke_family(redis_client: Redis) -> None:
+    """A near-immediate replay of a just-rotated token must not nuke sibling sessions."""
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
 
-        token = await create_refresh_token(None, user_id)
-        result = await verify_refresh_token(None, token)
+    new_token = await rotate_refresh_token(redis_client, old_token)
 
-        assert result == user_id
+    # Client retry of the very same request, arriving immediately after rotation.
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await rotate_refresh_token(redis_client, old_token)
 
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+    # Tolerated, but never silent: a thief replaying inside the window looks identical to
+    # this retry, so the event has to be observable even though the family survives.
+    assert audit.call_args.args[1] is AuditAction.AUTHORIZATION_DENIED
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_replay_within_grace"
 
-    async def test_verify_refresh_token_in_memory_not_found(self) -> None:
-        """Test that verifying a missing in-memory token raises 401."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+    # The winning rotation's new token and the unrelated sibling must both survive.
+    assert await verify_refresh_token(redis_client, new_token) == user_id
+    assert await verify_refresh_token(redis_client, sibling_token) == user_id
 
-        with pytest.raises(RefreshTokenInvalidError) as exc_info:
-            await verify_refresh_token(None, "nonexistent-token")
 
-        assert exc_info.value.http_status_code == 401
-        assert TOKEN_VAL_INVALID in exc_info.value.message.lower()
+async def test_rotate_refresh_token_preserves_absolute_session_expiry(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Rotation should not extend the absolute refresh session lifetime."""
+    user_id = uuid.uuid4()
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
 
-    async def test_verify_refresh_token_in_memory_blacklisted(self) -> None:
-        """Test that a blacklisted in-memory token raises 401."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-        user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    new_token = await rotate_refresh_token(redis_client, old_token)
 
-        token = await create_refresh_token(None, user_id)
-        await blacklist_token(None, token)
+    now += 10 * 365 * 24 * 60 * 60
 
-        with pytest.raises(RefreshTokenRevokedError) as exc_info:
-            await verify_refresh_token(None, token)
+    with pytest.raises(RefreshTokenInvalidError):
+        await verify_refresh_token(redis_client, new_token)
 
-        assert exc_info.value.http_status_code == 401
-        assert TOKEN_VAL_REVOKED in exc_info.value.message.lower()
 
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+async def test_verify_refresh_token_rejects_absolute_expired_session(redis_client: Redis) -> None:
+    """A refresh token should fail once its absolute session lifetime is over."""
+    user_id = uuid.uuid4()
+    token = await create_refresh_token(redis_client, user_id)
+    redis_key = token_key("auth:rt", token)
+    payload_raw = await redis_client.get(redis_key)
+    assert payload_raw is not None
+    payload = _json_loads_redis(payload_raw)
+    payload["absolute_expires_at"] = 1
+    await redis_client.setex(redis_key, 3600, json.dumps(payload))
 
-    async def test_blacklist_token_in_memory(self) -> None:
-        """Test blacklisting an in-memory token removes it and adds to blacklist."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-        user_id = uuid.uuid4()
+    with pytest.raises(RefreshTokenInvalidError):
+        await verify_refresh_token(redis_client, token)
 
-        token = await create_refresh_token(None, user_id)
-        assert token in refresh_token_service._memory_tokens
 
-        await blacklist_token(None, token)
+async def test_multiple_tokens_per_user(redis_client: Redis) -> None:
+    """Test that a user can have multiple active refresh tokens (multi-device)."""
+    user_id = uuid.uuid4()
+    token_1 = await create_refresh_token(redis_client, user_id)
+    token_2 = await create_refresh_token(redis_client, user_id)
 
-        assert token not in refresh_token_service._memory_tokens
-        assert token in refresh_token_service._memory_blacklist
+    # Both tokens should be valid
+    await verify_refresh_token(redis_client, token_1)
+    await verify_refresh_token(redis_client, token_2)
 
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
 
-    async def test_blacklist_token_in_memory_with_explicit_ttl(self) -> None:
-        """Test blacklisting with explicit TTL uses provided value."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
-        user_id = uuid.uuid4()
+async def test_create_refresh_token_does_not_shrink_shared_set_ttl(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A later, shorter-lived token must not cut short the shared set's TTL below siblings'."""
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
 
-        token = await create_refresh_token(None, user_id)
-        await blacklist_token(None, token, ttl_seconds=3600)
+    user_id = uuid.uuid4()
+    await create_refresh_token(redis_client, user_id, absolute_expires_at=now + 10_000)
+    long_ttl = await redis_client.ttl(_user_tokens_key(user_id))
+    assert long_ttl > 9_000
 
-        assert token in refresh_token_service._memory_blacklist
+    # Simulates a rotation close to the absolute session expiry, producing a much
+    # shorter-lived token for the same shared set.
+    await create_refresh_token(redis_client, user_id, absolute_expires_at=now + 5)
+    shrunk_ttl = await redis_client.ttl(_user_tokens_key(user_id))
 
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+    # Without gt=True this would collapse to ~5s and the set could expire while the
+    # long-lived sibling token is still live, breaking revoke_all_user_tokens for it.
+    assert shrunk_ttl >= long_ttl - 2
 
-    async def test_blacklist_nonexistent_token_in_memory(self) -> None:
-        """Test blacklisting a nonexistent in-memory token uses default TTL."""
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
 
-        await blacklist_token(None, "nonexistent-token")
+async def test_revoke_all_user_tokens_revokes_only_that_user(redis_client: Redis) -> None:
+    """User-wide revocation should blacklist every active token for one user."""
+    user_id = uuid.uuid4()
+    other_user_id = uuid.uuid4()
+    token = await create_refresh_token(redis_client, user_id)
+    other_token = await create_refresh_token(redis_client, other_user_id)
 
-        assert "nonexistent-token" in refresh_token_service._memory_blacklist
+    await revoke_all_user_tokens(redis_client, user_id)
 
-        refresh_token_service._memory_tokens.clear()
-        refresh_token_service._memory_blacklist.clear()
+    with pytest.raises(RefreshTokenRevokedError):
+        await verify_refresh_token(redis_client, token)
+    assert await verify_refresh_token(redis_client, other_token) == other_user_id
 
-    async def test_blacklist_token_redis_expired_defaults_ttl(self) -> None:
-        """Test that blacklisting with Redis uses default TTL when token already expired."""
-        redis = FakeRedis(decode_responses=True, version=7)
-        user_id = uuid.uuid4()
 
-        token = await create_refresh_token(redis, user_id)
-        # Delete the token to simulate expiry
-        await redis.delete(f"auth:rt:{token}")
+async def test_dropped_rotation_response_retry_does_not_revoke_family(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A benign retry after a dropped rotation response must not log the user out everywhere.
 
-        # Blacklisting should still work using the default 3600 TTL
-        await blacklist_token(redis, token)
+    The client aborts a refresh at DEFAULT_API_TIMEOUT_MS = 15s and resubmits the same
+    token, so the grace window must outlast that timeout. Regression for a 5s grace, which
+    misread the 15s retry as stolen-token reuse and revoked the whole session family.
+    """
+    now = 1_700_000_000
+    monkeypatch.setattr("app.api.auth.services.refresh_token_service.time.time", lambda: now)
 
-        bl_key = f"auth:rt_blacklist:{token}"
-        assert await redis.exists(bl_key)
-        ttl = await redis.ttl(bl_key)
-        assert ttl > 0
-        await redis.aclose()
+    user_id = uuid.uuid4()
+    old_token = await create_refresh_token(redis_client, user_id)
+    sibling_token = await create_refresh_token(redis_client, user_id)
+    new_token = await rotate_refresh_token(redis_client, old_token)
+
+    # The client's request timeout is 15s; the retry lands around there.
+    now += 15
+
+    with (
+        patch("app.api.auth.services.refresh_token_service.audit_event") as audit,
+        pytest.raises(RefreshTokenRevokedError),
+    ):
+        await verify_refresh_token(redis_client, old_token)
+
+    # Tolerated as a benign retry, not acted on: the family survives.
+    assert audit.call_args.kwargs["context"].reason == "refresh_token_replay_within_grace"
+    assert await verify_refresh_token(redis_client, new_token) == user_id
+    assert await verify_refresh_token(redis_client, sibling_token) == user_id
+
+
+async def test_revoke_all_user_tokens_also_revokes_access_tokens(redis_client: Redis) -> None:
+    """The shared revocation entry point must kill access tokens, not just refresh tokens.
+
+    Every revoke path (log out all devices, password reset, deactivation, delete, and
+    refresh-token reuse) funnels through here, so covering it covers all of them.
+    """
+    user_id = uuid.uuid4()
+    user = MagicMock()
+    user.id = user_id
+    manager = MagicMock()
+    manager.parse_id = lambda value: value
+    manager.get = AsyncMock(return_value=user)
+    strategy = RevocableRedisStrategy(redis_client, lifetime_seconds=900, key_prefix=ACCESS_TOKEN_KEY_PREFIX)
+
+    access_token = await strategy.write_token(user)
+    await create_refresh_token(redis_client, user_id)
+    assert await strategy.read_token(access_token, manager) is not None
+
+    await revoke_all_user_tokens(redis_client, user_id)
+
+    assert await strategy.read_token(access_token, manager) is None
+
+
+async def test_revoke_all_user_tokens_revokes_access_tokens_with_no_refresh_token(redis_client: Redis) -> None:
+    """A user with no live refresh token must still have their access tokens revoked.
+
+    Regression: the early return for "no refresh fingerprints" skipped the access-token
+    revocation entirely, so this exact case silently kept working sessions alive.
+    """
+    user_id = uuid.uuid4()
+    user = MagicMock()
+    user.id = user_id
+    manager = MagicMock()
+    manager.parse_id = lambda value: value
+    manager.get = AsyncMock(return_value=user)
+    strategy = RevocableRedisStrategy(redis_client, lifetime_seconds=900, key_prefix=ACCESS_TOKEN_KEY_PREFIX)
+
+    access_token = await strategy.write_token(user)
+
+    await revoke_all_user_tokens(redis_client, user_id)
+
+    assert await strategy.read_token(access_token, manager) is None
+
+
+async def test_revoke_all_user_tokens_catches_a_token_created_mid_revocation(redis_client: Redis) -> None:
+    """A rotation landing between the read and the delete must not survive the revoke.
+
+    Regression: the sweep read the token set once, so a token added while it ran was
+    never blacklisted and stayed usable for its full lifetime.
+    """
+    user_id = uuid.uuid4()
+    await create_refresh_token(redis_client, user_id)
+
+    raced_token: dict[str, str] = {}
+    real_smembers = redis_client.smembers
+    calls = {"n": 0}
+
+    async def smembers_then_race(key: str):
+        members = await real_smembers(key)
+        calls["n"] += 1
+        if calls["n"] == 1:
+            # Simulate a refresh completing after this pass read the set.
+            raced_token["value"] = await create_refresh_token(redis_client, user_id)
+        return members
+
+    with patch.object(redis_client, "smembers", smembers_then_race):
+        await revoke_all_user_tokens(redis_client, user_id)
+
+    assert raced_token["value"], "the racing token was never created"
+    with pytest.raises((RefreshTokenInvalidError, RefreshTokenRevokedError)):
+        await verify_refresh_token(redis_client, raced_token["value"])

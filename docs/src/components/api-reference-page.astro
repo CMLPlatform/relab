@@ -1,0 +1,180 @@
+---
+import { backendApiUrlForMode } from '@/lib/backend-api.ts';
+// The canonical brand tokens; Astro bundles this into the page's own
+// stylesheet. The ?raw copy is only read at build time to derive theme-color.
+import '../styles/brand.css';
+import brandCss from '../styles/brand.css?raw';
+
+interface Props {
+  schemaUrl: string;
+  serverUrl?: string;
+  title: string;
+}
+
+const themeColorMatch = brandCss.match(/--relab-brand-theme-color:\s*light-dark\(\s*([^,\s]+)/);
+if (!themeColorMatch) {
+  throw new Error('brand.css is missing --relab-brand-theme-color');
+}
+const themeColor = themeColorMatch[1];
+
+const { schemaUrl, serverUrl, title } = Astro.props;
+const backendApiUrl = backendApiUrlForMode(import.meta.env.MODE);
+const apiServerUrl = serverUrl ?? backendApiUrl;
+const currentPath = Astro.url.pathname;
+const pageTitle = `${title} · Relab docs`;
+const backendReferences = [
+  { href: '/api/public/', label: 'Public API' },
+  { href: '/api/device/', label: 'Device API' },
+];
+const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Interactive Relab API reference generated from the committed OpenAPI schema."
+    />
+    <meta name="theme-color" content={themeColor} />
+    <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" sizes="180x180" />
+    <link
+      rel="preload"
+      href="/fonts/ibm-plex-sans-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>{pageTitle}</title>
+  </head>
+  <body>
+    <nav class="api-reference-switcher" aria-label="API references">
+      <a class="api-reference-home" href="/api-reference/">API reference overview</a>
+      {
+        backendReferences.map((item) => (
+          <a href={item.href} aria-current={currentPath === item.href ? 'page' : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
+      <span class="api-reference-divider" role="separator" aria-orientation="vertical"> </span>
+      {
+        pluginReferences.map((item) => (
+          <a href={item.href} aria-current={currentPath === item.href ? 'page' : undefined}>
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+    <main
+      id="api-reference"
+      class="api-reference-canvas"
+      data-backend-api-url={apiServerUrl}
+      data-schema-url={schemaUrl}
+    >
+    </main>
+    <noscript>
+      <p class="api-reference-noscript">
+        This interactive API reference needs JavaScript to render; view the raw
+        <a href={schemaUrl}>OpenAPI schema</a> instead.
+      </p>
+    </noscript>
+    <script src="../scripts/api-reference.ts"></script>
+  </body>
+</html>
+
+<style>
+  /* Brand primitives (fonts, --relab-brand-* tokens, color-scheme) come from
+     the imported brand.css; only page-local vars live here. */
+  :root {
+    --relab-nav-border: light-dark(rgba(15, 23, 42, 0.12), rgba(226, 232, 240, 0.16));
+    --relab-nav-bg: light-dark(rgba(255, 255, 255, 0.94), rgba(10, 15, 26, 0.94));
+    --relab-nav-hover: light-dark(rgba(31, 76, 150, 0.08), rgba(143, 184, 255, 0.12));
+  }
+
+  html,
+  body {
+    min-height: 100%;
+    margin: 0;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    color: var(--relab-brand-text);
+  }
+
+  .api-reference-switcher {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 3rem;
+    padding: 0.4rem max(0.75rem, env(safe-area-inset-left)) 0.4rem
+      max(0.75rem, env(safe-area-inset-right));
+    border-bottom: 1px solid var(--relab-nav-border);
+    background: var(--relab-nav-bg);
+    backdrop-filter: blur(12px);
+  }
+
+  .api-reference-switcher a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.1rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: var(--radius-control, 6px);
+    color: var(--relab-brand-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .api-reference-home {
+    margin-right: 0.25rem;
+    color: var(--relab-brand-primary-strong);
+  }
+
+  .api-reference-home::before {
+    content: "←";
+    margin-right: 0.35rem;
+  }
+
+  .api-reference-switcher a:hover {
+    background: var(--relab-nav-hover);
+    color: var(--relab-brand-primary-strong);
+  }
+
+  .api-reference-switcher a[aria-current='page'] {
+    color: var(--relab-brand-text);
+    background: var(--relab-brand-primary-soft);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-brand-primary) 28%, transparent);
+  }
+
+  .api-reference-divider {
+    width: 1px;
+    height: 1.35rem;
+    margin-inline: 0.25rem;
+    background: var(--relab-nav-border);
+  }
+
+  @media (max-width: 42rem) {
+    .api-reference-divider {
+      flex-basis: 100%;
+      width: 100%;
+      height: 1px;
+      margin: 0.05rem 0;
+    }
+  }
+
+  .api-reference-canvas {
+    min-height: calc(100vh - 3rem);
+    overflow: hidden;
+  }
+
+  .api-reference-noscript {
+    padding: 1.5rem max(0.75rem, env(safe-area-inset-left));
+    font-size: 0.9375rem;
+  }
+</style>

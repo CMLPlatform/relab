@@ -1,0 +1,156 @@
+# compose.telemetry.yml — VENDORED from the central monitoring repo at a pinned tag.
+#
+# One Grafana Alloy agent per deploy host. Vendor it as-is; everything that differs
+# between projects arrives as an environment variable. See templates/README.md.
+#
+# An instrumented application sends its own telemetry. This overlay adds a Grafana
+# Alloy agent that collects three things the application cannot report on itself and
+# forwards them to the same OTLP endpoint with the same token:
+#
+#   - the stdout of every OTHER container in the stack, as logs;
+#   - host resource metrics — CPU, memory, load, disk, network, hwmon;
+#   - per-container resources and lifecycle from cAdvisor, which is what makes a crash
+#     loop visible centrally.
+#
+# It replaces the older Loki Docker-driver overlay. That approach needed a Loki push
+# hostname exposed to the internet, which the monitoring stack deliberately does not
+# publish because Loki has no authentication of its own, and it wrote the push
+# credential into every container's HostConfig where `docker inspect` could read it.
+#
+# The root deploy recipes auto-include this overlay when OTEL_EXPORTER_OTLP_ENDPOINT is
+# set in the host's root `.env` — the same switch that turns on the API's own exporter.
+# Hosts without it ship nothing and keep `docker logs` as the only log path.
+
+services:
+  # Least-privilege gate between Alloy and the Docker API. Alloy never sees the socket:
+  # it talks HTTP to this proxy, which allows exactly the read-only endpoints discovery,
+  # log tailing and cAdvisor need (containers, events, info, version, ping) and refuses
+  # everything else — POST is off, so nothing behind it can start or exec a container.
+  # The proxy itself holds the socket, so IT is the root-equivalent component; it runs
+  # nothing but haproxy with a static allowlist, joins only the internal socket network,
+  # and is the single place to audit.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1 # list/inspect/logs — discovery.docker, loki.source.docker
+      NETWORKS: 1 # discovery.docker computes network labels; 403 here kills discovery
+      EVENTS: 1 # container lifecycle stream — cAdvisor watches it
+      INFO: 1 # machine info — cAdvisor
+      VERSION: 1
+      PING: 1
+      POST: 0 # no mutations, ever
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 64m
+    pids_limit: 128
+    networks:
+      - docker_socket
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  alloy:
+    image: grafana/alloy:v1.18.1@sha256:0f4434c92b3e6cdac38bb129b344e1790c246f7b6e2eaffcc16a5fa363240e33
+    restart: unless-stopped
+    # Root for the host mounts below (/host/proc, /host/sys, /rootfs): node_exporter's
+    # collectors read files that are root-only on the host. The Docker API is reached
+    # through docker-socket-proxy above, so root here no longer implies control of the
+    # Docker daemon.
+    user: root
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      # Bound to loopback: the diagnostics UI has no auth and nothing needs to reach it
+      # from another container.
+      - --server.http.listen-addr=127.0.0.1:12345
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:?telemetry overlay requires ENVIRONMENT}
+      # The project identity every signal is labelled with, and what the central
+      # ProjectTelemetrySilent rule keys on. Must match the value bootstrap.sh was run with.
+      PROJECT: ${PROJECT:?telemetry overlay requires PROJECT}
+      # Alloy only reads containers belonging to this Compose project, so it must know
+      # which one it is; Compose does not inject the project name automatically. This is
+      # the COMPOSE project (docker's -p), not PROJECT above.
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-${PROJECT}_${ENVIRONMENT}}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?telemetry overlay requires OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTLP_AUTH_TOKEN: ${OTLP_AUTH_TOKEN:?telemetry overlay requires OTLP_AUTH_TOKEN}
+      # Second, weaker credential: matched by the Cloudflare WAF-skip rule for the
+      # telemetry hostname (infra/cloudflare-zone), so the bearer token itself never
+      # appears in a Cloudflare ruleset expression. Rotates independently of the token.
+      # Optional: only projects whose egress crosses a WAF need this. Empty is fine.
+      TELEMETRY_EDGE_KEY: ${TELEMETRY_EDGE_KEY:-}
+    volumes:
+      - ./deploy/alloy/config.alloy:/etc/alloy/config.alloy:ro  # vendored, never edited
+      # node_exporter's collectors read the host's own /proc, /sys and filesystems.
+      # All read-only. Note this does give the container read access to the host
+      # filesystem via /rootfs, which is the price of host disk-usage metrics from a
+      # container; it is no more than a host-installed node_exporter running as root
+      # already has, but it is worth knowing rather than discovering.
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      # cAdvisor's filesystem reads; container metadata comes over the socket proxy.
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+      # Read positions survive restarts; without this every restart re-ships whatever
+      # the containers still have on disk.
+      - alloy_data:/var/lib/alloy/data
+    # cAdvisor finds containers by walking the cgroup hierarchy, NOT through the Docker
+    # API — the socket proxy only supplies names and metadata for cgroups it has already
+    # found. Under Docker's default private cgroup namespace this container sees just its
+    # own cgroup, as "/", so every container_* metric collapses to a single root series
+    # with no `name` label: the central ContainerRestarting rule matches zero series and
+    # ContainerOOMKilled cannot say which container died. Joining the host's namespace is
+    # the whole fix; mounting /sys/fs/cgroup as well is redundant, verified on cgroup v2.
+    # It grants read access to the host's cgroup tree, which is strictly less than the
+    # /rootfs and /var/lib/docker mounts above already give.
+    cgroup: host
+    # cAdvisor reads OOM-kill events from the kernel log; without the device AND
+    # CAP_SYSLOG (kernel.dmesg_restrict gates /dev/kmsg reads) container_oom_events_total
+    # never increments and the central ContainerOOMKilled rule can never fire ("Could
+    # not configure a source for OOM detection" in the agent log is this exact gap).
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    # Root, but not root-with-everything: the default capability set is dropped like the
+    # other hardened services here (socket proxy above, backup). DAC_READ_SEARCH is what
+    # lets the collectors read root-only files under /host/proc, /host/sys and /rootfs;
+    # unlike the default set's DAC_OVERRIDE it grants no write-side permission bypass,
+    # and the rest (SETUID, MKNOD, NET_RAW, ...) is nothing a metrics agent needs.
+    cap_drop:
+      - ALL
+    cap_add:
+      - SYSLOG
+      - DAC_READ_SEARCH
+    security_opt:
+      - no-new-privileges:true
+    # Bounded like every other service on the host: during a collector outage the
+    # export queue grows in memory, and without a ceiling the OOM killer picks by RSS —
+    # the plausible victim being postgres or the API, i.e. the agent taking down the
+    # thing it observes. Keep in step with the sending_queue size in config.alloy.
+    mem_limit: 512m
+    pids_limit: 512
+    networks:
+      - egress
+      - docker_socket
+    logging:
+      # Never through itself: Alloy reporting its own failure to ship logs, by shipping
+      # a log, is a loop with no exit.
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  alloy_data:
+
+networks:
+  # Carries only the proxied Docker API between the proxy and Alloy. Internal: it has
+  # no gateway, so nothing on it can reach out and nothing outside can reach in.
+  docker_socket:
+    internal: true

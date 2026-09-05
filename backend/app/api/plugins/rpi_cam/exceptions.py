@@ -1,7 +1,6 @@
 """Custom exceptions for the Raspberry Pi camera plugin."""
 
 from app.api.common.exceptions import (
-    BadRequestError,
     ConflictError,
     FailedDependencyError,
     ForbiddenError,
@@ -26,20 +25,13 @@ class RecordingSessionNotFoundError(ConflictError):
         super().__init__("No cached YouTube recording session found for this camera.")
 
 
-class InvalidRecordingSessionDataError(BadRequestError):
-    """Raised when cached recording session data cannot be validated."""
-
-    def __init__(self, details: str) -> None:
-        super().__init__("Invalid recording session data.", details=details)
-
-
 class GoogleOAuthAssociationRequiredError(ForbiddenError):
     """Raised when a user tries to use YouTube features without linking Google OAuth first."""
 
     def __init__(self) -> None:
         super().__init__(
             "Google OAuth account association required for YouTube streaming. "
-            "Use /api/auth/oauth/google/associate/authorize."
+            "Use /v1/oauth/google-youtube/associate/authorize."
         )
 
 
@@ -59,20 +51,6 @@ class NoActiveYouTubeRecordingError(ConflictError):
 
     def __init__(self) -> None:
         super().__init__("No active YouTube recording found for this camera.")
-
-
-class CameraProxyRequestError(ServiceUnavailableError):
-    """Raised when the backend cannot reach the camera over HTTP."""
-
-    def __init__(self, endpoint: str, details: str) -> None:
-        super().__init__(f"Network error contacting camera: {endpoint}", details=details)
-
-
-class InvalidCameraOwnershipTransferError(BadRequestError):
-    """Raised when a camera ownership transfer payload is invalid."""
-
-    def __init__(self) -> None:
-        super().__init__("owner_id must reference an existing user in the same organization.")
 
 
 # ── Pairing exceptions ───────────────────────────────────────────────────────

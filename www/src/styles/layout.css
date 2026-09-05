@@ -1,0 +1,123 @@
+.frame {
+  width: min(100%, var(--frame-width));
+  margin: 0 auto;
+}
+
+/* No gap: sections space themselves with `padding-block`, so the hairline rule
+   between them sits in the middle of the gap rather than at one edge of it. */
+.page-shell {
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 0 auto;
+  padding: 2.75rem 0;
+  display: grid;
+  gap: 0;
+}
+
+.site-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--color-page-border);
+}
+
+/* Two bands: the research colophon, then the site chrome under a hairline. */
+.site-footer-inner {
+  width: min(calc(100% - 2rem), var(--content-width));
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.8rem 0 0.9rem;
+}
+
+.footer-chrome {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  border-top: 1px solid var(--color-page-border);
+  padding-top: 1rem;
+}
+
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  align-items: center;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.footer-theme {
+  display: inline-flex;
+  padding-left: 1rem;
+  border-left: 1px solid color-mix(in srgb, var(--color-page-border) 76%, transparent);
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .page-shell {
+    width: min(calc(100% - 1.25rem), var(--content-width));
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+  }
+
+  .site-footer-inner {
+    padding-top: 1.8rem;
+  }
+
+  .footer-chrome {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .footer-meta,
+  .footer-links {
+    justify-content: flex-start;
+  }
+
+  .footer-meta {
+    grid-column: 1 / -1;
+  }
+
+  .footer-links {
+    justify-content: flex-start;
+    align-items: center;
+  }
+
+  .footer-links > a:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .footer-social {
+    margin-left: auto;
+  }
+
+  .footer-theme {
+    padding-left: 0.8rem;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-meta,
+  .footer-links {
+    gap: 0.65rem;
+  }
+
+  .footer-links {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .footer-links > a:first-child {
+    flex: 1 1 auto;
+  }
+
+  .footer-social {
+    margin-left: auto;
+  }
+}

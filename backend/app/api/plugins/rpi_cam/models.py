@@ -1,7 +1,4 @@
 """Database models for the Raspberry Pi Camera plugin."""
-# spell-checker: ignore ondelete
-
-from __future__ import annotations
 
 import uuid
 from datetime import datetime
@@ -11,11 +8,12 @@ from typing import TYPE_CHECKING, Any
 from pydantic import UUID4, BaseModel
 from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlalchemy import Enum as SAEnum
-from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.api.common.models.base import Base, TimeStampMixinBare
+from app.core.crypto.sqlalchemy import EncryptedString
 
 if TYPE_CHECKING:
     from app.api.auth.models import User
@@ -39,18 +37,16 @@ class CameraConnectionStatus(StrEnum):
 
     def to_http_error(self) -> tuple[int, str]:
         """Get appropriate HTTP status code and message for non-online status."""
-        match self:
-            case CameraConnectionStatus.ONLINE:
-                result = (200, "Camera is online")
-            case CameraConnectionStatus.OFFLINE:
-                result = (503, "Camera is offline")
-            case CameraConnectionStatus.UNAUTHORIZED:
-                result = (401, "Unauthorized access to camera")
-            case CameraConnectionStatus.FORBIDDEN:
-                result = (403, "Forbidden access to camera")
-            case CameraConnectionStatus.ERROR:
-                result = (500, "Camera access error")
-        return result
+        return _CONNECTION_HTTP_ERRORS[self]
+
+
+_CONNECTION_HTTP_ERRORS: dict[CameraConnectionStatus, tuple[int, str]] = {
+    CameraConnectionStatus.ONLINE: (200, "Camera is online"),
+    CameraConnectionStatus.OFFLINE: (503, "Camera is offline"),
+    CameraConnectionStatus.UNAUTHORIZED: (401, "Unauthorized access to camera"),
+    CameraConnectionStatus.FORBIDDEN: (403, "Forbidden access to camera"),
+    CameraConnectionStatus.ERROR: (500, "Camera access error"),
+}
 
 
 class CameraStatus(BaseModel):
@@ -61,17 +57,11 @@ class CameraStatus(BaseModel):
     details: CameraStatusDetails | None = None
 
 
-class CameraBase(BaseModel):
-    """Base schema for Camera. Used by Pydantic schemas only, not ORM."""
-
-    name: str
-    description: str | None = None
-
-
 class Camera(TimeStampMixinBare, Base):
     """Database model for a WebSocket-relayed Raspberry Pi camera."""
 
     __tablename__ = "camera"
+    __table_args__ = (Index("ix_camera_owner_id", "owner_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(100), index=True)
@@ -97,10 +87,6 @@ class Camera(TimeStampMixinBare, Base):
         """Return whether this camera can authenticate to the relay."""
         return self.relay_credential_status == CameraCredentialStatus.ACTIVE
 
-    def __hash__(self) -> int:
-        """Make Camera instances hashable using their id. Used for caching."""
-        return hash(self.id)
-
     def __str__(self) -> str:
         return f"{self.name} (id: {self.id})"
 
@@ -109,14 +95,12 @@ class RecordingSession(TimeStampMixinBare, Base):
     """Durable backstop for an in-progress YouTube recording."""
 
     __tablename__ = "recording_session"
+    # camera_id is the primary key; video_id needs its own index for the cascade.
+    __table_args__ = (Index("ix_recording_session_video_id", "video_id"),)
 
     camera_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("camera.id", ondelete="CASCADE"), primary_key=True)
-    product_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    title: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[str] = mapped_column(String, nullable=False)
-    stream_url: Mapped[str] = mapped_column(String, nullable=False)
-    broadcast_key: Mapped[str] = mapped_column(String, nullable=False)
-    video_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
+    video_id: Mapped[int] = mapped_column(ForeignKey("video.id", ondelete="CASCADE"), nullable=False)
+    broadcast_key: Mapped[str] = mapped_column(EncryptedString(), nullable=False)
 
     camera: Mapped[Camera] = relationship(
         primaryjoin="RecordingSession.camera_id == Camera.id",

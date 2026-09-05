@@ -1,42 +1,54 @@
 """Image processing helpers for originals and ad-hoc resized bytes."""
-# spell-checker: ignore getexif
-
-from __future__ import annotations
 
 import contextlib
-import io
 from typing import TYPE_CHECKING
 
-import piexif
 from PIL import Image as PILImage
 from PIL import ImageOps
 
-from .constants import FORMAT_JPEG, FORMAT_WEBP, RESAMPLE_FILTER
-from .exif import _clean_exif_bytes, _get_exif_orientation
+from .constants import FORMAT_JPEG, FORMAT_WEBP
+from .exif import filter_exif, get_exif_orientation
 from .validation import validate_image_dimensions
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from os import PathLike
     from typing import Any
 
 
-def process_image_for_storage(image_path: Path) -> None:
-    """Process an uploaded image in-place for storage."""
+def process_image_for_storage(image_path: PathLike[str]) -> tuple[int, int]:
+    """Process an uploaded image in-place for storage.
+
+    Returns the stored image's ``(width, height)`` in pixels. Read here rather
+    than by a second open: the header is already parsed for the dimension
+    validation below, and the EXIF rotation further down swaps the two, so this
+    is the only point that knows the size the file actually ends up with.
+    """
     with PILImage.open(image_path) as img:
         original_format = img.format or FORMAT_JPEG
         validate_image_dimensions(img)
+        unrotated_size = img.size
 
-        exif_bytes: bytes | None = img.info.get("exif") or None
-        if not exif_bytes:
+        has_exif = bool(img.info.get("exif"))
+        if not has_exif:
             with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
-                raw = img.getexif().tobytes()
-                exif_bytes = raw or None
+                has_exif = bool(img.getexif())
 
-        cleaned_exif_bytes = _clean_exif_bytes(exif_bytes) if exif_bytes else None
-        orientation = _get_exif_orientation(exif_bytes) if exif_bytes else None
-
+        is_multiframe = getattr(img, "n_frames", 1) > 1
+        orientation = get_exif_orientation(img) if has_exif else None
         needs_rotation = orientation not in (None, 1)
-        if needs_rotation or original_format != FORMAT_JPEG:
+        preserved_exif = b""
+        # Re-save only to apply rotation or filter EXIF. The old code also re-saved
+        # every non-JPEG unconditionally, which flattened animated GIFs to one frame
+        # and re-encoded lossless WebP lossily even when the file carried no EXIF and
+        # needed no rotation — destroying the original in place for nothing.
+        # NOTE: animated originals are never re-saved, even when they carry EXIF —
+        # exif_transpose only has a first-frame view, so "fixing" one frame would
+        # flatten the rest. Animations with EXIF orientation/PII are rare; skip
+        # rotation/stripping for them rather than destroying the animation to apply it.
+        if (has_exif or needs_rotation) and not is_multiframe:
+            # Read the allowlisted tags off the original, before exif_transpose rewrites them.
+            allowlisted = filter_exif(img)
+            preserved_exif = allowlisted.tobytes() if allowlisted else b""
             try:
                 processed: PILImage.Image | None = ImageOps.exif_transpose(img)
             except AttributeError, ValueError, OSError, TypeError:
@@ -46,39 +58,17 @@ def process_image_for_storage(image_path: Path) -> None:
             processed = None
 
     if processed is None:
-        if not exif_bytes:
-            return
-        if cleaned_exif_bytes is not None:
-            piexif.insert(cleaned_exif_bytes, str(image_path))
-            return
-        with PILImage.open(image_path) as img:
-            processed = img.copy()
+        return unrotated_size
 
-    save_kwargs: dict[str, Any] = {"format": original_format}
+    # Only the allowlisted tags are written back; everything else the original carried —
+    # GPS, MakerNote, serial numbers — is gone because it was never copied into this blob.
+    save_kwargs: dict[str, Any] = {"format": original_format, "exif": preserved_exif}
     if original_format == FORMAT_JPEG:
         save_kwargs.update({"quality": 95, "optimize": True})
-    if cleaned_exif_bytes:
-        save_kwargs["exif"] = cleaned_exif_bytes
+    elif original_format == FORMAT_WEBP:
+        # Avoid a second lossy generation on a WebP we are only re-saving to strip
+        # metadata; lossless keeps the pixels exact.
+        save_kwargs["lossless"] = True
 
     processed.save(image_path, **save_kwargs)
-
-
-def resize_image(image_path: Path, width: int | None = None, height: int | None = None) -> bytes:
-    """Resize an image while maintaining aspect ratio, returning WebP bytes."""
-    with PILImage.open(image_path) as img:
-        current_width, current_height = img.size
-        if width and not height:
-            height = int((width / current_width) * current_height)
-        elif height and not width:
-            width = int((height / current_height) * current_width)
-        elif not width and not height:
-            width, height = current_width, current_height
-
-        final_width = width or current_width
-        final_height = height or current_height
-
-        resized = img.resize((final_width, final_height), RESAMPLE_FILTER)
-
-        buf = io.BytesIO()
-        resized.save(buf, format=FORMAT_WEBP, quality=85, method=6)
-        return buf.getvalue()
+    return processed.size

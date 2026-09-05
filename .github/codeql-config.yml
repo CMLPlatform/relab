@@ -1,0 +1,29 @@
+name: "Relab CodeQL Config"
+
+queries:
+  - uses: security-and-quality
+
+# Honor in-code `# codeql[query-id]` / `lgtm[query-id]` suppression comments for
+# verified false positives (advanced setup does not include these by default).
+packs:
+  python:
+    - codeql/python-queries:AlertSuppression.ql
+  javascript:
+    - codeql/javascript-queries:AlertSuppression.ql
+
+query-filters:
+  # Ruff (F401) owns unused-import linting and, unlike this query, resolves names
+  # used only inside string annotations / `cast("...")`, which ruff's TC006 rule
+  # mandates repo-wide. Every alert from this query here has been a false positive.
+  - exclude:
+      id: py/unused-import
+  # The informational cycle query flags the deliberate model-registry pattern
+  # (lazy imports documented in app/core/model_registry.py). The order-sensitive
+  # `py/unsafe-cyclic-import` query stays enabled.
+  - exclude:
+      id: py/cyclic-import
+
+# Alembic revision files intentionally expose module-level metadata variables such as `revision`
+# and `down_revision`, which trigger recurring false positives for `py/unused-global-variable`.
+paths-ignore:
+  - backend/alembic/**

@@ -1,0 +1,46 @@
+import { normalizeHttpUrl } from '@/utils/urlSafety';
+
+const API_VERSION_PATH = '/v1';
+const DEFAULT_API_ORIGIN_URL = 'http://127.0.0.1:8010';
+const TRAILING_SLASHES_PATTERN = /\/+$/;
+
+export function normalizeRequiredHttpUrl(value: string | undefined, key: string): string {
+  const url = normalizeHttpUrl(value);
+  if (url) {
+    return url;
+  }
+  throw new Error(`${key} must be an http(s) URL`);
+}
+
+export function normalizeOptionalHttpUrl(value: string | undefined, key: string): string {
+  const trimmedValue = `${value ?? ''}`.trim();
+  return trimmedValue ? normalizeRequiredHttpUrl(trimmedValue, key) : '';
+}
+
+function appendApiVersion(baseUrl: string): string {
+  const normalizedBase = baseUrl.replace(TRAILING_SLASHES_PATTERN, '');
+  return normalizedBase.endsWith(API_VERSION_PATH)
+    ? normalizedBase
+    : `${normalizedBase}${API_VERSION_PATH}`;
+}
+
+export const API_ORIGIN_URL = normalizeRequiredHttpUrl(
+  process.env.EXPO_PUBLIC_API_URL ?? DEFAULT_API_ORIGIN_URL,
+  'EXPO_PUBLIC_API_URL',
+);
+
+export const API_URL = appendApiVersion(API_ORIGIN_URL);
+
+export const WEBSITE_URL = normalizeOptionalHttpUrl(
+  process.env.EXPO_PUBLIC_WEBSITE_URL,
+  'EXPO_PUBLIC_WEBSITE_URL',
+);
+
+export const DOCS_URL = normalizeOptionalHttpUrl(
+  process.env.EXPO_PUBLIC_DOCS_URL,
+  'EXPO_PUBLIC_DOCS_URL',
+);
+
+// Guide pages linked from more than one screen; single-screen paths stay local.
+export const DATA_COLLECTION_DOCS_PATH = '/user-guides/data-collection';
+export const RPI_CAM_DOCS_PATH = '/user-guides/rpi-cam';

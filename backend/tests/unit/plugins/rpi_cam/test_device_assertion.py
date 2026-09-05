@@ -5,9 +5,6 @@ The happy/unhappy paths of :func:`verify_device_assertion` are covered in
 missing ``jti``, bearer extraction, and the ``_authenticated_camera`` FastAPI
 dependency.
 """
-# ruff: noqa: SLF001 — private members are the subject under test
-
-from __future__ import annotations
 
 import base64
 import secrets
@@ -20,7 +17,9 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import HTTPException, status
 
+from app.api.common.routers.exceptions import _response_parts
 from app.api.plugins.rpi_cam import device_assertion as da
+from app.core.runtime import RequiredServiceUnavailableError
 
 
 def _make_keypair() -> tuple[ec.EllipticCurvePrivateKey, dict]:
@@ -51,6 +50,7 @@ def _sign(
     jti: str | None = None,
     exp_offset: int = 120,
     omit_jti: bool = False,
+    headers: dict[str, object] | None = None,
 ) -> str:
     now = int(time.time())
     payload: dict = {
@@ -67,71 +67,79 @@ def _sign(
         payload,
         private_key,
         algorithm="ES256",
-        headers={"kid": camera.relay_key_id},
+        headers=headers or {"kid": camera.relay_key_id},
     )
 
 
 # ── verify_device_assertion: missing jti ─────────────────────────────────────
 
 
-class TestVerifyMissingJti:
-    """Cover the explicit jti-string validation that runs after PyJWT's decode."""
+async def test_empty_jti_rejected() -> None:
+    """An empty jti claim should be rejected before Redis is consulted."""
+    camera, private_key = _make_camera()
+    redis = AsyncMock()
+    assertion = _sign(camera, private_key, jti="")
+    with pytest.raises(jwt.InvalidTokenError):
+        await da.verify_device_assertion(assertion, camera, redis)
+    redis.set.assert_not_called()
 
-    async def test_empty_jti_rejected(self) -> None:
-        """An empty jti claim should be rejected before Redis is consulted."""
-        camera, private_key = _make_camera()
-        redis = AsyncMock()
-        assertion = _sign(camera, private_key, jti="")
-        with pytest.raises(jwt.InvalidTokenError):
-            await da.verify_device_assertion(assertion, camera, redis)
-        redis.set.assert_not_called()
+
+@pytest.mark.parametrize("header_name", ["jwk", "jku", "x5u"])
+async def test_ignores_attacker_supplied_key_headers(header_name: str) -> None:
+    """JWT key-source headers must not override the camera's stored public credential."""
+    camera, _stored_private_key = _make_camera()
+    attacker_private_key, attacker_jwk = _make_keypair()
+    redis = AsyncMock()
+    headers: dict[str, object] = {"kid": camera.relay_key_id}
+    headers[header_name] = attacker_jwk if header_name == "jwk" else "https://attacker.example/jwks.json"
+    assertion = _sign(camera, attacker_private_key, headers=headers)
+
+    with pytest.raises(jwt.InvalidTokenError):
+        await da.verify_device_assertion(assertion, camera, redis)
 
 
 # ── TTL helper ───────────────────────────────────────────────────────────────
 
 
-class TestAssertionReplayTtl:
-    """Cover the replay-window TTL bounds helper."""
+def test_clamps_to_max() -> None:
+    """TTLs far in the future are clamped to the configured maximum."""
+    now = int(time.time())
+    huge_exp = now + 10 * da.MAX_ASSERTION_TTL_SECONDS
+    assert da._assertion_replay_ttl({"exp": huge_exp}) == da.MAX_ASSERTION_TTL_SECONDS
 
-    def test_clamps_to_max(self) -> None:
-        """TTLs far in the future are clamped to the configured maximum."""
-        now = int(time.time())
-        huge_exp = now + 10 * da.MAX_ASSERTION_TTL_SECONDS
-        assert da._assertion_replay_ttl({"exp": huge_exp}) == da.MAX_ASSERTION_TTL_SECONDS
 
-    def test_floor_of_one(self) -> None:
-        """Already-expired tokens still use a TTL >= 1 so SET NX succeeds."""
-        now = int(time.time())
-        assert da._assertion_replay_ttl({"exp": now - 100}) == 1
+def test_floor_of_one() -> None:
+    """Already-expired tokens still use a TTL >= 1 so SET NX succeeds."""
+    now = int(time.time())
+    assert da._assertion_replay_ttl({"exp": now - 100}) == 1
 
 
 # ── _extract_bearer ──────────────────────────────────────────────────────────
 
 
-class TestExtractBearer:
-    """Cover bearer-token extraction from the Authorization header."""
+async def test_extracts_token() -> None:
+    """A valid Bearer header yields the raw token."""
+    request = MagicMock()
+    request.headers = {"Authorization": "Bearer abc.def.ghi"}
+    assert await da._extract_bearer(request) == "abc.def.ghi"
 
-    async def test_extracts_token(self) -> None:
-        """A valid Bearer header yields the raw token."""
-        request = MagicMock()
-        request.headers = {"Authorization": "Bearer abc.def.ghi"}
-        assert await da._extract_bearer(request) == "abc.def.ghi"
 
-    async def test_missing_header_raises_401(self) -> None:
-        """Requests without an Authorization header get a 401 + WWW-Authenticate challenge."""
-        request = MagicMock()
-        request.headers = {}
-        with pytest.raises(HTTPException) as exc_info:
-            await da._extract_bearer(request)
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-        assert exc_info.value.headers == {"WWW-Authenticate": "Bearer"}
+async def test_missing_header_raises_401() -> None:
+    """Requests without an Authorization header get a 401 + WWW-Authenticate challenge."""
+    request = MagicMock()
+    request.headers = {}
+    with pytest.raises(HTTPException) as exc_info:
+        await da._extract_bearer(request)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert exc_info.value.headers == {"WWW-Authenticate": "Bearer"}
 
-    async def test_bearer_prefix_only_raises(self) -> None:
-        """A Bearer header with no token body is treated the same as a missing header."""
-        request = MagicMock()
-        request.headers = {"Authorization": "Bearer "}
-        with pytest.raises(HTTPException):
-            await da._extract_bearer(request)
+
+async def test_bearer_prefix_only_raises() -> None:
+    """A Bearer header with no token body is treated the same as a missing header."""
+    request = MagicMock()
+    request.headers = {"Authorization": "Bearer "}
+    with pytest.raises(HTTPException):
+        await da._extract_bearer(request)
 
 
 # ── _authenticated_camera dependency ─────────────────────────────────────────
@@ -143,87 +151,97 @@ def _request_with_auth(assertion: str = "placeholder") -> MagicMock:
     return request
 
 
-class TestAuthenticatedCameraDep:
-    """Cover the FastAPI dependency that resolves and authenticates a camera per request."""
+async def test_unknown_camera_returns_401() -> None:
+    """If the camera row doesn't exist, the dep returns 401 (don't leak existence)."""
+    session = MagicMock()
+    session.get = AsyncMock(return_value=None)
+    request = _request_with_auth()
 
-    async def test_unknown_camera_returns_401(self) -> None:
-        """If the camera row doesn't exist, the dep returns 401 (don't leak existence)."""
-        session = MagicMock()
-        session.get = AsyncMock(return_value=None)
-        request = _request_with_auth()
+    with pytest.raises(HTTPException) as exc_info:
+        await da._authenticated_camera(request, uuid4(), session)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
-        with pytest.raises(HTTPException) as exc_info:
-            await da._authenticated_camera(request, uuid4(), session)
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_inactive_credential_returns_401(self) -> None:
-        """A camera whose credential has been deactivated must not authenticate."""
-        camera, _ = _make_camera(active=False)
-        session = MagicMock()
-        session.get = AsyncMock(return_value=camera)
-        request = _request_with_auth()
+async def test_inactive_credential_returns_401() -> None:
+    """A camera whose credential has been deactivated must not authenticate."""
+    camera, _ = _make_camera(active=False)
+    session = MagicMock()
+    session.get = AsyncMock(return_value=camera)
+    request = _request_with_auth()
 
-        with pytest.raises(HTTPException) as exc_info:
-            await da._authenticated_camera(request, camera.id, session)
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    with pytest.raises(HTTPException) as exc_info:
+        await da._authenticated_camera(request, camera.id, session)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_redis_unavailable_returns_503(self) -> None:
-        """Without Redis we cannot enforce replay protection, so we fail closed with 503."""
-        camera, _ = _make_camera()
-        session = MagicMock()
-        session.get = AsyncMock(return_value=camera)
-        request = _request_with_auth()
 
-        with (
-            patch.object(da, "get_connection_redis", return_value=None),
-            pytest.raises(HTTPException) as exc_info,
-        ):
-            await da._authenticated_camera(request, camera.id, session)
-        assert exc_info.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
+async def test_redis_unavailable_returns_503() -> None:
+    """Without Redis we cannot enforce replay protection, so we fail closed with 503."""
+    camera, _ = _make_camera()
+    session = MagicMock()
+    session.get = AsyncMock(return_value=camera)
+    request = _request_with_auth()
 
-    async def test_invalid_assertion_returns_401(self) -> None:
-        """A malformed JWT in the Authorization header is rejected with 401."""
-        camera, _ = _make_camera()
-        session = MagicMock()
-        session.get = AsyncMock(return_value=camera)
-        redis = AsyncMock()
-        request = _request_with_auth("not-a-jwt")
+    with (
+        patch.object(
+            da,
+            "require_connection_redis",
+            side_effect=RequiredServiceUnavailableError(log_message="Redis is required for this operation."),
+        ),
+        pytest.raises(RequiredServiceUnavailableError) as exc_info,
+    ):
+        await da._authenticated_camera(request, camera.id, session)
+    # common's handler maps this to the unchanged 503 contract.
+    assert _response_parts(exc_info.value, status.HTTP_500_INTERNAL_SERVER_ERROR)[:2] == (
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "Required service is temporarily unavailable.",
+    )
 
-        with (
-            patch.object(da, "get_connection_redis", return_value=redis),
-            pytest.raises(HTTPException) as exc_info,
-        ):
-            await da._authenticated_camera(request, camera.id, session)
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_valid_assertion_returns_camera(self) -> None:
-        """A valid, unseen assertion authenticates and returns the camera row."""
-        camera, private_key = _make_camera()
-        session = MagicMock()
-        session.get = AsyncMock(return_value=camera)
-        redis = AsyncMock()
-        redis.set = AsyncMock(return_value=True)
-        assertion = _sign(camera, private_key)
-        request = _request_with_auth(assertion)
+async def test_invalid_assertion_returns_401() -> None:
+    """A malformed JWT in the Authorization header is rejected with 401."""
+    camera, _ = _make_camera()
+    session = MagicMock()
+    session.get = AsyncMock(return_value=camera)
+    redis = AsyncMock()
+    request = _request_with_auth("not-a-jwt")
 
-        with patch.object(da, "get_connection_redis", return_value=redis):
-            result = await da._authenticated_camera(request, camera.id, session)
-        assert result is camera
-        redis.set.assert_awaited_once()
+    with (
+        patch.object(da, "require_connection_redis", return_value=redis),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await da._authenticated_camera(request, camera.id, session)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
-    async def test_replayed_assertion_returns_401(self) -> None:
-        """Re-use of a previously-seen jti is rejected as replay and surfaces as 401."""
-        camera, private_key = _make_camera()
-        session = MagicMock()
-        session.get = AsyncMock(return_value=camera)
-        redis = AsyncMock()
-        redis.set = AsyncMock(return_value=None)  # nx failed → replay
-        assertion = _sign(camera, private_key)
-        request = _request_with_auth(assertion)
 
-        with (
-            patch.object(da, "get_connection_redis", return_value=redis),
-            pytest.raises(HTTPException) as exc_info,
-        ):
-            await da._authenticated_camera(request, camera.id, session)
-        assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+async def test_valid_assertion_returns_camera() -> None:
+    """A valid, unseen assertion authenticates and returns the camera row."""
+    camera, private_key = _make_camera()
+    session = MagicMock()
+    session.get = AsyncMock(return_value=camera)
+    redis = AsyncMock()
+    redis.set = AsyncMock(return_value=True)
+    assertion = _sign(camera, private_key)
+    request = _request_with_auth(assertion)
+
+    with patch.object(da, "require_connection_redis", return_value=redis):
+        result = await da._authenticated_camera(request, camera.id, session)
+    assert result is camera
+    redis.set.assert_awaited_once()
+
+
+async def test_replayed_assertion_returns_401() -> None:
+    """Re-use of a previously-seen jti is rejected as replay and surfaces as 401."""
+    camera, private_key = _make_camera()
+    session = MagicMock()
+    session.get = AsyncMock(return_value=camera)
+    redis = AsyncMock()
+    redis.set = AsyncMock(return_value=None)  # nx failed → replay
+    assertion = _sign(camera, private_key)
+    request = _request_with_auth(assertion)
+
+    with (
+        patch.object(da, "require_connection_redis", return_value=redis),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await da._authenticated_camera(request, camera.id, session)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED

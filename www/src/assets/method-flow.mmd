@@ -1,0 +1,56 @@
+---
+config:
+  theme: base
+  fontFamily: '"IBM Plex Sans", sans-serif'
+  themeVariables:
+    primaryColor: "#fefefe"
+    primaryBorderColor: "#1f4c96"
+    primaryTextColor: "#172637"
+    lineColor: "#1f4c96"
+    edgeLabelBackground: "#fefefe"
+    clusterBkg: "#fefefe"
+    clusterBorder: "#98adc7"
+    fontFamily: '"IBM Plex Sans", sans-serif'
+    fontSize: "15px"
+  flowchart:
+    padding: 10
+    nodeSpacing: 28
+    rankSpacing: 36
+---
+flowchart LR
+  intake["Product in"] --> photo["Photograph"]
+  photo --> register["Register product<br>type, brand, model"]
+  register --> identify
+  subgraph loop["For each component"]
+    direction LR
+    identify["Identify"] --> weigh["Weigh and measure"]
+  end
+  weigh --> nest["Nest into<br>component hierarchy"]
+  nest --> publish["Publish to<br>open dataset"]
+  publish --> research["LCA and circular-economy<br>research"]
+
+%% Data-collection workflow figure. Source of truth for www/src/assets/method-flow.svg
+%% and for the platform paper figure. NB: bare "%%" lines parse as nodes here.
+%% Regenerate the SVG (one-shot, not a www dependency):
+%%   pnpm dlx @mermaid-js/mermaid-cli -i method-flow.mmd -o method-flow.svg -b transparent
+%% then post-process the literal colours into page CSS variables and the font into
+%% inherit (see the sentinel table below), set role="group" + aria-label on the
+%% svg element, and drop the fixed max-width so the figure scales.
+%% Colour sentinels (Cyanotype, light values from www/src/styles/brand.css):
+%%   #1f4c96 to var(--color-primary)      (strokes, arrows)
+%%   #172637 to var(--color-on-surface)   (text)
+%%   #98adc7 to var(--color-page-border)  (cluster hairline)
+%%   #fefefe to transparent               (fills, label backgrounds)
+%%   rgb(0, 0, 0) to var(--color-on-surface)  (cluster/subgraph label text)
+%% Post-processing also inserts a <title> into each node <g> (native hover
+%% tooltip + screen-reader name): see the descriptions in
+%% MethodSteps.test.ts and the node ids method-flow-flowchart-<key>-N.
+%% (There is no narrow-screen variant: MethodSteps.astro is CSS-only markup
+%% that reflows at any width -- see its header comment. This .mmd only feeds
+%% the platform paper's figure.)
+%% IMPORTANT: the renderer must be able to *find* IBM Plex Sans, or mermaid
+%% measures labels with a fallback font and every multi-word label ends up
+%% clipped by a character once the page renders in Plex. Convert the woff2 in
+%% www/public/fonts to TTF into a dir, point FONTCONFIG_FILE at a fonts.conf
+%% listing it, run fc-cache -f, then render. Sanity check: the LR viewBox is
+%% ~1555 wide with Plex, ~1528 with the fallback.

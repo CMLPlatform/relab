@@ -1,7 +1,16 @@
 ---
 import Default from '@astrojs/starlight/components/Head.astro';
+
+// og.png is the social-preview image social crawlers fetch; they don't
+// theme-switch, so og-light.png stays unused by design — see astro.config.mjs
+// for the per-mode `site` origin this URL is resolved against.
+const ogImage = new URL('/images/og.png', Astro.site);
 ---
 
 <Default {...Astro.props} />
 
-<script src="../scripts/page-chrome/index.ts"></script>
+<meta property="og:image" content={ogImage} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:image" content={ogImage} />
+
+<script src="../scripts/mermaid.ts"></script>

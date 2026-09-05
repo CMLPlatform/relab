@@ -1,0 +1,14 @@
+{
+  "name": "relab-www",
+  "dockerComposeFile": ["../../compose.yaml", "../../compose.dev.yaml"],
+  "service": "www",
+  "runServices": ["www"],
+  "workspaceFolder": "/opt/relab/www",
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "overrideCommand": true,
+  "postAttachCommand": "echo 'Relab web devcontainer ready.\\nUse this for focused web work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nWeb: http://127.0.0.1:8013'",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1.3.8": {},
+    "ghcr.io/guiyomh/features/just:0.1.0": {}
+  }
+}

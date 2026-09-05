@@ -6,12 +6,9 @@ from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.__version__ import version as app_version
-from app.core.config import settings
-from app.core.database import async_engine
+from app.core.database import check_database_connection
 from app.core.redis import ping_redis
 from app.core.runtime import get_request_services
 
@@ -42,10 +39,7 @@ def unhealthy_check(component: str, error: str) -> dict[str, Any]:
 async def check_database() -> dict[str, Any]:
     """Check PostgreSQL database connectivity."""
     try:
-        async with async_engine.connect() as conn:
-            result = await conn.execute(text("SELECT 1"))
-            if result.scalar_one() != 1:
-                return unhealthy_check("database", "Database SELECT 1 returned unexpected result")
+        await check_database_connection()
         return healthy_check("database", details={"driver": "postgresql"})
     except SQLAlchemyError, OSError, RuntimeError:
         logger.exception("Database health check failed")
@@ -82,7 +76,10 @@ async def perform_health_checks(request: Request) -> dict[str, dict[str, Any]]:
 @router.get("/live", include_in_schema=False)
 async def liveness_probe() -> JSONResponse:
     """Liveness probe: signals the container is running."""
-    return JSONResponse(content={"status": "alive", "version": app_version}, status_code=200)
+    # These probes are unauthenticated and internet-reachable through the tunnel, so
+    # they expose only a bare status. Version and environment are an unnecessary
+    # disclosure (version-specific CVE targeting, infra fingerprinting).
+    return JSONResponse(content={"status": "alive"}, status_code=200)
 
 
 @router.get("/health", include_in_schema=False)
@@ -95,15 +92,14 @@ async def readiness_probe(request: Request) -> JSONResponse:
     """
     checks = await perform_health_checks(request)
 
-    # Determine overall status
     all_healthy = all(check.get("status") == HEALTHY_STATUS for check in checks.values())
     overall_status = HEALTHY_STATUS if all_healthy else UNHEALTHY_STATUS
     status_code = 200 if all_healthy else 503
 
+    # Report only the status and per-dependency reachability an orchestrator needs.
+    # Version and environment are withheld from this unauthenticated endpoint.
     response_data = {
         "status": overall_status,
-        "version": app_version,
-        "environment": settings.environment,
         "checks": checks,
     }
 

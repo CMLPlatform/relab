@@ -6,15 +6,15 @@ from pydantic import BaseModel, Field
 
 from app.core.constants import DAY, HOUR
 
-DEFAULT_SUPERUSER_EMAIL = "your-email@example.com"
+DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL = "your-email@example.com"
 DEFAULT_CORS_ORIGIN_REGEX = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
 
 
 class CacheNamespace(StrEnum):
     """Cache namespace identifiers for different application areas."""
 
-    BACKGROUND_DATA = "background-data"
-    DOCS = "docs"
+    REFERENCE_DATA = "reference-data"
+    STATS = "stats"
 
 
 class CacheSettings(BaseModel):
@@ -23,8 +23,8 @@ class CacheSettings(BaseModel):
     prefix: str = "fastapi-cache"
     ttls: dict[CacheNamespace, int] = Field(
         default_factory=lambda: {
-            CacheNamespace.BACKGROUND_DATA: DAY,
-            CacheNamespace.DOCS: HOUR,
+            CacheNamespace.REFERENCE_DATA: DAY,
+            CacheNamespace.STATS: 12 * HOUR,
         }
     )
 

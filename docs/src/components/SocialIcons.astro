@@ -1,0 +1,61 @@
+---
+// Header right side: GitHub as an icon, and the "Open app" link promoted to a
+// primary CTA button (modern docs-header convention). Reads the same `social`
+// config as the default component.
+import config from 'virtual:starlight/user-config';
+import GithubIcon from '@/assets/icons/brand/github.svg';
+
+const links = config.social ?? [];
+const cta = links.find((link) => link.icon === 'external');
+const icons = links.filter((link) => link.icon !== 'external');
+---
+
+{
+  icons.map((link) => (
+    <a href={link.href} rel="me" class="sl-flex social-icon" aria-label={link.label}>
+      <GithubIcon width="16" height="16" aria-hidden="true" />
+    </a>
+  ))
+}
+{
+  cta && (
+    <a href={cta.href} class="app-cta" rel="noopener noreferrer">
+      Open app
+    </a>
+  )
+}
+
+<style>
+  .social-icon {
+    color: var(--sl-color-text-accent);
+    padding: 0.5em;
+    margin: -0.5em;
+  }
+  .social-icon:hover {
+    color: var(--sl-color-white);
+  }
+  .app-cta {
+    display: inline-flex;
+    align-items: center;
+    margin-inline-start: 0.75rem;
+    padding: 0.34rem 0.72rem;
+    border-radius: var(--radius-control);
+    background: var(--relab-brand-primary);
+    color: var(--relab-brand-theme-color);
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+  }
+  .app-cta:hover {
+    background: var(--relab-brand-primary-strong);
+  }
+  /* drop the CTA before the mobile menu collapse to keep the bar uncluttered */
+  @media (max-width: 30rem) {
+    .app-cta {
+      display: none;
+    }
+  }
+</style>

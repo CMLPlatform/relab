@@ -1,0 +1,184 @@
+---
+// Slim brand bar: the wordmark plus the three places visitors actually go.
+// The landing hero keeps the page's h1; this is navigation, not a heading.
+// `?url`: hashed URLs under /_astro/ (immutable cache headers), matching
+// SiteFooter. The logos were inlined with `?raw` while a scroll-driven
+// animation needed CSS access to the mark's <circle>; that animation is gone,
+// so the ~6KB of inline SVG is gone with it. CSS paints one variant of two.
+import logoUrl from '@/assets/images/logo.svg?url';
+import logoDarkUrl from '@/assets/images/logo-dark.svg?url';
+
+interface Props {
+  appUrl: string;
+  docsUrl: string;
+  /**
+   * True on pages whose hero carries its own mark (the landing page). The
+   * header's mark then starts hidden and fades in as the hero's melts away, so
+   * the brand is never shown twice. Everywhere else it is visible from the
+   * first paint, because there is nothing to hand off from.
+   */
+  heroBrand?: boolean;
+}
+
+const { appUrl, docsUrl, heroBrand = false } = Astro.props;
+---
+
+<header class="site-header">
+  <div class="site-header-inner">
+    {/* The link carries the name: whichever logo the theme shows is
+        display: none in the other theme, which would leave the link nameless.
+        width/height reserve the box before the SVG loads (the artwork is
+        475x256, so 38px tall is 71px wide); CSS still sizes it. */}
+    <a
+      href="/"
+      class:list={['site-header-brand', { 'is-handoff': heroBrand }]}
+      aria-label="Relab"
+    >
+      <img class="brand-light" src={logoUrl} alt="" aria-hidden="true" width="71" height="38" />
+      <img class="brand-dark" src={logoDarkUrl} alt="" aria-hidden="true" width="71" height="38" />
+    </a>
+    {/* App and Docs only: GitHub is a project channel and lives once, in the
+        footer beside the other channels, rather than in two places. */}
+    <nav class="site-header-nav" aria-label="Site">
+      <a href={appUrl} target="_blank" rel="noopener noreferrer"
+        >App<span class="visually-hidden"> (opens in new tab)</span></a
+      >
+      <a href={docsUrl} target="_blank" rel="noopener noreferrer"
+        >Docs<span class="visually-hidden"> (opens in new tab)</span></a
+      >
+    </nav>
+  </div>
+</header>
+
+<style>
+  /* Sticky, flat and sharp: an opaque surface with a hairline bottom rule and
+     no shadow. Keeps App and Docs reachable down the page.
+     Opaque, not the frosted translucent bar it was: at 82% over an 8px blur,
+     scrolled body text still read through the bar and collided with the nav.
+     Blur is the last thing a document-grade brand should hide its chrome
+     behind, and this was the site's final backdrop-filter. */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--color-page-surface);
+    border-bottom: 1px solid var(--color-page-border);
+  }
+
+  /* Full-bleed bar, content aligned with the page column. Both rows wrap: at a
+     narrow viewport with enlarged text the nav would otherwise force the page
+     to scroll sideways (the footer wraps too). */
+  .site-header-inner {
+    width: min(calc(100% - 2rem), var(--content-width));
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.55rem 0;
+  }
+
+  .site-header-brand {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .site-header-brand img {
+    display: block;
+    height: 38px;
+    width: auto;
+  }
+
+  .site-header-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+  }
+
+  .site-header-nav a {
+    position: relative;
+    font-size: var(--relab-type-body-size);
+    font-weight: 500;
+    color: var(--color-on-surface);
+    text-decoration: none;
+  }
+
+  /* 44px pointer target (WCAG 2.5.8) over a 21.6px text box, same invisible
+     centred overlay as .theme-toggle. The nav's 1.25rem column gap leaves the
+     two overlays ~2.5px apart, so neither swallows the other's taps. Text
+     links get the overlay rather than padding because padding would grow the
+     header bar and the brand rule is a pointer target, not a visible one. */
+  .site-header-nav a::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    width: 100%;
+    height: 44px;
+    translate: -50% -50%;
+  }
+
+  .site-header-nav a:hover,
+  .site-header-nav a:focus-visible {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  /* Theme-swapped logo, mirroring SiteFooter's pattern. The parent class is
+     required: `.site-header-brand img` above outweighs a bare `.brand-dark`. */
+  .site-header-brand .brand-dark {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .brand-light {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .brand-dark {
+      display: block;
+    }
+  }
+
+  :global(:root[data-theme='dark']) .brand-light {
+    display: none;
+  }
+
+  :global(:root[data-theme='dark']) .brand-dark {
+    display: block;
+  }
+
+  /* The other half of the handoff: the hero's mark melts over the first 140px
+     of scroll (BrandHero) and this one arrives just behind it. Only on pages
+     that have a hero mark to hand off from.
+
+     Without scroll-timeline support the rule never applies and this mark is
+     always visible — alongside the hero's, which also never melts. That is
+     Firefox specifically, not a long-tail browser: see the note in BrandHero.
+     Reduced motion gets the same fallback. */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Longhands, never the `animation` shorthand; see BrandHero. */
+      .site-header-brand.is-handoff {
+        animation-name: site-header-logo-in;
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 70px 150px;
+      }
+    }
+  }
+
+  @keyframes site-header-logo-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

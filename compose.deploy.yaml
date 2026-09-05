@@ -1,143 +1,486 @@
 # compose.deploy.yaml (DEPLOY — covers prod AND staging)
 #
-# Single artifact for both environments. APP_ENV (required) selects which.
-# Per-environment knobs live in committed `.env.<env>.compose` files at repo
-# root; per-host secrets live in the auto-loaded `.env` (gitignored).
+# Single artifact for both environments. ENVIRONMENT (required) selects which.
+# Per-environment non-secret knobs live in committed `deploy/env/*.compose.env`
+# files; host-local operator inputs for Compose interpolation live in the
+# gitignored root `.env`.
 #
-# Invocation (see justfile `prod_compose` / `staging_compose`):
-#   docker compose --env-file .env --env-file .env.prod.compose \
+# Invocation (normally through root just recipes):
+#   docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
-name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME must be set (e.g. relab_prod, relab_staging)}
-
 # --- Reusable fragments ------------------------------------------------------
-# Shipping container logs to a central Loki instance is opt-in: include
-# compose.logging.loki.yaml alongside this file (the justfile does this
-# automatically when LOKI_URL is set in the host's root .env). Hosts without
-# Loki get Docker's default json-file driver — no config needed.
+# Shipping the other containers' stdout to the central collector is opt-in: include
+# compose.telemetry.yml alongside this file (the deploy recipes do this
+# automatically when OTEL_EXPORTER_OTLP_ENDPOINT is set in the host's root .env). Hosts
+# without it get Docker's default json-file driver — no config needed.
 
-x-env-backend: &env-backend
-  env_file: ./backend/.env.${APP_ENV:?APP_ENV must be set (prod|staging)}
+# Bounded json-file logging on every deploy service. The Loki logging overlay used to
+# own rotation; with Alloy shipping logs instead, Docker's default json-file driver is
+# back in charge and its default is UNBOUNDED — a crash-looping container would fill
+# /var/lib/docker and take postgres down with it. Alloy tails the same files, so
+# rotation costs nothing but bounds the failure.
+x-json-logging: &json-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-public-origins: &backend-public-origins
+  API_PUBLIC_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+  APP_PUBLIC_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
+  SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
+  DOCS_PUBLIC_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+
+x-backend-host-overrides: &backend-host-overrides
+  GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+  GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+  EMAIL_PROVIDER: ${EMAIL_PROVIDER:?EMAIL_PROVIDER must be set in root .env}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_USERNAME: ${SMTP_USERNAME:-}
+  EMAIL_FROM: ${EMAIL_FROM:?EMAIL_FROM must be set in root .env}
+  EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:?EMAIL_REPLY_TO must be set in root .env}
+  MICROSOFT_GRAPH_TENANT_ID: ${MICROSOFT_GRAPH_TENANT_ID:-}
+  MICROSOFT_GRAPH_CLIENT_ID: ${MICROSOFT_GRAPH_CLIENT_ID:-}
+  MICROSOFT_GRAPH_SENDER_USER: ${MICROSOFT_GRAPH_SENDER_USER:-}
+  BOOTSTRAP_SUPERUSER_EMAIL: ${BOOTSTRAP_SUPERUSER_EMAIL:?BOOTSTRAP_SUPERUSER_EMAIL must be set in root .env}
+
+x-backend-runtime-secrets: &backend-runtime-secrets
+  - database_app_password
+  - database_migration_password
+  - database_backup_password
+  - redis_password
+  - auth_token_secret
+  - oauth_state_secret
+  - cache_signing_secret
+  - data_encryption_key
+  - google_oauth_client_secret
+  - github_oauth_client_secret
+  - smtp_password
+  - microsoft_graph_client_secret
+  - bootstrap_superuser_password
 
 services:
   api:
-    <<: *env-backend
-    image: ${RELAB_BACKEND_IMAGE:-relab-backend:${APP_ENV}-local}
+    image: relab-backend:${ENVIRONMENT}-local
+    logging: *json-logging
+    read_only: true
+    user: "1001:1001"
+    # NOTE: sized against the documented ~20 GiB host budget, alongside postgres
+    # 4g + clamav 4g + redis 1g. Image processing is the spiky consumer here;
+    # without a cap one resize burst takes the host down instead of the API.
+    # Raise it if real usage shows pressure.
+    mem_limit: 6g
+    secrets: *backend-runtime-secrets
+    tmpfs:
+      - /tmp:mode=1777
     environment:
-      ENVIRONMENT: ${APP_ENV}
+      <<: [*backend-public-origins, *backend-host-overrides]
+      ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
+      # Complex settings types are JSON-decoded by pydantic-settings; a bare
+      # string fails to parse and the container never starts.
+      TRUSTED_PROXY_CIDRS: '["172.16.0.0/12"]'
       # OpenTelemetry — OTEL_EXPORTER_OTLP_ENDPOINT is the on/off switch;
       # leave unset in root .env to disable. OTEL_SERVICE_NAME is read by the
       # OTEL SDK automatically from the container env and matches the compose
       # service name so traces group cleanly in the backend.
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
+      # Derived from one operator input, so the SDK's percent-encoded header format is
+      # not a thing anyone has to remember. Alloy reads the same OTLP_AUTH_TOKEN raw.
+      # The edge key is the second header the Cloudflare WAF-skip rule matches; both
+      # must be set together with the endpoint — `just deploy-secrets-check` enforces
+      # the pairing, because the SDK swallows a 401 and telemetry would vanish silently.
+      OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${OTLP_AUTH_TOKEN:-},X-Telemetry-Key=${TELEMETRY_EDGE_KEY:-}
+      # Pinned rather than left to the SDK default: the collector is reached through
+      # a Cloudflare tunnel, which routes HTTPS to the HTTP receiver only. There is no
+      # public gRPC path, so a dependency change that flipped the default protocol
+      # would silently stop all telemetry.
+      OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
       OTEL_SERVICE_NAME: relab-api
+      # The other identity labels the central stack keys alerts and dashboards on.
+      # Alloy stamps project/env on everything IT ships, but the SDK's own traces and
+      # metrics bypass Alloy entirely, so without this they arrive attributable to no
+      # project and ProjectTelemetrySilent cannot see them. The SDK reads this variable
+      # itself and merges it into every Resource — no code involved. host.name is
+      # deliberately absent: the API is a service-level signal and Alloy owns host
+      # identity, which is the one producer rule from ADR 0002.
+      OTEL_RESOURCE_ATTRIBUTES: project=${PROJECT},env=${ENVIRONMENT}
+      # Stable HTTP semantic conventions. Not cosmetic: the legacy metrics label every
+      # series with http_target, the RAW request path, so one API with path parameters
+      # mints an unbounded number of series. The stable names carry http_route instead —
+      # the templated path — which is bounded by the route table. This is the cardinality
+      # rule from ADR 0002 (ids belong in span attributes, never labels) applied to
+      # metrics, and it is what the central Service Health dashboard already queries.
+      OTEL_SEMCONV_STABILITY_OPT_IN: http
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
-      # Prod: 4, Staging: 2, small VMs: 1.
+      # The deploy default is intentionally source-controlled; edit this file
+      # when host capacity changes instead of adding another operator knob.
       #
       #                    per worker  x  workers  =  total (prod)
       # Image threads:          5      x     4     =   20  (CPU-bound)
-      # DB connections:    10 + 10     x     4     =   80  (PostgreSQL default max=100)
+      # DB connections:    10 + 10     x     4     =   80  (configured postgres max_connections=100 below)
       # Outbound HTTP:        100      x     4     =  400  (mostly idle)
-      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-4}
+      WEB_CONCURRENCY: "4"
       IMAGE_RESIZE_WORKERS: "5"
       DB_POOL_SIZE: "10"
       DB_POOL_MAX_OVERFLOW: "10"
+      UVICORN_LIMIT_CONCURRENCY: "100"
+      # Upload ceilings. Raise these from the root .env on an instance whose
+      # existing corpus already exceeds a default (the quota ledger counts real
+      # rows, so an over-limit owner is blocked from uploading entirely).
+      MAX_UPLOAD_FILES_PER_USER: "${MAX_UPLOAD_FILES_PER_USER:-5000}"
+      MAX_UPLOAD_BYTES_PER_USER_MB: "${MAX_UPLOAD_BYTES_PER_USER_MB:-2048}"
+      # Must agree with the `scanning` profile below: leaving this true without
+      # starting clamav fails uploads closed rather than letting them through.
+      MALWARE_SCAN_ENABLED: "${MALWARE_SCAN_ENABLED:-true}"
+      CLAMAV_HOST: clamav
+    depends_on:
+      clamav:
+        condition: service_healthy
+        # Optional so the stack still starts when the `scanning` profile is off.
+        required: false
+      migrator:
+        # Bring the stack up with the `migrations` profile and the API waits for
+        # the schema instead of racing it. Optional for the same reason as clamav:
+        # migrator sits behind that profile (compose.yaml), and without this the
+        # default profile-less `up` would refuse to start at all.
+        #
+        # This does NOT cover `just prod-migrate`, which runs the migrator on its
+        # own against an already-serving API — see deploy/DEPLOY-PROD.md for when each
+        # is appropriate.
+        condition: service_completed_successfully
+        required: false
+    networks:
+      - scanning
+
+  clamav:
+    # Gated behind the `scanning` profile: it needs 3-4 GiB of RAM, which not
+    # every host can spare, and the first start with an empty clamav_db volume
+    # downloads signatures before clamd becomes healthy, so API startup waits
+    # several minutes. Omit the profile only together with
+    # MALWARE_SCAN_ENABLED=false, and treat that as an accepted risk.
+    profiles:
+      - scanning
+    image: clamav/clamav:1.5_base-debian@sha256:dc21c2989e199a0ffdc4d00bfffff21cc1faaecc22a4442005bd00b0d0a7afd9
+    logging: *json-logging
+    entrypoint: /init-unprivileged
+    user: clamav
+    restart: unless-stopped
+    mem_limit: 4g
+    mem_reservation: 3g
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
+    volumes:
+      - clamav_db:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping 1 2>/dev/null"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      start_interval: 10s
+      retries: 3
+    networks:
+      - scanning
 
   migrator:
-    <<: *env-backend
-    image: ${RELAB_BACKEND_MIGRATIONS_IMAGE:-relab-backend-migrations:${APP_ENV}-local}
+    image: relab-backend-migrations:${ENVIRONMENT}-local
+    logging: *json-logging
+    read_only: true
+    user: "1001:1001"
+    secrets: *backend-runtime-secrets
+    environment:
+      <<: [*backend-public-origins, *backend-host-overrides]
+      ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
+    tmpfs:
+      - /tmp:mode=1777
 
-  # TODO: Consider moving the backup services to cron on the host machine instead of running in containers
-  uploads-backup:
-    # Automated user uploads backups to local file system
+  backup:
+    # Encrypted logical PostgreSQL + user upload backups.
     build:
       context: ./backend
-      dockerfile: Dockerfile.user-upload-backups
-    restart: unless-stopped
+      dockerfile: Dockerfile.backups
+    image: relab-backup:${ENVIRONMENT}-local
+    logging: *json-logging
+    cap_drop:
+      - ALL
+    pids_limit: 512
+    read_only: true
+    # One-shot: the systemd timer runs this via `compose run`, never `up`.
+    restart: "no"
+    # Without this each `compose run` container gets a fresh random hostname, and
+    # restic picks its parent snapshot by (host, paths) — so every run would re-read
+    # and re-hash all of /data/uploads instead of taking the metadata shortcut.
+    hostname: relab-backup
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 8192
+        hard: 8192
+    user: "1001:1001"
     depends_on:
-      api:
-        condition: service_started
+      postgres:
+        condition: service_healthy
     volumes:
       - user_uploads:/data/uploads:ro
-      - ${BACKUP_DIR:-./backend/backups}/user_uploads:/backups
+      - ${BACKUP_HOST_DIR:-./backups}/restic:/restic
+      # restic's cache must outlive the container: this is a one-shot with --rm, so
+      # a cache on the tmpfs below would be cold every run and re-download the whole
+      # offsite index over WebDAV nightly.
+      - restic_cache:/var/cache/restic
     environment:
-      SCHEDULE: 0 2 * * * # Daily at 2am
-      UPLOADS_DIR: /data/uploads # NOTE: this is the path inside the container
-      UPLOADS_BACKUP_DIR: /backups # NOTE: this is the path inside the container
-      BACKUP_KEEP_DAYS: 7
-      BACKUP_KEEP_WEEKS: 4
-      BACKUP_KEEP_MONTHS: 6
-      MAX_TOTAL_GB: 100
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      POSTGRES_DB: relab_db
+      DATABASE_BACKUP_USER: relab_backup
+      DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
+      RESTIC_PASSWORD_FILE: /run/secrets/restic_password
+      RESTIC_REPOSITORY: /restic
+      RESTIC_CACHE_DIR: /var/cache/restic
+      XDG_CACHE_HOME: /tmp/xdg-cache
+      UPLOADS_DIR: /data/uploads
+      BACKUP_WORK_DIR: /tmp/relab-backups
+      # Explicitly 0: backups run once a day (systemd timer), so the script's
+      # default of keep-hourly=24 would resolve to 24 distinct DAYS and silently
+      # override the 14 below. Hourly retention only means something sub-daily.
+      RESTIC_KEEP_HOURLY: "0"
+      RESTIC_KEEP_DAILY: "14"
+      RESTIC_KEEP_WEEKLY: "8"
+      RESTIC_KEEP_MONTHLY: "12"
+      # Offsite copy, run at the end of every backup cycle when set. Unset means
+      # the only copy of the backups lives on the same host disk as the data.
+      # `rclone:<remote>:<path>` targets read their remote from the mounted
+      # rclone.conf secret; the offsite repo reuses restic_password.
+      RESTIC_OFFSITE_REPOSITORY: ${RESTIC_OFFSITE_REPOSITORY:-}
+      RCLONE_CONFIG: /run/secrets/rclone.conf
+    secrets:
+      - database_backup_password
+      - restic_password
+      - rclone.conf
     profiles:
       - backups
+    tmpfs:
+      - /tmp:mode=1777
+    networks:
+      # `data` is internal (no gateway), which is what the database wants but leaves
+      # this container with no egress at all — the offsite copy could never resolve
+      # or reach the remote. `egress` exists only to give the backup container a way
+      # out; it is deliberately NOT `edge`, so this keeps no lateral access to the
+      # web services. Postgres and the rest stay on `data` only.
+      - data
+      - egress
 
   redis:
-    <<: *env-backend
+    logging: *json-logging
+    secrets:
+      - redis_password
     volumes:
       # Persist cache data in both prod and staging (AOF persistence).
       - cache_data:/data
+    healthcheck:
+      test: [ "CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping | grep -q PONG" ]
+    # This command replaces the base one wholesale, so it must repeat every flag
+    # from compose.yaml's redis command — NOTE: keep the two in sync. The memory
+    # bounds are not optional here: Redis holds refresh-token blacklists, so
+    # eviction would re-admit revoked tokens (see the base command's comment).
+    command:
+      - sh
+      - -c
+      - |
+        redis_password="$$(cat /run/secrets/redis_password)"
+        exec redis-server --appendonly yes --save 60 1 --maxmemory 512mb --maxmemory-policy noeviction --requirepass "$$redis_password"
 
   cloudflared:
     # Cloudflared tunnel service
-    image: cloudflare/cloudflared:latest@sha256:89ee50efb1e9cb2ae30281a8a404fed95eb8f02f0a972617526f8c5b417acae2
+    image: cloudflare/cloudflared:2026.3.0@sha256:6b599ca3e974349ead3286d178da61d291961182ec3fe9c505e1dd02c8ac31b0
+    logging: *json-logging
     restart: unless-stopped
     depends_on:
       api:
         condition: service_healthy
+      # The tunnel fronts four hostnames; starting it before the frontends are
+      # up serves 502s on three of them for the length of every deploy. They
+      # have no healthcheck, so `service_started` is as strict as it gets.
+      docs:
+        condition: service_started
+      app:
+        condition: service_started
+      www:
+        condition: service_started
     environment:
-      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?TUNNEL_TOKEN must be set (in root .env on the deploy host)}
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set (in root .env on the deploy host)}
     command: tunnel --no-autoupdate run
     pull_policy: always
+    networks:
+      - edge
 
   postgres:
-    <<: *env-backend
+    logging: *json-logging
+    # Compose replaces `command` instead of appending to it, so this repeats the
+    # base tuning from compose.yaml verbatim — NOTE: keep the two in sync. Only
+    # max_connections differs: the API alone needs 80 (4 workers x pool 10 +
+    # overflow 10), and 100 leaves margin for migrator, backup and operator psql.
+    # NOTE: work_mem is per sort, so 100 busy connections could in theory outrun
+    # mem_limit; the real ceiling is the 80-connection app pool, mostly idle.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=2560MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - autovacuum_work_mem=128MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - track_io_timing=on
+      - -c
+      - jit=off
+    environment:
+      # An existing cluster may have no `postgres` role at all (staging does
+      # not); the healthcheck runs `pg_isready -U $POSTGRES_USER`, so a mismatch
+      # here leaves the service permanently unhealthy. See deploy/DEPLOY-PROD.md.
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_DB: relab_db
+      DATABASE_APP_USER: relab_app
+      DATABASE_MIGRATION_USER: relab_migrator
+      DATABASE_BACKUP_USER: relab_backup
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      DATABASE_APP_PASSWORD_FILE: /run/secrets/database_app_password
+      DATABASE_MIGRATION_PASSWORD_FILE: /run/secrets/database_migration_password
+      DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
+    secrets:
+      - postgres_password
+      - database_app_password
+      - database_migration_password
+      - database_backup_password
 
-  docs-site:
-    image: ${RELAB_DOCS_IMAGE:-relab-docs:${APP_ENV}-local}
+  docs:
+    image: relab-docs:${ENVIRONMENT}-local
+    logging: *json-logging
+    read_only: true
+    user: "1001:1001"
     build:
       args:
-        BUILD_MODE: ${BUILD_MODE:-prod}
-        PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-https://docs.cml-relab.org}
+        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
+        PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+        PUBLIC_BACKEND_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+    environment:
+      # Needed by Caddyfile so API reference pages can fetch live OpenAPI JSON.
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+    tmpfs:
+      - /config:uid=1001,gid=1001
+      - /data:uid=1001,gid=1001
+      - /tmp:mode=1777
 
-  app-site:
-    image: ${RELAB_FRONTEND_APP_IMAGE:-relab-frontend-app:${APP_ENV}-local}
+  app:
+    image: relab-app:${ENVIRONMENT}-local
+    logging: *json-logging
+    read_only: true
+    user: "1001:1001"
     build:
       args:
-        BUILD_MODE: ${BUILD_MODE:-prod}
+        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
+        EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+        EXPO_PUBLIC_WEBSITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
+        EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
     environment:
       # Needed by Caddyfile to determine the API origin.
-      CSP_API_ORIGIN: ${CSP_API_ORIGIN:-https://api.cml-relab.org}
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+    tmpfs:
+      - /config:uid=1001,gid=1001
+      - /data:uid=1001,gid=1001
+      - /tmp:mode=1777
 
-  web-site:
-    image: ${RELAB_FRONTEND_WEB_IMAGE:-relab-frontend-web:${APP_ENV}-local}
+  www:
+    image: relab-www:${ENVIRONMENT}-local
+    logging: *json-logging
+    read_only: true
+    user: "1001:1001"
     build:
       args:
-        BUILD_MODE: ${BUILD_MODE:-prod}
-
-  postgres-backup:
-    # Automated database backups to local file system
-    image: prodrigestivill/postgres-backup-local:18@sha256:f70742ebe42b2277689b028d1fd15aa80f77cffa01da163cc9f85a6ff1866e7f # spell-checker: ignore prodrigestivill
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_started
-    volumes:
-      - ${BACKUP_DIR:-./backend/backups}/postgres_db:/backups
+        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
+        PUBLIC_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
+        PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+        PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
+        PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+        # Optional: the landing hero falls back to the committed fixture when unset.
+        PUBLIC_FEATURED_PRODUCT_ID: ${FEATURED_PRODUCT_ID:-}
     environment:
-      SCHEDULE: 0 2 * * * # Daily at 2am
-      POSTGRES_HOST: postgres
-      POSTGRES_EXTRA_OPTS: "--compress=zstd:3 --schema=public" # Compress backups, only back up public schema
-      BACKUP_KEEP_DAYS: 7
-      BACKUP_KEEP_WEEKS: 4
-      BACKUP_KEEP_MONTHS: 6
-    env_file: ./backend/.env.${APP_ENV} # Load database connection settings
-    profiles:
-      - backups
+      # Needed by Caddyfile to allow the homepage stats fetch in the CSP.
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+    tmpfs:
+      - /config:uid=1001,gid=1001
+      - /data:uid=1001,gid=1001
+      - /tmp:mode=1777
 
 volumes:
+  restic_cache:
   cache_data:
+  clamav_db:
+
+secrets:
+  postgres_password:
+    file: ./secrets/${ENVIRONMENT}/postgres_password
+  database_app_password:
+    file: ./secrets/${ENVIRONMENT}/database_app_password
+  database_migration_password:
+    file: ./secrets/${ENVIRONMENT}/database_migration_password
+  database_backup_password:
+    file: ./secrets/${ENVIRONMENT}/database_backup_password
+  redis_password:
+    file: ./secrets/${ENVIRONMENT}/redis_password
+  restic_password:
+    file: ./secrets/${ENVIRONMENT}/restic_password
+  # Only read when RESTIC_OFFSITE_REPOSITORY is an `rclone:` target; same path
+  # the manual `just backup-offsite-copy` helper expects.
+  rclone.conf:
+    file: ./secrets/${ENVIRONMENT}/rclone.conf
+  auth_token_secret:
+    file: ./secrets/${ENVIRONMENT}/auth_token_secret
+  oauth_state_secret:
+    file: ./secrets/${ENVIRONMENT}/oauth_state_secret
+  cache_signing_secret:
+    file: ./secrets/${ENVIRONMENT}/cache_signing_secret
+  data_encryption_key:
+    file: ./secrets/${ENVIRONMENT}/data_encryption_key
+  google_oauth_client_secret:
+    file: ./secrets/${ENVIRONMENT}/google_oauth_client_secret
+  github_oauth_client_secret:
+    file: ./secrets/${ENVIRONMENT}/github_oauth_client_secret
+  smtp_password:
+    file: ./secrets/${ENVIRONMENT}/smtp_password
+  microsoft_graph_client_secret:
+    file: ./secrets/${ENVIRONMENT}/microsoft_graph_client_secret
+  bootstrap_superuser_password:
+    file: ./secrets/${ENVIRONMENT}/bootstrap_superuser_password
+
+networks:
+  scanning:
+  # Outbound-only network for services that push to external endpoints: the backup
+  # container's offsite copy, plus — when their overlays are included — the Alloy
+  # agent and the GPU exporter (compose.telemetry.yml, compose.telemetry.gpu.yml).
+  egress:

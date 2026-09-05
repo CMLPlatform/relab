@@ -1,14 +1,31 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Global allowlist for known false positives"
 paths = [
-  # Auto-generated OpenAPI types contain example JWTs from fastapi-users docs
-  '''frontend-app/src/types/api\.generated\.ts''',
+  # Auto-generated OpenAPI schema + types contain example JWTs from fastapi-users docs
+  '''app/src/types/api\.generated\.ts''',
+  '''app/src/types/openapi\.json''',
 ]
 regexTarget = "line"
 regexes = [
   # PERF_IMAGE_ID is a sample image UUID used in perf-baseline docs, not a secret
   '''PERF_IMAGE_ID=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}''',
+]
+
+[[allowlists]]
+description = "Deliberate passphrase fixture used in password validation and auth tests"
+condition = "AND"
+# NOTE: keep these unanchored. gitleaks scans all history, so they must also match the
+# pre-rename frontend-app/ paths (e.g. "frontend-app/e2e/..." contains "app/e2e/").
+# Anchoring them with ^ re-breaks the scheduled scan on ~9 historical findings.
+paths = [
+  '''backend/tests/.*''',
+  '''app/e2e/.*''',
+  '''app/src/__tests__/.*''',
+  '''app/src/.*/__tests__/.*''',
+]
+stopwords = [
+  '''correct-horse-battery-staple-v42''',
 ]

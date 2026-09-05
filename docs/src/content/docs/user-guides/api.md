@@ -1,39 +1,59 @@
 ---
-title: API Interaction Guide
-description: Use the RELab API safely for scripts, notebooks, and external tooling.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
+title: API interaction guide
+description: Use the Relab API safely for scripts, notebooks, and external tooling.
 ---
 
-For the authoritative schema, request models, and full endpoint list, use the [interactive API documentation](https://api.cml-relab.org/docs). For how the API is designed internally, see [API Structure](../../architecture/api/).
+For the authoritative schemas, request models, and endpoint lists, start from the
+[API reference overview](/api-reference/). For how the API is designed internally, see
+[API structure](../../architecture/api/).
 
-## When to Use the API Directly
+The public API is versioned under `/v1`. Keep the API origin separate from the versioned path in
+your client configuration, then build requests such as `https://api.cml-relab.org/v1/products`.
+
+## When to use the API directly
 
 - scripted or batch access to structured research data
-- connecting RELab records to notebooks or external tooling
+- connecting Relab records to notebooks or external tooling
 - automating repetitive reference-data lookups
 - building custom integrations on top of the platform
 
 ## Authentication
 
-- **Browsers** use cookies (`POST /auth/cookie/login`)
-- **Apps and scripts** use bearer tokens (`POST /auth/bearer/login`)
-- Refresh-token handling depends on the Redis-backed auth path (see [Authentication](../../architecture/auth/))
+- Browsers use cookies (`POST /v1/auth/session/login`)
+- Apps and scripts use bearer tokens (`POST /v1/auth/bearer/login`)
+- Refresh-token handling depends on the Redis-backed auth path (see
+  [Authentication](../../architecture/auth/))
 
-!!! note "Public vs. authenticated routes"
-Public reference data (taxonomies, materials, product types) is accessible without authentication. Product records, images, and user data require a valid token.
+:::note[Public vs. authenticated routes]
+Public reference data (taxonomies, materials, product types), product records, and uploaded media
+are accessible without authentication. Creating or changing records, account management, private
+user details, and owner-scoped workflows require a valid token.
+:::
 
-## Suggested First Steps
+## Suggested first steps
 
-1. Open the [live OpenAPI docs](https://api.cml-relab.org/docs).
+1. Open the [API reference overview](/api-reference/) and choose the surface you need.
 1. Identify whether the endpoint you need is public or requires authentication.
 1. Start with a read-only request before attempting writes.
 1. Inspect response models carefully, especially around linked entities and media.
 1. Only automate writes once you understand how the product hierarchy is represented.
 
-## Integration Advice
+## Interactive tooling and admin tasks
 
-- Build against the live OpenAPI schema rather than copying examples from old documentation.
-- Treat uploads and image handling as first-class API operations, not afterthoughts.
-- If you need a stable exported dataset rather than live application access, check the [Dataset Documentation](../../project/dataset/) first.
+Point a client at the API and authenticate with a bearer token from `POST /v1/auth/bearer/login`.
+The same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace}`.
+
+- **Postman, Bruno, Insomnia**: import the OpenAPI schema (`app/src/types/openapi.json`) for the
+  full endpoint collection, then set auth to *Bearer*.
+- **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout —
+  send `login` once and the token flows into the calls below it.
+
+## Integration advice
+
+- Build against the generated OpenAPI schema rather than copied examples, which can drift out of
+  date.
+- For product circularity notes, use `circularity_properties` as either `null` or an object with
+  optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects
+  and empty note strings are normalized to `null`.
+- If you need a stable exported dataset rather than live application access, check the
+  [dataset page](../../project/dataset/) first.

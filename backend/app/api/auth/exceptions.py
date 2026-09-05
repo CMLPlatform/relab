@@ -1,20 +1,24 @@
-"""Custom exceptions for authentication, user, and organization operations."""
+"""Custom exceptions for authentication and user operations."""
+
+from typing import TYPE_CHECKING
 
 from fastapi import HTTPException, status
 from fastapi_users.router.common import ErrorCode
 from pydantic import UUID4
-from sqlalchemy.exc import IntegrityError
 
 from app.api.common.exceptions import (
     BadRequestError,
     ConflictError,
     ForbiddenError,
-    InternalServerError,
     NotFoundError,
     UnauthorizedError,
 )
 from app.api.common.models.base import get_model_label
-from app.api.common.models.custom_types import IDT, MT
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from app.api.common.models.base import Base
 
 
 class AuthCRUDError(Exception):
@@ -29,91 +33,13 @@ class UserNameAlreadyExistsError(ConflictError, AuthCRUDError):
         super().__init__(msg)
 
 
-class AlreadyMemberError(ConflictError, AuthCRUDError):
-    """Raised when a user already belongs to an organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (
-            f"User with ID {user_id} already belongs to an organization"
-            if user_id
-            else "You already belong to an organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class UserOwnsOrgError(ConflictError, AuthCRUDError):
-    """Raised when a user already owns an organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (f"User with ID {user_id} owns an organization" if user_id else "You own an organization") + (
-            f": {details}" if details else ""
-        )
-
-        super().__init__(msg)
-
-
-class UserHasNoOrgError(NotFoundError, AuthCRUDError):
-    """Raised when a user does not belong to any organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (
-            f"User with ID {user_id} does not belong to an organization"
-            if user_id
-            else "You do not belong to an organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class UserIsNotMemberError(ForbiddenError, AuthCRUDError):
-    """Raised when a user does not belong to an organization."""
-
-    def __init__(
-        self, user_id: UUID4 | None = None, organization_id: UUID4 | None = None, details: str | None = None
-    ) -> None:
-        msg = (
-            f"User with ID {user_id} does not belong to the organization with ID {organization_id}"
-            if user_id
-            else "You do not belong to this organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class UserDoesNotOwnOrgError(ForbiddenError, AuthCRUDError):
-    """Raised when a user does not own an organization."""
-
-    def __init__(self, user_id: UUID4 | None = None, details: str | None = None) -> None:
-        msg = (
-            f"User with ID {user_id} does not own an organization" if user_id else "You do not own an organization"
-        ) + (f": {details}" if details else "")
-        super().__init__(msg)
-
-
-class OrganizationHasMembersError(ConflictError, AuthCRUDError):
-    """Raised when an organization has members and cannot be deleted."""
-
-    def __init__(self, organization_id: UUID4 | None = None) -> None:
-        msg = (
-            f"Organization {' with ID ' + str(organization_id) if organization_id else ''}"
-            " has members and cannot be deleted. Transfer ownership or remove members first."
-        )
-
-        super().__init__(msg)
-
-
-class OrganizationNameExistsError(ConflictError, AuthCRUDError):
-    """Raised when an organization with the same name already exists."""
-
-    def __init__(self, msg: str = "Organization with this name already exists") -> None:
-        super().__init__(msg)
-
-
 class UserOwnershipError(ForbiddenError):
     """Exception raised when a user does not own the specified model."""
 
     def __init__(
         self,
-        model_type: type[MT],
-        model_id: IDT,
+        model_type: type[Base],
+        model_id: int | UUID,
         user_id: UUID4,
     ) -> None:
         model_name = get_model_label(model_type)
@@ -124,8 +50,11 @@ class DisposableEmailError(BadRequestError, AuthCRUDError):
     """Raised when a disposable email address is used."""
 
     def __init__(self, email: str) -> None:
-        msg = f"The email address '{email}' is from a disposable email provider, which is not allowed."
-        super().__init__(msg)
+        # Don't reflect the submitted address back to the client; keep it in the server log only.
+        super().__init__(
+            "Disposable email providers are not allowed.",
+            log_message=f"Disposable email providers are not allowed: {email}.",
+        )
 
 
 class InvalidOAuthProviderError(BadRequestError):
@@ -172,6 +101,24 @@ class RefreshTokenUserInactiveError(RefreshTokenError):
 
     def __init__(self) -> None:
         super().__init__("User not found or inactive")
+
+
+class MfaError(UnauthorizedError):
+    """Base class for MFA authentication failures."""
+
+
+class MfaChallengeInvalidError(MfaError):
+    """Raised when an MFA challenge or setup token is invalid, expired, or already used."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid or expired MFA token")
+
+
+class MfaCodeInvalidError(MfaError):
+    """Raised when an MFA one-time code is invalid."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid MFA code")
 
 
 class OAuthHTTPError(HTTPException):
@@ -244,13 +191,6 @@ class RegistrationHTTPError(HTTPException):
         super().__init__(status_code=status_code, detail=detail)
 
 
-class RegistrationUserAlreadyExistsHTTPError(RegistrationHTTPError):
-    """Raised when a registration email is already in use."""
-
-    def __init__(self) -> None:
-        super().__init__(detail="A user with this email already exists", status_code=status.HTTP_409_CONFLICT)
-
-
 class RegistrationInvalidPasswordHTTPError(RegistrationHTTPError):
     """Raised when password validation fails during registration."""
 
@@ -269,14 +209,3 @@ class RegistrationUnexpectedHTTPError(RegistrationHTTPError):
             detail="An unexpected error occurred during registration",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-
-
-UNIQUE_VIOLATION_PG_CODE = "23505"
-
-
-def handle_organization_integrity_error(e: IntegrityError, action: str) -> None:
-    """Handle integrity errors when creating or updating an organization, and raise appropriate exceptions."""
-    if getattr(e.orig, "pgcode", None) == UNIQUE_VIOLATION_PG_CODE:
-        raise OrganizationNameExistsError from e
-    err_msg = f"Error {action} organization: {e}"
-    raise InternalServerError(details=err_msg, log_message=err_msg) from e

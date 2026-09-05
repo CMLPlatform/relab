@@ -67,34 +67,18 @@ class MigrationHelper:
             return table_name in inspector.get_table_names()
 
     def column_exists(self, table_name: str, column_name: str) -> bool:
-        """Check if column exists in table.
-
-        Args:
-            table_name: Table to check
-            column_name: Column to look for
-
-        Returns:
-            True if column exists, False otherwise
-        """
+        """Check if column exists in table."""
         with self.sync_engine.connect() as connection:
             inspector = inspect(connection)
-            if not self.table_exists(table_name):
+            if table_name not in inspector.get_table_names():
                 return False
-            columns = [col["name"] for col in inspector.get_columns(table_name)]
-            return column_name in columns
+            return column_name in [col["name"] for col in inspector.get_columns(table_name)]
 
     def get_table_columns(self, table_name: str) -> list[str]:
-        """Get list of column names for a table.
-
-        Args:
-            table_name: Table to inspect
-
-        Returns:
-            List of column names
-        """
+        """Get list of column names for a table."""
         with self.sync_engine.connect() as connection:
             inspector = inspect(connection)
-            if not self.table_exists(table_name):
+            if table_name not in inspector.get_table_names():
                 return []
             return [col["name"] for col in inspector.get_columns(table_name)]
 

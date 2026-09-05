@@ -12,14 +12,11 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 
-sync_engine = create_engine(settings.sync_database_url, echo=settings.debug)
+sync_engine = create_engine(settings.database.sync_migration_url, echo=settings.debug)
 
 
 @contextmanager
 def sync_session_context() -> Generator[Session]:
     """Get a synchronous database session for scripts."""
     with Session(sync_engine) as session:
-        try:
-            yield session
-        finally:
-            session.close()
+        yield session

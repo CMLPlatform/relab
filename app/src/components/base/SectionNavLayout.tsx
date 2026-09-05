@@ -1,0 +1,120 @@
+import type { ReactNode } from 'react';
+import { useCallback } from 'react';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { WEB_FOCUS_RING } from '@/constants';
+import { cn } from '@/utils/cn';
+import { AppText } from './AppText';
+import type { SectionKey } from './SectionNavContext';
+
+function SectionNavItem({
+  section,
+  active,
+  onPress,
+}: {
+  section: { key: SectionKey; label: string };
+  active: boolean;
+  onPress: (key: SectionKey) => void;
+}) {
+  const handlePress = useCallback(() => onPress(section.key), [onPress, section.key]);
+  return (
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={active ? `${section.label}, current section` : section.label}
+      className={cn(
+        // px-2: four label-scale chips must fit a 390pt phone in one row
+        // (measured 358/366px); px-4 pushed the last chip off-screen.
+        'min-h-11 justify-center rounded-md px-2 py-2',
+        active ? 'bg-primary/12' : 'opacity-70',
+        Platform.select({
+          web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
+        }),
+      )}
+    >
+      <AppText variant="label" className={cn(active && 'text-primary')}>
+        {section.label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+/** Section jump-nav: horizontal chips on phone, vertical outline on wide web. */
+function SectionNav({
+  sections,
+  activeKey,
+  onPress,
+  orientation,
+}: {
+  sections: { key: SectionKey; label: string }[];
+  activeKey: SectionKey;
+  onPress: (key: SectionKey) => void;
+  orientation: 'chips' | 'outline';
+}) {
+  const items = sections.map((section) => (
+    <SectionNavItem
+      key={section.key}
+      section={section}
+      active={section.key === activeKey}
+      onPress={onPress}
+    />
+  ));
+
+  if (orientation === 'outline') {
+    return <View className="gap-1">{items}</View>;
+  }
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-grow-0">
+      <View className="flex-row gap-1 px-3 py-1">{items}</View>
+    </ScrollView>
+  );
+}
+
+/**
+ * Shared document-nav shell for anchored-scroll screens (product detail,
+ * account): phone gets a chips row pinned above the scroll, ≥lg web gets a
+ * fixed outline column beside it. Extracted from ProductDetailScreen so the
+ * account screen (phase 3) reuses the exact same layout instead of a second
+ * copy — keep any change here in sync across both screens' tests.
+ */
+export function SectionNavLayout({
+  isLg,
+  navSections,
+  activeKey,
+  onPressSection,
+  children,
+}: {
+  isLg: boolean;
+  navSections: { key: SectionKey; label: string }[];
+  activeKey: SectionKey;
+  onPressSection: (key: SectionKey) => void;
+  children: ReactNode;
+}) {
+  if (isLg) {
+    return (
+      <View style={{ flex: 1, flexDirection: 'row' }}>
+        <View testID="section-nav-outline" style={{ width: 200, padding: 16 }}>
+          <SectionNav
+            sections={navSections}
+            activeKey={activeKey}
+            onPress={onPressSection}
+            orientation="outline"
+          />
+        </View>
+        <View style={{ flex: 1 }}>{children}</View>
+      </View>
+    );
+  }
+  return (
+    <View style={{ flex: 1 }}>
+      <View testID="section-nav-chips">
+        <SectionNav
+          sections={navSections}
+          activeKey={activeKey}
+          onPress={onPressSection}
+          orientation="chips"
+        />
+      </View>
+      {children}
+    </View>
+  );
+}

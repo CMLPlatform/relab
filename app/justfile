@@ -1,0 +1,124 @@
+# Frontend App Tasks
+
+import '../playwright.just'
+
+# Show available recipes
+default:
+    @just --list
+
+# Install dependencies
+install:
+    pnpm install --frozen-lockfile
+
+# Regenerate the workspace lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
+
+# Update Expo-managed dependencies to versions compatible with the current SDK
+update:
+    pnpm exec expo install --fix
+    pnpm update -D
+    pnpm dedupe
+    pnpm dlx expo-doctor
+
+# Run lint checks
+lint:
+    pnpm run lint
+
+# Run static type checks
+typecheck:
+    pnpm run typecheck
+
+# Run the app quality gate
+check: lint typecheck codegen-check
+    @echo "✅ Frontend-app checks passed"
+
+# Auto-format code
+format:
+    pnpm run format
+
+# Auto-fix lint issues and format code
+fix:
+    pnpm run fix
+
+# Run tests (unit + integration)
+test:
+    pnpm run test
+
+# Run the fast unit test suite
+test-unit:
+    pnpm run test:unit
+
+# Run the slower app-level Jest integration test suite
+test-integration:
+    pnpm run test:integration
+
+# Run the app CI test suite
+test-ci:
+    pnpm run test:ci
+
+# Run the full app CI pipeline locally
+ci: check test-ci
+    @echo "✅ Frontend-app CI pipeline passed"
+
+# Start dev server
+dev PORT="8011":
+    pnpm exec expo start --port {{ quote(PORT) }} --web
+
+# Start dev server with a cleared Metro cache — fixes stale-bundle errors
+# (an edited module still serving its old code after a reload).
+dev-clean PORT="8011":
+    pnpm exec expo start --port {{ quote(PORT) }} --web --clear
+
+# Scan dependencies for known vulnerabilities
+audit:
+    pnpm run audit
+
+# Static React Compiler coverage report — which components compile vs bail out.
+# `just lint` already flags bailouts inline; this gives the coverage summary.
+compiler-health:
+    pnpm dlx react-compiler-healthcheck
+
+# Serve the production web export (React Compiler ON, as shipped) for profiling.
+# Open the served URL with the React DevTools Profiler ("Highlight updates when
+# components render" + record) to see which components re-render on real flows.
+# Prefer a zero-config overlay? `pnpm dlx react-scan@latest <url>` against it.
+# Compare against dev (compiler OFF) via `just dev`.
+profile: build-web
+    pnpm exec expo serve
+
+# Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
+e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
+e2e_api_url := "http://localhost:" + e2e_backend_port
+
+# Build Expo web app for E2E testing (exports static SPA to dist/)
+# Only the API URL is required for these tests; the public website URL falls back in-app.
+build-web:
+    @printf '%s\n' {{ quote("Building Expo web for E2E with EXPO_PUBLIC_API_URL=" + e2e_api_url) }}
+    EXPO_PUBLIC_API_URL={{ quote(e2e_api_url) }} pnpm run build:web
+
+# The suite runs against the static export in dist/, so build-web is a dependency:
+# a stale build silently tests old code.
+#
+# Run full-stack E2E tests (rebuilds dist/; requires compose.e2e.yaml running)
+test-e2e: build-web _browsers
+    pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
+
+# Run the full cross-browser E2E matrix (see ../playwright.just for INSTALL=force)
+test-e2e-cross-browser: build-web _browsers
+    pnpm run test:e2e:cross-browser
+
+# Clean caches and build artifacts
+clean:
+    rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
+
+# Regenerate TypeScript API types from the committed OpenAPI schema (offline).
+# The schema itself is produced by `just backend/openapi` (src/types/openapi.json).
+codegen:
+    pnpm run codegen
+    @echo "✅ Generated src/types/api.generated.ts (redacted)"
+
+# Fail if committed API types are stale vs the committed OpenAPI schema (runs in `check`)
+codegen-check:
+    pnpm run codegen
+    git diff --exit-code src/types/api.generated.ts

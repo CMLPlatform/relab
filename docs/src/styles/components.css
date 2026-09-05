@@ -1,46 +1,34 @@
 .site-title img {
-  border-radius: 0.45rem;
+  border-radius: var(--radius-control);
 }
 
-.relab-section-intro {
-  padding: 1rem 1.1rem;
-  margin: 0.2rem 0 1.2rem;
-  border-left: 4px solid var(--relab-primary);
-  background: var(--relab-primary-soft);
-  border-radius: 0.8rem;
+@media (min-width: 50rem) {
+  .header {
+    grid-template-columns: minmax(max-content, auto) minmax(14rem, 1fr) auto;
+  }
 }
 
-.relab-hero {
-  padding: 1.25rem 1.3rem;
-  margin: 0.2rem 0 1.4rem;
-  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
-  border-radius: 1rem;
-  background:
-    radial-gradient(
-      circle at top right,
-      color-mix(in srgb, var(--relab-accent) 14%, transparent),
-      transparent 30%
-    ),
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--relab-primary) 10%, transparent),
-      transparent 55%
-    );
+/* Research metadata at the foot of the overview: affiliation, authors, citation,
+   licences, funding, contact. Small mono, one hairline above it, no cards and no
+   icons — a colophon, not a section. It replaces the shields.io badge row, which
+   was README furniture aimed at contributors evaluating the repo rather than at
+   readers looking for a guide, and which loaded four third-party images on first
+   paint. Every paragraph is one label line, so they set tight. */
+.relab-colophon {
+  margin-top: 3rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--relab-brand-divider);
+  font-family: var(--relab-brand-font-mono), monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--sl-color-gray-3);
 }
 
-.relab-hero h1 {
-  margin: 0 0 0.55rem;
+.relab-colophon p {
+  margin: 0 0 0.4rem;
 }
 
-.relab-hero-title {
-  margin: 0 0 0.55rem;
-  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
-  font-size: clamp(1.6rem, 4vw, 2.6rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.relab-hero p:last-child {
+.relab-colophon p:last-child {
   margin-bottom: 0;
 }
 
@@ -55,21 +43,24 @@
   list-style: none;
   margin: 0;
   padding: 1rem 1.1rem;
-  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--relab-primary) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--relab-brand-primary) 4%, transparent);
 }
 
+/* block, not inline-block: markdown folds the soft newline after the card's
+   link into a space, so an inline-block title runs straight into its own
+   description on the same line. */
 .relab-card-grid strong:first-child {
-  display: inline-block;
+  display: block;
   margin-bottom: 0.35rem;
 }
 
 .sidebar-pane :where(a[aria-current="page"]) {
-  color: #12314b;
+  color: rgb(18, 49, 75);
   font-weight: 700;
-  background: color-mix(in srgb, var(--relab-primary) 14%, white 86%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--relab-brand-primary) 14%, white 86%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
 }
 
 .sidebar-pane :where(a[aria-current="page"] span) {
@@ -77,64 +68,56 @@
 }
 
 :root[data-theme="dark"] .sidebar-pane :where(a[aria-current="page"]) {
-  color: #eaf7ff;
-  background: color-mix(in srgb, var(--relab-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
+  color: rgb(234, 247, 255);
+  background: color-mix(in srgb, var(--relab-brand-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
 }
 
-.right-sidebar-panel :where(h2) {
-  display: none;
-}
-
-.relab-toc-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  margin-bottom: 0.75rem;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid color-mix(in srgb, var(--relab-primary) 18%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, white 84%, var(--relab-primary) 8%);
-  color: var(--relab-text);
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.relab-toc-toggle svg {
-  width: 1rem;
-  height: 1rem;
-  transition: transform 160ms ease;
-}
-
-.right-sidebar-panel[data-relab-toc-collapsed="true"] .relab-toc-toggle svg {
-  transform: rotate(-90deg);
-}
-
-.right-sidebar-panel[data-relab-toc-collapsed="true"] starlight-toc {
-  display: none;
-}
-
-:root[data-theme="dark"] .relab-toc-toggle {
-  background: color-mix(in srgb, rgba(15, 23, 42, 0.88) 88%, var(--relab-primary) 12%);
-  color: #eaf7ff;
+/* Long code lines were escaping their own block and forcing the whole page to
+   scroll sideways on narrow viewports (WCAG 1.4.10 reflow). Expressive Code
+   ships its own scroll container, but the computed overflow-x on the `pre`
+   lands as `visible` here, so the line box overflows the frame instead of
+   scrolling inside it. Wide content scrolls in its own box; the page never does. */
+.expressive-code pre {
+  overflow-x: auto;
 }
 
 .relab-mermaid {
   margin: 1rem 0 1.5rem;
   padding: 1rem;
   overflow-x: auto;
-  border-radius: 1rem;
-  border: 1px solid color-mix(in srgb, var(--relab-primary) 16%, transparent);
-  background: color-mix(in srgb, white 88%, var(--relab-primary) 6%);
+  border-radius: var(--radius-card);
+  border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 16%, transparent);
+  background: color-mix(in srgb, white 88%, var(--relab-brand-primary) 6%);
+}
+
+/* Diagrams break out of the prose column rather than the column widening to
+   suit them: the measure is set for reading, and only the diagrams need the
+   extra room. Desktop only — below this the column is already the full width,
+   so a break-out would push the page into horizontal scroll. */
+@media (min-width: 72rem) {
+  .relab-mermaid {
+    width: calc(100% + 4.5rem);
+    margin-inline: -2.25rem;
+  }
 }
 
 :root[data-theme="dark"] .relab-mermaid {
   background: rgba(13, 23, 34, 0.88);
 }
 
+/* Diagrams scroll rather than shrink past legibility.
+   Mermaid emits its SVG with width="100%" plus an inline `max-width` set to the
+   diagram's natural size. Adding `min-width: 100%` on top made the SVG always
+   fill the frame exactly, so it could only ever scale DOWN — the frame's
+   `overflow-x: auto` above could never engage because there was nothing to
+   overflow. Measured on /architecture/system-design/ at 1440px: a 1636px
+   diagram rendered at 758px, a 0.46x downscale that put its 16px labels on
+   screen at ~7.4px. At 390px it was ~3px.
+   The width itself cannot be recovered here: an SVG sized in percent has no
+   intrinsic width, so `width: max-content` resolves to the container rather
+   than the viewBox (measured — it changed nothing). pinDiagramToIntrinsicWidth()
+   in src/scripts/mermaid.ts sets the explicit pixel width after render instead.
+   This rule only clears the `min-width: 100%` that used to force the fit. */
 .relab-mermaid svg {
-  min-width: 100%;
+  max-width: none;
 }

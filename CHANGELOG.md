@@ -93,7 +93,7 @@ Major expansion of the platform: reworked authentication, overhauled frontend-ap
 
 ### Description
 
-Initial release of the Reverse Engineering Lab platform for circular economy and computer vision research.
+Initial release of the Relab platform for circular economy and computer vision research.
 
 ### Features
 

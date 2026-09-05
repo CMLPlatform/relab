@@ -1,16 +1,13 @@
 """Shared support code for split RPi Cam service tests."""
-# spell-checker: ignore excinfo
-
-from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
-from typing import Any, cast
-from unittest.mock import AsyncMock, MagicMock
+from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock
 
-import pytest
+from app.api.plugins.rpi_cam.services.youtube import YouTubeService
 
-from app.api.plugins.rpi_cam.services import YouTubeService
+if TYPE_CHECKING:
+    from typing import Any
 
 FAKE_ACCESS_TOKEN = "fake_access_token"
 FAKE_REFRESH_TOKEN = "fake_refresh_token"
@@ -40,17 +37,6 @@ class GoogleOAuthClientStub:
         self.refresh_token = AsyncMock()
 
 
-class SessionStub:
-    """Typed database session stub for service tests."""
-
-    def __init__(self) -> None:
-        self.add = MagicMock()
-        self.commit = AsyncMock()
-        self.delete = AsyncMock()
-        self.refresh = AsyncMock()
-        self.get = AsyncMock(return_value=None)
-
-
 class HTTPClientStub:
     """Typed HTTP client stub for service tests."""
 
@@ -58,45 +44,12 @@ class HTTPClientStub:
         self.request = AsyncMock()
 
 
-@pytest.fixture
-def mock_session() -> SessionStub:
-    """Return a mock database session."""
-    return SessionStub()
+@dataclass
+class YouTubeServiceFixture:
+    """Bundle the YouTubeService under test with its typed stub dependencies."""
 
-
-@pytest.fixture
-def mock_google_oauth_client() -> GoogleOAuthClientStub:
-    """Return a mock Google OAuth client."""
-    return GoogleOAuthClientStub()
-
-
-@pytest.fixture
-def mock_http_client() -> HTTPClientStub:
-    """Return a mock shared HTTP client."""
-    return HTTPClientStub()
-
-
-@pytest.fixture
-def mock_oauth_account() -> OAuthAccountStub:
-    """Return a mock OAuth account."""
-    return OAuthAccountStub(
-        access_token=FAKE_ACCESS_TOKEN,
-        refresh_token=FAKE_REFRESH_TOKEN,
-        expires_at=(datetime.now(UTC) + timedelta(hours=1)).timestamp(),
-    )
-
-
-@pytest.fixture
-def youtube_service(
-    mock_oauth_account: OAuthAccountStub,
-    mock_google_oauth_client: GoogleOAuthClientStub,
-    mock_session: SessionStub,
-    mock_http_client: HTTPClientStub,
-) -> YouTubeService:
-    """Return a YouTubeService instance with typed stub dependencies."""
-    return YouTubeService(
-        cast("Any", mock_oauth_account),
-        cast("Any", mock_google_oauth_client),
-        cast("Any", mock_session),
-        cast("Any", mock_http_client),
-    )
+    service: YouTubeService
+    oauth_account: OAuthAccountStub
+    google_client: GoogleOAuthClientStub
+    session: Any
+    http_client: HTTPClientStub

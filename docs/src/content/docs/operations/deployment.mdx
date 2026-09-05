@@ -1,0 +1,228 @@
+---
+title: Deployment and operations
+description: The self-hosted Relab deployment topology and its operational trade-offs.
+---
+
+Relab runs as a self-hosted Docker Compose stack sized for a single VPS.
+
+## Compose service topology
+
+The deployed stack is defined entirely in Docker Compose. Core services run in all environments. Some deployments also enable additional operational services such as migrations, backups, the Cloudflare tunnel, and optional log/trace shipping to an external monitoring stack.
+
+```mermaid
+---
+config:
+    layout: elk
+---
+graph TD
+    accTitle: Deployment Compose service topology
+    accDescr: The core services are the FastAPI backend, PostgreSQL, Redis, ClamAV, user media storage, the Expo app, the Astro landing page, and the Starlight docs site. They run alongside optional operational services for migrations, backups, the Cloudflare tunnel, and OTLP telemetry export from both the backend and an Alloy log collector. The backend is the hub, talking to the database, cache, malware scanner, and external monitoring collector.
+    subgraph Core ["Core Services"]
+        Backend[FastAPI Backend]
+        DB[(PostgreSQL)]
+        Cache[(Redis)]
+        ClamAV[ClamAV\nupload malware scanning]
+        Uploads[(User Media)]
+        FrontendApp[Expo App]
+        FrontendWeb[Astro Landing Page]
+        Docs[Astro Starlight Docs]
+    end
+
+    subgraph Operational ["Optional Operational Services"]
+        Migrations[migrator\none-shot on deploy]
+        Backups[relab-backup\npg_dump + uploads to restic]
+        Cloudflared[cloudflared\noutbound tunnel]
+        Alloy[alloy\ncontainer stdout collector]
+        OTel[external OTLP collector]
+    end
+
+    Migrations -->|schema forward| DB
+    Backups -->|logical dumps| DB
+    Backups -->|encrypted snapshots| Uploads
+    Cloudflared -->|proxies inbound traffic| Backend
+    Backend -->|scan uploads| ClamAV
+    Backend -->|OTLP traces/metrics/logs| OTel
+    Alloy -->|container stdout via OTLP| OTel
+```
+
+Backup services are enabled through Compose profiles. Telemetry is opt-in through one host-level environment variable: `OTEL_EXPORTER_OTLP_ENDPOINT` enables the backend's OTLP export and auto-includes the Alloy overlay that ships every other container's stdout.
+
+## Supported delivery path
+
+- Docker Compose is the runtime for staging and production.
+- `compose.yaml` is the shared base topology.
+- `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
+- The same `compose.deploy.yaml` is used for prod and staging. Committed `deploy/env/*.compose.env` files select the environment and public origins; Compose maps those values to backend, app, docs, and www variable names at each service boundary. Docker Compose reads the host-level root `.env` for host-local operator inputs such as tunnel tokens, OAuth client IDs, email sender metadata, the initial superuser identity, telemetry endpoints, and backup paths. Manual shell helpers use exported environment variables instead of parsing `.env`.
+- GitHub Actions validate changes, run security checks, and maintain release automation, but deploys are still operated from the server checkout.
+- Cloudflare DNS and Tunnel public hostname configuration lives in `infra/cloudflare/`. Compose still owns the runtime services; OpenTofu owns only the public edge.
+
+Docker development and E2E ports bind to localhost by default. For Expo testing from another device over a LAN, run the Expo dev server directly from `app/` on the host instead of using the Docker app service.
+
+The root `justfile` is the supported local interface for full-stack checks:
+
+```bash
+just setup
+just ci
+just test
+just test-integration
+just security
+just docker-smoke
+```
+
+Focused subrepo work should use the subrepo `justfile`.
+
+## Cloudflare edge as code
+
+Relab manages public hostnames through OpenTofu in `infra/cloudflare/`. The
+configuration is intentionally narrow: DNS records, separate prod/staging
+Cloudflare Tunnels, Tunnel ingress rules, and a final `http_status:404` catch-all
+for unknown hostnames. It does not manage app secrets, Compose services,
+PostgreSQL, Redis, storage, backups, or host deployment.
+
+The current origins point at Compose services such as `http://api:8000` and
+`http://app:8081`.
+
+Use separate prod and staging OpenTofu workspaces/state. Before applying this to
+an existing Cloudflare account, import the current DNS records and tunnels, then
+run `just cloudflare-plan staging` or `just cloudflare-plan prod` until the plan
+shows only intentional drift. Apply with `just cloudflare-apply <env> YES` after
+reviewing the plan. Export Cloudflare/OpenTofu credentials as environment variables before running
+these commands. Do not commit Cloudflare tokens, tunnel tokens, or state files.
+
+Public hostname changes should start in `infra/cloudflare/`. Do not add wildcard
+DNS records unless there is a concrete operational need and the blast radius has
+been reviewed.
+
+## Network segmentation policy
+
+The deploy stack keeps segmentation intentionally small: public-facing services use the `edge` network, data services use the internal `data` network, upload scanning uses the private `scanning` network, and only the API bridges the networks it needs. This follows the OWASP network segmentation model at Compose scale without adding extra proxies, VLANs, or host firewall rules to the repo.
+
+| Service group | Compose networks | Host ports in prod/staging |
+| --- | --- | --- |
+| `cloudflared`, `docs`, `app`, `www` | `edge` only | none |
+| `api` | `edge`, `data`, `scanning` | none |
+| `postgres`, `redis`, `migrator`, `backup` | `data` only | none |
+| `clamav` (`scanning` profile only) | `scanning` only | none |
+
+`just compose-config` validates that the supported Compose overlays render for dev, prod, and staging.
+`just deploy-secrets-check` validates that rendered Compose secrets point at the expected `secrets/<env>/` files, that the directory and file modes are correct (directory `0700`, files `0644`, with remediation printed on mismatch), and that no secret is left at a placeholder value.
+
+## Backend egress
+
+Backend outbound HTTP is restricted to `OUTBOUND_HTTP_ALLOWED_URLS`. See
+[Security and hardening](/operations/security/#backend-egress) for the policy
+model.
+
+## Transport security
+
+Production and staging are HTTPS-only behind Cloudflare Tunnel. The Cloudflare
+edge configuration in `infra/cloudflare/` enforces TLS 1.2 or newer, enables TLS
+1.3, redirects HTTP requests to HTTPS before they reach the tunnel, and owns
+Relab-specific Cloudflare rate limiting policy for auth, upload, and RPi camera
+traffic.
+
+Every deployed browser-facing origin emits:
+
+```http
+Strict-Transport-Security: max-age=63072000; includeSubDomains
+```
+
+Static frontends set this in Caddy; the API sets it from FastAPI in `prod` and `staging`. `preload` is omitted; the full `cml-relab.org` subdomain inventory has not been verified for preloading.
+
+PostgreSQL and Redis stay on the private Compose `data` network, so
+`DATABASE_TLS=false` and `REDIS_TLS=false` are intentional defaults. If either
+service moves off that trusted network, enable validating TLS with
+`DATABASE_TLS=true` or `REDIS_TLS=true`; set the matching CA file variable for
+private CAs. See [Security and hardening](/operations/security/) for the broader
+trust-boundary model.
+
+Supported browsers must implement HTTPS, HSTS, Content Security Policy, host-prefixed secure cookies, SameSite cookies, CORS preflight enforcement, and the modern cross-origin isolation headers used by Relab (`Cross-Origin-Opener-Policy` and `Cross-Origin-Resource-Policy`). Unsupported browsers are not given a fallback security mode; they may fail to authenticate, fail to load protected media, or be blocked by browser policy.
+
+## Deploy flow
+
+For a new host, clone the repo, create the root `.env`, review the relevant `deploy/env/*.compose.env` file, create secret files, validate the render, then start the deploy stack and run migrations:
+
+```bash
+cp .env.example .env
+# Fill required values in .env.
+just deploy-secrets-template prod
+# Replace every placeholder under secrets/prod/.
+just compose-config
+just deploy-secrets-check
+just prod-up YES scanning
+just prod-migrate YES
+```
+
+Staging follows the same pattern with the staging env files and `staging-*` recipes. Upgrades are intentionally boring: pull a known-good revision, bring the stack up again, run migrations, and verify `/live` and `/health`. The `/live` endpoint is the shallow backend process check used by Compose, while `/health` is the operator-facing readiness check that verifies PostgreSQL and Redis.
+
+ClamAV malware scanning is enabled by default: `MALWARE_SCAN_ENABLED=true` ships in `.env.example`, and `deploy_ops.sh` refuses to bring the stack `up` when that flag is anything but `false` unless the `scanning` Compose profile is also passed. `up` starts no backup service — the backup is a one-shot owned by a systemd timer (see the install guide's "Scheduling backups") — so `scanning` is normally the only profile you pass: `just prod-up YES scanning` or `just staging-up YES scanning`. To opt out, set `MALWARE_SCAN_ENABLED=false` in the root `.env` and omit the `scanning` profile. Uploaded files are then stored without a malware scan; treat that as an explicit, temporary accepted risk, not a default. When scanning is enabled, the `clamav` service keeps its signature database in the persisted `clamav_db` volume; first boot with an empty volume can wait several minutes while signatures download. Budget roughly 3-4 GiB of RAM for ClamAV so default signature reload and database testing behavior can stay enabled.
+
+The database role hardening is a breaking fresh-volume change. For an existing host, take a verified dump first, stop the stack, recreate the Postgres volume, start Postgres so `/docker-entrypoint-initdb.d` creates the least-privilege roles, run migrations, then restore the dump through the migration/admin path.
+For local rehearsal, use staging instead of production: `just staging-up YES`, `just staging-migrate YES`, `just backup staging` to seed the first snapshot, then `just restore-check staging`.
+
+## Storage and backups
+
+- PostgreSQL stores the primary application state.
+- Uploaded files and images are stored on disk and served by the backend.
+- Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_HOST_DIR`.
+- Optional offsite copies use `restic copy`; WebDAV is supported through restic's rclone backend. When `RESTIC_OFFSITE_REPOSITORY` is set in `deploy/env/<env>.compose.env` (per environment — the root `.env` is shared by every stack on the host, so a value there would send production snapshots to staging's offsite repository), each backup cycle copies snapshots offsite at the end automatically. Backup cycles are driven by a host systemd timer (`deploy/systemd/relab-backup@.timer`), not by `up` — starting the stack does not schedule anything. The offsite step is skipped with a warning, rather than failing the run, while `secrets/<env>/rclone.conf` does not define the remote the repository names. `just backup-offsite-copy <env>` remains available as an ad-hoc, on-demand copy outside that cycle.
+- Alembic migrations move schema state forward in a controlled way.
+- `just restore-check staging` or `just restore-check prod` restores the latest database dump into a disposable Postgres container and verifies that it can be read.
+
+The deploy stack runs app-owned services with dropped Linux capabilities, `no-new-privileges`, PID/file descriptor limits, and read-only root filesystems where supported. The backup container runs as UID/GID `1001`; make sure the host restic directory under `BACKUP_HOST_DIR` is writable by that ID. On a first-time host, create it yourself before starting the stack. Docker creates missing bind-mount directories root-owned, and the backup container cannot then initialize the restic repository:
+
+```bash
+mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
+sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
+```
+
+CI checks Dockerfile misconfigurations with Trivy and validates Cloudflare edge IaC with `just cloudflare-check`.
+Root deployment validation renders the supported Compose overlays with `just compose-config` and checks rendered secret file paths with `just deploy-secrets-check`.
+
+## Secrets and encrypted fields
+
+Most Relab data is protected by access control, not application-level encryption. Passwords are hashed, not encrypted. Public research records, uploaded media, public RPi camera keys, request IDs, and cache keys are not application-encrypted.
+
+`deploy/env/variables.toml` is the source-controlled runtime secret inventory. It lists the secret files Compose should render under `secrets/<env>/` and keeps the future Infisical path template beside that contract. Use `just env-inventory` from the repo root when onboarding a host or reviewing secret-file changes.
+
+The backend uses `DATA_ENCRYPTION_KEY` only for reversible sensitive values it must recover later, such as OAuth provider tokens and active YouTube broadcast keys. Cache payload signing uses the separate `CACHE_SIGNING_SECRET`, and OAuth state uses `OAUTH_STATE_SECRET`, so each key has one purpose. Keep these application secrets in gitignored Compose secret files under `secrets/<env>/`, not in committed files or backend env files.
+
+Backend app secrets, database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`. Required files are declared by the rendered Compose overlays; use `just deploy-secrets-template dev`, `just deploy-secrets-template staging`, or `just deploy-secrets-template prod` to create missing files and `just deploy-secrets-check` to verify that Compose points at the expected root secret files. The application role, migration role, and backup role are separate PostgreSQL users; the application role is not the schema owner.
+
+Keep configuration ownership narrow: `infra/cloudflare/` contains public edge
+configuration, `deploy/` contains committed non-secret runtime identity, the
+root `.env` contains host-local operator inputs, `secrets/`
+contains uncommitted operator-owned secret material, and `scripts/` contains
+repo-wide operational helpers that are too large for the root `justfile`.
+Backend dotenv files are local/test inputs only; prod and staging do not use
+backend `.env.<env>` files.
+
+### Rotation and break-glass
+
+For ordinary app secret rotation, replace the file under `secrets/<env>/`, restart the affected service, and verify `/live` and `/health`. For `AUTH_TOKEN_SECRET`, expect existing login/reset/verification tokens to become invalid. For OAuth or email provider secrets, rotate the upstream credential first, update the matching file, then restart `api`.
+
+Database role password rotation has two steps: change the PostgreSQL role password, then update the matching file under `secrets/<env>/` and restart the affected service (`api`, `migrator`, or `backup`). Redis rotation requires restarting both `redis` and consumers such as `api`.
+
+`DATA_ENCRYPTION_KEY` is break-glass material, not a routine restart-only secret. Rotating it requires a planned data re-encryption path and backup-retention review because older encrypted values and backups depend on the previous key.
+
+If a real secret is exposed outside the intended host, treat it as compromised: revoke or rotate it upstream, update the host file or root `.env` value, restart affected services, run health checks, and preserve enough incident notes to know what was exposed and when. Existing encrypted backups should be treated as depending on the old key until their retention window passes.
+
+## Telemetry
+
+Prod and staging can ship logs, traces, and metrics to a central monitoring stack outside this repo. Dev and CI do not ship telemetry.
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT` is the switch for the whole telemetry path: the backend's OTLP traces, metrics and logs, plus the `compose.telemetry.yml` overlay.
+- `OTLP_AUTH_TOKEN` is the collector's bearer token. One operator input, two consumers: Compose folds it into the SDK's header format for the backend, and Alloy reads it directly.
+- `TELEMETRY_EDGE_KEY` is a second, weaker credential sent as an `X-Telemetry-Key` header. The Cloudflare WAF-skip rule for the telemetry hostname matches it instead of the bearer token, so the token never appears in a ruleset expression readable through the Cloudflare API. All three must be set together; `just deploy-secrets-check` enforces the pairing.
+- `OTEL_EXPORTER_OTLP_PROTOCOL` defaults to `http/protobuf`, pinned because the collector is reached through a tunnel that routes HTTPS only.
+
+Hosts without those variables keep the simpler local-only behavior. Keep monitoring endpoints private through a tunnel or private network; do not expose the monitoring stack directly to the public internet.
+
+## Operational considerations
+
+- Redis is used both for caching and parts of the authentication and token flow. Partial Redis outages have user-facing effects.
+- Uploaded media is part of the research record and should be treated as primary data, not as disposable assets.
+- Production secrets and origin/host configuration matter; the backend enforces stricter checks outside development.
+- Telemetry is optional. When enabled, the backend exports OTLP traces, metrics and logs to an external collector, and a Grafana Alloy agent forwards the remaining containers' stdout to the same endpoint. Nothing needs a Loki push hostname exposed, which matters because Loki has no authentication of its own.
+- The Compose-based setup is easy to reason about, but scaling and secret rotation are less automated than in a larger platform setup. That trade-off is deliberate.
+- Scheduled work (backup, watchdog, monthly restore verification) runs from systemd timers installed by `just timers-install <env>`; execution is deliberately local, since a backup needs the host's own volumes. Detection is not: each job pings a per-job dead-man's switch on success and reports its own output on failure, which is the one signal that does not travel through the same collector as everything else — so it still arrives when the telemetry path is itself what broke. `just watchdog <env>` remains as a local triage command that exits non-zero with an `ALERT[...]` line per failure.

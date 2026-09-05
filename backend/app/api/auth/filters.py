@@ -1,56 +1,24 @@
-"""Fastapi-filter schemas for filtering User and Organization models."""
+"""Filter schemas for auth models."""
 
-from typing import TYPE_CHECKING
+from typing import ClassVar  # Runtime import required by fastapi-filters get_type_hints
 
-from fastapi_filter.contrib.sqlalchemy import Filter
+from fastapi_filters import FilterField, FilterOperator
 
-from app.api.auth.models import Organization, User
+from app.api.auth.models import User
+from app.api.common.crud.filtering import BaseFilterSet, filter_field
 
-if TYPE_CHECKING:
-    from typing import ClassVar
-
-
-class UserFilter(Filter):
-    """FastAPI-filter class for User filtering."""
-
-    email__ilike: str | None = None
-    username__ilike: str | None = None
-    organization__ilike: str | None = None
-    is_active: bool | None = None
-    is_superuser: bool | None = None
-    is_verified: bool | None = None
-
-    search: str | None = None
-
-    class Constants(Filter.Constants):
-        """Constants for UserFilter."""
-
-        model = User
-
-        search_model_fields: ClassVar[list[str]] = [
-            "email",
-            "username",
-        ]
+_TEXT_OPERATORS = [FilterOperator.ilike]
 
 
-class OrganizationFilter(Filter):
-    """FastAPI-filter class for Organization filtering."""
+class UserFilter(BaseFilterSet):
+    """FilterSet for User filtering."""
 
-    name__ilike: str | None = None
-    location__ilike: str | None = None
-    description__ilike: str | None = None
+    filter_model: ClassVar[type[User]] = User
+    sortable_fields: ClassVar[tuple[str, ...]] = ("email", "username")
+    search_columns: ClassVar[tuple[object, ...]] = (User.email, User.username)
 
-    search: str | None = None
-
-    order_by: list[str] | None = None
-
-    class Constants(Filter.Constants):
-        """Constants for OrganizationFilter."""
-
-        model = Organization
-
-        search_model_fields: ClassVar[list[str]] = [
-            "name",
-            "location",
-            "description",
-        ]
+    email: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    username: FilterField[str] = filter_field(_TEXT_OPERATORS)
+    is_active: FilterField[bool] = filter_field([FilterOperator.eq])
+    is_superuser: FilterField[bool] = filter_field([FilterOperator.eq])
+    is_verified: FilterField[bool] = filter_field([FilterOperator.eq])

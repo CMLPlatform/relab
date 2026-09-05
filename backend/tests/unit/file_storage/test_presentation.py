@@ -1,14 +1,11 @@
 """Unit tests for file storage read-model and path helpers."""
 
-from __future__ import annotations
-
-from types import SimpleNamespace
-from typing import TYPE_CHECKING, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from app.api.file_storage.crud.support_paths import storage_item_exists
 from app.api.file_storage.models import File, Image, MediaParentType
-from app.api.file_storage.models.storage_types import FileType, ImageType  # lgtm[py/unused-import]
 from app.api.file_storage.schemas import FileReadWithinParent, ImageRead, ImageReadWithinParent
 from app.core.config import settings
 
@@ -16,6 +13,13 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     import pytest
+
+
+@dataclass(frozen=True)
+class FakeStoredFile:
+    """Typed stand-in for StorageFile/StorageImage — exposes only what helpers read."""
+
+    path: str
 
 
 def test_file_read_within_parent_model_validate_returns_public_url(
@@ -32,7 +36,7 @@ def test_file_read_within_parent_model_validate_returns_public_url(
     file = File(
         id=uuid4(),
         filename="example.txt",
-        file=cast("FileType", SimpleNamespace(path=str(stored_file))),
+        file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
@@ -51,12 +55,13 @@ def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, mo
     stored_dir.mkdir(parents=True, exist_ok=True)
     stored_file = stored_dir / "example.png"
     stored_file.write_bytes(b"hello")
-    image_id = uuid4()
+    thumbnail_file = stored_dir / "example_thumb_200.webp"
+    thumbnail_file.write_bytes(b"thumb")
 
     image = Image(
-        id=image_id,
+        id=uuid4(),
         filename="example.png",
-        file=cast("ImageType", SimpleNamespace(path=str(stored_file))),
+        file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
@@ -64,7 +69,7 @@ def test_image_read_within_parent_model_validate_returns_urls(tmp_path: Path, mo
     read_model = ImageReadWithinParent.model_validate(image)
 
     assert read_model.image_url == f"/uploads/images/{stored_file.relative_to(storage_root)}"
-    assert read_model.thumbnail_url == f"/images/{image_id}/resized?width=200"
+    assert read_model.thumbnail_url == f"/uploads/images/{thumbnail_file.relative_to(storage_root)}"
 
 
 def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -75,12 +80,11 @@ def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.
     stored_dir.mkdir(parents=True, exist_ok=True)
     stored_file = stored_dir / "example.png"
     stored_file.write_bytes(b"hello")
-    image_id = uuid4()
 
     image = Image(
-        id=image_id,
+        id=uuid4(),
         filename="example.png",
-        file=cast("ImageType", SimpleNamespace(path=str(stored_file))),
+        file=FakeStoredFile(path=str(stored_file)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
@@ -88,7 +92,7 @@ def test_image_read_model_validate_from_orm(tmp_path: Path, monkeypatch: pytest.
     read_model = ImageRead.model_validate(image)
 
     assert read_model.image_url == f"/uploads/images/{stored_file.relative_to(storage_root)}"
-    assert read_model.thumbnail_url == f"/images/{image_id}/resized?width=200"
+    assert read_model.thumbnail_url == f"/uploads/images/{stored_file.relative_to(storage_root)}"
     assert read_model.parent_id == 1
     assert read_model.parent_type == MediaParentType.PRODUCT
 
@@ -101,10 +105,53 @@ def test_missing_storage_file_returns_no_urls(tmp_path: Path, monkeypatch: pytes
     file = File(
         id=uuid4(),
         filename="ghost.txt",
-        file=cast("FileType", SimpleNamespace(path=str(missing_path))),
+        file=FakeStoredFile(path=str(missing_path)),
         parent_type=MediaParentType.PRODUCT,
         parent_id=1,
     )
 
     assert storage_item_exists(file) is False
     assert FileReadWithinParent.model_validate(file).file_url is None
+
+
+def test_file_read_omits_url_for_path_outside_storage_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Malformed stored paths must not become public upload URLs."""
+    storage_root = tmp_path / "files"
+    outside_root = tmp_path / "outside"
+    storage_root.mkdir()
+    outside_root.mkdir()
+    outside_file = outside_root / "leak.txt"
+    outside_file.write_bytes(b"secret")
+    monkeypatch.setattr(settings, "file_storage_path", storage_root)
+    file = File(
+        id=uuid4(),
+        filename="leak.txt",
+        file=FakeStoredFile(path=str(outside_file)),
+        parent_type=MediaParentType.PRODUCT,
+        parent_id=1,
+    )
+
+    assert FileReadWithinParent.model_validate(file).file_url is None
+
+
+def test_image_read_omits_urls_for_path_outside_storage_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Malformed stored image paths must not become public upload URLs."""
+    storage_root = tmp_path / "images"
+    outside_root = tmp_path / "outside"
+    storage_root.mkdir()
+    outside_root.mkdir()
+    outside_file = outside_root / "leak.png"
+    outside_file.write_bytes(b"secret")
+    monkeypatch.setattr(settings, "image_storage_path", storage_root)
+    image = Image(
+        id=uuid4(),
+        filename="leak.png",
+        file=FakeStoredFile(path=str(outside_file)),
+        parent_type=MediaParentType.PRODUCT,
+        parent_id=1,
+    )
+
+    read_model = ImageReadWithinParent.model_validate(image)
+
+    assert read_model.image_url is None
+    assert read_model.thumbnail_url is None

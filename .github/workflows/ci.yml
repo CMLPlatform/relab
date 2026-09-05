@@ -1,0 +1,669 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    # `ready_for_review` on top of the default types: container-security and
+    # CodeQL skip drafts, so marking a PR ready must trigger the run that fills
+    # them in.
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+concurrency:
+  # Keyed by event so a scheduled run and a push run on the same ref never share
+  # a group; within a group, newer commits supersede older runs.
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  automation:
+    name: Automation, IaC, and Compose Policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          setup-node: "true"
+          uv-cache-dependency-glob: |
+            pyproject.toml
+            uv.lock
+            backend/uv.lock
+
+      - name: Compute prek cache key
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - name: Cache prek environments
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        with:
+          path: ~/.cache/prek
+          key: prek|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
+        with:
+          tofu_wrapper: false
+
+      - name: Run repository policy checks
+        run: just pre-commit
+        env:
+          # CI runs on a detached ref, where the local-only branch guard is
+          # a no-op at best.
+          SKIP: no-commit-to-branch
+
+      - name: Run IaC, env, Compose, and deploy-secret checks
+        run: just policy-check
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: just backend/install
+
+      - name: Run check
+        run: just backend/check
+
+      - name: Run CI test suite
+        run: just backend/test-ci
+        env:
+          # The factories seed themselves from TEST_SEED so a run is reproducible.
+          # The weekly scheduled run rotates the seed to surface tests that only
+          # pass under seed 0; run_id (not $RANDOM) so TEST_SEED=<id> reproduces
+          # the failure.
+          TEST_SEED: ${{ github.event_name == 'schedule' && github.run_id || '0' }}
+
+      - name: Publish reports
+        uses: ./.github/actions/publish-reports
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: backend
+          coverage-file: ./backend/reports/coverage/coverage.xml
+          junit-file: ./backend/reports/junit.xml
+          network-prefix: backend/app/
+          artifact-path: |
+            backend/reports/coverage/html/
+            backend/reports/coverage/coverage.xml
+
+  web:
+    name: ${{ matrix.subrepo }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        subrepo: [www, app]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: just ${{ matrix.subrepo }}/install
+
+      - name: Run check
+        run: just ${{ matrix.subrepo }}/check
+
+      - name: Run CI test suite
+        run: just ${{ matrix.subrepo }}/test-ci
+
+      - name: Publish reports
+        uses: ./.github/actions/publish-reports
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: ${{ matrix.subrepo }}
+          coverage-file: ./${{ matrix.subrepo }}/coverage/lcov.info
+          junit-file: ./${{ matrix.subrepo }}/junit.xml
+          network-prefix: ${{ matrix.subrepo }}/
+          artifact-path: ${{ matrix.subrepo }}/coverage/
+
+  e2e-www:
+    name: www E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+          setup-playwright: "true"
+
+      - name: Install dependencies
+        run: just www/install
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: www
+
+      # The Playwright webServer builds the site itself (`preview:e2e`), so no
+      # separate build step.
+      - name: Run browser E2E tests
+        run: just www/test-e2e
+
+      - name: Archive Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ci-www-playwright
+          path: www/playwright-report/
+          retention-days: 7
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+          setup-playwright: "true"
+
+      - name: Install dependencies
+        run: just docs/install
+
+      - name: Run docs check
+        run: just docs/check
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: docs
+
+      - name: Run docs CI test suite
+        run: just docs/test-ci
+
+  e2e-full-stack:
+    name: App Full-Stack E2E
+    # Needs the full Docker backend, so it runs post-merge, weekly, or on demand
+    # rather than on every PR (see CONTRIBUTING.md).
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+          setup-playwright: "true"
+
+      - name: Install app dependencies
+        run: just app/install
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: app
+
+      # The recipe builds the Expo web app itself before running the suites.
+      - name: Run full-stack E2E tests
+        run: just test-e2e-full-stack
+
+      - name: Archive Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ci-app-e2e
+          path: app/playwright-report/
+          retention-days: 7
+
+  docker-smoke:
+    name: Docker Smoke (${{ matrix.recipe }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe:
+          - docker-smoke-backend
+          - docker-orchestration-smoke
+          - docker-smoke-www
+          - docker-smoke-app
+          - docker-smoke-docs
+          - docker-smoke-backups
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      # compose.yaml declares `cache_from/cache_to: type=gha`, but that backend
+      # needs ACTIONS_RUNTIME_TOKEN / ACTIONS_RESULTS_URL, which the runner only
+      # hands to JavaScript actions — buildx invoked from a shell step never sees
+      # them, so the cache silently no-ops without this.
+      - name: Expose GitHub Actions runtime to BuildKit
+        uses: crazy-max/ghaction-github-runtime@04d248b84655b509d8c44dc1d6f990c879747487 # v4.0.0
+
+      - name: Run smoke recipe
+        env:
+          RECIPE: ${{ matrix.recipe }}
+          # Route builds through bake, whose buildx integration honours the
+          # compose cache_from/cache_to entries. CI-only: local runs are unchanged.
+          COMPOSE_BAKE: "true"
+        run: just "$RECIPE"
+
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run gitleaks
+        uses: gacts/gitleaks@c9a0338361dc45a01aa7ebaaa5330179f3c62873
+        with:
+          version: 8.30.1
+        env:
+          GITLEAKS_CONFIG: .github/gitleaks.toml
+
+  dependency-review:
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48
+        with:
+          fail-on-severity: moderate
+          # Every entry here needs a reachable-but-unfixable justification and a
+          # condition for removing it, and a matching ignoreGhsas entry in
+          # pnpm-workspace.yaml so `just audit` enforces the same policy.
+          # Re-check the whole list when expo or metro moves a major version.
+          #
+          # GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr: image-size 1.2.1 arrives through
+          # metro/@expo/cli. Both cover every published version (<= 2.0.2) with no fix
+          # available, and the parsers only ever see files the developer already has
+          # locally: metro is build tooling, and image-size is in no shipped bundle.
+          # Drop once upstream ships a patched image-size.
+          #
+          # GHSA-vcc3-ghjq-m6fr: decode-uri-component 0.2.2 arrives through
+          # query-string@7, which expo-router depends on -- 57.0.17, the latest, still
+          # pins ^7.1.3, so there is no version of the app's own tree that avoids it.
+          # The patched 0.5.0 is ESM-only and query-string@7 requires it through CJS,
+          # so overriding it breaks routing at runtime. Impact is bounded: a malformed
+          # deep link can stall the JS thread of the app that opened it, which costs
+          # that one user a force-quit and reaches no server and no other user. Drop
+          # when expo-router moves to query-string@8+ or query-string@7 backports.
+          allow-ghsas: GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr, GHSA-vcc3-ghjq-m6fr
+
+  audit:
+    name: Dependency Audit
+    # Advisories surface on push and the weekly schedule; PRs get dependency-review.
+    # The audits read lockfiles only, so nothing is installed beyond the toolchains.
+    # Known-unfixable advisories are allow-listed in pnpm-workspace.yaml
+    # (ignoreGhsas), mirroring dependency-review's allow-ghsas.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          setup-node: "true"
+          uv-cache-dependency-glob: |
+            uv.lock
+            backend/uv.lock
+
+      - name: Run dependency audits
+        run: just audit
+
+  container-security:
+    name: Container Security (${{ matrix.service }})
+    # The image builds are the expensive half of the security jobs; drafts skip
+    # them and pick them up on `ready_for_review`.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      # Pull-request findings are uploaded to the Security tab rather than
+      # failing the job; that needs write access to code scanning.
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with the release SBOM matrix in release.yml.
+        include:
+          - service: api
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+            image: relab-backend
+          - service: migrator
+            context: ./backend
+            dockerfile: ./backend/Dockerfile.migrations
+            image: relab-backend-migrations
+          - service: relab-backup
+            context: ./backend
+            dockerfile: ./backend/Dockerfile.backups
+            image: relab-backup
+          - service: docs
+            context: .
+            dockerfile: ./docs/Dockerfile
+            image: relab-docs
+          - service: app
+            context: .
+            dockerfile: ./app/Dockerfile
+            image: relab-app
+          - service: www
+            context: .
+            dockerfile: ./www/Dockerfile
+            image: relab-www
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Build image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          load: true
+          # `pull` keeps base images fresh so post-merge and weekly scans see
+          # current CVEs; PR scans only need to catch what the PR introduces.
+          pull: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ matrix.image }}:${{ github.sha }}
+          # `scan-` prefix: the placeholder build-args make these layers distinct
+          # from the docker-smoke builds, which write the compose `scope=<service>`
+          # caches — sharing a scope would just thrash both.
+          cache-from: type=gha,scope=scan-${{ matrix.service }}
+          cache-to: type=gha,scope=scan-${{ matrix.service }},mode=max
+          # The www/app builds require their public URLs. These images are only
+          # scanned, never deployed, so placeholders are fine; unused args on the
+          # other services are ignored.
+          build-args: |
+            PUBLIC_APP_URL=https://app.example.invalid
+            PUBLIC_DOCS_URL=https://docs.example.invalid
+            PUBLIC_SITE_URL=https://example.invalid
+            PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_WEBSITE_URL=https://example.invalid
+            EXPO_PUBLIC_DOCS_URL=https://docs.example.invalid
+
+      # A base-image CVE is a "somebody act this week" event, not a "block this
+      # merge" one: advisories land faster than base images rebuild, so a
+      # blocking PR gate fails continuously and stops being read (the rpi-cam
+      # repo measured 27 red runs out of 71 before making this split). Pull
+      # requests report into the Security tab and stay green; the post-merge and
+      # weekly runs are the gate that can go red for a reason. Suppressions stay
+      # in .github/trivyignore.yaml, each with an expiry and a reachability note.
+      - name: Scan image with Trivy (report)
+        if: github.event_name == 'pull_request'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          exit-code: "0"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          # Without this the SARIF carries every severity, so the Security tab
+          # stops matching what the gate below actually enforces.
+          limit-severities-for-sarif: true
+          trivyignores: .github/trivyignore.yaml
+
+      - name: Upload Trivy results
+        # Fork PRs run with a read-only token that cannot upload SARIF.
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
+          category: trivy-image-${{ matrix.service }}
+
+      - name: Scan image with Trivy (gate)
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          trivyignores: .github/trivyignore.yaml
+
+      - name: Generate SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          format: spdx-json
+          output: sbom-${{ matrix.service }}.spdx.json
+          skip-setup-trivy: true
+
+      # Working copies only — the durable SBOMs are attached to GitHub releases
+      # by release.yml.
+      - name: Archive container security artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: security-${{ matrix.service }}-artifacts
+          path: sbom-${{ matrix.service }}.spdx.json
+          retention-days: 7
+
+  trivy-iac:
+    name: Trivy IaC
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Scan IaC with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac.sarif
+          exit-code: "1"
+          severity: HIGH,CRITICAL
+          # Without this, the SARIF path reports every severity and `exit-code`
+          # then fails the job on LOW/MEDIUM findings too.
+          limit-severities-for-sarif: true
+          trivyignores: .github/trivyignore.yaml
+          skip-dirs: .venv,backend/.venv,node_modules,app/node_modules,docs/node_modules,www/node_modules
+
+      - name: Upload Trivy IaC SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          sarif_file: trivy-iac.sarif
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    # Skipped on drafts alongside container-security; `ready_for_review` fills it in.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, python, javascript-typescript]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          config-file: ./.github/codeql-config.yml
+
+      - name: Perform CodeQL analysis
+        id: analyze
+        uses: github/codeql-action/analyze@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          category: "/language:${{ matrix.language }}"
+          output: sarif-results
+
+      # Code scanning stores but does not act on the suppression data that the
+      # AlertSuppression queries (see codeql-config.yml) emit for in-code
+      # `# codeql[query-id]` comments; this official action closes the loop by
+      # dismissing the matching alerts. Suppressions stay reviewable in diffs.
+      # Default branch only: dismissal is a global alert property, and the action
+      # only ever reads default-branch alerts, so on a PR it is a no-op at best.
+      - name: Dismiss alerts suppressed in code
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: advanced-security/dismiss-alerts@a18f986bdb40edba0dd7a74382c15d4a3d50a1c8 # v2.0.3
+        with:
+          sarif-id: ${{ steps.analyze.outputs.sarif-id }}
+          sarif-file: sarif-results
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  scorecard:
+    name: Scorecard
+    # Scorecard rates the repository and its default branch, not a PR head, so it
+    # runs post-merge, weekly, and on demand. Feeds the README badge.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard
+        uses: ossf/scorecard-action@99c09fe975337306107572b4fdf4db224cf8e2f2
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
+        with:
+          sarif_file: results.sarif
+
+  ci-result:
+    name: CI Result
+    # Single branch-protection context: the `needs:` list is the one home of the
+    # blocking job set. Skipped jobs are accepted; failed/cancelled ones fail.
+    if: always()
+    needs:
+      - automation
+      - backend
+      - web
+      - e2e-www
+      - docs
+      - e2e-full-stack
+      - docker-smoke
+      - secret-scan
+      - dependency-review
+      - audit
+      - container-security
+      - trivy-iac
+      - codeql
+      - scorecard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      RESULTS: ${{ toJSON(needs) }}
+    steps:
+      - name: Check job results
+        run: |-
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$RESULTS"
+          jq -e '[.[].result] | all(. == "success" or . == "skipped")' <<<"$RESULTS" >/dev/null

@@ -1,7 +1,5 @@
 """Tests for programmatic email sending functionality."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
@@ -11,8 +9,12 @@ from faker import Faker
 from fastapi import BackgroundTasks
 
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.services.emails import (
+from app.api.auth.services.email.service import (
     generate_token_link,
+    send_email_changed_notification,
+    send_oauth_link_changed_notification,
+    send_oauth_welcome_notification,
+    send_password_reset_confirmation_email,
     send_post_verification_email,
     send_registration_email,
     send_reset_password_email,
@@ -50,11 +52,12 @@ def test_generate_token_link_default_base_url() -> None:
     link = generate_token_link(token, route)
 
     parsed = urlparse(link)
-    query_params = parse_qs(parsed.query)
+    fragment_params = parse_qs(parsed.fragment)
 
-    assert link.startswith(str(core_settings.frontend_app_url))
+    assert link.startswith(str(core_settings.app_public_url))
     assert parsed.path == route
-    assert query_params["token"] == [token]
+    assert parsed.query == ""
+    assert fragment_params["token"] == [token]
 
 
 def test_generate_token_link_custom_base_url() -> None:
@@ -66,11 +69,12 @@ def test_generate_token_link_custom_base_url() -> None:
     link = generate_token_link(token, route, base_url=custom_base_url)
 
     parsed = urlparse(link)
-    query_params = parse_qs(parsed.query)
+    fragment_params = parse_qs(parsed.fragment)
 
     assert link.startswith(custom_base_url)
     assert parsed.path == route
-    assert query_params["token"] == [token]
+    assert parsed.query == ""
+    assert fragment_params["token"] == [token]
 
 
 def test_generate_token_link_with_trailing_slash() -> None:
@@ -87,13 +91,22 @@ def test_generate_token_link_with_trailing_slash() -> None:
     assert urlparse(link).path == route
 
 
+def test_generate_token_link_url_encodes_token_fragment_parameter() -> None:
+    """Token links should preserve token content without putting sensitive values in the query."""
+    token = "abc+def&next=https://evil.test/#frag"
+    route = "/verify"
+
+    link = generate_token_link(token, route)
+
+    parsed = urlparse(link)
+    fragment_params = parse_qs(parsed.fragment)
+
+    assert parsed.path == route
+    assert parsed.query == ""
+    assert fragment_params == {"token": [token]}
+
+
 ### Registration Email Tests ###
-async def test_send_registration_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
-    """Test registration email is sent."""
-    await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
-    mock_email_sending.assert_called_once()
-
-
 async def test_send_registration_email_sets_reply_to(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
     """Test registration emails include the configured reply-to address."""
     await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
@@ -108,94 +121,140 @@ async def test_send_registration_email_sets_reply_to(email_data: dict[str, str],
     assert message.reply_to[0] == reply_to
 
 
-async def test_send_registration_email_no_username(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
-    """Test registration email works without username."""
-    await send_registration_email(email_data["email"], None, email_data["token"])
-    mock_email_sending.assert_called_once()
-
-
-async def test_send_registration_email_with_background_tasks(
+async def test_send_registration_email_uses_template_contract(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
-    """Test registration email queues task instead of sending immediately."""
-    background_tasks = MagicMock(spec=BackgroundTasks)
+    """Registration emails pass the expected template and context."""
+    await send_registration_email(email_data["email"], email_data["username"], email_data["token"])
 
-    await send_registration_email(
-        email_data["email"], email_data["username"], email_data["token"], background_tasks=background_tasks
-    )
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert email_data["username"] in message.html_body
+    assert generate_token_link(email_data["token"], "/verify") in message.html_body
 
-    # When background_tasks is provided, it should queue, not send
-    background_tasks.add_task.assert_called_once()
-    mock_email_sending.assert_not_called()
+
+async def test_send_registration_email_falls_back_to_email_when_username_missing(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """With no username, the display name falls back to the recipient email address."""
+    await send_registration_email(email_data["email"], None, email_data["token"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert email_data["email"] in message.html_body
 
 
 ### Password Reset Email Tests ###
-async def test_send_reset_password_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
-    """Test password reset email is sent."""
-    await send_reset_password_email(email_data["email"], email_data["username"], email_data["token"])
-    mock_email_sending.assert_called_once()
-
-
-async def test_send_reset_password_email_with_background_tasks(
+async def test_send_reset_password_email_uses_template_contract(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
-    """Test password reset email queues task when background_tasks provided."""
-    background_tasks = MagicMock(spec=BackgroundTasks)
+    """Password-reset emails pass the expected template and context."""
+    await send_reset_password_email(email_data["email"], email_data["username"], email_data["token"])
 
-    await send_reset_password_email(
-        email_data["email"], email_data["username"], email_data["token"], background_tasks=background_tasks
-    )
-
-    background_tasks.add_task.assert_called_once()
-    mock_email_sending.assert_not_called()
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert email_data["username"] in message.html_body
+    assert generate_token_link(email_data["token"], "/reset-password") in message.html_body
 
 
 ### Verification Email Tests ###
-async def test_send_verification_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
-    """Test verification email is sent."""
-    await send_verification_email(email_data["email"], email_data["username"], email_data["token"])
-    mock_email_sending.assert_called_once()
-
-
-async def test_send_verification_email_with_background_tasks(
+async def test_send_verification_email_uses_template_contract(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
-    """Test verification email queues task when background_tasks provided."""
-    background_tasks = MagicMock(spec=BackgroundTasks)
+    """Verification emails pass the expected template and context."""
+    await send_verification_email(email_data["email"], email_data["username"], email_data["token"])
 
-    await send_verification_email(
-        email_data["email"], email_data["username"], email_data["token"], background_tasks=background_tasks
-    )
-
-    background_tasks.add_task.assert_called_once()
-    mock_email_sending.assert_not_called()
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert email_data["username"] in message.html_body
+    assert generate_token_link(email_data["token"], "/verify") in message.html_body
 
 
 ### Post-Verification Email Tests ###
-async def test_send_post_verification_email(email_data: dict[str, str], mock_email_sending: AsyncMock) -> None:
-    """Test post-verification email is sent."""
+async def test_send_post_verification_email_uses_template_contract(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """Post-verification emails pass the expected template and context."""
     await send_post_verification_email(email_data["email"], email_data["username"])
-    mock_email_sending.assert_called_once()
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert email_data["username"] in message.html_body
 
 
-async def test_send_post_verification_email_no_username(
+async def test_send_email_changed_notification_uses_plain_message(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
-    """Test post-verification email works without username."""
-    await send_post_verification_email(email_data["email"], None)
-    mock_email_sending.assert_called_once()
+    """Email-change notifications should not include reset or verification tokens."""
+    await send_email_changed_notification(email_data["email"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == "Your Relab account email changed"
+    assert "token=" not in message.html_body
 
 
-async def test_send_post_verification_email_with_background_tasks(
+async def test_send_password_reset_confirmation_email_uses_plain_safe_message(
     email_data: dict[str, str], mock_email_sending: AsyncMock
 ) -> None:
-    """Test post-verification email queues task when background_tasks provided."""
-    background_tasks = MagicMock(spec=BackgroundTasks)
+    """Password-reset confirmations should not include credentials, tokens, or reset URLs."""
+    await send_password_reset_confirmation_email(email_data["email"], email_data["username"])
 
-    await send_post_verification_email(email_data["email"], email_data["username"], background_tasks=background_tasks)
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == "Your Relab password was reset"
+    assert email_data["username"] in message.html_body
+    assert email_data["token"] not in message.html_body
+    assert "token=" not in message.html_body
+    assert "/reset-password" not in message.html_body
+    assert "password123" not in message.html_body
 
-    background_tasks.add_task.assert_called_once()
-    mock_email_sending.assert_not_called()
+
+async def test_send_oauth_welcome_notification_uses_template_contract(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """OAuth welcome emails render the username and provider label, without tokens."""
+    await send_oauth_welcome_notification(email_data["email"], email_data["username"], oauth_provider="google")
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == "Welcome to Relab"
+    assert email_data["username"] in message.html_body
+    assert "Google" in message.html_body
+    assert "token=" not in message.html_body
+
+
+@pytest.mark.parametrize(
+    ("linked", "expected_verb"),
+    [(True, "linked to"), (False, "unlinked from")],
+)
+async def test_send_oauth_link_changed_notification_reflects_action(
+    email_data: dict[str, str],
+    mock_email_sending: AsyncMock,
+    *,
+    linked: bool,
+    expected_verb: str,
+) -> None:
+    """OAuth link-change notifications name the provider and the direction of the change."""
+    await send_oauth_link_changed_notification(
+        email_data["email"], email_data["username"], oauth_provider="github", linked=linked
+    )
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == ("A social login was linked" if linked else "A social login was unlinked")
+    assert f"Github was {expected_verb} your Relab account" in message.html_body
+    assert email_data["username"] in message.html_body
+    assert "token=" not in message.html_body
 
 
 ### Parametrized Integration Tests ###
@@ -204,6 +263,7 @@ async def test_send_post_verification_email_with_background_tasks(
     [
         (send_registration_email, True),
         (send_reset_password_email, True),
+        (send_password_reset_confirmation_email, False),
         (send_verification_email, True),
         (send_post_verification_email, False),
     ],
@@ -231,6 +291,7 @@ async def test_all_email_functions_send_emails(
     [
         (send_registration_email, True),
         (send_reset_password_email, True),
+        (send_password_reset_confirmation_email, False),
         (send_verification_email, True),
         (send_post_verification_email, False),
     ],

@@ -1,45 +1,36 @@
-# RELab Monorepo Task Runner
+# Relab Monorepo Task Runner
 # Run `just --list` to see all available commands
-# spell-checker: ignore esac
 
 # Show available recipes
 default:
     @just --list
 
-dev_compose := "docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
+dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
 ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
+cloudflare_dir := "infra/cloudflare"
+cloudflare_zone_dir := "infra/cloudflare-zone"
 
 # Subrepos that mirror the root quality / test / audit / clean recipes.
-subrepos := "backend docs frontend-web frontend-app"
+subrepos := "backend docs www app"
 # Subset of subrepos that implement test-unit / test-integration.
-unit_subrepos := "backend frontend-app"
+unit_subrepos := "backend app"
 
-# Deploy overlay — same file for prod and staging. Per-env non-secret config
-# lives in committed `.env.<env>.compose`; per-host secrets (TUNNEL_TOKEN, …)
-# live in the auto-loaded root `.env` (gitignored). Both `--env-file` flags are
-# required because specifying any `--env-file` disables Compose's auto-load.
-# `COMPOSE_PROJECT_NAME` is set inside each `.env.<env>.compose`, so laptop-
-# driven staging ops no longer need to override the host `.env`.
-#
-# `_loki_overlay` auto-includes compose.logging.loki.yaml when the host's `.env`
-# has a non-empty LOKI_URL. Hosts without Loki get Docker's default log driver.
-[private]
-_loki_overlay := `if [ -f .env ] && grep -qE '^LOKI_URL=[^[:space:]]' .env; then printf -- ' -f compose.logging.loki.yaml'; fi`
-prod_compose    := "docker compose --env-file .env --env-file .env.prod.compose    -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
-staging_compose := "docker compose --env-file .env --env-file .env.staging.compose -f compose.yaml -f compose.deploy.yaml" + _loki_overlay
+# Deploy overlay operations live in scripts/deploy_ops.sh. The justfile keeps
+# stable public recipes while the script owns Compose env-file paths, profiles,
+# and validation details.
 
 # ============================================================================
 # Setup
 # ============================================================================
 
-# Install all workspace dependencies (root + all subrepos)
+# Install all workspace dependencies (root Python + JS workspace + backend)
 install:
     #!/usr/bin/env bash
     set -euo pipefail
     uv sync --frozen
-    pnpm install
-    for d in {{ subrepos }}; do just "$d/install"; done
-    echo "✓ All dependencies installed"
+    pnpm install --frozen-lockfile
+    just backend/install
+    echo "✅ All dependencies installed"
 
 # Update all workspace dependencies
 update:
@@ -49,20 +40,24 @@ update:
     pnpm update -D
     pnpm dedupe
     for d in {{ subrepos }}; do just "$d/update"; done
-    echo "✓ Dependencies updated (run 'just install' to sync)"
+    echo "✅ Dependencies updated (run 'just install' to sync)"
 
-# Install pre-commit hooks (run once after clone)
-_pre-commit-install:
-    uv run pre-commit install
-    @echo "✓ Pre-commit hooks installed"
+# Install git hooks (run once after clone)
+_prek-install:
+    uv run prek install
+    @echo "✅ Git hooks installed"
 
-# Create a conventional commit message interactively
-_commit:
-    uv run cz commit
+# Sync shared brand assets into consumer subrepos
+assets-sync:
+    uv run python scripts/sync_brand_assets.py
+
+# Verify shared brand assets are in sync
+assets-check:
+    uv run python scripts/sync_brand_assets.py --check
 
 # Bootstrap a full local development environment
-setup: install _pre-commit-install
-    @echo "✓ Development environment ready"
+setup: install _prek-install
+    @echo "✅ Development environment ready"
 
 # ============================================================================
 # Quality Checks
@@ -70,32 +65,37 @@ setup: install _pre-commit-install
 
 # Run repository-wide policy checks
 pre-commit:
-    uv run pre-commit run --all-files
-    @echo "✓ Repository policy checks passed"
-
-# Run cached full-repo spell checking
-spellcheck:
-    pnpm run spellcheck
-    @echo "✓ Full-repo spell check passed"
+    uv run prek run --all-files --show-diff-on-failure
+    @echo "✅ Repository policy checks passed"
 
 # Lint all tracked shell scripts with the pre-commit-managed ShellCheck hook
 shellcheck:
-    uv run pre-commit run shellcheck --files $(git ls-files '*.sh')
-    @echo "✓ Repository shell scripts passed ShellCheck"
+    uv run prek run shellcheck --files $(git ls-files '*.sh')
+    @echo "✅ Repository shell scripts passed ShellCheck"
+
+# Format all tracked shell scripts with the pre-commit-managed shfmt hook
+shellfmt:
+    uv run prek run shfmt --files $(git ls-files '*.sh')
+    @echo "✅ Repository shell scripts formatted"
 
 # Run root and subrepo lint checks
 lint:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff check --config pyproject.toml .
     pnpm run lint
     for d in {{ subrepos }}; do just "$d/lint"; done
     echo "✅ Root and subrepo lint passed"
 
 # Run root and subrepo quality checks (lint + typecheck + format verification).
-# Policy checks (spellcheck, shellcheck, file-format) live in `just pre-commit`, not here.
+# Policy checks (shellcheck, file-format) live in `just pre-commit`, not here.
 check:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff check --config pyproject.toml .
+    uv run ruff format --check --config pyproject.toml .
+    uv run ty check
+    just assets-check
     pnpm run check
     for d in {{ subrepos }}; do just "$d/check"; done
     echo "✅ Root and subrepo checks passed"
@@ -104,6 +104,8 @@ check:
 format:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff format --config pyproject.toml .
+    just shellfmt
     pnpm run format
     for d in {{ subrepos }}; do just "$d/format"; done
     echo "✅ Root and subrepo formatting complete"
@@ -112,18 +114,27 @@ format:
 fix:
     #!/usr/bin/env bash
     set -euo pipefail
+    uv run ruff check --fix --config pyproject.toml .
+    uv run ruff format --config pyproject.toml .
+    just shellfmt
     pnpm run fix
     for d in {{ subrepos }}; do just "$d/fix"; done
-    echo "✓ Code fixed"
+    echo "✅ Code fixed"
 
 # ============================================================================
 # Testing
 # ============================================================================
 
+# Unit-test the root ops scripts (env policy + deploy/watchdog decisions; no Docker)
+test-scripts:
+    uv run pytest tests -q
+    @bash scripts/test_ops.sh
+
 # Full local test suite across all subrepos (unit + integration, no e2e)
 test:
     #!/usr/bin/env bash
     set -euo pipefail
+    just test-scripts
     for d in {{ subrepos }}; do just "$d/test"; done
     echo "✅ All tests passed"
 
@@ -150,15 +161,19 @@ test-ci:
 
 # Run end-to-end tests across subrepos that implement them
 test-e2e:
-    @just frontend-web/build
-    @just frontend-web/test-e2e
+    @just www/build
+    @just www/test-e2e
     @just docs/build
     @just docs/test-e2e
     @just test-e2e-full-stack
     @echo "✅ All E2E tests passed"
 
-# Canonical CI pipeline: policy, quality checks, CI tests, compose validation
-ci: pre-commit check test-ci compose-config
+# Repository policy checks beyond prek: IaC, env policy, compose, deploy secrets
+policy-check: cloudflare-check env-policy-check compose-config deploy-secrets-check
+    @echo "✅ Policy checks passed"
+
+# Canonical CI pipeline: policy, IaC, quality checks, CI tests, compose validation
+ci: pre-commit check test-ci policy-check
     @echo "✅ CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
@@ -174,7 +189,8 @@ _e2e-backend-down:
 test-e2e-full-stack MODE="default":
     #!/usr/bin/env bash
     set -euo pipefail
-    case "{{ MODE }}" in
+    mode={{ quote(MODE) }}
+    case "$mode" in
       default)       e2e_recipe="test-e2e" ;;
       cross-browser) e2e_recipe="test-e2e-cross-browser" ;;
       *) echo "MODE must be 'default' or 'cross-browser'"; exit 1 ;;
@@ -182,11 +198,15 @@ test-e2e-full-stack MODE="default":
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
+    # www first: it only needs the seeded API, and its build is seconds. The
+    # fixture lane in `just www/test-e2e` cannot cover a live record's srcset.
+    echo "→ Running www live-data E2E tests..."
+    just www/test-e2e-live
     echo "→ Building Expo web app..."
-    just frontend-app/build-web
-    echo "→ Running Playwright E2E tests ({{ MODE }})..."
-    just "frontend-app/$e2e_recipe"
-    echo "✅ Full-stack E2E tests passed ({{ MODE }})"
+    just app/build-web
+    echo "→ Running Playwright E2E tests ($mode)..."
+    just "app/$e2e_recipe"
+    echo "✅ Full-stack E2E tests passed ($mode)"
 
 # ============================================================================
 # Security
@@ -195,74 +215,154 @@ test-e2e-full-stack MODE="default":
 # Run dependency vulnerability audit for root Python tooling
 audit-root:
     uv audit --preview-features audit --frozen
-    @echo "✓ Root dependency audit complete"
+    @echo "✅ Root dependency audit complete"
 
 # Run dependency vulnerability audit across root and all subrepos
 audit: audit-root
     #!/usr/bin/env bash
     set -euo pipefail
     just backend/audit all
-    for d in docs frontend-web frontend-app; do just "$d/audit"; done
+    for d in docs www app; do just "$d/audit"; done
     echo "✅ Root and subrepo dependency audits complete"
 
-# Canonical security target
-security: audit
-    @echo "✅ Security checks complete"
+# Canonical security target: secret scanning plus dependency audits
+security:
+    #!/usr/bin/env bash
+    # NOTE: gitleaks runs first and unconditionally — a red audit (a known upstream
+    # advisory with no fix yet) must not hide a leaked secret. The recipe still exits
+    # non-zero if either step fails.
+    set -uo pipefail
+    status=0
+    uv run prek run gitleaks --all-files || status=1
+    just audit || status=1
+    [[ $status -eq 0 ]] && echo "✅ Security checks complete"
+    exit $status
+
+# Format Cloudflare OpenTofu files
+cloudflare-fmt:
+    tofu -chdir={{ cloudflare_dir }} fmt -recursive
+    tofu -chdir={{ cloudflare_zone_dir }} fmt -recursive
+
+# Validate both Cloudflare OpenTofu roots: format, types, and the mocked-provider tests.
+# No credentials, no network beyond provider downloads, and no state access at all.
+cloudflare-check:
+    tofu -chdir={{ cloudflare_dir }} fmt -check -recursive
+    tofu -chdir={{ cloudflare_zone_dir }} fmt -check -recursive
+    @just _cloudflare-verify {{ cloudflare_dir }}
+    @just _cloudflare-verify {{ cloudflare_zone_dir }}
+
+# Verify one root against a throwaway copy rather than the working directory. Two
+# reasons, both learned the hard way: `init` reads the selected workspace's state, which
+# is encrypted and would demand TF_VAR_state_passphrase for what is meant to be the
+# credential-free gate; and `tofu test` mocks the provider, which cannot service an
+# import block, so a generated imports.tf makes the run CRASH rather than fail.
+_cloudflare-verify dir:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    work="$(mktemp -d)"
+    trap 'rm -rf "$work"' EXIT
+    cp {{ dir }}/*.tf "$work"/                              # follows the hostnames.tf symlink
+    rm -f "$work"/imports.tf                                # adoption-only, breaks mocked tests
+    cp -r {{ dir }}/tests "$work"/ 2>/dev/null || true
+    cp {{ dir }}/.terraform.lock.hcl "$work"/ 2>/dev/null || true
+    cp -r {{ dir }}/.terraform "$work"/ 2>/dev/null || true # reuse downloaded providers
+    tofu -chdir="$work" init -backend=false >/dev/null
+    tofu -chdir="$work" validate
+    tofu -chdir="$work" test
+
+# Plan Cloudflare edge changes for one environment (prod or staging)
+cloudflare-plan env:
+    @just _require-cloudflare-env {{ quote(env) }}
+    @just _require-cloudflare-vars
+    tofu -chdir={{ cloudflare_dir }} init
+    tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
+    tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}"
+
+# Apply Cloudflare edge changes for one environment (prod or staging)
+cloudflare-apply env confirm='':
+    @just _require-cloudflare-env {{ quote(env) }}
+    @just _require-cloudflare-vars
+    @just _require-confirm "apply Cloudflare edge changes for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
+    tofu -chdir={{ cloudflare_dir }} init
+    tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
+    tofu -chdir={{ cloudflare_dir }} apply -auto-approve -input=false -var="environment={{ env }}"
+
+# Plan the zone-global Cloudflare configuration (TLS settings + the three entrypoint
+# rulesets). One root for the whole zone, so prod and staging cannot clobber each other.
+cloudflare-zone-plan:
+    @just _require-cloudflare-vars
+    tofu -chdir={{ cloudflare_zone_dir }} init
+    tofu -chdir={{ cloudflare_zone_dir }} plan -input=false
+
+# Apply the zone-global Cloudflare configuration. This affects BOTH environments.
+cloudflare-zone-apply confirm='':
+    @just _require-cloudflare-vars
+    @just _require-confirm "apply zone-global Cloudflare changes (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+    tofu -chdir={{ cloudflare_zone_dir }} init
+    tofu -chdir={{ cloudflare_zone_dir }} apply -auto-approve -input=false
+
+_require-cloudflare-env env:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    env={{ quote(env) }}
+    case "$env" in
+      prod|staging) exit 0 ;;
+      *) echo "env must be 'prod' or 'staging'"; exit 1 ;;
+    esac
+
+_require-cloudflare-vars:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    missing=()
+    [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || missing+=("CLOUDFLARE_API_TOKEN")
+    [ -n "${TF_VAR_cloudflare_account_id:-}" ] || missing+=("TF_VAR_cloudflare_account_id")
+    [ -n "${TF_VAR_cloudflare_zone_id:-}" ] || missing+=("TF_VAR_cloudflare_zone_id")
+    # State encryption is fail-closed, so name the missing passphrase here rather than
+    # letting tofu report it as an opaque decrypt error further in.
+    [ -n "${TF_VAR_state_passphrase:-}" ] || missing+=("TF_VAR_state_passphrase")
+    if [ "${#missing[@]}" -gt 0 ]; then
+        echo "Missing Cloudflare/OpenTofu environment variables:" >&2
+        printf '  - %s\n' "${missing[@]}" >&2
+        exit 1
+    fi
 
 # Validate every supported Compose stack shape
 compose-config:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    created_prod_env=false
-    created_staging_env=false
-    created_dev_env=false
-    created_root_env=false
-    if [[ ! -f backend/.env.prod && -f backend/.env.prod.example ]]; then
-        cp backend/.env.prod.example backend/.env.prod
-        created_prod_env=true
-    fi
-    if [[ ! -f backend/.env.staging && -f backend/.env.staging.example ]]; then
-        cp backend/.env.staging.example backend/.env.staging
-        created_staging_env=true
-    fi
-    if [[ ! -f backend/.env.dev && -f backend/.env.dev.example ]]; then
-        cp backend/.env.dev.example backend/.env.dev
-        created_dev_env=true
-    fi
-    # Root .env holds deploy-host secrets (TUNNEL_TOKEN, …). Stub it for
-    # validation-only runs (e.g. CI) so `--env-file .env` doesn't error on
-    # a missing file. Values are placeholders; real secrets stay on the VM.
-    # Stub root .env if absent (e.g. CI) so `--env-file .env` doesn't fail.
-    if [[ ! -f .env ]]; then
-        : > .env
-        created_root_env=true
-    fi
-    trap '
-        [[ "$created_prod_env" == true ]] && rm -f backend/.env.prod
-        [[ "$created_staging_env" == true ]] && rm -f backend/.env.staging
-        [[ "$created_dev_env" == true ]] && rm -f backend/.env.dev
-        [[ "$created_root_env" == true ]] && rm -f .env
-    ' EXIT
-    # Placeholder secrets for validation-only runs. Real values come from the
-    # deploy host's root .env. Shell env fills gaps left by --env-file inputs.
-    # LOKI_URL is only consumed when the Loki overlay is included; export
-    # a placeholder so the "with-Loki" validation path renders too.
-    export TUNNEL_TOKEN="${TUNNEL_TOKEN:-placeholder}"
-    export LOKI_URL="${LOKI_URL:-http://placeholder/loki/api/v1/push}"
-    {{ dev_compose }} config >/dev/null
-    {{ ci_compose }} config >/dev/null
-    {{ staging_compose }} config >/dev/null
-    {{ prod_compose }} config >/dev/null
-    # Exercise the Loki-on path explicitly so CI catches regressions regardless
-    # of whether the local .env happens to have LOKI_URL set.
-    docker compose --env-file .env --env-file .env.prod.compose    -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
-    docker compose --env-file .env --env-file .env.staging.compose -f compose.yaml -f compose.deploy.yaml -f compose.logging.loki.yaml config >/dev/null
-    docker compose -p relab_e2e -f compose.e2e.yaml config >/dev/null
-    echo "✓ Compose configurations validated"
+    @bash scripts/deploy_ops.sh compose-config
+
+# Depends on test-scripts because CI's automation job runs this recipe, not `just check`.
+# Validate root-owned environment variable policy
+env-policy-check: test-scripts
+    @uv run python scripts/env_policy.py check
+
+# Print the root-owned runtime secret inventory
+env-inventory:
+    @uv run python scripts/env_policy.py inventory
+
+# Validate rendered deploy secret file paths
+deploy-secrets-check:
+    @bash scripts/deploy_ops.sh deploy-secrets-check
+
+# Create missing secret files for an environment (dev, prod, or staging)
+deploy-secrets-template env:
+    @bash scripts/deploy_ops.sh deploy-secrets-template {{ quote(env) }}
+
+# Print a paste-ready secrets/<env> export for a password-manager note (pipe to your clipboard)
+secrets-export env:
+    @bash scripts/deploy_ops.sh secrets-export {{ quote(env) }}
+
+# Rebuild secrets/<env> from a saved secrets-export block
+secrets-restore env file:
+    @bash scripts/deploy_ops.sh secrets-restore {{ quote(env) }} {{ quote(file) }}
 
 # ============================================================================
 # Docker: Targeted Development (subset of services with hot reload)
 # ============================================================================
+
+
+# Start the development database and cache infrastructure and wait for readiness
+dev-db:
+    {{ dev_compose }} up -d --wait postgres redis
 
 # Start backend + its infrastructure (database, cache) with hot reload
 _dev-backend:
@@ -270,15 +370,15 @@ _dev-backend:
 
 # Start docs server with hot reload
 _dev-docs:
-    {{ dev_compose }} up --watch docs-site
+    {{ dev_compose }} up --watch docs
 
-# Start frontend-app + backend with hot reload
-_dev-frontend-app:
-    {{ dev_compose }} up --watch api app-site
+# Start app + backend with hot reload
+_dev-app:
+    {{ dev_compose }} up --watch api app
 
-# Start frontend-web + backend with hot reload
-_dev-frontend-web:
-    {{ dev_compose }} up --watch api web-site
+# Start www + backend with hot reload
+_dev-www:
+    {{ dev_compose }} up --watch api www
 
 # ============================================================================
 # Docker: Development
@@ -288,9 +388,53 @@ _dev-frontend-web:
 dev:
     {{ dev_compose }} up --watch
 
-# Start full dev stack without hot reload (uses source snapshot baked into image)
+# The snapshot never updates. A container left running here serves the code as
+# it was when the image was built, indefinitely and silently — a stale one cost
+# a full day of measurements against five-day-old code. The banner below and
+# `just dev-stale` exist so that is discoverable rather than assumed.
+#
+# Start full dev stack WITHOUT hot reload (serves the snapshot baked into the image)
 dev-up:
+    @printf '\n\033[33m%s\033[0m\n' "dev-up: source is NOT synced. Containers serve the snapshot baked into the image."
+    @printf '\033[33m%s\033[0m\n\n' "Run 'just dev' for hot reload, or 'just dev-stale' to check whether this snapshot is behind."
     {{ dev_compose }} up
+
+# A 200 from a dev port proves something answered, not that it is current.
+# This compares each dev image's build time against the newest source mtime,
+# which is what proves the latter. Cheap enough for humans and agents to run
+# before trusting any measurement taken against a dev server.
+#
+# Check whether running dev containers serve code older than the working tree
+dev-stale:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    stale=0
+    found=0
+    for svc in app www docs api; do
+      cid=$({{ dev_compose }} ps -q "$svc" 2>/dev/null || true)
+      [ -n "$cid" ] || continue
+      found=1
+      img=$(docker inspect "$cid" | jq -r '.[0].Image')
+      built=$(docker inspect "$img" | jq -r '.[0].Created')
+      built_ts=$(date -d "$built" +%s)
+      case "$svc" in
+        app) src=app/src ;; www) src=www/src ;; docs) src=docs/src ;; api) src=backend/app ;;
+      esac
+      newest=$(find "$src" -type f -not -path '*/.*' -newermt "@$built_ts" -print -quit 2>/dev/null || true)
+      if [ -n "$newest" ]; then
+        printf '\033[31mSTALE\033[0m  %-4s image built %s — %s has newer files (e.g. %s)\n' \
+          "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')" "$src" "$newest"
+        stale=1
+      else
+        printf '\033[32mfresh\033[0m  %-4s image built %s\n' "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')"
+      fi
+    done
+    [ "$found" -eq 1 ] || { echo "No dev containers running."; exit 0; }
+    if [ "$stale" -eq 1 ]; then
+      printf '\nThose containers serve code older than your working tree.\n'
+      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just _dev-build'"
+      exit 1
+    fi
 
 # Build (or rebuild) dev images
 _dev-build:
@@ -310,104 +454,76 @@ dev-migrate:
 
 # Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
 _dev-reset confirm='':
-    @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" "{{ confirm }}"
+    @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" {{ quote(confirm) }}
     {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
 # Docker: Deploy stacks (prod + staging)
-#
-# `_stack-up` / `_stack-down` parse YES/profile args and delegate to the
-# matching compose command. `_stack-build` takes a default-profiles string and
-# respects `NO_CACHE=1` for no-cache builds.
 # ============================================================================
-
-# Internal: confirmed start of a deploy stack with optional profiles.
-_stack-up STACK COMPOSE *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to start the {{ STACK }} stack without explicit confirmation."
-        echo "Use 'just {{ STACK }}-up YES [profiles...]' or 'FORCE=1 just {{ STACK }}-up [profiles...]'."
-        exit 1
-    fi
-    {{ COMPOSE }} $flags up -d
-
-# Internal: confirmed stop of a deploy stack with optional profiles.
-_stack-down STACK COMPOSE *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    confirmed=false; flags=""
-    for p in {{ PROFILES }}; do
-        if [[ "$p" == "YES" ]]; then confirmed=true; else flags+=" --profile $p"; fi
-    done
-    if [[ "$confirmed" != "true" && "${FORCE:-}" != "1" && "${FORCE:-}" != "true" ]]; then
-        echo "Refusing to stop the {{ STACK }} stack without explicit confirmation."
-        echo "Use 'just {{ STACK }}-down YES [profiles...]' or 'FORCE=1 just {{ STACK }}-down [profiles...]'."
-        exit 1
-    fi
-    {{ COMPOSE }} $flags down
-
-# Internal: build deploy-stack images. NO_CACHE=1 forces a no-cache build.
-_stack-build COMPOSE DEFAULT_PROFILES *PROFILES:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    flags="{{ DEFAULT_PROFILES }}"
-    for p in {{ PROFILES }}; do flags+=" --profile $p"; done
-    nc=""; [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]] && nc="--no-cache"
-    {{ COMPOSE }} $flags build $nc
 
 # ============================================================================
 # Docker: Production
 # ============================================================================
 
-# Start production stack (optional profiles: backups, migrations)
-prod-up *PROFILES: (_stack-up "prod" prod_compose PROFILES)
+# Start production stack (backups are NOT started here — they run from the host systemd timer; see deploy/systemd/)
+prod-up *PROFILES:
+    @bash scripts/deploy_ops.sh stack prod up {{ PROFILES }}
 
-# Stop production stack (optional profiles: backups)
-prod-down *PROFILES: (_stack-down "prod" prod_compose PROFILES)
+# Stop production stack (optional profiles: backups, migrations)
+prod-down *PROFILES:
+    @bash scripts/deploy_ops.sh stack prod down {{ PROFILES }}
 
 # Build (or rebuild) prod images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
-prod-build *PROFILES: (_stack-build prod_compose "--profile migrations --profile backups" PROFILES)
+prod-build *PROFILES:
+    @bash scripts/deploy_ops.sh stack prod build {{ PROFILES }}
 
 # Tail production logs
 prod-logs:
-    {{ prod_compose }} logs -f
+    @bash scripts/deploy_ops.sh stack prod logs
 
 # Run database migrations (prod); required on first deploy and after schema changes
 prod-migrate confirm='':
-    @just _require-confirm "run production database migrations" "just prod-migrate YES" "FORCE=1 just prod-migrate" "{{ confirm }}"
-    {{ prod_compose }} --profile migrations up migrator
-
-# Enable automated database + upload backups (prod)
-_prod-backups-up confirm='':
-    @just _require-confirm "start the production backup services" "just _prod-backups-up YES" "FORCE=1 just _prod-backups-up" "{{ confirm }}"
-    {{ prod_compose }} --profile backups up -d
+    @bash scripts/deploy_ops.sh stack prod migrate {{ quote(confirm) }}
 
 # ============================================================================
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (optional profiles: migrations)
-staging-up *PROFILES: (_stack-up "staging" staging_compose PROFILES)
+# Start staging stack (backups are NOT started here — they run from the host systemd timer; see deploy/systemd/)
+staging-up *PROFILES:
+    @bash scripts/deploy_ops.sh stack staging up {{ PROFILES }}
 
-# Stop staging stack (optional profiles: migrations)
-staging-down *PROFILES: (_stack-down "staging" staging_compose PROFILES)
+# Stop staging stack (optional profiles: backups, migrations)
+staging-down *PROFILES:
+    @bash scripts/deploy_ops.sh stack staging down {{ PROFILES }}
 
-# Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: migrations)
-staging-build *PROFILES: (_stack-build staging_compose "--profile migrations" PROFILES)
+# Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
+staging-build *PROFILES:
+    @bash scripts/deploy_ops.sh stack staging build {{ PROFILES }}
 
 # Tail staging logs
 staging-logs:
-    {{ staging_compose }} logs -f
+    @bash scripts/deploy_ops.sh stack staging logs
 
 # Run database migrations and seed dummy data (staging)
 staging-migrate confirm='':
-    @just _require-confirm "run staging database migrations" "just staging-migrate YES" "FORCE=1 just staging-migrate" "{{ confirm }}"
-    {{ staging_compose }} --profile migrations up migrator
+    @bash scripts/deploy_ops.sh stack staging migrate {{ quote(confirm) }}
+
+# Run one backup cycle now (what the systemd timer calls; see deploy/systemd/)
+backup env:
+    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
+
+# Print the scheduled-job systemd units rendered for this host (review before installing)
+timers-render:
+    @bash scripts/install_timers.sh render
+
+# Install + enable the backup/watchdog/restore-check timers for one environment (needs sudo)
+timers-install env:
+    @bash scripts/install_timers.sh install {{ quote(env) }}
+
+# Watchdog: alert when the API is unhealthy or the newest backup snapshot is stale (cron this on the host)
+watchdog env max_age_hours='26':
+    @bash scripts/deploy_watchdog.sh {{ quote(env) }} {{ quote(max_age_hours) }}
 
 # ============================================================================
 # Docker: Test / CI
@@ -416,19 +532,13 @@ staging-migrate confirm='':
 ### Smoke tests for test Docker images and orchestration ---
 
 # Internal helper: require explicit confirmation for state-changing commands.
+# Delegates to deploy_ops.sh, which owns the one copy of the YES/FORCE rule.
 _require-confirm action example force_example confirm='':
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ "{{ confirm }}" = "YES" ] || [ "${FORCE:-}" = "1" ] || [ "${FORCE:-}" = "true" ] || [ "${FORCE:-}" = "YES" ]; then
-        exit 0
-    fi
-    echo "Refusing to {{ action }} without explicit confirmation."
-    echo "Use '{{ example }}' or '{{ force_example }}'."
-    exit 1
+    @bash scripts/deploy_ops.sh require-confirm {{ quote(action) }} {{ quote(example) }} {{ quote(force_example) }} {{ quote(confirm) }}
 
 # Internal helper: bring up a CI compose subset and wait for readiness.
 _docker-smoke-up services timeout:
-    {{ ci_compose }} up --build -d --wait --wait-timeout {{ timeout }} {{ services }}
+    {{ ci_compose }} up --build -d --wait --wait-timeout {{ quote(timeout) }} {{ services }}
 
 # Internal helper: tear down a CI compose subset and its anonymous resources.
 _docker-smoke-down services:
@@ -446,56 +556,43 @@ docker-smoke-backend:
 docker-smoke-docs:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down docs-site' EXIT
-    just _docker-smoke-up docs-site 60
+    trap 'just _docker-smoke-down docs' EXIT
+    just _docker-smoke-up docs 60
     echo "✅ Docs smoke test passed"
 
-# Smoke test: frontend-web static server
-docker-smoke-frontend-web:
+# Smoke test: www static server
+docker-smoke-www:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down web-site' EXIT
-    just _docker-smoke-up web-site 60
-    echo "✅ Frontend-web smoke test passed"
+    trap 'just _docker-smoke-down www' EXIT
+    just _docker-smoke-up www 60
+    # Assert security headers on a live response, not just the Caddyfile text.
+    # The runtime image has no curl (kept out on purpose to stay minimal); wget -S
+    # is the same tool the image's own HEALTHCHECK already relies on.
+    headers=$({{ ci_compose }} exec -T www wget -qS -O /dev/null http://localhost:8081/ 2>&1)
+    echo "$headers" | grep -qi 'Content-Security-Policy:'
+    echo "$headers" | grep -qi 'Strict-Transport-Security:'
+    echo "✅ www smoke test passed"
 
-# Smoke test: frontend-app static server (slow: expo export runs during build)
-docker-smoke-frontend-app:
+# Smoke test: app static server (slow: expo export runs during build)
+docker-smoke-app:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down app-site' EXIT
-    just _docker-smoke-up app-site 300
-    echo "✅ Frontend-app smoke test passed"
+    trap 'just _docker-smoke-down app' EXIT
+    just _docker-smoke-up app 300
+    echo "✅ App smoke test passed"
 
-# Smoke test: user-upload backups image can create a backup archive from a sample uploads tree
-docker-smoke-user-upload-backups:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    tmp_root="$(mktemp -d)"
-    host_uid="$(id -u)"
-    host_gid="$(id -g)"
-    # Cleanup runs as host user; chown the backup tree back before rm since the
-    # container wrote it as uid 1001 (backupuser).
-    trap 'docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work >/dev/null 2>&1 || true; rm -rf "$tmp_root"' EXIT
-    mkdir -p "$tmp_root/uploads/images" "$tmp_root/uploads/files" "$tmp_root/backups"
-    printf 'smoke test image bytes\n' > "$tmp_root/uploads/images/example.txt"
-    printf 'smoke test file bytes\n' > "$tmp_root/uploads/files/example.txt"
-    docker build -f backend/Dockerfile.user-upload-backups -t relab-user-upload-backups-smoke backend
-    # Exercise the production perms pattern: enter as root, chown the bind mount,
-    # then drop privileges to backupuser via su-exec (matches the real entrypoint).
-    docker run --rm \
-        -v "$tmp_root/uploads:/data/uploads:ro" \
-        -v "$tmp_root/backups:/backups" \
-        -e UPLOADS_DIR=/data/uploads \
-        -e UPLOADS_BACKUP_DIR=/backups \
-        -e BACKUP_KEEP_DAYS=1 \
-        -e BACKUP_KEEP_WEEKS=1 \
-        -e BACKUP_KEEP_MONTHS=1 \
-        -e MAX_TOTAL_GB=1 \
-        --entrypoint sh \
-        relab-user-upload-backups-smoke \
-        -c 'chown -R backupuser:backupuser "$UPLOADS_BACKUP_DIR" && exec su-exec backupuser ./backup_user_uploads.sh'
-    find "$tmp_root/backups" -type f -name 'user_uploads-*.tar.*' | grep -q .
-    echo "✅ User-upload backups smoke test passed"
+# Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
+docker-smoke-backups:
+    @bash scripts/backup_restic_ops.sh docker-smoke-backups
+
+# Copy the local restic repository to an optional offsite repository, such as rclone:<remote>:relab/staging/restic
+backup-offsite-copy env='staging':
+    @bash scripts/backup_restic_ops.sh backup-offsite-copy {{ quote(env) }}
+
+# Restore the latest restic PostgreSQL dump into a disposable Postgres container
+restore-check env='prod':
+    @bash scripts/backup_restic_ops.sh restore-check {{ quote(env) }}
 
 # Smoke test: compose-level backend orchestration (service wiring + migrations)
 docker-orchestration-smoke:
@@ -510,16 +607,12 @@ docker-orchestration-smoke:
 docker-smoke:
     @just docker-smoke-backend
     @just docker-smoke-docs
-    @just docker-smoke-frontend-web
-    @just docker-smoke-frontend-app
-    @just docker-smoke-user-upload-backups
+    @just docker-smoke-www
+    @just docker-smoke-app
+    @just docker-smoke-backups
     @just docker-orchestration-smoke
 
 ### CI test helpers for backend performance regression testing ---
-
-# Build (or rebuild) CI images without cache
-_docker-ci-build:
-    {{ ci_compose }} --profile migrations build --no-cache
 
 # Start CI services and wait for readiness
 _docker-ci-up services="postgres redis api":
@@ -535,7 +628,7 @@ _docker-ci-migrate-dummy:
 
 # Stop the CI stack and remove volumes
 docker-ci-down confirm='':
-    @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" "{{ confirm }}"
+    @just _require-confirm "stop and wipe the CI Docker environment" "just docker-ci-down YES" "FORCE=1 just docker-ci-down" {{ quote(confirm) }}
     {{ ci_compose }} --profile migrations down -v --remove-orphans
 
 # Run the backend k6 baseline against the CI Docker stack.
@@ -550,14 +643,6 @@ docker-ci-perf-baseline:
     echo "→ Running backend k6 baseline against the CI stack..."
     just backend/_perf-ci
 
-# Write a dated CI baseline report from the latest backend k6 summary export
-_docker-ci-perf-report DATE="":
-    just backend/_perf-report-ci "{{ DATE }}"
-
-# Recalibrate backend perf thresholds from the latest CI baseline summary export
-_docker-ci-perf-thresholds HEADROOM="1.15":
-    just backend/_perf-thresholds-apply "{{ HEADROOM }}"
-
 # ============================================================================
 # Maintenance
 # ============================================================================
@@ -568,9 +653,9 @@ clean:
     set -euo pipefail
     for d in {{ subrepos }}; do just "$d/clean"; done
     rm -rf .ruff_cache
-    echo "✓ Cleaned caches and build artifacts"
+    echo "✅ Cleaned caches and build artifacts"
 
-# Print a static-output size budget for a built directory (e.g. docs/dist, frontend-web/dist)
+# Print a static-output size budget for a built directory (e.g. docs/dist, www/dist)
 size DIR:
-    du -sh {{ DIR }}
-    find {{ DIR }} -type f | sort | xargs du -h
+    du -sh {{ quote(DIR) }}
+    find {{ quote(DIR) }} -type f -print0 | sort -z | xargs -0 du -h

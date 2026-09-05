@@ -1,49 +1,80 @@
+/* The Relab brand reaches this site as plain CSS custom properties:
+   assets/palette.json -> scripts/sync_brand_assets.py -> brand.css, which
+   Starlight loads via `customCss` (see astro.config.mjs). Starlight is then
+   themed through its own documented `--sl-color-*` variables below. That is
+   the whole integration — docs deliberately has NO Tailwind: it contributed
+   only an alias layer, and its preflight reset silently stripped the bullets
+   and indent from every markdown list. Do not add it back to style docs; use
+   these variables and Starlight's own `sl-*` utilities. */
+
+:root {
+  /* The flat & sharp radius scale (assets/DESIGN.md). Only the two tiers docs
+     actually uses — it has no floating surface of its own, so no overlay. */
+  --radius-control: var(--relab-radius-control);
+  --radius-card: var(--relab-radius-card);
+}
+
+:root {
+  /* Starlight's own default. The previous 54rem put continuous prose at ~106
+     characters a line, well past the comfort ceiling; the wide mermaid diagrams
+     it was presumably widened for now break out of the column instead (see
+     .relab-mermaid in components.css), so only the diagrams pay for being wide. */
+  --sl-content-width: 45rem;
+
+  /* Heading ramp from assets/DESIGN.md's web type scale: display 38, h2 24,
+     heading 19. Starlight's stock ramp rendered 54/35/29 against a 16px body,
+     roughly 1.45x the brand scale, which reads as a landing page inside a
+     reference site. h4 is interpolated: the brand scale stops at three heading
+     ranks. Set on the h-tokens rather than --sl-text-5xl so the change is scoped
+     to headings and does not move every other consumer of that step. */
+  --sl-text-h1: 2.375rem;
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.1875rem;
+  --sl-text-h4: 1.0625rem;
+
+  /* Starlight composes its code/mono stack from this token */
+  --sl-font-mono: var(--relab-brand-font-mono);
+
+  /* Starlight's "accent" is its INTERACTION colour — links, active nav, focus
+     rings — not the Relab manila accent. It must map to the primary family:
+     pointing it at --relab-brand-accent would turn every link and active nav
+     item manila, which is exactly what DESIGN.md's accent rule forbids. Left
+     unmapped it falls back to Starlight's stock blue (hsl(234 90% 60%)), which
+     is off-brand. The -low/-high tiers line up with the brand's own soft/strong
+     shades in both themes, since every value is a light-dark() pair. */
+  --sl-color-accent-low: var(--relab-brand-primary-soft);
+  --sl-color-accent: var(--relab-brand-primary);
+  --sl-color-accent-high: var(--relab-brand-primary-strong);
+}
+
 html,
 body {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: var(--relab-brand-font), sans-serif;
 }
 
 body {
-  color: var(--relab-text);
+  color: var(--relab-brand-text);
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: url("/images/bg-light.jpg") center / cover no-repeat;
-  opacity: 0.34;
-  filter: blur(8px) saturate(0.92);
-  transform: scale(1.035);
-}
-
-:root[data-theme="dark"] body::before {
-  background-image: url("/images/bg-dark.jpg");
-  opacity: 0.32;
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--relab-surface-wash) 96%, white 4%) 0%,
-    color-mix(in srgb, var(--relab-surface-wash) 92%, transparent) 100%
-  );
-  backdrop-filter: blur(4px);
-}
-
-:root[data-theme="dark"] body::after {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--relab-surface-wash) 94%, #09111d 6%) 0%,
-    color-mix(in srgb, var(--relab-surface-wash) 90%, transparent) 100%
-  );
+/* Flat page ground, straight from the brand background token. What used to sit
+   here was a fixed full-viewport bg-*.jpg under blur(8px), plus a second gradient
+   pseudo-element with its own backdrop-filter: on a reading surface that is a
+   contrast tax on every line of body text, paid on every page load, for a
+   photograph unrecognizable at that blur radius. Starlight's own --sl-color-bg is
+   declared inside @layer starlight.base, and these custom styles are unlayered, so
+   a plain :root outranks it whatever the source order — same mechanism the
+   --sl-color-accent* overrides above rely on. One light-dark() pair covers both
+   schemes; color-scheme is set per data-theme in brand.css. */
+:root {
+  --sl-color-bg: var(--relab-brand-background);
+  /* Chrome sits one faint step off the page ground, in the blue family rather
+     than Starlight's stock neutral grey (#f6f7f9 / #23262f). Those greys were
+     invisible under the old wash; on a flat ground they read as a mismatched
+     band across the top. color-mix so one declaration serves both schemes:
+     the primary is dark in light mode and light in dark mode, so the mix lands
+     on the correct side of the ground either way. */
+  --sl-color-bg-sidebar: color-mix(in srgb, var(--relab-brand-primary) 5%, var(--relab-brand-background));
+  --sl-color-bg-nav: var(--sl-color-bg-sidebar);
 }
 
 h1,
@@ -52,10 +83,11 @@ h3,
 h4,
 .site-title,
 .hero {
-  font-family: "Space Grotesk", "IBM Plex Sans", sans-serif;
-  letter-spacing: -0.015em;
+  font-family: var(--relab-brand-font-display), Georgia, serif;
+  /* serif carries its own width; tighter tracking than this reads cramped */
+  letter-spacing: -0.01em;
 }
 
 a {
-  color: var(--relab-primary);
+  color: var(--relab-brand-primary);
 }

@@ -1,0 +1,248 @@
+---
+
+import GithubIcon from '@/assets/icons/brand/github.svg';
+import LinkedinIcon from '@/assets/icons/brand/linkedin.svg';
+import YoutubeIcon from '@/assets/icons/brand/youtube.svg';
+import { research } from '@/copy/research.generated.ts';
+
+import ThemeControl from './ThemeControl.astro';
+
+// The page foot, in two bands: the research colophon, then the site chrome.
+//
+// Provenance used to sit in its own section directly above this, which left
+// two blocks of page-foot metadata stacked with a rule between them. It is all
+// one thing, and `<footer>` is where it belongs, so it is one block now.
+//
+// No wordmark here. The sticky header carries the mark on every page, and on
+// the landing page the hero carries it too; a third instance at the bottom is
+// decoration, and the copyright line below already names the institution.
+interface Props {
+  contactEmail: string;
+  currentYear: number;
+  docsUrl: string;
+  githubUrl: string;
+  linkedInUrl: string;
+  youtubeUrl: string;
+}
+
+const { contactEmail, currentYear, docsUrl, githubUrl, linkedInUrl, youtubeUrl } = Astro.props;
+const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
+---
+
+<footer class="site-footer">
+  <div class="frame site-footer-inner">
+    {/* Research provenance: who runs this, how to cite it, what it is licensed
+        under, who funded it. Every fact is sourced from the repository itself
+        (CITATION.cff, LICENSE) via src/copy/site-meta.ts, so the page and the
+        citation file cannot drift apart.
+
+        The dataset's own terms are deliberately a link, not a restatement:
+        CC BY 4.0 is planned for curated releases that do not exist yet, and the
+        docs hold the one canonical statement of that. Two copies would drift. */}
+    {/* aria-label rather than a visually-hidden <h2>: this repeats on every
+        page, and a heading here would insert itself into each page's outline
+        below that page's own content. */}
+    <section class="colophon" aria-label="About this project">
+      <dl class="colophon-list">
+        <div class="colophon-entry">
+          <dt>Run by</dt>
+          <dd>{research.institution}</dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Authors</dt>
+          <dd>{research.authors}</dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Cite as</dt>
+          <dd>
+            <a href={research.citationUrl} target="_blank" rel="noopener noreferrer"
+              >doi:{research.doi}<span class="visually-hidden"> (opens in new tab)</span></a
+            >
+          </dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Licence</dt>
+          <dd>
+            {/* Explicit spaces: Astro strips the inter-node newline around an <a>. */}
+            Software under{' '}
+            <a href={research.licenceUrl} target="_blank" rel="noopener noreferrer"
+              >{research.licence}<span class="visually-hidden"> (opens in new tab)</span></a
+            >. Curated dataset releases are{' '}
+            <a href={datasetUrl} target="_blank" rel="noopener noreferrer"
+              >planned under CC BY 4.0<span class="visually-hidden"> (opens in new tab)</span></a
+            >; no release has been published yet.
+          </dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Funding</dt>
+          <dd>{research.funding}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <div class="footer-chrome">
+      <div class="footer-meta">
+        <p class="footer-copy">© {currentYear} CML, Leiden University</p>
+        <a href="/privacy" class="footer-link" aria-label="Read the Relab privacy policy">
+          Privacy policy
+        </a>
+        <a href="/terms" class="footer-link" aria-label="Read the Relab terms of use">
+          Terms of use
+        </a>
+        <a
+          href="/accessibility"
+          class="footer-link"
+          aria-label="Read the Relab accessibility statement"
+        >
+          Accessibility
+        </a>
+      </div>
+
+      <nav class="footer-links" aria-label="Footer">
+        <a href={`mailto:${contactEmail}`} class="footer-link">
+          {contactEmail}
+        </a>
+        <div class="footer-social">
+          <a
+            href={githubUrl}
+            class="footer-social-link"
+            aria-label="GitHub (opens in new tab)"
+            title="GitHub"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <GithubIcon aria-hidden="true" />
+          </a>
+          <a
+            href={linkedInUrl}
+            class="footer-social-link"
+            aria-label="LinkedIn (opens in new tab)"
+            title="LinkedIn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <LinkedinIcon aria-hidden="true" />
+          </a>
+          <a
+            href={youtubeUrl}
+            class="footer-social-link"
+            aria-label="YouTube (opens in new tab)"
+            title="YouTube"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <YoutubeIcon aria-hidden="true" />
+          </a>
+        </div>
+      </nav>
+
+      <div class="footer-theme">
+        <ThemeControl />
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  /* Label/value pairs in the data register. This is provenance in a page foot,
+     not a section of the site: it is set tight, at meta size, with no rule per
+     row. Five hairlines and a body-size measure made the footer as tall as a
+     content section, which is not what it is. */
+  .colophon-list {
+    margin: 0;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .colophon-entry {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    column-gap: 1rem;
+    align-items: baseline;
+  }
+
+  .colophon-entry dt {
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: var(--relab-type-micro-size);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .colophon-entry dd {
+    margin: 0;
+    max-width: 80ch;
+    font-size: var(--relab-type-body-size);
+    line-height: 1.5;
+  }
+
+  .footer-link {
+    position: relative;
+    font-size: var(--relab-type-body-size);
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+
+  /* 44px pointer target (WCAG 2.5.8) over a 22.8px text box, matching the
+     .footer-social-link boxes beside it and .theme-toggle in the header. The
+     links sit in wrapping flex rows (layout.css .footer-meta / .footer-links,
+     0.85–1.2rem gaps) and are wider than 44px, so overlays never meet
+     horizontally; when a row wraps, neighbouring overlays can overlap by a few
+     px vertically, which still leaves each link far more than the 24px of its
+     own that 2.5.8 requires. Nothing caps the overlay height. */
+  .footer-link::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    width: 100%;
+    height: 44px;
+    translate: -50% -50%;
+  }
+
+  .footer-link:hover,
+  .footer-link:focus-visible {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .footer-social {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  /* 44px hit area (WCAG 2.5.8) around a 1.18rem glyph: the target is the link
+     box, not the icon, so the marks can stay small without being hard to hit. */
+  .footer-social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--color-muted);
+  }
+
+  .footer-social-link:hover,
+  .footer-social-link:focus-visible {
+    color: var(--color-primary);
+  }
+
+  /* Brand marks are filled with currentColor at the shared icon size, never
+     recoloured into their own brand palettes (assets/DESIGN.md). */
+  .footer-social-link :global(svg) {
+    width: 1.18rem;
+    height: 1.18rem;
+    fill: currentColor;
+  }
+
+  @media (max-width: 860px) {
+    .colophon-entry {
+      grid-template-columns: 1fr;
+      row-gap: 0.3rem;
+    }
+  }
+</style>

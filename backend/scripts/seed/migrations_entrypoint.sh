@@ -30,6 +30,18 @@ fi
 echo "Upgrading database to the latest revision..."
 .venv/bin/alembic upgrade head
 
+# Measure any image rows still missing their pixel dimensions. Unconditional
+# because it is idempotent and batched: it only selects rows where the columns
+# are NULL and commits per batch, so once every readable file is measured each
+# deploy does one query returning nothing. Rows it cannot measure (missing or
+# remote files) stay NULL and are re-tried, and logged, on every deploy. This
+# image is the only one that ships scripts/ and mounts the user uploads volume,
+# which is what the measurement needs. A failure here must not block the schema
+# deploy or the seeding below; the script can be re-run by hand.
+echo "Backfilling image dimensions..."
+.venv/bin/python -m scripts.maintenance.backfill_image_dimensions \
+    || echo "Image-dimension backfill failed; re-run scripts.maintenance.backfill_image_dimensions manually." >&2
+
 # Seed dummy data if enabled and if the database is empty
 if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
     echo "Dummy data seeding is enabled."

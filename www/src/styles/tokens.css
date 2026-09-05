@@ -1,0 +1,69 @@
+:root {
+  color-scheme: light dark;
+  --color-primary: var(--relab-brand-primary);
+  --color-primary-strong: var(--relab-brand-primary-strong);
+  --color-primary-soft: var(--relab-brand-primary-soft);
+  --color-accent: var(--relab-brand-accent);
+  /* Page-level chrome tones. Both surface tiers are the brand's own neutrals:
+     www used to hand-author a three-step ramp (cool paper → near-white →
+     white) because the brand vocabulary had no card tone on web at all, and
+     --relab-brand-surface held the background value. That gap closed when the
+     token was renamed, so the ramp now points at the source instead of
+     reconstructing it. Two tiers, not three: the brand defines a ground and a
+     card, and the old third tier had no source to point at.
+     Named --color-page-surface/--color-surface-raised rather than the bare
+     --color-surface: the two tiers are a ground and a card, and naming the
+     role beats naming one of them "the" surface.
+     Opaque: these were translucent to let a blurred wallpaper through, and with
+     it gone an alpha channel only makes contrast harder to reason about. The one
+     place still mixing toward transparent is the teardown plate, where 18% is
+     what lets the drafting grid read through it. */
+  --color-page-surface: var(--relab-brand-background);
+  --color-surface-raised: var(--relab-brand-surface);
+  --color-on-surface: light-dark(rgb(23, 38, 55), rgb(237, 247, 255));
+  --color-text: var(--relab-brand-text);
+  --color-muted: light-dark(rgb(83, 102, 122), rgb(179, 200, 216));
+  /* Stays hand-authored where the surfaces above no longer do: it is translucent
+     on purpose, so it composites over a photograph or the drafting grid as
+     readily as over the page, which the opaque --relab-brand-divider cannot. */
+  --color-page-border: light-dark(rgba(23, 38, 45, 0.12), rgba(222, 239, 252, 0.12));
+  /* The boundary of an interactive control, which WCAG 1.4.11 holds to 3:1 --
+     unlike the hairline above, which is decorative and measures ~1.3:1 against
+     the page. Any border that is the *only* thing identifying a control uses
+     this: outline buttons, the measure toggle group, the theme toggle. Borders
+     that merely separate or frame content keep --color-page-border.
+     Mixed toward the page ground rather than set solid, so it reads as chrome
+     rather than as a second primary action: 3.9:1 light, 5.1:1 dark. */
+  --color-control-border: color-mix(in srgb, var(--color-primary) 70%, var(--color-page-surface));
+  /* Solid, not a tint: a translucent ring lands around 1.4:1 on both page and
+     card surfaces, well under the 3:1 WCAG 1.4.11 needs for focus indicators.
+     The brand primary clears it comfortably (7.5:1 light, 9.3:1 dark). */
+  --color-ring: var(--relab-brand-primary);
+  /* Chart mark: the cyanotype primary brightened into the data-viz band;
+     the brand tokens above are tuned for text/links, not large fills. The
+     categorical chart ramp itself now lives in tokens.generated.css
+     (--relab-chart-*-*); this one stays hand-authored per assets/DESIGN.md
+     (diagram & chart palette), deliberately distinct from that ramp. */
+  --color-chart-mark: light-dark(#2f6bc7, #6fa8ff);
+  /* Shape scale. Lived in global.css's `@theme inline` while Tailwind was
+     installed, where its only extra job was emitting rounded-* utilities that
+     no markup ever used. The authored CSS reads these directly, so they are
+     plain aliases now. --relab-radius-overlay has no consumer and is left
+     unaliased rather than declared dead. */
+  --radius-control: var(--relab-radius-control);
+  --radius-card: var(--relab-radius-card);
+
+  --frame-width: 1280px;
+  --content-width: 1248px;
+  /* Both values equal the ramp's body role exactly (1rem / 1.625), so the
+     alias now repoints there instead of restating the literal. */
+  --font-size-body: var(--relab-type-body-size);
+  --font-size-body-compact: 0.95rem; /* NOTE: deliberate density tier, not drift; doesn't match a ramp step */
+  --line-height-body: var(--relab-type-body-line);
+  --line-height-body-compact: 1.62; /* NOTE: deliberate density tier, not drift */
+  --font-size-meta: 0.94rem; /* NOTE: doesn't match a ramp step; sits between data (0.875rem) and body (1rem) */
+  /* The site's one easing curve: confident deceleration, no bounce. Was
+     inlined in the stats bars; promoted here once the ring, the parts
+     disclosure and the button press all wanted the same arrival. */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}

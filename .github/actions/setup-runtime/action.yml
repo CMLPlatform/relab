@@ -19,6 +19,10 @@ inputs:
     description: Lockfile path(s) used for pnpm cache keys.
     required: false
     default: ""
+  setup-playwright:
+    description: Cache the Playwright browser binaries (~/.cache/ms-playwright). Callers still run `playwright install`; on a cache hit it skips the download.
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -47,6 +51,13 @@ runs:
         node-version-file: .tool-versions
         cache: pnpm
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Cache Playwright browsers
+      if: inputs.setup-playwright == 'true'
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright|${{ runner.os }}|${{ hashFiles('pnpm-lock.yaml') }}
 
     - name: Install just
       uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3

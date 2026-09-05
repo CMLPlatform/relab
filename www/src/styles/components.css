@@ -1,0 +1,547 @@
+/* The page is one document, not a stack of panels: sections are separated by a
+   hairline rule and space, and carry no fill, radius or shadow of their own
+   (assets/DESIGN.md, "flat & sharp"). The blueprint schedule is the single
+   framed surface on the page, and frames itself. */
+.section {
+  border-top: 1px solid var(--color-page-border);
+  padding-block: 3rem;
+}
+
+/* The rule is a separator, so the first section does not wear one. */
+.section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.page-intro,
+.empty-state {
+  display: grid;
+  gap: 1rem;
+}
+
+/* The same display size as the landing hero (assets/DESIGN.md's web scale,
+   38/44). These pages are Read mode, where the h1 is a label rather than a
+   hero, and the 4.2rem it used to reach shouted over the prose beneath it. */
+.page-intro h1,
+.empty-state h1 {
+  font-size: clamp(2rem, 3.2vw, 2.375rem);
+  max-width: 26ch;
+  line-height: 1.16;
+}
+
+.footer-copy,
+.page-meta {
+  color: var(--color-text);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.section h1,
+.section h2 {
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+}
+
+.section h3 {
+  font-size: var(--relab-type-heading-size);
+}
+
+/* NOTE: the hint popover that used to live here is gone with its two callers.
+   The flowchart's step descriptions are plain text now, and the 9R ladder moved
+   to the docs beside its definition tables. Nothing on the site floats, so the
+   overlay-shadow tier assets/DESIGN.md reserves is currently unused here. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  padding: 0.8rem 1.15rem;
+  font-size: var(--relab-type-body-size);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+/* Press feedback. Buttons are hit often enough that this has to stay at the
+   threshold of perception: 0.98, not the 0.95 that reads as a toy. Transform
+   only, so a press never reflows the row it sits in. */
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.btn-large {
+  min-height: 3.35rem;
+  padding-inline: 1.35rem;
+}
+
+/* A button that carries its own precondition on a second line: the label, then
+   what it costs the visitor. Baseline-aligned rows rather than a centred stack,
+   so the two buttons' primary labels sit on one line across the pair. */
+.btn-stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding-block: 0.6rem;
+  line-height: 1.25;
+}
+
+.btn-sublabel {
+  font-size: var(--relab-type-micro-size);
+  font-weight: 500;
+  /* Subordinate, but never below the 4.5:1 the label itself clears: it is real
+     information about what the button will ask for, not decoration. */
+  opacity: 0.78;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  /* dark-mode primary is a light blue, so the label flips to ink */
+  color: light-dark(rgb(255, 255, 255), rgb(12, 18, 32));
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-strong);
+}
+
+/* The second door (contributing) beside the primary one (browsing): outlined,
+   so the pair reads as two choices rather than two competing pitches. The
+   border is the shared 3:1 control boundary (see --color-control-border) rather
+   than the decorative hairline. Hover deepens to full primary, never the
+   accent (assets/DESIGN.md). */
+.btn-outline {
+  border-color: var(--color-control-border);
+  background: transparent;
+  color: var(--color-primary-strong);
+}
+
+.btn-outline:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.stats-panel {
+  display: grid;
+  gap: 1.4rem;
+}
+
+/* `display: grid` above would otherwise beat the UA `[hidden]` rule, leaving
+   the placeholder panel visible before/without data. */
+.stats-panel[hidden] {
+  display: none;
+}
+
+.stats-subhead {
+  margin: 0;
+  font-family: var(--relab-brand-font-mono), monospace;
+  font-size: var(--relab-type-label-size);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.stats-panel h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+}
+
+.stats-ledger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.4rem 2rem;
+}
+
+.stats-hero {
+  display: grid;
+  gap: 0.3rem;
+  padding-right: 2rem;
+  border-right: 1px solid var(--color-page-border);
+}
+
+/* The one hero figure on the page. Proportional digits: `tabular-nums` gives
+   every digit the width of a `0`, which reads loose at display sizes. */
+.stats-hero-value {
+  font-size: clamp(2.4rem, 5vw, 3.6rem);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  color: var(--color-on-surface);
+}
+
+.stats-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1.4rem 2rem;
+}
+
+.stats-tile {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.stats-tile-value {
+  font-size: var(--relab-type-title-size);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--color-on-surface);
+}
+
+.stats-unit {
+  margin-left: 0.15em;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--color-muted);
+}
+
+.stats-label {
+  font-size: var(--relab-type-caption-size);
+  color: var(--color-muted);
+}
+
+.stats-activity {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.stats-activity-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+}
+
+/* One control row, above everything it scopes. The group border is the only
+   thing marking these toggles as controls rather than as labels, so it takes
+   the 3:1 control boundary rather than the decorative hairline. */
+.stats-controls {
+  display: inline-flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+}
+
+.stats-toggle {
+  appearance: none;
+  border: 0;
+  padding: 0.34em 0.9em;
+  font: inherit;
+  font-size: var(--relab-type-micro-size);
+  font-weight: 500;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+}
+
+.stats-toggle:hover {
+  color: var(--color-on-surface);
+}
+
+.stats-toggle[aria-pressed="true"] {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+/* Inset ring only: the group clips overflow, so the default 3px offset would
+   cut the ring off. Colour and width come from the global :focus-visible. */
+.stats-toggle:focus-visible {
+  outline-offset: -2px;
+}
+
+/* Below the min-width the chart scrolls in its own container rather than
+   scaling its labels down to illegibility. The page never scrolls sideways. */
+.stats-chart {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Scroll affordance: fade the two edges once the chart can no longer fit, so
+   the cut-off column reads as "there is more". The svg's 40rem min-width plus
+   the page gutter puts that threshold near 44rem; a static mask would
+   otherwise dim the end labels on desktop, where nothing overflows.
+   NOTE: the fade stays on at both ends, including when scrolled fully to one
+   side; a scroll-driven mask would track it exactly, at real complexity. */
+@media (max-width: 44rem) {
+  .stats-chart {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 1.25rem,
+      black calc(100% - 1.25rem),
+      transparent 100%
+    );
+  }
+}
+
+.stats-chart svg {
+  display: block;
+  width: 100%;
+  min-width: 40rem;
+  height: auto;
+  overflow: visible;
+}
+
+.stats-chart svg:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--radius-control);
+}
+
+/* Recessive chrome: solid hairlines, one shade off the surface. */
+.stats-chart-grid line {
+  stroke: var(--color-page-border);
+  stroke-width: 1;
+}
+
+.stats-chart-grid text,
+.stats-chart-xlabel {
+  fill: var(--color-muted);
+  font-family: var(--relab-brand-font-mono), monospace;
+  font-size: var(--relab-type-micro-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-chart-bar {
+  fill: var(--color-chart-mark);
+}
+
+/* Text never wears the data color; the bar beside it carries identity. */
+.stats-chart-peak {
+  fill: var(--color-on-surface);
+  font-size: var(--relab-type-micro-size);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-chart-hits rect {
+  fill: transparent;
+}
+
+/* The hover layer is inert until a column is active. `hidden` does nothing on
+   SVG elements, so visibility is driven by a class both layers share. */
+.stats-chart-crosshair,
+.stats-chart-tip {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.stats-chart-crosshair.is-visible,
+.stats-chart-tip.is-visible {
+  visibility: visible;
+}
+
+.stats-chart-crosshair line {
+  stroke: var(--color-muted);
+  stroke-width: 1;
+}
+
+/* 2px ring in the page ground keeps the dot legible where it meets the bar.
+   Paired with the ink fill below, this is the inverse of the page: the tip is
+   ink-on-paper turned inside out, so both halves come from that one pair. */
+.stats-chart-tip circle {
+  fill: var(--color-chart-mark);
+  stroke: var(--color-page-surface);
+  stroke-width: 2;
+}
+
+.stats-chart-tip rect {
+  fill: var(--color-on-surface);
+}
+
+.stats-chart-tip-label,
+.stats-chart-tip-value {
+  fill: var(--color-page-surface);
+  font-size: var(--relab-type-micro-size);
+}
+
+.stats-chart-tip-label {
+  font-weight: 600;
+}
+
+.stats-chart-tip-value {
+  font-family: var(--relab-brand-font-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* First reveal only: bars grow from the baseline, staggered left to right.
+     Re-renders (the measure toggle) paint at full height; the toggle is a
+     comparison control, and a ramp would delay the comparison. Needs fill-box
+     so scaleY pivots on each bar's own baseline rather than the SVG viewport;
+     where unsupported the bars appear at full height, which is fine. */
+  @supports (transform-box: fill-box) {
+    .stats-chart-enter .stats-chart-bar {
+      transform-box: fill-box;
+      transform-origin: bottom;
+      animation: stats-bar-grow 300ms var(--ease-out) both;
+      /* Capped: the series runs to a year, so an uncapped 40ms/bar tail would
+         leave the last bar most of a second behind the first. */
+      animation-delay: calc(min(var(--bar-i, 0) * 40ms, 240ms));
+    }
+
+    @keyframes stats-bar-grow {
+      from {
+        transform: scaleY(0);
+      }
+    }
+  }
+}
+
+.stats-caption {
+  margin: 0;
+  font-size: var(--font-size-meta);
+  font-style: italic;
+  color: var(--color-muted);
+}
+
+@media (max-width: 620px) {
+  .stats-hero {
+    padding-right: 0;
+    border-right: 0;
+  }
+
+  .stats-activity-head {
+    justify-content: flex-start;
+  }
+}
+
+/* Same reasoning as .stats-controls: a bordered icon button whose border is its
+   only outline, so it takes the 3:1 control boundary. */
+.theme-toggle {
+  appearance: none;
+  position: relative;
+  border: 1px solid var(--color-control-border);
+  background: transparent;
+  color: var(--color-muted);
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+/* 44px pointer target (WCAG 2.5.8) without inflating the 2.1rem glyph box:
+   the overlay is invisible and sits centred over the button. Nothing else is
+   within 44px of it, so the overlay cannot swallow a neighbour's taps. */
+.theme-toggle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  translate: -50% -50%;
+}
+
+/* Deepens to full primary, matching .btn-outline. It used to mix 22% primary
+   into the hairline, which read as "stronger than the resting border" only
+   while that border was the faint decorative one; against the 3:1 control
+   boundary the same value would now be *weaker* than resting, inverting the
+   affordance. */
+.theme-toggle:hover {
+  border-color: var(--color-primary);
+}
+
+/* Explicit choice reads as a filled control: the card tone against the header's
+   ground, in both themes. Resting is unfilled so the fill is the state. */
+/* Shrink-proof so the toggle keeps its size when the header nav runs long. */
+.theme-control {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.theme-control[data-theme-current="light"] .theme-toggle,
+.theme-control[data-theme-current="dark"] .theme-toggle {
+  background: var(--color-surface-raised);
+  color: var(--color-on-surface);
+}
+
+.theme-icon {
+  display: none;
+}
+
+.theme-control[data-theme-current="system"] [data-theme-icon="system"],
+.theme-control[data-theme-current="light"] [data-theme-icon="light"],
+.theme-control[data-theme-current="dark"] [data-theme-icon="dark"] {
+  display: inline-flex;
+}
+
+.theme-icon svg {
+  width: 0.92rem;
+  height: 0.92rem;
+  fill: currentColor;
+}
+
+@media (max-width: 760px) {
+  .section {
+    padding-block: 2rem;
+  }
+
+  .button-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .btn-large {
+    min-height: 3.1rem;
+  }
+
+  .theme-toggle {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  .theme-icon svg {
+    width: 0.82rem;
+    height: 0.82rem;
+  }
+
+  .page-intro,
+  .empty-state {
+    gap: 0.8rem;
+  }
+
+  .section h1,
+  .section h2 {
+    font-size: clamp(1.35rem, 8vw, 1.95rem);
+  }
+}
+
+/* NOTE: the two breakpoint overrides that used to sit here scaled the page h1
+   UP to 2.85rem / 2.7rem on narrow screens, because it was a display hero.
+   The base clamp now floors at 2rem and caps at the display scale, which
+   covers both ends; a mobile override would only fight it. */

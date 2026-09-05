@@ -1,293 +1,425 @@
-"""Integration tests for the FastAPI application lifespan.
-
-Verifies that startup initialises app.state correctly and that shutdown
-calls the expected close methods.  External services (Redis, email checker)
-are mocked so these tests run without any real infrastructure.
-"""
-
-from __future__ import annotations
+"""Integration tests for the FastAPI application lifespan."""
 
 import asyncio
+import sys
+from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi import FastAPI
 from httpx import CloseError
 
-from app.core.config import settings
+from app.api.auth.runtime_dependencies import common_password_checker_from, email_checker_from
+from app.api.plugins.rpi_cam.websocket import runtime_state
+from app.core import lifecycle
+from app.core.config import Environment, settings
 from app.core.database import async_engine
 from app.core.runtime import AppServices
-from app.main import app, lifespan
+from app.main import DOMAIN_LIFECYCLES
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import Iterator
     from pathlib import Path
 
 
-@pytest.fixture(autouse=True)
-def _reset_app_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[None]:
-    """Start each lifespan test with a clean app.state."""
+@pytest.fixture
+def runtime_app(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> FastAPI:
+    """Return a fresh app with isolated storage settings for one lifespan test."""
     uploads_path = tmp_path / "uploads"
-    file_storage_path = uploads_path / "files"
-    image_storage_path = uploads_path / "images"
-
     monkeypatch.setattr(settings, "uploads_path", uploads_path)
-    monkeypatch.setattr(settings, "file_storage_path", file_storage_path)
-    monkeypatch.setattr(settings, "image_storage_path", image_storage_path)
+    monkeypatch.setattr(settings, "file_storage_path", uploads_path / "files")
+    monkeypatch.setattr(settings, "image_storage_path", uploads_path / "images")
+    monkeypatch.setattr(settings, "environment", Environment.TESTING)
 
+    app = FastAPI()
     app.state.services = AppServices()
-    yield
-    app.state.services = AppServices()
+    return app
 
 
-class TestLifespan:
-    """Application lifespan startup and shutdown."""
+@dataclass(slots=True)
+class RuntimePatchConfig:
+    """Overrides for patched runtime services."""
 
-    async def test_startup_sets_redis_on_app_state(self) -> None:
-        """After startup, app.state.redis must be populated."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
+    redis: MagicMock | None = None
+    email_checker: AsyncMock | None = None
+    common_password_checker: AsyncMock | None = None
+    file_cleanup_manager: MagicMock | None = None
+    http_client: AsyncMock | None = None
+    check_database_side_effect: BaseException | type[BaseException] | None = None
+    init_redis_side_effect: BaseException | type[BaseException] | None = None
+    init_email_checker_side_effect: BaseException | type[BaseException] | None = None
+    validate_scanner_side_effect: BaseException | type[BaseException] | None = None
+    close_redis_side_effect: BaseException | type[BaseException] | None = None
+    close_cache_side_effect: BaseException | type[BaseException] | None = None
+    cleanup_manager_close_side_effect: BaseException | type[BaseException] | None = None
+    http_client_close_side_effect: BaseException | type[BaseException] | None = None
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis) as mock_init_redis,
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-        ):
-            async with lifespan(app):
-                assert isinstance(app.state.services, AppServices)
-                assert app.state.services.redis is mock_redis
-            mock_init_redis.assert_awaited_once()
 
-    async def test_startup_sets_email_checker_on_app_state(self) -> None:
-        """After startup, app.state.email_checker must be populated."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
+@dataclass(slots=True)
+class RuntimeMocks:
+    """Mocks installed by patched_runtime_services."""
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker) as mock_init_checker,
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-        ):
-            async with lifespan(app):
-                assert app.state.services.email_checker is mock_email_checker
-            mock_init_checker.assert_awaited_once_with(mock_redis)
+    redis: MagicMock
+    email_checker: AsyncMock
+    common_password_checker: AsyncMock
+    camera_manager: MagicMock
+    file_cleanup_manager: MagicMock
+    http_client: AsyncMock
+    init_redis: AsyncMock
+    init_email_checker: AsyncMock
+    init_common_password_checker: AsyncMock
+    init_cache: MagicMock
+    init_telemetry: MagicMock
+    close_cache: AsyncMock
+    close_redis: AsyncMock
+    shutdown_telemetry: MagicMock
+    cleanup_logging: AsyncMock
+    validate_scanner: MagicMock
+    ensure_storage: MagicMock
+    mount_static: MagicMock
+    register_favicon: MagicMock
+    create_camera_connection_manager: MagicMock
+    file_cleanup_cls: MagicMock
+    create_http_client: MagicMock
+    check_database_connection: AsyncMock
+    close_async_engine: AsyncMock
+    set_connection_manager: MagicMock
 
-    async def test_startup_initializes_storage_on_app_state(self) -> None:
-        """After startup, storage must be ensured and state marked ready."""
-        with (
-            patch("app.core.lifecycle.init_redis"),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker"),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-            patch("app.core.lifecycle.ensure_storage_directories") as mock_ensure,
-            patch("app.core.lifecycle.mount_static_directories") as mock_mount,
-            patch("app.core.lifecycle.register_favicon_route") as mock_favicon,
-        ):
-            async with lifespan(app):
-                assert app.state.services.storage_ready is True
 
-            mock_ensure.assert_called_once()
-            mock_mount.assert_called_once_with(app)
-            mock_favicon.assert_called_once_with(app)
+@contextmanager
+def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterator[RuntimeMocks]:
+    """Patch external runtime services and expose the mocks used by a test."""
+    config = RuntimePatchConfig() if config is None else config
+    mock_redis = MagicMock() if config.redis is None else config.redis
+    mock_email_checker = AsyncMock() if config.email_checker is None else config.email_checker
+    mock_common_password_checker = (
+        AsyncMock() if config.common_password_checker is None else config.common_password_checker
+    )
+    mock_camera_manager = MagicMock()
 
-    async def test_shutdown_closes_email_checker(self) -> None:
-        """On shutdown, email_checker.close() must be awaited."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
+    mock_file_cleanup_manager = MagicMock() if config.file_cleanup_manager is None else config.file_cleanup_manager
+    mock_file_cleanup_manager.initialize = AsyncMock()
+    mock_file_cleanup_manager.close = AsyncMock(side_effect=config.cleanup_manager_close_side_effect)
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-        ):
-            async with lifespan(app):
-                pass  # allow shutdown to run
+    mock_http_client = AsyncMock() if config.http_client is None else config.http_client
+    mock_http_client.aclose = AsyncMock(side_effect=config.http_client_close_side_effect)
 
-        mock_email_checker.close.assert_awaited_once()
+    async def init_redis_side_effect() -> MagicMock | None:
+        if config.init_redis_side_effect is not None:
+            raise config.init_redis_side_effect
+        return mock_redis
 
-    async def test_shutdown_closes_redis(self) -> None:
-        """On shutdown, close_redis() must be called with the Redis instance."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
+    async def check_database_side_effect() -> None:
+        if config.check_database_side_effect is not None:
+            raise config.check_database_side_effect
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis") as mock_close_redis,
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-        ):
-            async with lifespan(app):
-                pass
+    with (
+        patch(
+            "app.core.lifecycle.check_database_connection",
+            side_effect=check_database_side_effect,
+        ) as check_database_connection,
+        patch(
+            "app.core.lifecycle.init_redis",
+            side_effect=init_redis_side_effect,
+        ) as init_redis,
+        patch(
+            "app.api.auth.lifecycle.init_email_checker",
+            return_value=mock_email_checker,
+            side_effect=config.init_email_checker_side_effect,
+        ) as init_email_checker,
+        patch(
+            "app.api.auth.lifecycle.init_common_password_checker",
+            return_value=mock_common_password_checker,
+        ) as init_common,
+        patch("app.core.lifecycle.init_cache") as init_cache,
+        patch("app.core.lifecycle.init_telemetry") as init_telemetry,
+        patch("app.core.lifecycle.close_cache", side_effect=config.close_cache_side_effect) as close_cache,
+        patch("app.core.lifecycle.close_redis", side_effect=config.close_redis_side_effect) as close_redis,
+        patch("app.core.lifecycle.shutdown_telemetry") as shutdown_telemetry,
+        patch("app.core.lifecycle.cleanup_logging") as cleanup_logging,
+        patch(
+            "app.api.file_storage.lifecycle.validate_malware_scanner_configuration",
+            side_effect=config.validate_scanner_side_effect,
+        ) as validate_scanner,
+        patch("app.core.lifecycle.ensure_storage_directories") as ensure_storage,
+        patch("app.core.lifecycle.mount_static_directories") as mount_static,
+        patch("app.core.lifecycle.register_favicon_route") as register_favicon,
+        patch(
+            "app.api.plugins.rpi_cam.lifecycle.CameraConnectionManager", return_value=mock_camera_manager
+        ) as create_camera,
+        patch(
+            "app.api.file_storage.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager
+        ) as file_cleanup_cls,
+        patch("app.core.lifecycle.create_http_client", return_value=mock_http_client) as create_http_client,
+        patch("app.core.lifecycle.close_async_engine") as close_async_engine,
+        patch("app.api.plugins.rpi_cam.lifecycle.set_connection_manager") as set_connection_manager,
+    ):
+        yield RuntimeMocks(
+            redis=mock_redis,
+            email_checker=mock_email_checker,
+            common_password_checker=mock_common_password_checker,
+            camera_manager=mock_camera_manager,
+            file_cleanup_manager=mock_file_cleanup_manager,
+            http_client=mock_http_client,
+            init_redis=init_redis,
+            init_email_checker=init_email_checker,
+            init_common_password_checker=init_common,
+            init_cache=init_cache,
+            init_telemetry=init_telemetry,
+            close_cache=close_cache,
+            close_redis=close_redis,
+            shutdown_telemetry=shutdown_telemetry,
+            cleanup_logging=cleanup_logging,
+            validate_scanner=validate_scanner,
+            ensure_storage=ensure_storage,
+            mount_static=mount_static,
+            register_favicon=register_favicon,
+            create_camera_connection_manager=create_camera,
+            file_cleanup_cls=file_cleanup_cls,
+            create_http_client=create_http_client,
+            check_database_connection=check_database_connection,
+            close_async_engine=close_async_engine,
+            set_connection_manager=set_connection_manager,
+        )
 
-        mock_close_redis.assert_awaited_once_with(mock_redis)
 
-    async def test_shutdown_tolerates_email_checker_close_error(self) -> None:
-        """A RuntimeError from email_checker.close() must not prevent shutdown from completing."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
-        mock_email_checker.close.side_effect = RuntimeError("checker gone")
+async def test_startup_sets_runtime_services_on_app_state(runtime_app: FastAPI) -> None:
+    """Startup should populate the typed runtime container."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            services = runtime_app.state.services
+            assert isinstance(services, AppServices)
+            assert services.redis is runtime.redis
+            assert email_checker_from(services) is runtime.email_checker
+            assert common_password_checker_from(services) is runtime.common_password_checker
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis") as mock_close_redis,
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-        ):
-            async with lifespan(app):
-                pass  # shutdown runs even if close() raised
+    runtime.init_redis.assert_awaited_once_with()
+    runtime.init_email_checker.assert_awaited_once_with(runtime.redis)
+    runtime.init_common_password_checker.assert_awaited_once_with(runtime.redis)
 
-        # Redis must still be closed despite the earlier error
-        mock_close_redis.assert_awaited_once()
 
-    async def test_shutdown_tolerates_redis_close_error(self) -> None:
-        """A ConnectionError from close_redis() must not propagate out of the lifespan."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
+async def test_startup_initializes_storage_on_app_state(runtime_app: FastAPI) -> None:
+    """Startup should ensure storage and mount static files."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis", side_effect=ConnectionError("redis gone")),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-        ):
-            # Must not raise
-            async with lifespan(app):
-                pass
+    runtime.ensure_storage.assert_called_once()
+    runtime.mount_static.assert_called_once_with(runtime_app)
+    runtime.register_favicon.assert_called_once_with(runtime_app)
 
-    async def test_shutdown_tolerates_file_cleanup_manager_cancellation(self) -> None:
-        """A cancelled file cleanup manager close must not prevent shutdown."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
-        mock_file_cleanup_manager = MagicMock()
-        mock_file_cleanup_manager.initialize = AsyncMock()
-        mock_file_cleanup_manager.close = AsyncMock(side_effect=asyncio.CancelledError())
-        mock_http_client = AsyncMock()
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-            patch("app.core.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager),
-            patch("app.core.lifecycle.create_http_client", return_value=mock_http_client),
-        ):
-            async with lifespan(app):
-                pass
+async def test_shutdown_closes_email_checker_and_redis(runtime_app: FastAPI) -> None:
+    """Shutdown should close Redis-backed services."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
 
-        mock_file_cleanup_manager.close.assert_awaited_once()
-        mock_http_client.aclose.assert_awaited_once()
+    runtime.email_checker.close.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
 
-    async def test_shutdown_tolerates_http_client_close_error(self) -> None:
-        """A CloseError from the shared HTTP client must not prevent shutdown."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
-        mock_file_cleanup_manager = MagicMock()
-        mock_file_cleanup_manager.initialize = AsyncMock()
-        mock_file_cleanup_manager.close = AsyncMock()
-        mock_http_client = AsyncMock()
-        mock_http_client.aclose.side_effect = CloseError("client gone")
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-            patch("app.core.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager),
-            patch("app.core.lifecycle.create_http_client", return_value=mock_http_client),
-        ):
-            async with lifespan(app):
-                pass
+async def test_shutdown_tolerates_email_checker_close_error(runtime_app: FastAPI) -> None:
+    """An expected email checker close error should not prevent Redis cleanup."""
+    email_checker = AsyncMock()
+    email_checker.close.side_effect = RuntimeError("checker gone")
 
-        mock_file_cleanup_manager.close.assert_awaited_once()
-        mock_http_client.aclose.assert_awaited_once()
+    with patched_runtime_services(RuntimePatchConfig(email_checker=email_checker)) as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
 
-    async def test_startup_initializes_telemetry(self) -> None:
-        """Startup should invoke telemetry initialization with the shared async engine."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
+    runtime.close_redis.assert_any_await(runtime.redis)
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry") as mock_init_telemetry,
-            patch("app.core.lifecycle.close_fastapi_cache"),
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry"),
-            patch("app.main.cleanup_logging"),
-        ):
-            async with lifespan(app):
-                pass
 
-        mock_init_telemetry.assert_called_once_with(app, async_engine)
+async def test_shutdown_tolerates_redis_close_error(runtime_app: FastAPI) -> None:
+    """An expected Redis close error should not propagate out of the lifespan."""
+    with patched_runtime_services(RuntimePatchConfig(close_redis_side_effect=ConnectionError("redis gone"))):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
 
-    async def test_shutdown_shuts_down_telemetry(self) -> None:
-        """Shutdown should uninstrument telemetry even when no exporter is enabled."""
-        mock_redis = MagicMock()
-        mock_email_checker = AsyncMock()
 
-        with (
-            patch("app.core.lifecycle.init_redis", return_value=mock_redis),
-            patch("app.core.lifecycle.init_blocking_redis", return_value=None),
-            patch("app.core.lifecycle.init_email_checker", return_value=mock_email_checker),
-            patch("app.core.lifecycle.init_fastapi_cache"),
-            patch("app.core.lifecycle.init_telemetry"),
-            patch("app.core.lifecycle.close_fastapi_cache") as mock_close_fastapi_cache,
-            patch("app.core.lifecycle.close_redis"),
-            patch("app.core.lifecycle.shutdown_telemetry") as mock_shutdown_telemetry,
-            patch("app.main.cleanup_logging"),
-        ):
-            async with lifespan(app):
-                pass
+@pytest.mark.parametrize(
+    "config",
+    [
+        RuntimePatchConfig(cleanup_manager_close_side_effect=asyncio.CancelledError()),
+        RuntimePatchConfig(http_client_close_side_effect=CloseError("client gone")),
+    ],
+    ids=["cleanup-manager-cancellation", "http-client-close-error"],
+)
+async def test_shutdown_tolerates_teardown_errors(runtime_app: FastAPI, config: RuntimePatchConfig) -> None:
+    """Teardown errors from the cleanup manager or HTTP client should not prevent full shutdown."""
+    with patched_runtime_services(config) as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
 
-        mock_close_fastapi_cache.assert_awaited_once()
-        mock_shutdown_telemetry.assert_called_once_with(app)
+    runtime.file_cleanup_manager.close.assert_awaited_once()
+    runtime.http_client.aclose.assert_awaited_once()
+
+
+async def test_startup_initializes_telemetry(runtime_app: FastAPI) -> None:
+    """Startup should invoke telemetry initialization with the shared async engine."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.init_telemetry.assert_called_once_with(runtime_app, async_engine)
+
+
+async def test_shutdown_shuts_down_telemetry(runtime_app: FastAPI) -> None:
+    """Shutdown should uninstrument telemetry even when no exporter is enabled."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.close_cache.assert_awaited_once()
+    runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
+    runtime.close_async_engine.assert_awaited_once()
+
+
+async def test_shutdown_closes_cache_before_redis(runtime_app: FastAPI) -> None:
+    """Endpoint cache should release Redis-backed resources before Redis closes."""
+    labels = [step.label for step in lifecycle._core_shutdown_steps(runtime_app, AppServices(redis=MagicMock()))]
+
+    assert labels.index("endpoint cache") < labels.index("primary Redis client")
+
+
+async def test_startup_failure_cleans_up_initialized_services(runtime_app: FastAPI) -> None:
+    """A later startup failure should close services initialized earlier."""
+    config = RuntimePatchConfig(validate_scanner_side_effect=RuntimeError("bad scan config"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(RuntimeError, match="bad scan config"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.email_checker.close.assert_awaited_once()
+    runtime.close_cache.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
+
+
+async def test_startup_fails_when_primary_redis_is_unavailable(runtime_app: FastAPI) -> None:
+    """Redis is required for application startup."""
+    config = RuntimePatchConfig(init_redis_side_effect=RuntimeError("Redis is required"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(RuntimeError, match="Redis is required"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.init_email_checker.assert_not_awaited()
+    runtime.init_common_password_checker.assert_not_awaited()
+    runtime.init_cache.assert_not_called()
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
+
+
+async def test_startup_fails_when_database_is_unavailable(runtime_app: FastAPI) -> None:
+    """PostgreSQL is required for application startup."""
+    config = RuntimePatchConfig(check_database_side_effect=ConnectionError("database unavailable"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(ConnectionError, match="database unavailable"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.init_redis.assert_not_awaited()
+    runtime.init_email_checker.assert_not_awaited()
+    runtime.init_common_password_checker.assert_not_awaited()
+    runtime.init_cache.assert_not_called()
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
+
+
+async def test_startup_failure_preserves_original_error_when_cleanup_fails(runtime_app: FastAPI) -> None:
+    """Cleanup failures during failed startup should not replace the startup exception."""
+    config = RuntimePatchConfig(
+        validate_scanner_side_effect=RuntimeError("bad scan config"),
+        close_cache_side_effect=ValueError("cache cleanup failed"),
+    )
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(RuntimeError, match="bad scan config"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.close_cache.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
+
+
+async def test_unexpected_shutdown_error_still_runs_later_cleanup(runtime_app: FastAPI) -> None:
+    """Unexpected shutdown errors should be raised after all cleanup is attempted."""
+    config = RuntimePatchConfig(close_cache_side_effect=ValueError("cache exploded"))
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(ValueError, match="cache exploded"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.file_cleanup_manager.close.assert_awaited_once()
+    runtime.http_client.aclose.assert_awaited_once()
+    runtime.shutdown_telemetry.assert_called_once_with(runtime_app)
+    runtime.close_async_engine.assert_awaited_once()
+
+
+async def test_startup_failure_cleans_up_logging_when_configured(
+    runtime_app: FastAPI,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Logging initialized before startup should be cleaned up when startup fails."""
+    monkeypatch.setattr(settings, "environment", Environment.DEV)
+
+    with (
+        patch("app.core.lifecycle.setup_logging") as setup_logging,
+        patched_runtime_services(
+            RuntimePatchConfig(init_redis_side_effect=RuntimeError("redis unavailable"))
+        ) as runtime,
+        pytest.raises(RuntimeError, match="redis unavailable"),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    setup_logging.assert_called_once()
+    runtime.cleanup_logging.assert_awaited_once()
+
+
+async def test_startup_cancellation_cleans_up_initialized_services(runtime_app: FastAPI) -> None:
+    """Cancellation during startup should still close services initialized earlier."""
+    config = RuntimePatchConfig(init_email_checker_side_effect=asyncio.CancelledError())
+    with (
+        patched_runtime_services(config) as runtime,
+        pytest.raises(asyncio.CancelledError),
+    ):
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    runtime.close_cache.assert_awaited_once()
+    runtime.close_redis.assert_any_await(runtime.redis)
+    assert isinstance(runtime_app.state.services, AppServices)
+    assert runtime_app.state.services.redis is None
+
+
+async def test_shutdown_clears_global_runtime_hooks(runtime_app: FastAPI) -> None:
+    """Shutdown should clear module-level globals that point at runtime resources."""
+    with patched_runtime_services() as runtime:
+        async with lifecycle.runtime_lifespan(runtime_app, DOMAIN_LIFECYCLES):
+            pass
+
+    assert runtime.set_connection_manager.call_args_list[-1].args == (None,)
+
+
+async def test_clearing_runtime_hooks_does_not_import_connection_manager() -> None:
+    """Clearing globals should stay dependency-light for failed startup cleanup."""
+    sys.modules.pop("app.api.plugins.rpi_cam.websocket.connection_manager", None)
+
+    runtime_state.set_connection_manager(None)
+
+    assert "app.api.plugins.rpi_cam.websocket.connection_manager" not in sys.modules

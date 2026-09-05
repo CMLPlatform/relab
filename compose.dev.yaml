@@ -1,6 +1,20 @@
 # compose.dev.yaml (DEVELOPMENT - explicit dev overlay)
-# Run with: docker compose -f compose.yaml -f compose.dev.yaml up
-name: relab_dev
+# Run with: COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml up
+
+x-backend-runtime-secrets: &backend-runtime-secrets
+  - database_app_password
+  - database_migration_password
+  - database_backup_password
+  - redis_password
+  - auth_token_secret
+  - oauth_state_secret
+  - cache_signing_secret
+  - data_encryption_key
+  - google_oauth_client_secret
+  - github_oauth_client_secret
+  - smtp_password
+  - microsoft_graph_client_secret
+  - bootstrap_superuser_password
 
 services:
   api:
@@ -9,13 +23,17 @@ services:
       target: dev
     restart: "no"
     ports:
-      - "8011:8000"
+      - "127.0.0.1:8010:8000"
     environment:
-      ENVIRONMENT: dev
-      BACKEND_API_URL: "http://localhost:8011"
-      FRONTEND_APP_URL: "http://localhost:8013"
-      FRONTEND_WEB_URL: "http://localhost:8010"
-    env_file: ./backend/.env.dev
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+      API_PUBLIC_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://127.0.0.1:8011}
+      SITE_PUBLIC_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8013}
+      DOCS_PUBLIC_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
+    env_file:
+      - path: ./backend/.env.dev
+        required: false
+    secrets: *backend-runtime-secrets
     develop:
       watch:
         - action: sync
@@ -34,88 +52,243 @@ services:
 
   redis:
     ports:
-      - "6379:6379"
-    env_file: ./backend/.env.dev
+      - "127.0.0.1:6379:6379"
+    networks:
+      # Accessible to edge to allow for local development interactions
+      - edge
+      - data
+    secrets:
+      - redis_password
+    healthcheck:
+      test: [ "CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping | grep -q PONG" ]
+    command:
+      - sh
+      - -c
+      - |
+        redis_password="$$(cat /run/secrets/redis_password)"
+        exec redis-server --appendonly yes --save 60 1 --requirepass "$$redis_password"
 
   postgres:
     ports:
-      - "5432:5432"
-    env_file: ./backend/.env.dev
+      - "127.0.0.1:5432:5432"
+    networks:
+      # Accessible to edge to allow for local development interactions
+      - edge
+      - data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: relab_db
+      DATABASE_APP_USER: relab_app
+      DATABASE_MIGRATION_USER: relab_migrator
+      DATABASE_BACKUP_USER: relab_backup
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      DATABASE_APP_PASSWORD_FILE: /run/secrets/database_app_password
+      DATABASE_MIGRATION_PASSWORD_FILE: /run/secrets/database_migration_password
+      DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
+    secrets:
+      - postgres_password
+      - database_app_password
+      - database_migration_password
+      - database_backup_password
 
   migrator:
-    env_file: ./backend/.env.dev
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-dev}
+    secrets: *backend-runtime-secrets
 
-  docs-site:
+  docs:
     build:
-      context: ./docs
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: docs/Dockerfile
       target: dev
     restart: "no"
     ports:
-      - "8012:8000"
+      - "127.0.0.1:8012:8000"
+    environment:
+      PUBLIC_BACKEND_API_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
+      PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
+      CADDY_API_ORIGIN: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
     develop:
       watch:
+        # Keep watch scope explicit for Node-based subrepos: sync only source and
+        # runtime config, and rebuild on dependency manifest changes.
         - action: sync
-          path: ./docs
-          target: /opt/relab/docs
-          ignore:
-            - node_modules/
-            - .astro/
-            - dist/
-            - site/
+          path: ./docs/src
+          target: /opt/relab/docs/src
+        - action: sync
+          path: ./docs/public
+          target: /opt/relab/docs/public
+        - action: sync
+          path: ./docs/site
+          target: /opt/relab/docs/site
+        - action: sync
+          path: ./docs/scripts
+          target: /opt/relab/docs/scripts
+        - action: sync
+          path: ./docs/astro.config.mjs
+          target: /opt/relab/docs/astro.config.mjs
+        - action: sync
+          path: ./docs/tsconfig.json
+          target: /opt/relab/docs/tsconfig.json
+        - action: sync
+          path: ./docs/Caddyfile
+          target: /opt/relab/docs/Caddyfile
+        - action: sync
+          path: ./docs/README.md
+          target: /opt/relab/docs/README.md
+        - action: sync
+          path: ./docs/.markdownlint-cli2.mjs
+          target: /opt/relab/docs/.markdownlint-cli2.mjs
+        - action: sync
+          path: ./docs/biome.jsonc
+          target: /opt/relab/docs/biome.jsonc
+        - action: sync
+          path: ./docs/playwright.config.ts
+          target: /opt/relab/docs/playwright.config.ts
         - action: rebuild
-          path: ./docs/pnpm-lock.yaml
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
         - action: rebuild
           path: ./docs/package.json
 
-  app-site:
+  app:
     build:
-      dockerfile: Dockerfile
+      dockerfile: app/Dockerfile
       target: dev
     restart: "no"
     ports:
-      - "8013:8081"
+      - "127.0.0.1:8011:8081"
     environment:
-      EXPO_PUBLIC_API_URL: "http://localhost:8011"
-      EXPO_PUBLIC_WEBSITE_URL: "http://localhost:8010"
+      EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
+      EXPO_PUBLIC_WEBSITE_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8013}
+      EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
     develop:
       watch:
+        # Avoid watching the whole app tree. Recursive watches can walk
+        # into large dependency/cache directories on the host and exhaust inotify.
         - action: sync
-          path: ./frontend-app
-          target: /opt/relab/frontend-app
-          ignore:
-            - node_modules/
-            - .expo/
-            - dist/
-            - web-build/
-            - coverage/
-            - test-results/
-            - playwright-report/
-            - e2e/
-            - jest.config.ts
-            - jest.setup.ts
+          path: ./app/src
+          target: /opt/relab/app/src
+        - action: sync
+          path: ./app/config
+          target: /opt/relab/app/config
+        - action: sync
+          path: ./app/scripts
+          target: /opt/relab/app/scripts
+        - action: sync
+          path: ./app/app.json
+          target: /opt/relab/app/app.json
+        - action: sync
+          path: ./app/babel.config.js
+          target: /opt/relab/app/babel.config.js
+        - action: sync
+          path: ./app/biome.jsonc
+          target: /opt/relab/app/biome.jsonc
+        - action: sync
+          path: ./app/eslint.config.mjs
+          target: /opt/relab/app/eslint.config.mjs
+        - action: sync
+          path: ./app/expo-env.d.ts
+          target: /opt/relab/app/expo-env.d.ts
+        - action: sync
+          path: ./app/jest.config.cjs
+          target: /opt/relab/app/jest.config.cjs
+        - action: sync
+          path: ./app/playwright.config.ts
+          target: /opt/relab/app/playwright.config.ts
+        - action: sync
+          path: ./app/README.md
+          target: /opt/relab/app/README.md
+        - action: sync
+          path: ./app/tsconfig.json
+          target: /opt/relab/app/tsconfig.json
         - action: rebuild
-          path: ./frontend-app/pnpm-lock.yaml
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
+        - action: rebuild
+          path: ./app/package.json
 
-  web-site:
+  www:
     build:
-      dockerfile: Dockerfile
+      dockerfile: www/Dockerfile
       target: dev
     restart: "no"
     ports:
-      - "8010:8081"
+      - "127.0.0.1:8013:8081"
     environment:
-      PUBLIC_API_URL: "http://localhost:8011"
-      PUBLIC_DOCS_URL: "http://localhost:8012"
-      PUBLIC_APP_URL: "http://localhost:8013"
+      PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
+      PUBLIC_APP_URL: ${APP_PUBLIC_URL:-http://127.0.0.1:8011}
+      PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:-http://127.0.0.1:8013}
+      PUBLIC_API_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
     develop:
       watch:
+        # Same rule here: explicit source/config syncs only, rebuild for deps.
         - action: sync
-          path: ./frontend-web
-          target: /opt/relab/frontend-web
-          ignore:
-            - node_modules/
-            - .astro/
-            - dist/
+          path: ./www/src
+          target: /opt/relab/www/src
+        - action: sync
+          path: ./www/public
+          target: /opt/relab/www/public
+        - action: sync
+          path: ./www/config
+          target: /opt/relab/www/config
+        - action: sync
+          path: ./www/astro.config.ts
+          target: /opt/relab/www/astro.config.ts
+        - action: sync
+          path: ./www/biome.jsonc
+          target: /opt/relab/www/biome.jsonc
+        - action: sync
+          path: ./www/Caddyfile
+          target: /opt/relab/www/Caddyfile
+        - action: sync
+          path: ./www/playwright.config.ts
+          target: /opt/relab/www/playwright.config.ts
+        - action: sync
+          path: ./www/README.md
+          target: /opt/relab/www/README.md
+        - action: sync
+          path: ./www/tsconfig.json
+          target: /opt/relab/www/tsconfig.json
         - action: rebuild
-          path: ./frontend-web/pnpm-lock.yaml
+          path: ./pnpm-lock.yaml
+        - action: rebuild
+          path: ./pnpm-workspace.yaml
+        - action: rebuild
+          path: ./www/package.json
+
+networks:
+  data:
+    internal: true
+
+secrets:
+  postgres_password:
+    file: ./secrets/dev/postgres_password
+  database_app_password:
+    file: ./secrets/dev/database_app_password
+  database_migration_password:
+    file: ./secrets/dev/database_migration_password
+  database_backup_password:
+    file: ./secrets/dev/database_backup_password
+  redis_password:
+    file: ./secrets/dev/redis_password
+  auth_token_secret:
+    file: ./secrets/dev/auth_token_secret
+  oauth_state_secret:
+    file: ./secrets/dev/oauth_state_secret
+  cache_signing_secret:
+    file: ./secrets/dev/cache_signing_secret
+  data_encryption_key:
+    file: ./secrets/dev/data_encryption_key
+  google_oauth_client_secret:
+    file: ./secrets/dev/google_oauth_client_secret
+  github_oauth_client_secret:
+    file: ./secrets/dev/github_oauth_client_secret
+  smtp_password:
+    file: ./secrets/dev/smtp_password
+  microsoft_graph_client_secret:
+    file: ./secrets/dev/microsoft_graph_client_secret
+  bootstrap_superuser_password:
+    file: ./secrets/dev/bootstrap_superuser_password

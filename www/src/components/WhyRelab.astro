@@ -1,0 +1,87 @@
+---
+// The motivation section: why the platform exists, told in three beats.
+// Static copy, no props; the wording is owner-approved verbatim.
+---
+
+<section class="section why-relab" aria-labelledby="why-relab-heading">
+  <h2 id="why-relab-heading">Why Relab exists</h2>
+  <div class="why-beats">
+    <div class="why-beat">
+      <h3 class="why-beat-label">Closed, and too slow</h3>
+      <p>
+        Circular-economy research depends on detailed product data: what things are made of, how
+        they come apart, which parts matter. That data is scarce, mostly closed, and slow to
+        produce. Producers hold it as proprietary, and small expert teams sampling by hand cannot
+        keep pace with what reaches the market.
+      </p>
+    </div>
+    <div class="why-beat">
+      <h3 class="why-beat-label">Downstream, at the point of failure</h3>
+      <p>
+        So Relab goes downstream, to the people who already open products: repairers, refurbishers,
+        dismantlers, recyclers. They meet products at the point of failure, a vantage that
+        captures as-failed composition, wear, and recoverability that as-designed specifications
+        never show.
+      </p>
+    </div>
+    <div class="why-beat">
+      <h3 class="why-beat-label">Value in both directions</h3>
+      {/* The previous version promised contributors "guidance on the most circular
+          R-strategy for what they are holding" in the present tense. Paper 1 is
+          explicit that this is not built: the architecture "support[s]
+          bidirectional knowledge exchange, enabling the *future* delivery of
+          sustainability metrics and repair guidance", and whether such returns
+          motivate contribution "is an assumption the pilot did not test". It was
+          also the last place the site implied Relab performs R-strategy analysis. */}
+      <p>
+        The exchange is meant to run both ways. Those observations feed back into the data
+        infrastructure research and design rely on, and the platform is built to return value to the
+        people who collect them, in composition insight and sustainability metrics. That return is
+        designed for, not yet delivered.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .why-relab h2 {
+    margin: 0 0 1.4rem;
+  }
+
+  .why-beats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  /* Hairline top rule per beat: a flat drafting divider, no shadow. */
+  .why-beat {
+    border-top: 1px solid var(--color-page-border);
+    padding-top: 0.9rem;
+  }
+
+  /* Sentence case, not the uppercase-with-tracking label treatment: these are
+     phrases now rather than one-word tags, and caps would set them wrapping. */
+  .why-beat-label {
+    margin: 0 0 0.6rem;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: var(--relab-type-caption-size);
+    font-weight: 500;
+    line-height: var(--relab-type-caption-line);
+    color: var(--color-on-surface);
+  }
+
+  .why-beat p {
+    margin: 0;
+    max-width: 60ch;
+    font-size: var(--font-size-body-compact);
+    line-height: var(--line-height-body-compact);
+  }
+
+  @media (max-width: 860px) {
+    .why-beats {
+      grid-template-columns: 1fr;
+      gap: 1.4rem;
+    }
+  }
+</style>

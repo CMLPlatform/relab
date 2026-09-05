@@ -1,31 +1,10 @@
 """Unit tests for mutable computed/model properties."""
 
-from __future__ import annotations
-
 import uuid
 
-from app.api.auth.models import OrganizationRole, User
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from tests.factories.models import ProductFactory
-
-
-def test_user_organization_owner_property_tracks_mutations() -> None:
-    """Derived role flags should reflect the latest field value."""
-    user = User(
-        email="user@example.com",
-        hashed_password="hashed",
-        is_active=True,
-        is_superuser=False,
-        is_verified=True,
-        organization_role=None,
-    )
-
-    assert user.is_organization_owner is False
-
-    user.organization_role = OrganizationRole.OWNER
-
-    assert user.is_organization_owner is True
 
 
 def test_physical_properties_volume_tracks_dimension_updates() -> None:
@@ -45,7 +24,7 @@ def test_product_derived_flags_track_parent_and_component_updates() -> None:
         id=1,
         name="Chair",
         owner_id=uuid.uuid4(),
-        first_image_id=None,
+        first_image_file=None,
         parent_id=None,
         components=[],
         bill_of_materials=[MaterialProductLink(material_id=1, product_id=1, quantity=1, unit=Unit.GRAM)],
@@ -60,7 +39,7 @@ def test_product_derived_flags_track_parent_and_component_updates() -> None:
             id=2,
             name="Leg",
             owner_id=uuid.uuid4(),
-            first_image_id=None,
+            first_image_file=None,
             parent_id=1,
             amount_in_parent=1,
             bill_of_materials=[MaterialProductLink(material_id=2, product_id=2, quantity=1, unit=Unit.GRAM)],

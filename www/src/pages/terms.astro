@@ -1,0 +1,27 @@
+---
+
+import ContentPage from '@/components/ContentPage.astro';
+import { termsContent } from '@/copy/terms-content.ts';
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout title={termsContent.title} description={termsContent.description}>
+  <ContentPage
+    title={termsContent.title}
+    meta={termsContent.lastUpdated}
+    intro={termsContent.intro}
+  >
+    <section>
+      {
+        termsContent.sections.map((section) => (
+          <article class="section">
+            <h2>{section.title}</h2>
+            {section.paragraphs.map((paragraph) => (
+              <p>{paragraph}</p>
+            ))}
+          </article>
+        ))
+      }
+    </section>
+  </ContentPage>
+</Layout>

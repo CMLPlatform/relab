@@ -1,0 +1,43 @@
+---
+// Static shell for the homepage stats. It starts hidden and is populated +
+// revealed by src/scripts/stats.ts, which fetches the public stats API in the
+// browser (allowed via the CADDY_API_ORIGIN entry in the site CSP). If the
+// fetch fails the panel stays hidden.
+---
+
+<section
+  id="stats-panel"
+  class="section stats-panel"
+  aria-labelledby="stats-heading"
+  aria-live="polite"
+  hidden
+>
+  <h2 id="stats-heading">What has been recorded so far</h2>
+
+  <div class="stats-ledger">
+    <div class="stats-hero">
+      <span class="stats-hero-value" data-stat="hero">—</span>
+      <span class="stats-label">parts documented</span>
+    </div>
+    <div class="stats-tiles" data-stat="tiles"></div>
+  </div>
+
+  <div class="stats-activity">
+    <div class="stats-activity-head">
+      <h3 class="stats-subhead" data-stat="chart-heading"></h3>
+      <div class="stats-controls" role="group" aria-label="Measure" data-stat="controls"></div>
+    </div>
+    <div class="stats-chart" data-stat="chart"></div>
+    <div data-stat="table"></div>
+  </div>
+
+  <p class="stats-caption" data-stat="caption"></p>
+</section>
+
+<script>
+  import { renderStats } from '@/scripts/stats.ts';
+
+  renderStats().catch(() => {
+    // Best-effort panel: any render failure (e.g. a malformed date) leaves it hidden.
+  });
+</script>

@@ -1,0 +1,100 @@
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { maybeCompleteAuthSession } from 'expo-web-browser';
+import { useCallback } from 'react';
+import { useDialog } from '@/components/base/dialogContext';
+import { useAuth } from '@/context/auth';
+import { type MfaLoginPending, setPendingMfaLogin } from '@/services/api/auth/authMfa';
+import type { User } from '@/types/User';
+import { useLoginForm } from './useLoginForm';
+import {
+  getSafeRedirectTarget,
+  routeAuthenticatedUser,
+  useAuthenticatedUserRedirect,
+} from './useLoginRedirect';
+import { useOAuthLogin } from './useOAuthLogin';
+
+maybeCompleteAuthSession();
+
+const MFA_ROUTE = '/mfa' as Href;
+
+export function useLoginScreen() {
+  const router = useRouter();
+  const { redirectTo } = useLocalSearchParams<{
+    redirectTo?: string | string[];
+  }>();
+  const dialog = useDialog();
+  const { user, isLoading: authLoading, refetch } = useAuth();
+  const postLoginRedirect = getSafeRedirectTarget(redirectTo);
+
+  useAuthenticatedUserRedirect({
+    authLoading,
+    user,
+    router,
+    postLoginRedirect,
+  });
+
+  const completeSuccessfulLogin = useCallback(
+    async (authenticatedUser: User) => {
+      await refetch(false);
+      routeAuthenticatedUser({
+        authenticatedUser,
+        router,
+        postLoginRedirect,
+      });
+    },
+    [postLoginRedirect, refetch, router],
+  );
+
+  const routeToMfa = useCallback(
+    (pending: MfaLoginPending, replace = false) => {
+      setPendingMfaLogin({ ...pending, redirectTo: postLoginRedirect });
+      if (replace) {
+        router.replace(MFA_ROUTE);
+        return;
+      }
+      router.push(MFA_ROUTE);
+    },
+    [postLoginRedirect, router],
+  );
+
+  const { control, emailRef, submit } = useLoginForm({
+    dialog,
+    completeSuccessfulLogin,
+    handleMfaPending: (pending) => routeToMfa(pending),
+  });
+
+  const showAccountAlreadyRegisteredDialog = useCallback(() => {
+    dialog.alert({
+      title: 'Email already registered',
+      message:
+        'An account with this email already exists. Sign in with your email and password below, then link your account from your profile settings.',
+      buttons: [
+        { text: 'Cancel' },
+        { text: 'Sign in with password', onPress: () => emailRef.current?.focus() },
+      ],
+    });
+  }, [dialog, emailRef]);
+
+  const { handleOAuthLogin } = useOAuthLogin({
+    dialog,
+    completeSuccessfulLogin,
+    showAccountAlreadyRegisteredDialog,
+    postLoginRedirect,
+    handleMfaPending: (pending) => routeToMfa(pending, true),
+  });
+
+  return {
+    form: {
+      control,
+      emailRef,
+      submit,
+    },
+    actions: {
+      browseProducts: () => router.replace('/products'),
+      goToForgotPassword: () => router.push('/forgot-password'),
+      goToCreateAccount: () => router.push('/new-account'),
+      loginWithGoogle: () => handleOAuthLogin('google'),
+      loginWithGithub: () => handleOAuthLogin('github'),
+    },
+  };
+}

@@ -1,0 +1,50 @@
+# Relab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab encrypted backup (%i)
+Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
+Requires=docker.service
+After=docker.service
+# Bound retries: at RestartSec=15min the default start-limit window (5 in 10s) can
+# never trip, so a persistently failing backup — expired offsite credential, broken
+# repo — would otherwise run a full pg_dump + prune + check ~96x/day forever, flapping
+# the /fail ping hourly. Three tries, then the unit lands in `failed`, which the
+# watchdog's timer check reports once and clearly.
+StartLimitIntervalSec=1d
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=relab
+WorkingDirectory=/opt/relab
+# Dead-man's-switch URL, one per job. Host-local and never committed; `-` means the
+# file is optional and a missing one simply disables pinging.
+EnvironmentFile=-/etc/relab/relab.env
+Environment=JUST_BIN=/usr/bin/just
+ExecStart=/opt/relab/scripts/run_scheduled.sh backup %i
+TimeoutStartSec=7200
+# `compose run` starts a container that is a child of dockerd, NOT of this unit's
+# cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
+# holding a plaintext pg_dump, the 0400 secret copies, and internet egress. Reap it.
+ExecStopPost=-/usr/bin/docker rm -f relab-backup-%i
+# One transient fault would otherwise cost a full day of RPO, since this fires daily.
+Restart=on-failure
+RestartSec=15min
+# CPU: niced, so it still gets a guaranteed slice, just a small one.
+Nice=10
+# I/O: best-effort/7, deliberately NOT idle. A host that also runs compute jobs can keep
+# the best-effort class saturated for hours, and under `idle` the kernel serves this only
+# when nothing else has pending I/O — starving the backup until the timeout kills it.
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+# Nothing: triggered by relab-backup@%i.timer, never enabled directly.

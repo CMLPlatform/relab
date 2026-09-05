@@ -1,0 +1,25 @@
+# Relab scheduled job: backup restore verification. Instance is the environment, e.g. relab-restore-check@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab backup restore verification schedule (%i)
+
+[Timer]
+# 06:00, not the small hours next to the backup: relab-backup@ fires at 02:30 with a
+# 2h timeout, and its `restic forget --prune` deletes pack files — racing that with
+# this job's --no-lock restore yields a spurious failure on the one check that proves
+# snapshots actually restore. systemd serializes a unit against itself, never against
+# another unit, so the gap in the calendar is the lock.
+OnCalendar=*-*-01 06:00:00
+Persistent=true
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target

@@ -1,7 +1,5 @@
 """Shared OpenAPI examples used across multiple API domains."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:

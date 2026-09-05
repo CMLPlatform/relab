@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from sqlalchemy import func, select
 
-from app.api.background_data.models import Category, TaxonomyDomain
+from app.api.reference_data.models import Category, TaxonomyDomain
 from app.core.logging import setup_logging
 from scripts.db.sync import sync_session_context
 from scripts.seed.taxonomies.common import get_or_create_taxonomy, seed_categories_from_rows
@@ -66,7 +66,7 @@ def load_hs_rows_from_csv(csv_path: Path) -> list[dict[str, Any]]:
 
             rows.append(
                 {
-                    "external_id": row["hscode"].strip(),  # spell-checker: ignore hscode
+                    "external_id": row["hscode"].strip(),
                     "name": row["description"].strip()[:250],  # Truncate to 250 chars to fit DB
                     "parent_id": row["parent"].strip(),
                 }
@@ -118,7 +118,7 @@ def seed_taxonomy() -> None:
         # Commit
         session.commit()
         logger.info(
-            "✓ Added %s taxonomy (version %s) with %d categories and %d relationships",
+            "✅ Added %s taxonomy (version %s) with %d categories and %d relationships",
             TAXONOMY_NAME,
             TAXONOMY_VERSION,
             cat_count,

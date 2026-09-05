@@ -1,28 +1,17 @@
 ---
-title: Dataset Documentation
-description: The intended path from live RELab records to curated dataset releases.
-owner: docs
-status: reviewed
-lastReviewed: '2026-04-15'
+title: Dataset
+description: How to browse current Relab records and how curated dataset releases will differ.
 ---
 
-<div class="relab-section-intro">
-RELab is intended to support a public dataset of disassembled durable goods. The platform is the operational system; the dataset is the curated research output derived from it.
-</div>
+Current Relab records can be browsed in the production app:
+[app.cml-relab.org](https://app.cml-relab.org).
 
-<div class="grid cards relab-card-grid" markdown>
+The app shows the live, evolving records. A curated dataset release is different: a reviewed,
+versioned snapshot with clear scope, metadata, and licensing, suitable for citation and reuse.
 
-- **Source**: Live platform records and media
-- **Output**: Curated public dataset releases
-- **Use**: Industrial ecology, circular economy, and AI-related research
+## What a release will contain
 
-</div>
-
-## Why It Matters
-
-The dataset layer is where live RELab records become a citable research output: a curated, versioned snapshot with explicit provenance, scope, and licensing, decoupled from the operational database. Keeping that boundary sharp is what makes the data reusable beyond the project — for benchmarking, comparative studies, and integration with other industrial-ecology infrastructures.
-
-Likely data elements include:
+Expected data elements:
 
 - product metadata
 - component hierarchies
@@ -30,26 +19,29 @@ Likely data elements include:
 - material and category annotations
 - measurements and observational notes
 
-Likely uses include:
+Expected uses:
 
 - computer vision and image-based classification tasks
 - circular economy and design-for-disassembly studies
 - material composition analysis
 - comparative studies across product families or brands
-- industrial ecology and LCA-oriented work that depends on better primary product data
-- linking with other open IE and CE data infrastructures
+- industrial ecology and LCA-oriented work that depends on primary product data
+- linking with other open industrial-ecology data infrastructures
 
-## Access and Publication Status
+## Access
 
-The intention is to publish the dataset openly. The publication workflow is still maturing, so the most reliable technical interface right now is the live API rather than a formal release portal.
+Current records can be explored in the app or through the API. For technical access, see the
+[API reference overview](/api-reference/) or go directly to the
+[public API reference](/api/public/).
 
-[API Access](https://api.cml-relab.org/docs)
+Curated releases will have a defined scope, version, and license, so they can be cited and linked
+with other open industrial-ecology datasets. The planned license is
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). No release has been published yet.
 
-A browsable dataset portal and curated downloadable releases are planned.
+The [dataset codebook](/project/codebook/) documents every file and column a release carries, so
+the shape of one can be read before the first release exists.
 
-In the broader project vision, dataset publication is not only an output step. It is also part of building an open industrial ecology data commons that others can inspect, reuse, compare, and extend.
-
-## Dublin Core Metadata
+## Dublin Core metadata
 
 Following the [Dublin Core specifications](https://www.dublincore.org/specifications/dublin-core/):
 
@@ -61,18 +53,45 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 | Publisher   | Leiden University. Institute of Environmental Sciences (CML)                                                                          |
 | Subjects    | Computer vision, Circular economy, Remanufacturing, Life cycle assessment, Durable goods                                              |
 | Description | Data collection platform for disassembled power tool images and metadata supporting computer vision tasks for life cycle assessments. |
-| Date        | 2025-03                                                                                                                               |
+| Date        | 2025-03/2026-08 (collection ongoing)                                                                                                  |
 | Types       | Dataset, Image, Software                                                                                                              |
 | Formats     | text/csv, image/jpeg, application/x-python, text/markdown                                                                             |
 | Identifier  | <https://github.com/CMLPlatform/relab>                                                                                                |
 | Language    | en-US                                                                                                                                 |
-| Coverage    | Products: Power tools; Time: 2025-; Geographic location: NL                                                                           |
-| Rights      | <https://opendatacommons.org/licenses/odbl/>                                                                                          |
+| Coverage    | Products: Power tools; Time: 2025-03–2026-08, ongoing; Geographic location: NL                                                        |
+| Rights      | <https://creativecommons.org/licenses/by/4.0/>                                                                                        |
 
-## License
+## Building and depositing a release
 
-The intended dataset license is the [Open Database License (ODbL)](https://opendatacommons.org/licenses/odbl/1-0/). Published dataset releases will be the authoritative source for exact licensing, scope, and versioning.
+(For maintainers.) The build and deposit pipeline lives in `backend/scripts/` and runs from
+`backend/`:
+
+1. `just release-build --inventory` — a dry run across every consenting account: writes nothing,
+   just reports what a release would contain. "Consenting" means the owner accepted the
+   contributor terms at the version that grants the publication licence; everyone else is
+   excluded by the `no-terms-acceptance` rule and appears in `excluded-records.csv`.
+   Accounts created before acceptance was tracked hold no grant until they answer the in-app
+   prompt, so the consenting set grows as contributors sign in. Declining is free and costs a
+   contributor nothing except inclusion, so expect it to be a real outcome rather than a
+   formality.
+1. `just release-build --out dist/dataset-vX.Y` — builds the release directory. The verification
+   pass at the end is not optional; it fails the build rather than warning.
+1. Review `dist/dataset-vX.Y/review/` by hand, including `excluded-records.csv` and the rule that
+   excluded each record. This directory is not part of the published archive.
+1. The pseudonymisation salt comes from `RELAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or
+   `secrets/<env>/dataset_pseudonym_salt`; keep the same salt for every future release so owner
+   pseudonyms stay stable across versions.
+1. `uv run python -m scripts.zenodo_deposit --dir dist/dataset-vX.Y` creates or versions a Zenodo
+   *draft*. Add `--deposition <id>` to resume uploading into an existing draft rather than starting
+   a new one. The token is read from `secrets/<env>/zenodo_token` (or `ZENODO_TOKEN` for a one-off
+   run).
+1. Inspect the draft in the Zenodo web UI, then publish explicitly with
+   `--deposition <id> --publish`. Publication is irreversible — a published record can be
+   tombstoned but never withdrawn or edited — so this prompts before it sends anything.
+
+Full flags: `just release-build --help` and `uv run python -m scripts.zenodo_deposit --help`.
 
 ## Contact
 
-For questions about using the dataset or platform, contact [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).
+For questions about using the dataset or platform, contact
+[relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).

@@ -1,7 +1,5 @@
 """Centralized OpenAPI examples for data-collection schemas and routers."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.api.common.openapi_examples import openapi_example, openapi_examples
@@ -15,13 +13,15 @@ PRODUCT_CREATE_BASE_EXAMPLE = {
     "description": "Complete chair assembly",
     "brand": "Brand 1",
     "model": "Model 1",
-    "dismantling_time_start": "2025-09-22T14:30:45Z",
-    "dismantling_time_end": "2025-09-22T16:30:45Z",
     "product_type_id": 1,
     "weight_g": 20000,
     "height_cm": 150,
     "width_cm": 70,
     "depth_cm": 50,
+    "circularity_properties": {
+        "recyclability": "Metal frame and plastic shell can be separated with basic tools.",
+        "disassemblability": "Most fasteners are visible and non-destructive to remove.",
+    },
     "videos": [{"url": "https://www.youtube.com/watch?v=123456789", "description": "Disassembly video"}],
     "bill_of_materials": [
         {"quantity": 0.3, "unit": "g", "material_id": 1},
@@ -37,8 +37,6 @@ PRODUCT_CREATE_WITH_COMPONENTS_EXAMPLE = {
             "description": "Seat assembly",
             "brand": "Brand 2",
             "model": "Model 2",
-            "dismantling_time_start": "2025-09-22T14:30:45Z",
-            "dismantling_time_end": "2025-09-22T16:30:45Z",
             "amount_in_parent": 1,
             "product_type_id": 2,
             "weight_g": 5000,

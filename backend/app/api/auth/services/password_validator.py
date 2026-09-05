@@ -6,16 +6,31 @@ in services rather than fastapi-users hooks.
 
 import hashlib
 import logging
+import unicodedata
 
-import zxcvbn as zxcvbn_checker
 from fastapi_users import InvalidPasswordException
 from httpx import AsyncClient, HTTPError
 from pydantic import SecretStr
 
+from app.api.auth.services.common_password_checker import CommonPasswordChecker, load_local_common_passwords
+
 logger = logging.getLogger(__name__)
 
-# zxcvbn score threshold: 0=very weak, 1=weak, 2=fair, 3=good, 4=strong
-MIN_PASSWORD_STRENGTH_SCORE = 1
+MIN_PASSWORD_LENGTH = 12
+MIN_CONTEXT_TOKEN_LENGTH = 3
+
+
+def _normalize_for_validation(value: str) -> str:
+    """Normalize user-controlled strings before validation comparisons."""
+    return unicodedata.normalize("NFC", value).casefold()
+
+
+def _password_contains_context(password: str, value: str | None) -> bool:
+    """Return whether the normalized password contains a normalized account value."""
+    if not value:
+        return False
+    normalized_value = _normalize_for_validation(value)
+    return len(normalized_value) >= MIN_CONTEXT_TOKEN_LENGTH and normalized_value in password
 
 
 async def check_pwned_password(password: str, http_client: AsyncClient) -> int:
@@ -53,6 +68,7 @@ async def validate_password(
     username: str | None = None,
     http_client: AsyncClient | None = None,
     skip_breach_check: bool = False,
+    common_password_checker: CommonPasswordChecker | None = None,
 ) -> None:
     """Validate password meets security requirements.
 
@@ -62,19 +78,21 @@ async def validate_password(
     if isinstance(password, SecretStr):
         password = password.get_secret_value()
 
-    if len(password) < 8:
-        raise InvalidPasswordException(reason="Password should be at least 8 characters")
-    if email in password:
-        raise InvalidPasswordException(reason="Password should not contain e-mail")
-    if username and username in password:
-        raise InvalidPasswordException(reason="Password should not contain username")
+    normalized_password = _normalize_for_validation(password)
+    normalized_email = _normalize_for_validation(email)
+    email_local_part = normalized_email.partition("@")[0]
 
-    # Strength check: reject passwords that are too guessable
-    user_inputs = [s for s in [email, username] if s]
-    result = zxcvbn_checker.zxcvbn(password, user_inputs=user_inputs)
-    if result["score"] < MIN_PASSWORD_STRENGTH_SCORE:
-        feedback = result.get("feedback", {}).get("warning") or "try a longer phrase or mix of characters"
-        raise InvalidPasswordException(reason=f"Password is too weak: {feedback}")
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise InvalidPasswordException(reason=f"Password should be at least {MIN_PASSWORD_LENGTH} characters")
+    if normalized_email in normalized_password or _password_contains_context(normalized_password, email_local_part):
+        raise InvalidPasswordException(reason="Password should not contain e-mail")
+    if _password_contains_context(normalized_password, username):
+        raise InvalidPasswordException(reason="Password should not contain username")
+    if common_password_checker is not None:
+        if await common_password_checker.matches(password):
+            raise InvalidPasswordException(reason="Password is too common")
+    elif load_local_common_passwords().matches(password):
+        raise InvalidPasswordException(reason="Password is too common")
 
     if not skip_breach_check and http_client:
         breach_count = await check_pwned_password(password, http_client)

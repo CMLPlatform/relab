@@ -1,0 +1,40 @@
+---
+
+import ContentPage from '@/components/ContentPage.astro';
+import { privacyContent } from '@/copy/privacy-content.ts';
+import Layout from '@/layouts/Layout.astro';
+---
+
+<Layout title={privacyContent.title} description={privacyContent.description}>
+  <ContentPage
+    title={privacyContent.title}
+    meta={privacyContent.lastUpdated}
+    intro={privacyContent.intro}
+  >
+    <section>
+      {
+        privacyContent.sections.map((section) => (
+          <article class="section">
+            <h2>{section.title}</h2>
+            {section.paragraphs.map((paragraph) =>
+              typeof paragraph === 'string' ? (
+                <p>{paragraph}</p>
+              ) : (
+                <p>
+                  <strong>{`${paragraph.label}:`}</strong>{' '}
+                  {paragraph.link ? (
+                    <>
+                      <a href={paragraph.link.href}>{paragraph.link.text}</a> {paragraph.text}
+                    </>
+                  ) : (
+                    paragraph.text
+                  )}
+                </p>
+              ),
+            )}
+          </article>
+        ))
+      }
+    </section>
+  </ContentPage>
+</Layout>

@@ -1,0 +1,126 @@
+import { openAuthSessionAsync } from 'expo-web-browser';
+import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { parseApiErrorDetail } from '@/services/api/errors';
+
+const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000;
+const ALLOWED_OAUTH_HOSTNAMES = new Set(['accounts.google.com', 'github.com']);
+const LEADING_HASH_PATTERN = /^#/;
+
+export type OAuthSessionResult = Awaited<ReturnType<typeof openAuthSessionAsync>>;
+
+export type OAuthCallbackResult = {
+  status: 'success' | 'error' | 'mfa_required';
+  error?: string;
+  mfaHandoff?: string;
+};
+
+export function buildOAuthAuthorizeUrl(pathname: string, redirectUri: string) {
+  return `${pathname}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+}
+
+export function isAllowedOAuthRedirectUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && ALLOWED_OAUTH_HOSTNAMES.has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): boolean {
+  try {
+    const actual = new URL(url);
+    const expected = new URL(redirectUri);
+    return (
+      actual.protocol === expected.protocol &&
+      actual.host === expected.host &&
+      actual.pathname === expected.pathname
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult | undefined {
+  // The association flows hand us the browser session's URL unvalidated, so a
+  // malformed one must read as "no callback here" rather than throw — same shape
+  // as the two guards above.
+  let callbackUrl: URL;
+  try {
+    callbackUrl = new URL(url);
+  } catch {
+    return undefined;
+  }
+
+  const params = new URLSearchParams(callbackUrl.hash.replace(LEADING_HASH_PATTERN, ''));
+  const status = params.get('status');
+  const error = params.get('error');
+  const mfaHandoff = params.get('mfa_handoff');
+
+  // Not an OAuth callback fragment (e.g. an anchor link or tracking hash on
+  // /login) — return undefined so callers don't surface a spurious failure.
+  if (status === null && error === null && mfaHandoff === null) return undefined;
+
+  return {
+    status: status === 'success' || status === 'mfa_required' ? status : 'error',
+    error: error ?? undefined,
+    mfaHandoff: mfaHandoff ?? undefined,
+  };
+}
+
+export async function fetchOAuthAuthorizationUrl(
+  authorizeUrl: string,
+  stepUp?: { currentPassword?: string },
+) {
+  // fetchWithAuth attaches the bearer token when a session exists (association
+  // flows) and is a plain fetch when none does (login flows).
+  //
+  // Association authorize is a POST: linking a provider changes how the account can be
+  // signed into, so the server requires the account password (step-up), which must
+  // travel in a body rather than a query string. Login authorize stays a GET.
+  const init = stepUp
+    ? {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          stepUp.currentPassword ? { current_password: stepUp.currentPassword } : {},
+        ),
+      }
+    : {};
+  const response = await fetchWithAuth(authorizeUrl, init);
+  const payload = await response.json().catch(() => null);
+
+  return {
+    ok: response.ok,
+    status: response.status,
+    detail: parseApiErrorDetail(payload),
+    authorizationUrl:
+      payload && typeof payload === 'object' && 'authorization_url' in payload
+        ? String((payload as { authorization_url: unknown }).authorization_url)
+        : undefined,
+  };
+}
+
+export async function openOAuthBrowserSession(
+  authorizationUrl: string,
+  redirectUri: string,
+  timeoutMs = OAUTH_BROWSER_TIMEOUT_MS,
+) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(
+      () => reject(new Error('OAuth browser session timed out. Please try again.')),
+      timeoutMs,
+    );
+  });
+
+  try {
+    return (await Promise.race([
+      openAuthSessionAsync(authorizationUrl, redirectUri),
+      timeoutPromise,
+    ])) as OAuthSessionResult;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}

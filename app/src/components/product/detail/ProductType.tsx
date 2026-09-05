@@ -1,0 +1,101 @@
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
+import DetailSectionHeader from '@/components/base/DetailSectionHeader';
+import CPVCard from '@/components/product/CPVCard';
+import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
+import { loadCPV } from '@/services/cpv';
+import type { CPVCategory } from '@/types/CPVCategory';
+import { entityLabel, type Product, typeRowLabels } from '@/types/Product';
+
+interface Props {
+  product: Product;
+  editMode: boolean;
+  onTypeChange?: (newType: number) => void;
+}
+
+export default function ProductType({ product, editMode, onTypeChange }: Props) {
+  // Hooks
+  const router = useRouter();
+  const [selectedType, setSelectedType] = useState<CPVCategory | null>(null);
+
+  // When the category-selection screen pops back, apply the picked type. A
+  // module slot (not a URL param) so this also works for an unsaved draft, which
+  // has no [id] route to round-trip a param through.
+  useFocusEffect(
+    useCallback(() => {
+      const typeId = takePendingTypeSelection();
+      if (typeId !== null) onTypeChange?.(typeId);
+    }, [onTypeChange]),
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    loadCPV()
+      .then((cpv) => {
+        if (!isMounted) return;
+        // Never fall back to cpv.root — its {name: "undefined"} placeholder
+        // renders as a red "Category undefined" error card. An unresolvable
+        // (stale/unknown) type id resolves to null and renders nothing, not an
+        // error; the typeless (undefined id) case is handled by the guard below.
+        setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? null);
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [product.productTypeID]);
+
+  // Callback
+  const onTypeSelectionStart = () => {
+    if (!editMode) return;
+    router.push('/category-selection');
+  };
+
+  const labels = typeRowLabels(product.role);
+
+  // A sub-heading within the Overview section (not a duplicate of the
+  // Section title "Overview"); DetailSectionHeader already sits a step below it.
+  const header = (
+    <DetailSectionHeader
+      title={labels.title}
+      tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
+    />
+  );
+
+  // No type set: the CPV "root" entry is a placeholder ({name: "undefined"})
+  // that CPVCard renders as a red error card — showing that as the default
+  // first impression of a freshly captured record reads as a bug, not an
+  // empty state. In edit mode, invite the user to pick a type instead; in
+  // view mode, render nothing (the Section's own isEmpty check already hides
+  // the whole section when there's no other content to show).
+  if (product.productTypeID === undefined) {
+    if (!editMode) return null;
+    return (
+      <View>
+        {header}
+        <AppButton
+          variant="outline"
+          className="w-full"
+          accessibilityLabel={labels.choose}
+          onPress={onTypeSelectionStart}
+        >
+          {labels.choose}
+        </AppButton>
+      </View>
+    );
+  }
+
+  // Render
+  return (
+    <View>
+      {header}
+      {selectedType ? (
+        <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} />
+      ) : null}
+    </View>
+  );
+}

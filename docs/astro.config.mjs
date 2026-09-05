@@ -4,14 +4,15 @@ import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
 const MODE_SITES = {
-  dev: 'http://127.0.0.1:8000',
+  dev: 'http://127.0.0.1:8012',
   prod: 'https://docs.cml-relab.org',
   staging: 'https://docs-test.cml-relab.org',
-  test: 'http://127.0.0.1:4300',
+  test: 'http://127.0.0.1:18012',
 };
 const MODE_FLAG = '--mode';
 const CUSTOM_CSS = [
-  './src/styles/tokens.css',
+  './src/styles/brand.css',
+  './src/styles/tokens.generated.css',
   './src/styles/base.css',
   './src/styles/components.css',
 ];
@@ -19,11 +20,17 @@ const HEAD_LINKS = [
   {
     tag: 'link',
     attrs: {
-      rel: 'preload',
-      href: '/fonts/space-grotesk-latin.woff2',
-      as: 'font',
-      type: 'font/woff2',
-      crossorigin: true,
+      rel: 'icon',
+      href: '/images/favicon.svg',
+      type: 'image/svg+xml',
+    },
+  },
+  {
+    tag: 'link',
+    attrs: {
+      rel: 'apple-touch-icon',
+      href: '/images/apple-touch-icon.png',
+      sizes: '180x180',
     },
   },
   {
@@ -42,50 +49,61 @@ const SIDEBAR = [
   {
     label: 'Guides',
     items: [
-      { label: 'Getting Started', slug: 'user-guides/getting-started' },
-      { label: 'Data Collection', slug: 'user-guides/data-collection' },
+      { label: 'Getting started', slug: 'user-guides/getting-started' },
+      { label: 'Data collection', slug: 'user-guides/data-collection' },
+      { label: 'Glossary', slug: 'user-guides/glossary' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
-      { label: 'RPI Camera', slug: 'user-guides/rpi-cam' },
+      { label: 'RPi camera', slug: 'user-guides/rpi-cam' },
       { label: 'API', slug: 'user-guides/api' },
     ],
   },
   {
     label: 'Architecture',
     items: [
-      { label: 'System Design', slug: 'architecture/system-design' },
-      { label: 'Data Model', slug: 'architecture/datamodel' },
-      { label: 'API Structure', slug: 'architecture/api' },
+      { label: 'System design', slug: 'architecture/system-design' },
+      { label: 'App navigation flow', slug: 'architecture/app-flow' },
+      { label: 'Data model', slug: 'architecture/datamodel' },
+      { label: 'API structure', slug: 'architecture/api' },
+      { label: 'API reference', slug: 'api-reference' },
       { label: 'Authentication', slug: 'architecture/auth' },
-      { label: 'RPI Camera Plugin', slug: 'architecture/rpi-cam' },
-      { label: 'Deployment', slug: 'architecture/deployment' },
-      { label: 'Install & Self-Host', slug: 'architecture/install' },
-      { label: 'C4 Diagrams', slug: 'architecture/c4-diagrams' },
-      { label: 'Engineering Config', slug: 'architecture/engineering-config' },
-      { label: 'Engineering Ops', slug: 'architecture/engineering-ops' },
+      { label: 'RPi camera plugin', slug: 'architecture/rpi-cam' },
+    ],
+  },
+  {
+    label: 'Operations',
+    items: [
+      { label: 'Install and self-host', slug: 'operations/install' },
+      { label: 'Deployment', slug: 'operations/deployment' },
+      { label: 'Security and hardening', slug: 'operations/security' },
     ],
   },
   {
     label: 'Project',
     items: [
-      { label: 'Use Cases', slug: 'project/use-cases' },
+      { label: 'Use cases', slug: 'project/use-cases' },
       { label: 'Roadmap', slug: 'project/roadmap' },
       { label: 'Dataset', slug: 'project/dataset' },
+      { label: 'Dataset codebook', slug: 'project/codebook' },
+      { label: 'Licensing', slug: 'project/licensing' },
     ],
   },
 ];
 const STARLIGHT_OPTIONS = {
-  title: 'Reverse Engineering Lab',
-  description: 'Technical documentation for the Reverse Engineering Lab research platform.',
-  disable404Route: true,
+  title: 'Relab docs',
+  description: 'Technical documentation for the Relab research platform.',
   logo: {
-    src: './public/images/logo.png',
-    alt: 'Reverse Engineering Lab logo',
+    src: './public/images/wordmark.svg',
+    alt: 'Relab',
+    replacesTitle: true,
   },
-  favicon: '/images/favicon.ico',
+  favicon: '/images/favicon.svg',
   titleDelimiter: '·',
   lastUpdated: true,
   pagefind: true,
-  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' }],
+  social: [
+    { icon: 'external', label: 'Open Relab app', href: 'https://app.cml-relab.org' },
+    { icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' },
+  ],
   editLink: {
     baseUrl: 'https://github.com/CMLPlatform/relab/edit/main/docs/',
   },
@@ -94,24 +112,36 @@ const STARLIGHT_OPTIONS = {
   sidebar: SIDEBAR,
   components: {
     Head: './src/components/Head.astro',
+    SiteTitle: './src/components/SiteTitle.astro',
+    SocialIcons: './src/components/SocialIcons.astro',
   },
 };
 const modeFlagIndex = process.argv.indexOf(MODE_FLAG);
-const buildMode = modeFlagIndex >= 0 ? process.argv[modeFlagIndex + 1] : 'prod';
-const site = MODE_SITES[buildMode] ?? MODE_SITES.prod;
+let buildMode = 'prod';
+if (modeFlagIndex >= 0) {
+  buildMode = process.argv[modeFlagIndex + 1];
+}
+const site = process.env.PUBLIC_DOCS_URL?.trim() || MODE_SITES[buildMode] || MODE_SITES.prod;
 
 export default defineConfig({
   site,
   vite: {
-    build: {
-      // Mermaid is lazy-loaded and currently ships a minified chunk just over Vite's default warning threshold.
-      chunkSizeWarningLimit: 650,
+    server: {
+      watch: {
+        ignored: [
+          '**/.astro/**',
+          '**/dist/**',
+          '**/node_modules/**',
+          '**/playwright-report/**',
+          '**/test-results/**',
+        ],
+      },
     },
-  },
-  redirects: {
-    '/guides': '/user-guides/',
-    '/reference': '/architecture/',
-    '/explanation': '/architecture/system-design/',
+    build: {
+      // Scalar API reference (~2.8M) and Mermaid ship large minified chunks, each
+      // isolated to its own lazy route; nothing to code-split, so suppress the warning.
+      chunkSizeWarningLimit: 3000,
+    },
   },
   integrations: [starlight(STARLIGHT_OPTIONS), mdx()],
 });

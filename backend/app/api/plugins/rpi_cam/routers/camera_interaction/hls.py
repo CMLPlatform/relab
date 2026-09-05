@@ -15,9 +15,6 @@ every segment/part URL the player dereferences (``cam-preview/segment0.mp4``,
 ``cam-preview/part0.mp4``, etc.) since LL-HLS resolves segments relative to
 the playlist URL.
 """
-# spell-checker: ignore muxer
-
-from __future__ import annotations
 
 import asyncio
 
@@ -25,18 +22,18 @@ from fastapi import HTTPException, Response
 from pydantic import UUID4
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam.constants import HttpMethod
-from app.api.plugins.rpi_cam.routers.camera_interaction.utils import (
-    build_camera_request,
-    get_user_owned_camera,
-)
-from app.core.redis import OptionalRedisDep
+from app.api.plugins.rpi_cam.runtime.relay import build_camera_request, get_user_owned_camera
+from app.core.redis import RedisDep
 
 # Exponential backoff for LL-HLS manifest 404 retries. Totals ~7.75s; fast at the
 # start for the hot path, longer tail for a cold MediaMTX warm-up.
 _MANIFEST_RETRY_BACKOFF_S: tuple[float, ...] = (0.25, 0.5, 1.0, 2.0, 4.0)
+_ALLOWED_HLS_SUFFIXES = (".m3u8", ".mp4", ".m4s")
+_ALLOWED_HLS_PATH_PUNCTUATION = frozenset("/._-")
+_PARENT_SEGMENT = ".."
 
 router = PublicAPIRouter()
 
@@ -57,9 +54,10 @@ async def proxy_hls(
     hls_path: str,
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> Response:
     """Proxy an LL-HLS URL through the camera's WebSocket relay."""
+    _validate_hls_path(hls_path)
     camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
     camera_request = build_camera_request(camera, redis)
 
@@ -81,7 +79,6 @@ async def proxy_hls(
                 endpoint=f"/preview/hls/{hls_path}",
                 method=HttpMethod.GET,
                 error_msg="Failed to fetch HLS data",
-                expect_binary=True,
             )
             break
         except HTTPException as exc:
@@ -102,6 +99,22 @@ async def proxy_hls(
             "Cache-Control": "no-store",
         },
     )
+
+
+def _validate_hls_path(hls_path: str) -> None:
+    """Reject paths that could escape the camera's HLS relay surface."""
+    segments = hls_path.split("/")
+    if (
+        not hls_path
+        or hls_path.startswith("/")
+        or _PARENT_SEGMENT in segments
+        or not hls_path.endswith(_ALLOWED_HLS_SUFFIXES)
+        or any(
+            not char.isascii() or (not char.isalnum() and char not in _ALLOWED_HLS_PATH_PUNCTUATION)
+            for char in hls_path
+        )
+    ):
+        raise HTTPException(status_code=400, detail="Invalid HLS path.")
 
 
 def _resolve_media_type(hls_path: str) -> str:

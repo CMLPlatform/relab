@@ -1,0 +1,252 @@
+// @vitest-environment happy-dom
+// biome-ignore-all lint/style/useGlobalThis: window is the correct reference for browser DOM APIs; happy-dom exposes localStorage/matchMedia on window, not globalThis.
+import { readFileSync } from 'node:fs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  applyTheme,
+  getStoredTheme,
+  initThemeControl,
+  resolveTheme,
+  STORAGE_KEY,
+  THEME_META_COLORS,
+} from './theme.ts';
+
+function mockMatchMedia(prefersDark: boolean) {
+  const listeners = new Set<() => void>();
+  const mql = {
+    matches: prefersDark,
+    media: '(prefers-color-scheme: dark)',
+    addEventListener: (_: string, cb: () => void) => listeners.add(cb),
+    removeEventListener: (_: string, cb: () => void) => listeners.delete(cb),
+    dispatchEvent: () => {
+      for (const cb of listeners) {
+        cb();
+      }
+      return true;
+    },
+  } as unknown as MediaQueryList;
+  window.matchMedia = vi.fn().mockReturnValue(mql);
+  return mql;
+}
+
+/** Mutates a mocked MediaQueryList's `matches`, which the type says is readonly. */
+function setMatches(mql: MediaQueryList, matches: boolean) {
+  (mql as unknown as { matches: boolean }).matches = matches;
+}
+
+beforeEach(() => {
+  window.localStorage.clear();
+  document.documentElement.removeAttribute('data-theme');
+  document.documentElement.removeAttribute('data-theme-preference');
+  document.head.innerHTML = '';
+  document.body.innerHTML = '';
+  mockMatchMedia(false);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('getStoredTheme', () => {
+  it('returns "system" when nothing is stored', () => {
+    expect(getStoredTheme()).toBe('system');
+  });
+
+  it('returns the stored theme when it is a valid name', () => {
+    window.localStorage.setItem(STORAGE_KEY, 'dark');
+    expect(getStoredTheme()).toBe('dark');
+  });
+
+  it('falls back to "system" for invalid stored values', () => {
+    window.localStorage.setItem(STORAGE_KEY, 'neon');
+    expect(getStoredTheme()).toBe('system');
+  });
+});
+
+describe('resolveTheme', () => {
+  it('returns explicit light/dark unchanged', () => {
+    expect(resolveTheme('light', mockMatchMedia(true))).toBe('light');
+    expect(resolveTheme('dark', mockMatchMedia(false))).toBe('dark');
+  });
+
+  it('resolves "system" from prefers-color-scheme', () => {
+    expect(resolveTheme('system', mockMatchMedia(true))).toBe('dark');
+    expect(resolveTheme('system', mockMatchMedia(false))).toBe('light');
+  });
+});
+
+describe('applyTheme', () => {
+  it('sets data attributes on the root element', () => {
+    applyTheme('dark');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(document.documentElement.dataset.themePreference).toBe('dark');
+  });
+
+  it('updates the dynamic theme-color meta tag when present', () => {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    meta.setAttribute('data-dynamic-theme', '');
+    document.head.append(meta);
+
+    applyTheme('dark');
+    expect(meta.getAttribute('content')).toBe('#0a0f1a');
+
+    applyTheme('light');
+    expect(meta.getAttribute('content')).toBe('#edf1f7');
+  });
+});
+
+describe('initThemeControl', () => {
+  function buildControl() {
+    document.body.innerHTML = `
+      <div data-theme-control>
+        <button data-theme-toggle type="button">Theme</button>
+      </div>
+    `;
+    const control = document.querySelector<HTMLElement>('[data-theme-control]');
+    const button = control?.querySelector<HTMLButtonElement>('button');
+    if (!(control && button)) {
+      throw new Error('buildControl: missing elements');
+    }
+    return { control, button };
+  }
+
+  it('cycles system → light → dark → system on click', () => {
+    const { button } = buildControl();
+    initThemeControl();
+
+    expect(getStoredTheme()).toBe('system');
+    button.click();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
+    button.click();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('dark');
+    button.click();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('system');
+  });
+
+  it('is idempotent when called twice', () => {
+    const { control, button } = buildControl();
+    initThemeControl();
+    initThemeControl();
+    expect(control.dataset.initialized).toBe('true');
+    button.click();
+    // Only one listener wired, so exactly one step forward.
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('light');
+  });
+
+  it('follows an OS theme change while the stored preference is "system"', () => {
+    const mql = mockMatchMedia(false);
+    buildControl();
+    initThemeControl();
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    setMatches(mql, true);
+    mql.dispatchEvent(new Event('change'));
+
+    expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  /**
+   * Answers both queries the toggle path asks about, independently; the shared
+   * mockMatchMedia above returns one result for every query, which would tie
+   * "prefers dark" and "prefers reduced motion" together.
+   */
+  function mockQueries({ prefersReducedMotion }: { prefersReducedMotion: boolean }) {
+    // These tests never fire a change event, so the listeners are inert stubs.
+    const ignoreListener = vi.fn();
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('reduced-motion') ? prefersReducedMotion : false,
+      media: query,
+      addEventListener: ignoreListener,
+      removeEventListener: ignoreListener,
+    })) as unknown as typeof window.matchMedia;
+  }
+
+  /** Stubs the View Transition API, capturing the swap without running it yet. */
+  function stubViewTransition() {
+    const startViewTransition = vi.fn((swap: () => void) => {
+      swap();
+      return { finished: Promise.resolve(), ready: Promise.resolve() };
+    });
+    (document as unknown as { startViewTransition: unknown }).startViewTransition =
+      startViewTransition;
+    return startViewTransition;
+  }
+
+  afterEach(() => {
+    (document as unknown as { startViewTransition?: unknown }).startViewTransition = undefined;
+  });
+
+  it('crossfades the theme swap through a View Transition', () => {
+    mockQueries({ prefersReducedMotion: false });
+    const startViewTransition = stubViewTransition();
+    const { button } = buildControl();
+    initThemeControl();
+
+    button.click();
+
+    expect(startViewTransition).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('applies the theme without a transition under reduced motion', () => {
+    mockQueries({ prefersReducedMotion: true });
+    const startViewTransition = stubViewTransition();
+    const { button } = buildControl();
+    initThemeControl();
+
+    button.click();
+
+    expect(startViewTransition).not.toHaveBeenCalled();
+    // The swap still has to happen; reduced motion drops the bridge, not the change.
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('applies the theme where the View Transition API is missing', () => {
+    mockQueries({ prefersReducedMotion: false });
+    const { button } = buildControl();
+    initThemeControl();
+
+    button.click();
+
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('does not transition the initial sync, only a deliberate toggle', () => {
+    mockQueries({ prefersReducedMotion: false });
+    const startViewTransition = stubViewTransition();
+    buildControl();
+
+    // Crossfading here would animate from a state the visitor never saw.
+    initThemeControl();
+
+    expect(startViewTransition).not.toHaveBeenCalled();
+  });
+
+  it('ignores an OS theme change once an explicit theme is stored', () => {
+    const mql = mockMatchMedia(false);
+    window.localStorage.setItem(STORAGE_KEY, 'light');
+    buildControl();
+    initThemeControl();
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    setMatches(mql, true);
+    mql.dispatchEvent(new Event('change'));
+
+    // Still light: an explicit preference isn't overridden by the OS.
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+});
+
+describe('THEME_META_COLORS', () => {
+  it('stays in sync with --relab-brand-theme-color in brand.css', () => {
+    const brandCss = readFileSync('src/styles/brand.css', 'utf8');
+    const token = brandCss.match(
+      /--relab-brand-theme-color:\s*light-dark\(\s*([^,\s]+)\s*,\s*([^)\s]+)\s*\)/,
+    );
+    expect(token).not.toBeNull();
+    expect(THEME_META_COLORS.light).toBe(token?.[1]);
+    expect(THEME_META_COLORS.dark).toBe(token?.[2]);
+  });
+});

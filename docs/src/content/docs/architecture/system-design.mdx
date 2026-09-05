@@ -1,169 +1,136 @@
 ---
-title: System Design
-description: Why RELab is split into separate frontends, backend services, and docs surfaces.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
+title: System design
+description: Why Relab is split into separate frontends, backend services, and docs surfaces.
 ---
 
-<div class="relab-section-intro">
-RELab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
-</div>
+Relab is split into a research app, a public website, and backend services so each part can evolve without forcing every workflow into one interface.
 
-## High-Level Architecture
+## High-level architecture
 
 ```mermaid
+---
+config:
+    layout: elk
+    elk:
+        nodePlacementStrategy: NETWORK_SIMPLEX
+---
+
 graph TD
-    Researcher[Researcher] -->|Data entry| FrontendApp[Expo App]
-    PublicUser[Public visitor] -->|Browses products| FrontendApp
-    PublicUser -->|Reads landing page| FrontendWeb[Astro Landing Page]
-    PublicUser -->|Reads docs| Docs[Astro Starlight Docs]
-    Admin[Admin] -->|Admin API calls| Backend[FastAPI Backend]
-
-    FrontendApp -->|API requests| Backend
-    FrontendWeb -->|Selected API usage| Backend
-    Backend -->|Cache + refresh tokens| Redis[(Redis)]
-    Backend -->|Queries| PostgreSQL[(PostgreSQL)]
-    Backend -->|Upload / process / delete| FileStorage[(File Storage)]
-    Backend -->|Transactional email| SMTP[SMTP]
-
-    subgraph AuthenticationLayer [Authentication Layer]
-        OAuthProviders[OAuth: GitHub, Google]
-        AuthSystem[Bearer/cookie auth + refresh tokens]
-        HIBP[Have I Been Pwned]
-    end
-
-    Researcher -->|Authenticates| AuthenticationLayer
-    Admin -->|Authenticates| AuthenticationLayer
-
-    Backend -->|Camera integration| RaspberryPi[RPI Camera API]
-    Backend -->|Optional streaming| YouTube[YouTube API]
-```
-
-<details>
-<summary>Styled architecture overview (ELK layout)</summary>
-
-```mermaid
-graph TD
-    Researcher["fa:fa-flask Researcher"] -->|Data entry| FrontendApp
-    PublicUser["fa:fa-globe Public Visitor"] -->|Browses products| FrontendApp
+    accTitle: Relab system architecture overview
+    accDescr: Researchers and public visitors reach the Expo app, Astro landing page, and Starlight docs frontends; the Expo app and admins call the FastAPI backend, which authenticates through OAuth and bearer/cookie auth, reads and writes PostgreSQL and Redis, manages file storage, and integrates with the RPi camera API and YouTube API.
+    Researcher["Researcher"] -->|Data entry| FrontendApp
+    PublicUser["Public visitor"] -->|Browses products| FrontendApp
     PublicUser -->|Reads landing page| FrontendWeb
     PublicUser -->|Reads docs| Docs
-    Admin["fa:fa-shield-halved Admin"] -->|Admin API calls| Backend
+    Admin["Admin"] -->|Admin API calls| Backend
 
-    subgraph Frontends [" "]
-        FrontendApp["fa:fa-mobile-screen Expo App"]
-        FrontendWeb["fa:fa-window-maximize Astro Landing Page"]
-        Docs["fa:fa-book Astro Starlight Docs"]
+    subgraph Frontends ["Frontends"]
+        FrontendApp["Expo app"]
+        FrontendWeb["Astro landing page"]
+        Docs["Astro Starlight docs"]
     end
 
     FrontendApp -->|API requests| Backend
-    FrontendWeb -->|Selected API usage| Backend
+    Backend["FastAPI backend"]
 
-    Backend["fa:fa-bolt FastAPI Backend"]
-
-    subgraph DataStores ["Data Stores"]
-        Redis[("fa:fa-gauge-high Redis")]
-        PostgreSQL[("fa:fa-database PostgreSQL")]
-        FileStorage[("fa:fa-hard-drive File Storage")]
+    subgraph DataStores ["Data stores"]
+        Redis[("Redis")]
+        PostgreSQL[("PostgreSQL")]
+        FileStorage[("File storage")]
     end
 
     Backend -->|Cache + refresh tokens| Redis
     Backend -->|Queries| PostgreSQL
     Backend -->|Upload / process / delete| FileStorage
 
-    subgraph Auth ["Authentication Layer"]
-        OAuthProviders["fa:fa-right-to-bracket OAuth: GitHub, Google"]
-        AuthSystem["fa:fa-key Bearer / cookie auth"]
+    subgraph Auth ["Authentication layer"]
+        OAuthProviders["OAuth: GitHub, Google"]
+        AuthSystem["Bearer / cookie auth"]
     end
 
     Researcher -->|Authenticates| Auth
     Admin -->|Authenticates| Auth
 
-    subgraph External ["External Services"]
-        RaspberryPi["fa:fa-camera RPI Camera API"]
-        YouTube["fa:fa-video YouTube API"]
+    subgraph External ["External services"]
+        RaspberryPi["RPi camera API"]
+        YouTube["YouTube API"]
     end
 
     Backend -->|Camera integration| RaspberryPi
     Backend -->|Optional streaming| YouTube
 
-    classDef actor fill:#e8f4f8,stroke:#2b6cb0,stroke-width:2px,color:#1a365d
-    classDef frontend fill:#f0fff4,stroke:#276749,stroke-width:1.5px,color:#1a4731
-    classDef backend fill:#fefcbf,stroke:#b7791f,stroke-width:2px,color:#5f4b0a
-    classDef datastore fill:#e9d8fd,stroke:#6b46c1,stroke-width:1.5px,color:#44337a
-    classDef auth fill:#fed7e2,stroke:#b83280,stroke-width:1.5px,color:#702459
-    classDef external fill:#feebc8,stroke:#c05621,stroke-width:1.5px,color:#7b341e
+    %% Diagram palette from assets/DESIGN.md (categorical ramp)
+    classDef actor fill:#e3ecfa,stroke:#1f4c96,stroke-width:2px,color:#143567
+    classDef frontend fill:#e0f2ed,stroke:#0e6b5e,stroke-width:1.5px,color:#0a4f45
+    classDef backend fill:#f7ecd4,stroke:#8f6212,stroke-width:2px,color:#5c3f0a
+    classDef datastore fill:#ede6f7,stroke:#6d4fa3,stroke-width:1.5px,color:#44337a
+    classDef auth fill:#f1f4f8,stroke:#5a6675,stroke-width:1.5px,color:#16202e
+    classDef external fill:#f9e7de,stroke:#a8542f,stroke-width:1.5px,color:#6e371f
 
     class Researcher,PublicUser,Admin actor
     class FrontendApp,FrontendWeb,Docs frontend
     class Backend backend
     class Redis,PostgreSQL,FileStorage datastore
-    class OAuthProviders,AuthSystem,HIBP auth
-    class SMTP,RaspberryPi,YouTube external
+    class OAuthProviders,AuthSystem auth
+    class RaspberryPi,YouTube external
 ```
 
-</details>
-
-For formal C4 architecture views (Context, Container, Component), see [C4 Architecture Diagrams](../c4-diagrams/).
-
-## Monorepo Structure
+## Monorepo structure
 
 - `backend/`: main API, persistence, auth, file handling, and plugin integration
-- `frontend-app/`: authenticated mobile-first data collection client built with Expo Router
-- `frontend-web/`: landing page built with Astro
+- `app/`: authenticated mobile-first data collection client built with Expo Router
+- `www/`: landing page built with Astro
 - `docs/`: documentation site
 - Compose files at the repository root coordinate local and deployed multi-service setups
 
-## Technology Choices
+## Technology choices
 
-- **Backend API**: FastAPI
-- **Persistence layer**: SQLAlchemy 2.0 + Pydantic
-- **Database**: PostgreSQL
-- **Migrations**: Alembic
-- **Caching and token infrastructure**: Redis
-- **Research app frontend**: Expo / React Native
-- **Public web frontend**: Astro
-- **Docs site**: Astro Starlight
+| Concern                          | Choice                    |
+| -------------------------------- | ------------------------- |
+| Backend API                      | FastAPI                   |
+| Persistence layer                | SQLAlchemy 2.0 + Pydantic |
+| Database                         | PostgreSQL                |
+| Migrations                       | Alembic                   |
+| Caching and token infrastructure | Redis                     |
+| Research app frontend            | Expo / React Native       |
+| Public web frontend              | Astro                     |
+| Docs site                        | Astro Starlight           |
 
-These choices keep the stack relatively small and understandable, while still supporting public access, API interoperability, and later AI-assisted workflows.
+These choices keep the stack small enough to understand and operate without dedicated infrastructure work.
 
-## Backend Domain Structure
+## Security architecture
 
-The backend is organised mainly by domain rather than by HTTP verb alone:
+Relab is a single backend application, not a microservice fleet: authorization lives in FastAPI route dependencies, public traffic enters through Cloudflare Tunnel, and PostgreSQL and Redis stay on internal networks. The full trust-boundary model, asset inventory, and hardening posture are documented in [Security and hardening](/operations/security/).
+
+## Backend domain structure
+
+The backend is organized mainly by domain:
 
 ```sh
 app/
 ├── api/
-│   ├── auth/             # Login, registration, OAuth, users, organizations
-│   ├── background_data/  # Taxonomies, categories, materials, product types, units
+│   ├── auth/             # Login, registration, OAuth, users
+│   ├── reference_data/   # Taxonomies, categories, materials, product types, units
 │   ├── data_collection/  # Products, components, search, related properties
 │   ├── file_storage/     # Uploaded files, images, linked media records
-│   ├── newsletter/       # Newsletter subscription flows
 │   ├── plugins/          # Optional integrations such as rpi_cam
+│   ├── stats/            # Aggregate public totals, series, and category stats
 │   └── common/           # Shared routers, helpers, exceptions
 ├── core/                 # Runtime configuration, DB, cache, logging, HTTP clients
 ├── static/               # Static assets served by the backend
 └── templates/            # Email and HTML templates
 ```
 
-## Runtime Behavior
-
-At startup the backend:
-
-- validates security-sensitive configuration
-- initializes Redis and API caching
-- creates storage directories for uploads
-- mounts static and upload-backed routes
-- prepares shared outbound HTTP clients
-- starts background cleanup infrastructure
-
-## Design Priorities
+## Design priorities
 
 - keep the data model explicit and inspectable
 - support authenticated data entry from a dedicated app
 - allow public and private API surfaces to coexist
 - preserve a path toward dataset publication and external reuse
-- support FAIR-style reuse through open interfaces and documented structure
-- keep the data model suitable for later benchmarking and AI-assisted enrichment
-- avoid unnecessary infrastructure complexity for a PhD-scale project
+- keep identifiers and exports stable enough to link with other datasets
+- avoid infrastructure complexity that isn't justified by the project scale
+
+Relab is a modular monolith, and stays one until a real deployment or runtime
+boundary justifies a split. The backend is organized around explicit bounded
+contexts: identity and access, data collection, reference data, media and
+storage, statistics, and device integration.

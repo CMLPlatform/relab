@@ -2,8 +2,6 @@
 # Run `just --list` to see all available commands
 # Run from root: `just backend/<recipe>` or from backend/: `just <recipe>`
 
-# spell-checker: ignore esac, htmlcov
-
 # Show available recipes
 default:
     @just --list
@@ -17,8 +15,8 @@ install:
     uv sync --all-groups --frozen
 
 # Start development server
-dev PORT="8000":
-    uv run uvicorn app.main:app --reload --reload-dir app --port {{ PORT }}
+dev PORT="8010":
+    uv run uvicorn app.main:app --reload --reload-dir app --port {{ quote(PORT) }}
 
 # ============================================================================
 # Linting & Formatting
@@ -44,9 +42,9 @@ typecheck:
     uv run --all-groups ty check
 
 # Run the fast backend quality gate (no database required)
-check: lint typecheck
+check: lint typecheck openapi-check datamodel-check email-check
     uv run ruff format --check
-    @echo "✓ Backend checks passed"
+    @echo "✅ Backend checks passed"
 
 # ============================================================================
 # Testing
@@ -59,7 +57,7 @@ test *ARGS:
 # Run tests with coverage report (FORMAT: html for local, xml for CI)
 test-cov FORMAT="html":
     mkdir -p reports/coverage
-    {{ pytest }} --cov --cov-report={{ FORMAT }} --cov-report=term
+    {{ pytest }} --cov --cov-report={{ quote(FORMAT) }} --cov-report=term
 
 # Run only unit tests (fast, no Docker/database path)
 test-unit *ARGS:
@@ -67,7 +65,7 @@ test-unit *ARGS:
 
 # Run DB-backed persistence and schema tests
 test-integration-db *ARGS:
-    {{ pytest }} tests/integration/db tests/integration/models tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ ARGS }}
+    {{ pytest }} tests/integration/db tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ ARGS }}
 
 # Run only API tests
 test-api *ARGS:
@@ -77,18 +75,18 @@ test-api *ARGS:
 test-flows *ARGS:
     {{ pytest }} tests/integration/flows {{ ARGS }}
 
-# Run all integration tests
+# Run all integration tests (parallel — worth it only for the full suite; use `just test <file>` for one file)
 test-integration *ARGS:
-    {{ pytest }} tests/integration {{ ARGS }}
+    {{ pytest }} tests/integration -n auto --dist=loadgroup {{ ARGS }}
 
 # Run the backend CI test suite
 test-ci:
     mkdir -p reports/coverage
-    {{ pytest }} tests/unit tests/integration -n auto --dist=loadgroup --durations=20 --cov --cov-report=xml --cov-report=term
+    {{ pytest }} tests/unit tests/integration -n auto --dist=loadgroup --durations=20 --junitxml=reports/junit.xml --cov --cov-report=xml --cov-report=term
 
 # Run the full backend CI pipeline locally
 ci: check test-ci
-    @echo "✓ Backend CI pipeline passed"
+    @echo "✅ Backend CI pipeline passed"
 
 # ============================================================================
 # Database & Migrations
@@ -100,7 +98,7 @@ migrate:
 
 # Create new migration (use: just migrate-create "description")
 migrate-create MESSAGE:
-    uv run alembic revision --autogenerate -m "{{ MESSAGE }}"
+    uv run alembic revision --autogenerate -m {{ quote(MESSAGE) }}
 
 # Reset database (down to base, then up to head)
 migrate-reset:
@@ -113,11 +111,55 @@ migrate-reset:
 
 # Compile MJML email templates to HTML
 compile-email:
-    uv run python -m scripts.generate.compile_email_templates
+    ENVIRONMENT=testing uv run python -m scripts.generate.compile_email_templates
+
+# Check that the committed email HTML matches a fresh compile
+email-check:
+    ENVIRONMENT=testing uv run python -m scripts.generate.compile_email_templates --check
+
+# One-time backfill of upload_size_bytes on existing File/Image rows, for the upload
+# quota ledger. Run once per host after the quota migration; delete with the cutover.
+backfill-upload-sizes:
+    uv run python -m scripts.maintenance.backfill_upload_sizes
+
+# Report accounts over the quota their role grants (read-only; run around the role deploy)
+list-over-quota:
+    uv run python -m scripts.maintenance.list_accounts_over_contributor_quota
+
+# Export OpenAPI schemas consumed by the docs site
+openapi:
+    uv run python -m scripts.generate.export_openapi
+
+# Check that exported docs OpenAPI schemas are current
+# NOTE: ENVIRONMENT=testing so CI (no .env.dev) gets settings from the committed
+# .env.test; schema output is identical under dev and testing.
+openapi-check:
+    ENVIRONMENT=testing uv run python -m scripts.generate.export_openapi --check
+
+# Export the ER diagrams and dataset codebook the docs site imports
+datamodel:
+    ENVIRONMENT=testing uv run python -m scripts.generate.export_datamodel
+
+# Check that the generated docs data-model partials are current
+datamodel-check:
+    ENVIRONMENT=testing uv run python -m scripts.generate.export_datamodel --check
+
+# Build a publishable dataset release directory (verification failures abort the build)
+# Scope is decided by contributor consent; --owner only narrows within it.
+# Usage: just release-build [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
+#        exclusions: --exclude-owner USERNAME | --exclude-product ID | --exclude-name-word WORD | --no-name-filter
+# Dry run, every account, writes nothing: just release-build --inventory
+# The pseudonym salt comes from $RELAB_PSEUDONYM_SALT, else secrets/<env>/dataset_pseudonym_salt
+release-build *ARGS:
+    uv run python -m scripts.build_dataset_release {{ ARGS }}
 
 # Refresh the committed disposable-email fallback list from the upstream source
 refresh-disposable-email-domains:
     uv run python -m scripts.maintenance.refresh_disposable_email_domains
+
+# Refresh the committed common-password fallback list from the pinned upstream source
+refresh-common-passwords:
+    uv run python -m scripts.maintenance.refresh_common_passwords
 
 # Run the backend k6 baseline performance suite (requires k6 installed)
 perf-baseline:
@@ -129,39 +171,39 @@ k6_docker_image := "grafana/k6:latest"
 
 # Run the backend k6 baseline suite against the Docker CI stack.
 # Assumes the CI backend stack is already up and seeded with dummy data.
-_perf-ci IMAGE_ID="" BASE_URL="http://api:8000":
+_perf-ci MEDIA_URL="" BASE_URL="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
-    image_id="{{ IMAGE_ID }}"
-    if [ -z "$image_id" ]; then
-        echo "→ No IMAGE_ID provided; running perf baseline without resized_image scenario."
+    media_url={{ quote(MEDIA_URL) }}
+    if [ -z "$media_url" ]; then
+        echo "→ No MEDIA_URL provided; running perf baseline without media_url_read scenario."
     fi
     mkdir -p reports/performance
     docker run --rm \
         --network relab_test_default \
         -v "$PWD/perf:/perf:ro" \
         -v "$PWD/reports/performance:/reports" \
-        -e BASE_URL="{{ BASE_URL }}" \
+        -e BASE_URL={{ quote(BASE_URL) }} \
         -e PERF_USER_EMAIL="e2e-admin@example.com" \
         -e PERF_USER_PASSWORD="E2eTestPass123!" \
-        -e PERF_IMAGE_ID="$image_id" \
+        -e PERF_MEDIA_URL="$media_url" \
         {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
 
 # Write a dated CI baseline report from the latest k6 JSON summary export.
 _perf-report-ci DATE="" BASE_URL="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
-    report_date="{{ DATE }}"
+    report_date={{ quote(DATE) }}
     if [ -z "$report_date" ]; then
         report_date="$(date +%F)"
     fi
-    python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url "{{ BASE_URL }}"
+    python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url {{ quote(BASE_URL) }}
 
 # Recalibrate p95 thresholds in perf/k6-baseline.js from the latest k6 JSON summary export.
 _perf-thresholds-apply HEADROOM="1.15":
     #!/usr/bin/env bash
     set -euo pipefail
-    python3 -m scripts.perf.perf_ci apply-thresholds "{{ HEADROOM }}"
+    python3 -m scripts.perf.perf_ci apply-thresholds {{ quote(HEADROOM) }}
 
 # ============================================================================
 # Maintenance
@@ -184,7 +226,8 @@ clean:
 audit SCOPE="runtime":
     #!/usr/bin/env bash
     set -euo pipefail
-    case "{{ SCOPE }}" in
+    scope={{ quote(SCOPE) }}
+    case "$scope" in
       runtime) flag="--no-default-groups" ;;
       all) flag="" ;;
       *) echo "SCOPE must be 'runtime' or 'all'"; exit 1 ;;

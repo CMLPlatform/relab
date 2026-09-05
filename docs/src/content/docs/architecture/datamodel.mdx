@@ -1,44 +1,47 @@
 ---
-title: Data Model Overview
-description: The major RELab entities and the relationships between them.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
+title: Data model overview
+description: The major Relab entities and the relationships between them.
 ---
 
+import UserManagement from '@/components/datamodel/user-management.generated.mdx';
+import ReferenceData from '@/components/datamodel/reference-data.generated.mdx';
+import DataCollection from '@/components/datamodel/data-collection.generated.mdx';
+import FileStorage from '@/components/datamodel/file-storage.generated.mdx';
+import CameraPlugin from '@/components/datamodel/camera-plugin.generated.mdx';
+
 ```mermaid
+---
+config:
+    layout: elk
+---
 graph TD
+    accTitle: Relab data model overview
+    accDescr: Users own cameras and products and link OAuth accounts; products form a self-referential component hierarchy, carry physical properties and circularity notes directly, and are linked to product types and materials; product types and materials are categorized under taxonomies; products, materials, and product types can each have files and images attached, and products can also have videos.
 
-        User["User fa:fa-user"]
-        OAuthAccount["OAuth Account fa:fa-id-card"]
-        Organization["Organization fa:fa-building"]
+        User["User"]
+        OAuthAccount["OAuth account"]
 
-        Camera["Camera fa:fa-camera"]
-        Product["Product fa:fa-box"]
-        PhysicalProperties["Physical Properties fa:fa-ruler-combined"]
+        Camera["Camera"]
+        Product["Product"]
 
-        Taxonomy["Taxonomy fa:fa-sitemap"]
-        Material["Material fa:fa-flask"]
-        Category["Category fa:fa-folder-open"]
-        ProductType["Product Type fa:fa-tags"]
+        Taxonomy["Taxonomy"]
+        Material["Material"]
+        Category["Category"]
+        ProductType["Product type"]
 
-        subgraph LocalStorage["Local Storage"]
-            File["File fa:fa-file"]
-            Image["Image fa:fa-image"]
+        subgraph LocalStorage["Local storage"]
+            File["File"]
+            Image["Image"]
         end
-        Video["Video fa:fa-video"]
+        Video["Video"]
 
     User -->|Has| OAuthAccount
-    User -->|Belongs to| Organization
-    User -->|Owns| Organization
-
     User -->|Owns| Camera
 
     User -->|Owns| Product
     Product -->|Has Components| Product
     Product -->|Contains| Material
     Product -->|Is Type Of| ProductType
-    Product -->|Has| PhysicalProperties
     ProductType -->|Categorized As| Category
     Material -->|Categorized As| Category
     Category -->|Sub-Category Of| Category
@@ -48,228 +51,70 @@ graph TD
     Material -->|Has| LocalStorage
     ProductType -->|Has| LocalStorage
 
-    style LocalStorage fill:#e0e0e0,stroke:#616161,stroke-width:1px;
+    %% Diagram palette from assets/DESIGN.md (categorical ramp)
+    style LocalStorage fill:#f1f4f8,stroke:#5a6675,stroke-width:1px,color:#16202e;
 
-    classDef UserManagementFill fill:#e1bee7,stroke:#9c27b0,stroke-width:2px;
-    class User,OAuthAccount,Organization UserManagementFill;
+    classDef UserManagementFill fill:#ede6f7,stroke:#6d4fa3,stroke-width:2px,color:#44337a;
+    class User,OAuthAccount UserManagementFill;
 
-    classDef DataCollectionFill fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
-    class Product,PhysicalProperties,Camera DataCollectionFill;
+    classDef DataCollectionFill fill:#e3ecfa,stroke:#1f4c96,stroke-width:2px,color:#143567;
+    class Product,Camera DataCollectionFill;
 
-    classDef BackgroundDataFill fill:#f5f5f5,stroke:#8d6e63,stroke-width:2px;
-    class Taxonomy,Material,Category,ProductType BackgroundDataFill;
+    classDef ReferenceDataFill fill:#f1f4f8,stroke:#5a6675,stroke-width:2px,color:#16202e;
+    class Taxonomy,Material,Category,ProductType ReferenceDataFill;
 
-    classDef MediaFill fill:#c8e6c9,stroke:#43a047,stroke-width:2px;
+    classDef MediaFill fill:#e0f2ed,stroke:#0e6b5e,stroke-width:2px,color:#0a4f45;
     class File,Image,Video MediaFill;
 ```
 
-The full data schema is broken up into four modules: user management, background data management, data collection, and file storage.
+The full data schema is broken up by bounded context: user management, reference data, data collection, file storage, and the camera plugin.
+
+Someone drew the diagram above by hand, and it simplifies on purpose. `backend/scripts/generate/export_datamodel.py` generates the per-context diagrams below from the ORM metadata, so they list every column and every foreign key the database really has. `just check` fails when they fall behind the models.
 
 ## User management
 
-This part covers user accounts, organisations and membership, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so auth concerns do not leak into the product model more than necessary.
+This part covers user accounts, linked OAuth accounts, and ownership and access control. It is kept separate from the research entities so account details stay out of the product model.
 
-```mermaid
-erDiagram
-    USER {
-        uuid id PK
-        varchar email UK
-        varchar hashed_password
-        boolean is_active
-        boolean is_superuser
-        boolean is_verified
-        varchar username UK
-        uuid organization_id FK
-        organizationrole organization_role "optional; owner, admin, member"
-    }
+<UserManagement />
 
-    ORGANIZATION {
-        uuid id PK
-        varchar name UK
-        varchar location
-        varchar description
-        uuid owner_id FK
-    }
+Usernames are unique and indexed for fast public profile lookup. They are nullable only while an OAuth-created account is completing onboarding; password registration requires a username up front.
 
-    OAUTHACCOUNT {
-        uuid id PK
-        uuid user_id FK
-        varchar oauth_name
-        varchar access_token
-        integer expires_at
-        varchar refresh_token
-        varchar account_id
-        varchar account_email
-    }
+`hashed_password` and `mfa_totp_secret` appear in no read schema, so no response ever carries them, and the TOTP secret is encrypted at rest on top of that. `profile_stats` is a cached aggregate that `profile_stats_computed_at` stamps, rather than a figure recomputed per request. `upload_file_count` and `upload_total_bytes` hold the per-account upload quota ledger.
 
-    USER ||--o| ORGANIZATION : "owns"
-    USER }|--o| ORGANIZATION : "is member of"
-    USER ||--o{ OAUTHACCOUNT : "has"
-```
-
-## Background data
+## Reference data
 
 This part contains the shared reference layer used to keep records more consistent: taxonomies, categories and subcategories, materials, product types, and units.
 
 These records are shared across users and products. They are not the research record itself, but they make the research record easier to search, compare, and reuse.
 
-```mermaid
-erDiagram
-    PRODUCTTYPE {
-        integer id PK
-        varchar name
-        varchar description
-    }
+<ReferenceData />
 
-    MATERIAL {
-        integer id PK
-        varchar name
-        varchar description
-        varchar source
-        float density_kg_m3
-        boolean is_crm
-    }
-
-    MATERIALPRODUCTLINK {
-        integer material_id PK, FK
-        integer product_id PK, FK
-        float quantity
-        unit unit "g, kg, m, cm"
-    }
-
-    CATEGORY {
-        integer id PK
-        varchar name
-        varchar description
-        integer taxonomy_id FK
-        integer supercategory_id FK
-    }
-
-    CATEGORYMATERIALLINK {
-        integer category_id PK, FK
-        integer material_id PK, FK
-    }
-
-    CATEGORYPRODUCTTYPELINK {
-        integer category_id PK, FK
-        integer product_type_id PK, FK
-    }
-
-    TAXONOMY {
-        integer id PK
-        varchar name
-        varchar description
-        taxonomydomain domains[] "products, materials, other"
-        varchar source
-    }
-
-    PRODUCT  }o--|| PRODUCTTYPE : "is type of"
-    MATERIAL ||--o{ MATERIALPRODUCTLINK : "is part of"
-    PRODUCT ||--o{ MATERIALPRODUCTLINK : "contains"
-    CATEGORY ||--o{ CATEGORYMATERIALLINK : "contains"
-    MATERIAL ||--o{ CATEGORYMATERIALLINK : "is linked to"
-    CATEGORY ||--o{ CATEGORYPRODUCTTYPELINK : "contains"
-    PRODUCTTYPE ||--o{ CATEGORYPRODUCTTYPELINK : "is linked to"
-    TAXONOMY ||--o{ CATEGORY : "defines"
-    CATEGORY ||--o{ CATEGORY : "is subcategory of"
-```
+`materialproductlink` records how much of a material sits in a product. It belongs to data collection rather than here, because it carries a measurement rather than a classification, so it appears in the next diagram.
 
 ## Data collection
 
-The data collection model is centred on `Product`, which is used both for top-level products and nested components. That makes it possible to represent a disassembly tree without separate tables for products and parts.
+The data collection model is centered on `Product`, which is used both for top-level products and nested components. That makes it possible to represent a disassembly tree without separate tables for products and parts.
 
 Important characteristics:
 
 - a product can have a parent product, enabling component hierarchies
-- physical and circularity-related properties are stored separately from the core product record
+- physical measurements are first-class product fields
+- circularity notes are stored on the product as nullable JSON with optional `recyclability`, `disassemblability`, and `remanufacturability` fields
 - ownership is attached to the user level
 - materials, product types, and media can be linked without making every field mandatory
 
-```mermaid
-erDiagram
-    RPI_CAMERA {
-        uuid id PK
-        varchar name
-        varchar description
-        varchar encrypted_api_key
-        uuid owner_id FK
-        varchar url
-        varchar encrypted_auth_headers
-    }
-
-    PRODUCT {
-        integer id PK
-        varchar name
-        varchar description
-        varchar brand
-        varchar model
-        varchar dismantling_notes
-        timestamp dismantling_time_start
-        timestamp dismantling_time_end
-        integer parent_id FK
-        integer amount_in_parent
-        integer product_type_id FK
-        integer owner_id FK
-    }
-
-    PHYSICALPROPERTIES {
-        integer id PK
-        float weight_kg
-        float height_cm
-        float width_cm
-        float depth_cm
-        integer product_id FK
-    }
-
-    VIDEO {
-        integer id PK
-        varchar url
-        varchar description
-        integer product_id FK
-        jsonb video_metadata
-        varchar title
-    }
-
-    USER ||--o{ RPI_CAMERA : "owns"
-    USER ||--o{ PRODUCT : "owns"
-    PRODUCT ||--o{ PHYSICALPROPERTIES : "has"
-    PRODUCT ||--o{ VIDEO : "contains"
-    PRODUCT ||--o{ PRODUCT : "is part of"
-```
+<DataCollection />
 
 ## File storage and media
 
-Media is treated as part of the record, not as decoration. In practice, images often carry a large part of the evidential value of a product record. Files and images support polymorphic associations, allowing them to be linked to products, materials, or product types. Videos are currently linked via URLs rather than stored directly.
+Images often carry a large part of the evidential value of a product record, so media is modeled as part of the record itself. Files and images support polymorphic associations, allowing them to be linked to products, materials, or product types. Videos are linked via URLs rather than stored directly.
 
-```mermaid
-erDiagram
-    FILE {
-        uuid id PK
-        varchar description
-        varchar filename
-        varchar file
-        fileparenttype parent_type "product, material, product_type"
-        integer product_id FK
-        integer material_id FK
-        integer product_type_id FK
-    }
+<FileStorage />
 
-    IMAGE {
-        uuid id PK
-        varchar description
-        varchar filename
-        varchar file
-        imageparenttype parent_type "product, material, product_type"
-        integer product_id FK
-        integer material_id FK
-        integer product_type_id FK
-        jsonb image_metadata
-    }
+`video` sits in this context even though a video attaches to a product. The platform stores a URL and its metadata, which makes the row a media reference like the other two.
 
-    PRODUCT ||--o{ FILE : "contains"
-    MATERIAL ||--o{ FILE : "contains"
-    PRODUCTTYPE ||--o{ FILE : "contains"
-    PRODUCT ||--o{ IMAGE : "contains"
-    MATERIAL ||--o{ IMAGE : "contains"
-    PRODUCTTYPE ||--o{ IMAGE : "contains"
-```
+## Camera plugin
+
+The Raspberry Pi camera integration owns two tables. `camera` holds a paired device and the relay credential that authenticates it; `recording_session` links a live broadcast to the video row it produces. [RPi camera plugin](/architecture/rpi-cam/) covers the pairing and streaming path these tables support.
+
+<CameraPlugin />

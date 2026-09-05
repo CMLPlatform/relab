@@ -1,0 +1,125 @@
+"""Stable component CRUD routes."""
+
+from typing import Annotated
+
+from fastapi import Body, HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import PositiveInt
+
+from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, OptionalCurrentActiveUserDep
+from app.api.common.audiences import PublicAPIRouter
+from app.api.common.idempotency import IDEMPOTENCY_RESPONSES, IdempotencyKeyDep, idempotent_request
+from app.api.common.rate_limiting import API_WRITE_RATE_LIMIT_DEPENDENCY
+from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.data_collection.crud.product_commands import create_component
+from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
+from app.api.data_collection.crud.product_commands import update_product as update_product_record
+from app.api.data_collection.crud.product_tree_queries import require_product_detail
+from app.api.data_collection.dependencies import UserOwnedComponentDep
+from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
+from app.api.data_collection.presentation.product_reads import to_read_model
+from app.api.data_collection.schemas import (
+    ComponentCreateWithComponents,
+    ComponentRead,
+    ComponentReadWithRecursiveComponents,
+    ComponentReadWithRelationshipsAndFlatComponents,
+    ProductUpdate,
+)
+from app.core.redis import RedisDep
+
+component_core_router = PublicAPIRouter(prefix="/components", tags=["components"])
+
+
+@component_core_router.get(
+    "/{component_id}",
+    response_model=ComponentReadWithRelationshipsAndFlatComponents,
+    summary="Get component by ID",
+)
+async def get_component(
+    component_id: PositiveInt,
+    session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
+) -> ComponentReadWithRelationshipsAndFlatComponents:
+    """Fetch a component by its stable id."""
+    product = await require_product_detail(session, component_id)
+    if product.is_base_product:
+        raise HTTPException(
+            status_code=404,
+            detail=f"ID {component_id} belongs to a base product; use /products/{{id}} instead.",
+        )
+    return to_read_model(product, ComponentReadWithRelationshipsAndFlatComponents, current_user)
+
+
+@component_core_router.post(
+    "/{component_id}/components",
+    response_model=ComponentReadWithRecursiveComponents,
+    status_code=201,
+    summary="Create a nested component",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+    responses=IDEMPOTENCY_RESPONSES,
+)
+async def add_component_to_component(
+    db_component: UserOwnedComponentDep,
+    component: Annotated[
+        ComponentCreateWithComponents,
+        Body(openapi_examples=COMPONENT_CREATE_OPENAPI_EXAMPLES),
+    ],
+    session: AsyncSessionDep,
+    current_user: CurrentActiveVerifiedUserDep,
+    redis: RedisDep,
+    idempotency_key: IdempotencyKeyDep = None,
+) -> ComponentReadWithRecursiveComponents | JSONResponse:
+    """Create a new component below an existing component.
+
+    An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
+    key returns the original response instead of creating a second component. The key is bound to
+    this user, this parent, and this request body — reusing it with a different body is a 422.
+    """
+    async with idempotent_request(
+        redis,
+        user_id=current_user.id,
+        endpoint=f"POST /components/{db_component.id}/components",
+        key=idempotency_key,
+        body=component,
+    ) as idem:
+        if idem.replay is not None:
+            return idem.replay
+        created = await create_component(
+            db=session,
+            component=component,
+            parent_product=db_component,
+        )
+
+    # Outside the guard: the row is committed, so a failure here must not release the marker.
+    await session.refresh(created, attribute_names=["owner", "components"])
+    result = to_read_model(created, ComponentReadWithRecursiveComponents, current_user)
+    await idem.finish(201, result.model_dump(mode="json"))
+    return result
+
+
+@component_core_router.patch(
+    "/{component_id}",
+    response_model=ComponentRead,
+    summary="Update component",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+)
+async def update_component(
+    component_update: ProductUpdate,
+    db_component: UserOwnedComponentDep,
+    session: AsyncSessionDep,
+    current_user: CurrentActiveVerifiedUserDep,
+) -> ComponentRead:
+    """Update a component. Response is the lean :class:`ComponentRead` shape (no relationships)."""
+    updated = await update_product_record(session, db_component.id, component_update)
+    return to_read_model(updated, ComponentRead, current_user)
+
+
+@component_core_router.delete(
+    "/{component_id}",
+    status_code=204,
+    summary="Delete component",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+)
+async def delete_component(db_component: UserOwnedComponentDep, session: AsyncSessionDep) -> None:
+    """Delete a component (cascades to its sub-components)."""
+    await delete_product_record(session, db_component.id)

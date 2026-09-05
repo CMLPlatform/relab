@@ -1,0 +1,9 @@
+---
+const trustedHtml = '<strong>trusted</strong>';
+---
+
+<!-- ruleid: relab.browser-runtime-safety.astro-set-html -->
+<div set:html={trustedHtml} />
+
+<!-- ok: relab.browser-runtime-safety.astro-set-html -->
+<div>{trustedHtml}</div>

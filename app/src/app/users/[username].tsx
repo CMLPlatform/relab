@@ -1,0 +1,139 @@
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
+import { Card } from '@/components/base/Card';
+import { ErrorState } from '@/components/base/ErrorState';
+import { Icon, type IconName } from '@/components/base/Icon';
+import { PageContainer } from '@/components/base/PageContainer';
+import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
+import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+
+// Four stat blocks differ only in icon/color/value/label — mapped from data
+// instead of hand-copied per stat. Local to this screen: unrelated to the
+// HeroStats StatCard in components/profile.
+function ProfileStatCard({
+  icon,
+  color,
+  value,
+  label,
+}: {
+  icon: IconName;
+  color: string;
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <Card className="flex-1 min-w-[140px] max-w-[200px] items-center">
+      <View className="items-center py-4">
+        <Icon name={icon} size={32} color={color} />
+        <AppText variant="heading" className="mt-3 mb-1 font-bold" numberOfLines={1}>
+          {value}
+        </AppText>
+        <AppText variant="eyebrow" className="text-center">
+          {label}
+        </AppText>
+      </View>
+    </Card>
+  );
+}
+
+export default function UserProfileScreen() {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  const { profile, loading, hasError, errorMessage, onRetry } = usePublicProfileScreen();
+
+  return (
+    <ScrollView contentContainerClassName="flex-grow py-4">
+      <PageContainer>
+        {loading ? (
+          <View className="flex-1 justify-center items-center mt-16">
+            <ActivityIndicator
+              testID="activity-indicator"
+              size="large"
+              color={theme.colors.primary}
+            />
+          </View>
+        ) : null}
+
+        {hasError ? (
+          <ErrorState
+            icon="user-x"
+            title="Couldn't load profile"
+            message={errorMessage ?? "Couldn't load profile."}
+            onRetry={onRetry}
+          />
+        ) : null}
+
+        {!(loading || hasError) && profile ? (
+          <View className="mt-8 items-center">
+            <View className="items-center mb-12">
+              <View className="w-[120px] h-[120px] rounded-full justify-center items-center mb-6 bg-primary/10">
+                <AppText variant="body" className="font-bold" style={styles.avatarText}>
+                  {profile.username.substring(0, 2).toUpperCase()}
+                </AppText>
+              </View>
+              <AppText variant="display" className="font-extrabold mb-2">
+                {profile.username}
+              </AppText>
+              {profile.created_at ? (
+                <AppText variant="caption" className="text-muted-foreground">
+                  Joined{' '}
+                  {new Date(profile.created_at).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </AppText>
+              ) : null}
+            </View>
+
+            <View className="w-full flex-row justify-center gap-4 flex-wrap">
+              {(
+                [
+                  {
+                    icon: 'package',
+                    color: theme.colors.primary,
+                    value: profile.product_count,
+                    label: 'Products',
+                  },
+                  {
+                    icon: 'weight',
+                    color: theme.colors.secondary,
+                    value: profile.total_weight_kg,
+                    label: 'Total kg',
+                  },
+                  {
+                    icon: 'images',
+                    color: theme.tokens.status.success,
+                    value: profile.image_count,
+                    label: 'Photos',
+                  },
+                  {
+                    icon: 'tag',
+                    color: theme.tokens.status.warning,
+                    value: profile.top_category || 'None',
+                    label: 'Top category',
+                  },
+                ] as const
+              ).map((stat) => (
+                <ProfileStatCard key={stat.label} {...stat} />
+              ))}
+            </View>
+          </View>
+        ) : null}
+      </PageContainer>
+    </ScrollView>
+  );
+}
+
+const createStyles = memoizeByTheme((theme: AppTheme) =>
+  StyleSheet.create({
+    // bg-primary/10 (a light primary tint) backs this text, not a solid
+    // *Container fill — onPrimaryContainer here was a contrast bug.
+    // NOTE: avatar-initials glyph sized to fill the 120px circle, not part of
+    // the reading hierarchy — no ramp step applies.
+    avatarText: {
+      fontSize: 48,
+      color: theme.colors.primary,
+    },
+  }),
+);

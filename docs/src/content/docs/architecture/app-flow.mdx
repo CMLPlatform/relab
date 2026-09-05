@@ -1,0 +1,188 @@
+---
+title: App navigation flow
+description: The mobile app's screens, how they nest, and the redirects that move between them.
+---
+
+Which screens the app has, how they nest, and what moves a person between them. Read this
+before changing routing, auth gating, or the record-creation path. To learn how to use the
+app instead, see [Getting started](/user-guides/getting-started/) and
+[Data collection](/user-guides/data-collection/).
+
+`app/README.md` documents the source layout behind these routes.
+
+## Screen map
+
+Routes live in `app/src/app/` as an Expo Router file tree. Segments in parentheses are groups:
+they organize the tree without appearing in the URL, so `(tabs)/(products)/products/index.tsx`
+is served at `/products`.
+
+```mermaid
+---
+config:
+    layout: elk
+---
+graph TD
+    accTitle: Relab app screen map
+    accDescr: The root stack holds the entry redirect, the auth group, the tab navigator, the category picker and public profiles. The tab navigator holds three tabs, each with its own stack: products (which owns both the products and components trees), cameras, and account.
+
+    Root["Root stack"]
+
+    Entry["/ entry redirect"]
+    Auth["(auth) group"]
+    Tabs["Tab navigator"]
+    Category["/category-selection"]
+    Profile["/users/[username]"]
+
+    Products["Products tab"]
+    Cameras["Cameras tab"]
+    Account["Account tab"]
+
+    Root --> Entry
+    Root --> Auth
+    Root --> Tabs
+    Root --> Category
+    Root --> Profile
+
+    Tabs --> Products
+    Tabs --> Cameras
+    Tabs --> Account
+```
+
+| Route | What it is |
+| ----- | ---------- |
+| `/` | Entry redirect. Renders nothing and sends you to `/products`. |
+| `/login` | Password and OAuth sign-in. Accepts a `redirectTo` parameter. |
+| `/new-account` | Password registration. |
+| `/forgot-password`, `/reset-password` | Password reset request and completion. |
+| `/mfa` | Second factor, reached only from a sign-in that needs one. |
+| `/verify` | Email verification landing page, opened from a link. |
+| `/onboarding` | Username choice, for accounts created without one. |
+| `/products` | Product list. The app's home. |
+| `/products/new` | Capture screen for a new top-level product. |
+| `/products/[id]` | Product detail, also the edit surface. |
+| `/products/[id]/components/new` | Capture screen for a component of that product. |
+| `/components/[id]` | Component detail. Same screen family as a product. |
+| `/components/[id]/components/new` | Capture screen for a nested component. |
+| `/cameras` | Paired camera list. |
+| `/cameras/add` | Pairing a new Raspberry Pi camera. |
+| `/cameras/[id]` | Camera detail, live view and streaming controls. |
+| `/account` | The signed-in account: profile, preferences, integrations, sign-out. |
+| `/category-selection` | Category and product-type picker. Presents over whichever screen opened it. |
+| `/users/[username]` | Public contributor profile. |
+
+Three things about that tree are load-bearing:
+
+- **Each tab is a group holding its own Stack.** A tab keeps its navigation trail while you are
+  on another one, which is why `(products)`, `(cameras)` and `(account)` are groups rather than
+  plain screens.
+- **The products tab owns both `/products` and `/components`.** A component is a product's
+  child, so cards, breadcrumbs and post-create redirects hop between the two trees. Splitting
+  them across navigators would make every hop a cross-navigator replace.
+- **`/category-selection` and `/users/[username]` sit on the root stack, not in a tab.** More
+  than one tab reaches them, so they should not join any single tab's trail.
+
+Accounts with the Raspberry Pi integration switched off do not see the cameras destination. The
+tab still exists; `useVisibleDestinations` in `src/navigation/destinations.ts` filters the
+navigation chrome.
+
+## Getting in
+
+The app gates nothing behind a splash or a login wall. `/` redirects to `/products`, and the
+product list renders for signed-out visitors. Each action asks for an account only when it
+needs one.
+
+```mermaid
+---
+config:
+    layout: elk
+---
+graph LR
+    accTitle: Sign-in and session gating
+    accDescr: An action needing an account sends you from the product list to the login screen, carrying a redirectTo parameter. Sign-in passes through the MFA screen when a second factor is enabled, then through onboarding when the account has no username, and lands on the redirect target, or the product list when there is none.
+
+    Products["/products"] --> Login["/login"]
+    Login --> Mfa{"MFA?"}
+    Mfa -->|Yes| MfaScreen["/mfa"]
+    Mfa -->|No| Username
+    MfaScreen --> Username{"Username?"}
+    Username -->|No| Onboarding["/onboarding"]
+    Onboarding --> Target
+    Username -->|Yes| Target["redirectTo<br/>or /products"]
+```
+
+**The auth gate** is `useRequireAuth(redirectTo)`. It replaces the current route with `/login`
+and carries the caller's own path as `redirectTo`, so the person lands back where they were
+going.
+
+It holds that redirect back in three cases:
+
+- while the session is still restoring, so a slow restore cannot flash a signed-in user to the
+  login screen;
+- on any screen that is not focused, because tab groups keep screens mounted off-focus and a
+  stale redirect would fire after that screen had already navigated elsewhere;
+- during sign-out.
+
+**`redirectTo` is validated, not trusted.** `getSafeRedirectTarget` accepts only a path
+beginning with a single `/`, and re-resolves it to confirm it cannot escape the app's origin.
+Anything else — an absolute URL, a protocol-relative `//host` — is dropped and the sign-in falls
+back to `/products`. Treat that function as the boundary: a new caller passing a
+`redirectTo` from anywhere external must go through it.
+
+**Two separate checks enforce onboarding, deliberately.** `routeAuthenticatedUser` sends a
+fresh sign-in to `/onboarding` when the account has no username. A root-level effect in
+`_layout.tsx` then re-checks on every path change, because an account can reach a signed-in
+state without passing the sign-in screen at all: an OAuth callback, or a restored session. An
+account needs a username before it can own records. That same effect bounces you off
+`/onboarding` once a username exists, so nobody can revisit the screen.
+
+## Recording a product
+
+Record creation is capture-first: photograph and name the product, save it straight away, then
+fill in the detail on the record that now exists. An interrupted lab session therefore loses at
+most the photographs and the name, never a part-filled form.
+
+```mermaid
+---
+config:
+    layout: elk
+---
+graph LR
+    accTitle: Capture-first record creation
+    accDescr: The new product route renders the capture screen, which takes photos, a name and a type. Saving posts the record immediately, then replaces the route with the detail screen in edit mode. Adding a component repeats the same path from the detail screen.
+
+    New["/products/new"] --> Capture["Capture screen:<br/>photos, name, type"]
+    Capture --> Picker["/category-selection"]
+    Picker --> Capture
+    Capture --> Save["POST the record"]
+    Save --> Detail["/products/[id]<br/>edit mode"]
+    Detail --> Component["components/new"]
+    Component --> Capture
+```
+
+The move into the detail screen is a `replace`, not a `push`. The capture screen has served its
+purpose, and leaving it in the back stack would make "back" from a saved record return to a
+form for creating that record again. Leaving the capture screen with unsaved input prompts
+first; the flag that permits a discard also permits the post-save replace.
+
+Adding a component runs the identical path one level down, from `/products/[id]` or
+`/components/[id]`. Nesting is not capped, but the breadcrumb trail is: `useAncestorTrail` walks
+at most 12 ancestors before it stops, so a deeper record shows a truncated trail rather than a
+complete one.
+
+## Rules a routing change has to keep
+
+**Crossing tabs uses `navigate`, never `replace`.** React Navigation resolves a replace that
+targets another navigator by swapping the whole tab navigator out, which resets every tab's
+trail. Within one tab's stack, `replace` is fine and is what the capture flow uses.
+
+**The category picker returns; it does not redirect.** The capture screen and a detail screen's
+type field both push it, and both expect it to come back with a selection. It sits on the root
+stack so that either caller can reach it without joining that caller's tab trail.
+
+**Public profiles come back to `/products`.** `/users/[username]` sits outside the tabs, so its
+header back button navigates to `/products` rather than popping. A shared link can open the
+route with nothing to pop back to.
+
+**Detail screens are anchored-scroll documents.** Sections self-register and the chips (phone)
+or outline (large web) scroll to them. They are not sub-routes, so adding a section does not add
+a route.

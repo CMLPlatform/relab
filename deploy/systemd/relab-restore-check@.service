@@ -1,0 +1,37 @@
+# Relab scheduled job: backup restore verification. Instance is the environment, e.g. relab-restore-check@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab backup restore verification (%i)
+Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=relab
+WorkingDirectory=/opt/relab
+# Dead-man's-switch URL, one per job. Host-local and never committed; `-` means the
+# file is optional and a missing one simply disables pinging.
+EnvironmentFile=-/etc/relab/relab.env
+Environment=JUST_BIN=/usr/bin/just
+ExecStart=/opt/relab/scripts/run_scheduled.sh restore-check %i
+TimeoutStartSec=7200
+# The scratch Postgres container is a child of dockerd, not of this cgroup. If systemd
+# SIGKILLs the job on timeout, no shell trap runs and the container would keep serving
+# a full restored copy of production data with no owner. The name is deterministic
+# (backup_restic_ops.sh passes relab-restore-check-<env>) precisely so this can reap it.
+ExecStopPost=-/usr/bin/docker rm -f relab-restore-check-%i
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+# Nothing: triggered by relab-restore-check@%i.timer, never enabled directly.

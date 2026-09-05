@@ -1,153 +1,180 @@
-"""Shared OAuth router builder behavior."""
+"""Shared OAuth flow helpers."""
 
-from __future__ import annotations
-
-import re
 import secrets
-from typing import Any  # noqa: TC003 # Used at runtime for FastAPI validation
-from urllib.parse import ParseResult, parse_qsl, urlencode, urlparse, urlunparse
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, Literal
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import jwt
 from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
-from fastapi_users.jwt import SecretType, decode_jwt
+from fastapi_users.jwt import decode_jwt
+from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2  # noqa: TC002 # Used at runtime for FastAPI validation
 
-from app.api.auth.config import settings
+from app.api.auth.config import normalize_oauth_redirect_uri, settings
 from app.api.auth.exceptions import (
     OAuthInvalidRedirectURIError,
     OAuthInvalidStateError,
     OAuthStateDecodeError,
     OAuthStateExpiredError,
 )
-from app.api.auth.services.oauth_utils import (
+
+from .utils import (
     ACCESS_TOKEN_KEY,
     CSRF_TOKEN_KEY,
+    FRONTEND_REDIRECT_URI_KEY,
+    OAUTH_FLOW_KEY,
+    OAUTH_PROVIDER_KEY,
+    OAUTH_STATE_JWT_ALGORITHM,
     SET_COOKIE_HEADER,
     STATE_TOKEN_AUDIENCE,
+    OAuth2AuthorizeResponse,
     OAuthCookieSettings,
+    generate_csrf_token,
+    generate_state_token,
     set_csrf_cookie,
 )
-from app.core.config import settings as core_settings
+
+if TYPE_CHECKING:
+    from fastapi_users.jwt import SecretType
+
+OAuthRedirectStatus = Literal["success", "error", "mfa_required"]
+OAUTH_STATUS_ERROR = "error"
+OAUTH_STATUS_MFA_REQUIRED = "mfa_required"
 
 
-class BaseOAuthRouterBuilder:
-    """Base class for building OAuth routers with dynamic redirects."""
+@dataclass(frozen=True, slots=True)
+class OAuthFlowConfig:
+    """Runtime config shared by one OAuth route group."""
 
-    def __init__(
-        self,
-        oauth_client: BaseOAuth2,
-        state_secret: SecretType,
-        redirect_url: str | None = None,
-        cookie_settings: OAuthCookieSettings | None = None,
-    ) -> None:
-        """Initialize base builder properties."""
-        self.oauth_client = oauth_client
-        self.state_secret = state_secret
-        self.redirect_url = redirect_url
-        self.cookie_settings = cookie_settings or OAuthCookieSettings()
+    oauth_client: BaseOAuth2
+    state_secret: SecretType
+    oauth_flow: str
+    redirect_url: str | None = None
+    cookie_settings: OAuthCookieSettings = field(default_factory=OAuthCookieSettings)
 
-    def set_csrf_cookie(self, response: Response, csrf_token: str) -> None:
-        """Set the CSRF cookie on the response."""
-        set_csrf_cookie(response, self.cookie_settings, csrf_token)
 
-    def verify_state(self, request: Request, state: str) -> dict[str, Any]:
-        """Decode the state JWT and verify CSRF protection."""
-        try:
-            state_data = decode_jwt(state, self.state_secret, [STATE_TOKEN_AUDIENCE])
-        except jwt.DecodeError as err:
-            raise OAuthStateDecodeError from err
-        except jwt.ExpiredSignatureError as err:
-            raise OAuthStateExpiredError from err
+def authorize_callback_dependency(config: OAuthFlowConfig, callback_route_name: str) -> OAuth2AuthorizeCallback:
+    """Build the httpx-oauth callback dependency for this route."""
+    if config.redirect_url is not None:
+        return OAuth2AuthorizeCallback(config.oauth_client, redirect_url=config.redirect_url)
+    return OAuth2AuthorizeCallback(config.oauth_client, route_name=callback_route_name)
 
-        cookie_csrf_token = request.cookies.get(self.cookie_settings.name)
-        state_csrf_token = state_data.get(CSRF_TOKEN_KEY)
 
-        if (
-            not cookie_csrf_token
-            or not state_csrf_token
-            or not secrets.compare_digest(cookie_csrf_token, state_csrf_token)
-        ):
-            raise OAuthInvalidStateError
+def build_state_data(
+    config: OAuthFlowConfig,
+    csrf_token: str,
+    extra: dict[str, str] | None = None,
+) -> dict[str, str]:
+    """Build signed OAuth state claims for this transaction."""
+    return {
+        **(extra or {}),
+        CSRF_TOKEN_KEY: csrf_token,
+        OAUTH_PROVIDER_KEY: config.oauth_client.name,
+        OAUTH_FLOW_KEY: config.oauth_flow,
+    }
 
-        return state_data
 
-    def _create_success_redirect(
-        self,
-        frontend_redirect: str,
-        response: Response,
-    ) -> Response:
-        """Create a redirect to the frontend with cookies and success status."""
-        parts = list(urlparse(frontend_redirect))
-        query = dict(parse_qsl(parts[4]))
+async def build_authorize_response(
+    config: OAuthFlowConfig,
+    request: Request,
+    response: Response,
+    *,
+    callback_route_name: str,
+    state_claims: dict[str, str] | None = None,
+    extras_params: dict[str, Any] | None = None,
+) -> OAuth2AuthorizeResponse:
+    """Build an OAuth authorization response with Relab state binding."""
+    authorize_redirect_url = config.redirect_url or str(request.url_for(callback_route_name))
 
-        query.pop(ACCESS_TOKEN_KEY, None)
-        query["success"] = "true"
+    csrf_token = generate_csrf_token()
+    claims = dict(state_claims or {})
+    redirect_uri = request.query_params.get("redirect_uri")
+    if redirect_uri:
+        if not is_allowed_frontend_redirect(redirect_uri):
+            raise OAuthInvalidRedirectURIError
+        claims[FRONTEND_REDIRECT_URI_KEY] = redirect_uri
 
-        parts[4] = urlencode(query)
-        redirect_response = RedirectResponse(urlunparse(parts))
+    state = generate_state_token(build_state_data(config, csrf_token, claims), config.state_secret)
+    authorization_url = await config.oauth_client.get_authorization_url(
+        authorize_redirect_url,
+        state,
+        None,
+        extras_params=extras_params,
+    )
 
+    set_csrf_cookie(response, config.cookie_settings, csrf_token)
+    return OAuth2AuthorizeResponse(authorization_url=authorization_url)
+
+
+def verify_oauth_state(config: OAuthFlowConfig, request: Request, state: str) -> dict[str, Any]:
+    """Decode the state JWT and verify CSRF and transaction binding."""
+    try:
+        state_data = decode_jwt(
+            state,
+            config.state_secret,
+            [STATE_TOKEN_AUDIENCE],
+            algorithms=[OAUTH_STATE_JWT_ALGORITHM],
+        )
+    except jwt.ExpiredSignatureError as err:
+        raise OAuthStateExpiredError from err
+    except jwt.InvalidTokenError as err:
+        raise OAuthStateDecodeError from err
+
+    cookie_csrf_token = request.cookies.get(config.cookie_settings.name)
+    state_csrf_token = state_data.get(CSRF_TOKEN_KEY)
+
+    if not cookie_csrf_token or not state_csrf_token or not secrets.compare_digest(cookie_csrf_token, state_csrf_token):
+        raise OAuthInvalidStateError
+
+    if state_data.get(OAUTH_PROVIDER_KEY) != config.oauth_client.name:
+        raise OAuthInvalidStateError
+    if state_data.get(OAUTH_FLOW_KEY) != config.oauth_flow:
+        raise OAuthInvalidStateError
+
+    return state_data
+
+
+def create_oauth_result_redirect(
+    frontend_redirect: str,
+    *,
+    status: OAuthRedirectStatus,
+    response: Response | None = None,
+    error: str | None = None,
+    mfa_handoff: str | None = None,
+) -> Response:
+    """Create a frontend redirect with the OAuth result carried in the fragment."""
+    parts = list(urlparse(frontend_redirect))
+    query = dict(parse_qsl(parts[4]))
+    fragment = dict(parse_qsl(parts[5]))
+
+    query.pop(ACCESS_TOKEN_KEY, None)
+    for key in (ACCESS_TOKEN_KEY, "status", "error", "mfa_handoff"):
+        fragment.pop(key, None)
+
+    fragment["status"] = status
+    if status == OAUTH_STATUS_ERROR and error:
+        fragment["error"] = error
+    if status == OAUTH_STATUS_MFA_REQUIRED and mfa_handoff:
+        fragment["mfa_handoff"] = mfa_handoff
+
+    parts[4] = urlencode(query)
+    parts[5] = urlencode(fragment)
+    redirect_response = RedirectResponse(urlunparse(parts))
+
+    if response is not None:
         for raw_header in response.raw_headers:
             if raw_header[0].lower() == SET_COOKIE_HEADER:
                 redirect_response.headers.append("set-cookie", raw_header[1].decode("latin-1"))
-        return redirect_response
+    return redirect_response
 
-    @staticmethod
-    def _create_error_redirect(frontend_redirect: str, detail: str) -> Response:
-        """Create a redirect to the frontend with an error detail in the query string."""
-        parts = list(urlparse(frontend_redirect))
-        query = dict(parse_qsl(parts[4]))
-        query.pop(ACCESS_TOKEN_KEY, None)
-        query["success"] = "false"
-        query["detail"] = detail
-        parts[4] = urlencode(query)
-        return RedirectResponse(urlunparse(parts))
 
-    @staticmethod
-    def _normalize_origin(url: str) -> str:
-        """Normalize a URL into scheme://host[:port]."""
-        parsed = urlparse(url)
-        return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}".rstrip("/")
+def is_allowed_frontend_redirect(redirect_uri: str) -> bool:
+    """Validate whether a frontend redirect URI is exactly allowed."""
+    try:
+        normalized_redirect = normalize_oauth_redirect_uri(redirect_uri)
+    except ValueError:
+        return False
 
-    @staticmethod
-    def _normalize_redirect_target(url: str) -> str:
-        """Normalize a redirect target to scheme://netloc/path with no query/fragment."""
-        parsed = urlparse(url)
-        return urlunparse((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path, "", "", "")).rstrip("/")
-
-    @staticmethod
-    def _is_allowed_redirect_path(path: str) -> bool:
-        """Validate the redirect path against the optional allowlist."""
-        return not settings.oauth_allowed_redirect_paths or path in settings.oauth_allowed_redirect_paths
-
-    def _is_allowed_http_redirect(self, redirect_uri: str, parsed_redirect: ParseResult) -> bool:
-        """Validate an HTTP(S) frontend redirect against trusted origins."""
-        if not parsed_redirect.netloc:
-            return False
-
-        redirect_origin = self._normalize_origin(redirect_uri)
-        if core_settings.cors_origin_regex and re.fullmatch(core_settings.cors_origin_regex, redirect_origin):
-            return self._is_allowed_redirect_path(parsed_redirect.path)
-
-        return redirect_origin in core_settings.allowed_origins and self._is_allowed_redirect_path(parsed_redirect.path)
-
-    def _is_allowed_native_redirect(self, redirect_uri: str) -> bool:
-        """Validate a native deep-link callback against the explicit allowlist."""
-        normalized_redirect = self._normalize_redirect_target(redirect_uri)
-        allowed_native_redirects = {
-            self._normalize_redirect_target(uri) for uri in settings.oauth_allowed_native_redirect_uris
-        }
-        return normalized_redirect in allowed_native_redirects
-
-    def _is_allowed_frontend_redirect(self, redirect_uri: str) -> bool:
-        """Validate whether a frontend redirect URI is explicitly allowed."""
-        parsed = urlparse(redirect_uri)
-        if not parsed.scheme or parsed.username or parsed.password or parsed.fragment:
-            return False
-
-        if parsed.scheme in {"http", "https"}:
-            return self._is_allowed_http_redirect(redirect_uri, parsed)
-
-        if not self._is_allowed_native_redirect(redirect_uri):
-            raise OAuthInvalidRedirectURIError
-        return True
+    return normalized_redirect in settings.oauth_allowed_redirect_uris

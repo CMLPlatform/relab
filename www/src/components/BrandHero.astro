@@ -1,0 +1,244 @@
+---
+// The hero's left column: the mark, the page's thesis, the nutshell, the two
+// doors into the platform, one headline figure and the affiliation. The right
+// column of the split is the featured teardown itself (HeroTeardown, composed
+// in index.astro), so the first viewport shows a real record rather than only
+// claims about one.
+//
+// The mark here and the one in the sticky header are never both on screen: as
+// the page scrolls this one melts away and the header's fades in to take its
+// place (see the scroll-driven animation below and in SiteHeader). `?url`
+// keeps both as hashed, cacheable assets; the handoff is opacity and transform
+// on the wrapper, which needs no access to the artwork's internals.
+import logoUrl from '@/assets/images/logo.svg?url';
+import logoDarkUrl from '@/assets/images/logo-dark.svg?url';
+import { research } from '@/copy/research.generated.ts';
+import { siteMeta } from '@/copy/site-meta.ts';
+import { formatCount, type HomeStats } from '@/lib/stats.ts';
+
+interface Props {
+  stats: HomeStats | null;
+  appUrl: string;
+}
+
+const { stats, appUrl } = Astro.props;
+const appBase = appUrl.replace(/\/$/, '');
+---
+
+<section class="brand-hero">
+  {/* Decorative: the sticky header's brand link carries the "Relab" name, and
+      this melts away as that one arrives. The artwork is 475x256, so 84px tall
+      is 156px wide; CSS still sizes it. */}
+  <div class="brand-hero-logo" aria-hidden="true">
+    <img class="brand-light" src={logoUrl} alt="" width="156" height="84" />
+    <img class="brand-dark" src={logoDarkUrl} alt="" width="156" height="84" />
+  </div>
+  <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
+  <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
+  {/* Two doors, because they need different things of the visitor: reading the
+      records takes no account, adding one does. A single CTA conflated them.
+
+      Each button says its own cost on a second line rather than the pair
+      sharing a sentence underneath. The fact only matters at the moment of
+      choosing, so it belongs on the control being chosen; a separate line of
+      page copy makes the reader carry it back to the buttons themselves. The
+      sublabels sit inside the <a>, so each one is part of the link's
+      accessible name and is announced with it. */}
+  <div class="brand-hero-actions">
+    <a
+      href={`${appBase}/products`}
+      class="btn btn-primary btn-large btn-stacked"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span class="btn-label">Browse the records</span>
+      <span class="btn-sublabel">No account needed</span>
+      <span class="visually-hidden"> (opens in new tab)</span>
+    </a>
+    <a
+      href={`${appBase}/new-account`}
+      class="btn btn-outline btn-large btn-stacked"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <span class="btn-label">Contribute a teardown</span>
+      <span class="btn-sublabel">Free account, takes a minute</span>
+      <span class="visually-hidden"> (opens in new tab)</span>
+    </a>
+  </div>
+  {
+    /* One figure, in ink: a triad of interpunct-separated totals read as
+       decoration rather than as a measurement. Baked at build time and
+       refreshed in place after load (landing-refresh.ts). */
+    /* Always rendered, even with no baked figure. landing-refresh.ts keys off
+       this node's presence, so omitting it disabled the one path that could
+       still recover the number from a healthy API — a build-time stats failure
+       used to remove the figure for the life of the deploy. Hidden until a real
+       number exists: no placeholder digit is ever invented, and the refresh
+       unhides it only once it has one. */
+    <p class="brand-hero-metrics" data-metrics hidden={!stats}>
+      {stats ? `${formatCount(stats.totals.parts)} parts documented` : ''}
+    </p>
+  }
+  <p class="brand-hero-affiliation">{research.affiliation}</p>
+</section>
+
+<script>
+  import { refreshLanding } from '@/scripts/landing-refresh.ts';
+
+  refreshLanding().catch(() => {
+    // Best-effort refresh: any failure leaves the baked metrics as-is.
+  });
+</script>
+
+<style>
+  /* Left-aligned and ragged right: a centred stack of title, lead, button and
+     figure on one axis is the shape every generated landing page takes. */
+  .brand-hero {
+    display: grid;
+    align-content: start;
+    gap: 1.1rem;
+    padding-top: 0.5rem;
+  }
+
+  .brand-hero-logo img {
+    display: block;
+    height: clamp(60px, 6vw, 84px);
+    width: auto;
+  }
+
+  /* Theme-swapped mark, mirroring SiteHeader/SiteFooter. */
+  .brand-hero-logo .brand-dark {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) .brand-hero-logo .brand-light {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) .brand-hero-logo .brand-dark {
+      display: block;
+    }
+  }
+
+  :global(:root[data-theme='dark']) .brand-hero-logo .brand-light {
+    display: none;
+  }
+
+  :global(:root[data-theme='dark']) .brand-hero-logo .brand-dark {
+    display: block;
+  }
+
+  /* The handoff: as the page scrolls this mark dissolves upward while the
+     header's fades in to take its place (SiteHeader). The two are never both
+     on screen, which is what keeps the brand from appearing twice.
+
+     Read the @supports literally: `animation-timeline: scroll()` is Chromium
+     and WebKit only. Measured 2026-08-13 via CSS.supports() in all three
+     engines, Firefox returns false. So on Firefox the handoff never runs and
+     BOTH marks stay visible for the whole page. That is the accepted fallback,
+     not a bug, but it is a mainstream browser rather than an edge case, so do
+     not treat the two-marks state as unreachable. Making it work there needs an
+     IntersectionObserver or scroll listener, which is real JavaScript for a
+     decorative effect; the recommendation is to leave it. Reduced motion gets
+     the same fallback. */
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      /* Longhands, never the `animation` shorthand: the CSS minifier folds a
+         shorthand plus animation-timeline into `animation: … scroll(root)`,
+         which no browser parses, silently killing the effect. */
+      .brand-hero-logo {
+        animation-name: brand-hero-logo-melt;
+        animation-duration: auto;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: scroll(root);
+        animation-range: 0 140px;
+        transform-origin: left top;
+      }
+    }
+  }
+
+  @keyframes brand-hero-logo-melt {
+    to {
+      opacity: 0;
+      transform: scale(0.86) translateY(-10px);
+    }
+  }
+
+  /* Display size from assets/DESIGN.md's web scale (38/44), floored so it still
+     fits a phone.
+
+     `text-wrap: balance` rather than a hand-tuned measure: the headline should
+     take two lines on a wide viewport and break after "for", but `ch` is the
+     width of a "0", which in a serif is a poor proxy for mixed-case text, so
+     tuning the cap by character count kept letting "circular-" onto the first
+     line and splitting the compound at its own hyphen. Balancing asks the
+     browser to minimise the longest line, which picks that break on its own
+     and keeps doing so if the copy changes. The cap is only a ceiling now.
+     Without support the headline simply wraps on the cap, as it did before. */
+  .brand-hero-title {
+    margin: 0;
+    max-width: 30ch;
+    font-size: clamp(2rem, 3.2vw, 2.375rem);
+    line-height: 1.16;
+    text-wrap: balance;
+  }
+
+  .brand-hero-lead {
+    margin: 0;
+    max-width: 48ch;
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+    color: var(--color-muted);
+  }
+
+  .brand-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 0.2rem;
+  }
+
+  .brand-hero-affiliation {
+    margin: 0;
+    font-size: var(--font-size-meta);
+    color: var(--color-muted);
+  }
+
+  /* Hairline above the provenance line: the claim about who runs this is a
+     different register from the pitch above it. */
+  .brand-hero-affiliation {
+    max-width: 44ch;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--color-page-border);
+  }
+
+  .brand-hero-metrics {
+    margin: 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: var(--relab-type-data-size);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
+  }
+
+  /* The totals are baked at build time and refreshed from the API after load
+     (landing-refresh.ts). Without this the figures change with no explanation,
+     which reads as a glitch rather than as freshness. Opacity only: the line
+     must not move, so the refresh keeps its no-layout-shift guarantee. */
+  @media (prefers-reduced-motion: no-preference) {
+    .brand-hero-metrics {
+      transition: opacity 180ms var(--ease-out);
+    }
+
+    .brand-hero-metrics.is-refreshing {
+      opacity: 0.35;
+    }
+  }
+
+  /* NOTE: the mark also used to draw its ring on load, and the header's used to
+     close that ring again as this one melted. Both are gone: they needed the
+     logos inlined with `?raw` so CSS could reach the <circle>, and the handoff
+     above reads the same without them. The rest of the motion on this page all
+     reports something: a figure refreshing, a bar measuring, a hint opening. */
+</style>

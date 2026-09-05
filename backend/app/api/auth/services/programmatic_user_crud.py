@@ -1,7 +1,5 @@
 """Programmatic user-creation helpers built on top of FastAPI Users."""
 
-from __future__ import annotations
-
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
@@ -16,7 +14,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
-    from app.api.auth.schemas import UserCreate
+    from app.api.auth.schemas import TrustedUserCreate
     from app.api.auth.services.user_manager import UserManager
 
 get_async_user_db_context = asynccontextmanager(get_user_db)
@@ -46,7 +44,7 @@ async def get_chained_async_user_manager_context(
 
 async def create_user(
     async_session: AsyncSession,
-    user_create: UserCreate,
+    user_create: TrustedUserCreate,
     *,
     send_registration_email: bool = False,
     skip_breach_check: bool = False,

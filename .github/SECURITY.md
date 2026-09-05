@@ -14,6 +14,113 @@ Instead, email [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl) with:
 
 - We aim to acknowledge reports within 5 business days.
 - We aim to validate and triage confirmed issues as quickly as possible.
-- For confirmed vulnerabilities, we will coordinate a fix and responsible disclosure timeline with the reporter where practical.
+- For confirmed vulnerabilities, we will coordinate a fix and responsible disclosure timeline with
+  the reporter where practical.
 
 Please include enough detail for us to reproduce the problem. That saves time for everyone.
+
+## Security Baseline
+
+Relab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the
+[OWASP Secure Product Design](https://cheatsheetseries.owasp.org/cheatsheets/Secure_Product_Design_Cheat_Sheet.html)
+lens for product decisions. Keep controls simple, reviewable, and documented near the behavior they
+protect.
+
+For the deployed security posture, trust-boundary model, egress policy, browser runtime policy, and
+supply-chain artifact posture, see
+[Security and hardening](https://docs.cml-relab.org/operations/security/).
+
+Review security-sensitive changes against this baseline:
+
+- Context: self-hosted research and data-collection platform.
+- Components: backend, app, web, docs, PostgreSQL, Redis, storage, backups, OAuth, email, YouTube,
+  and RPi camera integrations.
+- Connections: clients and devices enter through the API; PostgreSQL and Redis stay on the internal
+  data network; external providers are explicit trust boundaries.
+- Code: authorization, validation, upload checks, browser security headers, and tests live close to
+  the behavior they protect.
+- Configuration: secrets, Compose policy, HTTPS, least-privilege database roles, and secure runtime
+  defaults are source-controlled where practical.
+
+Security-sensitive areas:
+
+- authentication and OAuth
+- public read APIs
+- authenticated mutation APIs — create endpoints accept an `Idempotency-Key` header and cache the
+  response in Redis for one hour.
+  - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
+    a cached response can never be replayed across accounts or targets.
+  - The entry also stores a hash of the request body: reusing a key with a different payload is
+    rejected with `422` instead of replaying the earlier record.
+  - If Redis is unreachable the request fails closed with `503` rather than risking a duplicate.
+- uploads and media — the `/uploads` mount serves stored bytes with a content-hashed,
+  immutable cache policy and `Cross-Origin-Resource-Policy: same-site`. That policy is
+  relaxed to `cross-origin` for `/uploads` alone in the `dev` and `testing` environments,
+  where the API and the frontends sit on different ports of `127.0.0.1` and Chromium blocks
+  the loads. The relaxation is derived from the environment, not configured, so staging and
+  production cannot opt into it.
+- admin APIs
+- RPi camera device APIs and WebSocket relay
+- backups, secrets, logs, and telemetry
+- release and security artifacts
+
+Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files,
+OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup
+material, and runtime secrets.
+
+Public read APIs are intentionally public: the product/component catalog and its research content
+are world-readable by design, since the platform exists to publish that data. `profile_visibility`
+hides owner identity attribution only — it is not a control over the underlying research content,
+and must never be treated as one.
+
+Account privileges are three independent things, and conflating any two of them is a privilege
+escalation:
+
+- `is_verified` gates whether an account may create records at all.
+- `is_superuser` grants the `/admin` routes. It does **not** imply trust with research data.
+- `role` (`contributor` by default, `lab`) is the contributor tier. It gates non-image
+  research-file upload and selects the upload quota tier. A superuser who is not `lab` is refused
+  a research-file upload exactly like any other contributor.
+
+Roles are assigned only by a superuser through `PUT /v1/admin/users/{user_id}/role`, which records
+an audit event. `role` is deliberately absent from `UserUpdate`: fastapi-users' safe update path
+strips a fixed set of privileged fields, so any new field on that schema would flow through
+self-service `PATCH /users/me` — keeping role off the schema makes that escalation unrepresentable
+rather than filtered. New and backfilled accounts start at `contributor`, so the tier fails closed.
+
+## Automated Checks
+
+Supply-chain and code-security checks:
+
+- Dependencies: GitHub Dependency Review / Dependency Graph and Renovate.
+- Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
+- Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu
+  validates Cloudflare edge config, plus Relab Compose render and deploy secret path checks.
+- Source code: CodeQL.
+- Secrets: Gitleaks.
+- GitHub Actions workflows: actionlint and Zizmor.
+- Repository hygiene: OpenSSF Scorecard.
+
+Use `just security` for local maintainer diagnosis: it runs the dependency audits and the Gitleaks
+secret scan. Trivy, CodeQL, actionlint, Zizmor, and Scorecard run in CI.
+
+Release SBOM assets are attested as files and uploaded with GitHub releases.
+
+## Maintainer Review
+
+Automated checks do not replace reviewer judgment. For changes that touch authentication,
+authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets,
+dependencies, or personal data, confirm:
+
+- authorization is enforced server-side, not only hidden in a client — hiding an upload affordance
+  from a client that lacks the role is a UX choice, never the control
+- input is validated at API, upload, form, and device boundaries
+- browser-rendered values stay on framework escaping paths; raw HTML sinks and dynamic URLs are
+  isolated, validated, and tested
+- logs do not include tokens, passwords, private URLs, OAuth material, or other sensitive values
+- secure defaults fail closed in production and staging
+- auth, permission, upload, and device-flow behavior has focused test coverage
+
+Filtering a route out of a public OpenAPI schema hides it from the docs, not from attackers.
+Authorization must be enforced in backend dependencies and services regardless of which schemas list
+the route.

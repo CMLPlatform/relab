@@ -1,0 +1,12 @@
+/* Plain CSS, no utility framework. The site's expression lives in authored
+   rules and per-component scoped <style> blocks; consistency is enforced by
+   the generated tokens below, not by a utility scale. Import order is the
+   cascade, and every file here is unlayered, so ordinary specificity applies
+   -- base.css is element selectors only, so the class-based files after it
+   win without needing @layer to arrange them. */
+@import "./tokens.generated.css";
+@import "./tokens.css";
+@import "./base.css";
+@import "./layout.css";
+@import "./components.css";
+@import "./utilities.css";

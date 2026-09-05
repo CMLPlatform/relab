@@ -10,7 +10,7 @@
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Recognition",
   ]
-  description = "Data collection app for the reverse engineering lab project at CML."
+  description = "Data collection app for the Relab project at CML."
   keywords = ["automated-lca", "circular-economy", "computer-vision"]
   license = { text = "AGPL-3.0-or-later" }
   maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
@@ -20,7 +20,6 @@
   ## Dependencies and version constraints
   dependencies = [
     # Web framework and API layer
-    "fastapi-filter>=2.0.1",
     "fastapi-mail>=1.6.2",
     "fastapi-pagination>=0.13.2",
     "fastapi>=0.115.14",
@@ -31,25 +30,20 @@
     "cashews>=7.5.0",
     "fastapi-users[oauth,redis,sqlalchemy]>=14.0.1",
     "pyjwt[crypto]>=2.12.1",
-    "inflect>=7.5.0",
+    "pyotp>=2.9.0",
     "redis>=5.2.1",
     "limits[redis]>=5.8.0",
     # Database and persistence
     "sqlalchemy>=2.0.41",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
-    "relab-rpi-cam-models>=0.3.1",
-    # Password strength and breach checking
-    "zxcvbn>=4.4.28",
+    "relab-rpi-cam-models>=0.5.0,<0.6",
     # Configuration, validation, and utility types
-    "loguru>=0.7.3",
     "pydantic>=2.12",
-    "pydantic-extra-types>=2.10.5",
     "pydantic-settings>=2.10.1",
+    "python-json-logger>=4.1.0",
     "python-dotenv>=1.1.1",
-    "python-slugify>=8.0.4",
     # Media and image processing
-    "piexif>=1.1.3",
     "pillow>=11.2.1",
     # Observability
     "opentelemetry-api>=1.41.0",
@@ -58,6 +52,7 @@
     "opentelemetry-instrumentation-fastapi>=0.62b0",
     "opentelemetry-instrumentation-sqlalchemy>=0.62b0",
     "opentelemetry-instrumentation-httpx>=0.62b0",
+    "fastapi-filters[sqlalchemy]>=0.3.3",
   ]
   requires-python = ">=3.14"
   version = "0.2.0"
@@ -79,10 +74,13 @@
   s3 = ["boto3>=1.38.0"]
 
   # Optional taxonomy-import tooling used by one-off seeding scripts
-  seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3", "requests>=2.32.0"]
+  seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3"]
+
+  # Typed-table writer for the one-off dataset release build script
+  dataset-release = ["pyarrow>=21.0.0"]
 
   # Heavy deps for scripts/plugins/rpi_cam/webcam_fake_camera.py (local dev only)
-  fake-camera = ["opencv-python>=4.0", "websockets>=14.0"]
+  fake-camera = ["opencv-python-headless>=4.0", "websockets>=14.0"]
 
   # Unit and integration test dependencies
   tests = [
@@ -119,16 +117,16 @@
   script_location  = "alembic"
 
   [[tool.alembic.post_write_hooks]]
-    executable = "%(here)s/.venv/bin/ruff"
-    name       = "ruff"
-    options    = "check --fix REVISION_SCRIPT_FILENAME"
-    type       = "exec"
+    module  = "ruff"
+    name    = "ruff"
+    options = "check --fix REVISION_SCRIPT_FILENAME"
+    type    = "module"
 
   [[tool.alembic.post_write_hooks]]
-    executable = "%(here)s/.venv/bin/ruff"
-    name       = "ruff_format"
-    options    = "format REVISION_SCRIPT_FILENAME"
-    type       = "exec"
+    module  = "ruff"
+    name    = "ruff_format"
+    options = "format REVISION_SCRIPT_FILENAME"
+    type    = "module"
 
 [tool.pytest.ini_options]
   addopts = "-ra --strict-markers --strict-config"
@@ -190,6 +188,9 @@
       "Q",      # flake8-quotes
       "W191",   # tab-indentation
 
+      # This repo doesn't use per-file copyright headers (license lives in LICENSE)
+      "CPY", # flake8-copyright
+
       # Overly strict rules
       "D105", # undocumented-magic-method (magic methods are often self-explanatory)
       "D107", # undocumented-public-init (__init__ methods are often self-explanatory)
@@ -202,7 +203,7 @@
 
     [tool.ruff.lint.flake8-bugbear]
       # Allow default arguments for FastAPI Depends and Query
-      extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi_filter.FilterDepends"]
+      extend-immutable-calls = ["fastapi.Depends", "fastapi.Query"]
 
     [tool.ruff.lint.flake8-type-checking]
       # Allow runtime imports for FastAPI dependency injection and Pydantic validation
@@ -215,7 +216,11 @@
         "typing.Annotated",
         "relab_rpi_cam_models",
       ]
-      runtime-evaluated-base-classes = ["fastapi_filter.contrib.sqlalchemy.FilterSet", "pydantic.BaseModel"]
+      runtime-evaluated-base-classes = [
+        "fastapi_filters.FilterSet",
+        "app.api.common.crud.filtering.BaseFilterSet",
+        "pydantic.BaseModel",
+      ]
 
     [tool.ruff.lint.per-file-ignores]
       "**/alembic/**/*.py" = [
@@ -226,10 +231,18 @@
         "TC003",  # Allow runtime evaluation of base classes
       ]
       "**/tests/**/*.py" = [
-        "PLR2004", # Allow magic values in test files
-        "S101",    # Ignore security issues over use of `assert` in test files
-        "S105",    # Any secrets defined in the test suite are not real secrets
-        "S106",    # Any secrets defined in the test suite are not real secrets
+        "ANN001",   # Test fixtures/helpers are not type-annotated
+        "ANN002",   # Untyped *args in test doubles
+        "ANN202",   # Untyped return on local test helpers
+        "ANN401",   # Any-typed fixture/kwarg values are expected in tests
+        "ASYNC109", # Test helpers mirror timeout-taking APIs
+        "PLR2004",  # Allow magic values in test files
+        "PLW0603",  # Test setup mutates module-level state
+        "S101",     # Ignore security issues over use of `assert` in test files
+        "S105",     # Any secrets defined in the test suite are not real secrets
+        "S106",     # Any secrets defined in the test suite are not real secrets
+        "S107",     # Any secrets defined in the test suite are not real secrets
+        "SLF001",   # Tests legitimately access private members
       ]
 
     [tool.ruff.lint.isort]
@@ -245,3 +258,15 @@
     [tool.ruff.lint.pylint]
       allow-magic-value-types = ["int"]
       max-args                = 10
+
+[tool.uv]
+  # Mitigate supply chain issues
+  exclude-newer = "3 days"
+
+  # fastapi-mail 1.6.5 caps cryptography<50.0.0, but never imports cryptography itself
+  # (the cap is defensive, not load-bearing); override so PYSEC-2026-3552 can be closed.
+  # Drop this once fastapi-mail relaxes its own constraint.
+  override-dependencies = ["cryptography>=50.0.0"]
+
+  [tool.uv.exclude-newer-package]
+    relab-rpi-cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay

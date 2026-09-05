@@ -1,0 +1,351 @@
+// SHARED AGENT CONFIG — vendored from the central monitoring repo at a pinned tag.
+// Do not edit it per project: every deployment-specific value arrives as an environment
+// variable (PROJECT, ENVIRONMENT, COMPOSE_PROJECT_NAME, OTEL_EXPORTER_OTLP_ENDPOINT,
+// OTLP_AUTH_TOKEN, TELEMETRY_EDGE_KEY). If you find yourself editing this file to
+// onboard a project, that is a bug in the template — report it upstream instead, so the
+// next project does not hit the same wall.
+//
+// Ship this host's telemetry to the department OpenTelemetry collector: container
+// stdout/stderr as logs, and host resource metrics.
+//
+// An instrumented application sends its own traces and metrics over OTLP directly.
+// Everything else in the stack — databases, caches, proxies, frontends, batch jobs —
+// only writes to stdout, so this agent picks those up and forwards them on the
+// same OTLP endpoint with the same token. Nothing new is published at the edge: the
+// monitoring stack exposes `otel.` and deliberately does not expose Loki, which has no
+// authentication of its own.
+
+// The host's own name, read from its /etc/hostname through the rootfs mount rather than
+// taken as an operator input: one less thing to set per host, and one less thing to get
+// wrong. The container's own hostname is a docker id and useless here.
+local.file "hostname" {
+	filename = "/rootfs/etc/hostname"
+}
+
+// Discovery and log reading both talk to the Docker API — through the socket proxy
+// (compose.telemetry.yml), never the socket itself, so this container cannot
+// mutate the daemon. The API is what makes container NAMES available; reading the
+// on-disk json logs instead would label everything by container id.
+discovery.docker "containers" {
+	host = "tcp://docker-socket-proxy:2375"
+
+	// The default is 1m, and the backup one-shot runs for 60-90s: at the default a whole
+	// backup can start and exit inside one poll window and never be discovered, which
+	// would lose exactly the logs most worth having. Polling the local socket for a
+	// dozen containers is cheap; a missed short-lived container is not.
+	refresh_interval = "5s"
+}
+
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	// Only this stack. The host may run other Compose projects (monitoring's own, for
+	// one) that ship their own telemetry; picking them up here would double-report them.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		regex         = sys.env("COMPOSE_PROJECT_NAME")
+		action        = "keep"
+	}
+
+	// Never tail this pipeline's own containers. When the export path is broken, every
+	// failed batch writes an error line; tailing that line queues it, it fails, and
+	// writes another — an amplifying self-feed with no exit. The json-file driver note
+	// in the overlay only prevents the log-DRIVER loop; this prevents the discovery one.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		regex         = "alloy|docker-socket-proxy"
+		action        = "drop"
+	}
+
+	// The Compose service name is the stable per-deployable identifier the monitoring
+	// stack's conventions ask for: `api`, never `api-prod-2`.
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service_name"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "container"
+	}
+}
+
+loki.source.docker "containers" {
+	host       = "tcp://docker-socket-proxy:2375"
+	targets    = discovery.relabel.containers.output
+	labels     = {
+		env     = sys.env("ENVIRONMENT"),
+		project = sys.env("PROJECT"),
+
+		// Without this every host collapses onto one identity: Alloy scrapes its OWN
+		// in-container exporter, so the address Prometheus derives `instance` from is
+		// identical on every machine. The moment a second host ships, the series
+		// interleave and every host-level alert becomes meaningless. The coalesce
+		// keeps a blank /etc/hostname from silently reintroducing exactly that: the
+		// container hostname is a poor identity, but it is a distinguishable one.
+		host_name = coalesce(string.trim_space(local.file.hostname.content), constants.hostname),
+	}
+	forward_to = [otelcol.receiver.loki.containers.receiver]
+}
+
+// Loki-shaped entries in, OpenTelemetry logs out. This is the only reason Alloy is
+// here rather than a plain OTel collector: loki.source.docker is the least fiddly way
+// to read Docker's log stream with real container labels attached.
+otelcol.receiver.loki "containers" {
+	output {
+		logs = [otelcol.processor.transform.resource_attributes.input]
+	}
+}
+
+// Promote the two identifiers the monitoring stack keys dashboards on from log-record
+// attributes to RESOURCE attributes. error_mode = "ignore" is deliberate: if the
+// conversion ever names these attributes differently, logs still arrive with the
+// attributes unpromoted, rather than the pipeline dropping them.
+otelcol.processor.transform "resource_attributes" {
+	error_mode = "ignore"
+
+	log_statements {
+		context = "log"
+
+		statements = [
+			`set(resource.attributes["service.name"], attributes["service_name"]) where attributes["service_name"] != nil`,
+			`set(resource.attributes["env"], attributes["env"]) where attributes["env"] != nil`,
+			`set(resource.attributes["project"], "${PROJECT}")`,
+			`set(resource.attributes["host.name"], attributes["host_name"]) where attributes["host_name"] != nil`,
+		]
+	}
+
+	output {
+		logs = [otelcol.processor.batch.default.input]
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Host metrics. node_exporter's collectors, scraped in-process and converted to OTLP
+// so they ride the same endpoint and token as the logs above — no second pipeline, no
+// second hostname, no second credential.
+//
+// set_collectors is an allowlist rather than the default set: fewer series, and each one
+// is here for a reason. `hwmon` earns its place as a dashboard panel — thermal data on a
+// physical box is cheap and occasionally telling — but it is NOT a control: fan RPM is a
+// symptom of load, legitimate load spins fans too, and no threshold on it would be
+// trustworthy. The crash loop that made this memorable is properly detected by container
+// restart count, not by temperature.
+prometheus.exporter.unix "host" {
+	// The exporter runs inside the container, so point it at the host's mounted /proc,
+	// /sys and /.
+	procfs_path = "/host/proc"
+	sysfs_path  = "/host/sys"
+	rootfs_path = "/rootfs"
+
+	set_collectors = [
+		"cpu",
+		"diskstats",
+		"filesystem",
+		"hwmon",
+		"loadavg",
+		"meminfo",
+		"netdev",
+		"stat",
+		"uname",
+	]
+
+	filesystem {
+		// Pseudo-filesystems and per-container overlays: neither is disk anyone can free.
+		mount_points_exclude = "^/(dev|proc|sys|run)($|/)|^/rootfs/(dev|proc|sys|run)($|/)|^/var/lib/docker/"
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Per-container resource metrics. This is what makes a crash loop visible: cAdvisor has
+// no restart counter, but container_start_time_seconds moving repeatedly is the same
+// signal, and container_oom_events_total says why. The incident that produced these
+// runbooks — 668 restarts over 19 hours, every monitor green — is detected by
+//
+//     changes(container_start_time_seconds{name!=""}[1h]) > 3
+//
+// which is a rule on the central stack, not here. This side only has to ship the series.
+// Shipping them at all needs `cgroup: host` on this container: see the note in
+// compose.telemetry.yml, without which cAdvisor reports one root series and the
+// rule above matches nothing.
+prometheus.exporter.cadvisor "containers" {
+	docker_host = "tcp://docker-socket-proxy:2375"
+
+	// Both defaults are cardinality traps. store_container_labels = true turns every
+	// container label AND environment variable into a Prometheus label, which on Compose
+	// smears com_docker_compose_* across every series; docker_only = false additionally
+	// emits raw systemd-slice cgroups nobody will ever read. With these two set, a
+	// ten-container host is a few hundred series.
+	store_container_labels = false
+	docker_only            = true
+
+	allowlisted_container_labels = [
+		"com.docker.compose.project",
+		"com.docker.compose.service",
+	]
+}
+
+prometheus.scrape "cadvisor" {
+	targets         = prometheus.exporter.cadvisor.containers.targets
+	forward_to      = [prometheus.relabel.cadvisor_scope.receiver]
+	scrape_interval = "30s"
+	job_name        = "cadvisor"
+}
+
+// cAdvisor walks the host's cgroup tree, so it sees EVERY container on the box. The
+// COMPOSE_PROJECT_NAME filter on discovery.docker above scopes log tailing only — it
+// does not reach this exporter. On a host that also runs a dev stack, an unrelated
+// tool, or the monitoring stack itself, those containers otherwise arrive stamped with
+// THIS deployment's project and env, firing this project's alerts for something it does
+// not own and double-reporting anything that ships its own telemetry. Keep only this
+// project's containers, using the compose label the allowlist above preserves.
+//
+// The unlabelled root-cgroup series drops out with them, which is correct: it carries no
+// `name`, so no container rule can match it, and node_exporter above already owns
+// host-level totals.
+prometheus.relabel "cadvisor_scope" {
+	forward_to = [prometheus.relabel.host.receiver]
+
+	rule {
+		source_labels = ["container_label_com_docker_compose_project"]
+		regex         = sys.env("COMPOSE_PROJECT_NAME")
+		action        = "keep"
+	}
+}
+
+prometheus.scrape "host" {
+	targets         = prometheus.exporter.unix.host.targets
+	forward_to      = [prometheus.relabel.host.receiver]
+	scrape_interval = "30s"
+	job_name        = "host"
+}
+
+// Same identifiers the logs carry, so host metrics and container logs can be filtered
+// by the same env/project in one dashboard.
+prometheus.relabel "host" {
+	forward_to = [otelcol.receiver.prometheus.host.receiver]
+
+	rule {
+		target_label = "env"
+		replacement  = sys.env("ENVIRONMENT")
+		action       = "replace"
+	}
+
+	rule {
+		target_label = "project"
+		replacement  = sys.env("PROJECT")
+		action       = "replace"
+	}
+
+	// See the note on the log labels: `instance` is not a host identity here.
+	rule {
+		target_label = "host_name"
+		replacement  = coalesce(string.trim_space(local.file.hostname.content), constants.hostname)
+		action       = "replace"
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Alloy's own health. The exporter below is the only place that counts what THIS agent
+// drops (otelcol_exporter_send_failed_*): without shipping it, an outage's log loss is
+// not just possible but uncounted, because the counters live on a loopback port nobody
+// reads. Riding the same pipeline is fine — when the pipeline is down these metrics go
+// dark too, and that absence is what the central ProjectTelemetrySilent rule fires on.
+prometheus.exporter.self "alloy" { }
+
+prometheus.scrape "alloy" {
+	targets         = prometheus.exporter.self.alloy.targets
+	forward_to      = [prometheus.relabel.host.receiver]
+	scrape_interval = "30s"
+	job_name        = "alloy"
+}
+
+// ---------------------------------------------------------------------------
+// GPU metrics, present only on hosts that run compose.telemetry.gpu.yml. No targets
+// and costs nothing when the exporter container is absent, so the same config file is
+// correct on every host — a GPU host is not a different design, it is one extra overlay.
+//
+// Alloy has no native GPU component (the whole prometheus.exporter.* list was checked,
+// and OTel Collector contrib has no NVIDIA receiver either), so an exporter container
+// scraped over the Compose network is the pattern. It still means no new agent, no new
+// endpoint and no new credential.
+discovery.relabel "gpu_exporter" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
+		regex         = sys.env("COMPOSE_PROJECT_NAME")
+		action        = "keep"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		regex         = "nvidia-gpu-exporter"
+		action        = "keep"
+	}
+
+	rule {
+		target_label = "service_name"
+		replacement  = "gpu"
+		action       = "replace"
+	}
+}
+
+prometheus.scrape "gpu" {
+	targets    = discovery.relabel.gpu_exporter.output
+	forward_to = [prometheus.relabel.host.receiver]
+
+	// GPU metrics are cheap to over-scrape and the temptation is 5s. 30s matches the
+	// other scrapes here: thermal throttling and XID faults persist for far longer than
+	// one interval, and a training run's utilisation curve does not need sub-minute
+	// resolution to be readable.
+	scrape_interval = "30s"
+	job_name        = "gpu"
+}
+
+otelcol.receiver.prometheus "host" {
+	output {
+		metrics = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	output {
+		logs    = [otelcol.exporter.otlphttp.central.input]
+		metrics = [otelcol.exporter.otlphttp.central.input]
+	}
+}
+
+otelcol.exporter.otlphttp "central" {
+	client {
+		// The tunnel routes HTTPS to the collector's HTTP receiver only; there is no
+		// public gRPC path, which is why this is otlphttp and not otlp. The endpoint
+		// MUST be https:// — an http:// value ships the bearer token and every log
+		// line in cleartext, and nothing here can tell (see .env.example).
+		endpoint = sys.env("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+		headers = {
+			Authorization = "Bearer " + sys.env("OTLP_AUTH_TOKEN"),
+
+			// Second, weaker credential for projects whose egress crosses a WAF: the
+			// project's WAF-skip rule matches THIS header, so the bearer token itself
+			// never appears in a ruleset expression readable through the provider's
+			// API. It grants only the managed-security skip. Projects with no WAF in
+			// front of their egress can leave TELEMETRY_EDGE_KEY empty; the header is
+			// then sent empty and ignored.
+			"X-Telemetry-Key" = sys.env("TELEMETRY_EDGE_KEY"),
+		}
+	}
+
+	// Explicit rather than collector defaults, so an outage's behaviour is a decision:
+	// retry for 15 minutes, hold up to 2000 batches in memory, then drop and COUNT the
+	// drop (shipped by prometheus.exporter.self above). The queue is the reason the
+	// overlay caps this container's memory — see mem_limit there before raising it.
+	sending_queue {
+		queue_size = 2000
+	}
+
+	retry_on_failure {
+		max_elapsed_time = "15m"
+	}
+}

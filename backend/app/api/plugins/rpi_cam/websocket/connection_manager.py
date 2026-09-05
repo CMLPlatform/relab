@@ -1,7 +1,5 @@
 """In-process registry of active RPi camera WebSocket connections."""
 
-from __future__ import annotations
-
 import asyncio
 import contextlib
 import json
@@ -10,18 +8,29 @@ import uuid
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
+from relab_rpi_cam_models import RELAY_COMMAND_TIMEOUT_SECONDS, RelayMessageType, build_relay_command
 
-from app.api.plugins.rpi_cam.websocket.protocol import MSG_PONG, build_command
+from app.core.logging import sanitize_log_value
 
 if TYPE_CHECKING:
     from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 
-# How long to wait for a command response before giving up.
-DEFAULT_COMMAND_TIMEOUT = 30.0
-# How long to wait for a response that includes a binary frame (e.g. image download).
-BINARY_COMMAND_TIMEOUT = 60.0
+# How long to wait for a command response before giving up. The Pi cuts off its
+# local dispatch at RELAY_COMMAND_TIMEOUT_SECONDS; the grace period lets the
+# device-side timeout response win the race over a backend-side TimeoutError.
+DEFAULT_COMMAND_TIMEOUT = RELAY_COMMAND_TIMEOUT_SECONDS + 5.0
+
+
+class CameraDisconnectedDuringCommandError(RuntimeError):
+    """A pending command's future was failed because its camera disconnected.
+
+    Distinct from the plain ``RuntimeError`` ``send_command`` raises for "not
+    connected in this worker" — that case should fall through to the
+    cross-worker relay, this one should not (the socket that owned the
+    command died, so there is nothing another worker can bridge to).
+    """
 
 
 class CameraConnectionManager:
@@ -30,8 +39,8 @@ class CameraConnectionManager:
     def __init__(self) -> None:
         # camera_id → active WebSocket
         self._connections: dict[UUID4, WebSocket] = {}
-        # msg_id → Future[tuple[dict, bytes | None]]
-        self._pending: dict[str, asyncio.Future[tuple[dict, bytes | None]]] = {}
+        # msg_id → (owning camera_id, Future[tuple[dict, bytes | None]])
+        self._pending: dict[str, tuple[UUID4, asyncio.Future[tuple[dict, bytes | None]]]] = {}
 
     # ── Connection lifecycle ──────────────────────────────────────────────────
 
@@ -44,16 +53,30 @@ class CameraConnectionManager:
         """
         existing = self._connections.get(camera_id)
         if existing is not None:
-            logger.warning("Camera %s reconnected; closing stale connection.", camera_id)
+            logger.warning("Camera %s reconnected; closing stale connection.", sanitize_log_value(camera_id))
             with contextlib.suppress(Exception):
                 await existing.close(code=1001)  # 1001 = Going Away
         self._connections[camera_id] = ws
-        logger.info("Camera %s connected via WebSocket", camera_id)
+        logger.info("Camera %s connected via WebSocket", sanitize_log_value(camera_id))
 
-    def unregister(self, camera_id: UUID4) -> None:
-        """Remove a camera's connection and cancel any pending futures."""
-        self._connections.pop(camera_id, None)
-        logger.info("Camera %s disconnected from WebSocket", camera_id)
+    def unregister(self, camera_id: UUID4, ws: WebSocket) -> bool:
+        """Remove a camera's connection and fail its pending futures so callers 503 fast.
+
+        Only acts if ``ws`` is still the registered connection — a stale connection's
+        cleanup must not evict a freshly reconnected camera. Returns True if the
+        camera was actually unregistered.
+        """
+        if self._connections.get(camera_id) is not ws:
+            logger.info("Camera %s stale connection closed; newer connection kept.", sanitize_log_value(camera_id))
+            return False
+        del self._connections[camera_id]
+        for owner, future in self._pending.values():
+            if owner == camera_id and not future.done():
+                future.set_exception(
+                    CameraDisconnectedDuringCommandError(f"Camera {camera_id} disconnected during command.")
+                )
+        logger.info("Camera %s disconnected from WebSocket", sanitize_log_value(camera_id))
+        return True
 
     def is_connected(self, camera_id: UUID4) -> bool:
         """Return True if the camera has an active WebSocket connection."""
@@ -87,10 +110,10 @@ class CameraConnectionManager:
         msg_id = _new_msg_id()
         loop = asyncio.get_running_loop()
         future: asyncio.Future[tuple[dict, bytes | None]] = loop.create_future()
-        self._pending[msg_id] = future
+        self._pending[msg_id] = (camera_id, future)
 
         try:
-            payload = build_command(msg_id, method, path, params, body, headers)
+            payload = build_relay_command(msg_id, method, path, params, body, headers).model_dump_json()
             await ws.send_text(payload)
             return await future
         finally:
@@ -98,36 +121,22 @@ class CameraConnectionManager:
 
     # ── Called by the receive loop in router.py ───────────────────────────────
 
-    def resolve_json(self, msg_id: str, data: dict, binary: bytes | None) -> None:
-        """Resolve a pending future with the response from the camera."""
-        future = self._pending.get(msg_id)
-        if future and not future.done():
-            future.set_result((data, binary))
+    def resolve_json(self, camera_id: UUID4, msg_id: str, data: dict, binary: bytes | None) -> None:
+        """Resolve a pending future with the response from the camera.
+
+        The response must come from the camera that owns the pending command:
+        ``msg_id`` alone is trusted input from the socket, so a frame from a
+        different camera carrying another's msg_id must not resolve it.
+        """
+        entry = self._pending.get(msg_id)
+        if entry and entry[0] == camera_id and not entry[1].done():
+            entry[1].set_result((data, binary))
 
     async def handle_ping(self, camera_id: UUID4) -> None:
         """Respond to a ping from the camera."""
         ws = self._connections.get(camera_id)
         if ws:
-            await ws.send_text(json.dumps({"type": MSG_PONG}))
-
-
-# ── Module-level singleton ────────────────────────────────────────────────────
-
-_manager_state: dict[str, CameraConnectionManager | None] = {"manager": None}
-
-
-def get_connection_manager() -> CameraConnectionManager:
-    """Return the global CameraConnectionManager (must be initialised at startup)."""
-    manager = _manager_state["manager"]
-    if manager is None:
-        msg = "CameraConnectionManager is not initialised."
-        raise RuntimeError(msg)
-    return manager
-
-
-def set_connection_manager(manager: CameraConnectionManager) -> None:
-    """Set the global CameraConnectionManager (called during app startup)."""
-    _manager_state["manager"] = manager
+            await ws.send_text(json.dumps({"type": RelayMessageType.PONG}))
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

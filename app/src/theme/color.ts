@@ -1,0 +1,53 @@
+import type { AppTheme } from './types';
+
+const RGBA_ALPHA_PATTERN = /rgba\((.+),\s*[^,]+\)$/;
+
+export function alpha(color: string, opacity: number) {
+  if (color.startsWith('rgb(')) {
+    return color.replace('rgb(', 'rgba(').replace(')', `, ${opacity})`);
+  }
+  if (color.startsWith('rgba(')) {
+    return color.replace(RGBA_ALPHA_PATTERN, `rgba($1, ${opacity})`);
+  }
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    const normalized =
+      hex.length === 3
+        ? hex
+            .split('')
+            .map((char) => `${char}${char}`)
+            .join('')
+        : hex.slice(0, 6);
+    const int = Number.parseInt(normalized, 16);
+    const r = (int >> 16) & 255;
+    const g = (int >> 8) & 255;
+    const b = int & 255;
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+  return color;
+}
+
+export function getStatusColor(
+  theme: AppTheme,
+  status: 'online' | 'offline' | 'unauthorized' | 'forbidden' | 'error',
+) {
+  switch (status) {
+    case 'online':
+      return theme.tokens.status.success;
+    case 'offline':
+      return theme.tokens.status.offline;
+    case 'unauthorized':
+    case 'forbidden':
+      return theme.tokens.status.warning;
+    case 'error':
+      return theme.tokens.status.danger;
+    // Unreachable for typed input, but a status the backend adds before the
+    // client's types catch up would otherwise return undefined and crash alpha().
+    default:
+      return theme.tokens.status.offline;
+  }
+}
+
+export function getStatusTone(color: string, opacity = 0.12) {
+  return alpha(color, opacity);
+}

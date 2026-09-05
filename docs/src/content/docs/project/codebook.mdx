@@ -1,0 +1,48 @@
+---
+title: Dataset codebook
+description: Every column in a Relab dataset release, with its type and meaning.
+---
+
+import Codebook from '@/components/datamodel/codebook.generated.mdx';
+
+A published [dataset release](/project/dataset/) ships as a set of Parquet files. This page
+documents every column in them: what it holds, what its absence means, and how far to trust it.
+
+The tables come from the release schemas in `backend/scripts/build_dataset_release.py`, so they
+describe the archive the build produces rather than the platform's internal database. For that
+database, see [Data model](/architecture/datamodel/).
+
+Every release also carries `croissant.json`, which repeats these descriptions in
+[MLCommons Croissant](https://mlcommons.org/working-groups/data/croissant/) form for tools that
+read dataset metadata directly.
+
+## How to read the tables
+
+- **Required** means the column is never null. Everything else can be null, and null means
+  "not recorded" rather than zero or empty. A missing `weight_g` is a product nobody weighed,
+  not a weightless product.
+- Identifiers are unique within one release, and reference tables are joined by them.
+- `records.parquet` holds both whole products and their components in one table. A row with a
+  null `parent_id` is a whole product; anything else is a part taken out of the row named by
+  `parent_id`. Depth is not bounded, so treat it as a tree, not two levels.
+- Reference tables under `reference/` are frozen copies taken at build time. They are the
+  vocabulary the records were annotated against, not a live taxonomy.
+
+## Contributor identity
+
+`owner_pseudonym` is the only trace of who recorded a row. It is a salted hash, and the salt
+stays unpublished. Each release credits its contributors collectively in its `README.md`
+rather than naming them against their rows.
+
+The same contributor keeps the same pseudonym from one release to the next, which is what makes
+longitudinal work possible. That holds only across releases built with the same salt. Each
+release publishes a pseudonym salt fingerprint in its `README.md`: two releases whose
+fingerprints match have comparable pseudonyms, and two that differ do not. Check the
+fingerprint before you join on `owner_pseudonym` across releases.
+
+Re-identifying contributors falls outside the licence, and outside the GDPR basis the release
+was published under.
+
+## Files
+
+<Codebook />

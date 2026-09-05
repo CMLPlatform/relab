@@ -1,65 +1,102 @@
 ---
-title: API Structure
-description: How the RELab API is organized and how the main domain surfaces fit together.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
+title: API structure
+description: How the Relab API is organized and how the main domain surfaces fit together.
 ---
 
-<div class="relab-section-intro">
-Routes are organised by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling.
-</div>
+Routes are organized by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
 
-The RELab backend exposes a REST-style API used by the Expo app, the public web frontend, and selected operational tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
+For live schemas and request models, start from the [API reference overview](/api-reference/). For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
 
-For the live schema and request models, use the [interactive API documentation](https://api.cml-relab.org/docs). For practical usage guidance, see the [API Interaction Guide](../../user-guides/api/).
+There are three distinct surfaces: the public app API is the contract for the
+frontend and external clients, the device API handles Pi-originated HTTP
+callbacks, and a small private DTO seam covers backend device integration plus
+the RPi camera plugin.
 
-## Route Organisation
+## Route organization
 
-### Authentication & User Management
+### Authentication and user management
 
-- `/auth/*` — login, logout, refresh, registration, verification, password reset, and OAuth
-- `/users/*` and `/organizations/*` — authenticated user and organization operations
-- `/admin/users/*` and `/admin/organizations/*` — superuser administration
+- `/v1/auth/*` — login, logout, refresh, registration, verification, password reset, and TOTP MFA setup/challenge flows
+- `/v1/oauth/*` — Google, GitHub, and YouTube account authorization, callbacks, token exchange, and account linking
+- `/v1/users/*` — authenticated user self-management
+- `/v1/profiles/{username}` — username-addressed public profile reads
+- `/v1/admin/users/*` — superuser user administration
 
-### Data Collection
+### Data collection
 
-- `/products/*` — product creation, reads, updates, search, and parent-child component relations
-- `/users/me/products/*` and `/users/{user_id}/products/*` — user-scoped product access
+- `/v1/products/*` — base-product creation, reads, updates, search, owner filters, base-product media, videos, bill-of-materials, and parent-scoped component lists
+- `/v1/products/facets` and `/v1/products/suggestions/*` — filter facets and brand/model autocomplete suggestions for product search
+- `/v1/components/*` — stable component reads, updates, component-scoped media, and component bill-of-materials
+- `/v1/products?owner=me` and `/v1/users/{user_id}/products/*` — user-scoped product access
 
-### Reference Data
+### Reference data
 
-- public `/taxonomies`, `/categories`, `/materials`, `/product-types`, and `/units` endpoints for reference lookups
-- `/admin/*` variants for controlled management of background data
+- public `/v1/taxonomies`, `/v1/categories`, `/v1/materials`, `/v1/product-types`, and `/v1/units` endpoints for reference lookups
+- `/v1/admin/*` variants for controlled management of reference data
+
+### Statistics
+
+- `/v1/stats/totals`, `/v1/stats/series`, and `/v1/stats/categories` — aggregate public totals, time series, and category breakdowns for dashboards and reporting
 
 ### Media
 
-- `/images/*` and related file-storage endpoints for uploads, linked media, and retrieval
+- image/file payloads expose generated `/uploads/*` media URLs, including precomputed thumbnails when available
+- base-product media remains under `/v1/products/{id}/images` and `/v1/products/{id}/files`
+- component media uses `/v1/components/{id}/images` and `/v1/components/{id}/files`
+- hyperspectral datasets use file routes, not image routes, so raw ENVI, HDF5, NITF, and GeoTIFF data is stored without image rewriting
+- videos are base-product-only under `/v1/products/{id}/videos`
 
-### Hardware Integration
+## Product and component resources
 
-- `/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
+Base products and components share the same database table, but they are separate API resources:
 
-### Supporting Services
+- base products are addressed through `/v1/products/{id}`
+- components are addressed through `/v1/components/{id}`
+- new components are created in parent context: use `POST /v1/products/{id}/components` for a base-product parent and `POST /v1/components/{id}/components` for a component parent
+- direct children and bounded base-product subtrees are listed with `/v1/products/{id}/components` and `/v1/products/{id}/components/tree`
+- bill-of-materials routes follow the addressed resource: `/v1/products/{id}/materials` for base products and `/v1/components/{id}/materials` for components
 
-- `/newsletter/*` — newsletter subscription operations
+Product and component entry is progressive. A record can be created before its full component tree or bill of materials is known; completeness checks belong to later curation and audit workflows, not to create-time validation.
+
+Product- and component-create requests (`POST /v1/products`, `POST /v1/products/{id}/components`, `POST /v1/components/{id}/components`) accept an optional `Idempotency-Key` header so a client can safely retry a request whose response was lost after the server had already committed it. The first request with a given key is processed normally; a retry with the same key returns the original response instead of creating a duplicate record.
+
+A key is only replayed when everything about the retry matches the original:
+
+- the same authenticated user, so a key cannot be replayed across accounts
+- the same target, including the parent id: the same key on `POST /v1/products/1/components` and `POST /v1/products/2/components` are two separate requests
+- the same request body — reusing a key with a different payload returns `422`, rather than silently returning the earlier record
+
+A retry that arrives while the first request is still running returns `409`. If the idempotency store is unreachable the request fails closed with `503` instead of risking a duplicate create. Stored responses expire after one hour.
+
+Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles show them only to signed-in users, and private profiles show them only to the owner and admins. Hidden owner identity is returned as `null` rather than exposing a username or owner id.
+
+### Hardware integration
+
+- `/v1/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
+
+The app-facing camera routes appear in the [public API reference](/api/public/). Pairing and Pi-originated callbacks appear in the [device API reference](/api/device/). The separate local camera API served by the plugin appears in the [RPi camera API reference](/api/rpi-cam/).
+
+### Supporting services
+
 - health and readiness endpoints for deployment checks
 
-## Design Notes
+## Design notes
 
 - The backend serves both browser-oriented and app-oriented clients.
 - Authentication supports both cookie and bearer transports (see [Authentication](../auth/)).
-- Public reference data is openly accessible; user-owned research data requires authentication.
+- Public reference data and public research reads are openly accessible; user-owned workflows require authentication, and mutations are limited to verified owners or superusers by backend dependencies.
 
-## Example Interaction Flow
+## Example interaction flow
 
 ```mermaid
 sequenceDiagram
+    accTitle: Example product and image capture interaction flow
+    accDescr: A researcher authenticates with the API, then repeatedly creates products, optionally requests an image capture that the API relays through the RPi camera API and stores in file storage, and adds components linked to the parent product.
     participant Researcher
     participant API as FastAPI Backend
     participant DB as Database
     participant Storage as File Storage
-    participant RPI as RPI Camera API
+    participant RPI as RPi camera API
 
     Researcher->>API: Authenticate with bearer or cookie login
     API-->>Researcher: Access token and optional refresh cookie

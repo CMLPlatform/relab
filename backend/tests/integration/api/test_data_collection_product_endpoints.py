@@ -1,29 +1,25 @@
 """Integration tests for product-focused data-collection endpoints."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
 
-from app.api.background_data.models import Material, ProductType
-from app.api.common.models.enums import Unit
-from app.api.data_collection.models.product import MaterialProductLink, Product
+from app.api.data_collection.models.product import Product
+from app.api.reference_data.models import Material, ProductType
 from tests.constants import (
     BOM_QUANTITY,
     BOM_UNIT,
     BRAND_X,
-    END_TIME,
     HEIGHT_10,
     NEW_PRODUCT_NAME,
     PRODUCT_BASE_NAME,
     PRODUCT_DESC,
     RECYCLABILITY_GOOD,
-    START_TIME,
     UPDATED_PRODUCT_NAME,
     WEIGHT_500,
 )
+from tests.factories.models import ProductFactory, UserFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -35,21 +31,20 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.api
 
 
-async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, db_superuser: User) -> None:
+async def test_get_products(
+    api_client: AsyncClient, db_session: AsyncSession, db_superuser: User, db_product_type: ProductType
+) -> None:
     """GET /products returns the current product page."""
-    product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
     product = Product(
         owner_id=db_superuser.id,
         name=PRODUCT_BASE_NAME,
         brand=BRAND_X,
-        dismantling_time_start=START_TIME,
-        dismantling_time_end=END_TIME,
-        product_type=product_type,
+        product_type=db_product_type,
     )
-    db_session.add_all([product_type, product])
+    db_session.add(product)
     await db_session.flush()
 
-    response = await api_client.get("/products")
+    response = await api_client.get("/v1/products")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -57,35 +52,39 @@ async def test_get_products(api_client: AsyncClient, db_session: AsyncSession, d
     assert data["items"][0]["name"] == PRODUCT_BASE_NAME
 
 
-async def test_get_products_tree(api_client: AsyncClient, setup_product: Product) -> None:
-    """GET /products/tree returns the product hierarchy."""
-    response = await api_client.get("/products/tree?recursion_depth=1")
+async def test_brand_in_filter_matches_value_containing_comma(
+    api_client: AsyncClient, db_session: AsyncSession, db_superuser: User, db_product_type: ProductType
+) -> None:
+    """brand[in] treats a comma inside a brand as a literal, not a value separator."""
+    db_session.add_all(
+        [
+            Product(owner_id=db_superuser.id, name="Comma Brand", brand="johnson, inc", product_type=db_product_type),
+            Product(owner_id=db_superuser.id, name="Other Brand", brand="acme", product_type=db_product_type),
+        ]
+    )
+    await db_session.flush()
+
+    response = await api_client.get("/v1/products", params={"brand[in]": "johnson, inc"})
 
     assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert isinstance(data, list)
-    if data:
-        tree_product = next((item for item in data if item["id"] == setup_product.id), None)
-        assert tree_product is not None
-        assert tree_product["name"] == PRODUCT_BASE_NAME
+    names = {item["name"] for item in response.json()["items"]}
+    assert names == {"Comma Brand"}
 
 
-async def test_get_products_tree_includes_nested_components_without_async_lazy_loads(
+async def test_get_product_components_tree_includes_nested_components(
     api_client: AsyncClient,
     setup_product_graph: ProductGraph,
 ) -> None:
-    """GET /products/tree returns nested components at bounded depth without crashing."""
-    response = await api_client.get("/products/tree?recursion_depth=2")
+    """GET /products/{id}/components/tree returns nested components at bounded depth."""
+    response = await api_client.get(f"/v1/products/{setup_product_graph.product.id}/components/tree?recursion_depth=2")
 
     assert response.status_code == status.HTTP_200_OK
-    tree_product = next((item for item in response.json() if item["id"] == setup_product_graph.product.id), None)
-    assert tree_product is not None
-    assert [component["id"] for component in tree_product["components"]] == [setup_product_graph.component.id]
+    assert [component["id"] for component in response.json()] == [setup_product_graph.component.id]
 
 
 async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product) -> None:
     """GET /products/{id} returns the requested product."""
-    response = await api_client.get(f"/products/{setup_product.id}")
+    response = await api_client.get(f"/v1/products/{setup_product.id}")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -95,86 +94,67 @@ async def test_get_product_by_id(api_client: AsyncClient, setup_product: Product
 
 async def test_get_product_by_id_supports_conditional_get(api_client: AsyncClient, setup_product: Product) -> None:
     """GET /products/{id} returns 304 when the entity tag matches."""
-    first_response = await api_client.get(f"/products/{setup_product.id}")
+    first_response = await api_client.get(f"/v1/products/{setup_product.id}")
     assert first_response.status_code == status.HTTP_200_OK
     assert "etag" in first_response.headers
 
     second_response = await api_client.get(
-        f"/products/{setup_product.id}",
+        f"/v1/products/{setup_product.id}",
         headers={"If-None-Match": first_response.headers["etag"]},
     )
 
     assert second_response.status_code == status.HTTP_304_NOT_MODIFIED
 
 
-async def test_validate_product_tree(
-    api_client: AsyncClient,
-    db_session: AsyncSession,
-    db_superuser: User,
+async def test_create_product(
+    api_client_superuser: AsyncClient, db_session: AsyncSession, db_product_type: ProductType
 ) -> None:
-    """POST /products/{id}/validate handles a fully loaded tree."""
-    product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
-    root = Product(
-        owner_id=db_superuser.id,
-        name=f"{PRODUCT_BASE_NAME} Root",
-        product_type=product_type,
-    )
-    child = Product(
-        owner_id=db_superuser.id,
-        name=f"{PRODUCT_BASE_NAME} Child",
-        parent=root,
-        product_type=product_type,
-    )
-    material = Material(name="Steel")
-    db_session.add_all(
-        [
-            product_type,
-            root,
-            child,
-            material,
-            MaterialProductLink(
-                material=material,
-                product=child,
-                quantity=1.0,
-                unit=Unit.GRAM,
-            ),
-        ]
-    )
-    await db_session.flush()
-
-    response = await api_client.post(f"/products/{root.id}/validate")
-
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json()["valid"] is True
-
-
-async def test_create_product(api_client_superuser: AsyncClient, db_session: AsyncSession) -> None:
     """POST /products creates a new product."""
-    product_type = ProductType(name="Power Tool", description="Handheld electric tools for construction and DIY")
     material = Material(name="Steel")
-    db_session.add_all([product_type, material])
+    db_session.add(material)
     await db_session.flush()
     payload = {
         "name": NEW_PRODUCT_NAME,
         "description": PRODUCT_DESC,
-        "product_type_id": product_type.id,
+        "product_type_id": db_product_type.id,
         "weight_g": WEIGHT_500,
         "height_cm": HEIGHT_10,
-        "recyclability_observation": RECYCLABILITY_GOOD,
+        "circularity_properties": {"recyclability": RECYCLABILITY_GOOD},
         "bill_of_materials": [{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
     }
 
-    response = await api_client_superuser.post("/products", json=payload)
+    response = await api_client_superuser.post("/v1/products", json=payload)
 
     assert response.status_code == status.HTTP_201_CREATED
     data = response.json()
     assert data["name"] == NEW_PRODUCT_NAME
+    assert data["circularity_properties"]["recyclability"] == RECYCLABILITY_GOOD
     assert "id" in data
+
+
+async def test_create_product_normalizes_empty_circularity_properties(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """POST /products returns null for empty circularity JSON."""
+    material = Material(name="Steel")
+    db_session.add(material)
+    await db_session.flush()
+    payload = {
+        "name": NEW_PRODUCT_NAME,
+        "circularity_properties": {},
+        "bill_of_materials": [{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
+    }
+
+    response = await api_client_superuser.post("/v1/products", json=payload)
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json()["circularity_properties"] is None
 
 
 async def test_update_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
     """PATCH /products/{id} updates a product."""
-    response = await api_client_superuser.patch(f"/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+    response = await api_client_superuser.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["name"] == UPDATED_PRODUCT_NAME
@@ -182,14 +162,124 @@ async def test_update_product(api_client_superuser: AsyncClient, setup_product: 
 
 async def test_delete_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
     """DELETE /products/{id} removes the product."""
-    response = await api_client_superuser.delete(f"/products/{setup_product.id}")
+    response = await api_client_superuser.delete(f"/v1/products/{setup_product.id}")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
-async def test_user_products_redirect(api_client_superuser: AsyncClient, db_superuser: User) -> None:
-    """GET /users/me/products follows the redirect to the user's products."""
-    del db_superuser
-    response = await api_client_superuser.get("/users/me/products")
+async def test_non_owner_cannot_update_product(api_client_user: AsyncClient, setup_product: Product) -> None:
+    """PATCH /products/{id} hides products owned by another user."""
+    response = await api_client_user.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_non_owner_cannot_delete_product(api_client_user: AsyncClient, setup_product: Product) -> None:
+    """DELETE /products/{id} hides products owned by another user."""
+    response = await api_client_user.delete(f"/v1/products/{setup_product.id}")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_product_media_reads_are_public(api_client: AsyncClient, setup_product: Product) -> None:
+    """Base-product media reads should not require ownership."""
+    files_response = await api_client.get(f"/v1/products/{setup_product.id}/files")
+    images_response = await api_client.get(f"/v1/products/{setup_product.id}/images")
+
+    assert files_response.status_code == status.HTTP_200_OK
+    assert images_response.status_code == status.HTTP_200_OK
+
+
+async def test_current_user_products_filter(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    setup_product: Product,
+    db_product_type: ProductType,
+) -> None:
+    """GET /v1/products?owner=me returns only the authenticated user's products."""
+    other_user = await UserFactory.create_async(session=db_session, is_active=True)
+    other_product = await ProductFactory.create_async(
+        session=db_session, owner_id=other_user.id, product_type_id=db_product_type.id
+    )
+
+    response = await api_client_superuser.get("/v1/products?owner=me")
 
     assert response.status_code == status.HTTP_200_OK
+    ids = [item["id"] for item in response.json()["items"]]
+    assert setup_product.id in ids
+    assert other_product.id not in ids
+
+
+async def test_product_materials_reject_component_ids(
+    api_client_superuser: AsyncClient,
+    setup_product_graph: ProductGraph,
+) -> None:
+    """Product material routes are scoped to base products only."""
+    response = await api_client_superuser.get(f"/v1/products/{setup_product_graph.component.id}/materials")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_sorting_products_by_product_type_name_keeps_untyped_products(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+    db_product_type: ProductType,
+) -> None:
+    """order_by=product_type_name must not drop products with no product_type.
+
+    The join `apply_filter` adds for a sort-only relationship field must be an outer
+    join; an inner join would silently exclude every product_type_id=NULL row.
+    """
+    typed_product = Product(
+        owner_id=db_superuser.id, name=f"{PRODUCT_BASE_NAME}Typed", brand=BRAND_X, product_type=db_product_type
+    )
+    untyped_product = Product(owner_id=db_superuser.id, name=f"{PRODUCT_BASE_NAME}Untyped", brand=BRAND_X)
+    db_session.add_all([typed_product, untyped_product])
+    await db_session.flush()
+
+    response = await api_client.get("/v1/products?order_by=product_type_name")
+
+    assert response.status_code == status.HTTP_200_OK, response.text
+    ids = [item["id"] for item in response.json()["items"]]
+    assert typed_product.id in ids
+    assert untyped_product.id in ids
+
+
+async def test_product_materials_filter_by_material_name(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    setup_product: Product,
+) -> None:
+    """GET /products/{id}/materials?material_name= must not 500 and must match by name.
+
+    list_material_links_for_product previously added its own `.join(Material)` on top of
+    the join `apply_filter` adds for a `material_name` filter, producing an ambiguous
+    second join to the same table.
+    """
+    material = Material(name="Steel")
+    db_session.add(material)
+    await db_session.flush()
+    create_response = await api_client_superuser.post(
+        f"/v1/products/{setup_product.id}/materials",
+        json=[{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+
+    filtered_response = await api_client_superuser.get(f"/v1/products/{setup_product.id}/materials?material_name=steel")
+    unfiltered_response = await api_client_superuser.get(f"/v1/products/{setup_product.id}/materials")
+
+    assert filtered_response.status_code == status.HTTP_200_OK, filtered_response.text
+    assert [item["material_id"] for item in filtered_response.json()] == [material.id]
+    assert unfiltered_response.status_code == status.HTTP_200_OK
+    assert [item["material_id"] for item in unfiltered_response.json()] == [material.id]
+
+
+async def test_product_videos_reject_component_ids(
+    api_client_superuser: AsyncClient,
+    setup_product_graph: ProductGraph,
+) -> None:
+    """Product video routes are scoped to base products only."""
+    response = await api_client_superuser.get(f"/v1/products/{setup_product_graph.component.id}/videos")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND

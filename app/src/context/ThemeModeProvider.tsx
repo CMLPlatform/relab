@@ -1,0 +1,29 @@
+import { type ReactNode, useCallback, useMemo } from 'react';
+import { updateUser } from '@/services/api/auth/authentication';
+import type { ThemeMode } from '@/types/User';
+import { useAuth } from './auth';
+import { ThemeModeContext, type ThemeModeContextValue, useSystemColorScheme } from './themeMode';
+
+export function ThemeModeProvider({ children }: { children: ReactNode }) {
+  const systemScheme = useSystemColorScheme();
+  const { user, refetch } = useAuth();
+
+  const themeMode: ThemeMode = user?.preferences?.theme_mode ?? 'auto';
+
+  const effectiveColorScheme: 'light' | 'dark' = themeMode === 'auto' ? systemScheme : themeMode;
+
+  const setThemeMode = useCallback(
+    async (mode: ThemeMode) => {
+      await updateUser({ preferences: { theme_mode: mode } });
+      await refetch(false);
+    },
+    [refetch],
+  );
+
+  const value = useMemo<ThemeModeContextValue>(
+    () => ({ themeMode, effectiveColorScheme, setThemeMode }),
+    [themeMode, effectiveColorScheme, setThemeMode],
+  );
+
+  return <ThemeModeContext.Provider value={value}>{children}</ThemeModeContext.Provider>;
+}

@@ -1,18 +1,18 @@
 """Query helpers for bounded product tree reads."""
 
-from __future__ import annotations
-
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast  # lgtm[py/unused-import]
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy.orm.attributes import QueryableAttribute
 
-from app.api.common.crud.query import require_model
+from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.loading import apply_loader_profile
+from app.api.common.crud.utils import ensure_model_exists
+from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.filters import ProductFilterWithRelationships
-from app.api.data_collection.models.product import Product
+from app.api.data_collection.models.product import MaterialProductLink, Product
 
 PRODUCT_READ_SUMMARY_RELATIONSHIPS: frozenset[str] = frozenset({"owner"})
 PRODUCT_READ_DETAIL_RELATIONSHIPS: frozenset[str] = frozenset(
@@ -20,8 +20,6 @@ PRODUCT_READ_DETAIL_RELATIONSHIPS: frozenset[str] = frozenset(
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from sqlalchemy import Select
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,62 +32,60 @@ class ProductTreeData:
     children_by_parent_id: dict[int, list[Product]]
 
 
-async def get_product_trees(
-    db: AsyncSession,
-    recursion_depth: int = 1,
-    *,
-    parent_id: int | None = None,
-    product_filter: ProductFilterWithRelationships | None = None,
-) -> Sequence[Product]:
-    """Get product with their components up to specified depth."""
-    if parent_id:
-        await require_model(db, Product, parent_id)
+def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tuple[Product]]:
+    """Apply relationship loaders required by product detail responses.
 
-    statement: Select[tuple[Product]] = (
-        select(Product)
-        .where(Product.parent_id == parent_id)
-        .options(
-            selectinload(cast("QueryableAttribute[Any]", Product.components), recursion_depth=recursion_depth),
-            selectinload(cast("QueryableAttribute[Any]", Product.owner)),
-            selectinload(cast("QueryableAttribute[Any]", Product.product_type)),
-            selectinload(cast("QueryableAttribute[Any]", Product.videos)),
-            selectinload(cast("QueryableAttribute[Any]", Product.files)),
-            selectinload(cast("QueryableAttribute[Any]", Product.images)),
-            selectinload(cast("QueryableAttribute[Any]", Product.bill_of_materials)),
-        )
+    ``Product``'s components, parent and images are all eagerly loaded at class
+    level, so this looks like it should walk a whole subtree — it does not. The
+    ``raiseload("*")`` that ``apply_loader_profile`` puts on the statement
+    propagates to sub-loaders, which stops the loaded components from firing
+    their own defaults. Measured on a five-deep tree: eight queries, and a
+    component's own components come back unloaded. See
+    ``test_product_detail_load_stops_below_the_first_component_level``.
+    """
+    statement = apply_loader_profile(statement, Product, PRODUCT_READ_DETAIL_RELATIONSHIPS)
+    return statement.options(
+        selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)),
+        selectinload(orm_attr(Product.bill_of_materials)).selectinload(orm_attr(MaterialProductLink.material)),
     )
 
-    if product_filter:
-        statement = cast("Select[tuple[Product]]", product_filter.filter(statement))
 
-    return list((await db.execute(statement)).scalars().all())
+async def require_product_detail(db: AsyncSession, product_id: int) -> Product:
+    """Load one product or component with the relationships needed for a detail read.
+
+    The single entry point for detail reads so base-product and component routes
+    load the same nested relationships (e.g. each flat component's ``owner``).
+    """
+    statement = apply_product_detail_loaders(select(Product).where(Product.id == product_id))
+    product = (await db.execute(statement)).scalars().unique().one_or_none()
+    return ensure_model_exists(product, Product, product_id)
 
 
-async def load_product_tree_data(
+async def load_component_subtree(
     db: AsyncSession,
-    recursion_depth: int = 1,
     *,
-    parent_id: int | None = None,
+    parent_id: int,
+    recursion_depth: int = 1,
     product_filter: ProductFilterWithRelationships | None = None,
 ) -> ProductTreeData:
-    """Load bounded product-tree data without relying on ORM recursive traversal."""
-    if parent_id is not None:
-        await require_model(db, Product, parent_id)
+    """Load a bounded component subtree for the given parent.
 
+    Callers are expected to have already verified ``parent_id`` exists
+    (e.g. via the summary loader on the read route).
+    """
     root_statement: Select[tuple[Product]] = (
         select(Product)
         .where(Product.parent_id == parent_id)
         .options(
-            selectinload(cast("QueryableAttribute[Any]", Product.owner)),
-            selectinload(cast("QueryableAttribute[Any]", Product.product_type)),
-            selectinload(cast("QueryableAttribute[Any]", Product.videos)),
-            selectinload(cast("QueryableAttribute[Any]", Product.files)),
-            selectinload(cast("QueryableAttribute[Any]", Product.images)),
-            selectinload(cast("QueryableAttribute[Any]", Product.bill_of_materials)),
+            selectinload(orm_attr(Product.owner)),
+            selectinload(orm_attr(Product.product_type)),
+            selectinload(orm_attr(Product.videos)),
+            selectinload(orm_attr(Product.files)),
+            selectinload(orm_attr(Product.images)),
+            selectinload(orm_attr(Product.bill_of_materials)),
         )
     )
-    if product_filter is not None:
-        root_statement = cast("Select[tuple[Product]]", product_filter.filter(root_statement))
+    root_statement = apply_filter(root_statement, product_filter)
 
     roots = list((await db.execute(root_statement)).scalars().unique().all())
     children_by_parent_id: dict[int, list[Product]] = {}
@@ -99,7 +95,9 @@ async def load_product_tree_data(
         if not frontier:
             break
 
-        child_statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.in_(frontier))
+        child_statement: Select[tuple[Product]] = (
+            select(Product).where(Product.parent_id.in_(frontier)).options(selectinload(orm_attr(Product.owner)))
+        )
         children = list((await db.execute(child_statement)).scalars().unique().all())
         grouped_children: defaultdict[int, list[Product]] = defaultdict(list)
         next_frontier: list[int] = []

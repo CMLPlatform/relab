@@ -1,17 +1,14 @@
 """DTO schemas for users."""
 
-from __future__ import annotations
-
 import uuid
-from datetime import datetime  # noqa: TC003 # Used at runtime for Pydantic model annotations
-from typing import Annotated
+from datetime import datetime  # Used at runtime for Pydantic model annotations
+from typing import Annotated, ClassVar
 
 from fastapi_users import schemas as fastapi_users_schemas
 from pydantic import (
-    UUID4,
     BaseModel,
+    BeforeValidator,
     ConfigDict,
-    EmailStr,
     Field,
     SecretStr,
     StringConstraints,
@@ -19,67 +16,42 @@ from pydantic import (
 )
 
 from app.api.auth.examples import (
-    ORGANIZATION_CREATE_EXAMPLES,
     REFRESH_TOKEN_REQUEST_EXAMPLES,
     REFRESH_TOKEN_RESPONSE_EXAMPLES,
     USER_CREATE_EXAMPLES,
-    USER_CREATE_WITH_ORGANIZATION_EXAMPLES,
     USER_READ_EXAMPLES,
     USER_UPDATE_EXAMPLES,
 )
-from app.api.auth.models import OrganizationBase, UserBase
-from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
+from app.api.auth.preferences import UserPreferences, UserPreferencesUpdate
+from app.api.auth.profile_stats import ProfileStatsData
+from app.api.auth.roles import DEFAULT_USER_ROLE, UserRole
 
 # Note: These auth schemas stay together to avoid circular imports during model/schema construction.
 
 
-### Organizations ###
-class OrganizationCreate(BaseCreateSchema, OrganizationBase):
-    """Create schema for organizations."""
+class UserBase(BaseModel):
+    """Shared base fields common to all user schemas."""
 
-    model_config = ConfigDict(json_schema_extra={"examples": ORGANIZATION_CREATE_EXAMPLES})
-
-
-class OrganizationReadPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
-    """Read schema for organizations."""
-
-
-class OrganizationRead(OrganizationBase):
-    """Public read schema for organizations."""
-
-    owner_id: UUID4 = Field(description="ID of the organization owner.")
-
-
-class OrganizationReadWithRelationshipsPublic(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
-    """Read schema for organizations, including relationships."""
-
-    members: list[UserReadPublic] = Field(default_factory=list, description="List of users in the organization.")
-
-
-class OrganizationReadWithRelationships(UUIDIdReadSchemaWithTimeStamp, OrganizationBase):
-    """Read schema for organizations, including relationships."""
-
-    members: list[UserRead] = Field(default_factory=list, description="List of users in the organization.")
-
-
-class OrganizationUpdate(BaseUpdateSchema):
-    """Update schema for organizations."""
-
-    name: str | None = Field(default=None, min_length=2, max_length=100)
-    location: str | None = Field(default=None, max_length=100)
-    description: str | None = Field(default=None, max_length=500)
-    owner_id: UUID4 | None = Field(
-        default=None,
-        description="ID of the member who should become the new owner.",
-    )
+    username: str | None = None
+    model_config = {"use_enum_values": True}
 
 
 ### Users ###
 
-# Validation constraints for username field
-ValidatedUsername = Annotated[
-    str | None, StringConstraints(strip_whitespace=True, pattern=r"^\w+$", min_length=2, max_length=50)
+
+def normalize_username(v: object) -> object:
+    """Normalize username input before applying slug constraints."""
+    if isinstance(v, str):
+        return v.strip().lower()
+    return v
+
+
+UsernameValue = Annotated[
+    str,
+    BeforeValidator(normalize_username),
+    StringConstraints(pattern=r"^[a-z0-9_]+$", min_length=2, max_length=50),
 ]
+Username = UsernameValue | None
 
 RESERVED_USERNAMES = {
     "me",
@@ -89,7 +61,6 @@ RESERVED_USERNAMES = {
     "root",
     "profile",
     "profiles",
-    "newsletter",
     "users",
     "settings",
     "health",
@@ -111,7 +82,7 @@ class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
     """Base schema for user creation."""
 
     # Override for username field validation
-    username: ValidatedUsername = None
+    username: Username = None
 
     @field_validator("username")
     @classmethod
@@ -120,23 +91,35 @@ class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
         return validate_username_not_reserved(v)
 
     # Override for OpenAPI schema configuration
-    password: str = Field(json_schema_extra={"format": "password"}, min_length=8)
+    password: str = Field(json_schema_extra={"format": "password"}, min_length=12)
 
 
-class UserCreate(UserCreateBase):
-    """Create schema for users, optionally with organization to join."""
+class NoPublicAccountControls:
+    """Remove FastAPI-Users account-control fields from public request schemas."""
 
-    organization_id: UUID4 | None = None
+    is_active: ClassVar[None] = None
+    is_superuser: ClassVar[None] = None
+    is_verified: ClassVar[None] = None
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_CREATE_EXAMPLES})
+
+class UserCreate(NoPublicAccountControls, UserCreateBase):
+    """Create schema for users."""
+
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
-class UserCreateWithOrganization(UserCreateBase):
-    """Create schema for users with organization to create and own."""
+class UserRegister(NoPublicAccountControls, UserCreateBase):
+    """Registration schema for password sign-up."""
 
-    organization: OrganizationCreate
+    username: UsernameValue
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_CREATE_WITH_ORGANIZATION_EXAMPLES})
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
+
+
+class TrustedUserCreate(UserCreateBase):
+    """Trusted internal user creation schema for scripts and system workflows."""
+
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
 class OAuthAccountRead(BaseModel):
@@ -149,12 +132,6 @@ class OAuthAccountRead(BaseModel):
     account_email: str
 
 
-class UserReadPublic(UserBase):
-    """Public read schema for users."""
-
-    email: EmailStr
-
-
 class UserReadProfile(UserBase):
     """Basic public profile info."""
 
@@ -164,35 +141,97 @@ class UserReadProfile(UserBase):
 class PublicProfileView(UserReadProfile):
     """Detailed public profile view with aggregated stats."""
 
+    username: UsernameValue
     product_count: int = Field(default=0, description="Number of products registered.")
     total_weight_kg: float = Field(default=0.0, description="Aggregate weight of products in kg.")
     image_count: int = Field(default=0, description="Total images uploaded.")
     top_category: str = Field(default="None", description="Most common product type.")
+
+    @classmethod
+    def from_profile_stats(
+        cls,
+        *,
+        username: str,
+        created_at: datetime | None,
+        stats: ProfileStatsData,
+    ) -> PublicProfileView:
+        """Build a public profile view from a typed profile-stats snapshot."""
+        return cls(
+            username=username,
+            created_at=created_at,
+            product_count=stats.product_count,
+            total_weight_kg=stats.total_weight_kg,
+            image_count=stats.image_count,
+            top_category=stats.top_category or "None",
+        )
 
 
 class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     """Read schema for users."""
 
     oauth_accounts: list[OAuthAccountRead] = Field(default_factory=list, description="List of linked OAuth accounts.")
-    preferences: dict[str, object] = Field(
-        default_factory=dict,
+    mfa_enabled: bool = Field(default=False, description="Whether TOTP MFA is enabled for this account.")
+    has_usable_password: bool = Field(
+        default=True,
+        description="Whether the account has a user-set password (false for OAuth-only accounts). "
+        "Clients use it to decide whether unlinking a social login needs a password.",
+    )
+    preferences: UserPreferences = Field(
+        default_factory=UserPreferences,
         description="User preferences.",
     )
+    # Read-only by omission from UserUpdate, which forbids extras: a user must not be able
+    # to PATCH themselves into having accepted terms they were never shown.
+    terms_accepted_version: int | None = Field(
+        default=None,
+        description="Version of the contributor terms this account accepted at signup, or null "
+        "if it predates acceptance tracking. Recorded by the server; not client-settable.",
+    )
+    terms_accepted_at: datetime | None = Field(
+        default=None,
+        description="When the contributor terms were accepted. Recorded by the server; not client-settable.",
+    )
+    # Derived server-side rather than exposing the threshold constant: the release
+    # tooling keys on the same rule, and a client comparing versions itself would
+    # eventually ask a different set of people than the release excludes.
+    terms_acceptance_required: bool = Field(
+        default=False,
+        description="Whether this account should be prompted to accept the contributor terms. "
+        "True when it has never accepted, or accepted a version older than the one that grants "
+        "the publication licence a dataset release needs.",
+    )
+
+    # Role and quota are server-owned: role is absent from UserUpdate (which forbids
+    # extras) so no self-service PATCH can escalate to `lab`, and the quota figures
+    # are derived from it rather than stored per user.
+    role: UserRole = Field(
+        default=DEFAULT_USER_ROLE,
+        description="Contributor tier. `lab` accounts may upload non-image research files "
+        "and carry a larger upload quota. Set by an administrator; not client-settable.",
+    )
+    upload_quota_files: int = Field(
+        default=0, description="Maximum number of files and images this account's role allows."
+    )
+    upload_quota_bytes: int = Field(default=0, description="Maximum total upload size this account's role allows.")
+    upload_file_count: int = Field(default=0, description="Files and images this account currently has stored.")
+    upload_total_bytes: int = Field(default=0, description="Total bytes this account currently has stored.")
 
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
 
 
-class UserReadWithOrganization(UserRead):
-    """Read schema for users with organization."""
+class UserRoleUpdate(BaseModel):
+    """Administrator request to set one account's contributor tier."""
 
-    organization: OrganizationRead | None = Field(default=None, description="Organization the user belongs to.")
+    model_config: ConfigDict = ConfigDict(extra="forbid")
+
+    role: UserRole = Field(description="The contributor tier to assign.")
 
 
-class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
+class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
     # Override for username field validation
-    username: ValidatedUsername = None
+    username: Username = None
 
     @field_validator("username")
     @classmethod
@@ -200,21 +239,49 @@ class UserUpdate(UserBase, fastapi_users_schemas.BaseUserUpdate):
         """Reject reserved usernames."""
         return validate_username_not_reserved(v)
 
-    organization_id: UUID4 | None = None
+    @field_validator("preferences", mode="before")
+    @classmethod
+    def validate_preferences(
+        cls,
+        value: UserPreferencesUpdate | dict[str, object] | None,
+    ) -> UserPreferencesUpdate | None:
+        """Validate known preference keys even when PATCH input is a raw dict."""
+        if isinstance(value, dict):
+            return UserPreferencesUpdate.model_validate(value)
+        return value
 
     # Override password field to include password format in JSON schema
-    password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=8)
+    password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=12)
+    current_password: SecretStr | None = Field(
+        default=None,
+        json_schema_extra={"format": "password"},
+        description="Current password required when changing email or password.",
+    )
 
-    preferences: dict[str, object] | None = Field(default=None, description="User preferences (partial merge).")
+    preferences: UserPreferencesUpdate | None = Field(
+        default=None,
+        description="User preferences (partial merge).",
+    )
+    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
+    def create_update_dict(self) -> dict:
+        """Return FastAPI-Users update data without reauthentication-only fields."""
+        update_dict = super().create_update_dict()
+        update_dict.pop("current_password", None)
+        return update_dict
+
+    def create_update_dict_superuser(self) -> dict:
+        """Return privileged update data without reauthentication-only fields."""
+        update_dict = super().create_update_dict_superuser()
+        update_dict.pop("current_password", None)
+        return update_dict
 
 
 ### Authentication & Sessions ###
 class RefreshTokenRequest(BaseModel):
     """Request schema for refreshing access token."""
 
-    model_config = ConfigDict(json_schema_extra={"examples": REFRESH_TOKEN_REQUEST_EXAMPLES})
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": REFRESH_TOKEN_REQUEST_EXAMPLES})
 
     refresh_token: SecretStr = Field(description="Refresh token obtained from login")
 
@@ -228,3 +295,88 @@ class RefreshTokenResponse(BaseModel):
     refresh_token: str = Field(description="Rotated refresh token")
     token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
     expires_in: int = Field(description="Access token expiration time in seconds")
+
+
+class MfaPendingResponse(BaseModel):
+    """Response returned after the first authentication factor succeeds."""
+
+    mfa_required: bool = True
+    mfa_token: str = Field(description="Short-lived token for completing an MFA challenge")
+
+
+class MfaOAuthClaimRequest(BaseModel):
+    """Request to claim an OAuth MFA handoff."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mfa_handoff: SecretStr
+
+
+class MfaTotpSetupResponse(BaseModel):
+    """TOTP setup material for authenticator apps."""
+
+    setup_token: str
+    secret: str
+    otpauth_uri: str
+
+
+class OAuthStepUpRequest(BaseModel):
+    """Optional step-up body for linking or unlinking a social login.
+
+    Optional because an OAuth-only account has no usable password to re-assert; the
+    server decides whether one is required from ``user.has_usable_password``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: SecretStr | None = None
+
+
+class MfaTotpConfirmRequest(BaseModel):
+    """Request to confirm authenticated TOTP setup."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    setup_token: SecretStr
+    code: str = Field(min_length=6, max_length=6)
+    password: SecretStr | None = Field(
+        default=None,
+        description=(
+            "Current account password, to reauthenticate the change. "
+            "Required unless the account has no usable password (OAuth-only)."
+        ),
+    )
+
+
+class MfaChallengeRequest(BaseModel):
+    """Request to complete MFA with either a TOTP code or a recovery code."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    mfa_token: SecretStr
+    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ").
+    code: str = Field(min_length=6, max_length=20)
+
+
+class MfaTotpDisableRequest(BaseModel):
+    """Request to turn off TOTP MFA, confirmed with a current code or a recovery code."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ"),
+    # so a user who lost their authenticator can still turn MFA off.
+    code: str = Field(min_length=6, max_length=20)
+
+
+class MfaRecoveryCodesRegenerateRequest(BaseModel):
+    """Request to reissue recovery codes, confirmed with a current TOTP code."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    code: str = Field(min_length=6, max_length=6)
+
+
+class MfaRecoveryCodesResponse(BaseModel):
+    """One-time delivery of freshly generated recovery codes."""
+
+    recovery_codes: list[str]

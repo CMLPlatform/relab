@@ -2,6 +2,12 @@
 # Run `just --list` to see all available commands
 # Run from root: `just docs/<recipe>` or from docs/: `just <recipe>`
 
+# Source of truth for the RPi camera plugin's OpenAPI schema (sister repo).
+rpi_cam_schema_url := "https://raw.githubusercontent.com/CMLPlatform/relab-rpi-cam-plugin/main/openapi.rpi-cam.json"
+rpi_cam_schema_path := "public/api/schemas/openapi.rpi-cam.json"
+
+import '../playwright.just'
+
 # Show available recipes
 default:
     @just --list
@@ -9,6 +15,10 @@ default:
 # Install dependencies
 install:
     pnpm install --frozen-lockfile
+
+# Regenerate the workspace lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
 
 # Update dependencies (Astro upgrade + in-range pnpm updates + dedupe the tree)
 # Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
@@ -18,8 +28,8 @@ update:
     pnpm dedupe
 
 # Start development server with live reload
-dev PORT="8000":
-    pnpm run dev -- --port {{ PORT }}
+dev:
+    pnpm run dev
 
 # Run lint checks
 lint:
@@ -36,7 +46,7 @@ build:
 # Run quality checks that also validate the docs build pipeline
 check: lint typecheck
     pnpm run build:test
-    @echo "✓ Docs checks passed"
+    @echo "✅ Docs checks passed"
 
 # Auto-format docs code and markdown
 format:
@@ -46,21 +56,32 @@ format:
 fix:
     pnpm run fix
 
-# Docs has no unit tests; see `test-e2e` for Playwright suites
+# Run Vitest unit tests (src/lib logic; pages/components are covered by `test-e2e`)
 test:
     pnpm run test
 
 # Browser end-to-end tests: smoke + a11y + visual + theme (requires `just build` first)
-test-e2e:
+test-e2e: (_browsers "chromium")
     pnpm run test:e2e
 
+# Refresh the committed RPi camera plugin OpenAPI schema from its source repo
+rpi-cam-schema:
+    curl -fsSL {{ rpi_cam_schema_url }} -o {{ rpi_cam_schema_path }}
+    @echo "✅ Refreshed {{ rpi_cam_schema_path }}"
+
+# Fail if the committed RPi camera plugin schema has drifted from its source repo
+rpi-cam-schema-check:
+    @curl -fsSL {{ rpi_cam_schema_url }} | diff -u {{ rpi_cam_schema_path }} - \
+        || { echo "❌ {{ rpi_cam_schema_path }} is stale — run 'just docs/rpi-cam-schema'"; exit 1; }
+    @echo "✅ RPi camera schema is current"
+
 # Run the docs CI test suite (build + e2e + link check)
-test-ci:
+test-ci: rpi-cam-schema-check
     pnpm run test:ci
 
 # Run the full docs CI pipeline locally
 ci: check test-ci
-    @echo "✓ Docs CI pipeline passed"
+    @echo "✅ Docs CI pipeline passed"
 
 # Scan dependencies for known vulnerabilities
 audit:
@@ -68,4 +89,4 @@ audit:
 
 # Clean caches and generated site output
 clean:
-    rm -rf .astro dist node_modules playwright-report test-results site
+    rm -rf .astro dist node_modules playwright-report test-results

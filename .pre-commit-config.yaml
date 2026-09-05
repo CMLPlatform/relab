@@ -1,17 +1,19 @@
 # Repository-wide pre-commit policy hooks.
 # Project-specific linting and test commands live in the subrepo `justfile`s.
-
-# spell-checker: ignore rhysd
+#
+# Fast fixers/guards run on every commit; slow verification-only checks are
+# tagged `stages: [ pre-push ]` so they run once per push, not per commit.
+default_install_hook_types: [ commit-msg, pre-commit, pre-push ]
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.1
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # v8.30.1
     hooks:
       - id: gitleaks
-        args: ["--config", ".github/gitleaks.toml"]
+        args: [ "--config", ".github/gitleaks.toml" ]
 
   - repo: https://github.com/executablebooks/mdformat
-    rev: 1.0.0
+    rev: 82912cdaea4fb830f751504486a7879c70526547  # 1.0.0
     hooks:
       - id: mdformat
         additional_dependencies:
@@ -20,7 +22,7 @@ repos:
           - mdformat-ruff
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # v6.0.0
     hooks:
       - id: check-added-large-files
         exclude: ^backend/app/api/auth/resources/disposable_email_domains\.txt$
@@ -38,32 +40,71 @@ repos:
         exclude: ^.*/build/.*\.html$
 
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.12
+    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # v1.7.12
     hooks:
       - id: actionlint
         files: ^\.github/workflows/.*\.ya?ml$
 
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: e3eebf65325ccc992422292cb7a4baee967cf815  # v1.26.1
+    hooks:
+      - id: zizmor
+        args: [ "--min-confidence=high" ]
+        files: ^\.github/(?:workflows|actions)/.*\.ya?ml$
+
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.11.0.1
+    rev: 745eface02aef23e168a8afb6b5737818efbea95  # v0.11.0.1
     hooks:
       - id: shellcheck
         args: [ "--external-sources", "--source-path=SCRIPTDIR:." ]
         exclude: (^|/)(node_modules|\.venv)/
 
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: 05c1426671b9237fb5e1444dd63aa5731bec0dfb  # v3.13.1-1
+    hooks:
+      - id: shfmt
+        args: [ "-w", "-i", "4", "-ci", "-bn" ]
+        exclude: (^|/)(node_modules|\.venv)/
+
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.13.9
+    rev: 205e71c26d6dd6a802ca674c9ae4d12f1103a9bb  # v4.16.4
     hooks:
       - id: commitizen
         stages: [ commit-msg ]
 
   - repo: https://github.com/simonvanlierde/check-json5
-    rev: v1.1.0
+    rev: c70883b5be6d9fb87deac8d75395031372d54e83  # v1.2.0
     hooks:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
+  - repo: https://github.com/semgrep/pre-commit
+    rev: ce0f4a080d77d0593b6419111837eadf4a9aca27  # v1.169.0
+    hooks:
+      - id: semgrep
+        name: semgrep-browser-js-policy
+        # Dir scan (not pass_filenames) so .semgrepignore is honored — explicit
+        # file targets bypass it and would flag ignored test/generated files.
+        args: [ "--config", ".semgrep", "--error", "app", "www", "docs" ]
+        pass_filenames: false
+        files: ^(?:app|www|docs|\.semgrep/|\.semgrepignore$)
+        stages: [ pre-push ]
+
+  - repo: local
+    hooks:
+      # Runs the .semgrep/*.{tsx,astro,html,js} fixtures against the rules so a broken
+      # rule regex is caught. Must run from inside .semgrep/ — semgrep skips hidden
+      # dot-dirs, so `--test .semgrep` from the repo root finds no tests.
+      - id: semgrep-rule-tests
+        name: semgrep-rule-tests
+        language: system
+        entry: bash -c 'cd .semgrep && exec uvx --quiet --from semgrep==1.169.0 semgrep --test .'
+        pass_filenames: false
+        files: ^\.semgrep/
+        stages: [ pre-push ]
+
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.11.1
+    rev: d9fca3320346514799461a80b0753eb45d707d46  # 0.11.28
     hooks:
       - id: uv-lock
         name: uv-lock-root
@@ -73,29 +114,45 @@ repos:
         name: uv-lock-backend
         files: ^backend/(uv\.lock|pyproject\.toml|uv\.toml)$
         entry: uv lock --project backend
-      - id: uv-lock
-        name: uv-lock-docs
-        files: ^docs/(uv\.lock|pyproject\.toml|uv\.toml)$
-        entry: uv lock --project docs
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: 01a675ea018f2fb714478a5ffb83fcea8374bb06  # v0.15.21
+    hooks:
+      - id: ruff-check
+        args: [ "--config=pyproject.toml" ]
+      - id: ruff-format
+        args: [ "--config=pyproject.toml" ]
 
   - repo: local
     hooks:
-      - id: cspell
-        name: cspell
-        entry: pnpm exec cspell
+      - id: ty-root-scripts
+        name: ty-root-scripts
+        entry: uv run ty check
         language: system
-        types: [ text ]
-        # Disable cspell caching as pre-commit and CI doesn't play well with it.
-        args: [ "--no-cache", "--no-must-find-files" ]
-      - id: pnpm-lock-frontend-app
-        name: pnpm-lock-frontend-app
-        entry: just frontend-app/lockfile
-        language: system
-        files: ^frontend-app/package\.json$
+        files: ^scripts/.*\.py$
         pass_filenames: false
-      - id: pnpm-lock-frontend-web
-        name: pnpm-lock-frontend-web
-        entry: just frontend-web/lockfile
+      - id: brand-assets-check
+        name: brand-assets-check
+        entry: just assets-check
         language: system
-        files: ^frontend-web/package\.json$
+        # NOTE: the target set (scripts/sync_brand_assets.py COPY_ASSETS /
+        # GENERATED_ASSETS / PROCESSED_ASSETS) spans too many disparate paths across
+        # app/, www/, docs/, backend/ for a maintainable regex; the check runs
+        # `--check` only (no rewrites) and completes in a few seconds, so run it
+        # unconditionally on every push instead.
+        always_run: true
+        pass_filenames: false
+        stages: [ pre-push ]
+      - id: backend-openapi-check
+        name: backend-openapi-check
+        entry: just backend/openapi-check
+        language: system
+        files: ^(?:backend/app/.*|backend/scripts/generate/export_openapi\.py|backend/justfile|backend/pyproject\.toml|backend/uv\.lock|docs/public/api/schemas/openapi\.(?:public|device)\.json|app/src/types/openapi\.json)$
+        pass_filenames: false
+        stages: [ pre-push ]
+      - id: pnpm-lock
+        name: pnpm-lock
+        entry: pnpm install --lockfile-only --ignore-scripts
+        language: system
+        files: ^(?:package\.json|pnpm-workspace\.yaml|app/package\.json|docs/package\.json|www/package\.json)$
         pass_filenames: false

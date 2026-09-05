@@ -1,0 +1,46 @@
+{
+  "name": "relab-www",
+  "type": "module",
+  "version": "0.2.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "contributors": [
+    "Simon van Lierde <s.n.van.lierde@cml.leidenuniv.nl>"
+  ],
+  "scripts": {
+    "dev": "astro dev --port 8013 --host 127.0.0.1 --strictPort --mode dev",
+    "build": "pnpm run build:prod",
+    "build:prod": "astro build --mode prod",
+    "build:staging": "astro build --mode staging",
+    "build:test": "astro build --mode test",
+    "preview": "astro preview --port 8013 --host 127.0.0.1 --strictPort",
+    "preview:e2e": "just build && astro preview --port 18013 --host 127.0.0.1 --strictPort",
+    "preview:built": "astro preview --port 18013 --host 127.0.0.1 --strictPort",
+    "check": "pnpm run lint && pnpm run typecheck",
+    "format": "biome format --write .",
+    "fix": "biome check --write .",
+    "lint": "biome check .",
+    "typecheck": "astro check",
+    "test": "vitest run",
+    "test:ci": "vitest run --coverage",
+    "audit": "pnpm audit --prod --audit-level moderate",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "ci": "pnpm run check && pnpm run test:ci"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "@axe-core/playwright": "catalog:",
+    "@biomejs/biome": "catalog:",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "^4.1.10",
+    "happy-dom": "^20.11.2",
+    "typescript": "catalog:",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@import "uniwind";
+@import "./src/theme/brand.generated.css";
+
+@source "./src";
+
+@theme {
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+}
+
+/* NOTE: the vendored RNR/shadcn primitives use `accent` as their NEUTRAL
+ * hover/pressed state-layer, but the brand `--accent` is manila, which
+ * assets/DESIGN.md reserves for text — never a fill or an interaction state.
+ * The palette now emits a neutral `--state` pair for that role; map the class
+ * names the primitives use onto it. Values come from the generator only. */
+@theme inline {
+  --color-accent: var(--state);
+  --color-accent-foreground: var(--state-foreground);
+  --color-manila: var(--accent);
+  --color-manila-foreground: var(--accent-foreground);
+}

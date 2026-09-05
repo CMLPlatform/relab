@@ -1,7 +1,5 @@
 """HTTP Client fixtures for API testing."""
 
-from __future__ import annotations
-
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 from unittest.mock import patch
@@ -10,7 +8,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from app.api.auth.dependencies import (
     current_active_superuser,
@@ -19,9 +17,9 @@ from app.api.auth.dependencies import (
     optional_current_active_user,
 )
 from app.api.auth.models import User
-from app.api.auth.services.rate_limiter import limiter
-from app.api.auth.services.user_database import get_auth_async_session
-from app.core.cache import close_fastapi_cache, init_fastapi_cache
+from app.api.auth.services.user_manager import get_auth_async_session
+from app.api.common.rate_limiting import limiter
+from app.core.cache import close_cache, init_cache
 from app.core.config import settings
 from app.core.database import get_async_session
 from app.main import create_app
@@ -36,8 +34,7 @@ class _NoNetworkTransport(httpx.AsyncBaseTransport):
     - Any other callers that fail open on non-OK responses are also fine.
     """
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        _ = request
+    async def handle_async_request(self, _request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, content=b"")
 
 
@@ -46,8 +43,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from redis.asyncio import Redis
-
-    from app.api.auth.models import User
 
 
 def _configure_test_storage(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -102,6 +97,7 @@ def test_app() -> Generator[FastAPI]:
 @pytest.fixture
 async def api_client(
     test_app: FastAPI,
+    async_engine: AsyncEngine,
     db_session: AsyncSession,
     mock_redis_dependency: Redis,
     tmp_path: Path,
@@ -127,22 +123,23 @@ async def api_client(
     outbound_http_client = httpx.AsyncClient(transport=_NoNetworkTransport())
 
     with (
+        patch("app.core.database.async_engine", new=async_engine),
+        patch("app.core.lifecycle.async_engine", new=async_engine),
         patch("app.core.lifecycle.init_redis", return_value=mock_redis_dependency),
-        patch("app.core.lifecycle.init_blocking_redis", return_value=None),
         patch("app.core.lifecycle.create_http_client", return_value=outbound_http_client),
     ):
         async with test_app.router.lifespan_context(test_app):
-            init_fastapi_cache(mock_redis_dependency)
+            init_cache(mock_redis_dependency)
 
             async with httpx.AsyncClient(
                 transport=ASGITransport(app=test_app),
-                base_url="http://test",
+                base_url="https://test",
                 follow_redirects=True,
             ) as client:
                 yield client
 
             # Cleanup
-            await close_fastapi_cache()
+            await close_cache()
             limiter.enabled = True
             test_app.dependency_overrides.clear()
 
@@ -167,7 +164,7 @@ async def api_client_light(
     services or auth/session wiring, including:
     - Optional/guest auth resolution that still passes through auth backends
     - Cookie/session/refresh/OAuth flows
-    - Newsletter, file-storage, and other runtime-service-heavy paths
+    - File-storage and other runtime-service-heavy paths
     """
     _configure_test_storage(tmp_path, monkeypatch)
 
@@ -176,19 +173,23 @@ async def api_client_light(
 
     test_app.dependency_overrides[get_async_session] = override_get_session
     test_app.dependency_overrides[get_auth_async_session] = override_get_session
+    # The real optional_current_active_user Security dep hits the auth backend
+    # (Redis), which api_client_light deliberately does not start. Default to
+    # "guest"; per-test override_authenticated_user replaces this when needed.
+    test_app.dependency_overrides[optional_current_active_user] = lambda: None
 
     limiter.enabled = False
-    init_fastapi_cache(None)
+    init_cache(None)
 
     try:
         async with httpx.AsyncClient(
             transport=ASGITransport(app=test_app),
-            base_url="http://test",
+            base_url="https://test",
             follow_redirects=True,
         ) as client:
             yield client
     finally:
-        await close_fastapi_cache()
+        await close_cache()
         limiter.enabled = True
         test_app.dependency_overrides.clear()
 
@@ -199,6 +200,15 @@ async def api_client_user(
 ) -> AsyncGenerator[httpx.AsyncClient]:
     """Provide an authenticated client for a regular active user."""
     with override_authenticated_user(test_app, db_user):
+        yield api_client
+
+
+@pytest.fixture
+async def api_client_lab_user(
+    api_client: httpx.AsyncClient, db_lab_user: User, test_app: FastAPI
+) -> AsyncGenerator[httpx.AsyncClient]:
+    """Provide an authenticated client for an active lab-tier user."""
+    with override_authenticated_user(test_app, db_lab_user):
         yield api_client
 
 

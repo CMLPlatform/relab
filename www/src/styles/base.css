@@ -1,0 +1,88 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Makes `height: auto` an animatable value, which is what lets the teardown's
+     part groups open on a transition instead of snapping (HeroTeardown). Inert
+     everywhere else: nothing animates to or from a keyword size but that. */
+  interpolate-size: allow-keywords;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--relab-brand-font), "Segoe UI", sans-serif;
+  color: var(--color-text);
+  background: var(--color-page-surface);
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--relab-brand-font-display), Georgia, serif;
+  color: var(--color-on-surface);
+  /* serif carries its own width; tighter tracking than this reads cramped */
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+p,
+ul {
+  margin: 0;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+a:hover {
+  color: var(--color-primary-strong);
+}
+
+p a,
+li a {
+  text-decoration: underline;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 22%, white);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .theme-toggle {
+    animation: none;
+    transition-duration: 0.01ms;
+  }
+
+  /* The press still has to acknowledge itself; the background change carries
+     that. Only the movement goes, since a 0.01ms scale is a jump, not motion. */
+  .btn:active {
+    transform: none;
+  }
+}

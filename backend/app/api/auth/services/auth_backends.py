@@ -1,63 +1,97 @@
 """Authentication backend and transport wiring."""
 
-import ipaddress
 from typing import cast
-from urllib.parse import urlparse
 
-from fastapi import HTTPException
+from fastapi import Response
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     CookieTransport,
-    JWTStrategy,
-    RedisStrategy,
     Strategy,
 )
-from pydantic import UUID4, SecretStr
+from pydantic import UUID4
 
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.models import User
-from app.core.config import Environment
-from app.core.config import settings as core_settings
-from app.core.redis import OptionalRedisDep
+from app.api.auth.services.access_token_store import ACCESS_TOKEN_KEY_PREFIX, RevocableRedisStrategy
+from app.core.http_headers import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
+from app.core.redis import RedisDep
 
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
-SECRET: SecretStr = auth_settings.fastapi_users_secret
 
 
-def build_cookie_domain(frontend_url: str) -> str | None:
-    """Build a cookie domain from the configured frontend URL."""
-    hostname = urlparse(frontend_url).hostname or ""
-    try:
-        ipaddress.ip_address(hostname)
-    except ValueError:
-        parts = hostname.split(".")
-        return f".{'.'.join(parts[-2:])}" if len(parts) >= 2 else None
-    else:
-        return None
-
+# Session cookies are host-only to avoid exposing credentials to sibling subdomains.
+# Names live in core/http_headers (single source); re-exported here for the auth API.
+COOKIE_DOMAIN: str | None = None
+COOKIE_PATH: str = "/"
+AUTH_COOKIE_NAMES = (AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME)
 
 cookie_transport = CookieTransport(
-    cookie_name="auth",
+    cookie_name=AUTH_COOKIE_NAME,
     cookie_max_age=ACCESS_TOKEN_TTL,
-    cookie_domain=build_cookie_domain(str(core_settings.frontend_web_url)),
-    cookie_secure=core_settings.secure_cookies,
+    cookie_domain=COOKIE_DOMAIN,
+    cookie_secure=True,
 )
 
-bearer_transport = BearerTransport(tokenUrl="auth/bearer/login")
+
+def set_browser_auth_cookie(response: Response, *, key: str, value: str, max_age: int) -> None:
+    """Attach a host-only browser auth cookie."""
+    response.set_cookie(
+        key=key,
+        value=value,
+        max_age=max_age,
+        path=COOKIE_PATH,
+        domain=COOKIE_DOMAIN,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+    )
 
 
-def get_token_strategy(redis: OptionalRedisDep) -> Strategy[User, UUID4]:
+def set_session_auth_cookies(response: Response, *, access_token: str, refresh_token: str) -> None:
+    """Attach the access + refresh cookie pair for a browser session."""
+    set_browser_auth_cookie(
+        response,
+        key=AUTH_COOKIE_NAME,
+        value=access_token,
+        max_age=ACCESS_TOKEN_TTL,
+    )
+    set_browser_auth_cookie(
+        response,
+        key=REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        max_age=auth_settings.refresh_token_ttl_seconds,
+    )
+
+
+def _delete_cookie(response: Response, name: str, domain: str | None) -> None:
+    response.delete_cookie(
+        name,
+        path=COOKIE_PATH,
+        domain=domain,
+        secure=True,
+        httponly=True,
+        samesite="lax",
+    )
+
+
+def clear_auth_cookies(response: Response) -> None:
+    """Delete browser auth cookies from the current scope."""
+    for name in AUTH_COOKIE_NAMES:
+        _delete_cookie(response, name, COOKIE_DOMAIN)
+
+
+bearer_transport = BearerTransport(tokenUrl="/v1/auth/bearer/login")
+
+
+def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:
     """Return an authentication token strategy."""
-    if redis:
-        return cast("Strategy[User, UUID4]", RedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL))
-
-    if core_settings.environment not in (Environment.DEV, Environment.TESTING):
-        raise HTTPException(status_code=503, detail="Authentication service unavailable: Redis is required.")
-
+    # RevocableRedisStrategy, not the upstream RedisStrategy: it stamps each token with
+    # its issue time so a global revocation can refuse tokens issued before it, which
+    # upstream cannot do (see access_token_store).
     return cast(
         "Strategy[User, UUID4]",
-        JWTStrategy(secret=SECRET.get_secret_value(), lifetime_seconds=ACCESS_TOKEN_TTL),
+        RevocableRedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL, key_prefix=ACCESS_TOKEN_KEY_PREFIX),
     )
 
 

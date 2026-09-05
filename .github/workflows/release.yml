@@ -7,9 +7,7 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,11 +17,111 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
       - name: Run release-please
         id: release
         uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
+
+  release-sboms:
+    name: Release SBOM (${{ matrix.service }})
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every runtime image gets an SBOM on release. Keep in sync with the
+        # container security matrix in ci.yml.
+        include:
+          - service: api
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+            image: relab-backend
+          - service: migrator
+            context: ./backend
+            dockerfile: ./backend/Dockerfile.migrations
+            image: relab-backend-migrations
+          - service: relab-backup
+            context: ./backend
+            dockerfile: ./backend/Dockerfile.backups
+            image: relab-backup
+          - service: docs
+            context: .
+            dockerfile: ./docs/Dockerfile
+            image: relab-docs
+          - service: app
+            context: .
+            dockerfile: ./app/Dockerfile
+            image: relab-app
+          - service: www
+            context: .
+            dockerfile: ./www/Dockerfile
+            image: relab-www
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd
+
+      - name: Build image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          load: true
+          pull: true
+          tags: ${{ matrix.image }}:${{ github.sha }}
+          # Read-only: the container security matrix in ci.yml populates
+          # these scopes on every run, so an SBOM build starts warm without
+          # spending release-time cache writes on an image nothing deploys.
+          cache-from: type=gha,scope=scan-${{ matrix.service }}
+          # The www/app builds require their public URLs. These images are only
+          # used for SBOM generation, never deployed, so placeholders are fine.
+          build-args: |
+            PUBLIC_APP_URL=https://app.example.invalid
+            PUBLIC_DOCS_URL=https://docs.example.invalid
+            PUBLIC_SITE_URL=https://example.invalid
+            PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_WEBSITE_URL=https://example.invalid
+            EXPO_PUBLIC_DOCS_URL=https://docs.example.invalid
+
+      - name: Generate SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          format: spdx-json
+          output: sbom-${{ matrix.service }}.spdx.json
+
+      - name: Attest SBOM asset provenance
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26
+        with:
+          subject-path: sbom-${{ matrix.service }}.spdx.json
+
+      - name: Upload SBOM to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: gh release upload "$TAG_NAME" "sbom-${{ matrix.service }}.spdx.json" --clobber

@@ -3,7 +3,7 @@
 # Production Dockerfile for Backend Migrations
 
 # --- Build stage ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS build
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:2e5867a06156cb8be272125d32fc5032ed750a1268a9350d87a7d322540eb59f AS build
 WORKDIR /opt/relab/backend-migrations
 
 # Create needed directories data uploads for seeding example images and files
@@ -35,13 +35,17 @@ COPY app/ app/
 COPY data/seed/ data/seed/
 
 # --- Runtime stage ---
-FROM python:3.14-slim-trixie@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa
+FROM python:3.14-slim-trixie@sha256:656d12e70054d5fda18a045e2494c96701e9792dd1445f95b3d038df954f57e9
 
 ARG WORKDIR=/opt/relab/backend-migrations
 ARG APP_USER=appuser
 ARG APP_UID=1001
 
-RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER"
+RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
+    # This stage runs only the uv-built venv copied in below, so the base image's
+    # own pip is dead weight: unused at runtime, and its vendored dependencies
+    # keep surfacing in image scans. Drop it.
+    && pip uninstall --yes --quiet pip
 
 WORKDIR $WORKDIR
 
@@ -54,7 +58,6 @@ COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/data/seed $WORKDIR/d
 COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/pyproject.toml $WORKDIR/pyproject.toml
 COPY --link --from=build --chown=$APP_UID:$APP_UID $WORKDIR/scripts $WORKDIR/scripts
 
-# spell-checker: ignore PYTHONUNBUFFERED
 ENV PYTHONPATH=$WORKDIR \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

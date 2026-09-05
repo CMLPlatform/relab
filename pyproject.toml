@@ -10,7 +10,7 @@
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Recognition",
   ]
-  description = "Reverse Engineering Lab monorepo"
+  description = "Relab monorepo"
   keywords = ["automated-lca", "circular-economy", "computer-vision"]
   license = { text = "AGPL-3.0-or-later" }
   maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
@@ -23,7 +23,10 @@
   version = "0.2.0"
 
 [dependency-groups]
-  dev = ["commitizen>=4.8.3", "pre-commit>=4.2.0"]
+  # pyyaml is used directly by scripts/sync_brand_assets.py to read CITATION.cff.
+  # It arrived transitively via prek; declared so the script does not depend
+  # on another tool's dependency tree.
+  dev = ["commitizen>=4.8.3", "prek>=0.4.11", "pytest>=9.1.1", "pyyaml>=6.0.3", "ruff>=0.12.1", "ty>=0.0.15"]
 
 [tool.commitizen]
   annotated_tag      = true
@@ -31,3 +34,51 @@
   name               = "cz_conventional_commits"
   tag_format         = "v$version"
   version_scheme     = "semver2"
+
+[tool.pytest.ini_options]
+  # Unit tests for the root ops scripts (scripts/env_policy.py); the shell side
+  # lives in scripts/test_ops.sh. Subrepos own their own test config.
+  pythonpath = ["scripts"]
+  testpaths  = ["tests"]
+
+[tool.ruff]
+  extend-exclude = ["app", "backend", "docs", "www"]
+  force-exclude  = true
+  include        = ["scripts/*.py", "assets/logo-src/*.py", "tests/*.py"]
+  line-length    = 120
+
+  [tool.ruff.lint]
+    select = ["ALL"]
+
+    ignore = [
+      # Prevent conflicts with formatter (see https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules)
+      "ANN204", # missing-return-type-special-method
+      "COM812", # missing-trailing-comma
+      "COM819", # prohibited-trailing-comma
+      "E111",   # indentation-with-invalid-multiple
+      "E114",   # indentation-with-invalid-multiple-comment
+      "E117",   # over-indented
+      "Q",      # flake8-quotes
+      "W191",   # tab-indentation
+
+      # This repo doesn't use per-file copyright headers (license lives in LICENSE)
+      "CPY", # flake8-copyright
+    ]
+
+    [tool.ruff.lint.per-file-ignores]
+      # Standalone CLI generators, not an importable package (the dir name isn't a
+      # valid module), so INP001 has no in-code fix.
+      "assets/logo-src/*" = ["INP001"]
+      # Test names carry the documentation, asserts are the point, and pytest
+      # collects tests/ by path rather than importing it as a package.
+      "tests/*" = ["D103", "INP001", "S101"]
+
+    [tool.ruff.lint.pydocstyle]
+      convention = "google"
+
+[tool.ty.src]
+  include = ["scripts"]
+
+[tool.uv]
+  # Mitigate supply chain issues
+  exclude-newer = "3 days"

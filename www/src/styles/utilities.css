@@ -1,0 +1,84 @@
+.page-intro {
+  max-width: 48rem;
+  padding: 0.55rem 0.4rem 0.15rem;
+}
+
+.page-meta {
+  font-style: italic;
+  font-size: var(--font-size-meta);
+  color: var(--color-muted);
+}
+
+.empty-state {
+  max-width: 42rem;
+}
+
+/* Reachable by assistive tech, removed from the visual/layout flow. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Prose pages are Read mode: the page column is sized for the landing page's
+   two-column hero and wide flowchart, which would set continuous prose at
+   ~140 characters a line. Cap the whole page so headings and paragraphs share
+   one measure, near the 75-character comfort ceiling. */
+.content-page {
+  --content-page-body-size: var(--font-size-body-compact);
+  --content-page-line-height: var(--line-height-body-compact);
+  --content-page-heading-size: clamp(1.42rem, 2vw, 1.85rem);
+
+  display: grid;
+  gap: 1rem;
+  max-width: 44rem;
+}
+
+.content-page p,
+.content-page li {
+  font-size: var(--content-page-body-size);
+  line-height: var(--content-page-line-height);
+  color: var(--color-text);
+}
+
+.content-page h2 {
+  font-size: var(--content-page-heading-size);
+}
+
+/* Prose pages run many more sections than the landing page, so they sit on a
+   tighter rhythm; the landing page's 3rem would strand each clause on its own
+   screen. */
+.content-page .section {
+  display: grid;
+  /* Tighter than the 1rem the page column uses between its own blocks: these
+     are paragraphs under one heading, not separate sections. */
+  gap: 0.7rem;
+  padding-block: 1.6rem;
+}
+
+.content-page .page-intro {
+  gap: 0.75rem;
+}
+
+.content-page .page-intro p {
+  font-size: var(--content-page-body-size);
+  line-height: var(--content-page-line-height);
+}
+
+@media (max-width: 760px) {
+  .page-intro {
+    padding-inline: 0.35rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-intro {
+    padding-inline: 0.6rem;
+  }
+}

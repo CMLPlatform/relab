@@ -1,0 +1,20 @@
+<mjml>
+  <mj-head>
+    <mj-title>Welcome to Relab</mj-title>
+    {{include:styles}}
+  </mj-head>
+  <mj-body background-color="{{brand:--relab-brand-theme-color}}">
+    {{include:header}}
+
+    <mj-section background-color="{{brand:--relab-brand-background}}" padding="20px 40px">
+      <mj-column>
+        <mj-text font-size="16px" padding-bottom="20px"> Hello {{ username }}, </mj-text>
+        <mj-text align="center" css-class="success" padding="20px 0"> Your account is ready! </mj-text>
+        <mj-text> You signed up with {{ provider_label }}, so you can sign in any time using that provider. </mj-text>
+        <mj-text padding-top="20px"> If you did not create this account, please contact Relab support. </mj-text>
+      </mj-column>
+    </mj-section>
+
+    {{include:footer}}
+  </mj-body>
+</mjml>

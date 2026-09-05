@@ -1,0 +1,96 @@
+{
+  "teardown": {
+    "id": 47,
+    "name": "Dell XPS 13",
+    "brand": "Dell",
+    "weightG": 1190,
+    "productType": "Laptop",
+    "parts": [
+      {
+        "name": "Display assembly",
+        "weightG": 258,
+        "photo": {
+          "url": "/images/teardown/screen.webp",
+          "srcset": "",
+          "alt": "Photographed during disassembly"
+        },
+        "children": [
+          {
+            "name": "LCD panel",
+            "weightG": 163,
+            "photo": null
+          },
+          {
+            "name": "Lid and hinges",
+            "weightG": 95,
+            "photo": null
+          }
+        ]
+      },
+      {
+        "name": "Bottom cover",
+        "weightG": 156,
+        "photo": {
+          "url": "/images/teardown/bottom_cover.webp",
+          "srcset": "",
+          "alt": "Photographed during disassembly"
+        }
+      },
+      {
+        "name": "Keyboard",
+        "weightG": 94,
+        "photo": {
+          "url": "/images/teardown/keyboard.webp",
+          "srcset": "",
+          "alt": "Photographed during disassembly"
+        }
+      },
+      {
+        "name": "Motherboard assembly",
+        "weightG": 88,
+        "photo": {
+          "url": "/images/teardown/mobo.webp",
+          "srcset": "",
+          "alt": "Photographed during disassembly"
+        },
+        "children": [
+          {
+            "name": "PCB assembly",
+            "weightG": 66,
+            "photo": null
+          },
+          {
+            "name": "Port brackets",
+            "weightG": 22,
+            "photo": null
+          }
+        ]
+      },
+      {
+        "name": "Keyboard frame assembly",
+        "weightG": 71,
+        "photo": {
+          "url": "/images/teardown/keyboard_frame_assembly.webp",
+          "srcset": "",
+          "alt": "Photographed during disassembly"
+        }
+      },
+      {
+        "name": "SSD",
+        "weightG": 8.4,
+        "photo": {
+          "url": "/images/teardown/ssd.webp",
+          "srcset": "",
+          "alt": "Photographed during disassembly"
+        }
+      }
+    ],
+    "photos": [
+      {
+        "url": "/images/teardown/laptop.webp",
+        "srcset": "",
+        "alt": "Dell XPS 13, photographed during disassembly"
+      }
+    ]
+  }
+}

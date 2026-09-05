@@ -3,26 +3,27 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Path
+from fastapi import BackgroundTasks, Depends, Path
 from fastapi_pagination import Page
 from pydantic import UUID4
 
 from app.api.auth.dependencies import current_active_superuser
+from app.api.common.audiences import AdminAPIRouter
 from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.dependencies import CameraByIDDep, CameraFilterWithOwnerDep
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
 from app.api.plugins.rpi_cam.routers.camera_crud import _notify_camera_unpair
+from app.api.plugins.rpi_cam.runtime.status import get_camera_status as fetch_camera_status
 from app.api.plugins.rpi_cam.schemas import CameraRead
-from app.api.plugins.rpi_cam.services import get_camera_status as fetch_camera_status
-from app.core.redis import OptionalRedisDep
+from app.core.redis import RedisDep
 
 logger = logging.getLogger(__name__)
 
 ### Camera admin router ###
 
 
-router = APIRouter(
+router = AdminAPIRouter(
     prefix="/admin/plugins/rpi-cam/cameras",
     tags=["admin"],
     dependencies=[Depends(current_active_superuser)],
@@ -53,7 +54,7 @@ async def get_camera(_camera_id: Annotated[UUID4, Path(alias="camera_id")], came
 async def get_camera_status(
     _camera_id: Annotated[UUID4, Path(alias="camera_id")],
     camera: CameraByIDDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
     return await fetch_camera_status(redis, camera.id)
@@ -66,7 +67,7 @@ async def delete_camera(
     background_tasks: BackgroundTasks,
     session: AsyncSessionDep,
     camera: CameraByIDDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
     await session.delete(camera)

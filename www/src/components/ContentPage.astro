@@ -1,0 +1,20 @@
+---
+
+interface Props {
+  title: string;
+  intro?: string;
+  meta?: string;
+}
+
+const { title, intro, meta } = Astro.props;
+---
+
+<div class="content-page">
+  <section class="page-intro">
+    <h1>{title}</h1>
+    {meta && <p class="page-meta">{meta}</p>}
+    {intro && <p>{intro}</p>}
+  </section>
+
+  <slot />
+</div>

@@ -8,13 +8,13 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import httpx
 import pandas as pd
-import requests
 from sqlalchemy import func, select
 
-from app.api.background_data.models import (
+from app.api.reference_data.models import (
     Category,
-    ProductType,  # Adjust import as needed
+    ProductType,
     TaxonomyDomain,
 )
 from app.core.logging import setup_logging
@@ -71,28 +71,22 @@ def download_cpv_excel(excel_path: Path = EXCEL_PATH, source_url: str = TAXONOMY
 
     logger.info("Downloading CPV ZIP file from %s...", source_url)
     try:
-        response = requests.get(source_url, timeout=10)
-    except requests.RequestException:
+        response = httpx.get(source_url, timeout=10, follow_redirects=True)
+        response.raise_for_status()
+    except httpx.HTTPError:
         logger.exception("Error downloading CPV ZIP file")
         return
 
-    if response.status_code == 200:
-        with zipfile.ZipFile(BytesIO(response.content)) as zf:
-            # Find the first .xls or .xlsx file in the zip
-            for name in zf.namelist():
-                if name.lower().endswith((".xls", ".xlsx")):
-                    with zf.open(name) as extracted, excel_path.open("wb") as out_f:
-                        out_f.write(extracted.read())
-                    logger.info("Extracted %s to %s", name, excel_path)
-                    break
-            else:
-                err_msg = "No Excel file found in the ZIP archive."
-                logger.error(err_msg)
-                raise RuntimeError(err_msg)
-    else:
-        err_msg = f"Failed to download CPV ZIP file from {source_url} (status code {response.status_code})"
-        logger.error(err_msg)
-        raise RuntimeError(err_msg)
+    with zipfile.ZipFile(BytesIO(response.content)) as zf:
+        for name in zf.namelist():
+            if name.lower().endswith((".xls", ".xlsx")):
+                with zf.open(name) as extracted, excel_path.open("wb") as out_f:
+                    out_f.write(extracted.read())
+                logger.info("Extracted %s to %s", name, excel_path)
+                break
+        else:
+            msg = "No Excel file found in the ZIP archive."
+            raise RuntimeError(msg)
 
 
 def load_cpv_rows_from_excel(
@@ -181,7 +175,7 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
         # Commit
         session.commit()
         logger.info(
-            "✓ Added %s taxonomy (version %s) with %d categories and %d relationships",
+            "✅ Added %s taxonomy (version %s) with %d categories and %d relationships",
             TAXONOMY_NAME,
             TAXONOMY_VERSION,
             cat_count,

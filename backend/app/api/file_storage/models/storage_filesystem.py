@@ -1,16 +1,12 @@
 """Filesystem-backed storage backend."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from anyio import open_file, to_thread
+from anyio import Path as AnyIOPath
+from anyio import open_file
 
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
 from app.api.file_storage.models.storage_core import BaseStorage, secure_filename
-from app.core.config import settings
-from app.core.images import validate_image_file
 
 if TYPE_CHECKING:
     from typing import BinaryIO
@@ -40,18 +36,6 @@ class FileSystemStorage(BaseStorage):
         """Return the absolute path for a stored file."""
         return str(self._path / Path(name))
 
-    def get_size(self, name: str) -> int:
-        """Return the file size in bytes."""
-        return (self._path / name).stat().st_size
-
-    def open(self, name: str) -> BinaryIO:
-        """Open a stored file in binary mode, mapping missing files to the API error."""
-        try:
-            return (self._path / Path(name)).open("rb")
-        except FileNotFoundError as e:
-            details = str(e) if settings.debug else None
-            raise FastAPIStorageFileNotFoundError(name, details=details) from e
-
     def write(self, file: BinaryIO, name: str) -> str:
         """Write a binary file to local storage."""
         self._ensure_path()
@@ -59,23 +43,11 @@ class FileSystemStorage(BaseStorage):
         path = self._path / Path(filename)
 
         file.seek(0)
-        with path.open("wb") as output:
+        with path.open("xb") as output:
             while chunk := file.read(self.default_chunk_size):
                 output.write(chunk)
 
         return str(path)
-
-    def generate_new_filename(self, filename: str) -> str:
-        """Generate a unique filename if collisions are not allowed."""
-        counter = 0
-        path = self._path / filename
-        stem, extension = Path(filename).stem, Path(filename).suffix
-
-        while path.exists():
-            counter += 1
-            path = self._path / f"{stem}_{counter}{extension}"
-
-        return path.name
 
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
         """Write an uploaded file using async file I/O."""
@@ -84,15 +56,13 @@ class FileSystemStorage(BaseStorage):
         path = self._path / filename
 
         await upload_file.seek(0)
-        async with await open_file(path, "wb") as output:
+        async with await open_file(path, "xb") as output:
             while chunk := await upload_file.read(self.default_chunk_size):
                 await output.write(chunk)
 
         await upload_file.close()
         return filename
 
-    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
-        """Validate and write an uploaded image using async file I/O."""
-        self._ensure_path()
-        await to_thread.run_sync(validate_image_file, upload_file.file)
-        return await self.write_upload(upload_file, name)
+    async def delete(self, name: str) -> None:
+        """Delete a stored file, tolerating an already-missing file."""
+        await AnyIOPath(self._path / name).unlink(missing_ok=True)
