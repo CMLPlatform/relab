@@ -16,7 +16,12 @@
   },
   "packageRules": [
     {
-      "description": "Expo SDK-managed packages, versions pinned by the SDK, don't bump independently. NOTE: disabled deps are skipped before lookup, so these get no vulnerability-fix PRs either — watch GitHub's Dependabot alerts and fix via `expo install --check` at the next SDK upgrade",
+      "description": "Non-breaking updates merge themselves once CI is green",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Expo SDK-managed packages: the SDK pins these, Renovate cannot read bundledNativeModules.json. Dashboard-only so an available bump stays visible; do not approve individually - run `just app/update` (expo install --fix + expo-doctor) at SDK upgrade time. Vulnerability fixes still raise PRs, they override this.",
       "matchFileNames": ["app/package.json"],
       "matchPackageNames": [
         "expo",
@@ -34,12 +39,8 @@
         "react-native-svg",
         "react-native-web"
       ],
-      "enabled": false
-    },
-    {
-      "description": "Non-breaking updates merge themselves once CI is green",
-      "matchUpdateTypes": ["minor", "patch", "digest"],
-      "automerge": true
+      "dependencyDashboardApproval": true,
+      "automerge": false
     },
     {
       "description": "One PR per subrepo instead of one per package",
