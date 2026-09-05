@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 
 # Multi-target Dockerfile for the Astro Starlight docs site
 #   - `dev`     → hot-reload dev server (use with `docker compose watch`)
@@ -7,7 +7,7 @@
 ARG WORKDIR=/opt/relab/docs
 
 # --- Shared deps stage ---
-FROM node:24-slim@sha256:d8e448a56fc63242f70026718378bd4b00f8c82e78d20eefb199224a4d8e33d8 AS deps
+FROM node:24-slim@sha256:ba849c60be29959425b8734d57b8b4b7d56f98edd9504c9af091d5281095a71e AS deps
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -55,7 +55,7 @@ ENV PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
 RUN pnpm run build:${BUILD_MODE}
 
 # --- Runtime stage (default) ---
-FROM caddy:2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d AS runtime
+FROM caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648 AS runtime
 
 ARG WORKDIR
 
