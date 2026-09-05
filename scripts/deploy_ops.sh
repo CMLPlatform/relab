@@ -52,7 +52,7 @@ compose_env_file() {
 # so a stray `export ENVIRONMENT=staging` would run staging images under the prod
 # project name. Scrub the names the env files own before invoking compose. Keep in
 # sync with COMMITTED_DEPLOY_ENV_NAMES + REQUIRED_ROOT_OPERATOR_INPUT_NAMES in
-# scripts/env_policy.py. MALWARE_SCAN_ENABLED is scrubbed too: the `up` guard reads it
+# scripts/env_policy.py, plus the telemetry names below. MALWARE_SCAN_ENABLED is scrubbed too: the `up` guard reads it
 # from .env, so an exported shell value must not reach the container and quietly turn
 # scanning on without the clamav profile.
 COMPOSE_SCRUBBED_ENV_NAMES=(
@@ -73,6 +73,15 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     # shell value beats every --env-file, so a stray `export` in a debugging session
     # would silently redirect prod's offsite copy at staging's repository.
     RESTIC_OFFSITE_REPOSITORY
+    # The telemetry trio, scrubbed after an endpoint rename was undone by a shell that
+    # had sourced the pre-rename .env: compose preferred the exported value, so a
+    # down/up recreated the agent still pointing at the dead hostname while both the
+    # file and the recipe looked right. These are OPTIONAL_ROOT_OPERATOR_INPUT_NAMES in
+    # env_policy.py; the file is their only source.
+    OTEL_EXPORTER_OTLP_ENDPOINT
+    OTEL_EXPORTER_OTLP_PROTOCOL
+    OTLP_AUTH_TOKEN
+    TELEMETRY_EDGE_KEY
 )
 
 compose_args() {
