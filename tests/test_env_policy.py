@@ -195,3 +195,8 @@ def test_parse_labeled_paths() -> None:
 
 def test_secret_env_name_is_the_uppercased_file_name() -> None:
     assert env_policy.secret_env_name("auth_token_secret") == "AUTH_TOKEN_SECRET"
+
+
+def test_deploy_labels_scopes_to_one_stack_or_reports_on_all() -> None:
+    assert env_policy.deploy_labels("staging") == ("staging",)
+    assert env_policy.deploy_labels(None) == ("staging", "prod")

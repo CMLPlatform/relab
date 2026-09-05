@@ -294,7 +294,12 @@ def assert_secret_value_is_usable(label: str, name: str, value: str, *, is_optio
         raise AssertionError(msg)
 
 
-def assert_offsite_remote_is_configured() -> None:
+def deploy_labels(env: str | None) -> tuple[str, ...]:
+    """Environments a per-env check should report on: one named stack, or all of them."""
+    return (env,) if env else ("staging", "prod")
+
+
+def assert_offsite_remote_is_configured(env: str | None = None) -> None:
     """Warn when a committed offsite repository names an rclone remote no secret defines.
 
     ``RESTIC_OFFSITE_REPOSITORY`` is committed per environment, but the credential that
@@ -308,7 +313,7 @@ def assert_offsite_remote_is_configured() -> None:
     the place the gap has to surface instead: before the deploy, not at 02:30 nightly.
     Warn rather than fail — local-only backups are a legitimate configuration.
     """
-    for label in ("staging", "prod"):
+    for label in deploy_labels(env):
         env_file = ROOT / "deploy" / "env" / f"{label}.compose.env"
         if not env_file.exists():
             continue
@@ -338,7 +343,9 @@ def assert_offsite_remote_is_configured() -> None:
             )
 
 
-def assert_existing_secret_files_do_not_use_placeholders(secret_inventory: dict[str, Any]) -> None:
+def assert_existing_secret_files_do_not_use_placeholders(
+    secret_inventory: dict[str, Any], env: str | None = None
+) -> None:
     """Check existing production-like secret files for unfilled or empty required secrets.
 
     Runs against the deploy host's populated ``secrets/<env>/`` tree (in CI these files
@@ -347,7 +354,7 @@ def assert_existing_secret_files_do_not_use_placeholders(secret_inventory: dict[
     Optional secrets (the unused email provider) may be empty by design.
     """
     optional = secret_inventory["optional_secret_files"]
-    for label in ("staging", "prod"):
+    for label in deploy_labels(env):
         for name in sorted(secret_inventory["runtime_secret_files"]):
             path = ROOT / "secrets" / label / name
             if not path.exists():
@@ -560,8 +567,8 @@ def assert_deploy_compose_render_fails_for_missing_operator_values() -> None:
         require(name in combined_output, f"compose render without {name} did not mention the missing variable")
 
 
-def run_env_policy_checks() -> None:
-    """Run all environment policy checks."""
+def run_env_policy_checks(env: str | None = None) -> None:
+    """Run all environment policy checks; ``env`` scopes the per-environment ones to one stack."""
     secret_inventory = load_secret_inventory()
     assert_deploy_env_files_are_canonical()
     assert_root_env_example_is_operator_checklist(secret_inventory)
@@ -571,8 +578,8 @@ def run_env_policy_checks() -> None:
     assert_infra_boundaries_are_preserved()
     assert_telemetry_examples_use_department_contract()
     assert_telemetry_inputs_are_set_together()
-    assert_existing_secret_files_do_not_use_placeholders(secret_inventory)
-    assert_offsite_remote_is_configured()
+    assert_existing_secret_files_do_not_use_placeholders(secret_inventory, env)
+    assert_offsite_remote_is_configured(env)
     assert_deploy_compose_render_fails_for_missing_operator_values()
 
 
@@ -613,7 +620,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    subparsers.add_parser("check", help="validate root environment variable policy")
+    check_parser = subparsers.add_parser("check", help="validate root environment variable policy")
+    check_parser.add_argument(
+        "--env",
+        choices=("staging", "prod"),
+        help="limit per-environment secret warnings to this stack (default: report on both)",
+    )
     subparsers.add_parser("inventory", help="print the runtime secret inventory")
 
     validation_env_parser = subparsers.add_parser(
@@ -638,7 +650,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "check":
-            run_env_policy_checks()
+            run_env_policy_checks(args.env)
             sys.stdout.write("✅ Environment variable policy checks passed\n")
         elif args.command == "inventory":
             # Both suppressed writes below emit secret file NAMES from committed config, never values.

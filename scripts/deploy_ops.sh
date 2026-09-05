@@ -520,7 +520,7 @@ stack_command() {
             # an empty key means the Cloudflare skip rule stops matching and every export
             # is bot-challenged — silently, since the SDK swallows the response. This check
             # owns that pairing (scripts/env_policy.py), so call it rather than restate it.
-            uv run python scripts/env_policy.py check
+            uv run python scripts/env_policy.py check --env "$env"
             # `up` no longer starts backups: the backup service is a one-shot driven
             # by a systemd timer (deploy/systemd/), not a long-running container.
             # `build` still defaults to the backups profile so the image exists.
