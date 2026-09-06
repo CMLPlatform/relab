@@ -14,11 +14,7 @@ type Props<T extends FieldValues> = Omit<TextInputProps, 'value' | 'onChangeText
   transform?: (text: string) => string;
 };
 
-/**
- * RHF Controller + label + TextInput + FormFieldError in one unit, with the
- * error programmatically linked to the input (WCAG 1.3.1/3.3.1) — the wiring
- * every call site previously hand-rolled, inconsistently.
- */
+/** RHF Controller + label + TextInput + FormFieldError, with the error linked to the input (WCAG 1.3.1/3.3.1). */
 export function ControlledTextField<T extends FieldValues>({
   control,
   name,

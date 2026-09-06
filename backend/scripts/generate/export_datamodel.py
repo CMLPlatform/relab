@@ -1,14 +1,9 @@
 """Export the generated data-model diagrams and dataset codebook for the docs site.
 
-Two outputs, each with a single source:
+* ER diagrams, from the SQLAlchemy metadata.
+* The dataset codebook, from the release schemas in ``scripts.build_dataset_release``.
 
-* the ER diagrams, from the SQLAlchemy metadata — the tables, columns and foreign keys
-  as they actually exist, so an added column cannot quietly go undocumented;
-* the dataset codebook, from the release schemas in ``scripts.build_dataset_release`` —
-  the columns a published release carries, with the descriptions declared alongside them.
-
-Both are partials. The prose around them stays hand-written in the docs pages that import
-them, so this script never has an opinion about wording.
+Both are partials; the docs pages that import them hold the prose.
 """
 
 import argparse

@@ -3,12 +3,11 @@ title: API interaction guide
 description: Use the Relab API safely for scripts, notebooks, and external tooling.
 ---
 
-For the authoritative schemas, request models, and endpoint lists, start from the
-[API reference overview](/api-reference/). For how the API is designed internally, see
-[API structure](../../architecture/api/).
+For schemas, request models, and endpoint lists, see the [API reference overview](/api-reference/).
+For the internal design, see [API structure](../../architecture/api/).
 
 The public API is versioned under `/v1`. Keep the API origin separate from the versioned path in
-your client configuration, then build requests such as `https://api.cml-relab.org/v1/products`.
+your client configuration and build requests such as `https://api.cml-relab.org/v1/products`.
 
 ## When to use the API directly
 
@@ -33,10 +32,10 @@ user details, and owner-scoped workflows require a valid token.
 ## Suggested first steps
 
 1. Open the [API reference overview](/api-reference/) and choose the surface you need.
-1. Identify whether the endpoint you need is public or requires authentication.
-1. Start with a read-only request before attempting writes.
-1. Inspect response models carefully, especially around linked entities and media.
-1. Only automate writes once you understand how the product hierarchy is represented.
+1. Check whether the endpoint is public or requires authentication.
+1. Start with a read-only request.
+1. Inspect response models, especially linked entities and media.
+1. Automate writes only once you understand how the product hierarchy is represented.
 
 ## Interactive tooling and admin tasks
 
@@ -45,13 +44,12 @@ The same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace
 
 - **Postman, Bruno, Insomnia**: import the OpenAPI schema (`app/src/types/openapi.json`) for the
   full endpoint collection, then set auth to *Bearer*.
-- **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout —
-  send `login` once and the token flows into the calls below it.
+- **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout.
+  Send `login` once; the token flows into the calls below it.
 
 ## Integration advice
 
-- Build against the generated OpenAPI schema rather than copied examples, which can drift out of
-  date.
+- Build against the generated OpenAPI schema, not copied examples, which drift.
 - For product circularity notes, use `circularity_properties` as either `null` or an object with
   optional `recyclability`, `disassemblability`, and `remanufacturability` strings. Empty objects
   and empty note strings are normalized to `null`.

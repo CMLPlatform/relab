@@ -2110,17 +2110,11 @@ export interface paths {
      * Accept the current contributor terms
      * @description Record that this account accepted the contributor terms.
      *
-     *     The version is stamped from the server's own ``CURRENT_TERMS_VERSION`` and the
-     *     route takes no body: the column is evidence of what the person was actually
-     *     shown, so a client that could name the version could claim a grant under terms
-     *     that did not exist when it accepted.
+     *     The route takes no body: the server stamps ``CURRENT_TERMS_VERSION``, so a client
+     *     cannot claim a grant under terms it was never shown. An acceptance already past the
+     *     current version is kept.
      *
-     *     Existing acceptance is never moved backwards — an account already past the
-     *     current version keeps its later grant, so a rolled-back version constant
-     *     cannot silently narrow a grant somebody really made.
-     *
-     *     Writes through the user database rather than a session dependency: the account
-     *     here is loaded by the auth session, which is a separate dependency from
+     *     Writes through the user database: the account was loaded by the auth session, not
      *     ``AsyncSessionDep``, so committing on the latter would persist nothing.
      */
     post: operations['accept_terms_v1_users_me_accept_terms_post'];

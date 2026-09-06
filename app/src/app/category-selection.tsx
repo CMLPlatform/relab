@@ -42,9 +42,7 @@ export default function CategorySelection() {
   );
   const keyExtractor = useCallback((item: CPVCategory) => String(item.id), []);
 
-  // Recents only make sense as a browsing shortcut: at the taxonomy root
-  // (history has nothing to go "up" from) and with no active search, which
-  // would otherwise compete with the filtered results for attention.
+  // Recents show only at the taxonomy root with no active search.
   const showRecents = history.length <= 1 && !searchQuery && recents.length > 0;
   const listHeader = showRecents ? (
     <View className="gap-3">
@@ -55,19 +53,15 @@ export default function CategorySelection() {
     </View>
   ) : null;
 
-  // useCategorySelection's useRequireAuth('/products') fires the redirect, but
-  // this screen is pushed on top of an already-mounted edit screen — a session
-  // that expires while the picker is open can leave it visible for longer than
-  // a single render, so a real explanation (not a loading flicker) belongs here.
+  // useRequireAuth fires the redirect, but a session that expires while the
+  // picker is open can leave this screen visible for more than one render.
   if (!user) return <SignedOutState />;
   if (!cpvClass) {
     return <CenteredSpinner />;
   }
 
   return (
-    // phoneFullBleed: the search bar, blurb, and list own their own px-4/gap-3
-    // flow spacing on the 4/8 grid, so only the desktop centering/cap is
-    // wanted here.
+    // phoneFullBleed: the search bar, blurb, and list own their own px-4 spacing.
     <PageContainer phoneFullBleed>
       <View className="gap-3 px-4 pt-4">
         <Searchbar placeholder="Search" onChangeText={setSearchQuery} value={searchQuery} />
@@ -87,10 +81,7 @@ export default function CategorySelection() {
         keyExtractor={keyExtractor}
         ListHeaderComponent={listHeader}
         ListEmptyComponent={
-          // Quote debouncedSearchQuery (what `filtered` was actually computed
-          // from), not the immediate searchQuery — otherwise the message can
-          // name a query newer than the results it's describing while the
-          // 300ms debounce is still catching up.
+          // debouncedSearchQuery is what `filtered` was computed from.
           debouncedSearchQuery ? (
             <View className="items-center gap-2 p-8">
               <AppText className="text-center text-muted-foreground">

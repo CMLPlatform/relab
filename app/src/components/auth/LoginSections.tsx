@@ -60,9 +60,7 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
 }
 
 export function LoginBrandHero() {
-  // No wash behind the mark: the hero scrim's centre band already calms the
-  // backdrop here, and the logo is a high-contrast shape that reads without a
-  // panel of its own. One less surface between the brand and the photo.
+  // No wash behind the mark: the hero scrim's centre band already calms the backdrop.
   return (
     <View className="py-3 px-[18px] mb-1">
       <BrandWordmark style={styles.brandLogo} />
@@ -100,8 +98,7 @@ export function LoginFormSection({
     }) => {
       const { error } = fieldState;
       return (
-        // A visible name that survives typing: the placeholder used to be the only
-        // label, and it disappears the moment the field has a value.
+        // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
           <AppText variant="label">Email or username</AppText>
           <TextInput
@@ -134,8 +131,7 @@ export function LoginFormSection({
     }) => {
       const { error } = fieldState;
       return (
-        // A visible name that survives typing: the placeholder used to be the only
-        // label, and it disappears the moment the field has a value.
+        // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
           <AppText variant="label">Password</AppText>
           <TextInput

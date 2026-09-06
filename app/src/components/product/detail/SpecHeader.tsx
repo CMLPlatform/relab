@@ -22,12 +22,7 @@ function buildFacts(product: Product): SpecFact[] {
   return facts;
 }
 
-/**
- * Edit-mode name field at display scale. The biggest text on the screen is
- * the control, not a copy of it — the stack header shows the name as plain
- * text in both modes. Keeps a local draft so a hydration mid-typing doesn't
- * clobber the buffer, and commits the trimmed value on blur.
- */
+/** Edit-mode name field at display scale. Local draft so hydration cannot clobber typing; commits trimmed on blur. */
 function NameField({
   name,
   onNameChange,
@@ -47,8 +42,7 @@ function NameField({
     }
   }, [value, name, onNameChange]);
 
-  // The colour change alone carried the whole signal, which is invisible to a
-  // screen reader and to anyone who can't distinguish it (WCAG 1.4.1, 3.3.1).
+  // Colour alone is not a signal (WCAG 1.4.1, 3.3.1).
   const errorMessage = productSchema.shape.name.safeParse(value.trim()).error?.issues[0]?.message;
   const isInvalid = errorMessage !== undefined;
 
@@ -76,10 +70,7 @@ function NameField({
   );
 }
 
-/**
- * Spec-sheet identity block: the record's name, what it is, and its key
- * measurable facts — the "engineering documentation" voice of the brand.
- */
+/** Spec-sheet identity block: name, type, key measurable facts. */
 export function SpecHeader({
   product,
   editMode = false,
@@ -96,8 +87,7 @@ export function SpecHeader({
   return (
     <View className="gap-2 px-4 py-3">
       {editMode ? (
-        // Key on product identity: the detail screen stays mounted across
-        // product navigation, so remounting per product drops a stale draft.
+        // Keyed per product so a stale draft is dropped on navigation.
         <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
       ) : (
         <AppText variant="display">{product.name}</AppText>

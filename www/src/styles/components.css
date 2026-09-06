@@ -1,7 +1,5 @@
-/* The page is one document, not a stack of panels: sections are separated by a
-   hairline rule and space, and carry no fill, radius or shadow of their own
-   (assets/DESIGN.md, "flat & sharp"). The blueprint schedule is the single
-   framed surface on the page, and frames itself. */
+/* Sections are separated by a hairline rule and space; no fill, radius or
+   shadow (assets/DESIGN.md, "flat & sharp"). */
 .section {
   border-top: 1px solid var(--color-page-border);
   padding-block: 3rem;
@@ -19,9 +17,7 @@
   gap: 1rem;
 }
 
-/* The same display size as the landing hero (assets/DESIGN.md's web scale,
-   38/44). These pages are Read mode, where the h1 is a label rather than a
-   hero, and the 4.2rem it used to reach shouted over the prose beneath it. */
+/* Same display size as the landing hero (assets/DESIGN.md's web scale, 38/44). */
 .page-intro h1,
 .empty-state h1 {
   font-size: clamp(2rem, 3.2vw, 2.375rem);
@@ -51,11 +47,6 @@
   font-size: var(--relab-type-heading-size);
 }
 
-/* NOTE: the hint popover that used to live here is gone with its two callers.
-   The flowchart's step descriptions are plain text now, and the 9R ladder moved
-   to the docs beside its definition tables. Nothing on the site floats, so the
-   overlay-shadow tier assets/DESIGN.md reserves is currently unused here. */
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -75,9 +66,7 @@
     transform 160ms var(--ease-out);
 }
 
-/* Press feedback. Buttons are hit often enough that this has to stay at the
-   threshold of perception: 0.98, not the 0.95 that reads as a toy. Transform
-   only, so a press never reflows the row it sits in. */
+/* Press feedback at the threshold of perception. Transform only: no reflow. */
 .btn:active {
   transform: scale(0.98);
 }
@@ -92,9 +81,8 @@
   padding-inline: 1.35rem;
 }
 
-/* A button that carries its own precondition on a second line: the label, then
-   what it costs the visitor. Baseline-aligned rows rather than a centred stack,
-   so the two buttons' primary labels sit on one line across the pair. */
+/* A button with its precondition on a second line. Baseline-aligned so the
+   pair's primary labels sit on one line. */
 .btn-stacked {
   flex-direction: column;
   align-items: flex-start;
@@ -106,8 +94,7 @@
 .btn-sublabel {
   font-size: var(--relab-type-micro-size);
   font-weight: 500;
-  /* Subordinate, but never below the 4.5:1 the label itself clears: it is real
-     information about what the button will ask for, not decoration. */
+  /* Subordinate, but never below 4.5:1. */
   opacity: 0.78;
 }
 
@@ -121,11 +108,9 @@
   background: var(--color-primary-strong);
 }
 
-/* The second door (contributing) beside the primary one (browsing): outlined,
-   so the pair reads as two choices rather than two competing pitches. The
-   border is the shared 3:1 control boundary (see --color-control-border) rather
-   than the decorative hairline. Hover deepens to full primary, never the
-   accent (assets/DESIGN.md). */
+/* Outlined secondary button. The border is the 3:1 control boundary
+   (--color-control-border), not the hairline. Hover deepens to full primary,
+   never the accent (assets/DESIGN.md). */
 .btn-outline {
   border-color: var(--color-control-border);
   background: transparent;
@@ -177,8 +162,7 @@
   border-right: 1px solid var(--color-page-border);
 }
 
-/* The one hero figure on the page. Proportional digits: `tabular-nums` gives
-   every digit the width of a `0`, which reads loose at display sizes. */
+/* The one hero figure. Proportional digits: `tabular-nums` reads loose at display size. */
 .stats-hero-value {
   font-size: clamp(2.4rem, 5vw, 3.6rem);
   font-weight: 600;
@@ -233,9 +217,8 @@
   gap: 0.6rem 1rem;
 }
 
-/* One control row, above everything it scopes. The group border is the only
-   thing marking these toggles as controls rather than as labels, so it takes
-   the 3:1 control boundary rather than the decorative hairline. */
+/* The group border is the only thing marking these toggles as controls, so it
+   takes the 3:1 control boundary, not the hairline. */
 .stats-controls {
   display: inline-flex;
   flex-wrap: wrap;
@@ -271,19 +254,16 @@
   outline-offset: -2px;
 }
 
-/* Below the min-width the chart scrolls in its own container rather than
-   scaling its labels down to illegibility. The page never scrolls sideways. */
+/* Below the min-width the chart scrolls in its own container. The page never
+   scrolls sideways. */
 .stats-chart {
   overflow-x: auto;
   overscroll-behavior-x: contain;
 }
 
-/* Scroll affordance: fade the two edges once the chart can no longer fit, so
-   the cut-off column reads as "there is more". The svg's 40rem min-width plus
-   the page gutter puts that threshold near 44rem; a static mask would
-   otherwise dim the end labels on desktop, where nothing overflows.
-   NOTE: the fade stays on at both ends, including when scrolled fully to one
-   side; a scroll-driven mask would track it exactly, at real complexity. */
+/* Edge fade once the chart overflows (the svg's 40rem min-width plus the page
+   gutter lands near 44rem). NOTE: the fade stays on at both ends even when
+   scrolled fully to one side. */
 @media (max-width: 44rem) {
   .stats-chart {
     mask-image: linear-gradient(
@@ -357,9 +337,7 @@
   stroke-width: 1;
 }
 
-/* 2px ring in the page ground keeps the dot legible where it meets the bar.
-   Paired with the ink fill below, this is the inverse of the page: the tip is
-   ink-on-paper turned inside out, so both halves come from that one pair. */
+/* 2px ring in the page ground keeps the dot legible where it meets the bar. */
 .stats-chart-tip circle {
   fill: var(--color-chart-mark);
   stroke: var(--color-page-surface);
@@ -386,18 +364,15 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  /* First reveal only: bars grow from the baseline, staggered left to right.
-     Re-renders (the measure toggle) paint at full height; the toggle is a
-     comparison control, and a ramp would delay the comparison. Needs fill-box
-     so scaleY pivots on each bar's own baseline rather than the SVG viewport;
-     where unsupported the bars appear at full height, which is fine. */
+  /* First reveal only: bars grow from the baseline, staggered. Needs fill-box
+     so scaleY pivots on each bar's own baseline, not the SVG viewport; where
+     unsupported the bars appear at full height. */
   @supports (transform-box: fill-box) {
     .stats-chart-enter .stats-chart-bar {
       transform-box: fill-box;
       transform-origin: bottom;
       animation: stats-bar-grow 300ms var(--ease-out) both;
-      /* Capped: the series runs to a year, so an uncapped 40ms/bar tail would
-         leave the last bar most of a second behind the first. */
+      /* Capped so a year of bars does not tail off for most of a second. */
       animation-delay: calc(min(var(--bar-i, 0) * 40ms, 240ms));
     }
 
@@ -427,8 +402,7 @@
   }
 }
 
-/* Same reasoning as .stats-controls: a bordered icon button whose border is its
-   only outline, so it takes the 3:1 control boundary. */
+/* The border is the only outline, so it takes the 3:1 control boundary. */
 .theme-toggle {
   appearance: none;
   position: relative;
@@ -449,9 +423,8 @@
     color 160ms var(--ease-out);
 }
 
-/* 44px pointer target (WCAG 2.5.8) without inflating the 2.1rem glyph box:
-   the overlay is invisible and sits centred over the button. Nothing else is
-   within 44px of it, so the overlay cannot swallow a neighbour's taps. */
+/* 44px pointer target (WCAG 2.5.8) as an invisible centred overlay; nothing
+   else is within 44px. */
 .theme-toggle::after {
   content: "";
   position: absolute;
@@ -462,17 +435,13 @@
   translate: -50% -50%;
 }
 
-/* Deepens to full primary, matching .btn-outline. It used to mix 22% primary
-   into the hairline, which read as "stronger than the resting border" only
-   while that border was the faint decorative one; against the 3:1 control
-   boundary the same value would now be *weaker* than resting, inverting the
-   affordance. */
+/* Full primary, matching .btn-outline; a tint would be weaker than the 3:1
+   resting border and invert the affordance. */
 .theme-toggle:hover {
   border-color: var(--color-primary);
 }
 
-/* Explicit choice reads as a filled control: the card tone against the header's
-   ground, in both themes. Resting is unfilled so the fill is the state. */
+/* An explicit theme choice fills the control with the card tone; resting is unfilled. */
 /* Shrink-proof so the toggle keeps its size when the header nav runs long. */
 .theme-control {
   display: inline-flex;
@@ -540,8 +509,3 @@
     font-size: clamp(1.35rem, 8vw, 1.95rem);
   }
 }
-
-/* NOTE: the two breakpoint overrides that used to sit here scaled the page h1
-   UP to 2.85rem / 2.7rem on narrow screens, because it was a display hero.
-   The base clamp now floors at 2rem and caps at the display scale, which
-   covers both ends; a mobile override would only fight it. */

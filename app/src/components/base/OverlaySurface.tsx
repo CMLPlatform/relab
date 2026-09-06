@@ -7,12 +7,7 @@ type OverlaySurfaceProps = {
   children?: ReactNode;
   style?: ViewStyle | ViewStyle[];
   className?: string;
-  /**
-   * 'surface' is an opaque panel — what a dialog or modal needs, since content
-   * sits on it and has to be readable. The rest are translucent films meant to
-   * be drawn *over* content ('scrim' also being the colour of the backdrop
-   * behind a modal), so a panel painted with one shows the page through itself.
-   */
+  /** 'surface' is an opaque panel for dialogs; the rest are translucent films drawn over content. */
   tone?: 'surface' | 'scrim' | 'media' | 'glass';
 };
 

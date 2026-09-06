@@ -1,4 +1,4 @@
-# R9lab Design System
+# Relab Design System
 
 Source of truth for brand typography and colour across the monorepo.
 Web/email primitives live in [brand.css](brand.css); the app maps the same
@@ -25,10 +25,10 @@ Three voices, one family:
 Type scale (web): display 38/44, title 24/30, heading 19/24, body 16/26, label 13 caps
 (+0.1em tracking, weight 400), caption 13/18, micro 12/16, data 14 mono with `tabular-nums`. Docs maps
 this scale onto Starlight's `--sl-text-h1/h2/h3` tokens; www sets it directly. The app
-adds an `eyebrow` variant — label metrics, rendered uppercase, muted (or accent) ink for
-compact tags — and caps Dynamic Type scaling app-wide at 2x so fixed layouts survive
-large accessibility text sizes. That variant is app-only: see the accent rules
-[below](#colour--type-roles-within-the-form) for why the web surfaces carry no eyebrows.
+adds an `eyebrow` variant (label metrics, rendered uppercase, muted or accent ink for
+compact tags) and caps Dynamic Type scaling app-wide at 2x so fixed layouts survive
+large accessibility text sizes. That variant is app-only: the web surfaces carry no
+eyebrows (see [accent rules](#colour--type-roles-within-the-form)).
 
 The **Expo app intentionally stays on platform system fonts** (native feel,
 Dynamic Type, zero load cost). The app adopts the *scale and palette*, not the
@@ -71,8 +71,7 @@ pairs, contrast-tested at 4.5:1 against the page background and (for solid
 fills) against their own `onStatus` text — see `semantic-contrast.test.ts`.
 `live` wears the manila accent rather than a semantic hue: the small
 live/status pill is the one sanctioned manila fill. `info` and `link` blues
-sit near the new primary by design — blue-primary apps read links as primary
-actions.
+sit near the primary; blue-primary apps read links as primary actions.
 
 ### Diagram & chart palette
 
@@ -100,11 +99,10 @@ are the only places to update.
 
 ## Form language — Flat & Sharp
 
-The palette and type above set the brand; this sets the **shape**. Direction:
-**flat & sharp** — the geometry of an engineering document. It replaces the
-MD3/Paper-era look (pill buttons, ambient drop shadows, oversized radii) the
-app carried over from its react-native-paper origins. It reads crisp/technical
-on desktop and stays ergonomic on mobile.
+The palette and type above set the brand; this sets the **shape**: flat & sharp,
+the geometry of an engineering document. No pill buttons, ambient drop shadows,
+or oversized radii. It reads crisp and technical on desktop and stays ergonomic
+on mobile.
 
 ### Radius
 
@@ -132,9 +130,6 @@ float, as a single tier:
 Android takes a native elevation instead of the web shadow: `elevationAndroid` in `tokens.json`,
 8 light / 12 dark.
 
-This single tier removes the "everything floats" MD3 tell while keeping
-overlays legible on mobile.
-
 ### Density, touch, motion
 
 - **Touch floor 44/48px**, 8px minimum gaps, 4/8px spacing rhythm. Sharpness
@@ -148,11 +143,10 @@ overlays legible on mobile.
 
 ### Icons — Lucide
 
-One icon family: **`lucide-react-native`** — consistent 2px stroke, sharp
-corners, outline style throughout. It is the technical/blueprint counterpart to
-the flat-&-sharp geometry, replacing the mixed-weight `@expo/vector-icons`
-(MaterialCommunityIcons) set. Sizes are tokens (`icon-sm` 16, `icon-md` 20,
-`icon-lg` 24); icon-only controls keep a ≥44px hit area.
+One icon family: **`lucide-react-native`**, consistent 2px stroke, sharp
+corners, outline style throughout. `@expo/vector-icons` was removed; do not
+re-add it. Sizes are tokens (`icon-sm` 16, `icon-md` 20, `icon-lg` 24);
+icon-only controls keep a ≥44px hit area.
 
 Brand marks are the one exception: GitHub, Google, YouTube, and LinkedIn are
 vendored monochrome SVGs in `assets/icons/brand/` (Simple Icons, CC0-1.0),
@@ -195,23 +189,22 @@ targets a destructive or cancel action.
 ## Logo
 
 The mark is a **font-derived 9, vertically squished** so it reads as a loop
-(and as a mirrored "e" — the wordmark whispers "Relab"). Letters are IBM Plex;
-the flask emblem is retired, replaced by a plain ring in the ringed lockup.
-Three candidate fonts for the 9 are generated side by side; **Titillium** is
-the promoted canonical mark (was Varela), with Petrona and Varela kept as
-alternates in `logo-src/candidates/` — see [logo-src/](logo-src/README.md).
-Promote another via `make_r9lab.py --promote <name>` + `just assets-sync`.
-Colours
-follow the palette above; og-images and all PNG derivatives regenerate from
-the same pipeline.
+and as a mirrored "e" (the wordmark reads "Relab"). Letters are IBM Plex; the
+ringed lockup uses a plain ring. Three candidate fonts for the 9 are generated
+side by side; **Titillium** is the promoted canonical mark, with Petrona and
+Varela kept as alternates in `logo-src/candidates/` (see
+[logo-src/](logo-src/README.md)). Promote another via
+`make_r9lab.py --promote <name>` + `just assets-sync`. Colours follow the
+palette above; og-images and all PNG derivatives regenerate from the same
+pipeline.
 
 ## Voice
 
 The brand is always read and pronounced **"Relab"**, and that is how it is
 written in running copy, alt text, and aria-labels. The `R9lab` spelling is a
-purely visual device — the squished 9 reads as a mirrored "e" while hinting at
-the 9R framework of circular-economy strategies (the framework itself spans
-R0–R9) — and lives only in the wordmark artwork itself. Never "R-nine-lab".
+purely visual device (the squished 9 reads as a mirrored "e" while hinting at
+the 9R framework of circular-economy strategies, R0–R9) and lives only in the
+wordmark artwork. Never "R-nine-lab".
 
 Circularity framing, lab vernacular (products, components, materials,
 samples); never "reverse engineering" in new copy.
@@ -221,8 +214,8 @@ samples); never "reverse engineering" in new copy.
 Runner-up palette, kept as a fallback pending supervisor review; typography is identical.
 Story: copper is the most recovered material in the industrial stream, and
 verdigris is what it wears when it comes back. The green-teal primary is a
-half-step from the original teal (`#006783`) — lowest migration cost of the
-directions considered. All pairings meet WCAG 4.5:1 in both schemes.
+half-step from the original teal (`#006783`). All pairings meet WCAG 4.5:1 in
+both schemes.
 
 | Token          | Light     | Dark      | Role                                 |
 | -------------- | --------- | --------- | ------------------------------------ |

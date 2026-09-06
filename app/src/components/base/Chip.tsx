@@ -49,9 +49,8 @@ export const Chip = ({
     [style, theme],
   );
 
-  // Composed so a screen reader gets one coherent name ("Brand: Unknown,
-  // required") instead of reading the title and value segments separately;
-  // an explicit accessibilityLabel from the caller always wins.
+  // One coherent name for screen readers ("Brand: Unknown, required"); a
+  // caller's accessibilityLabel wins.
   const composedLabel =
     accessibilityLabel ??
     (title ? `${title}: ${children ?? ''}${error ? ', required' : ''}` : undefined);

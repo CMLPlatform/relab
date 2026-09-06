@@ -45,9 +45,7 @@ export function GoLiveDialog({
 }: GoLiveDialogProps) {
   const theme = useAppTheme();
   const handleValueChange = useCallback(
-    // Single-select toggle groups can report `undefined` (pressing the
-    // already-active item) — visibility must always have a value, so that's
-    // treated as a no-op rather than clearing the selection.
+    // Pressing the already-active item reports `undefined`; keep the selection.
     (value: string | undefined) => {
       if (value) onChangePrivacy(value as YouTubePrivacyStatus);
     },

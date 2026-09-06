@@ -5,11 +5,7 @@ import { Platform, type TextInput } from 'react-native';
 
 /**
  * Web-only "/" shortcut that focuses the products search field, unless the
- * user is already typing into a text field — input, textarea, contenteditable
- * host or ARIA textbox — (so "/" in a search query or any other input still
- * types a literal slash), or a modal dialog is open (so "/" inside a dialog
- * never yanks focus back to the products screen behind it). Scoped to the products screen via useFocusEffect so it doesn't fire
- * while another tab/route is focused.
+ * user is typing in a text field or a modal dialog is open. Focus-scoped.
  */
 export function useProductSearchShortcut(searchRef: RefObject<TextInput | null>) {
   useFocusEffect(

@@ -144,10 +144,8 @@ def _cache_key_excluding_dependencies(
     filtered_args = tuple(arg for arg in args if not isinstance(arg, _EXCLUDED_TYPES))
     module_name = getattr(func, "__module__", "")
     function_name = getattr(func, "__name__", func.__class__.__name__)
-    # Include the raw query string so request-varying inputs that arrive outside the
-    # endpoint's kwargs — notably fastapi-pagination's page/size (read from a ContextVar,
-    # not a parameter) — vary the key. Without this, every page of a paginated @cache
-    # endpoint collides onto one entry and serves page 1 for all pages.
+    # The query string carries inputs outside the endpoint's kwargs, notably
+    # fastapi-pagination's page/size (a ContextVar); without it every page shares one key.
     query = request.url.query if request is not None else ""
     cache_key_source = (
         f"{module_name}:{function_name}:{filtered_args}:{filtered_kwargs}:{query}:{_pagination_key_part()}"
@@ -254,10 +252,8 @@ async def close_cache() -> None:
     try:
         await _backend.close()
     except asyncio.CancelledError:
-        # cashews' in-memory backend awaits its background expiry task on close.
-        # Under load that task can surface a spurious CancelledError which is
-        # benign during shutdown and must not abort the rest of teardown.
-        # Re-raise only when *this* coroutine is the real cancellation target.
+        # cashews' in-memory backend can surface a spurious CancelledError from its expiry
+        # task on close. Re-raise only when *this* coroutine is the cancellation target.
         task = asyncio.current_task()
         if task is not None and task.cancelling() > 0:
             raise

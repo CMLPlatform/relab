@@ -46,17 +46,13 @@ export function useVerifyEmail() {
     };
   }, [token]);
 
-  // The token in the link authorizes verification on its own — no session needed.
-  // If this client already has a session, refetch so it reflects the verified
-  // status and continue into the app. If it doesn't (e.g. the link opened in a
-  // browser separate from the app you signed up in), leave the success screen up
-  // rather than forcing a login — you're still signed in where you registered.
+  // The token authorizes verification without a session. With a session,
+  // refetch and continue; without one (link opened elsewhere), leave the
+  // success screen up.
   useEffect(() => {
     if (!success || !user) return;
     const timer = setTimeout(async () => {
-      // Navigate regardless of the refetch outcome — a transient refetch failure
-      // must not strand the user on the success screen. The app refetches on the
-      // next screen anyway.
+      // Navigate regardless of the refetch outcome; the next screen refetches anyway.
       try {
         await refetch(true);
       } catch (err) {

@@ -19,7 +19,7 @@ _What does this PR change, in one or two sentences?_
 
 ## Why
 
-_What problem does this solve or why is it worth merging?_
+_What problem does this solve?_
 
 ## Checklist
 
@@ -42,8 +42,4 @@ See the maintainer checklist in [SECURITY.md](SECURITY.md).
 
 ## Notes for reviewers
 
-_Add rollout notes, tradeoffs, follow-up work, or links to related issues._
-
-<!--
-Thank you for your contribution! Your efforts help make this project better.
--->
+_Rollout notes, tradeoffs, follow-up work, or links to related issues._

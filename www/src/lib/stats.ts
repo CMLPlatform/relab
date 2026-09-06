@@ -1,9 +1,6 @@
-// Fetch of the public system stats shown on the homepage.
-//
-// Called from the browser by src/scripts/stats.ts. The site CSP allows the API
-// origin via CADDY_API_ORIGIN (matching the app/docs frontends), and the API
-// already allows the www origin in its CORS list. On any failure the caller
-// leaves the stats panel hidden.
+// Public system stats for the homepage, fetched in the browser. The site CSP
+// allows the API origin via CADDY_API_ORIGIN; the API allows the www origin in
+// its CORS list.
 
 const DEV_API_URL = 'http://127.0.0.1:8010';
 const FETCH_TIMEOUT_MS = 4000;
@@ -36,9 +33,7 @@ export interface HomeStats {
 
 /** Backend base URL without a trailing slash, or '' when it is not configured. */
 export function apiBaseUrl(): string {
-  // Only dev builds fall back to the local backend; a prod build without
-  // PUBLIC_API_URL should skip the fetch instead of hitting the visitor's
-  // own localhost.
+  // Only dev builds fall back to the local backend; prod must not hit the visitor's localhost.
   const raw = import.meta.env.PUBLIC_API_URL?.trim() || (import.meta.env.DEV ? DEV_API_URL : '');
   return raw.endsWith('/') ? raw.slice(0, -1) : raw;
 }
@@ -75,11 +70,8 @@ export function zeroFillSeries(series: SeriesPoint[], keys: string[]): SeriesPoi
   );
 }
 
-// Single-flight cache: BrandHero and StatsPanel both call fetchHomeStats() on
-// page load. Without this they'd double the HTTP requests and could land on
-// different backend cache generations, making the hero line and panel tiles
-// disagree on the same paint. A failed (null) fetch is cached too, so both
-// consumers agree; a page reload gets a fresh attempt.
+// Single-flight cache: BrandHero and StatsPanel both call fetchHomeStats() and
+// must agree on one backend cache generation. A failed (null) fetch is cached too.
 let cached: Promise<HomeStats | null> | null = null;
 
 /** Fetch homepage stats. Returns null on any failure. Memoized per page load. */

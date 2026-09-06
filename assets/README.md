@@ -1,7 +1,6 @@
 # Shared Brand Assets
 
-This directory is the source of truth for the shared Relab brand assets
-used across the monorepo.
+Source of truth for the shared Relab brand assets used across the monorepo.
 
 Edit the files here, then run:
 
@@ -9,9 +8,8 @@ Edit the files here, then run:
 just assets-sync
 ```
 
-That regenerates the consumer copies in `app/`, `docs/`, `www/`, and
-`backend/`. Do not hand-edit copied consumer files unless the sync mapping
-itself changes. Use:
+That regenerates the consumer copies in `app/`, `docs/`, `www/`, and `backend/`. Do not hand-edit
+copied consumer files unless the sync mapping itself changes. Use:
 
 ```bash
 just assets-check
@@ -19,31 +17,29 @@ just assets-check
 
 to verify that committed consumer files still match the canonical sources.
 
-The logo is the R9lab mark — a font-derived, vertically squished 9 — generated
-from the sources in [logo-src/](logo-src/README.md). `r9lab-logo.svg` is the
-wide ringed wordmark; square favicons and app icons render from
-`r9lab-mark.svg`.
+The logo mark is a font-derived, vertically squished 9, generated from the sources in
+[logo-src/](logo-src/README.md). `r9lab-logo.svg` is the wide ringed wordmark; square favicons and
+app icons render from `r9lab-mark.svg`.
 
-The sync script uses ImageMagick (`magick`, or `convert` on IMv6) to generate
-the PNG and `.ico` derivatives from the SVG sources.
+The sync script uses ImageMagick (`magick`, or `convert` on IMv6) to generate the PNG and `.ico`
+derivatives from the SVG sources.
 
 Current shared assets:
 
 - `brand.css`
 - `images/bg-light.jpg`
 - `images/bg-dark.jpg`
-- `r9lab-*.svg` / `r9lab-*.png` — mark, logo, wordmark, and og-image variants,
-  light and dark (see [logo-src/](logo-src/README.md))
+- `r9lab-*.svg` / `r9lab-*.png`: mark, logo, wordmark, and og-image variants, light and dark (see
+  [logo-src/](logo-src/README.md))
 - `fonts/ibm-plex-*.woff2`
-- `icons/brand/{github,google,youtube,linkedin}.svg` — monochrome brand marks
-  (Simple Icons, CC0-1.0); `just assets-sync` copies them to
-  `docs/src/assets/icons/brand/` and `www/src/assets/icons/brand/`.
+- `icons/brand/{github,google,youtube,linkedin}.svg`: monochrome brand marks (Simple Icons,
+  CC0-1.0); `just assets-sync` copies them to `docs/src/assets/icons/brand/` and
+  `www/src/assets/icons/brand/`.
 
 Typography ownership (see [DESIGN.md](DESIGN.md) for the full design system):
 
-- The IBM Plex superfamily is the custom web/email typeface: Sans
-  (`--relab-brand-font`, UI/body), Serif (`--relab-brand-font-display`,
-  display/brand), Mono (`--relab-brand-font-mono`, data/labels).
+- The IBM Plex superfamily is the web/email typeface: Sans (`--relab-brand-font`, UI/body), Serif
+  (`--relab-brand-font-display`, display/brand), Mono (`--relab-brand-font-mono`, data/labels).
 - WOFF2 files are for docs/www web delivery; italic is browser-synthesized when needed.
 - The Expo app uses platform system fonts (see [DESIGN.md](DESIGN.md)).
 

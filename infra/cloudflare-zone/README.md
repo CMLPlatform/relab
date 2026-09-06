@@ -8,12 +8,12 @@ Zone-scoped configuration for `cml-relab.org`, managed with OpenTofu:
 
 ## Why this is a separate root
 
-Cloudflare allows one entrypoint ruleset per (zone, phase), and prod and staging share
-this zone. Owning these from either environment's workspace lets the last apply
-overwrite the other's rules, so they live here, in a single `default` workspace.
+Cloudflare allows one entrypoint ruleset per (zone, phase), and prod and staging share this zone.
+Owning these from either environment's workspace would let the last apply overwrite the other's
+rules, so they live here, in a single `default` workspace.
 
-One ruleset protects the whole zone, so the rules match **both** environments'
-hostnames. The hostname map is `hostnames.tf`, a symlink to the one in `../cloudflare`.
+The rules match **both** environments' hostnames. The hostname map is `hostnames.tf`, a symlink to
+the one in `../cloudflare`.
 
 **Everything here affects prod and staging together.** A change to the TLS floor or a
 firewall rule lands on every hostname in the zone at once.
@@ -22,12 +22,10 @@ firewall rule lands on every hostname in the zone at once.
 
 Two rules that existed in the live zone before adoption are reproduced here:
 
-- **`relab_prod_html_bypass`** — the prod web and app entry points bypass the edge
-  cache. Their URLs do not change between deploys, so a cached entry point keeps
-  serving the previous build.
-- **`relab_telemetry_ingress_skip_managed_security`** — `otel.` accepts telemetry from a
-  non-browser client that Cloudflare's bot products challenge, and a challenged log push
-  is a dropped log.
+- **`relab_prod_html_bypass`**: the prod web and app entry points bypass the edge cache. Their URLs
+  do not change between deploys, so a cached entry point keeps serving the previous build.
+- **`relab_telemetry_ingress_skip_managed_security`**: `otel.` accepts telemetry from a non-browser
+  client that Cloudflare's bot products challenge, and a challenged log push is a dropped log.
 
 Two others are not reproduced, and are recorded in `locals.tf`: a bypass for `rpi-cam-*`
 hostnames that nothing serves, and a restatement of Cloudflare's default extension
@@ -42,11 +40,11 @@ enters the repository:
 export TF_VAR_telemetry_edge_key='...'  # same value as TELEMETRY_EDGE_KEY in the deploy hosts' .env
 ```
 
-It is matched against a dedicated `X-Telemetry-Key` header, **not** the OTLP bearer
-token: Cloudflare stores ruleset expressions in cleartext and returns them from the
-rulesets API, so matching the Authorization value discloses the collector credential to
-any zone-read grant. The deploy hosts send both headers. The token authenticates at the
-collector, the key only buys the managed-security skip, and the two rotate independently.
+It is matched against a dedicated `X-Telemetry-Key` header, **not** the OTLP bearer token:
+Cloudflare returns ruleset expressions in cleartext from the rulesets API, so matching the
+Authorization value would disclose the collector credential to any zone-read grant. The deploy hosts
+send both headers. The token authenticates at the collector, the key only buys the managed-security
+skip, and the two rotate independently.
 
 > **The monitoring stack shares this zone.** `otel.cml-relab.org` belongs to
 > CMLPlatform/monitoring, which runs its own Cloudflare Terraform against this zone.
@@ -65,17 +63,16 @@ header form `Bearer <token>`.
 
 ## What this zone's Cloudflare plan allows
 
-Both limits below fail at *apply* time, partway through, after other resources have
-already changed, so `tests/zone.tftest.hcl` asserts them:
+Both limits below fail at *apply* time, partway through, after other resources have already
+changed, so `tests/zone.tftest.hcl` asserts them:
 
-- **The Free tier constrains the `http_ratelimit` phase:** one rule, a 10-second counting
-  period, a 10-second mitigation timeout, and only Path and Verified Bot usable as
-  expression fields — `http.host` is not allowed. The single slot holds the auth
-  endpoints. Path-only scoping works because `/v1/auth/` is served by nothing but the api
-  hostnames.
+- **The Free tier constrains the `http_ratelimit` phase:** one rule, a 10-second counting period, a
+  10-second mitigation timeout, and only Path and Verified Bot usable as expression fields;
+  `http.host` is not allowed. The single slot holds the auth endpoints. Path-only scoping works
+  because only the api hostnames serve `/v1/auth/`.
 
-- **No `matches` (regex) operator.** It needs a Business or WAF Advanced plan. The
-  affected expressions use `starts_with`/`ends_with` instead.
+- **No `matches` (regex) operator.** It needs a Business or WAF Advanced plan. The affected
+  expressions use `starts_with`/`ends_with` instead.
 
 Raising either limit needs a paid Cloudflare plan.
 

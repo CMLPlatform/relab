@@ -50,11 +50,8 @@ export function createInitialLocalConnectionState(): LocalConnectionState {
 }
 
 /**
- * Normalize and validate a local camera base URL.
- *
- * The single chokepoint for every path that probes, persists, or restores a
- * local URL, so the device API key can never be attached to a host off the LAN
- * — whether that host came from the backend, from the user, or from storage.
+ * Normalize and validate a local camera base URL. The single chokepoint for
+ * every probe, persist, or restore, so the device key never reaches a host off the LAN.
  */
 export function normalizeLocalConnectionUrl(baseUrl: string): string {
   const normalized = normalizeHttpUrl(baseUrl);

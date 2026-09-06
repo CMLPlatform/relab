@@ -47,13 +47,9 @@ function BottomNavTab({
 }
 
 /**
- * The `tabBar` of the (tabs) navigator: Products / Cameras / Account. TopNav
- * owns >=lg web; this bar owns everything else (native always, web below lg),
- * on every screen inside a tab — including detail screens, so a tab is always
- * one tap away. Flat & sharp: hairline top border, no elevation.
- *
- * Navigating by route name (not href) is what makes a tab switch return to that
- * tab's preserved trail instead of resetting it to the tab's root screen.
+ * The `tabBar` of the (tabs) navigator, shown on native and web below lg
+ * (TopNav owns >=lg web). Navigating by route name, not href, returns to the
+ * tab's preserved trail instead of its root.
  */
 export function BottomNav({ state, navigation }: BottomTabBarProps) {
   const tabs = useBottomNavTabs();
@@ -66,10 +62,8 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
       const name = tabRouteName(key);
       const route = routes.find((candidate) => candidate.name === name);
       if (!route) return;
-      // Same contract as the stock tab bar: tabPress is what the focused tab's
-      // own listeners hang off (the nested stack's pop-to-top), and it can
-      // preventDefault. Without it, tapping the tab you're already on is a dead
-      // control instead of scrolling/popping back to that tab's root.
+      // Stock tab bar contract: the focused tab's pop-to-top hangs off
+      // tabPress, and it can preventDefault.
       const event = navigation.emit({
         type: 'tabPress',
         target: route.key,

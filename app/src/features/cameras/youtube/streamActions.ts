@@ -90,8 +90,7 @@ export function useCameraStreamActions({
       });
       if (started) {
         closeStreamDialog();
-        // The toast is rendered above the navigator, so it outlives this
-        // screen's pop — no delay needed before navigating back.
+        // The toast is rendered above the navigator and outlives the pop.
         feedback.toast(`Now live: ${streamDialog.cameraName}`);
         router.back();
       }

@@ -15,18 +15,12 @@ export type UseCaptureEntityOptions = {
   parentRole?: 'product' | 'component';
 };
 
-/**
- * Minimal state + save flow for the capture-first creation screen: a name,
- * an optional type, a photo set, and (for components) a parent amount — no
- * react-hook-form, since three fields and a length check don't need one.
- */
+/** State + save flow for the capture-first creation screen. No react-hook-form: three fields. */
 export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntityOptions) {
   const feedback = useAppFeedback();
   const saveMutation = useSaveProductMutation();
 
-  // Announce the queued-offline state once per pause — not on every render —
-  // so going offline mid-create doesn't leave the Create button spinning
-  // forever with no explanation (the button label handles the ongoing state).
+  // Announce the queued-offline state once per pause.
   useEffect(() => {
     if (saveMutation.isPaused) feedback.toast(QUEUED_OFFLINE_LABEL);
   }, [saveMutation.isPaused, feedback]);
@@ -38,8 +32,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
 
   const trimmedName = name.trim();
   const canCreate = trimmedName.length >= PRODUCT_NAME_MIN_LENGTH && !saveMutation.isPending;
-  // A kept typeID after createAndAddAnother (see below) is a carried-over preference,
-  // not unsaved data — it shouldn't trigger a "Discard changes?" prompt on the way out.
+  // A typeID kept by createAndAddAnother is a preference, not unsaved data.
   const isDirty = trimmedName.length > 0 || (images?.length ?? 0) > 0 || amount !== DEFAULT_AMOUNT;
 
   // Guards both entry points below against a double Create (Enter-submit +
@@ -54,9 +47,8 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
     inFlightRef.current = true;
     try {
       const draft = newProduct({ parentID, parentRole });
-      // newProduct() derives role from parentID, which is undefined for a malformed
-      // parent route param — pin the role the screen was actually opened for so a
-      // broken /components/new URL fails loudly instead of POSTing a top-level product.
+      // Pin the role: newProduct() derives it from parentID, and a malformed
+      // /components/new URL would otherwise POST a top-level product.
       draft.role = role;
       draft.name = trimmedName;
       draft.productTypeID = typeID;
@@ -102,11 +94,8 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
   const createAndAddAnother = async (): Promise<{ id: number; partial: boolean } | undefined> => {
     const savedName = trimmedName;
     const result = await performCreate();
-    // A partial success (record created, upload failed) already surfaced its
-    // own error above. Batch mode has nothing left to batch: the record
-    // exists and its photos need attention, same as a plain create — don't
-    // toast success or reset the form (that would discard the local photos
-    // that failed to upload). The caller routes to the detail screen instead.
+    // Partial success (record created, upload failed): do not toast success
+    // or reset the form, which would discard the photos that failed.
     if (result === undefined || result.partial) return result;
 
     feedback.toast(`${savedName} added`);

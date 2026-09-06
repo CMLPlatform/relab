@@ -26,10 +26,8 @@ const ACTION_TOAST_DURATION_MS = 8000;
 
 export function DialogProvider({ children }: { children: ReactNode }) {
   const [options, setOptions] = useState<DialogOptions | null>(null);
-  // Separate from `options` (which is kept around, not nulled, on close) so AppDialog's
-  // `visible` prop actually transitions true→false instead of the whole tree unmounting —
-  // useReturnFocus's return-focus-on-close logic (web and native, incl. triggerRef) only
-  // fires on that transition, never on unmount.
+  // Separate from `options` (kept on close) so AppDialog's `visible` transitions
+  // true→false instead of unmounting; useReturnFocus only fires on that transition.
   const [visible, setVisible] = useState(false);
   // A fresh object per trigger: repeating the same message still produces a new
   // identity, so the Toast effect re-runs and the dismiss timer resets.
@@ -142,8 +140,7 @@ function DialogBody({
           placeholder={options.placeholder}
           autoFocus
           className="border px-2 py-2"
-          // Danger border, not a full errorContainer recolor (MD3 *Container
-          // roles are retired) — the helperText caption below carries the message.
+          // Danger border only; the helperText caption carries the message.
           style={{
             borderColor: options.error ? theme.tokens.status.danger : theme.colors.outline,
           }}
@@ -192,9 +189,7 @@ function DialogActionButton({
     onSelect(button);
   }, [onSelect, button]);
 
-  // Destructive keeps its filled destructive variant; the button Enter would
-  // submit gets the same emphasis (AppButton's primary) so its visual weight
-  // matches the keyboard default. Every other action stays ghost.
+  // The keyboard default gets primary emphasis; other non-destructive actions stay ghost.
   const variant = button.style === 'destructive' ? 'destructive' : isSubmit ? 'primary' : 'ghost';
 
   return (
@@ -204,11 +199,7 @@ function DialogActionButton({
   );
 }
 
-/**
- * Transient feedback message. Rendered as a plain overlay View — not a Modal —
- * so it announces via aria-live without trapping focus or being dismissable by
- * Escape (a toast is not a dialog).
- */
+/** Transient feedback. A plain overlay View, not a Modal: aria-live without a focus trap. */
 function Toast({
   state,
   onDismiss,
@@ -271,9 +262,7 @@ function Toast({
             {message}
           </AppText>
           {action ? (
-            // Ghost keeps the inverse ground showing through; the label takes its
-            // ink from useInverseSurface (the Inverse-Pair Rule) rather than the
-            // button variant's own foreground, which assumes a same-polarity surface.
+            // Ink from useInverseSurface (Inverse-Pair Rule), not the variant's own foreground.
             <AppButton variant="ghost" className="-mr-2 px-2" onPress={handleAction}>
               <AppText variant="label" style={{ color: inverse.foreground }}>
                 {action.label}

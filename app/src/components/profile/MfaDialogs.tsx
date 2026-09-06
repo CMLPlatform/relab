@@ -306,8 +306,7 @@ const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
     codesBox: {
       backgroundColor: theme.tokens.surface.sunken,
     },
-    // NOTE: enlarged past the `data` variant's 14px monospace default —
-    // recovery codes need to be easy to read and copy character-by-character.
+    // NOTE: larger than the `data` step; recovery codes are copied character by character.
     recoveryCode: {
       fontSize: 16,
       letterSpacing: 1,

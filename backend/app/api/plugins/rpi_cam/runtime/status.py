@@ -32,10 +32,8 @@ def get_camera_last_seen_cache_key(camera_id: UUID4) -> str:
     return f"rpi_cam:last_seen:{camera_id}"
 
 
-# The WebSocket heartbeat pings every 30s (see `_HEARTBEAT_INTERVAL` in
-# websocket/router.py); the online key's TTL must comfortably outlive that
-# interval or a healthy camera reads OFFLINE for the gap between expiry and
-# the next pong. At least 2x the heartbeat interval, plus slack.
+# At least 2x the 30s heartbeat (`_HEARTBEAT_INTERVAL` in websocket/router.py) plus
+# slack, or a healthy camera reads OFFLINE between expiry and the next pong.
 ONLINE_STATUS_TTL_SECONDS = 75
 
 

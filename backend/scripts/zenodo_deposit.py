@@ -1,14 +1,12 @@
 """Deposit a built dataset release to Zenodo as a DRAFT.
 
-Publication is irreversible: a published Zenodo record cannot be withdrawn, only
-tombstoned, and its files can never be changed. So this script creates or versions a
-*draft* deposit and stops there. Publishing is a second, explicit invocation with
-``--publish``, and it prompts before it sends anything.
+A published Zenodo record cannot be withdrawn or have its files changed, so this
+creates or versions a *draft* and stops. Publishing is a second invocation with
+``--publish``, which prompts first.
 
-The token is read the way the rest of the backend reads secrets: from
-``secrets/<ENVIRONMENT>/zenodo_token`` (or ``/run/secrets`` in a container), with
-``ZENODO_TOKEN`` as an override for a one-off run. It needs the
-``deposit:write`` scope, plus ``deposit:actions`` to publish.
+The token is read from ``secrets/<ENVIRONMENT>/zenodo_token`` (or ``/run/secrets`` in a
+container), with ``ZENODO_TOKEN`` as an override. It needs the ``deposit:write`` scope,
+plus ``deposit:actions`` to publish.
 
 Typical run, after ``just release-build``::
 
@@ -42,9 +40,7 @@ logger = logging.getLogger(__name__)
 ZENODO_API = "https://zenodo.org/api"
 ZENODO_SANDBOX_API = "https://sandbox.zenodo.org/api"
 TIMEOUT = httpx.Timeout(30.0, read=600.0, write=600.0)
-# A part-uploaded release is worse than a failed one, so a dropped connection is retried
-# rather than left for the operator to notice. Zenodo bucket PUTs are idempotent: the same
-# key is overwritten, so a retry cannot duplicate a file.
+# Zenodo bucket PUTs overwrite the same key, so a retry cannot duplicate a file.
 UPLOAD_ATTEMPTS = 3
 UPLOAD_BACKOFF_SECONDS = 2.0
 
@@ -82,8 +78,7 @@ def build_metadata(meta: ReleaseMetadata) -> dict[str, Any]:
         "keywords": list(meta.keywords),
         "related_identifiers": [
             {
-                # isDerivedFrom is a provenance claim, so it pins the version DOI: it names the
-                # release whose pilot dump this dataset supersedes, not the software in general.
+                # Provenance pins the version DOI, not the concept DOI.
                 "identifier": meta.software_version_doi,
                 "relation": "isDerivedFrom",
                 "resource_type": "software",

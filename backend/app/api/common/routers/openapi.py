@@ -121,17 +121,12 @@ def _is_public_route(ctx: RouteContext) -> bool:
 
 
 def _is_admin_route(ctx: RouteContext) -> bool:
-    # Explicit opt-in via AdminAPIRouter only. The former tag and path fallbacks
-    # published any route merely tagged "admin" or sitting under /admin/ into the
-    # admin schema, with no reviewer signal when a new one appeared.
+    # Explicit opt-in via AdminAPIRouter only; no tag or path fallback.
     return RouteAudience.ADMIN.value in set(route_audiences(ctx.route))
 
 
 def _is_device_route(ctx: RouteContext) -> bool:
-    # Explicit opt-in via DeviceAPIRouter only, matching the admin audience. The
-    # former path fallbacks published any route ending in /self or /image-upload,
-    # and would have pulled the user-facing `claim` route into the device schema
-    # purely for sitting under the pairing prefix.
+    # Explicit opt-in via DeviceAPIRouter only; no path fallback.
     return RouteAudience.DEVICE.value in set(route_audiences(ctx.route))
 
 

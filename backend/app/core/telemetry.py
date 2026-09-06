@@ -30,7 +30,6 @@ class TelemetryState:
     sqlalchemy_instrumentor: SQLAlchemyInstrumentor | None = None
     httpx_instrumentor: HTTPXClientInstrumentor | None = None
     meter_provider: Any = field(default=None)
-    # Log export
     log_provider: Any = field(default=None)
     log_handler: logging.Handler | None = None
 
@@ -51,9 +50,8 @@ def _init_log_export(resource: Resource, state: TelemetryState) -> None:
         return
 
     log_provider = logger_provider_cls(resource=resource)
-    # No explicit endpoint: the SDK reads OTEL_EXPORTER_OTLP_ENDPOINT from the
-    # env and auto-appends /v1/logs. Passing endpoint= would use it as-is (no
-    # path append) and hit 404 at the collector.
+    # No endpoint= : the SDK reads OTEL_EXPORTER_OTLP_ENDPOINT from the env and appends
+    # /v1/logs; an explicit endpoint is used as-is and 404s at the collector.
     log_provider.add_log_record_processor(batch_log_processor_cls(otlp_log_exporter_cls()))
     set_logger_provider(log_provider)
 
@@ -92,21 +90,17 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
         logger.warning("OpenTelemetry is enabled but instrumentation dependencies are not installed")
         return False
 
-    # service.name comes from OTEL_SERVICE_NAME in the container env (set in
-    # compose.deploy.yaml), auto-merged by Resource.create().
+    # service.name comes from OTEL_SERVICE_NAME in the env, merged by Resource.create().
     resource = resource_cls.create({"deployment.environment.name": settings.environment})
     tracer_provider = tracer_provider_cls(resource=resource)
 
-    # No explicit endpoint: same reason as the log exporter below — the SDK
-    # auto-appends /v1/traces when reading OTEL_EXPORTER_OTLP_ENDPOINT from env.
+    # No endpoint= : see _init_log_export.
     exporter = otlp_span_exporter()
     tracer_provider.add_span_processor(batch_span_processor_cls(exporter))
     trace.set_tracer_provider(tracer_provider)
 
-    # ADR 0002 moved RED metrics off Tempo's span-metrics generator and onto the app's
-    # own OTLP metrics, which means this provider IS the RED pipeline. Without it the
-    # instrumentors below record their durations into the API's no-op default meter:
-    # no error, no warning, and no metric ever leaves the process.
+    # This provider is the RED metrics pipeline (ADR 0002). Without it the instrumentors
+    # record into the no-op default meter and nothing leaves the process, silently.
     meter_provider = meter_provider_cls(
         resource=resource,
         metric_readers=[periodic_reader_cls(otlp_metric_exporter())],
@@ -114,17 +108,12 @@ def init_telemetry(app: FastAPI, async_engine: AsyncEngine) -> bool:
     otel_metrics.set_meter_provider(meter_provider)
 
     fastapi_instrumentor = fastapi_instrumentor_cls()
-    # Explicit rather than relying on the global: instrument_app resolves the meter
-    # provider once, at call time, so a global set later would be silently ignored.
+    # instrument_app resolves the meter provider once, at call time.
     fastapi_instrumentor.instrument_app(app, meter_provider=meter_provider)
 
-    # instrument_app does not insert middleware directly — it wraps
-    # app.build_middleware_stack, so it only takes effect the next time that stack is
-    # built. Starlette builds it on the first __call__, and the lifespan that calls us
-    # IS that first call, so the wrapper is installed and then never invoked: the OTel
-    # ASGI middleware never enters the live stack. No HTTP spans, no RED metrics, and
-    # nothing anywhere reports an error. Forcing the rebuild here is what makes
-    # instrumenting from inside the lifespan actually work.
+    # instrument_app wraps app.build_middleware_stack, which Starlette already called
+    # before this lifespan ran. Without a rebuild the OTel middleware never enters the
+    # live stack: no HTTP spans, no RED metrics, no error.
     app.middleware_stack = app.build_middleware_stack()
 
     sqlalchemy_instrumentor = sqlalchemy_instrumentor_cls()

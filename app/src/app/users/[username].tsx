@@ -7,9 +7,7 @@ import { PageContainer } from '@/components/base/PageContainer';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
-// Four stat blocks differ only in icon/color/value/label — mapped from data
-// instead of hand-copied per stat. Local to this screen: unrelated to the
-// HeroStats StatCard in components/profile.
+// Local to this screen; unrelated to the HeroStats StatCard in components/profile.
 function ProfileStatCard({
   icon,
   color,
@@ -127,10 +125,7 @@ export default function UserProfileScreen() {
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    // bg-primary/10 (a light primary tint) backs this text, not a solid
-    // *Container fill — onPrimaryContainer here was a contrast bug.
-    // NOTE: avatar-initials glyph sized to fill the 120px circle, not part of
-    // the reading hierarchy — no ramp step applies.
+    // NOTE: avatar-initials glyph sized to fill the 120px circle; no ramp step applies.
     avatarText: {
       fontSize: 48,
       color: theme.colors.primary,

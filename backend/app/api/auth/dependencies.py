@@ -12,14 +12,10 @@ from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager, get_user_db, get_user_manager
 from app.api.common.exceptions import ForbiddenError
 
-# Dependencies
 current_active_user = fastapi_user_manager.current_user(active=True)
 current_active_verified_user = fastapi_user_manager.current_user(active=True, verified=True)
 current_active_superuser = fastapi_user_manager.current_user(active=True, superuser=True)
-# active=True so a since-deactivated account with a still-valid access token is
-# treated as anonymous, not as an authenticated viewer. Every other dep here
-# already sets it; without it a deactivated (super)user keeps profile-visibility
-# rights until the token expires.
+# active=True so a deactivated account with a still-valid token is anonymous, not a viewer.
 optional_current_active_user = fastapi_user_manager.current_user(optional=True, active=True)
 
 
@@ -48,7 +44,6 @@ def current_mfa_user(user: Annotated[User, Security(current_active_user)]) -> Us
     return user
 
 
-# Annotated dependency types. For example usage, see the `authenticated_route` function in the auth.routers module.
 UserDBDep = Annotated[UserDatabaseAsync[User, UUID4], Depends(get_user_db)]
 UserManagerDep = Annotated[UserManager, Depends(get_user_manager)]
 

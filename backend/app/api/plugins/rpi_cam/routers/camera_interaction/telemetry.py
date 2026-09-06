@@ -51,9 +51,7 @@ async def get_camera_telemetry(
         if cached is not None:
             return cached
 
-    # Cache miss (or explicit refresh): resolve camera ownership + online status
-    # and forward to the Pi. ``get_user_owned_camera`` raises 503 if the camera
-    # is offline, which is the right behaviour — no point hitting a dead relay.
+    # Cache miss or forced refresh: forward to the Pi (503 if offline).
     camera_request = build_camera_request(camera, redis)
     response = await camera_request(
         endpoint=_TELEMETRY_ENDPOINT,
@@ -65,9 +63,7 @@ async def get_camera_telemetry(
     except ValidationError as exc:
         raise InvalidCameraResponseError(exc.json()) from exc
 
-    # ``force_refresh=True`` bypasses the cache on both read AND write —
-    # the caller explicitly doesn't trust the cache layer this time, so we
-    # don't taint the next cached read with the forced result either.
+    # force_refresh bypasses the cache on write as well as read.
     if not force_refresh:
         await store_telemetry(redis, camera_id, snapshot)
     return snapshot

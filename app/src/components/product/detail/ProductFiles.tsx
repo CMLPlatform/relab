@@ -11,12 +11,7 @@ type Props = {
   editMode: boolean;
 };
 
-/**
- * Research files attached to a record: datasets, manuals, measurement exports.
- *
- * Rendered only for lab accounts. That is presentation, not a control — the
- * backend refuses the upload route to anyone below the lab tier regardless.
- */
+/** Research files attached to a record. Rendered only for lab accounts; the backend enforces the tier. */
 export default function ProductFiles({ product, editMode }: Props) {
   const {
     canManage,

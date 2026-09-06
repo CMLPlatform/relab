@@ -63,9 +63,7 @@ export function ProductImageLightbox({
 }: Props) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
-  // Reactive: these drive getItemLayout, the scroll offsets, the swipe
-  // threshold and each slide's size, so a non-subscribing read left the pager
-  // measuring against the pre-rotation screen.
+  // Reactive: a non-subscribing read measured against the pre-rotation screen.
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [isZoomed, setIsZoomed] = useState(false);
   const scrollRef = useRef<ScrollableListHandle | null>(null);
@@ -100,9 +98,8 @@ export function ProductImageLightbox({
     [clampIndex, onIndexChange, scrollToIndex],
   );
 
-  // Reset zoom here rather than at each call site: `scrollEnabled` and the touch
-  // handlers are gated on `isZoomed`, so a navigation that left it set (footer
-  // chevron, arrow key) permanently disabled paging on the next slide.
+  // Reset zoom on every navigation: `isZoomed` gates paging, and a stale
+  // value disabled it on the next slide.
   const navigateBy = useCallback(
     (delta: number, animated: boolean = true) => {
       const nextIndex = clampIndex(targetIndexRef.current + delta);
@@ -120,8 +117,7 @@ export function ProductImageLightbox({
     onClose();
   }, [onClose, onIndexChange]);
 
-  // Pinch and double-tap are pointer-only, so +/-/0 is the keyboard-only route
-  // to the same zoom the gestures drive (WCAG 2.1.1).
+  // +/-/0 is the keyboard route to zoom (WCAG 2.1.1).
   const handleWindowKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (event.key === 'ArrowLeft') {
       navigateBy(-1);
@@ -345,12 +341,7 @@ export function ProductImageLightbox({
   );
 }
 
-/**
- * Zoom factor past which the derivative runs out of pixels and the original is
- * worth its download. The large tier is picked to cover the screen at 1x, so
- * anything beyond this is magnifying pixels the derivative does not have — and
- * on a research dataset, looking closely at a component is the point.
- */
+/** Zoom factor past which the large tier (picked to cover the screen at 1x) runs out of pixels. */
 const ORIGINAL_AT_SCALE = 1.8;
 
 const LightboxSlide = memo(function LightboxSlide({
@@ -386,17 +377,14 @@ const LightboxSlide = memo(function LightboxSlide({
     [setIsZoomed, navigateBy],
   );
 
-  // Latched, never unlatched while the slide is mounted: dropping back to the
-  // derivative on zoom-out would re-download the original on the next pinch.
+  // Latched while mounted; dropping back would re-download the original on the next pinch.
   const [wantsOriginal, setWantsOriginal] = useState(false);
   const handleScaleChange = useCallback((scale: number) => {
     if (scale >= ORIGINAL_AT_SCALE) {
       setWantsOriginal(true);
     }
   }, []);
-  // Paging away resets, so the next visit to a slide starts on the cheap file.
-  // Render-phase reset (React's "adjust state while rendering" pattern) rather
-  // than an effect, which would cascade a second render after paint.
+  // Paging away resets, so the next visit starts on the cheap file.
   const [wasActive, setWasActive] = useState(active);
   if (active !== wasActive) {
     setWasActive(active);
@@ -432,9 +420,7 @@ const LightboxSlide = memo(function LightboxSlide({
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    // GestureHandlerRootView (react-native-gesture-handler) is not a className-aware
-    // component (Uniwind adds no global overrides), so className is a silent no-op
-    // here — stays fully style-driven.
+    // GestureHandlerRootView ignores className.
     root: {
       flex: 1,
       backgroundColor: theme.tokens.overlay.media,
@@ -443,8 +429,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
     closeButton: {
       backgroundColor: theme.tokens.overlay.media,
     },
-    // GalleryFlatList wraps react-native-gesture-handler's FlatList (not the
-    // confirmed-safe core list), so it stays fully style-driven.
+    // GalleryFlatList wraps gesture-handler's FlatList, which ignores className.
     list: {
       flex: 1,
     },

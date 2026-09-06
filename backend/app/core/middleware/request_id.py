@@ -17,10 +17,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# A client-supplied request ID is logged on every line for the request and echoed back
-# verbatim in the response header. Restrict it to the same safe charset our own
-# generated IDs use, rather than merely stripping CR/LF: an unrestricted value could
-# still smuggle other log-formatting or header-injection-adjacent characters through.
+# A client-supplied request ID is logged on every line and echoed in a response header;
+# restrict it to the charset our own IDs use.
 _REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 
 

@@ -3,11 +3,7 @@ import { useAuth } from '@/context/auth';
 import { updateUser } from '@/services/api/auth/authentication';
 import type { UserPreferences } from '@/types/User';
 
-/**
- * A boolean integration toggle stored in the user's server-side preferences, so it
- * follows the account across devices. Only the toggled key is written — the server
- * merges it into whatever else is stored.
- */
+/** A boolean toggle in the user's server-side preferences. Only the toggled key is written; the server merges. */
 export function useServerPreferenceToggle(key: keyof UserPreferences & string) {
   const { user, isLoading, refetch } = useAuth();
 

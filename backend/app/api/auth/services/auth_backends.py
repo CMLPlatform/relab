@@ -20,8 +20,7 @@ from app.core.redis import RedisDep
 ACCESS_TOKEN_TTL = auth_settings.access_token_ttl_seconds
 
 
-# Session cookies are host-only to avoid exposing credentials to sibling subdomains.
-# Names live in core/http_headers (single source); re-exported here for the auth API.
+# Host-only cookies (names in core/http_headers) so credentials never reach sibling subdomains.
 COOKIE_DOMAIN: str | None = None
 COOKIE_PATH: str = "/"
 AUTH_COOKIE_NAMES = (AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME)
@@ -86,9 +85,8 @@ bearer_transport = BearerTransport(tokenUrl="/v1/auth/bearer/login")
 
 def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:
     """Return an authentication token strategy."""
-    # RevocableRedisStrategy, not the upstream RedisStrategy: it stamps each token with
-    # its issue time so a global revocation can refuse tokens issued before it, which
-    # upstream cannot do (see access_token_store).
+    # RevocableRedisStrategy stamps each token's issue time so a global revocation can
+    # refuse older tokens (see access_token_store); upstream RedisStrategy cannot.
     return cast(
         "Strategy[User, UUID4]",
         RevocableRedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL, key_prefix=ACCESS_TOKEN_KEY_PREFIX),

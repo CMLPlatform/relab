@@ -2,14 +2,8 @@ import { type QueryClient, queryOptions } from '@tanstack/react-query';
 import { getBaseProduct, getComponent, isProductNotFoundError } from '@/services/api/products';
 
 /**
- * The single-product cache contract, owned by neither `features/products` nor
- * `features/cameras`.
- *
- * Cameras write into the product cache (a capture or a stream changes a
- * product's media) while products read camera state, so parking these here
- * keeps that from being a two-way dependency between the two features.
- * Product-list queries, forms and mutations stay in `features/products`; only
- * what cameras also need lives here.
+ * The single-product cache contract shared by `features/products` and
+ * `features/cameras`, so the two need not import each other.
  */
 
 const shouldRetry = (failureCount: number, error: unknown) => {

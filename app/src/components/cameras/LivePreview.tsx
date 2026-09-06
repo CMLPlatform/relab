@@ -11,21 +11,11 @@ import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
 import type { CameraRead } from '@/services/api/rpiCamera';
 
 /**
- * LL-HLS live preview for a single camera.
- *
- * Web: renders a ``<video>`` element with [hls.js](https://github.com/video-dev/hls.js/)
- * attached to the playlist URL. When ``connectionInfo.mode`` is ``"local"``, the
- * URL routes through the Pi's FastAPI HLS proxy (``/preview/hls/`` on port 8018) which
- * forwards to MediaMTX internally — this lets FastAPI attach CORS and Private
- * Network Access headers to every response, including HLS segments. Latency is
- * ~0.4–0.8 s. Otherwise the backend HLS proxy is used (~1.5–3 s via relay).
- * Safari/iOS-on-web uses the browser's native HLS playback path.
- *
- * Native (iOS/Android in the Expo app): uses ``expo-video`` which speaks HLS
- * out of the box. Same URL switching logic applies.
- *
- * Either way, the parent only needs to pass a camera; URL selection is handled
- * internally based on the connection mode.
+ * LL-HLS live preview for one camera. Web uses a ``<video>`` element with
+ * hls.js (Safari uses native HLS); native uses ``expo-video``. In local mode
+ * the URL goes through the Pi's HLS proxy (``/preview/hls/`` on port 8018),
+ * which adds CORS and Private Network Access headers; otherwise the backend
+ * relay proxy.
  */
 
 export function LivePreview({

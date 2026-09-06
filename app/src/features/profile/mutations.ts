@@ -103,13 +103,7 @@ const PREFERENCE_COPY = {
   },
 } as const;
 
-/**
- * Write a single preference field.
- *
- * Only the changed key is sent: the server merges with `exclude_unset`, so replaying a
- * stale local snapshot of the whole preferences object would revert whatever another
- * in-flight toggle just wrote.
- */
+/** Write a single preference field. Only the changed key is sent; the server merges with `exclude_unset`. */
 export async function updateProfilePreferenceField({
   field,
   value,
@@ -132,10 +126,7 @@ export async function updateProfilePreferenceField({
   }
 }
 
-/**
- * Bundles the two profile-preference toggles (visibility, email updates) so
- * useProfileScreen doesn't have to carry their saving-state and handlers inline.
- */
+/** The two profile-preference toggles (visibility, email updates). */
 export function useProfilePreferences({
   profile,
   feedback,

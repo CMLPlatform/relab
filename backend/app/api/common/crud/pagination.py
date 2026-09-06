@@ -51,12 +51,9 @@ async def paginate_select[T, U, ModelT: Base](
     resolved_params = resolve_params(params)
     raw_params = resolved_params.to_raw_params()
 
-    # DISTINCT is only needed when a join can repeat an entity across rows, and it
-    # is not free: it forces the whole filtered set to be sorted before LIMIT can
-    # apply, which also drags every correlated column property (e.g. a product's
-    # thumbnail subquery) below the LIMIT so it runs per table row instead of per
-    # returned row. Applying it only when something actually joins keeps the plain
-    # list reads on a plan that stops at the page boundary.
+    # DISTINCT only when a join can repeat rows: it sorts the whole filtered set before
+    # LIMIT and runs correlated column properties (e.g. the thumbnail subquery) per
+    # table row instead of per returned row.
     needs_distinct = _joins_rows(statement)
 
     total = None
@@ -72,10 +69,8 @@ async def paginate_select[T, U, ModelT: Base](
 
     paginated_statement = statement.distinct() if model is not None and needs_distinct else statement
 
-    # LIMIT/OFFSET over an unordered (or ambiguously ordered) result has no
-    # defined row order, so a row can repeat on one page and vanish from
-    # another. Appending the primary key orders otherwise-unsorted queries and
-    # breaks ties in the sorted ones, which is what makes paging stable.
+    # Append the primary key as a tie-breaker; without a total order a row can repeat
+    # on one page and vanish from another.
     if model is not None and (pk_col := _primary_key_column(model)) is not None:
         paginated_statement = paginated_statement.order_by(pk_col)
 

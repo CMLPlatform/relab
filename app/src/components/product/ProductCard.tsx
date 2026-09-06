@@ -104,11 +104,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   );
 
   return (
-    // The card's press target deliberately does NOT wrap the owner link. It
-    // used to, which nested the link inside the card button (axe
-    // `nested-interactive`, undefined AT behaviour) and squeezed that link to
-    // 21x18px. Thumbnail + text + timestamp are the press target; the owner
-    // link is a sibling row below it, indented to line up with the text column.
+    // The press target must not wrap the owner link (axe `nested-interactive`).
     <Card className="mx-2.5 my-1.5">
       <View className="p-3">
         <Pressable
@@ -130,9 +126,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   contentFit="cover"
                   onError={handleImageError}
                   testID="product-thumbnail"
-                  // Decorative: the product name is shown as adjacent text, so
-                  // an empty alt keeps the <img> valid for axe without making
-                  // screen readers announce the name twice per card.
+                  // Decorative: the name is adjacent text; empty alt avoids a double announcement.
                   accessibilityLabel=""
                 />
               </View>
@@ -163,8 +157,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
             </MutedText>
             <ProductCardSecondary specLine={specLine} description={product.description} />
             {createdAgo ? (
-              // Inside the press target so the card has no inert strip: only
-              // the owner link (a control of its own) sits outside it.
+              // Inside the press target; only the owner link sits outside it.
               <View className="mt-1 flex-row items-center gap-1">
                 {/* `colors.outline` is the input-stroke token; as text it
                     measured 4.03:1. `onSurfaceVariant` is the muted-text
@@ -179,8 +172,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
         </Pressable>
 
         {ownerLabel ? (
-          // pl-24 (96px) = thumbnail w-20 (80) + mr-4 (16), so this lines up
-          // with the text column above it now that it is no longer nested in it.
+          // pl-24 (96px) = thumbnail w-20 (80) + mr-4 (16), aligning with the text column.
           <View className="flex-row items-center pl-24" style={styles.metadataRow}>
             {/* The label always renders; only the LINK is conditional.
                 `navigateToOwner` returns early without a username, so gating the
@@ -227,13 +219,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
   },
-  // The touch floor lives on the LINK, not the row. Putting `minHeight: 44` on
-  // the row inflated an ~18px metadata line to 44px, which cost roughly 40% of
-  // the records visible per screen on a list-first browse surface and left a
-  // 44px strip below the press target that did nothing. The link reaches the
-  // floor through vertical padding, and the negative margin lets that padding
-  // overlap the row's own spacing instead of adding to it — a real 44px target
-  // inside a row that stays the height of its text.
+  // The 44px touch floor lives on the link, via padding that the negative
+  // margin lets overlap the row; `minHeight` on the row cost ~40% of the
+  // records visible per screen.
   metadataRow: {
     marginTop: 6,
   },

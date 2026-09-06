@@ -8,8 +8,7 @@ import { MIN_TAP_TARGET } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
 
-// Swallow presses so tapping an item doesn't fall through to the backdrop. Module-level
-// so it's a stable reference across renders.
+// Swallow presses so tapping an item does not fall through to the backdrop.
 function stopPropagation(e: { stopPropagation: () => void }) {
   e.stopPropagation();
 }
@@ -22,16 +21,12 @@ type MenuProps = {
 };
 
 /**
- * Anchored dropdown menu rendered in RN-core Modal (no PortalHost) with
- * full-screen dismiss backdrop; position measured from anchor once menu opens.
+ * Anchored dropdown menu in RN-core Modal with a full-screen dismiss backdrop.
  *
  * NOTE: hand-rolled on purpose — uses RN-core Modal + measureInWindow anchoring for portal-free positioning.
  *
- * NOTE: position is captured on open only, not tracked live — a menu left
- * open while its anchor scrolls out from under it (e.g. a chip in a
- * horizontally-scrolling filter bar) won't follow it. Matches how most
- * non-portal dropdown implementations behave; revisit if it's ever left open
- * during a scroll in practice.
+ * NOTE: position is captured on open only; a menu does not follow an anchor
+ * that scrolls away.
  */
 export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
   const theme = useAppTheme();
@@ -124,8 +119,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     minWidth: MENU_MIN_WIDTH,
     maxWidth: '92%',
-    // Floating surface: overlay radius (rounded-xl class) + the shared
-    // overlay elevation tier (applied inline, since it is theme-dependent).
+    // Overlay elevation applied inline (theme-dependent).
   },
   item: {
     minHeight: MIN_TAP_TARGET,

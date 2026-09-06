@@ -5,14 +5,7 @@ import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
 import { useAppTheme } from '@/theme';
 
-/**
- * Sticky top bar shown while the mosaic is in multi-select mode.
- *
- * Users arrive here by long-pressing a card (native) or tapping a dedicated
- * "Select" button (web). The bar lets them fire the Capture N action across
- * the selected cameras, select all online cameras at once, or clear the
- * selection and return to normal navigation mode.
- */
+/** Sticky top bar for multi-select mode: capture selected, select all online, clear. */
 export function SelectionBar({
   visible,
   selectedCount,

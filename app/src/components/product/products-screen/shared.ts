@@ -11,16 +11,9 @@ export const PRODUCTS_DATE_PRESETS = [
 export const PRODUCTS_FAB_EDGE_GAP = 16;
 export const PRODUCTS_LIST_FAB_CLEARANCE = MIN_TAP_TARGET + PRODUCTS_FAB_EDGE_GAP * 2;
 
-// Residue after the NativeWind convergence: everything with an exact class
-// (layout, spacing, radius, var-backed color) moved to className at the call
-// site. What's left needs JS because it targets a non-className-wrapped host
-// (expo-image, LinearGradient), has no matching fontSize+lineHeight step, or
-// (fab) is composed inside another component's own style function.
+// Only what has no className equivalent stays here.
 export const productsScreenStyles = StyleSheet.create({
-  // NOTE: the surrounding contrast comment (InlinePills.tsx) measures ratios
-  // against an exact 14px bold — WCAG's "large text" threshold is 18.66px
-  // bold, so swapping to the `data` ramp step (which also forces monospace)
-  // would both change the type and invalidate the measured ratio.
+  // NOTE: InlinePills.tsx measures contrast against exactly 14px bold.
   inlineButtonText: {
     fontSize: 14,
   },
@@ -39,8 +32,7 @@ export const productsScreenStyles = StyleSheet.create({
     lineHeight: 21,
     opacity: 0.92,
   },
-  // Animated.View isn't a reliable className target — keep the fade wrapper's
-  // layout-neutral flex here as a plain style.
+  // Animated.View is not a reliable className target.
   listFadeWrapper: {
     flex: 1,
   },
@@ -65,8 +57,7 @@ export const productsScreenStyles = StyleSheet.create({
     zIndex: 10,
     pointerEvents: 'none',
   },
-  // Fab exposes only a `style` prop (composed inside its own pressableStyle
-  // function, see Fab.tsx) — no className surface to target.
+  // Fab exposes only a `style` prop.
   fab: {
     position: getFloatingPosition(),
     right: PRODUCTS_FAB_EDGE_GAP,

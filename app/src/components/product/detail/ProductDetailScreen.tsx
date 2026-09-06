@@ -35,9 +35,7 @@ function useFabPressHandler({
 }) {
   const router = useRouter();
   return useCallback(() => {
-    // View mode → flip the ?edit=1 query param on the same screen. Keeps the
-    // component mounted so scroll position and fetched data survive the
-    // transition. An active edit session goes through saveAndExit directly.
+    // View mode: flip ?edit=1 on the same screen (stays mounted).
     if (!editMode) {
       router.setParams({ edit: '1' });
       return;
@@ -46,12 +44,7 @@ function useFabPressHandler({
   }, [editMode, router, saveAndExit]);
 }
 
-/**
- * Renders in place of the real screen while data is loading, errored, or the
- * product id hasn't resolved yet — split out purely to keep ProductDetailScreen
- * itself under the line-count budget. Not a hook: no hook calls inside, just a
- * plain render helper called unconditionally from render.
- */
+/** Loading/error/unresolved-id states. Not a hook: no hook calls inside. */
 function renderScreenGuard({
   screen,
   formOptions,
@@ -99,8 +92,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   const { isLg } = useBreakpoint();
   const scrollRef = useRef<ScrollView>(null);
   const nav = useSectionNav((y) => scrollRef.current?.scrollTo({ y, animated: true }));
-  // One trigger serves both the CameraPickerDialog and GoLiveDialog steps the
-  // "Go Live" button leads to (via CameraStreamPicker) — see AppDialog's `triggerRef`.
+  // One trigger for both dialogs behind "Go Live" (AppDialog's `triggerRef`).
   const goLiveTriggerRef = useRef<View>(null);
 
   const onPrimaryFabPress = useFabPressHandler({
@@ -115,8 +107,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   const { refetch } = screen;
   const handleRetry = useCallback(() => refetch(), [refetch]);
 
-  // Composes the pre-existing FAB-collapse scroll handler with scroll-spy so
-  // both can drive off one onScroll prop on the underlying ScrollView.
+  // FAB-collapse and scroll-spy share one onScroll.
   const handleScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       editing.onScroll(event);
@@ -134,10 +125,8 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   });
   if (guard) return guard;
 
-  // Approximates "this section can show a live-media affordance" as
-  // go-live-eligible (owned + rpi camera) OR currently streaming — mirrors
-  // ProductVideo's own showGoLiveCta/streamingThisProduct checks so the
-  // Media section isn't collapsed out from under an actionable CTA.
+  // Mirrors ProductVideo's showGoLiveCta/streamingThisProduct so the Media
+  // section is not collapsed under an actionable CTA.
   const mediaStreamable =
     capabilities.streamingThisProduct || (capabilities.ownedByMe && capabilities.rpiEnabled);
 

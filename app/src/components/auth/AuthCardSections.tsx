@@ -4,12 +4,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 
-/**
- * Shared scaffold for the auth screens that are a single Card holding a
- * title and stacked content (forgot-password, reset-password, mfa, verify).
- * Screens only supply their title and children; a screen with different
- * spacing needs (verify's centered, taller layout) can pass `contentStyle`.
- */
+/** Single-Card auth screen scaffold (forgot-password, reset-password, mfa, verify). */
 export function AuthCard({
   title,
   subtitle,

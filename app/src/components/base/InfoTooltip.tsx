@@ -42,9 +42,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           testID="info-pressable"
           accessibilityRole="button"
           accessibilityLabel={`Info: ${title}`}
-          // 36px box + 4px hitSlop/side reaches 44 on native, but hitSlop is
-          // invisible to the DOM on web (the shipped platform), where this
-          // measured 36x36. The box itself now carries the floor.
+          // hitSlop is invisible to the DOM on web, so the box itself carries the 44 floor.
           hitSlop={4}
           style={styles.tapFloor}
         >
@@ -76,9 +74,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
     );
   }
 
-  // Native app + desktop web: a small bubble anchored under the icon, shown on
-  // press (native) or hover (web) — no portal needed since it's positioned
-  // relative to its own wrapper rather than covering the full screen.
+  // Native + desktop web: a bubble under the icon on press (native) or hover (web).
   return (
     <View className="self-start">
       <Pressable

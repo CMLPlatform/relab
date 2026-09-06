@@ -3,8 +3,8 @@ title: Data collection guide
 description: Capture a solid Relab record with clear hierarchy, media, and reference data.
 ---
 
-A good record captures what the product is, how it comes apart, and what evidence you collected
-along the way. Photos and notes are often more valuable than a perfectly filled form.
+A good record captures what the product is, how it comes apart, and the evidence you collected.
+Photos and notes are often worth more than a perfectly filled form.
 
 ## Before you start
 
@@ -21,8 +21,7 @@ along the way. Photos and notes are often more valuable than a perfectly filled 
 1. Record initial media for the intact product.
 1. As disassembly progresses, create child records for meaningful components or subassemblies.
 1. Attach images, files, measurements, and notes to the most appropriate record level.
-1. Link product types, categories, or materials where those observations are known with reasonable
-   confidence.
+1. Link product types, categories, or materials where you are reasonably confident.
 
 ## When to create a child component
 
@@ -44,12 +43,11 @@ its own record. A battery pack is a component. A single screw usually is not.
 - Keep free-text notes for uncertainty, unusual joins, damage, or ambiguous materials.
 - Use circularity notes for concise observations about recyclability, disassemblability, and
   remanufacturability. Leave them empty when there is no useful observation yet.
-- Photograph anything a later reader might want to check; images often carry more evidence than the
-  form fields.
+- Photograph anything a later reader might want to check.
 
 :::note[Partial is fine]
-If you are not sure, say so in the record. "Likely polypropylene, unconfirmed" is a perfectly good
-observation, and more useful than a guess.
+If you are not sure, say so in the record. "Likely polypropylene, unconfirmed" is more useful than
+a guess.
 :::
 
 ## Good notes often include
@@ -63,17 +61,16 @@ observation, and more useful than a guess.
 ## Measurements
 
 Physical properties are the item's overall size in centimetres (width, height, depth as it sits in
-front of you) and its mass in grams. Enter what you measured; leave a field empty rather than
-typing `0`, because an empty field means "not recorded" and a zero means a weightless or flat
-object. Sub-gram masses (screws, clips) are fine as decimals.
+front of you) and its mass in grams. Enter what you measured. Leave a field empty rather than
+typing `0`: empty means "not recorded", zero means a weightless or flat object. Sub-gram masses
+(screws, clips) are fine as decimals.
 
-The circularity notes ask for three observations. *Disassemblability* means how easily the item
-comes apart into its parts and whether doing so damages them — tools needed, glued or welded
-joins, and anything you had to break count. *Recyclability* and *remanufacturability* are the same
-kind of observation about the materials and the reusable assemblies. Uncertain notes are welcome;
-see the box above.
+The circularity notes ask for three observations. *Disassemblability* is how easily the item comes
+apart and whether doing so damages the parts: tools needed, glued or welded joins, and anything you
+had to break. *Recyclability* and *remanufacturability* are the same kind of observation about the
+materials and the reusable assemblies. Uncertain notes are welcome.
 
-Every other term Relab uses is defined in the [Glossary](../glossary/).
+The [Glossary](../glossary/) defines every other term.
 
 ## Reference data
 
@@ -87,41 +84,37 @@ Attach media in two ways:
 - manual upload of files and images
 - device-assisted capture through the Raspberry Pi camera integration
 
-Use image uploads for ordinary display photos. Use file uploads for research documents and
-scientific datasets, including hyperspectral ENVI, HDF5, NITF, and GeoTIFF files, so Relab stores
-the original data without image processing.
+Use image uploads for display photos. Use file uploads for research documents and scientific
+datasets (hyperspectral ENVI, HDF5, NITF, GeoTIFF); Relab stores those without image processing.
 
-Research-file upload is limited to lab accounts. Every signed-in, verified account can upload
-images; only a lab account sees the "Research files" block on a record it owns. Ask an
-administrator if you need the lab role.
+Every signed-in, verified account can upload images. Only a lab account sees the "Research files"
+block on a record it owns. Ask an administrator if you need the lab role.
 
-If you are using the camera integration, see [RPi camera integration](../rpi-cam/).
+For the camera integration, see [RPi camera integration](../rpi-cam/).
 
 ## Upload limits
 
 Accepted types and size limits:
 
-- Images: `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp` — up to 10 MiB.
-- Research files: `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`, `.xlsx` — up to
-  50 MiB.
-- Scientific data: `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`, `.tif`, `.tiff`
-  — up to 50 MiB.
+- Images (up to 10 MiB): `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp`
+- Research files (up to 50 MiB): `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`,
+  `.xlsx`
+- Scientific data (up to 50 MiB): `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`,
+  `.tif`, `.tiff`
 
-Relab validates type, size, and content before storing a file. It also unpacks and inspects office
-files before accepting them. If malware scanning is enabled, Relab scans files on upload and
-rejects flagged ones.
+Relab validates type, size, and content before storing a file, and unpacks and inspects office
+files. If malware scanning is enabled, flagged files are rejected.
 
-Each account also has a cap on total file count and storage used, set by its role:
+Each account also has a cap on total file count and storage, set by its role:
 
 | Role          | Files  | Storage  |
 | ------------- | ------ | -------- |
 | `contributor` | 1000   | 1024 MB  |
 | `lab`         | 20 000 | 20480 MB |
 
-Both tiers are tunable per instance by the operator through `MAX_UPLOAD_FILES_PER_USER` and
-`MAX_UPLOAD_BYTES_PER_USER_MB` for contributors, and `MAX_UPLOAD_FILES_PER_LAB_USER` and
-`MAX_UPLOAD_BYTES_PER_LAB_USER_MB` for lab accounts. An upload over either cap is rejected;
-deleting media releases the quota it used.
+Operators tune both tiers through `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`
+for contributors, and `MAX_UPLOAD_FILES_PER_LAB_USER` and `MAX_UPLOAD_BYTES_PER_LAB_USER_MB` for
+lab accounts. An upload over either cap is rejected; deleting media releases its quota.
 
 ## Final check
 

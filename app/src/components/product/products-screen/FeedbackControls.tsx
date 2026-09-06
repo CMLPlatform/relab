@@ -46,21 +46,13 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
   );
 }
 
-/**
- * The FAB stays enabled for every creation state because `createProductAction`
- * owns the sign-in and verification flows. Its visible and accessible label
- * names that next step so the enabled control never promises an unavailable
- * action (and remains compliant with WCAG 2.5.3).
- */
+/** The FAB stays enabled in every state; its label names the next step (sign in, verify, add). */
 export function ProductsFab({ extended, creationState, onPress }: ProductsFabProps) {
   const bottomNavVisible = useBottomNavVisible();
   const label = CREATION_LABELS[creationState];
-  // A gated action must keep its next-step copy visible. Only the ordinary
-  // verified-user action may collapse to the familiar plus icon on scroll.
+  // Only the ordinary verified-user action may collapse to the plus icon on scroll.
   const showLabel = extended || creationState !== 'verified';
-  // Web-only: BottomNav is viewport-fixed there and escapes the container the
-  // fab is laid out in, so the fab needs the clearance bump itself. On native
-  // BottomNav is in normal flow, so the container already shrinks — no bump.
+  // Web-only: BottomNav is viewport-fixed there; on native the container already shrinks.
   const bottomOffset = Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0;
 
   return (

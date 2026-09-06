@@ -5,15 +5,9 @@ import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
 import type { User } from '@/types/User';
 
 /**
- * Guard effect behind `useRequireAuth`.
- *
- * Gated on:
- *  - `isLoading`, so a slow initial session restore can't flash a logged-in
- *    user to the login screen;
- *  - screen focus, so a screen that stays mounted off-focus (tab groups
- *    preserve per-tab state) can't fire a stale redirect after its own
- *    navigation has already moved elsewhere;
- *  - `isLoggingOut`, for the same reason during an in-flight logout.
+ * Guard effect behind `useRequireAuth`. Gated on `isLoading` (no flash during
+ * session restore), screen focus (an off-focus tab screen must not redirect),
+ * and `isLoggingOut`.
  */
 function useAuthRedirectGuard({
   user,
@@ -36,10 +30,7 @@ function useAuthRedirectGuard({
   }, [isFocused, isLoading, isLoggingOut, user, redirectTo, router]);
 }
 
-/**
- * Redirect to /login (preserving a post-login target) when there is no
- * authenticated user. See `useAuthRedirectGuard` for the gating rules.
- */
+/** Redirect to /login (preserving a post-login target) when there is no authenticated user. */
 export function useRequireAuth(redirectTo: string, options?: { isLoggingOut?: boolean }) {
   const router = useRouter();
   const { user, isLoading } = useAuth();

@@ -26,8 +26,7 @@ export default function ProductComponents({ product, editMode }: Props) {
   const dialog = useDialog();
   const saveMutation = useSaveProductMutation();
 
-  // A component that recurs N times is typed N times otherwise. Copies the
-  // spec fields only — media and children stay with the original.
+  // Copies the spec fields only; media and children stay with the original.
   const duplicate = (component: Product) => {
     if (typeof product.id !== 'number') return;
     saveMutation.mutate(
@@ -62,21 +61,10 @@ export default function ProductComponents({ product, editMode }: Props) {
     );
   };
 
-  // This push used to be swallowed right after a save — reproduced ~2 in 8 under
-  // 4-way parallel E2E load (app/e2e/product-detail.spec.ts), recovering on a
-  // second press every time.
-  //
-  // The cause is that leaving edit mode is itself a navigation. `editMode` is
-  // derived solely from the URL (`useProductForm.ts:291`, "nothing flips this at
-  // runtime"), so EntityDetailPage clears it with
-  // `router.setParams({ edit: undefined })` on save success. A press landing in
-  // the same frame dispatches a second navigation while the first is still
-  // settling, and the router drops one.
-  //
-  // Deferring by a frame sequences them instead of racing them: the pending
-  // param change commits, then the push dispatches. The proper fix is to stop
-  // encoding edit mode in the URL so that exiting it is not a navigation at all,
-  // which is a larger rework of EntityDetailPage and useProductForm.
+  // Leaving edit mode is itself a navigation (`router.setParams({ edit:
+  // undefined })`), and a push in the same frame gets dropped by the router.
+  // Deferring a frame sequences them. Flaked ~2 in 8 under parallel E2E load.
+  // TODO: stop encoding edit mode in the URL so exiting it is not a navigation.
   const newComponent = () => {
     if (typeof product.id !== 'number') return;
     const id = product.id.toString();

@@ -117,9 +117,7 @@ const ThumbnailItem = memo(function ThumbnailItem({
     [selected, selectedBorderColor],
   );
 
-  // No per-item entering fade: entering fires on every MOUNT, and FlatList
-  // windowing mounts items during ordinary scroll — the fade would flicker
-  // there. LinearTransition on the list already animates real add/delete.
+  // No per-item entering fade: FlatList windowing mounts items during scroll.
   return (
     <Pressable
       onPress={handlePress}

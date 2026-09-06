@@ -203,9 +203,7 @@ async def _complete_oauth_login(
         )
         return response
 
-    # Bearer logins share the token issuance path used by password and MFA bearer login.
-    # `backend.login` alone mints only an access token, which would leave an OAuth bearer
-    # client with no way to refresh once it expires.
+    # `backend.login` alone mints only an access token, with no way to refresh.
     tokens = await login_completion.issue_bearer_login_response(
         user=user,
         user_manager=user_manager,

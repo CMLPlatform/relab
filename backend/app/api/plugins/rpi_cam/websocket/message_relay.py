@@ -54,10 +54,9 @@ async def _attempt_cross_worker_relay(
     timeout would be pointless. A Redis outage also fast-fails: the bridge itself
     runs on Redis, so the relay attempt could not succeed anyway.
     """
-    # NOTE: this online-key check replaced the cross-worker circuit breaker. Ceiling:
-    # if the owning worker's relay listener dies while its heartbeat keeps the key
-    # alive, every request waits out the full BLPOP timeout. Bring back a
-    # failure-count breaker if that mode shows up in practice.
+    # NOTE: ceiling: if the owning worker's relay listener dies while its heartbeat keeps
+    # the key alive, every request waits out the full BLPOP timeout. Add a failure-count
+    # breaker if that shows up in practice.
     if not await get_redis_value(redis, get_camera_online_cache_key(camera_id)):
         logger.debug("Camera %s is not marked online; skipping cross-worker relay.", camera_id)
         raise _camera_not_connected()
@@ -113,8 +112,7 @@ async def _fall_back_to_cross_worker_relay(
     except HTTPException:
         raise
     except RelayCommandRejectedError as cross_exc:
-        # The owning worker's allowlist re-check rejected the command — surface the
-        # original 4xx status rather than masking it as a generic 503.
+        # Surface the owning worker's 4xx instead of a generic 503.
         raise HTTPException(status_code=cross_exc.status_code, detail=cross_exc.detail) from cross_exc
     except (RuntimeError, TimeoutError) as cross_exc:
         raise _camera_not_connected() from cross_exc
@@ -163,12 +161,10 @@ async def relay_via_websocket(
                 headers=relay_headers or None,
             )
     except CameraDisconnectedDuringCommandError as exc:
-        # This worker owned the socket and it disconnected mid-command — the camera is
-        # gone, not just "not registered here". Don't fall through to the cross-worker
-        # bridge (no other worker can reach it either).
+        # The camera is gone, not merely registered elsewhere: no other worker can reach it.
         raise _camera_not_connected() from exc
     except RuntimeError:
-        # Camera not connected in this worker — try the cross-worker bridge.
+        # Not connected in this worker; try the cross-worker bridge.
         json_resp, binary = await _fall_back_to_cross_worker_relay(
             redis,
             camera_id,
@@ -204,10 +200,8 @@ async def relay_via_websocket(
     if binary is not None:
         return RelayResponse(status_code=response_status, _content=binary)
 
-    # When the Pi returns a plain text body (e.g. an m3u8 playlist with content-type
-    # application/vnd.apple.mpegurl), the relay puts it in the JSON data field as a
-    # string rather than as a binary frame. Store it in _content so callers that use
-    # relay_response.content (like proxy_hls) receive the actual bytes.
+    # A plain-text body (e.g. an m3u8 playlist) arrives as a string in the JSON data
+    # field; expose it as bytes for callers of relay_response.content (proxy_hls).
     if isinstance(response_data, str):
         return RelayResponse(status_code=response_status, _content=response_data.encode())
 

@@ -1,9 +1,8 @@
 ---
 import Default from '@astrojs/starlight/components/Head.astro';
 
-// og.png is the social-preview image social crawlers fetch; they don't
-// theme-switch, so og-light.png stays unused by design — see astro.config.mjs
-// for the per-mode `site` origin this URL is resolved against.
+// Social crawlers do not theme-switch, so og.png is the only preview image and
+// og-light.png stays unused. astro.config.mjs sets the `site` origin it resolves against.
 const ogImage = new URL('/images/og.png', Astro.site);
 ---
 

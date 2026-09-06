@@ -3,7 +3,7 @@ title: Hardware
 description: Choose a simple or advanced capture setup for Relab documentation work.
 ---
 
-Good lighting and a clean workspace matter more than fancy equipment. Start simple; add complexity only if your workflow actually needs it.
+Good lighting and a clean workspace matter more than equipment. Start with tier 1; add tier 2 only when your workflow needs it.
 
 ## Tier 1: simple setup
 
@@ -12,7 +12,7 @@ Good lighting and a clean workspace matter more than fancy equipment. Start simp
 - scale
 - ruler or measuring tape
 
-This is enough for useful product documentation. You can take photos on your phone and upload them directly.
+This is enough for useful product documentation. Upload phone photos directly.
 
 ## Tier 2: advanced capture setup
 
@@ -21,7 +21,7 @@ This is enough for useful product documentation. You can take photos on your pho
 - controlled lighting
 - gridded mats or similar backgrounds
 
-Use this if you want repeatable images across many products. Gridded mats help with later size and volume estimation. See [RPi camera integration](../rpi-cam/) for the platform-side setup.
+Use this for repeatable images across many products. Gridded mats help later size and volume estimation. See [RPi camera integration](../rpi-cam/) for the platform-side setup.
 
 ## Practical advice
 

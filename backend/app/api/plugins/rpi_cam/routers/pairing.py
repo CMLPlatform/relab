@@ -53,9 +53,7 @@ from app.core.redis import (
 logger = logging.getLogger(__name__)
 
 router = PublicAPIRouter(prefix="/plugins/rpi-cam/pairing", tags=["RPi Camera Pairing"])
-# register/poll are called by the Pi itself, never the app; keep them out of the
-# app-facing public schema and tag them with the device audience explicitly instead
-# of relying on the path-prefix fallback in common/routers/openapi.py.
+# register/poll are called by the Pi, never the app: device audience, not the public schema.
 device_router = DeviceAPIRouter(prefix="/plugins/rpi-cam/pairing", tags=["RPi Camera Pairing"])
 
 PAIRING_KEY_PREFIX = "rpi_cam:pairing"
@@ -101,9 +99,8 @@ async def register_pairing_code(
     redis: RedisDep,
 ) -> PairingRegisterResponse:
     """Register a short-lived pairing code and the camera's public device key."""
-    # PairingRegisterRequest is an external model (relab_rpi_cam_models); it doesn't
-    # enforce the same charset as PairingPollRequest.fingerprint. Re-check here so a
-    # fingerprint that would 422 on every subsequent poll is rejected up front instead.
+    # PairingRegisterRequest (relab_rpi_cam_models) does not enforce the fingerprint
+    # charset that PairingPollRequest does; reject up front rather than on every poll.
     if not FINGERPRINT_PATTERN.fullmatch(body.rpi_fingerprint):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid fingerprint format.")
 
@@ -144,9 +141,8 @@ async def claim_pairing_code(
     """
     await limiter.ahit_key(CLAIM_CODE_RATE_LIMIT, rate_limit_bucket_key("rpi-cam:pairing:claim:code", body.code))
     key = _pairing_key(body.code)
-    # Read the remaining pending-record TTL before GETDEL destroys it, so a failed
-    # camera creation below can restore the record for its actual remaining window
-    # instead of resetting the clock to a fresh, possibly-longer TTL.
+    # Read the TTL before GETDEL destroys it, so a failed creation can restore the
+    # record with its remaining window.
     remaining_ttl = int(await redis.ttl(key))
     raw = await getdel_redis_value(redis, key)
     if raw is None:
@@ -154,12 +150,8 @@ async def claim_pairing_code(
 
     record = parse_pairing_record(raw)
     if not isinstance(record, PairingPendingRecord):
-        # Not a pending code — most likely a re-claim attempt on a code this same
-        # request already claimed. GETDEL above unconditionally removed it, so put
-        # the still-valid claimed record back before reporting the conflict; the
-        # Pi may not have polled it yet. Restore its actual remaining TTL rather
-        # than resetting the clock to a fresh, possibly-longer one, mirroring the
-        # failure-path restore below.
+        # Re-claim of an already-claimed code. GETDEL removed it; put it back with its
+        # remaining TTL, since the Pi may not have polled it yet.
         await set_redis_value(
             redis, key, raw, ex=remaining_ttl if remaining_ttl > 0 else PAIRING_CREDENTIAL_TTL_SECONDS
         )
@@ -177,9 +169,8 @@ async def claim_pairing_code(
             current_user.id,
         )
     except Exception:
-        # Camera creation failed (DB down, conflict, etc.) after GETDEL already
-        # consumed the pending record — restore it so the code isn't permanently
-        # dead and the Pi's next poll doesn't 404 into a forced re-pair.
+        # GETDEL already consumed the pending record; restore it so the Pi's next
+        # poll does not 404 into a forced re-pair.
         restored = await set_redis_value(
             redis, key, raw, ex=remaining_ttl if remaining_ttl > 0 else PAIRING_TTL_SECONDS
         )

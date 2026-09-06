@@ -1,11 +1,10 @@
 # r9lab logo — source & generators
 
-The mark is a **font-derived 9, vertically squished** so it reads as a loop (a
-mirrored "e" — the wordmark quietly says "Relab"). The R/l/a/b letters come
-from IBM Plex. Output SVGs are self-contained — glyphs are outlined, so no
-font is needed to render them. Colours are the Cyanotype palette from
-[../DESIGN.md](../DESIGN.md): `#1f4c96` light / `#8fb8ff` dark for the 9 and
-ring, ink `#16202e` / `#e9eff8` for the letters.
+The mark is a **font-derived 9, vertically squished** so it reads as a loop and as a mirrored "e"
+(the wordmark reads "Relab"). The R/l/a/b letters come from IBM Plex. Output SVGs are
+self-contained: glyphs are outlined, so no font is needed to render them. Colours are the Cyanotype
+palette from [../DESIGN.md](../DESIGN.md): `#1f4c96` light / `#8fb8ff` dark for the 9 and ring, ink
+`#16202e` / `#e9eff8` for the letters.
 
 ## Generate
 
@@ -44,10 +43,9 @@ Each `candidates/<name>/` holds light + `-dark` SVGs for five variants:
 | `logo.svg`      | ringed wordmark — `(R9) lab`, the primary wide logo |
 | `og.svg`        | 1200×630 social card (wordmark + tagline)           |
 
-Promoting only copies SVGs; every PNG/ico derivative (consumer copies, the
-canonical `../r9lab-*.png` companions the root README embeds, and the og
-cards) is rendered by `scripts/sync_brand_assets.py` — hence the
-`just assets-sync` step.
+Promoting only copies SVGs. `scripts/sync_brand_assets.py` (run by `just assets-sync`) renders every
+PNG/ico derivative: consumer copies, the canonical `../r9lab-*.png` companions the root README
+embeds, and the og cards.
 
 Font subsets (latin) are checked in under `fonts/candidates/` with their OFL
 licence texts (`OFL-*.txt`).

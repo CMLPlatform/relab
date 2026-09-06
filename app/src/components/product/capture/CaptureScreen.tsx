@@ -20,19 +20,13 @@ import type { CPVCategory } from '@/types/CPVCategory';
 import { typeRowLabels } from '@/types/Product';
 
 type CaptureScreenProps = {
-  // Named entityRole, not role: a JSX prop literally called `role` trips
-  // lint/a11y/useValidAriaRole at every call site and is a live RN-Web prop
-  // that would leak onto the DOM as an invalid ARIA role.
+  // Not `role`: that is a live RN-Web prop that would leak an invalid ARIA role.
   entityRole: 'product' | 'component';
   parentID?: number;
   parentRole?: 'product' | 'component';
 };
 
-/**
- * Type row: same round-trip pattern as ProductType.tsx (pending selection slot
- * + loadCPV lookup), but driven by a plain typeID/onChange pair instead of a
- * saved product, since a capture draft has no [id] route.
- */
+/** Type row: the ProductType.tsx round-trip driven by a typeID/onChange pair (a draft has no [id] route). */
 function CaptureTypeRow({
   typeID,
   onTypeChange,
@@ -57,10 +51,8 @@ function CaptureTypeRow({
     loadCPV()
       .then((cpv) => {
         if (!isMounted) return;
-        // Never fall back to cpv.root — its {name: "undefined"} placeholder
-        // renders as a red "Category undefined" error card. An unresolvable
-        // type id resolves to null (renders nothing); the typeless case is
-        // handled by the `typeID === undefined` invite above.
+        // Never fall back to cpv.root: its {name: "undefined"} placeholder
+        // renders as a red "Category undefined" card.
         setSelectedType(cpv[String(typeID ?? 'root')] ?? null);
       })
       .catch(() => {});
@@ -91,11 +83,7 @@ function CaptureTypeRow({
   );
 }
 
-/**
- * Capture-first creation screen shared by the product and component "new"
- * routes: a photo strip, a name, an optional type, and (for components) a
- * parent amount — no long form, no isNew branch through the detail screen.
- */
+/** Capture-first creation screen for the product and component "new" routes. */
 export function CaptureScreen({ entityRole: role, parentID, parentRole }: CaptureScreenProps) {
   const {
     name,
@@ -118,14 +106,12 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
     if (canCreate) void handleCreate();
   }, [canCreate, handleCreate]);
 
-  // Offline: the mutation is paused, not "loading" — no spinner to show
-  // until connectivity returns (see useCaptureEntity's isPaused wiring).
+  // Offline: the mutation is paused, not loading; no spinner.
   const isQueued = isCreating && isPaused;
 
   const nameInputRef = useRef<TextInput>(null);
   const onCreateAndAddAnother = useCallback(async () => {
-    // Only steal focus back to Name when the form was actually reset (a
-    // create failure leaves the fields as typed — nothing to refocus for).
+    // Only refocus Name when the form was reset.
     const didReset = await handleCreateAndAddAnother();
     if (didReset) nameInputRef.current?.focus();
   }, [handleCreateAndAddAnother]);

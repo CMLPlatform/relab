@@ -47,9 +47,7 @@ export function useMfaScreen() {
       try {
         await completeMfaChallenge(token, submitCode);
         clearPendingMfaLogin();
-        // Update the auth context (not just the API cache) so useAuth() consumers
-        // see the signed-in user; otherwise the post-login route's auth guard
-        // bounces straight back to /login.
+        // Update the auth context too, or the post-login auth guard bounces back to /login.
         const authenticatedUser = await refetch();
         if (authenticatedUser) {
           routeAuthenticatedUser({
@@ -71,8 +69,7 @@ export function useMfaScreen() {
 
   const submit = useSingleFlight(runSubmit);
 
-  // Abandon the half-finished challenge so the pending token doesn't linger,
-  // then send the user back to re-enter credentials.
+  // Abandon the challenge so the pending token does not linger.
   const goToLogin = useCallback(() => {
     clearPendingMfaLogin();
     router.replace('/login');

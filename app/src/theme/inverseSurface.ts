@@ -2,22 +2,9 @@ import { useMemo } from 'react';
 import { useAppTheme } from './appThemeContext';
 
 /**
- * The inverse-surface trio, as one value that cannot be mismatched.
- *
- * `inverseSurface` is the dark-on-light / light-on-dark ground used by
- * tooltips, toasts and the live-stream banner. Its text must be
- * `inverseOnSurface`, and its secondary text `tokens.text.inverseMuted` —
- * pairing either with a same-polarity surface inverts the contrast.
- *
- * That is not hypothetical. `ActiveStreamBanner` painted `inverseOnSurface` on
- * `tokens.surface.sunken` (same-polarity) and measured 1.32:1 in dark and
- * 1.16:1 in light: the product name was invisible in both schemes, and the
- * elapsed-time readout was invisible in one. DESIGN.md states the rule in
- * prose; four components implemented it independently and one got it wrong.
- *
- * Returning the ground and both inks together makes the correct pairing the
- * path of least resistance, without forcing a tooltip, a toast and a banner to
- * share a layout they have no reason to share.
+ * The inverse-surface trio as one value (Inverse-Pair Rule, DESIGN.md):
+ * `inverseSurface` with `inverseOnSurface` and `tokens.text.inverseMuted`.
+ * Pairing either ink with a same-polarity surface makes the text invisible.
  */
 export function useInverseSurface() {
   const theme = useAppTheme();

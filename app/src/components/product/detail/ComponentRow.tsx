@@ -26,11 +26,7 @@ interface Props {
 
 const THUMBNAIL_SIZE = 44;
 
-/**
- * Bill-of-materials row: thumbnail, name, type, child-count badge, and a
- * one-level expand chevron. Children not present in the parent payload
- * (`components === undefined`) are lazily fetched on first expand.
- */
+/** Bill-of-materials row. Children absent from the parent payload are fetched on first expand. */
 export function ComponentRow({ component, enabled, nested = false, onDuplicate }: Props) {
   const router = useRouter();
   const theme = useAppTheme();
@@ -47,9 +43,8 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
   // A fetch we triggered resolved to zero children — distinct from a payload
   // that already told us the count was zero (which never shows a chevron).
   const fetchedEmpty = wasUnknown && query.isSuccess && childCount === 0;
-  // Chevron when children are known to exist, unknown (undefined = not
-  // loaded), or a fetch already found the row expanded-but-empty (so the
-  // user can still collapse it instead of the row vanishing mid-interaction).
+  // Chevron when children exist, are not loaded yet, or the row is
+  // expanded-but-empty (so it can still be collapsed).
   const canExpand = !nested && (children === undefined || childCount > 0 || fetchedEmpty);
 
   const navigate = useCallback(() => {

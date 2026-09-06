@@ -55,14 +55,10 @@ function applyTheme(theme: ThemeName) {
 }
 
 /**
- * Runs a theme swap inside a View Transition, so the page crossfades instead of
- * hard-cutting every colour, including the full-bleed backdrop photograph,
- * which is what makes an unbridged swap read as a flash. Falls back to a plain
- * call where the API is missing or the visitor asked for reduced motion.
- *
- * Only the toggle is wrapped. The sync at load and OS-driven changes apply
- * straight through, since crossfading the first paint would animate from a
- * state the visitor never saw.
+ * Runs a theme swap inside a View Transition so the page crossfades instead of
+ * flashing. Plain call without the API or under reduced motion. Only the
+ * toggle is wrapped: the load sync and OS-driven changes apply straight
+ * through, since the visitor never saw the previous state.
  */
 function withThemeTransition(swap: () => void) {
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

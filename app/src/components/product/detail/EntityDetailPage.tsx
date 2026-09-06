@@ -4,11 +4,8 @@ import { useMemo } from 'react';
 import { ProductDetailScreen } from './ProductDetailScreen';
 
 /**
- * Detail + edit screen shared by the product and component `[id]` routes. Edit
- * mode is a URL query param (`?edit=1`) so pressing the pencil FAB doesn't
- * unmount the screen — scroll position and fetched data stay put, which matters
- * when bouncing between sections of a long form. Only `role` and the optional
- * document title differ between the two routes.
+ * Detail + edit screen for the product and component `[id]` routes. Edit mode
+ * is a URL query param (`?edit=1`) so entering it does not unmount the screen.
  */
 export function EntityDetailPage({
   productRole,

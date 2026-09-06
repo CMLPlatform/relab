@@ -57,9 +57,8 @@ export function useNewAccountScreen() {
       return;
     }
 
-    // Do not auto-login. The account still needs email verification, and a login
-    // attempt here would reveal — via success vs failure — whether the email was
-    // already registered, defeating the server's non-enumerable registration.
+    // Do not auto-login: a login attempt would reveal whether the email was
+    // already registered.
     dialog.alert({
       title: 'Check your email',
       message:
@@ -68,10 +67,8 @@ export function useNewAccountScreen() {
     router.replace('/login');
   });
 
-  // The "Create Account" button only shows a spinner while submitting — it stays
-  // pressable — so a double-tap would fire register twice and stack two dialogs.
-  // Guarded at this boundary, not inside the validated handler, which the
-  // compiler's ref rule forbids.
+  // The button stays pressable while submitting, so a double-tap would
+  // register twice. Guarded here; the compiler's ref rule forbids it inside the handler.
   const createAccount = useSingleFlight(validatedCreateAccount);
 
   return {

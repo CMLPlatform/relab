@@ -38,10 +38,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 YOUTUBE_API_BASE_URL = "https://www.googleapis.com/youtube/v3"
 
-# Retry schedule for transient YouTube API failures. Each entry is the base delay
-# in seconds; jitter is added by ``_jittered_backoff_s``. Total worst-case wait is
-# ~3.75 s + jitter across 3 attempts (initial + 2 retries). Retryable statuses are
-# 429 / 5xx and any network-layer error; 4xx responses never retry.
+# Base delays in seconds between retries (jitter added by ``_jittered_backoff_s``).
+# Retries 429 / 5xx and network errors only; other 4xx never retry.
 _YOUTUBE_RETRY_BACKOFF_S: tuple[float, ...] = (0.25, 1.0)
 _YOUTUBE_RETRYABLE_STATUSES: frozenset[int] = frozenset({429, 500, 502, 503, 504})
 

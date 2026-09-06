@@ -1,24 +1,7 @@
 ---
-// The data-collection workflow.
-//
-// Hand-built HTML/CSS, not a rendered diagram. It used to be two inlined
-// mermaid SVGs (a horizontal one and a vertical one, swapped by viewport), and
-// mermaid was the wrong tool for it: the workflow is a straight line, so the
-// graph layout engine bought nothing, while its output cost ~44KB of inlined
-// SVG, a hand-maintained post-processing ritual to turn baked hex into CSS
-// variables and re-insert every accessible name, and two variants to keep in
-// step. Worst of all it fixed the type into vector units, so the labels were
-// whatever size the viewBox happened to scale to -- 12px on a desktop, 9.6px
-// at 1024 -- and no CSS could raise them.
-//
-// As markup the steps are real text: they scale with the reader's font size,
-// reflow at any width, wrap into one column on a phone, need no second variant,
-// and carry their own descriptions in the open rather than behind a hover.
-//
-// assets/method-flow.mmd stays: it is the source for the platform paper's
-// figure, which does want a rendered diagram. It is no longer a www dependency.
-//
-// Descriptions are the same text the SVG carried as per-node <title>s.
+// The data-collection workflow as HTML, not a rendered diagram, so the text
+// scales and reflows. assets/method-flow.mmd is the paper figure's source and
+// is not a www dependency; keep the two in step.
 interface Props {
   docsUrl: string;
 }
@@ -46,8 +29,7 @@ const phases = [
     ],
   },
   {
-    // Exactly the two steps the source diagram puts inside its loop subgraph.
-    // Nesting sits after it there, so it stays in the third phase here.
+    // The two steps inside the source diagram's loop subgraph.
     name: 'For each component',
     repeats: true,
     steps: [
@@ -64,12 +46,9 @@ const phases = [
       },
       {
         // TODO: after the first curated dataset release is published, replace
-        // this with the release DOI and switch the wording to present tense.
-        // The release is CC BY 4.0; docs/src/content/docs/project/dataset.md is
-        // the canonical statement of its scope and terms. Until then this step
-        // must not imply an openly licensed dataset exists — it does not, and
-        // saying otherwise is the same class of overclaim as the 9R walk-back
-        // recorded in WhyRelab.astro.
+        // this with the release DOI and switch the wording to present tense
+        // (scope and terms: docs/src/content/docs/project/dataset.md). Until
+        // then this step must not imply an openly licensed dataset exists.
         name: 'Browse and reuse the records',
         detail:
           'The record becomes browsable in the app and over the API. Curated dataset releases are planned under CC BY 4.0; none has been published yet.',
@@ -90,8 +69,7 @@ const phases = [
     worked through in turn, and the finished record is published.
   </p>
 
-  {/* An ordered list of phases, each an ordered list of steps: the order is the
-      content, so it is carried by the markup rather than by arrow glyphs. */}
+  {/* Ordered lists carry the order; no arrow glyphs. */}
   <ol class="flow" role="list">
     {
       phases.map((phase, phaseIndex) => (
@@ -114,25 +92,16 @@ const phases = [
     }
   </ol>
 
-  {/* What the records are for, in the framing the project's own papers use
-      (docs/superpowers/references/paper-1.md and paper-2.md): industrial
-      ecology depends on primary product-level data; the middle and end of life,
-      where most of it is observable, is where it is least documented. An
-      earlier version of this line said records "are read through the 9R
-      framework", which described an analysis step the platform does not
-      perform. Relab collects the data; the research using it interprets. */}
+  {/* Framing from the project's papers. Do not say records "are read through the
+      9R framework": the platform performs no such analysis step. */}
   <p class="method-lens">
     A finished record says what one product is made of, how it comes apart, and how it has fared.
     That is the primary data life-cycle assessment and material-flow analysis are built on, and it
     is scarcest exactly where it is most observable: products are documented as designed, rarely as
     they are found at the end of their life.
   </p>
-  {/* Background, not method. The 9R framework appears nowhere in either paper,
-      so it is not part of how records are made or read: it is the model the
-      project takes its cue from, and the reason the mark is drawn the way it
-      is. Naming the nine is what makes the reference mean something; the
-      wordmark itself stays artwork and is never spelled out as text
-      (.claude/CLAUDE.md). The ladder lives in the docs with its definitions. */}
+  {/* Background, not method: the 9R framework is not part of how records are
+      made or read. The wordmark stays artwork, never spelled out as text. */}
   <p class="method-aside">
     {/* Explicit spaces: Astro strips the inter-node newline around an <a>. */}
     Background: the nine in the mark is a nod to the 9R framework, the ten circular-economy
@@ -160,8 +129,7 @@ const phases = [
     color: var(--color-muted);
   }
 
-  /* Three phases across, collapsing to one column on a narrow screen. No fixed
-     min-width and nothing to scale, so it never forces a sideways scroll. */
+  /* Three phases across, one column on a narrow screen. */
   .flow {
     margin: 0;
     padding: 0;
@@ -193,20 +161,15 @@ const phases = [
     color: var(--color-muted);
   }
 
-  /* Ink, not manila. These ordinals number the three phases, so they label a
-     section — and the accent rule reserves manila for a datum: record IDs,
-     counts, measurements, status pills. Numbering a section is exactly the
-     "decorative kicker" use assets/DESIGN.md:163 rules out, and this was the
-     only --color-accent usage on the site. Weight carries the emphasis instead,
-     which is what the surrounding label already uses.
+  /* Ink, not manila: these ordinals label a section, and the accent rule
+     reserves manila for a datum. Weight carries the emphasis.
      Mirrors assets/DESIGN.md:163 — change it there first. */
   .flow-phase-num {
     color: var(--color-on-surface);
     font-weight: 600;
   }
 
-  /* The one phase that is a loop rather than a single pass says so, since the
-     column layout cannot draw the arrow back on itself. */
+  /* The looping phase says so; the column layout cannot draw the arrow back. */
   .flow-phase-repeat {
     padding: 0.1rem 0.4rem;
     border: 1px solid var(--color-page-border);
@@ -225,8 +188,7 @@ const phases = [
     counter-reset: step;
   }
 
-  /* Each step is a hairline row, numbered within its phase by CSS counter so
-     the markup carries no presentational numbering. */
+  /* Hairline row, numbered within its phase by CSS counter. */
   .flow-step {
     counter-increment: step;
     display: grid;
@@ -269,8 +231,7 @@ const phases = [
     color: var(--color-text);
   }
 
-  /* Subordinate to the line above, because the framework is context the project
-     sits in rather than something it does. */
+  /* Subordinate to the line above: context, not method. */
   .method-aside {
     margin: 0.7rem 0 0;
     max-width: 72ch;

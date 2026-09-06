@@ -3,17 +3,11 @@ import { useCallback } from 'react';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
-/**
- * Account tab stack. A one-screen stack rather than a header on the tab
- * navigator itself, so the screen keeps the same native stack header as every
- * other tab (and HeaderBackButton keeps its native-stack prop type).
- */
+/** Account tab stack: one screen, so it keeps the same native stack header as every other tab. */
 export default function AccountTabLayout() {
   const router = useRouter();
   const { isLg } = useBreakpoint();
-  // Cross-tab target: a replace would resolve above the tab navigator and swap
-  // the whole thing out, resetting every tab's trail. navigate() jumps to the
-  // products tab and shows its list, which is what this arrow has always meant.
+  // Cross-tab target: replace() would reset every tab's trail.
   const goToProducts = useCallback(() => router.navigate('/products'), [router]);
   return (
     <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>

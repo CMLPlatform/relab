@@ -1,14 +1,7 @@
 ---
-// The 9R framework drawn as a descending staircase.
-//
-// This lives in docs rather than on the landing page: it is reference material,
-// and the canonical definitions sit directly beneath it on this page. The
-// landing page links here instead of teaching the taxonomy itself.
-//
-// Names only. The definitions are in the table below the figure, which is the
-// source of record (Potting et al. 2017, approved verbatim) -- the staircase
-// shows the *order*, the table says what each strategy means, and neither
-// restates the other.
+// The 9R framework drawn as a descending staircase. Names only: the staircase
+// shows the order; the tables beneath it on the page carry the definitions
+// (Potting et al. 2017, approved verbatim).
 const tiers = [
   {
     label: 'Smarter product use and manufacture',
@@ -51,9 +44,8 @@ const stepOf = (r: string): number => Number(r.slice(1));
           {/* Explicit role: WebKit drops list semantics under list-style: none. */}
           <ol class="rungs" role="list">
             {tier.rungs.map((rung) => (
-              /* --step is the rung's rank across all three tiers, not within
-                 this one: it drives the indent that draws the staircase, so it
-                 has to keep descending across a tier boundary. */
+              /* --step is the rank across all three tiers, so the indent keeps
+                 descending across a tier boundary. */
               <li class="rung" style={`--step: ${stepOf(rung.r)}`}>
                 <span class="rung-num">{rung.r}</span>
                 <span class="rung-name">{rung.name}</span>
@@ -73,15 +65,11 @@ const stepOf = (r: string): number => Number(r.slice(1));
 </figure>
 
 <style>
-  /* An actual staircase, because the framework is an ordinal ladder: each rung
-     steps one notch further right than the one above, and the drawing falls out
-     of two borders per row -- `border-left` is the riser, `border-bottom` the
-     tread. Because a tread runs from its own indent to the step's right edge,
-     the next rung's riser always lands on it, so the steps connect into one
-     continuous flight without any extra elements.
-
-     Deliberately no bar or width encoding the "value retained": the 9R order is
-     ordinal, and a bar would invent a magnitude Potting et al. never measured. */
+  /* Two borders per row draw the staircase: `border-left` is the riser,
+     `border-bottom` the tread, and each tread runs to the step's right edge so
+     the next riser lands on it. No bar or width encodes "value retained": the
+     9R order is ordinal, and a bar would invent a magnitude Potting et al.
+     never measured. */
   .ladder-figure {
     --stair: 1.15rem;
 
@@ -93,9 +81,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
     gap: 1.4rem;
   }
 
-  /* Each tier is its own flight, set off by a landing: the gap above plus a
-     rule and a label make the three groups read as distinct stages rather than
-     as one run of ten. */
+  /* Each tier is its own flight, set off by a landing (gap, rule, label). */
   .tier {
     display: grid;
     gap: 0.35rem;
@@ -122,8 +108,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
     list-style: none;
   }
 
-  /* A fixed step width, so the right edge steps down in parallel with the left
-     and the flight reads as stairs rather than as a ruled table. */
+  /* Fixed step width, so the right edge steps down in parallel with the left. */
   .rung {
     display: flex;
     align-items: baseline;
@@ -150,7 +135,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
     font-weight: 600;
   }
 
-  /* Which end of the ladder is which, stated rather than implied. */
+  /* Labels for the two ends of the ladder. */
   .ladder-end {
     margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
@@ -179,8 +164,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
   }
 
   @media (max-width: 50rem) {
-    /* A shallower stair: ten steps at the wide notch would push the last rung
-       most of the way across a phone. They still descend, just less far. */
+    /* Shallower stair: ten wide steps would push the last rung across a phone. */
     .ladder-figure {
       --stair: 0.5rem;
     }

@@ -7,10 +7,7 @@ import { updateUser } from '@/services/api/auth/authentication';
 import { type OnboardingFormValues, onboardingSchema } from '@/services/api/validation/userSchema';
 import { getErrorMessage } from '@/utils/errors';
 
-/**
- * Username-picking step shown after a first sign-in: save the name, refresh the
- * session so the root layout stops redirecting here, then land on products.
- */
+/** Username-picking step after a first sign-in: save, refresh the session, land on products. */
 export function useOnboardingScreen() {
   const router = useRouter();
   const dialog = useDialog();

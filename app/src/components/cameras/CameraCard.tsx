@@ -13,8 +13,7 @@ import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import { TelemetryBadge } from './TelemetryBadge';
 
-// Mirrors theme/color.ts's getStatusColor mapping, but as StatusPill tone
-// keys rather than resolved colors — StatusPill resolves the color itself.
+// Mirrors theme/color.ts's getStatusColor mapping as StatusPill tone keys.
 const CONNECTION_TONE: Record<CameraConnectionStatus, StatusTone> = {
   online: 'success',
   offline: 'offline',
@@ -23,10 +22,7 @@ const CONNECTION_TONE: Record<CameraConnectionStatus, StatusTone> = {
   error: 'danger',
 };
 
-/**
- * Format an ISO-8601 timestamp as a compact relative string for the offline
- * overlay, e.g. ``42s ago``, ``3m ago``, ``5h ago``, ``2d ago``.
- */
+/** ISO-8601 timestamp to a compact relative string: ``42s ago``, ``3m ago``, ``5h ago``, ``2d ago``. */
 function formatLastSeen(lastSeenAt: string | null | undefined): string {
   if (!lastSeenAt) return 'never seen';
   const lastSeen = new Date(lastSeenAt).getTime();
@@ -53,9 +49,7 @@ function CameraCardComponent({
   const connection = effectiveConnection?.status ?? camera.status?.connection ?? 'offline';
   const isOnline = connection === 'online';
   const thumbnailUrl = camera.preview_thumbnail_url ?? null;
-  // Preview thumbnails are owner-checked, so the request has to carry credentials.
-  // Null while a native token resolves, which keeps the placeholder up instead of
-  // firing a spurious onError.
+  // Owner-checked route; null while a native token resolves.
   const thumbnailSource = useAuthedMediaSource(thumbnailUrl);
   const hasThumbnail = isOnline && Boolean(thumbnailSource) && failedThumbnailUrl !== thumbnailUrl;
   const handleThumbnailError = useCallback(

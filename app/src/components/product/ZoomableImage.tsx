@@ -27,22 +27,11 @@ interface Props {
   onScaleChange?: (scale: number) => void;
   setIsZoomed?: (isZoomed: boolean) => void;
   onSwipe?: (direction: -1 | 1) => void;
-  /** WCAG 1.1.1 — defaults to decorative ('') only because most callers wrap
-   * this in their own labelled control; the lightbox (which doesn't) passes
-   * a real description. */
+  /** Defaults to decorative (''); callers without their own labelled wrapper pass a description. */
   accessibilityLabel?: string;
-  /**
-   * When flipped false (the lightbox paged away from this slide), zoom state
-   * snaps back to identity without animation — otherwise a slide zoomed by
-   * pinch and left via chevron keeps its scale and comes back still zoomed
-   * while the pager thinks nothing is.
-   */
+  /** When false (the lightbox paged away), zoom snaps back to identity without animation. */
   active?: boolean;
-  /**
-   * Keyboard zoom entry point for web (the lightbox binds +/-/0 to it) — the
-   * pinch and double-tap gestures are pointer-only, so this is the only path
-   * a keyboard-only user has to the zoom. Attached to the active slide only.
-   */
+  /** Keyboard zoom entry point (the lightbox binds +/-/0 to it). Attached to the active slide only. */
   zoomRef?: RefObject<ZoomableImageHandle | null>;
 }
 
@@ -62,11 +51,7 @@ export default function ZoomableImage({
   active = true,
   zoomRef,
 }: Props) {
-  // Only a fallback for the pre-layout window; the measured container width
-  // wins as soon as onLayout has fired. Reactive anyway, so the fallback cannot
-  // describe the pre-rotation screen if it is ever read for something that
-  // outlives first layout — the parent already re-renders on rotation, so the
-  // subscription costs nothing here.
+  // Pre-layout fallback; the measured container width wins after onLayout.
   const fallbackWidth = useWindowDimensions().width;
   const [isZoomedInternal, setIsZoomedInternal] = useState(false);
 
@@ -115,10 +100,8 @@ export default function ZoomableImage({
     ],
   );
 
-  // Paged away while zoomed: snap rather than tween — `active` flips as soon as
-  // the index changes, while the pager is still sliding, so an animated reset
-  // would play in view. resetZoom's callback re-syncs the internal flag and the
-  // parent's.
+  // Snap, not tween: `active` flips while the pager is still sliding, so an
+  // animated reset would play in view.
   useEffect(() => {
     if (!active) resetZoom(false);
   }, [active, resetZoom]);
@@ -130,13 +113,12 @@ export default function ZoomableImage({
     (velocityX: number, velocityY: number) => {
       'worklet';
       if (containerHeight.get() === 0) {
-        // Layout not measured yet — keep the raw offset rather than clamping against a 0 rect.
+        // Layout not measured yet; do not clamp against a 0 rect.
         savedTranslateX.set(translateX.get());
         savedTranslateY.set(translateY.get());
         return;
       }
-      // Measured width — rotation and web window resizes would otherwise clamp
-      // against a stale rect.
+      // Measured width: rotation and window resizes would otherwise use a stale rect.
       const maxX = (containerWidth.get() * (scale.get() - 1)) / 2;
       const maxY = (containerHeight.get() * (scale.get() - 1)) / 2;
       const clampedX = clamp(translateX.get(), -maxX, maxX);
@@ -188,12 +170,9 @@ export default function ZoomableImage({
       translateY.set(savedTranslateY.get() + e.translationY);
     })
     .onEnd((e) => {
-      // This gesture's own movement, not the accumulated offset — otherwise panning a
-      // zoomed image far enough to see its edges reads as a navigation swipe.
-      // Distance-only on purpose: pan runs only while zoomed, where a quick
-      // short flick is momentum panning, not a navigation gesture — a velocity
-      // trigger here pages away and discards the user's zoom mid-inspection.
-      // Unzoomed paging is the list's native scroll, already velocity-driven.
+      // This gesture's own movement, not the accumulated offset, and distance
+      // only: while zoomed a short flick is momentum panning, and a velocity
+      // trigger would page away and discard the zoom.
       const horizontal = e.translationX;
       const vertical = e.translationY;
       const swipeThreshold = (containerWidth.get() || fallbackWidth) * 0.15;
@@ -226,8 +205,7 @@ export default function ZoomableImage({
 
   const composedGesture = Gesture.Simultaneous(pinchGesture, panGesture, doubleTapGesture);
 
-  // JS-thread twin of the double-tap worklet: same clamp and bookkeeping, but it
-  // can call updateZoomState directly instead of hopping threads.
+  // JS-thread twin of the double-tap worklet.
   useImperativeHandle(
     zoomRef,
     () => ({
@@ -285,13 +263,10 @@ export default function ZoomableImage({
   );
 }
 
-// Neither host here is a NativeWind className target: Animated.View (from
-// react-native-reanimated) and expo-image's Image aren't cssInterop-wrapped
-// in this app, unlike the core RN View/Text/Pressable. Layout stays inline.
+// Animated.View and expo-image's Image are not className targets here; layout stays inline.
 const styles = StyleSheet.create({
   container: {
-    // Both relative: the slide around this one is already sized to the window,
-    // so percentages track window resizes that a measured-once constant misses.
+    // Relative so the slide tracks window resizes.
     width: '100%',
     height: '100%',
     justifyContent: 'center',

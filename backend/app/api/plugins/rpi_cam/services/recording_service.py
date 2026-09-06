@@ -148,10 +148,8 @@ async def stop_youtube_recording(
     youtube_service = await _build_youtube_service(session, http_client, current_user)
     camera_request = build_camera_request(camera, redis)
 
-    # Look the Video row up without raising: stopping the public broadcast must not be
-    # skipped just because its bookkeeping row was deleted mid-recording (Product.videos
-    # cascades, and there is a user-facing video DELETE). Ending the livestream and the
-    # Pi stream are the irreversible, privacy-critical steps, so they run unconditionally.
+    # Do not raise on a missing Video row (cascade or user DELETE mid-recording): ending
+    # the public broadcast and the Pi stream must run regardless.
     video = await get_model(session, Video, recording_session.video_id)
 
     await youtube_service.end_livestream(recording_session.broadcast_key)
@@ -169,8 +167,8 @@ async def stop_youtube_recording(
             sanitize_log_value(camera_cleanup_error),
         )
 
-    # Clear before raising on a missing row: YouTube rejects ending an already-completed
-    # broadcast, so leaving the session cached would make every retry fail forever.
+    # Clear before raising: YouTube rejects ending a completed broadcast, so a cached
+    # session would fail every retry.
     await clear_recording_session(redis, session, camera_id)
     return VideoRead.model_validate(ensure_model_exists(video, Video, recording_session.video_id))
 
@@ -263,9 +261,8 @@ async def _resolve_existing_recording(
         )
         stream_view = _validate_stream_view(response.json())
     except APIError as exc:
-        # Only a YouTube-side APIError means the cached session is genuinely dead. An
-        # HTTPException here is a transient relay failure (e.g. camera briefly offline);
-        # clearing on that would orphan a still-live broadcast and lose its Video link.
+        # Only a YouTube APIError means the session is dead; an HTTPException is a
+        # transient relay failure, and clearing on it would orphan a live broadcast.
         logger.warning(
             "Cached recording session for camera %s could not be verified (%s); clearing",
             sanitize_log_value(camera_id),

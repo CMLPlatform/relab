@@ -19,11 +19,7 @@ const VARIANT_MAP: Record<AppButtonVariant, RnrVariant> = {
   destructive: 'destructive',
 };
 
-// Omit 'variant' from the vendored button's props: AppButton remaps its own
-// app-level variant names to the RNR ones via VARIANT_MAP. Everything else
-// (accessibilityHint, accessibilityState, aria-*, onLongPress, ...) passes
-// through via `...rest` so callers aren't limited to the props this file
-// happened to name explicitly.
+// 'variant' is remapped via VARIANT_MAP; everything else passes through.
 type AppButtonProps = Omit<ComponentProps<typeof Button>, 'variant'> & {
   variant?: AppButtonVariant;
   loading?: boolean;
@@ -40,9 +36,7 @@ export function AppButton({
   ...rest
 }: AppButtonProps) {
   const { colors } = useAppTheme();
-  // Bare RN text nodes must live inside <Text>; wrap primitive children so a numeric or
-  // string label renders safely. Anything else (an element, null, or a boolean, which
-  // React already renders as nothing) passes through untouched.
+  // Bare RN text nodes must live inside <Text>.
   const renderedChildren =
     typeof children === 'string' || typeof children === 'number' ? (
       <Text>{children}</Text>
@@ -53,10 +47,8 @@ export function AppButton({
     <Button
       variant={VARIANT_MAP[variant]}
       disabled={disabled || loading}
-      // min-h-11 (44px) is a different tailwind-merge group than the vendored
-      // button's h-10/sm:h-9 size classes, so it survives the merge and — since
-      // min-height clamps height from below — always wins the actual layout,
-      // keeping every AppButton at the 44px a11y tap-target floor.
+      // min-h-11 (44px tap floor) is a different tailwind-merge group than the
+      // vendored h-10/sm:h-9, so it survives the merge.
       className={cn('min-h-11', className)}
       {...rest}
     >

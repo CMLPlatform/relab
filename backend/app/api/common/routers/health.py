@@ -76,9 +76,7 @@ async def perform_health_checks(request: Request) -> dict[str, dict[str, Any]]:
 @router.get("/live", include_in_schema=False)
 async def liveness_probe() -> JSONResponse:
     """Liveness probe: signals the container is running."""
-    # These probes are unauthenticated and internet-reachable through the tunnel, so
-    # they expose only a bare status. Version and environment are an unnecessary
-    # disclosure (version-specific CVE targeting, infra fingerprinting).
+    # Unauthenticated and internet-reachable: no version or environment disclosure.
     return JSONResponse(content={"status": "alive"}, status_code=200)
 
 
@@ -96,8 +94,7 @@ async def readiness_probe(request: Request) -> JSONResponse:
     overall_status = HEALTHY_STATUS if all_healthy else UNHEALTHY_STATUS
     status_code = 200 if all_healthy else 503
 
-    # Report only the status and per-dependency reachability an orchestrator needs.
-    # Version and environment are withheld from this unauthenticated endpoint.
+    # Status and dependency reachability only; no version or environment.
     response_data = {
         "status": overall_status,
         "checks": checks,

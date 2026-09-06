@@ -15,10 +15,8 @@ from app.core.images.thumbnails import thumbnail_path_for
 if TYPE_CHECKING:
     from os import PathLike
 
-# The width every read schema's ``thumbnail_url`` points at. The wider
-# derivatives in THUMBNAIL_WIDTHS are written at upload time too and are
-# published alongside it as ``thumbnail_urls``, so a caller rendering a large
-# image does not have to settle for the list-sized one.
+# The width ``thumbnail_url`` points at; the wider THUMBNAIL_WIDTHS are published as
+# ``thumbnail_urls``.
 THUMBNAIL_WIDTH_PX = 200
 IMAGE_URL_PREFIX = f"{UPLOADS_PATH_PREFIX}/images"
 
@@ -71,17 +69,12 @@ def build_thumbnail_urls_by_width(
 ) -> dict[int, str]:
     """Public URLs for every pre-computed derivative that exists for an image.
 
-    Keyed by width in pixels. ``generate_thumbnails`` skips any width at or above
-    the original's, so a small upload yields fewer entries than a large one and a
-    caller has to pick from what is actually there rather than assume the set.
-    Empty for an S3-backed path, which has no local derivatives.
+    Keyed by width in pixels. Widths at or above the original's are never generated,
+    so callers pick from what is there. Empty for an S3-backed path.
 
-    When ``original_width_px`` is known, widths that could never have been
-    generated are skipped without touching the filesystem. The remaining widths
-    are still stat-checked: thumbnail generation is allowed to fail at upload, so
-    a derivative that should exist may not.
-    NOTE: this runs inside response serialization on the event loop; if the stat
-    cost ever shows up, move URL derivation into the CRUD layer where it can batch.
+    Widths that remain are stat-checked, since thumbnail generation may fail at upload.
+    NOTE: runs inside response serialization on the event loop; if the stat cost shows
+    up, move URL derivation into the CRUD layer where it can batch.
     """
     if file_path is None or file_path.startswith(("http://", "https://")):
         return {}

@@ -48,9 +48,8 @@ async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
     )
 
 
-# Each scope restricts the population before grouping. A product's category is
-# its own product_type -- a component is categorised as the component it is, not
-# as the product it came out of -- so the two populations never share a row.
+# Each scope restricts the population before grouping. A component is categorised by
+# its own product_type, not its parent's, so the two populations never share a row.
 _SCOPE_FILTERS: dict[CategoryScope, ColumnElement[bool] | None] = {
     CategoryScope.PRODUCTS: IS_TEARDOWN,
     CategoryScope.COMPONENTS: IS_COMPONENT,
@@ -87,10 +86,8 @@ async def compute_series(
     start_dt = datetime(start.year, start.month, start.day, tzinfo=UTC)
     end_dt = datetime(end.year, end.month, end.day, tzinfo=UTC) + timedelta(days=1)
 
-    # One expression object per statement, reused by both SELECT and GROUP BY.
-    # Building it twice yields two separate bind parameters, which Postgres then
-    # reads as two different expressions -- it rejects the GROUP BY and demands
-    # the raw created_at column instead.
+    # One expression object for both SELECT and GROUP BY: built twice, the two bind
+    # parameters read as different expressions and Postgres rejects the GROUP BY.
     def trunc(col: ColumnElement) -> ColumnElement:
         return func.date_trunc(granularity, col)
 

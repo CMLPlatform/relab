@@ -22,9 +22,8 @@ const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedText = Animated.createAnimatedComponent(SvgText);
 
-// The drawing lives in a fixed viewBox so the geometry can animate without the
-// viewBox animating with it (animated viewBox is poorly supported). The padding
-// leaves room for the edge labels, which hang outside the shape.
+// Fixed viewBox (an animated viewBox is poorly supported); the padding leaves
+// room for the edge labels outside the shape.
 const PAD_LEFT = 48;
 const PAD_RIGHT = 40;
 const PAD_TOP = 12;
@@ -35,15 +34,12 @@ const VIEW_BOX = [
   FRAME_W + PAD_LEFT + PAD_RIGHT,
   FRAME_H + PAD_TOP + PAD_BOTTOM,
 ].join(' ');
-// NOTE: fixed, not measured from the shape. The frame fit means the drawing
-// always fills the frame in one direction, so a flat product wastes little
-// space here; sizing this to the shape would need the height animated too.
+// NOTE: fixed, not measured from the shape; sizing to the shape would need the height animated too.
 const SVG_HEIGHT = 210;
 const COMPACT_SVG_HEIGHT = 132;
 
 const LABEL_GAP = 15;
-// NOTE: SVG-drawn dimension label inside the cube diagram, not an app text
-// primitive — the ramp's variants don't reach into SVG shape props.
+// NOTE: SVG-drawn label; the ramp does not reach SVG props.
 const FONT_SIZE = 12;
 /** Unit normal of an edge sloping at ISO, used to push labels clear of it. */
 const NORMAL_X = Math.sin(Math.PI / 6);
@@ -104,12 +100,8 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
   const tx = useSharedValue(layout.tx);
   const ty = useSharedValue(layout.ty);
 
-  // Retarget rather than queue: withTiming interpolates from wherever the value
-  // currently sits, so typing 1 -> 10 -> 100 redirects mid-flight instead of
-  // playing three animations back to back. The mount run is skipped outright —
-  // withTiming to an equal target still burns the full 200ms of UI-thread
-  // frames, and product detail is read-mostly; an assembling cube per visit
-  // (or a no-op animation behind it) is a tax.
+  // withTiming retargets mid-flight, so typing 1 -> 10 -> 100 does not queue.
+  // The mount run is skipped: withTiming to an equal target still burns 200ms.
   const mounted = useRef(false);
   useEffect(() => {
     if (!mounted.current) {
@@ -123,10 +115,8 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
     ty.value = withTiming(layout.ty, TIMING);
   }, [layout.w, layout.h, layout.d, layout.tx, layout.ty, w, h, d, tx, ty]);
 
-  // Each face is a column-major matrix whose 2x2 part is constant, leaving the
-  // translation as the only animated term. Keeping every animated value numeric
-  // avoids rebuilding transform strings inside a worklet, and avoids the
-  // transform shorthand props react-native-svg 15 marks deprecated.
+  // Column-major matrix per face; only the translation animates. Numeric
+  // values avoid the transform shorthand props react-native-svg 15 deprecates.
   const groupProps = useAnimatedProps(() => matrixProp([1, 0, 0, 1, tx.value, ty.value]));
   const frontProps = useAnimatedProps(() => ({ width: w.value, height: h.value }));
   // skewY(-30) translate(w, 2*ISO*w), composed.
@@ -154,10 +144,8 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
   }));
   const heightLabel = useAnimatedProps(() => ({ x: -LABEL_GAP, y: h.value / 2 }));
 
-  // Derived values
-  // One hue at three luminances reads as a lit solid; three different hues read
-  // as three panels. The ramp flips with the scheme because `primary` is dark on
-  // light and light on dark, and the top face stays the brightest either way.
+  // One hue at three luminances reads as a lit solid. The ramp flips with the
+  // scheme so the top face stays brightest.
   const base = theme.colors.primary;
   const tone = theme.dark ? { top: 1, front: 0.74, side: 0.5 } : { top: 0.5, front: 0.74, side: 1 };
 
@@ -208,7 +196,5 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
   );
 }
 
-// The parent form re-renders on every keystroke in ANY physical-property field
-// (weight included); three primitive props make memo a free skip of the layout
-// math and the seven animated-prop registrations.
+// The parent form re-renders on every keystroke in any physical-property field.
 export default memo(Cube);

@@ -8,10 +8,8 @@ const badgeVariants = cva(
   cn(
     'border-border group shrink-0 flex-row items-center justify-center gap-1 overflow-hidden rounded-full border px-2 py-0.5',
     Platform.select({
-      // No focus styling: Badge is a static label here (ComponentRow, HeroStats),
-      // never focusable. The upstream ring-based focus styling was dead, and a ring
-      // is the wrong mechanism on this codebase anyway — see WEB_FOCUS_RING. If a
-      // badge ever becomes interactive, compose WEB_FOCUS_RING rather than a ring.
+      // No focus styling: Badge is never focusable. If it becomes interactive,
+      // compose WEB_FOCUS_RING, not a ring.
       web: 'aria-invalid:border-destructive w-fit whitespace-nowrap transition-[color,box-shadow] [&>svg]:pointer-events-none [&>svg]:size-3',
     }),
   ),

@@ -15,13 +15,7 @@ export function stripTrailingSlash(value: string): string {
   return value.replace(TRAILING_SLASH_PATTERN, '');
 }
 
-/**
- * Whether a hostname names a device on the local network.
- *
- * Gate for anything that sends a device credential to a host we did not choose
- * ourselves (server-supplied candidate URLs, user-typed addresses, values read
- * back from storage), so a secret can never leave the LAN.
- */
+/** Whether a hostname is on the local network. Gates every path that sends a device credential. */
 export function isPrivateLocalHost(hostname: string): boolean {
   const host = hostname.toLowerCase();
   if (host === 'localhost' || host.endsWith('.local')) return true;

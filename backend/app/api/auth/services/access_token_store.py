@@ -1,21 +1,12 @@
 """Revocable opaque access tokens.
 
-fastapi-users' :class:`RedisStrategy` stores each access token as its own Redis key
-holding a bare user id, with no issue time and no user -> token index. So a global
-revocation ("log out all devices", password reset, deactivation, refresh-token reuse)
-can only reach *refresh* tokens; every already-issued access token stays valid until it
-expires on its own. That violates ASVS V7.4.1 and — for the deactivate/delete paths —
-V7.4.2, which is Level 1.
+fastapi-users' :class:`RedisStrategy` stores no issue time, so a global revocation
+(log out all devices, password reset, deactivation, refresh-token reuse) cannot reach
+already-issued access tokens (ASVS V7.4.1, V7.4.2).
 
-This module makes access tokens revocable by stamping each one with an issue time and
-recording a per-user revocation epoch: a token is refused when it was issued before the
-epoch. Compared with keeping a per-user set of live tokens, this is O(1) to revoke and
-has no enumerate-then-delete race, which is the pattern used by e.g. Firebase's
-``tokensValidAfterTime`` and Django's session auth hash.
-
-The epoch lives in Redis rather than on the user row deliberately: losing Redis also
-loses every access token it governs, so the failure mode is fail-closed, and keeping it
-here means the Redis-only refresh-reuse path can revoke without a database session.
+Each token is stamped with its issue time and refused when issued before the user's
+revocation epoch. The epoch lives in Redis, not the user row: losing Redis loses the
+tokens too (fail closed), and the refresh-reuse path can revoke without a DB session.
 """
 
 import json

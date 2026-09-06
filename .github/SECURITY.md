@@ -13,11 +13,10 @@ Instead, email [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl) with:
 ## What to Expect
 
 - We aim to acknowledge reports within 5 business days.
-- We aim to validate and triage confirmed issues as quickly as possible.
-- For confirmed vulnerabilities, we will coordinate a fix and responsible disclosure timeline with
-  the reporter where practical.
+- For confirmed vulnerabilities, we coordinate a fix and a disclosure timeline with the reporter
+  where practical.
 
-Please include enough detail for us to reproduce the problem. That saves time for everyone.
+Include enough detail for us to reproduce the problem.
 
 ## Security Baseline
 
@@ -46,19 +45,18 @@ Security-sensitive areas:
 
 - authentication and OAuth
 - public read APIs
-- authenticated mutation APIs — create endpoints accept an `Idempotency-Key` header and cache the
+- authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
-    a cached response can never be replayed across accounts or targets.
-  - The entry also stores a hash of the request body: reusing a key with a different payload is
-    rejected with `422` instead of replaying the earlier record.
-  - If Redis is unreachable the request fails closed with `503` rather than risking a duplicate.
-- uploads and media — the `/uploads` mount serves stored bytes with a content-hashed,
-  immutable cache policy and `Cross-Origin-Resource-Policy: same-site`. That policy is
-  relaxed to `cross-origin` for `/uploads` alone in the `dev` and `testing` environments,
-  where the API and the frontends sit on different ports of `127.0.0.1` and Chromium blocks
-  the loads. The relaxation is derived from the environment, not configured, so staging and
-  production cannot opt into it.
+    a cached response is never replayed across accounts or targets.
+  - The entry stores a hash of the request body: reusing a key with a different payload is rejected
+    with `422`.
+  - If Redis is unreachable the request fails closed with `503`.
+- uploads and media: the `/uploads` mount serves stored bytes with a content-hashed, immutable
+  cache policy and `Cross-Origin-Resource-Policy: same-site`. In the `dev` and `testing`
+  environments, where the API and the frontends sit on different ports of `127.0.0.1` and Chromium
+  blocks the loads, the policy is `cross-origin` for `/uploads` alone. The relaxation is derived
+  from the environment, not configured, so staging and production cannot opt into it.
 - admin APIs
 - RPi camera device APIs and WebSocket relay
 - backups, secrets, logs, and telemetry
@@ -68,12 +66,11 @@ Valuable assets include accounts, profile/privacy settings, research records, up
 OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup
 material, and runtime secrets.
 
-Public read APIs are intentionally public: the product/component catalog and its research content
-are world-readable by design, since the platform exists to publish that data. `profile_visibility`
-hides owner identity attribution only — it is not a control over the underlying research content,
-and must never be treated as one.
+The product/component catalog and its research content are world-readable; the platform exists to
+publish that data. `profile_visibility` hides owner identity attribution only. It is not a control
+over the research content and must never be treated as one.
 
-Account privileges are three independent things, and conflating any two of them is a privilege
+Account privileges are three independent things; conflating any two of them is a privilege
 escalation:
 
 - `is_verified` gates whether an account may create records at all.
@@ -82,11 +79,10 @@ escalation:
   research-file upload and selects the upload quota tier. A superuser who is not `lab` is refused
   a research-file upload exactly like any other contributor.
 
-Roles are assigned only by a superuser through `PUT /v1/admin/users/{user_id}/role`, which records
-an audit event. `role` is deliberately absent from `UserUpdate`: fastapi-users' safe update path
-strips a fixed set of privileged fields, so any new field on that schema would flow through
-self-service `PATCH /users/me` — keeping role off the schema makes that escalation unrepresentable
-rather than filtered. New and backfilled accounts start at `contributor`, so the tier fails closed.
+Only a superuser assigns roles, through `PUT /v1/admin/users/{user_id}/role`, which records an
+audit event. Keep `role` off `UserUpdate`: fastapi-users' safe update path strips a fixed set of
+privileged fields, so any new field on that schema flows through self-service `PATCH /users/me`.
+New and backfilled accounts start at `contributor`, so the tier fails closed.
 
 ## Automated Checks
 
@@ -112,8 +108,8 @@ Automated checks do not replace reviewer judgment. For changes that touch authen
 authorization, uploads/media, RPi camera or device flows, admin APIs, deployment, secrets,
 dependencies, or personal data, confirm:
 
-- authorization is enforced server-side, not only hidden in a client — hiding an upload affordance
-  from a client that lacks the role is a UX choice, never the control
+- authorization is enforced server-side; hiding an upload affordance from a client that lacks the
+  role is a UX choice, never the control
 - input is validated at API, upload, form, and device boundaries
 - browser-rendered values stay on framework escaping paths; raw HTML sinks and dynamic URLs are
   isolated, validated, and tested

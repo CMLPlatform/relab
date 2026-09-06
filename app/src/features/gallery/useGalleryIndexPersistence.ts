@@ -7,11 +7,8 @@ function getGalleryStorageKey(productId: number) {
 }
 
 /**
- * Restores and persists the last-viewed gallery index for a product.
- *
- * The restored index is handed to `onRestore` rather than parked in state: the
- * consumer has to both select and scroll to it, and driving that from an effect
- * watching a state value is what let the counter desync from the visible slide.
+ * Restores and persists the last-viewed gallery index. Handed to `onRestore`,
+ * not parked in state: the consumer must select and scroll together.
  */
 export function useGalleryIndexPersistence({
   productId,

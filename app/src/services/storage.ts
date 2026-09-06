@@ -7,15 +7,12 @@ import { Platform } from 'react-native';
 export const QUERY_CACHE_STORAGE_KEY = 'relab-query-cache';
 export const RECENT_CATEGORIES_STORAGE_KEY = 'relab-recent-categories';
 
-// Everything sign-out wipes. A shared device's next user must not inherit the
-// previous one's data, so a new persisted store adds its key here and
-// registers its in-memory reset below. The policy lives in services/ rather
-// than in AuthProvider so context/ doesn't have to import from features/.
+// Everything sign-out wipes. A new persisted store adds its key here and
+// registers its in-memory reset below.
 const SIGN_OUT_STORAGE_KEYS = [QUERY_CACHE_STORAGE_KEY, RECENT_CATEGORIES_STORAGE_KEY];
 
-// Removing the AsyncStorage key alone is not enough: a zustand store keeps its
-// state in memory and would re-persist the previous user's picks on the next
-// write. Owners register a reset that empties the live state too.
+// A zustand store would re-persist its in-memory state on the next write, so
+// owners register a reset too.
 const signOutResets = new Set<() => void>();
 
 export function registerSignOutReset(reset: () => void): void {
@@ -30,13 +27,9 @@ export async function clearPersistedUserData(): Promise<void> {
 export const isWeb = () => Platform.OS === 'web';
 const getWebLocalStorage = () => globalThis.localStorage;
 const getWebSessionStorage = () => globalThis.sessionStorage;
-// Key-name lint only: this catches a caller *naming* a slot like a credential,
-// not a token smuggled under an innocuous key — the guard cannot see values.
-// The real protection is that all tokens route through setSecureItem (below),
-// which throws on web rather than ever touching localStorage.
-//
-// Keys are normalized to snake_case first: an `i` flag would make `[^a-z0-9]`
-// exclude A-Z too, so `authToken` would never hit a word boundary and slip past.
+// Key-name lint only; the guard cannot see values. Tokens route through
+// setSecureItem, which throws on web. Keys are normalized to snake_case
+// first, else `authToken` never hits a word boundary.
 const SENSITIVE_LOCAL_STORAGE_KEY_PATTERN =
   /(^|_)(access_?token|refresh_?token|api_?key|token|secret|password|authorization|auth|session|jwt|bearer|credential|cookie)s?(_|$)/;
 

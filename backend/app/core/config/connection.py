@@ -35,8 +35,7 @@ class DatabaseSettings(RelabBaseSettings):
     backup_password: SecretStr = SecretStr("")
 
     # ── Bootstrap/admin Postgres credentials (POSTGRES_* env vars) ───────────
-    # env_prefix="DATABASE_" would produce DATABASE_POSTGRES_USER etc., so we
-    # use AliasChoices to read the historic POSTGRES_* names directly.
+    # AliasChoices reads the historic POSTGRES_* names past env_prefix="DATABASE_".
     postgres_user: Annotated[str, Field(validation_alias=AliasChoices("POSTGRES_USER", "postgres_user"))] = "postgres"
     postgres_password: Annotated[
         SecretStr, Field(validation_alias=AliasChoices("POSTGRES_PASSWORD", "postgres_password"))

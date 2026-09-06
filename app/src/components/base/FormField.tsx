@@ -7,12 +7,7 @@ import { useAppTheme } from '@/theme';
 // minHeight, not height: large OS text-scale settings may still grow the line.
 const HELPER_SLOT_MIN_HEIGHT = 18;
 
-/**
- * Renders a field-level error message with a stable `nativeID`, so the input
- * can be linked to it via `describedBy` (`@/utils/a11y`) instead of rendering
- * as an unlinked sibling <Text> (WCAG 1.3.1 / 3.3.1 / 4.1.2 — programmatic
- * error association, not just a color change on the input).
- */
+/** Field-level error with a stable `nativeID` for `describedBy` (WCAG 1.3.1 / 3.3.1 / 4.1.2). */
 export function FormFieldError({
   errorId,
   message,
@@ -22,21 +17,13 @@ export function FormFieldError({
   errorId: string;
   message: string | undefined;
   style?: TextStyle;
-  /**
-   * Always render a one-line helper slot so the error fills reserved space
-   * instead of shoving the rest of the form down. The fade below bridges the
-   * text's appearance; only the reserved slot prevents the layout shift.
-   * Opt-in: mixed view/edit layouts (product headers, video fields) keep the
-   * conditional render rather than carrying a permanent empty line.
-   */
+  /** Reserve a one-line slot so the error does not shift the form. Opt-in. */
   reserveSpace?: boolean;
 }) {
   const theme = useAppTheme();
 
-  // accessibilityLiveRegion below covers Android (and the web export's
-  // aria-live); VoiceOver ignores it, so iOS gets the explicit announcement —
-  // same split as DialogProvider's Toast. Keyed on the message, so a
-  // correction that swaps one error for another is announced too.
+  // VoiceOver ignores accessibilityLiveRegion, so iOS gets an explicit
+  // announcement. Keyed on the message so a swapped error is announced too.
   useEffect(() => {
     if (message && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
   }, [message]);

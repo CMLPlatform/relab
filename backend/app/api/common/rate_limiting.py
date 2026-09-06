@@ -47,8 +47,7 @@ def rate_limit_bucket_key(prefix: str, value: str) -> str:
     if not normalized_value:
         return f"{prefix}:missing"
     secret = core_settings.cache_signing_secret.get_secret_value().encode("utf-8")
-    # The prefix is part of the signed message, so two dimensions can never
-    # produce the same digest for the same value.
+    # The prefix is signed too, so two dimensions never share a digest for one value.
     message = f"{prefix}:{normalized_value}".encode()
     digest = hmac.new(secret, message, hashlib.sha256).hexdigest()
     return f"{prefix}:{digest}"
@@ -98,8 +97,7 @@ class Limiter:
             return
 
         if not allowed:
-            # Safe to log: every caller builds keys via rate_limit_bucket_key, so
-            # sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
+            # Safe to log: sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
             logger.info("Rate limit exceeded for bucket %s", key)  # codeql[py/clear-text-logging-sensitive-data]
             raise RateLimitExceededError
 
@@ -147,9 +145,7 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
     )
 
 
-# ---------------------------------------------------------------------------
-# Singleton limiter instance & rate-limit strings
-# ---------------------------------------------------------------------------
+# Singleton limiter instance and rate-limit strings
 
 limiter = Limiter(
     key_func=request_ip_rate_limit_key,

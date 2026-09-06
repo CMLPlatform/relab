@@ -27,9 +27,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
     () => actions.deleteImage(viewer.selectedIndex),
     [actions, viewer.selectedIndex],
   );
-  // Only one of ProductImageGalleryContent's / ProductImageEmptyEditState's RPi
-  // buttons renders at a time, so one shared ref covers both — see AppDialog's
-  // `triggerRef`.
+  // Only one RPi button renders at a time, so one ref covers both (AppDialog's `triggerRef`).
   const rpiTriggerRef = useRef<View>(null);
 
   if (media.imageCount === 0 && !editMode) {

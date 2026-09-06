@@ -24,11 +24,7 @@ export function appendCapturedImage(
   ];
 }
 
-/**
- * Processes picked assets into image entries, dropping any the processor
- * rejects for size. Falling back to the raw asset there would only defer the
- * failure to save time, where it surfaces as an opaque 413.
- */
+/** Processes picked assets into image entries, dropping any rejected for size (else an opaque 413 at save). */
 export async function buildImportedImages(
   assets: readonly ImagePicker.ImagePickerAsset[],
   onReject?: (message: string) => void,

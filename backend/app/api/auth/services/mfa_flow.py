@@ -67,10 +67,8 @@ async def confirm_totp_setup(
     user = await user_manager.get(current_user.id)
     if user.mfa_enabled or user.mfa_totp_secret:
         raise MfaChallengeInvalidError
-    # Reauthenticate before enabling: an active session alone isn't enough (OWASP).
-    # OAuth-only accounts have no usable password to re-enter, so the session is the
-    # only available factor there — matching the step-up in oauth/accounts.py, which
-    # would otherwise make MFA impossible to enable for those accounts.
+    # Reauthenticate before enabling (OWASP). OAuth-only accounts have no password to
+    # re-enter, so the session is their only factor (same as oauth/accounts.py).
     if user.has_usable_password:
         if payload.password is None:
             raise HTTPException(
@@ -94,9 +92,8 @@ async def confirm_totp_setup(
 
     setup = await mfa_service.consume_totp_setup(redis, setup_token, user_id=current_user.id)
     await mfa_service.enable_totp(user_manager, user, setup.secret)
-    # Burn only after enrollment is committed: a failed commit must not lock the
-    # still-valid code out of an immediate retry. Replay of the whole flow is
-    # already blocked by the one-time setup token consumed above.
+    # Burn only after enrollment is committed, so a failed commit can be retried with
+    # the same code. The one-time setup token above already blocks replay.
     await mfa_service.burn_totp_counter(redis, user_id=current_user.id, counter=counter)
     codes, hashes = mfa_service.generate_recovery_codes()
     await mfa_service.set_recovery_codes(user_manager, user, hashes)
@@ -125,9 +122,8 @@ async def disable_totp(
 ) -> None:
     """Turn off TOTP MFA after confirming ownership with a current code or a recovery code."""
     user = await _load_enrolled_mfa_user(user_manager, current_user)
-    # Accept a recovery code too: someone who lost their authenticator must still be
-    # able to turn MFA off (then re-enroll) — that is exactly what recovery codes are for.
-    # clear_totp wipes the codes anyway, so the matched code needn't be persisted here.
+    # Recovery codes are accepted so a lost authenticator can still turn MFA off.
+    # clear_totp wipes the codes, so the matched one needs no persisting.
     if await _verify_challenge_code(payload.code, user=user, redis=redis) is None:
         audit_mfa_failure(user, reason="invalid_totp_disable_code")
         raise MfaCodeInvalidError
@@ -159,8 +155,7 @@ async def regenerate_recovery_codes(
     audit_event(
         user.id, AuditAction.MFA_SUCCESS, "mfa", user.id, context=AuditContext(flow="recovery_codes_regenerate")
     )
-    # Rotating codes invalidates every previously issued one — notify out-of-band, as
-    # enable/disable already do, so a silent rotation can't hide from the account owner.
+    # Notify out-of-band so a silent rotation cannot hide from the account owner.
     await send_recovery_codes_regenerated_notification(user.email, user.username, background_tasks=background_tasks)
     return MfaRecoveryCodesResponse(recovery_codes=codes)
 
@@ -203,8 +198,8 @@ async def complete_mfa_challenge(
 
     challenge = await mfa_service.consume_login_challenge(redis, mfa_token)
     if remaining_recovery is not None:
-        # Burn the one-time recovery code only after the login challenge is consumed,
-        # so an already-consumed/expired challenge can't spend a code without a login.
+        # Burn the recovery code only after the challenge is consumed, so an expired
+        # challenge cannot spend a code.
         await mfa_service.set_recovery_codes(user_manager, user, remaining_recovery)
     audit_event(
         user.id,
@@ -245,10 +240,9 @@ async def _verify_challenge_code(
     the caller must persist *after* the login challenge is consumed (None for TOTP).
     Returns None if neither matched.
 
-    A matched TOTP code *is* burned here (``verify_totp_code_once``): a login code
-    is single-use, so replay must fail even if a later step does. Recovery codes are
-    the opposite — not consumed here, only handed back for the caller to persist once
-    the login challenge is spent, so a later failure can't waste a code.
+    A matched TOTP code is burned here so replay fails even if a later step does. A
+    recovery code is only handed back, for the caller to persist once the challenge is
+    spent, so a later failure cannot waste it.
     """
     if len(code) == 6 and code.isdecimal():
         if user.mfa_totp_secret and await mfa_service.verify_totp_code_once(

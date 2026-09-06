@@ -3,7 +3,7 @@ title: Getting started
 description: Create an account and capture a first Relab product record.
 ---
 
-Relab helps you document a product while you take it apart. A useful first record does not need to be perfect; it needs a clear product identity, a few good photos, and notes on what you found.
+Relab documents a product while you take it apart. A useful first record needs a clear product identity, a few good photos, and notes on what you found.
 
 ## Create an account
 
@@ -12,18 +12,18 @@ Relab helps you document a product while you take it apart. A useful first recor
 1. Verify your email if prompted. Some features only activate once the account is verified.
 
 :::tip[Fastest path in]
-GitHub and Google OAuth skip the manual email-verification step. If you have access to either, use that.
+GitHub and Google sign-in skip the email-verification step.
 :::
 
 ## Before you start
 
 - Prepare a workspace with enough space for the product and separated components.
-- Good lighting matters more than fancy equipment; see [Hardware](../hardware/) for what works.
+- Good lighting matters more than equipment; see [Hardware](../hardware/).
 - Have a device ready for photos. A phone is fine; a camera rig is optional.
 
 ## Make your first product record
 
-Once you're logged in, the core workflow is:
+Once signed in:
 
 1. Create a **product record** for the item you're about to document, such as a power drill.
 1. Add identifying information: name, brand, model, any initial notes.

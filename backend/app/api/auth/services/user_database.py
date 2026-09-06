@@ -79,9 +79,7 @@ class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
         try:
             email_canonical = canonicalize_email(email)
         except ValueError:
-            # A malformed address matches no stored user; treat as not found
-            # rather than surfacing a 500 (and without leaking format vs. wrong
-            # password to the login caller).
+            # Not found, not 500: also avoids leaking format vs. wrong password.
             return None
         email_canonical_column = cast("Any", self.user_table).email_canonical
         statement = select(self.user_table).where(email_canonical_column == email_canonical)

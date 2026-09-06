@@ -14,9 +14,7 @@ export function OfflineBanner() {
     () => true,
   );
 
-  // accessibilityLiveRegion below is Android-only (plus aria-live on the web
-  // export); VoiceOver needs the transition announced explicitly, same split
-  // as DialogProvider's Toast.
+  // VoiceOver ignores accessibilityLiveRegion; announce explicitly.
   useEffect(() => {
     if (!isOnline && Platform.OS === 'ios') {
       AccessibilityInfo.announceForAccessibility(OFFLINE_MESSAGE);

@@ -99,9 +99,7 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
       }
 
       const data = await response.json().catch(() => null);
-      // Re-check after the parse await: a logout that landed while the body
-      // was streaming bumps the generation, and re-persisting here would
-      // resurrect the session the user just ended.
+      // Re-check after the parse await: a logout may have landed meanwhile.
       if (authRuntime.authGeneration !== capturedGeneration) return false;
       if (typeof data?.access_token === 'string') {
         await persistAccessToken(data.access_token);

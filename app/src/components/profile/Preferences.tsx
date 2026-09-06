@@ -160,9 +160,7 @@ function ThemeModeOption({
       style={[styles.themeModeOption, active && styles.themeModeOptionActive]}
       onPress={handlePress}
       accessibilityRole="radio"
-      // `checked` is the required state for role=radio (RN Web maps it to
-      // aria-checked); `selected` alone emits aria-selected, which ARIA does not
-      // accept on a radio, so screen readers could not report the active theme.
+      // `checked` maps to aria-checked; `selected` emits aria-selected, which a radio does not accept.
       accessibilityState={{ checked: active, selected: active }}
       accessibilityLabel={`${label} theme`}
     >

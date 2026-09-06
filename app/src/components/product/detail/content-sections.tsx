@@ -1,6 +1,4 @@
-// Canonical home of SECTIONS/visibleSections — do not re-export from
-// Content.tsx (react-refresh/only-export-components forbids mixing
-// non-component exports into a file that also exports a component).
+// Do not re-export from Content.tsx (react-refresh/only-export-components).
 import type { ComponentProps, ReactNode, RefObject } from 'react';
 import type { View } from 'react-native';
 import type { SectionKey } from '@/components/base/SectionNavContext';
@@ -34,10 +32,7 @@ export type SectionRenderProps = {
   goLiveTriggerRef?: RefObject<View | null>;
 };
 
-// Emptiness context that can't be derived from `product` alone.
-// NOTE: mediaStreamable approximates "has a live-media affordance" as
-// go-live-eligible (owned + rpi camera) OR currently streaming — it doesn't
-// know about e.g. future media integrations. Extend this bag if that grows.
+// Emptiness context not derivable from `product` alone.
 export type SectionContext = {
   mediaStreamable: boolean;
 };
@@ -54,10 +49,8 @@ export type SectionConfig = {
   render: (props: SectionRenderProps) => ReactNode;
 };
 
-// Overview also renders the brand/model/type tags and the component amount
-// chip (ProductTags/ProductType) — collapsing it on a bare description check
-// hid those in view mode even when they had content (e.g. a tagged component
-// with amountInParent > 1 but no description).
+// Overview also renders the tags and the amount chip; a bare description check
+// would hide them.
 function isOverviewEmpty(product: Product): boolean {
   const hasDescription = !!product.description?.trim();
   const hasBrand = !!product.brand?.trim();
@@ -74,11 +67,7 @@ function hasCircularityNotes(product: Product): boolean {
   );
 }
 
-/**
- * Drives both the scroll order and the section nav (chips/outline). Order:
- * gallery → SpecHeader → these sections → metadata footer → Delete (all
- * outside this config — see Content.tsx's ProductPageContent).
- */
+/** Drives the scroll order and the section nav. Gallery, SpecHeader, footer and Delete live outside this config. */
 export const SECTIONS: SectionConfig[] = [
   {
     key: 'overview',
@@ -111,15 +100,10 @@ export const SECTIONS: SectionConfig[] = [
   {
     key: 'components',
     label: 'Components',
-    // Task 5 refines this (BOM rows); never collapsed as empty for now.
+    // Never collapsed as empty.
     isEmpty: () => false,
     titleSuffix: (product) => `(${(product.components ?? []).length})`,
-    // Only while the record genuinely has no id — i.e. the brief pre-save
-    // instant. It used to show throughout edit mode, where it was simply false:
-    // the record is already persisted on the `?edit=1` route the create flow
-    // lands on, and the button now renders there. Its accessible name also
-    // contains the button's, so anything searching for "Add component" (a
-    // screen reader, a test) matched the tooltip first.
+    // Only while the record has no id; on the `?edit=1` route it is persisted.
     tooltip: (product) =>
       typeof product.id === 'number'
         ? undefined
@@ -127,10 +111,7 @@ export const SECTIONS: SectionConfig[] = [
     render: (props) => <ProductComponents product={props.product} editMode={props.editMode} />,
   },
   {
-    // Measurements and circularity notes share one section: six sections made
-    // six nav chips, of which two were off-screen on a phone. The circularity
-    // block keeps its own disclosure row inside, so the merged section still
-    // reads as two chunks.
+    // Measurements and circularity notes share one section (six chips did not fit a phone).
     key: 'properties',
     label: 'Properties',
     addLabel: 'Add properties',
@@ -175,9 +156,7 @@ export const SECTIONS: SectionConfig[] = [
   },
 ];
 
-// Sections that don't apply at all to the current product/mode — distinct from
-// "empty" (which still shows an add-row in edit mode): media is a
-// product-only concept.
+// Sections that do not apply at all (unlike "empty", which still shows an add-row).
 function passesGuard(section: SectionConfig, ctx: { isProductComponent: boolean }): boolean {
   if (section.key === 'media' && ctx.isProductComponent) return false;
   return true;

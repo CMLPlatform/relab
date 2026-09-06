@@ -65,9 +65,8 @@ def extract_client_ip(
         if ip := _valid_ip(headers.get(header, "")):
             return ip
 
-    # Read X-Forwarded-For right-to-left: the rightmost entry is the address the trusted
-    # proxy observed, while leftmost entries are client-supplied and spoofable — taking
-    # the first would let a caller forge rate-limit / audit identity.
+    # Rightmost X-Forwarded-For entry: the one the trusted proxy observed. Leftmost
+    # entries are client-supplied and spoofable.
     forwarded_for = headers.get("X-Forwarded-For", "").strip()
     if forwarded_for:
         for candidate in reversed(forwarded_for.split(",")):

@@ -3,9 +3,7 @@
 }
 
 html {
-  /* Makes `height: auto` an animatable value, which is what lets the teardown's
-     part groups open on a transition instead of snapping (HeroTeardown). Inert
-     everywhere else: nothing animates to or from a keyword size but that. */
+  /* Makes `height: auto` animatable for the teardown's part groups (HeroTeardown). */
   interpolate-size: allow-keywords;
 }
 
@@ -80,8 +78,7 @@ select {
     transition-duration: 0.01ms;
   }
 
-  /* The press still has to acknowledge itself; the background change carries
-     that. Only the movement goes, since a 0.01ms scale is a jump, not motion. */
+  /* The background change still acknowledges the press; only the movement goes. */
   .btn:active {
     transform: none;
   }

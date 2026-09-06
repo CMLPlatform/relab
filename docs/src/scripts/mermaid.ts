@@ -18,17 +18,10 @@ const reportMermaidError = (error: unknown) => {
  * Give a rendered diagram its natural width so the frame can scroll it.
  *
  * Mermaid emits `width="100%"` with the natural size only as an inline
- * `max-width`, and an SVG sized in percent has no intrinsic width for CSS to
- * recover — `width: max-content` resolves to the container, not the viewBox, so
- * this cannot be fixed in the stylesheet. Left alone the diagram can only ever
- * scale DOWN to fit: measured on /architecture/system-design/ at 1440px, a
- * 1636px diagram rendered at 758px (0.46x), putting 16px labels on screen at
- * ~7.4px, and ~3px at 390px.
- *
- * Setting the explicit pixel width lets it overflow into the frame's existing
- * `overflow-x: auto`, so labels stay at their authored size and the reader
- * scrolls instead of squinting. Narrow diagrams are left alone: pinning one
- * that already fits would only stop it filling the frame.
+ * `max-width`, and a percent-sized SVG has no intrinsic width CSS can recover
+ * (`width: max-content` resolves to the container). Left alone a 1636px diagram
+ * scaled to 0.46x at 1440px, putting 16px labels at ~7.4px. Narrow diagrams are
+ * left alone so they still fill the frame.
  */
 function pinDiagramToIntrinsicWidth(diagram: HTMLElement): void {
   const svg = diagram.querySelector('svg');
@@ -49,13 +42,9 @@ function pinDiagramToIntrinsicWidth(diagram: HTMLElement): void {
 }
 
 /*
- * The pin is a function of the frame's width, so it has to be redone when that
- * changes (window resize, tablet rotation): a diagram that fit at render time
- * would otherwise shrink back below legibility once the viewport narrows, and
- * a pinned one would stop filling a frame that later widened. Observing the
- * frame rather than the window also catches sidebar/layout changes. The frame
- * scrolls its overflow, so re-pinning the SVG never resizes the frame itself
- * and cannot loop the observer.
+ * Re-pin when the frame's width changes (resize, rotation, sidebar). The frame
+ * scrolls its overflow, so re-pinning the SVG never resizes the frame and
+ * cannot loop the observer.
  */
 const diagramFrameObserver =
   typeof ResizeObserver === 'undefined'
@@ -75,11 +64,8 @@ const mermaidThemeVariables = {
     primaryTextColor: 'var(--relab-brand-text)',
     lineColor: '#24415b',
     tertiaryColor: '#eef5fb',
-    // Without this, mermaid's `base` theme derives an edge-label background
-    // from the other variables and lands on a pale yellow-green
-    // (rgba(244,251,217,.5)) that exists nowhere in the brand or the 7-hue
-    // chart ramp. Measured, not guessed. Pinned to the same tone as the
-    // diagram frame so edge labels sit on the panel rather than on a swatch.
+    // Without this, mermaid's `base` theme derives a pale yellow-green edge-label
+    // background (rgba(244,251,217,.5)). Pinned to the diagram frame's tone.
     edgeLabelBackground: '#eef5fb',
   },
   dark: {
@@ -89,15 +75,14 @@ const mermaidThemeVariables = {
     primaryTextColor: 'var(--relab-brand-text)',
     lineColor: '#b9dcf6',
     tertiaryColor: '#102131',
-    // Dark-mode derivation was an olive/mustard rgba(54,77,19,.5). Same fix.
+    // Dark-mode derivation was rgba(54,77,19,.5). Same fix.
     edgeLabelBackground: '#102131',
   },
 } as const;
 
-// The brand CSS vars use the CSS `light-dark()` function, which Mermaid's color
-// parser (khroma) can't parse and would throw on. Resolve it to the concrete
-// color for the theme the script already tracks. Splits on the top-level comma
-// so nested rgba(...) values survive.
+// Mermaid's color parser (khroma) throws on CSS `light-dark()`; resolve it to
+// the concrete color for the current theme. Splits on the top-level comma so
+// nested rgba(...) values survive.
 const resolveLightDark = (value: string, theme: keyof typeof mermaidThemeVariables) => {
   const match = /^light-dark\((.*)\)$/is.exec(value.trim());
   if (!match) return value;
@@ -193,8 +178,7 @@ const ensureMermaidContainers = () => {
     container.dataset.mermaidSource = normalizeMermaidSource(readMermaidSource(sourceElement));
     container.textContent = container.dataset.mermaidSource;
     // Reserve the pre-render block's height so the swap never shrinks
-    // already-laid-out content. NOTE: taller diagrams still grow the page —
-    // this only prevents shrink-then-grow shift, not all reflow.
+    // already-laid-out content. NOTE: taller diagrams still grow the page.
     const preRenderHeight = currentContainer.offsetHeight;
     if (preRenderHeight > 0) {
       container.style.minHeight = `${preRenderHeight}px`;
@@ -205,8 +189,7 @@ const ensureMermaidContainers = () => {
 
 const renderMermaid = async (force = false): Promise<void> => {
   if (mermaidRenderPromise) {
-    // A render is already running. A forced re-render (theme change) must not be
-    // dropped, so queue it to run once the in-flight pass settles.
+    // A render is running; queue a forced re-render (theme change) behind it.
     return force ? mermaidRenderPromise.then(() => renderMermaid(true)) : mermaidRenderPromise;
   }
 
@@ -239,12 +222,9 @@ const renderMermaid = async (force = false): Promise<void> => {
     } catch (error) {
       reportMermaidError(error);
     } finally {
-      // Release the pre-render reservation. It exists only to stop the swap
-      // shrinking already-laid-out content during load; kept afterwards it is
-      // pure dead space, because a rendered diagram is usually much shorter
-      // than the source block it replaced (the system-design flowchart renders
-      // 328px tall from a 1619px `pre`). Cleared even when run() throws, so a
-      // failed render leaves the source text rather than a blank reserved box.
+      // Release the reservation: a rendered diagram is usually much shorter than
+      // its source block. Cleared even when run() throws, so a failed render
+      // leaves the source text rather than a blank reserved box.
       for (const diagram of diagrams) {
         diagram.style.minHeight = '';
         pinDiagramToIntrinsicWidth(diagram);

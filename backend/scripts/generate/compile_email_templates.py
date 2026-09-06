@@ -16,11 +16,9 @@ from mjml.mjml2html import mjml_to_html
 
 from app.core.logging import setup_logging
 
-# Set up logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Paths
 SCRIPT_DIR = Path(__file__).parent
 BACKEND_DIR = SCRIPT_DIR.parents[1]
 SRC_DIR = BACKEND_DIR / "app" / "templates" / "emails" / "src"
@@ -45,8 +43,7 @@ def expand_includes(mjml_content: str) -> str:
         component_path = SRC_DIR / "components" / f"{component_name}.mjml"
         return component_path.read_text()
 
-    # Re-scan until stable so an {{include}} inside an included component is also
-    # expanded; bounded to fail loudly on a circular include instead of looping.
+    # Re-scan so nested {{include}}s expand; bounded to fail loudly on a circular include.
     for _ in range(10):
         expanded = INCLUDE_PATTERN.sub(replace_include, mjml_content)
         if expanded == mjml_content:
@@ -114,10 +111,8 @@ def compile_mjml_templates() -> None:
         logger.error("Source directory not found: %s", SRC_DIR)
         return
 
-    # Create build directory if it doesn't exist
     BUILD_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Find all MJML files (sorted by modification time to reflect creation order)
     mjml_files = sorted(SRC_DIR.glob("*.mjml"), key=lambda p: p.stat().st_mtime)
 
     if not mjml_files:
@@ -128,21 +123,17 @@ def compile_mjml_templates() -> None:
     failed_templates: list[str] = []
     brand_tokens = load_brand_tokens()
 
-    # Compile each template
     for mjml_file in mjml_files:
         try:
             logger.info("Compiling %s...", mjml_file.name)
 
-            # Read MJML content
             mjml_content = expand_includes(mjml_file.read_text())
             mjml_content = expand_brand_tokens(mjml_content, brand_tokens)
 
-            # Compile to HTML
             html_dotmap = mjml_to_html(mjml_content)
             html_content = html_dotmap.html
 
-            # Write HTML to build directory. mjml emits no trailing newline, which the
-            # end-of-file-fixer hook then adds — leaving every fresh compile dirty.
+            # mjml emits no trailing newline; add one or the end-of-file-fixer hook dirties every compile.
             html_file = BUILD_DIR / mjml_file.with_suffix(".html").name
             html_file.write_text(html_content.rstrip("\n") + "\n")
 
@@ -163,25 +154,16 @@ def compile_mjml_templates() -> None:
 def check_compiled_templates() -> int:
     """Fail when the committed build/ output is not what a fresh compile produces.
 
-    build/ is committed but nothing verified it matched src/, which made a whole
-    class of change silently dangerous: brand tokens are resolved from
-    assets/brand.css at compile time, so retuning a colour -- or renaming a
-    token, as happened with --relab-brand-surface -- repaints every transactional
-    email on the next compile with no error and no failing test. The unknown-token
-    guard in expand_brand_tokens() does not help there, because a renamed token
-    still resolves; it just resolves to something else.
-
+    Brand tokens resolve from assets/brand.css at compile time, so a retuned or renamed
+    token repaints every email on the next compile with no error; this catches that.
     Same shape as `just assets-check` and the OpenAPI schema-drift check.
     """
     before = {path: path.read_bytes() for path in sorted(BUILD_DIR.glob("*.html"))}
     try:
         compile_mjml_templates()
     finally:
-        # Put the committed bytes back, even when the compile blew up halfway.
-        # Compiling in place is how the comparison is made, but a check that
-        # repairs what it measures would pass on its own second run and report
-        # the tree as clean when it is not, and a check that fails halfway must
-        # not leave half-recompiled templates behind to be committed.
+        # Restore the committed bytes, even after a failed compile: a check that rewrites
+        # what it measures would pass on its second run.
         after = {path: path.read_bytes() for path in sorted(BUILD_DIR.glob("*.html"))}
         for path, body in before.items():
             if after.get(path) != body:

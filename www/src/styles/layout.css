@@ -3,8 +3,7 @@
   margin: 0 auto;
 }
 
-/* No gap: sections space themselves with `padding-block`, so the hairline rule
-   between them sits in the middle of the gap rather than at one edge of it. */
+/* No gap: sections use `padding-block`, so the hairline rule sits mid-gap. */
 .page-shell {
   width: min(calc(100% - 2rem), var(--content-width));
   margin: 0 auto;

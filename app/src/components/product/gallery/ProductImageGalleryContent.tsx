@@ -109,8 +109,7 @@ function EditModeOverlay({
         onPress={onDeleteImage}
         accessibilityRole="button"
         accessibilityLabel="Delete photo"
-        // The undo lives in a toast that auto-dismisses, so a screen reader
-        // user who is not moved to it has to be told it is there.
+        // The undo toast auto-dismisses; a screen reader user must be told it exists.
         accessibilityHint="Removes it from this record. A message with an Undo button appears."
         className="absolute top-3 right-3 h-11 w-11 items-center justify-center rounded-md"
         style={deleteButtonStyle}
@@ -281,15 +280,10 @@ const GalleryImageItem = memo(function GalleryImageItem({
       {uri ? (
         // Decorative: the wrapping Pressable already carries the descriptive label.
         <Image
-          // The array lets expo-image match the candidate to the container at
-          // the screen's scale, and become a real srcset on web. It needs each
-          // candidate's height, so it is empty when the API has no dimensions
-          // for this image and `uri` is then the size already picked for the
-          // screen in useProductGalleryMedia.
+          // Empty when the API has no dimensions; `uri` is then the size
+          // picked in useProductGalleryMedia.
           source={sourceSet.length > 1 ? sourceSet : { uri }}
-          // The list thumbnail is already in the cache from the card and the
-          // filmstrip, so it paints immediately and the full-width image fades
-          // over it instead of arriving after a blank.
+          // The cached list thumbnail paints immediately under the full-width image.
           placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
           placeholderContentFit="cover"
           contentFit="cover"
@@ -321,9 +315,7 @@ function OverlayActionButton({
   return (
     <Pressable
       onPress={onPress}
-      // Without an explicit role, RN Web renders a plain <div> and the browser
-      // discards aria-label on a role-less element — the control announced as
-      // an unlabelled focusable (axe: aria-prohibited-attr).
+      // Without a role, the browser discards aria-label (axe: aria-prohibited-attr).
       accessibilityRole="button"
       accessibilityLabel={label}
       className="h-11 w-11 items-center justify-center rounded-md"

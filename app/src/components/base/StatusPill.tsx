@@ -14,11 +14,7 @@ type StatusPillProps = {
   testID?: string;
 };
 
-/**
- * Small status pill — the shared replacement for the near-identical LIVE badges
- * (solid) and the thermal-telemetry chip (soft). `tone` maps to a status token;
- * `variant` picks a solid fill or a tinted+bordered fill.
- */
+/** Small status pill. `tone` maps to a status token; `variant` is solid or tinted+bordered. */
 export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPillProps) {
   const theme = useAppTheme();
   const color = theme.tokens.status[tone];
@@ -26,9 +22,7 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
   return (
     <View
       testID={testID}
-      // Inline status chip — control radius, not a pill (DESIGN.md reserves the
-      // `full` radius for avatars/true pills). Height (24) has no exact
-      // Tailwind step, so it stays inline alongside it.
+      // Control radius, not `full` (True-Pill Rule). Height 24 has no Tailwind step.
       className="justify-center rounded-md px-2"
       style={[
         styles.pill,
@@ -50,9 +44,7 @@ export function StatusPill({ label, tone, variant = 'solid', testID }: StatusPil
 
 const styles = StyleSheet.create({
   pill: {
-    // Bumped from 22 to fit the caption step's 13px cap. minHeight, not
-    // height, so a caption line that grows (e.g. accessibility font scaling)
-    // doesn't get clipped.
+    // minHeight, not height, so a scaled caption line is not clipped.
     minHeight: 24,
   },
 });

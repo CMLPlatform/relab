@@ -26,10 +26,8 @@ export function PreviewShell({
   );
 }
 
-// hls.js can soft-retry forever without a fatal error, so the indeterminate
-// spinner alone can't distinguish "connecting" from "stuck". After this long,
-// the copy levels with the user. Static text swap — there is no real progress
-// signal to animate.
+// hls.js can soft-retry forever without a fatal error; after this long the
+// copy says so.
 const STALLED_AFTER_MS = 10_000;
 
 export function PreviewLoadingOverlay() {

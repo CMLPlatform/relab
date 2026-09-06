@@ -9,9 +9,7 @@ import { useRecentCategories } from './useRecentCategories';
 
 export function useCategorySelection() {
   const router = useRouter();
-  // Reached only from an editing detail screen (existing entity or draft), which
-  // already requires auth; this is just a safe redirect if the session expired
-  // while the picker was open.
+  // Safe redirect if the session expired while the picker was open.
   const { user } = useRequireAuth('/products');
 
   const [cpv, setCpv] = useState<Record<string, CPVCategory> | null>(null);
@@ -53,9 +51,7 @@ export function useCategorySelection() {
     (typeId: number) => {
       const category = cpv?.[String(typeId)];
       if (category) recordRecent(category);
-      // Hand the pick back through the module slot and pop to the detail screen
-      // that pushed us — which is still mounted in edit mode, so it just reads
-      // the selection on focus. Works for existing entities and unsaved drafts.
+      // Hand the pick back through the module slot; the detail screen reads it on focus.
       setPendingTypeSelection(typeId);
       router.back();
     },

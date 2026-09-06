@@ -6,11 +6,7 @@ export const PRODUCT_NAME_MAX_LENGTH = 100;
 
 const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
 
-/**
- * Extracts the YouTube video ID from common YouTube URL formats.
- * Handles youtube.com/watch?v=ID, youtu.be/ID, and youtube.com/live/ID.
- * Returns null for non-YouTube URLs or invalid inputs.
- */
+/** YouTube video ID from youtube.com/watch?v=ID, youtu.be/ID, or youtube.com/live/ID; null otherwise. */
 export function extractYouTubeVideoId(url: string): string | null {
   try {
     const u = new URL(url);
@@ -52,8 +48,7 @@ const videoSchema = z.object({
     .url('Invalid video URL')
     .refine(isHttpUrl, { message: 'Video URL must use http or https' }),
   description: z.string(),
-  // Backend allows a null/empty video title; the mapper coerces it to ''. Requiring
-  // a non-empty title here would block editing any product that has such a video.
+  // The backend allows an empty video title; requiring one would block editing such products.
   title: z.string(),
 });
 

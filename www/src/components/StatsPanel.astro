@@ -1,8 +1,6 @@
 ---
-// Static shell for the homepage stats. It starts hidden and is populated +
-// revealed by src/scripts/stats.ts, which fetches the public stats API in the
-// browser (allowed via the CADDY_API_ORIGIN entry in the site CSP). If the
-// fetch fails the panel stays hidden.
+// Static shell for the homepage stats, hidden until src/scripts/stats.ts
+// populates it. If the fetch fails the panel stays hidden.
 ---
 
 <section

@@ -41,8 +41,7 @@ _WS_BYTES = "bytes"
 _HEARTBEAT_INTERVAL = 30.0
 _HEARTBEAT_TIMEOUT = 90.0
 
-# Cap on binary-response headers awaiting their binary frame. Far above any real pipelined
-# depth; bounds memory if a device flags responses has_binary but never sends the frame.
+# Bounds memory if a device flags responses has_binary but never sends the frame.
 _MAX_PENDING_BINARY_RESPONSES = 64
 
 
@@ -62,11 +61,7 @@ class _RelayWebSocketSession:
     manager: CameraConnectionManager
     redis: Redis
     last_pong_at: float = field(default_factory=monotonic)
-    # FIFO of headers awaiting their binary frame: WebSocket frames arrive in
-    # order, so pipelined binary responses pair with headers first-in first-out.
-    # Bounded so a device can't grow it without limit by flagging responses has_binary and
-    # never sending the binary frame. The cap is far above any real in-flight depth (binary
-    # responses are pipelined FIFO), so it only trips on a misbehaving/flooding device.
+    # FIFO of headers awaiting their binary frame: WebSocket frames arrive in order.
     pending_binary_responses: deque[_PendingBinaryResponse] = field(
         default_factory=lambda: deque(maxlen=_MAX_PENDING_BINARY_RESPONSES)
     )
@@ -144,8 +139,7 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
         _heartbeat_loop(websocket, session),
         name=f"ws-heartbeat-{camera_id}",
     )
-    # Cross-worker relay listener: allows other Uvicorn worker processes to
-    # dispatch relay commands to this worker (the one holding the WebSocket).
+    # Lets other Uvicorn workers dispatch relay commands to this one.
     relay_listener = asyncio.create_task(
         run_relay_listener(redis, camera_id, manager),
         name=f"ws-relay-listener-{camera_id}",
@@ -153,7 +147,6 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
     try:
         await _receive_loop(websocket, session)
     except WebSocketDisconnect:
-        # Client closed the socket; normal termination.
         pass
     except Exception:
         logger.exception("Unexpected error in WebSocket receive loop for camera %s", sanitize_log_value(camera_id))
@@ -170,8 +163,7 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
                     sanitize_log_value(camera_id),
                     exc_info=result,
                 )
-        # Only mark offline if this socket was still the registered one; a stale
-        # connection's cleanup must not flap a freshly reconnected camera offline.
+        # A stale connection's cleanup must not flap a freshly reconnected camera offline.
         if manager.unregister(camera_id, websocket):
             await mark_camera_offline(redis, camera_id)
 

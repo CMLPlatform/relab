@@ -7,17 +7,14 @@ import { getAppTheme } from '@/theme';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
 /**
- * Products tab stack: the /products tree plus the /components tree it links
- * into (see (tabs)/_layout.tsx for why they share a navigator). Screens with a
- * dynamic title (product/component detail) declare it inline via
- * navigation.setOptions instead of here.
+ * Products tab stack: the /products and /components trees (see (tabs)/_layout.tsx).
+ * Detail screens set their dynamic title via navigation.setOptions.
  */
 export default function ProductsTabLayout() {
   const colorScheme = useEffectiveColorScheme();
   const { isLg } = useBreakpoint();
   const theme = getAppTheme(colorScheme);
-  // TopNav already covers the products list on >=lg web, so the stack's own
-  // header would just duplicate it. Every other screen keeps its header.
+  // TopNav covers the products list on >=lg web.
   return (
     <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
       <Stack.Screen

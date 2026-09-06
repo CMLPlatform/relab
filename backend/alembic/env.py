@@ -9,8 +9,6 @@ from sqlalchemy.engine.url import make_url
 from app.api.common.models.base import Base
 from app.core.model_registry import load_models
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 config = context.config
 
 # Tests and scripted callers can inject a database URL; CLI migrations fall back to app settings.
@@ -28,14 +26,7 @@ logger = logging.getLogger("alembic.env")
 
 # Import all models so Base.metadata is complete for autogenerate
 load_models()
-
-# Combine metadata from all imported models
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")  # noqa: ERA001
-# ... etc.
 
 
 def run_migrations_offline() -> None:
@@ -80,27 +71,21 @@ def run_migrations_online() -> None:
     logger.info("Running migrations online on database: %s", make_url(url).render_as_string(hide_password=True))
 
     with connectable.connect() as connection:
-        # NOTE: a migration that needs an ACCESS EXCLUSIVE lock (e.g. adding a CHECK
-        # constraint without NOT VALID) must abort if it can't get the lock promptly,
-        # rather than queueing behind readers and blocking every other query on prod.
+        # NOTE: an ACCESS EXCLUSIVE lock that cannot be acquired promptly must abort, not
+        # queue behind readers and block every other query on prod.
         connection.exec_driver_sql("SET lock_timeout = '5s'")
-        # lock_timeout only bounds *acquiring* a lock; this bounds how long a statement may
-        # hold one. A migration with a genuinely long backfill raises its own ceiling with
-        # `op.execute("SET LOCAL statement_timeout = '15min'")` rather than everyone paying it.
+        # Bounds how long a statement may hold a lock. A long backfill raises its own ceiling
+        # with `op.execute("SET LOCAL statement_timeout = '15min'")`.
         connection.exec_driver_sql("SET statement_timeout = '60s'")
-        # SQLAlchemy auto-begins a transaction on the first statement above; commit it so
-        # alembic's own transaction below is the real (outer) one, not a savepoint nested
-        # inside a never-committed transaction that gets silently rolled back on close.
+        # Commit the auto-begun transaction so alembic's own is the outer one, not a
+        # savepoint that gets rolled back on close.
         connection.commit()
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            # One transaction per revision, not one around the whole `upgrade head` chain.
-            # A chain-wide transaction holds every lock any revision takes until the last
-            # one commits, and makes `op.get_context().autocommit_block()` (needed for
-            # CREATE INDEX CONCURRENTLY) silently commit the revisions before it. The cost
-            # is that a mid-chain failure leaves earlier revisions applied; re-running
-            # `upgrade head` after fixing the failure resumes from there.
+            # A chain-wide transaction holds every lock until the last revision commits, and
+            # autocommit_block() (CREATE INDEX CONCURRENTLY) would commit earlier revisions
+            # anyway. A mid-chain failure leaves earlier revisions applied; re-run to resume.
             transaction_per_migration=True,
         )
 

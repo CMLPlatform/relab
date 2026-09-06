@@ -8,11 +8,9 @@ from pydantic import AfterValidator, BeforeValidator
 MAX_QUERY_TEXT_LENGTH = 100
 MAX_QUERY_LIST_ITEMS = 50
 
-# Separator for multi-valued CSV query params (``field[in]``, ``order_by``).
-# A literal comma collides with user text — brand/type names may contain commas
-# ("Johnson, Inc") — so use the ASCII Unit Separator (U+001F), which
-# normalize_user_text rejects in stored text and never appears in sort
-# identifiers. The frontend joins these params with the same character.
+# Separator for multi-valued query params (``field[in]``, ``order_by``). ASCII Unit
+# Separator, not comma: brand names contain commas ("Johnson, Inc"), and
+# normalize_user_text rejects U+001F in stored text. The frontend joins with the same.
 FILTER_CSV_SEPARATOR = "\x1f"
 
 _MULTILINE_CONTROL_CHARS = frozenset(("\n", "\t"))
@@ -61,9 +59,8 @@ def _normalize_bounded_query_text_list(value: object) -> object:
     """Trim list filter values before query construction."""
     if value is None:
         return None
-    # fastapi-filters hands this validator the raw param as a single-element list
-    # for list-typed filters, so the separator has to be split out here too —
-    # otherwise "Dell<US>Apple" is queried as one literal brand and matches nothing.
+    # fastapi-filters passes list-typed filters as a single-element list; split the
+    # separator here or "Dell<US>Apple" is queried as one literal brand.
     if isinstance(value, str):
         items = [item.strip() for item in value.split(FILTER_CSV_SEPARATOR)]
     elif isinstance(value, list):

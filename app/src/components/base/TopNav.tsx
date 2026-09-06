@@ -10,16 +10,10 @@ import { AppText } from './AppText';
 import { BrandHeaderTitle } from './BrandHeaderTitle';
 import { HeaderRightPill } from './HeaderRightPill';
 
-// Full-bleed, chrome-free routes (AppStack's own headerShown: false list in
-// _layout.tsx) — splash and the auth flow already opt out of the stack
-// header, so the persistent top bar shouldn't layer on top of them either.
-// Concretely: it was duplicating "Sign in" with the login form's own submit
-// button.
-//
-// /mfa and /category-selection keep their own stack header (AppStack doesn't
-// hide it for them), so TopNav suppresses itself there too — otherwise lg
-// shows both bars, and on /mfa the Products/Cameras links let a keyboard user
-// tab away mid login-challenge.
+// Routes where TopNav hides: the chrome-free splash/auth routes (AppStack's
+// headerShown: false list), plus /mfa and /category-selection, which keep
+// their stack header. On /mfa the links would also let a keyboard user tab
+// away mid login-challenge.
 const NO_CHROME_PATHS = new Set<string>(['/', '/category-selection', ...AUTH_HERO_PATHS]);
 
 function TopNavDestinationItem({
@@ -52,21 +46,15 @@ function TopNavDestinationItem({
   );
 }
 
-/**
- * Slim persistent top bar shown on desktop web (>=lg) only. Phone and native
- * keep today's stack headers untouched — see PRIMARY_DESTINATIONS for the
- * sidebar-vs-topnav rationale.
- */
+/** Slim persistent top bar for desktop web (>=lg) only; phone and native keep stack headers. */
 export function TopNav() {
   const { isLg } = useBreakpoint();
   const router = useRouter();
   const pathname = usePathname();
   const theme = useAppTheme();
   const destinations = useVisibleDestinations();
-  // navigate(), not push(): from a screen outside the tabs (a public profile,
-  // where this bar still shows) a push would stack a *second* (tabs) navigator
-  // on the root stack instead of returning to the live one. From inside the
-  // tabs a push is downgraded to the same tab jump anyway.
+  // navigate(), not push(): from outside the tabs a push would stack a second
+  // (tabs) navigator instead of returning to the live one.
   const goToProducts = useCallback(() => router.navigate('/products'), [router]);
   const goToDestination = useCallback(
     (href: Destination['href']) => router.navigate(href),

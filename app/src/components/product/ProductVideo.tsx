@@ -376,11 +376,8 @@ function EmptyVideoState() {
   return <AppText className="mb-2 text-muted-foreground">No videos yet.</AppText>;
 }
 
-// fontSize/lineHeight combos below don't match any text-* class (e.g.
-// bodyInput's 16/26 vs. text-base's 16/24) — stay style-driven. deleteButton
-// stays on IconButton's `style` prop: IconButton spreads `...rest` (which
-// would carry a caller className) before its own fixed className, so a
-// caller className would be silently clobbered.
+// These fontSize/lineHeight combos match no text-* class. deleteButton uses
+// IconButton's `style`: a caller className would be clobbered by its own.
 const styles = StyleSheet.create({
   titleInput: {
     fontSize: 20,

@@ -7,8 +7,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 export default function CamerasTabLayout() {
   const router = useRouter();
   const { isLg } = useBreakpoint();
-  // Same-stack target, so this stays a replace: it resolves inside this
-  // navigator and leaves the other tabs' trails alone.
+  // Same-stack target, so replace is safe.
   const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
   return (
     <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>

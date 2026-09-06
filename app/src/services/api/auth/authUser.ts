@@ -57,19 +57,14 @@ export async function getUser(
       })) as ApiUserRead | undefined;
       if (!data) return;
 
-      // Re-check after the parse await: a logout that landed while the body was
-      // streaming bumps the generation, and writing the user here would
-      // resurrect the session the user just ended.
+      // Re-check after the parse await: a logout may have landed meanwhile.
       if (authRuntime.authGeneration !== capturedGeneration) return;
 
-      // A newer getUser started while this one was in flight — don't let a
-      // stale response overwrite fresher data (e.g. a post-update refetch).
+      // A newer getUser started meanwhile; do not overwrite fresher data.
       if (authRuntime.getUserSequence !== sequence) return authRuntime.user;
 
       authRuntime.user = mapApiUserToUser(data);
-      // An authenticated fetch just succeeded, so a session demonstrably
-      // exists: re-enable the transparent 401 refresh that an earlier failed
-      // refresh may have disabled.
+      // A session demonstrably exists: re-enable the transparent 401 refresh.
       authRuntime.explicitlyLoggedOut = false;
       setWebSessionFlag(true);
       return authRuntime.user;
@@ -79,9 +74,7 @@ export async function getUser(
     try {
       return await promise;
     } finally {
-      // Only clear the slot if a newer request hasn't already replaced it.
-      // The sequence moves in lockstep with the slot, so this is an identity
-      // check on the promise without comparing promise objects directly.
+      // Only clear the slot if a newer request has not replaced it.
       if (authRuntime.getUserSequence === sequence) authRuntime.getUserPromise = null;
     }
   } catch (error) {

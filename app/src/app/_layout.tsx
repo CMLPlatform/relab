@@ -37,32 +37,26 @@ import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 
-// TODO: wire onlineManager to NetInfo/expo-network for the native phase. Until
-// then onlineManager.isOnline() only tracks reality on web (where the default
-// manager listens to the browser's online/offline events); on native it stays
-// true, so mutations never pause and the queued-offline UI (OfflineBanner,
-// QUEUED_OFFLINE_LABEL, isPaused) is effectively web-only.
+// TODO: wire onlineManager to NetInfo/expo-network for native. Until then it
+// stays true on native, so mutations never pause and the queued-offline UI
+// (OfflineBanner, QUEUED_OFFLINE_LABEL, isPaused) is web-only.
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000, // 30 s; products are fresh for 30 s
+      staleTime: 30_000,
       retry: 1,
     },
   },
 });
 
-// A mutation restored from the persisted cache (after a reload) is dehydrated
-// down to its key + variables — the mutationFn itself can't survive
-// (de)serialization. Registering it here by mutationKey is how TanStack's
-// persist-mutations pattern re-attaches a working function before
-// resumePausedMutations() (see Providers' onSuccess below) runs it.
+// A mutation restored from the persisted cache has no mutationFn; this
+// re-attaches one by key before resumePausedMutations() runs it.
 queryClient.setMutationDefaults(SAVE_PRODUCT_MUTATION_KEY, { mutationFn: saveProductMutationFn });
 
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: QUERY_CACHE_STORAGE_KEY,
-  // Cap unbounded growth: drop the oldest cached query first if a persisted
-  // write ever fails (e.g. storage quota), and coalesce rapid cache writes.
+  // Drop the oldest query when a persisted write fails (storage quota).
   retry: removeOldestQuery,
   throttleTime: 5000,
 });
@@ -84,8 +78,7 @@ function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
     <>
       <StaticBackground />
       {overlay.edgeColor ? (
-        // Hero routes: calm the band behind the centred content column but let
-        // the backdrop stay vivid at the edges, so it still reads as a photo.
+        // Hero routes: calm the band behind the content column, vivid at the edges.
         <LinearGradient
           colors={[overlay.edgeColor, overlay.color, overlay.color, overlay.edgeColor]}
           locations={[0, 0.3, 0.7, 1]}
@@ -106,19 +99,12 @@ function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
   );
 }
 
-// The root stack holds what sits *outside* the tabs: the entry redirect, the
-// auth group, and the two screens that present over a tab (the category picker
-// and a public profile). Each tab's own screens are declared by its group
-// layout under (tabs)/.
-//
-// memo: AppShell re-renders on every route change and stream-telemetry tick,
-// and this rebuilds every screen's options object and header renderer. Nothing
-// here depends on props or state, so memo bails on all of it.
+// The root stack holds what sits outside the tabs; each tab's screens are
+// declared by its group layout under (tabs)/.
+// memo: AppShell re-renders on every route change and telemetry tick.
 export const AppStack = memo(function AppStack() {
   const router = useRouter();
-  // Cross-navigator target: a replace from this root screen would swap the
-  // whole (tabs) route out for a fresh one, resetting every tab's trail.
-  // navigate() returns to the tabs already on the stack instead.
+  // Cross-navigator target: replace() would reset every tab's trail.
   const goToProducts = useCallback(() => router.navigate('/products'), [router]);
   return (
     <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
@@ -153,10 +139,8 @@ function AppShell() {
   const { activeStream } = useStreamSession();
   const overlay = useBackgroundOverlay(isDark);
 
-  // On native there's no document/visibilitychange, so TanStack's focus
-  // manager reports always-focused and refetch intervals (camera telemetry,
-  // stream status) keep firing while the app is backgrounded. Drive focus from
-  // AppState so polling pauses in the background and resumes on return.
+  // Native has no visibilitychange, so drive TanStack's focus manager from
+  // AppState; otherwise polling keeps firing in the background.
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = AppState.addEventListener('change', (status: AppStateStatus) => {
@@ -208,15 +192,12 @@ export function Providers({ children }: { children: ReactNode }) {
         persister,
         maxAge: 24 * 60 * 60 * 1000,
         buster: 'v1',
-        // Only `shouldDehydrateQuery` is overridden here — `shouldDehydrateMutation`
-        // is left at its default (paused-only), so a paused offline capture
-        // mutation still dehydrates regardless of this query allowlist.
+        // `shouldDehydrateMutation` keeps its paused-only default, so a paused
+        // offline capture still dehydrates.
         dehydrateOptions: { shouldDehydrateQuery },
       }}
-      // Restoring only repopulates the caches; paused mutations (a capture
-      // POST that was mid-offline at reload) stay paused until something
-      // asks them to run. onlineManager gates the actual network call, so
-      // this is a no-op while still offline.
+      // Restoring only repopulates caches; paused mutations stay paused until
+      // asked. onlineManager gates the network call, so this is a no-op offline.
       onSuccess={resumePausedMutations}
     >
       <AuthProvider>
@@ -230,19 +211,16 @@ export function Providers({ children }: { children: ReactNode }) {
   );
 }
 
-// Derived from module constants only, so build the pair once rather than per render.
+// Derived from module constants only.
 const { LightTheme, DarkTheme } = createNavigationThemes();
 
 /** Inner providers that depend on the resolved theme mode. */
 function ThemedProviders({ children }: { children: ReactNode }) {
   const colorScheme = useEffectiveColorScheme();
 
-  // Keep Uniwind's active theme in sync with the app's own theme mode, so the
-  // `dark:` variants and the palette variables in brand.generated.css resolve
-  // against the scheme the user actually chose. setTheme owns both platforms
-  // and both directions: it disables adaptive themes when a scheme is forced
-  // (so a later OS flip can no longer overwrite the choice) and routes through
-  // Appearance.setColorScheme on native so system dialogs match.
+  // Keep Uniwind's theme (`dark:` variants, brand.generated.css variables) in
+  // sync with the chosen scheme. setTheme also disables adaptive themes when
+  // a scheme is forced and calls Appearance.setColorScheme on native.
   useEffect(() => {
     Uniwind.setTheme(colorScheme);
   }, [colorScheme]);
@@ -254,9 +232,7 @@ function ThemedProviders({ children }: { children: ReactNode }) {
           <GestureHandlerRootView style={{ flex: 1 }}>
             <DialogProvider>
               {children}
-              {/* Inside DialogProvider (its toast reports the outcome) and inside
-                  AuthProvider (it reads the flag off the current user). Renders
-                  nothing at all when no prompt is due, including signed out. */}
+              {/* Needs DialogProvider (toast) and AuthProvider (user flag). */}
               <TermsAcceptanceDialog />
             </DialogProvider>
           </GestureHandlerRootView>

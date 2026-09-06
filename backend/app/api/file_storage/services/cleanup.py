@@ -90,13 +90,9 @@ async def get_files_on_disk() -> set[AnyIOPath]:
 async def report_orphaned_media(session: AsyncSession) -> dict[str, int]:
     """Log a warning for each media table/parent_type whose parent row no longer exists.
 
-    Media parent tables carry ``(parent_type, parent_id)`` with no FK by design:
-    a single media row can point at any of several parent tables, which a plain
-    FK can't express. The database therefore can't enforce the reference.
-
-    Reporting only — deletion of orphaned media rows (as opposed to orphaned
-    files on disk, which `cleanup_unreferenced_files` already handles) is a
-    separate, explicit operation.
+    Media rows carry ``(parent_type, parent_id)`` with no FK, since one row can point
+    at any of several parent tables. Reporting only; `cleanup_unreferenced_files`
+    handles orphaned files on disk.
 
     Returns:
         Mapping of ``"{table}:{parent_type}"`` to the orphan row count, for

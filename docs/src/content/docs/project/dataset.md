@@ -3,11 +3,9 @@ title: Dataset
 description: How to browse current Relab records and how curated dataset releases will differ.
 ---
 
-Current Relab records can be browsed in the production app:
-[app.cml-relab.org](https://app.cml-relab.org).
-
-The app shows the live, evolving records. A curated dataset release is different: a reviewed,
-versioned snapshot with clear scope, metadata, and licensing, suitable for citation and reuse.
+Browse current records at [app.cml-relab.org](https://app.cml-relab.org). The app shows live,
+evolving records. A curated dataset release is a reviewed, versioned snapshot with defined scope,
+metadata, and licensing, suitable for citation and reuse.
 
 ## What a release will contain
 
@@ -30,16 +28,12 @@ Expected uses:
 
 ## Access
 
-Current records can be explored in the app or through the API. For technical access, see the
-[API reference overview](/api-reference/) or go directly to the
-[public API reference](/api/public/).
+Explore current records in the app or through the API; see the
+[API reference overview](/api-reference/) or the [public API reference](/api/public/).
 
-Curated releases will have a defined scope, version, and license, so they can be cited and linked
-with other open industrial-ecology datasets. The planned license is
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). No release has been published yet.
-
-The [dataset codebook](/project/codebook/) documents every file and column a release carries, so
-the shape of one can be read before the first release exists.
+The planned release license is [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). No
+release has been published yet. The [dataset codebook](/project/codebook/) documents every file and
+column a release carries.
 
 ## Dublin Core metadata
 
@@ -63,31 +57,27 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 
 ## Building and depositing a release
 
-(For maintainers.) The build and deposit pipeline lives in `backend/scripts/` and runs from
-`backend/`:
+(For maintainers.) The pipeline lives in `backend/scripts/` and runs from `backend/`:
 
-1. `just release-build --inventory` — a dry run across every consenting account: writes nothing,
-   just reports what a release would contain. "Consenting" means the owner accepted the
-   contributor terms at the version that grants the publication licence; everyone else is
-   excluded by the `no-terms-acceptance` rule and appears in `excluded-records.csv`.
-   Accounts created before acceptance was tracked hold no grant until they answer the in-app
-   prompt, so the consenting set grows as contributors sign in. Declining is free and costs a
-   contributor nothing except inclusion, so expect it to be a real outcome rather than a
-   formality.
-1. `just release-build --out dist/dataset-vX.Y` — builds the release directory. The verification
-   pass at the end is not optional; it fails the build rather than warning.
+1. `just release-build --inventory`: a dry run that writes nothing and reports what a release
+   would contain. Only consenting accounts are included: owners who accepted the contributor terms
+   at the version that grants the publication licence. Everyone else is excluded by the
+   `no-terms-acceptance` rule and listed in `excluded-records.csv`. Accounts created before
+   acceptance was tracked hold no grant until they answer the in-app prompt, and declining is a
+   real outcome.
+1. `just release-build --out dist/dataset-vX.Y`: builds the release directory. The verification
+   pass at the end fails the build rather than warning.
 1. Review `dist/dataset-vX.Y/review/` by hand, including `excluded-records.csv` and the rule that
    excluded each record. This directory is not part of the published archive.
 1. The pseudonymisation salt comes from `RELAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or
-   `secrets/<env>/dataset_pseudonym_salt`; keep the same salt for every future release so owner
-   pseudonyms stay stable across versions.
+   `secrets/<env>/dataset_pseudonym_salt`. Keep the same salt for every release so owner pseudonyms
+   stay stable across versions.
 1. `uv run python -m scripts.zenodo_deposit --dir dist/dataset-vX.Y` creates or versions a Zenodo
-   *draft*. Add `--deposition <id>` to resume uploading into an existing draft rather than starting
-   a new one. The token is read from `secrets/<env>/zenodo_token` (or `ZENODO_TOKEN` for a one-off
-   run).
-1. Inspect the draft in the Zenodo web UI, then publish explicitly with
-   `--deposition <id> --publish`. Publication is irreversible — a published record can be
-   tombstoned but never withdrawn or edited — so this prompts before it sends anything.
+   *draft*. Add `--deposition <id>` to resume uploading into an existing draft. The token is read
+   from `secrets/<env>/zenodo_token` (or `ZENODO_TOKEN` for a one-off run).
+1. Inspect the draft in the Zenodo web UI, then publish with `--deposition <id> --publish`. A
+   published record can be tombstoned but never withdrawn or edited, so the command prompts before
+   it sends anything.
 
 Full flags: `just release-build --help` and `uv run python -m scripts.zenodo_deposit --help`.
 

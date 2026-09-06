@@ -22,9 +22,7 @@ if TYPE_CHECKING:
 
 SUB_RESOURCE_LIMIT: int = 200
 
-# Set at import so every request context inherits the separator before any
-# query param is parsed. The constant itself lives in app.api.common.validation,
-# which owns the normalization that has to split on it.
+# Set at import so every request context inherits the separator before any query param is parsed.
 csv_separator_config.set(FILTER_CSV_SEPARATOR)
 
 _QUERY_TEXT_ADAPTER = TypeAdapter(BoundedQueryText)
@@ -130,11 +128,9 @@ def _apply_relationship_joins[MT: Base](statement: Select[tuple[MT]], model_filt
     sorting_fields = {field for field, _direction, _nulls in model_filter.sorting}
     join_lookup = _relationship_join_lookup(model_filter)
 
-    # A relationship may be pulled in by several fields (e.g. category_name and
-    # category_description both join through the same categories relationship). A
-    # sort-only field must use an outer join so rows with no related row still sort
-    # (instead of vanishing); a filtered field keeps an inner join, and filter semantics
-    # dominate when the same field is both filtered and sorted.
+    # Several fields may share one relationship. A sort-only field needs an outer join
+    # so rows with no related row still sort; a filtered field keeps an inner join, and
+    # filter wins when a field is both.
     join_order: list[InstrumentedAttribute[Any]] = []
     join_isouter: dict[InstrumentedAttribute[Any], bool] = {}
     for field in filter_fields | sorting_fields:
@@ -181,12 +177,8 @@ def apply_filter[MT: Base](
 
     if model_filter.sorting:
         relationship_columns = _relationship_columns(model_filter)
-        # Postgres requires every ORDER BY expression under SELECT DISTINCT
-        # (which paginate_select applies to joined queries) to appear in the
-        # select list, and a relationship sort always joins. Sorting on a
-        # joined column would otherwise raise 42P10. Same approach as
-        # apply_ts_rank_ordering; DISTINCT still collapses duplicates because the
-        # added column is functionally dependent on the joined row.
+        # SELECT DISTINCT (applied by paginate_select to joined queries) requires every
+        # ORDER BY expression in the select list, else 42P10. Same as apply_ts_rank_ordering.
         sorted_relationship_columns = [
             column
             for field, _direction, _nulls in model_filter.sorting

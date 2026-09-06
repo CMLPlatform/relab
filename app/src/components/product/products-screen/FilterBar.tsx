@@ -11,12 +11,7 @@ import { PRODUCTS_DATE_PRESETS } from './shared';
 
 type FilterChipIcon = IconName;
 
-/**
- * Filter pill combining a leading icon, label, selected state, and optional
- * trailing clear (x). The base Chip primitive only supports single trailing
- * icon, so this composes Pressable/AppText/Icon directly, matching the base
- * Chip's own internal building blocks.
- */
+/** Filter pill: leading icon, label, selected state, optional trailing clear. Chip has no leading icon. */
 function FilterChip({
   icon,
   selected,

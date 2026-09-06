@@ -31,13 +31,7 @@ const nameMap = {
 
 const physicalPropertyShape = productSchema.shape.physicalProperties.shape;
 
-/**
- * Validation message for one dimension, read straight off the shared schema so
- * the wording can't drift from what the save actually rejects. Every field is
- * optional, and the input's own pattern refuses a minus sign, so in practice
- * this only ever fires on a literal 0 — which is otherwise indistinguishable
- * from a valid entry until the save FAB silently refuses to submit.
- */
+/** Validation message for one dimension, read off the shared schema. In practice only fires on a literal 0. */
 function propertyError(
   propKey: keyof PhysicalProperties,
   value: number | undefined,

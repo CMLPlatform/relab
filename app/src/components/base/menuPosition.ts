@@ -8,16 +8,9 @@ export const EDGE_MARGIN = spacing.sm;
 export type MenuPosition = { top: number; left: number } | { top: number; right: number };
 
 /**
- * Where to pin an anchored menu, given its measured anchor.
- *
- * Left-anchored by default, so the menu grows rightwards from the anchor. For
- * an anchor near the right edge that runs it off-screen, so flip to
- * right-anchored and let it grow inwards instead. Flipping (rather than
- * clamping `left`) stays correct for menus wider than the minimum, whose width
- * isn't known until after layout.
- *
- * Lives apart from Menu.tsx because a component file can only export
- * components without breaking fast refresh.
+ * Where to pin an anchored menu. Left-anchored by default; flipped to
+ * right-anchored near the right edge (flipping stays correct for menus whose
+ * width is unknown until layout). Not in Menu.tsx (Fast Refresh).
  */
 export function getMenuPosition({
   anchorX,

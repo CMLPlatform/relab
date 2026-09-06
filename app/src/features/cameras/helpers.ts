@@ -50,9 +50,7 @@ export function setCamerasHeaderOptions({
       createElement(HeaderBackButton, {
         ...props,
         onPress: () => {
-          // navigate(), not replace(): this hops from the cameras tab to the
-          // products tab, and a replace would resolve above the tab navigator
-          // and swap it out wholesale, resetting every tab's trail.
+          // navigate(), not replace(): cross-tab, and replace would reset every tab's trail.
           if (backProductId) {
             router.navigate({
               pathname: '/products/[id]',

@@ -47,8 +47,7 @@ type ProductMapperPayload =
   | ApiComponentChildItem
   | ApiComponentDetail;
 
-// Fields mapped identically for base products and components. meId is threaded down
-// so nested children resolve ownedBy to 'me' the same way top-level fetches do.
+// Fields mapped identically for base products and components.
 function commonProductFields(data: ProductMapperPayload, meId?: string) {
   // undefined = child list not in this payload (nested ComponentRead items omit
   // the key), [] = loaded and empty. Consumers use the distinction to lazy-fetch.
@@ -140,11 +139,8 @@ async function fetchOne<T extends ProductMapperPayload>(url: URL): Promise<T | n
 }
 
 async function resolveMeId(): Promise<string | undefined> {
-  // Prefer the in-memory cached user on web to avoid triggering cookie-based
-  // auth requests for unauthenticated visitors. If no cached user exists and
-  // we're on native, fall back to a network fetch. Best-effort: a failed lookup
-  // degrades to "not the owner" rather than failing the whole request, which
-  // also lets callers run this concurrently without an orphaned rejection.
+  // Cached user on web (no auth request for visitors); network fetch on
+  // native. A failed lookup degrades to "not the owner".
   if (Platform.OS === 'web') return getCachedUser()?.id;
   try {
     return (await getUser())?.id;
@@ -221,10 +217,8 @@ export type ProductsQuery = {
   owner?: 'me';
 };
 
-// Separator for multi-valued CSV query params, matching the backend's
-// FILTER_CSV_SEPARATOR. A comma collides with user text (brand/type names may
-// contain commas), so use the ASCII Unit Separator, which is rejected in stored
-// text and never appears in sort identifiers.
+// Multi-valued query param separator, matching the backend's
+// FILTER_CSV_SEPARATOR. ASCII Unit Separator: a comma collides with user text.
 export const FILTER_CSV_SEPARATOR = '\x1f';
 
 function buildProductsUrl(query: ProductsQuery): URL {
@@ -265,19 +259,15 @@ export async function products(query: ProductsQuery = {}): Promise<PaginatedResp
     pages: 0,
   };
 
-  // fetchWithAuth attaches the bearer token (native) / session cookie (web)
-  // and transparently refreshes once on 401 before we see the response.
   const fetchProducts = authenticated ? fetchWithAuth : apiFetch;
-  // Resolve the current user's id concurrently with the list fetch (resolveMeId
-  // never rejects, so abandoning it on the early-return paths is safe).
+  // resolveMeId never rejects, so abandoning it on early returns is safe.
   const meIdPromise = resolveMeId();
   const response = await fetchProducts(buildProductsUrl(query), {
     method: 'GET',
     headers: { Accept: 'application/json' },
   });
 
-  // A 401 that survived the refresh retry means there is no session: the
-  // signed-out view of "my products" is an empty page, not an error.
+  // No session: the signed-out view of "my products" is an empty page.
   if (authenticated && response.status === 401) return emptyPage;
   if (!response.ok) await throwFromResponse(response, 'Failed to fetch products');
 

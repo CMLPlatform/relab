@@ -107,9 +107,8 @@ function StatCard({
   );
 }
 
-// Skeleton wraps reanimated's Animated.View, which takes className as a
-// silent no-op — this stays style-driven. Sized to the heading step's line
-// height (24) so swapping in the real value doesn't shift layout.
+// Skeleton wraps Animated.View, which ignores className. Sized to the heading
+// line height (24) so the real value does not shift layout.
 const statSkeletonStyles = StyleSheet.create({
   value: {
     width: 28,

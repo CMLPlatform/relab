@@ -17,9 +17,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# How long to wait for a command response before giving up. The Pi cuts off its
-# local dispatch at RELAY_COMMAND_TIMEOUT_SECONDS; the grace period lets the
-# device-side timeout response win the race over a backend-side TimeoutError.
+# The grace period lets the Pi's own timeout response (at RELAY_COMMAND_TIMEOUT_SECONDS)
+# arrive before the backend gives up.
 DEFAULT_COMMAND_TIMEOUT = RELAY_COMMAND_TIMEOUT_SECONDS + 5.0
 
 

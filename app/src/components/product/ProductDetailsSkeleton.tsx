@@ -4,11 +4,7 @@ import { Skeleton } from '@/components/base/Skeleton';
 import { radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 
-/**
- * Loading placeholder mirroring the detail layout (Content.tsx): a full-bleed
- * gallery, the SpecHeader identity block (name + a couple of facts), then a few
- * titled section cards.
- */
+/** Loading placeholder mirroring the detail layout (Content.tsx). */
 export default function ProductDetailsSkeleton() {
   const theme = useAppTheme();
   const bg = theme.colors.surfaceVariant;
@@ -41,8 +37,7 @@ export default function ProductDetailsSkeleton() {
   );
 }
 
-// Skeleton wraps reanimated's Animated.View, which takes className as a
-// silent no-op — these stay style-driven.
+// Skeleton wraps Animated.View, which ignores className.
 const styles = StyleSheet.create({
   gallery: {
     width: '100%',

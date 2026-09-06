@@ -171,7 +171,7 @@ class CategoryReadAsSubCategoryWithRecursiveSubCategories(CategoryReadAsSubCateg
     model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_RECURSIVE_EXAMPLES})
 
 
-# # Rebuild schema to allow for nested subcategories
+# Rebuild schema to allow for nested subcategories
 CategoryReadAsSubCategoryWithRecursiveSubCategories.model_rebuild()
 
 

@@ -29,10 +29,7 @@ type CamerasGridProps = {
   /** One-line cue above the grid, e.g. how to enter multi-select. */
   hint?: string;
   onEffectiveConnectionChange: (cameraId: string, connection: EffectiveConnectionSnapshot) => void;
-  /**
-   * Return-focus target for the stream (GoLiveDialog) flow — whichever cell was
-   * tapped becomes the "current" trigger; see AppDialog's `triggerRef`.
-   */
+  /** Return-focus target for GoLiveDialog: the tapped cell (see AppDialog's `triggerRef`). */
   streamTriggerRef?: RefObject<View | null>;
 };
 

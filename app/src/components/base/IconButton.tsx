@@ -11,10 +11,8 @@ import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
-// Everything not already named below (accessibilityHint, onLongPress, aria-*,
-// ...) passes through via `...rest`; `onPress`/`disabled`/`accessibilityState`
-// stay controlled by this component so the loading behavior can't be
-// clobbered by a caller-supplied override.
+// `onPress`/`disabled`/`accessibilityState` stay controlled here so the loading
+// behavior cannot be clobbered; the rest passes through.
 type IconButtonProps = Omit<
   ComponentProps<typeof Pressable>,
   'onPress' | 'style' | 'children' | 'accessibilityLabel' | 'disabled' | 'accessibilityState'
@@ -63,12 +61,8 @@ export function IconButton({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: loading, busy: loading }}
       hitSlop={8}
-      // NOTE: never give a Pressable BOTH a className and a function `style`.
-      // The className-to-style bridge merges them into an array, and RN's Pressable
-      // only calls `style` when it is literally a function — so the function is
-      // silently dropped and every state it encodes (pressed, selected, caller
-      // overrides) never renders. Static styling for such a Pressable belongs in
-      // the function's first entry, as below.
+      // NOTE: never give a Pressable both a className and a function `style`:
+      // the bridge merges them into an array and Pressable then drops the function.
       style={pressableStyle}
     >
       {loading ? (

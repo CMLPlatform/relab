@@ -99,10 +99,8 @@ export function useProductsParamsSync({
   updateParams: (newParams: RouterSetParams) => void;
 }) {
   useEffect(() => {
-    // Only push once the debounce has settled onto the current buffer. Pushing a
-    // stale in-between value would fight an external URL reset — the buffer resets
-    // to the new URL while `debouncedSearchQuery` still lags, and this effect would
-    // write the lagging value straight back, re-clobbering the intended ?q=.
+    // Only push once the debounce has settled, or a lagging value would
+    // clobber an external URL reset.
     if (debouncedSearchQuery !== searchQuery) return;
     if (debouncedSearchQuery !== searchQueryURL) {
       updateParams({ q: debouncedSearchQuery || undefined });

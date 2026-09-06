@@ -14,8 +14,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
   const { colors, tokens } = useAppTheme();
   const error = CPV.name === 'undefined';
 
-  // Tinted danger fill, not a full errorContainer recolor (MD3 *Container
-  // roles are retired) — same pattern as Chip's error state.
+  // Tinted danger fill, same as Chip's error state.
   const bgColor = error ? getStatusTone(tokens.status.danger) : tokens.surface.accent;
   const textColor = error ? tokens.status.danger : colors.primary;
 

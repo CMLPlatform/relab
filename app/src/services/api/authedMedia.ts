@@ -3,31 +3,20 @@ import { getToken } from '@/services/api/auth/authentication';
 import { isWeb } from '@/services/storage';
 
 /**
- * Credentials for media served by owner-checked API routes (camera preview
- * thumbnails, relayed LL-HLS), which `<Image>`/`<VideoView>` cannot authenticate
- * on their own.
+ * Credentials for media served by owner-checked API routes (camera thumbnails,
+ * relayed LL-HLS).
  *
- * The two platforms authenticate differently and must be handled differently:
- *
- * - **Web** authenticates with the `__Host-` session cookie. The app
- *   (app.cml-relab.org) and the API (api.cml-relab.org) share the registrable
- *   domain, so they are *same-site* and the `SameSite=Lax` cookie is sent on
- *   plain subresource requests. Passing `headers` here would be actively
- *   harmful: expo-image's web path swaps the `<img>` for a `fetch()` that sets
- *   no `credentials`, which drops the cookie and turns a working request into a
- *   401. So web gets a bare `{ uri }` and relies on the cookie.
- * - **Native** has no cookie and carries a bearer token, which the players can
- *   only send through an explicit `headers` map.
+ * - Web: the same-site `__Host-` cookie is sent on subresource requests. Never
+ *   pass `headers` on web: expo-image then uses a `fetch()` without
+ *   `credentials`, which drops the cookie (401).
+ * - Native: bearer token via an explicit `headers` map.
  */
 export type AuthedMediaSource = { uri: string; headers?: Record<string, string> };
 
 /**
- * Build a player/image source that authenticates on both platforms.
- *
- * Returns `null` while a native token is still resolving, so callers render their
- * placeholder instead of firing a spurious load error. The returned object is
- * memoized because both `expo-image` and `expo-video` key reloads off source
- * identity — an inline object literal would refetch on every render.
+ * Player/image source that authenticates on both platforms. `null` while a
+ * native token is resolving. Memoized: expo-image and expo-video key reloads
+ * off source identity.
  */
 export function useAuthedMediaSource(uri: string | null | undefined): AuthedMediaSource | null {
   const web = isWeb();

@@ -26,8 +26,7 @@ export function useCameraConnectionSnapshots() {
     [],
   );
 
-  // Map of cameraId → direct-connection info, for routing capture to the local
-  // endpoint when a camera is only reachable directly (relay offline).
+  // cameraId -> direct-connection info, for cameras only reachable directly.
   const connectionInfoByCameraId = useMemo(() => {
     const map: Record<string, CameraConnectionInfo> = {};
     for (const [cameraId, snapshot] of Object.entries(effectiveConnectionByCameraId)) {

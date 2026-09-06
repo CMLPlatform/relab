@@ -20,9 +20,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   const router = useRouter();
   const [selectedType, setSelectedType] = useState<CPVCategory | null>(null);
 
-  // When the category-selection screen pops back, apply the picked type. A
-  // module slot (not a URL param) so this also works for an unsaved draft, which
-  // has no [id] route to round-trip a param through.
+  // Apply the type picked on the category-selection screen (see pendingTypeSelection.ts).
   useFocusEffect(
     useCallback(() => {
       const typeId = takePendingTypeSelection();
@@ -36,10 +34,8 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     loadCPV()
       .then((cpv) => {
         if (!isMounted) return;
-        // Never fall back to cpv.root — its {name: "undefined"} placeholder
-        // renders as a red "Category undefined" error card. An unresolvable
-        // (stale/unknown) type id resolves to null and renders nothing, not an
-        // error; the typeless (undefined id) case is handled by the guard below.
+        // Never fall back to cpv.root: its {name: "undefined"} placeholder
+        // renders as a red "Category undefined" card.
         setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? null);
       })
       .catch(() => {});
@@ -57,8 +53,6 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
 
   const labels = typeRowLabels(product.role);
 
-  // A sub-heading within the Overview section (not a duplicate of the
-  // Section title "Overview"); DetailSectionHeader already sits a step below it.
   const header = (
     <DetailSectionHeader
       title={labels.title}
@@ -66,12 +60,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     />
   );
 
-  // No type set: the CPV "root" entry is a placeholder ({name: "undefined"})
-  // that CPVCard renders as a red error card — showing that as the default
-  // first impression of a freshly captured record reads as a bug, not an
-  // empty state. In edit mode, invite the user to pick a type instead; in
-  // view mode, render nothing (the Section's own isEmpty check already hides
-  // the whole section when there's no other content to show).
+  // No type set: invite in edit mode, render nothing in view mode.
   if (product.productTypeID === undefined) {
     if (!editMode) return null;
     return (

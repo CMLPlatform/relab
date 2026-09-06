@@ -77,9 +77,8 @@ async def handle_list_files(
     statement = parent_media_select(
         File, parent_type=MediaParentType.PRODUCT, parent_id=parent_id, filter_params=item_filter
     )
-    # NOTE: `total` counts DB rows, but the transform below drops rows whose backing file
-    # is missing from storage — so `total` can exceed the number of items actually
-    # returned. Accepted: storage cleanup reconciles orphaned rows separately.
+    # NOTE: `total` counts DB rows; the transform drops rows whose file is missing from
+    # storage, so it can exceed the items returned. Storage cleanup reconciles orphans.
     page = await paginate_select(
         session,
         statement,
@@ -142,9 +141,7 @@ async def handle_list_images(
     statement = parent_media_select(
         Image, parent_type=MediaParentType.PRODUCT, parent_id=parent_id, filter_params=item_filter
     )
-    # NOTE: `total` counts DB rows, but the transform below drops rows whose backing file
-    # is missing from storage — so `total` can exceed the number of items actually
-    # returned. Accepted: storage cleanup reconciles orphaned rows separately.
+    # NOTE: `total` can exceed the items returned; see handle_list_files.
     page = await paginate_select(
         session,
         statement,

@@ -64,12 +64,7 @@ export function getAppTheme(scheme: AppScheme) {
   return scheme === 'dark' ? darkTheme : lightTheme;
 }
 
-/**
- * Hand-built react-navigation theme providing only the fields `Theme` requires
- * (`dark` + the six `colors` keys); expo-router's base theme already supplies
- * a valid `fonts` shape, so it's kept as-is rather than remapped from our type
- * scale (nothing in the app reads react-navigation's theme fonts).
- */
+/** react-navigation theme: `dark` + the six `colors` keys. `fonts` keeps expo-router's base shape. */
 export function createNavigationThemes() {
   const LightTheme = {
     ...navigationLightTheme,

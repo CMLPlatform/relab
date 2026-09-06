@@ -21,11 +21,7 @@ export type Product = {
     id?: string;
     url: string;
     thumbnailUrl?: string;
-    /**
-     * The API's pre-computed derivatives, keyed by width in pixels. Sparse: a
-     * narrow original generates fewer of them. A view picks the width it
-     * renders at rather than scaling `thumbnailUrl`, which is the smallest.
-     */
+    /** The API's derivatives keyed by width in pixels. Sparse: a narrow original generates fewer. */
     thumbnailUrls?: Record<number, string>;
     /** Pixel size of the stored original, after rotation. Absent for images
      * uploaded before the API recorded it. Every entry in `thumbnailUrls`
@@ -41,9 +37,8 @@ export type Product = {
   amountInParent?: number;
 };
 
-// `undefined` is the unset sentinel — a measurement the user hasn't given. The
-// keys stay required (not `weight?:`) because ProductPhysicalProperties renders
-// one row per Object.keys() entry, so an omitted key would silently drop a row.
+// Keys stay required (not `weight?:`): ProductPhysicalProperties renders one
+// row per Object.keys() entry.
 export type PhysicalProperties = {
   weight: number | undefined;
   width: number | undefined;
@@ -65,11 +60,7 @@ export function entityLabelTitle(product: Pick<Product, 'role'>): 'Product' | 'C
   return product.role === 'component' ? 'Component' : 'Product';
 }
 
-/**
- * Copy for the type row, which is labelled by role because only a component can
- * be a material. Shared by the capture and detail screens so the same record
- * can't change wording between them.
- */
+/** Copy for the type row, labelled by role (only a component can be a material). */
 export function typeRowLabels(role: Product['role']): { title: string; choose: string } {
   return role === 'component'
     ? { title: 'Component type or material', choose: 'Choose component type or material' }

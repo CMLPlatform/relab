@@ -1,12 +1,8 @@
 """Cross-worker relay bridge for the RPi camera WebSocket tunnel.
 
-With multiple Uvicorn worker processes, a camera's WebSocket connection is
-registered in exactly one worker's ``CameraConnectionManager``. HTTP relay
-requests (HLS, image capture, telemetry, …) round-robin across all workers,
-so the request may land on a different worker than the one holding the socket.
-
-This module provides a Redis-based bridge so any worker can dispatch a relay
-command to the worker that owns the connection:
+A camera's WebSocket lives in exactly one Uvicorn worker, but HTTP relay requests
+land on any worker. This Redis bridge forwards a command to the worker that owns
+the socket:
 
 ::
 
@@ -18,8 +14,8 @@ command to the worker that owns the connection:
       BLPOP relay_resp:{msg_id}    ◄──  manager.send_command() → Pi
         timeout = DEFAULT_COMMAND_TIMEOUT  RPUSH relay_resp:{msg_id}
 
-Binary payloads (HLS segments, captured images) are base-64 encoded inside
-the JSON response so a single ``decode_responses=True`` Redis client suffices.
+Binary payloads are base-64 encoded inside the JSON response so the shared
+``decode_responses=True`` Redis client can carry them.
 """
 
 import asyncio
@@ -59,10 +55,7 @@ def _resp_key(msg_id: str) -> str:
 # Expire stale response keys in case the requesting worker dies before reading.
 _RESP_TTL_MIN_SECONDS = 120
 
-# Cap the number of queued relay commands per camera so a misbehaving requester
-# or a slow Pi cannot grow the Redis list unbounded. Oldest commands are
-# dropped via LTRIM after the RPUSH; stale commands also self-filter on the
-# listener side via their ``deadline`` field.
+# Caps queued commands per camera; LTRIM drops the oldest after each RPUSH.
 _CMD_QUEUE_MAX_LEN = 256
 _BLPOP_POLL_SECONDS = 1
 
@@ -106,9 +99,7 @@ def _encode_command(
 class RelayCommandRejectedError(RuntimeError):
     """Raised when the owning worker's response carries an explicit 4xx status.
 
-    Distinguishes an allowlist rejection (or other client-error response) from
-    a generic relay failure, so the requesting side can surface the original
-    status code instead of a blanket 503.
+    Lets the requesting side surface the original status code instead of a 503.
     """
 
     def __init__(self, status_code: int, detail: str) -> None:
@@ -166,20 +157,14 @@ async def relay_cross_worker(
 ) -> tuple[dict, bytes | None]:
     """Send a relay command to whichever worker holds the camera's WebSocket.
 
-    Pushes the command onto a per-camera Redis list and blocks on a
-    per-request response list until the owning worker replies or the timeout
-    fires.
-
     Returns:
-        ``(json_response_dict, binary_bytes_or_None)`` — same shape as
+        ``(json_response_dict, binary_bytes_or_None)``, the same shape as
         ``CameraConnectionManager.send_command``.
 
     Raises:
-        RuntimeError: Camera did not respond (timeout or listener reported an
-            error).  Callers convert this to HTTP 503.
-        RelayCommandRejectedError: The owning worker's response carried an
-            explicit 4xx status (e.g. an allowlist rejection).  Callers should
-            surface that status code instead of 503.
+        RuntimeError: Timeout or listener-reported error. Callers convert this to 503.
+        RelayCommandRejectedError: The owning worker answered with a 4xx (e.g. an
+            allowlist rejection). Callers surface that status instead of 503.
     """
     msg_id = str(uuid.uuid4())
     deadline = time.monotonic() + timeout_s
@@ -190,8 +175,6 @@ async def relay_cross_worker(
 
     cmd_key = _cmd_key(camera_id)
     await redis.rpush(cmd_key, command_payload)
-    # Keep only the most recent _CMD_QUEUE_MAX_LEN entries; older ones self-expire
-    # via their deadline on the listener side.
     await redis.ltrim(cmd_key, -_CMD_QUEUE_MAX_LEN, -1)
 
     remaining = deadline - time.monotonic()
@@ -237,34 +220,23 @@ async def run_relay_listener(
 ) -> None:
     """Background task: service cross-worker relay commands for one camera.
 
-    Runs for the lifetime of the camera's WebSocket connection.  Cancelled
-    (via ``asyncio.Task.cancel()``) when the camera disconnects.
-
-    The task pops commands from ``rpi_cam:relay_cmd:{camera_id}``, relays each
-    to the camera via the local ``CameraConnectionManager``, and pushes the
-    response to ``rpi_cam:relay_resp:{msg_id}`` so the requesting worker can
-    read it with ``BLPOP``.
+    Runs until cancelled when the camera disconnects.
     """
     cmd_key = _cmd_key(camera_id)
     camera_log_id = sanitize_log_value(camera_id)
     logger.debug("Cross-worker relay listener started for camera %s", camera_log_id)
 
-    # Log-once-until-recovery: a sustained Redis outage would otherwise warn once per
-    # second per camera. Warn on the first failure, demote repeats to debug, and note
-    # recovery at info the next time a poll succeeds.
+    # Log-once-until-recovery: a sustained Redis outage would otherwise warn every second per camera.
     redis_down = False
 
     try:
         while True:
-            # Block until a command arrives or the task is cancelled.
             try:
                 result = await _blpop_once(redis, cmd_key)
             except asyncio.CancelledError:
                 break
             except RedisError, OSError, TimeoutError:
-                # A Redis blip must not kill this camera's listener task — that would
-                # silently stop relaying every subsequent command until reconnect.
-                # Back off briefly and keep polling.
+                # A Redis blip must not kill the listener, or relaying stops until reconnect.
                 redis_down = _log_redis_blip(redis_down=redis_down, camera_log_id=camera_log_id)
                 await anyio.sleep(1)
                 continue
@@ -290,7 +262,6 @@ async def run_relay_listener(
                 logger.warning("Relay listener received command without msg_id, skipping.")
                 continue
 
-            # Honour the deadline set by the requesting worker.
             deadline: float = cmd.get("deadline", 0.0)
             if deadline and time.time() > deadline:
                 logger.debug(
@@ -303,7 +274,6 @@ async def run_relay_listener(
             await _execute_and_respond(redis, camera_id, manager, cmd, msg_id)
 
     except asyncio.CancelledError:
-        # Listener was cancelled on shutdown; exit quietly.
         pass
     finally:
         logger.debug("Cross-worker relay listener stopped for camera %s", camera_log_id)
@@ -326,10 +296,8 @@ async def _execute_and_respond(
     body: dict | None = cmd.get("body")
     headers: dict[str, str] | None = cmd.get("headers")
 
-    # The requesting worker already checked the allowlist before pushing this command,
-    # but this worker is the one that actually forwards it to the Pi — re-check here too
-    # rather than trust an unauthenticated payload that crossed a process boundary via
-    # Redis. A rolling deploy could also see the two workers running different allowlists.
+    # Re-check the allowlist: the payload crossed a process boundary via Redis, and a
+    # rolling deploy can have workers on different allowlists.
     if not relay_command_is_allowed(method, path):
         logger.warning(
             "Relay listener blocked disallowed command %s %s for camera %s.",
@@ -345,9 +313,8 @@ async def _execute_and_respond(
 
     timeout_s = float(cmd.get("timeout_s", 30.0))
     try:
-        # send_command awaits the device's response with no internal deadline; without this
-        # timeout an unresponsive-but-connected camera would hang the single listener loop and
-        # head-of-line-block every other queued command for this camera.
+        # send_command has no internal deadline; a connected-but-silent camera would
+        # otherwise head-of-line-block every queued command.
         async with asyncio.timeout(timeout_s):
             json_resp, binary = await manager.send_command(
                 camera_id,
@@ -370,7 +337,7 @@ async def _execute_and_respond(
             await redis.expire(resp_key, _resp_ttl_seconds(timeout_s))
         return
     except RuntimeError as exc:
-        # Camera disconnected mid-flight — report error and stop listening.
+        # Camera disconnected mid-flight.
         logger.warning(
             "Relay listener: camera %s disconnected during cross-worker command %s: %s",
             camera_log_id,

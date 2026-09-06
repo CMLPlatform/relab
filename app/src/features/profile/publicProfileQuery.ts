@@ -3,11 +3,8 @@ import { useAuth } from '@/context/auth';
 import { getPublicProfile } from '@/services/api/profiles';
 
 /**
- * The one public-profile query, shared by the own-profile stats and the public
- * profile screen so both hit the same cache entry.
- *
- * The viewer id is part of the key because visibility rules depend on who is
- * asking — the profile must refetch when the viewer logs in or out.
+ * The one public-profile query. The viewer id is part of the key: visibility
+ * depends on who is asking.
  */
 export function usePublicProfileQuery(username: string | null | undefined) {
   const { user: viewer } = useAuth();

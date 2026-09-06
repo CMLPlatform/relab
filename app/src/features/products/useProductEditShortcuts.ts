@@ -17,11 +17,8 @@ function isTextFieldWithText(target: HTMLElement | null): boolean {
 }
 
 /**
- * Web-only edit-mode shortcuts for the product detail screen: Escape exits edit
- * mode through the same guarded path as the header back button (so the
- * discard/confirm prompt is unchanged), Cmd/Ctrl+S saves through the same
- * handler as the save FAB/bar. Scoped with useFocusEffect so a backgrounded
- * screen doesn't keep listening.
+ * Web-only edit-mode shortcuts: Escape exits through the header back button's
+ * guarded path, Cmd/Ctrl+S saves through the FAB/bar handler. Focus-scoped.
  */
 export function useProductEditShortcuts({
   editMode,

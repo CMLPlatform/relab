@@ -6,11 +6,7 @@ import { useAppTheme } from '@/theme';
 const LOGO_LIGHT = require('@/assets/images/logo.png');
 const LOGO_DARK = require('@/assets/images/logo-dark.png');
 
-/**
- * The theme-matched brand logo (ringed R9lab wordmark), sized by the bundled
- * asset's intrinsic aspect ratio — callers only set a width. The label carries
- * the pronounced name "Relab" (see assets/DESIGN.md, Voice).
- */
+/** Theme-matched brand logo, sized by the asset's aspect ratio; callers set a width. */
 export function BrandWordmark({ style }: { style?: StyleProp<ImageStyle> }) {
   const theme = useAppTheme();
   const source = theme.dark ? LOGO_DARK : LOGO_LIGHT;

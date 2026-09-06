@@ -11,9 +11,7 @@ type TermsPromptState = {
 
 const DISMISSED_SESSION_KEY = 'terms_prompt_dismissed';
 
-// sessionStorage exists on web only; on native the optional access throws or
-// returns undefined and the dismissal is plain in-memory state, which is the
-// same lifetime there — a native session ends when the app does.
+// sessionStorage is web only; on native the dismissal is in-memory state with the same lifetime.
 function readDismissed(): boolean {
   try {
     return globalThis.sessionStorage?.getItem(DISMISSED_SESSION_KEY) === 'true';
@@ -30,25 +28,15 @@ function writeDismissed(dismissed: boolean): void {
       globalThis.sessionStorage?.removeItem(DISMISSED_SESSION_KEY);
     }
   } catch {
-    // Non-fatal: some contexts (e.g. an opaque origin) forbid storage. The
-    // dismissal then lasts until the next reload, which is a nag, not a bug.
+    // Non-fatal: an opaque origin forbids storage; the dismissal then lasts until reload.
   }
 }
 
 /**
- * Whether the prompt has been waved away for this session.
- *
- * A shared store rather than state inside the hook: the dialog is mounted once
- * globally while the account screen offers a way back to it, so two callers must
- * see the same dismissal. With local state, "open it again" from the account row
- * would toggle a copy the mounted dialog never reads.
- *
- * Held in sessionStorage on web so a page reload does not re-ask. Purely
- * in-memory state looked equivalent until the browser was exercised: reloading
- * is routine, and being re-prompted on every refresh is nagging rather than
- * asking. Deliberately session-scoped and not persisted beyond it — declining
- * costs nothing, so a later sign-in should ask again rather than the refusal
- * standing forever.
+ * Whether the prompt has been dismissed this session. A shared store because
+ * the global dialog and the account row must see the same dismissal. Held in
+ * sessionStorage on web so a reload does not re-ask; session-scoped so a later
+ * sign-in asks again.
  */
 export const useTermsPromptDismissed = create<TermsPromptState>()((set) => ({
   dismissed: readDismissed(),
@@ -60,14 +48,8 @@ export const useTermsPromptDismissed = create<TermsPromptState>()((set) => ({
 
 /**
  * Whether to prompt this account for the contributor terms, and how to accept.
- *
- * The server decides whether a prompt is due (`termsAcceptanceRequired`), so the
- * app never compares version numbers itself — the dataset release keys on the same
- * rule, and a second copy here would eventually ask a different set of people than
- * the release excludes.
- *
- * Declining costs nothing: the account keeps full access and its records simply
- * stay out of published releases.
+ * The server decides (`termsAcceptanceRequired`); the app never compares
+ * versions itself. Declining keeps full access.
  */
 export function useTermsAcceptance() {
   const { user, refetch } = useAuth();

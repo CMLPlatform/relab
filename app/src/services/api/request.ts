@@ -37,15 +37,11 @@ export async function fetchWithTimeout(
 ): Promise<Response> {
   const { timeoutMs = DEFAULT_API_TIMEOUT_MS, signal, headers, ...requestOptions } = options;
 
-  // Normalize any HeadersInit. Spreading `headers` would yield `{}` for a
-  // `Headers` instance and `{0: [...]}` for a tuple array, silently dropping
-  // Authorization/Content-Type — both are legal RequestInit values.
+  // Spreading a `Headers` instance or a tuple array would drop every header.
   const requestHeaders = new Headers(headers);
 
-  // Stamp a correlation id on every request (not just authenticated ones) so
-  // backend logs can be traced for public endpoints, login, and password reset
-  // too. Lookup is case-insensitive, so a caller-supplied id (e.g. from
-  // fetchWithAuth, which reuses one id across its 401 retry) is left intact.
+  // Correlation id on every request. A caller-supplied id (fetchWithAuth
+  // reuses one across its 401 retry) is left intact.
   if (!requestHeaders.has('X-Request-ID')) {
     requestHeaders.set('X-Request-ID', createRequestId());
   }

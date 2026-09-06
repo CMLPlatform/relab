@@ -55,22 +55,18 @@ async def register(
     try:
         email_checker = get_email_checker(request)
 
-        # Validate user creation data (username uniqueness and disposable email policy).
-        # Username collisions still 409 here — usernames are public, so there is nothing
-        # to hide, and the user needs to pick another.
+        # Username collisions still 409: usernames are public.
         user_create = await validate_user_create(user_manager.user_db, user_create, email_checker)
 
-        # Create the user through UserManager (handles password hashing, validation)
         user = await user_manager.create(user_create, safe=True, request=request)
 
-        # Request email verification automatically (this triggers on_after_request_verify -> sends email)
         await user_manager.request_verify(user, request)
 
         logger.info("User %s registered successfully", mask_email_for_log(user.email))
 
     except UserAlreadyExists:
-        # Privacy: never reveal that an email is already registered. Notify the existing
-        # address and fall through to the same accepted response as a fresh signup.
+        # Never reveal that an email is registered: notify the address and return the
+        # same accepted response as a fresh signup.
         await send_existing_account_notification(user_create.email)
         logger.info("Registration attempted for existing email %s", mask_email_for_log(user_create.email))
 

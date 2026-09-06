@@ -1,31 +1,19 @@
 # Backend Performance Baseline
 
-This directory contains a small `k6` baseline suite for the Relab backend.
-
-## Goals
-
-- catch obvious latency regressions in common backend paths
-- keep a repeatable baseline script in the repo
-- avoid a heavy load-testing stack for routine checks
+A small `k6` suite that catches latency regressions in common backend paths.
 
 ## Covered Scenarios
 
-- `live_probe`
-  - always enabled
-  - exercises the liveness path via `/live`
-- `product_list_read`
-  - always enabled
-  - exercises the public product list path via `/v1/products`
-- `bearer_login`
-  - enabled only when `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` are set
-  - exercises the auth login path
-- `media_url_read`
-  - enabled only when `PERF_MEDIA_URL` is explicitly set
-  - exercises the media URL hot path
+| Scenario            | Path           | Enabled when                                   |
+| ------------------- | -------------- | ---------------------------------------------- |
+| `live_probe`        | `/live`        | always                                         |
+| `product_list_read` | `/v1/products` | always                                         |
+| `bearer_login`      | auth login     | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
+| `media_url_read`    | media URL      | `PERF_MEDIA_URL` set                           |
 
 ## Thresholds
 
-These thresholds are conservative regression tripwires, not capacity targets.
+Regression tripwires, not capacity targets.
 
 - `live_probe`: `p(95) < 1200ms`
 - `product_list_read`: `p(95) < 1800ms`
@@ -35,19 +23,15 @@ These thresholds are conservative regression tripwires, not capacity targets.
 
 ## Recommended Target
 
-Use the Docker CI stack as the canonical baseline environment.
-
-- it runs the backend in `testing`
-- it uses committed test credentials from `backend/.env.test`
-- it is more repeatable than the dev stack for regression checks
-
-Use the root perf entrypoint to manage that stack:
+Run the baseline against the Docker CI stack, which runs the backend in `testing` with the
+committed credentials from `backend/.env.test`:
 
 ```bash
 just docker-ci-perf-baseline
 ```
 
-Local runs prove the workflow works end to end but are distorted by laptop CPU contention, Docker overhead, and disk pressure. Calibrate thresholds from the GitHub Actions perf workflow instead — that is the environment that runs the recurring baseline checks.
+Local runs are distorted by laptop CPU contention and Docker overhead. Calibrate thresholds from the
+GitHub Actions perf workflow, which runs the recurring checks.
 
 ## Usage
 
@@ -107,16 +91,20 @@ just perf-baseline
 
 ## Recommended Baseline Inputs
 
-- Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products before the k6 run starts.
-- `live_probe` and `product_list_read` are the baseline scenarios and must stay runnable.
-- `media_url_read` is opportunistic rather than required. The baseline must still run cleanly if no media URL is provided.
-- Use `/v1/products?size=20` as the default product-read baseline unless you intentionally want a different page size.
-- Reuse the CI superuser from `backend/.env.test` for login measurements unless you explicitly need another account.
+- Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products first.
+- `live_probe` and `product_list_read` must stay runnable; the baseline must also pass with no media
+  URL.
+- Use `/v1/products?size=20` as the product-read baseline.
+- Use the CI superuser from `backend/.env.test` for login measurements.
 
 ## Recording Results
 
-`just perf-baseline` writes a raw `k6` summary export to `reports/performance/latest-k6-summary.json` (gitignored — local only).
+`just perf-baseline` writes a raw `k6` summary to `reports/performance/latest-k6-summary.json`
+(gitignored).
 
-To recalibrate thresholds, run the `Performance Baseline` workflow with `workflow_dispatch`, download the `backend-perf-baseline-artifacts` artifact, then use the maintainer-only perf helpers in `backend/justfile` to refresh thresholds in `perf/k6-baseline.js`. Commit the updated thresholds. Include key numbers in the PR description rather than committing dated report files.
+To recalibrate thresholds:
 
-Threshold refresh is a maintenance operation, not a routine command. The helper recipes are hidden in `backend/justfile` to keep the public task surface small.
+1. Run the `Performance Baseline` workflow with `workflow_dispatch`.
+1. Download the `backend-perf-baseline-artifacts` artifact.
+1. Refresh `perf/k6-baseline.js` with the hidden perf helper recipes in `backend/justfile`.
+1. Commit the thresholds. Put key numbers in the PR description, not in dated report files.

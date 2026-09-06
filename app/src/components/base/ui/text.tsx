@@ -13,15 +13,9 @@ const TEXT_CLASS_NAME = cn(
 const TextClassContext = React.createContext<string | undefined>(undefined);
 
 /**
- * `maxFontSizeMultiplier` defaults to the same app-wide Dynamic Type cap (2x)
- * that `AppText` applies.
- *
- * DESIGN.md states the cap is app-wide, and it was not: this vendored primitive
- * renders user-facing copy in HeroStats, ComponentRow, GoLiveDialog,
- * ProductDelete and every AppButton label, and carried no cap at all, so those
- * strings scaled without limit and broke fixed layouts. Defaulting it here fixes
- * every consumer at once; a caller that genuinely wants unbounded scaling can
- * still pass its own value.
+ * `maxFontSizeMultiplier` defaults to the app-wide Dynamic Type cap (2x), as in
+ * `AppText`. This primitive renders every AppButton label plus HeroStats,
+ * ComponentRow, GoLiveDialog and ProductDelete, so the cap must live here too.
  */
 function Text({
   className,

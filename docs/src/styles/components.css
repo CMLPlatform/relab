@@ -8,12 +8,8 @@
   }
 }
 
-/* Research metadata at the foot of the overview: affiliation, authors, citation,
-   licences, funding, contact. Small mono, one hairline above it, no cards and no
-   icons — a colophon, not a section. It replaces the shields.io badge row, which
-   was README furniture aimed at contributors evaluating the repo rather than at
-   readers looking for a guide, and which loaded four third-party images on first
-   paint. Every paragraph is one label line, so they set tight. */
+/* Research colophon at the foot of the overview: small mono, one hairline
+   above, no cards, no icons. Every paragraph is one label line. */
 .relab-colophon {
   margin-top: 3rem;
   padding-top: 1.2rem;
@@ -48,9 +44,8 @@
   background: color-mix(in srgb, var(--relab-brand-primary) 4%, transparent);
 }
 
-/* block, not inline-block: markdown folds the soft newline after the card's
-   link into a space, so an inline-block title runs straight into its own
-   description on the same line. */
+/* block, not inline-block: markdown folds the newline after the link into a
+   space, so an inline-block title runs into its description. */
 .relab-card-grid strong:first-child {
   display: block;
   margin-bottom: 0.35rem;
@@ -72,11 +67,9 @@
   background: color-mix(in srgb, var(--relab-brand-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
 }
 
-/* Long code lines were escaping their own block and forcing the whole page to
-   scroll sideways on narrow viewports (WCAG 1.4.10 reflow). Expressive Code
-   ships its own scroll container, but the computed overflow-x on the `pre`
-   lands as `visible` here, so the line box overflows the frame instead of
-   scrolling inside it. Wide content scrolls in its own box; the page never does. */
+/* Expressive Code's `pre` computes overflow-x: visible here, so long lines
+   forced the page to scroll sideways (WCAG 1.4.10). Wide content scrolls in
+   its own box; the page never does. */
 .expressive-code pre {
   overflow-x: auto;
 }
@@ -90,10 +83,8 @@
   background: color-mix(in srgb, white 88%, var(--relab-brand-primary) 6%);
 }
 
-/* Diagrams break out of the prose column rather than the column widening to
-   suit them: the measure is set for reading, and only the diagrams need the
-   extra room. Desktop only — below this the column is already the full width,
-   so a break-out would push the page into horizontal scroll. */
+/* Diagrams break out of the prose column. Desktop only: below this the column
+   is already full width and a break-out would cause horizontal scroll. */
 @media (min-width: 72rem) {
   .relab-mermaid {
     width: calc(100% + 4.5rem);
@@ -105,19 +96,11 @@
   background: rgba(13, 23, 34, 0.88);
 }
 
-/* Diagrams scroll rather than shrink past legibility.
-   Mermaid emits its SVG with width="100%" plus an inline `max-width` set to the
-   diagram's natural size. Adding `min-width: 100%` on top made the SVG always
-   fill the frame exactly, so it could only ever scale DOWN — the frame's
-   `overflow-x: auto` above could never engage because there was nothing to
-   overflow. Measured on /architecture/system-design/ at 1440px: a 1636px
-   diagram rendered at 758px, a 0.46x downscale that put its 16px labels on
-   screen at ~7.4px. At 390px it was ~3px.
-   The width itself cannot be recovered here: an SVG sized in percent has no
-   intrinsic width, so `width: max-content` resolves to the container rather
-   than the viewBox (measured — it changed nothing). pinDiagramToIntrinsicWidth()
-   in src/scripts/mermaid.ts sets the explicit pixel width after render instead.
-   This rule only clears the `min-width: 100%` that used to force the fit. */
+/* Diagrams scroll rather than shrink. Mermaid emits width="100%" with the
+   natural size only as an inline `max-width`; a `min-width: 100%` here would
+   force the SVG to fit and only ever scale down. The width cannot be recovered
+   in CSS (a percent-sized SVG has no intrinsic width), so
+   pinDiagramToIntrinsicWidth() in src/scripts/mermaid.ts sets it after render. */
 .relab-mermaid svg {
   max-width: none;
 }

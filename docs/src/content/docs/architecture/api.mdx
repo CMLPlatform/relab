@@ -3,14 +3,9 @@ title: API structure
 description: How the Relab API is organized and how the main domain surfaces fit together.
 ---
 
-Routes are organized by domain, not by HTTP verb. The same API serves the research app, the public web frontend, and external tooling. Public and authenticated surfaces are separated in practice, but the cleanest source of truth is the live OpenAPI docs.
+Routes are organized by domain. One API serves the research app, the public web frontend, and external tooling. The live OpenAPI docs are the source of truth: see the [API reference overview](/api-reference/) for schemas and the [API interaction guide](../../user-guides/api/) for usage.
 
-For live schemas and request models, start from the [API reference overview](/api-reference/). For practical usage guidance, see the [API interaction guide](../../user-guides/api/).
-
-There are three distinct surfaces: the public app API is the contract for the
-frontend and external clients, the device API handles Pi-originated HTTP
-callbacks, and a small private DTO seam covers backend device integration plus
-the RPi camera plugin.
+Three surfaces: the public app API is the contract for the frontend and external clients, the device API handles Pi-originated HTTP callbacks, and a small private DTO seam covers backend device integration plus the RPi camera plugin.
 
 ## Route organization
 
@@ -56,19 +51,19 @@ Base products and components share the same database table, but they are separat
 - direct children and bounded base-product subtrees are listed with `/v1/products/{id}/components` and `/v1/products/{id}/components/tree`
 - bill-of-materials routes follow the addressed resource: `/v1/products/{id}/materials` for base products and `/v1/components/{id}/materials` for components
 
-Product and component entry is progressive. A record can be created before its full component tree or bill of materials is known; completeness checks belong to later curation and audit workflows, not to create-time validation.
+Entry is progressive: a record can be created before its component tree or bill of materials is known. Completeness checks belong to later curation and audit, not create-time validation.
 
-Product- and component-create requests (`POST /v1/products`, `POST /v1/products/{id}/components`, `POST /v1/components/{id}/components`) accept an optional `Idempotency-Key` header so a client can safely retry a request whose response was lost after the server had already committed it. The first request with a given key is processed normally; a retry with the same key returns the original response instead of creating a duplicate record.
+Create requests (`POST /v1/products`, `POST /v1/products/{id}/components`, `POST /v1/components/{id}/components`) accept an optional `Idempotency-Key` header, so a client can retry a request whose response was lost after the server committed it. A retry with the same key returns the original response instead of creating a duplicate.
 
-A key is only replayed when everything about the retry matches the original:
+A key is replayed only when the retry matches the original:
 
-- the same authenticated user, so a key cannot be replayed across accounts
+- the same authenticated user
 - the same target, including the parent id: the same key on `POST /v1/products/1/components` and `POST /v1/products/2/components` are two separate requests
-- the same request body — reusing a key with a different payload returns `422`, rather than silently returning the earlier record
+- the same request body; a different payload returns `422`
 
-A retry that arrives while the first request is still running returns `409`. If the idempotency store is unreachable the request fails closed with `503` instead of risking a duplicate create. Stored responses expire after one hour.
+A retry that arrives while the first request is still running returns `409`. If the idempotency store is unreachable, the request fails closed with `503`. Stored responses expire after one hour.
 
-Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles show them only to signed-in users, and private profiles show them only to the owner and admins. Hidden owner identity is returned as `null` rather than exposing a username or owner id.
+Owner attribution is viewer-aware. Public profiles show product owner names to everyone, community profiles only to signed-in users, and private profiles only to the owner and admins. Hidden owner identity is returned as `null`.
 
 ### Hardware integration
 
@@ -84,7 +79,7 @@ The app-facing camera routes appear in the [public API reference](/api/public/).
 
 - The backend serves both browser-oriented and app-oriented clients.
 - Authentication supports both cookie and bearer transports (see [Authentication](../auth/)).
-- Public reference data and public research reads are openly accessible; user-owned workflows require authentication, and mutations are limited to verified owners or superusers by backend dependencies.
+- Public reference data and research reads are open. User-owned workflows require authentication; backend dependencies limit mutations to verified owners or superusers.
 
 ## Example interaction flow
 

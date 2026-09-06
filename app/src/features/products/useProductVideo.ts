@@ -6,12 +6,7 @@ import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeInte
 import type { Product } from '@/types/Product';
 import { getStreamingState } from './productPageHelpers';
 
-/**
- * Streaming capabilities and navigation for the product video section.
- *
- * Reads integration/auth/stream state directly so ProductVideo does not need
- * these threaded through the product page's prop chain.
- */
+/** Streaming capabilities and navigation for the product video section. */
 export function useProductVideo(product: Product) {
   const router = useRouter();
   const { user } = useAuth();

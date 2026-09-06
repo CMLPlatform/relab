@@ -17,17 +17,13 @@ type AppDialogProps = {
 
 const NOOP = () => {};
 
-// Swallow presses so tapping inside the dialog doesn't dismiss it. Module-level so it's
-// a stable reference across renders (this rule turns on for tap targets in this repo).
+// Swallow presses so tapping inside the dialog does not dismiss it.
 function stopPropagation(e: { stopPropagation: () => void }) {
   e.stopPropagation();
 }
 
 /**
- * Shared chrome for the app's Paper-free dialogs: a centered surface over a
- * scrim, built on React Native's core Modal — which brings its own focus trap
- * and Escape→onRequestClose on web (see DialogProvider.tsx for the rationale
- * behind not using the vendored rn-primitives ui/dialog here).
+ * Shared dialog chrome: a centered surface over a scrim.
  *
  * NOTE: hand-rolled on purpose — uses RN-core Modal for native focus trap and Escape→onRequestClose.
  */

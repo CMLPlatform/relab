@@ -10,13 +10,8 @@ import type { CircularityProperties, Product } from '@/types/Product';
 
 type CircularityNoteKey = keyof CircularityProperties;
 
-// These three free-text notes are the product's distinguishing research input
-// and the hardest fields to write into cold. Every label is domain vocabulary,
-// so each one carries its meaning in a hint: the audience runs out past the lab
-// to repair-café visitors, and none of the three terms is everyday English.
-// The example under it shows what a good answer looks like, and every example is
-// deliberately hedged, because the guidance is that an uncertain observation is
-// a good observation and a forced-precise one damages the dataset.
+// Each label carries a hint (the audience includes repair-café visitors) and a
+// hedged example: an uncertain observation is a good observation.
 const NOTE_FIELDS: readonly {
   key: CircularityNoteKey;
   label: string;
@@ -67,28 +62,12 @@ export default function ProductCircularityProperties({
   onChangeCircularityProperties,
 }: Props) {
   const { colors } = useAppTheme();
-  // Expanded in edit mode. Collapsed-by-default made "Add circularity notes"
-  // (Section's ghost add-row) open onto "No circularity notes yet."
-  // plus a Show link — three taps to reach a textarea, the middle one answering
-  // a request to add with a statement that there is nothing. The collapse earns
-  // its place in view mode only when there is nothing to show: a record that
-  // has notes opens on them, because a reader who scrolled to Circularity came
-  // for exactly that and a collapsed "Show 3 circularity notes" row is a tap
-  // standing between them and the data. Hide still collapses it on a long record.
-  //
-  // The effect is load-bearing, not belt-and-braces: `useState(editMode)` alone
-  // only covers the mount-in-edit-mode path (the empty-section add-row). Section
-  // keys its children by `sectionKey`, so a record opened in view mode stays
-  // mounted when the user presses Edit, and the initialiser never re-runs —
-  // which left the notes collapsed behind the disclosure row on the path
-  // users actually take through an existing record.
+  // Expanded in edit mode or when there are notes to show.
   const [isSectionExpanded, setIsSectionExpanded] = useState(
     editMode || visibleNoteCount(product.circularityProperties) > 0,
   );
-  // Adjust-state-during-render rather than an effect: React's documented pattern
-  // for reacting to a prop change, and it avoids the cascading re-render an
-  // effect-plus-setState would cause. Entering edit mode opens the section;
-  // leaving it does not force a collapse, and "Hide" still works in both modes.
+  // The initialiser does not re-run when Edit is pressed on a mounted record,
+  // so entering edit mode also opens the section here. Leaving it does not collapse.
   const [wasEditMode, setWasEditMode] = useState(editMode);
   if (editMode !== wasEditMode) {
     setWasEditMode(editMode);

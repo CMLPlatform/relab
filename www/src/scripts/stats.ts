@@ -1,7 +1,5 @@
-// Client-side population of the homepage stats panel. Fetches the public stats
-// API in the browser (same pattern as the app/docs frontends, permitted by the
-// CADDY_API_ORIGIN entry in the CSP) and reveals the panel once data arrives.
-// On any failure the panel is left hidden.
+// Populates the homepage stats panel from the public stats API in the browser.
+// On any failure the panel stays hidden.
 
 import {
   buildScale,
@@ -385,9 +383,7 @@ function mountActivity(panel: HTMLElement, series: SeriesPoint[]): void {
       ? `${measure.label} per month (${unit}) · last ${SERIES_MONTHS} months`
       : `${measure.label} per month · last ${SERIES_MONTHS} months`;
     chartSlot.replaceChildren(buildChart(series, measure));
-    // The bar entrance is a first-impression device. Replacing the bars re-runs
-    // it, so a measure toggle would make you wait out the stagger before the
-    // comparison you clicked for is readable, so gate it to the first draw.
+    // Bar entrance only on the first draw; a measure toggle should not wait out the stagger.
     chartSlot.classList.toggle('stats-chart-enter', !drawn);
     drawn = true;
     tableSlot.replaceChildren(buildTable(series, measure, formatValue, unit));

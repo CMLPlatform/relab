@@ -2,14 +2,9 @@ import type { ReactNode } from 'react';
 import { type LayoutChangeEvent, View } from 'react-native';
 
 /**
- * Adaptive page scaffold: centers content at a max width with gutters that
- * widen at the md/lg breakpoints (global.css). `fullBleed` opts a hero or
- * gallery out of the constraint while keeping one wrapper element.
- *
- * `phoneFullBleed` drops the base `px-4` gutter below md, keeping the md/lg
- * gutters and desktop centering. Use it for screens whose content already owns
- * its phone horizontal padding (list/grid screens) so the scaffold's gutter
- * doesn't stack on top of it and shift the phone layout.
+ * Adaptive page scaffold: max-width column with gutters that widen at md/lg.
+ * `fullBleed` opts out of the constraint; `phoneFullBleed` drops only the
+ * base `px-4` gutter below md, for screens that own their phone padding.
  */
 export function PageContainer({
   children,
@@ -30,13 +25,8 @@ export function PageContainer({
     );
   }
   return (
-    // flex-1: several screens hand this a flex:1 child (a FlatList that must
-    // fill the remaining viewport height) — without it, that child loses its
-    // flex-basis chain the moment this wrapper sits between it and the
-    // screen's flex:1 root. Inert when nested in a ScrollView instead (no
-    // definite parent height to grow into), so it's safe for both cases.
-    // Two literal className strings (not a cn() join) so NativeWind's compiler
-    // statically sees every utility.
+    // flex-1 keeps a flex:1 child's (FlatList) flex-basis chain intact; inert
+    // inside a ScrollView. Two literal strings so the compiler sees every utility.
     <View
       testID="page-container-constrained"
       className={

@@ -32,10 +32,7 @@ export function showStreamStopFailed(feedback: FeedbackApi, error: unknown) {
   feedback.error(`Failed to stop stream: ${getErrorMessage(error, String(error))}`, 'Stop failed');
 }
 
-/**
- * The broadcast started but attaching it to the product failed. The stream is
- * live either way, so this is a distinct, non-fatal message.
- */
+/** The broadcast started but attaching it to the product failed; non-fatal. */
 export function showStreamVideoSaveFailed(feedback: FeedbackApi, error: unknown) {
   feedback.error(
     `The stream is live, but saving it to the product failed: ${getErrorMessage(error, String(error))}`,

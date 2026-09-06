@@ -7,19 +7,14 @@ import { baseProductQueryOptions, componentQueryOptions } from '@/features/produ
 import { newProduct } from '@/services/api/products';
 import { type UseCaptureEntityOptions, useCaptureEntity } from './useCaptureEntity';
 
-/**
- * Everything the capture-first creation screen does besides render:
- * `useCaptureEntity`'s draft state plus the guest redirect, the parent lookup,
- * the unsaved-changes guard and the post-create routing.
- */
+/** Capture screen logic: draft state, guest redirect, parent lookup, unsaved-changes guard, post-create routing. */
 export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntityOptions) {
   const router = useRouter();
   const navigation = useNavigation();
   const dialog = useDialog();
   const { user } = useAuth();
 
-  // Creation needs an account; mirror the old isNew hydration's guest redirect
-  // so a logged-out user doesn't fill the form only to hit a dead Create.
+  // Creation needs an account.
   useEffect(() => {
     if (!user) router.replace({ pathname: '/login', params: { redirectTo: '/products' } });
   }, [user, router]);
@@ -32,10 +27,8 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
     [parentID, parentRole, images],
   );
 
-  // Two distinct queryOptions() calls return incompatible generic instantiations
-  // (different literal queryKey tuples), so TS can't unify them behind a single
-  // ternary-fed useQuery call. Run both — each is `enabled` only for its own
-  // role, so only one ever fetches — and read from whichever applies.
+  // The two queryOptions() types do not unify behind one useQuery; run both,
+  // each `enabled` only for its role.
   const isComponentParent = parentRole === 'component';
   const baseParentQuery = useQuery(
     baseProductQueryOptions(isComponentParent ? undefined : parentID),
@@ -45,9 +38,7 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
   );
   const parentName = (isComponentParent ? componentParentQuery : baseParentQuery).data?.name;
 
-  // Skips the beforeRemove guard right after a successful create/leave — the
-  // form is still "dirty" for one more render at that point, and the guard
-  // would otherwise block the navigation this screen just requested.
+  // The form is still "dirty" for one render after a create; skip the beforeRemove guard.
   const skipNextBeforeRemoveRef = useRef(false);
 
   useEffect(() => {
@@ -90,15 +81,11 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
     goToSaved(savedId);
   };
 
-  // Returns whether the screen stayed put with a freshly reset form (a plain
-  // create failure also stays put, but leaves the fields as the researcher
-  // typed them — only a successful reset should steal focus back to Name).
+  // Returns whether the screen stayed put with a freshly reset form.
   const handleCreateAndAddAnother = async (): Promise<boolean> => {
     const result = await createAndAddAnother();
     if (result === undefined) return false;
-    // Batch mode has nothing left to batch on a partial success: the record
-    // exists and its photos need attention, so route to the detail screen
-    // exactly like a plain Create instead of staying on the capture form.
+    // Partial success: route to the detail screen like a plain Create.
     if (result.partial) {
       goToSaved(result.id);
       return false;

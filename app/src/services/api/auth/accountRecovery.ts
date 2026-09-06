@@ -2,12 +2,7 @@ import { API_URL } from '@/config';
 import { apiFetch } from '@/services/api/client';
 import { throwFromResponse } from '@/services/api/errors';
 
-/**
- * Password-reset and email-verification endpoints. These throw ApiError (via
- * the shared response parser) on failure, so callers get the backend detail —
- * including validation arrays and {message}/{reason} objects — instead of only
- * a bare `detail` string, and branch on ApiError for API vs network failures.
- */
+/** Password-reset and email-verification endpoints. Throw ApiError on failure. */
 
 async function postJson(path: string, body: unknown, fallbackError: string): Promise<void> {
   const response = await apiFetch(`${API_URL}${path}`, {

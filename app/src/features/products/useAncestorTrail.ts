@@ -11,12 +11,7 @@ export type AncestorCrumb = {
 
 const MAX_DEPTH = 12;
 
-/**
- * Fetch a node without knowing its role ahead of time. Tries the component
- * endpoint first (the common case during an ancestor walk), falls back to the
- * base-product endpoint on 404. Reads through the query cache so ancestors the
- * user just navigated resolve without a network round-trip.
- */
+/** Fetch a node of unknown role: component endpoint first, base product on 404. Reads through the query cache. */
 async function fetchNodeByEitherRole(queryClient: QueryClient, id: number): Promise<Product> {
   try {
     return await queryClient.ensureQueryData(componentQueryOptions(id));

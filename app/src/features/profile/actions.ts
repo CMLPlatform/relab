@@ -104,8 +104,6 @@ export function useProfileActions({
     void sendVerificationEmail({ email: profile.email, feedback });
   }, [feedback, profile]);
 
-  // Confirm first: this is the most destructive action on the screen, and every
-  // milder sibling (logout, unlink) already asks.
   const onRevokeAllSessions = useCallback(() => {
     feedback.alert({
       title: 'Sign out everywhere?',

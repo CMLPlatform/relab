@@ -26,7 +26,7 @@ from app.api.auth.preferences import UserPreferences, UserPreferencesUpdate
 from app.api.auth.profile_stats import ProfileStatsData
 from app.api.auth.roles import DEFAULT_USER_ROLE, UserRole
 
-# Note: These auth schemas stay together to avoid circular imports during model/schema construction.
+# These auth schemas stay in one module to avoid circular imports.
 
 
 class UserBase(BaseModel):
@@ -90,7 +90,6 @@ class UserCreateBase(UserBase, fastapi_users_schemas.BaseUserCreate):
         """Reject reserved usernames."""
         return validate_username_not_reserved(v)
 
-    # Override for OpenAPI schema configuration
     password: str = Field(json_schema_extra={"format": "password"}, min_length=12)
 
 
@@ -180,8 +179,7 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
         default_factory=UserPreferences,
         description="User preferences.",
     )
-    # Read-only by omission from UserUpdate, which forbids extras: a user must not be able
-    # to PATCH themselves into having accepted terms they were never shown.
+    # Absent from UserUpdate (which forbids extras) so a user cannot PATCH in an acceptance.
     terms_accepted_version: int | None = Field(
         default=None,
         description="Version of the contributor terms this account accepted at signup, or null "
@@ -191,9 +189,7 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
         default=None,
         description="When the contributor terms were accepted. Recorded by the server; not client-settable.",
     )
-    # Derived server-side rather than exposing the threshold constant: the release
-    # tooling keys on the same rule, and a client comparing versions itself would
-    # eventually ask a different set of people than the release excludes.
+    # Derived server-side so clients and the release tooling apply the same rule.
     terms_acceptance_required: bool = Field(
         default=False,
         description="Whether this account should be prompted to accept the contributor terms. "
@@ -201,9 +197,8 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
         "the publication licence a dataset release needs.",
     )
 
-    # Role and quota are server-owned: role is absent from UserUpdate (which forbids
-    # extras) so no self-service PATCH can escalate to `lab`, and the quota figures
-    # are derived from it rather than stored per user.
+    # Role is absent from UserUpdate so no self-service PATCH can escalate to `lab`;
+    # quota figures derive from it.
     role: UserRole = Field(
         default=DEFAULT_USER_ROLE,
         description="Contributor tier. `lab` accounts may upload non-image research files "
@@ -250,7 +245,6 @@ class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUs
             return UserPreferencesUpdate.model_validate(value)
         return value
 
-    # Override password field to include password format in JSON schema
     password: str | None = Field(default=None, json_schema_extra={"format": "password"}, min_length=12)
     current_password: SecretStr | None = Field(
         default=None,
@@ -363,8 +357,7 @@ class MfaTotpDisableRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ"),
-    # so a user who lost their authenticator can still turn MFA off.
+    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ").
     code: str = Field(min_length=6, max_length=20)
 
 

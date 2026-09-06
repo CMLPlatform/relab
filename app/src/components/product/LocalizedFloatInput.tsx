@@ -20,45 +20,31 @@ interface LocalizedFloatInputProps {
   error?: string;
 }
 
-/**
- * Gets the user's decimal separator based on their locale
- */
+/** The user's locale decimal separator. */
 function getDecimalSeparator(): string {
   const localeToUse = typeof navigator !== 'undefined' ? navigator.language : undefined;
   const formatted = localeToUse ? (1.1).toLocaleString(localeToUse) : (1.1).toLocaleString();
   return formatted.charAt(1); // The character between 1 and 1
 }
 
-// The locale is fixed for the session, so resolve the separator and its validation
-// pattern once at module load rather than on every keystroke.
+// The locale is fixed for the session.
 const DECIMAL_SEPARATOR = getDecimalSeparator();
 const DECIMAL_PATTERN = new RegExp(`^\\d*[${DECIMAL_SEPARATOR.replace('.', '\\.')}]?\\d*$`);
 
-/**
- * Converts a localized number string to standard dot-decimal format
- */
+/** Localized number string to dot-decimal. */
 function normalizeDecimalString(text: string, decimalSeparator: string): string {
   return decimalSeparator === '.' ? text : text.replace(decimalSeparator, '.');
 }
 
-/**
- * Converts a standard number to localized display format
- */
+/** Number to localized display format. */
 function toLocalizedString(value: number | undefined, decimalSeparator: string): string {
   if (value === undefined) return '';
   const standardString = value.toString();
   return decimalSeparator === '.' ? standardString : standardString.replace('.', decimalSeparator);
 }
 
-// Read mode renders the Spec Row, not a disabled input.
-//
-// DESIGN.md names the Spec Row — manila eyebrow label over a mono value — as
-// the app's signature pattern, and it existed in exactly one component
-// (SpecFacts) covering three derived facts, while the screen that is nothing
-// BUT measurements rendered them as plain label-and-textbox rows. A disabled
-// TextInput also reads as a form control to assistive tech when there is
-// nothing to fill in. `data` supplies the mono family and tabular figures, so
-// Weight/Height/Width/Depth line up in a column the way measurements should.
+// Read mode renders the Spec Row (DESIGN.md), not a disabled input, which
+// reads as a form control to assistive tech.
 function ReadOnlySpecRow({
   label,
   value,
@@ -98,10 +84,8 @@ export default function LocalizedFloatInput({
   const normalizedValue = value == null || Number.isNaN(value) ? undefined : value;
   const [text, setText] = useState(() => toLocalizedString(normalizedValue, DECIMAL_SEPARATOR));
 
-  // Resync the field when the `value` prop changes externally (async load, refetch,
-  // parent reset). This can't clobber typing: the parent only gets updates on blur,
-  // so `normalizedValue` is stable while the user types and this stays idle.
-  // Render-phase reset rather than an effect — no cascading render, no stale frame.
+  // Resync on an external `value` change. Cannot clobber typing: the parent
+  // only gets updates on blur.
   const [syncedValue, setSyncedValue] = useState(normalizedValue);
   if (normalizedValue !== syncedValue) {
     setSyncedValue(normalizedValue);
@@ -181,8 +165,7 @@ export default function LocalizedFloatInput({
     return <ReadOnlySpecRow label={label} value={normalizedValue} unit={unit} />;
   }
 
-  // FormFieldError renders nothing without a message, so the wrapper is harmless
-  // when the field is valid and keeps the message directly under its own row.
+  // FormFieldError renders nothing without a message.
   if (label) {
     return (
       <View>

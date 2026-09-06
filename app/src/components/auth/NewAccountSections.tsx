@@ -16,12 +16,8 @@ import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme';
 import { describedBy } from '@/utils/a11y';
 
-// Every row is a fixed slot, so the three steps are identical and nothing moves
-// as the error message comes and goes. The slots stay fixed-height even under
-// OS font scaling; MAX_FONT_SCALE caps the label text so it stays legible
-// instead of clipping against the slot at large accessibility sizes. (The
-// helper/error text renders via the shared FormFieldError component, which
-// carries the same cap itself.)
+// Fixed-height slots so nothing moves as the error message comes and goes.
+// MAX_FONT_SCALE keeps the label from clipping against the slot.
 const LABEL_ROW_HEIGHT = 16;
 const MAX_FONT_SCALE = 1.5;
 const INPUT_ROW_HEIGHT = 48;
@@ -43,41 +39,30 @@ const styles = StyleSheet.create({
   step: {
     maxWidth: CARD_MAX_WIDTH,
   },
-  // NOTE: welcomeText/brandText/questionText are a bespoke three-line
-  // headline stack (own line, own weight per line), plain RN Text predating
-  // AppText — no single ramp step covers three different custom sizes in
-  // one headline.
+  // NOTE: welcomeText/brandText/questionText are a bespoke three-line headline
+  // stack; no single ramp step covers three custom sizes.
   welcomeText: {
     fontSize: 40,
   },
-  // 64, not 80: it has to fit the card's measure now, and a username is
-  // arbitrary text — the slot is a fixed height, so it truncates rather than
-  // wrapping out of it.
+  // Fits the card's measure; the fixed-height slot truncates a long username.
   brandText: {
     fontSize: 64,
   },
-  // Logo standing in for the "Relab" wordmark on the first step; sized to
-  // carry the same visual weight as the brandText it replaces.
+  // Logo in place of the wordmark on the first step; sized to match brandText.
   brandLogo: {
     width: 200,
   },
   questionText: {
     fontSize: 31,
   },
-  // maxWidth: the control block is a compact instrument under a wide headline —
-  // a username field has no business being 390px. Fixed height so all three
-  // steps are the same size and nothing moves when the error slot fills.
+  // Fixed height so all three steps are the same size.
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     height: CARD_HEIGHT,
     padding: CARD_PADDING,
     gap: CARD_GAP,
   },
-  // A visible label that survives typing — the placeholder used to be the only
-  // name for the field, and it disappears the moment you type into it.
-  // NOTE: fontSize 12 is sized to LABEL_ROW_HEIGHT (16) as part of the
-  // hand-computed CARD_HEIGHT; swapping to a ramp step's own line height
-  // would desync the fixed-height card math above.
+  // NOTE: fontSize 12 is sized to LABEL_ROW_HEIGHT (16) in the CARD_HEIGHT math.
   label: {
     height: LABEL_ROW_HEIGHT,
     fontSize: 12,
@@ -92,8 +77,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 12,
   },
-  // Back left, primary right — the wizard convention. The primary action gets
-  // its own row so "Create account" stops overflowing the card's padding.
+  // The primary action gets its own row so "Create account" does not overflow.
   actionRow: {
     height: ACTION_ROW_HEIGHT,
   },
@@ -108,8 +92,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     maxWidth: CARD_MAX_WIDTH,
   },
-  // NOTE: matches label/helperText's 12px so all of this wizard's small print
-  // reads as one consistent size, rather than mixing in the 13px caption step.
+  // NOTE: matches label/helperText's 12px, not the 13px caption step.
   privacyText: {
     fontSize: 12,
   },
@@ -218,8 +201,7 @@ function NewAccountStep({
   );
 
   return (
-    // One column for the headline and the card, so the copy starts exactly at
-    // the card's left edge instead of floating out to the wider measure.
+    // One column so the headline starts at the card's left edge.
     <View className="w-full self-center" style={styles.step}>
       <Text className="mt-20" style={[styles.welcomeText, { color: headlineColor }]}>
         {lines[0]}
@@ -395,8 +377,7 @@ export function NewAccountPasswordStep({
         autoComplete: 'password-new',
         textContentType: 'newPassword',
         secureTextEntry: true,
-        // An example/hint, not a second label — and sourced from the schema's
-        // own constant so it cannot drift from the rule it describes.
+        // Sourced from the schema's constant so it cannot drift.
         placeholder: `At least ${PASSWORD_MIN_LENGTH} characters`,
         returnKeyType: 'done',
         onSubmitEditing: onSubmit,

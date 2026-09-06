@@ -1,10 +1,6 @@
 import { createContext } from 'react';
 
-/**
- * A section's stable id within one screen's nav (e.g. 'overview', 'security').
- * Deliberately a plain string: the registry is screen-agnostic, so product and
- * account screens keep their own key vocabularies without widening a shared union.
- */
+/** A section's stable id within one screen's nav. A plain string: the registry is screen-agnostic. */
 export type SectionKey = string;
 
 export type SectionNavApi = {

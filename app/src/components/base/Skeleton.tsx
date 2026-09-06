@@ -15,12 +15,7 @@ interface SkeletonProps {
   testID?: string;
 }
 
-/**
- * Animated skeleton placeholder with a pulsing opacity effect. Honors the OS
- * reduce-motion setting via Reanimated's `ReduceMotion.System` — same gate
- * Fab's extend/collapse animation uses — instead of pulsing indefinitely
- * regardless of the user's accessibility preference.
- */
+/** Pulsing skeleton placeholder; honors reduce-motion via `ReduceMotion.System`. */
 export function Skeleton({ style, duration = 750, testID }: SkeletonProps) {
   const opacity = useSharedValue(0.4);
 

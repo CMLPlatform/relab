@@ -1,16 +1,10 @@
 import type { ApiUserRead } from './api';
 
-/**
- * Frontend user model (camelCase).
- * The API returns ApiUserRead (snake_case); conversion happens in authentication.ts.
- */
+/** Frontend user model (camelCase); converted from ApiUserRead in authentication.ts. */
 export type ThemeMode = 'light' | 'dark' | 'auto';
 export type ProfileVisibility = 'public' | 'community' | 'private';
 
-/**
- * Contributor tier. `lab` accounts may upload non-image research files and carry a
- * larger upload quota. The backend enforces both; this only decides what to render.
- */
+/** Contributor tier. `lab` accounts may upload research files and have a larger quota (backend-enforced). */
 export type UserRole = ApiUserRead['role'];
 
 export type UserPreferences = {

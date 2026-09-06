@@ -1,10 +1,7 @@
 ---
-// Slim brand bar: the wordmark plus the three places visitors actually go.
-// The landing hero keeps the page's h1; this is navigation, not a heading.
-// `?url`: hashed URLs under /_astro/ (immutable cache headers), matching
-// SiteFooter. The logos were inlined with `?raw` while a scroll-driven
-// animation needed CSS access to the mark's <circle>; that animation is gone,
-// so the ~6KB of inline SVG is gone with it. CSS paints one variant of two.
+// Sticky brand bar: wordmark plus App and Docs links. The landing hero keeps
+// the page's h1. `?url` gives hashed, immutable-cached logo URLs; CSS paints
+// one theme variant of two.
 import logoUrl from '@/assets/images/logo.svg?url';
 import logoDarkUrl from '@/assets/images/logo-dark.svg?url';
 
@@ -25,10 +22,9 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
 
 <header class="site-header">
   <div class="site-header-inner">
-    {/* The link carries the name: whichever logo the theme shows is
-        display: none in the other theme, which would leave the link nameless.
-        width/height reserve the box before the SVG loads (the artwork is
-        475x256, so 38px tall is 71px wide); CSS still sizes it. */}
+    {/* The link carries the name: the hidden theme variant would otherwise leave
+        it nameless. The artwork is 475x256, so 38px tall is 71px wide; CSS
+        still sizes it. */}
     <a
       href="/"
       class:list={['site-header-brand', { 'is-handoff': heroBrand }]}
@@ -37,8 +33,7 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
       <img class="brand-light" src={logoUrl} alt="" aria-hidden="true" width="71" height="38" />
       <img class="brand-dark" src={logoDarkUrl} alt="" aria-hidden="true" width="71" height="38" />
     </a>
-    {/* App and Docs only: GitHub is a project channel and lives once, in the
-        footer beside the other channels, rather than in two places. */}
+    {/* App and Docs only: GitHub lives once, in the footer. */}
     <nav class="site-header-nav" aria-label="Site">
       <a href={appUrl} target="_blank" rel="noopener noreferrer"
         >App<span class="visually-hidden"> (opens in new tab)</span></a
@@ -51,12 +46,8 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
 </header>
 
 <style>
-  /* Sticky, flat and sharp: an opaque surface with a hairline bottom rule and
-     no shadow. Keeps App and Docs reachable down the page.
-     Opaque, not the frosted translucent bar it was: at 82% over an 8px blur,
-     scrolled body text still read through the bar and collided with the nav.
-     Blur is the last thing a document-grade brand should hide its chrome
-     behind, and this was the site's final backdrop-filter. */
+  /* Sticky, opaque, hairline bottom rule, no shadow. Not translucent: at 82%
+     over an 8px blur, scrolled body text read through the bar. */
   .site-header {
     position: sticky;
     top: 0;
@@ -65,9 +56,8 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
     border-bottom: 1px solid var(--color-page-border);
   }
 
-  /* Full-bleed bar, content aligned with the page column. Both rows wrap: at a
-     narrow viewport with enlarged text the nav would otherwise force the page
-     to scroll sideways (the footer wraps too). */
+  /* Full-bleed bar, content aligned with the page column. Both rows wrap so
+     enlarged text at a narrow viewport never forces sideways scroll. */
   .site-header-inner {
     width: min(calc(100% - 2rem), var(--content-width));
     margin: 0 auto;
@@ -104,11 +94,8 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
     text-decoration: none;
   }
 
-  /* 44px pointer target (WCAG 2.5.8) over a 21.6px text box, same invisible
-     centred overlay as .theme-toggle. The nav's 1.25rem column gap leaves the
-     two overlays ~2.5px apart, so neither swallows the other's taps. Text
-     links get the overlay rather than padding because padding would grow the
-     header bar and the brand rule is a pointer target, not a visible one. */
+  /* 44px pointer target (WCAG 2.5.8) over a 21.6px text box, same overlay as
+     .theme-toggle. The 1.25rem column gap leaves the overlays ~2.5px apart. */
   .site-header-nav a::after {
     content: "";
     position: absolute;
@@ -126,8 +113,8 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
     text-decoration: underline;
   }
 
-  /* Theme-swapped logo, mirroring SiteFooter's pattern. The parent class is
-     required: `.site-header-brand img` above outweighs a bare `.brand-dark`. */
+  /* Theme-swapped logo. The parent class is required: `.site-header-brand img`
+     above outweighs a bare `.brand-dark`. */
   .site-header-brand .brand-dark {
     display: none;
   }
@@ -149,14 +136,9 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
     display: block;
   }
 
-  /* The other half of the handoff: the hero's mark melts over the first 140px
-     of scroll (BrandHero) and this one arrives just behind it. Only on pages
-     that have a hero mark to hand off from.
-
-     Without scroll-timeline support the rule never applies and this mark is
-     always visible — alongside the hero's, which also never melts. That is
-     Firefox specifically, not a long-tail browser: see the note in BrandHero.
-     Reduced motion gets the same fallback. */
+  /* The other half of the handoff (BrandHero): this mark arrives as the hero's
+     melts over the first 140px of scroll. Without scroll-timeline support
+     (Firefox) or under reduced motion both marks stay visible. */
   @supports (animation-timeline: scroll()) {
     @media (prefers-reduced-motion: no-preference) {
       /* Longhands, never the `animation` shorthand; see BrandHero. */

@@ -10,11 +10,7 @@ import { openExternalUrl } from '@/services/externalLinks';
 
 /**
  * Asks accounts created before acceptance was tracked to grant the publication
- * licence a dataset release needs.
- *
- * Declining is free and changes nothing: the account keeps full access, and its
- * records simply stay out of published releases. That is deliberate — a grant
- * extracted by withholding access is the one whose validity gets questioned.
+ * licence. Declining keeps full access; the records stay out of releases.
  */
 export function TermsAcceptanceDialog() {
   const { shouldPrompt, isAccepting, accept, dismiss } = useTermsAcceptance();

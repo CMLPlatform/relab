@@ -3,14 +3,9 @@ title: Authentication
 description: Relab authentication flows, token handling, and browser session behavior.
 ---
 
-Relab supports bearer tokens for API clients and httpOnly cookies for browser sessions. Redis backs auth token storage, MFA challenge state, and rate limiting.
+The API exposes two login transports: bearer tokens for native apps, scripts, and API clients, and httpOnly session cookies for browsers. Redis backs auth token storage, MFA challenge state, and rate limiting.
 
-Authentication is built on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with Relab-specific refresh-token, session-cookie, OAuth, and validation logic.
-
-The API exposes two login transports:
-
-- bearer tokens for native apps, scripts, and API clients
-- session cookies for browser-based clients
+Authentication builds on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with Relab-specific refresh-token, session-cookie, OAuth, and validation logic.
 
 ## Supported flows
 
@@ -23,9 +18,9 @@ The API exposes two login transports:
 
 ## Security controls
 
-Password validation follows the project baseline from the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters, must not contain the username or email address, and are checked against a committed ASVS-sized common-password fallback that is seeded into Redis when available. New and reset passwords are also checked with Have I Been Pwned using the k-anonymity range API. Stored passwords use the backend-owned Argon2id profile; Relab does not store reversible passwords.
+Password validation follows the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters and must not contain the username or email address. They are checked against a committed common-password list (seeded into Redis when available) and against Have I Been Pwned through the k-anonymity range API. The breach check fails open if Have I Been Pwned is unavailable. Stored passwords use Argon2id; Relab stores no reversible passwords.
 
-The breach check fails open if Have I Been Pwned is unavailable. The frontend keeps standard password inputs and does not block paste, so password managers work normally.
+Password inputs do not block paste, so password managers work.
 
 Changing `email` or `password` through `PATCH /v1/users/me` requires `current_password`. Username, profile, and preference updates do not. Email changes mark the account unverified, send a verification email to the new address, and send a security notification to the previous address. Password changes send a security notification to the account email address.
 
@@ -33,20 +28,20 @@ TOTP MFA is optional account hardening:
 
 - Accounts without TOTP receive bearer tokens or session cookies after a successful password or OAuth login.
 - Accounts with TOTP receive a short-lived challenge token and must submit a current one-time code before the API issues credentials.
-- Sensitive backend routes can require confirmed MFA via the MFA dependency.
-- TOTP seeds and pending challenge tokens are generated with cryptographically secure randomness.
-- Accepted TOTP counters are recorded briefly to prevent replay within the allowed clock window.
+- Sensitive backend routes can require confirmed MFA through the MFA dependency.
+- TOTP seeds and pending challenge tokens use cryptographically secure randomness.
+- Accepted TOTP counters are recorded briefly to prevent replay within the clock window.
 - Administrators can reset a user's MFA enrollment after identity-proofed recovery, but cannot choose a replacement factor.
 
-Forgot-password responses do not reveal whether an account exists. The API returns the same accepted response for known, unknown, and inactive accounts and pads the response to a small minimum duration to reduce timing-based account enumeration. Login failures use the same bad-credentials response for unknown, invalid, and inactive accounts.
+Forgot-password returns the same accepted response for known, unknown, and inactive accounts, padded to a small minimum duration against timing-based enumeration. Login failures use the same bad-credentials response for unknown, invalid, and inactive accounts.
 
-Rate limits use the existing Redis-backed `limits` integration:
+Rate limits use the Redis-backed `limits` integration:
 
 - login by transient client-IP bucket and by a keyed digest of the submitted identifier
 - forgot-password requests by transient client-IP bucket and by a keyed digest of the submitted email address
 - reset-password submissions, registration, and email verification requests by transient client-IP bucket
 
-Password reset uses side-channel email links. Reset tokens are valid for one hour and are invalidated after a successful password change because they include a fingerprint of the previous password hash. A successful reset revokes existing refresh tokens and sends a confirmation email without credentials, reset tokens, or reset links. The web app is served with `Referrer-Policy: no-referrer`; the app also removes the token from browser history after loading the reset page.
+Password reset uses email links. Reset tokens are valid for one hour and include a fingerprint of the previous password hash, so a successful change invalidates them. A successful reset revokes existing refresh tokens and sends a confirmation email without credentials, tokens, or links. The web app is served with `Referrer-Policy: no-referrer` and removes the token from browser history after loading the reset page.
 
 Auth logs record successful logins and rate-limit events. They do not include plaintext passwords, reset tokens, verification tokens, refresh tokens, full verification/reset URLs, or full email addresses.
 
@@ -68,16 +63,16 @@ sequenceDiagram
     API-->>User: Bearer JSON tokens or browser cookies
 ```
 
-Access tokens are short-lived: the application access-token lifetime is 15 minutes. Auth flows require Redis and fail closed when Redis-backed token state is unavailable.
+Access tokens live 15 minutes. Auth flows require Redis and fail closed without it.
 
-Successful login updates `last_login_at` without storing full login IP addresses on user accounts. Client IP addresses may still be processed transiently for Redis-backed rate limiting. Login also creates a refresh token. Browser sessions receive refresh and access cookies; bearer clients receive tokens in the response body.
+Login updates `last_login_at`; client IP addresses are processed only transiently for rate limiting and never stored on the account. Browser sessions receive refresh and access cookies; bearer clients receive tokens in the response body.
 
 Refresh-token rotation uses dedicated endpoints:
 
 - `POST /v1/auth/bearer/refresh` for bearer clients
 - `POST /v1/auth/session/refresh` for browser sessions
 
-Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session lifetime. Each successful refresh rotates the refresh token, but rotation preserves the original absolute expiry, so activity cannot extend a session beyond 30 days. Relab allows multiple concurrent sessions per account within that lifetime. Users can end all of them from the profile screen with "Sign out everywhere"; a per-device session inventory is not provided.
+Refresh tokens have a 30-day inactivity lifetime and a 30-day absolute session lifetime. Each refresh rotates the token but keeps the original absolute expiry, so activity cannot extend a session beyond 30 days. An account may hold several concurrent sessions. "Sign out everywhere" on the profile screen ends all of them; there is no per-device session inventory.
 
 Token revocation events:
 
@@ -86,17 +81,15 @@ Token revocation events:
 - **Revoke all** (`POST /v1/auth/sessions/revoke-all`): revokes every refresh *and* access token for the account and clears browser session state.
 - **Password reset, password change, email change, account deactivation, and account deletion:** all revoke every refresh and access token for the affected account.
 
-Access tokens carry their issue time, and each revocation records a per-user epoch in Redis; a token issued before that epoch is refused on its next request. Revocation is therefore immediate rather than bounded by the 15-minute token lifetime, and costs one write regardless of how many sessions the account has. Refresh state is always purged before the epoch is stamped, so a refresh racing the revocation cannot mint a token that outlives it.
+Access tokens carry their issue time, and each revocation records a per-user epoch in Redis; a token issued before that epoch is refused on its next request. Revocation is immediate, not bounded by the 15-minute lifetime. Refresh state is purged before the epoch is stamped, so a refresh racing the revocation cannot mint a token that outlives it.
 
-Refresh tokens are random bearer secrets. Redis stores them under SHA-256 fingerprints rather than raw token values, so storage keys are not usable credentials if exposed. OAuth provider tokens that must remain reversible, such as Google/YouTube access and refresh tokens, are encrypted before database storage with AES-256-GCM using the backend `DATA_ENCRYPTION_KEY`.
+Refresh tokens are random bearer secrets stored in Redis under SHA-256 fingerprints, so the keys are not usable credentials if exposed. OAuth provider tokens that must stay reversible (Google/YouTube access and refresh tokens) are encrypted with AES-256-GCM under `DATA_ENCRYPTION_KEY` before database storage.
 
-Encryption does not replace authorization: authenticated API handlers check resource ownership and route-level permissions before returning or mutating data.
-
-Authorization is enforced in the backend route layer, not by client-side UI state. FastAPI dependencies separate public reads, authenticated self-service, verified-user writes, owner-scoped resources, device assertions, and superuser-only admin routes. Client request bodies cannot set account-control or ownership fields, and product owner identity is redacted from viewers who cannot see the owner's profile.
+Authorization is enforced in the backend route layer, not by client UI state. FastAPI dependencies separate public reads, authenticated self-service, verified-user writes, owner-scoped resources, device assertions, and superuser-only admin routes. Request bodies cannot set account-control or ownership fields, and product owner identity is redacted from viewers who cannot see the owner's profile.
 
 ## OAuth
 
-OAuth login is available for Google and GitHub. Both providers support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email. GitHub linking requires explicit association. OAuth login creates Relab-owned access and refresh sessions; Relab does not claim IdP-wide logout or coordinated provider session termination.
+Google and GitHub support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email; GitHub linking requires explicit association. OAuth login creates Relab-owned sessions; Relab does not perform IdP-wide logout.
 
 ### Backend-mediated flow
 
@@ -112,7 +105,7 @@ Callbacks use a CSRF cookie and signed state token. Frontend redirect targets mu
 
 The public backend origin comes from `API_PUBLIC_URL`; production uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
 
-Frontend OAuth callback results are carried only in the URL fragment: `#status=success`, `#status=error&error=<code>`, or `#status=mfa_required&mfa_handoff=<one-time-handoff>`. The app handles the fragment, clears it from browser history, and never receives Relab access tokens through callback URLs. When OAuth login needs MFA, the app claims the one-time handoff through the API, stores the returned pending MFA challenge in app runtime/session storage, and routes immediately to the MFA screen. The MFA challenge token itself is never placed in query strings or URL fragments.
+Callback results travel only in the URL fragment: `#status=success`, `#status=error&error=<code>`, or `#status=mfa_required&mfa_handoff=<one-time-handoff>`. The app reads the fragment and clears it from browser history; access tokens never travel through callback URLs. When OAuth login needs MFA, the app claims the one-time handoff through the API, keeps the pending challenge in runtime or session storage, and routes to the MFA screen. The MFA challenge token itself never appears in a query string or fragment.
 
 ```mermaid
 sequenceDiagram

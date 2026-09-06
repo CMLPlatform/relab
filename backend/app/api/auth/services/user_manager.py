@@ -71,7 +71,6 @@ def _login_identifier_rate_limit_key(identifier: str) -> str:
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     """User manager class for FastAPI-Users."""
 
-    # We will initialize the user manager with a UserDatabaseAsync instance in the dependency function below
     user_db: UserDatabaseAsync
 
     def __init__(
@@ -86,7 +85,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         self.skip_breach_check = False
         self.skip_password_validation = False
 
-    # Set up token secrets and lifetimes
     reset_password_token_secret: SecretType = SECRET.get_secret_value()
     reset_password_token_lifetime_seconds = RESET_TOKEN_TTL
     reset_password_token_audience = RESET_PASSWORD_TOKEN_AUDIENCE
@@ -102,7 +100,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             TypeAdapter(EmailStr).validate_python(credentials.username)
             is_email = True
         except ValidationError:
-            # Not a valid email; fall through to username lookup below.
             pass
 
         if not is_email:
@@ -112,10 +109,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             if db_user:
                 credentials.username = db_user.email
 
-        # Rate-limit on the resolved canonical identifier (email) so a username and its
-        # email share one bucket instead of doubling the allowed brute-force attempts.
-        # Unknown identifiers have no canonical form to resolve to, so credentials.username
-        # is still the normalized raw input in that case.
+        # Rate-limit on the resolved email so a username and its email share one bucket.
         await limiter.ahit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
         return await super().authenticate(credentials)
 
@@ -144,13 +138,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         request: Request | None = None,
     ) -> User:
         """Update a user, injecting custom username validation first."""
-        # Will raise exceptions like UserNameAlreadyExistsError if validation fails
         real_user_update = cast("UserUpdate", user_update)
         sensitive_fields = sensitive_update_fields(real_user_update)
-        # Reauthentication only makes sense on the self-service path (``safe=True``), where
-        # the caller *is* the account being changed. On the superuser path the acting admin
-        # does not know the target's password, so demanding it would reject every
-        # admin-initiated email or password change.
+        # Only the self-service path (safe=True) can re-authenticate; an admin does not
+        # know the target's password.
         if safe:
             require_current_password_for_sensitive_update(
                 password_helper=self.password_helper,
@@ -163,7 +154,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
         old_email = user.email
 
-        # Proceed with base FastAPI User update logic
         updated_user = await super().update(user_update, user, safe=safe, request=request)
 
         if sensitive_fields:
@@ -180,23 +170,15 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     async def on_after_register(self, user: User, request: Request | None = None) -> None:
         """Record terms acceptance, and welcome social-login signups.
 
-        Password signups are emailed through the verification flow (``request_verify`` in the
-        register route), so only OAuth-created accounts — which are verified by the provider and
-        never request verification — need a welcome here. The linked OAuth account distinguishes
-        them: password signups have none at this point.
+        Password signups get their welcome through the verification flow; OAuth accounts are
+        provider-verified and never request verification, so they are welcomed here.
         """
-        # Creating the account is the acceptance — the password signup screen and the OAuth entry
-        # point (the login screen) both link the terms — so the grant is evidenced for password
-        # and OAuth signups alike, before either branch below.
-        # Only for accounts created through a request, though: programmatic creation (seeding,
-        # CLI) has no signup screen and therefore no acceptance to record. Stamping those would
-        # fabricate the very evidence these columns exist to provide, so they stay NULL.
+        # Both signup screens link the terms, so creating the account is the acceptance.
+        # Programmatic creation (seeding, CLI) has no signup screen, so it stays NULL.
         if request is not None:
             user.terms_accepted_version = CURRENT_TERMS_VERSION
             user.terms_accepted_at = datetime.now(UTC)
-        # OAuth-created accounts get a random password they can never use; record that
-        # so step-up re-auth (e.g. unlinking a social login) doesn't demand a password
-        # the user never set. Password signups keep the column default (True).
+        # OAuth-created accounts get a random password they can never use.
         if user.oauth_accounts and user.has_usable_password:
             user.has_usable_password = False
         await self.user_db.session.commit()
@@ -235,8 +217,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
     async def on_after_reset_password(self, user: User, request: Request | None = None) -> None:
         """Revoke active refresh tokens and notify the user after a password reset."""
-        # A reset is how an OAuth-only account first gains a usable password, so the
-        # account can now be step-up challenged on sensitive changes.
+        # A reset is how an OAuth-only account first gains a usable password.
         if not user.has_usable_password:
             user.has_usable_password = True
             await self.user_db.session.commit()
@@ -252,11 +233,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     async def on_before_delete(self, user: User, request: Request | None = None) -> None:
         """Revoke all refresh tokens before a user is hard-deleted.
 
-        Before, not after: ``delete()`` commits the row removal and only then runs the
-        after-hook, so a Redis outage there would leave a deleted user whose sessions are
-        still live. Raising here aborts the delete instead, keeping the two consistent.
+        Before, not after: the after-hook runs once the row is gone, so a Redis outage there
+        would leave a deleted user with live sessions. Raising here aborts the delete.
 
-        Deletion audit is emitted at the admin route where the acting superuser is known.
+        The admin route emits the deletion audit, where the acting superuser is known.
         """
         await revoke_user_refresh_tokens(user.id, request)
 
@@ -293,10 +273,8 @@ async def get_user_manager(
     common_password_checker: CommonPasswordChecker | None = Depends(get_common_password_checker),
 ) -> AsyncGenerator[UserManager]:
     """Async generator for the user manager."""
-    # Programmatic callers (seeding/CLI) drive this generator without FastAPI,
-    # so the Depends defaults arrive unresolved. Coerce those sentinels to None:
-    # validate_password falls back to the local common-password list, and the
-    # breach check is skipped when there is no http_client.
+    # Programmatic callers (seeding/CLI) leave the Depends defaults unresolved; coerce to
+    # None so validate_password uses the local list and skips the breach check.
     if isinstance(http_client, params.Depends):
         http_client = None
     if isinstance(common_password_checker, params.Depends):
@@ -308,5 +286,4 @@ bearer_auth_backend: AuthenticationBackend[User, UUID4]
 cookie_auth_backend: AuthenticationBackend[User, UUID4]
 bearer_auth_backend, cookie_auth_backend = build_authentication_backends()
 
-# User manager singleton
 fastapi_user_manager = FastAPIUsers[User, UUID4](get_user_manager, [bearer_auth_backend, cookie_auth_backend])

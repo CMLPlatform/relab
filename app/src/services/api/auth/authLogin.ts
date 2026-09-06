@@ -48,10 +48,8 @@ export async function login(
 
     if (response.status === 204) {
       if (web) {
-        // The 204 already carries both the access and refresh cookies (backend
-        // `issue_session_login_response`), and they are committed by the time
-        // this response resolves — so there is nothing to refresh and nothing
-        // to wait for. Prewarm the user cache; AuthProvider re-fetches anyway.
+        // The 204 already set both cookies. Prewarm the user cache;
+        // AuthProvider re-fetches anyway.
         markWebSessionActive();
         await deps.getUser(true).catch(() => {
           /* the session is valid; AuthProvider will fetch the user again */
@@ -78,9 +76,7 @@ export async function login(
       return { status: 'authenticated' };
     }
 
-    // Native logs in with bearer tokens: no access token means no session, so
-    // never report success — the app would route into a signed-in UI whose
-    // every request 401s.
+    // Native logs in with bearer tokens: no access token means no session.
     if (typeof data?.access_token !== 'string') {
       throw new Error('Invalid login response.');
     }
@@ -116,10 +112,8 @@ export async function logout(
     headers['Content-Type'] = 'application/json';
   }
 
-  // Revoke server-side first: clearing local state first leaves the refresh token
-  // valid on the server whenever the request fails. The local clear still runs
-  // unconditionally — the user asked to sign out. Callers (profile
-  // `exitSession`) have no failure branch, so the log is the only signal.
+  // Revoke server-side first, else a failed request leaves the refresh token
+  // valid. The local clear runs regardless; the log is the only failure signal.
   try {
     const response = await fetchWithTimeout(new URL(`${apiUrl}${logoutPath}`), {
       method: 'POST',

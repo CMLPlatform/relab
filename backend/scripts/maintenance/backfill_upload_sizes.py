@@ -1,13 +1,10 @@
 """Backfill ``upload_size_bytes`` on existing File and Image rows from stored objects.
 
-The upload-quota ledger was added with ``upload_size_bytes`` defaulting to 0 and no
-backfill, so every pre-existing file counts as zero bytes and each user's
-``upload_total_bytes`` under-reports its real footprint. Until this runs, byte-based
-quota enforcement is meaningless. Run it once after upgrading to the ledger release,
-before turning byte limits on.
+Files uploaded before the quota ledger count as zero bytes until this runs. Run it
+once after upgrading to the ledger release, before turning byte limits on.
 
-It stats each stored object through the configured storage backend (filesystem or S3),
-writes the real size, then rebuilds the per-user total from the corrected rows.
+Stats each object through the configured backend (filesystem or S3), writes the real
+size, then rebuilds the per-user totals.
 
 Run with: python -m scripts.maintenance.backfill_upload_sizes
 """
@@ -34,12 +31,10 @@ async def _backfill_model_sizes(session: AsyncSession, model: type[File | Image]
     rows = (await session.execute(select(model))).scalars().all()
     for row in rows:
         try:
-            # StorageFile.size delegates to the configured backend's get_size, so this
-            # works for both the filesystem and S3 backends.
+            # StorageFile.size delegates to the configured backend (filesystem or S3).
             size = row.file.size
         except Exception:
-            # A missing underlying object must not abort the whole backfill; leave its
-            # row at its current value and carry on.
+            # A missing object must not abort the whole backfill.
             logger.exception("Could not size %s %s; leaving upload_size_bytes unchanged", model.__name__, row.id)
             continue
         if row.upload_size_bytes != size:
@@ -58,10 +53,8 @@ async def backfill_upload_sizes() -> int:
             await session.commit()
             logger.info("Sized %d file rows and %d image rows.", file_updates, image_updates)
 
-            # Rebuild the ledger for every product owner so upload_total_bytes reflects
-            # the freshly written sizes. recompute is idempotent and correctly sets 0 for
-            # an owner with no media, so covering all product owners is both safe and
-            # complete (it needs no media-type-specific join).
+            # Rebuild the ledger for every product owner; recompute is idempotent and sets 0
+            # for an owner with no media.
             owner_ids = {
                 row[0]
                 for row in (await session.execute(select(Product.owner_id).distinct())).all()

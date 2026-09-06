@@ -43,11 +43,8 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
   // route the delete callback through a ref so the memo doesn't depend on it.
   const navigateBackRef = useRef<() => void>(() => {});
 
-  // Wrap the caller's onSaveSuccess so a successful save bypasses the unsaved-
-  // changes guard: immediately after mutation resolves the form is still
-  // `isDirty`, so the guard would otherwise block the navigation the caller
-  // just requested. Delete gets the same guard-skip and lands via
-  // navigateBack (parent, not root list).
+  // Right after the mutation resolves the form is still `isDirty`, so save
+  // and delete must bypass the unsaved-changes guard.
   const wrappedFormOptions = useMemo<UseProductFormOptions>(() => {
     const callerOnSaveSuccess = formOptions.onSaveSuccess;
     return {
@@ -146,13 +143,9 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     [product, activeStream, rpiEnabled, youtubeEnabled, isGoogleLinked, isProductComponent],
   );
 
-  // Until the query resolves, `product` is useProductForm's blank loading
-  // sentinel, whose role is 'product' and whose parentID is undefined (see
-  // `newProduct()`). Reading the branch below off that sentinel answers "is this
-  // a component?" with a confident no, so a back press landing inside the load
-  // window sends a component to the products list instead of to its parent.
-  // Defer instead of guessing: park the press and replay it once the real
-  // record arrives, so back always resolves, just a beat later.
+  // Until the query resolves, `product` is the loading sentinel (role
+  // 'product'), so a back press would send a component to the list instead of
+  // its parent. Park the press and replay it once the record arrives.
   const pendingBackRef = useRef(false);
   const navigateBack = useCallback(() => {
     if (isLoading) {

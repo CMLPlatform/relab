@@ -4,11 +4,7 @@ import type { SectionKey, SectionNavApi } from '@/components/base/SectionNavCont
 const SCROLL_OFFSET = 8;
 const ACTIVE_THRESHOLD = 56;
 
-/**
- * Owns the section-position registry for the detail screen's anchored scroll:
- * sections self-report their layout y, chips/outline jump via scrollTo, and
- * onScrollSpy keeps activeKey in sync while the user scrolls.
- */
+/** Section-position registry for anchored scroll: sections report y, chips jump via scrollTo, scroll-spy sets activeKey. */
 export function useSectionNav(
   scrollToY: (y: number) => void,
 ): SectionNavApi & { onScrollSpy: (offsetY: number) => void } {

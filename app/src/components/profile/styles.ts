@@ -2,10 +2,7 @@ import { StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
 import { memoizeByTheme } from '@/theme';
 
-// Residue after the NativeWind convergence: everything with an exact class
-// (layout, spacing, radius, border, fontSize) moved to className at the call
-// site. What's left is theme-dependent color with no CSS var (tokens.*,
-// surfaceVariant) — that residue is deliberate.
+// Theme-dependent color with no CSS var (tokens.*, surfaceVariant) stays in `style`.
 export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     docsLink: {

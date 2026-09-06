@@ -16,11 +16,8 @@ import { startYouTubeStream } from '@/services/api/rpiCamera';
 type SetActiveStream = ReturnType<typeof useStreamSession>['setActiveStream'];
 
 /**
- * Shared "start a YouTube stream" sequence: call the start-stream endpoint,
- * record the active stream session, persist the resulting video on the
- * product, invalidate the product query, and route GOOGLE_OAUTH_REQUIRED vs
- * other failures to the right feedback. Used by both the cameras-screen
- * stream dialog and the product-page camera-stream picker.
+ * Start a YouTube stream: call the endpoint, record the session, persist the
+ * video on the product, invalidate, and route GOOGLE_OAUTH_REQUIRED separately.
  */
 export async function startYouTubeStreamFlow({
   cameraId,

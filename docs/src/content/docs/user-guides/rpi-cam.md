@@ -16,27 +16,24 @@ during documentation. For device installation and plugin deployment, use the
 
 ## How it works
 
-The camera connects to the platform via **WebSocket relay**. The Raspberry Pi opens an outbound
-WebSocket connection to the backend, which relays commands (capture, preview, stream) through the
-tunnel. No public IP, port forwarding, or reverse proxy is needed.
+The Raspberry Pi opens an outbound WebSocket connection to the backend, which relays commands
+(capture, preview, stream) through it. No public IP, port forwarding, or reverse proxy is needed.
 
-For endpoint-level details, start from the [API reference overview](/api-reference/).
+For endpoints, see the [API reference overview](/api-reference/).
 
 ## Platform setup
 
 ### Option A: automatic pairing (recommended)
 
-This is the quickest way to add a camera. No manual credential exchange is needed.
-
-1. **Start the RPi in pairing mode.** When the RPi plugin boots without relay credentials but has
-   `PAIRING_BACKEND_URL` set, it enters pairing mode. It displays a 6-character code on its setup
-   page (`/setup`). For headless setups, the plugin also prints the same code in a boxed
-   `PAIRING READY` banner, so you can read it over SSH, `docker compose logs`, or `journalctl`.
+1. **Start the RPi in pairing mode.** The plugin enters pairing mode when it boots without relay
+   credentials but with `PAIRING_BACKEND_URL` set. It shows a 6-character code on its setup page
+   (`/setup`) and prints the same code in a boxed `PAIRING READY` banner, readable over SSH,
+   `docker compose logs`, or `journalctl`.
 
 1. **Add a camera in the app.** Go to Cameras > Add Camera. Enter the pairing code shown on the RPi.
 
 1. **Wait for the connection.** The platform claims the code, creates the camera record, and sends
-   credentials back to the RPi automatically. The camera should come online within seconds.
+   credentials to the RPi. The camera should come online within seconds.
 
 ### Option B: manual registration
 
@@ -56,14 +53,12 @@ Use this when automatic pairing is unavailable.
 
 ## Using cameras during documentation
 
-1. Start from a known product or component record.
-1. Trigger image capture or preview through the platform.
-1. The backend relays the request to the device via the WebSocket tunnel.
-1. Captured images are uploaded back to Relab and linked to the record automatically.
+1. Open the product or component record.
+1. Trigger image capture or preview. The backend relays the request to the device.
+1. Captured images are uploaded to Relab and linked to the record.
 
-When the camera is already paired and your device is on the same network, the
-Relab app can switch to direct local access for faster preview and capture. No
-extra setup is needed; the relay path keeps working as the default.
+When your device is on the same network as a paired camera, the app can switch to direct local
+access for faster preview and capture. No extra setup is needed; the relay stays the default.
 
 ## Managing cameras
 
@@ -76,8 +71,8 @@ From the camera detail screen you can:
 ## Practical advice
 
 - Test the full setup before documenting a real product.
-- Use clear, descriptive camera names so the physical workstation is obvious at a glance.
-- Keep device configuration notes somewhere outside the platform as well.
+- Name cameras after their physical workstation.
+- Keep device configuration notes outside the platform as well.
 
 ## Troubleshooting
 
@@ -91,7 +86,5 @@ From the camera detail screen you can:
 
 ## Device setup
 
-For device installation, deployment, and hardware-specific details, see the external plugin
-documentation:
-
-[RPi camera plugin documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
+For device installation, deployment, and hardware details, see the
+[RPi camera plugin documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin).

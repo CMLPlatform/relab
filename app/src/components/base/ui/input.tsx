@@ -18,13 +18,8 @@ function Input({
         Platform.select({
           web: cn(
             'placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground outline-none transition-[color,box-shadow] md:text-sm',
-            // Was a Tailwind ring utility, which painted nothing here for the
-            // same reason it painted nothing on the buttons — see WEB_FOCUS_RING.
-            // Measured keyboard-invisible on the products search field.
-            //
-            // Do not name the old class literally in this comment: Tailwind scans
-            // comment text, so writing it here regenerates the dead utility into
-            // the bundle.
+            // A ring utility paints nothing here (see WEB_FOCUS_RING). Do not
+            // name the old class in a comment: Tailwind scans comment text.
             WEB_FOCUS_RING,
             'focus-visible:border-ring',
             'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',

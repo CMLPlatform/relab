@@ -84,7 +84,7 @@ async def update_user(
     try:
         updated = await user_manager.update(user_update, user, safe=False, request=request)
     except UserAlreadyExists as e:
-        # Admins are trusted, so unlike registration there is nothing to hide here.
+        # Unlike registration, nothing to hide from an admin.
         raise HTTPException(status_code=409, detail="A user with this email already exists") from e
     except InvalidPasswordException as e:
         raise HTTPException(status_code=400, detail=str(e.reason)) from e
@@ -115,9 +115,8 @@ async def delete_user(
     ] = ANONYMIZE,
 ) -> None:
     """Delete a user by ID, anonymizing or deleting the content they own."""
-    # Guard before revoking, so a refused erasure has no side effects at all. Then revoke
-    # before erasing, as UserManager.on_before_delete did: a Redis failure aborts the
-    # erasure rather than leaving a deleted user whose sessions are still live.
+    # Guard first so a refused erasure has no side effects; revoke before erasing so a
+    # Redis failure aborts rather than leaving a deleted user with live sessions.
     await require_erasable_account(session, user)
     await revoke_user_refresh_tokens(user.id, request)
     await erase_user(session, user, actor_id=actor.id, content=content)

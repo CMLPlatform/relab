@@ -6,20 +6,12 @@ import { fetchPaginatedItems } from './paginated';
 
 export type ProductTypeOption = Pick<ApiProductTypeRead, 'id' | 'name' | 'description'>;
 
-// Product types imported from the CPV taxonomy carry the code in `name` and the
-// human label in `description` — prod type 1967 is "CPV: 302132" / "Tablet
-// computer". Hand-authored types put the label in `name` and may have no
-// description. `name` stays the filter value either way, because
-// `product_type_name[in]` matches the stored column.
+// CPV-imported types carry the code in `name` and the label in `description`
+// ("CPV: 302132" / "Tablet computer"). Hand-authored types put the label in
+// `name`. `name` is the filter value either way (`product_type_name[in]`).
 const CPV_CODE_PATTERN = /^CPV:\s*\d+$/i;
 
-/**
- * The label to show a user for a product type, or undefined when there is none.
- *
- * A bare CPV code tells a user nothing, so it never reaches a screen: the
- * imported description takes its place, and a coded type with no description
- * shows nothing rather than the code.
- */
+/** The label to show for a product type, or undefined. A bare CPV code never reaches a screen. */
 export function productTypeLabel(
   productType: { name?: string | null; description?: string | null } | null | undefined,
 ): string | undefined {
@@ -41,15 +33,7 @@ export async function searchProductTypes(
 /** Mirrors the backend's MAX_QUERY_LIST_ITEMS for `[in]` filters. */
 const MAX_NAME_LOOKUP = 50;
 
-/**
- * Look up specific product types by their stored `name`.
- *
- * Filter selections travel as names — in state, in the URL, and in
- * `product_type_name[in]` — so a screen restored from a link holds codes with no
- * rows behind them and would print `CPV: 302132` at the user until they happened
- * to search for it. This resolves exactly the selected names so the chips can
- * carry labels immediately.
- */
+/** Look up product types by stored `name`, so chips restored from a URL get labels instead of CPV codes. */
 export async function fetchProductTypesByName(names: string[]): Promise<ProductTypeOption[]> {
   if (names.length === 0) {
     return [];

@@ -31,8 +31,7 @@ export default function ProductCardSkeleton() {
   );
 }
 
-// Skeleton wraps reanimated's Animated.View, which takes className as a
-// silent no-op — these stay style-driven.
+// Skeleton wraps Animated.View, which ignores className.
 const styles = StyleSheet.create({
   metadataRow: {
     marginTop: 6,

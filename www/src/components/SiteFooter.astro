@@ -8,14 +8,7 @@ import { research } from '@/copy/research.generated.ts';
 import ThemeControl from './ThemeControl.astro';
 
 // The page foot, in two bands: the research colophon, then the site chrome.
-//
-// Provenance used to sit in its own section directly above this, which left
-// two blocks of page-foot metadata stacked with a rule between them. It is all
-// one thing, and `<footer>` is where it belongs, so it is one block now.
-//
-// No wordmark here. The sticky header carries the mark on every page, and on
-// the landing page the hero carries it too; a third instance at the bottom is
-// decoration, and the copyright line below already names the institution.
+// No wordmark here; the sticky header carries the mark on every page.
 interface Props {
   contactEmail: string;
   currentYear: number;
@@ -31,17 +24,11 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
 
 <footer class="site-footer">
   <div class="frame site-footer-inner">
-    {/* Research provenance: who runs this, how to cite it, what it is licensed
-        under, who funded it. Every fact is sourced from the repository itself
-        (CITATION.cff, LICENSE) via src/copy/site-meta.ts, so the page and the
-        citation file cannot drift apart.
-
-        The dataset's own terms are deliberately a link, not a restatement:
-        CC BY 4.0 is planned for curated releases that do not exist yet, and the
-        docs hold the one canonical statement of that. Two copies would drift. */}
-    {/* aria-label rather than a visually-hidden <h2>: this repeats on every
-        page, and a heading here would insert itself into each page's outline
-        below that page's own content. */}
+    {/* Research provenance, sourced from CITATION.cff and LICENSE via
+        src/copy/site-meta.ts. The dataset's terms are a link, not a restatement:
+        the docs hold the one canonical statement.
+        aria-label rather than a visually-hidden <h2>: a heading here would join
+        every page's outline. */}
     <section class="colophon" aria-label="About this project">
       <dl class="colophon-list">
         <div class="colophon-entry">
@@ -144,10 +131,7 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
 </footer>
 
 <style>
-  /* Label/value pairs in the data register. This is provenance in a page foot,
-     not a section of the site: it is set tight, at meta size, with no rule per
-     row. Five hairlines and a body-size measure made the footer as tall as a
-     content section, which is not what it is. */
+  /* Label/value pairs, set tight at meta size with no rule per row. */
   .colophon-list {
     margin: 0;
     display: grid;
@@ -185,13 +169,10 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
     text-decoration: none;
   }
 
-  /* 44px pointer target (WCAG 2.5.8) over a 22.8px text box, matching the
-     .footer-social-link boxes beside it and .theme-toggle in the header. The
-     links sit in wrapping flex rows (layout.css .footer-meta / .footer-links,
-     0.85–1.2rem gaps) and are wider than 44px, so overlays never meet
-     horizontally; when a row wraps, neighbouring overlays can overlap by a few
-     px vertically, which still leaves each link far more than the 24px of its
-     own that 2.5.8 requires. Nothing caps the overlay height. */
+  /* 44px pointer target (WCAG 2.5.8) over a 22.8px text box, matching
+     .footer-social-link and .theme-toggle. When a row wraps, neighbouring
+     overlays can overlap by a few px vertically, still far above the 24px
+     2.5.8 requires. */
   .footer-link::after {
     content: "";
     position: absolute;
@@ -215,8 +196,7 @@ const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
     gap: 0.15rem;
   }
 
-  /* 44px hit area (WCAG 2.5.8) around a 1.18rem glyph: the target is the link
-     box, not the icon, so the marks can stay small without being hard to hit. */
+  /* 44px hit area (WCAG 2.5.8) around a 1.18rem glyph. */
   .footer-social-link {
     display: inline-flex;
     align-items: center;

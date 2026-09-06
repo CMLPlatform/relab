@@ -2,10 +2,7 @@ import { StyleSheet } from 'react-native';
 import type { AppTheme } from '@/theme';
 import { alpha, memoizeByTheme } from '@/theme';
 
-// Residue after the NativeWind convergence: everything with an exact class
-// (layout, spacing, radius) moved to className at the call site. What's left
-// is theme-dependent color (tokens.* / alpha() have no CSS var) that must
-// stay in `style`.
+// Theme-dependent color with no CSS var (tokens.* / alpha()) stays in `style`.
 export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     overlayIconButton: {

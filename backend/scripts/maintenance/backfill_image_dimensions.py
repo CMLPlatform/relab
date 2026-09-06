@@ -1,19 +1,8 @@
 """Backfill ``width_px``/``height_px`` on Image rows that predate the columns.
 
-Dimensions are recorded at upload from the header the processor already parses,
-so only rows written before that landed are NULL. Until this runs, clients get
-no aspect ratio for those images and fall back to picking a derivative by width
-alone.
-
-Reading is cheap: Pillow's ``open`` parses the header without decoding pixels,
-so this is one header read per image rather than a full decode. Rows whose file
-is missing, unreadable, or remote (S3) are left NULL and logged, never failed on;
-they are re-selected on the next run, so a deployment with such rows sees the
-same warnings each time.
-
-Rows are measured in batches with a commit per batch, so an interrupted run
-keeps everything measured so far and the next run picks up where it stopped:
-the ``IS NULL`` predicate advances the cursor by itself.
+Reads one header per image (no pixel decode). Rows whose file is missing, unreadable,
+or on S3 are left NULL and logged, so they are re-selected and re-warned on every run.
+Commits per batch, so an interrupted run resumes where it stopped.
 
 Run with: python -m scripts.maintenance.backfill_image_dimensions
 """

@@ -53,9 +53,8 @@ async def list_material_links_for_product(
     material_filter: MaterialProductLinkFilter,
 ) -> list[MaterialProductLink]:
     """List bill-of-material rows scoped to one product/component row."""
-    # No explicit join to Material here: apply_filter's relationship-join machinery adds
-    # it only when material_name/description/source is actually filtered or sorted on.
-    # A static join here duplicated that one, producing an ambiguous-join error.
+    # No explicit join to Material: apply_filter adds it when needed, and a static one
+    # produced an ambiguous-join error.
     statement: Select[tuple[MaterialProductLink]] = select(MaterialProductLink).where(
         MaterialProductLink.product_id == product_id
     )

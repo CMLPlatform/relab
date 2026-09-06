@@ -26,15 +26,13 @@ _ROLE_VALUES_SQL = ", ".join(f"'{role.value}'" for role in UserRole)
 class User(BaseUserDB, TimeStampMixinBare):
     """Database model for platform users."""
 
-    # Override __tablename__ from base (both set "user", this is explicit)
     __tablename__ = "user"
     __table_args__ = (
         CheckConstraint(f"role IN ({_ROLE_VALUES_SQL})", name=USER_ROLE_CHECK_CONSTRAINT_NAME),
         CheckConstraint("upload_file_count >= 0", name="ck_user_upload_file_count_non_negative"),
         CheckConstraint("upload_total_bytes >= 0", name="ck_user_upload_total_bytes_non_negative"),
-        # The admin user list searches email and username with an unanchored ILIKE,
-        # which no btree index can serve. Both columns need one: Postgres falls back
-        # to a sequential scan for the whole OR if either side is unindexed.
+        # The admin user list does an unanchored ILIKE on email OR username; both need a
+        # trigram index or Postgres seq-scans the whole OR.
         Index("user_email_trgm_idx", "email", postgresql_using="gin", postgresql_ops={"email": "gin_trgm_ops"}),
         Index(
             "user_username_trgm_idx", "username", postgresql_using="gin", postgresql_ops={"username": "gin_trgm_ops"}
@@ -43,10 +41,8 @@ class User(BaseUserDB, TimeStampMixinBare):
 
     username: Mapped[str | None] = mapped_column(String(50), index=True, unique=True, default=None)
 
-    # Whether the account has a user-set (usable) password, as opposed to the random
-    # password fastapi-users assigns to OAuth-created accounts. Gates step-up re-auth
-    # on sensitive changes (e.g. unlinking a social login) so an OAuth-only user is
-    # never asked for a password they never set.
+    # False for the random password fastapi-users assigns to OAuth-created accounts.
+    # Gates step-up re-auth so an OAuth-only user is never asked for a password they never set.
     has_usable_password: Mapped[bool] = mapped_column(nullable=False, server_default="true", default=True)
 
     # Login tracking without retaining network identifiers.
@@ -58,30 +54,20 @@ class User(BaseUserDB, TimeStampMixinBare):
     # SHA-256 hashes of single-use recovery codes (high-entropy, so a fast hash is fine).
     mfa_recovery_codes: Mapped[list[str]] = mapped_column(JSONB, nullable=False, server_default="[]", default=list)
 
-    # Evidence that this account accepted the contributor terms, which carry the licence
-    # grant the dataset releases rest on. Columns rather than `preferences` keys:
-    # load_user_preferences() deliberately fails soft, silently substituting a default for
-    # any value it cannot validate. An evidence field must never do that — a quietly
-    # defaulted licence grant is an unenforceable one.
-    #
-    # An integer version, not the terms' date: the release tooling asks "whose owner
-    # accepted version >= N", which is an integer comparison rather than a string parse,
-    # and it still distinguishes two revisions published on the same day. NULL means the
-    # account accepted nothing — true of every account predating this column.
+    # Evidence of the contributor-terms licence grant the dataset releases rest on. Not a
+    # `preferences` key: load_user_preferences() silently defaults invalid values, and a
+    # defaulted licence grant is unenforceable. NULL means nothing accepted.
     terms_accepted_version: Mapped[int | None] = mapped_column(default=None)
     terms_accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
-    # Flexible user preferences (UI settings, feature toggles, etc.)
     preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
 
-    # Pre-computed public-profile statistics stored as a flexible JSONB snapshot.
+    # Pre-computed public-profile statistics snapshot.
     profile_stats: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, server_default="{}", default=dict)
     profile_stats_computed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
-    # Contributor tier. Set only by a superuser through the admin role route: it is
-    # deliberately absent from UserUpdate, so no self-service PATCH can reach it.
-    # VARCHAR + CHECK rather than a native enum — adding a tier later is one ALTER of
-    # the constraint, where a Postgres enum can never drop a value it has gained.
+    # Contributor tier. Absent from UserUpdate so no self-service PATCH can reach it;
+    # only the admin role route sets it. VARCHAR + CHECK: a Postgres enum can never drop a value.
     role: Mapped[UserRole] = mapped_column(
         String(20), nullable=False, server_default=DEFAULT_USER_ROLE.value, default=DEFAULT_USER_ROLE
     )
@@ -105,13 +91,11 @@ class User(BaseUserDB, TimeStampMixinBare):
         """Return the byte quota this account's role grants."""
         return upload_quota_bytes_for_role(self.role)
 
-    # One-to-many relationship with OAuthAccount
     oauth_accounts: Mapped[list[OAuthAccount]] = relationship(
         back_populates="user",
         lazy="joined",  # Required because of FastAPI-Users OAuth implementation
         foreign_keys="[OAuthAccount.user_id]",
-        # An OAuth link cannot outlive its user: user_id is NOT NULL, so the default
-        # save-update cascade would try to null it out and fail the delete.
+        # user_id is NOT NULL, so the default cascade would null it out and fail the delete.
         cascade="all, delete-orphan",
     )
 
@@ -119,7 +103,6 @@ class User(BaseUserDB, TimeStampMixinBare):
         return f"{self.email}"
 
 
-### OAuthAccount Model ###
 class OAuthAccount(BaseOAuthAccountDB, TimeStampMixinBare):
     """Database model for OAuth accounts."""
 
@@ -128,7 +111,6 @@ class OAuthAccount(BaseOAuthAccountDB, TimeStampMixinBare):
     # Redefine user_id to ensure the ForeignKey survives mixin inheritance.
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
-    # Many-to-one relationship with User
     user: Mapped[User] = relationship(
         back_populates="oauth_accounts",
         foreign_keys="[OAuthAccount.user_id]",
@@ -136,7 +118,6 @@ class OAuthAccount(BaseOAuthAccountDB, TimeStampMixinBare):
 
     __table_args__ = (
         UniqueConstraint("oauth_name", "account_id", name="uq_oauth_account_identity"),
-        # Redefining user_id above drops the index=True carried by the mixin,
-        # so the FK backing the joined oauth_accounts load needs it restated.
+        # Redefining user_id above drops the mixin's index=True; restate it.
         Index("ix_oauthaccount_user_id", "user_id"),
     )

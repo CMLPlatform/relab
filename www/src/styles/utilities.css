@@ -26,10 +26,9 @@
   border: 0;
 }
 
-/* Prose pages are Read mode: the page column is sized for the landing page's
-   two-column hero and wide flowchart, which would set continuous prose at
-   ~140 characters a line. Cap the whole page so headings and paragraphs share
-   one measure, near the 75-character comfort ceiling. */
+/* Prose pages: cap the whole page so headings and paragraphs share one
+   measure near the 75-character ceiling; the landing column would set prose
+   at ~140 characters. */
 .content-page {
   --content-page-body-size: var(--font-size-body-compact);
   --content-page-line-height: var(--line-height-body-compact);
@@ -51,13 +50,10 @@
   font-size: var(--content-page-heading-size);
 }
 
-/* Prose pages run many more sections than the landing page, so they sit on a
-   tighter rhythm; the landing page's 3rem would strand each clause on its own
-   screen. */
+/* Prose pages run many more sections, so they sit on a tighter rhythm. */
 .content-page .section {
   display: grid;
-  /* Tighter than the 1rem the page column uses between its own blocks: these
-     are paragraphs under one heading, not separate sections. */
+  /* Paragraphs under one heading, tighter than the page column's 1rem. */
   gap: 0.7rem;
   padding-block: 1.6rem;
 }

@@ -12,20 +12,11 @@ Output layout (``--out``)::
     review/                  human-review extracts, including every excluded record and the
                              rule that excluded it; NOT part of the published archive
 
-Two deliberate departures from the April 2026 pipeline, which emitted a PostgreSQL dump:
-tabular data plus an image tree (a ``.sql.zst`` forces a reuser to stand up Postgres
-before they can look at anything, which is a poor front door for a computer-vision
-dataset), and the reference tables are *frozen* into the release rather than dropped
-(records pointing at absent material/producttype rows lose their meaning).
+Tabular data is Parquet with declared column types, so a null mass is not an empty
+string and an all-null column keeps its type between releases. Reference tables are
+frozen into the release so records keep their meaning.
 
-The tabular data is Parquet with explicitly declared column types. CSV cannot tell a null
-mass from an empty string, or an integer count from a float, and for LCA numbers that
-ambiguity is where a silent unit or precision error enters someone else's analysis. Types
-are declared rather than inferred: a column that happens to be all-null in one release and
-populated in the next would otherwise change type between versions, which is the very
-reproducibility failure the frozen reference tables exist to prevent.
-
-The verification pass at the end is not optional and fails the build rather than warning.
+The verification pass at the end fails the build rather than warning.
 
 Scope is decided by consent: a record is in scope when its owner accepted the contributor
 terms. ``--owner`` narrows within that set, never past it, and every exclusion is counted,
@@ -114,8 +105,7 @@ def _column(name: str, type_: pa.DataType, description: str, *, nullable: bool =
     return pa.field(name, type_, nullable=nullable, metadata={"description": description})
 
 
-# Every column type is declared, never inferred. Nullable numerics stay nullable so an
-# absent mass reads as null rather than as zero or an empty string.
+# Nullable numerics stay nullable so an absent mass reads as null, not zero.
 RECORDS_SCHEMA = pa.schema(
     [
         _column("id", pa.int64(), "Record identifier, unique within the release.", nullable=False),
@@ -143,8 +133,7 @@ RECORDS_SCHEMA = pa.schema(
             "Bounding-box volume in cubic centimetres, height x width x depth. Null unless all three "
             "are present. It is the box the product fits in, not the volume of material in it.",
         ),
-        # Free-form JSONB on the platform side; carried as a JSON string, since it has no
-        # fixed key set to give a column type to.
+        # Free-form JSONB on the platform side; no fixed key set to type.
         _column(
             "circularity_properties",
             pa.string(),
@@ -277,13 +266,11 @@ def field_description(field: pa.Field) -> str:
     return (field.metadata or {}).get(b"description", b"").decode()
 
 
-# NOTE: manifest.csv, SHA256SUMS and review/ stay plain text on purpose. They are
-# operational files a human greps while chasing a path or a checksum, not dataset tables —
-# do not "helpfully" convert them to Parquet for consistency.
+# NOTE: manifest.csv, SHA256SUMS and review/ stay plain text: humans grep them.
 MANIFEST_HEADER = ("file", "record_id", "sha256", "width", "height", "bytes", "format")
 
 
-### Release metadata — every generated artefact is rendered from this one object ###
+### Release metadata ###
 @dataclass(frozen=True)
 class Creator:
     """A named dataset creator."""
@@ -307,15 +294,11 @@ class ReleaseMetadata:
     year: int = 2026
     # Placeholder until the Zenodo record exists; --doi substitutes the real one.
     doi: str = "10.5281/zenodo.XXXXXXX"
-    # Names the salt generation this release's pseudonyms were built with, so a later
-    # maintainer can tell whether two published releases are linkable without holding the
-    # salt itself.
+    # Names the salt generation, so two releases can be checked for linkability without the salt.
     pseudonym_salt_fingerprint: str = ""
-    # Two DOIs, two jobs. The concept DOI always resolves to the newest software release
-    # and is the right "the software lives over there" pointer. The version DOI names one
-    # frozen release and is what provenance links must use, because provenance must not
-    # move under a reader. Both are mirrored from the repository root CITATION.cff and are
-    # held to it by tests/unit/scripts/test_build_dataset_release.py.
+    # Concept DOI resolves to the newest software release; version DOI names one frozen
+    # release and is what provenance links use. Both mirror the root CITATION.cff
+    # (checked by tests/unit/scripts/test_build_dataset_release.py).
     software_concept_doi: str = "10.5281/zenodo.16637742"
     software_version_doi: str = "10.5281/zenodo.19703316"
     affiliation: str = "Institute of Environmental Sciences (CML), Leiden University"
@@ -329,9 +312,8 @@ class ReleaseMetadata:
         "Institute of Environmental Sciences (CML), Leiden University, to support computer "
         "vision and life cycle assessment research on circular-economy strategies."
     )
-    # Editorial: who the release is cut with, decided when it is cut. Not a platform
-    # feature and not derived from any database flag — contributors at large are credited
-    # collectively, as CC BY intends, and appear only as pseudonymous codes.
+    # Editorial, not derived from any database flag. Other contributors are credited
+    # collectively and appear only as pseudonymous codes.
     named_lab_contributors: tuple[str, ...] = ("Oskar Imiolek",)
     keywords: tuple[str, ...] = (
         "circular economy",
@@ -373,14 +355,6 @@ class BuildStats:
             return "unknown"
         return f"{self.collection_start:%Y-%m-%d} to {self.collection_end:%Y-%m-%d}"
 
-
-# Consent, not identity, decides what a release contains: a record is in scope when its
-# owner accepted the contributor terms at this version or later.
-#
-# Imported rather than defined here: the in-app acceptance prompt keys on the same
-# threshold, and two copies would eventually disagree about who is covered — the
-# prompt asking a set of people the release does not accept, or worse, not asking
-# people it silently excludes. app.api.auth.terms owns terms versioning.
 
 # Names that mark a record as scratch work rather than a real teardown.
 DEFAULT_EXCLUDED_NAME_WORDS: frozenset[str] = frozenset(
@@ -497,16 +471,9 @@ def log_exclusion_tally(exclusions: Sequence[Mapping[str, Any]]) -> None:
         logger.info("  %-24s %d", rule, count)
 
 
-# Logins used by many different people. A shared login cannot carry a licence grant: the
-# person who took a photograph owns it whichever account uploaded it, so records here belong
-# to individuals who can no longer be identified, and one click-through of the terms on a
-# shared account cannot bind everyone who used that login afterwards. Never releasable — and
-# deliberately still shown by --inventory, because aggregate counts about records are facts
-# about them, not republication of them, and the paper wants those counts.
-#
-# Two enforcement points: the selection pass drops these records on every build, and
-# reject_shared_accounts is the backstop that refuses a --owner run naming one outright,
-# rather than quietly building an empty release.
+# Logins used by many people. A shared login cannot carry a licence grant, so these
+# records are never releasable; --inventory still counts them. Enforced in the selection
+# pass and again by reject_shared_accounts for --owner runs.
 SHARED_ACCOUNTS: frozenset[str] = frozenset({"demo"})
 
 
@@ -526,13 +493,10 @@ def reject_shared_accounts(usernames: Iterable[str]) -> None:
 
 ### Pseudonymisation ###
 # Fingerprint of the salt every release so far has used. Empty until the first release
-# pins it; fill it in from the value that build logs and commit it. This is not the salt
-# and cannot be turned back into it — the salt itself belongs in a password manager and
-# must never be committed.
+# pins it: copy the value build logs and commit it. The salt itself must never be committed.
 PINNED_SALT_FINGERPRINT = ""
 
-# Fixed, public, and versioned so the fingerprint scheme can change without being mistaken
-# for a changed salt.
+# Versioned so the fingerprint scheme can change without looking like a changed salt.
 _SALT_FINGERPRINT_MESSAGE = b"relab-dataset-release-salt-fingerprint-v1"
 
 
@@ -697,9 +661,8 @@ def check_owner_selection(rules: SelectionRules, owners: Mapping[Any, Mapping[st
         raise SystemExit(msg)
 
 
-# Columns every product read selects, explicitly rather than loading ``Product`` instances,
-# so the owner ``User`` row — which holds email, auth state and the quota ledger — is never
-# fetched into the process at all. One list, so the inventory cannot drift from the build.
+# Explicit columns, not ``Product`` instances, so the owner ``User`` row (email, auth
+# state, quota ledger) is never loaded. Shared by inventory and build.
 PRODUCT_COLUMNS = (
     Product.id,
     Product.parent_id,
@@ -762,8 +725,7 @@ async def export_images(session: AsyncSession, record_ids: set[int], images_dir:
     Returns the manifest rows. A name collision means two records share byte-identical
     pixels, so the copy is skipped and both records point at the one file.
     """
-    # NOTE: blocking filesystem IO throughout — this is a one-shot CLI, not a request
-    # handler, so there is no event loop to starve.
+    # NOTE: blocking filesystem IO throughout; one-shot CLI, no event loop to starve.
     images_dir.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
     statement = (
         select(Image)
@@ -1075,9 +1037,7 @@ def render_changelog(meta: ReleaseMetadata, stats: BuildStats) -> str:
 """
 
 
-# Arrow type to Croissant data type. Croissant field types are derived from the Parquet
-# schema rather than restated, so the declared column types and the published description
-# cannot drift apart.
+# Croissant field types derive from the Parquet schema so the two cannot drift.
 def _croissant_type(arrow_type: pa.DataType) -> str:
     """Return the Croissant data type for an Arrow column type."""
     if pa.types.is_boolean(arrow_type):
@@ -1135,9 +1095,7 @@ def render_croissant(meta: ReleaseMetadata, stats: BuildStats) -> str:
         "license": meta.licence_url,
         "url": meta.homepage,
         "citeAs": meta.attribution,
-        # schema.org/usageInfo is the standard slot for terms the licence field cannot
-        # carry. Croissant inherits it through the schema.org vocabulary, so this is not an
-        # invented field.
+        # schema.org/usageInfo: the standard slot for terms the licence field cannot carry.
         "usageInfo": (
             f"Licensed under {meta.licence_name}. The licence covers the images and the data only. "
             "It grants no rights in trademarks, logos or model numbers visible in the photographs "
@@ -1258,8 +1216,7 @@ def checksum_violations(root: Path) -> list[str]:
 
 
 ### Verification pass ###
-# Structural leaks are caught by name: no output may carry a column or JSON key that
-# belongs to an account, an auth session, an OAuth link or the upload-quota ledger.
+# No output may carry a column or JSON key from accounts, sessions, OAuth links or quotas.
 FORBIDDEN_COLUMNS: frozenset[str] = frozenset(
     {
         "access_token",
@@ -1365,8 +1322,7 @@ def verify(root: Path) -> list[str]:
                 f"{path.name}: leaked value {value!r}" for value in forbidden_values(path.read_text("utf-8"))
             ]
         if suffix == CSV_SUFFIX:
-            # The header row itself, not the first data row: a header-only table still has
-            # to be checked, and DictReader gives nothing at all for one.
+            # Check the header row itself: DictReader yields nothing for a header-only table.
             violations += [
                 f"{path.name}: forbidden column {name!r}" for name in forbidden_column_names(read_csv_header(path))
             ]
@@ -1375,8 +1331,7 @@ def verify(root: Path) -> list[str]:
             violations += [
                 f"{path.name}: forbidden column {name!r}" for name in forbidden_column_names(table.schema.names)
             ]
-            # Parquet is compressed, so scanning the file bytes would find nothing at all
-            # and the leak check would pass for the wrong reason. Read the cell values.
+            # Parquet is compressed; scan cell values, not file bytes.
             violations += [
                 f"{path.name}: leaked value {value!r}" for value in forbidden_values(parquet_cell_text(table))
             ]
@@ -1597,13 +1552,11 @@ async def collect_inventory(session: AsyncSession, rules: SelectionRules) -> lis
     what is being left out as well as what is going in. The same ``select_records`` a build
     uses decides the in-scope counts, so the report cannot disagree with the build.
     """
-    # NOTE: aggregates in Python over every product row. n is a few thousand; push the
-    # counting into SQL if this dataset ever outgrows a single process.
+    # NOTE: aggregates in Python; n is a few thousand. Push into SQL if that outgrows one process.
     products: dict[Any, list[dict[str, Any]]] = defaultdict(list)
     for row in (await session.execute(select(*PRODUCT_COLUMNS))).all():
         values = dict(row._mapping)  # noqa: SLF001  # documented SQLAlchemy Row accessor
-        # Group by owner without removing the key: select_records reads owner_id off each
-        # record to apply the consent and owner-exclusion rules.
+        # Keep owner_id in the row: select_records reads it.
         products[values["owner_id"]].append(values)
 
     imaged_product_ids = {
@@ -1679,9 +1632,7 @@ async def build(out: Path, rules: SelectionRules, salt: str, meta: ReleaseMetada
     """Build the release directory, then verify it."""
     reject_shared_accounts(rules.owner_usernames)
     if out.exists() and any(out.iterdir()):  # noqa: ASYNC240  # local filesystem, before any I/O work
-        # Refused rather than cleared: export_images only ever adds files, so leftovers from
-        # an earlier run would be checksummed and published as if this build had made them.
-        # Deleting the directory for the operator is the more dangerous of the two options.
+        # export_images only adds files, so leftovers would be checksummed and published.
         msg = f"{out} is not empty. Point --out at a new directory, or remove this one yourself."
         raise SystemExit(msg)
     out.mkdir(parents=True, exist_ok=True)  # noqa: ASYNC240
@@ -1825,7 +1776,7 @@ def main() -> None:
     args = parse_args()
     rules = selection_rules(args)
     if args.inventory:
-        # No salt and no owner requirement: this path reads and reports, it never publishes.
+        # Reads and reports only; no salt needed.
         inventory(args.inventory_out, rules)
         return
     meta = ReleaseMetadata(version=args.version, doi=args.doi)

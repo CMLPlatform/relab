@@ -5,13 +5,10 @@ interface AccessibilitySection {
 }
 
 // The public accessibility statement, required of Leiden University public sites by the
-// EU Web Accessibility Directive (EN 301 549).
-//
-// It claims partial conformance and names what is untested, which is both honest and
-// what the Directive asks for. Every fact here is checkable in the repository: the axe
-// tags in `e2e/helpers.ts`, the contrast unit tests, the 44px target rules. Keep it that
-// way. When a gap closes, move its line from "What we have not checked" to "What we
-// check" rather than deleting it.
+// EU Web Accessibility Directive (EN 301 549). It claims partial conformance and names
+// what is untested. Every fact must stay checkable in the repository (axe tags in
+// `e2e/helpers.ts`, the contrast unit tests, the 44px target rules). When a gap closes,
+// move its line from "What we have not checked" to "What we check".
 export const accessibilityContent = {
   description: 'What we check, what we have not checked, and how to tell us about a barrier.',
   title: 'Accessibility statement',

@@ -32,9 +32,7 @@ function useProductGalleryActions({
     productId,
     captureState,
   });
-  // Route capture to the previewed camera's direct endpoint when it's only
-  // reachable locally (relay offline); otherwise the request falls back to the
-  // relay path, which can't reach a direct-only camera.
+  // Route capture to the direct endpoint when the camera is only reachable locally.
   const previewConnection = useEffectiveCameraConnection(captureActions.previewCamera);
   const captureMutation = useCaptureImageMutation(previewConnection.localConnection);
   const imageActions = useProductGalleryImageActions({
@@ -42,9 +40,7 @@ function useProductGalleryActions({
     viewerState,
     onImagesChange,
   });
-  // The capture round-trip can take seconds; merge against the images as they
-  // are when it resolves, not a stale snapshot from when it was started —
-  // otherwise deletes/picks made while capturing are clobbered.
+  // Merge against the images as they are when the capture resolves, not a stale snapshot.
   const latestImagesRef = useRef(media.images);
   useEffect(() => {
     latestImagesRef.current = media.images;

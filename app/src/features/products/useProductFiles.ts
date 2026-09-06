@@ -16,19 +16,13 @@ import type { Product } from '@/types/Product';
 export const productFilesQueryKey = (productId: number | undefined) =>
   ['product-files', productId] as const;
 
-/**
- * Research-file attachments for one saved record.
- *
- * `canManage` is presentation only: it decides whether to render the picker, and
- * the backend refuses a non-lab upload regardless of what the client shows.
- */
+/** Research-file attachments for one saved record. `canManage` is presentation only; the backend enforces. */
 export function useProductFiles(product: Product) {
   const { user } = useAuth();
   const feedback = useAppFeedback();
   const queryClient = useQueryClient();
 
-  // An unsaved draft has no id to attach a file to, so there is nothing to fetch
-  // and nothing to upload against until it has been saved once.
+  // An unsaved draft has no id to attach a file to.
   const productId = typeof product.id === 'number' ? product.id : undefined;
   const isLab = user?.role === 'lab';
   const canManage = isLab && product.ownedBy === 'me' && productId !== undefined;
@@ -74,9 +68,7 @@ export function useProductFiles(product: Product) {
 
   const pickAndUpload = useCallback(async () => {
     const result = await getDocumentAsync({
-      // The allowlist is by extension server-side, and pickers report types
-      // inconsistently across platforms, so accept anything and validate the
-      // filename here rather than trusting a MIME filter to have held.
+      // Pickers report MIME types inconsistently; validate the filename extension instead.
       type: '*/*',
       copyToCacheDirectory: true,
       multiple: true,
@@ -98,8 +90,6 @@ export function useProductFiles(product: Product) {
         );
         continue;
       }
-      // Sequential on purpose: parallel large uploads overwhelm the server, the
-      // same reason image uploads run one at a time.
       // biome-ignore lint/performance/noAwaitInLoops: sequential upload is deliberate.
       await uploadMutation.mutateAsync(asset).catch(() => undefined);
     }

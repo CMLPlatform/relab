@@ -32,19 +32,8 @@ export default function ProductTags({
   const dialog = useDialog();
   const theme = useAppTheme();
 
-  // Brand and model are NOT required, on products or components.
-  //
-  // They used to be required on products, which painted a danger-tinted chip
-  // with an alert icon and ", required" in the accessible name over the
-  // placeholder "Unknown" — two red errors on a record that is factually
-  // complete, for any unbranded item. PRODUCT.md is explicit that an empty or
-  // unconfirmed field must never render as an error, a warning, or a
-  // completeness penalty, and the data-collection guidance is to leave a field
-  // empty rather than force-fit the nearest match. An unbranded generic power
-  // supply from a repair café is a legitimate record, not a validation failure.
-  //
-  // The Chip's error styling is kept for genuine validation elsewhere; absence
-  // is simply not an error here.
+  // Brand and model are not required: an empty field must never render as an
+  // error (PRODUCT.md). An unbranded item is a legitimate record.
 
   const [brandModalVisible, setBrandModalVisible] = useState(false);
   const [brandSearch, setBrandSearch] = useState('');
@@ -129,9 +118,7 @@ function AmountChip({
   const amount = product.amountInParent ?? 1;
   const [draftValue, setDraftValue] = useState<string | null>(null);
   const inputValue = draftValue ?? String(amount);
-  // What +/- should step from: the typed-but-uncommitted digits when present
-  // (so typing then tapping a stepper doesn't discard what was just typed),
-  // the last committed amount otherwise.
+  // +/- step from the uncommitted digits when present, else the committed amount.
   const effectiveAmount =
     draftValue === null
       ? amount
@@ -147,9 +134,7 @@ function AmountChip({
     [onAmountChange],
   );
 
-  // Draft-only on keystroke — commit happens on blur/submit so a typed "25"
-  // doesn't briefly commit "2" then "25" (each keystroke used to fire
-  // onAmountChange, which the parent form treats as a dirty edit).
+  // Draft on keystroke, commit on blur/submit, so "25" does not commit "2" first.
   const handleTextChange = useCallback((text: string) => {
     setDraftValue(text.replace(/[^0-9]/g, ''));
   }, []);
@@ -157,16 +142,12 @@ function AmountChip({
   const commitDraft = useCallback((): number | undefined => {
     if (draftValue === null) return undefined;
     const committed = commit(draftValue === '' ? 1 : parseInt(draftValue, 10));
-    // Report a change, not just a flush: saveAndExit counts any number here as
-    // a dirty edit, so returning the value the entity already had (typing "1"
-    // over "1", or blurring an untouched field) would PATCH an unchanged
-    // entity.
+    // saveAndExit counts any returned number as a dirty edit, so an unchanged
+    // value must return undefined.
     return committed === amount ? undefined : committed;
   }, [amount, draftValue, commit]);
 
-  // Save can fire before this input blurs (blur-before-press is convention,
-  // not a contract, in RN) — register the flush so saveAndExit can pull any
-  // pending draft deterministically instead of losing it. See amountDraftFlush.ts.
+  // Save can fire before this input blurs; see amountDraftFlush.ts.
   const flushRef = useContext(AmountDraftFlushContext);
   useEffect(() => {
     if (!flushRef) return;

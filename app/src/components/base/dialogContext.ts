@@ -34,11 +34,7 @@ export type DialogContextType = {
   toast: (message: string, action?: ToastAction) => void;
 };
 
-/**
- * The button Enter/return submits: the last button that is neither destructive nor
- * cancel. A dialog whose only actions are destructive/cancel has no safe default, so
- * this returns undefined rather than falling back to firing one of them.
- */
+/** The button Enter submits: the last non-destructive, non-cancel one, else undefined. */
 export function pickSubmitButton(buttons: DialogButton[]): DialogButton | undefined {
   return [...buttons].reverse().find((b) => b.style !== 'destructive' && b.style !== 'cancel');
 }

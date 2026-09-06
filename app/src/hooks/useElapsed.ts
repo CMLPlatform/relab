@@ -2,13 +2,8 @@ import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
 /**
- * Returns a formatted elapsed time string (M:SS) for the given ISO start
- * timestamp, updated every second. Returns an empty string when startedAt is
- * null (not yet started / stream inactive).
- *
- * The ticker pauses while the app is backgrounded — its consumers (the
- * always-mounted ActiveStreamBanner among them) would otherwise re-render once
- * a second for a clock nobody can see.
+ * Elapsed time (M:SS) since an ISO start timestamp, updated every second;
+ * empty string for null. Pauses while backgrounded.
  */
 export function useElapsed(startedAt: string | null): string {
   const [now, setNow] = useState(() => Date.now());

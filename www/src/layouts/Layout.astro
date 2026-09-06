@@ -66,10 +66,8 @@ const currentYear = new Date().getFullYear();
       type="font/woff2"
       crossorigin
     />
-    {/* Resolve theme before first paint to avoid a flash for users whose stored
-        preference differs from their OS scheme. A classic external script in
-        <head> is render-blocking (same no-flash guarantee as inline) and
-        satisfies the CSP script-src 'self' policy, which forbids inline script. */}
+    {/* Resolve theme before first paint. A classic external script in <head> is
+        render-blocking like an inline one and satisfies CSP script-src 'self'. */}
     <script is:inline src="/theme-init.js"></script>
     <title>{pageTitle}</title>
   </head>

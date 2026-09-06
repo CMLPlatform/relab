@@ -39,13 +39,8 @@ export function useProductsScreen() {
   }, [activeDatePreset]);
   const [searchQuery, setSearchQuery] = useState(searchQueryURL);
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
-  // Re-sync the toolbar buffer when the URL's `q` changes from *outside* this
-  // screen (browser back/forward to a different ?q=), but not when the URL just
-  // caught up to our own debounced write. Guard by the debounced value — the
-  // exact string we push out — so an external change resets the buffer while
-  // in-flight typing (already past `debouncedSearchQuery`) is left alone.
-  // Render-phase reset (React's "adjust state while rendering" pattern), so
-  // there's no stale-buffer flash.
+  // Re-sync the buffer when `q` changes from outside (browser back/forward),
+  // not when the URL caught up to our own debounced write.
   const [lastSearchQueryURL, setLastSearchQueryURL] = useState(searchQueryURL);
   if (searchQueryURL !== lastSearchQueryURL) {
     setLastSearchQueryURL(searchQueryURL);
@@ -88,9 +83,8 @@ export function useProductsScreen() {
   const { data: typeOptions, isLoading: typesLoading } = useSearchProductTypesQuery(
     filterUi.typeSearch,
   );
-  // Selections are stored and filtered by `name`, so the picker keeps offering
-  // names; only what the user reads is the label. The selected names are
-  // resolved separately because they arrive from the URL, before any search.
+  // Selections are stored by `name`; only the label shown differs. Selected
+  // names are resolved separately because they arrive from the URL.
   const { data: selectedTypeOptions } = useProductTypeLabelsQuery(activeProductTypes);
   const typeResults = useMemo(() => (typeOptions ?? []).map((type) => type.name), [typeOptions]);
   const typeLabels = useMemo(
@@ -137,9 +131,7 @@ export function useProductsScreen() {
       currentUser,
       headerBottom: header.headerBottom,
       fabExtended: header.fabExtended,
-      // Verified users get no card: its only content for them is "use the +
-      // button", which the FAB says itself. Guests and unverified users still
-      // need the sign-in / verify prompt.
+      // Verified users get no card; the FAB says it all.
       showWelcomeCard: Boolean(showInfoCard) && !currentUser?.isVerified,
       slowLoading,
     },

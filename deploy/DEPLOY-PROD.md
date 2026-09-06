@@ -185,6 +185,11 @@ ______________________________________________________________________
 
 ## Part 2 — Routine release
 
+Hosts set up before 2026-09-07 need a one-time `.env` edit before the next release: add
+`ENVIRONMENT`, the four `*_PUBLIC_URL`s, and `FEATURED_PRODUCT_ID` (values were in the deleted
+`deploy/env/<env>.compose.env`), and drop `RESTIC_OFFSITE_REPOSITORY`. Until then every
+`just prod-*` recipe and the backup timers exit 2.
+
 Before you start: CI green on `main`, you know whether the release contains migrations
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
 (`just backup prod`).
@@ -231,7 +236,9 @@ just prod-rollback YES <sha> <alembic-revision> # also downgrade the schema to t
 With a revision, the recipe first checks that no migration in the range dropped or rewrote data
 (`scripts.maintenance.downgrade_safety`); a downgrade would re-create such objects empty, so it
 refuses and points at the backup instead. Then it stops the API, runs `alembic downgrade`, retags,
-and starts the stack. Find the revision with `cd backend && uv run alembic history`.
+and starts the stack. Find the revision with `cd backend && uv run alembic history`. A migration whose destructive
+statement is harmless declares `ROLLBACK_SAFE = True`; without it the check fails closed, including
+on dynamic SQL it cannot read.
 
 Otherwise the backup is the recovery path:
 

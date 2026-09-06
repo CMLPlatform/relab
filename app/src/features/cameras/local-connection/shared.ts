@@ -23,9 +23,7 @@ export const MAX_FAILURES_BEFORE_RELAY = 2;
 export const urlKey = (cameraId: string) => `localConnection:${cameraId}:url`;
 export const apiKeySecureKey = (cameraId: string) => `localConnection_${cameraId}_apiKey`;
 
-// The Pi's unauthenticated liveness endpoint. Discovery has to work before we
-// hold the device key, so probing must never carry a credential — that also
-// keeps the key from being sprayed at every server-supplied candidate URL.
+// The Pi's unauthenticated liveness endpoint. Probing must never carry a credential.
 const LIVENESS_PATH = '/healthz';
 const RPI_CAM_SERVICE = 'relab-rpi-cam';
 
@@ -40,16 +38,12 @@ export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {
   return [...new Set(localUrls)];
 }
 
-// Multiple cards can probe the same host concurrently (e.g. the USB gadget
-// default for every unconfigured camera); share the in-flight request.
+// Multiple cards probe the same host concurrently (the USB gadget default).
 const inFlightProbes = new Map<string, Promise<boolean>>();
 
 /**
- * Whether an RPi camera is reachable directly at `baseUrl`.
- *
- * Unauthenticated by design: the app has no device key until it has discovered a
- * camera. The response is checked for the service marker so an unrelated LAN host
- * that happens to answer 200 can't win the probe.
+ * Whether an RPi camera is reachable at `baseUrl`. Unauthenticated (no key yet);
+ * the service marker keeps an unrelated 200 from winning the probe.
  */
 export async function probeLocalUrl(baseUrl: string): Promise<boolean> {
   let probeBaseUrl: string;
@@ -102,12 +96,9 @@ export async function probeAll(candidates: string[]): Promise<string | null> {
 }
 
 /**
- * Whether `apiKey` is accepted by the camera at `baseUrl`.
- *
- * Used by manual setup, where the user supplies both and a wrong key must not be
- * reported as a working direct connection. `redirect: 'error'` keeps the key from
- * following a redirect off the validated LAN host (honoured on web; native fetch
- * ignores it, where the private-host gate above is the protection that holds).
+ * Whether `apiKey` is accepted by the camera at `baseUrl`. `redirect: 'error'`
+ * keeps the key from following a redirect off the LAN host (web only; native
+ * fetch ignores it and relies on the private-host gate above).
  */
 export async function verifyLocalCredentials(baseUrl: string, apiKey: string): Promise<boolean> {
   try {

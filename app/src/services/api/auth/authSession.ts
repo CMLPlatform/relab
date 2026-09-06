@@ -59,10 +59,7 @@ export function hasWebSessionFlag() {
   return Boolean(getSessionItem(WEB_SESSION_FLAG));
 }
 
-/**
- * Record that a live browser session exists. Owned here so every flow that
- * establishes one (password login, MFA challenge, OAuth) marks it the same way.
- */
+/** Record that a live browser session exists (password login, MFA challenge, OAuth). */
 export function markWebSessionActive(): void {
   if (!isWeb()) return;
   authRuntime.explicitlyLoggedOut = false;

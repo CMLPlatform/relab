@@ -37,14 +37,10 @@ def process_image_for_storage(image_path: PathLike[str]) -> tuple[int, int]:
         orientation = get_exif_orientation(img) if has_exif else None
         needs_rotation = orientation not in (None, 1)
         preserved_exif = b""
-        # Re-save only to apply rotation or filter EXIF. The old code also re-saved
-        # every non-JPEG unconditionally, which flattened animated GIFs to one frame
-        # and re-encoded lossless WebP lossily even when the file carried no EXIF and
-        # needed no rotation — destroying the original in place for nothing.
-        # NOTE: animated originals are never re-saved, even when they carry EXIF —
-        # exif_transpose only has a first-frame view, so "fixing" one frame would
-        # flatten the rest. Animations with EXIF orientation/PII are rare; skip
-        # rotation/stripping for them rather than destroying the animation to apply it.
+        # Re-save only to apply rotation or filter EXIF; an unconditional re-save flattens
+        # animated GIFs and re-encodes lossless WebP lossily.
+        # NOTE: animated originals are never re-saved: exif_transpose sees only the first
+        # frame, so fixing one frame would flatten the rest.
         if (has_exif or needs_rotation) and not is_multiframe:
             # Read the allowlisted tags off the original, before exif_transpose rewrites them.
             allowlisted = filter_exif(img)
@@ -60,14 +56,12 @@ def process_image_for_storage(image_path: PathLike[str]) -> tuple[int, int]:
     if processed is None:
         return unrotated_size
 
-    # Only the allowlisted tags are written back; everything else the original carried —
-    # GPS, MakerNote, serial numbers — is gone because it was never copied into this blob.
+    # Only allowlisted tags are written back; GPS, MakerNote and serial numbers were never copied.
     save_kwargs: dict[str, Any] = {"format": original_format, "exif": preserved_exif}
     if original_format == FORMAT_JPEG:
         save_kwargs.update({"quality": 95, "optimize": True})
     elif original_format == FORMAT_WEBP:
-        # Avoid a second lossy generation on a WebP we are only re-saving to strip
-        # metadata; lossless keeps the pixels exact.
+        # Avoid a second lossy generation on a WebP re-saved only to strip metadata.
         save_kwargs["lossless"] = True
 
     processed.save(image_path, **save_kwargs)

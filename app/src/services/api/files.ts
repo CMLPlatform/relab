@@ -5,14 +5,9 @@ import type { Product } from '@/types/Product';
 import { throwFromResponse } from './errors';
 
 /**
- * Research-file attachments (non-image uploads).
- *
- * Unlike images, files are not part of the product draft: they are attached to a
- * record that already exists and are uploaded and removed immediately, so nothing
- * here participates in the save cycle.
- *
- * The backend restricts these routes to `lab` accounts. Hiding the affordance from
- * everyone else is presentation only — the control is the route dependency.
+ * Research-file attachments. Unlike images they are not part of the draft:
+ * uploaded and removed immediately on an existing record. The backend
+ * restricts these routes to `lab` accounts.
  */
 
 /** Extensions the backend's generic-upload allowlist accepts. */

@@ -13,9 +13,8 @@ import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon, type IconName } from './Icon';
 
-// `...rest` (accessibilityHint, onLongPress, aria-*, ...) passes through;
-// onPress/disabled/accessibilityState stay controlled here so the
-// disabled/blocked behavior can't be clobbered by a caller override.
+// onPress/disabled/accessibilityState stay controlled here so the blocked
+// behavior cannot be clobbered; the rest passes through.
 type FabProps = Omit<
   ComponentProps<typeof Pressable>,
   'onPress' | 'style' | 'children' | 'accessibilityLabel' | 'disabled' | 'accessibilityState'
@@ -33,17 +32,10 @@ type FabProps = Omit<
 };
 
 const ANIMATION_DURATION = 200;
-// NOTE: fixed cap instead of the label's measured natural width — the fab's
-// labels are short (save/edit/error-count copy), so a hardcoded max avoids an
-// onLayout-measurement dance for a visual nicety (a few px of trailing gap on
-// shorter labels) nobody will notice.
+// NOTE: fixed cap instead of a measured label width; labels are short.
 const LABEL_MAX_WIDTH = 240;
 
-/**
- * Floating action button with extend/collapse label. Extending animates the
- * label's width and opacity via Reanimated (honoring OS reduce-motion);
- * collapsing un-mounts it immediately — the icon stays put either way.
- */
+/** FAB with extend/collapse label. Extending animates; collapsing unmounts immediately. */
 export function Fab({
   icon,
   label,
@@ -76,8 +68,7 @@ export function Fab({
 
   const pressableStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
-      // First so callers can still override deliberately. No className here:
-      // it would drop this whole function (see IconButton.tsx).
+      // First so callers can override. No className: it would drop this function (see IconButton.tsx).
       styles.base,
       theme.tokens.elevation.overlay,
       { backgroundColor: theme.colors.primary },

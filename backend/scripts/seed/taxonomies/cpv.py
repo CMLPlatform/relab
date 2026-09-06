@@ -58,8 +58,6 @@ RELEVANT_SECTIONS = {
     "44000000",  # Construction structures and materials; auxiliary products to construction (exc. electric apparatus)
 }
 
-# We now do an algorithmic lookup to find the closest parent.
-
 
 def download_cpv_excel(excel_path: Path = EXCEL_PATH, source_url: str = TAXONOMY_SOURCE) -> None:
     """Download the CPV ZIP file and extract the Excel file if not present."""
@@ -122,7 +120,7 @@ def get_cpv_parent_id(row: dict[str, Any], available_codes: set[str] | None = No
     code = str(row["external_id"])
 
     while True:
-        # Use regex to replace the rightmost non-zero digit with '0'
+        # Zero the rightmost non-zero digit.
         parent_code = re.sub(r"([1-9])([^1-9]*)$", r"0\2", code)
 
         if set(parent_code) == {"0"}:  # Top-level, no parent
@@ -136,13 +134,11 @@ def get_cpv_parent_id(row: dict[str, Any], available_codes: set[str] | None = No
 
 def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
     """Seed CPV taxonomy and categories."""
-    # Ensure Excel is downloaded
     download_cpv_excel()
 
     logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
 
     with sync_session_context() as session:
-        # Get or create taxonomy
         taxonomy = get_or_create_taxonomy(
             session,
             name=TAXONOMY_NAME,
@@ -161,18 +157,15 @@ def seed_taxonomy(excel_path: Path = EXCEL_PATH) -> None:
             logger.info("Taxonomy already has %d categories, skipping seeding", existing_count)
             return
 
-        # Load rows from Excel
         rows = load_cpv_rows_from_excel(excel_path)
         logger.info("Loaded %d CPV codes from Excel", len(rows))
 
-        # Seed categories
         available_codes = {row["external_id"] for row in rows}
         taxonomy_id = taxonomy.id
         cat_count, rel_count = seed_categories_from_rows(
             session, taxonomy_id, rows, get_parent_id_fn=lambda r: get_cpv_parent_id(r, available_codes)
         )
 
-        # Commit
         session.commit()
         logger.info(
             "✅ Added %s taxonomy (version %s) with %d categories and %d relationships",
@@ -190,7 +183,6 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
     """
     product_types_created = 0
 
-    # Ensure Excel is downloaded
     download_cpv_excel()
 
     logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
@@ -209,7 +201,6 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
             cpv_code = row["external_id"].rstrip("0")
             cpv_name = row["name"]
 
-            # Create product type
             pt = ProductType(name=cpv_name, description=f"CPV: {cpv_code}")
             session.add(pt)
             product_types_created += 1
@@ -221,14 +212,10 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
 if __name__ == "__main__":
     setup_logging()
 
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Seed CPV taxonomy and optionally product types")
     parser.add_argument("--seed-product-types", action="store_true", help="Also seed product types from CPV codes")
     args = parser.parse_args()
 
-    # Seed taxonomy
     seed_taxonomy()
-
-    # Optionally seed product types
     if args.seed_product_types:
         seed_product_types()

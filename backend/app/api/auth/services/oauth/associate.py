@@ -106,10 +106,8 @@ def build_oauth_associate_router(
     get_current_active_user = authenticator.current_user(active=True, verified=requires_verification)
     oauth2_authorize_callback = authorize_callback_dependency(config, callback_route_name)
 
-    # POST rather than GET: linking a provider changes how the account can be signed
-    # into, so it needs step-up re-authentication (ASVS V7.5.1), and the password has to
-    # travel in a body rather than a query string. The route already returned JSON for
-    # the client to navigate to, so this is not a redirect endpoint.
+    # POST: linking a provider needs step-up re-authentication (ASVS V7.5.1), and the
+    # password must travel in a body. Not a redirect endpoint; it returns JSON.
     @router.post(
         "/authorize",
         name=authorize_route_name,
@@ -122,11 +120,9 @@ def build_oauth_associate_router(
         user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
         payload: Annotated[OAuthStepUpRequest | None, Body()] = None,
     ) -> OAuth2AuthorizeResponse:
-        # Required for every provider, including the YouTube data-scope client: the link
-        # is stored under ``oauth_client.name`` ("google" for both), which is the field
-        # the login flow matches on — so any association grants sign-in capability.
-        # Bound to this request rather than a time-windowed "sudo mode" grant that any
-        # sensitive action could redeem.
+        # Every provider, the YouTube data-scope client included: the link is stored
+        # under ``oauth_client.name`` ("google" for both), which login matches on, so any
+        # association grants sign-in.
         require_step_up_password(
             password_helper=user_manager.password_helper,
             user=user,

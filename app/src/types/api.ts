@@ -1,9 +1,4 @@
-/**
- * Convenience type aliases for commonly used API schemas.
- * These are derived from the auto-generated OpenAPI types.
- *
- * Regenerate the source with: pnpm run codegen:api
- */
+/** Aliases for commonly used API schemas from the generated OpenAPI types (`pnpm run codegen:api`). */
 import type { components } from './api.generated';
 
 type ApiSchemaName = keyof components['schemas'];

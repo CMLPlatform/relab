@@ -1,6 +1,4 @@
-// Canonical home of ACCOUNT_SECTIONS — do not re-export a component from this
-// file (react-refresh/only-export-components forbids mixing non-component
-// exports into a file that also exports a component).
+// Do not export a component from this file (react-refresh/only-export-components).
 import type { ReactNode, RefObject } from 'react';
 import type { View } from 'react-native';
 import { ProfileAboutSection } from '@/components/profile/About';
@@ -37,10 +35,8 @@ export type AccountSectionDef = {
   render: (ctx: AccountSectionContext) => ReactNode;
 };
 
-// NOTE: profile.profile is typed User | undefined by useProfileScreen, but
-// the screen (today: AccountScreen.tsx's `if (!profile.profile) return null`)
-// never invokes render() before that guard passes — the `return null` guards
-// below just satisfy that type, they never trigger in practice.
+// NOTE: the `return null` guards below only satisfy the `User | undefined`
+// type; AccountScreen never calls render() without a profile.
 export const ACCOUNT_SECTIONS: AccountSectionDef[] = [
   {
     key: 'preferences',

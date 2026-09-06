@@ -5,9 +5,9 @@ description: The primary research use cases Relab is designed to support and the
 
 ## What Relab is for
 
-Relab is for documenting real products as they are taken apart. It keeps product identity, component hierarchy, photos, measurements, material notes, and uncertainty in one record.
+Relab documents real products as they are taken apart: product identity, component hierarchy, photos, measurements, material notes, and uncertainty in one record.
 
-The main use case is research data collection for durable goods: enough structure for later comparison, but still practical for a lab bench or repair workspace.
+The main use case is research data collection for durable goods, with enough structure for later comparison and still practical on a lab bench or in a repair workspace.
 
 Typical contributors include:
 
@@ -25,4 +25,4 @@ Relab is not:
 - a fully automated computer-vision pipeline
 - a highly elastic cloud-native platform
 
-Keeping the scope narrow keeps the platform simple enough for a small research team to run, and for new contributors to learn quickly.
+The narrow scope keeps the platform small enough for a small research team to run.

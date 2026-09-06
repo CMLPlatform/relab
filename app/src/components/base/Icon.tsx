@@ -58,8 +58,7 @@ type BrandGlyphProps = { size?: number; color?: string; strokeWidth?: number };
 
 /** Turns a single-path brand SVG's `d` data into a Lucide-shaped component. */
 function createBrandGlyph(d: string) {
-  // strokeWidth is accepted-and-ignored: brand marks are filled, not
-  // stroked, but the wrapper's call signature stays uniform across glyphs.
+  // strokeWidth is ignored: brand marks are filled, not stroked.
   return function BrandGlyph({ size = 24, color = 'currentColor' }: BrandGlyphProps) {
     return (
       <Svg viewBox="0 0 24 24" width={size} height={size}>
@@ -159,9 +158,7 @@ type IconProps = {
 /** Thin wrapper resolving a curated MCI-style name + size token to a Lucide glyph. */
 export function Icon({ name, size = 'md', color, strokeWidth = 2 }: IconProps) {
   const Glyph = iconMap[name];
-  // NOTE: name is a compile-time-enforced union, but guard the runtime
-  // lookup anyway — non-TS callers (e.g. content driven by a string) can
-  // still hand this an unmapped value.
+  // NOTE: runtime guard for string-driven callers that bypass the union.
   if (!Glyph) return null;
   const resolvedSize = typeof size === 'number' ? size : sizeMap[size];
   return <Glyph size={resolvedSize} color={color} strokeWidth={strokeWidth} />;

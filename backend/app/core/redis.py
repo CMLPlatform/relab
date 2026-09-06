@@ -20,11 +20,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Typed adapters for redis-py async operations.
-#
-# ``redis-py``'s methods are declared ``ResponseT = Any | Awaitable[Any]`` — the stubs don't
-# narrow by sync-vs-async client. These adapters await-and-coerce, centralizing the upstream
-# stub gap. ``coro: Any`` is deliberate; the helpers hide it from call sites.
+# Typed adapters for redis-py: its stubs declare ``ResponseT = Any | Awaitable[Any]``
+# without narrowing by client, so these await-and-coerce in one place.
 
 
 async def redis_bool(coro: Any) -> bool:  # noqa: ANN401 — upstream stub gap
@@ -85,7 +82,6 @@ async def init_redis() -> Redis:
             )
         redis_client = Redis(**kwargs)
 
-        # Verify connection on startup
         await redis_bool(redis_client.ping())
         logger.info("Redis client initialized and connected: %s:%s", redis_cfg.host, redis_cfg.port)
 
@@ -161,5 +157,4 @@ def get_redis(request: Request) -> Redis:
     return require_redis(get_request_services(request).redis)
 
 
-# Type annotation for Redis dependency injection
 RedisDep = Annotated[Redis, Depends(get_redis)]

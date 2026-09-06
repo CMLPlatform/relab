@@ -16,9 +16,7 @@ export function NativeHlsVideo({
 }) {
   const theme = useAppTheme();
   const styles = createLivePreviewStyles(theme);
-  // The relayed LL-HLS route is owner-checked (CurrentActiveUserDep), and native
-  // carries a bearer token rather than the web session cookie, so the player has
-  // to send it explicitly — the web path already does this via `withCredentials`.
+  // The relayed LL-HLS route is owner-checked; native must send the bearer token explicitly.
   const authedSource = useAuthedMediaSource(authenticated ? src : null);
   const source = useMemo(
     () => (authenticated ? authedSource : { uri: src }),

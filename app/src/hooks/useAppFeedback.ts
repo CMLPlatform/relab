@@ -15,13 +15,9 @@ function fallbackAlert(message: string) {
 export function useAppFeedback() {
   const dialog = useOptionalDialog();
 
-  // Memoized on `dialog` (referentially stable per DialogProvider's own useMemo) so
-  // callers that pass `toast`/the whole feedback object as a useCallback/useEffect dep
-  // don't get a new identity every render.
+  // Memoized on `dialog` (stable) so callers can use this as an effect dep.
   return useMemo(() => {
-    // Without a provider there is nowhere to put the action, so the fallback
-    // shows the message alone — the caller's change stands, exactly as it does
-    // when the toast auto-dismisses unactioned.
+    // Without a provider the fallback shows the message alone.
     const toast = (message: string, action?: ToastAction) =>
       dialog ? dialog.toast(message, action) : fallbackAlert(message);
     return {
@@ -31,8 +27,7 @@ export function useAppFeedback() {
           return;
         }
         fallbackAlert(options.message ?? options.title ?? '');
-        // Same button DialogProvider's Enter key would submit: the last non-destructive,
-        // non-cancel action. A destructive-only button set must not auto-fire here either.
+        // Same button DialogProvider's Enter key would submit.
         pickSubmitButton(options.buttons ?? [])?.onPress?.();
       },
       input: dialog?.input ?? (() => {}),

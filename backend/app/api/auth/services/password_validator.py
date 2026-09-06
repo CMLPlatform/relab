@@ -40,9 +40,8 @@ async def check_pwned_password(password: str, http_client: AsyncClient) -> int:
     the plaintext password never leaves this process.
     Fails open (returns 0) if the API is unreachable.
     """
-    # Have I Been Pwned's range API requires SHA-1 for its k-anonymity protocol.
-    # The digest is used only to derive the range prefix for the outbound lookup,
-    # never for password storage or local password verification.
+    # Have I Been Pwned's k-anonymity range API requires SHA-1; the digest only derives
+    # the lookup prefix.
     sha1 = hashlib.sha1(password.encode(), usedforsecurity=False).hexdigest().upper()
     prefix, suffix = sha1[:5], sha1[5:]
     try:

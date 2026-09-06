@@ -9,8 +9,7 @@ import { Searchbar } from '@/components/base/Searchbar';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme';
 
-// Web-only hint for the "/" focus shortcut (see useProductSearchShortcut);
-// native has no such shortcut, so its placeholder stays plain.
+// Web-only hint for the "/" shortcut (useProductSearchShortcut).
 const SHORT_SEARCH_PLACEHOLDER = 'Search products';
 const WIDE_SEARCH_PLACEHOLDER = 'Search products ("/" to focus)';
 
@@ -26,12 +25,7 @@ type ProductsSearchToolbarProps = {
   onToggleFilters: () => void;
 };
 
-/**
- * The only chrome above the list in the default state: search plus one
- * disclosure that opens the sort/filter chip row (ProductsFilterBar). Keeping
- * the chips behind a toggle is what gets the index under the cognitive-load
- * budget — a first-time visitor sees a search box and records.
- */
+/** Search plus one disclosure that opens the sort/filter chip row. */
 export function ProductsSearchToolbar({
   searchRef,
   searchQuery,

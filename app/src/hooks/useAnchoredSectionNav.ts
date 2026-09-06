@@ -3,18 +3,10 @@ import type { LayoutChangeEvent } from 'react-native';
 import type { SectionKey, SectionNavApi } from '@/components/base/SectionNavContext';
 
 /**
- * Section.tsx registers each section's `onLayout` y, which is relative to
- * its immediate parent (the `gap`-wrapped View in Content.tsx) — not to the
- * ScrollView's content, which is what scrollTo/scroll-spy actually use.
- * That View is nested one level inside the constrained PageContainer, which
- * IS a direct child of the scroll content, so the correct offset is the sum
- * of two onLayout readings (PageContainer's y + the wrapper's y), not one.
- *
- * Ordering of onLayout across nested views isn't guaranteed, so a Section
- * can register before both ancestor readings land. Raw (unscrolled) y values
- * are kept per key and re-pushed to the real nav whenever the composed base
- * offset changes, so registrations are always eventually correct regardless
- * of firing order.
+ * A Section's `onLayout` y is relative to the gap wrapper, not the scroll
+ * content, so the real offset is PageContainer's y + the wrapper's y. onLayout
+ * order is not guaranteed, so raw y values are kept per key and re-pushed
+ * whenever the composed base offset changes.
  */
 export function useAnchoredSectionNav(nav: SectionNavApi | null): {
   value: SectionNavApi | null;

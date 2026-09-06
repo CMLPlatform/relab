@@ -15,29 +15,21 @@ export type EffectiveConnection = Pick<
   'localConnection' | 'relayStatus' | 'isReachable'
 >;
 
-// Residue after the NativeWind convergence: everything with an exact class
-// (layout, spacing, radius, var-backed color) moved to className at the call
-// site. What's left needs JS because it's either clobbered by its host
-// component's own className handling, or would force a class that doesn't
-// exist at this exact value.
+// Only what has no className equivalent stays here.
 export const cameraDetailStyles = StyleSheet.create({
   // IconButton ignores/overwrites a caller className (see IconButton.tsx),
   // so this stays a style prop.
   iconButton: {
     margin: 0,
   },
-  // fontFamily: 'monospace' has no NativeWind equivalent that preserves RN's
-  // platform-resolved monospace font (font-mono pulls a web font stack);
-  // fontSize/lineHeight travel with it rather than splitting one property
-  // out. Stepped to the caption size (13/18) instead of the stray 12/unset.
+  // font-mono pulls a web font stack; 'monospace' keeps RN's platform font.
+  // Caption size (13/18).
   monoDetail: {
     fontFamily: 'monospace',
     fontSize: 13,
     lineHeight: 18,
   },
-  // Sits on an AppText variant="label" (13/18) — dropping the stray 11px
-  // override lets it inherit the label step's size/lineHeight; only the
-  // weight bump is still needed here.
+  // Size/lineHeight come from AppText variant="label".
   sectionLabel: {
     fontWeight: '600',
   },

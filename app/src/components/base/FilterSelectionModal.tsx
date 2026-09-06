@@ -7,8 +7,7 @@ import { Chip } from './Chip';
 import { OverlaySurface } from './OverlaySurface';
 import { TextInput } from './TextInput';
 
-// Swallow presses so tapping inside the dialog doesn't dismiss it. Module-level so it's
-// a stable reference across renders.
+// Swallow presses so tapping inside the dialog does not dismiss it.
 function stopPropagation(e: { stopPropagation: () => void }) {
   e.stopPropagation();
 }
@@ -44,12 +43,7 @@ type ShellProps = {
   title: string;
   /** Items to display; controlled by the parent (parent owns the search query + fetch). */
   items: string[];
-  /**
-   * Optional value -> display text. Selection, search and the value handed back
-   * on toggle all stay the raw item, because that is what the caller filters
-   * with; this only changes what the chip reads. Product types need it: their
-   * stored name can be a CPV code whose label lives elsewhere.
-   */
+  /** Optional value -> display text. Only changes what the chip reads (CPV codes). */
   labels?: Record<string, string>;
   isLoading?: boolean;
   selectedValues: string[];
@@ -63,11 +57,7 @@ type ShellProps = {
   footer: ReactNode;
 };
 
-/**
- * Presentational core shared by the multi-select and single-select filter
- * modals: search field, chip list, loading/empty states. Selection semantics
- * (toggle behavior, add-new, footer actions) are owned by each variant.
- */
+/** Presentational core of the filter modals: search field, chip list, loading/empty states. */
 function FilterModalShell({
   visible,
   onDismiss,
@@ -239,11 +229,7 @@ type SingleSelectProps = {
   searchPlaceholder?: string;
 };
 
-/**
- * Single-select filter modal: tapping a chip immediately confirms the value
- * and closes. Also lets the user add a value typed in the search box that
- * isn't among `items`.
- */
+/** Single-select filter modal: a tap confirms and closes. Typed values not in `items` can be added. */
 export function SingleSelectFilterModal({
   visible,
   onDismiss,

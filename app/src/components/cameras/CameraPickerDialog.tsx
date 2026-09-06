@@ -25,11 +25,7 @@ interface CameraPickerDialogProps {
   triggerRef?: RefObject<View | null>;
 }
 
-/**
- * Reusable camera picker dialog — lists all registered cameras sorted online
- * first. Offline cameras are shown dimmed and non-interactive. A "Manage"
- * button navigates to the camera management screen.
- */
+/** Camera picker dialog: online cameras first, offline ones dimmed and non-interactive. */
 export function CameraPickerDialog({
   visible,
   onDismiss,

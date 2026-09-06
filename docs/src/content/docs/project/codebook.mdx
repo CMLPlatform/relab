@@ -8,9 +8,8 @@ import Codebook from '@/components/datamodel/codebook.generated.mdx';
 A published [dataset release](/project/dataset/) ships as a set of Parquet files. This page
 documents every column in them: what it holds, what its absence means, and how far to trust it.
 
-The tables come from the release schemas in `backend/scripts/build_dataset_release.py`, so they
-describe the archive the build produces rather than the platform's internal database. For that
-database, see [Data model](/architecture/datamodel/).
+The tables come from the release schemas in `backend/scripts/build_dataset_release.py` and describe
+the archive, not the platform's internal database (see [Data model](/architecture/datamodel/)).
 
 Every release also carries `croissant.json`, which repeats these descriptions in
 [MLCommons Croissant](https://mlcommons.org/working-groups/data/croissant/) form for tools that
@@ -34,11 +33,10 @@ read dataset metadata directly.
 stays unpublished. Each release credits its contributors collectively in its `README.md`
 rather than naming them against their rows.
 
-The same contributor keeps the same pseudonym from one release to the next, which is what makes
-longitudinal work possible. That holds only across releases built with the same salt. Each
-release publishes a pseudonym salt fingerprint in its `README.md`: two releases whose
-fingerprints match have comparable pseudonyms, and two that differ do not. Check the
-fingerprint before you join on `owner_pseudonym` across releases.
+A contributor keeps the same pseudonym across releases built with the same salt. Each release
+publishes a pseudonym salt fingerprint in its `README.md`; pseudonyms are comparable only between
+releases whose fingerprints match. Check the fingerprint before you join on `owner_pseudonym`
+across releases.
 
 Re-identifying contributors falls outside the licence, and outside the GDPR basis the release
 was published under.

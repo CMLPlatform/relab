@@ -40,11 +40,8 @@ function getFirstFormError(errors: FieldErrors): string | undefined {
   return;
 }
 
-// Maps top-level form fields to the spec-sheet section that displays them, so an
-// invalid field can be scrolled to. Declaration order is on-screen order:
-// firstErrorSection walks it, so it lands on the visually first invalid field
-// rather than whichever one react-hook-form happened to register first. Fields
-// not listed here (e.g. componentIDs) never yield a section.
+// Field -> section that displays it, so an invalid field can be scrolled to.
+// Declaration order is on-screen order; firstErrorSection walks it in order.
 const FIELD_SECTION: Record<string, SectionKey> = {
   name: 'overview',
   description: 'overview',
@@ -108,9 +105,8 @@ function useProductFormHydration({
   useEffect(() => {
     if (!serverProduct || lastHydratedProductRef.current === serverProduct) return;
 
-    // First load: always hydrate (the /edit route mounts with editMode=true but
-    // still needs the server data). Refetches after that would clobber in-flight
-    // edits, so skip them once a user is editing.
+    // Always hydrate on first load (the /edit route mounts with editMode=true);
+    // later refetches would clobber in-flight edits.
     const isFirstHydration = lastHydratedProductRef.current === null;
     if (editMode && !isFirstHydration) return;
 
@@ -149,33 +145,22 @@ function useProductFormActions({
   setValue: ReturnType<typeof useForm<ProductFormValues>>['setValue'];
 }) {
   const saveAndExit = useSingleFlight(async () => {
-    // Flush any typed-but-unblurred amount before reading `product` — Save
-    // can fire before AmountChip's input blurs (see amountDraftFlush.ts), so
-    // this can't rely on blur having already committed it.
+    // Save can fire before AmountChip's input blurs (see amountDraftFlush.ts).
     const flushedAmount = amountFlushRef.current?.();
     const currentProduct =
       flushedAmount !== undefined ? { ...product, amountInParent: flushedAmount } : product;
-    // `isDirty` is a react-hook-form state snapshot from the last render —
-    // a flush that just happened synchronously hasn't reached it yet, so a
-    // flushed amount counts as dirty on its own regardless of what isDirty says.
+    // `isDirty` is last render's snapshot; a synchronous flush has not reached it.
     const effectiveIsDirty = isDirty || flushedAmount !== undefined;
 
-    // Clean form: treat as "close without writing", leaving edit mode via the
-    // caller's onSaveSuccess.
+    // Clean form: close without writing.
     if (!effectiveIsDirty) {
       if (typeof currentProduct.id === 'number') onSaveSuccess?.(currentProduct.id);
       return;
     }
 
     try {
-      // One key per DRAFT, not per save attempt: minted on the first create
-      // attempt and held until that create succeeds. A response lost in
-      // flight (client timeout mid-commit) makes the user press Save again —
-      // with a per-attempt key the server would see an unrelated request and
-      // write a second record. Carried in the mutation variables rather than
-      // generated inside saveProductMutationFn, which also runs on a
-      // rehydrated paused mutation and would rotate the key on every app
-      // restart. Only creates get one; PATCH updates are naturally idempotent.
+      // One Idempotency-Key per draft, not per attempt: a second press of Save
+      // after a lost response must replay, not create a second record.
       const isCreate = typeof currentProduct.id !== 'number';
       if (isCreate && idempotencyKeyRef.current === null) {
         idempotencyKeyRef.current = createRequestId();
@@ -187,22 +172,17 @@ function useProductFormActions({
         originalVideos: serverProduct?.videos ?? [],
         idempotencyKey,
       });
-      // Clear the form's dirty state with the just-persisted values so any
-      // navigation guard (beforeRemove) downstream doesn't read stale
-      // "unsaved changes" and block the exit the caller is about to trigger.
-      // The draft is now a persisted entity: release the key so a later
-      // create (a fresh draft on this same screen) doesn't reuse it.
+      // Reset so the beforeRemove guard does not block the exit; release the
+      // key so a later draft on this screen does not reuse it.
       idempotencyKeyRef.current = null;
       reset({ ...currentProduct, id: savedId });
       onSaveSuccess?.(savedId);
     } catch (err) {
-      // A media-sync failure means the entity itself saved — say so, and stay
-      // put so the photos that didn't upload are still there to retry.
+      // A media-sync failure means the entity saved; stay put so the photos
+      // can be retried.
       const partial = err instanceof MediaSyncError;
-      // saveNewProduct() already POSTed and got an id back; thread it into the
-      // live form now, not just onto the (discarded) `currentProduct` object,
-      // so a manual retry PATCHes the record that exists instead of reading
-      // `product.id` as still unset and POSTing again.
+      // Thread the new id into the live form so a manual retry PATCHes
+      // instead of POSTing again.
       if (err instanceof MediaSyncError) {
         setValue('id', err.productId, { shouldDirty: false });
         idempotencyKeyRef.current = null;
@@ -218,20 +198,16 @@ function useProductFormActions({
   const onProductDelete = useSingleFlight(async () => {
     try {
       await deleteMutation.mutateAsync(product);
-      // Same rationale as save: clear the form so the unsaved-changes guard
-      // on /products/[id] doesn't fire during the redirect.
+      // Reset so the unsaved-changes guard does not fire during the redirect.
       reset(product);
-      // Let the screen own where a delete lands (a component returns to its
-      // parent, not the root list) and skip the beforeRemove guard, mirroring
-      // onSaveSuccess. Fall back to the root list for callers without a wrapper.
+      // The screen owns where a delete lands (a component returns to its parent).
       if (onDeleteSuccess) {
         onDeleteSuccess();
       } else {
         replace('/products');
       }
     } catch (err) {
-      // Without this a failed delete is swallowed by react-query — the entity
-      // stays on screen with no feedback, so the tap looks like it did nothing.
+      // Otherwise react-query swallows the failure with no feedback.
       dialog.alert({
         title: 'Delete failed',
         message: getErrorMessage(err, 'Could not delete. Please try again.'),
@@ -261,8 +237,7 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
   const parsedId = parseInt(id ?? '', 10);
   const numericId = Number.isFinite(parsedId) ? parsedId : undefined;
 
-  // Both hooks always run (React rule) but only the role's endpoint is enabled.
-  // When the id is missing, neither is enabled so no fetch happens.
+  // Only the role's endpoint is enabled; with no id, neither is.
   const isBaseRole = options.role === 'product';
   const baseQuery = useBaseProductQuery(isBaseRole ? numericId : undefined);
   const componentQuery = useComponentQuery(!isBaseRole ? numericId : undefined);
@@ -271,10 +246,8 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    // A valid empty product as the loading sentinel until the query resolves
-    // and the hydration effect resets to server data; without it `product`
-    // would be a malformed `{}` and consumers (name, role, media) would read
-    // undefined.
+    // Loading sentinel until hydration resets to server data; otherwise
+    // `product` is a malformed `{}`.
     defaultValues: newProduct(),
     mode: 'onChange',
   });
@@ -286,16 +259,13 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     defaultValue: form.getValues(),
   }) as Product;
 
-  // Per-screen constant: EntityDetailPage passes initialEditMode=true when the
-  // URL carries ?edit=1, undefined otherwise. Nothing flips this at runtime.
+  // Per-screen constant (?edit=1); nothing flips it at runtime.
   const editMode = options.initialEditMode === true;
 
   useProductFormHydration({ editMode, reset, serverProduct });
 
-  // Populate validation errors eagerly on mount so the save-FAB tooltip can
-  // surface what's missing even before the user touches a field. Without this,
-  // react-hook-form only runs validation on change, so entering edit mode shows
-  // a disabled FAB with no hint why.
+  // Validate eagerly so the save-FAB tooltip can say what is missing before
+  // the user touches a field.
   useEffect(() => {
     if (editMode) trigger().catch(() => {});
   }, [editMode, trigger]);
@@ -303,19 +273,15 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
   const saveMutation = useSaveProductMutation();
   const deleteMutation = useDeleteProductMutation();
 
-  // Announce the queued-offline state once per pause — not on every render —
-  // so going offline mid-save doesn't leave the save-FAB spinning forever
-  // with no explanation (the button label handles the ongoing state).
+  // Announce the queued-offline state once per pause.
   useEffect(() => {
     if (saveMutation.isPaused) dialog.toast(QUEUED_OFFLINE_LABEL);
   }, [saveMutation.isPaused, dialog]);
 
-  // AmountChip (ProductTags) registers its pending-draft flush here — see
-  // amountDraftFlush.ts — so saveAndExit can read a typed-but-unblurred
-  // amount deterministically instead of depending on blur firing first.
+  // AmountChip registers its pending-draft flush here (see amountDraftFlush.ts).
   const amountFlushRef = useRef<AmountDraftFlush | null>(null);
 
-  // Lives for the draft's lifetime — see the mint site in saveAndExit.
+  // Lives for the draft's lifetime; minted in saveAndExit.
   const idempotencyKeyRef = useRef<string | null>(null);
 
   const fieldHandlers = useProductFieldHandlers(setValue);

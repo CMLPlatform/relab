@@ -6,10 +6,7 @@ import type { ProductFilter, RouterSetParams } from './screenData';
 
 type CurrentUser = { isVerified: boolean };
 
-/**
- * Sign-in/verify gating for the "Add product" FAB. Drops straight into
- * `/products/new` once the gating passes — the form validates the name itself.
- */
+/** Sign-in/verify gating for the "Add product" FAB, then `/products/new`. */
 export function createProductAction({
   dialog,
   router,

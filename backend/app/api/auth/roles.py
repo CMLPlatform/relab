@@ -1,15 +1,9 @@
 """User roles and the upload quota tiers they carry.
 
-Roles answer "what kind of contributor is this", which the three account
-booleans cannot express: ``is_verified`` gates whether an account may create
-anything at all, and ``is_superuser`` grants the ``/admin`` routes. Neither says
-whether the person is trusted with lab-grade storage or non-image research
-files.
-
-The values are ordered, so a capability gate is a comparison rather than a
-permission matrix — a matrix over strictly ordered tiers is a table with one
-meaningful column. Add a real permission table the first time a capability
-breaks the ordering.
+``is_verified`` gates creating anything and ``is_superuser`` grants ``/admin``; roles
+say whether the person is trusted with lab-grade storage. Tiers are strictly ordered,
+so a capability gate is a comparison. Add a permission table the first time a
+capability breaks the ordering.
 """
 
 from enum import StrEnum
@@ -26,9 +20,7 @@ class UserRole(StrEnum):
 
 DEFAULT_USER_ROLE = UserRole.CONTRIBUTOR
 
-# Ordering is explicit rather than left to StrEnum's alphabetical comparison, which
-# agrees with the tier order here only by coincidence ("contributor" < "lab"). Any
-# plausible third tier breaks it — a "viewer" below both still sorts above "lab".
+# Explicit rank: StrEnum's alphabetical order matches the tiers only by coincidence.
 _ROLE_RANK: dict[UserRole, int] = {
     UserRole.CONTRIBUTOR: 0,
     UserRole.LAB: 1,

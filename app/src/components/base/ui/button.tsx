@@ -17,11 +17,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // Pressed/hover use the real `primary-strong` brand shade, not alpha on
-        // primary: assets/brand.css has carried --relab-brand-primary-strong for
-        // web all along, and palette.json now defines primaryStrong so the app
-        // reads the same value. Parity is enforced by BRAND_PARITY in
-        // scripts/sync_brand_assets.py.
+        // Pressed/hover use `primary-strong`, not alpha on primary (Primary-Strong Rule).
         default: cn(
           'bg-primary active:bg-primary-strong',
           Platform.select({ web: 'hover:bg-primary-strong' }),

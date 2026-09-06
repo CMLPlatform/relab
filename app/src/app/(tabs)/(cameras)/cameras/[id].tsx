@@ -93,9 +93,7 @@ function CameraDetailContent({
 export default function CameraDetailScreen() {
   const { screen, preview, dialogs, actions } = useCameraDetailScreen();
 
-  // useCameraDetailScreen's useRequireAuth('/cameras') fires the redirect; AuthProvider
-  // already blocks rendering until the initial auth check resolves, so this can
-  // only be hit for the one-render window before that redirect completes.
+  // Only hit for the one-render window before useRequireAuth's redirect completes.
   if (!screen.user) return <CenteredSpinner />;
   if (screen.isLoading) return <CenteredSpinner />;
 

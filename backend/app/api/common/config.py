@@ -27,15 +27,9 @@ def build_public_docs() -> OpenAPISettings:
             "dataset releases are licensed CC BY 4.0."
         ),
         version=version,
-        # The specification, not the software. Full licence text ships at LICENSE-APACHE-2.0 in the
-        # repository root — Apache-2.0 section 4(a) requires recipients to get a copy, so asserting
-        # the licence here without shipping the terms would leave the grant incomplete.
-        # Publishing an integration surface under network
-        # copyleft deters exactly the third-party tooling the project wants, and an interface
-        # description is thin copyright anyway (see Directive 2009/24/EC art. 1(2), which excludes
-        # the ideas and principles underlying interfaces). Apache-2.0 rather than CC0 because these
-        # artifacts include generated client types — software, which CC advises against covering
-        # with CC licences — and because it carries a patent grant.
+        # Licence of the specification, not the software. Full text ships at LICENSE-APACHE-2.0
+        # in the repository root, as Apache-2.0 section 4(a) requires. Apache-2.0 rather than
+        # CC0 because the artifacts include generated client types and it carries a patent grant.
         license_info={
             "name": "Apache-2.0",
             "identifier": "Apache-2.0",

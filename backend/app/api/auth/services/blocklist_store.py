@@ -26,10 +26,8 @@ def load_blocklist_text(raw_text: str, normalize: Callable[[str], str]) -> set[s
 
 async def redis_set_contains(redis: Redis, key: str, member: str) -> bool:
     """Return whether a Redis set contains a member."""
-    # Inlined bool coercion (rather than app.core.redis.redis_bool) so this module
-    # stays import-cycle-free: core.redis imports core.runtime, which type-references
-    # the auth services built on this store. The cast covers redis-py's unnarrowed
-    # ``ResponseT = Any | Awaitable[Any]`` stubs.
+    # Not app.core.redis.redis_bool: core.redis -> core.runtime -> auth services -> here
+    # would be an import cycle.
     return bool(await cast("Awaitable[int]", redis.sismember(key, member)))
 
 

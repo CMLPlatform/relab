@@ -1,10 +1,6 @@
-// Post-load refresh of the hero's baked metrics line (progressive
-// enhancement, same CSP allowance as src/scripts/stats.ts). The baked page is
-// already correct; this only rewrites the text of the existing [data-metrics]
-// node in place, carried by a short opacity dip so the change reads as a
-// refresh rather than a glitch; it never adds, removes, or resizes elements,
-// so it cannot cause layout shift. The teardown parts list stays untouched. On
-// any failure it does nothing.
+// Post-load refresh of the hero's baked metrics line. Rewrites the text of the
+// existing [data-metrics] node in place under a short opacity dip; never adds,
+// removes, or resizes elements, so no layout shift. On any failure it does nothing.
 
 import { fetchHomeStats, formatCount, type HomeStats } from '@/lib/stats.ts';
 
@@ -15,14 +11,12 @@ export function applyRefresh(stats: Pick<HomeStats, 'totals'> | null): void {
     return;
   }
   const next = `${formatCount(stats.totals.parts)} parts documented`;
-  // Unchanged figures are the common case, and a dip that means nothing is
-  // worse than no dip at all.
+  // No dip for unchanged figures, the common case.
   if (metrics.textContent?.trim() === next) {
     return;
   }
-  // The baked hero hides this node when the build had no stats. Reaching here
-  // means we now have a real figure, so reveal it. No dip on that first fill:
-  // the element was not visible to fade.
+  // The baked hero hides this node when the build had no stats; reveal it
+  // without a dip, since it was not visible to fade.
   const wasHidden = metrics.hasAttribute('hidden');
   if (wasHidden) {
     metrics.textContent = next;

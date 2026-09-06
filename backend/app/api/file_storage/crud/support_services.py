@@ -132,19 +132,15 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
 
     try:
         await require_model(db, Image, db_image.id)
-        # Free: the processor already parsed the header to validate the size, and
-        # it is the only step that sees the post-rotation dimensions.
+        # The only step that sees the post-rotation dimensions.
         width_px, height_px = await to_thread.run_sync(
             process_image_for_storage, image_path, limiter=image_resize_limiter()
         )
         db_image.width_px = width_px
         db_image.height_px = height_px
-        # Flush, not commit: after_create runs inside the create flow's
-        # transaction, and ending it here would detach the row that is about to
-        # be serialized. The refresh is not optional — the UPDATE fires the
-        # server-side onupdate on `updated_at`, which expires that attribute, and
-        # reading it while serializing the response would then attempt lazy IO
-        # from a sync context.
+        # Flush, not commit: this runs inside the create flow's transaction. The refresh
+        # is required: the UPDATE expires `updated_at`, and serializing it would then
+        # attempt lazy IO from a sync context.
         await db.flush()
         await db.refresh(db_image)
     except (ValueError, OSError) as e:
@@ -256,9 +252,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         await release_product_upload_quota_for_media(db, db_item)
         await db.commit()
 
-        # Storage-backend deletes are idempotent for an already-missing object
-        # (filesystem: missing_ok unlink; S3: delete_object), so this always runs
-        # rather than being gated on a local path that's None for S3-backed items.
+        # Backend deletes are idempotent for a missing object, so no path gating (None on S3).
         if self.model is Image:
             await delete_image_from_storage(db_item)
         else:

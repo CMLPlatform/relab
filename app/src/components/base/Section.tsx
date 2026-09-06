@@ -21,21 +21,14 @@ type SectionProps = {
   /** Info-tooltip text shown beside the title. */
   tooltip?: string;
   /**
-   * Extra classes merged onto the section's root View. Section must stay a
-   * direct child of its screen's shared section-list wrapper — see
-   * useAnchoredSectionNav's base-offset math — so per-section styling (e.g.
-   * the account screen's danger-zone divider) goes here instead of an extra
-   * wrapping View, which would zero out that section's registered anchor.
+   * Extra classes on the root View. Use this instead of a wrapping View: Section
+   * must stay a direct child of the section-list wrapper (useAnchoredSectionNav).
    */
   className?: string;
   children: ReactNode;
 };
 
-/**
- * Titled detail-screen section. Empty sections vanish in view mode and shrink
- * to a single "Add …" row in edit mode, so sparse records stay short without
- * hiding anything on rich ones (spec Part 1, "Empty sections").
- */
+/** Titled detail-screen section. Empty sections vanish in view mode and shrink to an "Add …" row in edit mode. */
 export function Section({
   title,
   sectionKey,
@@ -51,13 +44,9 @@ export function Section({
   const [expandedWhileEmpty, setExpandedWhileEmpty] = useState(false);
   const isVisible = !(isEmpty && !editMode);
 
-  // A section that collapses away (empty + view mode) must also drop out of
-  // the scroll-spy/chip registry, or a chip tap or scroll-spy pass can still
-  // land on the stale position of a section that isn't actually rendered.
-  // nav goes through a ref so the cleanup runs only on actual hide/unmount:
-  // the context value changes identity on every scroll-spy tick (activeKey),
-  // and depending on it directly would unregister a section that stays
-  // visible — with no onLayout re-fire to ever re-register it.
+  // A collapsed section must leave the scroll-spy registry. nav goes through a
+  // ref: the context value changes on every scroll-spy tick, and depending on
+  // it would unregister a visible section with no onLayout to re-register it.
   const navRef = useRef(nav);
   useEffect(() => {
     navRef.current = nav;

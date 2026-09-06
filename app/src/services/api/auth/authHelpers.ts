@@ -36,8 +36,7 @@ export function mapApiUserToUser(data: ApiUserRead): User {
     hasUsablePassword: data.has_usable_password ?? true,
     username: data.username ?? null,
     role: data.role ?? 'contributor',
-    // Defaults to false: a payload that cannot say whether the prompt is needed
-    // must not invent an interruption on every login.
+    // Defaults to false: an unknown must not prompt on every login.
     termsAcceptanceRequired: data.terms_acceptance_required ?? false,
     uploadQuota: {
       files: data.upload_quota_files ?? 0,

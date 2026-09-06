@@ -1,9 +1,4 @@
-/**
- * Shared API error type and response-to-error helper.
- *
- * All API modules throw ApiError for non-ok responses so callers can branch
- * on `status`/`code` instead of parsing message strings.
- */
+/** All API modules throw ApiError for non-ok responses so callers can branch on `status`/`code`. */
 export class ApiError extends Error {
   status: number;
   code?: string;
@@ -16,12 +11,7 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Extract a human-readable message from a parsed FastAPI error body.
- * `detail` may be a string, a FastAPI validation array, or a nested
- * `{ message }` / `{ reason }` object. Returns undefined when nothing usable
- * is present so callers can fall back.
- */
+/** Message from a FastAPI error body: `detail` may be a string, a validation array, or `{ message }` / `{ reason }`. */
 export function parseApiErrorDetail(body: unknown): string | undefined {
   if (!body || typeof body !== 'object') return undefined;
   const detail = (body as { detail?: unknown }).detail;

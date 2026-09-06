@@ -54,10 +54,8 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
           src={embedUri}
           title="Embedded product video"
           style={styles.webEmbed}
-          // allow-popups (not allow-popups-to-escape-sandbox): the "Watch on
-          // YouTube" fullscreen/share affordance opens via window.open, which
-          // only needs the popup itself allowed, not for it to escape this
-          // frame's sandbox restrictions.
+          // allow-popups: "Watch on YouTube" opens via window.open. Not
+          // allow-popups-to-escape-sandbox.
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
           referrerPolicy="no-referrer"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

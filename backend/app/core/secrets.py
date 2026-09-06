@@ -11,9 +11,8 @@ if TYPE_CHECKING:
 
 MIN_SECRET_BYTES = 32
 
-# Deploy scaffolding (scripts/deploy_ops.sh) seeds secret files it cannot
-# auto-generate (external OAuth/SMTP credentials) with this prefix so an
-# unfilled secret is recognizable at runtime instead of failing silently.
+# scripts/deploy_ops.sh seeds secrets it cannot generate (OAuth/SMTP) with this prefix
+# so an unfilled one is recognizable at runtime.
 SECRET_PLACEHOLDER_PREFIX = "replace-me-"  # noqa: S105  # placeholder prefix, not a credential
 
 

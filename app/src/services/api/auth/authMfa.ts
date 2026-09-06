@@ -16,9 +16,8 @@ export type MfaLoginPending = {
   redirectTo?: string;
 };
 
-// In memory only: the intermediate MFA token is a credential, and web storage is
-// XSS-readable (see the doctrine in services/storage.ts). A browser reload during
-// the challenge drops it, and the MFA screen then asks the user to sign in again.
+// In memory only: web storage is XSS-readable (see services/storage.ts). A
+// reload during the challenge asks the user to sign in again.
 let pendingMfaLogin: MfaLoginPending | undefined;
 
 export function setPendingMfaLogin(pending: MfaLoginPending): void {

@@ -20,14 +20,7 @@ import { ProfileHero, ProfileStatsSection } from './HeroStats';
 
 const DANGER_ZONE_KEY = 'danger';
 
-/**
- * The scrollable document body: hero header (identity + stats) + the four grouped sections.
- * Registers each section's position through the same base-offset composition
- * as the product detail screen's Content.tsx (useAnchoredSectionNav) — the
- * outer nav context supplies raw scroll-content coordinates once the
- * PageContainer/sections-wrapper layouts land, so anchors stay correct
- * regardless of onLayout firing order.
- */
+/** Scrollable document body: hero header plus the grouped sections, anchored via useAnchoredSectionNav. */
 function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: User }) {
   const outerNav = useContext(SectionNavContext);
   const {
@@ -89,9 +82,7 @@ export function AccountScreen() {
     [nav],
   );
 
-  // useProfileScreen's useRequireAuth('/account') fires the redirect;
-  // AuthProvider already blocks rendering until the initial auth check resolves,
-  // so this can only be hit for the one-render window before that redirect completes.
+  // Only hit for the one-render window before useRequireAuth's redirect completes.
   if (!profile.profile) return <CenteredSpinner />;
 
   const navSections = ACCOUNT_SECTIONS.map((section) => ({
@@ -116,9 +107,8 @@ export function AccountScreen() {
         onPressSection={nav.scrollTo}
       >
         <KeyboardAwareScrollView
-          // KeyboardAwareScrollView forwards the real underlying ScrollView instance
-          // (see react-native-keyboard-controller source) with one extra method
-          // glued on; the plain ScrollView ref type is what callers need for scrollTo.
+          // KeyboardAwareScrollView forwards the real ScrollView instance; the
+          // two ref shapes are runtime-compatible.
           ref={scrollRef as never}
           contentContainerStyle={{ gap: 15, paddingBottom: 40 }}
           onScroll={handleScroll}

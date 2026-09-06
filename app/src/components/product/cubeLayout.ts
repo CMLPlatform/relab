@@ -1,8 +1,6 @@
 import { Platform } from 'react-native';
 
-// Split from SVGCube.tsx: react-refresh/only-export-components forbids exporting
-// non-components alongside a component (see theme/appThemeContext.ts for the same
-// pattern). Keeping the projection maths here also makes it testable on its own.
+// Split from SVGCube.tsx (react-refresh/only-export-components).
 
 /** tan(30°) — the single source of truth for the projection angle. */
 export const ISO = Math.tan(Math.PI / 6);
@@ -29,11 +27,9 @@ export type CubeLayout = {
 };
 
 /**
- * Projects three measurements onto the fixed frame.
- *
- * Both bounding-box terms are linear in the axis ratios, so a shape interpolated
- * between two fitted shapes is itself fitted — which is what lets the viewBox
- * stay constant while the geometry animates between them.
+ * Projects three measurements onto the fixed frame. Both bounding-box terms
+ * are linear in the axis ratios, so interpolated shapes stay fitted and the
+ * viewBox can stay constant.
  */
 export function cubeLayout(
   width: number | undefined,
@@ -41,9 +37,8 @@ export function cubeLayout(
   depth: number | undefined,
 ): CubeLayout {
   const measured = [width, height, depth].filter(isMeasured);
-  // An unmeasured axis has no honest length, so it borrows the mean of the ones
-  // we do have (a bare unit when none are). The faces it touches are drawn
-  // dashed, so the shape stays plausible without claiming a missing measurement.
+  // An unmeasured axis borrows the mean of the measured ones (1 when none);
+  // its faces are drawn dashed.
   const standIn = measured.length
     ? measured.reduce((sum, value) => sum + value, 0) / measured.length
     : 1;
@@ -76,19 +71,13 @@ export function cubeLayout(
 
 export type Matrix = [number, number, number, number, number, number];
 
-// react-native-svg takes a column-major matrix under two different prop names:
-// the native views declare `matrix` (see fabric/GroupNativeComponent), while
-// the web renderer only understands `transform` (web/utils/prepare has no
-// `matrix` branch and would emit an invalid attribute). Normally the JS layer
-// converts `transform` to `matrix` for native, but Reanimated's animated-prop
-// path writes the keys verbatim and skips that conversion — so the key has to
-// match the platform.
+// react-native-svg's native views take `matrix`; the web renderer only
+// understands `transform`. Reanimated's animated-prop path skips the JS
+// conversion between them, so the key must match the platform.
 // NOTE: on-device verification of the native path is still pending.
 const IS_WEB = Platform.OS === 'web';
 
-// Typed as `transform` because that is the public prop; react-native-svg only
-// declares `matrix` on its internal extracted-props type, so the native branch
-// needs the cast.
+// react-native-svg only declares `matrix` on its internal type, hence the cast.
 export function matrixProp(m: Matrix): { transform: Matrix } {
   'worklet';
   return (IS_WEB ? { transform: m } : { matrix: m }) as { transform: Matrix };

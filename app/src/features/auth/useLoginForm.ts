@@ -90,10 +90,8 @@ export function useLoginForm({
     });
   });
 
-  // The password field's onSubmitEditing fires the same handler as the button, so
-  // two submits can race — an mfa_required response would stack two /mfa screens
-  // and a success would navigate twice. Guarded at this boundary, not inside the
-  // validated handler, which the compiler's ref rule forbids.
+  // onSubmitEditing and the button can race (two /mfa screens, double
+  // navigate). Guarded here; the compiler's ref rule forbids it inside the handler.
   const submit = useSingleFlight(validatedSubmit);
 
   return { control, emailRef, submit };

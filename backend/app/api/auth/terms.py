@@ -10,14 +10,9 @@ Monotonically increasing, because that is the question the release tooling asks:
 
 CURRENT_TERMS_VERSION = 1
 
-# The version that first granted a publication licence — the threshold both the
-# dataset release and the in-app acceptance prompt key on.
-#
-# Deliberately NOT CURRENT_TERMS_VERSION, and the difference is invisible until it
-# bites: keying on the current version would make every future revision of the terms
-# silently drop every record until each contributor re-accepted, and would re-prompt
-# every contributor for a typo fix. This number moves only when a revision changes
-# the grant itself.
+# The version that first granted a publication licence; the dataset release and the
+# acceptance prompt both key on it. Not CURRENT_TERMS_VERSION: that would drop every
+# record and re-prompt every contributor on a typo fix. Moves only when the grant changes.
 MINIMUM_RELEASE_TERMS_VERSION = 1
 
 

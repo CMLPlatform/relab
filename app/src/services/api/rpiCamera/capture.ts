@@ -12,9 +12,8 @@ const LOCAL_CAPTURE_TIMEOUT_MS = 20_000;
 const safeImageUrl = (value: unknown): string =>
   typeof value === 'string' && isSafeImageUrl(value) ? value : '';
 
-// An empty id used to flow all the way into the gallery, where the next save
-// treats the entry as unmatched and DELETEs the freshly captured image. Fail the
-// capture instead — both transports promise an id on success.
+// An empty id reaching the gallery makes the next save DELETE the fresh
+// capture. Both transports promise an id on success.
 const requireImageId = (value: unknown): string => {
   const id = typeof value === 'number' ? String(value) : typeof value === 'string' ? value : '';
   if (!id.trim()) throw new Error('Capture succeeded but the camera returned no image id.');

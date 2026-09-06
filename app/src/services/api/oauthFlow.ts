@@ -42,9 +42,7 @@ export function isExpectedOAuthCallbackUrl(url: string, redirectUri: string): bo
 }
 
 export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult | undefined {
-  // The association flows hand us the browser session's URL unvalidated, so a
-  // malformed one must read as "no callback here" rather than throw — same shape
-  // as the two guards above.
+  // A malformed browser-session URL reads as "no callback here" rather than throwing.
   let callbackUrl: URL;
   try {
     callbackUrl = new URL(url);
@@ -57,8 +55,7 @@ export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult | undefi
   const error = params.get('error');
   const mfaHandoff = params.get('mfa_handoff');
 
-  // Not an OAuth callback fragment (e.g. an anchor link or tracking hash on
-  // /login) — return undefined so callers don't surface a spurious failure.
+  // Not an OAuth callback fragment (an anchor or tracking hash).
   if (status === null && error === null && mfaHandoff === null) return undefined;
 
   return {
@@ -72,12 +69,8 @@ export async function fetchOAuthAuthorizationUrl(
   authorizeUrl: string,
   stepUp?: { currentPassword?: string },
 ) {
-  // fetchWithAuth attaches the bearer token when a session exists (association
-  // flows) and is a plain fetch when none does (login flows).
-  //
-  // Association authorize is a POST: linking a provider changes how the account can be
-  // signed into, so the server requires the account password (step-up), which must
-  // travel in a body rather than a query string. Login authorize stays a GET.
+  // Association authorize is a POST: the step-up password must travel in a
+  // body. Login authorize stays a GET.
   const init = stepUp
     ? {
         method: 'POST',

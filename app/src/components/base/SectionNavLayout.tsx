@@ -22,8 +22,7 @@ function SectionNavItem({
       accessibilityRole="button"
       accessibilityLabel={active ? `${section.label}, current section` : section.label}
       className={cn(
-        // px-2: four label-scale chips must fit a 390pt phone in one row
-        // (measured 358/366px); px-4 pushed the last chip off-screen.
+        // px-2: four chips must fit a 390pt phone in one row; px-4 pushed the last off-screen.
         'min-h-11 justify-center rounded-md px-2 py-2',
         active ? 'bg-primary/12' : 'opacity-70',
         Platform.select({
@@ -70,11 +69,8 @@ function SectionNav({
 }
 
 /**
- * Shared document-nav shell for anchored-scroll screens (product detail,
- * account): phone gets a chips row pinned above the scroll, ≥lg web gets a
- * fixed outline column beside it. Extracted from ProductDetailScreen so the
- * account screen (phase 3) reuses the exact same layout instead of a second
- * copy — keep any change here in sync across both screens' tests.
+ * Document-nav shell for anchored-scroll screens (product detail, account):
+ * a chips row on phone, a fixed outline column on >=lg web.
  */
 export function SectionNavLayout({
   isLg,

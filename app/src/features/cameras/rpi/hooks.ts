@@ -23,8 +23,6 @@ import {
 import { type CameraLivePreviewResult, resolveCameraLivePreview } from './previews';
 import { cameraQueryOptions, camerasQueryOptions, streamStatusQueryOptions } from './queries';
 
-// Shared by useDeleteCameraMutation and useClaimPairingMutation, which both
-// just need the camera list invalidated on success.
 function useCameraListInvalidationMutation<TVariables, TData = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
 ) {
@@ -35,8 +33,6 @@ function useCameraListInvalidationMutation<TVariables, TData = unknown>(
   });
 }
 
-// Shared by useCaptureImageMutation and useCaptureAllMutation, which both
-// need the owning product's query invalidated on success.
 function useProductInvalidationMutation<TVariables, TData = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
 ) {
@@ -101,8 +97,7 @@ export function useCameraLivePreview(
   }: { enabled?: boolean; connectionInfo?: CameraConnectionInfo } = {},
 ): CameraLivePreviewResult {
   const cameraId = camera?.id ?? null;
-  // Stable identity: consumers pass this straight into the video player's source
-  // and effect deps, so a fresh object each render restarts the live stream.
+  // Stable identity: a fresh object each render restarts the live stream.
   return useMemo(
     () => resolveCameraLivePreview(cameraId, { enabled, connectionInfo }),
     [cameraId, enabled, connectionInfo],
@@ -123,11 +118,7 @@ export function useStreamStatusQuery(
   return useQuery({ ...streamStatusQueryOptions(cameraId, { enabled }), subscribed });
 }
 
-/**
- * `productId` is the product the stream was recording: stopping ends its live
- * video, so its cached copy is stale. Callers that only stop a camera (the
- * camera card, the profile screen) leave it out.
- */
+/** `productId` is the product the stream was recording; its cached copy goes stale. Optional. */
 export function useStopYouTubeStreamMutation(cameraId: string, productId?: number) {
   const queryClient = useQueryClient();
   return useMutation({

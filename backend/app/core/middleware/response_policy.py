@@ -34,15 +34,9 @@ CONTENT_SECURITY_POLICY_HEADER_VALUE = "default-src 'none'; frame-ancestors 'non
 X_XSS_PROTECTION_HEADER_VALUE = "0"
 CROSS_ORIGIN_OPENER_POLICY_HEADER_VALUE = "same-origin"
 CROSS_ORIGIN_RESOURCE_POLICY_HEADER_VALUE = "same-site"
-# Local-only relaxation, scoped to the uploads mount: IP-literal origins like
-# 127.0.0.1 have no registrable domain, and Chromium in practice blocks
-# cross-port IP-literal loads under CORP "same-site" (observed as
-# net::ERR_BLOCKED_BY_RESPONSE.NotSameSite loading gallery images from the
-# dev api on :8010 into the dev app on :8011, and the same for the E2E rig on
-# :18010/:18011). Serve "cross-origin" for /uploads responses only when
-# settings.uploads_allow_cross_origin, which is derived from the environment
-# (dev and testing only). Every other response, and all of staging/prod, keeps
-# "same-site".
+# Served on /uploads only when settings.uploads_allow_cross_origin (dev and testing):
+# Chromium blocks cross-port 127.0.0.1 loads under "same-site"
+# (net::ERR_BLOCKED_BY_RESPONSE.NotSameSite). Everything else keeps "same-site".
 CROSS_ORIGIN_RESOURCE_POLICY_LOCAL_HEADER_VALUE = "cross-origin"
 BASE_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",

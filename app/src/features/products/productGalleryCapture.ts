@@ -146,16 +146,9 @@ export function useProductGalleryImageActions({
     }
   }, [feedback.error, media.images, onImagesChange]);
 
-  // Undo, not confirm. Removal is draft-local — the DELETE only leaves the
-  // device when the record is saved (see updateProductImages in api/saving) —
-  // so putting the row back is free, and a confirm would tax every removal to
-  // guard a mistake the toast already covers. The photo may be the only record
-  // of an internal assembly since reassembled, hence the recovery path; the
-  // delete control also sits a few pixels from the RPi capture button.
-  //
-  // Read through a ref rather than the closed-over array: the undo window is
-  // long enough to import a photo in, and restoring a snapshot taken before
-  // that import would silently drop it.
+  // Undo, not confirm: removal is draft-local until save. Read through a ref,
+  // not the closed-over array: a photo imported during the undo window would
+  // otherwise be dropped by the restore.
   const imagesRef = useRef(media.images);
   useEffect(() => {
     imagesRef.current = media.images;
@@ -172,8 +165,7 @@ export function useProductGalleryImageActions({
       feedback.toast('Photo removed', {
         label: 'Undo',
         onPress: () => {
-          // Filter by identity first so an undo that races a re-render (the ref
-          // still holding the pre-delete array) restores rather than duplicates.
+          // Filter by identity first so an undo racing a re-render does not duplicate.
           const restored = imagesRef.current.filter((image) => image !== removed);
           restored.splice(index, 0, removed);
           onImagesChange?.(restored);

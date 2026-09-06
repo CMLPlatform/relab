@@ -4,10 +4,8 @@ import { MIN_TAP_TARGET } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon } from './Icon';
 
-// SDK 57 dropped the importable `@react-navigation/elements` HeaderBackButton, and
-// expo-router ships no replacement component — a custom `headerLeft` fully replaces the
-// native back button. These screens override the back target with `router.replace`, so
-// they always want a visible back affordance regardless of `canGoBack`.
+// SDK 57 dropped `@react-navigation/elements` HeaderBackButton. Callers override
+// the back target with `router.replace`, so the affordance ignores `canGoBack`.
 type HeaderBackButtonProps = NativeStackHeaderBackProps & { onPress: () => void };
 
 export function HeaderBackButton({ onPress, tintColor }: HeaderBackButtonProps) {
@@ -18,9 +16,7 @@ export function HeaderBackButton({ onPress, tintColor }: HeaderBackButtonProps) 
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Go back"
-      // hitSlop expands the touch target on native but is invisible to the DOM
-      // on web, where this measured 36x28. Web is the shipped platform, so the
-      // floor is a real box size; hitSlop stays for native comfort.
+      // hitSlop is invisible to the DOM on web, so the box itself carries the floor.
       hitSlop={12}
       style={{
         minWidth: MIN_TAP_TARGET,

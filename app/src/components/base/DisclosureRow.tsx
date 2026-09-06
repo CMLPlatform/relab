@@ -13,12 +13,7 @@ type DisclosureRowProps = {
   className?: string;
 };
 
-/**
- * The detail screens' one disclosure idiom: a left-aligned ghost row whose
- * label says what opens and how much of it, with a chevron that points right
- * when collapsed and down when expanded. Section's empty-state "Add …" row uses
- * it too — that row also opens hidden content, so it is the same affordance.
- */
+/** The detail screens' disclosure row: ghost row, label, chevron right/down. */
 export function DisclosureRow({ label, expanded, onPress, className }: DisclosureRowProps) {
   const { colors } = useAppTheme();
   return (

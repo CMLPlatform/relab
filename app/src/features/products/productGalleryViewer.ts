@@ -15,22 +15,14 @@ import type { Product } from '@/types/Product';
 
 export function useProductGalleryMedia(product: Product) {
   const { images, items: rawItems } = useMemo(() => buildGalleryMedia(product), [product]);
-  // Reactive, unlike Dimensions.get: this width drives the pager's getItemLayout
-  // and each slide's style as well as the size pick below, so a non-subscribing
-  // read left all three stale after a rotation.
+  // Reactive, unlike Dimensions.get, so rotation does not leave the pager stale.
   const { width, height } = useWindowDimensions();
   // React Native has no srcset, so each tier is resolved once here, where the
-  // screen size is known, and every consumer downstream (the pager, the
-  // lightbox, the prefetch below) keeps reading the same two fields.
-  //
-  // Without this both tiers stay pointed at the full-resolution upload: opening
-  // a gallery pulled several megabytes per image to fill a ~390pt-wide view,
-  // and the prefetch did it for every image in the product at once.
+  // screen size is known. Without this both tiers point at the full upload.
   const items = useMemo(() => {
     const scale = PixelRatio.get();
     const mediumPx = width * scale;
-    // The lightbox is full-bleed and pinch-zoomable, so it asks for the larger
-    // screen dimension. Zooming past what this holds swaps in the original.
+    // The lightbox is full-bleed, so it asks for the larger screen dimension.
     const largePx = Math.max(width, height) * scale;
     return rawItems.map((item) => ({
       ...item,
@@ -76,8 +68,7 @@ export function useProductGalleryViewer({
     [imageCount, width],
   );
 
-  // Plain callback: useGalleryIndexPersistence wraps it in an effect event, so a
-  // stale closure is not a concern here.
+  // useGalleryIndexPersistence wraps this in an effect event.
   const restoreIndex = useCallback(
     (index: number) => {
       setSelectedIndex(index);

@@ -24,8 +24,7 @@ export function useCamerasScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const feedback = useAppFeedback();
-  // Web at >= the desktop breakpoint — centralizes the check the screen's grid
-  // and selection UI key off (was its own useIsDesktop hook; single caller).
+  // Web at >= the desktop breakpoint.
   const isDesktop = useBreakpoint().isMd;
   const { captureAllProductId, captureModeEnabled, streamProductId, streamModeEnabled } =
     useCameraRouteModes();

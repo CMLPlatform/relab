@@ -56,9 +56,7 @@ export async function setupWebHlsVideo({
   isCancelled: () => boolean;
   importHls?: () => Promise<{ default: HlsConstructor }>;
 }): Promise<() => void> {
-  // hls.js exhausts its own load retries before emitting a fatal error, so we
-  // give each fatal kind exactly one documented recovery attempt. Playback
-  // resuming clears the flags, so a later independent failure can recover too.
+  // One recovery attempt per fatal kind; resumed playback clears the flags.
   const recovered = { network: false, media: false };
 
   const onPlaying = () => {
@@ -109,9 +107,8 @@ export async function setupWebHlsVideo({
 
     const hls = new Hls({
       lowLatencyMode: true,
-      // Keep a slightly deeper buffer than the 200ms LL-HLS parts to absorb
-      // typical jitter without pushing latency past ~2s. Back buffer stays
-      // short to keep memory bounded on long-running sessions.
+      // Deeper than the 200ms LL-HLS parts to absorb jitter under ~2s latency;
+      // short back buffer bounds memory on long sessions.
       backBufferLength: 6,
       maxBufferLength: 20,
       xhrSetup: withCredentials

@@ -19206,7 +19206,7 @@
     },
     "/v1/users/me/accept-terms": {
       "post": {
-        "description": "Record that this account accepted the contributor terms.\n\nThe version is stamped from the server's own ``CURRENT_TERMS_VERSION`` and the\nroute takes no body: the column is evidence of what the person was actually\nshown, so a client that could name the version could claim a grant under terms\nthat did not exist when it accepted.\n\nExisting acceptance is never moved backwards \u2014 an account already past the\ncurrent version keeps its later grant, so a rolled-back version constant\ncannot silently narrow a grant somebody really made.\n\nWrites through the user database rather than a session dependency: the account\nhere is loaded by the auth session, which is a separate dependency from\n``AsyncSessionDep``, so committing on the latter would persist nothing.",
+        "description": "Record that this account accepted the contributor terms.\n\nThe route takes no body: the server stamps ``CURRENT_TERMS_VERSION``, so a client\ncannot claim a grant under terms it was never shown. An acceptance already past the\ncurrent version is kept.\n\nWrites through the user database: the account was loaded by the auth session, not\n``AsyncSessionDep``, so committing on the latter would persist nothing.",
         "operationId": "accept_terms_v1_users_me_accept_terms_post",
         "responses": {
           "200": {

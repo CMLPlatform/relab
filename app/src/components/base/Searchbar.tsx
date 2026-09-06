@@ -31,8 +31,7 @@ export function Searchbar({
   loading = false,
   style,
   ref,
-  // Forwarded to the Input, the element that takes focus, so callers can supply
-  // accessibilityHint and friends instead of having them silently dropped.
+  // Forwarded to the Input, the element that takes focus.
   ...rest
 }: SearchbarProps) {
   const theme = useAppTheme();
@@ -50,10 +49,8 @@ export function Searchbar({
         placeholder={placeholder}
         accessibilityLabel={placeholder ?? 'Search'}
         {...rest}
-        // Inset via className, not `style`: react-native-web compiles
-        // StyleSheet.create to atomic CSS classes, so a `style` padding lands in
-        // the same cascade as the primitive's own `px-3` and loses on source
-        // order. Through `cn` it merges instead, and the text clears the icons.
+        // Inset via className, not `style`: on web a `style` padding loses to
+        // the primitive's own `px-3` on source order; `cn` merges instead.
         className="pl-10 pr-10"
       />
       {loading ? (
@@ -80,8 +77,7 @@ export function Searchbar({
 
 const styles = StyleSheet.create({
   leadingIcon: {
-    // zIndex 1 has no exact Tailwind step (the scale jumps 0 -> 10), so it
-    // stays inline alongside the absolute/left classes.
+    // zIndex 1 has no Tailwind step (the scale jumps 0 -> 10).
     zIndex: 1,
   },
 });

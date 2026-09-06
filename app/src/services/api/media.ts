@@ -22,13 +22,7 @@ export function resolveApiMediaUrl(path?: string | null): string | undefined {
   return apiBaseUrl ? `${apiBaseUrl}${normalizedPath}` : normalizedPath;
 }
 
-/**
- * Resolve an API width-keyed thumbnail map (`thumbnail_urls`) into usable URLs.
- *
- * Same per-URL rejections as `resolveApiMediaUrl`, so a server-supplied
- * `javascript:` or protocol-relative candidate is dropped rather than rendered.
- * Non-numeric or non-positive keys are dropped too.
- */
+/** Resolve `thumbnail_urls` with the same per-URL rejections as `resolveApiMediaUrl`; bad keys are dropped. */
 export function resolveApiMediaUrlMap(
   urls: Record<string, string> | null | undefined,
 ): Record<number, string> {
@@ -44,17 +38,10 @@ export function resolveApiMediaUrlMap(
 }
 
 /**
- * The narrowest derivative at least `neededPx` wide, or the widest one there is.
- *
- * React Native has no `srcset`: a view knows its own layout size, so it picks
- * once at render time. Returns undefined for an empty map, which means the
- * caller falls back to whatever single URL it already had.
- *
- * Deliberately upscales rather than falling back to the original when nothing
- * is wide enough: the original is an unresized upload and can be many
- * megabytes, so it is reserved for zooming. NOTE: for very small originals
- * (only a 200px derivative exists) this blurs; falling back to the original
- * when the widest derivative is far narrower than the need is the upgrade path.
+ * The narrowest derivative at least `neededPx` wide, or the widest there is;
+ * undefined for an empty map. Never the original (reserved for zoom).
+ * NOTE: blurs for very small originals; fall back to the original when the
+ * widest derivative is far narrower than the need if that matters.
  */
 export function pickThumbnailUrl(
   urls: Record<number, string>,

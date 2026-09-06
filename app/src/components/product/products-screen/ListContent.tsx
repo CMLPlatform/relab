@@ -68,9 +68,7 @@ function ProductsListFooter({
   if (productCount === 0) return null;
 
   return (
-    // Live region so a screen reader hears the count settle after "Load more"
-    // — the button keeps focus, so the newly appended cards are otherwise
-    // silent and there is no cue that the page arrived.
+    // Live region: "Load more" keeps focus, so appended cards are otherwise silent.
     <View className="items-center gap-2 py-4" accessibilityLiveRegion="polite">
       {isFetchingNextPage ? (
         <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
@@ -167,14 +165,8 @@ export function ProductsListContent({
   }
 
   return (
-    // The fade bridges the swap out of the skeleton branch above, which
-    // otherwise hard-cuts eight grey cards into eight real ones, and replays
-    // when `key={numColumns}` remounts the subtree on rotation. The animation
-    // lives on a flex-1 wrapper, NOT on Animated.FlatList: reanimated's web
-    // layout-animation path crashes on FlatList hosts (element.style is
-    // undefined in startWebLayoutAnimation -> maybeReportOverwrittenProperties,
-    // blanking the whole page in the web export). flex-1 keeps the wrapper
-    // layout-neutral between the list and its flex parent.
+    // Fade out of the skeleton. On a flex-1 wrapper, not Animated.FlatList:
+    // reanimated's web layout animations crash on FlatList hosts.
     <Animated.View
       testID="products-list-fade"
       style={styles.listFadeWrapper}

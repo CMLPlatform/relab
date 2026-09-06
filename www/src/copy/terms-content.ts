@@ -3,16 +3,12 @@ interface TermsSection {
   paragraphs: string[];
 }
 
-// The contract half of the pair. The privacy policy is a notice about what we
-// do with your data; this page is what you agree to when you contribute. They
-// stay separate documents on purpose: a notice cannot carry a licence grant,
-// and a licence grant should not bury a notice.
-// NOTE: `version` is what accounts record as the terms they accepted, so it pairs with
-// CURRENT_TERMS_VERSION in backend/app/api/auth/terms.py. Bump both together when the
-// wording changes materially: tests/test_terms_version.py fails if they drift apart. The
-// version is recorded once, at registration, and used by the dataset release script to
-// scope consent -- there is no re-prompt for accounts on an older version. A typo fix
-// needs no bump.
+// What a contributor agrees to. Kept separate from the privacy policy, which is
+// a notice and cannot carry a licence grant.
+// NOTE: `version` pairs with CURRENT_TERMS_VERSION in backend/app/api/auth/terms.py;
+// tests/test_terms_version.py fails if they drift. Bump both when the wording changes
+// materially (a typo fix needs no bump). The version is recorded once, at
+// registration, and scopes consent in the dataset release script; there is no re-prompt.
 export const termsContent = {
   version: 1,
   description: 'The terms you agree to when you contribute records, images, or notes to Relab.',

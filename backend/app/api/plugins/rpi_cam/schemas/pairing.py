@@ -7,15 +7,10 @@ from relab_rpi_cam_models import PairingCode
 
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 
-# ASCII-safe: a non-ASCII fingerprint would otherwise reach hmac.compare_digest and
-# raise TypeError -> unauthenticated 500. Confirmed against the actual Pi generator
-# (relab-rpi-cam-plugin's `secrets.token_urlsafe(16)`, ~22 chars of [A-Za-z0-9_-]),
-# which comfortably fits inside this pattern.
-# NOTE: this constraint should live on `rpi_fingerprint`/`fingerprint` in the
-# relab-rpi-cam-models package itself (both PairingRegisterRequest and
-# PairingPollRequest), not duplicated per-endpoint here — until it moves upstream,
-# the register route below re-checks it manually since PairingRegisterRequest is
-# an external model we can't edit.
+# ASCII only: a non-ASCII fingerprint makes hmac.compare_digest raise TypeError, an
+# unauthenticated 500. The Pi generates `secrets.token_urlsafe(16)`, which fits.
+# NOTE: belongs on the fingerprint fields in relab-rpi-cam-models; until it moves
+# upstream the register route re-checks it by hand.
 FINGERPRINT_PATTERN = re.compile(r"^[A-Za-z0-9._~-]{8,64}$")
 
 

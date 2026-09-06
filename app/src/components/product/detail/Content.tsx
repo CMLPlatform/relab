@@ -87,10 +87,8 @@ export function ProductPageContent({
 
   return (
     <KeyboardAwareScrollView
-      // KeyboardAwareScrollView forwards the real underlying ScrollView instance
-      // (see react-native-keyboard-controller source) with one extra method
-      // glued on; callers hold a plain ScrollView ref for scrollTo, so bridge
-      // the two ref shapes through `unknown` (they're runtime-compatible).
+      // KeyboardAwareScrollView forwards the real ScrollView instance; the two
+      // ref shapes are runtime-compatible.
       ref={scrollRef as unknown as RefObject<KeyboardAwareScrollViewRef>}
       contentContainerStyle={{ gap: 15, paddingBottom: 5 }}
       onScroll={onScroll}

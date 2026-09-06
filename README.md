@@ -26,43 +26,36 @@ It combines:
 - an Astro site for publicly viewing project and dataset information
 - a separate docs site for architecture, workflows, and deployment notes
 
-The platform is meant to do two things at once: support structured data collection during
-disassembly work, and make that data easier to publish, browse, and reuse later.
+The platform supports structured data collection during disassembly work and makes that data
+easier to publish, browse, and reuse.
 
-The broader research vision comes from a simple problem: circular-economy and industrial-ecology
-research depends on detailed product data — what things are made of, how they come apart, which
-parts matter — yet that data is scarce, mostly closed, and slow to produce. Producers tend to treat
-it as proprietary, and the alternative of small expert teams sampling by hand cannot keep pace with
-the products entering the market.
+Circular-economy and industrial-ecology research depends on detailed product data: what things are
+made of, how they come apart, which parts matter. That data is scarce, mostly closed, and slow to
+produce. Producers treat it as proprietary, and small expert teams sampling by hand cannot keep pace
+with the products entering the market.
 
-Relab addresses that gap with a bottom-up model:
+Relab collects it bottom-up:
 
-- middle- and end-of-life actors such as repairers, refurbishers, dismantlers, and recyclers can
-  contribute data directly
-- these downstream actors meet products at the point of failure, capturing as-failed composition,
-  wear, and recoverability that as-designed producer specifications never show
-- collaborative and citizen-science style workflows can turn routine repair and disassembly into
-  structured observations
-- the resulting records can be shared openly, linked to related databases, and reused in later
-  research
+- repairers, refurbishers, dismantlers, and recyclers contribute data directly
+- they meet products at the point of failure, so they capture as-failed composition, wear, and
+  recoverability that as-designed producer specifications never show
+- collaborative and citizen-science workflows turn routine repair and disassembly into structured
+  observations
+- the records are shared openly, linked to related databases, and reused in later research
 
-Contributors get value back too — composition insight, sustainability metrics, and repair or
-R-strategy guidance — so routine disassembly becomes a two-way exchange rather than one-way data
-entry. We call this a circular data economy: middle- and end-of-life observations feed back into the
-upstream data infrastructure that research and design rely on, complementing the top-down flow of
-producer specifications.
+Contributors get composition insight, sustainability metrics, and repair or R-strategy guidance
+back. We call this a circular data economy: middle- and end-of-life observations feed back into the
+data infrastructure that research and design rely on.
 
-The long-term goal is to contribute to an open industrial ecology data commons: data that is
-collected collaboratively, publicly accessible, linkable to existing and upcoming databases, and
-structured enough for machine-learning use.
+The long-term goal is an open industrial ecology data commons: data that is collected
+collaboratively, publicly accessible, linkable to other databases, and structured enough for
+machine-learning use.
 
 ## Start Here
 
-The fastest path is the hosted platform:
+Use the hosted platform at [app.cml-relab.org](https://app.cml-relab.org).
 
-[app.cml-relab.org](https://app.cml-relab.org)
-
-If you want to go deeper:
+To go deeper:
 
 - [Install and self-host](https://docs.cml-relab.org/operations/install/) for running or
   self-hosting the stack
@@ -78,16 +71,14 @@ If you want to go deeper:
 | `www/`     | Astro public website                                  |
 | `docs/`    | Documentation site                                    |
 
-Infrastructure is orchestrated with Docker Compose from the repo root.
+Docker Compose orchestrates the stack from the repo root.
 
-Shared brand assets live in `assets/` and are synced into the consumer
-subrepos with `just assets-sync`.
+Shared brand assets live in `assets/`; `just assets-sync` copies them into the consumer subrepos.
 
-Configuration has five homes: committed public prod/staging identity in
-`deploy/env/*.compose.env`, deploy-host inputs in the gitignored root `.env`,
-runtime secrets in gitignored `secrets/<env>/` files, optional backend-only
-local overrides in `backend/.env.dev`, and framework/test fixtures such as
-`app/.env.development` and `backend/.env.test`.
+Configuration has five homes: the committed secret inventory in `deploy/env/variables.toml`,
+deploy-host inputs in the gitignored root `.env`, runtime secrets in gitignored `secrets/<env>/`
+files, optional backend-only local overrides in `backend/.env.dev`, and framework/test fixtures such
+as `app/.env.development` and `backend/.env.test`.
 
 ## Common Commands
 
@@ -102,9 +93,8 @@ just deploy-secrets-template dev  # create local backend secret files
 
 ## Accessibility
 
-Accessibility is checked in CI: axe scans plus per-PR a11y lint across `www/`,
-`docs/`, and `app/`. See [Quality Controls](.github/CONTRIBUTING.md#quality-controls)
-for what runs where.
+CI runs axe scans and per-PR a11y lint across `www/`, `docs/`, and `app/`. See
+[Quality Controls](.github/CONTRIBUTING.md#quality-controls) for what runs where.
 
 ## Project Links
 
@@ -125,7 +115,7 @@ for what runs where.
 
 ## Licensing
 
-Four layers, licensed separately on purpose:
+Four layers, each under its own licence:
 
 | What                                                                                                                                                      | Licence                                                   | Why                                                                                                                                                                                                                                                      |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -133,25 +123,22 @@ Four layers, licensed separately on purpose:
 | API specification — the OpenAPI schemas this repository generates (`openapi.public.json`, `openapi.device.json`) and the client types generated from them | [Apache-2.0](LICENSE-APACHE-2.0)                          | An integration surface should not pass copyleft to anyone writing a client or an importer. Includes a patent grant.                                                                                                                                      |
 | Curated dataset releases                                                                                                                                  | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | One instrument over the database structure and its contents. CC 4.0 licenses the EU *sui generis* database right, so no second licence is needed for the data. Attribution is the whole obligation, which keeps the dataset usable for machine learning. |
 
-Site content — the writing on the docs site and on cml-relab.org — is
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Copyleft over prose is an odd fit, since
-its obligations are about providing corresponding source. Code samples in the documentation are
-Apache-2.0 instead, because CC licences are not meant for software.
+Site content (the writing on the docs site and on cml-relab.org) is
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Code samples in the documentation are
+Apache-2.0, because CC licences are not meant for software.
 
-**Relab, the logo and the wordmark are not licensed by any of the above.** No licence here
-grants rights in them, and CC BY says so explicitly (§2(b)(2)). Use the name to refer to this
-project, not to identify your own work as Relab.
+**Relab, the logo and the wordmark are not licensed by any of the above.** No licence here grants
+rights in them, and CC BY says so explicitly (§2(b)(2)). Use the name to refer to this project, not
+to identify your own work as Relab.
 
-The RPi camera plugin's schema (`openapi.rpi-cam.json`) is published here for reference but is
-fetched verbatim from its own repository,
-[relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin), and carries whatever
-licence that project sets — currently Apache-2.0 as well, so all three published schemas answer
-alike.
+The RPi camera plugin's schema (`openapi.rpi-cam.json`) is published here for reference. It is
+fetched verbatim from [relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
+and carries that project's licence, currently Apache-2.0.
 
-Two limits that no licence changes. Personal data is governed by the GDPR regardless of the licence,
-so it is the sanitisation applied when building a release — not CC BY — that makes publication
-lawful. And CC BY grants no trademark rights: teardown photographs necessarily show brand marks and
-model numbers, which the licence covers as images without licensing the marks themselves.
+Two limits that no licence changes. The GDPR governs personal data regardless of the licence: the
+sanitisation applied when building a release, not CC BY, is what makes publication lawful. And CC BY
+grants no trademark rights: teardown photographs show brand marks and model numbers, which the
+licence covers as images without licensing the marks themselves.
 
 ## Contact
 

@@ -56,8 +56,7 @@ class CoreSettings(RelabBaseSettings):
     """Settings class to store all the configurations for the app."""
 
     # ── Environment ──────────────────────────────────────────────────────────────
-    # No default: a missing ENVIRONMENT must never silently fall back to development
-    # settings (rate limiting off, insecure cookies, permissive CORS/CORP).
+    # No default: a missing ENVIRONMENT must not fall back to development settings.
     environment: Environment
 
     # ── Database & Redis ─────────────────────────────────────────────────────────
@@ -80,12 +79,7 @@ class CoreSettings(RelabBaseSettings):
     @model_validator(mode="before")
     @classmethod
     def require_environment(cls, data: object) -> object:
-        """Fail fast with a clear message when ENVIRONMENT is unset.
-
-        Without this, pydantic's default "field required" error doesn't explain
-        which values are valid, and a missing field is easy to mistake for a
-        typo elsewhere in the traceback.
-        """
+        """Fail fast, listing the valid values, when ENVIRONMENT is unset."""
         if isinstance(data, dict) and not data.get("environment"):
             valid = ", ".join(member.value for member in Environment)
             msg = f"ENVIRONMENT must be set explicitly (one of: {valid}). No default is applied."
@@ -194,8 +188,7 @@ class CoreSettings(RelabBaseSettings):
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
     max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
-    # Upload quotas are tiered by the uploader's role (app.api.auth.roles). The
-    # per-user pair is the contributor tier; lab accounts get the lab pair.
+    # Upload quotas are tiered by role (app.api.auth.roles): per_user is the contributor tier.
     max_upload_files_per_user: int = Field(default=1000, ge=1, le=100_000)
     max_upload_bytes_per_user_mb: int = Field(default=1024, ge=1, le=1_000_000)
     max_upload_files_per_lab_user: int = Field(default=20_000, ge=1, le=100_000)
@@ -210,15 +203,11 @@ class CoreSettings(RelabBaseSettings):
     rpi_cam_ws_auth_rate_limit: str = "10/minute"
     rpi_cam_ws_binary_frame_limit_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")
-    # OTEL on/off is derived from the endpoint; service.name is read by the
-    # OTEL SDK directly from the OTEL_SERVICE_NAME env var (set in compose).
+    # OTEL is on iff this is set; the SDK reads OTEL_SERVICE_NAME from the env itself.
     otel_exporter_otlp_endpoint: str | None = None
 
-    # Off by default: the deploy hosts run a Grafana Alloy agent that ships every
-    # container's stdout, this one included, so exporting the same records through the SDK
-    # as well stores each line twice in two different shapes. The stdout path is the one
-    # kept because it also carries what the SDK cannot report — the SDK's own export
-    # failures. Set true only where no log agent runs, and accept the duplication if both.
+    # Deploy hosts ship container stdout via Grafana Alloy; SDK export on top stores every
+    # line twice. Set true only where no log agent runs.
     otel_log_export_enabled: bool = False
 
     @property
@@ -269,12 +258,9 @@ class CoreSettings(RelabBaseSettings):
     def uploads_allow_cross_origin(self) -> bool:
         """Relax the uploads mount's resource policy outside deployed environments.
 
-        Local dev and the E2E rig serve the API and the frontends on different
-        ports of 127.0.0.1, which has no registrable domain, so Chromium blocks
-        the images under `Cross-Origin-Resource-Policy: same-site`. Deployed, the
-        origins share `cml-relab.org` and the strict policy costs nothing, so
-        this stays derived from the environment rather than set by hand: staging
-        and prod cannot opt in, whatever their env files say.
+        Dev and E2E serve API and frontends on different 127.0.0.1 ports, which has no
+        registrable domain, so Chromium blocks images under `same-site`. Derived from the
+        environment so staging and prod cannot opt in.
         """
         return self.environment in (Environment.DEV, Environment.TESTING)
 
@@ -295,11 +281,7 @@ class CoreSettings(RelabBaseSettings):
 
     @model_validator(mode="after")
     def validate_upload_quota_tiers(self) -> Self:
-        """Validate that the lab upload tier is not below the contributor tier.
-
-        Inverting them would silently downgrade every lab account, which reads as
-        a quota bug at the point of upload rather than as the misconfiguration it is.
-        """
+        """Validate that the lab upload tier is not below the contributor tier."""
         if self.max_upload_files_per_lab_user < self.max_upload_files_per_user:
             msg = (
                 f"max_upload_files_per_lab_user ({self.max_upload_files_per_lab_user}) "

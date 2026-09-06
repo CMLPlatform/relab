@@ -33,12 +33,9 @@ export class OAuthStepUpRequiredError extends Error {}
 type OAuthAssociationResult = { type: string; url?: string };
 
 /**
- * Run *action*; if the API asks for step-up re-auth, collect the account password and
- * retry once with it. The 400 is an ask, not a failure, so it must not surface as an error.
- *
- * Never throws: the retry runs detached from the dialog's onPress, so both attempts route
- * their failures through *onError* — otherwise a wrong password rejects unhandled and the
- * user is told nothing.
+ * Run *action*; on a step-up 400, collect the password and retry once. Never
+ * throws: the retry runs detached from the dialog's onPress, so both attempts
+ * report through *onError*.
  */
 async function withStepUp(
   dialog: Pick<DialogContextType, 'input'>,
@@ -86,8 +83,7 @@ export function useOAuthAssociations({
   ): Promise<OAuthAssociationResult> => {
     const redirectUri = createURL('/account');
     const associateUrl = buildOAuthAuthorizeUrl(`${API_URL}${path}`, redirectUri);
-    // Always a step-up POST: linking changes how the account can be signed into, so the
-    // server requires the password for any account that has one.
+    // Step-up POST: the server requires the password for any account that has one.
     const authorization = await fetchOAuthAuthorizationUrl(associateUrl, { currentPassword });
 
     if (authorization.status === STEP_UP_REQUIRED_STATUS && !currentPassword) {
@@ -163,9 +159,7 @@ export function useOAuthAssociations({
         );
         if (result.type !== 'success') return;
 
-        // The browser session completing says nothing about the outcome — the status
-        // lives in the callback fragment. Without this, a denied consent screen
-        // silently refetches and tells the user nothing.
+        // The outcome lives in the callback fragment, not in the session completing.
         const callback = result.url ? parseOAuthCallbackUrl(result.url) : undefined;
         if (callback && callback.status !== 'success') {
           feedback.error(callback.error ?? 'Access was denied.', 'Link failed');

@@ -37,12 +37,9 @@ export type MfaSetupController = {
 };
 
 /**
- * Drives every account-side TOTP flow over the auth API: enroll (setup → confirm,
- * which returns one-time recovery codes), turn-off (confirm a current code), and
- * regenerate recovery codes (confirm a current code). "Reset" chains a turn-off
- * into a fresh enrollment. `onChange` refetches the user so the account screen
- * reflects the new state. `submitCode` lets auto-submit pass the fresh value
- * without waiting for a state round-trip.
+ * Every account-side TOTP flow: enroll (setup, confirm, recovery codes),
+ * turn-off, regenerate recovery codes, and reset (turn-off then enroll).
+ * `submitCode` lets auto-submit pass the fresh value without a state round-trip.
  */
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one controller owns all account-side TOTP flows (enroll/disable/regenerate); the useCallback wiring reads clearer here than split across hooks that would only pass the same shared state around.
 export function useMfaSetup(onChange: () => unknown): MfaSetupController {
@@ -57,10 +54,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const reenrollAfter = useRef(false);
-  // Same single-flight rationale as useSingleFlight (see that hook), but split
-  // into claim/release: these flows hand the release to the action they run
-  // (disable re-enrolls before releasing, confirm releases before its refetch),
-  // so they can't be expressed as one wrapped call.
+  // useSingleFlight split into claim/release: these flows release mid-action.
   const inFlight = useRef(false);
 
   const beginRequest = useCallback(() => {
@@ -139,9 +133,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
     [beginRequest, code, endRequest, onChange, password, setup],
   );
 
-  // Disable and regenerate share one shape: confirm a current 6-digit code, then
-  // run an action. The action owns its own success transition; the catch here
-  // owns the shared error + unbusy path.
+  // Disable and regenerate: confirm a current code, then run an action.
   const withCurrentCode = useCallback(
     async (submitCode: string, action: (currentCode: string) => Promise<void>) => {
       if (submitCode.length < 6) return;
@@ -173,9 +165,8 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
   const disable = useCallback(
     (submitCode: string = useRecoveryCode ? recoveryInput.trim() : code) =>
       withCurrentCode(submitCode, async (currentCode) => {
-        // Only disableTotp can fail because of a bad code. Once it succeeds MFA is
-        // off server-side, so a later failure must not be reported as "wrong code"
-        // — that would strand the dialog contradicting the server.
+        // Once disableTotp succeeds MFA is off server-side; a later failure
+        // must not be reported as "wrong code".
         await disableTotp(currentCode);
         try {
           await onChange();
@@ -185,8 +176,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
             return;
           }
         } catch {
-          // The account screen catches up on its next natural refetch; a failed
-          // re-enroll simply drops the user back to the idle state.
+          // A failed re-enroll drops back to idle; the account screen refetches later.
         }
         reset();
       }),

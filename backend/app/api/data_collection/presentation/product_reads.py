@@ -14,9 +14,8 @@ if TYPE_CHECKING:
 
 def _should_redact_owner(row: Product, viewer: User | None) -> bool:
     """Return whether this row's owner attribution should be hidden."""
-    # NOTE: the product/component content itself is intentionally public regardless
-    # of this result — profile_visibility hides owner identity only, never the
-    # research data. See .github/SECURITY.md.
+    # NOTE: profile_visibility hides owner identity only; the research data stays
+    # public. See .github/SECURITY.md.
     owner = row.owner
     return bool(owner and should_redact_owner_identity(owner, viewer))
 

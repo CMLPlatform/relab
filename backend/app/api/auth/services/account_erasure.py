@@ -44,11 +44,9 @@ logger = logging.getLogger(__name__)
 type ErasureContent = Literal["anonymize", "delete"]
 ANONYMIZE: ErasureContent = "anonymize"
 
-# Non-deliverable address for the account that owns anonymized content, so products
-# keep a NOT NULL owner_id without naming a person. NOTE: the `.internal` suffix is
-# deliberate — `.invalid` is rejected outright by email-validator, which would make
-# `UserRead.email` (EmailStr) unserializable and break the admin user list as soon as
-# this account exists.
+# Owner of anonymized content, so products keep a NOT NULL owner_id. NOTE: `.internal`,
+# not `.invalid`: email-validator rejects `.invalid`, which would make `UserRead.email`
+# unserializable and break the admin user list.
 ANONYMOUS_USER_EMAIL = "anonymous@system.relab.internal"
 
 
@@ -138,8 +136,7 @@ async def require_erasable_account(session: AsyncSession, user: User) -> User:
         ConflictError: when the target is the anonymous system account or the last
             active superuser.
     """
-    # The caller's instance may belong to another session (the auth dependency chain
-    # opens its own), so re-resolve it against the session doing the writes.
+    # The caller's instance may belong to the auth dependency's own session.
     user = await require_model(session, User, user.id)
 
     if user.email_canonical == canonicalize_email(ANONYMOUS_USER_EMAIL):

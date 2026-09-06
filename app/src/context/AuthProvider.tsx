@@ -14,9 +14,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const prevUserIdRef = useRef<string | undefined>(undefined);
 
-  // When the signed-in user changes, the `ownedBy: 'me'` mapping baked into
-  // cached products/components is stale. Invalidate product caches so every
-  // list and detail refetches with the new "me" id (or undefined on logout).
+  // The `ownedBy: 'me'` mapping baked into cached products is stale when the user changes.
   useEffect(() => {
     if (isLoading) return;
     const wasSignedIn = prevUserIdRef.current !== undefined;
@@ -24,11 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     prevUserIdRef.current = user?.id;
 
     if (wasSignedIn && user === undefined) {
-      // Sign-out, not just an account switch: on a shared device the next
-      // person to open the app must not see this user's cached products,
-      // profile, camera data, or recent category picks — wipe the in-memory
-      // cache and both AsyncStorage-persisted copies (otherwise the query
-      // cache survives up to the persister's 24h maxAge, and recents forever).
+      // Shared device: wipe the in-memory cache and both persisted copies, or
+      // the next user sees this one's data (query cache lives 24h, recents forever).
       queryClient.clear();
       void clearPersistedUserData();
       return;
@@ -45,10 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true);
 
         if (Platform.OS === 'web') {
-          // Web uses HTTP-only cookies. Use a small client-visible flag set on
-          // successful login to decide whether to attempt auto-login. This
-          // preserves autologin for returning users while avoiding noisy 401s
-          // for pure visitors.
+          // Web uses HTTP-only cookies; a client-visible flag set on login
+          // decides whether to attempt auto-login (avoids 401s for visitors).
           const hasSession = hasWebSessionFlag();
           if (hasSession) {
             const userData = await getUser(true);
@@ -58,8 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
           const token = await getToken();
-          // No token means the visitor is a guest — skip the API call rather
-          // than issue a request that would just 401.
+          // No token: guest, skip the 401.
           if (!token) {
             setUser(undefined);
             return;

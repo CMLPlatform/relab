@@ -12,7 +12,7 @@ components, and tag those components with materials and circularity observations
 structured, citable research dataset about how real products are built and how recoverable their
 materials are.
 
-Success has an order, and it is load-bearing:
+Success has an order:
 
 1. PhD evidence and credibility. The platform must stand up as defensible research infrastructure.
 1. Outside contribution and a published dataset. Both are real goals. Neither outranks credibility
@@ -59,8 +59,8 @@ Accounts carry a `role` of `contributor` (default) or `lab`, alongside the three
 grants non-image research-file upload and the larger upload quota. Only a superuser assigns a role,
 through `PUT /v1/admin/users/{user_id}/role`; `role` is absent from the self-service update schema.
 Existing accounts were backfilled to `contributor`, so lab members are promoted by hand after
-deploy. The enum stops at two values on purpose: a "viewer" is an unverified account and an "admin"
-is a superuser, so more rungs would give each of those two sources of truth.
+deploy. The enum has two values only: a "viewer" is an unverified account and an "admin" is a
+superuser.
 
 ## Positioning
 
@@ -91,8 +91,7 @@ working through a hierarchy one node at a time. Capture is interleaved with disa
 afterward from notes.
 
 **Capture-first creation.** `/products/new` opens straight into a capture screen, POSTs, then
-`replace`s to the record in edit mode. It uses `replace` so a back gesture cannot re-submit the
-form. `components/new` repeats this one level down. Nesting is uncapped; breadcrumbs truncate at 12
+`replace`s to the record in edit mode, so a back gesture cannot re-submit the form. `components/new` repeats this one level down. Nesting is uncapped; breadcrumbs truncate at 12
 ancestors.
 
 **Raspberry Pi camera rig.** An optional paired capture device, enabled per user via the
@@ -110,7 +109,7 @@ as phone.
 ## Constraints that shape design
 
 **Data model.** One entity with `role: 'product' | 'component'` and a parent link. Physical
-properties are weight, width, height, depth, with `undefined` as the deliberate "unset" sentinel.
+properties are weight, width, height, depth, with `undefined` as the "unset" sentinel.
 Circularity properties are exactly three free-text notes: Recyclability, Disassemblability,
 Remanufacturability.
 
@@ -125,8 +124,7 @@ enough to contribute usefully. The Pi rig only pays off for repeatable imagery a
 No surface may present it as a prerequisite.
 
 **Uploads.** Images only in-app: jpeg, png, webp, gif, bmp, 10 MB hard cap each. The backend rejects
-an upload unless extension, declared MIME type, and sniffed content agree. Uploads are sequential by
-design. Quotas are tiered by role (contributor 1,000 files / 1 GB; lab 20,000 files / 20 GB) and
+an upload unless extension, declared MIME type, and sniffed content agree. Uploads are sequential. Quotas are tiered by role (contributor 1,000 files / 1 GB; lab 20,000 files / 20 GB) and
 `/users/me` reports limits and usage. There is no per-product limit.
 
 **Idempotency.** Creates carry an `Idempotency-Key` minted once per draft, so a retry, a rehydrated
@@ -173,12 +171,11 @@ collides with the pilot image count by coincidence. Never conflate them.
   visual wordmark device that lives only in logo artwork. Never as text, never "R-nine-lab".
 - **Never write "Reverse Engineering Lab".** This is an IP-law concern, not a style preference.
 - **The name, logo, and wordmark carry no licence.** Nominative use needs no permission.
-- **Direction: "Cyanotype & Manila — the colour of engineering documentation."** "Verdigris &
+- **Direction: "Cyanotype & Manila", the colour of engineering documentation.** "Verdigris &
   Copper" is the documented fallback, still pending supervisor review.
 - **The accent is data, not decoration.** Manila labels facts: R-numbers, record IDs, status pills.
   It never fills a button and never drives a hover or pressed state. Primary blue carries all
-  interaction. This is the rule most likely to be violated by visual enthusiasm, and the one that
-  keeps the interface reading as engineering documentation.
+  interaction.
 - **Palette is machine-enforced.** `assets/brand.css` and `assets/palette.json` are the sources;
   `app/src/theme/__tests__/palette-sync.test.ts` fails if they drift.
 - **Type: IBM Plex superfamily** on web and docs. The Expo app stays on platform system fonts for
@@ -203,18 +200,16 @@ collides with the pilot image count by coincidence. Never conflate them.
 
 ## Accessibility
 
-**Target: WCAG 2.2 AA** across www, docs, and app. Chosen over 2.1 AA because Leiden University
-public surfaces fall under the EU Web Accessibility Directive via EN 301 549.
+**Target: WCAG 2.2 AA** across www, docs, and app. Leiden University public surfaces fall under the
+EU Web Accessibility Directive via EN 301 549.
 
 All three surfaces tag `wcag2a`/`wcag2aa`/`wcag21a`/`wcag21aa`/`wcag22a`/`wcag22aa`; www and docs
 fail on any violation, the app filters to `serious` and `critical` (RN-Web emits minor/moderate
-noise it cannot fix). axe-core 4.12 ships exactly one 2.2-only rule, `target-size` (2.5.8), and it
-is now enforced — it passes on www, docs, and the app's products and detail screens, backing up
-`MIN_TAP_TARGET = 44`.
+noise it cannot fix). axe-core 4.12 ships one 2.2-only rule, `target-size` (2.5.8). It is enforced
+and passes on www, docs, and the app's products and detail screens, backing up `MIN_TAP_TARGET = 44`.
 
-A named gap remains, narrower than before: **2.4.11 Focus Not Obscured** (sticky headers, the docs
-sidebar) and **2.4.13 Focus Appearance** (pairs with `--color-ring` on www) have no axe rule at all
-and are verified by hand.
+**2.4.11 Focus Not Obscured** (sticky headers, the docs sidebar) and **2.4.13 Focus Appearance**
+(pairs with `--color-ring` on www) have no axe rule and are verified by hand.
 
 Enforced today:
 
@@ -232,14 +227,13 @@ floor.
 
 The public statement lives at `www/src/pages/accessibility.astro` (copy in
 `src/copy/accessibility-content.ts`), linked from the site footer. It claims partial conformance and
-names what is untested, which is the honest shape and the one the Web Accessibility Directive asks
-for.
+names what is untested, as the Web Accessibility Directive asks.
 
 That page is the user-facing half only. The compliant artifact under the Dutch implementation
 (Tijdelijk besluit digitale toegankelijkheid overheid) is a register entry per domain, filed through
 the invulassistent at toegankelijkheidsverklaring.nl and signed by someone who can bind the
 university. **Open, and not the maintainer's alone to close:** ask Leiden's accessibility
 coordinator whether `cml-relab.org`, `app.cml-relab.org`, and `docs.cml-relab.org` are covered by an
-existing entry or need their own. A second statement that contradicts the university's is worse than
-none, so the page deliberately omits a feedback response window and an escalation body until that
-answer lands. The decree's own baseline is WCAG 2.1 AA, so the 2.2 target clears it with room.
+existing entry or need their own. Until that answer lands, the page omits a feedback response window
+and an escalation body, because a statement that contradicts the university's is worse than none.
+The decree's own baseline is WCAG 2.1 AA.

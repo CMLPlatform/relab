@@ -17,11 +17,7 @@ type OtpInputProps = {
   accessibilityLabel?: string;
 };
 
-/**
- * Classic segmented one-time-code field: `length` visible cells backed by a
- * single transparent TextInput. One input keeps OS autofill, paste, and the
- * numeric keyboard working everywhere — no per-cell focus juggling.
- */
+/** Segmented one-time-code field: `length` cells backed by one transparent TextInput (keeps OS autofill and paste). */
 export function OtpInput({
   value,
   onChangeText,
@@ -107,8 +103,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
     cell: {
       height: 56,
-      // 1.5 has no exact Tailwind border-width step, and the border/fill
-      // colors are JS-only tokens — the whole cell border+fill stays inline.
+      // 1.5 has no Tailwind border-width step; the colors are JS-only tokens.
       borderWidth: 1.5,
       borderColor: theme.tokens.border.subtle,
       backgroundColor: theme.tokens.surface.sunken,
@@ -117,8 +112,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       borderColor: theme.tokens.border.strong,
     },
     cellFocused: {
-      // theme.colors.primary as a border color has no table entry (only
-      // bg-primary/text-primary are mapped), so this stays JS-side too.
+      // No border-primary mapping; stays JS-side.
       borderColor: theme.colors.primary,
       backgroundColor: theme.tokens.surface.accent,
     },
@@ -126,8 +120,7 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       borderColor: theme.tokens.status.danger,
     },
     hiddenInput: {
-      // color: 'transparent' isn't a table-mapped class; kept alongside the
-      // position/inset it used to share so one declaration covers it.
+      // color: 'transparent' is not a mapped class.
       color: 'transparent',
     },
   }),

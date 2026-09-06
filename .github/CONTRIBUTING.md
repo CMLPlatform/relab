@@ -1,9 +1,7 @@
 # Contributing to Relab
 
-Thanks for contributing. Relab is a research platform developed at CML, Leiden University. This page
-gets you productive without digging through the repo first.
-
-This page is for code and documentation changes. If you mainly want to run or deploy the stack, see
+Relab is a research platform developed at CML, Leiden University. This page covers code and
+documentation changes. To run or deploy the stack, see
 [Install and self-host](https://docs.cml-relab.org/operations/install/).
 
 ## Start Here
@@ -22,7 +20,7 @@ By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Devcontainer Setup
 
-This is the recommended path into the repo if you use VS Code.
+The recommended path if you use VS Code.
 
 ### Requirements
 
@@ -82,7 +80,7 @@ This is the recommended path into the repo if you use VS Code.
 
 ## Docker Development
 
-Use this when you want the full stack without configuring each subrepo manually.
+Runs the full stack without configuring each subrepo.
 
 1. Create local backend secret files.
 
@@ -133,9 +131,8 @@ Use this when you want the full stack without configuring each subrepo manually.
 
 The services run on the same URLs as the [forwarded ports](#forwarded-ports) above.
 
-Docker development ports bind to localhost. If you want to test the Expo app from another phone,
-tablet, or computer over your LAN, run the Expo server directly from `app/` with `just dev` instead
-of using the Docker app service.
+Docker development ports bind to localhost. To test the Expo app from another device over your
+LAN, run `just dev` from `app/` instead of using the Docker app service.
 
 ### Useful Commands
 
@@ -147,7 +144,7 @@ just dev-down     # stop containers
 
 ## Local Development
 
-Use this when you want to work on a specific subrepo without Docker.
+Work on one subrepo without Docker.
 
 ### Root Setup
 
@@ -184,8 +181,8 @@ Use `just --list` in any directory to see what is available there.
 
 ## Tooling and Configuration
 
-Use `.tool-versions` as the source of truth for local tool versions. Do not duplicate exact versions
-in docs unless a manifest or generated file requires it.
+`.tool-versions` is the source of truth for local tool versions. Do not duplicate exact versions in
+docs unless a manifest or generated file requires it.
 
 Each configuration surface has one job:
 
@@ -201,8 +198,8 @@ Each configuration surface has one job:
   (a drop-in replacement for `pre-commit`). `just setup` installs the git hooks; `just pre-commit`
   runs them all
 
-Keep new settings in the smallest surface that actually needs them. If a change adds or renames env
-vars, update the examples, validation rules, and affected docs in the same PR.
+Keep new settings in the smallest surface that needs them. If a change adds or renames env vars,
+update the examples, validation rules, and affected docs in the same PR.
 
 ## Quality Controls
 
@@ -218,10 +215,9 @@ review, container scanning, repository hygiene, and release artifact checks on e
 
 ### Accessibility
 
-Accessibility is checked automatically. Every axe scan uses the same WCAG 2.0-2.2
-A/AA rule tags and strips animations for deterministic runs. `target-size` (2.5.8)
-is the only 2.2-only rule axe-core ships and it is enforced; 2.4.11 Focus Not
-Obscured and 2.4.13 Focus Appearance have no axe rule and are checked by hand.
+Every axe scan uses the same WCAG 2.0-2.2 A/AA rule tags and strips animations for deterministic
+runs. `target-size` (2.5.8) is the only 2.2-only rule axe-core ships and it is enforced; 2.4.11 Focus
+Not Obscured and 2.4.13 Focus Appearance have no axe rule and are checked by hand.
 
 | Surface | Runtime axe scan                                                                                    | Static lint (every PR)                           |
 | ------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
@@ -230,14 +226,13 @@ Obscured and 2.4.13 Focus Appearance have no axe rule and are checked by hand.
 | `app/`  | products list + detail on the Expo web build (`color-contrast` off): `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
 
 The `www/` and `docs/` axe scans gate every PR that touches `www/`, `docs/`, or shared files. The
-`app/` scan needs the full Docker backend, so it runs post-merge or on demand; the per-PR net for
-the app is `eslint-plugin-react-native-a11y`, which validates RN accessibility props on each lint
-run. See [ci.yml](workflows/ci.yml).
+`app/` scan needs the full Docker backend, so it runs post-merge or on demand; per PR, the app relies
+on `eslint-plugin-react-native-a11y`, which validates RN accessibility props on each lint run. See
+[ci.yml](workflows/ci.yml).
 
-These are automated checks, so a passing run is a floor, not proof of WCAG
-conformance. The `app/` scan runs against the react-native-web build, so it does
-not exercise native VoiceOver/TalkBack. Two `app/` lint rules are deferred
-pending a labelling pass (`has-valid-accessibility-descriptors`,
+A passing run is a floor, not proof of WCAG conformance. The `app/` scan runs against the
+react-native-web build, so it does not exercise native VoiceOver/TalkBack. Two `app/` lint rules are
+deferred pending a labelling pass (`has-valid-accessibility-descriptors`,
 `has-valid-accessibility-ignores-invert-colors`, see `../app/eslint.config.mjs`).
 
 ## Security
@@ -248,10 +243,10 @@ changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
 
 Use `just security` for local diagnosis.
 
-CI runs CodeQL and the container image scans only once a pull request leaves draft, and
-image CVEs found on a pull request are reported to the Security tab rather than failing
-the check; the blocking gate runs after merge and on the weekly schedule. Run
-`just security` before marking a pull request ready if you want that signal early.
+CI runs CodeQL and the container image scans once a pull request leaves draft. Image CVEs found on
+a pull request are reported to the Security tab and do not fail the check; the blocking gate runs
+after merge and on the weekly schedule. Run `just security` before marking a pull request ready to
+get that signal early.
 
 ## Backend Setup
 
@@ -275,7 +270,7 @@ cd backend
 just dev
 ```
 
-`ENVIRONMENT` is required — the backend fails fast if it's unset. `just dev` does not export it, so
+`ENVIRONMENT` is required; the backend fails fast if it is unset. `just dev` does not export it, so
 set `ENVIRONMENT=dev` in `backend/.env.dev` or export it in your shell before running `just dev`.
 
 The API is available at <http://127.0.0.1:8010>. Use `SEED_DUMMY_DATA=true just dev-migrate` when
@@ -359,9 +354,8 @@ pnpm install --frozen-lockfile
 just dev
 ```
 
-The Astro dev server runs on <http://127.0.0.1:8013>. Use the numeric loopback
-host when developing through VS Code Remote port forwarding; Firefox can be
-unreliable with forwarded `localhost` URLs.
+The Astro dev server runs on <http://127.0.0.1:8013>. Use the numeric loopback host through VS Code
+Remote port forwarding; Firefox can be unreliable with forwarded `localhost` URLs.
 
 ## Docs Setup
 
@@ -452,9 +446,8 @@ behavior in `app`, add Jest coverage for the new logic or screen behavior.
 ### Documentation Style
 
 - write plainly
-- keep docs informative but simple
-- avoid hype, filler, and brittle implementation detail unless it is genuinely needed
-- prefer Markdown and Mermaid over custom HTML where possible
+- avoid hype, filler, and brittle implementation detail
+- prefer Markdown and Mermaid over custom HTML
 
 Before opening a docs-focused PR:
 

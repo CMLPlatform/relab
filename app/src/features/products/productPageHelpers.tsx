@@ -52,8 +52,7 @@ export function useProductPageHeader({
   useEffect(() => {
     const name = product.name;
     const showTrail = isProductComponent && ancestors.length > 0;
-    // A plain-string title is enough for base products; components fall
-    // through to the ancestor trail, which needs a custom title slot.
+    // Components fall through to the ancestor trail's custom title slot.
     const needsCustomTitle = showTrail;
 
     const titleSlot = <ProductNameHeader name={name} />;
@@ -82,19 +81,13 @@ export function useProductPageHeader({
     goBackWithGuards,
     isProductComponent,
     navigation,
-    // The effect only reads product.name (a primitive, stable while typing);
-    // depending on the whole `product` (a fresh useWatch reference every
-    // render) re-ran setOptions on every keystroke.
+    // Depend on product.name only; `product` is a fresh useWatch reference every render.
     product.name,
     theme,
   ]);
 }
 
-/**
- * The one place the "is this product the one streaming?" rule lives. The page
- * header/FAB and the video section both need it; keeping it here stops them
- * silently diverging if the match rule ever changes (e.g. to a session id).
- */
+/** The one place the "is this product the one streaming?" rule lives. */
 export function getStreamingState(product: Product, activeStream: { productId: number } | null) {
   const streamingThisProduct =
     typeof product.id === 'number' && activeStream?.productId === product.id;
@@ -142,14 +135,11 @@ export function getPrimaryFabIcon({
   editMode: boolean;
   theme: AppTheme;
 }) {
-  // Paused (offline, queued) isn't "loading" — an eternal spinner has no
-  // end state to indicate. The queued clock replaces it; FabControls swaps
-  // the label to match.
+  // Paused (offline, queued) is not loading: the queued clock replaces the spinner.
   if (isSaving && isPaused) return <Icon name="clock" color={theme.colors.onBackground} />;
   if (isSaving) return <ActivityIndicator color={theme.colors.onBackground} />;
   if (showSavedIcon) {
-    // Icon doesn't forward testID (Lucide maps it to a data-testid attribute
-    // RNTL can't query), so the "saved" integration test targets this wrapper.
+    // Icon does not forward testID in a way RNTL can query; the test targets this wrapper.
     return (
       <View testID="icon-check">
         <Icon name="check" color={theme.colors.onBackground} />

@@ -80,10 +80,8 @@ export function createCameraDetailActions({
   return {
     refresh: () => refetch(),
     disconnectLocal,
-    // triggerRef is taken here, at call time (from the onPress closure), rather than
-    // as a construction-time param — passing a ref into this factory during render
-    // trips react-hooks/refs, since it can't prove a plain function won't read
-    // `.current` synchronously.
+    // triggerRef is taken at call time: passing a ref into this factory during
+    // render trips react-hooks/refs.
     promptRename: (triggerRef?: RefObject<View | null>) => {
       if (!camera) return;
       feedback.input({
@@ -96,8 +94,7 @@ export function createCameraDetailActions({
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Save',
-            // maxLength isn't part of DialogOptions, so the 2-100 bound (previously
-            // enforced live via the TextInput) is gated here instead.
+            // maxLength is not part of DialogOptions, so the 2-100 bound is gated here.
             disabled: (value) => {
               const trimmed = (value ?? '').trim();
               return trimmed.length < 2 || trimmed.length > 100;

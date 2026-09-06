@@ -2,14 +2,9 @@
 
 Read-only. Run it around the deploy that introduces roles.
 
-Every account is backfilled to ``contributor``, which is deliberately fail-closed:
-if the contributor tier is below the single global quota that preceded it, an
-account already above the new limit keeps every file it has but cannot upload
-another until a superuser promotes it to ``lab``. Nothing is deleted and no
-existing file is affected — only new reservations fail, with a 413.
-
-This prints who that applies to, so promotion can happen before anyone is
-surprised by it:
+Every account is backfilled to ``contributor``. An account above that tier's limit
+keeps every file but gets 413 on new uploads until a superuser promotes it to ``lab``.
+This prints who that applies to:
 
     python -m scripts.maintenance.list_accounts_over_contributor_quota
 

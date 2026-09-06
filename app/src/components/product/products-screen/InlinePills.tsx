@@ -12,9 +12,7 @@ type NewProductPillProps = {
 export function NewProductPill({ label = 'New product' }: NewProductPillProps) {
   const theme = useAppTheme();
 
-  // NOTE: renders as plain emphasized text, not a pill shape — it names the
-  // real "New product" control elsewhere on screen rather than acting as one,
-  // so it shouldn't look tappable (design critique P3 #1).
+  // NOTE: plain emphasized text, not a pill: it names the control, it is not one.
   return (
     <AppText
       className="font-bold"
@@ -27,10 +25,8 @@ export function NewProductPill({ label = 'New product' }: NewProductPillProps) {
 
 export function ProfilePill() {
   const theme = useAppTheme();
-  // `primary` on the 12% primary tint measures 3.73:1 in dark at 14px bold —
-  // and 14px bold is not WCAG "large text" (that needs 18.66px bold), so 4.5:1
-  // applies. `primaryStrong` is lighter in dark, which is the direction that
-  // gains contrast against a dark tint; in light it is darker, same effect.
+  // `primary` on the 12% tint measures 3.73:1 in dark at 14px bold (not WCAG
+  // large text, so 4.5:1 applies); `primaryStrong` passes.
   const pillInk = palette[theme.scheme].primaryStrong;
 
   return (

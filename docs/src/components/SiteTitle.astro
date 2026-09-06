@@ -1,6 +1,5 @@
 ---
-// Brand lockup for the header: the R9lab wordmark (theme-swapped so the mark stays
-// legible on both light and dark nav) plus a quiet "Docs" cue.
+// Header brand lockup: the theme-swapped wordmark plus a "Docs" cue.
 const { siteTitleHref } = Astro.locals.starlightRoute;
 ---
 
@@ -45,9 +44,8 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    /* gray-3 only clears ~4.49:1 against --sl-color-bg-nav in dark mode, just
-       under WCAG AA's 4.5:1; gray-2 (the sitewide body-text token) clears both
-       themes with margin: 10.92:1 light, 8.57:1 dark. */
+    /* gray-3 clears only ~4.49:1 against --sl-color-bg-nav in dark mode (WCAG
+       AA needs 4.5:1); gray-2 clears 10.92:1 light, 8.57:1 dark. */
     color: var(--sl-color-gray-2);
   }
   .brand-docs::before {

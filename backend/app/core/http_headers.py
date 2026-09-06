@@ -15,18 +15,16 @@ SENSITIVE_CACHE_HEADERS = {
     "Expires": "0",
 }
 REQUEST_ID_HEADER = "X-Request-ID"
-# Opt-in retry key on create endpoints (api/common/idempotency.py). Must stay in the
-# CORS allow-list, or the browser preflight for every guarded POST fails.
+# Retry key for create endpoints (api/common/idempotency.py). Must stay in the CORS
+# allow-list or the preflight for every guarded POST fails.
 IDEMPOTENCY_KEY_HEADER = "Idempotency-Key"
 
-# Mount prefix for uploaded-media StaticFiles routes. Single source of truth: app/core/static.py
-# mounts "<prefix>/files" and "<prefix>/images" under it, and app/core/images/urls.py derives
-# IMAGE_URL_PREFIX from it.
+# Mount prefix for uploaded media: app/core/static.py mounts "<prefix>/files" and
+# "<prefix>/images"; app/core/images/urls.py derives IMAGE_URL_PREFIX from it.
 UPLOADS_PATH_PREFIX = "/uploads"
 
-# Session cookie names — single source of truth, consumed by the auth backend
-# (api/auth/services/auth_backends.py). Host-only (`__Host-` prefix) so credentials
-# never leak to sibling subdomains.
+# Session cookie names (api/auth/services/auth_backends.py). `__Host-` prefix so
+# credentials never leak to sibling subdomains.
 AUTH_COOKIE_NAME = "__Host-relab-auth"
 REFRESH_COOKIE_NAME = "__Host-relab-refresh"
 AUTH_COOKIE_NAMES = frozenset({AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME})

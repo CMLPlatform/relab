@@ -73,8 +73,7 @@ def _response_parts(
 ) -> tuple[int, str, str, str, dict[str, object]]:
     """Return status, client detail, log message, code, and extra response fields."""
     if isinstance(exc, RequiredServiceUnavailableError):
-        # Core raises its own error type so it stays free of API imports; the
-        # response contract stays the API-level 503.
+        # core raises its own error type to stay free of API imports.
         return (
             ServiceUnavailableError.http_status_code,
             exc.message,
@@ -117,20 +116,10 @@ def _safe_http_exception_detail(exc: StarletteHTTPException) -> str:
 ### Exception handler registration ###
 def register_exception_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI app."""
-    # Custom API exceptions
     app.add_exception_handler(APIError, create_exception_handler())
-
-    # Framework HTTP exceptions
     app.add_exception_handler(StarletteHTTPException, create_exception_handler())
-
-    # Core runtime services that were never initialized
     app.add_exception_handler(RequiredServiceUnavailableError, create_exception_handler())
-
-    # Rate limiting
     app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
-
-    # NOTE: This is a validation error for internal logic, not for user input
+    # NOTE: pydantic ValidationError here is internal logic, not user input, hence 500.
     app.add_exception_handler(ValidationError, create_exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR))
-
-    # Unexpected errors
     app.add_exception_handler(Exception, create_exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR))

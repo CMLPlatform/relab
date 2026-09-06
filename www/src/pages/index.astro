@@ -21,12 +21,8 @@ const landing = await loadLandingData();
   description={siteMeta.defaultDescription}
   heroBrand={true}
 >
-  {/* Narrative order: what Relab is and one real record, side by side (hero)
-      -> why it matters (motivation) -> how records are made (method) -> what
-      they are for (9R) -> how many exist (stats). Who made it, how to cite it
-      and what it is licensed under live in the footer colophon.
-      The claim and its evidence share the first viewport rather than the pitch
-      taking a screen to itself. */}
+  {/* Order: hero (pitch beside one real record) -> motivation -> method ->
+      stats. Citation and licence live in the footer colophon. */}
   <div class="hero-split">
     <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
     <HeroTeardown
@@ -41,10 +37,8 @@ const landing = await loadLandingData();
 </Layout>
 
 <style>
-  /* The pitch and the artifact, side by side, at close to even width: the
-     record column is the thing worth looking at, but the headline needs room
-     to break after "for" rather than run to three lines. Collapses to one
-     column well before tablet width, where two would starve both. */
+  /* Pitch and record side by side at close to even width, so the headline can
+     break after "for". Collapses to one column before tablet width. */
   .hero-split {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

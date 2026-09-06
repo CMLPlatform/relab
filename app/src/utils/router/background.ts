@@ -15,11 +15,7 @@ function isBandPath(pathname: string) {
 export type BackgroundOverlay = {
   /** Flat fill, or the centre band when `edgeColor` is set. */
   color: string;
-  /**
-   * Set only on the band routes, where the scrim is a horizontal gradient: the
-   * near-clear colour at the left and right edges. `null` means paint a flat
-   * fill instead.
-   */
+  /** Edge colour of the band routes' horizontal gradient; `null` means a flat fill. */
   edgeColor: string | null;
 };
 

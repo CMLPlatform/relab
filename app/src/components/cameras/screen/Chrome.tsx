@@ -13,10 +13,8 @@ export function CamerasFab({ visible, onPress }: CamerasFabProps) {
   const theme = useAppTheme();
   const styles = createCameraScreenStyles(theme);
   const bottomNavVisible = useBottomNavVisible();
-  // Web-only: the fab docks with position:fixed on web (getFloatingPosition),
-  // so it sits against the viewport and overlaps the tab bar rendered at the
-  // bottom of the scene. On native it docks absolutely inside that scene, which
-  // the bar has already shrunk — no bump.
+  // Web-only: position:fixed sits against the viewport and overlaps the tab
+  // bar; on native the scene is already shrunk by the bar.
   const bottomOffset = Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0;
   if (!visible) return null;
 
