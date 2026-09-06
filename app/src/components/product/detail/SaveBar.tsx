@@ -25,13 +25,9 @@ type SaveBarProps = {
 };
 
 /**
- * Edit / Save action bar plus an inline error summary. It sits in normal flow
- * while editing below md and docks to the viewport on wider layouts.
- *
- * ActiveStreamBanner reserves right-side dock space for this bar via its own
- * route-pattern + isMd check (SAVE_BAR_DOCK_ROUTE) rather than reading this
- * component's state — if the route pattern here or the `ownedByMe` render
- * condition below changes, update ActiveStreamBanner.tsx too.
+ * Edit / Save action bar plus an inline error summary. In normal flow below
+ * md, docked to the viewport above. ActiveStreamBanner reserves dock space via
+ * SAVE_BAR_DOCK_ROUTE; update it if the route or `ownedByMe` condition changes.
  */
 export function SaveBar({
   layout = 'floating',
@@ -50,16 +46,15 @@ export function SaveBar({
 }: SaveBarProps) {
   if (!ownedByMe) return null;
   const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
-  // Mirrors PrimaryProductFab: validation only gates a press that would
-  // actually save dirty edits, not a plain view->edit toggle.
+  // Validation only gates a press that would actually save dirty edits, not a
+  // plain view->edit toggle.
   const wouldSave = editMode && isDirty;
   const needsAttention = wouldSave && !validationValid && (errorCount ?? 0) > 0;
   const blockedByValidation = wouldSave && !validationValid && !needsAttention;
-  // Offline: the mutation is paused, not "loading" — no spinner to show
-  // until connectivity returns.
+  // Offline: the mutation is paused, not loading; no spinner.
   const isQueued = isSaving && isPaused;
-  // Mirrors PrimaryProductFab: in the needsAttention state the entire press
-  // routes to the error summary instead of saving invalid data.
+  // In the needsAttention state the entire press routes to the error summary
+  // instead of saving invalid data.
   const onPrimaryButtonPress = needsAttention
     ? (onErrorSummaryPress ?? onPrimaryPress)
     : onPrimaryPress;
@@ -73,7 +68,7 @@ export function SaveBar({
       }
       className="flex-row items-center justify-end gap-3 rounded-lg border border-border bg-background px-4 py-2"
     >
-      {/* NOTE: hand-rolled English plural. Swap this and FabControls' copy for
+      {/* NOTE: hand-rolled English plural. Swap it for
           Intl.PluralRules('en') behind a shared helper when the app gains a
           second locale — there is nothing to share until then. */}
       {needsAttention ? (
@@ -88,6 +83,7 @@ export function SaveBar({
       ) : null}
       {blockedByValidation && validationError ? (
         <Animated.View
+          testID="save-bar-validation-error"
           entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
           style={layout === 'flow' ? flowSummaryStyle : undefined}
         >
@@ -108,9 +104,7 @@ export function SaveBar({
   );
 }
 
-// 24px matches the visual right-6/bottom-6 offset; position comes from
-// getFloatingPosition() (like Fab.tsx's baseFabStyle) so the bar docks to the
-// viewport ('fixed' on web) instead of the nearest positioned ancestor.
+// 24px = right-6/bottom-6; getFloatingPosition() docks to the viewport ('fixed' on web).
 const DOCK_BOTTOM = 24;
 const floatingStyle: ViewStyle = {
   position: getFloatingPosition(),

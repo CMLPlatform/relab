@@ -1,4 +1,15 @@
 #!/usr/bin/env bash
+# Everything the database needs that Alembic cannot do as the non-superuser
+# `relab_migrator`: roles and grants, untrusted extensions, object ownership,
+# search paths. Idempotent, and meant to run on EVERY stack start, not only on
+# an empty volume: Postgres runs it from /docker-entrypoint-initdb.d on a fresh
+# data directory, `scripts/deploy_ops.sh stack up` and `just dev-migrate` run it
+# again before the migrator, and `just restore` runs it after replacing the
+# schema. A populated volume that predates a change here therefore converges on
+# the next start instead of needing a runbook step.
+#
+# Trusted extensions (pg_trgm, unaccent) are NOT created here: the migrator may
+# create those itself, so they live in Alembic next to the indexes that use them.
 
 set -euo pipefail
 
@@ -122,9 +133,39 @@ SELECT format('GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO 
 SELECT format('GRANT SELECT ON ALL TABLES IN SCHEMA public TO %I', :'backup_user') \gexec
 SELECT format('GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO %I', :'backup_user') \gexec
 
-SELECT format('ALTER ROLE %I SET search_path = public, pg_catalog', :'migration_user') \gexec
-SELECT format('ALTER ROLE %I SET search_path = public, pg_catalog', :'app_user') \gexec
-SELECT format('ALTER ROLE %I SET search_path = public, pg_catalog', :'backup_user') \gexec
+-- Extensions get their own schema so `just restore`, which drops and recreates
+-- "public", cannot take them along. pg_trgm is the exception and stays in
+-- public: every existing backup names "public.gin_trgm_ops" in its index
+-- definitions, and the restore path recreates it there.
+CREATE SCHEMA IF NOT EXISTS extensions;
+SELECT format('GRANT USAGE ON SCHEMA extensions TO %I', :'migration_user') \gexec
+SELECT format('GRANT USAGE ON SCHEMA extensions TO %I', :'app_user') \gexec
+SELECT format('GRANT USAGE ON SCHEMA extensions TO %I', :'backup_user') \gexec
+-- The migrator installs trusted extensions here from Alembic.
+SELECT format('GRANT CREATE ON SCHEMA extensions TO %I', :'migration_user') \gexec
+-- Untrusted, so superuser-only, so here rather than in a migration. The library is
+-- loaded by shared_preload_libraries in compose; this creates the view over it.
+-- SET SCHEMA is a no-op when already there and moves the pre-2026-09 install in public.
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements SCHEMA extensions;
+ALTER EXTENSION pg_stat_statements SET SCHEMA extensions;
+
+-- Migrations need ownership, not grants, for the DDL they run. On a fresh
+-- volume the migrator owns what it creates and this does nothing; on an adopted
+-- cluster (prod's volume predates the roles) the superuser owns every table,
+-- including alembic_version, and the first migration fails without this.
+SELECT format('ALTER TABLE %I.%I OWNER TO %I', schemaname, tablename, :'migration_user')
+FROM pg_tables
+WHERE schemaname = 'public' AND tableowner <> :'migration_user'
+\gexec
+SELECT format('ALTER SEQUENCE %I.%I OWNER TO %I', schemaname, sequencename, :'migration_user')
+FROM pg_sequences
+WHERE schemaname = 'public' AND sequenceowner <> :'migration_user'
+\gexec
+
+SELECT format('ALTER DATABASE %I SET search_path = public, extensions, pg_catalog', current_database()) \gexec
+SELECT format('ALTER ROLE %I SET search_path = public, extensions, pg_catalog', :'migration_user') \gexec
+SELECT format('ALTER ROLE %I SET search_path = public, extensions, pg_catalog', :'app_user') \gexec
+SELECT format('ALTER ROLE %I SET search_path = public, extensions, pg_catalog', :'backup_user') \gexec
 SELECT format('ALTER ROLE %I SET statement_timeout = %L', :'app_user', '30s') \gexec
 SELECT format('ALTER ROLE %I SET lock_timeout = %L', :'app_user', '5s') \gexec
 SELECT format('ALTER ROLE %I SET idle_in_transaction_session_timeout = %L', :'app_user', '60s') \gexec

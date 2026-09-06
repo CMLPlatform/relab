@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { BOTTOM_NAV_CLEARANCE } from '@/components/base/useBottomNav';
 import { ProductFabControls } from '@/components/product/detail/FabControls';
+import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { mockPlatform, restorePlatform } from '@/test-utils';
 
 jest.mock('@/components/cameras/CameraStreamPicker', () => ({
@@ -63,165 +64,6 @@ function fabButton() {
   return screen.getByRole('button');
 }
 
-describe('ProductFabControls — primary FAB enabled state', () => {
-  it('enables the FAB in edit mode with no edits, even when validation fails', () => {
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={false}
-        validationValid={false}
-        validationError="Type is required"
-      />,
-    );
-    expect(fabButton().props.accessibilityState.disabled).toBe(false);
-    // No tooltip because we're not actually trying to save
-    expect(screen.queryByTestId('tooltip')).toBeNull();
-  });
-
-  // Invalid with no known error count (errorCount unset) has no error summary
-  // to route to, so the FAB blocks the save outright; the tooltip explains why.
-  // Once errorCount is known and > 0, the FAB stays pressable to route to the
-  // error summary instead (see the errorCount describe block).
-  it('blocks the phone flow action and explains invalid dirty edits with no known error count', () => {
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={true}
-        validationValid={false}
-        validationError="Name is required"
-      />,
-    );
-    expect(fabButton().props.accessibilityState.disabled).toBe(true);
-    expect(screen.getByText('Name is required')).toBeOnTheScreen();
-  });
-
-  it('enables the FAB when dirty edits are valid', () => {
-    render(
-      <ProductFabControls {...baseProps} editMode={true} isDirty={true} validationValid={true} />,
-    );
-    expect(fabButton().props.accessibilityState.disabled).toBe(false);
-  });
-
-  it('disables the FAB while saving regardless of dirty/valid state', () => {
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={true}
-        validationValid={true}
-        isSaving={true}
-      />,
-    );
-    expect(fabButton().props.accessibilityState.disabled).toBe(true);
-  });
-
-  it('enables the FAB in view mode (validation is irrelevant)', () => {
-    render(<ProductFabControls {...baseProps} editMode={false} validationValid={false} />);
-    expect(fabButton().props.accessibilityState.disabled).toBe(false);
-  });
-
-  it('uses component labels for component pages', () => {
-    render(<ProductFabControls {...baseProps} entityRole="component" editMode={false} />);
-    expect(screen.getByText('Edit Component')).toBeOnTheScreen();
-  });
-
-  // TDD for the offline-queued acknowledgment: a paused save mutation labels
-  // the FAB "Queued — sends when online" instead of the usual Save/Edit copy.
-  it('shows a queued label while the save mutation is paused offline', () => {
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={true}
-        validationValid={true}
-        isSaving={true}
-        isPaused={true}
-      />,
-    );
-    expect(screen.getByText('Queued — sends when online')).toBeOnTheScreen();
-  });
-});
-
-describe('ProductFabControls — error summary routing', () => {
-  it('labels the FAB with the plural error count and routes press to onErrorSummaryPress', () => {
-    const onPrimaryFabPress = jest.fn();
-    const onErrorSummaryPress = jest.fn();
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={true}
-        validationValid={false}
-        validationError="Name is required"
-        errorCount={2}
-        onPrimaryFabPress={onPrimaryFabPress}
-        onErrorSummaryPress={onErrorSummaryPress}
-      />,
-    );
-    expect(screen.getByText('2 fields need attention')).toBeOnTheScreen();
-    const saveButton = screen.getByRole('button', { name: 'Save Product' });
-    expect(saveButton.props.accessibilityState.disabled).toBe(false);
-
-    fireEvent.press(saveButton);
-    expect(onErrorSummaryPress).toHaveBeenCalledTimes(1);
-    expect(onPrimaryFabPress).not.toHaveBeenCalled();
-  });
-
-  it('uses singular phrasing for a single error', () => {
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={true}
-        validationValid={false}
-        errorCount={1}
-      />,
-    );
-    expect(screen.getByText('1 field needs attention')).toBeOnTheScreen();
-  });
-
-  it('disables the FAB and blocks the press when invalid with a zero error count', () => {
-    const onPrimaryFabPress = jest.fn();
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={true}
-        validationValid={false}
-        errorCount={0}
-        onPrimaryFabPress={onPrimaryFabPress}
-      />,
-    );
-    expect(fabButton().props.accessibilityState.disabled).toBe(true);
-
-    fireEvent.press(fabButton());
-    expect(onPrimaryFabPress).not.toHaveBeenCalled();
-  });
-
-  it('saves normally and routes press to onPrimaryFabPress when the form is valid', () => {
-    const onPrimaryFabPress = jest.fn();
-    const onErrorSummaryPress = jest.fn();
-    render(
-      <ProductFabControls
-        {...baseProps}
-        editMode={true}
-        isDirty={true}
-        validationValid={true}
-        errorCount={0}
-        onPrimaryFabPress={onPrimaryFabPress}
-        onErrorSummaryPress={onErrorSummaryPress}
-      />,
-    );
-    expect(screen.getByText('Save Product')).toBeOnTheScreen();
-
-    fireEvent.press(fabButton());
-    expect(onPrimaryFabPress).toHaveBeenCalledTimes(1);
-    expect(onErrorSummaryPress).not.toHaveBeenCalled();
-  });
-});
-
 // Detail screens live inside a tab now, so BottomNav renders over them too —
 // and on web it is viewport-fixed, escaping the container these controls are
 // laid out in. Both docked controls have to lift themselves clear of it.
@@ -257,5 +99,39 @@ describe.each([
     rerender(<ProductFabControls {...baseProps} />);
 
     expect(dockedBottom()).toBe(hiddenBottom);
+  });
+});
+
+// The FAB only ever renders below md in view mode — `isMd || editMode` sends every
+// edit-mode render to SaveBar — so it has no save or validation state of its own.
+// It used to carry a whole blocked-save tooltip that no render could reach.
+describe('ProductFabControls — view-mode FAB', () => {
+  it('labels and announces the FAB by entity role', () => {
+    render(<ProductFabControls {...baseProps} entityRole="component" />);
+
+    expect(screen.getByRole('button', { name: 'Edit Component' })).toBeOnTheScreen();
+  });
+
+  it('ignores validation state, which only SaveBar acts on', () => {
+    render(<ProductFabControls {...baseProps} validationValid={false} isDirty />);
+
+    expect(screen.getByRole('button', { name: 'Edit Product' })).toBeOnTheScreen();
+    expect(fabButton().props.accessibilityState.disabled).toBe(false);
+  });
+
+  it('says the save is queued while a paused offline mutation is in flight', () => {
+    render(<ProductFabControls {...baseProps} isSaving isPaused />);
+
+    expect(screen.getByRole('button', { name: QUEUED_OFFLINE_LABEL })).toBeOnTheScreen();
+  });
+
+  it('disables the FAB while saving, and shows no queued label when online', () => {
+    const onPrimaryFabPress = jest.fn();
+    render(<ProductFabControls {...baseProps} isSaving onPrimaryFabPress={onPrimaryFabPress} />);
+
+    expect(screen.getByRole('button', { name: 'Edit Product' })).toBeOnTheScreen();
+    expect(fabButton().props.accessibilityState.disabled).toBe(true);
+    fireEvent.press(fabButton());
+    expect(onPrimaryFabPress).not.toHaveBeenCalled();
   });
 });
