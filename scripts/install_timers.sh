@@ -114,18 +114,21 @@ EOF
     systemctl list-timers "relab-*@${env}.timer" --all --no-pager
     echo
 
-    # Empty ping URLs are indistinguishable from deliberately-off, and the jobs run
-    # fine without them — which is exactly how a host ends up failing silently
-    # forever. Be loud about the unfinished state; the watchdog alerts on it too.
-    # Missing and empty disable pinging identically, so check for both — a renamed or
-    # mistyped variable leaves no empty line for a grep to find.
-    for var in PING_BACKUP PING_WATCHDOG PING_RESTORE_CHECK; do
-        if ! grep -qE "^${var}=[^[:space:]]" "$HOST_ENV"; then
-            echo "WARNING: ${var} is missing or empty in ${HOST_ENV}. That job runs,"
-            echo "WARNING: but its failures are INVISIBLE outside this host until you"
-            echo "WARNING: create the healthchecks.io check and fill the URL in."
-        fi
-    done
+    # An empty ping URL is indistinguishable from deliberately-off, and the jobs run
+    # fine without one — which is exactly how a host ends up failing silently forever.
+    # Be loud about the unfinished state; the watchdog alerts on it too. Missing and
+    # empty disable pinging identically, so check for both: a renamed or mistyped
+    # variable leaves no empty line for a grep to find.
+    #
+    # Only PING_WATCHDOG. The other jobs report through it — the hourly watchdog checks
+    # every timer's state, last result and staleness, and a failing job's own output is
+    # sent as the alert body — so warning about their empty URLs would be telling the
+    # operator to buy three more healthchecks.io checks that nothing needs.
+    if ! grep -qE "^PING_WATCHDOG=[^[:space:]]" "$HOST_ENV"; then
+        echo "WARNING: PING_WATCHDOG is missing or empty in ${HOST_ENV}. Every scheduled"
+        echo "WARNING: job still runs, but their failures are INVISIBLE outside this host"
+        echo "WARNING: until you create the healthchecks.io check and fill the URL in."
+    fi
     echo "Next: fill in ${HOST_ENV}, then verify with 'just watchdog ${env}'."
 }
 
