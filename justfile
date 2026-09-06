@@ -513,6 +513,10 @@ staging-migrate confirm='':
 backup env:
     @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
 
+# List the restic snapshots for one environment (read-only)
+snapshots env count='20':
+    @bash scripts/backup_restic_ops.sh snapshots {{ quote(env) }} {{ quote(count) }}
+
 # Print the scheduled-job systemd units rendered for this host (review before installing)
 timers-render:
     @bash scripts/install_timers.sh render
@@ -593,6 +597,10 @@ backup-offsite-copy env='staging':
 # Restore the latest restic PostgreSQL dump into a disposable Postgres container
 restore-check env='prod':
     @bash scripts/backup_restic_ops.sh restore-check {{ quote(env) }}
+
+# Restore a backup snapshot into the LIVE database (destructive; pass YES to confirm)
+restore env confirm='' snapshot='latest':
+    @bash scripts/backup_restic_ops.sh restore {{ quote(env) }} {{ quote(confirm) }} {{ quote(snapshot) }}
 
 # Smoke test: compose-level backend orchestration (service wiring + migrations)
 docker-orchestration-smoke:

@@ -318,8 +318,19 @@ Otherwise the backup is the recovery path:
 just restore-check prod    # proves the snapshot loads, into a scratch DB
 ```
 
-For a real restore, stop the stack, restore the dump into the live database, and bring
-it back up — rehearse this before you need it, using the smoke test as the template.
+For a real restore, pick the snapshot deliberately and restore it into the live
+database:
+
+```bash
+just snapshots prod           # read-only; ids, dates, and dump sizes
+just restore prod YES <id>    # stops the api, restores, restarts it
+```
+
+Look at the sizes before choosing. `latest` is the default and is usually right, but it
+is exactly wrong in the case you are most likely to be recovering from — where the most
+recent backup is the damage. `just restore` drops schema `public` and replaces it, so it
+refuses to run without `YES`, and it asserts the restored database has rows and not
+merely tables before reporting success.
 
 Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed
 separately, and prod's adoption state is its own decision.

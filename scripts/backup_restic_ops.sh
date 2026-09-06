@@ -6,6 +6,55 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4}"
 RESTORE_CONTAINER=""
+# Read by restore_cleanup, which runs from an EXIT trap — i.e. after
+# restore_postgres has returned and its locals are gone. Script scope, not local.
+RESTORE_API_CONTAINER=""
+RESTORE_API_WAS_RUNNING=false
+RESTORE_PG_CONTAINER=""
+RESTORE_TMP_ROOT=""
+RESTORE_HOST_UID=""
+RESTORE_HOST_GID=""
+
+restore_cleanup() {
+    if [[ "$RESTORE_API_WAS_RUNNING" == true ]]; then
+        docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$RESTORE_PG_CONTAINER" ]]; then
+        docker exec "$RESTORE_PG_CONTAINER" rm -f /tmp/relab-restore.dump >/dev/null 2>&1 || true
+    fi
+    if [[ -n "$RESTORE_TMP_ROOT" && -d "$RESTORE_TMP_ROOT" ]]; then
+        docker run --rm -v "$RESTORE_TMP_ROOT:/work" --entrypoint chown alpine:3.22 \
+            -R "$RESTORE_HOST_UID:$RESTORE_HOST_GID" /work >/dev/null 2>&1 || true
+        rm -rf "$RESTORE_TMP_ROOT"
+    fi
+}
+
+# Assert a restored database has both schema AND data. Table existence alone is not
+# enough: a dump taken from a freshly migrated, empty database has every table and
+# zero rows, and passes a schema-only check while having restored nothing. Counts
+# rows for real rather than reading pg_stat_user_tables, which is empty until ANALYZE.
+read -r -d '' ASSERT_RESTORE_NOT_EMPTY <<'SQL' || true
+DO $$
+DECLARE
+    tbl record;
+    n bigint;
+    total bigint := 0;
+    tables int := 0;
+BEGIN
+    FOR tbl IN SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+        tables := tables + 1;
+        EXECUTE format('SELECT count(*) FROM %I.%I', tbl.schemaname, tbl.tablename) INTO n;
+        total := total + n;
+    END LOOP;
+    IF tables = 0 THEN
+        RAISE EXCEPTION 'restored dump has no tables in schema public';
+    END IF;
+    IF total = 0 THEN
+        RAISE EXCEPTION 'restored dump has % tables but 0 rows -- the snapshot is empty', tables;
+    END IF;
+    RAISE NOTICE 'restored % tables, % rows', tables, total;
+END $$;
+SQL
 
 require_dir() {
     local description="$1"
@@ -142,9 +191,9 @@ verify_postgres_restore() {
         -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'
     docker exec "$RESTORE_CONTAINER" pg_restore --section=data "${restore_args[@]}"
     docker exec "$RESTORE_CONTAINER" pg_restore --section=post-data "${restore_args[@]}"
-    # NOTE: pg_restore can exit 0 on an empty archive, so assert tables actually landed.
-    docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -c \
-        "DO \$\$ BEGIN IF (SELECT count(*) FROM pg_tables WHERE schemaname = 'public') = 0 THEN RAISE EXCEPTION 'restored dump has no tables in schema public'; END IF; END \$\$;"
+    # NOTE: pg_restore can exit 0 on an empty archive, so assert schema AND rows landed.
+    docker exec -i "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -f - \
+        <<<"$ASSERT_RESTORE_NOT_EMPTY"
 }
 
 docker_smoke_backups() {
@@ -335,6 +384,119 @@ backup_restore_smoke() {
     echo "✅ Backup restore smoke test passed"
 }
 
+# Restore a `postgres`-tagged snapshot into the LIVE database of an environment.
+# Destructive: drops schema "public" and replaces it with the snapshot's contents.
+# Args: <env> <confirm> [snapshot id, default "latest"].
+restore_postgres() {
+    local env="${1:-}" confirm="${2:-}" snapshot="${3:-latest}"
+    if [[ -z "$env" ]]; then
+        echo "Usage: $0 restore ENV YES [SNAPSHOT]" >&2
+        exit 2
+    fi
+    if [[ "$confirm" != "YES" ]]; then
+        echo "Refusing to restore into '$env': pass YES to confirm." >&2
+        echo "This DROPS the current schema and replaces it with snapshot '$snapshot'." >&2
+        exit 2
+    fi
+
+    resolve_backup_paths "$env"
+
+    local pg_container="relab_${env}-postgres-1"
+    local api_container="relab_${env}-api-1"
+    if ! docker inspect "$pg_container" >/dev/null 2>&1; then
+        echo "Postgres container not found: $pg_container (is the stack up?)" >&2
+        exit 1
+    fi
+
+    local tmp_root
+    tmp_root="$(mktemp -d)"
+    RESTORE_PG_CONTAINER="$pg_container"
+    RESTORE_API_CONTAINER="$api_container"
+    RESTORE_TMP_ROOT="$tmp_root"
+    RESTORE_HOST_UID="$(id -u)"
+    RESTORE_HOST_GID="$(id -g)"
+    trap restore_cleanup EXIT
+
+    build_backup_image
+    mkdir -p "$tmp_root/restore"
+    # The backup image runs as uid 1001, so the restore bind mount must be writable by it.
+    docker run --rm -v "$tmp_root/restore:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
+
+    docker run --rm \
+        -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \
+        -v "$DEPLOY_RESTIC_PASSWORD_FILE:/run/secrets/restic_password:ro" \
+        -v "$tmp_root/restore:/restore" \
+        -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
+        --entrypoint restic \
+        "$DEPLOY_BACKUP_IMAGE" \
+        restore --no-lock "$snapshot" --repo /restic --tag postgres --target /restore
+
+    local dump_file
+    dump_file="$(find "$tmp_root/restore" -type f -name '*.dump' | sort | tail -n1)"
+    if [[ -z "$dump_file" ]]; then
+        echo "No PostgreSQL .dump file found in snapshot '$snapshot'" >&2
+        exit 1
+    fi
+    echo "Restoring $(basename "$dump_file") into $pg_container"
+
+    # The API is the only writer, so stopping it makes the restore a clean swap
+    # rather than a race against live traffic. restore_cleanup restarts it on the
+    # way out even when pg_restore fails, so a failed restore does not also leave
+    # the stack down.
+    if [[ "$(docker inspect -f '{{.State.Running}}' "$api_container" 2>/dev/null)" == "true" ]]; then
+        RESTORE_API_WAS_RUNNING=true
+        docker stop "$api_container" >/dev/null
+    fi
+
+    docker cp "$dump_file" "$pg_container:/tmp/relab-restore.dump"
+
+    # Same sequence as verify_postgres_restore, and for the same reasons: the
+    # --schema=public dump recreates the schema itself, and pg_trgm must exist in
+    # "public" before post-data rebuilds the trigram GIN indexes. Unlike the smoke
+    # test this keeps ACLs — relab_app/relab_migrator/relab_backup exist here, and
+    # dropping their grants would leave the API unable to read its own tables.
+    local -r dump=/tmp/relab-restore.dump
+    docker exec "$pg_container" sh -c \
+        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "DROP SCHEMA IF EXISTS public CASCADE;"'
+    docker exec "$pg_container" sh -c \
+        "pg_restore --section=pre-data -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" $dump"
+    docker exec "$pg_container" sh -c \
+        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"'
+    docker exec "$pg_container" sh -c \
+        "pg_restore --section=data -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" $dump"
+    docker exec "$pg_container" sh -c \
+        "pg_restore --section=post-data -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" $dump"
+    # pg_restore can exit 0 on an empty archive, and a schema-only check passes on a
+    # migrated-but-empty dump, so assert rows landed too.
+    docker exec -i "$pg_container" sh -c \
+        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f -' <<<"$ASSERT_RESTORE_NOT_EMPTY"
+
+    echo "✅ Restored $env from snapshot '$snapshot'"
+}
+
+# List the snapshots in an environment's local repository. Read-only: --no-lock keeps
+# the repo mount read-only, so this can be run safely while a backup is in flight.
+# Exists because picking a snapshot to restore should not require hand-writing a
+# `docker run` incantation -- `just restore <env> YES latest` is easy to reach for and,
+# after a bad backup, `latest` is exactly the snapshot you must not use.
+list_snapshots() {
+    local env="${1:-}" count="${2:-20}"
+    if [[ -z "$env" ]]; then
+        echo "Usage: $0 snapshots ENV [COUNT]" >&2
+        exit 2
+    fi
+    resolve_backup_paths "$env"
+    build_backup_image >/dev/null
+
+    docker run --rm -i \
+        -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \
+        -v "$DEPLOY_RESTIC_PASSWORD_FILE:/run/secrets/restic_password:ro" \
+        -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
+        --entrypoint restic \
+        "$DEPLOY_BACKUP_IMAGE" \
+        snapshots --no-lock --repo /restic --tag postgres --latest "$count"
+}
+
 main() {
     case "${1:-}" in
         docker-smoke-backups)
@@ -346,8 +508,14 @@ main() {
         restore-check)
             backup_restore_smoke "${2:-prod}"
             ;;
+        restore)
+            restore_postgres "${2:-}" "${3:-}" "${4:-latest}"
+            ;;
+        snapshots)
+            list_snapshots "${2:-}" "${3:-20}"
+            ;;
         *)
-            echo "Usage: $0 {docker-smoke-backups|backup-offsite-copy ENV|restore-check ENV}" >&2
+            echo "Usage: $0 {docker-smoke-backups|backup-offsite-copy ENV|restore-check ENV|restore ENV YES [SNAPSHOT]|snapshots ENV [COUNT]}" >&2
             exit 2
             ;;
     esac
