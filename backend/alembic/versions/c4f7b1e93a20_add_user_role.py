@@ -18,6 +18,7 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 CONSTRAINT_NAME = "ck_user_role_valid"
+ROLLBACK_SAFE = True  # the only dynamic SQL validates a constraint
 
 
 def upgrade() -> None:

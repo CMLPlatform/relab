@@ -25,6 +25,9 @@ depends_on: str | Sequence[str] | None = ${repr(depends_on)}
 #   - type changes       -> usually a full rewrite; add a new column and backfill instead
 # env.py already sets lock_timeout and statement_timeout; a long backfill raises its own
 # ceiling with op.execute("SET LOCAL statement_timeout = '15min'").
+# `just <env>-rollback` refuses to downgrade past a revision whose upgrade() drops,
+# deletes, updates, or runs dynamic SQL. If that is harmless here (the column was empty,
+# the UPDATE backfills a column this revision adds), declare `ROLLBACK_SAFE = True`.
 
 
 def upgrade() -> None:

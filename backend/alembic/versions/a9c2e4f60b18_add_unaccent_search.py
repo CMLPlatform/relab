@@ -38,6 +38,7 @@ revision: str = "a9c2e4f60b18"
 down_revision: str | None = "c4f7b1e93a20"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+ROLLBACK_SAFE = True  # the dropped search_vector columns are generated; downgrade recomputes them
 
 _PRODUCT_SEARCH_BODY = (
     "coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(brand, '') || ' ' || coalesce(model, '')"
