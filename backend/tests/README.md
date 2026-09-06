@@ -40,17 +40,11 @@ camera setup -> record -> persist. Keep them sparse; they are slower than the ot
 
 ## Assertions
 
-- **Assert what distinguishes the path, not only the outcome.** Several paths often converge on one
-  response: `message_relay` answers 503 both for a camera that is not connected and for one that ran
-  out of time, and `images.py` answers 400 for a missing, non-integer, and non-positive
-  `product_id`. A test asserting only the status passes whichever guard fired, so it keeps passing
-  once the guard it was written for is gone. Assert the `detail`, the close `reason`, or an
-  observable effect (a collaborator that must not be reached, a queue that must stay empty).
-- **Watch for the same trap on sentinels.** `read_token` returns `None` from five paths and
-  `_authenticate` returns `False` from five; `is None` alone does not say which one ran.
-- **Prove a new test fails without the behavior.** Break the thing it covers, watch it go red, put it
-  back. Three tests written in one sitting looked correct and proved nothing until this was done.
-- **Sweep for the class when touching error paths**: replace a guard with `if False:` and run the
-  suite. A guard whose removal breaks nothing is either untested or covered only by an assertion
-  another path satisfies. Run it against `tests/unit tests/integration` — many guards in routers and
-  dependencies are only reachable from the integration tier.
+- Assert what tells the paths apart, not just the outcome. Several paths often converge on one
+  response — `images.py` answers 400 for a missing, non-integer, and non-positive `product_id` — so a
+  test checking only the status keeps passing once the guard it was written for is gone. Assert the
+  `detail`, the close `reason`, or an effect: a collaborator not reached, a queue left empty.
+- Sentinels converge the same way: `read_token` returns `None` from five paths.
+- Break what a new test covers and watch it fail before trusting it.
+- To find gaps, replace a guard with `if False:` and run `tests/unit tests/integration`. One that
+  breaks nothing is untested, or covered only by an assertion another path also satisfies.
