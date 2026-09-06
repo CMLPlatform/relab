@@ -12,6 +12,7 @@ __all__ = [
     "PRESERVED_EXIF_TAGS",
     "RESAMPLE_FILTER",
     "THUMBNAIL_WIDTHS",
+    "WEBP_ENCODE_METHOD",
     "_EXIF_ORIENTATION_TAG",
 ]
 
@@ -19,11 +20,9 @@ __all__ = [
 FORMAT_JPEG = "JPEG"
 FORMAT_WEBP = "WEBP"
 MAX_IMAGE_DIMENSION = 8000
-# Total-pixel ceiling, independent of the per-side cap. 8000x8000 = 64 MPx sits
-# below Pillow's default decompression-bomb guard (89 MPx), so a crafted image
-# that is within the per-side limit still decodes to a huge bitmap and can OOM the
-# worker during post-write processing/thumbnailing. Cap the pixel count directly
-# and lower Pillow's own guard to match, so the check also covers those opens.
+# Total-pixel ceiling. The per-side cap allows 8000x8000 = 64 MPx, under Pillow's
+# 89 MPx bomb guard, which can OOM the worker during thumbnailing. Pillow's guard
+# is lowered to match.
 MAX_IMAGE_PIXELS = 30_000_000
 PILImage.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
@@ -37,10 +36,12 @@ ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
     }
 )
 THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600)
+# libwebp effort, 0 (fastest) to 6 (smallest). 6 costs 1.8x the encode time of 4
+# for 3% smaller thumbnails, paid on every upload.
+WEBP_ENCODE_METHOD = 4
 
-# Capture parameters worth keeping for computer-vision research. This is an allowlist,
-# not a denylist: vendor MakerNote blocks are undocumented and carry serial numbers and
-# face-detection data, so anything not named here is dropped.
+# Allowlist of capture parameters kept for computer-vision research. Vendor MakerNote
+# blocks carry serial numbers and face-detection data, so anything unnamed is dropped.
 PRESERVED_EXIF_TAGS: frozenset[int] = frozenset(
     {
         0x010F,  # Make
@@ -57,8 +58,8 @@ PRESERVED_EXIF_TAGS: frozenset[int] = frozenset(
         0x9003,  # DateTimeOriginal
     }
 )
-# Deliberately absent from the allowlist: callers bake orientation into the pixels with
-# exif_transpose, so writing the tag back would double-rotate on the next open.
+# Not in the allowlist: exif_transpose bakes orientation into the pixels, so writing
+# the tag back would double-rotate on the next open.
 _EXIF_ORIENTATION_TAG = 0x0112
 
 RESAMPLE_FILTER = Resampling.LANCZOS

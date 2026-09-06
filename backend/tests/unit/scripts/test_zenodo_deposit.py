@@ -65,8 +65,9 @@ def test_upload_retries_a_dropped_connection(tmp_path, monkeypatch) -> None:
     assert len(attempts) == zenodo.UPLOAD_ATTEMPTS
 
 
-def test_upload_gives_up_after_the_last_attempt(tmp_path) -> None:
+def test_upload_gives_up_after_the_last_attempt(tmp_path, monkeypatch) -> None:
     """Retrying forever would hide a broken token or a deleted bucket."""
+    monkeypatch.setattr(zenodo.time, "sleep", lambda _seconds: None)
 
     def handler(_request: httpx.Request) -> httpx.Response:
         raise DROPPED

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from PIL import Image as PILImage
 
-from .constants import FORMAT_WEBP, RESAMPLE_FILTER, THUMBNAIL_WIDTHS
+from .constants import FORMAT_WEBP, RESAMPLE_FILTER, THUMBNAIL_WIDTHS, WEBP_ENCODE_METHOD
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -29,7 +29,7 @@ def generate_thumbnails(image_path: Path, widths: tuple[int, ...] = THUMBNAIL_WI
             height = int((width / original_width) * original_height)
             resized = img.resize((width, height), RESAMPLE_FILTER)
             destination = thumbnail_path_for(image_path, width)
-            resized.save(destination, format=FORMAT_WEBP, quality=85, method=6)
+            resized.save(destination, format=FORMAT_WEBP, quality=85, method=WEBP_ENCODE_METHOD)
             generated.append(destination)
             logger.debug("Generated thumbnail %s (%dx%d)", destination.name, width, height)
     return generated

@@ -32,12 +32,17 @@ SEEDED_PARTS = {
 }
 
 
-async def test_seeding_builds_a_photographed_component_tree(
+async def test_seeding_builds_a_photographed_component_tree_with_responsive_derivatives(
     db_session: AsyncSession,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Seeding should give the XPS 13 a nested, photographed teardown tree."""
+    """Seeding should give the XPS 13 a nested, photographed teardown tree.
+
+    Tree and derivatives are asserted together because seeding is the expensive
+    part (a full-size lossless WebP re-save per photograph); splitting them paid
+    for the whole seed twice.
+    """
     uploads_path = tmp_path / "uploads"
     monkeypatch.setattr(settings, "uploads_path", uploads_path)
     monkeypatch.setattr(settings, "file_storage_path", uploads_path / "files")
@@ -75,33 +80,16 @@ async def test_seeding_builds_a_photographed_component_tree(
     )
     assert set(photographed) == SEEDED_PARTS
 
-
-async def test_seeded_photographs_carry_more_than_one_derivative_width(
-    db_session: AsyncSession,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Seed images should be wide enough to generate a choice of derivatives.
-
-    ``generate_thumbnails`` skips any width at or above the original's, so an
-    800px seed photograph would yield the 200px derivative alone — a one-entry
-    map, which www renders without a ``srcset`` at all. That would leave the
-    responsive path untested precisely where it is meant to be exercised.
-    """
-    uploads_path = tmp_path / "uploads"
-    monkeypatch.setattr(settings, "uploads_path", uploads_path)
-    monkeypatch.setattr(settings, "file_storage_path", uploads_path / "files")
-    monkeypatch.setattr(settings, "image_storage_path", uploads_path / "images")
-
-    await run_seed_steps(db_session)
-
-    ssd = (await db_session.execute(select(Product).where(Product.name == "SSD"))).scalar_one()
+    # Seed images must be wide enough to generate a choice of derivatives.
+    # ``generate_thumbnails`` skips any width at or above the original's, so an
+    # 800px seed photograph would yield the 200px derivative alone — a one-entry
+    # map, which www renders without a ``srcset`` at all. That would leave the
+    # responsive path untested precisely where it is meant to be exercised.
     image = (
         await db_session.execute(
-            select(Image).where(Image.parent_id == ssd.id, Image.parent_type == MediaParentType.PRODUCT)
+            select(Image).where(Image.parent_id == parts["SSD"], Image.parent_type == MediaParentType.PRODUCT)
         )
     ).scalar_one()
-
     widths = build_thumbnail_urls_by_width(str(image.file.path), settings.image_storage_path)
     assert set(widths) == {width for width in THUMBNAIL_WIDTHS if width < 960}
     assert len(widths) > 1
