@@ -203,6 +203,29 @@ async def test_concurrent_in_flight_duplicate_returns_409() -> None:
     assert "already being processed" in exc_info.value.detail
 
 
+async def test_a_claim_that_vanishes_mid_flight_still_reports_the_request_as_running() -> None:
+    """The claim marker can expire while the first request is still working.
+
+    Reading it back as ``None`` must answer 409 like any other in-flight duplicate.
+    Without that check the replay path decodes ``None`` as JSON and the caller gets a
+    500 for what is really a still-running request.
+    """
+    redis = await _make_fake_redis()
+    user_id = uuid4()
+    key = "vanishing-key"
+
+    async with idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, key=key, body=_Body()):
+        with (
+            patch("app.api.common.idempotency.get_redis_value", AsyncMock(return_value=None)),
+            pytest.raises(HTTPException) as exc_info,
+        ):
+            async with idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, key=key, body=_Body()):
+                pass
+
+    assert exc_info.value.status_code == 409
+    assert "already being processed" in exc_info.value.detail
+
+
 async def test_unreachable_redis_returns_503_not_409() -> None:
     """A Redis outage is an outage, not a duplicate-request conflict."""
     redis = await _make_fake_redis()

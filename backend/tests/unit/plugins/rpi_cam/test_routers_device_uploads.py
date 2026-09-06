@@ -63,6 +63,39 @@ async def test_rejects_invalid_json_metadata(
     assert str(exc_info.value.detail).startswith(expected_detail)
 
 
+@pytest.mark.parametrize(
+    ("upload_metadata", "expected_detail"),
+    [
+        ("{}", "upload_metadata must include a product_id"),
+        ('{"product_id": "not-a-number"}', "product_id must be an integer"),
+        ('{"product_id": 0}', "product_id must be a positive integer"),
+        ('{"product_id": -1}', "product_id must be a positive integer"),
+    ],
+)
+async def test_rejects_an_unusable_product_id(
+    mock_camera: Camera,
+    upload_metadata: str,
+    expected_detail: str,
+) -> None:
+    """A device-supplied product id is validated before it reaches the database.
+
+    All three rejections answer 400, so each case asserts its own message: a test
+    that checked only the status would keep passing with any one guard removed.
+    """
+    with pytest.raises(HTTPException) as exc_info:
+        await receive_camera_upload(
+            camera_id=mock_camera.id,
+            camera=mock_camera,
+            session=MagicMock(),
+            file=UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes")),
+            capture_metadata="{}",
+            upload_metadata=upload_metadata,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert str(exc_info.value.detail) == expected_detail
+
+
 async def test_rejects_oversized_metadata(
     mock_camera: Camera,
 ) -> None:

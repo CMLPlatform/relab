@@ -45,6 +45,21 @@ async def test_get_component_by_id(api_client: AsyncClient, setup_product_graph:
     assert "videos" not in data
 
 
+async def test_component_routes_reject_a_base_product_id(
+    api_client: AsyncClient, setup_product_graph: ProductGraph
+) -> None:
+    """A base product must not resolve on the public component reads.
+
+    Two separate guards produce near-identical 404s here — one for the owner-checked
+    routes, one for the public bill-of-materials reads — so this targets the public
+    route specifically. Aiming at `/components/{id}` instead only re-covers the other.
+    """
+    response = await api_client.get(f"/v1/components/{setup_product_graph.product.id}/materials")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "belongs to a base product" in response.json()["detail"]
+
+
 async def test_get_component_serializes_nested_component_owner(
     api_client: AsyncClient,
     db_session: AsyncSession,
