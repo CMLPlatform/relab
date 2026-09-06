@@ -11,6 +11,7 @@ response ownership all have to line up for the test to pass.
 
 import asyncio
 import json
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
@@ -18,9 +19,14 @@ import pytest
 from fastapi import HTTPException
 from relab_rpi_cam_models import RelayMessageType
 
+from app.api.plugins.rpi_cam.runtime.status import mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
+from app.api.plugins.rpi_cam.websocket.cross_worker_relay import _cmd_key, run_relay_listener
 from app.api.plugins.rpi_cam.websocket.message_relay import relay_via_websocket
 from app.api.plugins.rpi_cam.websocket.router import _RelayWebSocketSession
+
+if TYPE_CHECKING:
+    from redis.asyncio import Redis
 
 _RELAY_MODULE = "app.api.plugins.rpi_cam.websocket.message_relay"
 _ALLOWED_COMMAND = ("GET", "/system/local-access")
@@ -148,3 +154,65 @@ async def test_a_camera_dropping_mid_command_fails_the_caller_immediately(
     assert "Retry-After" in excinfo.value.headers
     # Must be the disconnect response, not the deadline expiring on a still-pending command.
     assert excinfo.value.detail == "Camera is not connected via WebSocket."
+
+
+async def test_a_command_crosses_worker_processes_to_reach_the_camera(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The bridge every deployed request uses must carry a command across and back.
+
+    Both deployed environments run four Uvicorn workers, and a camera's socket lives
+    in exactly one of them, so most requests reach it through Redis rather than the
+    local manager. This drives that path with two managers and one shared Redis: the
+    requesting worker holds no socket, and the owning worker's listener services the
+    queue.
+    """
+    # A cross-process hop polls Redis on a one-second BLPOP, so the shortened deadline
+    # the other tests use would expire before the response ever arrived.
+    monkeypatch.setattr(f"{_RELAY_MODULE}.DEFAULT_COMMAND_TIMEOUT", 10.0)
+    camera_id = uuid4()
+
+    owning_manager = CameraConnectionManager()
+    websocket = _fake_pi(_session(camera_id, owning_manager), payload={"api_key": "from-the-other-worker"})
+    await owning_manager.register(camera_id, websocket)
+    listener = asyncio.create_task(run_relay_listener(redis_client, camera_id, owning_manager))
+
+    # The requesting worker knows the camera only as an online marker, not a socket.
+    monkeypatch.setattr(f"{_RELAY_MODULE}.get_connection_manager", CameraConnectionManager)
+    await mark_camera_online(redis_client, camera_id)
+
+    method, path = _ALLOWED_COMMAND
+    try:
+        response = await relay_via_websocket(camera_id, method, path, redis=redis_client)
+    finally:
+        listener.cancel()
+        await asyncio.gather(listener, return_exceptions=True)
+
+    assert response.status_code == 200
+    assert response.json() == {"api_key": "from-the-other-worker"}
+    websocket.send_text.assert_awaited_once()
+
+
+async def test_a_camera_no_worker_holds_fails_without_waiting_on_the_bridge(
+    redis_client: Redis, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With no worker holding the socket, the bridge cannot succeed, so it is not tried.
+
+    Waiting out the BLPOP deadline would pin a worker per request for a camera that is
+    simply unplugged.
+    """
+    monkeypatch.setattr(f"{_RELAY_MODULE}.DEFAULT_COMMAND_TIMEOUT", 10.0)
+    monkeypatch.setattr(f"{_RELAY_MODULE}.get_connection_manager", CameraConnectionManager)
+
+    camera_id = uuid4()
+
+    method, path = _ALLOWED_COMMAND
+    with pytest.raises(HTTPException) as excinfo:
+        await relay_via_websocket(camera_id, method, path, redis=redis_client)
+
+    assert excinfo.value.status_code == 503
+    assert excinfo.value.detail == "Camera is not connected via WebSocket."
+    # The status alone cannot tell this apart from the deadline expiring, and an
+    # expired deadline would mean a worker sat on it. An unqueued command proves
+    # the bridge was skipped rather than attempted and abandoned.
+    assert await redis_client.llen(_cmd_key(camera_id)) == 0
