@@ -4,11 +4,16 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from httpx import Request, Response
+from httpx import Request, RequestError, Response
 
 from app.api.plugins.rpi_cam.exceptions import GoogleOAuthAssociationRequiredError
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
-from app.api.plugins.rpi_cam.services.youtube import YOUTUBE_API_BASE_URL, YouTubeAPIError, YouTubeService
+from app.api.plugins.rpi_cam.services.youtube import (
+    _YOUTUBE_RETRY_BACKOFF_S,
+    YOUTUBE_API_BASE_URL,
+    YouTubeAPIError,
+    YouTubeService,
+)
 from tests.unit.plugins.rpi_cam.service_test_support import (
     FAKE_ACCESS_TOKEN,
     FAKE_BROADCAST_ID,
@@ -19,6 +24,8 @@ from tests.unit.plugins.rpi_cam.service_test_support import (
     TEST_STREAM_TITLE,
     YouTubeServiceFixture,
 )
+
+_TOTAL_YOUTUBE_ATTEMPTS = len(_YOUTUBE_RETRY_BACKOFF_S) + 1
 
 
 async def test_refresh_token_if_needed_not_expired(youtube_fx: YouTubeServiceFixture) -> None:
@@ -221,3 +228,62 @@ async def test_validate_stream_status_missing_items(
 
     assert exc_info.value.details is not None
     assert "stream not found" in exc_info.value.details
+
+
+async def test_request_youtube_api_retries_a_network_error_then_reports_it_as_503(
+    youtube_fx: YouTubeServiceFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A connection that never lands must surface as an unavailable upstream, not a raw httpx error.
+
+    Callers catch ``YouTubeAPIError``; letting ``RequestError`` escape would bypass
+    the rollback that ends a half-created broadcast.
+    """
+    monkeypatch.setattr("app.api.plugins.rpi_cam.services.youtube.asyncio.sleep", AsyncMock())
+    youtube_fx.http_client.request.side_effect = RequestError("connection reset")
+
+    with pytest.raises(YouTubeAPIError) as excinfo:
+        await youtube_fx.service.request_youtube_api("GET", "test-endpoint")
+
+    assert excinfo.value.http_status_code == 503
+    assert youtube_fx.http_client.request.await_count == _TOTAL_YOUTUBE_ATTEMPTS
+
+
+async def test_request_youtube_api_recovers_from_a_single_network_error(
+    youtube_fx: YouTubeServiceFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One dropped connection must not fail the call."""
+    monkeypatch.setattr("app.api.plugins.rpi_cam.services.youtube.asyncio.sleep", AsyncMock())
+    request = Request("GET", f"{YOUTUBE_API_BASE_URL}/test-endpoint")
+    youtube_fx.http_client.request.side_effect = [
+        RequestError("connection reset"),
+        Response(200, json={"ok": True}, request=request),
+    ]
+
+    assert await youtube_fx.service.request_youtube_api("GET", "test-endpoint") == {"ok": True}
+
+
+async def test_request_youtube_api_gives_up_after_the_last_retryable_response(
+    youtube_fx: YouTubeServiceFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A sustained outage must stop retrying and report the upstream status."""
+    monkeypatch.setattr("app.api.plugins.rpi_cam.services.youtube.asyncio.sleep", AsyncMock())
+    request = Request("GET", f"{YOUTUBE_API_BASE_URL}/test-endpoint")
+    youtube_fx.http_client.request.return_value = Response(
+        503, json={"error": {"message": "try later"}}, request=request
+    )
+
+    with pytest.raises(YouTubeAPIError) as excinfo:
+        await youtube_fx.service.request_youtube_api("GET", "test-endpoint")
+
+    assert excinfo.value.http_status_code == 503
+    assert youtube_fx.http_client.request.await_count == _TOTAL_YOUTUBE_ATTEMPTS
+
+
+async def test_request_youtube_api_treats_an_empty_response_as_an_empty_body(
+    youtube_fx: YouTubeServiceFixture,
+) -> None:
+    """``liveBroadcasts/transition`` answers 204, which has no JSON to decode."""
+    request = Request("POST", f"{YOUTUBE_API_BASE_URL}/liveBroadcasts/transition")
+    youtube_fx.http_client.request.return_value = Response(204, request=request)
+
+    assert await youtube_fx.service.request_youtube_api("POST", "liveBroadcasts/transition") == {}
