@@ -27,39 +27,72 @@ assert_eq() {
 }
 
 # ---------------------------------------------------------------------------
-# `stack ENV up` malware-scan guard: how the .env value is read decides whether
-# uploads fail closed against a missing clamav container. Exercised through
-# stack_command itself, which reaches require_confirmation (exit 1) when the guard
-# passes and exits 2 when it blocks — neither path runs docker.
+# `stack ENV up`: the scanning profile follows MALWARE_SCAN_ENABLED in .env, read
+# the way Compose reads it, and the recipe's environment must match the host's.
+# Neither path runs docker: a passing guard stops at require_confirmation (exit 1).
 # ---------------------------------------------------------------------------
-scan_guard() {
-    local env_line="$1"
+in_dotenv_dir() {
+    # Run "$@" inside a scratch dir whose .env holds the given lines ("" for no file).
+    local env_body="$1"
     shift
-    local dir out status
+    local dir
     dir="$(mktemp -d)"
-    [[ "$env_line" == "__no_env_file__" ]] || printf '%s\n' "$env_line" >"$dir/.env"
-    out="$(cd "$dir" && FORCE='' stack_command prod up "$@" 2>&1)"
-    status=$?
+    [[ -z "$env_body" ]] || printf '%s\n' "$env_body" >"$dir/.env"
+    (cd "$dir" && "$@")
+    local status=$?
     rm -rf "$dir"
+    return $status
+}
+
+scan_setting() {
+    in_dotenv_dir "$1" scanning_enabled && echo on || echo off
+}
+
+assert_eq "scanning: bare false" off "$(scan_setting 'MALWARE_SCAN_ENABLED=false')"
+assert_eq 'scanning: double-quoted false' off "$(scan_setting 'MALWARE_SCAN_ENABLED="false"')"
+assert_eq "scanning: single-quoted false" off "$(scan_setting "MALWARE_SCAN_ENABLED='false'")"
+assert_eq "scanning: quoted false with inline comment" off "$(scan_setting 'MALWARE_SCAN_ENABLED="false"  # scanning off')"
+assert_eq "scanning: true" on "$(scan_setting 'MALWARE_SCAN_ENABLED=true')"
+assert_eq "scanning: unbalanced quote fails closed" on "$(scan_setting 'MALWARE_SCAN_ENABLED="false')"
+assert_eq "scanning: empty value fails closed" on "$(scan_setting 'MALWARE_SCAN_ENABLED=')"
+assert_eq "scanning: missing .env fails closed" on "$(scan_setting '')"
+assert_eq "scanning: last assignment wins" on \
+    "$(scan_setting 'MALWARE_SCAN_ENABLED=false
+MALWARE_SCAN_ENABLED=true')"
+
+derived_profiles() {
+    DEPLOY_PROFILE_FLAGS=("${@:2}")
+    add_scanning_profile_from_dotenv
+    echo "${DEPLOY_PROFILE_FLAGS[*]}"
+}
+assert_eq "scanning profile added when enabled" "--profile migrations --profile scanning" \
+    "$(in_dotenv_dir 'MALWARE_SCAN_ENABLED=true' derived_profiles _ --profile migrations)"
+assert_eq "scanning profile not duplicated" "--profile scanning" \
+    "$(in_dotenv_dir 'MALWARE_SCAN_ENABLED=true' derived_profiles _ --profile scanning)"
+assert_eq "scanning profile omitted when disabled" "" \
+    "$(in_dotenv_dir 'MALWARE_SCAN_ENABLED=false' derived_profiles _)"
+
+env_guard() {
+    local out status
+    out="$(FORCE='' in_dotenv_dir "$1" stack_command "$2" up 2>&1)"
+    status=$?
     case "$status" in
-        2) [[ "$out" == *"MALWARE_SCAN_ENABLED is not 'false'"* ]] && echo blocked || echo "unexpected: $out" ;;
+        2) [[ "$out" == *"ENVIRONMENT="* ]] && echo blocked || echo "unexpected: $out" ;;
         1) [[ "$out" == *"Refusing to start"* ]] && echo allowed || echo "unexpected: $out" ;;
         *) echo "unexpected status $status: $out" ;;
     esac
 }
+assert_eq "env guard: matching environment" allowed "$(env_guard 'ENVIRONMENT=prod' prod)"
+assert_eq "env guard: other environment blocks" blocked "$(env_guard 'ENVIRONMENT=staging' prod)"
+assert_eq "env guard: missing .env blocks" blocked "$(env_guard '' staging)"
 
-assert_eq "scan guard: bare false" allowed "$(scan_guard 'MALWARE_SCAN_ENABLED=false')"
-assert_eq 'scan guard: double-quoted false' allowed "$(scan_guard 'MALWARE_SCAN_ENABLED="false"')"
-assert_eq "scan guard: single-quoted false" allowed "$(scan_guard "MALWARE_SCAN_ENABLED='false'")"
-assert_eq "scan guard: quoted false with inline comment" allowed "$(scan_guard 'MALWARE_SCAN_ENABLED="false"  # scanning off')"
-assert_eq "scan guard: true blocks" blocked "$(scan_guard 'MALWARE_SCAN_ENABLED=true')"
-assert_eq "scan guard: unbalanced quote fails closed" blocked "$(scan_guard 'MALWARE_SCAN_ENABLED="false')"
-assert_eq "scan guard: empty value fails closed" blocked "$(scan_guard 'MALWARE_SCAN_ENABLED=')"
-assert_eq "scan guard: missing .env fails closed" blocked "$(scan_guard __no_env_file__)"
-assert_eq "scan guard: last assignment wins" blocked \
-    "$(scan_guard 'MALWARE_SCAN_ENABLED=false
-MALWARE_SCAN_ENABLED=true')"
-assert_eq "scan guard: scanning profile allows true" allowed "$(scan_guard 'MALWARE_SCAN_ENABLED=true' scanning)"
+sha_guard() {
+    (require_short_sha "$1" 2>/dev/null) && echo ok || echo rejected
+}
+assert_eq "rollback sha: short sha accepted" ok "$(sha_guard 5b099f3c)"
+assert_eq "rollback sha: full sha accepted" ok "$(sha_guard 5b099f3c5b099f3c5b099f3c5b099f3c5b099f3c)"
+assert_eq "rollback sha: tag name rejected" rejected "$(sha_guard v1.2.0)"
+assert_eq "rollback sha: empty rejected" rejected "$(sha_guard '')"
 
 # ---------------------------------------------------------------------------
 # Secret templating: what each secret class is seeded with.
@@ -87,8 +120,9 @@ assert_eq "generated secrets carry no placeholder marker" ok \
 # ---------------------------------------------------------------------------
 # Small deploy decisions.
 # ---------------------------------------------------------------------------
-assert_eq "compose env file for prod" "deploy/env/prod.compose.env" "$(compose_env_file prod)"
-assert_eq "compose env file for staging" "deploy/env/staging.compose.env" "$(compose_env_file staging)"
+assert_eq "compose args select the recipe's environment" "ENVIRONMENT=staging" \
+    "$(compose_args staging /dev/null | grep -x 'ENVIRONMENT=.*')"
+assert_eq "compose args read one env file" "1" "$(compose_args prod /dev/null | grep -c -- '--env-file')"
 # These exit rather than return, so run them in a subshell and read its status.
 status=0
 (parse_profiles prod "migrations backups" bogus) >/dev/null 2>&1 || status=$?
@@ -329,6 +363,30 @@ for unit_job in $(sed -n 's|.*run_scheduled\.sh \([a-z-]*\) %i.*|\1|p' deploy/sy
         echo $?
     )"
 done
+
+# ---------------------------------------------------------------------------
+# Offsite repository derivation in backup_relab_restic.sh: the one remote in
+# RCLONE_CONFIG, empty path; nothing when the config is absent, empty, or ambiguous.
+# ---------------------------------------------------------------------------
+derived_offsite() {
+    local conf
+    conf="$(mktemp)"
+    printf '%s' "$1" >"$conf"
+    (
+        eval "$(sed -n "/^derive_offsite_repository()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+        RCLONE_CONFIG="$conf" derive_offsite_repository
+    )
+    rm -f "$conf"
+}
+assert_eq "offsite: one remote, empty path" "rclone:surfdrive_prod:" \
+    "$(derived_offsite $'[surfdrive_prod]\ntype = webdav\nurl = https://x\n')"
+assert_eq "offsite: placeholder config derives nothing" "" "$(derived_offsite $'# placeholder\n')"
+assert_eq "offsite: two remotes derive nothing" "" "$(derived_offsite $'[a]\ntype = local\n[b]\ntype = local\n')"
+assert_eq "offsite: no config derives nothing" "" \
+    "$(
+        eval "$(sed -n "/^derive_offsite_repository()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+        RCLONE_CONFIG=/nonexistent derive_offsite_repository
+    )"
 
 # ---------------------------------------------------------------------------
 # The collapsed-dump guard in backup_relab_restic.sh. An empty database dumps without

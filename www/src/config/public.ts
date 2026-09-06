@@ -27,9 +27,7 @@ export function readSiteUrl(env: EnvSource, fallback: string): string {
   return validateHttpUrl(value, 'PUBLIC_SITE_URL');
 }
 
-// These are committed public identity (deploy/env/prod.compose.env), not
-// secrets, so an unset build falls back to production rather than failing:
-// the site only needs them for outbound links.
+// Used only for outbound links, so an unset build falls back to the reference deployment.
 const DEFAULTS = {
   PUBLIC_APP_URL: 'https://app.cml-relab.org',
   PUBLIC_DOCS_URL: 'https://docs.cml-relab.org',

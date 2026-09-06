@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -53,28 +54,21 @@ VALIDATION_ENV_VALUES = {
     "EMAIL_FROM": "Relab <relab@example.test>",
     "EMAIL_REPLY_TO": "relab@example.test",
     "BOOTSTRAP_SUPERUSER_EMAIL": "admin@example.test",
+    "PROJECT": "relab",
+    "ENVIRONMENT": "prod",
+    "API_PUBLIC_URL": "https://api.placeholder.test",
+    "APP_PUBLIC_URL": "https://app.placeholder.test",
+    "SITE_PUBLIC_URL": "https://placeholder.test",
+    "DOCS_PUBLIC_URL": "https://docs.placeholder.test",
 }
 
-DEPLOY_ENV_FILES = (
-    ROOT / "deploy" / "env" / "staging.compose.env",
-    ROOT / "deploy" / "env" / "prod.compose.env",
-)
-COMMITTED_DEPLOY_ENV_NAMES = {
-    # Project identity stamped on every telemetry signal. Committed per environment
-    # rather than left to the host's .env: it identifies the project, not the machine.
-    "PROJECT",
+REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
+    # The environment this host serves; deploy_ops.sh refuses a recipe for the other one.
     "ENVIRONMENT",
     "API_PUBLIC_URL",
     "APP_PUBLIC_URL",
     "SITE_PUBLIC_URL",
     "DOCS_PUBLIC_URL",
-    # May be empty: the www landing hero falls back to its committed fixture.
-    "FEATURED_PRODUCT_ID",
-    # Per environment. A single value in the shared root .env resolved to the staging
-    # path for prod too, which wrote prod snapshots into staging's offsite repository.
-    "RESTIC_OFFSITE_REPOSITORY",
-}
-REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
     "CLOUDFLARE_TUNNEL_TOKEN",
     "EMAIL_PROVIDER",
     "EMAIL_FROM",
@@ -105,6 +99,11 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     # will not open the first's repo), but see deploy/DEPLOY-PROD.md Part 1.1 before doing that.
     "BACKUP_HOST_DIR",
     "POSTGRES_SUPERUSER",
+    # May be empty: the www landing hero falls back to its committed fixture.
+    "FEATURED_PRODUCT_ID",
+    # One value per host, so a host serves one environment; deploy_ops.sh refuses a
+    # recipe whose environment differs from the root .env's ENVIRONMENT.
+    "RESTIC_OFFSITE_REPOSITORY",
     # Upload ceilings and malware scanning, overridable per instance.
     "MAX_UPLOAD_FILES_PER_USER",
     "MAX_UPLOAD_BYTES_PER_USER_MB",
@@ -158,6 +157,8 @@ REMOVED_DEPLOY_ENV_FILES = {
     ROOT / "backend" / ".env.prod.example",
     ROOT / "backend" / ".env.staging.example",
     ROOT / "deploy" / "env" / "dev.compose.env",
+    ROOT / "deploy" / "env" / "prod.compose.env",
+    ROOT / "deploy" / "env" / "staging.compose.env",
     # www/.env.dev is kept: it holds only localhost dev origins for `astro dev`, not
     # deploy configuration.
     ROOT / "www" / ".env.prod",
@@ -310,46 +311,37 @@ def deploy_labels(env: str | None) -> tuple[str, ...]:
     return ("staging", "prod")
 
 
+def _rclone_remotes(config: Path) -> list[str]:
+    # Same rule as derive_offsite_repository in backup_relab_restic.sh: a whole line `[name]`.
+    return [m.group(1) for m in (re.fullmatch(r"\[([^\]]*)\]", line) for line in config.read_text().splitlines()) if m]
+
+
 def assert_offsite_remote_is_configured(env: str | None = None) -> None:
-    """Warn when a committed offsite repository names an rclone remote no secret defines.
+    """Warn when no offsite copy will run, before the deploy rather than at 02:30.
 
-    ``RESTIC_OFFSITE_REPOSITORY`` is committed per environment, but the credential that
-    reaches it is a hand-written ``secrets/<env>/rclone.conf``. Those are two separate
-    facts, and only the first is version-controlled — so a host can be fully configured
-    on paper and still have no offsite copy.
-
-    The nightly backup deliberately SKIPS the offsite step (loudly, exit 0) in that
-    state rather than failing, because a run that fails every night leaves the alert
-    permanently red, which is indistinguishable from having no alert. That makes this
-    the place the gap has to surface instead: before the deploy, not at 02:30 nightly.
-    Warn rather than fail — local-only backups are a legitimate configuration.
+    The backup derives its offsite repository from the single remote in
+    ``secrets/<env>/rclone.conf``; ``RESTIC_OFFSITE_REPOSITORY`` in the root .env
+    overrides it. Warn rather than fail: local-only backups are a legitimate configuration.
     """
+    env_file = ROOT / ".env"
+    override = (
+        env_assignments(env_file).get("RESTIC_OFFSITE_REPOSITORY", "").strip().strip("\"'") if env_file.exists() else ""
+    )
     for label in deploy_labels(env):
-        env_file = ROOT / "deploy" / "env" / f"{label}.compose.env"
-        if not env_file.exists():
-            continue
-        repo = ""
-        for line in env_file.read_text().splitlines():
-            if line.startswith("RESTIC_OFFSITE_REPOSITORY="):
-                # Match the shell reader (backup_restic_ops.sh read_deploy_env_var):
-                # a quoted value must not silently skip the rclone: prefix test.
-                repo = line.partition("=")[2].strip().strip("\"'")
-        if not repo.startswith("rclone:"):
-            continue
-        remote = repo.removeprefix("rclone:").partition(":")[0]
         config = ROOT / "secrets" / label / "rclone.conf"
-        if not config.exists():
-            # No credential file at all, so no offsite copy will ever run. Reported
-            # like the weaker form below (file present, remote missing).
+        remotes = _rclone_remotes(config) if config.exists() else []
+        if override.startswith("rclone:"):
+            remote = override.removeprefix("rclone:").partition(":")[0]
+            if remote not in remotes:
+                sys.stdout.write(
+                    f"{label}: RESTIC_OFFSITE_REPOSITORY names rclone remote '{remote}' but "
+                    f"secrets/{label}/rclone.conf does not define it — backups will be LOCAL ONLY\n"
+                )
+        elif not override and len(remotes) != 1:
+            reason = f"defines {len(remotes)} remotes" if remotes else "defines no remote"
             sys.stdout.write(
-                f"{label}: offsite repository '{repo}' is configured but "
-                f"secrets/{label}/rclone.conf does not exist — backups will be LOCAL ONLY\n"
-            )
-            continue
-        if f"[{remote}]" not in config.read_text():
-            sys.stdout.write(
-                f"{label}: offsite repository names rclone remote '{remote}' but "
-                f"secrets/{label}/rclone.conf does not define it — backups will be LOCAL ONLY\n"
+                f"{label}: secrets/{label}/rclone.conf {reason}; set RESTIC_OFFSITE_REPOSITORY "
+                "or write exactly one remote — backups will be LOCAL ONLY\n"
             )
 
 
@@ -392,24 +384,6 @@ def require(condition: object, message: str) -> None:
     """Raise AssertionError with a human-readable message when condition is false."""
     if not condition:
         raise AssertionError(message)
-
-
-def assert_deploy_env_files_are_canonical() -> None:
-    """Ensure committed deploy env files contain only canonical root values."""
-    forbidden_names = STALE_ENV_NAMES | SERVICE_BOUNDARY_URL_NAMES
-    for path in DEPLOY_ENV_FILES:
-        assignments = env_assignments(path)
-        unexpected_names = sorted(set(assignments) - COMMITTED_DEPLOY_ENV_NAMES)
-        require(not unexpected_names, f"{path}: unexpected env names: {', '.join(unexpected_names)}")
-
-        forbidden_present = sorted(set(assignments) & forbidden_names)
-        require(
-            not forbidden_present,
-            f"{path}: contains service-boundary/stale names: {', '.join(forbidden_present)}",
-        )
-
-        for name in sorted(COMMITTED_DEPLOY_ENV_NAMES):
-            require(name in assignments, f"{path}: missing {name}")
 
 
 def assert_root_env_example_is_operator_checklist(secret_inventory: dict[str, Any]) -> None:
@@ -551,8 +525,6 @@ def docker_compose_config_missing(required_name: str) -> subprocess.CompletedPro
                 "relab_env_policy",
                 "--env-file",
                 env_file.name,
-                "--env-file",
-                "deploy/env/prod.compose.env",
                 "-f",
                 "compose.yaml",
                 "-f",
@@ -579,7 +551,6 @@ def assert_deploy_compose_render_fails_for_missing_operator_values() -> None:
 def run_env_policy_checks(env: str | None = None) -> None:
     """Run all environment policy checks; ``env`` scopes the per-environment ones to one stack."""
     secret_inventory = load_secret_inventory()
-    assert_deploy_env_files_are_canonical()
     assert_root_env_example_is_operator_checklist(secret_inventory)
     assert_removed_env_files_stay_removed()
     assert_deploy_compose_requires_operator_values()

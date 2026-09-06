@@ -40,12 +40,10 @@ describe('mobile app security configuration', () => {
   });
 
   it('keeps production-like public service URLs on HTTPS', () => {
-    for (const envName of ['deploy/env/prod.compose.env', 'deploy/env/staging.compose.env']) {
-      const env = readRootEnv(envName);
+    const env = readRootEnv('.env.example');
 
-      expect(env).toMatch(HTTPS_API_URL_PATTERN);
-      expect(env).toMatch(HTTPS_WEBSITE_URL_PATTERN);
-      expect(env).toMatch(HTTPS_DOCS_URL_PATTERN);
-    }
+    expect(env).toMatch(HTTPS_API_URL_PATTERN);
+    expect(env).toMatch(HTTPS_WEBSITE_URL_PATTERN);
+    expect(env).toMatch(HTTPS_DOCS_URL_PATTERN);
   });
 });

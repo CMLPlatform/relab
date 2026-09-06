@@ -58,11 +58,12 @@ check: lint typecheck
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    source ../deploy/env/prod.compose.env
-    export PUBLIC_APP_URL="$APP_PUBLIC_URL"
-    export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
-    export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
-    export PUBLIC_API_URL="$API_PUBLIC_URL"
+    # Local production-mode build. Export *_PUBLIC_URL to override the reference
+    # deployment's origins; Compose passes the host's .env values as build args instead.
+    export PUBLIC_APP_URL="${APP_PUBLIC_URL:-https://app.cml-relab.org}"
+    export PUBLIC_DOCS_URL="${DOCS_PUBLIC_URL:-https://docs.cml-relab.org}"
+    export PUBLIC_SITE_URL="${SITE_PUBLIC_URL:-https://cml-relab.org}"
+    export PUBLIC_API_URL="${API_PUBLIC_URL:-https://api.cml-relab.org}"
     export PUBLIC_FEATURED_PRODUCT_ID="${FEATURED_PRODUCT_ID:-}"
     pnpm run build
 
@@ -93,10 +94,9 @@ e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
 build-e2e:
     #!/usr/bin/env bash
     set -euo pipefail
-    source ../deploy/env/prod.compose.env
-    export PUBLIC_APP_URL="$APP_PUBLIC_URL"
-    export PUBLIC_DOCS_URL="$DOCS_PUBLIC_URL"
-    export PUBLIC_SITE_URL="$SITE_PUBLIC_URL"
+    export PUBLIC_APP_URL="${APP_PUBLIC_URL:-https://app.cml-relab.org}"
+    export PUBLIC_DOCS_URL="${DOCS_PUBLIC_URL:-https://docs.cml-relab.org}"
+    export PUBLIC_SITE_URL="${SITE_PUBLIC_URL:-https://cml-relab.org}"
     export PUBLIC_API_URL="{{ e2e_api_url }}"
     # The seeded Dell XPS 13: the one product whose components carry photographs.
     # Seeding runs against an empty database, so its id is stable.

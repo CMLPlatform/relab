@@ -490,7 +490,7 @@ dotenv_value() {
     value="${value%%[[:space:]]#*}"
     value="${value#"${value%%[![:space:]]*}"}"
     value="${value%"${value##*[![:space:]]}"}"
-    if [[ "$value" == \"*\" || "$value" == \'*\' ]]; then
+    if [[ "${#value}" -ge 2 && ("$value" == \"*\" || "$value" == \'*\') ]]; then
         value="${value:1:-1}"
     fi
     printf '%s' "$value"
@@ -529,19 +529,22 @@ require_short_sha() {
     fi
 }
 
-# Image names (without tag) that a previous `build` tagged with `<env>-<sha>`; every
-# stack image must have one, or the rollback would mix two releases.
-rollback_images() {
+# Every image the stack builds (all profiles), one name per line without the tag.
+stack_images() {
+    run_deploy_compose "$1" --profile migrations --profile backups config --images | sort -u \
+        | sed -n "s/:$1-local\$//p" | grep '^relab-'
+}
+
+# Fail unless every stack image carries the `<env>-<sha>` tag a previous `build` left,
+# so a rollback never mixes two releases.
+require_rollback_images() {
     local env="$1" sha="$2" image missing=0
-    while IFS= read -r image; do
-        [[ "$image" == relab-*:"$env-local" ]] || continue
-        image="${image%:*}"
+    for image in "${@:3}"; do
         if ! docker image inspect "$image:$env-$sha" >/dev/null 2>&1; then
             echo "error: no image $image:$env-$sha; \`docker images '$image'\` lists the shas available" >&2
             missing=1
         fi
-        printf '%s\n' "$image"
-    done < <(run_deploy_compose "$env" --profile migrations --profile backups config --images | sort -u)
+    done
     [[ "$missing" -eq 0 ]] || exit 2
 }
 
@@ -626,13 +629,15 @@ stack_command() {
             # Every build overwrites the single :$env-local tag, so also tag the result
             # with the current commit. Rollback is then a `docker tag` away instead of a
             # full rebuild (see deploy/DEPLOY-PROD.md Part 3).
+            # Tag every stack image, not only the profiles built now, so `rollback` (which
+            # requires the full set) can always return here.
             local sha image
             sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
             if [[ -n "$sha" ]]; then
-                while IFS= read -r image; do
-                    [[ "$image" == relab-*:"$env-local" ]] || continue
-                    docker tag "$image" "${image%-local}-$sha"
-                done < <(run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" config --images | sort -u)
+                for image in $(stack_images "$env"); do
+                    docker image inspect "$image:$env-local" >/dev/null 2>&1 || continue
+                    docker tag "$image:$env-local" "$image:$env-$sha"
+                done
                 echo "tagged built images with $env-$sha"
             fi
             ;;
@@ -642,13 +647,17 @@ stack_command() {
         rollback)
             # `just <env>-rollback YES <sha> [<revision>]`: retag the images a previous
             # `build` tagged with its commit, optionally after `alembic downgrade`.
-            DEPLOY_CONFIRMED=false
-            [[ "${1:-}" == "YES" ]] && DEPLOY_CONFIRMED=true
             local sha="${2:-}" revision="${3:-}"
             require_short_sha "$sha"
+            # Not a process substitution: an `exit` inside one only ends the subshell.
             local -a images=()
-            mapfile -t images < <(rollback_images "$env" "$sha")
-            require_confirmation "roll the $env stack back to $sha" "just $env-rollback YES $sha" "FORCE=1 just $env-rollback _ $sha"
+            mapfile -t images <<<"$(stack_images "$env")"
+            [[ "${#images[@]}" -gt 0 && -n "${images[0]}" ]] || {
+                echo "error: could not list the $env stack images" >&2
+                exit 2
+            }
+            require_rollback_images "$env" "$sha" "${images[@]}"
+            require_confirmation_command "roll the $env stack back to $sha" "just $env-rollback YES $sha" "FORCE=1 just $env-rollback _ $sha" "${1:-}"
             if [[ -n "$revision" ]]; then
                 # Both steps use the CURRENT migrator image: only the code being rolled
                 # back knows how to downgrade its own migrations.
