@@ -372,7 +372,7 @@ backup_offsite_copy() {
     # shellcheck disable=SC2064  # eager expansion is intentional here (see above)
     trap "rm -rf '$tmp_root'" EXIT
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
-    if [[ -z "$offsite_repo" && ! -f "$rclone_config" ]]; then
+    if [[ ! -f "$rclone_config" && (-z "$offsite_repo" || "$offsite_repo" == rclone:*) ]]; then
         echo "no offsite target: write $rclone_config (one remote) or set RESTIC_OFFSITE_REPOSITORY"
         exit 1
     fi

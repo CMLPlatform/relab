@@ -1,8 +1,6 @@
 # Relab Backups
 
-Relab uses one restic-based backup workflow for production and staging.
-
-The backup container creates:
+One restic-based workflow serves production and staging. The backup container creates:
 
 - a logical PostgreSQL dump with `pg_dump` using `DATABASE_BACKUP_USER`
 - a restic snapshot of that dump tagged `postgres`
@@ -25,18 +23,15 @@ Backups are stored under:
 $BACKUP_HOST_DIR/restic
 ```
 
-For the Compose backup service, `BACKUP_HOST_DIR` is read from the host-local root
-`.env` file and defaults to `./backups`. Manual shell helpers such as
-`just restore-check` use already-exported environment variables instead
-of parsing `.env`; export `BACKUP_HOST_DIR` first when you need a non-default path.
-Non-secret prod/staging Compose interpolation lives in `deploy/env/*.compose.env`;
-do not put real secrets under `deploy/`.
+The Compose service reads `BACKUP_HOST_DIR` from the root `.env` (default `./backups`). Shell
+helpers such as `just restore-check` read exported environment variables instead; export
+`BACKUP_HOST_DIR` first for a non-default path. Never put real secrets under `deploy/`.
 
 ## Required Secrets
 
-The deploy Compose overlay declares the required backup secret files. Use
-`just deploy-secrets-template prod` or `just deploy-secrets-template staging` to
-create missing files, then replace the placeholder values. `just deploy-secrets-check` verifies that rendered Compose secrets point at the expected `secrets/<env>/` files.
+Run `just deploy-secrets-template prod` (or `staging`) to create the missing secret files, then
+replace the placeholder values. `just deploy-secrets-check` verifies that rendered Compose secrets
+point at the expected `secrets/<env>/` files.
 
 ## Restore Smoke Test
 
@@ -46,26 +41,20 @@ From the repo root, restore the latest database dump into a disposable Postgres 
 just restore-check prod
 ```
 
-The smoke test restores the latest `postgres` snapshot, runs `pg_restore`, and verifies `SELECT 1` plus the `public.alembic_version` table.
+This restores the latest `postgres` snapshot with `pg_restore` and verifies `SELECT 1` plus the
+`public.alembic_version` table.
 
 ## Optional Offsite Copy
 
-Keep the local restic repository as the primary fast restore point. For offsite storage, copy restic snapshots to a second restic repository:
+The local restic repository is the primary restore point. Write one rclone remote into
+`secrets/<env>/rclone.conf` and the maintenance run copies snapshots to `rclone:<remote>:`; on
+demand:
 
 ```bash
-RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/staging/restic just backup-offsite-copy staging
+just backup-offsite-copy staging
 ```
 
-For WebDAV, configure an rclone remote in:
+`RESTIC_OFFSITE_REPOSITORY` in the root `.env` overrides the derived target.
 
-```text
-secrets/staging/rclone.conf
-```
-
-Production uses `secrets/prod/rclone.conf` and a separate repository path, for example:
-
-```env
-RESTIC_OFFSITE_REPOSITORY=rclone:relab-webdav:relab/prod/restic
-```
-
-Do not mirror the raw repository directory with separate rsync/rclone scripts. The supported offsite path is `restic copy`, with rclone acting only as restic's transport for WebDAV and other remotes.
+Do not mirror the raw repository directory with rsync or rclone. Use `restic copy`; rclone is only
+restic's transport.

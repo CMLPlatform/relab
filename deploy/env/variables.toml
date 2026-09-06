@@ -25,7 +25,7 @@ required_secret_files = [
 # Secrets that may legitimately be absent or empty because their feature is opt-in:
 #   - smtp/microsoft-graph: EMAIL_PROVIDER selects exactly one; the other stays unfilled.
 #   - google/github oauth: social login is opt-in; unset the client IDs to disable it.
-#   - rclone.conf: only read when RESTIC_OFFSITE_REPOSITORY names an `rclone:` target.
+#   - rclone.conf: its one remote is the offsite backup target; placeholder = local only.
 optional_secret_files = [
   "smtp_password",
   "microsoft_graph_client_secret",

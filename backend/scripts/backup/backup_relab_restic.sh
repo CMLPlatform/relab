@@ -164,10 +164,22 @@ prune_repo() {
         --group-by=tags
 }
 
-# True when the offsite target needs an rclone remote that RCLONE_CONFIG does not
-# define. The repository path is committed per environment, but the credential is a
-# hand-written secret, so a host can be configured to copy offsite without being able
-# to. Skip the copy in that state rather than failing the run every night.
+# The offsite repository is the one remote in RCLONE_CONFIG, with an empty path: a
+# share link's WebDAV root is the shared folder, and a path appended to it would create
+# a second, empty repository nested inside the real one. RESTIC_OFFSITE_REPOSITORY,
+# when set, overrides this (a non-rclone target, or a config with several remotes).
+# Prints nothing when the config is absent, has no remote (the placeholder), or more
+# than one.
+derive_offsite_repository() {
+    [[ -n "${RCLONE_CONFIG:-}" && -f "${RCLONE_CONFIG}" ]] || return 0
+    local -a remotes=()
+    mapfile -t remotes < <(sed -n 's/\r$//; s/^\[\([^]]*\)\]$/\1/p' "$RCLONE_CONFIG")
+    [[ "${#remotes[@]}" -eq 1 ]] && printf 'rclone:%s:' "${remotes[0]}"
+    return 0
+}
+
+# True when an explicit offsite target names an rclone remote that RCLONE_CONFIG does
+# not define. Skip the copy in that state rather than failing the run every night.
 offsite_remote_missing() {
     local repo="${1:-}" remote
     [[ "$repo" == rclone:* ]] || return 1
@@ -206,6 +218,9 @@ copy_to_offsite() {
     local did_backup="${1:-false}"
 
     if [[ -z "${RESTIC_OFFSITE_REPOSITORY:-}" ]]; then
+        if [[ -n "${RCLONE_CONFIG:-}" && -f "${RCLONE_CONFIG}" ]]; then
+            log "WARNING: offsite copy SKIPPED — ${RCLONE_CONFIG} does not define exactly one remote and RESTIC_OFFSITE_REPOSITORY is unset. Backups are LOCAL ONLY. See deploy/DEPLOY-PROD.md Part 1.3."
+        fi
         return 0
     fi
     if offsite_remote_missing "$RESTIC_OFFSITE_REPOSITORY"; then
@@ -240,6 +255,9 @@ main() {
     UPLOADS_DIR="${UPLOADS_DIR:-/data/uploads}"
 
     mkdir -p "$BACKUP_WORK_DIR"
+
+    export RESTIC_OFFSITE_REPOSITORY
+    RESTIC_OFFSITE_REPOSITORY="${RESTIC_OFFSITE_REPOSITORY:-$(derive_offsite_repository)}"
 
     ensure_restic_repository
 
