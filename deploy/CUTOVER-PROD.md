@@ -59,8 +59,8 @@ This is not a routine deploy. The deployment layout itself changed:
   so this is first-time setup, not a re-enable.
 - ClamAV is new, needs 3–4 GiB, and is now behind the `scanning` profile.
 
-The staging host has its own state and outstanding work; see
-[CUTOVER-STAGING.md](CUTOVER-STAGING.md). Staging shares `compose.deploy.yaml` with prod, so
+Staging finished its own cutover on 2026-09-06 and is operated from
+[DEPLOY-STAGING.md](DEPLOY-STAGING.md). Staging shares `compose.deploy.yaml` with prod, so
 anything unfinished there is also unrehearsed here.
 
 Read sections 0 and 1 fully before touching anything. Steps 2–6 are preparation

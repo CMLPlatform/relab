@@ -89,7 +89,7 @@ These are the reasons the two documents are not one:
 ## Rebuilding from scratch
 
 The one host where this is cheap, and the honest test of whether the deploy path works
-on a clean machine:
+on a clean machine. Not run since the 2026-08-19 backup rework, so it is still owed:
 
 ```bash
 just staging-down YES scanning
