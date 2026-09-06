@@ -20,6 +20,10 @@ if TYPE_CHECKING:
 
     from app.api.common.models.base import Base
 
+# Shared by the registration error and the pre-registration /validate-email hint, so the
+# form shows the same wording before and after submit.
+UNDELIVERABLE_EMAIL_MESSAGE = "This email domain does not accept mail. Please check for typos."
+
 
 class AuthCRUDError(Exception):
     """Base class for custom authentication CRUD exceptions."""
@@ -54,6 +58,17 @@ class DisposableEmailError(BadRequestError, AuthCRUDError):
         super().__init__(
             "Disposable email providers are not allowed.",
             log_message=f"Disposable email providers are not allowed: {email}.",
+        )
+
+
+class UndeliverableEmailError(BadRequestError, AuthCRUDError):
+    """Raised when an email address's domain has no mail exchanger."""
+
+    def __init__(self, email: str) -> None:
+        # Don't reflect the submitted address back to the client; keep it in the server log only.
+        super().__init__(
+            UNDELIVERABLE_EMAIL_MESSAGE,
+            log_message=f"Email domain does not accept mail: {email}.",
         )
 
 

@@ -4,10 +4,11 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import exists, select
 
-from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
+from app.api.auth.exceptions import DisposableEmailError, UndeliverableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import User
 from app.api.auth.preferences import merge_user_preferences
 from app.api.auth.schemas import UserCreateBase, UserUpdate
+from app.api.auth.services.email_identity import has_deliverable_domain
 from app.api.common.exceptions import BadRequestError, NotFoundError
 
 USERNAME_FIELD = "username"
@@ -31,6 +32,9 @@ async def validate_user_create[UserCreateT: UserCreateBase](
     """
     if email_checker and await email_checker.is_disposable(user_create.email):
         raise DisposableEmailError(email=user_create.email)
+
+    if not await has_deliverable_domain(user_create.email):
+        raise UndeliverableEmailError(email=user_create.email)
 
     if user_create.username is not None:
         query = select(exists().where(User.username == user_create.username))
