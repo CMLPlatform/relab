@@ -224,8 +224,9 @@ ______________________________________________________________________
 Migrations run in a single transaction, so a failed migrate leaves the schema untouched at its
 previous revision. Fix forward where possible.
 
-Every `just prod-build` tags its images with the commit sha, so a release can be rolled back
-without a rebuild:
+Every `just prod-build` tags its images with the commit sha of the checkout it built (unrelated to
+the alembic revision, which names the schema), so a release can be rolled back without a rebuild.
+The newest five sha tags per image are kept; `KEEP_SHA_TAGS=<n>` on the build changes that.
 
 ```bash
 docker images 'relab-backend' --format '{{.Tag}}' | grep prod-   # the shas available

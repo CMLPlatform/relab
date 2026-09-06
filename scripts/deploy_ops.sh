@@ -535,6 +535,18 @@ stack_images() {
         | sed -n "s/:$1-local\$//p" | grep '^relab-'
 }
 
+# Sha tags outlive their usefulness after a few releases and, untagged, nothing
+# removes them. Keep the newest KEEP_SHA_TAGS per image (by image creation time).
+KEEP_SHA_TAGS="${KEEP_SHA_TAGS:-5}"
+prune_sha_tags() {
+    local image="$1" env="$2" current="$3" tag
+    while IFS= read -r tag; do
+        [[ "$tag" == "$env-$current" ]] && continue
+        docker image rm "$image:$tag" >/dev/null
+    done < <(docker images "$image" --format '{{.CreatedAt}}\t{{.Tag}}' | grep -E "\s$env-[0-9a-f]{7,40}$" \
+        | sort -r | tail -n "+$((KEEP_SHA_TAGS + 1))" | cut -f2)
+}
+
 # Fail unless every stack image carries the `<env>-<sha>` tag a previous `build` left,
 # so a rollback never mixes two releases.
 require_rollback_images() {
@@ -627,18 +639,17 @@ stack_command() {
             fi
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" build "${no_cache[@]}"
             # Every build overwrites the single :$env-local tag, so also tag the result
-            # with the current commit. Rollback is then a `docker tag` away instead of a
-            # full rebuild (see deploy/DEPLOY-PROD.md Part 3).
-            # Tag every stack image, not only the profiles built now, so `rollback` (which
-            # requires the full set) can always return here.
+            # with the current commit; `rollback` retags from those. Tag every stack
+            # image, not only the profiles built now, so the set is always complete.
             local sha image
             sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
             if [[ -n "$sha" ]]; then
                 for image in $(stack_images "$env"); do
                     docker image inspect "$image:$env-local" >/dev/null 2>&1 || continue
                     docker tag "$image:$env-local" "$image:$env-$sha"
+                    prune_sha_tags "$image" "$env" "$sha"
                 done
-                echo "tagged built images with $env-$sha"
+                echo "tagged built images with $env-$sha (keeping the newest $KEEP_SHA_TAGS)"
             fi
             ;;
         logs)
