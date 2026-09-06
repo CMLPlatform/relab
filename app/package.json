@@ -17,7 +17,7 @@
     "test:unit": "jest --config jest.config.cjs --selectProjects unit",
     "test:integration": "jest --config jest.config.cjs --selectProjects integration",
     "test:watch": "jest --config jest.config.cjs --watchAll",
-    "test:ci": "jest --config jest.config.cjs --ci --coverage",
+    "test:ci": "jest --config jest.config.cjs --ci",
     "build": "pnpm run build:web",
     "build:web": "expo export -p web -c",
     "profile:compiler:web": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; ENVIRONMENT=production expo start --web --port 8011 --clear",

@@ -251,10 +251,10 @@ changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
 
 Use `just security` for local diagnosis.
 
-CI runs CodeQL and the container image scans once a pull request leaves draft. Image CVEs found on
-a pull request are reported to the Security tab and do not fail the check; the blocking gate runs
-after merge and on the weekly schedule. Run `just security` before marking a pull request ready to
-get that signal early.
+CI runs CodeQL once a pull request leaves draft and dependency review on every pull request. The
+container image scans (Trivy, blocking) run after merge and on the weekly schedule, not per pull
+request: Docker smoke already proves the images build, and base-image advisories move faster than
+images rebuild. Run `just security` before marking a pull request ready to get that signal early.
 
 ## Backend Setup
 

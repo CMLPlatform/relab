@@ -139,10 +139,11 @@ test-e2e:
     @just docs/test-e2e
     @just test-e2e-full-stack
 
-# Repository policy checks beyond prek: IaC, env policy, compose, deploy secrets
-policy-check: cloudflare-check env-policy-check compose-config deploy-secrets-check
+# Repository policy checks beyond prek: env policy, compose, deploy secrets.
+# `cloudflare-check` (OpenTofu, needs provider downloads) runs in CI and on demand.
+policy-check: env-policy-check compose-config deploy-secrets-check
 
-# Canonical CI pipeline: policy, IaC, quality checks, CI tests, compose validation
+# Local CI pipeline: hooks, quality checks, CI tests, policy (IaC is CI-only)
 ci: pre-commit check test-ci policy-check
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness

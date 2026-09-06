@@ -48,9 +48,10 @@ test-unit:
 test-integration:
     pnpm run test:integration
 
-# Run the app CI test suite
+# Run the app CI test suite. Coverage quadruples the run, so CI collects it on
+# push and schedule only; Codecov carries the flag forward on pull requests.
 test-ci:
-    pnpm run test:ci
+    pnpm run test:ci {{ if env("COVERAGE", "") != "" { "--coverage" } else { "" } }}
 
 # Run the full app CI pipeline locally
 ci: check test-ci

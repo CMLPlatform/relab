@@ -7,9 +7,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-    # `ready_for_review` on top of the default types: container-security and
-    # CodeQL skip drafts, so marking a PR ready must trigger the run that fills
-    # them in.
+    # `ready_for_review` on top of the default types: CodeQL skips drafts, so
+    # marking a PR ready must trigger the run that fills it in.
     types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
   schedule:
@@ -78,8 +77,11 @@ jobs:
       - name: Run root script tests
         run: just test-scripts
 
-      - name: Run IaC, env, Compose, and deploy-secret checks
+      - name: Run env, Compose, and deploy-secret checks
         run: just policy-check
+
+      - name: Validate Cloudflare IaC
+        run: just cloudflare-check
 
   backend:
     name: Backend
@@ -152,6 +154,9 @@ jobs:
 
       - name: Run CI test suite
         run: just ${{ matrix.subrepo }}/test-ci
+        env:
+          # App coverage is the critical path of a PR run (see app/justfile).
+          COVERAGE: ${{ (matrix.subrepo != 'app' || github.event_name != 'pull_request') && 'true' || '' }}
 
       - name: Publish reports
         uses: ./.github/actions/publish-reports
@@ -383,16 +388,15 @@ jobs:
 
   container-security:
     name: Container Security (${{ matrix.service }})
-    # The image builds are the expensive half of the security jobs; drafts skip
-    # them and pick them up on `ready_for_review`.
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    # Post-merge, weekly, and on demand. Docker smoke already proves the same
+    # Dockerfiles build on every PR, and dependency-review gates new vulnerable
+    # packages there; advisories against base images land faster than images
+    # rebuild, so the blocking scan belongs after merge.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     permissions:
       contents: read
-      # Pull-request findings are uploaded to the Security tab rather than
-      # failing the job; that needs write access to code scanning.
-      security-events: write
     strategy:
       fail-fast: false
       matrix:
@@ -437,9 +441,8 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           load: true
-          # `pull` keeps base images fresh so post-merge and weekly scans see
-          # current CVEs; PR scans only need to catch what the PR introduces.
-          pull: ${{ github.event_name != 'pull_request' }}
+          # Fresh base images so the scan sees current CVEs.
+          pull: true
           tags: ${{ matrix.image }}:${{ github.sha }}
           # `scan-` prefix: the placeholder build-args make these layers distinct from
           # the docker-smoke builds, which write the compose `scope=<service>` caches.
@@ -458,36 +461,9 @@ jobs:
             EXPO_PUBLIC_WEBSITE_URL=https://example.invalid
             EXPO_PUBLIC_DOCS_URL=https://docs.example.invalid
 
-      # Advisories land faster than base images rebuild, so a blocking PR gate on
-      # base-image CVEs fails continuously. Pull requests report into the Security tab
-      # and stay green; the post-merge and weekly runs are the blocking gate.
       # Suppressions live in .github/trivyignore.yaml, each with an expiry and a
       # reachability note.
-      - name: Scan image with Trivy (report)
-        if: github.event_name == 'pull_request'
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
-        with:
-          image-ref: ${{ matrix.image }}:${{ github.sha }}
-          format: sarif
-          output: trivy-${{ matrix.service }}.sarif
-          exit-code: "0"
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-          # Without this the SARIF carries every severity, so the Security tab
-          # stops matching what the gate below actually enforces.
-          limit-severities-for-sarif: true
-          trivyignores: .github/trivyignore.yaml
-
-      - name: Upload Trivy results
-        # Fork PRs run with a read-only token that cannot upload SARIF.
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
-        with:
-          sarif_file: trivy-${{ matrix.service }}.sarif
-          category: trivy-image-${{ matrix.service }}
-
-      - name: Scan image with Trivy (gate)
-        if: github.event_name != 'pull_request'
+      - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: ${{ matrix.image }}:${{ github.sha }}
@@ -550,7 +526,7 @@ jobs:
 
   codeql:
     name: CodeQL (${{ matrix.language }})
-    # Skipped on drafts alongside container-security; `ready_for_review` fills it in.
+    # Skipped on drafts; `ready_for_review` fills it in.
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 30
