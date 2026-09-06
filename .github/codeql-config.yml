@@ -27,3 +27,6 @@ query-filters:
 # and `down_revision`, which trigger recurring false positives for `py/unused-global-variable`.
 paths-ignore:
   - backend/alembic/**
+  # Deliberately non-functional Semgrep rule fixtures: every declaration is bait for a
+  # rule under test, so nothing is used and CodeQL reports each one as an unused local.
+  - tests/fixtures/**

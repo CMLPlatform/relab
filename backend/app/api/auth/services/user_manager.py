@@ -100,6 +100,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             TypeAdapter(EmailStr).validate_python(credentials.username)
             is_email = True
         except ValidationError:
+            # Not an email address, so fall through to the username lookup below.
             pass
 
         if not is_email:

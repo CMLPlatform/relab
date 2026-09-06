@@ -148,6 +148,7 @@ async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> No
     try:
         await _receive_loop(websocket, session)
     except WebSocketDisconnect:
+        # Normal client disconnect; the finally block still tears the tasks down.
         pass
     except Exception:
         logger.exception("Unexpected error in WebSocket receive loop for camera %s", sanitize_log_value(camera_id))

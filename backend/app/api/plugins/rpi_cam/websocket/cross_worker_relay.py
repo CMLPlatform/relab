@@ -274,6 +274,7 @@ async def run_relay_listener(
             await _execute_and_respond(redis, camera_id, manager, cmd, msg_id)
 
     except asyncio.CancelledError:
+        # Listener cancelled during connection teardown; nothing left to clean up here.
         pass
     finally:
         logger.debug("Cross-worker relay listener stopped for camera %s", camera_log_id)

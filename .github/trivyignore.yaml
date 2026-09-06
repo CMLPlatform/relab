@@ -55,6 +55,9 @@ vulnerabilities:
   - id: GHSA-hrxh-6v49-42gf
     expired_at: 2026-11-01
     statement: gRPC-Go xDS RBAC and HTTP/2 flaws; caddy serves no gRPC and loads no xDS config.
+  - id: CVE-2026-84304
+    expired_at: 2026-11-01
+    statement: gRPC-Go HTTP/2 DATA-frame memory exhaustion; caddy runs no gRPC server in this image.
 
 misconfigurations: []
 secrets: []
