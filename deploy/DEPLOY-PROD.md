@@ -90,7 +90,7 @@ systemd runs without a login `PATH`.
 | `relab-backup@prod`             | hourly           | yes — an hour missed while the host was off runs at boot |
 | `relab-backup-maintenance@prod` | 02:30 daily      | yes — a night missed while the host was off runs at boot |
 | `relab-watchdog@prod`           | hourly           | no — a missed check self-heals within the hour           |
-| `relab-restore-check@prod`      | 03:40 on the 1st | yes — this is why it is a timer and not cron             |
+| `relab-restore-check@prod`      | 06:00 on the 1st | yes — this is why it is a timer and not cron             |
 
 That last row is the reason not to use cron here: a monthly job skipped because the host
 was down on the 1st would not run again for two months, and it is the only check that
