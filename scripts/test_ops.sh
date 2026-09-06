@@ -133,8 +133,8 @@ assert_eq "snapshot without tags exits 0 with 0" "0|0" \
     "$(snapshot_age '[{"time":"2026-08-02T03:04:05.1+00:00"}]')"
 
 # ---------------------------------------------------------------------------
-# Watchdog deployment drift: a deploy host silently behind origin is the failure
-# this check exists to name, and "no upstream" must not read as "no drift".
+# Watchdog deployment drift: a deploy host behind origin, and "no upstream", which must
+# not read as "no drift".
 # ---------------------------------------------------------------------------
 drift() {
     local out status
@@ -153,8 +153,7 @@ assert_eq "diverged reports both sides" "1|ALERT[prod]: deploy checkout has dive
 assert_eq "missing upstream is itself an alert" \
     "1|ALERT[prod]: deploy checkout tracks no upstream branch; drift cannot be detected" \
     "$(drift no '' 0 0)"
-# A dirty tree and a stale checkout are independent problems; reporting one must not
-# swallow the other.
+# A dirty tree and a stale checkout are independent problems; both are reported.
 assert_eq "dirty and behind both count" "2|ALERT[prod]: deploy checkout has uncommitted changes
 ALERT[prod]: deploy checkout is 4 commits behind origin/main" \
     "$(drift yes origin/main 4 0)"
@@ -180,9 +179,8 @@ assert_eq "disabled timer is reported" \
 assert_eq "absent timer reads as not installed" \
     "1|ALERT[prod]: relab-backup@prod.timer is 'not installed', not 'enabled'; its job is not scheduled" \
     "$(timer '' '' no '')"
-# The reducer derives the service from the timer name, so the same code covers all
-# three scheduled jobs — restore-check is the one whose silent loss goes unnoticed
-# longest (35+ day check period).
+# The reducer derives the service from the timer name, so the same code covers all three
+# scheduled jobs. restore-check's silent loss goes unnoticed longest (35+ day period).
 restore_timer() {
     local out status
     out="$(backup_timer_alerts prod relab-restore-check@prod.timer "$1" "$2" "$3" "$4" 2>&1)"
@@ -192,15 +190,15 @@ restore_timer() {
 assert_eq "restore-check timer uses its own service name" \
     "1|ALERT[prod]: last relab-restore-check@prod.service run failed (Result=timeout); see: journalctl -u relab-restore-check@prod.service" \
     "$(restore_timer enabled active yes timeout)"
-# The gap this check exists to close: `enable` without `--now`, or a timer stopped
-# by hand, leaves is-enabled saying "enabled" while it never fires again.
+# `enable` without `--now`, or a timer stopped by hand, leaves is-enabled saying
+# "enabled" while it never fires again.
 assert_eq "enabled but stopped is reported" \
     "1|ALERT[prod]: relab-backup@prod.timer is enabled but 'inactive'; it will not fire" \
     "$(timer enabled inactive no success)"
 assert_eq "failed last run is reported" \
     "1|ALERT[prod]: last relab-backup@prod.service run failed (Result=exit-code); see: journalctl -u relab-backup@prod.service" \
     "$(timer enabled active yes exit-code)"
-# Scheduling and last-run health are independent; one must not mask the other.
+# Scheduling and last-run health are independent; both are reported.
 assert_eq "stopped timer and failed run both count" \
     "2|ALERT[prod]: relab-backup@prod.timer is enabled but 'inactive'; it will not fire
 ALERT[prod]: last relab-backup@prod.service run failed (Result=timeout); see: journalctl -u relab-backup@prod.service" \
@@ -228,10 +226,9 @@ assert_eq "restarting container is reported" "1|ALERT[prod]: api container state
     "$(state restarting)"
 
 # ---------------------------------------------------------------------------
-# deploy_watchdog.sh check 3b: dead-man's-switch wiring. The regression that
-# matters most: a root-owned 0600 host env file with the URL filled in must NOT
-# read as "empty" — systemd already delivered the value into the unit's
-# environment, and judging the unreadable file used to alert forever.
+# deploy_watchdog.sh check 3b: dead-man's-switch wiring. A root-owned 0600 host env file
+# with the URL filled in must not read as "empty": systemd already delivered the value
+# into the unit's environment.
 # ---------------------------------------------------------------------------
 value_of() {
     local out status
@@ -302,9 +299,9 @@ assert_eq "valid key still restores" 0 "$(
 )"
 
 # ---------------------------------------------------------------------------
-# run_scheduled.sh resolves <job> to a `just` recipe of the same name. That coupling
-# is invisible from either side: rename a recipe and the nightly unit starts failing
-# with "Justfile does not contain recipe", which nothing here would otherwise catch.
+# run_scheduled.sh resolves <job> to a `just` recipe of the same name. Renaming a recipe
+# makes the scheduled unit fail with "Justfile does not contain recipe", which nothing
+# else here would catch.
 # JUST_BIN=echo turns the invocation into observable output without running anything.
 # ---------------------------------------------------------------------------
 scheduled_cmd() {
@@ -334,9 +331,9 @@ for unit_job in $(sed -n 's|.*run_scheduled\.sh \([a-z-]*\) %i.*|\1|p' deploy/sy
 done
 
 # ---------------------------------------------------------------------------
-# The collapsed-dump guard in backup_relab_restic.sh. An empty database dumps
-# happily, and once archived it becomes the newest snapshot that retention ages the
-# good copies out behind — so the guard has to reject the dump BEFORE the write.
+# The collapsed-dump guard in backup_relab_restic.sh. An empty database dumps without
+# error, and once archived it becomes the newest snapshot that retention ages the good
+# copies out behind, so the guard rejects the dump before the write.
 # `restic` and the dump file are stubbed; no repository and no docker are involved.
 # ---------------------------------------------------------------------------
 collapse_guard() {
@@ -379,9 +376,8 @@ assert_eq "RESTIC_MIN_DUMP_RATIO=0 archives a collapsed dump deliberately" "0|0|
     "$(collapse_guard 59353 259672 0)"
 assert_eq "no previous snapshot means nothing to compare against" "0|0|0" \
     "$(collapse_guard 59353 0)"
-# The guard must fail closed: a restic error (lock held by maintenance, repository
-# unreadable) is not "no previous snapshot", and archiving anyway is exactly the
-# unguarded write this check exists to prevent.
+# The guard fails closed: a restic error (lock held by maintenance, repository
+# unreadable) is not "no previous snapshot".
 assert_eq "a restic failure refuses the dump instead of failing open" "1|0|1" \
     "$(collapse_guard 59353 259672 '' 1)"
 
@@ -409,15 +405,14 @@ cycle_steps() {
 assert_eq "auto: snapshot then full maintenance" "db,uploads,prune,restic check,copy:true" "$(cycle_steps auto)"
 assert_eq "skip (hourly timer): snapshot only, no prune, no copy" "db,uploads" "$(cycle_steps skip)"
 assert_eq "only (daily timer): maintenance without a new snapshot" "prune,restic check,copy:true" "$(cycle_steps only)"
-# A copy-only run (both backups skipped) is what an operator uses when the local repo
-# is already lost; pruning in that moment would expire the only surviving archive.
+# A copy-only run (both backups skipped) is what an operator uses when the local repo is
+# already lost, so it must not prune the only surviving archive.
 assert_eq "auto with both backups skipped is copy-only, never prune" "copy:false" "$(cycle_steps auto true true)"
 
 # ---------------------------------------------------------------------------
 # Check 5's reducer: the two telemetry credentials fail at different layers and the
 # alert has to say which, because the remedies are in different systems (a Cloudflare
-# apply vs. a token rotation). A challenged export is silently dropped, so this is the
-# only thing that reports it.
+# apply vs. a token rotation). A challenged export is dropped silently.
 # ---------------------------------------------------------------------------
 telemetry_alert() {
     local out status
@@ -444,9 +439,8 @@ assert_eq "mitigation outranks a success status" "1|ALERT[staging]: telemetry ex
     "$(telemetry_alert 200 challenge)"
 
 # ---------------------------------------------------------------------------
-# Timer staleness: a unit can be enabled, active and last-exited-0 while not having
-# run for months. systemd reports nothing wrong, because nothing is. Catching that is
-# what lets one dead-man's switch per environment replace one per job.
+# Timer staleness: a unit can be enabled, active and last-exited-0 while not having run
+# for months, and systemd reports nothing wrong.
 # ---------------------------------------------------------------------------
 NOW=1757160000 # fixed epoch so these never depend on the wall clock
 staleness_alert() {
@@ -460,18 +454,18 @@ assert_eq "a timer that fired within its limit is silent" "0|" \
     "$(staleness_alert "$((NOW - 3600))" 3)"
 assert_eq "a timer exactly at its limit is silent" "0|" \
     "$(staleness_alert "$((NOW - 3 * 3600))" 3)"
-# The whole point: scheduled, active, last run succeeded — and stopped firing anyway.
+# Scheduled, active, last run succeeded — and stopped firing anyway.
 assert_eq "a monthly timer that stopped firing is reported" \
     "1|ALERT[staging]: relab-restore-check@staging.timer last ran 1440h ago, over its 960h limit; it is scheduled but not firing" \
     "$(staleness_alert "$((NOW - 60 * 24 * 3600))" 960)"
 assert_eq "an hourly timer stuck for a day is reported" \
     "1|ALERT[staging]: relab-restore-check@staging.timer last ran 24h ago, over its 3h limit; it is scheduled but not firing" \
     "$(staleness_alert "$((NOW - 24 * 3600))" 3)"
-# A freshly installed Persistent=true timer has never fired and is not yet due; an
-# alert there would fire on every new host and teach people to ignore it.
+# A freshly installed Persistent=true timer has never fired and is not yet due, so it
+# must not alert on every new host.
 assert_eq "a timer that has never fired is not an alert" "0|" "$(staleness_alert 0 3)"
-# A LastTriggerUSec that date(1) cannot read would otherwise switch this check off for
-# every timer at once, with everything reading green.
+# A LastTriggerUSec that date(1) cannot read switches this check off for every timer at
+# once, so it is reported.
 assert_eq "an unparseable last trigger is reported, not treated as never fired" \
     "1|ALERT[staging]: cannot parse LastTriggerUSec for relab-restore-check@staging.timer; the staleness check is not running" \
     "$(staleness_alert unparseable 960)"

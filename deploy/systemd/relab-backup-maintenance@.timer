@@ -13,8 +13,7 @@ Description=Relab backup maintenance schedule (%i)
 
 [Timer]
 # Daily, after the hourly snapshots have accumulated. Persistent so a day missed while
-# the host was off still prunes and copies offsite at boot: skipping it silently is how
-# a repository grows without bound and the offsite copy goes stale.
+# the host was off still prunes and copies offsite at boot.
 OnCalendar=*-*-* 02:30:00
 Persistent=true
 

@@ -8,33 +8,30 @@ Zone-scoped configuration for `cml-relab.org`, managed with OpenTofu:
 
 ## Why this is a separate root
 
-Cloudflare allows exactly one entrypoint ruleset per (zone, phase), and prod and
-staging share this zone. Owning these from either environment's workspace meant the
-last apply won — so they live here instead, with a single `default` workspace and no
-environment variable at all.
+Cloudflare allows one entrypoint ruleset per (zone, phase), and prod and staging share
+this zone. Owning these from either environment's workspace lets the last apply
+overwrite the other's rules, so they live here, in a single `default` workspace.
 
-The rules deliberately match **both** environments' hostnames. That is not an
-oversight: one ruleset protects the whole zone, so it has to cover every environment
-in it. The hostname map is `hostnames.tf`, a symlink to the one in `../cloudflare`.
+One ruleset protects the whole zone, so the rules match **both** environments'
+hostnames. The hostname map is `hostnames.tf`, a symlink to the one in `../cloudflare`.
 
 **Everything here affects prod and staging together.** A change to the TLS floor or a
 firewall rule lands on every hostname in the zone at once.
 
 ## Rules adopted from the hand-configured zone
 
-Two rules that existed in the live zone before adoption are reproduced here, because
-dropping them would have been a silent regression:
+Two rules that existed in the live zone before adoption are reproduced here:
 
 - **`relab_prod_html_bypass`** — the prod web and app entry points bypass the edge
   cache. Their URLs do not change between deploys, so a cached entry point keeps
   serving the previous build.
-- **`relab_telemetry_ingress_skip_managed_security`** — `otel.` accepts
-  shipped telemetry from a non-browser client that Cloudflare's bot products would
-  otherwise challenge, and a challenged log push is a silently dropped log.
+- **`relab_telemetry_ingress_skip_managed_security`** — `otel.` accepts telemetry from a
+  non-browser client that Cloudflare's bot products challenge, and a challenged log push
+  is a dropped log.
 
-Two others were dropped **deliberately**, and are recorded in `locals.tf` next to the
-rules that replaced them: a bypass for `rpi-cam-*` hostnames that nothing serves any
-more, and a restatement of Cloudflare's own default extension caching.
+Two others are not reproduced, and are recorded in `locals.tf`: a bypass for `rpi-cam-*`
+hostnames that nothing serves, and a restatement of Cloudflare's default extension
+caching.
 
 ### The telemetry credential
 
@@ -45,57 +42,42 @@ enters the repository:
 export TF_VAR_telemetry_edge_key='...'  # same value as TELEMETRY_EDGE_KEY in the deploy hosts' .env
 ```
 
-It is matched against a dedicated `X-Telemetry-Key` header, **not** the OTLP
-bearer token: Cloudflare stores ruleset expressions in cleartext and returns them from
-the rulesets API, so matching the Authorization value (as the adopted rule originally
-did) would disclose the collector credential to any zone-read grant. The deploy hosts
-send both headers — the token authenticates at the collector, the key only buys the
-managed-security skip — and the two rotate independently.
+It is matched against a dedicated `X-Telemetry-Key` header, **not** the OTLP bearer
+token: Cloudflare stores ruleset expressions in cleartext and returns them from the
+rulesets API, so matching the Authorization value discloses the collector credential to
+any zone-read grant. The deploy hosts send both headers. The token authenticates at the
+collector, the key only buys the managed-security skip, and the two rotate independently.
 
-> **Sharing the zone with the monitoring stack is fine today — keep it that way.**
-> `otel.cml-relab.org` belongs to CMLPlatform/monitoring, which runs its own Cloudflare
-> Terraform against this same zone. Checked on 2026-09-05: its `infra/main.tf` declares a
-> tunnel, two DNS records (`grafana.`, `otel.`) and a Zero Trust Access application —
-> and **no `cloudflare_ruleset`**, so nothing there contends with this root.
+> **The monitoring stack shares this zone.** `otel.cml-relab.org` belongs to
+> CMLPlatform/monitoring, which runs its own Cloudflare Terraform against this zone.
+> Checked on 2026-09-05: its `infra/main.tf` declares a tunnel, two DNS records
+> (`grafana.`, `otel.`) and a Zero Trust Access application, and no `cloudflare_ruleset`.
 >
-> That is a property to preserve, not a guarantee. Cloudflare allows one entrypoint
-> ruleset per (zone, phase), and that constraint does not stop at a repository boundary:
-> if the monitoring stack ever adds a WAF, cache or rate-limit ruleset for this zone,
-> whichever applied last would silently erase the other's rules. Rules for its hostnames
-> belong here, in the single owner, the way the telemetry skip rule does.
+> The one-entrypoint-ruleset-per-(zone, phase) limit crosses repository boundaries. If the
+> monitoring stack adds a WAF, cache or rate-limit ruleset for this zone, whichever
+> applies last erases the other's rules. Keep rules for its hostnames here, in the single
+> owner, as the telemetry skip rule is.
 
-Leaving it unset **omits the rule** rather than relaxing it — a rule that skipped
-managed security for any request to the telemetry host would be worse than no rule.
-That also means a plan run without it will propose **deleting** the live rule, so export
-it whenever you plan this root, and rotate it together with the deploy hosts'
-`OTLP_AUTH_TOKEN` — the same token, in the header form `Bearer <token>`.
+Leaving the key unset **omits the rule** rather than relaxing it. A plan run without the
+key therefore proposes **deleting** the live rule, so export it whenever you plan this
+root. Rotate it together with the deploy hosts' `OTLP_AUTH_TOKEN`, the same token in the
+header form `Bearer <token>`.
 
 ## What this zone's Cloudflare plan allows
 
-Two limits were found by an apply failing halfway, so they are now asserted in
-`tests/zone.tftest.hcl` rather than rediscovered:
+Both limits below fail at *apply* time, partway through, after other resources have
+already changed, so `tests/zone.tftest.hcl` asserts them:
 
-- **The `http_ratelimit` phase is heavily constrained on the Free tier:** one rule, a
-  10-second counting period, a 10-second mitigation timeout, and only Path and Verified
-  Bot usable as expression fields — `http.host` is not allowed. The single slot goes to
-  the auth endpoints: unauthenticated, the usual credential-stuffing target, and edge
-  blocking keeps the flood off the origin. Scoping by path alone is safe because
-  `/v1/auth/` is served by nothing but the api hostnames.
-
-  The rule sits at 10 requests / 10s, deliberately far above the application limits
-  behind it (login 3/min, register and reset 3–5/hour, in
-  `backend/app/api/auth/config.py`). The backend does the precise per-endpoint
-  enforcement; this only stops volume, and staying loose keeps it from ever being what
-  blocks a real person. Endpoints that lost their edge rule keep their own limiter
-  dependencies, so none is left with no limit at all.
+- **The Free tier constrains the `http_ratelimit` phase:** one rule, a 10-second counting
+  period, a 10-second mitigation timeout, and only Path and Verified Bot usable as
+  expression fields — `http.host` is not allowed. The single slot holds the auth
+  endpoints. Path-only scoping works because `/v1/auth/` is served by nothing but the api
+  hostnames.
 
 - **No `matches` (regex) operator.** It needs a Business or WAF Advanced plan. The
-  affected expressions use `starts_with`/`ends_with` instead. This one is worth catching
-  in tests specifically because it fails at *apply* time, partway through, after other
-  resources have already changed.
+  affected expressions use `starts_with`/`ends_with` instead.
 
-Raising either would mean a paid Cloudflare plan. Both are recorded in `locals.tf` next
-to the rules they shaped.
+Raising either limit needs a paid Cloudflare plan.
 
 ## Commands
 

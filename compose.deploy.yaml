@@ -15,11 +15,9 @@
 # automatically when OTEL_EXPORTER_OTLP_ENDPOINT is set in the host's root .env). Hosts
 # without it get Docker's default json-file driver — no config needed.
 
-# Bounded json-file logging on every deploy service. The Loki logging overlay used to
-# own rotation; with Alloy shipping logs instead, Docker's default json-file driver is
-# back in charge and its default is UNBOUNDED — a crash-looping container would fill
-# /var/lib/docker and take postgres down with it. Alloy tails the same files, so
-# rotation costs nothing but bounds the failure.
+# Bounded json-file logging on every deploy service. Docker's json-file driver is
+# unbounded by default, so a crash-looping container fills /var/lib/docker and takes
+# postgres down with it. Alloy tails the same files, so rotation costs nothing.
 x-json-logging: &json-logging
   driver: json-file
   options:
@@ -87,11 +85,11 @@ services:
       # OTEL SDK automatically from the container env and matches the compose
       # service name so traces group cleanly in the backend.
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      # Derived from one operator input, so the SDK's percent-encoded header format is
-      # not a thing anyone has to remember. Alloy reads the same OTLP_AUTH_TOKEN raw.
-      # The edge key is the second header the Cloudflare WAF-skip rule matches; both
-      # must be set together with the endpoint — `just deploy-secrets-check` enforces
-      # the pairing, because the SDK swallows a 401 and telemetry would vanish silently.
+      # Derived from one operator input, in the SDK's percent-encoded header format.
+      # Alloy reads the same OTLP_AUTH_TOKEN raw. The edge key is the second header the
+      # Cloudflare WAF-skip rule matches. Both must be set together with the endpoint;
+      # `just deploy-secrets-check` enforces the pairing, because the SDK swallows a 401
+      # and telemetry then vanishes silently.
       OTEL_EXPORTER_OTLP_HEADERS: Authorization=Bearer%20${OTLP_AUTH_TOKEN:-},X-Telemetry-Key=${TELEMETRY_EDGE_KEY:-}
       # Pinned rather than left to the SDK default: the collector is reached through
       # a Cloudflare tunnel, which routes HTTPS to the HTTP receiver only. There is no
@@ -104,21 +102,21 @@ services:
       # metrics bypass Alloy entirely, so without this they arrive attributable to no
       # project and ProjectTelemetrySilent cannot see them. The SDK reads this variable
       # itself and merges it into every Resource — no code involved. host.name is
-      # deliberately absent: the API is a service-level signal and Alloy owns host
-      # identity, which is the one producer rule from ADR 0002.
+      # absent: the API is a service-level signal and Alloy owns host identity, per
+      # the producer rule in ADR 0002.
       OTEL_RESOURCE_ATTRIBUTES: project=${PROJECT},env=${ENVIRONMENT}
-      # Stable HTTP semantic conventions. Not cosmetic: the legacy metrics label every
-      # series with http_target, the RAW request path, so one API with path parameters
-      # mints an unbounded number of series. The stable names carry http_route instead —
-      # the templated path — which is bounded by the route table. This is the cardinality
-      # rule from ADR 0002 (ids belong in span attributes, never labels) applied to
-      # metrics, and it is what the central Service Health dashboard already queries.
+      # Stable HTTP semantic conventions. The legacy metrics label every series with
+      # http_target, the RAW request path, so one API with path parameters mints an
+      # unbounded number of series. The stable names carry http_route, the templated
+      # path, which is bounded by the route table. This is ADR 0002's cardinality rule
+      # (ids belong in span attributes, never labels), and what the central Service
+      # Health dashboard queries.
       OTEL_SEMCONV_STABILITY_OPT_IN: http
       # ── Resource knobs ──────────────────────────────────────────────────────────
       # WEB_CONCURRENCY = Uvicorn worker processes (~1 CPU core each).
       # All other values are per worker; totals = WEB_CONCURRENCY x per-worker value.
-      # The deploy default is intentionally source-controlled; edit this file
-      # when host capacity changes instead of adding another operator knob.
+      # The deploy default is source-controlled: edit this file when host capacity
+      # changes.
       #
       #                    per worker  x  workers  =  total (prod)
       # Image threads:          5      x     4     =   20  (CPU-bound)
@@ -251,11 +249,11 @@ services:
       XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
       BACKUP_WORK_DIR: /tmp/relab-backups
-      # Backups are hourly (relab-backup@.timer), so keep-hourly is meaningful again:
-      # restic counts distinct HOURS that contain a snapshot, which is why this was 0
-      # while backups were daily — 24 would have resolved to 24 distinct DAYS and
-      # silently overridden the 14 below. 24 keeps one day of hourly granularity;
-      # compressed pg_dumps deduplicate poorly, so every extra hour is a near-full copy.
+      # restic counts distinct HOURS that contain a snapshot, so this is only
+      # meaningful with hourly backups (relab-backup@.timer): under daily backups 24
+      # would resolve to 24 distinct DAYS and override the 14 below. 24 keeps one day
+      # of hourly granularity; compressed pg_dumps deduplicate poorly, so every extra
+      # hour is a near-full copy.
       RESTIC_KEEP_HOURLY: "24"
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
@@ -276,11 +274,10 @@ services:
     tmpfs:
       - /tmp:mode=1777
     networks:
-      # `data` is internal (no gateway), which is what the database wants but leaves
-      # this container with no egress at all — the offsite copy could never resolve
-      # or reach the remote. `egress` exists only to give the backup container a way
-      # out; it is deliberately NOT `edge`, so this keeps no lateral access to the
-      # web services. Postgres and the rest stay on `data` only.
+      # `data` is internal (no gateway), so a container on it alone cannot resolve or
+      # reach the offsite remote. `egress` gives the backup container a way out
+      # without the lateral access to web services that `edge` would grant. Postgres
+      # and the rest stay on `data` only.
       - data
       - egress
 

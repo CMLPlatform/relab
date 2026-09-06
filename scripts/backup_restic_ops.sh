@@ -29,10 +29,10 @@ restore_cleanup() {
     fi
 }
 
-# Assert a restored database has both schema AND data. Table existence alone is not
-# enough: a dump taken from a freshly migrated, empty database has every table and
-# zero rows, and passes a schema-only check while having restored nothing. Counts
-# rows for real rather than reading pg_stat_user_tables, which is empty until ANALYZE.
+# Assert a restored database has both schema and data. A dump taken from a freshly
+# migrated, empty database has every table and zero rows, so it passes a schema-only
+# check. Counts rows directly rather than reading pg_stat_user_tables, which is empty
+# until ANALYZE.
 read -r -d '' ASSERT_RESTORE_NOT_EMPTY <<'SQL' || true
 DO $$
 DECLARE
@@ -117,9 +117,9 @@ build_backup_image() {
 # throwaway Postgres container and assert the dump loads.
 # Args: <repo dir> <restic password file> <scratch dir> [container name].
 # Sets RESTORE_CONTAINER so the caller's EXIT trap can remove the container. The
-# systemd path passes a DETERMINISTIC name so the unit's ExecStopPost reaper can
-# remove the container after a SIGKILL, when no trap here ever runs — an unowned
-# leftover holds a full restored copy of production data.
+# systemd path passes a deterministic name so the unit's ExecStopPost reaper can remove
+# the container after a SIGKILL, when no trap here runs. A leftover holds a full restored
+# copy of production data.
 # Replay a pg_dump custom-format archive already copied into a running Postgres
 # container, then assert schema AND rows landed. One function for the smoke test and
 # the live restore, so the sequence CI exercises is the sequence an operator runs.
@@ -161,7 +161,7 @@ verify_postgres_restore() {
     docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
     RESTORE_CONTAINER="${4:-relab_restore_smoke_$(date +%s)_$$}"
     # A deterministic name can collide with a leftover from a killed earlier run;
-    # replacing it is exactly what we want.
+    # replace it.
     docker rm -f "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
 
     docker run --rm \
@@ -180,9 +180,9 @@ verify_postgres_restore() {
         exit 1
     fi
 
-    # --network none: this container holds a full copy of production data behind a
-    # fixed password for as long as the check runs, and nothing needs to reach it —
-    # the dump arrives by `docker cp`, every query goes through `docker exec`.
+    # --network none: this container holds a full copy of production data behind a fixed
+    # password for as long as the check runs. The dump arrives by `docker cp` and every
+    # query goes through `docker exec`, so it needs no network.
     docker run -d --name "$RESTORE_CONTAINER" --network none \
         -e POSTGRES_PASSWORD=restore-password \
         -e POSTGRES_DB=relab_restore \
@@ -299,11 +299,10 @@ docker_smoke_backups() {
 }
 
 # Read a var from a committed per-environment Compose env file. These are plain
-# KEY=value files, so parse rather than source: sourcing a committed file to read
-# one name is a needless execution path. Strip an inline ` # comment`, surrounding
-# whitespace and one matching quote pair, the same way Compose (and the
-# MALWARE_SCAN_ENABLED reader in deploy_ops.sh) resolve the value — a quoted entry
-# must not aim the offsite copy at a repository Compose never uses.
+# KEY=value files, so parse rather than source. Strip an inline ` # comment`,
+# surrounding whitespace and one matching quote pair, the same way Compose (and the
+# MALWARE_SCAN_ENABLED reader in deploy_ops.sh) resolve the value: a quoted entry must
+# not aim the offsite copy at a repository Compose never uses.
 read_deploy_env_var() {
     local env="$1" var_name="$2" file="$ROOT_DIR/deploy/env/$1.compose.env" value
     [[ -f "$file" ]] || return 0
@@ -320,9 +319,9 @@ read_deploy_env_var() {
 backup_offsite_copy() {
     local env="${1:-staging}"
     # Same precedence Compose applies: the per-environment committed file beats the
-    # shared root .env. Reading only the root .env here was how `backup-offsite-copy
-    # prod` still aimed prod snapshots at STAGING's offsite repository long after the
-    # compose path was fixed — the one value there resolves to the staging path.
+    # shared root .env. Reading only the root .env here made `backup-offsite-copy prod`
+    # write prod snapshots into staging's offsite repository, because the single value
+    # there resolves to the staging path.
     local offsite_repo="${RESTIC_OFFSITE_REPOSITORY:-}"
     [[ -z "$offsite_repo" ]] && offsite_repo="$(read_deploy_env_var "$env" RESTIC_OFFSITE_REPOSITORY)"
     [[ -z "$offsite_repo" ]] && offsite_repo="$(read_dotenv_var RESTIC_OFFSITE_REPOSITORY)"
@@ -461,10 +460,9 @@ restore_postgres() {
     fi
     echo "Restoring $(basename "$dump_file") into $pg_container"
 
-    # The API is the only writer, so stopping it makes the restore a clean swap
-    # rather than a race against live traffic. restore_cleanup restarts it on the
-    # way out even when pg_restore fails, so a failed restore does not also leave
-    # the stack down.
+    # The API is the only writer, so stopping it makes the restore a clean swap rather
+    # than a race against live traffic. restore_cleanup restarts it on the way out even
+    # when pg_restore fails.
     if [[ "$(docker inspect -f '{{.State.Running}}' "$api_container" 2>/dev/null)" == "true" ]]; then
         RESTORE_API_WAS_RUNNING=true
         docker stop "$api_container" >/dev/null
@@ -472,9 +470,9 @@ restore_postgres() {
 
     docker cp "$dump_file" "$pg_container:/tmp/relab-restore.dump"
 
-    # The same replay as the smoke test, so CI has exercised this sequence. Unlike the
-    # smoke test this keeps ACLs — relab_app/relab_migrator/relab_backup exist here,
-    # and dropping their grants would leave the API unable to read its own tables.
+    # The same replay as the smoke test, so CI has exercised this sequence. This path
+    # keeps ACLs: relab_app/relab_migrator/relab_backup exist here, and dropping their
+    # grants would leave the API unable to read its own tables.
     local pg_user pg_db
     pg_user="$(docker exec "$pg_container" sh -c 'printf %s "${POSTGRES_USER:-postgres}"')"
     pg_db="$(docker exec "$pg_container" sh -c 'printf %s "$POSTGRES_DB"')"
@@ -483,11 +481,10 @@ restore_postgres() {
     echo "✅ Restored $env from snapshot '$snapshot'"
 }
 
-# List the snapshots in an environment's local repository. Read-only: --no-lock keeps
-# the repo mount read-only, so this can be run safely while a backup is in flight.
-# Exists because picking a snapshot to restore should not require hand-writing a
-# `docker run` incantation -- `just restore <env> YES latest` is easy to reach for and,
-# after a bad backup, `latest` is exactly the snapshot you must not use.
+# List the snapshots in an environment's local repository. Read-only: --no-lock keeps the
+# repo mount read-only, so this is safe to run while a backup is in flight. Needed
+# because after a bad backup, `just restore <env> YES latest` restores the one snapshot
+# you must not use, and picking another one requires knowing the ids.
 list_snapshots() {
     local env="${1:-}" count="${2:-20}"
     if [[ -z "$env" ]]; then

@@ -1,11 +1,8 @@
-# Zone-global locals: the rule expressions below deliberately match BOTH environments'
-# hosts, because these rulesets are zone entrypoints that protect the whole zone.
+# Zone-global locals. Cloudflare allows one entrypoint ruleset per (zone, phase), so
+# these expressions cover both environments' hosts.
 locals {
   high_risk_country_set = "{${join(" ", formatlist("\"%s\"", ["RU", "CN", "BR"]))}}"
 
-  # These rules match BOTH environments' api hosts. Cloudflare allows exactly one
-  # entrypoint ruleset per (zone, phase), so there is one set of rules for the whole
-  # zone and it has to protect prod and staging alike.
   api_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [
     local.edge_routes_by_environment.prod.api.hostname,
     local.edge_routes_by_environment.staging.api.hostname,
@@ -15,10 +12,9 @@ locals {
     for route in values(local.edge_routes_by_environment.staging) : route.hostname
   ]))}}"
 
-  # Ported from the live zone (rule "Bypass: SPA and web HTML entry points"). The web
-  # and app origins serve single-page-app HTML whose URL does not change between
-  # deploys, so an edge-cached entry point keeps serving the previous build. Prod only:
-  # every staging host is bypassed wholesale by staging_hosts_expression.
+  # The web and app origins serve SPA HTML whose URL does not change between deploys, so
+  # an edge-cached entry point keeps serving the previous build. Prod hosts only; every
+  # staging host is bypassed by staging_hosts_expression.
   prod_html_bypass_expression = join(" and ", [
     "(http.host in {${join(" ", formatlist("\"%s\"", [
       local.edge_routes_by_environment.prod.www.hostname,
@@ -27,53 +23,29 @@ locals {
     "(http.request.uri.path.extension eq \"html\" or http.request.uri.path eq \"/\")",
   ])
 
-  # The telemetry ingress host, owned by CMLPlatform/monitoring rather than by either
-  # Relab environment, so it appears nowhere in the route map. That repo's infra/main.tf
-  # publishes exactly two records in this zone — `grafana.` and `otel.` — and fronts
-  # Grafana with Cloudflare Access while leaving OTLP to the collector's own bearer
-  # token. The ingestion host was renamed from `otlp.` to `otel.` on 2026-09-05; this
-  # expression has to track it, or the skip silently stops matching. This rule keeps Cloudflare's bot products off that token-authenticated path.
-  #
-  # `logs.` was in the rule when it was adopted and is dropped here: the monitoring stack
-  # publishes no such record, because Loki has no authentication of its own.
+  # The telemetry ingress host is owned by CMLPlatform/monitoring, not by either Relab
+  # environment, so it is absent from the route map. That repo publishes `grafana.` and
+  # `otel.` in this zone. The ingestion host was renamed from `otlp.` to `otel.` on
+  # 2026-09-05; this expression must track the name or the skip stops matching.
   telemetry_ingress_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [
     "otel.${local.cloudflare_zone}",
   ]))}}"
 
   # Stored media is content-addressed: the filename embeds the file's hash, so a changed
-  # image is a new URL and a cached copy can never go stale. Prod's api host only —
-  # staging bypasses cache entirely (staging_hosts_expression above), and scoping this
-  # rule away from it keeps the two from fighting over the same setting.
+  # image is a new URL and a cached copy cannot go stale. Prod's api host only; staging
+  # bypasses cache through staging_hosts_expression.
   uploads_expression = join(" and ", [
     "http.host eq \"${local.edge_routes_by_environment.prod.api.hostname}\"",
     "starts_with(http.request.uri.path, \"/uploads/\")",
   ])
 
-  # Shaped entirely by what this zone's Cloudflare plan is entitled to. The Free tier
-  # allows ONE rule in the http_ratelimit phase, a counting period of 10s, a mitigation
-  # timeout of 10s, and only Path and Verified Bot as expression fields — notably NOT
-  # http.host. Each of those was learned from an apply being refused; the tests now
-  # assert them so the next edit fails in `just cloudflare-check` instead.
-  #
-  # The single slot goes to auth: those endpoints are reachable unauthenticated and are
-  # the classic credential-stuffing target, and blocking at the edge keeps the flood off
-  # the origin. Media uploads need a session and are bounded by the per-user upload
-  # ledger; the RPi pairing, image and websocket routes carry their own limiter
-  # dependencies (app/api/common/rate_limiting.py). None of them is left with no limit.
-  #
-  # Accepted residual risk: those app-layer limiters fail OPEN when Redis is
-  # unreachable (rate_limiting.py logs "failing open"), and with the plan capped at one
-  # edge rule there is no second layer behind them during a Redis outage. The upload
-  # ledger (a Postgres count, unaffected by Redis) still bounds total volume per user.
-  #
-  # 10 requests / 10s is deliberately far looser than the application limits it sits in
-  # front of (login is 3/min, register and reset 3-5/hour — app/api/auth/config.py). The
-  # backend does the precise per-endpoint enforcement; this rule only stops volume, and
-  # sitting well above those numbers keeps it from ever being the thing that blocks a
-  # real person. A false positive clears in 10s regardless.
-  #
-  # No host filter, because http.host cannot be used on this plan. In practice the path
-  # is the scope: /v1/auth/ is only served by the api hostnames.
+  # Free-tier limits on the http_ratelimit phase: one rule, a 10s counting period, a 10s
+  # mitigation timeout, and only Path and Verified Bot as expression fields. http.host is
+  # not available, so the path is the scope; /v1/auth/ is served only by the api
+  # hostnames. The tests assert these limits, so an unsupported edit fails in
+  # `just cloudflare-check` instead of at apply time. 10 requests per 10s is far above
+  # the per-endpoint limits in backend/app/api/auth/config.py: the edge stops volume,
+  # the backend enforces per endpoint.
   rate_limit_rules = {
     auth = {
       description         = "Rate limit authentication endpoints"
@@ -84,28 +56,24 @@ locals {
     }
   }
 
-  # Ported from the live zone (rule "require-auth-on-telemetry-ingress"). A log shipper
-  # is a non-browser client: Cloudflare's bot and managed-security products challenge it,
-  # and a challenged log push is a silently dropped log. The shared credential is what
-  # separates the real shipper from anyone else who finds the hostname, so it is a
-  # variable rather than a literal — and the rule disappears when it is not supplied,
-  # rather than degrading into "skip security for anyone hitting this host".
+  # A log shipper is a non-browser client, so Cloudflare's bot and managed-security
+  # products challenge it, and a challenged log push is a dropped log. The rule is absent
+  # when var.telemetry_edge_key is empty, so the skip never applies without a credential.
   #
-  # The rule matches a DEDICATED header, never the Authorization bearer token: ruleset
-  # expressions are stored and served in cleartext by the Cloudflare API, so matching
-  # the token would disclose the collector credential to any zone-read grant. The
-  # jsonencode keeps a key containing `"` or `\` from producing a malformed expression.
+  # The expression matches a dedicated header, never the Authorization bearer token:
+  # Cloudflare stores and serves ruleset expressions in cleartext, so matching the token
+  # would disclose the collector credential to any zone-read grant. jsonencode keeps a key
+  # containing `"` or `\` from producing a malformed expression.
   telemetry_ingress_rules = var.telemetry_edge_key == "" ? [] : [
     {
       ref         = "relab_telemetry_ingress_skip_managed_security"
       description = "Skip managed WAF and bot products for authenticated telemetry ingress"
       expression = join(" and ", [
         local.telemetry_ingress_hosts_expression,
-        # This root is zone-global: one apply lands on prod and staging at once. Renaming
-        # this header therefore has an order — deploy both hosts first, apply second —
-        # because in the window where the rule expects a name the hosts do not yet send,
-        # exports are bot-challenged and a challenged export is a silently dropped one.
-        # deploy/CUTOVER-PROD.md carries the step order.
+        # One apply lands on prod and staging at once. Renaming this header needs an
+        # order: deploy both hosts first, then apply. In between, the hosts do not send
+        # the name the rule expects and exports are bot-challenged. The step order is in
+        # deploy/CUTOVER-PROD.md.
         "any(http.request.headers[\"x-telemetry-key\"][*] eq ${jsonencode(var.telemetry_edge_key)})",
       ])
       action = "skip"
@@ -124,22 +92,15 @@ locals {
     },
   ]
 
-  # Two rules present in the live zone are deliberately NOT ported:
-  #
-  #   "allow-traffic-from-api" — skipped security for rpi-cam-*.cml-relab.org behind a
-  #   bypass header. No such hostname is served by either environment and nothing in the
-  #   repo sends that header; the RPi cameras reach the API on api[-test]. directly.
-  #
-  #   "Cache default file extensions" — restated Cloudflare's own default extension
-  #   caching. relab_uploads_cache covers the media that actually matters, and the
-  #   origins already send Cache-Control for the rest.
+  # Two rules that exist in the live zone are not ported here:
+  # "allow-traffic-from-api" (no rpi-cam-* hostname is served and nothing sends its bypass
+  # header) and "Cache default file extensions" (Cloudflare caches those by default).
   custom_firewall_rules = concat(local.telemetry_ingress_rules, [
     {
-      # RPi camera devices are non-browser IoT clients that Super Bot Fight Mode and
-      # some managed WAF rules would challenge/block (they can't solve a JS/CAPTCHA
-      # challenge). These endpoints are authenticated at the app layer by ES256 device
-      # assertions (Redis replay protection) and covered by the rpi_cam_* rate limits
-      # above, so the managed-security skip is intentional and scoped to just them.
+      # RPi cameras are non-browser IoT clients that cannot solve a JS or CAPTCHA
+      # challenge, so Super Bot Fight Mode and some managed WAF rules block them. These
+      # endpoints are authenticated at the app layer by ES256 device assertions with
+      # Redis replay protection, and the skip is scoped to just those paths.
       ref         = "relab_rpi_cam_device_skip_managed_security"
       description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic (both environments)"
       expression = join(" and ", [

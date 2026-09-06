@@ -17,9 +17,9 @@
 # --- Reusable fragments ------------------------------------------------------
 # YAML anchors; consumed via `<<: *name`. No runtime effect on their own.
 
-# NOTE: the GHA build cache is deliberately NOT an anchor — each built service
-# needs its own `scope=`, otherwise every service shares the default scope and
-# the docker-smoke matrix legs overwrite each other's layers. Keep the scope
+# NOTE: the GHA build cache is not an anchor: each built service needs its own
+# `scope=`, otherwise every service shares the default scope and the docker-smoke
+# matrix legs overwrite each other's layers. Keep the scope
 # names aligned with the per-service `matrix.service` cache scopes in
 # .github/workflows/ci.yml and release.yml.
 
@@ -43,8 +43,8 @@ x-service-hardening: &service-hardening
 
 # Hardening for the stateful official images (postgres, redis). Same as above but
 # WITHOUT `cap_drop: ALL`: their entrypoints start as root and drop privileges via
-# gosu/su-exec (and postgres runs initdb on a fresh volume), which needs SETUID/SETGID/
-# CHOWN — dropping all capabilities makes the container exit at startup (verified).
+# gosu/su-exec, and postgres runs initdb on a fresh volume, which needs SETUID, SETGID
+# and CHOWN. Dropping all capabilities makes the container exit at startup.
 x-stateful-hardening: &stateful-hardening
   pids_limit: 512
   security_opt:
@@ -176,9 +176,9 @@ services:
       # actually fits inside mem_limit, not the host's free memory.
       - -c
       - effective_cache_size=2560MB
-      # Deliberately NOT scaled with the rest: work_mem is per sort/hash node,
-      # so it multiplies by active connections and is the one value that can
-      # breach mem_limit on its own. 16MB already covers this workload's sorts.
+      # Not scaled with the rest: work_mem is per sort/hash node, so it
+      # multiplies by active connections and can breach mem_limit on its own.
+      # 16MB covers this workload's sorts.
       - -c
       - work_mem=16MB
       - -c
@@ -196,7 +196,7 @@ services:
       # Makes pg_stat_statements and EXPLAIN (BUFFERS) report real I/O time.
       - -c
       - track_io_timing=on
-      # ponytail: OLTP-only workload, JIT compile costs more than it saves.
+      # NOTE: OLTP-only workload, JIT compile costs more than it saves.
       - -c
       - jit=off
     volumes:

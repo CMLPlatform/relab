@@ -10,18 +10,16 @@ log() {
 # Extra tags applied to every snapshot this run creates. BACKUP_MANUAL=true marks a
 # hand-run backup with `manual`, which the retention policy keeps unconditionally
 # (--keep-tag=manual). Hourly retention keeps only the newest snapshot per hour and
-# expires the rest after RESTIC_KEEP_HOURLY hours: without this tag, a backup taken
-# deliberately before a risky operation is expired by the next scheduled run in the
-# same hour, or by retention a day later.
+# expires the rest after RESTIC_KEEP_HOURLY hours, so without this tag a backup taken
+# before a risky operation is expired by the next scheduled run in the same hour.
 BACKUP_TAG_ARGS=()
 if [[ "${BACKUP_MANUAL:-false}" == "true" ]]; then
     BACKUP_TAG_ARGS=(--tag manual)
 fi
 
 # How long a snapshot waits for restic's lock. The daily maintenance run holds an
-# exclusive lock while `forget --prune` repacks, and the calendar gap to the next
-# hourly snapshot is 30 minutes — a prune that overruns it would otherwise fail the
-# snapshot outright (restic's default is to give up immediately).
+# exclusive lock while `forget --prune` repacks, and restic's default is to give up
+# immediately.
 RESTIC_RETRY_LOCK="${RESTIC_RETRY_LOCK:-30m}"
 
 read_secret() {
@@ -58,8 +56,8 @@ ensure_restic_repository() {
     #  - restic exit 10 = "repository does not exist" (restic >= 0.17), or
     #  - a local filesystem repo with no config object yet (older restic / first run).
     # A present-but-unreadable repo (wrong RESTIC_PASSWORD, corruption, wrong path)
-    # must fail loudly — re-initializing would silently start an empty repo that backs
-    # up nothing while the real history is unreachable, and the run would still succeed.
+    # must fail loudly: re-initializing would start an empty repo that backs up nothing
+    # while the real history is unreachable, and the run would still exit 0.
     # NOTE: an unmounted local volume that presents as an empty dir is indistinguishable
     # from a first run here; Docker named volumes avoid that, but a bind mount could hit it.
     local repo="${RESTIC_REPOSITORY%/}"
@@ -95,20 +93,18 @@ backup_database() {
     rm -f "$dump_file"
 }
 
-# Refuse to archive a dump that has collapsed against the newest stored one. An empty
-# or truncated database dumps and uploads perfectly happily, and once it is the newest
-# snapshot the retention policy starts ageing out the good copies behind it — so the
-# check belongs here, before the write, not in the monthly restore verification.
+# Refuse to archive a dump that has collapsed against the newest stored one. An empty or
+# truncated database dumps and uploads without error, and once it is the newest snapshot
+# the retention policy starts ageing out the good copies behind it.
 # Set RESTIC_MIN_DUMP_RATIO=0 to archive anyway (a deliberate mass deletion).
 assert_dump_not_collapsed() {
     local dump_file="$1" ratio="${RESTIC_MIN_DUMP_RATIO:-50}" new_size prev_size pct
     [[ "$ratio" == 0 ]] && return 0
 
     new_size="$(stat -c %s "$dump_file")"
-    # `restic stats --json` on the newest postgres snapshot, in the default
-    # restore-size mode: that is the dump's own byte count, directly comparable to
-    # the new file. (raw-data would be the packed size, which with an uncompressed
-    # dump is a fraction of the file and would make this guard never fire.)
+    # `restic stats --json` on the newest postgres snapshot, in the default restore-size
+    # mode: that is the dump's own byte count, directly comparable to the new file.
+    # (raw-data reports the packed size, a fraction of the file.)
     # Capture restic's exit separately from the sed: a failure here (lock held,
     # repository unreadable) must not read as "no previous snapshot" and fail open.
     local stats_json status=0
@@ -154,12 +150,10 @@ backup_uploads() {
 prune_repo() {
     # Apply the retention policy to a repository. Pass ``--repo <target>`` to prune
     # a non-default repo (the offsite one); no args prunes the default local repo.
-    # Group by tags ONLY, never by host. Each run is a fresh `compose run --rm`
-    # container with a new random hostname, so grouping by host would put every
-    # single run in its own group — and a one-snapshot group is retained by every
-    # keep-* rule, making this prune a permanent no-op and growing both repos
-    # without bound. `hostname:` is pinned on the service too (compose.deploy.yaml)
-    # so restic can find a parent snapshot, but retention must not depend on that.
+    # Group by tags only, never by host. Each run is a fresh `compose run --rm` container
+    # with a new random hostname, so grouping by host puts every run in its own group,
+    # and a one-snapshot group is retained by every keep-* rule. `hostname:` is pinned on
+    # the service (compose.deploy.yaml), but retention must not depend on that.
     restic "$@" forget \
         --prune \
         --keep-tag=manual \
@@ -172,9 +166,8 @@ prune_repo() {
 
 # True when the offsite target needs an rclone remote that RCLONE_CONFIG does not
 # define. The repository path is committed per environment, but the credential is a
-# hand-written secret — so "configured to copy offsite" and "able to copy offsite"
-# are separate facts, and a host that has the first without the second must skip the
-# copy rather than fail every single night. A permanently red alert is no alert.
+# hand-written secret, so a host can be configured to copy offsite without being able
+# to. Skip the copy in that state rather than failing the run every night.
 offsite_remote_missing() {
     local repo="${1:-}" remote
     [[ "$repo" == rclone:* ]] || return 1
@@ -195,12 +188,9 @@ ensure_offsite_repository() {
     if [[ "$status" -eq 0 ]]; then
         return 0
     fi
-    # Only restic exit 10 means "repository does not exist". Treating every failure
-    # as first-run — an expired credential, a renamed remote, a typo'd path, a 5xx —
-    # would silently init a fresh repository, copy one day into it, and exit 0 while
-    # the real archive is orphaned and every monitor reads green. Same reasoning as
-    # ensure_restic_repository above; the offsite path needs it more, not less,
-    # because nobody ever looks at the offsite repo directly.
+    # Only restic exit 10 means "repository does not exist". An expired credential, a
+    # renamed remote, a typo'd path or a 5xx would otherwise init a fresh repository,
+    # copy one day into it, and exit 0 while the real archive is orphaned.
     if [[ "$status" -ne 10 ]]; then
         log "ERROR: offsite repository ${RESTIC_OFFSITE_REPOSITORY} is unreachable or unreadable (restic exit ${status}); refusing to initialize over it. Check the rclone remote, the path, and RESTIC_PASSWORD."
         return 1
@@ -229,9 +219,9 @@ copy_to_offsite() {
     restic --repo "$RESTIC_OFFSITE_REPOSITORY" copy --from-repo "$RESTIC_REPOSITORY"
 
     # Retention offsite is gated the same way the local prune is. A copy-only run
-    # (`just backup-offsite-copy`, which skips both backups) is what an operator
-    # reaches for when the LOCAL repo is already lost — pruning the offsite copy in
-    # that moment would expire the only surviving archive.
+    # (`just backup-offsite-copy`, which skips both backups) is what an operator runs
+    # when the local repo is already lost, and pruning offsite would then expire the
+    # only surviving archive.
     if [[ "$did_backup" != "true" ]]; then
         log "Copy-only run: skipping offsite retention and integrity check"
         return 0
@@ -253,11 +243,9 @@ main() {
 
     ensure_restic_repository
 
-    # BACKUP_MAINTENANCE splits the hourly snapshot from the daily upkeep:
-    #   auto (default) — snapshot, then prune/check/copy. One self-contained run, which
-    #                    is what a hand-run `just backup <env>` should still do.
-    #   skip           — snapshot only. The hourly timer: cheap, and it must not repack
-    #                    the repository 24x a day.
+    # BACKUP_MAINTENANCE splits the hourly snapshot from the daily upkeep.
+    #   auto (default) — snapshot, then prune/check/copy. A hand-run `just backup <env>`.
+    #   skip           — snapshot only. The hourly timer.
     #   only           — prune/check/copy, no new snapshot. The daily maintenance timer.
     local maintenance="${BACKUP_MAINTENANCE:-auto}"
     case "$maintenance" in
@@ -287,10 +275,9 @@ run_cycle() {
         fi
     fi
 
-    # Retention/prune is local maintenance for a real backup; a copy-only run
-    # (both backups skipped) must not expire local snapshots as a side effect.
-    # `only` is the exception: it exists to do exactly this upkeep, on a repository the
-    # hourly runs have been adding to.
+    # Retention/prune is local maintenance for a real backup; a copy-only run (both
+    # backups skipped) must not expire local snapshots as a side effect. `only` is the
+    # maintenance timer, whose whole job is this upkeep.
     if [[ "$maintenance" == "only" || ("$maintenance" == "auto" && "$did_backup" == "true") ]]; then
         log "Applying restic retention policy"
         prune_repo

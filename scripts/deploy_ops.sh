@@ -19,11 +19,10 @@ telemetry_overlay_args() {
     if [[ -f "$root_env_file" ]] && grep -qE '^OTEL_EXPORTER_OTLP_ENDPOINT=["'\'']?http' "$root_env_file"; then
         printf '%s\n' -f compose.telemetry.yml
 
-        # GPU collection is a second opt-in on top, because a card is a property of the
-        # host rather than of the environment. Nested on purpose: the exporter is only
-        # useful if something is there to scrape it. Truthy values only: GPU_METRICS=0
-        # or =false must mean OFF — on a host without the NVIDIA runtime, including the
-        # overlay makes `up` abort with "could not select device driver".
+        # GPU collection is a second opt-in, nested because the exporter is only useful
+        # when something scrapes it. A card is a property of the host, not of the
+        # environment. Truthy values only: on a host without the NVIDIA runtime,
+        # including the overlay makes `up` abort with "could not select device driver".
         if grep -qiE '^GPU_METRICS=["'\'']?(1|true|yes)["'\'']?[[:space:]]*(#.*)?$' "$root_env_file"; then
             printf '%s\n' -f compose.telemetry.gpu.yml
         fi
@@ -69,15 +68,13 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     EMAIL_REPLY_TO
     BOOTSTRAP_SUPERUSER_EMAIL
     MALWARE_SCAN_ENABLED
-    # Scrubbed for the same reason it is committed per environment: an exported
-    # shell value beats every --env-file, so a stray `export` in a debugging session
-    # would silently redirect prod's offsite copy at staging's repository.
+    # An exported shell value beats every --env-file, so a stray `export` in a
+    # debugging session would redirect prod's offsite copy at staging's repository.
     RESTIC_OFFSITE_REPOSITORY
-    # The telemetry trio, scrubbed after an endpoint rename was undone by a shell that
-    # had sourced the pre-rename .env: compose preferred the exported value, so a
-    # down/up recreated the agent still pointing at the dead hostname while both the
-    # file and the recipe looked right. These are OPTIONAL_ROOT_OPERATOR_INPUT_NAMES in
-    # env_policy.py; the file is their only source.
+    # The telemetry trio. An endpoint rename was once undone by a shell that had
+    # sourced the pre-rename .env: compose preferred the exported value, so down/up
+    # recreated the agent pointing at the dead hostname. These are
+    # OPTIONAL_ROOT_OPERATOR_INPUT_NAMES in env_policy.py; the file is their only source.
     OTEL_EXPORTER_OTLP_ENDPOINT
     OTEL_EXPORTER_OTLP_PROTOCOL
     OTLP_AUTH_TOKEN
@@ -150,8 +147,8 @@ compose_config() {
         # compose_args already emits the telemetry overlay here: the validation env sets
         # OTEL_EXPORTER_OTLP_ENDPOINT, and naming the file a second time makes compose
         # reject the render (duplicate list items in the merged service). Only the GPU
-        # overlay needs adding explicitly — GPU_METRICS is host-specific and deliberately
-        # absent from the validation env.
+        # overlay needs adding explicitly: GPU_METRICS is host-specific and absent from
+        # the validation env.
         local -a base_args=()
         mapfile -t base_args < <(compose_args "$env" "$validation_env")
         "${base_args[@]}" -f compose.telemetry.gpu.yml config >/dev/null
@@ -231,19 +228,18 @@ assert_secret_file_modes() {
 # secrets/<env>/: secrets-export globs the directory, so these reach the password manager
 # and come back through secrets-restore like everything else.
 #
-# Regenerating dataset_pseudonym_salt on a fresh checkout would silently change every
-# contributor code in a future dataset release. That is safe to template anyway, because
-# the release build compares the salt against PINNED_SALT_FINGERPRINT and aborts on a
-# mismatch rather than publishing codes that no longer line up with what is already out.
+# Regenerating dataset_pseudonym_salt on a fresh checkout changes every contributor code
+# in a future dataset release. The release build compares the salt against
+# PINNED_SALT_FINGERPRINT and aborts on a mismatch, so templating it is safe.
 LOCAL_ONLY_SECRETS=(dataset_pseudonym_salt)
 
 deploy_secret_template_value() {
     local env="$1"
     local name="$2"
 
-    # Every environment auto-generates what it can. Seeding prod/staging with
-    # derivable placeholders left security-critical secrets (auth_token_secret,
-    # oauth_state_secret) guessable from a public repo.
+    # Every environment auto-generates what it can. Derivable placeholders in
+    # prod/staging left auth_token_secret and oauth_state_secret guessable from a
+    # public repo.
     case "$name" in
         data_encryption_key)
             python3 -c 'import base64, secrets; print(base64.urlsafe_b64encode(secrets.token_bytes(32)).decode().rstrip("="))'
@@ -259,13 +255,13 @@ deploy_secret_template_value() {
                 '# Offsite copies stay disabled while this file holds only comments.'
             ;;
         *_oauth_client_secret | microsoft_graph_client_secret)
-            # External identity credentials can't be auto-generated: a random
-            # token just yields a silent 401 at runtime, and warn_on_placeholder_secrets
-            # (backend/app/core/secrets.py) hard-crashes staging/prod on ANY
-            # replace-me value, even for providers nobody configured. Empty is the
-            # correct "not configured" value: optional-and-empty passes env_policy,
-            # required-and-empty fails loudly, and the runtime accepts empty for
-            # unused providers. Fill in by hand when the provider is actually used.
+            # External identity credentials cannot be auto-generated: a random token
+            # yields a silent 401 at runtime, and warn_on_placeholder_secrets
+            # (backend/app/core/secrets.py) crashes staging/prod on any replace-me
+            # value, including providers nobody configured. Empty means "not
+            # configured": optional-and-empty passes env_policy, required-and-empty
+            # fails loudly, and the runtime accepts empty for unused providers.
+            # Fill in by hand when the provider is used.
             printf ''
             ;;
         *)
@@ -523,14 +519,13 @@ stack_command() {
     case "$action" in
         up)
             parse_profiles "$env" "migrations backups scanning" "$@"
-            # Root env policy, on the host, before anything starts. The telemetry overlay
-            # used to hard-require TELEMETRY_EDGE_KEY with a `:?` guard; the vendored file
-            # cannot, because only projects behind a WAF need it. Relab is behind one, and
-            # an empty key means the Cloudflare skip rule stops matching and every export
-            # is bot-challenged — silently, since the SDK swallows the response. This check
-            # owns that pairing (scripts/env_policy.py), so call it rather than restate it.
+            # Root env policy, on the host, before anything starts. The vendored
+            # telemetry overlay cannot require TELEMETRY_EDGE_KEY, because only projects
+            # behind a WAF need it. Relab is behind one, and an empty key means the
+            # Cloudflare skip rule stops matching and every export is bot-challenged
+            # silently. scripts/env_policy.py owns that pairing.
             uv run python scripts/env_policy.py check --env "$env"
-            # `up` no longer starts backups: the backup service is a one-shot driven
+            # `up` does not start backups: the backup service is a one-shot driven
             # by a systemd timer (deploy/systemd/), not a long-running container.
             # `build` still defaults to the backups profile so the image exists.
             # NOTE: MALWARE_SCAN_ENABLED=true with no clamav container fails all uploads closed.
@@ -558,9 +553,9 @@ stack_command() {
             # One backup cycle, foreground, for the systemd timer. --no-deps: the
             # timer must not start postgres as a side effect; if the stack is down
             # the run fails and systemd records it, which is the correct signal.
-            # --name is required, not cosmetic: the container is a child of dockerd,
-            # not of the systemd unit, so the unit's ExecStopPost needs a stable name
-            # to reap it if systemd kills the run on timeout.
+            # --name is required: the container is a child of dockerd, not of the
+            # systemd unit, so the unit's ExecStopPost needs a stable name to reap it
+            # if systemd kills the run on timeout.
             # A host crash or dockerd death can skip ExecStopPost and leave the previous
             # run's container holding the name, which would then block every later run.
             # Same guard verify_postgres_restore uses for its deterministic name.

@@ -69,8 +69,7 @@ jobs:
       - name: Run repository policy checks
         run: just pre-commit
         env:
-          # CI runs on a detached ref, where the local-only branch guard is
-          # a no-op at best.
+          # CI runs on a detached ref, where the local-only branch guard does nothing.
           SKIP: no-commit-to-branch
 
       - name: Run IaC, env, Compose, and deploy-secret checks
@@ -449,9 +448,9 @@ jobs:
           # current CVEs; PR scans only need to catch what the PR introduces.
           pull: ${{ github.event_name != 'pull_request' }}
           tags: ${{ matrix.image }}:${{ github.sha }}
-          # `scan-` prefix: the placeholder build-args make these layers distinct
-          # from the docker-smoke builds, which write the compose `scope=<service>`
-          # caches — sharing a scope would just thrash both.
+          # `scan-` prefix: the placeholder build-args make these layers distinct from
+          # the docker-smoke builds, which write the compose `scope=<service>` caches.
+          # One shared scope thrashes both.
           cache-from: type=gha,scope=scan-${{ matrix.service }}
           cache-to: type=gha,scope=scan-${{ matrix.service }},mode=max
           # The www/app builds require their public URLs. These images are only
@@ -466,13 +465,11 @@ jobs:
             EXPO_PUBLIC_WEBSITE_URL=https://example.invalid
             EXPO_PUBLIC_DOCS_URL=https://docs.example.invalid
 
-      # A base-image CVE is a "somebody act this week" event, not a "block this
-      # merge" one: advisories land faster than base images rebuild, so a
-      # blocking PR gate fails continuously and stops being read (the rpi-cam
-      # repo measured 27 red runs out of 71 before making this split). Pull
-      # requests report into the Security tab and stay green; the post-merge and
-      # weekly runs are the gate that can go red for a reason. Suppressions stay
-      # in .github/trivyignore.yaml, each with an expiry and a reachability note.
+      # Advisories land faster than base images rebuild, so a blocking PR gate on
+      # base-image CVEs fails continuously. Pull requests report into the Security tab
+      # and stay green; the post-merge and weekly runs are the blocking gate.
+      # Suppressions live in .github/trivyignore.yaml, each with an expiry and a
+      # reachability note.
       - name: Scan image with Trivy (report)
         if: github.event_name == 'pull_request'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
@@ -597,8 +594,8 @@ jobs:
       # AlertSuppression queries (see codeql-config.yml) emit for in-code
       # `# codeql[query-id]` comments; this official action closes the loop by
       # dismissing the matching alerts. Suppressions stay reviewable in diffs.
-      # Default branch only: dismissal is a global alert property, and the action
-      # only ever reads default-branch alerts, so on a PR it is a no-op at best.
+      # Default branch only: dismissal is a global alert property, and the action reads
+      # default-branch alerts only.
       - name: Dismiss alerts suppressed in code
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: advanced-security/dismiss-alerts@a18f986bdb40edba0dd7a74382c15d4a3d50a1c8 # v2.0.3

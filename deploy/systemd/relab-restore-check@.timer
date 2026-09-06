@@ -12,15 +12,12 @@
 Description=Relab backup restore verification schedule (%i)
 
 [Timer]
-# 06:00, not the small hours next to maintenance: relab-backup-maintenance@ fires at
-# 02:30 with a 2h timeout, and its `restic forget --prune` deletes pack files — racing
-# that with this job's --no-lock restore yields a spurious failure on the one check
-# that proves snapshots actually restore. systemd serializes a unit against itself,
-# never against another unit, so the gap in the calendar is the lock.
+# 06:00 clears relab-backup-maintenance@, which fires at 02:30 with a 2h timeout and
+# deletes pack files under `restic forget --prune`. systemd serializes a unit against
+# itself, never against another unit, so the calendar gap is the only separation.
 OnCalendar=*-*-01 06:00:00
 Persistent=true
-# Jitter kept here: it restores a full snapshot, and a monthly job costs nothing by
-# starting a little late.
+# Jitter here only: this restores a full snapshot and runs monthly.
 RandomizedDelaySec=30m
 
 [Install]

@@ -10,8 +10,8 @@ variables {
 run "rulesets_cover_every_environment" {
   command = plan
 
-  # These rulesets are the only ones protecting staging's api host as well as prod's,
-  # so every rule in them must match both hosts, not just one.
+  # These rulesets protect staging's api host as well as prod's, so every rule in them
+  # must match both hosts.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
@@ -20,9 +20,8 @@ run "rulesets_cover_every_environment" {
     error_message = "a custom firewall rule does not match both environments' api hosts, leaving one env unprotected."
   }
 
-  # The cache rules are the one place where two rules could set the same thing on the
-  # same request. They stay disjoint by host: media caching is prod's api host only,
-  # and staging bypasses cache wholesale.
+  # Cache rules must stay disjoint by host: media caching is prod's api host only, and
+  # staging bypasses cache wholesale.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.cache_settings.rules :
@@ -49,8 +48,8 @@ run "tls_floor_is_modern" {
 run "prod_html_entry_points_bypass_cache" {
   command = plan
 
-  # Ported from a rule that existed in the live zone. The SPA entry-point URL does not
-  # change between deploys, so a cached one keeps serving the previous build.
+  # The SPA entry-point URL does not change between deploys, so a cached copy keeps
+  # serving the previous build.
   assert {
     condition = anytrue([
       for rule in cloudflare_ruleset.cache_settings.rules :
@@ -72,8 +71,8 @@ run "prod_html_entry_points_bypass_cache" {
 run "telemetry_rule_is_omitted_without_its_credential" {
   command = plan
 
-  # Failing open here would mean skipping managed security for anyone who finds the
-  # telemetry hostname, so absence of the credential must drop the rule entirely.
+  # Without the credential the rule must disappear, not skip managed security for anyone
+  # who finds the telemetry hostname.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
@@ -100,8 +99,8 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
     error_message = "the telemetry skip rule must match the ingress host AND the credential header."
   }
 
-  # The whole point of the dedicated header: the collector's Authorization bearer
-  # token must never be readable from a ruleset expression.
+  # The collector's Authorization bearer token must never appear in a ruleset expression,
+  # which Cloudflare stores in cleartext.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
@@ -110,7 +109,7 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
     error_message = "no firewall expression may match (and thereby store) the Authorization header value."
   }
 
-  # A skip rule that also matched the API would hand an attacker a way past the WAF.
+  # A skip rule that also matched the API would be a way past the WAF.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
@@ -143,9 +142,8 @@ run "expressions_stay_inside_the_zone_plan_entitlements" {
     telemetry_edge_key = "test-edge-key"
   }
 
-  # The `matches` (regex) operator needs a Business or WAF Advanced plan. Using it
-  # fails at APPLY time with "not entitled", after earlier resources have already
-  # changed — so catch it here, where it costs nothing.
+  # The `matches` (regex) operator needs a Business or WAF Advanced plan. Using it fails
+  # at apply time with "not entitled", after earlier resources have already changed.
   assert {
     condition = alltrue(concat(
       [for rule in cloudflare_ruleset.custom_firewall.rules : !strcontains(rule.expression, " matches ")],
@@ -155,9 +153,9 @@ run "expressions_stay_inside_the_zone_plan_entitlements" {
     error_message = "an expression uses the `matches` operator, which this zone's Cloudflare plan is not entitled to."
   }
 
-  # Same class of failure, all refused at apply time by the Free tier: one rule in the
-  # phase, a 10s counting period, a 10s mitigation timeout, and no http.host in the
-  # expression (Path and Verified Bot are the only fields allowed).
+  # Free-tier limits, all refused at apply time: one rule in the phase, a 10s counting
+  # period, a 10s mitigation timeout, and no http.host in the expression (Path and
+  # Verified Bot are the only fields allowed).
   assert {
     condition     = length(cloudflare_ruleset.rate_limiting.rules) <= 1
     error_message = "the http_ratelimit phase allows only one rule on this zone's plan."
@@ -179,15 +177,15 @@ run "expressions_stay_inside_the_zone_plan_entitlements" {
     error_message = "http.host is not an allowed rate-limit expression field on this zone's plan; scope by path."
   }
 
-  # Path-only scoping is safe precisely because /v1/auth/ is served by nothing else, so
-  # the rule must still actually target it.
+  # The rule has no host filter, so its path must target /v1/auth/, which nothing else
+  # serves.
   assert {
     condition     = strcontains(cloudflare_ruleset.rate_limiting.rules[0].expression, "/v1/auth/")
     error_message = "the rate-limit rule must target the auth endpoints."
   }
 
-  # The one slot must be the auth rule; losing it to a lower-value endpoint is a
-  # silent downgrade of the only edge protection on unauthenticated routes.
+  # The single available slot holds the auth rule, the only edge protection on the
+  # unauthenticated routes.
   assert {
     condition     = cloudflare_ruleset.rate_limiting.rules[0].ref == "relab_auth"
     error_message = "the single rate-limit rule must be the auth one."

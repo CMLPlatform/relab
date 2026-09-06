@@ -25,12 +25,12 @@ print(min(newest.get(tag, 0) for tag in ("postgres", "user-uploads")))
 # Reducer for check 5, in a function so scripts/test_ops.sh can drive the real code.
 # Prints one ALERT line per problem and returns how many it printed.
 #
-# The two credentials on the telemetry path fail in different places and must be told
-# apart: the edge key gets a request PAST Cloudflare's bot products, the bearer token
-# gets it INTO the collector. A challenged export is a silently dropped one — the SDK
-# logs an export error and the application carries on — so nothing downstream of here
-# notices. Relab's zone owns the skip rule for `otel.`, which the whole CML monitoring
-# hub ships to, so a mismatch here is not only Relab's outage.
+# The two credentials on the telemetry path fail in different places: the edge key gets
+# a request past Cloudflare's bot products, the bearer token gets it into the collector.
+# The remedies live in different systems, so the alert has to say which failed.
+# A challenged export is dropped silently — the SDK logs an export error and the
+# application carries on. Relab's zone owns the skip rule for `otel.`, which the whole
+# CML monitoring hub ships to, so a mismatch here is not only Relab's outage.
 telemetry_ingress_alerts() {
     local env="$1" status="$2" cf_mitigated="$3" failures=0
 
@@ -57,13 +57,12 @@ telemetry_ingress_alerts() {
     return "$failures"
 }
 
-# Reducer for check 4, in a function so scripts/test_ops.sh can drive the real code.
-# Prints one ALERT line per problem and returns how many it printed. Inputs are
-# gathered from git below; keeping the decision separate is what makes it testable
-# without a repository in a known state.
+# Reducer for check 4, in a function so scripts/test_ops.sh can drive the real code
+# without a repository in a known state. Prints one ALERT line per problem and returns
+# how many it printed. Inputs are gathered from git below.
 #
-# `ahead` matters as much as `behind`: prod was once found carrying local commits that
-# existed nowhere else, which is drift in the direction nobody looks for.
+# `ahead` counts as drift too: prod has been found carrying local commits that existed
+# nowhere else.
 deployment_drift_alerts() {
     local env="$1" dirty="$2" upstream="$3" behind="$4" ahead="$5"
     local found=0
@@ -74,8 +73,7 @@ deployment_drift_alerts() {
     fi
 
     if [[ -z "$upstream" ]]; then
-        # No upstream means drift cannot be measured at all. Staying quiet here would
-        # be the same silence this check exists to remove.
+        # No upstream means drift cannot be measured at all.
         echo "ALERT[$env]: deploy checkout tracks no upstream branch; drift cannot be detected" >&2
         return $((found + 1))
     fi
@@ -99,10 +97,9 @@ deployment_drift_alerts() {
 # Prints one ALERT line per problem and returns how many it printed.
 #
 # `enabled` and `active` are separate facts and both must hold. `is-enabled` only
-# reports the timers.target.wants symlink, so a timer enabled without --now, stopped
-# for a maintenance window, or never re-armed after a daemon-reload still reads
-# "enabled" while never firing again — backups would then stop with nothing said
-# until check 2 notices the snapshot ageing out, a day later.
+# reports the timers.target.wants symlink, so a timer enabled without --now, stopped for
+# a maintenance window, or never re-armed after a daemon-reload still reads "enabled"
+# while never firing again.
 backup_timer_alerts() {
     local env="$1" timer="$2" enabled="$3" active="$4" failed="$5" result="$6"
     # The service name follows from the timer name for every relab-*@ unit, so the
@@ -132,11 +129,8 @@ backup_timer_alerts() {
 # the real code. Prints one ALERT line per problem and returns how many it printed.
 #
 # A timer can be enabled, active, and last have exited 0, and still not have run for
-# months — systemd reports nothing wrong, because nothing is. That is precisely the
-# monthly restore-check's failure mode, and it is the one job whose silence you cannot
-# afford, since it is the only proof a snapshot actually restores. This check is what
-# lets ONE dead-man's switch per environment stand in for one per job: the watchdog
-# actively inspects the others rather than passively sharing their ping URL.
+# months; systemd reports nothing wrong. That is the monthly restore-check's failure
+# mode, and the restore check is the only proof a snapshot restores.
 #
 # `last_trigger` is systemd's LastTriggerUSec as epoch seconds; 0 means never fired,
 # and "unparseable" means systemd printed a date that date(1) could not read.
@@ -149,8 +143,8 @@ timer_staleness_alerts() {
         return 0
     fi
     if [[ "$last_trigger" == unparseable ]]; then
-        # Failing silently here would switch this check off for every timer at once
-        # with everything reading green; one alert naming the cause is the only signal.
+        # An unparsed value switches this check off for every timer at once, so name
+        # the cause rather than returning 0.
         echo "ALERT[$env]: cannot parse LastTriggerUSec for $timer; the staleness check is not running" >&2
         return 1
     fi
@@ -184,12 +178,10 @@ service_state_alerts() {
 
 # Reducers for check 3b, in functions so scripts/test_ops.sh can drive the real code.
 #
-# ping_url_value resolves one PING_* value the way the running unit sees it:
-# from the host env file when it is readable, otherwise from this process's own
-# environment — systemd reads EnvironmentFile= as root, so a root-owned 0600 file
-# still delivers its values to the unit. Judging the unreadable file directly would
-# alert on every correctly-filled-in URL, permanently. Returns 1 when neither source
-# can answer.
+# ping_url_value resolves one PING_* value the way the running unit sees it: from the
+# host env file when it is readable, otherwise from this process's own environment.
+# systemd reads EnvironmentFile= as root, so a root-owned 0600 file still delivers its
+# values to the unit while being unreadable here. Returns 1 when neither source answers.
 ping_url_value() {
     local host_env_file="$1" ping_var="$2"
     if [[ -r "$host_env_file" ]]; then
@@ -267,14 +259,13 @@ failures=0
 
 mapfile -t compose_command < <(compose_args "$env")
 
-# Check 1: every long-lived service in the stack, not only the api. A dead
-# cloudflared means the site is publicly unreachable while the api reads healthy,
-# and cloudflared, the frontends and postgres have no other local check. The
-# expected set comes from compose itself (`config --services` lists no profiled
-# services), so overlay-added services are covered exactly on the hosts that run
-# them and profile-gated one-shots (backup, migrator, clamav) are not demanded.
-# Every docker call is time-bounded: a wedged dockerd must produce an alert, not
-# park this job until systemd kills it without a ping.
+# Check 1: every long-lived service in the stack. A dead cloudflared makes the site
+# publicly unreachable while the api reads healthy, and cloudflared, the frontends and
+# postgres have no other local check. The expected set comes from compose itself
+# (`config --services` lists no profiled services), so overlay-added services are covered
+# on the hosts that run them and profile-gated one-shots (backup, migrator, clamav) are
+# not demanded. Every docker call is time-bounded so a wedged dockerd produces an alert
+# instead of parking this job until systemd kills it without a ping.
 stderr_file="$(mktemp)"
 trap 'rm -f "$stderr_file"' EXIT
 
@@ -282,17 +273,17 @@ trap 'rm -f "$stderr_file"' EXIT
 # there (an unset ${VAR}, a deprecation), and merged into the list they would
 # word-split into bogus service names that all read "not running".
 if ! expected_services="$(timeout 60 "${compose_command[@]}" config --services 2>"$stderr_file")"; then
-    # A stack that cannot even be resolved (missing .env value, no daemon) is its
-    # own failure mode; reporting it as "api down" would send the operator hunting.
+    # A stack that cannot be resolved (missing .env value, no daemon) is its own
+    # failure mode, distinct from "api down".
     echo "ALERT[$env]: cannot resolve the stack: $(tr '\n' ' ' <"$stderr_file")" >&2
     failures=$((failures + 1))
     expected_services=""
 fi
 
 for service in $expected_services; do
-    # Compose writes warnings to stderr; merging them into the id would turn a healthy
-    # stack into a false alarm, so stderr is dropped here — a resolve failure is
-    # already reported above, and an empty id is an alert regardless of the cause.
+    # Compose writes warnings to stderr; merged into the id they turn a healthy stack
+    # into a false alarm. A resolve failure is already reported above, and an empty id
+    # is an alert regardless of the cause.
     service_id="$(timeout 60 "${compose_command[@]}" ps -q "$service" 2>/dev/null || true)"
     service_state=""
     if [[ -n "$service_id" ]]; then
@@ -303,15 +294,13 @@ for service in $expected_services; do
     service_state_alerts "$env" "$service" "$service_state" || failures=$((failures + 1))
 done
 
-# Check 2: newest restic snapshot age, read through the backup image because the
-# host has no restic. The backup service sits in the `backups` profile, so pass it
-# explicitly the way `stack ... migrate` does. --no-deps keeps the watchdog from
-# starting postgres; a missing image fails the run, which is itself an alert.
-# Compose writes progress to stderr, so keep stderr in a file instead of merging
-# it into the JSON — a swallowed error here would alert on every healthy stack.
-# `timeout` wraps it because a hung docker or restic would otherwise park this cron
-# job forever and silently stop watching. compose_args is used directly instead of
-# run_deploy_compose so `timeout` can prefix the real command.
+# Check 2: newest restic snapshot age, read through the backup image because the host
+# has no restic. The backup service sits in the `backups` profile, so pass it explicitly
+# the way `stack ... migrate` does. --no-deps keeps the watchdog from starting postgres;
+# a missing image fails the run, which is itself an alert.
+# Compose writes progress to stderr, so keep stderr in a file rather than merging it into
+# the JSON. `timeout` bounds a hung docker or restic. compose_args is used directly
+# instead of run_deploy_compose so `timeout` can prefix the real command.
 newest_epoch=0
 snapshot_error=""
 snapshot_status=0
@@ -345,10 +334,10 @@ if ((newest_epoch == 0 || now - newest_epoch > max_age_hours * 3600)); then
     failures=$((failures + 1))
 fi
 
-# Check 2b: free space where the restic repository lives. Hourly snapshots of
-# compressed dumps deduplicate poorly and retention is applied once a day, so the
-# repository grows in steps; it shares the host disk with postgres, and a full disk
-# takes the database down with the backups. Nothing else on the host watches this.
+# Check 2b: free space where the restic repository lives. Hourly snapshots of compressed
+# dumps deduplicate poorly and retention is applied once a day, so the repository grows
+# in steps. It shares the host disk with postgres, so a full disk takes the database down
+# with the backups.
 backup_host_dir="${BACKUP_HOST_DIR:-}"
 [[ -n "$backup_host_dir" ]] || backup_host_dir="$(
     set -a
@@ -359,20 +348,18 @@ backup_host_dir="${BACKUP_HOST_DIR:-}"
 disk_pcent="$(timeout 30 df --output=pcent "$backup_host_dir" 2>/dev/null | tail -n1 | tr -dc '0-9' || true)"
 disk_usage_alerts "$env" "$backup_host_dir" "$disk_pcent" "${BACKUP_DISK_ALERT_PCENT:-85}" || failures=$((failures + 1))
 
-# Check 3: all four scheduled-job timers, not only the backup one. Check 2 proves a
-# recent snapshot exists — that some run produced output. This proves each job is
-# still scheduled and that its last run did not fail, neither of which output age can
-# show: a timer that stopped being scheduled looks perfectly healthy until its output
-# ages out (35+ days for restore-check), and a run that failed after producing output
-# (a failed offsite copy, say) reads as success.
+# Check 3: all four scheduled-job timers. Check 2 proves a recent snapshot exists, i.e.
+# that some run produced output. This proves each job is still scheduled and that its
+# last run did not fail. A timer that stopped being scheduled reads healthy until its
+# output ages out (35+ days for restore-check), and a run that failed after producing
+# output (a failed offsite copy) reads as success.
 if ! command -v systemctl >/dev/null 2>&1; then
     echo "ALERT[$env]: systemctl not found; cannot verify the scheduled-job timers" >&2
     failures=$((failures + 1))
 else
-    # Per-job staleness limits: generous multiples of each period, so a reboot or a
-    # skipped window never alerts — only a timer that has genuinely stopped firing does.
-    # The two hourly jobs carry no RandomizedDelaySec, so one missed cycle of slack is
-    # enough for them; the daily and monthly ones still jitter and get more.
+    # Per-job staleness limits: multiples of each period, so a reboot or a skipped
+    # window does not alert. The two hourly jobs carry no RandomizedDelaySec, so one
+    # missed cycle of slack is enough; the daily and monthly ones jitter and get more.
     # Keys are QUOTED deliberately: an unquoted associative-array subscript is an
     # arithmetic context, so `[relab-backup]` is read as a subtraction and shfmt
     # reformats it to `[relab - backup]`. Every key then evaluates to 0 and every
@@ -416,18 +403,12 @@ else
     done
 fi
 
-# Check 3b: the dead-man's-switch wiring itself. The ping URL is the ONE monitoring path
-# that does not share fate with the telemetry stack, and run_scheduled.sh treats an empty
-# URL as "pinging deliberately off" — so a host where timers-install seeded the file but
-# nobody filled it in fails silently, forever, with every other check green. Only checked
-# when the host file exists: that is exactly the seeded-but-unfinished state, while a
-# missing file just means this machine runs no timers.
+# Check 3b: the dead-man's-switch wiring itself. run_scheduled.sh treats an empty URL as
+# "pinging off", so a host where timers-install seeded the file but nobody filled it in
+# fails silently with every other check green. Only checked when the host file exists: a
+# missing file means this machine runs no timers.
 #
-# Only PING_WATCHDOG is required. This watchdog runs hourly and reports every other job's
-# timer state, last result and staleness (check 3), and run_scheduled.sh sends a failing
-# job's own output as the alert body — so one switch per environment carries the same
-# information as one per job. The others still work if set; they are simply not needed,
-# which keeps a project to two checks instead of eight on a capped account.
+# Only PING_WATCHDOG is required; the other jobs report through the watchdog.
 host_env_file="${RELAB_HOST_ENV:-/etc/relab/relab.env}"
 if [[ -f "$host_env_file" ]]; then
     ping_var=PING_WATCHDOG
@@ -439,16 +420,15 @@ if [[ -f "$host_env_file" ]]; then
     fi
 fi
 
-# Check 4: deployment drift. Everything above proves the stack is running; none of it
-# proves it is running the code you think. A deploy host quietly sitting months behind
-# origin is otherwise only discovered by hand, which is exactly the
-# kind of thing a watchdog should be saying out loud.
+# Check 4: deployment drift. Everything above proves the stack is running, not that it
+# runs the expected code. A deploy host sitting months behind origin is otherwise only
+# found by hand.
 if ! git rev-parse --git-dir >/dev/null 2>&1; then
     echo "ALERT[$env]: deploy directory is not a git checkout" >&2
     failures=$((failures + 1))
 else
     # Remote-tracking refs go stale without this, and a stale ref reports "no drift"
-    # forever. A fetch failure is itself reportable: it means the answer is unknown.
+    # forever. A fetch failure is reportable too: the answer is then unknown.
     if ! timeout 60 git fetch --quiet origin 2>/dev/null; then
         echo "ALERT[$env]: cannot fetch origin; drift is measured against stale refs" >&2
         failures=$((failures + 1))
@@ -469,15 +449,14 @@ else
     deployment_drift_alerts "$env" "$drift_dirty" "$drift_upstream" "$drift_behind" "$drift_ahead" || failures=$((failures + $?))
 fi
 
-# Check 5: telemetry actually reaches the collector. Every other check here proves the
-# stack runs; none proves its observability works, and the failure is silent by
-# construction. Probed from inside the api container so the credentials tested are the
-# ones it really ships with, rather than a re-derivation from .env that can agree with
-# itself while disagreeing with the container. The request body is empty: the collector
-# accepts it as a no-op export, so this writes no spans.
-# The probe speaks OTLP/HTTP, so it is skipped when the container exports over gRPC
+# Check 5: telemetry actually reaches the collector. No other check here covers
+# observability, and the failure is silent. Probed from inside the api container so the
+# credentials tested are the ones it ships with, not a re-derivation from .env. The
+# request body is empty: the collector accepts it as a no-op export, so this writes no
+# spans.
+# The probe speaks OTLP/HTTP and is skipped when the container exports over gRPC
 # (OTEL_EXPORTER_OTLP_PROTOCOL is an operator input): a POST at a gRPC listener is a
-# permanent false alarm, not evidence about ingestion.
+# permanent false alarm.
 telemetry_container="relab_${env}-api-1"
 telemetry_env="$(docker inspect "$telemetry_container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null || true)"
 if [[ "$(docker inspect -f '{{.State.Running}}' "$telemetry_container" 2>/dev/null)" == "true" ]] \

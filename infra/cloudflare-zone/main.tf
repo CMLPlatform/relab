@@ -1,8 +1,7 @@
 # Zone-global Cloudflare configuration for cml-relab.org.
 #
-# prod and staging share this zone, and every resource here is zone-scoped: TLS
-# settings and the three entrypoint rulesets. They are owned by this single root
-# rather than by either environment's workspace, so no two applies can fight over
+# prod and staging share this zone. Every resource here is zone-scoped: TLS settings and
+# the three entrypoint rulesets. One root owns them, so two applies cannot fight over
 # them. Per-environment resources (tunnel, DNS records, tunnel ingress) live in
 # ../cloudflare.
 
@@ -24,13 +23,11 @@ resource "cloudflare_zone_setting" "always_use_https" {
   value      = "on"
 }
 
-# Zone entrypoint rulesets: Cloudflare allows exactly one per (zone, phase). They live
-# in this root, not in the per-environment one, so there is a single owner.
+# Zone entrypoint rulesets: Cloudflare allows one per (zone, phase).
 #
-# `name` is "default" on every one of them, which is what Cloudflare calls a zone
-# entrypoint. It is not cosmetic: changing the name of an existing entrypoint forces
-# replacement, and replacing the firewall entrypoint means a window with no custom
-# firewall rules at all. The description carries the human-readable label instead.
+# `name` must stay "default", the name Cloudflare gives a zone entrypoint. Renaming an
+# existing entrypoint forces replacement, and replacing the firewall entrypoint leaves a
+# window with no custom firewall rules. The label goes in `description` instead.
 resource "cloudflare_ruleset" "rate_limiting" {
   zone_id     = var.cloudflare_zone_id
   name        = "default"
@@ -69,10 +66,9 @@ resource "cloudflare_ruleset" "cache_settings" {
   phase       = "http_request_cache_settings"
 
   rules = [
-    # Cloudflare already caches these by file extension and by the origin's own
-    # Cache-Control. Stating it makes the intent reviewable and pins it against a
-    # zone-setting change made outside this repo, and it covers derivative URLs
-    # whatever extension they end in.
+    # Cloudflare also caches these by file extension and by the origin's Cache-Control.
+    # This rule pins the behaviour against a zone-setting change made outside this repo,
+    # and covers derivative URLs whatever extension they end in.
     {
       ref         = "relab_uploads_cache"
       description = "Cache stored media at the edge for a year (content-addressed, immutable)"

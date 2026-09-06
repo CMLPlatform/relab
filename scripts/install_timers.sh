@@ -74,22 +74,16 @@ cmd_install() {
         sudo install -m 0600 -o "$(id -un)" /dev/null "$HOST_ENV"
         sudo tee "$HOST_ENV" >/dev/null <<'EOF'
 # Dead-man's-switch URLs for the Relab scheduled jobs (healthchecks.io or compatible).
-# This is the one monitoring path that does not share fate with the Grafana stack: it is
-# a push from this host to an outside endpoint, so it still reports when the collector,
-# the tunnel or this host's telemetry is the thing that broke.
+# This monitoring path does not share fate with the Grafana stack: it is a push from this
+# host to an outside endpoint, so it still reports when the collector, the tunnel or this
+# host's telemetry is what broke.
 #
-# ONE check per environment is enough, and PING_WATCHDOG is it. The hourly watchdog
-# reports every other job's timer state, last result and staleness, and a failing job's
-# own output is sent as the alert body — so this one switch carries the same information
-# as one per job, without spending four checks per environment on a capped account.
+# Only PING_WATCHDOG has to be set. The hourly watchdog reports every other job's timer
+# state, last result and staleness, and a failing job's own output is sent as the alert
+# body.
 #
-# This is NOT the same as sharing a URL between jobs. That fails silently: a frequent
-# job's pings keep the check green while a rare job goes quiet. The watchdog instead
-# inspects each job and fails on its behalf, including "scheduled but has not fired in
-# months" — the monthly restore-check's failure mode, and the one worth catching.
-#
-# The rest are optional and unset by default. Set one to give that job its own check
-# anyway; leave it empty to disable pinging for it.
+# The rest are optional and unset by default. Set one to give that job its own check;
+# leave it empty to disable pinging for it.
 #
 # Suggested check period: watchdog 1 hour (grace 30m).
 PING_WATCHDOG=
@@ -101,8 +95,8 @@ EOF
 
     # The file must be readable by the deploy user, not only by root: the watchdog's
     # check 3b and the emptiness warning below both read it directly, and the watchdog
-    # service runs as this user. Earlier installs seeded it root-owned, which made every
-    # such read fail with EACCES — fix that on existing hosts too, keeping 0600.
+    # service runs as this user. Earlier installs seeded it root-owned, so every such
+    # read failed with EACCES; fix that on existing hosts too, keeping 0600.
     sudo chown "$(id -un)" "$HOST_ENV"
 
     sudo systemctl daemon-reload
@@ -114,16 +108,10 @@ EOF
     systemctl list-timers "relab-*@${env}.timer" --all --no-pager
     echo
 
-    # An empty ping URL is indistinguishable from deliberately-off, and the jobs run
-    # fine without one — which is exactly how a host ends up failing silently forever.
-    # Be loud about the unfinished state; the watchdog alerts on it too. Missing and
-    # empty disable pinging identically, so check for both: a renamed or mistyped
-    # variable leaves no empty line for a grep to find.
-    #
-    # Only PING_WATCHDOG. The other jobs report through it — the hourly watchdog checks
-    # every timer's state, last result and staleness, and a failing job's own output is
-    # sent as the alert body — so warning about their empty URLs would be telling the
-    # operator to buy three more healthchecks.io checks that nothing needs.
+    # An empty ping URL means pinging is off, and the jobs run fine without one, so
+    # warn about the unfinished state. Missing and empty disable pinging identically,
+    # so check for both: a renamed or mistyped variable leaves no empty line to grep.
+    # Only PING_WATCHDOG is required; the other jobs report through it.
     if ! grep -qE "^PING_WATCHDOG=[^[:space:]]" "$HOST_ENV"; then
         echo "WARNING: PING_WATCHDOG is missing or empty in ${HOST_ENV}. Every scheduled"
         echo "WARNING: job still runs, but their failures are INVISIBLE outside this host"

@@ -12,16 +12,11 @@
 Description=Relab encrypted backup schedule (%i)
 
 [Timer]
-# Hourly: the snapshot itself is cheap, and it caps data loss at an hour instead of a
-# day. Prune, integrity check and the offsite copy are NOT here — they run once a day
-# from relab-backup-maintenance@.timer, so this does not repack the repository 24x/day.
-# No RandomizedDelaySec. That exists to stop a fleet stampeding a shared endpoint at
-# the same instant; Relab is two hosts on separate machines, so it buys nothing here and
-# costs determinism — a predictable schedule is easier to reason about and lets the
-# watchdog's staleness check run a tighter threshold.
-# The deterministic :00 keeps a 30-minute gap to the maintenance timer at 02:30, but a
-# calendar gap is not a lock: a long prune can still be holding restic's exclusive
-# lock at 03:00, so the backup script passes --retry-lock and waits for it.
+# Hourly snapshot only. Prune, integrity check and the offsite copy run once a day from
+# relab-backup-maintenance@.timer.
+# No RandomizedDelaySec, so the watchdog's staleness check can use a 2h limit.
+# The 30-minute calendar gap to the maintenance timer is not a lock: a long prune can
+# still hold restic's exclusive lock at 03:00, so the backup script passes --retry-lock.
 OnCalendar=hourly
 Persistent=true
 

@@ -198,8 +198,8 @@ test-e2e-full-stack MODE="default":
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
-    # www first: it only needs the seeded API, and its build is seconds. The
-    # fixture lane in `just www/test-e2e` cannot cover a live record's srcset.
+    # www runs first: it needs only the seeded API and builds in seconds. The fixture
+    # lane in `just www/test-e2e` cannot cover a live record's srcset.
     echo "→ Running www live-data E2E tests..."
     just www/test-e2e-live
     echo "→ Building Expo web app..."
@@ -228,9 +228,8 @@ audit: audit-root
 # Canonical security target: secret scanning plus dependency audits
 security:
     #!/usr/bin/env bash
-    # NOTE: gitleaks runs first and unconditionally — a red audit (a known upstream
-    # advisory with no fix yet) must not hide a leaked secret. The recipe still exits
-    # non-zero if either step fails.
+    # NOTE: gitleaks runs first and unconditionally, so a red audit cannot hide a
+    # leaked secret. The recipe exits non-zero if either step fails.
     set -uo pipefail
     status=0
     uv run prek run gitleaks --all-files || status=1
@@ -251,11 +250,11 @@ cloudflare-check:
     @just _cloudflare-verify {{ cloudflare_dir }}
     @just _cloudflare-verify {{ cloudflare_zone_dir }}
 
-# Verify one root against a throwaway copy rather than the working directory. Two
-# reasons, both learned the hard way: `init` reads the selected workspace's state, which
-# is encrypted and would demand TF_VAR_state_passphrase for what is meant to be the
-# credential-free gate; and `tofu test` mocks the provider, which cannot service an
-# import block, so a generated imports.tf makes the run CRASH rather than fail.
+# Verify one root against a throwaway copy rather than the working directory. `init`
+# reads the selected workspace's encrypted state, which would demand
+# TF_VAR_state_passphrase from a credential-free gate. `tofu test` also mocks the
+# provider, which cannot service an import block, so a generated imports.tf crashes the
+# run.
 _cloudflare-verify dir:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -288,7 +287,7 @@ cloudflare-apply env confirm='':
     tofu -chdir={{ cloudflare_dir }} apply -auto-approve -input=false -var="environment={{ env }}"
 
 # Plan the zone-global Cloudflare configuration (TLS settings + the three entrypoint
-# rulesets). One root for the whole zone, so prod and staging cannot clobber each other.
+# rulesets). One root owns the whole zone, shared by prod and staging.
 cloudflare-zone-plan:
     @just _require-cloudflare-vars
     @just _require-telemetry-edge-key
@@ -312,11 +311,11 @@ _require-cloudflare-env env:
       *) echo "env must be 'prod' or 'staging'"; exit 1 ;;
     esac
 
-# The telemetry skip rule is `var.telemetry_edge_key == "" ? [] : [...]`, so an unset
-# key does not fail the apply — it silently drops the rule, and the next plan reports
-# "No changes" because config and state agree there is no rule. That failure mode cost
-# a fortnight of dropped telemetry: exports were bot-challenged at the edge while the
-# token looked correct on both sides. Only the zone root reads this variable.
+# The telemetry skip rule is `var.telemetry_edge_key == "" ? [] : [...]`. An unset key
+# does not fail the apply: it drops the rule, and the next plan reports "No changes"
+# because config and state agree there is no rule. OTLP exports are then bot-challenged
+# at the edge while the token looks correct on both sides. Only the zone root reads this
+# variable.
 _require-telemetry-edge-key:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -406,10 +405,8 @@ _dev-www:
 dev:
     {{ dev_compose }} up --watch
 
-# The snapshot never updates. A container left running here serves the code as
-# it was when the image was built, indefinitely and silently — a stale one cost
-# a full day of measurements against five-day-old code. The banner below and
-# `just dev-stale` exist so that is discoverable rather than assumed.
+# The snapshot never updates: a container left running here serves the code as it was
+# when the image was built. Check with `just dev-stale` before trusting a measurement.
 #
 # Start full dev stack WITHOUT hot reload (serves the snapshot baked into the image)
 dev-up:
@@ -417,10 +414,8 @@ dev-up:
     @printf '\033[33m%s\033[0m\n\n' "Run 'just dev' for hot reload, or 'just dev-stale' to check whether this snapshot is behind."
     {{ dev_compose }} up
 
-# A 200 from a dev port proves something answered, not that it is current.
-# This compares each dev image's build time against the newest source mtime,
-# which is what proves the latter. Cheap enough for humans and agents to run
-# before trusting any measurement taken against a dev server.
+# A 200 from a dev port proves something answered, not that it is current. This compares
+# each dev image's build time against the newest source mtime.
 #
 # Check whether running dev containers serve code older than the working tree
 dev-stale:
@@ -595,9 +590,8 @@ docker-smoke-www:
     set -euo pipefail
     trap 'just _docker-smoke-down www' EXIT
     just _docker-smoke-up www 60
-    # Assert security headers on a live response, not just the Caddyfile text.
-    # The runtime image has no curl (kept out on purpose to stay minimal); wget -S
-    # is the same tool the image's own HEALTHCHECK already relies on.
+    # Assert security headers on a live response, not just the Caddyfile text. The
+    # runtime image has no curl; wget -S is the tool its HEALTHCHECK already uses.
     headers=$({{ ci_compose }} exec -T www wget -qS -O /dev/null http://localhost:8081/ 2>&1)
     echo "$headers" | grep -qi 'Content-Security-Policy:'
     echo "$headers" | grep -qi 'Strict-Transport-Security:'

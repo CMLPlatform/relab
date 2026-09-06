@@ -13,14 +13,9 @@ Description=Relab encrypted backup (%i)
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
-# Bound retries: at RestartSec=5min the default start-limit window (5 in 10s) can
-# never trip, so a persistently failing backup — broken repo, unreachable postgres —
-# would otherwise run a full pg_dump forever, flapping the /fail ping. Three tries in
-# 30 minutes, then the unit lands in `failed`, which the watchdog's timer check
-# reports once and clearly.
-# The window MUST stay shorter than the hourly timer period: systemd counts every
-# start, successful ones included, so a 1d window with burst 3 would refuse the
-# fourth hourly trigger of the day and leave the unit failed until the window rolls.
+# Bound retries: at RestartSec=5min systemd's default start-limit window (5 starts in
+# 10s) can never trip. systemd counts every start, successful ones included, so this
+# window must stay shorter than the hourly timer period.
 StartLimitIntervalSec=30min
 StartLimitBurst=3
 
@@ -39,15 +34,12 @@ TimeoutStartSec=1800
 # cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
 # holding a plaintext pg_dump, the 0400 secret copies, and internet egress. Reap it.
 ExecStopPost=-/usr/bin/docker rm -f relab-backup-%i
-# A transient fault costs an hour of RPO rather than a day now, so the retry is short
-# enough to land well before the next hourly trigger.
+# Short enough to land well before the next hourly trigger.
 Restart=on-failure
 RestartSec=5min
-# CPU: niced, so it still gets a guaranteed slice, just a small one.
+# Low CPU and I/O priority, but not the `idle` I/O class: under `idle` a host that
+# also runs compute jobs can starve this until its timeout kills it.
 Nice=10
-# I/O: best-effort/7, deliberately NOT idle. A host that also runs compute jobs can keep
-# the best-effort class saturated for hours, and under `idle` the kernel serves this only
-# when nothing else has pending I/O — starving the backup until the timeout kills it.
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 

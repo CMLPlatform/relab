@@ -7,8 +7,7 @@ This directory manages Relab's **per-environment** Cloudflare edge with OpenTofu
 - tunnel ingress routes into the Compose `edge` network
 
 Zone-global configuration — TLS settings and the three entrypoint rulesets — lives in
-[`../cloudflare-zone`](../cloudflare-zone), because those resources belong to the zone
-rather than to either environment. See "Why two roots" below.
+[`../cloudflare-zone`](../cloudflare-zone). See "Why two roots" below.
 
 Neither root manages application runtime settings, Compose services, secrets,
 databases, backups, or telemetry.
@@ -21,29 +20,24 @@ so both read one definition.
 
 ## Why two roots
 
-Cloudflare allows exactly **one entrypoint ruleset per (zone, phase)**, and prod and
-staging share one zone (`cml-relab.org`). A workspace-per-environment layout cannot own
-a zone-scoped resource: whichever environment applied last would overwrite the other's
-rules, and the TLS zone settings had the same problem more quietly, being written
-identically by both.
-
-Splitting by scope removes the question rather than managing it:
+Cloudflare allows **one entrypoint ruleset per (zone, phase)**, and prod and staging
+share one zone (`cml-relab.org`). A workspace-per-environment layout cannot own a
+zone-scoped resource: whichever environment applies last overwrites the other's rules.
+The roots are therefore split by scope:
 
 | Root               | Scope           | Workspaces        | Owns                                        |
 | ------------------ | --------------- | ----------------- | ------------------------------------------- |
 | `cloudflare/`      | per environment | `prod`, `staging` | tunnel, DNS records, tunnel ingress         |
 | `cloudflare-zone/` | the whole zone  | `default` only    | TLS settings, the three entrypoint rulesets |
 
-The zone rulesets deliberately match **both** environments' api hosts, so the single
-owner protects both. There is no `manage_shared_zone_rulesets` variable any more; the
-split replaced it.
+The zone rulesets match **both** environments' api hosts, so the single owner protects
+both.
 
 ### One-time: completing the split (done on the staging host, 2026-08-20)
 
-Any edge workspace applied before the split can still hold the three zone settings
-and — because the pre-split root declared the zone entrypoint rulesets behind a
-default-TRUE variable — the three rulesets that now belong to the zone root. A plan
-for such a workspace would DESTROY the live rate-limit and firewall rules.
+An edge workspace applied before the split can still hold the three zone settings and the
+three rulesets that now belong to the zone root. A plan for such a workspace destroys the
+live rate-limit and firewall rules.
 
 **Check first.** In each edge workspace:
 
@@ -54,9 +48,8 @@ tofu state list
 ```
 
 A clean workspace lists only `cloudflare_dns_record.edge[...]` and the two tunnel
-resources — that is the verified state of the staging host's workspace, and nothing
-below applies to it. `state rm` on a clean workspace fails with "No matching objects
-found", which is confirmation, not an error.
+resources; nothing below applies to it. `state rm` on a clean workspace fails with "No
+matching objects found", which confirms the workspace is clean.
 
 If the list DOES show `cloudflare_zone_setting.*` or `cloudflare_ruleset.*`, hand
 them over — `state rm` forgets them **without** deleting anything from Cloudflare,
@@ -76,9 +69,9 @@ just cloudflare-zone-apply YES
 rm ../cloudflare-zone/imports.tf
 ```
 
-Order matters: `state rm` before the zone import, or two states briefly claim the same
-resources. Either way: a plan that proposes destroying a ruleset is this handover left
-unfinished, not something to approve.
+Order matters: run `state rm` before the zone import, or two states briefly claim the
+same resources. A plan that proposes destroying a ruleset means the handover is
+unfinished. Do not apply it.
 
 Current hostnames:
 
@@ -226,22 +219,12 @@ reordering.
 
 ## Where state lives
 
-State is local, under `terraform.tfstate.d/<workspace>/`, gitignored and encrypted. For
-one operator applying a handful of times a year, that is the proportionate answer: a
-remote backend's main product is locking between concurrent applies, and there are no
-concurrent applies.
+State is local, under `terraform.tfstate.d/<workspace>/`, gitignored and encrypted.
+Losing it costs a re-import (see Import Workflow), not a reconstruction, because
+`generate-imports.sh` adopts every resource.
 
-The usual objection to local state — "lose the machine, lose everything" — does not hold
-here, because every resource is adopted by script. Losing the state costs a re-import
-(see Import Workflow), not a reconstruction. It is still worth keeping a copy somewhere
-private if the passphrase is ever the only thing standing between a stolen laptop and
-your tunnel secret.
-
-**Never commit the state**, encrypted or not: this repository is public, and an encrypted
-blob published permanently is a passphrase brute-force target with no expiry.
-
-Revisit this if a second person ever applies, or if CI does — that is the point where a
-remote backend with locking stops being ceremony.
+**Never commit the state**, encrypted or not: this repository is public, and a published
+encrypted blob is a permanent brute-force target.
 
 ## State Encryption
 
@@ -257,17 +240,13 @@ export TF_VAR_state_passphrase='...'   # >= 16 chars
   throwaway directory and verifies that, so `init` never opens an initialized
   workspace's state. That also keeps an adoption-time `imports.tf` from crashing the
   mocked-provider test run.
-- `just cloudflare-plan`, `just cloudflare-apply`, and `tofu state`/`workspace` commands
-  fail closed without one, reporting `no passphrase provided`. That is deliberate — it
-  beats silently writing the tunnel secret in plaintext.
-- Encryption is `enforced = true` with no plaintext fallback, so a missing passphrase
-  fails closed rather than silently writing the tunnel secret in the clear.
-- Use the same passphrase every time. A lost passphrase means a lost state file — which
-  costs a re-import (`generate-imports.sh`, a few minutes), not a rebuild. That is why
-  encryption can be enforced here without it being a hazard.
+- Encryption is `enforced = true` with no plaintext fallback. `just cloudflare-plan`,
+  `just cloudflare-apply`, and `tofu state`/`workspace` commands fail closed without a
+  passphrase, reporting `no passphrase provided`.
+- Use the same passphrase every time. A lost passphrase means a lost state file, which
+  costs a re-import (`generate-imports.sh`, a few minutes), not a rebuild.
 - Keep the passphrase in the operator's password manager, not in the repo or shell
   history.
 
-Keep prod and staging state separate. A remote encrypted backend with locking is still
-required before a second operator or CI applies changes — encryption at rest does not
-give concurrent applies a lock.
+Keep prod and staging state separate. A second operator or CI applying changes needs a
+remote backend with locking; encryption at rest does not lock concurrent applies.

@@ -70,9 +70,8 @@ COMMITTED_DEPLOY_ENV_NAMES = {
     "DOCS_PUBLIC_URL",
     # May be empty: the www landing hero falls back to its committed fixture.
     "FEATURED_PRODUCT_ID",
-    # Per environment on purpose. A single value in the shared root .env resolved to
-    # the staging path for prod too, which would have written prod snapshots into
-    # staging's offsite repository. Committed here so the two cannot converge again.
+    # Per environment. A single value in the shared root .env resolved to the staging
+    # path for prod too, which wrote prod snapshots into staging's offsite repository.
     "RESTIC_OFFSITE_REPOSITORY",
 }
 REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
@@ -159,9 +158,8 @@ REMOVED_DEPLOY_ENV_FILES = {
     ROOT / "backend" / ".env.prod.example",
     ROOT / "backend" / ".env.staging.example",
     ROOT / "deploy" / "env" / "dev.compose.env",
-    # www/.env.dev is intentionally kept: it holds only localhost dev origins for
-    # `astro dev`, not deploy configuration, so it is not the duplication this
-    # policy exists to prevent.
+    # www/.env.dev is kept: it holds only localhost dev origins for `astro dev`, not
+    # deploy configuration.
     ROOT / "www" / ".env.prod",
     ROOT / "www" / ".env.staging",
     ROOT / "www" / ".env.test",
@@ -328,9 +326,8 @@ def assert_offsite_remote_is_configured(env: str | None = None) -> None:
         remote = repo.removeprefix("rclone:").partition(":")[0]
         config = ROOT / "secrets" / label / "rclone.conf"
         if not config.exists():
-            # The strongest form of the gap: no credential file at all, so no offsite
-            # copy will ever run. Staying quiet here while warning on the weaker form
-            # (file present, remote missing) would invert the severities.
+            # No credential file at all, so no offsite copy will ever run. Reported
+            # like the weaker form below (file present, remote missing).
             sys.stdout.write(
                 f"{label}: offsite repository '{repo}' is configured but "
                 f"secrets/{label}/rclone.conf does not exist — backups will be LOCAL ONLY\n"
@@ -451,9 +448,8 @@ def assert_telemetry_examples_use_department_contract() -> None:
     contents = (ROOT / ".env.example").read_text(encoding="utf-8")
     # The hostname is owned by CMLPlatform/monitoring, whose infra/main.tf declares a
     # `cloudflare_dns_record.otel` for `otel.<domain>` and routes it to the collector's
-    # HTTP receiver. Renamed from `otlp.` on 2026-09-05; the old record no longer
-    # resolves to an ingress rule, and there is no `logs.` record, so both are wrong
-    # names rather than alternatives.
+    # HTTP receiver. Renamed from `otlp.` on 2026-09-05: the old record no longer
+    # resolves to an ingress rule, and there is no `logs.` record.
     require(
         "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" in contents,
         ".env.example: OTEL example must use otel.cml-relab.org, the hostname the monitoring stack actually publishes",
@@ -591,8 +587,8 @@ def run_secrets_check(configs: list[str]) -> None:
         assert_rendered_secrets_are_in_inventory(config, secret_inventory)
         assert_secret_files(label, config)
     # `just deploy-secrets-check` is the command the deploy runbooks put in front of
-    # every `up`, so the telemetry credential pairing is enforced here as well as in
-    # the repo-policy `check` — this is the invocation that actually runs on hosts.
+    # every `up`, so the telemetry credential pairing is enforced here as well as in the
+    # repo-policy `check`.
     assert_telemetry_inputs_are_set_together()
 
 

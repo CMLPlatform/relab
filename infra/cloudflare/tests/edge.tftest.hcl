@@ -44,8 +44,8 @@ run "environments_never_share_a_hostname" {
     environment = "prod"
   }
 
-  # Both environments' tunnels are CNAME targets in the same zone; an overlapping
-  # hostname would mean two tunnels claiming one name.
+  # Both environments' tunnels are CNAME targets in the same zone, so an overlapping
+  # hostname means two tunnels claiming one name.
   assert {
     condition = length(setintersection(
       toset([for route in values(local.edge_routes_by_environment.prod) : route.hostname]),
@@ -62,8 +62,8 @@ run "tunnel_ingress_ends_in_a_catch_all" {
     environment = "prod"
   }
 
-  # Cloudflare requires a terminal rule; if it stops being last, unknown hostnames
-  # start reaching whichever origin follows it.
+  # Cloudflare requires a terminal rule. If it stops being last, unknown hostnames reach
+  # whichever origin follows it.
   assert {
     condition     = reverse(cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress)[0].service == "http_status:404"
     error_message = "the last tunnel ingress rule must be the http_status:404 catch-all."

@@ -13,12 +13,8 @@ Description=Relab backup maintenance: retention, integrity check, offsite copy (
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
-# Bound retries: at RestartSec=15min the default start-limit window (5 in 10s) can
-# never trip, so a persistently failing maintenance run — broken repo, unreachable
-# offsite remote — would otherwise repack and re-copy forever, flapping the /fail
-# ping. Three tries, then the unit lands in `failed`, which the watchdog's timer
-# check reports once and clearly. A 1d window is fine here because the timer is
-# daily; the hourly relab-backup@ unit needs a shorter one.
+# Bound retries: at RestartSec=15min systemd's default start-limit window (5 starts
+# in 10s) can never trip.
 StartLimitIntervalSec=1d
 StartLimitBurst=3
 
@@ -37,16 +33,13 @@ TimeoutStartSec=7200
 # cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
 # holding the 0400 secret copies and internet egress. Reap it.
 ExecStopPost=-/usr/bin/docker rm -f relab-backup-maintenance-%i
-# Maintenance is not on the data path — the hourly snapshots keep arriving whether or
-# not this succeeds — but a repository that is never pruned or copied offsite degrades
-# quietly, so retry rather than waiting a full day.
+# A repository that is never pruned or copied offsite degrades quietly, so retry
+# rather than waiting for the next daily run.
 Restart=on-failure
 RestartSec=15min
-# CPU: niced, so it still gets a guaranteed slice, just a small one.
+# Low CPU and I/O priority, but not the `idle` I/O class: under `idle` a host that
+# also runs compute jobs can starve this until its timeout kills it.
 Nice=10
-# I/O: best-effort/7, deliberately NOT idle. A host that also runs compute jobs can keep
-# the best-effort class saturated for hours, and under `idle` the kernel serves this only
-# when nothing else has pending I/O — starving the backup until the timeout kills it.
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 

@@ -8,20 +8,16 @@
 #   job  — any name; it selects the ping URL variable and the command below.
 #   env  — the deployment environment, passed through to the command.
 #
-# Called by this host's systemd units. This is the ONE piece of monitoring
-# that does not share fate with the observability stack, and that is its whole reason to
-# exist. Everything else — logs, traces, host metrics — flows through Alloy to the
-# department collector, so a dead host, a dead collector, a broken tunnel or an expired
-# token all look identical from Grafana: silence. A push from the host to an external
-# endpoint is the one signal that still arrives when that pipeline is the thing that
-# broke, and its absence is itself the alarm.
-#
-# The ping lives here rather than in each unit so the reporting is written once.
+# Called by this host's systemd units. The ping does not share fate with the
+# observability stack: logs, traces and host metrics all flow through Alloy to the
+# department collector, so a dead host, a dead collector, a broken tunnel and an expired
+# token look identical from Grafana. A push to an external endpoint still arrives when
+# that pipeline is what broke.
 #
 # Ping URLs come from the host file loaded by the units, never from the repository —
-# they are capability URLs. bootstrap.sh on the central host prints the PING_* block. An unset URL disables the ping
-# for that job without failing it, so a host that has not been wired up yet still runs
-# its jobs.
+# they are capability URLs. bootstrap.sh on the central host prints the PING_* block. An
+# unset URL disables the ping for that job without failing it, so a host that has not
+# been wired up yet still runs its jobs.
 set -uo pipefail
 
 job="${1:-}"
@@ -45,13 +41,12 @@ cd "$ROOT_DIR" || exit 1
 # `just` is resolved at unit-render time and passed in; fall back to PATH for manual runs.
 JUST_BIN="${JUST_BIN:-just}"
 
-# One `just` recipe per job, named the same as the job — that identity is the contract,
-# which is why there is no mapping table here. Projects that do not use `just` can point
-# JUST_BIN at any runner with the same shape.
+# One `just` recipe per job, named the same as the job. Projects that do not use `just`
+# can point JUST_BIN at any runner with the same shape.
 command=("$JUST_BIN" "$job" "$env_name")
 
-# One variable per job, so each gets its own check. Sharing a URL would let a frequent
-# job's pings mask a rare one's silence — exactly the failure the rare job exists to catch.
+# One variable per job, so each gets its own check. A shared URL lets a frequent job's
+# pings mask a rare one's silence.
 url_var="PING_${job//-/_}"
 url_var="${url_var^^}"
 ping_url="${!url_var:-}"
@@ -92,10 +87,9 @@ if [[ "$status" -eq 0 ]]; then
     curl -fsS -m 10 --retry 3 "$ping_url" -o /dev/null \
         || echo "WARNING: success ping to ${url_var} failed" >&2
 else
-    # Send the job's own output as the failure body: the alert then carries the reason,
-    # instead of only saying that something went wrong. Note this puts job output —
-    # hostnames, paths, restic summaries — in a third party's hands; it is why the ping
-    # carries no credentials and why the URL itself is the only secret.
+    # Send the job's own output as the failure body so the alert carries the reason.
+    # NOTE: this puts job output — hostnames, paths, restic summaries — in a third
+    # party's hands. The ping carries no credentials; the URL itself is the only secret.
     curl -fsS -m 10 --retry 3 --data-binary "@${output_file}" "${ping_url}/fail" -o /dev/null \
         || echo "WARNING: failure ping to ${url_var} failed" >&2
 fi

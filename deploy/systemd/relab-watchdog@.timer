@@ -12,15 +12,10 @@
 Description=Relab health watchdog schedule (%i)
 
 [Timer]
-# No RandomizedDelaySec. That exists to stop a fleet stampeding a shared endpoint at
-# the same instant; Relab is two hosts on separate machines, so it buys nothing here and
-# costs determinism — a predictable schedule is easier to reason about and lets the
-# watchdog's staleness check run a tighter threshold.
-# Jitter is actively unhelpful on a monitoring job: it stretches the interval to as much
-# as 65 minutes and delays detection, for a check that does almost no I/O.
+# No RandomizedDelaySec: it would stretch the interval to as much as 65 minutes and
+# delay detection.
 OnCalendar=hourly
-# Fire on boot when downtime crossed an hourly boundary, like the other two timers:
-# the first thing a host that was just down should do is check itself.
+# Fire on boot when downtime crossed an hourly boundary.
 Persistent=true
 
 [Install]
