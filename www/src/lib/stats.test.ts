@@ -89,6 +89,14 @@ describe('fetchHomeStats', () => {
     await expect(fetchHomeStats()).resolves.toBeNull();
   });
 
+  it('returns null when generated_at is not a date', async () => {
+    vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
+    stubFetch({ ...TOTALS_PAYLOAD, generated_at: 'not-a-date' }, SERIES_PAYLOAD);
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await expect(fetchHomeStats()).resolves.toBeNull();
+  });
+
   it('drops series points with non-numeric measures', async () => {
     vi.stubEnv('PUBLIC_API_URL', 'http://api.test');
     stubFetch(TOTALS_PAYLOAD, { series: [{ period: '2026-06', teardowns: 'lots' }] });

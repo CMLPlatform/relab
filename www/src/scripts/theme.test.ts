@@ -125,6 +125,15 @@ describe('initThemeControl', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('system');
   });
 
+  it('leaves a control with no toggle button alone', () => {
+    document.body.innerHTML = '<div data-theme-control></div>';
+
+    expect(() => initThemeControl()).not.toThrow();
+    const control = document.querySelector<HTMLElement>('[data-theme-control]');
+    expect(control?.dataset.themeCurrent).toBeUndefined();
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+  });
+
   it('is idempotent when called twice', () => {
     const { control, button } = buildControl();
     initThemeControl();

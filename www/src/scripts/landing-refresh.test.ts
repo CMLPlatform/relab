@@ -49,6 +49,28 @@ describe('applyRefresh', () => {
     expect(settled?.textContent).toBe(text);
   });
 
+  it('reveals a hidden metrics line straight away: nothing was there to fade', () => {
+    document.body.innerHTML = '<p data-metrics hidden></p>';
+
+    applyRefresh({ totals: TOTALS });
+
+    const metrics = document.querySelector('[data-metrics]');
+    expect(metrics?.textContent).toBe('1,700 parts documented');
+    expect(metrics?.hasAttribute('hidden')).toBe(false);
+    expect(metrics?.classList.contains('is-refreshing')).toBe(false);
+  });
+
+  it('swaps the text without a dip under reduced motion', () => {
+    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+    document.body.innerHTML = '<p data-metrics>old</p>';
+
+    applyRefresh({ totals: TOTALS });
+
+    const metrics = document.querySelector('[data-metrics]');
+    expect(metrics?.textContent).toBe('1,700 parts documented');
+    expect(metrics?.classList.contains('is-refreshing')).toBe(false);
+  });
+
   it('does nothing when the metrics node is absent', () => {
     document.body.innerHTML = '<p>no hook</p>';
     expect(() =>

@@ -75,12 +75,7 @@ function withThemeTransition(swap: () => void) {
   document.startViewTransition(swap);
 }
 
-function updateThemeToggle(control: HTMLElement, theme: ThemeName) {
-  const button = control.querySelector<HTMLButtonElement>('[data-theme-toggle]');
-  if (!button) {
-    return;
-  }
-
+function updateThemeToggle(control: HTMLElement, button: HTMLButtonElement, theme: ThemeName) {
   control.dataset.themeCurrent = theme;
   button.setAttribute('aria-label', `Theme: ${theme}. Switch theme`);
   button.setAttribute('title', `Theme: ${theme}`);
@@ -102,7 +97,7 @@ function initThemeControl() {
   const syncTheme = () => {
     const theme = getStoredTheme();
     applyTheme(theme);
-    updateThemeToggle(control, theme);
+    updateThemeToggle(control, button, theme);
   };
 
   const cycleTheme = () => {
@@ -113,7 +108,7 @@ function initThemeControl() {
     window.localStorage.setItem(STORAGE_KEY, nextTheme);
     withThemeTransition(() => {
       applyTheme(nextTheme);
-      updateThemeToggle(control, nextTheme);
+      updateThemeToggle(control, button, nextTheme);
     });
   };
 

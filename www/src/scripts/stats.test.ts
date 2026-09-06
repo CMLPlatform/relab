@@ -136,6 +136,22 @@ describe('renderStats', () => {
     expect(statText(panel, 'hero')).toBe('5,678');
   });
 
+  it('labels a tonne-scale mass bar with the precision the axis rounds away', async () => {
+    const panel = buildPanel();
+    vi.mocked(fetchHomeStats).mockResolvedValue({
+      ...STATS,
+      series: SERIES.map((point, i) => ({ ...point, mass_kg: i === 11 ? 1950 : i * 100 })),
+    });
+
+    await renderStats();
+    panel.querySelector<HTMLButtonElement>('.stats-toggle[data-measure="mass_kg"]')?.click();
+
+    // The bar sits below the 2 t gridline, so it must not read "2t".
+    expect(panel.querySelector('.stats-chart-peak')?.textContent).toBe('1.95t');
+    const ticks = [...panel.querySelectorAll('.stats-chart-grid text')].map((t) => t.textContent);
+    expect(ticks).toContain('2');
+  });
+
   it('leaves the panel hidden when the fetch fails', async () => {
     const panel = buildPanel();
     vi.mocked(fetchHomeStats).mockResolvedValue(null);

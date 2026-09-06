@@ -57,6 +57,28 @@ describe('HeroTeardown', () => {
     expect(html).toContain('212 g');
   });
 
+  it('renders the same spoken em dash inside a group, for the parent and its children', async () => {
+    const html = await render({
+      teardown: {
+        ...TEARDOWN,
+        parts: [
+          {
+            name: 'Hinge assembly',
+            weightG: null,
+            share: null,
+            photo: null,
+            children: [{ name: 'Hinge bracket', weightG: null, photo: null }],
+          },
+        ],
+      },
+    });
+
+    expect(html).toContain('Hinge assembly');
+    expect(html).toContain('Hinge bracket');
+    // Once for the summary row, once for the child row.
+    expect(html.match(/mass not recorded/g)).toHaveLength(2);
+  });
+
   it('renders an em dash with a spoken equivalent for a part with no recorded mass', async () => {
     const html = await render({});
     expect(html).not.toMatch(/null|NaN/);
