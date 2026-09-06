@@ -8,13 +8,18 @@ module drives a real ASGI websocket scope through the app instead.
 """
 
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 from uuid import uuid4
 
+from app.api.plugins.rpi_cam.routers.pairing import _build_ws_url
 from app.main import app
 
 if TYPE_CHECKING:
     from uuid import UUID
 
+# Deliberate literals, not imports: a paired camera persists the absolute URL it was
+# handed, so renaming the route strands the whole fleet until each one re-pairs. These
+# must fail and be updated knowingly rather than track the constants they mirror.
 RELAY_WS_PATH = "/v1/plugins/rpi-cam/ws/connect"
 CAMERA_ID_QUERY_PARAM = "camera_id"
 _WS_POLICY_VIOLATION = 1008
@@ -82,3 +87,23 @@ async def test_an_unknown_websocket_path_is_not_served() -> None:
     sent = await _drive_handshake(f"{RELAY_WS_PATH}-typo", f"{CAMERA_ID_QUERY_PARAM}={_camera_id()}")
 
     assert sent == [{"type": "websocket.close", "code": 1000, "reason": ""}]
+
+
+async def test_pairing_hands_cameras_a_url_that_actually_resolves() -> None:
+    """The URL pairing advertises must reach the relay, not merely look plausible.
+
+    A camera persists this URL and dials it for the rest of its life, so an advertised
+    path that no longer matches the mounted route strands every newly paired device
+    while the backend still looks healthy.
+    """
+    advertised = urlsplit(_build_ws_url())
+
+    sent = await _drive_handshake(advertised.path, f"{CAMERA_ID_QUERY_PARAM}={_camera_id()}")
+
+    assert sent == [
+        {
+            "type": "websocket.close",
+            "code": _WS_POLICY_VIOLATION,
+            "reason": "Browser-origin WebSocket clients are not allowed.",
+        }
+    ], f"pairing advertises {advertised.path}, which does not reach the relay endpoint"

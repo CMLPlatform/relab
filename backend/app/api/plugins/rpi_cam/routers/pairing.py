@@ -24,6 +24,7 @@ from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam import crud
+from app.api.plugins.rpi_cam.constants import RELAY_WS_PATH
 from app.api.plugins.rpi_cam.exceptions import (
     PairingCodeAlreadyClaimedError,
     PairingCodeCollisionError,
@@ -41,6 +42,7 @@ from app.api.plugins.rpi_cam.utils.device_contracts import (
 )
 from app.core.config import settings as core_settings
 from app.core.logging import sanitize_log_value
+from app.core.middleware.content_negotiation import API_PATH_PREFIX
 from app.core.redis import (
     RedisDep,
     delete_redis_key,
@@ -84,7 +86,7 @@ def _build_ws_url() -> str:
     """Derive the WebSocket relay URL from the backend's configured API URL."""
     base = str(core_settings.api_public_url).rstrip("/")
     ws_base = base.replace("https://", "wss://").replace("http://", "ws://")
-    return f"{ws_base}/v1/plugins/rpi-cam/ws/connect"
+    return f"{ws_base}{API_PATH_PREFIX}{RELAY_WS_PATH}"
 
 
 @device_router.post(

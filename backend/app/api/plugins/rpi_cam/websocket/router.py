@@ -15,6 +15,7 @@ from pydantic import UUID4, ValidationError
 from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES, RelayMessageType, RelayResponseEnvelope
 
 from app.api.common.rate_limiting import RateLimitExceededError, limiter, rate_limit_bucket_key
+from app.api.plugins.rpi_cam.constants import RELAY_WS_PATH
 from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.runtime.status import mark_camera_offline, mark_camera_online
@@ -114,7 +115,7 @@ class _RelayWebSocketSession:
         self.manager.resolve_json(self.camera_id, msg_id, response, None)
 
 
-@router.websocket("/plugins/rpi-cam/ws/connect")
+@router.websocket(RELAY_WS_PATH)
 async def camera_websocket_connect(websocket: WebSocket, camera_id: UUID4) -> None:
     """Persistent WebSocket connection for an RPi camera relay tunnel."""
     if websocket.headers.get("origin") is not None:
