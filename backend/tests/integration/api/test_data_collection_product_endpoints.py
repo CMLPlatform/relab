@@ -283,3 +283,61 @@ async def test_product_videos_reject_component_ids(
     response = await api_client_superuser.get(f"/v1/products/{setup_product_graph.component.id}/videos")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+async def test_product_video_lifecycle(
+    api_client_superuser: AsyncClient,
+    setup_product: Product,
+) -> None:
+    """A product video can be created, read back, updated and deleted."""
+    create_response = await api_client_superuser.post(
+        f"/v1/products/{setup_product.id}/videos",
+        json={"url": "https://example.com/teardown", "title": "Teardown"},
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED, create_response.text
+    video_id = create_response.json()["id"]
+
+    read_response = await api_client_superuser.get(f"/v1/products/{setup_product.id}/videos/{video_id}")
+    assert read_response.status_code == status.HTTP_200_OK
+    assert read_response.json()["title"] == "Teardown"
+
+    update_response = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}/videos/{video_id}",
+        json={"title": "Teardown, take two"},
+    )
+    assert update_response.status_code == status.HTTP_200_OK, update_response.text
+    assert update_response.json()["title"] == "Teardown, take two"
+
+    delete_response = await api_client_superuser.delete(f"/v1/products/{setup_product.id}/videos/{video_id}")
+    assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+
+    assert (
+        await api_client_superuser.get(f"/v1/products/{setup_product.id}/videos/{video_id}")
+    ).status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.parametrize("method", ["get", "patch", "delete"])
+async def test_product_video_routes_reject_a_video_from_another_product(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+    db_product_type: ProductType,
+    setup_product: Product,
+    method: str,
+) -> None:
+    """A video id only resolves under the product that owns it (400, the repo-wide mismatch code)."""
+    other_product = Product(
+        owner_id=db_superuser.id, name=NEW_PRODUCT_NAME, brand=BRAND_X, product_type=db_product_type
+    )
+    db_session.add(other_product)
+    await db_session.flush()
+    created = await api_client_superuser.post(
+        f"/v1/products/{setup_product.id}/videos",
+        json={"url": "https://example.com/teardown"},
+    )
+    video_id = created.json()["id"]
+
+    url = f"/v1/products/{other_product.id}/videos/{video_id}"
+    response = await api_client_superuser.request(method.upper(), url, json={} if method == "patch" else None)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
