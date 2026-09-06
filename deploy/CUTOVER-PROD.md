@@ -151,6 +151,39 @@ just restore-check staging
 
 Do this even if staging's data is uninteresting; the *procedure* is what is rehearsed.
 
+### Adopt the monitoring templates at `v0.3.0`
+
+The monitoring stack changed both what a spoke ships and what watches it, so re-vendor before the
+window and land it on staging first. Two things move:
+
+- The agent keeps only the four cAdvisor metrics the central stack reads and drops its own histogram
+  buckets: roughly 1,000 fewer series per host, none of them queried by anything here.
+- The gateway counts ingest per project, and `ProjectTelemetrySilent` and `ProjectsUncovered` now
+  key on those counters rather than scanning every series a project sends. A project shipping only
+  logs or only traces is covered at last, and a sender that sets no `project` resource attribute is
+  counted as `unknown` and alerts as uncovered. `compose.deploy.yaml` already sets
+  `OTEL_RESOURCE_ATTRIBUTES: project=${PROJECT},env=${ENVIRONMENT}`, so nothing changes for the API.
+
+```bash
+git -C ../monitoring fetch --tags && git -C ../monitoring checkout v0.3.0
+cp ../monitoring/templates/compose.telemetry.yml     compose.telemetry.yml
+cp ../monitoring/templates/compose.telemetry.gpu.yml compose.telemetry.gpu.yml
+cp ../monitoring/templates/alloy/config.alloy        deploy/alloy/config.alloy
+cp ../monitoring/templates/run_scheduled.sh          scripts/run_scheduled.sh
+sed -i 's/Vendored at \*\*`v0.2.0`\*\*/Vendored at **`v0.3.0`**/' deploy/README.md
+git diff --stat   # four vendored files and the tag line in deploy/README.md, nothing else
+```
+
+Commit that on its own. `GPU_METRICS` stays: `scripts/deploy_ops.sh` reads it to decide whether to
+include the GPU overlay, which is this repo's convention rather than the monitoring stack's.
+
+**The agent config is a bind mount, so `up -d` does not reload it.** A host that pulls the new
+config keeps running the old one until the container is replaced:
+
+```bash
+docker restart "$(docker compose -p relab_staging ps -q alloy)"   # relab_prod on the prod host
+```
+
 ### Confirm the CI gate actually blocks merges
 
 `just ci` runs in `.github/workflows/ci.yml`, whose terminal job is `ci-result`. Branch protection
@@ -638,6 +671,12 @@ filtering on `host=` need updating.
 > replace the per-job dead-man's switch: see "Alerting is two mechanisms" under Known post-launch
 > gaps, and [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5 for the standing configuration.
 >
+> Since monitoring `v0.3.0` the gateway counts what arrives, per project and environment
+> (`telemetry_datapoints_total`, `telemetry_logs_total`, `telemetry_spans_total`), and the silence
+> and coverage alerts read those counters. Verify a host with them rather than with a bare
+> `{project="relab"}` selector: the counters see every signal, including a host that ships logs and
+> no metrics, and they cost the same whatever the fleet grows to.
+>
 > `TELEMETRY_EDGE_KEY` must equal `TF_VAR_telemetry_edge_key` in `infra/cloudflare-zone`; rotate
 > the pair together. The bearer token rotates independently with the collector.
 >
@@ -666,8 +705,9 @@ a single `tofu apply` lands on prod and staging together, and a host still sendi
 its exports dropped with no error anywhere. So:
 
 1. `just prod-up YES` and `just staging-up YES` on both hosts, on this release.
-1. Confirm both are sending: on the monitoring host, `count({project="relab"})` is non-zero for
-   `env="prod"` and `env="staging"`.
+1. Confirm both are sending: on the monitoring host,
+   `count(telemetry_datapoints_total{project="relab"})` is non-zero for `env="prod"` and
+   `env="staging"`.
 1. Only then `just cloudflare-zone-apply YES`.
 
 Rolling back the deploy after step 3 reintroduces the old header and silently loses telemetry; roll
@@ -952,6 +992,21 @@ docker logs --since 10m "$(docker compose -p relab_prod ps -q alloy)" 2>&1 \
   | grep -Ei 'error|failed|401|403' || echo "alloy: no export errors"
 ```
 
+The check above proves telemetry left this host. From the monitoring host, confirm it arrived,
+attributed, and is being watched — all three within about two minutes:
+
+```promql
+count(telemetry_datapoints_total{project="relab",env="prod"})   # non-zero: metrics arriving
+count(telemetry_logs_total{project="relab",env="prod"})         # non-zero: container stdout
+count(telemetry_datapoints_total{project="unknown"})            # must be empty
+count(container_start_time_seconds{project="relab",env="prod",name!=""})  # one per container
+```
+
+An `unknown` project means a sender reached the gateway without `project`/`env` resource attributes;
+find it before it becomes a permanent `ProjectsUncovered` alert. Grafana → Alerting must also list
+`ProjectTelemetrySilent` for `relab/prod`, which exists only if `./bootstrap.sh relab prod` was run
+in step 6.
+
 By hand: log in with Google **and** GitHub (the GitHub client changed in this release), open a
 product with images, and **upload one image as the lab account that owns the bulk of the media**;
 any other account has a near-empty ledger and would pass the quota check without proving anything.
@@ -967,7 +1022,9 @@ requires all of:
   step 3 baseline,
 - all five origins return 2xx and no container is restarting or unhealthy,
 - both OAuth providers, a product page, and one image upload **by the lab account** work by hand,
-- the over-quota report from step 8b comes back empty.
+- the over-quota report from step 8b comes back empty,
+- the monitoring host counts telemetry for `relab/prod`, and a `ProjectTelemetrySilent` rule exists
+  for that pair.
 
 Anything unresolved is **no-go**: roll back with §12 and retry in a later window. Do not launch
 "mostly working" and fix forward; the pre-upgrade dump gets less useful the longer prod accepts
