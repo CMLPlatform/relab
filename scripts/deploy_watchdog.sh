@@ -22,6 +22,41 @@ for snapshot in json.load(sys.stdin):
 print(min(newest.get(tag, 0) for tag in ("postgres", "user-uploads")))
 '
 
+# Reducer for check 5, in a function so scripts/test_ops.sh can drive the real code.
+# Prints one ALERT line per problem and returns how many it printed.
+#
+# The two credentials on the telemetry path fail in different places and must be told
+# apart: the edge key gets a request PAST Cloudflare's bot products, the bearer token
+# gets it INTO the collector. A challenged export is a silently dropped one — the SDK
+# logs an export error and the application carries on — so nothing downstream of here
+# notices. Relab's zone owns the skip rule for `otel.`, which the whole CML monitoring
+# hub ships to, so a mismatch here is not only Relab's outage.
+telemetry_ingress_alerts() {
+    local env="$1" status="$2" cf_mitigated="$3" failures=0
+
+    if [[ -n "$cf_mitigated" ]]; then
+        echo "ALERT[$env]: telemetry exports are challenged at the edge (HTTP ${status}, cf-mitigated=${cf_mitigated}); the Cloudflare skip rule is missing or TELEMETRY_EDGE_KEY does not match TF_VAR_telemetry_edge_key" >&2
+        return 1
+    fi
+
+    case "$status" in
+        2*) ;;
+        401 | 403)
+            echo "ALERT[$env]: the telemetry collector rejected the bearer token (HTTP ${status}); OTLP_AUTH_TOKEN is stale or wrong" >&2
+            failures=1
+            ;;
+        000 | "")
+            echo "ALERT[$env]: telemetry endpoint unreachable" >&2
+            failures=1
+            ;;
+        *)
+            echo "ALERT[$env]: telemetry endpoint returned HTTP ${status}" >&2
+            failures=1
+            ;;
+    esac
+    return "$failures"
+}
+
 # Reducer for check 4, in a function so scripts/test_ops.sh can drive the real code.
 # Prints one ALERT line per problem and returns how many it printed. Inputs are
 # gathered from git below; keeping the decision separate is what makes it testable
@@ -91,6 +126,34 @@ backup_timer_alerts() {
     fi
 
     return "$found"
+}
+
+# Reducer for check 3's staleness half, in a function so scripts/test_ops.sh can drive
+# the real code. Prints one ALERT line per problem and returns how many it printed.
+#
+# A timer can be enabled, active, and last have exited 0, and still not have run for
+# months — systemd reports nothing wrong, because nothing is. That is precisely the
+# monthly restore-check's failure mode, and it is the one job whose silence you cannot
+# afford, since it is the only proof a snapshot actually restores. This check is what
+# lets ONE dead-man's switch per environment stand in for one per job: the watchdog
+# actively inspects the others rather than passively sharing their ping URL.
+#
+# `last_trigger` is systemd's LastTriggerUSec as epoch seconds; 0 means never fired.
+timer_staleness_alerts() {
+    local env="$1" timer="$2" last_trigger="$3" now="$4" max_age_hours="$5" age_hours
+
+    if [[ "$last_trigger" == 0 ]]; then
+        # Persistent=true units fire at boot if they missed a window, so "never" on an
+        # installed timer means it has not yet reached its first window — not an error.
+        return 0
+    fi
+
+    age_hours=$(((now - last_trigger) / 3600))
+    if ((age_hours > max_age_hours)); then
+        echo "ALERT[$env]: $timer last ran ${age_hours}h ago, over its ${max_age_hours}h limit; it is scheduled but not firing" >&2
+        return 1
+    fi
+    return 0
 }
 
 # Reducer for check 1, in a function so scripts/test_ops.sh can drive the real code.
@@ -270,7 +333,22 @@ if ! command -v systemctl >/dev/null 2>&1; then
     echo "ALERT[$env]: systemctl not found; cannot verify the scheduled-job timers" >&2
     failures=$((failures + 1))
 else
-    for job in relab-backup relab-watchdog relab-restore-check; do
+    # Per-job staleness limits: generous multiples of each period, so ordinary jitter,
+    # a reboot or a skipped window never alerts — only a timer that has genuinely
+    # stopped firing does.
+    # Keys are QUOTED deliberately: an unquoted associative-array subscript is an
+    # arithmetic context, so `[relab-backup]` is read as a subtraction and shfmt
+    # reformats it to `[relab - backup]`. Every key then evaluates to 0 and every
+    # lookup fails under `set -u`.
+    declare -A job_max_age_hours=(
+        ["relab-backup"]=3
+        ["relab-backup-maintenance"]=26
+        ["relab-watchdog"]=3
+        ["relab-restore-check"]=960
+    )
+    now_epoch="$(date +%s)"
+
+    for job in relab-backup relab-backup-maintenance relab-watchdog relab-restore-check; do
         unit_timer="${job}@${env}.timer"
         unit_service="${job}@${env}.service"
         # All read-only queries; none need privilege. `|| true` because each of these
@@ -285,25 +363,38 @@ else
 
         backup_timer_alerts "$env" "$unit_timer" "$timer_enabled" "$timer_active" \
             "$unit_failed" "$unit_result" || failures=$((failures + $?))
+
+        # LastTriggerUSec is a human date; ask date(1) to parse it back. "n/a" (never
+        # fired) and an unparseable value both become 0, which the reducer treats as
+        # "not yet due" rather than inventing an alert from a formatting change.
+        last_trigger_raw="$(systemctl show "$unit_timer" -p LastTriggerUSec --value 2>/dev/null || true)"
+        last_trigger_epoch="$(date -d "$last_trigger_raw" +%s 2>/dev/null || echo 0)"
+        timer_staleness_alerts "$env" "$unit_timer" "$last_trigger_epoch" "$now_epoch" \
+            "${job_max_age_hours[$job]}" || failures=$((failures + $?))
     done
 fi
 
-# Check 3b: the dead-man's-switch wiring itself. The ping URLs are the ONE monitoring
-# path that does not share fate with the telemetry stack, and run_scheduled.sh treats
-# an empty URL as "pinging deliberately off" — so a host where timers-install seeded
-# the file but nobody filled it in fails silently, forever, with every other check
-# green. Only checked when the host file exists: that is exactly the seeded-but-
-# unfinished state, while a missing file just means this machine runs no timers.
+# Check 3b: the dead-man's-switch wiring itself. The ping URL is the ONE monitoring path
+# that does not share fate with the telemetry stack, and run_scheduled.sh treats an empty
+# URL as "pinging deliberately off" — so a host where timers-install seeded the file but
+# nobody filled it in fails silently, forever, with every other check green. Only checked
+# when the host file exists: that is exactly the seeded-but-unfinished state, while a
+# missing file just means this machine runs no timers.
+#
+# Only PING_WATCHDOG is required. This watchdog runs hourly and reports every other job's
+# timer state, last result and staleness (check 3), and run_scheduled.sh sends a failing
+# job's own output as the alert body — so one switch per environment carries the same
+# information as one per job. The others still work if set; they are simply not needed,
+# which keeps a project to two checks instead of eight on a capped account.
 host_env_file="${RELAB_HOST_ENV:-/etc/relab/relab.env}"
 if [[ -f "$host_env_file" ]]; then
-    for ping_var in PING_BACKUP PING_WATCHDOG PING_RESTORE_CHECK; do
-        if ping_value="$(ping_url_value "$host_env_file" "$ping_var")"; then
-            ping_url_alerts "$env" "$ping_var" "$host_env_file" "$ping_value" || failures=$((failures + 1))
-        else
-            echo "ALERT[$env]: cannot read ${host_env_file} and ${ping_var} is not in the environment; re-run 'just timers-install $env' to fix the file's ownership" >&2
-            failures=$((failures + 1))
-        fi
-    done
+    ping_var=PING_WATCHDOG
+    if ping_value="$(ping_url_value "$host_env_file" "$ping_var")"; then
+        ping_url_alerts "$env" "$ping_var" "$host_env_file" "$ping_value" || failures=$((failures + 1))
+    else
+        echo "ALERT[$env]: cannot read ${host_env_file} and ${ping_var} is not in the environment; re-run 'just timers-install $env' to fix the file's ownership" >&2
+        failures=$((failures + 1))
+    fi
 fi
 
 # Check 4: deployment drift. Everything above proves the stack is running; none of it
@@ -334,6 +425,50 @@ else
     fi
 
     deployment_drift_alerts "$env" "$drift_dirty" "$drift_upstream" "$drift_behind" "$drift_ahead" || failures=$((failures + $?))
+fi
+
+# Check 5: telemetry actually reaches the collector. Every other check here proves the
+# stack runs; none proves its observability works, and the failure is silent by
+# construction. Probed from inside the api container so the credentials tested are the
+# ones it really ships with, rather than a re-derivation from .env that can agree with
+# itself while disagreeing with the container. The request body is empty: the collector
+# accepts it as a no-op export, so this writes no spans.
+telemetry_container="relab_${env}-api-1"
+if [[ "$(docker inspect -f '{{.State.Running}}' "$telemetry_container" 2>/dev/null)" == "true" ]] \
+    && docker inspect "$telemetry_container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null \
+    | grep -q '^OTEL_EXPORTER_OTLP_ENDPOINT=.'; then
+    # Prints "<status> <cf-mitigated>" and nothing else: the credentials must not reach
+    # the watchdog's output, which goes to cron mail and the ntfy relay.
+    telemetry_probe="$(
+        timeout 60 docker exec -i "$telemetry_container" python3 - <<'PY' 2>/dev/null || true
+import os, urllib.request, urllib.parse, urllib.error
+
+headers = {}
+for pair in os.environ.get("OTEL_EXPORTER_OTLP_HEADERS", "").split(","):
+    if "=" in pair:
+        key, value = pair.split("=", 1)
+        headers[key] = urllib.parse.unquote(value)
+headers["Content-Type"] = "application/x-protobuf"
+
+url = os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"].rstrip("/") + "/v1/traces"
+try:
+    response = urllib.request.urlopen(
+        urllib.request.Request(url, data=b"", method="POST", headers=headers), timeout=20
+    )
+    status, received = response.status, response.headers
+except urllib.error.HTTPError as exc:
+    status, received = exc.code, exc.headers
+except Exception:
+    # Unreachable, DNS failure, TLS error: report it as a status the reducer knows.
+    print("000 ")
+    raise SystemExit(0)
+print(status, received.get("cf-mitigated", ""))
+PY
+    )"
+    telemetry_status="$(printf '%s' "$telemetry_probe" | awk '{print $1}')"
+    telemetry_mitigated="$(printf '%s' "$telemetry_probe" | awk '{print $2}')"
+    telemetry_ingress_alerts "$env" "${telemetry_status:-000}" "$telemetry_mitigated" \
+        || failures=$((failures + $?))
 fi
 
 exit "$failures"

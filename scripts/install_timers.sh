@@ -78,13 +78,23 @@ cmd_install() {
 # a push from this host to an outside endpoint, so it still reports when the collector,
 # the tunnel or this host's telemetry is the thing that broke.
 #
-# One check per job on purpose: sharing a URL lets a frequent job's pings mask a rare
-# job's silence, and the rare job is the one you cannot afford to lose.
-# Leave a value empty to disable pinging for that job.
+# ONE check per environment is enough, and PING_WATCHDOG is it. The hourly watchdog
+# reports every other job's timer state, last result and staleness, and a failing job's
+# own output is sent as the alert body — so this one switch carries the same information
+# as one per job, without spending four checks per environment on a capped account.
 #
-# Suggested check periods: backup 1 day, watchdog 1 hour, restore-check 35 days.
-PING_BACKUP=
+# This is NOT the same as sharing a URL between jobs. That fails silently: a frequent
+# job's pings keep the check green while a rare job goes quiet. The watchdog instead
+# inspects each job and fails on its behalf, including "scheduled but has not fired in
+# months" — the monthly restore-check's failure mode, and the one worth catching.
+#
+# The rest are optional and unset by default. Set one to give that job its own check
+# anyway; leave it empty to disable pinging for it.
+#
+# Suggested check period: watchdog 1 hour (grace 30m).
 PING_WATCHDOG=
+PING_BACKUP=
+PING_BACKUP_MAINTENANCE=
 PING_RESTORE_CHECK=
 EOF
     fi

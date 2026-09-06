@@ -291,12 +291,14 @@ cloudflare-apply env confirm='':
 # rulesets). One root for the whole zone, so prod and staging cannot clobber each other.
 cloudflare-zone-plan:
     @just _require-cloudflare-vars
+    @just _require-telemetry-edge-key
     tofu -chdir={{ cloudflare_zone_dir }} init
     tofu -chdir={{ cloudflare_zone_dir }} plan -input=false
 
 # Apply the zone-global Cloudflare configuration. This affects BOTH environments.
 cloudflare-zone-apply confirm='':
     @just _require-cloudflare-vars
+    @just _require-telemetry-edge-key
     @just _require-confirm "apply zone-global Cloudflare changes (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
     tofu -chdir={{ cloudflare_zone_dir }} init
     tofu -chdir={{ cloudflare_zone_dir }} apply -auto-approve -input=false
@@ -309,6 +311,22 @@ _require-cloudflare-env env:
       prod|staging) exit 0 ;;
       *) echo "env must be 'prod' or 'staging'"; exit 1 ;;
     esac
+
+# The telemetry skip rule is `var.telemetry_edge_key == "" ? [] : [...]`, so an unset
+# key does not fail the apply — it silently drops the rule, and the next plan reports
+# "No changes" because config and state agree there is no rule. That failure mode cost
+# a fortnight of dropped telemetry: exports were bot-challenged at the edge while the
+# token looked correct on both sides. Only the zone root reads this variable.
+_require-telemetry-edge-key:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -z "${TF_VAR_telemetry_edge_key:-}" ]; then
+        echo "Missing TF_VAR_telemetry_edge_key." >&2
+        echo "Without it the telemetry ingress skip rule is omitted and every OTLP" >&2
+        echo "export is bot-challenged at the edge. Export the same value as" >&2
+        echo "TELEMETRY_EDGE_KEY in the deploy hosts' root .env." >&2
+        exit 1
+    fi
 
 _require-cloudflare-vars:
     #!/usr/bin/env bash

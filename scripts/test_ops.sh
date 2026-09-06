@@ -371,5 +371,63 @@ assert_eq "RESTIC_MIN_DUMP_RATIO=0 archives a collapsed dump deliberately" "0|0"
 assert_eq "no previous snapshot means nothing to compare against" "0|0" \
     "$(collapse_guard 59353 0)"
 
+# ---------------------------------------------------------------------------
+# Check 5's reducer: the two telemetry credentials fail at different layers and the
+# alert has to say which, because the remedies are in different systems (a Cloudflare
+# apply vs. a token rotation). A challenged export is silently dropped, so this is the
+# only thing that reports it.
+# ---------------------------------------------------------------------------
+telemetry_alert() {
+    local out status
+    out="$(telemetry_ingress_alerts staging "$1" "$2" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$(printf '%s' "$out" | head -n1)"
+}
+
+assert_eq "a 200 with no mitigation is silent" "0|" "$(telemetry_alert 200 '')"
+assert_eq "a 202 with no mitigation is silent" "0|" "$(telemetry_alert 202 '')"
+assert_eq "an edge challenge names the Cloudflare skip rule, not the token" \
+    "1|ALERT[staging]: telemetry exports are challenged at the edge (HTTP 403, cf-mitigated=challenge); the Cloudflare skip rule is missing or TELEMETRY_EDGE_KEY does not match TF_VAR_telemetry_edge_key" \
+    "$(telemetry_alert 403 challenge)"
+assert_eq "a 401 without mitigation names the bearer token, not the edge" \
+    "1|ALERT[staging]: the telemetry collector rejected the bearer token (HTTP 401); OTLP_AUTH_TOKEN is stale or wrong" \
+    "$(telemetry_alert 401 '')"
+assert_eq "an unreachable endpoint is reported" \
+    "1|ALERT[staging]: telemetry endpoint unreachable" "$(telemetry_alert 000 '')"
+assert_eq "an unexpected status is reported rather than swallowed" \
+    "1|ALERT[staging]: telemetry endpoint returned HTTP 502" "$(telemetry_alert 502 '')"
+# A challenge on a 200 still alerts: Cloudflare can mitigate with a non-error status,
+# and treating that as success is exactly how this went unnoticed for weeks.
+assert_eq "mitigation outranks a success status" "1|ALERT[staging]: telemetry exports are challenged at the edge (HTTP 200, cf-mitigated=challenge); the Cloudflare skip rule is missing or TELEMETRY_EDGE_KEY does not match TF_VAR_telemetry_edge_key" \
+    "$(telemetry_alert 200 challenge)"
+
+# ---------------------------------------------------------------------------
+# Timer staleness: a unit can be enabled, active and last-exited-0 while not having
+# run for months. systemd reports nothing wrong, because nothing is. Catching that is
+# what lets one dead-man's switch per environment replace one per job.
+# ---------------------------------------------------------------------------
+NOW=1757160000 # fixed epoch so these never depend on the wall clock
+staleness_alert() {
+    local out status
+    out="$(timer_staleness_alerts staging relab-restore-check@staging.timer "$1" "$NOW" "$2" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$(printf '%s' "$out" | head -n1)"
+}
+
+assert_eq "a timer that fired within its limit is silent" "0|" \
+    "$(staleness_alert "$((NOW - 3600))" 3)"
+assert_eq "a timer exactly at its limit is silent" "0|" \
+    "$(staleness_alert "$((NOW - 3 * 3600))" 3)"
+# The whole point: scheduled, active, last run succeeded — and stopped firing anyway.
+assert_eq "a monthly timer that stopped firing is reported" \
+    "1|ALERT[staging]: relab-restore-check@staging.timer last ran 1440h ago, over its 960h limit; it is scheduled but not firing" \
+    "$(staleness_alert "$((NOW - 60 * 24 * 3600))" 960)"
+assert_eq "an hourly timer stuck for a day is reported" \
+    "1|ALERT[staging]: relab-restore-check@staging.timer last ran 24h ago, over its 3h limit; it is scheduled but not firing" \
+    "$(staleness_alert "$((NOW - 24 * 3600))" 3)"
+# A freshly installed Persistent=true timer has never fired and is not yet due; an
+# alert there would fire on every new host and teach people to ignore it.
+assert_eq "a timer that has never fired is not an alert" "0|" "$(staleness_alert 0 3)"
+
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1

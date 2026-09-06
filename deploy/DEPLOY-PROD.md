@@ -208,9 +208,19 @@ defence; WebDAV is neither.
 `just watchdog prod` — run hourly by the timer above, and worth running by hand after
 any change — checks every stack service (running, and healthy where a healthcheck
 exists), newest snapshot age, all three scheduled-job timers (installed, enabled,
-active, last run not failed), that the `PING_*` URLs are actually filled in, and
-deployment drift (uncommitted changes, or commits that exist nowhere else). It exits
-non-zero with one `ALERT[...]` line per problem.
+active, last run not failed), that the `PING_*` URLs are actually filled in,
+deployment drift (uncommitted changes, or commits that exist nowhere else), and that
+telemetry exports actually reach the collector. It exits non-zero with one `ALERT[...]`
+line per problem.
+
+The telemetry check probes from inside the api container, so it tests the credentials
+that container really ships with rather than a re-derivation from `.env` that can agree
+with itself while disagreeing with the container. It separates the two failure modes,
+because they are fixed in different systems: a `cf-mitigated` response means Cloudflare
+challenged the export (the skip rule is missing, or the two halves of the edge key
+disagree — §1.5), while a 401/403 without it means the collector rejected the bearer
+token. Both are otherwise silent: the SDK logs an export error and the application
+carries on serving traffic.
 
 Its exit code is what the hourly dead-man's switch reports, so a failing check surfaces
 as a missed or failed ping rather than as a line nobody reads.
@@ -234,6 +244,20 @@ OTLP_AUTH_TOKEN=<bearer token>
 TELEMETRY_EDGE_KEY=<edge key>
 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
+
+`TELEMETRY_EDGE_KEY` is not Relab-only, and that has two consequences worth knowing
+before you touch it. `otel.` belongs to the monitoring stack, not to Relab, and every
+CML project shipping to that collector presents the same key — so rotating it
+bot-challenges every other spoke until each one's `.env` is updated too. And because
+the record lives in the `cml-relab.org` zone, `infra/cloudflare-zone` is the single
+owner of a control protecting all of them.
+
+The rule that reads it is `var.telemetry_edge_key == "" ? [] : [...]`, so an unset
+`TF_VAR_telemetry_edge_key` does not fail the apply — it omits the rule, and the next plan reports
+"No changes" because config and state agree there is none. `just cloudflare-zone-plan` and `-apply`
+now refuse to run without the variable for exactly that reason. The symptom, if it ever recurs:
+every export 403s with a `cf-mitigated` header, identically whether or not credentials are sent,
+because the request is rejected before the collector ever sees it.
 
 The endpoint is the on/off switch for the whole telemetry path. Setting it turns on the
 API's own OpenTelemetry exporter **and** auto-includes `compose.telemetry.yml`, a
