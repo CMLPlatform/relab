@@ -13,12 +13,15 @@ Description=Relab encrypted backup (%i)
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
-# Bound retries: at RestartSec=15min the default start-limit window (5 in 10s) can
+# Bound retries: at RestartSec=5min the default start-limit window (5 in 10s) can
 # never trip, so a persistently failing backup — broken repo, unreachable postgres —
-# would otherwise run a full pg_dump forever, flapping the /fail ping. Three tries,
-# then the unit lands in `failed`, which the watchdog's timer check reports once and
-# clearly.
-StartLimitIntervalSec=1d
+# would otherwise run a full pg_dump forever, flapping the /fail ping. Three tries in
+# 30 minutes, then the unit lands in `failed`, which the watchdog's timer check
+# reports once and clearly.
+# The window MUST stay shorter than the hourly timer period: systemd counts every
+# start, successful ones included, so a 1d window with burst 3 would refuse the
+# fourth hourly trigger of the day and leave the unit failed until the window rolls.
+StartLimitIntervalSec=30min
 StartLimitBurst=3
 
 [Service]

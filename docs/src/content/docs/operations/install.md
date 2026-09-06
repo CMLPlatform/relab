@@ -287,10 +287,11 @@ migrations, verify health.
 ### Scheduling backups
 
 Starting the stack does **not** schedule backups. The backup service is a one-shot: a
-systemd timer on the host runs it once a day and it exits. Install all three scheduled
-jobs (backup, watchdog, restore-check) once per environment — the installer renders the
-committed units with this host's checkout path, deploy user and `just` location, then
-enables the timers:
+systemd timer on the host runs it every hour and it exits, and a second daily timer does
+the repository upkeep (retention, integrity check, offsite copy). Install all four
+scheduled jobs (backup, backup-maintenance, watchdog, restore-check) once per environment
+— the installer renders the committed units with this host's checkout path, deploy user
+and `just` location, then enables the timers:
 
 ```bash
 just timers-render                        # inspect what will be installed
@@ -325,9 +326,9 @@ WebDAV is handled through restic's rclone backend.
    into staging's offsite repository. The per-environment files are loaded second and override the
    root `.env`, so a value set there is ignored.
 
-   Once set, the scheduled `backups` service copies snapshots offsite automatically at the end of
-   every backup cycle, initializing the offsite repository on first run. No further action is
-   needed for ongoing offsite copies.
+   Once set, the daily maintenance job copies snapshots offsite automatically, initializing the
+   offsite repository on first run. The hourly snapshots stay local until then, so losing the host
+   itself still costs up to a day of data. No further action is needed for ongoing offsite copies.
 
 1. To copy snapshots on demand outside the scheduled cycle (for example, right after a one-off
    local backup), export the same variable in the shell that runs the manual helper. The helper

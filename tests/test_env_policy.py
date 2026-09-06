@@ -200,3 +200,26 @@ def test_secret_env_name_is_the_uppercased_file_name() -> None:
 def test_deploy_labels_scopes_to_one_stack_or_reports_on_all() -> None:
     assert env_policy.deploy_labels("staging") == ("staging",)
     assert env_policy.deploy_labels(None) == ("staging", "prod")
+
+
+def test_env_scope_suppresses_the_other_stacks_warnings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`--env staging` must not report prod's gaps: both per-env checks honour the scope."""
+    (tmp_path / "deploy" / "env").mkdir(parents=True)
+    (tmp_path / "deploy" / "env" / "prod.compose.env").write_text(
+        "RESTIC_OFFSITE_REPOSITORY=rclone:surfdrive:/relab\n", encoding="utf-8"
+    )
+    (tmp_path / "secrets" / "prod").mkdir(parents=True)
+    (tmp_path / "secrets" / "prod" / "auth_token_secret").write_text("", encoding="utf-8")
+    monkeypatch.setattr(env_policy, "ROOT", tmp_path)
+    secrets = inventory({"auth_token_secret"}, set())
+
+    env_policy.assert_existing_secret_files_do_not_use_placeholders(secrets, "staging")
+    env_policy.assert_offsite_remote_is_configured("staging")
+    assert capsys.readouterr().out == ""
+
+    with pytest.raises(AssertionError):
+        env_policy.assert_existing_secret_files_do_not_use_placeholders(secrets, None)
+    env_policy.assert_offsite_remote_is_configured(None)
+    assert "prod: offsite repository" in capsys.readouterr().out

@@ -531,7 +531,7 @@ staging-migrate confirm='':
 # Pass `manual` before a risky operation: retention keeps `manual` snapshots
 # unconditionally, so the next scheduled run cannot expire your safety copy.
 backup env manual='':
-    @BACKUP_MANUAL={{ if manual == "manual" { "true" } else { "false" } }} bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
+    @BACKUP_MANUAL={{ if manual == "manual" { "true" } else if manual == "" { "false" } else { error("second argument must be `manual` or omitted, got `" + manual + "`") } }} bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
 
 # Backup upkeep only: retention, integrity check, offsite copy — no new snapshot.
 # Run daily by relab-backup-maintenance@<env>.timer; the hourly backup skips this work.

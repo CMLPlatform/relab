@@ -254,8 +254,9 @@ services:
       # Backups are hourly (relab-backup@.timer), so keep-hourly is meaningful again:
       # restic counts distinct HOURS that contain a snapshot, which is why this was 0
       # while backups were daily — 24 would have resolved to 24 distinct DAYS and
-      # silently overridden the 14 below. 48 keeps two days of hourly granularity.
-      RESTIC_KEEP_HOURLY: "48"
+      # silently overridden the 14 below. 24 keeps one day of hourly granularity;
+      # compressed pg_dumps deduplicate poorly, so every extra hour is a near-full copy.
+      RESTIC_KEEP_HOURLY: "24"
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
       RESTIC_KEEP_MONTHLY: "12"

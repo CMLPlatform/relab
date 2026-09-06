@@ -340,10 +340,18 @@ done
 # `restic` and the dump file are stubbed; no repository and no docker are involved.
 # ---------------------------------------------------------------------------
 collapse_guard() {
-    local new_bytes="$1" prev_bytes="$2" ratio="${3:-}" tmp out status
+    local new_bytes="$1" prev_bytes="$2" ratio="${3:-}" restic_exit="${4:-0}" tmp out status count=1
     tmp="$(mktemp -d)"
-    # A stub restic on PATH, answering only the `stats --json` call the guard makes.
-    printf '#!/usr/bin/env bash\nprintf %%s "{\\"total_size\\":%s}"\n' "$prev_bytes" >"$tmp/restic"
+    # A stub restic on PATH, answering only the `stats --json` call the guard makes,
+    # in restic's real shape: an empty repository is exit 0 with snapshots_count 0
+    # plus a warning on stderr, not an error.
+    [[ "$prev_bytes" == 0 ]] && count=0
+    cat >"$tmp/restic" <<EOS
+#!/usr/bin/env bash
+[[ "$restic_exit" == 0 ]] || { echo "Fatal: unable to open repository: repository is already locked" >&2; exit $restic_exit; }
+[[ "$count" == 0 ]] && echo 'Ignoring "latest": no snapshot matched given filter' >&2
+printf %s '{"total_size":$prev_bytes,"snapshots_count":$count}'
+EOS
     chmod +x "$tmp/restic"
     head -c "$new_bytes" /dev/zero >"$tmp/dump"
     out="$(
@@ -357,19 +365,53 @@ collapse_guard() {
     )"
     status=$?
     rm -rf "$tmp"
-    printf '%s|%s' "$status" "$(printf '%s' "$out" | grep -c 'refusing to archive')"
+    printf '%s|%s|%s' "$status" "$(printf '%s' "$out" | grep -c 'refusing to archive')" \
+        "$(printf '%s' "$out" | grep -c 'restic exit')"
 }
 
-assert_eq "a dump collapsed to 23% of the previous snapshot is refused" "1|1" \
+assert_eq "a dump collapsed to 23% of the previous snapshot is refused" "1|1|0" \
     "$(collapse_guard 59353 259672)"
-assert_eq "a dump the same size as the previous snapshot is archived" "0|0" \
+assert_eq "a dump the same size as the previous snapshot is archived" "0|0|0" \
     "$(collapse_guard 259672 259672)"
-assert_eq "an ordinary shrink above the ratio is archived" "0|0" \
+assert_eq "an ordinary shrink above the ratio is archived" "0|0|0" \
     "$(collapse_guard 200000 259672)"
-assert_eq "RESTIC_MIN_DUMP_RATIO=0 archives a collapsed dump deliberately" "0|0" \
+assert_eq "RESTIC_MIN_DUMP_RATIO=0 archives a collapsed dump deliberately" "0|0|0" \
     "$(collapse_guard 59353 259672 0)"
-assert_eq "no previous snapshot means nothing to compare against" "0|0" \
+assert_eq "no previous snapshot means nothing to compare against" "0|0|0" \
     "$(collapse_guard 59353 0)"
+# The guard must fail closed: a restic error (lock held by maintenance, repository
+# unreadable) is not "no previous snapshot", and archiving anyway is exactly the
+# unguarded write this check exists to prevent.
+assert_eq "a restic failure refuses the dump instead of failing open" "1|0|1" \
+    "$(collapse_guard 59353 259672 '' 1)"
+
+# ---------------------------------------------------------------------------
+# The hourly-vs-daily split in backup_relab_restic.sh: BACKUP_MAINTENANCE decides
+# which steps a run performs. Every step is stubbed to record its name; the output is
+# the ordered list of steps that ran.
+# ---------------------------------------------------------------------------
+cycle_steps() {
+    bash -c '
+        set -euo pipefail
+        SKIP_DATABASE_BACKUP="${2:-false}" SKIP_UPLOAD_BACKUP="${3:-false}"
+        # shellcheck source=/dev/null
+        . backend/scripts/backup/backup_relab_restic.sh
+        log() { :; }
+        backup_database() { echo db; }
+        backup_uploads() { echo uploads; }
+        prune_repo() { echo prune; }
+        restic() { echo "restic $1"; }
+        copy_to_offsite() { echo "copy:$1"; }
+        run_cycle "$1"
+    ' _ "$@" 2>&1 | paste -sd,
+}
+
+assert_eq "auto: snapshot then full maintenance" "db,uploads,prune,restic check,copy:true" "$(cycle_steps auto)"
+assert_eq "skip (hourly timer): snapshot only, no prune, no copy" "db,uploads" "$(cycle_steps skip)"
+assert_eq "only (daily timer): maintenance without a new snapshot" "prune,restic check,copy:true" "$(cycle_steps only)"
+# A copy-only run (both backups skipped) is what an operator uses when the local repo
+# is already lost; pruning in that moment would expire the only surviving archive.
+assert_eq "auto with both backups skipped is copy-only, never prune" "copy:false" "$(cycle_steps auto true true)"
 
 # ---------------------------------------------------------------------------
 # Check 5's reducer: the two telemetry credentials fail at different layers and the
@@ -428,6 +470,28 @@ assert_eq "an hourly timer stuck for a day is reported" \
 # A freshly installed Persistent=true timer has never fired and is not yet due; an
 # alert there would fire on every new host and teach people to ignore it.
 assert_eq "a timer that has never fired is not an alert" "0|" "$(staleness_alert 0 3)"
+# A LastTriggerUSec that date(1) cannot read would otherwise switch this check off for
+# every timer at once, with everything reading green.
+assert_eq "an unparseable last trigger is reported, not treated as never fired" \
+    "1|ALERT[staging]: cannot parse LastTriggerUSec for relab-restore-check@staging.timer; the staleness check is not running" \
+    "$(staleness_alert unparseable 960)"
+
+# ---------------------------------------------------------------------------
+# Check 2b's reducer: free space on the filesystem holding the restic repository.
+# ---------------------------------------------------------------------------
+disk_alert() {
+    local out status
+    out="$(disk_usage_alerts staging /srv/backups "$1" 85 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "a filesystem under the limit is silent" "0|" "$(disk_alert 60)"
+assert_eq "a filesystem at the limit is reported" \
+    "1|ALERT[staging]: the filesystem holding /srv/backups is 85% full (limit 85%); hourly snapshots will fill it" \
+    "$(disk_alert 85)"
+assert_eq "an unreadable df is reported rather than assumed fine" \
+    "1|ALERT[staging]: cannot read free space for the backup directory /srv/backups" "$(disk_alert '')"
 
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1

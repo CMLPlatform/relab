@@ -29,8 +29,8 @@ step that has only ever run on prod has never actually been tested.
 
 ## Also here
 
-- `systemd/` — the three scheduled-job units (backup, watchdog, monthly restore
-  check). Render with `just timers-render`, install with `just timers-install <env>`;
+- `systemd/` — the four scheduled-job units (hourly backup, daily backup maintenance,
+  watchdog, monthly restore check). Render with `just timers-render`, install with `just timers-install <env>`;
   the committed files carry placeholders, not any real host's paths.
 - `alloy/` — the Grafana Alloy agent config that ships container logs and host metrics
   to the central collector. Loaded by `compose.telemetry.yml`, which the deploy

@@ -207,11 +207,13 @@ defence; WebDAV is neither.
 
 `just watchdog prod` — run hourly by the timer above, and worth running by hand after
 any change — checks every stack service (running, and healthy where a healthcheck
-exists), newest snapshot age, all three scheduled-job timers (installed, enabled,
-active, last run not failed), that the `PING_*` URLs are actually filled in,
-deployment drift (uncommitted changes, or commits that exist nowhere else), and that
-telemetry exports actually reach the collector. It exits non-zero with one `ALERT[...]`
-line per problem.
+exists), newest snapshot age, free space on the filesystem holding the restic
+repository (alerts at 85% used; `BACKUP_DISK_ALERT_PCENT` overrides), all four
+scheduled-job timers (installed, enabled, active, last run not failed, last trigger
+not overdue), that the `PING_*` URLs are actually filled in, deployment drift
+(uncommitted changes, or commits that exist nowhere else), and that telemetry exports
+actually reach the collector. It exits non-zero with one `ALERT[...]` line per
+problem.
 
 The telemetry check probes from inside the api container, so it tests the credentials
 that container really ships with rather than a re-derivation from `.env` that can agree

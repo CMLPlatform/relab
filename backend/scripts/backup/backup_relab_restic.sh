@@ -9,14 +9,20 @@ log() {
 
 # Extra tags applied to every snapshot this run creates. BACKUP_MANUAL=true marks a
 # hand-run backup with `manual`, which the retention policy keeps unconditionally
-# (--keep-tag=manual). Hourly retention is off in compose (RESTIC_KEEP_HOURLY=0), so
-# --keep-daily keeps just the newest snapshot per calendar day: without this tag, a
-# backup taken deliberately before a risky operation is expired by ANY later run the
-# same day, not merely one in the same hour.
+# (--keep-tag=manual). Hourly retention keeps only the newest snapshot per hour and
+# expires the rest after RESTIC_KEEP_HOURLY hours: without this tag, a backup taken
+# deliberately before a risky operation is expired by the next scheduled run in the
+# same hour, or by retention a day later.
 BACKUP_TAG_ARGS=()
 if [[ "${BACKUP_MANUAL:-false}" == "true" ]]; then
     BACKUP_TAG_ARGS=(--tag manual)
 fi
+
+# How long a snapshot waits for restic's lock. The daily maintenance run holds an
+# exclusive lock while `forget --prune` repacks, and the calendar gap to the next
+# hourly snapshot is 30 minutes — a prune that overruns it would otherwise fail the
+# snapshot outright (restic's default is to give up immediately).
+RESTIC_RETRY_LOCK="${RESTIC_RETRY_LOCK:-30m}"
 
 read_secret() {
     local name="$1"
@@ -85,7 +91,7 @@ backup_database() {
     assert_dump_not_collapsed "$dump_file"
 
     log "Backing up PostgreSQL dump to restic"
-    restic backup "$dump_file" --tag postgres --tag relab "${BACKUP_TAG_ARGS[@]}"
+    restic backup "$dump_file" --retry-lock "$RESTIC_RETRY_LOCK" --tag postgres --tag relab "${BACKUP_TAG_ARGS[@]}"
     rm -f "$dump_file"
 }
 
@@ -99,13 +105,29 @@ assert_dump_not_collapsed() {
     [[ "$ratio" == 0 ]] && return 0
 
     new_size="$(stat -c %s "$dump_file")"
-    # `restic stats --json` on the newest postgres snapshot: its raw size is the dump's
-    # own byte count, so the two numbers are directly comparable.
-    prev_size="$(restic stats latest --tag postgres --mode raw-data --json 2>/dev/null \
-        | sed -n 's/.*"total_size":\([0-9]*\).*/\1/p')" || true
-    if [[ -z "$prev_size" || "$prev_size" == 0 ]]; then
+    # `restic stats --json` on the newest postgres snapshot, in the default
+    # restore-size mode: that is the dump's own byte count, directly comparable to
+    # the new file. (raw-data would be the packed size, which with an uncompressed
+    # dump is a fraction of the file and would make this guard never fire.)
+    # Capture restic's exit separately from the sed: a failure here (lock held,
+    # repository unreadable) must not read as "no previous snapshot" and fail open.
+    local stats_json status=0
+    stats_json="$(restic stats latest --tag postgres --json 2>&1)" || status=$?
+    if [[ "$status" -ne 0 ]]; then
+        log "ERROR: could not read the previous PostgreSQL snapshot size (restic exit ${status}): ${stats_json}"
+        rm -f "$dump_file"
+        exit 1
+    fi
+    # An empty repository is exit 0 with "snapshots_count":0, not an error.
+    if grep -q '"snapshots_count":0[,}]' <<<"$stats_json"; then
         log "No previous PostgreSQL snapshot to compare against; archiving ${new_size} bytes"
         return 0
+    fi
+    prev_size="$(sed -n 's/.*"total_size":\([0-9]*\).*/\1/p' <<<"$stats_json")"
+    if [[ -z "$prev_size" || "$prev_size" == 0 ]]; then
+        log "ERROR: previous PostgreSQL snapshot reports no size; refusing to guess. Output: ${stats_json}"
+        rm -f "$dump_file"
+        exit 1
     fi
 
     pct=$((new_size * 100 / prev_size))
@@ -126,7 +148,7 @@ backup_uploads() {
     fi
 
     log "Backing up user uploads to restic: ${UPLOADS_DIR}"
-    restic backup "$UPLOADS_DIR" --tag user-uploads --tag relab "${BACKUP_TAG_ARGS[@]}"
+    restic backup "$UPLOADS_DIR" --retry-lock "$RESTIC_RETRY_LOCK" --tag user-uploads --tag relab "${BACKUP_TAG_ARGS[@]}"
 }
 
 prune_repo() {
@@ -246,7 +268,14 @@ main() {
             ;;
     esac
 
-    local did_backup=false
+    run_cycle "$maintenance"
+    log "Backup run completed"
+}
+
+# The whole hourly-vs-daily split, in one function so scripts/test_ops.sh can drive it
+# with the steps stubbed. Args: <auto|skip|only>.
+run_cycle() {
+    local maintenance="$1" did_backup=false
     if [[ "$maintenance" != "only" ]]; then
         if [[ "${SKIP_DATABASE_BACKUP:-false}" != "true" ]]; then
             backup_database
@@ -273,7 +302,10 @@ main() {
     else
         log "Maintenance skipped (BACKUP_MAINTENANCE=skip); prune, check and offsite copy run on the daily maintenance timer"
     fi
-    log "Backup run completed"
 }
 
-main "$@"
+# Sourced by scripts/test_ops.sh to exercise run_cycle with stubs; only run main
+# when executed directly.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

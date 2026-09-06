@@ -19,8 +19,9 @@ Description=Relab encrypted backup schedule (%i)
 # the same instant; Relab is two hosts on separate machines, so it buys nothing here and
 # costs determinism — a predictable schedule is easier to reason about and lets the
 # watchdog's staleness check run a tighter threshold.
-# The deterministic :00 also keeps a fixed 30-minute gap to the maintenance timer at
-# :30, which is what actually stops the two contending for restic's exclusive lock.
+# The deterministic :00 keeps a 30-minute gap to the maintenance timer at 02:30, but a
+# calendar gap is not a lock: a long prune can still be holding restic's exclusive
+# lock at 03:00, so the backup script passes --retry-lock and waits for it.
 OnCalendar=hourly
 Persistent=true
 

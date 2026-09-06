@@ -14,10 +14,11 @@ Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
 # Bound retries: at RestartSec=15min the default start-limit window (5 in 10s) can
-# never trip, so a persistently failing backup — broken repo, unreachable postgres —
-# would otherwise run a full pg_dump forever, flapping the /fail ping. Three tries,
-# then the unit lands in `failed`, which the watchdog's timer check reports once and
-# clearly.
+# never trip, so a persistently failing maintenance run — broken repo, unreachable
+# offsite remote — would otherwise repack and re-copy forever, flapping the /fail
+# ping. Three tries, then the unit lands in `failed`, which the watchdog's timer
+# check reports once and clearly. A 1d window is fine here because the timer is
+# daily; the hourly relab-backup@ unit needs a shorter one.
 StartLimitIntervalSec=1d
 StartLimitBurst=3
 
@@ -34,7 +35,7 @@ ExecStart=/opt/relab/scripts/run_scheduled.sh backup-maintenance %i
 TimeoutStartSec=7200
 # `compose run` starts a container that is a child of dockerd, NOT of this unit's
 # cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
-# holding a plaintext pg_dump, the 0400 secret copies, and internet egress. Reap it.
+# holding the 0400 secret copies and internet egress. Reap it.
 ExecStopPost=-/usr/bin/docker rm -f relab-backup-maintenance-%i
 # Maintenance is not on the data path — the hourly snapshots keep arriving whether or
 # not this succeeds — but a repository that is never pruned or copied offsite degrades

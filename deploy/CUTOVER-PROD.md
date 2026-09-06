@@ -792,7 +792,7 @@ On each host:
 ```bash
 sudo sed -i 's/^RELAB_PING_/PING_/' /etc/relab/relab.env
 just timers-install prod        # re-render the units; warns if any URL is still unset
-just watchdog prod              # check 3b confirms all three resolve
+just watchdog prod              # check 3b confirms PING_WATCHDOG resolves
 ```
 
 `just timers-install` warns about missing *and* empty `PING_*` names, so a host

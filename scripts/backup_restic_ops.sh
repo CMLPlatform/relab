@@ -120,6 +120,37 @@ build_backup_image() {
 # systemd path passes a DETERMINISTIC name so the unit's ExecStopPost reaper can
 # remove the container after a SIGKILL, when no trap here ever runs — an unowned
 # leftover holds a full restored copy of production data.
+# Replay a pg_dump custom-format archive already copied into a running Postgres
+# container, then assert schema AND rows landed. One function for the smoke test and
+# the live restore, so the sequence CI exercises is the sequence an operator runs.
+# Args: <container> <dump path inside the container> <db user> <db name>
+#       [extra pg_restore args...]
+replay_dump() {
+    local container="$1" dump="$2" user="$3" db="$4"
+    shift 4
+    local -a psql=(docker exec "$container" psql -U "$user" -d "$db" -v ON_ERROR_STOP=1)
+    local -a pg_restore=(docker exec "$container" pg_restore "$@" -U "$user" -d "$db" "$dump")
+    # The dump is taken with --schema=public and so recreates the schema itself;
+    # pre-creating it here makes pg_restore fail on "schema public already exists".
+    "${psql[@]}" -c 'DROP SCHEMA IF EXISTS public CASCADE;'
+    # NOTE: --schema=public dumps omit CREATE EXTENSION, so the target is missing
+    # pg_trgm when trigram GIN indexes (gin_trgm_ops) are rebuilt. Real clusters get
+    # it from the alembic migrations (f3a8c2d1e5b7, a1b2c3d4e5f6) that own trigram
+    # search, not from initdb; mirror that list here and keep it in sync if a
+    # migration ever adds another extension. The index definitions schema-qualify
+    # the opclass as "public.gin_trgm_ops", so the extension has to exist in "public"
+    # specifically — restore pre-data (which recreates the "public" schema) first,
+    # create the extension, then restore the rest so the later post-data section can
+    # build the trigram indexes.
+    "${pg_restore[@]}" --section=pre-data
+    "${psql[@]}" -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'
+    "${pg_restore[@]}" --section=data
+    "${pg_restore[@]}" --section=post-data
+    # NOTE: pg_restore can exit 0 on an empty archive, and a schema-only check passes
+    # on a migrated-but-empty dump, so assert rows landed too.
+    "${psql[@]}" -f - <<<"$ASSERT_RESTORE_NOT_EMPTY"
+}
+
 verify_postgres_restore() {
     local repo_dir="$1"
     local password_file="$2"
@@ -149,7 +180,10 @@ verify_postgres_restore() {
         exit 1
     fi
 
-    docker run -d --name "$RESTORE_CONTAINER" \
+    # --network none: this container holds a full copy of production data behind a
+    # fixed password for as long as the check runs, and nothing needs to reach it —
+    # the dump arrives by `docker cp`, every query goes through `docker exec`.
+    docker run -d --name "$RESTORE_CONTAINER" --network none \
         -e POSTGRES_PASSWORD=restore-password \
         -e POSTGRES_DB=relab_restore \
         "$POSTGRES_IMAGE" >/dev/null
@@ -169,31 +203,10 @@ verify_postgres_restore() {
     fi
 
     docker cp "$dump_file" "$RESTORE_CONTAINER:/tmp/relab.dump"
-    # The dump is taken with --schema=public and so recreates the schema itself;
-    # pre-creating it here makes pg_restore fail on "schema public already exists".
-    docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 \
-        -c 'DROP SCHEMA IF EXISTS public CASCADE;'
     # --no-acl: the dump carries GRANTs/ALTER DEFAULT PRIVILEGES for roles
     # (relab_app, relab_migrator, relab_backup) that don't exist on a scratch
     # cluster; ACLs are irrelevant to a restorability check.
-    local -a restore_args=(--no-owner --no-acl -U postgres -d relab_restore /tmp/relab.dump)
-    # NOTE: --schema=public dumps omit CREATE EXTENSION, so the scratch cluster is
-    # missing pg_trgm when trigram GIN indexes (gin_trgm_ops) are rebuilt. Real
-    # clusters get it from the alembic migrations (f3a8c2d1e5b7, a1b2c3d4e5f6)
-    # that own trigram search, not from initdb; mirror that list here and keep
-    # it in sync if a migration ever adds another extension. The index
-    # definitions schema-qualify the opclass as "public.gin_trgm_ops", so the
-    # extension has to exist in "public" specifically — restore pre-data (which
-    # recreates the "public" schema) first, create the extension, then restore
-    # the rest so the later post-data section can build the trigram indexes.
-    docker exec "$RESTORE_CONTAINER" pg_restore --section=pre-data "${restore_args[@]}"
-    docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 \
-        -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'
-    docker exec "$RESTORE_CONTAINER" pg_restore --section=data "${restore_args[@]}"
-    docker exec "$RESTORE_CONTAINER" pg_restore --section=post-data "${restore_args[@]}"
-    # NOTE: pg_restore can exit 0 on an empty archive, so assert schema AND rows landed.
-    docker exec -i "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -f - \
-        <<<"$ASSERT_RESTORE_NOT_EMPTY"
+    replay_dump "$RESTORE_CONTAINER" /tmp/relab.dump postgres relab_restore --no-owner --no-acl
 }
 
 docker_smoke_backups() {
@@ -398,6 +411,15 @@ restore_postgres() {
         echo "This DROPS the current schema and replaces it with snapshot '$snapshot'." >&2
         exit 2
     fi
+    # Same allowlist as the watchdog: env is spliced into secret paths and container
+    # names, and this is the one command that drops a live schema.
+    case "$env" in
+        prod | staging) ;;
+        *)
+            echo "error: env must be 'prod' or 'staging', got '$env'" >&2
+            exit 2
+            ;;
+    esac
 
     resolve_backup_paths "$env"
 
@@ -450,26 +472,13 @@ restore_postgres() {
 
     docker cp "$dump_file" "$pg_container:/tmp/relab-restore.dump"
 
-    # Same sequence as verify_postgres_restore, and for the same reasons: the
-    # --schema=public dump recreates the schema itself, and pg_trgm must exist in
-    # "public" before post-data rebuilds the trigram GIN indexes. Unlike the smoke
-    # test this keeps ACLs — relab_app/relab_migrator/relab_backup exist here, and
-    # dropping their grants would leave the API unable to read its own tables.
-    local -r dump=/tmp/relab-restore.dump
-    docker exec "$pg_container" sh -c \
-        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "DROP SCHEMA IF EXISTS public CASCADE;"'
-    docker exec "$pg_container" sh -c \
-        "pg_restore --section=pre-data -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" $dump"
-    docker exec "$pg_container" sh -c \
-        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;"'
-    docker exec "$pg_container" sh -c \
-        "pg_restore --section=data -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" $dump"
-    docker exec "$pg_container" sh -c \
-        "pg_restore --section=post-data -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" $dump"
-    # pg_restore can exit 0 on an empty archive, and a schema-only check passes on a
-    # migrated-but-empty dump, so assert rows landed too.
-    docker exec -i "$pg_container" sh -c \
-        'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 -f -' <<<"$ASSERT_RESTORE_NOT_EMPTY"
+    # The same replay as the smoke test, so CI has exercised this sequence. Unlike the
+    # smoke test this keeps ACLs — relab_app/relab_migrator/relab_backup exist here,
+    # and dropping their grants would leave the API unable to read its own tables.
+    local pg_user pg_db
+    pg_user="$(docker exec "$pg_container" sh -c 'printf %s "${POSTGRES_USER:-postgres}"')"
+    pg_db="$(docker exec "$pg_container" sh -c 'printf %s "$POSTGRES_DB"')"
+    replay_dump "$pg_container" /tmp/relab-restore.dump "$pg_user" "$pg_db"
 
     echo "✅ Restored $env from snapshot '$snapshot'"
 }

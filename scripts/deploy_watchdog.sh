@@ -138,7 +138,8 @@ backup_timer_alerts() {
 # lets ONE dead-man's switch per environment stand in for one per job: the watchdog
 # actively inspects the others rather than passively sharing their ping URL.
 #
-# `last_trigger` is systemd's LastTriggerUSec as epoch seconds; 0 means never fired.
+# `last_trigger` is systemd's LastTriggerUSec as epoch seconds; 0 means never fired,
+# and "unparseable" means systemd printed a date that date(1) could not read.
 timer_staleness_alerts() {
     local env="$1" timer="$2" last_trigger="$3" now="$4" max_age_hours="$5" age_hours
 
@@ -146,6 +147,12 @@ timer_staleness_alerts() {
         # Persistent=true units fire at boot if they missed a window, so "never" on an
         # installed timer means it has not yet reached its first window — not an error.
         return 0
+    fi
+    if [[ "$last_trigger" == unparseable ]]; then
+        # Failing silently here would switch this check off for every timer at once
+        # with everything reading green; one alert naming the cause is the only signal.
+        echo "ALERT[$env]: cannot parse LastTriggerUSec for $timer; the staleness check is not running" >&2
+        return 1
     fi
 
     age_hours=$(((now - last_trigger) / 3600))
@@ -203,6 +210,21 @@ ping_url_alerts() {
     local env="$1" ping_var="$2" host_env_file="$3" value="$4"
     if [[ -z "${value//[[:space:]]/}" ]]; then
         echo "ALERT[$env]: ${ping_var} is empty in ${host_env_file}; that job's failures are invisible outside this host" >&2
+        return 1
+    fi
+    return 0
+}
+
+# Reducer for check 2b. `pcent` is df's used percentage for the filesystem holding
+# the restic repository, as a bare number; "" means df could not read it.
+disk_usage_alerts() {
+    local env="$1" path="$2" pcent="$3" threshold="$4"
+    if [[ ! "$pcent" =~ ^[0-9]+$ ]]; then
+        echo "ALERT[$env]: cannot read free space for the backup directory $path" >&2
+        return 1
+    fi
+    if ((pcent >= threshold)); then
+        echo "ALERT[$env]: the filesystem holding $path is ${pcent}% full (limit ${threshold}%); hourly snapshots will fill it" >&2
         return 1
     fi
     return 0
@@ -323,7 +345,21 @@ if ((newest_epoch == 0 || now - newest_epoch > max_age_hours * 3600)); then
     failures=$((failures + 1))
 fi
 
-# Check 3: all three scheduled-job timers, not only the backup one. Check 2 proves a
+# Check 2b: free space where the restic repository lives. Hourly snapshots of
+# compressed dumps deduplicate poorly and retention is applied once a day, so the
+# repository grows in steps; it shares the host disk with postgres, and a full disk
+# takes the database down with the backups. Nothing else on the host watches this.
+backup_host_dir="${BACKUP_HOST_DIR:-}"
+[[ -n "$backup_host_dir" ]] || backup_host_dir="$(
+    set -a
+    # shellcheck source=/dev/null
+    [[ -f .env ]] && . ./.env >/dev/null 2>&1
+    printf '%s' "${BACKUP_HOST_DIR:-./backups}"
+)"
+disk_pcent="$(timeout 30 df --output=pcent "$backup_host_dir" 2>/dev/null | tail -n1 | tr -dc '0-9' || true)"
+disk_usage_alerts "$env" "$backup_host_dir" "$disk_pcent" "${BACKUP_DISK_ALERT_PCENT:-85}" || failures=$((failures + 1))
+
+# Check 3: all four scheduled-job timers, not only the backup one. Check 2 proves a
 # recent snapshot exists — that some run produced output. This proves each job is
 # still scheduled and that its last run did not fail, neither of which output age can
 # show: a timer that stopped being scheduled looks perfectly healthy until its output
@@ -365,11 +401,16 @@ else
         backup_timer_alerts "$env" "$unit_timer" "$timer_enabled" "$timer_active" \
             "$unit_failed" "$unit_result" || failures=$((failures + $?))
 
-        # LastTriggerUSec is a human date; ask date(1) to parse it back. "n/a" (never
-        # fired) and an unparseable value both become 0, which the reducer treats as
-        # "not yet due" rather than inventing an alert from a formatting change.
-        last_trigger_raw="$(systemctl show "$unit_timer" -p LastTriggerUSec --value 2>/dev/null || true)"
-        last_trigger_epoch="$(date -d "$last_trigger_raw" +%s 2>/dev/null || echo 0)"
+        # LastTriggerUSec is a human date; ask date(1) to parse it back, under LC_ALL=C
+        # so a locale in the unit environment cannot change the format. "n/a" (never
+        # fired) becomes 0; anything else date(1) rejects is reported, because a parser
+        # broken by a format change has silently disabled this check for every timer.
+        last_trigger_raw="$(LC_ALL=C systemctl show "$unit_timer" -p LastTriggerUSec --value 2>/dev/null || true)"
+        if [[ -z "$last_trigger_raw" || "$last_trigger_raw" == "n/a" ]]; then
+            last_trigger_epoch=0
+        else
+            last_trigger_epoch="$(LC_ALL=C date -d "$last_trigger_raw" +%s 2>/dev/null || echo unparseable)"
+        fi
         timer_staleness_alerts "$env" "$unit_timer" "$last_trigger_epoch" "$now_epoch" \
             "${job_max_age_hours[$job]}" || failures=$((failures + $?))
     done
@@ -434,10 +475,14 @@ fi
 # ones it really ships with, rather than a re-derivation from .env that can agree with
 # itself while disagreeing with the container. The request body is empty: the collector
 # accepts it as a no-op export, so this writes no spans.
+# The probe speaks OTLP/HTTP, so it is skipped when the container exports over gRPC
+# (OTEL_EXPORTER_OTLP_PROTOCOL is an operator input): a POST at a gRPC listener is a
+# permanent false alarm, not evidence about ingestion.
 telemetry_container="relab_${env}-api-1"
+telemetry_env="$(docker inspect "$telemetry_container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null || true)"
 if [[ "$(docker inspect -f '{{.State.Running}}' "$telemetry_container" 2>/dev/null)" == "true" ]] \
-    && docker inspect "$telemetry_container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null \
-    | grep -q '^OTEL_EXPORTER_OTLP_ENDPOINT=.'; then
+    && grep -q '^OTEL_EXPORTER_OTLP_ENDPOINT=.' <<<"$telemetry_env" \
+    && ! grep -q '^OTEL_EXPORTER_OTLP_PROTOCOL=grpc' <<<"$telemetry_env"; then
     # Prints "<status> <cf-mitigated>" and nothing else: the credentials must not reach
     # the watchdog's output, which goes to cron mail and the ntfy relay.
     telemetry_probe="$(

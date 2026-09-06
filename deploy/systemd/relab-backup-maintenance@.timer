@@ -17,9 +17,6 @@ Description=Relab backup maintenance schedule (%i)
 # a repository grows without bound and the offsite copy goes stale.
 OnCalendar=*-*-* 02:30:00
 Persistent=true
-# Jitter kept here: this is the heavy job (prune, integrity check, offsite copy), and
-# it is one of the units a boot-time catch-up would fire alongside every other.
-RandomizedDelaySec=15m
 
 [Install]
 WantedBy=timers.target

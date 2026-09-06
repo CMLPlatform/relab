@@ -248,6 +248,11 @@ changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
 
 Use `just security` for local diagnosis.
 
+CI runs CodeQL and the container image scans only once a pull request leaves draft, and
+image CVEs found on a pull request are reported to the Security tab rather than failing
+the check; the blocking gate runs after merge and on the weekly schedule. Run
+`just security` before marking a pull request ready if you want that signal early.
+
 ## Backend Setup
 
 The backend lives in `backend/`.
