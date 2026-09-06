@@ -287,3 +287,31 @@ async def test_request_youtube_api_treats_an_empty_response_as_an_empty_body(
     youtube_fx.http_client.request.return_value = Response(204, request=request)
 
     assert await youtube_fx.service.request_youtube_api("POST", "liveBroadcasts/transition") == {}
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_detail"),
+    [
+        ({"items": []}, "broadcast not found"),
+        ({"items": [{"id": "b1", "contentDetails": None}]}, "monitor stream configuration missing"),
+        (
+            {"items": [{"id": "b1", "contentDetails": {"monitorStream": None}}]},
+            "monitor stream configuration missing",
+        ),
+    ],
+)
+async def test_monitor_stream_lookup_names_what_was_missing(
+    youtube_fx: YouTubeServiceFixture, payload: dict, expected_detail: str
+) -> None:
+    """A broadcast with no usable monitor stream reports which part was absent.
+
+    Every one of these answers with a ``YouTubeAPIError``, so asserting the type alone
+    would pass whichever branch fired.
+    """
+    with (
+        patch.object(YouTubeService, "request_youtube_api", new=AsyncMock(return_value=payload)),
+        pytest.raises(YouTubeAPIError) as excinfo,
+    ):
+        await youtube_fx.service.get_broadcast_monitor_stream(FAKE_BROADCAST_ID)
+
+    assert expected_detail in str(excinfo.value.details)

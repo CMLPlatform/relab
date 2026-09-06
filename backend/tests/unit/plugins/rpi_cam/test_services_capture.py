@@ -51,7 +51,11 @@ async def test_capture_and_store_image_success(mock_session: Any) -> None:
 
 
 async def test_capture_raises_when_pi_queued_the_image(mock_session: Any) -> None:
-    """A queued Pi response should surface as InvalidCameraResponseError."""
+    """A queued Pi response should surface with the retry advice, not the catch-all.
+
+    The unknown-status fallback echoes the status back, so its message also contains
+    "queued"; only the retry wording proves the dedicated branch ran.
+    """
     with patch("app.api.plugins.rpi_cam.runtime.capture.get_user_owned_object"):
         mock_capture_resp = MagicMock()
         mock_capture_resp.json.return_value = {
@@ -71,7 +75,39 @@ async def test_capture_raises_when_pi_queued_the_image(mock_session: Any) -> Non
             )
 
     assert excinfo.value.details is not None
-    assert "queued" in excinfo.value.details
+    assert "Please try again" in excinfo.value.details
+
+
+@pytest.mark.parametrize(
+    ("capture_payload", "expected_detail"),
+    [
+        ({"status": "exploded", "image_id": "a" * 32}, "unknown capture status"),
+        ({"status": "uploaded", "image_id": None}, "missing image_id"),
+        ({"status": "uploaded"}, "missing image_id"),
+    ],
+)
+async def test_capture_rejects_an_unusable_camera_response(
+    mock_session: Any, capture_payload: dict, expected_detail: str
+) -> None:
+    """Each malformed capture response names its own fault.
+
+    All of these raise ``InvalidCameraResponseError``, so asserting the type alone
+    would pass whichever branch happened to fire.
+    """
+    with patch("app.api.plugins.rpi_cam.runtime.capture.get_user_owned_object"):
+        response = MagicMock()
+        response.json.return_value = {"image_url": None, "metadata": {}, **capture_payload}
+
+        with pytest.raises(InvalidCameraResponseError) as excinfo:
+            await capture_and_store_image(
+                session=mock_session,
+                camera_request=AsyncMock(return_value=response),
+                product_id=1,
+                owner_id=uuid4(),
+            )
+
+    assert excinfo.value.details is not None
+    assert expected_detail in excinfo.value.details
 
 
 async def test_capture_raises_when_image_missing_from_db(mock_session: Any) -> None:

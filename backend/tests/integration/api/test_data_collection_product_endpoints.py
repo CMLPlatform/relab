@@ -341,3 +341,15 @@ async def test_product_video_routes_reject_a_video_from_another_product(
     response = await api_client_superuser.request(method.upper(), url, json={} if method == "patch" else None)
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+
+
+async def test_owner_me_without_a_session_is_unauthorized_not_an_error(api_client: AsyncClient) -> None:
+    """``owner=me`` needs someone to be "me".
+
+    Without the check the filter reads the id off an absent user, so an anonymous
+    request would get a 500 where the honest answer is that it must sign in.
+    """
+    response = await api_client.get("/v1/products?owner=me")
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json()["detail"] == "Authentication required"

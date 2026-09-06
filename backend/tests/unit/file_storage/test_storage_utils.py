@@ -227,17 +227,43 @@ def test_generic_file_upload_policy_accepts_dotted_names_with_allowed_final_exte
     assert validate_generic_file_upload_metadata(_upload(filename, "application/octet-stream")).filename == filename
 
 
+@pytest.mark.parametrize(
+    ("filename", "message"),
+    [
+        (None, "File name is empty"),
+        ("", "File name is empty"),
+        ("README", "File extension is required"),
+    ],
+)
+def test_upload_policy_rejects_a_name_it_cannot_use(filename: str | None, message: str) -> None:
+    """A nameless or extensionless upload is refused with its own reason.
+
+    ``UploadFile.filename`` is optional, so without the emptiness check the path
+    separator scan dereferences ``None`` and the caller gets a 500 for what is a
+    plain bad request.
+    """
+    with pytest.raises(BadRequestError, match=message):
+        validate_generic_file_upload_metadata(
+            UploadFile(file=BytesIO(b"sample"), filename=filename, headers=Headers({"content-type": "application/pdf"}))
+        )
+
+
 @pytest.mark.parametrize("extension", sorted(HYPERSPECTRAL_FILE_EXTENSIONS))
 def test_image_upload_policy_rejects_hyperspectral_extensions(extension: str) -> None:
-    """Hyperspectral data belongs in file uploads, not image processing routes."""
-    with pytest.raises(BadRequestError, match="not supported for image uploads"):
+    """Hyperspectral data belongs in file uploads, not image processing routes.
+
+    The generic "unsupported extension" fallback rejects these too, with a message that
+    shares this prefix, so the pointer to file uploads is what proves the dedicated
+    guard ran rather than the catch-all.
+    """
+    with pytest.raises(BadRequestError, match="Use file uploads instead"):
         validate_image_upload_metadata(_upload(f"cube{extension}", "image/tiff"))
 
 
 @pytest.mark.parametrize(
     ("filename", "content_type", "message"),
     [
-        ("notes.csv", "image/png", "not supported for image uploads"),
+        ("notes.csv", "image/png", "Allowed extensions"),
         ("photo.png", "application/pdf", "Invalid image MIME type"),
         ("photo.png", "image/jpeg", "does not match file extension"),
     ],
