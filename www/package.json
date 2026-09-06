@@ -14,19 +14,15 @@
     "build:staging": "astro build --mode staging",
     "build:test": "astro build --mode test",
     "preview": "astro preview --port 8013 --host 127.0.0.1 --strictPort",
-    "preview:e2e": "just build && astro preview --port 18013 --host 127.0.0.1 --strictPort",
     "preview:built": "astro preview --port 18013 --host 127.0.0.1 --strictPort",
-    "check": "pnpm run lint && pnpm run typecheck",
     "format": "biome format --write .",
     "fix": "biome check --write .",
     "lint": "biome check .",
     "typecheck": "astro check",
     "test": "vitest run",
     "test:ci": "vitest run --coverage",
-    "audit": "pnpm audit --prod --audit-level moderate",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "ci": "pnpm run check && pnpm run test:ci"
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.3",

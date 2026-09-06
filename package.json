@@ -9,7 +9,6 @@
   },
   "scripts": {
     "biome": "biome",
-    "check": "pnpm run lint",
     "lint": "biome check",
     "format": "biome format --write",
     "fix": "biome check --write"

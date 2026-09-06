@@ -137,9 +137,6 @@ services:
           path: ./docs/README.md
           target: /opt/relab/docs/README.md
         - action: sync
-          path: ./docs/.markdownlint-cli2.mjs
-          target: /opt/relab/docs/.markdownlint-cli2.mjs
-        - action: sync
           path: ./docs/biome.jsonc
           target: /opt/relab/docs/biome.jsonc
         - action: sync

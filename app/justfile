@@ -10,10 +10,6 @@ default:
 install:
     pnpm install --frozen-lockfile
 
-# Regenerate the workspace lockfile without installing dependencies
-lockfile:
-    pnpm install --lockfile-only --ignore-scripts
-
 # Update Expo-managed dependencies to versions compatible with the current SDK
 update:
     pnpm exec expo install --fix
@@ -31,7 +27,6 @@ typecheck:
 
 # Run the app quality gate
 check: lint typecheck codegen-check
-    @echo "✅ Frontend-app checks passed"
 
 # Auto-format code
 format:
@@ -59,20 +54,15 @@ test-ci:
 
 # Run the full app CI pipeline locally
 ci: check test-ci
-    @echo "✅ Frontend-app CI pipeline passed"
 
 # Start dev server
-dev PORT="8011":
-    pnpm exec expo start --port {{ quote(PORT) }} --web
+dev port="8011":
+    pnpm exec expo start --port {{ quote(port) }} --web
 
 # Start dev server with a cleared Metro cache — fixes stale-bundle errors
 # (an edited module still serving its old code after a reload).
-dev-clean PORT="8011":
-    pnpm exec expo start --port {{ quote(PORT) }} --web --clear
-
-# Scan dependencies for known vulnerabilities
-audit:
-    pnpm run audit
+dev-clean port="8011":
+    pnpm exec expo start --port {{ quote(port) }} --web --clear
 
 # Static React Compiler coverage report — which components compile vs bail out.
 # `just lint` already flags bailouts inline; this gives the coverage summary.
@@ -116,7 +106,6 @@ clean:
 # The schema itself is produced by `just backend/openapi` (src/types/openapi.json).
 codegen:
     pnpm run codegen
-    @echo "✅ Generated src/types/api.generated.ts (redacted)"
 
 # Fail if committed API types are stale vs the committed OpenAPI schema (runs in `check`)
 codegen-check:

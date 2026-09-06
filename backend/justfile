@@ -15,8 +15,8 @@ install:
     uv sync --all-groups --frozen
 
 # Start development server
-dev PORT="8010":
-    uv run uvicorn app.main:app --reload --reload-dir app --port {{ quote(PORT) }}
+dev port="8010":
+    uv run uvicorn app.main:app --reload --reload-dir app --port {{ quote(port) }}
 
 # ============================================================================
 # Linting & Formatting
@@ -24,17 +24,17 @@ dev PORT="8010":
 
 pytest := "uv run pytest"
 
-# Lint backend Python code (allow TODOs with FIX002)
+# Lint backend Python code
 lint:
-    uv run ruff check --ignore FIX002
+    uv run ruff check
 
 # Format backend Python code
 format:
     uv run ruff format
 
-# Auto-fix lint issues and format code (allow TODOs with FIX002)
+# Auto-fix lint issues and format code
 fix:
-    uv run ruff check --fix --ignore FIX002
+    uv run ruff check --fix
     just format
 
 # Run static type checks (all groups synced so optional deps resolve)
@@ -44,40 +44,39 @@ typecheck:
 # Run the fast backend quality gate (no database required)
 check: lint typecheck openapi-check datamodel-check email-check
     uv run ruff format --check
-    @echo "✅ Backend checks passed"
 
 # ============================================================================
 # Testing
 # ============================================================================
 
 # Run all tests
-test *ARGS:
-    {{ pytest }} {{ ARGS }}
+test *args:
+    {{ pytest }} {{ args }}
 
-# Run tests with coverage report (FORMAT: html for local, xml for CI)
-test-cov FORMAT="html":
+# Run tests with coverage report (format: html for local, xml for CI)
+test-cov format="html":
     mkdir -p reports/coverage
-    {{ pytest }} --cov --cov-report={{ quote(FORMAT) }} --cov-report=term
+    {{ pytest }} --cov --cov-report={{ quote(format) }} --cov-report=term
 
 # Run only unit tests (fast, no Docker/database path)
-test-unit *ARGS:
-    {{ pytest }} tests/unit {{ ARGS }}
+test-unit *args:
+    {{ pytest }} tests/unit {{ args }}
 
 # Run DB-backed persistence and schema tests
-test-integration-db *ARGS:
-    {{ pytest }} tests/integration/db tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ ARGS }}
+test-integration-db *args:
+    {{ pytest }} tests/integration/db tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ args }}
 
 # Run only API tests
-test-api *ARGS:
-    {{ pytest }} tests/integration/api {{ ARGS }}
+test-api *args:
+    {{ pytest }} tests/integration/api {{ args }}
 
 # Run cross-boundary flow tests
-test-flows *ARGS:
-    {{ pytest }} tests/integration/flows {{ ARGS }}
+test-flows *args:
+    {{ pytest }} tests/integration/flows {{ args }}
 
 # Run all integration tests (parallel — worth it only for the full suite; use `just test <file>` for one file)
-test-integration *ARGS:
-    {{ pytest }} tests/integration -n auto --dist=loadgroup {{ ARGS }}
+test-integration *args:
+    {{ pytest }} tests/integration -n auto --dist=loadgroup {{ args }}
 
 # Run the backend CI test suite
 test-ci:
@@ -86,7 +85,6 @@ test-ci:
 
 # Run the full backend CI pipeline locally
 ci: check test-ci
-    @echo "✅ Backend CI pipeline passed"
 
 # ============================================================================
 # Database & Migrations
@@ -97,8 +95,8 @@ migrate:
     uv run alembic upgrade head
 
 # Create new migration (use: just migrate-create "description")
-migrate-create MESSAGE:
-    uv run alembic revision --autogenerate -m {{ quote(MESSAGE) }}
+migrate-create message:
+    uv run alembic revision --autogenerate -m {{ quote(message) }}
 
 # Reset database (down to base, then up to head)
 migrate-reset:
@@ -150,8 +148,8 @@ datamodel-check:
 #        exclusions: --exclude-owner USERNAME | --exclude-product ID | --exclude-name-word WORD | --no-name-filter
 # Dry run, every account, writes nothing: just release-build --inventory
 # The pseudonym salt comes from $RELAB_PSEUDONYM_SALT, else secrets/<env>/dataset_pseudonym_salt
-release-build *ARGS:
-    uv run python -m scripts.build_dataset_release {{ ARGS }}
+release-build *args:
+    uv run python -m scripts.build_dataset_release {{ args }}
 
 # Refresh the committed disposable-email fallback list from the upstream source
 refresh-disposable-email-domains:
@@ -171,39 +169,39 @@ k6_docker_image := "grafana/k6:latest"
 
 # Run the backend k6 baseline suite against the Docker CI stack.
 # Assumes the CI backend stack is already up and seeded with dummy data.
-_perf-ci MEDIA_URL="" BASE_URL="http://api:8000":
+_perf-ci media_url="" base_url="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
-    media_url={{ quote(MEDIA_URL) }}
+    media_url={{ quote(media_url) }}
     if [ -z "$media_url" ]; then
-        echo "→ No MEDIA_URL provided; running perf baseline without media_url_read scenario."
+        echo "→ No media_url provided; running perf baseline without media_url_read scenario."
     fi
     mkdir -p reports/performance
     docker run --rm \
         --network relab_test_default \
         -v "$PWD/perf:/perf:ro" \
         -v "$PWD/reports/performance:/reports" \
-        -e BASE_URL={{ quote(BASE_URL) }} \
+        -e BASE_URL={{ quote(base_url) }} \
         -e PERF_USER_EMAIL="e2e-admin@example.com" \
         -e PERF_USER_PASSWORD="E2eTestPass123!" \
         -e PERF_MEDIA_URL="$media_url" \
         {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
 
 # Write a dated CI baseline report from the latest k6 JSON summary export.
-_perf-report-ci DATE="" BASE_URL="http://api:8000":
+_perf-report-ci date="" base_url="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
-    report_date={{ quote(DATE) }}
+    report_date={{ quote(date) }}
     if [ -z "$report_date" ]; then
         report_date="$(date +%F)"
     fi
-    python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url {{ quote(BASE_URL) }}
+    python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url {{ quote(base_url) }}
 
 # Recalibrate p95 thresholds in perf/k6-baseline.js from the latest k6 JSON summary export.
-_perf-thresholds-apply HEADROOM="1.15":
+_perf-thresholds-apply headroom="1.15":
     #!/usr/bin/env bash
     set -euo pipefail
-    python3 -m scripts.perf.perf_ci apply-thresholds {{ quote(HEADROOM) }}
+    python3 -m scripts.perf.perf_ci apply-thresholds {{ quote(headroom) }}
 
 # ============================================================================
 # Maintenance
@@ -222,14 +220,14 @@ clean:
 # ============================================================================
 # Security
 # ============================================================================
-# Scan Python dependencies for known CVEs (SCOPE: default runtime or all groups)
-audit SCOPE="runtime":
+# Scan Python dependencies for known CVEs (scope: default runtime or all groups)
+audit scope="runtime":
     #!/usr/bin/env bash
     set -euo pipefail
-    scope={{ quote(SCOPE) }}
+    scope={{ quote(scope) }}
     case "$scope" in
       runtime) flag="--no-default-groups" ;;
       all) flag="" ;;
-      *) echo "SCOPE must be 'runtime' or 'all'"; exit 1 ;;
+      *) echo "scope must be 'runtime' or 'all'"; exit 1 ;;
     esac
     uv audit --preview-features audit --frozen $flag

@@ -26,7 +26,8 @@ if (runtimeConfig.isCi) {
 let webServer: PlaywrightTestConfig['webServer'];
 if (!runtimeConfig.baseUrl) {
   webServer = {
-    command: runtimeConfig.isLive ? 'pnpm run preview:built' : 'pnpm run preview:e2e',
+    // The just recipes build dist/ first (test-e2e, test-e2e-live); this only serves it.
+    command: 'pnpm run preview:built',
     url: localBaseUrl,
     reuseExistingServer: !runtimeConfig.isCi,
   };

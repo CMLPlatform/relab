@@ -30,7 +30,7 @@ defaults:
 
 jobs:
   automation:
-    name: Automation, IaC, and Compose Policy
+    name: Root, IaC, and Compose Policy
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -59,18 +59,24 @@ jobs:
           key: prek|${{ runner.os }}|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Install root dependencies
-        run: pnpm install --frozen-lockfile
+        run: uv sync --frozen && pnpm install --frozen-lockfile
 
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
         with:
           tofu_wrapper: false
 
-      - name: Run repository policy checks
+      - name: Run repository policy hooks
         run: just pre-commit
         env:
           # CI runs on a detached ref, where the local-only branch guard does nothing.
           SKIP: no-commit-to-branch
+
+      - name: Run root quality gate
+        run: just check-root
+
+      - name: Run root script tests
+        run: just test-scripts
 
       - name: Run IaC, env, Compose, and deploy-secret checks
         run: just policy-check
@@ -177,12 +183,7 @@ jobs:
       - name: Install dependencies
         run: just www/install
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-        working-directory: www
-
-      # The Playwright webServer builds the site itself (`preview:e2e`), so no
-      # separate build step.
+      # The recipe builds the site and installs chromium before running the suite.
       - name: Run browser E2E tests
         run: just www/test-e2e
 
@@ -217,10 +218,7 @@ jobs:
       - name: Run docs check
         run: just docs/check
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-        working-directory: docs
-
+      # The recipe installs chromium before running the suite.
       - name: Run docs CI test suite
         run: just docs/test-ci
 
@@ -250,11 +248,7 @@ jobs:
       - name: Install app dependencies
         run: just app/install
 
-      - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
-        working-directory: app
-
-      # The recipe builds the Expo web app itself before running the suites.
+      # The recipe builds the Expo web app and installs chromium before running the suites.
       - name: Run full-stack E2E tests
         run: just test-e2e-full-stack
 
@@ -274,7 +268,6 @@ jobs:
       fail-fast: false
       matrix:
         recipe:
-          - docker-smoke-backend
           - docker-orchestration-smoke
           - docker-smoke-www
           - docker-smoke-app
@@ -569,7 +562,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [actions, python, javascript-typescript]
+        # Workflow YAML is covered by actionlint + zizmor in the pre-commit hooks.
+        language: [python, javascript-typescript]
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

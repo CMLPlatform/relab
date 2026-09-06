@@ -47,7 +47,6 @@ In the full Docker stack, the site is served behind Caddy at <http://127.0.0.1:8
 | Run browser E2E tests            | `just test-e2e`    |
 | Scan dependencies for CVEs       | `just audit`       |
 | Run the full CI pipeline locally | `just ci`          |
-| Regenerate the lockfile only     | `just lockfile`    |
 
 ## Development notes
 

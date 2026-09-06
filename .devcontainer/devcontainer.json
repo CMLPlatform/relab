@@ -11,5 +11,5 @@
     "ghcr.io/jsburckhardt/devcontainer-features/uv:1.0.0": {},
     "ghcr.io/guiyomh/features/just:0.1.0": {}
   },
-  "postAttachCommand": "echo 'Relab full-stack devcontainer ready.\\nPrimary workflow: run just install once, then use just dev / just ci from the repo root.\\nAPI: http://127.0.0.1:8010\\nApp: http://127.0.0.1:8011\\nDocs: http://127.0.0.1:8012\\nLanding site: http://127.0.0.1:8013'"
+  "postAttachCommand": "echo 'Relab full-stack devcontainer ready.\\nPrimary workflow: run just setup once, then use just dev / just ci from the repo root.\\nAPI: http://127.0.0.1:8010\\nApp: http://127.0.0.1:8011\\nDocs: http://127.0.0.1:8012\\nLanding site: http://127.0.0.1:8013'"
 }

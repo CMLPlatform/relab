@@ -15,16 +15,13 @@
     "build:test": "astro build --mode test",
     "preview": "astro preview --port 8012 --host 127.0.0.1 --strictPort",
     "format": "biome format --write .",
-    "fix": "biome check --write . && markdownlint-cli2 --fix",
-    "lint": "biome check . && markdownlint-cli2",
+    "fix": "biome check --write .",
+    "lint": "biome check .",
     "typecheck": "astro check",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:ci": "pnpm run test && pnpm run build && pnpm run test:e2e && pnpm run test:links",
-    "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png'",
-    "check": "pnpm run lint && pnpm run typecheck && pnpm run build:test",
-    "ci": "pnpm run check && pnpm run test:ci",
-    "audit": "pnpm audit --prod --audit-level moderate"
+    "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png'"
   },
   "dependencies": {
     "@astrojs/mdx": "7.0.5",
@@ -41,7 +38,6 @@
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
     "linkinator": "^7.6.1",
-    "markdownlint-cli2": "^0.23.2",
     "playwright": "catalog:",
     "typescript": "catalog:",
     "vitest": "^4.1.10"

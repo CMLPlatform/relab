@@ -194,9 +194,17 @@ Each configuration surface has one job:
 - `package.json`: JavaScript package dependencies and script wrappers
 - env files: runtime and build-time configuration only
 - GitHub workflow YAML: CI/CD wiring; move complex logic to versioned scripts
-- `.pre-commit-config.yaml`: repository policy hooks, run by [`prek`](https://github.com/j178/prek)
-  (a drop-in replacement for `pre-commit`). `just setup` installs the git hooks; `just pre-commit`
-  runs them all
+- `.pre-commit-config.yaml`: git hooks, run by [`prek`](https://github.com/j178/prek) (a drop-in
+  replacement for `pre-commit`): secret guard, staged-file fixers (Ruff, rumdl, shfmt), file hygiene,
+  lockfile sync, commit message. `just setup` installs them; `just pre-commit` runs them over every
+  file
+- `scripts/browser_js_policy.py`: the browser JavaScript policy (no raw HTML sinks, no third-party
+  runtime scripts) for `app/`, `www/`, and `docs/`; runs in `just check-root`
+
+Three layers, each check in one of them: hooks fix and guard staged files, `just check*` and
+`just test*` verify, and CI calls those same recipes plus the GitHub-only scanners (CodeQL, Trivy,
+Scorecard, dependency review). Do not add a verification to the hooks; add it to the recipe CI
+already runs.
 
 Keep new settings in the smallest surface that needs them. If a change adds or renames env vars,
 update the examples, validation rules, and affected docs in the same PR.
@@ -208,7 +216,7 @@ Run the relevant subrepo checks before opening a pull request:
 - backend: unit or integration tests, Ruff, and `ty`
 - app: Jest, TypeScript, and lint checks
 - www: Vitest, Astro checks, and Playwright where browser behavior changes
-- docs: formatting and build smoke check
+- docs: Biome, Astro checks, and `just test-ci` (build + browser + link checks) when content changes
 
 For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency
 review, container scanning, repository hygiene, and release artifact checks on every push.
@@ -466,4 +474,4 @@ just format
 ## License
 
 By contributing, you agree that your contributions are licensed under the project
-[LICENSE](LICENSE).
+[LICENSE](../LICENSE).

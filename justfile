@@ -30,7 +30,6 @@ install:
     uv sync --frozen
     pnpm install --frozen-lockfile
     just backend/install
-    echo "✅ All dependencies installed"
 
 # Update all workspace dependencies
 update:
@@ -40,12 +39,15 @@ update:
     pnpm update -D
     pnpm dedupe
     for d in {{ subrepos }}; do just "$d/update"; done
-    echo "✅ Dependencies updated (run 'just install' to sync)"
+    echo "Run 'just install' to sync"
 
 # Install git hooks (run once after clone)
 _prek-install:
     uv run prek install
-    @echo "✅ Git hooks installed"
+
+# Regenerate the pnpm workspace lockfile without installing dependencies
+lockfile:
+    pnpm install --lockfile-only --ignore-scripts
 
 # Sync shared brand assets into consumer subrepos
 assets-sync:
@@ -57,58 +59,31 @@ assets-check:
 
 # Bootstrap a full local development environment
 setup: install _prek-install
-    @echo "✅ Development environment ready"
 
 # ============================================================================
 # Quality Checks
 # ============================================================================
 
-# Run repository-wide policy checks
+# Run repository-wide policy hooks (what git runs on commit, over every file)
 pre-commit:
     uv run prek run --all-files --show-diff-on-failure
-    @echo "✅ Repository policy checks passed"
 
-# Lint all tracked shell scripts with the pre-commit-managed ShellCheck hook
-shellcheck:
-    uv run prek run shellcheck --files $(git ls-files '*.sh')
-    @echo "✅ Repository shell scripts passed ShellCheck"
-
-# Format all tracked shell scripts with the pre-commit-managed shfmt hook
-shellfmt:
-    uv run prek run shfmt --files $(git ls-files '*.sh')
-    @echo "✅ Repository shell scripts formatted"
-
-# Run root and subrepo lint checks
-lint:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    uv run ruff check --config pyproject.toml .
-    pnpm run lint
-    for d in {{ subrepos }}; do just "$d/lint"; done
-    echo "✅ Root and subrepo lint passed"
-
-# Run root and subrepo quality checks (lint + typecheck + format verification).
-# Policy checks (shellcheck, file-format) live in `just pre-commit`, not here.
-check:
-    #!/usr/bin/env bash
-    set -euo pipefail
+# Root-only quality gate: scripts/, tests/, brand assets, browser JS policy. CI runs
+# this directly; subrepo gates are `just <subrepo>/check`.
+check-root:
     uv run ruff check --config pyproject.toml .
     uv run ruff format --check --config pyproject.toml .
     uv run ty check
+    pnpm run lint
+    uv run python scripts/browser_js_policy.py
     just assets-check
-    pnpm run check
-    for d in {{ subrepos }}; do just "$d/check"; done
-    echo "✅ Root and subrepo checks passed"
 
-# Format root and subrepo codebases
-format:
+# Root and subrepo quality checks (lint + typecheck + format verification).
+# File-hygiene hooks (shellcheck, shfmt, markdown, YAML) live in `just pre-commit`.
+check: check-root
     #!/usr/bin/env bash
     set -euo pipefail
-    uv run ruff format --config pyproject.toml .
-    just shellfmt
-    pnpm run format
-    for d in {{ subrepos }}; do just "$d/format"; done
-    echo "✅ Root and subrepo formatting complete"
+    for d in {{ subrepos }}; do just "$d/check"; done
 
 # Auto-fix lint issues and format code across root and subrepos
 fix:
@@ -116,16 +91,16 @@ fix:
     set -euo pipefail
     uv run ruff check --fix --config pyproject.toml .
     uv run ruff format --config pyproject.toml .
-    just shellfmt
+    uv run rumdl check --fix .
+    uv run prek run shfmt --all-files
     pnpm run fix
     for d in {{ subrepos }}; do just "$d/fix"; done
-    echo "✅ Code fixed"
 
 # ============================================================================
 # Testing
 # ============================================================================
 
-# Unit-test the root ops scripts (env policy + deploy/watchdog decisions; no Docker)
+# Unit-test the root scripts (env policy, browser JS policy, deploy/watchdog decisions; no Docker)
 test-scripts:
     uv run pytest tests -q
     @bash scripts/test_ops.sh
@@ -136,28 +111,25 @@ test:
     set -euo pipefail
     just test-scripts
     for d in {{ subrepos }}; do just "$d/test"; done
-    echo "✅ All tests passed"
 
 # Run unit tests across subrepos that implement them
 test-unit:
     #!/usr/bin/env bash
     set -euo pipefail
     for d in {{ unit_subrepos }}; do just "$d/test-unit"; done
-    echo "✅ All unit tests passed"
 
 # Run integration tests across subrepos that implement them
 test-integration:
     #!/usr/bin/env bash
     set -euo pipefail
     for d in {{ unit_subrepos }}; do just "$d/test-integration"; done
-    echo "✅ All integration tests passed"
 
-# CI-oriented test suite across all subrepos
+# CI-oriented test suite: root scripts plus every subrepo
 test-ci:
     #!/usr/bin/env bash
     set -euo pipefail
+    just test-scripts
     for d in {{ subrepos }}; do just "$d/test-ci"; done
-    echo "✅ All CI test suites passed"
 
 # Run end-to-end tests across subrepos that implement them
 test-e2e:
@@ -166,15 +138,12 @@ test-e2e:
     @just docs/build
     @just docs/test-e2e
     @just test-e2e-full-stack
-    @echo "✅ All E2E tests passed"
 
 # Repository policy checks beyond prek: IaC, env policy, compose, deploy secrets
 policy-check: cloudflare-check env-policy-check compose-config deploy-secrets-check
-    @echo "✅ Policy checks passed"
 
 # Canonical CI pipeline: policy, IaC, quality checks, CI tests, compose validation
 ci: pre-commit check test-ci policy-check
-    @echo "✅ CI pipeline passed"
 
 # Start E2E backend infrastructure (database, cache, backend) and wait for readiness
 _e2e-backend-up:
@@ -185,15 +154,15 @@ _e2e-backend-down:
     docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
 
 # Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down (requires Docker)
-# MODE=cross-browser runs the full browser matrix instead of the default chromium project
-test-e2e-full-stack MODE="default":
+# mode=cross-browser runs the full browser matrix instead of the default chromium project
+test-e2e-full-stack mode="default":
     #!/usr/bin/env bash
     set -euo pipefail
-    mode={{ quote(MODE) }}
+    mode={{ quote(mode) }}
     case "$mode" in
       default)       e2e_recipe="test-e2e" ;;
       cross-browser) e2e_recipe="test-e2e-cross-browser" ;;
-      *) echo "MODE must be 'default' or 'cross-browser'"; exit 1 ;;
+      *) echo "mode must be 'default' or 'cross-browser'"; exit 1 ;;
     esac
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
@@ -206,24 +175,17 @@ test-e2e-full-stack MODE="default":
     just app/build-web
     echo "→ Running Playwright E2E tests ($mode)..."
     just "app/$e2e_recipe"
-    echo "✅ Full-stack E2E tests passed ($mode)"
 
 # ============================================================================
 # Security
 # ============================================================================
 
-# Run dependency vulnerability audit for root Python tooling
-audit-root:
+# Dependency vulnerability audit: root + backend Python, and the pnpm workspace
+# (one lockfile covers app, www, and docs; allow-list in pnpm-workspace.yaml).
+audit:
     uv audit --preview-features audit --frozen
-    @echo "✅ Root dependency audit complete"
-
-# Run dependency vulnerability audit across root and all subrepos
-audit: audit-root
-    #!/usr/bin/env bash
-    set -euo pipefail
     just backend/audit all
-    for d in docs www app; do just "$d/audit"; done
-    echo "✅ Root and subrepo dependency audits complete"
+    pnpm audit --prod --audit-level moderate
 
 # Canonical security target: secret scanning plus dependency audits
 security:
@@ -234,7 +196,6 @@ security:
     status=0
     uv run prek run gitleaks --all-files || status=1
     just audit || status=1
-    [[ $status -eq 0 ]] && echo "✅ Security checks complete"
     exit $status
 
 # Format Cloudflare OpenTofu files
@@ -347,9 +308,8 @@ _require-cloudflare-vars:
 compose-config:
     @bash scripts/deploy_ops.sh compose-config
 
-# Depends on test-scripts because CI's automation job runs this recipe, not `just check`.
 # Validate root-owned environment variable policy
-env-policy-check: test-scripts
+env-policy-check:
     @uv run python scripts/env_policy.py check
 
 # Print the root-owned runtime secret inventory
@@ -481,16 +441,16 @@ _dev-reset confirm='':
 # ============================================================================
 
 # Start production stack (scanning follows MALWARE_SCAN_ENABLED in .env; backups run from the host systemd timer, see deploy/systemd/)
-prod-up *PROFILES:
-    @bash scripts/deploy_ops.sh stack prod up {{ PROFILES }}
+prod-up *profiles:
+    @bash scripts/deploy_ops.sh stack prod up {{ profiles }}
 
 # Stop production stack (optional profiles: backups, migrations; scanning follows MALWARE_SCAN_ENABLED)
-prod-down *PROFILES:
-    @bash scripts/deploy_ops.sh stack prod down {{ PROFILES }}
+prod-down *profiles:
+    @bash scripts/deploy_ops.sh stack prod down {{ profiles }}
 
 # Build (or rebuild) prod images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
-prod-build *PROFILES:
-    @bash scripts/deploy_ops.sh stack prod build {{ PROFILES }}
+prod-build *profiles:
+    @bash scripts/deploy_ops.sh stack prod build {{ profiles }}
 
 # Roll prod back to the images `build` tagged with SHA; pass an alembic REV to downgrade the schema first
 prod-rollback confirm sha rev='':
@@ -509,16 +469,16 @@ prod-migrate confirm='':
 # ============================================================================
 
 # Start staging stack (scanning follows MALWARE_SCAN_ENABLED in .env; backups run from the host systemd timer, see deploy/systemd/)
-staging-up *PROFILES:
-    @bash scripts/deploy_ops.sh stack staging up {{ PROFILES }}
+staging-up *profiles:
+    @bash scripts/deploy_ops.sh stack staging up {{ profiles }}
 
 # Stop staging stack (optional profiles: backups, migrations; scanning follows MALWARE_SCAN_ENABLED)
-staging-down *PROFILES:
-    @bash scripts/deploy_ops.sh stack staging down {{ PROFILES }}
+staging-down *profiles:
+    @bash scripts/deploy_ops.sh stack staging down {{ profiles }}
 
 # Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
-staging-build *PROFILES:
-    @bash scripts/deploy_ops.sh stack staging build {{ PROFILES }}
+staging-build *profiles:
+    @bash scripts/deploy_ops.sh stack staging build {{ profiles }}
 
 # Roll staging back to the images `build` tagged with SHA; pass an alembic REV to downgrade the schema first
 staging-rollback confirm sha rev='':
@@ -578,21 +538,12 @@ _docker-smoke-up services timeout:
 _docker-smoke-down services:
     {{ ci_compose }} down -v --remove-orphans {{ services }} || true
 
-# Smoke test: backend + its infrastructure (database, cache)
-docker-smoke-backend:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    trap 'just _docker-smoke-down api' EXIT
-    just _docker-smoke-up api 120
-    echo "✅ Backend smoke test passed"
-
 # Smoke test: docs static server
 docker-smoke-docs:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down docs' EXIT
     just _docker-smoke-up docs 60
-    echo "✅ Docs smoke test passed"
 
 # Smoke test: www static server
 docker-smoke-www:
@@ -605,7 +556,6 @@ docker-smoke-www:
     headers=$({{ ci_compose }} exec -T www wget -qS -O /dev/null http://localhost:8081/ 2>&1)
     echo "$headers" | grep -qi 'Content-Security-Policy:'
     echo "$headers" | grep -qi 'Strict-Transport-Security:'
-    echo "✅ www smoke test passed"
 
 # Smoke test: app static server (slow: expo export runs during build)
 docker-smoke-app:
@@ -613,7 +563,6 @@ docker-smoke-app:
     set -euo pipefail
     trap 'just _docker-smoke-down app' EXIT
     just _docker-smoke-up app 300
-    echo "✅ App smoke test passed"
 
 # Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
 docker-smoke-backups:
@@ -631,18 +580,16 @@ restore-check env='prod':
 restore env confirm='' snapshot='latest':
     @bash scripts/backup_restic_ops.sh restore {{ quote(env) }} {{ quote(confirm) }} {{ quote(snapshot) }}
 
-# Smoke test: compose-level backend orchestration (service wiring + migrations)
+# Smoke test: backend orchestration (database, cache, API, migrator) plus a live health check
 docker-orchestration-smoke:
     #!/usr/bin/env bash
     set -euo pipefail
     trap 'just _docker-smoke-down "postgres redis api migrator"' EXIT
     just _docker-smoke-up "postgres redis api migrator" 120
     {{ ci_compose }} exec -T api python -c 'import json; from urllib.request import urlopen; resp = urlopen("http://localhost:8000/health", timeout=5); data = json.load(resp); assert resp.status == 200, resp.status; assert data["status"] == "healthy", data; assert data["checks"]["database"]["status"] == "healthy", data; assert data["checks"]["redis"]["status"] == "healthy", data' >/dev/null
-    echo "✅ Docker orchestration smoke test passed"
 
 # Run all Docker smoke tests sequentially (CI runs them in parallel per-service)
 docker-smoke:
-    @just docker-smoke-backend
     @just docker-smoke-docs
     @just docker-smoke-www
     @just docker-smoke-app
@@ -689,10 +636,9 @@ clean:
     #!/usr/bin/env bash
     set -euo pipefail
     for d in {{ subrepos }}; do just "$d/clean"; done
-    rm -rf .ruff_cache
-    echo "✅ Cleaned caches and build artifacts"
+    rm -rf .ruff_cache .rumdl_cache
 
 # Print a static-output size budget for a built directory (e.g. docs/dist, www/dist)
-size DIR:
-    du -sh {{ quote(DIR) }}
-    find {{ quote(DIR) }} -type f -print0 | sort -z | xargs -0 du -h
+size dir:
+    du -sh {{ quote(dir) }}
+    find {{ quote(dir) }} -type f -print0 | sort -z | xargs -0 du -h
