@@ -8,7 +8,7 @@ inputs:
     required: false
     default: "false"
   setup-node:
-    description: Install pnpm + Node.js (Node version from .tool-versions, pnpm version from root packageManager).
+    description: Install pnpm + Node.js (Node version from .tool-versions, pnpm version from the root packageManager field).
     required: false
     default: "false"
   uv-cache-dependency-glob:
@@ -40,20 +40,20 @@ runs:
       with:
         python-version-file: .tool-versions
 
-    - name: Read Node.js version
+    # pnpm/setup (v2.0.2 through v2.1.0) cannot unpack pnpm 11.13.0's tarball:
+    # https://github.com/pnpm/setup/issues/29. Back on the two-action pair until
+    # that is fixed; the pnpm version still comes from the root packageManager field.
+    - name: Install pnpm
       if: inputs.setup-node == 'true'
-      id: node-version
-      shell: bash
-      run: echo "version=$(awk '$1 == "node" { print $2 }' .tool-versions)" >> "$GITHUB_OUTPUT"
+      uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
 
-    - name: Set up pnpm and Node.js
+    - name: Set up Node.js
       if: inputs.setup-node == 'true'
-      uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+      uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
       with:
-        runtime: node@${{ steps.node-version.outputs.version }}
-        cache: true
+        node-version-file: .tool-versions
+        cache: pnpm
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
-        install: false
 
     - name: Cache Playwright browsers
       if: inputs.setup-playwright == 'true'
