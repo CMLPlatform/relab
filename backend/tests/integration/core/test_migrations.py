@@ -204,13 +204,19 @@ def test_circularity_migration_preserves_comments_and_references(
 
     command.upgrade(relab_alembic_config, "head")
 
-    props = migration_helper.execute_sql("""
-        SELECT circularity_properties FROM product WHERE name = 'Circularity fixture'
-    """)[0][0]
+    try:
+        props = migration_helper.execute_sql("""
+            SELECT circularity_properties FROM product WHERE name = 'Circularity fixture'
+        """)[0][0]
 
-    assert "casing is ABS" in props["recyclability"], props
-    assert "ISO 1234" in props["recyclability"], props
-    assert "glued seams" in props["disassemblability"], props
-    assert "iFixit 42" in props["disassemblability"], props
-    # A comment with no observation would previously have vanished entirely.
-    assert "no observation recorded" in props["remanufacturability"], props
+        assert "casing is ABS" in props["recyclability"], props
+        assert "ISO 1234" in props["recyclability"], props
+        assert "glued seams" in props["disassemblability"], props
+        assert "iFixit 42" in props["disassemblability"], props
+        # A comment with no observation would previously have vanished entirely.
+        assert "no observation recorded" in props["remanufacturability"], props
+    finally:
+        # Raw SQL here commits, unlike the session-scoped tests, so the rows would
+        # otherwise outlive this test and surface in any list endpoint run after it.
+        migration_helper.execute_sql("DELETE FROM product WHERE name = 'Circularity fixture'")
+        migration_helper.execute_sql("""DELETE FROM "user" WHERE username = 'circfixture'""")

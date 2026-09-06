@@ -111,7 +111,7 @@ class MigrationHelper:
         """
         with self.sync_engine.connect() as connection:
             result = connection.execute(text(sql))
-            return list(result.fetchall())
+            return list(result.fetchall()) if result.returns_rows else []
 
 
 @pytest.fixture
