@@ -293,8 +293,21 @@ def assert_secret_value_is_usable(label: str, name: str, value: str, *, is_optio
 
 
 def deploy_labels(env: str | None) -> tuple[str, ...]:
-    """Environments a per-env check should report on: one named stack, or all of them."""
-    return (env,) if env else ("staging", "prod")
+    """Environments a per-env check should report on.
+
+    An explicit ``--env`` wins; otherwise the host's own ``.env`` decides, so a bare
+    ``check`` on a deploy host reports on the stack that host actually runs instead of
+    warning about the other environment's unpopulated secrets. Off a deploy host (CI,
+    a checkout with no ``.env``) there is no stack to infer, so report on both.
+    """
+    if env:
+        return (env,)
+    env_file = ROOT / ".env"
+    if env_file.exists():
+        host_env = env_assignments(env_file).get("ENVIRONMENT", "").strip().strip("\"'")
+        if host_env in {"staging", "prod"}:
+            return (host_env,)
+    return ("staging", "prod")
 
 
 def assert_offsite_remote_is_configured(env: str | None = None) -> None:

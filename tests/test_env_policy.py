@@ -197,8 +197,18 @@ def test_secret_env_name_is_the_uppercased_file_name() -> None:
     assert env_policy.secret_env_name("auth_token_secret") == "AUTH_TOKEN_SECRET"
 
 
-def test_deploy_labels_scopes_to_one_stack_or_reports_on_all() -> None:
+def test_deploy_labels_scopes_to_one_stack_or_reports_on_all(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(env_policy, "ROOT", tmp_path)
     assert env_policy.deploy_labels("staging") == ("staging",)
+    # No host .env: nothing to infer from, so report on both.
+    assert env_policy.deploy_labels(None) == ("staging", "prod")
+
+    (tmp_path / ".env").write_text("ENVIRONMENT=staging\n", encoding="utf-8")
+    assert env_policy.deploy_labels(None) == ("staging",)
+    # An explicit scope still wins over the host's own environment.
+    assert env_policy.deploy_labels("prod") == ("prod",)
+
+    (tmp_path / ".env").write_text("ENVIRONMENT=dev\n", encoding="utf-8")
     assert env_policy.deploy_labels(None) == ("staging", "prod")
 
 
