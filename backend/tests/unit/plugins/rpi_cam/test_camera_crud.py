@@ -3,10 +3,14 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, HTTPException
 
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
-from app.api.plugins.rpi_cam.routers.camera_crud import _notify_camera_unpair, delete_user_camera
+from app.api.plugins.rpi_cam.routers.camera_crud import (
+    _notify_camera_unpair,
+    delete_user_camera,
+    self_unpair_camera,
+)
 
 
 async def test_delete_user_camera_schedules_unpair_notification(mock_camera: Camera) -> None:
@@ -59,3 +63,41 @@ async def test_notify_camera_unpair_relays_when_camera_is_online() -> None:
         await _notify_camera_unpair(camera_id, None)
 
     relay_mock.assert_awaited_once_with(camera_id, "DELETE", "/pairing", redis=None)
+
+
+async def test_notify_camera_unpair_continues_when_the_relay_fails() -> None:
+    """An unresponsive camera must not block its own deletion.
+
+    The row is already gone by the time this background task runs, so raising here
+    would surface a 500 for a delete that actually succeeded and leave the operator
+    unsure whether to retry.
+    """
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_crud.fetch_camera_status",
+            new=AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.ONLINE)),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_crud.relay_via_websocket",
+            new=AsyncMock(side_effect=HTTPException(status_code=503)),
+        ),
+    ):
+        await _notify_camera_unpair(uuid4(), None)
+
+
+async def test_self_unpair_removes_the_cached_frame(mock_camera: Camera) -> None:
+    """A Pi that unpairs locally must not leave its last frame readable on the server."""
+    session = AsyncMock()
+
+    with (
+        patch("app.api.plugins.rpi_cam.routers.camera_crud.remove_preview_thumbnail") as remove_thumbnail,
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_crud.get_preview_thumbnail_path",
+            return_value="/previews/frame.jpg",
+        ),
+    ):
+        await self_unpair_camera(camera=mock_camera, db=session)
+
+    remove_thumbnail.assert_called_once_with("/previews/frame.jpg")
+    session.delete.assert_awaited_once_with(mock_camera)
+    session.commit.assert_awaited_once()

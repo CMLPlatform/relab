@@ -5,19 +5,21 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 from httpx import Response
 
 from app.api.auth.exceptions import UserOwnershipError
 from app.api.auth.models import OAuthAccount
 from app.api.common.crud.exceptions import ModelNotFoundError
-from app.api.common.exceptions import ServiceUnavailableError
+from app.api.common.exceptions import APIError, ServiceUnavailableError
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Video
 from app.api.plugins.rpi_cam.constants import PLUGIN_STREAM_ENDPOINT
-from app.api.plugins.rpi_cam.exceptions import RecordingSessionStoreError
+from app.api.plugins.rpi_cam.exceptions import RecordingSessionNotFoundError, RecordingSessionStoreError
 from app.api.plugins.rpi_cam.runtime.recording import YouTubeRecordingSession
 from app.api.plugins.rpi_cam.schemas.youtube import YouTubeMonitorStreamResponse
 from app.api.plugins.rpi_cam.services.recording_service import (
+    _resolve_existing_recording,
     get_youtube_recording_monitor_stream,
     start_youtube_recording,
     stop_youtube_recording,
@@ -425,3 +427,55 @@ async def test_get_youtube_recording_monitor_stream(
 
     assert result == monitor_stream
     mock_yt_service.get_broadcast_monitor_stream.assert_awaited_once_with(FAKE_BROADCAST_KEY)
+
+
+_RECORDING_SERVICE = "app.api.plugins.rpi_cam.services.recording_service"
+
+
+async def test_unverifiable_recording_session_is_cleared() -> None:
+    """A YouTube APIError means the broadcast is gone, so the cached session must go too."""
+    camera_id = uuid4()
+    with (
+        patch(f"{_RECORDING_SERVICE}.load_recording_session", new=AsyncMock()),
+        patch(f"{_RECORDING_SERVICE}.clear_recording_session", new=AsyncMock()) as clear_session,
+    ):
+        result = await _resolve_existing_recording(
+            AsyncMock(),
+            AsyncMock(),
+            camera_id,
+            AsyncMock(side_effect=APIError("broadcast is gone")),
+        )
+
+    assert result is None
+    clear_session.assert_awaited_once()
+
+
+async def test_a_transient_relay_failure_keeps_the_recording_session() -> None:
+    """A relay hiccup must not clear the session and orphan a broadcast that is still live.
+
+    Clearing here would leave YouTube streaming with no server-side record of the
+    session, so nothing would ever stop the broadcast or attach the recorded video.
+    """
+    camera_id = uuid4()
+    with (
+        patch(f"{_RECORDING_SERVICE}.load_recording_session", new=AsyncMock()),
+        patch(f"{_RECORDING_SERVICE}.clear_recording_session", new=AsyncMock()) as clear_session,
+        pytest.raises(HTTPException),
+    ):
+        await _resolve_existing_recording(
+            AsyncMock(),
+            AsyncMock(),
+            camera_id,
+            AsyncMock(side_effect=HTTPException(status_code=503)),
+        )
+
+    clear_session.assert_not_awaited()
+
+
+async def test_no_cached_session_resolves_to_no_existing_recording() -> None:
+    """A camera that was never recording has nothing to verify."""
+    with patch(
+        f"{_RECORDING_SERVICE}.load_recording_session",
+        new=AsyncMock(side_effect=RecordingSessionNotFoundError()),
+    ):
+        assert await _resolve_existing_recording(AsyncMock(), AsyncMock(), uuid4(), AsyncMock()) is None

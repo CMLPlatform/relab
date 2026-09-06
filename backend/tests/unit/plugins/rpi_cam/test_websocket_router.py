@@ -12,6 +12,7 @@ from uuid import uuid4
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
+from jwt import InvalidTokenError
 
 from app.api.common.rate_limiting import RateLimitExceededError, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.device_assertion import (
@@ -27,6 +28,7 @@ from app.api.plugins.rpi_cam.websocket.router import (
     _RelayWebSocketSession,
     camera_websocket_connect,
 )
+from app.core.runtime import RequiredServiceUnavailableError
 
 
 async def test_connect_rejects_browser_origin_before_auth_lookup() -> None:
@@ -504,3 +506,93 @@ async def test_rejects_unsupported_algorithm() -> None:
     )
     with pytest.raises(jwt.InvalidTokenError, match="algorithm"):
         await _verify_device_assertion(hs256_assertion, camera, redis)
+
+
+_ROUTER = "app.api.plugins.rpi_cam.websocket.router"
+_WS_POLICY_VIOLATION = 1008
+_WS_INTERNAL_ERROR = 1011
+
+
+def _authenticating_websocket() -> MagicMock:
+    """A websocket that carries an assertion and passes the auth rate limit."""
+    websocket = MagicMock()
+    websocket.headers = {"Authorization": "Bearer an.assertion.value"}
+    websocket.client = SimpleNamespace(host="203.0.113.10")
+    websocket.close = AsyncMock()
+    return websocket
+
+
+@pytest.fixture
+def relay_auth_patches():  # noqa: ANN201  # pytest fixture returning a context manager stack
+    """Patch the collaborators ``_authenticate`` reaches past the rate limiter."""
+    with (
+        patch(f"{_ROUTER}.limiter") as limiter_mock,
+        patch(f"{_ROUTER}._get_camera", new=AsyncMock()) as get_camera,
+        patch(f"{_ROUTER}.require_connection_redis") as require_redis,
+        patch(f"{_ROUTER}.verify_device_assertion", new=AsyncMock()) as verify_assertion,
+        patch(f"{_ROUTER}.mark_camera_online", new=AsyncMock()) as mark_online,
+    ):
+        limiter_mock.ahit_key = AsyncMock()
+        get_camera.return_value = SimpleNamespace(credential_is_active=True, relay_key_id="key-1")
+        verify_assertion.return_value = {"kid": "key-1"}
+        yield SimpleNamespace(
+            get_camera=get_camera,
+            require_redis=require_redis,
+            verify_assertion=verify_assertion,
+            mark_online=mark_online,
+        )
+
+
+async def test_authenticate_rejects_an_unknown_camera(relay_auth_patches) -> None:
+    """A camera id with no row must not open a relay connection."""
+    relay_auth_patches.get_camera.return_value = None
+    websocket = _authenticating_websocket()
+
+    assert await _authenticate(websocket, uuid4()) is False
+    websocket.close.assert_awaited_once_with(code=_WS_POLICY_VIOLATION, reason="Authentication failed.")
+    relay_auth_patches.verify_assertion.assert_not_awaited()
+
+
+async def test_authenticate_rejects_a_camera_whose_credential_is_no_longer_active(relay_auth_patches) -> None:
+    """Revoking a camera's credential must stop it reconnecting, even with a valid assertion.
+
+    The assertion is signed by a key the device still holds, so the credential
+    status is the only thing standing between a revoked Pi and a live relay.
+    """
+    relay_auth_patches.get_camera.return_value = SimpleNamespace(credential_is_active=False, relay_key_id="key-1")
+    websocket = _authenticating_websocket()
+
+    assert await _authenticate(websocket, uuid4()) is False
+    websocket.close.assert_awaited_once_with(code=_WS_POLICY_VIOLATION, reason="Authentication failed.")
+    relay_auth_patches.verify_assertion.assert_not_awaited()
+
+
+async def test_authenticate_fails_closed_when_redis_is_unavailable(relay_auth_patches) -> None:
+    """Replay protection needs Redis, so losing it must reject rather than skip the check."""
+    relay_auth_patches.require_redis.side_effect = RequiredServiceUnavailableError("redis")
+    websocket = _authenticating_websocket()
+
+    assert await _authenticate(websocket, uuid4()) is False
+    websocket.close.assert_awaited_once_with(code=_WS_INTERNAL_ERROR, reason="Authentication service unavailable.")
+    relay_auth_patches.verify_assertion.assert_not_awaited()
+
+
+async def test_authenticate_rejects_an_invalid_assertion(relay_auth_patches) -> None:
+    """A rejected assertion must close the socket rather than fall through to accept."""
+    relay_auth_patches.verify_assertion.side_effect = InvalidTokenError("expired")
+    websocket = _authenticating_websocket()
+
+    assert await _authenticate(websocket, uuid4()) is False
+    websocket.close.assert_awaited_once_with(code=_WS_POLICY_VIOLATION, reason="Authentication failed.")
+    relay_auth_patches.mark_online.assert_not_awaited()
+
+
+async def test_authenticate_accepts_a_valid_assertion_and_marks_the_camera_online(relay_auth_patches) -> None:
+    """The success path admits the device and records it as online."""
+    websocket = _authenticating_websocket()
+    camera_id = uuid4()
+
+    assert await _authenticate(websocket, camera_id) is True
+    websocket.close.assert_not_awaited()
+    relay_auth_patches.mark_online.assert_awaited_once()
+    assert relay_auth_patches.mark_online.await_args.args[1] == camera_id
