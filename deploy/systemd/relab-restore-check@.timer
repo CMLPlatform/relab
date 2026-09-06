@@ -19,6 +19,8 @@ Description=Relab backup restore verification schedule (%i)
 # another unit, so the gap in the calendar is the lock.
 OnCalendar=*-*-01 06:00:00
 Persistent=true
+# Jitter kept here: it restores a full snapshot, and a monthly job costs nothing by
+# starting a little late.
 RandomizedDelaySec=30m
 
 [Install]

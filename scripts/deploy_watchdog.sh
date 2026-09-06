@@ -333,17 +333,18 @@ if ! command -v systemctl >/dev/null 2>&1; then
     echo "ALERT[$env]: systemctl not found; cannot verify the scheduled-job timers" >&2
     failures=$((failures + 1))
 else
-    # Per-job staleness limits: generous multiples of each period, so ordinary jitter,
-    # a reboot or a skipped window never alerts — only a timer that has genuinely
-    # stopped firing does.
+    # Per-job staleness limits: generous multiples of each period, so a reboot or a
+    # skipped window never alerts — only a timer that has genuinely stopped firing does.
+    # The two hourly jobs carry no RandomizedDelaySec, so one missed cycle of slack is
+    # enough for them; the daily and monthly ones still jitter and get more.
     # Keys are QUOTED deliberately: an unquoted associative-array subscript is an
     # arithmetic context, so `[relab-backup]` is read as a subtraction and shfmt
     # reformats it to `[relab - backup]`. Every key then evaluates to 0 and every
     # lookup fails under `set -u`.
     declare -A job_max_age_hours=(
-        ["relab-backup"]=3
+        ["relab-backup"]=2
         ["relab-backup-maintenance"]=26
-        ["relab-watchdog"]=3
+        ["relab-watchdog"]=2
         ["relab-restore-check"]=960
     )
     now_epoch="$(date +%s)"

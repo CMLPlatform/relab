@@ -15,9 +15,14 @@ Description=Relab encrypted backup schedule (%i)
 # Hourly: the snapshot itself is cheap, and it caps data loss at an hour instead of a
 # day. Prune, integrity check and the offsite copy are NOT here — they run once a day
 # from relab-backup-maintenance@.timer, so this does not repack the repository 24x/day.
+# No RandomizedDelaySec. That exists to stop a fleet stampeding a shared endpoint at
+# the same instant; Relab is two hosts on separate machines, so it buys nothing here and
+# costs determinism — a predictable schedule is easier to reason about and lets the
+# watchdog's staleness check run a tighter threshold.
+# The deterministic :00 also keeps a fixed 30-minute gap to the maintenance timer at
+# :30, which is what actually stops the two contending for restic's exclusive lock.
 OnCalendar=hourly
 Persistent=true
-RandomizedDelaySec=5m
 
 [Install]
 WantedBy=timers.target
