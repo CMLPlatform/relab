@@ -155,7 +155,8 @@ services:
     # (shared_buffers + autovacuum workers + per-backend work_mem), so 4 GiB is
     # a backstop, not a working budget.
     mem_limit: 4g
-    # Sized for Postgres getting ~4 GiB of a ~20 GiB host. Raise mem_limit,
+    # Sized for Postgres getting ~4 GiB of a ~20 GiB stack budget (the smallest
+    # host the stack is meant to fit, not any particular host's RAM). Raise mem_limit,
     # shared_buffers and effective_cache_size together if that changes; the
     # rest are scale-independent corrections to defaults that assume spinning
     # disks.
@@ -201,7 +202,8 @@ services:
       - jit=off
     volumes:
       - database_data:/var/lib/postgresql
-      # Postgres runs initdb files in sorted order on fresh volumes.
+      # Postgres runs provision.sh from here on a fresh volume; `stack up`,
+      # `just dev-migrate` and `just restore` run the same file on every start.
       - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       !!merge <<: *healthcheck-defaults

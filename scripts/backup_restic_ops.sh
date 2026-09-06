@@ -4,6 +4,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"
+# Built by build_migrator_image below; compose names it "<project>-<service>".
+DEPLOY_MIGRATOR_IMAGE="${DEPLOY_MIGRATOR_IMAGE:-relab_test-migrator}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4}"
 RESTORE_CONTAINER=""
 # Read by restore_cleanup, which runs from an EXIT trap — i.e. after
@@ -113,6 +115,12 @@ build_backup_image() {
     docker build -f backend/Dockerfile.backups -t "$DEPLOY_BACKUP_IMAGE" backend
 }
 
+# Build through the CI compose files rather than `docker build`, so the build reuses
+# the `type=gha,scope=migrator` cache the other smoke recipes already populate.
+build_migrator_image() {
+    docker compose -p relab_test -f "$ROOT_DIR/compose.yaml" -f "$ROOT_DIR/compose.ci.yaml" build migrator
+}
+
 # Restore the latest `postgres`-tagged snapshot from a restic repository into a
 # throwaway Postgres container and assert the dump loads.
 # Args: <repo dir> <restic password file> <scratch dir> [container name].
@@ -128,10 +136,18 @@ build_backup_image() {
 replay_dump() {
     local container="$1" dump="$2" user="$3" db="$4"
     shift 4
-    local -a psql=(docker exec "$container" psql -U "$user" -d "$db" -v ON_ERROR_STOP=1)
+    # -i: the assertion below is fed on stdin, and without it psql reads EOF, runs
+    # nothing and exits 0 -- an assertion that never fails because it never runs.
+    local -a psql=(docker exec -i "$container" psql -U "$user" -d "$db" -v ON_ERROR_STOP=1)
     local -a pg_restore=(docker exec "$container" pg_restore "$@" -U "$user" -d "$db" "$dump")
     # The dump is taken with --schema=public and so recreates the schema itself;
     # pre-creating it here makes pg_restore fail on "schema public already exists".
+    # Extensions other than pg_trgm live in the "extensions" schema, which the drop
+    # below leaves alone; provision.sh created it on a live cluster, the scratch
+    # cluster of the smoke test needs it before pre-data references the unaccent
+    # dictionary. NOTE: keep this list in sync with the trusted extensions Alembic
+    # installs there.
+    "${psql[@]}" -c 'CREATE SCHEMA IF NOT EXISTS extensions; CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA extensions;'
     "${psql[@]}" -c 'DROP SCHEMA IF EXISTS public CASCADE;'
     # NOTE: --schema=public dumps omit CREATE EXTENSION, so the target is missing
     # pg_trgm when trigram GIN indexes (gin_trgm_ops) are rebuilt. Real clusters get
@@ -250,9 +266,32 @@ docker_smoke_backups() {
 
     docker exec "$postgres_container" psql -U postgres -d relab_smoke -v ON_ERROR_STOP=1 \
         -c "CREATE ROLE relab_backup LOGIN PASSWORD 'backup-password';" \
-        -c "CREATE TABLE public.backup_smoke(id integer PRIMARY KEY, name text NOT NULL);" \
-        -c "INSERT INTO public.backup_smoke VALUES (1, 'ok');" \
         -c "GRANT pg_read_all_data TO relab_backup;"
+
+    # Migrate the scratch database to Alembic head instead of hand-rolling a table: the
+    # dump then carries the real schema, so replay_dump's extension list is exercised by
+    # every extension a migration installs, not just the ones someone remembered.
+    # .env.test supplies the settings alembic's env.py loads; the role overrides point it
+    # at the scratch cluster's bootstrap superuser, which has no relab_* roles.
+    build_migrator_image
+    docker run --rm --network "$network" \
+        --env-file "$ROOT_DIR/backend/.env.test" \
+        -e DATABASE_HOST="$postgres_container" \
+        -e POSTGRES_DB=relab_smoke \
+        -e DATABASE_MIGRATION_USER=postgres \
+        -e DATABASE_MIGRATION_PASSWORD=postgres-password \
+        --entrypoint alembic \
+        "$DEPLOY_MIGRATOR_IMAGE" upgrade head
+
+    # One row per table the restore assertions read. The diacritic makes the search
+    # assertion below fail unless unaccent survived the round trip.
+    docker exec "$postgres_container" psql -U postgres -d relab_smoke -v ON_ERROR_STOP=1 \
+        -c "INSERT INTO \"user\" (id, email, email_canonical, hashed_password, is_active, is_superuser, is_verified, mfa_enabled)
+            VALUES (gen_random_uuid(), 'smoke@example.com', 'smoke@example.com', 'not-a-real-hash',
+                    true, false, true, false);" \
+        -c "INSERT INTO taxonomy (name, domains) VALUES ('Smoke', ARRAY['PRODUCTS']::taxonomydomain[]);" \
+        -c "INSERT INTO category (name, taxonomy_id) SELECT 'Café', id FROM taxonomy;" \
+        -c "INSERT INTO product (name, owner_id) SELECT 'Café', id FROM \"user\";"
 
     docker run --rm \
         --network "$network" \
@@ -295,35 +334,31 @@ docker_smoke_backups() {
     chmod 0444 "$tmp_root/restic_password"
     verify_postgres_restore "$tmp_root/restic" "$tmp_root/restic_password" "$tmp_root"
 
-    echo "✅ Restic backups smoke test passed"
-}
+    # Present is not the same as functional: exercise the unaccented trigram path and
+    # assert the restore landed on the same revision the checkout migrates to.
+    docker exec -i "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -f - <<'SQL'
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM category WHERE relab_unaccent(name) % relab_unaccent('cafe')) THEN
+        RAISE EXCEPTION 'restored category is not searchable through relab_unaccent + pg_trgm';
+    END IF;
+END $$;
+SQL
 
-# Read a var from a committed per-environment Compose env file. These are plain
-# KEY=value files, so parse rather than source. Strip an inline ` # comment`,
-# surrounding whitespace and one matching quote pair, the same way Compose (and the
-# MALWARE_SCAN_ENABLED reader in deploy_ops.sh) resolve the value: a quoted entry must
-# not aim the offsite copy at a repository Compose never uses.
-read_deploy_env_var() {
-    local env="$1" var_name="$2" file="$ROOT_DIR/deploy/env/$1.compose.env" value
-    [[ -f "$file" ]] || return 0
-    value="$(sed -n "s/^${var_name}=//p" "$file" | tail -n1)"
-    value="${value%%[[:space:]]#*}"
-    value="${value#"${value%%[![:space:]]*}"}"
-    value="${value%"${value##*[![:space:]]}"}"
-    if [[ "$value" == \"*\" || "$value" == \'*\' ]]; then
-        value="${value:1:-1}"
+    expected_head="$(docker run --rm --entrypoint alembic "$DEPLOY_MIGRATOR_IMAGE" heads | awk '{print $1}')"
+    restored_head="$(docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -tAc \
+        'SELECT version_num FROM alembic_version')"
+    if [[ "$restored_head" != "$expected_head" ]]; then
+        echo "Restored alembic_version is '$restored_head', expected head '$expected_head'" >&2
+        exit 1
     fi
-    printf '%s' "$value"
+
+    echo "✅ Restic backups smoke test passed"
 }
 
 backup_offsite_copy() {
     local env="${1:-staging}"
-    # Same precedence Compose applies: the per-environment committed file beats the
-    # shared root .env. Reading only the root .env here made `backup-offsite-copy prod`
-    # write prod snapshots into staging's offsite repository, because the single value
-    # there resolves to the staging path.
     local offsite_repo="${RESTIC_OFFSITE_REPOSITORY:-}"
-    [[ -z "$offsite_repo" ]] && offsite_repo="$(read_deploy_env_var "$env" RESTIC_OFFSITE_REPOSITORY)"
     [[ -z "$offsite_repo" ]] && offsite_repo="$(read_dotenv_var RESTIC_OFFSITE_REPOSITORY)"
 
     resolve_backup_paths "$env"
@@ -337,8 +372,8 @@ backup_offsite_copy() {
     # shellcheck disable=SC2064  # eager expansion is intentional here (see above)
     trap "rm -rf '$tmp_root'" EXIT
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
-    if [[ -z "$offsite_repo" ]]; then
-        echo "RESTIC_OFFSITE_REPOSITORY must be set, for example: rclone:<remote>:relab/$env/restic"
+    if [[ -z "$offsite_repo" && ! -f "$rclone_config" ]]; then
+        echo "no offsite target: write $rclone_config (one remote) or set RESTIC_OFFSITE_REPOSITORY"
         exit 1
     fi
 
@@ -353,11 +388,9 @@ backup_offsite_copy() {
         -e SKIP_UPLOAD_BACKUP=true
     )
 
-    if [[ "$offsite_repo" == rclone:* ]]; then
-        if [[ ! -f "$rclone_config" ]]; then
-            echo "rclone config file not found: $rclone_config"
-            exit 1
-        fi
+    # The container derives the repository from the config's one remote when the
+    # variable is empty (backup_relab_restic.sh derive_offsite_repository).
+    if [[ -f "$rclone_config" ]]; then
         install -m 0444 "$rclone_config" "$tmp_root/rclone.conf"
         docker_args+=(
             -v "$tmp_root/rclone.conf:/run/secrets/rclone.conf:ro"
@@ -477,6 +510,13 @@ restore_postgres() {
     pg_user="$(docker exec "$pg_container" sh -c 'printf %s "${POSTGRES_USER:-postgres}"')"
     pg_db="$(docker exec "$pg_container" sh -c 'printf %s "$POSTGRES_DB"')"
     replay_dump "$pg_container" /tmp/relab-restore.dump "$pg_user" "$pg_db"
+
+    # DROP SCHEMA public CASCADE also took the ALTER DEFAULT PRIVILEGES rows that
+    # give relab_app access to tables future migrations create, and a
+    # --schema=public dump does not carry them back. Existing tables keep their
+    # grants, so the API works until the next migration adds a table. provision.sh
+    # is idempotent and already mounted, so run it again.
+    docker exec "$pg_container" bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
 
     echo "✅ Restored $env from snapshot '$snapshot'"
 }

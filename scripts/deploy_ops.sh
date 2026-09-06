@@ -2,9 +2,6 @@
 # Root deploy/Compose operations behind the public justfile recipes.
 set -euo pipefail
 
-PROD_COMPOSE_ENV="${PROD_COMPOSE_ENV:-deploy/env/prod.compose.env}"
-STAGING_COMPOSE_ENV="${STAGING_COMPOSE_ENV:-deploy/env/staging.compose.env}"
-
 write_validation_env_file() {
     uv run python scripts/env_policy.py validation-env "$1"
 }
@@ -35,25 +32,12 @@ host_overlay_args() {
     fi
 }
 
-compose_env_file() {
-    local env="$1"
-    case "$env" in
-        prod) printf '%s\n' "$PROD_COMPOSE_ENV" ;;
-        staging) printf '%s\n' "$STAGING_COMPOSE_ENV" ;;
-        *)
-            echo "env must be 'prod' or 'staging'" >&2
-            exit 2
-            ;;
-    esac
-}
-
-# Docker Compose gives exported shell variables precedence over every --env-file,
-# so a stray `export ENVIRONMENT=staging` would run staging images under the prod
-# project name. Scrub the names the env files own before invoking compose. Keep in
-# sync with COMMITTED_DEPLOY_ENV_NAMES + REQUIRED_ROOT_OPERATOR_INPUT_NAMES in
-# scripts/env_policy.py, plus the telemetry names below. MALWARE_SCAN_ENABLED is scrubbed too: the `up` guard reads it
-# from .env, so an exported shell value must not reach the container and quietly turn
-# scanning on without the clamav profile.
+# Docker Compose gives exported shell variables precedence over --env-file, so a
+# stray `export API_PUBLIC_URL=...` would beat the host's .env. Scrub the names the
+# .env owns before invoking compose. Keep in sync with REQUIRED_ROOT_OPERATOR_INPUT_NAMES
+# in scripts/env_policy.py, plus the telemetry names below. MALWARE_SCAN_ENABLED is scrubbed
+# too: the `scanning` profile is derived from the .env value, so the container must read
+# the same source.
 COMPOSE_SCRUBBED_ENV_NAMES=(
     PROJECT
     ENVIRONMENT
@@ -68,8 +52,6 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     EMAIL_REPLY_TO
     BOOTSTRAP_SUPERUSER_EMAIL
     MALWARE_SCAN_ENABLED
-    # An exported shell value beats every --env-file, so a stray `export` in a
-    # debugging session would redirect prod's offsite copy at staging's repository.
     RESTIC_OFFSITE_REPOSITORY
     # The telemetry trio. An endpoint rename was once undone by a shell that had
     # sourced the pre-rename .env: compose preferred the exported value, so down/up
@@ -84,9 +66,6 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
 compose_args() {
     local env="$1"
     local root_env_file="${2:-.env}"
-    local compose_env
-
-    compose_env="$(compose_env_file "$env")"
 
     local -a unset_flags=()
     local name
@@ -94,7 +73,9 @@ compose_args() {
         unset_flags+=(-u "$name")
     done
 
-    printf '%s\n' env "${unset_flags[@]}" docker compose -p "relab_$env" --env-file "$root_env_file" --env-file "$compose_env" -f compose.yaml -f compose.deploy.yaml
+    # The recipe's environment, not the .env's, selects images and secrets; the .env
+    # ENVIRONMENT only guards the recipe (require_dotenv_environment).
+    printf '%s\n' env "${unset_flags[@]}" PROJECT=relab "ENVIRONMENT=$env" docker compose -p "relab_$env" --env-file "$root_env_file" -f compose.yaml -f compose.deploy.yaml
     telemetry_overlay_args "$root_env_file"
     host_overlay_args
 }
@@ -247,12 +228,11 @@ deploy_secret_template_value() {
         rclone.conf)
             # An rclone remote is operator-supplied, so seed a commented placeholder: it is
             # non-empty (later runs keep it) and carries no `replace-me-` marker, which the
-            # env policy would reject. rclone.conf is optional — the backup service only reads
-            # it when RESTIC_OFFSITE_REPOSITORY names an `rclone:` target.
+            # env policy would reject. With no remote defined, offsite copies stay off.
             printf '%s\n' \
-                '# Placeholder. Replace with a real rclone config (rclone config) before' \
-                '# setting RESTIC_OFFSITE_REPOSITORY to an rclone:<remote>:<path> target.' \
-                '# Offsite copies stay disabled while this file holds only comments.'
+                '# Placeholder. Replace with a real rclone config defining ONE remote; the' \
+                '# backup copies to rclone:<that remote>: (empty path). Offsite copies stay' \
+                '# disabled while this file holds only comments.'
             ;;
         *_oauth_client_secret | microsoft_graph_client_secret)
             # External identity credentials cannot be auto-generated: a random token
@@ -501,13 +481,75 @@ require_confirmation_command() {
     require_confirmation "$1" "$2" "$3"
 }
 
+# Read one KEY=value from the root .env the way Compose does: last assignment wins,
+# an inline ` # comment`, surrounding whitespace and one matching pair of quotes are
+# dropped. An unbalanced quote yields the raw text, which no caller treats as valid.
+dotenv_value() {
+    local value
+    value="$(grep -E "^$1=" .env 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
+    value="${value%%[[:space:]]#*}"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    if [[ "$value" == \"*\" || "$value" == \'*\' ]]; then
+        value="${value:1:-1}"
+    fi
+    printf '%s' "$value"
+}
+
+# MALWARE_SCAN_ENABLED=true with no clamav container fails every upload closed, so the
+# `scanning` profile follows the .env value instead of being passed by hand. Anything
+# but an explicit `false` (missing file, empty, unbalanced quote) enables scanning.
+scanning_enabled() {
+    local value
+    value="$(dotenv_value MALWARE_SCAN_ENABLED)"
+    [[ "${value:-true}" != "false" ]]
+}
+
+add_scanning_profile_from_dotenv() {
+    if scanning_enabled && [[ " ${DEPLOY_PROFILE_FLAGS[*]} " != *" scanning "* ]]; then
+        DEPLOY_PROFILE_FLAGS+=(--profile scanning)
+    fi
+}
+
+# One host serves one environment: the root .env carries the public URLs and the
+# offsite repository for exactly one stack, so a recipe for the other one must not run.
+require_dotenv_environment() {
+    local env="$1" host_env
+    host_env="$(dotenv_value ENVIRONMENT)"
+    if [[ "$host_env" != "$env" ]]; then
+        echo "error: this host's .env sets ENVIRONMENT='${host_env}', but the recipe targets '$env'." >&2
+        exit 2
+    fi
+}
+
+require_short_sha() {
+    if [[ ! "$1" =~ ^[0-9a-f]{7,40}$ ]]; then
+        echo "error: expected a commit sha (7-40 hex characters), got '$1'" >&2
+        exit 2
+    fi
+}
+
+# Image names (without tag) that a previous `build` tagged with `<env>-<sha>`; every
+# stack image must have one, or the rollback would mix two releases.
+rollback_images() {
+    local env="$1" sha="$2" image missing=0
+    while IFS= read -r image; do
+        [[ "$image" == relab-*:"$env-local" ]] || continue
+        image="${image%:*}"
+        if ! docker image inspect "$image:$env-$sha" >/dev/null 2>&1; then
+            echo "error: no image $image:$env-$sha; \`docker images '$image'\` lists the shas available" >&2
+            missing=1
+        fi
+        printf '%s\n' "$image"
+    done < <(run_deploy_compose "$env" --profile migrations --profile backups config --images | sort -u)
+    [[ "$missing" -eq 0 ]] || exit 2
+}
+
 stack_command() {
     local env="$1"
     local action="$2"
     shift 2
 
-    # compose_env_file's exit 2 fires inside a process substitution, where it only
-    # prints and lets the caller continue, so validate the env up front instead.
     case "$env" in
         prod | staging) ;;
         *)
@@ -515,6 +557,7 @@ stack_command() {
             exit 2
             ;;
     esac
+    require_dotenv_environment "$env"
 
     case "$action" in
         up)
@@ -528,25 +571,14 @@ stack_command() {
             # `up` does not start backups: the backup service is a one-shot driven
             # by a systemd timer (deploy/systemd/), not a long-running container.
             # `build` still defaults to the backups profile so the image exists.
-            # NOTE: MALWARE_SCAN_ENABLED=true with no clamav container fails all uploads closed.
-            # Read it the way Compose does: drop an inline ` # comment`, surrounding whitespace
-            # and one matching pair of quotes, so `MALWARE_SCAN_ENABLED="false"  # off` agrees
-            # with the value the container actually gets. The name is scrubbed from the shell
-            # env before compose runs, so .env is the only source both sides read.
-            local scan_enabled
-            scan_enabled="$(grep -E '^MALWARE_SCAN_ENABLED=' .env 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
-            scan_enabled="${scan_enabled%%[[:space:]]#*}"
-            scan_enabled="${scan_enabled#"${scan_enabled%%[![:space:]]*}"}"
-            scan_enabled="${scan_enabled%"${scan_enabled##*[![:space:]]}"}"
-            if [[ "$scan_enabled" == \"*\" || "$scan_enabled" == \'*\' ]]; then
-                scan_enabled="${scan_enabled:1:-1}"
-            fi
-            if [[ "${scan_enabled:-true}" != "false" && " ${DEPLOY_PROFILE_FLAGS[*]} " != *" scanning "* ]]; then
-                echo "error: MALWARE_SCAN_ENABLED is not 'false' but the 'scanning' profile is off." >&2
-                echo "Pass the 'scanning' profile or set MALWARE_SCAN_ENABLED=false in .env." >&2
-                exit 2
-            fi
+            add_scanning_profile_from_dotenv
             require_confirmation "start the $env stack" "just $env-up YES [profiles...]" "FORCE=1 just $env-up [profiles...]"
+            # Provision before anything else starts. initdb only runs the script on an
+            # empty volume; running it here on every start makes a populated volume
+            # (prod's predates the roles) or a restored one converge without a runbook
+            # step, and the migrator never runs before the objects it needs exist.
+            run_deploy_compose "$env" up -d --wait postgres
+            run_deploy_compose "$env" exec -T postgres bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
             ;;
         backup)
@@ -577,6 +609,7 @@ stack_command() {
             ;;
         down)
             parse_profiles "$env" "migrations backups scanning" "$@"
+            add_scanning_profile_from_dotenv
             require_confirmation "stop the $env stack" "just $env-down YES [profiles...]" "FORCE=1 just $env-down [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" down --remove-orphans
             ;;
@@ -605,6 +638,31 @@ stack_command() {
             ;;
         logs)
             run_deploy_compose "$env" logs -f
+            ;;
+        rollback)
+            # `just <env>-rollback YES <sha> [<revision>]`: retag the images a previous
+            # `build` tagged with its commit, optionally after `alembic downgrade`.
+            DEPLOY_CONFIRMED=false
+            [[ "${1:-}" == "YES" ]] && DEPLOY_CONFIRMED=true
+            local sha="${2:-}" revision="${3:-}"
+            require_short_sha "$sha"
+            local -a images=()
+            mapfile -t images < <(rollback_images "$env" "$sha")
+            require_confirmation "roll the $env stack back to $sha" "just $env-rollback YES $sha" "FORCE=1 just $env-rollback _ $sha"
+            if [[ -n "$revision" ]]; then
+                # Both steps use the CURRENT migrator image: only the code being rolled
+                # back knows how to downgrade its own migrations.
+                run_deploy_compose "$env" --profile migrations run --rm --entrypoint python \
+                    migrator -m scripts.maintenance.downgrade_safety "$revision"
+                run_deploy_compose "$env" stop api
+                run_deploy_compose "$env" --profile migrations run --rm --entrypoint alembic migrator downgrade "$revision"
+            fi
+            local image
+            for image in "${images[@]}"; do
+                docker tag "$image:$env-$sha" "$image:$env-local"
+            done
+            add_scanning_profile_from_dotenv
+            run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
             ;;
         migrate)
             DEPLOY_CONFIRMED=false

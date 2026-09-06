@@ -463,6 +463,8 @@ dev-logs:
 
 # Run database migrations (dev); required on first start and after schema changes
 dev-migrate:
+    {{ dev_compose }} up -d --wait postgres
+    {{ dev_compose }} exec -T postgres bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
     {{ dev_compose }} --profile migrations up migrator
 
 # Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
@@ -478,17 +480,21 @@ _dev-reset confirm='':
 # Docker: Production
 # ============================================================================
 
-# Start production stack (backups are NOT started here — they run from the host systemd timer; see deploy/systemd/)
+# Start production stack (scanning follows MALWARE_SCAN_ENABLED in .env; backups run from the host systemd timer, see deploy/systemd/)
 prod-up *PROFILES:
     @bash scripts/deploy_ops.sh stack prod up {{ PROFILES }}
 
-# Stop production stack (optional profiles: backups, migrations)
+# Stop production stack (optional profiles: backups, migrations; scanning follows MALWARE_SCAN_ENABLED)
 prod-down *PROFILES:
     @bash scripts/deploy_ops.sh stack prod down {{ PROFILES }}
 
 # Build (or rebuild) prod images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
 prod-build *PROFILES:
     @bash scripts/deploy_ops.sh stack prod build {{ PROFILES }}
+
+# Roll prod back to the images `build` tagged with SHA; pass an alembic REV to downgrade the schema first
+prod-rollback confirm sha rev='':
+    @bash scripts/deploy_ops.sh stack prod rollback {{ quote(confirm) }} {{ quote(sha) }} {{ quote(rev) }}
 
 # Tail production logs
 prod-logs:
@@ -502,17 +508,21 @@ prod-migrate confirm='':
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (backups are NOT started here — they run from the host systemd timer; see deploy/systemd/)
+# Start staging stack (scanning follows MALWARE_SCAN_ENABLED in .env; backups run from the host systemd timer, see deploy/systemd/)
 staging-up *PROFILES:
     @bash scripts/deploy_ops.sh stack staging up {{ PROFILES }}
 
-# Stop staging stack (optional profiles: backups, migrations)
+# Stop staging stack (optional profiles: backups, migrations; scanning follows MALWARE_SCAN_ENABLED)
 staging-down *PROFILES:
     @bash scripts/deploy_ops.sh stack staging down {{ PROFILES }}
 
 # Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
 staging-build *PROFILES:
     @bash scripts/deploy_ops.sh stack staging build {{ PROFILES }}
+
+# Roll staging back to the images `build` tagged with SHA; pass an alembic REV to downgrade the schema first
+staging-rollback confirm sha rev='':
+    @bash scripts/deploy_ops.sh stack staging rollback {{ quote(confirm) }} {{ quote(sha) }} {{ quote(rev) }}
 
 # Tail staging logs
 staging-logs:

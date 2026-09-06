@@ -1,23 +1,14 @@
 # Production cutover: `main` → the MVP release
 
-One-time runbook for upgrading the production host from the `main` revision to
-the current release. Written 2026-08-03.
-
-Supersedes `secrets/prod/PROD_MIGRATION_PLAYBOOK.md`. That playbook described
-the role-hardening, encryption, and restic work as if it were being applied in
-May — but none of it exists on `main`, so **prod never received it**. Those
-steps are folded into this document instead (5, 8a, and 10).
-
-This file is committed deliberately: it contains no secrets, and the previous
-playbook lived under `secrets/`, which is gitignored and therefore never reached
-the deploy host.
+One-time runbook for upgrading the production host from the `main` revision to the current release.
+Written 2026-08-03. The role-hardening, encryption, and restic steps (5, 8a, and 10) never reached
+prod before this runbook.
 
 Prod's Alembic revision is `6f2b9e4a1c3d`.
 
-> **Every revision literal and migration count below is a historical observation,
-> not a current fact.** Written 2026-08-03 (head `f1a2b3c4d5e6`, 20 migrations);
-> as of 2026-08-18 the head was `c4f7b1e93a20` and prod had 27 to apply. Re-derive
-> before the window:
+> **Every revision literal and migration count below is a historical observation, not a current
+> fact.** Written 2026-08-03 (head `f1a2b3c4d5e6`, 20 migrations); as of 2026-08-18 the head was
+> `c4f7b1e93a20` and prod had 27 to apply. Re-derive before the window:
 >
 > ```bash
 > cd backend
@@ -25,53 +16,48 @@ Prod's Alembic revision is `6f2b9e4a1c3d`.
 > uv run alembic history -r 6f2b9e4a1c3d:head     # prod's revision + each pending one
 > ```
 >
-> That range includes prod's own revision, so one fewer migration runs than lines
-> printed. Only the *count* moves: the path is still forward-only and still one
-> transaction.
+> That range includes prod's own revision, so one fewer migration runs than lines printed. Only the
+> *count* moves: the path is still forward-only and still one transaction.
 
-Prod's *code* is not literally at `main` — it sits on a pre-rewrite lineage of
-the working branch from April (step 0). For deployment purposes the two are
-equivalent, and that was checked rather than assumed: prod's tip and `main`
-declare the **same** Compose services (`api`, `app-site`, `docs-site`,
-`web-site`, `migrator`, `postgres`, `redis`, `cloudflared`, `postgres-backup`,
-`uploads-backup`), the **same** volumes (`database_data`, `user_uploads`,
-`cache_data`), the same `relab_prod` project name, the same `backend/.env.prod`
-config mechanism, and the same migration lineage. Everything below that is phrased
-as "on `main`" therefore applies to the host as it actually is.
+Prod's *code* is not literally at `main`: it sits on a pre-rewrite lineage of the working branch
+from April (step 0). For deployment purposes the two are equivalent: prod's tip and `main` declare
+the **same** Compose services (`api`, `app-site`, `docs-site`, `web-site`, `migrator`, `postgres`,
+`redis`, `cloudflared`, `postgres-backup`, `uploads-backup`), the **same** volumes (`database_data`,
+`user_uploads`, `cache_data`), the same `relab_prod` project name, the same `backend/.env.prod`
+config mechanism, and the same migration lineage. Everything below phrased as "on `main`" applies to
+the host as it is.
 
 ## What makes this cutover different
 
-This is not a routine deploy. The deployment layout itself changed:
+The deployment layout itself changed:
 
-- Backend configuration moves out of a hand-maintained `backend/.env.prod` into
-  16 files under `secrets/prod/`. **`backend/.env.prod` is no longer read at
-  all**, and `main` had no secret-file mechanism whatsoever, so these files
-  likely do not exist on prod yet and must be created from the values currently
-  in `backend/.env.prod`.
-- Three least-privilege database roles are expected to exist. `main` has no
-  role-hardening script at all, and the scripts that create them only run on an
-  empty Postgres volume — **so they must be created by hand on prod.**
-- OAuth tokens and YouTube broadcast keys are stored **in plaintext** on `main`
-  (it has no `data_encryption_key`). They need a one-time encryption pass.
-- Five services were renamed, so the old stack must be stopped from the *old*
-  checkout or it leaves orphaned containers running.
-- Backups become an encrypted restic repository. `main` has no restic tooling,
-  so this is first-time setup, not a re-enable.
-- ClamAV is new, needs 3–4 GiB, and is now behind the `scanning` profile.
+- Backend configuration moves out of a hand-maintained `backend/.env.prod` into 16 files under
+  `secrets/prod/`. **`backend/.env.prod` is no longer read at all.** `main` had no secret-file
+  mechanism, so these files must be created from the values in `backend/.env.prod`.
+- Three least-privilege database roles and the `pg_stat_statements` extension are expected to
+  exist. `provision.sh` creates them, and since 2026-09-06 `prod-up` runs it on every start; step 5
+  runs it once by hand so the result can be checked before the window.
+- OAuth tokens and YouTube broadcast keys are stored **in plaintext** on `main` (it has no
+  `data_encryption_key`). They need a one-time encryption pass.
+- Five services were renamed, so the old stack must be stopped from the *old* checkout or it leaves
+  orphaned containers running.
+- Backups become an encrypted restic repository. `main` has no restic tooling, so this is
+  first-time setup.
+- ClamAV is new and needs 3–4 GiB; `up` starts it unless `MALWARE_SCAN_ENABLED=false`.
 
 Staging finished its own cutover on 2026-09-06 and is operated from
-[DEPLOY-STAGING.md](DEPLOY-STAGING.md). Staging shares `compose.deploy.yaml` with prod, so
-anything unfinished there is also unrehearsed here.
+[DEPLOY-STAGING.md](DEPLOY-STAGING.md). Staging shares `compose.deploy.yaml` with prod, so anything
+unfinished there is also unrehearsed here.
 
-Read sections 0 and 1 fully before touching anything. Steps 2–6 are preparation
-and can be done ahead of the window; the outage starts at step 7.
+Read sections 0 and 1 fully before touching anything. Steps 2–6 are preparation and can be done
+ahead of the window; the outage starts at step 7.
 
 ______________________________________________________________________
 
 ## 0. Establish what prod actually is — do this first
 
-This section was run on 2026-08-03 and its findings are recorded below. Re-run
-it on the day of the cutover rather than trusting them — the host can move.
+This section was run on 2026-08-03 and its findings are recorded below. Re-run it on the day of the
+cutover; the host can move.
 
 On the deploy host:
 
@@ -96,50 +82,41 @@ docker compose -p relab_prod exec -T postgres psql -U "$PGSUPERUSER" -d relab_db
 
 ### What this found (checked 2026-08-03)
 
-Prod is **not** at `main`. It sits on a pre-rewrite lineage of the working
-branch, tip `2abd707e` dated **2026-04-24** — roughly three months of drift, and
-older than the `frontend-app/` → `app/` rename.
+Prod is **not** at `main`. It sits on a pre-rewrite lineage of the working branch, tip `2abd707e`
+dated **2026-04-24**, older than the `frontend-app/` → `app/` rename.
 
-The working branch history was rewritten at some point, so prod's commits will
-never appear in `origin`: the same release commit exists twice under different
-hashes (`5e13df20` on prod vs `39c58600` on `main`). That makes
-`origin/main..HEAD` misleading — it lists ~70 commits that are mostly a rewrite
-artifact, not genuine local work. Comparing by content instead:
+The working branch history was rewritten, so prod's commits never appear in `origin`: the same
+release commit exists twice under different hashes (`5e13df20` on prod vs `39c58600` on `main`).
+`origin/main..HEAD` therefore lists ~70 commits that are mostly a rewrite artifact. Comparing by
+content:
 
-- The six commits after prod last merged `main` are all 2026-04-24, and their
-  content is already in the release. The one functional change among them, the
-  `numColumns` paging fix (`83b2dda0`), survives verbatim in
-  `app/src/features/products/screenData.ts`. The rest (CI workflow
-  consolidation, biome schema paths, an Expo Dockerfile env fix, linting) are
-  superseded by later work.
-- **Nothing needs porting off the prod host.** Verify this again before the
-  window rather than trusting this paragraph, but that was the finding.
+- The six commits after prod last merged `main` are all 2026-04-24, and their content is already in
+  the release. The one functional change among them, the `numColumns` paging fix (`83b2dda0`),
+  survives verbatim in `app/src/features/products/screenData.ts`. The rest (CI workflow
+  consolidation, biome schema paths, an Expo Dockerfile env fix, linting) are superseded.
+- **Nothing needs porting off the prod host.** Verify this again before the window.
 
-The old lineage is preserved locally as the branch `backup/pre-rewrite-working`,
-which is **not on origin**. Push it before the cutover, so the only copies are
-not one laptop and one production host:
+The old lineage is preserved locally as the branch `backup/pre-rewrite-working`, which is **not on
+origin**. Push it before the cutover:
 
 ```bash
 git push origin backup/pre-rewrite-working
 ```
 
-Because the histories diverged, do not try to `git pull` or merge on prod — it
-will conflict across the directory rename. Tag the current state, then check the
-release out cleanly:
+Because the histories diverged, do not `git pull` or merge on prod; it will conflict across the
+directory rename. Tag the current state, then check the release out cleanly:
 
 ```bash
 git tag prod-pre-mvp-$(date +%Y%m%d) && git push origin --tags   # if origin is reachable
 git checkout <release-branch> && git pull --ff-only
 ```
 
-### The reassuring part: the schema plan is unaffected
+### The schema plan is unaffected
 
-Prod's Alembic revision is `6f2b9e4a1c3d`, and the migration surface at prod's
-April tip is **identical to `main`** — 20 files, no extras. So despite the code
-drift, the database is exactly where this runbook assumes, and the forward-only
-path applies unchanged — it is simply longer now (27 migrations to
-`c4f7b1e93a20`, re-derive on the day). That path was verified by replaying it
-against a seeded scratch database at `6f2b9e4a1c3d`.
+Prod's Alembic revision is `6f2b9e4a1c3d`, and the migration surface at prod's April tip is
+**identical to `main`**: 20 files, no extras. The forward-only path applies unchanged (27 migrations
+to `c4f7b1e93a20`, re-derive on the day). It was verified by replaying it against a seeded scratch
+database at `6f2b9e4a1c3d`.
 
 The four answers that drive the rest of this document:
 
@@ -150,85 +127,71 @@ The four answers that drive the rest of this document:
 | `secrets/prod/` present?                 | No — step 4 creates all 16 from scratch                                                                      |
 | Superuser name, `relab_*` roles present? | Custom name from `backend/.env.prod`; no `relab_*` roles, so step 5 is required                              |
 
-Re-confirm these on the day rather than trusting the table: it records one
-observation, and anything could change in between.
+Re-confirm these on the day.
 
-`$PGSUPERUSER` throughout this document is whatever that `\du` reports — on
-`main` it came from `backend/.env.prod`, so it is **not** necessarily `postgres`.
+`$PGSUPERUSER` throughout this document is whatever that `\du` reports. On `main` it came from
+`backend/.env.prod`, so it is **not** necessarily `postgres`.
 
 ## 0a. Rehearse, and confirm the release gates — before the window
 
-Three checks that are easy to skip because none of them touch the prod host, and
-all three are cheaper to fix now than mid-outage.
+None of these touch the prod host, and all three are cheaper to fix now than mid-outage.
 
 ### Rehearse the whole thing on staging
 
-The running staging stack was deployed from an older, structurally different
-compose file, so it has **never exercised this release's deploy path** — not the
-secret-file layout, not the least-privilege roles, not restic. Staging shares
-`compose.deploy.yaml` with prod, driven by the host's root `.env`, so a full
-`staging-*` pass is a genuine rehearsal of steps 4 through 10:
+Staging shares `compose.deploy.yaml` with prod, driven by the host's root `.env`, so a full
+`staging-*` pass rehearses steps 4 through 10:
 
 ```bash
 just staging-build
-just staging-up YES scanning
+just staging-up YES
 just staging-migrate YES
 just backup staging          # initializes the repo; the smoke test needs a snapshot
 just restore-check staging
 ```
 
-Every step below that surprises you on staging would have surprised you on prod.
-Do this even if staging's data is uninteresting — what is being rehearsed is the
-*procedure*, not the data.
+Do this even if staging's data is uninteresting; the *procedure* is what is rehearsed.
 
 ### Confirm the CI gate actually blocks merges
 
-`just ci` runs in `.github/workflows/ci.yml`, whose terminal job is
-`ci-result`. Branch protection is **not** stored in the repository, so whether
-that job is a required check cannot be verified from the code:
+`just ci` runs in `.github/workflows/ci.yml`, whose terminal job is `ci-result`. Branch protection
+is **not** stored in the repository, so check it through the API:
 
 ```bash
 gh api repos/:owner/:repo/branches/main/protection \
   --jq '.required_status_checks.contexts'
 ```
 
-`ci-result` must appear. If the call 404s, there is no protection at all
-and every gate in this release is advisory. Record the answer as launch
-evidence.
+`ci-result` must appear. If the call 404s, there is no protection at all and every gate in this
+release is advisory. Record the answer as launch evidence.
 
 ### Read what release-please proposes
 
-`CHANGELOG.md` is frozen at `v0.2.0` (2026-04) while `release-please` owns
-versioning from conventional commits on push to `main`. With
-`bump-minor-pre-major: true` and several months of commits, the proposed bump is
-worth reading rather than trusting after the fact — it also rewrites version
-strings into nine `extra-files`, including `CITATION.cff`, `app/app.json`, and
-every `package.json`:
+`CHANGELOG.md` is frozen at `v0.2.0` (2026-04) while `release-please` owns versioning from
+conventional commits on push to `main`. With `bump-minor-pre-major: true` and several months of
+commits, read the proposed bump before merging. It also rewrites version strings into nine
+`extra-files`, including `CITATION.cff`, `app/app.json`, and every `package.json`:
 
 ```bash
 gh pr list --label 'autorelease: pending' --state open
 ```
 
-Confirm the version and changelog match this release's actual scope **before**
-merging that PR.
+Confirm the version and changelog match this release's scope **before** merging that PR.
 
 ## 0b. Abort rule
 
-Do not remove the old volume, the old backup directory, or `backend/.env.prod`
-until all of the following hold:
+Do not remove the old volume, the old backup directory, or `backend/.env.prod` until all of the
+following hold:
 
 - the post-upgrade verification in step 9 passes,
 - an upload, an OAuth login, and a product page have been exercised by hand,
 - `just restore-check prod` succeeds.
 
-The migration runs as a **single transaction** (`backend/alembic/env.py` never
-sets `transaction_per_migration`), so any failure during step 8 rolls the schema
-back to `6f2b9e4a1c3d` untouched — no partial state, no `alembic stamp` repair.
-One statement escapes that transaction by necessity (a `CONCURRENTLY` index
-drop); see "The seven migrations added after this runbook was written" in §3 for
-what that does and does not change. It is idempotent, so a retry is still clean.
-The irreversible risks are the *data* losses flagged in step 3, which the
-pre-upgrade dump is the only recovery path for.
+The migration runs as a **single transaction** (`backend/alembic/env.py` never sets
+`transaction_per_migration`), so any failure during step 8 rolls the schema back to `6f2b9e4a1c3d`
+untouched: no partial state, no `alembic stamp` repair. One statement escapes that transaction (a
+`CONCURRENTLY` index drop); see "The seven migrations added after this runbook was written" in §3.
+It is idempotent, so a retry is still clean. The irreversible risks are the *data* losses flagged in
+step 3, for which the pre-upgrade dump is the only recovery path.
 
 ______________________________________________________________________
 
@@ -247,44 +210,22 @@ docker ps -a --format '{{.Names}}\t{{.Image}}' | tee ~/relab-cutover/containers-
 docker volume ls | grep relab | tee ~/relab-cutover/volumes-before.txt
 ```
 
-Volumes are **not** renamed in this release — `relab_prod_database_data`,
-`relab_prod_user_uploads`, and `relab_prod_cache_data` carry over untouched, and
-the project name is still `relab_prod`. No volume migration is needed.
+Volumes are **not** renamed in this release: `relab_prod_database_data`, `relab_prod_user_uploads`,
+and `relab_prod_cache_data` carry over untouched, and the project name is still `relab_prod`.
 
 ### 1a. Decide whether to run ClamAV
 
-`clamav` sits behind the `scanning` Compose profile. It needs 3–4 GiB of RAM,
-and its first start downloads virus signatures into a fresh `clamav_db` volume,
-which can take several minutes during which the API stays unhealthy.
+`up` starts `clamav` (the `scanning` profile) unless the root `.env` says `MALWARE_SCAN_ENABLED=false`.
+It needs 3–4 GiB of RAM, and its first start downloads virus signatures into a fresh `clamav_db`
+volume, which can take several minutes during which the API stays unhealthy.
 
 ```bash
 free -g
 ```
 
-**With enough RAM** — run it, and pass the profile on every up/down:
-
-```bash
-just prod-up YES scanning
-```
-
-`up` starts no backup service — a systemd timer owns that (§10), so `scanning` is
-normally the only profile you pass here.
-
-**Without** — omit the profile *and* disable scanning in the root `.env`, or
-uploads fail closed:
-
-```env
-MALWARE_SCAN_ENABLED=false
-```
-
-`prod-up` enforces this pairing: it refuses to start when `MALWARE_SCAN_ENABLED`
-is anything but `false` while the `scanning` profile is off. Whichever way you
-decide here, the rest of this runbook's `prod-up` commands assume it — keep the
-`scanning` profile on every one of them, or drop it from every one.
-
-Running without scanning means uploaded files are not checked for malware on a
-platform that accepts uploads from external contributors. Treat it as an
-explicit, temporary accepted risk, not a default.
+Without enough RAM, set `MALWARE_SCAN_ENABLED=false`. Uploaded files are then not checked for
+malware on a platform that accepts uploads from external contributors; treat it as an explicit,
+temporary accepted risk.
 
 ______________________________________________________________________
 
@@ -304,12 +245,11 @@ docker run --rm \
 ls -lh ~/relab-cutover        # both must be non-empty
 ```
 
-`$PGSUPERUSER` is whatever your cluster was initialized with — see step 5, this
-is very likely **not** `postgres`.
+`$PGSUPERUSER` is whatever your cluster was initialized with (see step 5); it is very likely **not**
+`postgres`.
 
-Also preserve the old backup directory: the release replaces the plain-copy
-backup services with an encrypted **restic** repository, and the old dumps are
-not readable by the new tooling.
+Also preserve the old backup directory: the release replaces the plain-copy backup services with an
+encrypted **restic** repository, and the new tooling cannot read the old dumps.
 
 ```bash
 cp -a "${BACKUP_DIR:-./backups}" ~/relab-cutover/old-backups
@@ -319,8 +259,8 @@ ______________________________________________________________________
 
 ## 3. Pre-flight data checks (read-only, run against live prod)
 
-Run these *before* the window. Each one exists because a migration either aborts
-or destroys data. Record every number — step 9 compares against them.
+Run these *before* the window. Each one exists because a migration either aborts or destroys data.
+Record every number; step 9 compares against them.
 
 ```bash
 docker compose -p relab_prod exec -T postgres psql -U "$PGSUPERUSER" -d relab_db
@@ -399,52 +339,40 @@ ORDER BY xact_start;
 
 ### The quota lockout (query E) — expect this to bite
 
-The release adds a per-user upload ledger. `upload_file_count` is backfilled
-**accurately** from real rows, and enforcement is
-`User.upload_file_count < file_limit`. Since 2026-08-18 the limit is not one
-number: it is **tiered by the account's role**, and every account is created and
-backfilled as `contributor`.
+The release adds a per-user upload ledger. `upload_file_count` is backfilled from real rows, and
+enforcement is `User.upload_file_count < file_limit`. Since 2026-08-18 the limit is **tiered by the
+account's role**, and every account is created and backfilled as `contributor`.
 
 | Role          | Files  | Storage  | Root `.env` overrides                                               |
 | ------------- | ------ | -------- | ------------------------------------------------------------------- |
 | `contributor` | 1000   | 1024 MB  | `MAX_UPLOAD_FILES_PER_USER`, `MAX_UPLOAD_BYTES_PER_USER_MB`         |
 | `lab`         | 20 000 | 20480 MB | `MAX_UPLOAD_FILES_PER_LAB_USER`, `MAX_UPLOAD_BYTES_PER_LAB_USER_MB` |
 
-`media_count` in query E counts **files and images**, not products, across base
-products and components alike.
+With ~3,610 images concentrated in the lab account, that account lands far above the contributor
+limit of 1000 and is **blocked from all further uploads** the moment the app restarts, returning
+`413 Upload quota exceeded`. Nothing is deleted and no existing file is affected; only new
+reservations fail.
 
-With ~3,610 images concentrated in the lab account, that account lands far above
-the contributor limit of 1000 and is **blocked from all further uploads** the
-moment the app restarts, returning `413 Upload quota exceeded`. Nothing is
-deleted and no existing file is affected — only new reservations fail.
-
-**The fix is step 8b: promote that account to `lab`, not raise the contributor
-tier.** Raising the contributor ceiling to cover one lab account hands the same
-ceiling to every external contributor, which is the opposite of what the role
-model exists to do. Raise the *lab* tier instead if 20 000 is genuinely too low:
+**The fix is step 8b: promote that account to `lab`. Do not raise the contributor tier**, which
+applies to every external contributor. Raise the *lab* tier if 20 000 is too low:
 
 ```env
 MAX_UPLOAD_FILES_PER_LAB_USER=50000
 ```
 
-A lab value below its contributor counterpart is refused at settings validation,
-so the stack will not start on an inverted pair rather than silently downgrading
-lab accounts.
+A lab value below its contributor counterpart is refused at settings validation, so the stack will
+not start on an inverted pair.
 
-Related: `upload_size_bytes` is added with a default of `0`, so every
-pre-existing file counts as zero bytes until backfilled. Step 8 now runs
-`just backfill-upload-sizes` right after the migration to populate it from the
-real files on disk/storage — until that runs, `upload_total_bytes` reads 0 for
-every user and byte-based quota is meaningless. Leave
-`MAX_UPLOAD_BYTES_PER_USER_MB` high enough that it cannot bite in the gap
-between migrate and backfill.
+Related: `upload_size_bytes` is added with a default of `0`, so every pre-existing file counts as
+zero bytes until backfilled. Step 8 runs `just backfill-upload-sizes` right after the migration to
+populate it from the real files on disk/storage. Until that runs, `upload_total_bytes` reads 0 for
+every user and byte-based quota is meaningless. Leave `MAX_UPLOAD_BYTES_PER_USER_MB` high enough
+that it cannot bite in the gap between migrate and backfill.
 
 ### The seven migrations added after this runbook was written
 
-`f1a2b3c4d5e6` (the original target) to `c4f7b1e93a20` (the head) adds seven
-revisions that §3's queries above were never written against. They were audited
-on 2026-08-18; the summary is reassuring, with three caveats worth knowing
-before the window rather than during it.
+`f1a2b3c4d5e6` (the original target) to `c4f7b1e93a20` (the head) adds seven revisions that §3's
+queries were not written against. Audited 2026-08-18:
 
 | Revision       | What it does                         | Aborts on data? | Drops data? |
 | -------------- | ------------------------------------ | --------------- | ----------- |
@@ -456,43 +384,31 @@ before the window rather than during it.
 | `b7e2d9a4c1f0` | Trigram index on `producttype`       | No              | No          |
 | `c4f7b1e93a20` | Adds `user.role` + its CHECK         | No              | No          |
 
-**None of the seven aborts on bad data and none drops data**, so §3 needs no new
-data query for them — only query H, above, for lock contention.
+**None of the seven aborts on bad data and none drops data**, so §3 needs no new data query for
+them, only query H for lock contention. Three caveats:
 
-`7c1f3b6a52d8` looks like an exception because `VALIDATE CONSTRAINT` does abort
-on a violating row. It cannot here: `width_px`/`height_px` are added nullable two
-revisions earlier and nothing in the chain backfills them, so every row is NULL
-and the constraint (`IS NULL OR > 0`) is trivially satisfied. Its 15-minute
+`7c1f3b6a52d8` runs `VALIDATE CONSTRAINT`, which aborts on a violating row. It cannot here:
+`width_px`/`height_px` are added nullable two revisions earlier and nothing in the chain backfills
+them, so every row is NULL and the constraint (`IS NULL OR > 0`) is satisfied. Its 15-minute
 statement ceiling is for the table scan, which is nothing at prod's row count.
 
-`d4b8e1c60a72` runs `CREATE EXTENSION IF NOT EXISTS pg_trgm` as `relab_migrator`,
-which is `NOSUPERUSER`. That works, and was checked rather than assumed: `pg_trgm`
-is a **trusted** extension in the pinned `postgres:18` image, and step 5's role
-script grants `CREATE ON DATABASE` to the migrator — a trusted extension needs
-only that, not the SUPERUSER attribute (which role membership never confers).
+`d4b8e1c60a72` runs `CREATE EXTENSION IF NOT EXISTS pg_trgm` as `relab_migrator`, which is
+`NOSUPERUSER`. That works: `pg_trgm` is a **trusted** extension in the pinned `postgres:18` image,
+and step 5's role script grants `CREATE ON DATABASE` to the migrator, which is all a trusted
+extension needs.
 
-**Correction to §0b's abort rule.** `c3e7b1a90d24` drops its index inside an
-`autocommit_block()`, because `CONCURRENTLY` cannot run in a transaction. So the
-run is no longer strictly all-or-nothing: if a later migration fails, that one
-index stays dropped while `alembic_version` rolls back. The practical impact is
-nil — the drop is `if_exists=True`, so a retry is clean, and the index was
-redundant — but "the migration runs as a single transaction" is now approximate,
-and a post-failure schema may differ from the pre-run one by exactly that index.
+**Correction to §0b's abort rule.** `c3e7b1a90d24` drops its index inside an `autocommit_block()`,
+because `CONCURRENTLY` cannot run in a transaction. If a later migration fails, that one index stays
+dropped while `alembic_version` rolls back. The drop is `if_exists=True`, so a retry is clean, and
+the index was redundant, but a post-failure schema may differ from the pre-run one by exactly that
+index.
 
-**A consequence that outlives the cutover: nobody has accepted the contributor
-terms — but the app now asks.** `bfd99abac57f` adds
-`terms_accepted_version`/`terms_accepted_at` deliberately without a backfill —
-stamping a value would fabricate evidence of a licence grant nobody made. Until
-2026-08-18 acceptance was recorded only at registration, with no way for an
-existing account to accept later, which left every pre-existing contributor
-permanently unable to consent and their records permanently unpublishable
-(`scripts/build_dataset_release.py::check_owner_selection` refuses them).
-
-That gap is now closed: the app prompts on the next login after this deploy, and
-`POST /v1/users/me/accept-terms` records the grant server-side. Declining is free
-and changes nothing, so **expect the backlog to clear gradually rather than at
-once** — a contributor who has not logged in since the cutover has still granted
-nothing. Before building a release, check who is covered:
+**A consequence that outlives the cutover: nobody has accepted the contributor terms.**
+`bfd99abac57f` adds `terms_accepted_version`/`terms_accepted_at` without a backfill, because a
+stamped value would fabricate evidence of a licence grant nobody made. The app prompts on the next
+login after this deploy, and `POST /v1/users/me/accept-terms` records the grant server-side.
+Declining changes nothing, so **expect the backlog to clear gradually**: a contributor who has not
+logged in since the cutover has granted nothing. Before building a release, check who is covered:
 
 ```sql
 SELECT count(*) FILTER (WHERE terms_accepted_version IS NOT NULL) AS accepted,
@@ -500,34 +416,31 @@ SELECT count(*) FILTER (WHERE terms_accepted_version IS NOT NULL) AS accepted,
 FROM "user";
 ```
 
-Nothing here blocks the cutover. It blocks a dataset release naming any account
-still in the `not_yet` column.
+Nothing here blocks the cutover. It blocks a dataset release naming any account still in the
+`not_yet` column (`scripts/build_dataset_release.py::check_owner_selection` refuses them).
 
 ______________________________________________________________________
 
 ## 4. Migrate secrets to the new layout
 
-The release reads secrets as **files** under `secrets/prod/`, via
-pydantic-settings `secrets_dir`. `backend/.env.prod` is no longer loaded.
+The release reads secrets as **files** under `secrets/prod/`, via pydantic-settings `secrets_dir`.
+`backend/.env.prod` is no longer loaded.
 
 Which path applies depends on what step 0 found.
 
-**If `secrets/prod/` does not exist on the host** (expected — `main` had no
-secret-file mechanism at all), you are creating all 16 from scratch, and the
-values must come out of the live `backend/.env.prod`. Generate the scaffolding
-first, then overwrite the carried-over ones by hand:
+**If `secrets/prod/` does not exist on the host** (expected), create all 16 from scratch, with the
+values from the live `backend/.env.prod`. Generate the scaffolding first, then overwrite the
+carried-over ones by hand:
 
 ```bash
 just deploy-secrets-template prod    # creates all 16 at 0644 with fresh values
 ```
 
-The directory is `0700` and the files are `0644`: the containers run as uid 1001
-and must be able to read the mounted files, while the directory keeps them
-private from other users on the host.
+The directory is `0700` and the files are `0644`: the containers run as uid 1001 and must read the
+mounted files, while the directory keeps them private from other users on the host.
 
-Then, for each row below, replace the generated file's contents with the value
-already in `backend/.env.prod`. **Carrying these across matters** — a fresh
-value is not equivalent:
+Then, for each row below, replace the generated file's contents with the value already in
+`backend/.env.prod`. A fresh value is not equivalent:
 
 | `backend/.env.prod` variable    | `secrets/prod/` file            | Why it must be carried over                                                                                |
 | ------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------- |
@@ -549,14 +462,13 @@ install -m 644 /dev/null secrets/prod/auth_token_secret
 printf '%s\n' 'VALUE_FROM_ENV_PROD' > secrets/prod/auth_token_secret   # repeat per row
 ```
 
-The three `database_*_password` files and `restic_password` are new — the
-generated random values are correct, and the database ones are consumed by the
-roles you create in step 5. `data_encryption_key` is also new; keep the
-generated value and **record it**, because step 6a encrypts existing data with
-it and the data is unreadable without it.
+The three `database_*_password` files and `restic_password` are new: keep the generated random
+values; the roles you create in step 5 consume the database ones. `data_encryption_key` is also new;
+keep the generated value and **record it**, because step 6a encrypts existing data with it and the
+data is unreadable without it.
 
-**If `secrets/prod/` already exists** with the old names, the delta is just two
-renames — copy, do not regenerate:
+**If `secrets/prod/` already exists** with the old names, the delta is two renames. Copy, do not
+regenerate:
 
 ```bash
 cp secrets/prod/fastapi_users_secret secrets/prod/auth_token_secret
@@ -573,90 +485,83 @@ just env-inventory                  # the 16 expected names
 just deploy-secrets-check
 ```
 
-`deploy-secrets-template` now generates real random values rather than
-`replace-me-*` placeholders, except for external identity credentials
-(`*_oauth_client_secret`, `microsoft_graph_client_secret`) which it cannot
-invent — those are created **empty** instead. Empty is valid for a provider
-you aren't using: an empty *optional* input passes `env-inventory`/env-policy,
-an empty *required* one still fails loudly, and the runtime accepts empty for
-unused providers. **Fill in by hand** whichever providers you actually use.
-`deploy-secrets-check` still rejects carried-over legacy placeholder values:
-the current `replace-me-*` marker and the May-era `placeholder-<env>-<name>`
-scaffolding (a dozen of the latter were found lurking on the staging host on
-2026-08-12 — old trees can carry them).
+`deploy-secrets-template` generates real random values, except for external identity credentials
+(`*_oauth_client_secret`, `microsoft_graph_client_secret`), which are created **empty**. Empty is
+valid for a provider you are not using: an empty *optional* input passes `env-inventory`/env-policy,
+an empty *required* one fails loudly, and the runtime accepts empty for unused providers.
+**Fill in by hand** whichever providers you use. `deploy-secrets-check` rejects carried-over legacy
+placeholder values: the `replace-me-*` marker and the May-era `placeholder-<env>-<name>` scaffolding
+(a dozen of the latter were found on the staging host on 2026-08-12).
 
-Leave the two old files (`fastapi_users_secret`, `superuser_password`) in place
-until the cutover is verified, then delete them.
+Leave the two old files (`fastapi_users_secret`, `superuser_password`) in place until the cutover is
+verified, then delete them.
 
 ______________________________________________________________________
 
-## 5. Create the database roles by hand — do not skip
+## 5. Provision the database roles and extensions — run once now, then it is automatic
 
-The release connects as three least-privilege roles (`relab_app`,
-`relab_migrator`, `relab_backup`) instead of the cluster superuser.
-`deploy/postgres/initdb/10-relab-roles.sh` creates them, but
-`/docker-entrypoint-initdb.d` scripts **only run when the data directory is
-empty**. Prod's volume is populated, so they will never run and the API will
-fail to connect.
+The release connects as three least-privilege roles (`relab_app`, `relab_migrator`, `relab_backup`)
+instead of the cluster superuser, and reads query statistics through `pg_stat_statements`.
+`deploy/postgres/initdb/provision.sh` creates all of it, but `/docker-entrypoint-initdb.d` scripts
+**only run when the data directory is empty**. Prod's volume is populated, so on its own it never
+runs and the API fails to connect.
 
-First establish what your cluster actually is — staging, for reference, has a
-single login role `cml_test_admin` and no `postgres` role at all:
+Since 2026-09-06 that is no longer a runbook-only step: `just prod-up` runs `provision.sh` against
+the live database before starting anything else, and `just restore` runs it after replacing the
+schema. Run it by hand here only so that the pre-flight in this section can be verified before the
+window; the same command is what `prod-up` will keep running.
+
+First establish what your cluster is. Staging, for reference, has a single login role
+`cml_test_admin` and no `postgres` role at all:
 
 ```bash
 docker compose -p relab_prod exec -T postgres \
   psql -U "$PGSUPERUSER" -d relab_db -c "\du"
 ```
 
-> **If the superuser is not named `postgres`:** `compose.deploy.yaml` defaults
-> `POSTGRES_USER` to `postgres`. Do not expect the healthcheck to catch the
-> mismatch — `pg_isready` treats a `FATAL: role does not exist` response as
-> "server accepting connections", so the container reports **healthy** while
-> the role script and every real client fail (observed on staging 2026-08-12).
-> Resolve it before the window — set `POSTGRES_SUPERUSER=<role>` in the host's
-> root `.env` (or create a `postgres` superuser role in the cluster). This is a
-> genuine mismatch that the stack will not surface on its own.
+> **If the superuser is not named `postgres`:** `compose.deploy.yaml` defaults `POSTGRES_USER` to
+> `postgres`. The healthcheck does not catch the mismatch: `pg_isready` treats a
+> `FATAL: role does not exist` response as "server accepting connections", so the container reports
+> **healthy** while the provisioning script and every real client fail (observed on staging
+> 2026-08-12). Resolve it before the window: set `POSTGRES_SUPERUSER=<role>` in the host's root
+> `.env` (or create a `postgres` superuser role in the cluster).
 
-Then run the role script against the live database. It is idempotent and
-already mounted inside the container, so run it directly rather than
-transcribing it — hand-copying is how the per-role timeouts at the bottom get
-missed:
+Then run the script against the live database. It is idempotent and already mounted inside the
+container, so run it directly rather than transcribing it:
 
 ```bash
-docker compose -p relab_prod exec -T postgres bash /docker-entrypoint-initdb.d/10-relab-roles.sh
+docker compose -p relab_prod exec -T postgres bash /docker-entrypoint-initdb.d/provision.sh
 ```
 
-It reads the role names from the container environment and the passwords from
-the mounted `secrets/prod/database_*_password` files, so there is nothing to
-fill in. Replayed against a populated database it will:
+It reads the role names from the container environment and the passwords from the mounted
+`secrets/prod/database_*_password` files. Against a populated database it will:
 
-- create only the roles that do not exist yet, leaving any existing role's
-  password untouched;
-- grant on the tables and sequences that **already exist**, which
-  `ALTER DEFAULT PRIVILEGES` alone does not cover;
-- apply `statement_timeout`, `lock_timeout` and
-  `idle_in_transaction_session_timeout` to `relab_app`.
+- create only the roles that do not exist yet, leaving any existing role's password untouched;
+- grant on the tables and sequences that **already exist**, which `ALTER DEFAULT PRIVILEGES` alone
+  does not cover;
+- transfer ownership of every table and sequence in `public` (including `alembic_version`) to
+  `relab_migrator`. Postgres requires *ownership*, not grants, for the DDL the migrations run; on an
+  adopted cluster the superuser owns everything, and step 8's migration fails immediately with
+  `permission denied for table alembic_version` without this (found in the staging rehearsal on
+  2026-08-12, and again on 2026-09-06 when staging's restore had handed 16 tables back to the
+  superuser);
+- create `pg_stat_statements` in the `extensions` schema. The server has been loading the library
+  (`shared_preload_libraries`) all along and collecting statistics nothing could read; on
+  2026-09-06 prod had only `plpgsql` and `pg_trgm` installed. It is **not** a trusted extension, so
+  `relab_migrator` cannot create it, which is why it lives here and not in an Alembic migration;
+- apply `statement_timeout`, `lock_timeout` and `idle_in_transaction_session_timeout` to
+  `relab_app`, and a fixed `search_path` (`public, extensions, pg_catalog`) to all three roles.
 
-No downtime is needed: `ALTER ROLE ... SET` applies to new sessions, so restart
-the API afterwards (or wait out the 30-minute connection recycle) for the
-timeouts to take effect on the pool.
+No downtime is needed: `ALTER ROLE ... SET` applies to new sessions, so restart the API afterwards
+(or wait out the 30-minute connection recycle) for the timeouts to take effect on the pool.
 
-**Then grant the migrator ownership rights — the grants above are not enough.**
-On an adopted cluster every existing table (including `alembic_version`) is
-owned by `$PGSUPERUSER`, and Postgres requires *ownership*, not grants, for the
-DDL the migrations run. The role script cannot know this (on a fresh cluster
-the migrator owns everything it creates), so do it by hand:
+Then discard the statistics collected before the view existed, which are mostly backup and
+migration DDL, so the first numbers you read are application traffic:
 
 ```bash
 docker compose -p relab_prod exec -T postgres \
-  psql -U "$PGSUPERUSER" -d relab_db -c "GRANT \"$PGSUPERUSER\" TO relab_migrator;"
+  psql -U "$PGSUPERUSER" -d relab_db -c 'SELECT pg_stat_statements_reset();'
 ```
-
-Role *membership* confers ownership rights on the superuser's objects without
-conferring the SUPERUSER attribute (attributes are never inherited). Without
-this, step 8's migration fails immediately with
-`permission denied for table alembic_version` — found live in the staging
-rehearsal on 2026-08-12; the §0 scratch replay never caught it because a
-scratch database is created fresh, where the migrator owns what it makes.
 
 Verify all three roles exist and can log in before continuing.
 
@@ -664,14 +569,18 @@ ______________________________________________________________________
 
 ## 6. Update the root `.env`
 
-Backend settings that used to live in `backend/.env.prod` are now split: secrets
-into `secrets/prod/`, non-secret public URLs into the committed
-`deploy/env/prod.compose.env` (do not edit it), and operator inputs into the
-root `.env`.
+Backend settings that used to live in `backend/.env.prod` are now split: secrets into
+`secrets/prod/` and everything else into the root `.env`.
 
-**Required — the stack will not render without these:**
+**Required; the stack will not render without these:**
 
 ```env
+ENVIRONMENT=prod            # the recipes refuse a host whose .env says otherwise
+API_PUBLIC_URL=https://api.cml-relab.org
+APP_PUBLIC_URL=https://app.cml-relab.org
+SITE_PUBLIC_URL=https://cml-relab.org
+DOCS_PUBLIC_URL=https://docs.cml-relab.org
+FEATURED_PRODUCT_ID=464     # landing hero; empty renders the fixture
 CLOUDFLARE_TUNNEL_TOKEN=…   # renamed from TUNNEL_TOKEN, same value
 EMAIL_PROVIDER=smtp         # or microsoft_graph
 EMAIL_FROM=…
@@ -681,10 +590,9 @@ GOOGLE_OAUTH_CLIENT_ID=…    # carry from backend/.env.prod — the app refuses
 GITHUB_OAUTH_CLIENT_ID=…    # boot in prod/staging when either is empty
 ```
 
-The OAuth client *IDs* are non-secret and live here; the client *secrets* went
-to `secrets/prod/` in step 4. Found live in the staging rehearsal: with the IDs
-absent, `prod-migrate`'s `create_superuser` (and the API itself) fail at
-settings validation after the migrations have already applied.
+The OAuth client *IDs* are non-secret and live here; the client *secrets* went to `secrets/prod/` in
+step 4. With the IDs absent, `prod-migrate`'s `create_superuser` (and the API itself) fail at
+settings validation after the migrations have already applied (found in the staging rehearsal).
 
 **Carry across from `backend/.env.prod`,** noting the renames:
 
@@ -694,64 +602,51 @@ settings validation after the migrations have already applied.
 | `SUPERUSER_EMAIL` / `SUPERUSER_NAME`           | `BOOTSTRAP_SUPERUSER_EMAIL` / `BOOTSTRAP_SUPERUSER_NAME` |
 | `BACKUP_DIR`                                   | `BACKUP_HOST_DIR`                                        |
 
-`LOKI_URL` has no replacement: **delete it.** Container logs no longer go to Loki
-directly — see the telemetry note below.
+`LOKI_URL` has no replacement: **delete it.** Container logs no longer go to Loki directly; see the
+telemetry note below.
 
-**Upload quotas are now a pair of tiers, not one ceiling.** If the host's `.env`
-carries a raised `MAX_UPLOAD_FILES_PER_USER` from an earlier attempt at the
-lockout, reconsider it: that variable is now the *contributor* tier and applies
-to every external contributor. The lab account is covered by promotion (step 8b)
-and `MAX_UPLOAD_FILES_PER_LAB_USER` instead. A lab tier below its contributor
+**Upload quotas are now a pair of tiers.** If the host's `.env` carries a raised
+`MAX_UPLOAD_FILES_PER_USER` from an earlier attempt at the lockout, reconsider it: that variable is
+now the *contributor* tier and applies to every external contributor. The lab account is covered by
+promotion (step 8b) and `MAX_UPLOAD_FILES_PER_LAB_USER` instead. A lab tier below its contributor
 counterpart fails settings validation and the stack will not start.
 
-Log labels changed with the collection path: what used to be Loki's
-`service,env,host` label set is now the OpenTelemetry resource attributes
-`service.name`, `env` and `project`. Existing Grafana queries filtering on
-`host=` need updating.
+Log labels changed with the collection path: Loki's `service,env,host` label set is now the
+OpenTelemetry resource attributes `service.name`, `env` and `project`. Existing Grafana queries
+filtering on `host=` need updating.
 
-> **Telemetry is one switch and two credentials now, not a pile of them.** Set
-> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org`, `OTLP_AUTH_TOKEN`
-> (a bearer token from the monitoring stack operator) and `TELEMETRY_EDGE_KEY`
-> (the WAF-skip header value, below). The endpoint switch turns
-> on the API's own OpenTelemetry exporter **and** auto-includes
-> `compose.telemetry.yml`, a Grafana Alloy agent that forwards every other
-> container's stdout to the same endpoint. **Then run `./bootstrap.sh relab prod` on
-> the monitoring host as part of this step** — telemetry flowing and telemetry being
-> *watched* are two different things, and only the second one survives this host going
-> quiet. `just deploy-secrets-check` fails if
-> the endpoint is set without both credentials.
+> **Telemetry is one switch and two credentials.** Set
+> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org`, `OTLP_AUTH_TOKEN` (a bearer token from
+> the monitoring stack operator) and `TELEMETRY_EDGE_KEY` (shared with `infra/cloudflare-zone`). The
+> endpoint switch turns on the API's own OpenTelemetry exporter **and** auto-includes
+> `compose.telemetry.yml`, a Grafana Alloy agent that forwards every other container's stdout to the
+> same endpoint. **Then run `./bootstrap.sh relab prod` on the monitoring host as part of this
+> step**: telemetry flowing and telemetry being *watched* are two different things, and only the
+> second survives this host going quiet. `just deploy-secrets-check` fails if the endpoint is set
+> without both credentials.
 >
-> Compose derives `OTEL_EXPORTER_OTLP_HEADERS` from the token, so the SDK's
-> percent-encoded header format is not something to get right by hand.
+> Compose derives `OTEL_EXPORTER_OTLP_HEADERS` from the token, so you do not write the SDK's
+> percent-encoded header format by hand.
 >
-> `LOKI_PUSH_URL` and the Loki Docker-driver overlay are **gone**. Delete both
-> `LOKI_URL` and `LOKI_PUSH_URL` from the host's `.env`; nothing reads them. The
-> monitoring stack (github.com/CMLPlatform/monitoring) publishes only `grafana.`
-> and `otel.` and deliberately exposes no Loki push hostname, because Loki has no
-> authentication of its own.
+> `LOKI_PUSH_URL` and the Loki Docker-driver overlay are **gone**. Delete both `LOKI_URL` and
+> `LOKI_PUSH_URL` from the host's `.env`; nothing reads them. The monitoring stack
+> (github.com/CMLPlatform/monitoring) publishes only `grafana.` and `otel.` and exposes no Loki push
+> hostname, because Loki has no authentication of its own.
 >
-> Alloy also ships host metrics — CPU, memory, disk, network and `hwmon`
-> temperatures and fan speeds — over the same endpoint, so this host does not need
-> a separate host-monitoring agent. What it deliberately does NOT replace is the
-> per-job dead-man's switch: see "Alerting is two mechanisms" under Known
-> post-launch gaps, and [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5 for the standing
-> configuration.
+> Alloy also ships host metrics (CPU, memory, disk, network and `hwmon` temperatures and fan speeds)
+> over the same endpoint, so this host does not need a separate host-monitoring agent. It does not
+> replace the per-job dead-man's switch: see "Alerting is two mechanisms" under Known post-launch
+> gaps, and [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5 for the standing configuration.
 >
-> The Cloudflare firewall rule `relab_telemetry_ingress_skip_managed_security`
-> matches a separate `X-Telemetry-Key` header (never the bearer token —
-> ruleset expressions are readable through the Cloudflare API). Set
-> `TELEMETRY_EDGE_KEY` in this host's `.env` and supply the same value to
-> OpenTofu as `TF_VAR_telemetry_edge_key`. Rotate that pair together, or
-> telemetry keeps working while quietly losing its bot-product exemption; the
-> bearer token rotates independently with the collector.
+> `TELEMETRY_EDGE_KEY` must equal `TF_VAR_telemetry_edge_key` in `infra/cloudflare-zone`; rotate
+> the pair together. The bearer token rotates independently with the collector.
 >
 > A wrong token shows up as `Failed to export logs batch code: 401, reason: Unauthorized` in the
-> API's own container log — the one telemetry failure that is loud rather than silent.
+> API's own container log, the one telemetry failure that is loud.
 
-**Delete these stale names:** `APP_ENV`, `COMPOSE_PROJECT_NAME`, `BUILD_MODE`,
-`CSP_API_ORIGIN`, `WEB_CONCURRENCY`, `BACKEND_API_URL`, `FRONTEND_APP_URL`,
-`DOCS_URL`, `OAUTH_ALLOWED_REDIRECT_URIS`, and any `RELAB_*_IMAGE` overrides
-(the release always builds locally and silently ignores them).
+**Delete these stale names:** `APP_ENV`, `COMPOSE_PROJECT_NAME`, `BUILD_MODE`, `CSP_API_ORIGIN`,
+`WEB_CONCURRENCY`, `BACKEND_API_URL`, `FRONTEND_APP_URL`, `DOCS_URL`, `OAUTH_ALLOWED_REDIRECT_URIS`,
+and any `RELAB_*_IMAGE` overrides (the release always builds locally and silently ignores them).
 
 Check it:
 
@@ -762,32 +657,26 @@ just compose-config
 
 ### Two renames that have no code migrating them
 
-Both are one-time and manual on purpose: a shim carried in the repo for a
-transition that happens once outlives the transition and is never removed.
+Both are one-time and manual.
 
-**1. The WAF header — deploy the hosts, then apply OpenTofu. In that order.**
+**1. The telemetry edge header: deploy the hosts, then apply OpenTofu. In that order.**
 
-The skip rule now matches `X-Telemetry-Key`; the hosts used to send
-`X-Relab-Telemetry-Key`. `infra/cloudflare-zone` is zone-global, so a single
-`tofu apply` lands on prod and staging together. Apply it while a host still sends
-the old name and that host's exports are bot-challenged — and a challenged export is
-dropped with no error anywhere, which is the failure this whole section exists to
-avoid. So:
+This release renames the header the edge key travels in. `infra/cloudflare-zone` is zone-global, so
+a single `tofu apply` lands on prod and staging together, and a host still sending the old name has
+its exports dropped with no error anywhere. So:
 
 1. `just prod-up YES` and `just staging-up YES` on both hosts, on this release.
-1. Confirm both are sending: on the monitoring host,
-   `count({project="relab"})` is non-zero for `env="prod"` and `env="staging"`.
+1. Confirm both are sending: on the monitoring host, `count({project="relab"})` is non-zero for
+   `env="prod"` and `env="staging"`.
 1. Only then `just cloudflare-zone-apply YES`.
 
-Rolling back the deploy after step 3 reintroduces the old header and silently
-loses telemetry; roll the zone back with it.
+Rolling back the deploy after step 3 reintroduces the old header and silently loses telemetry; roll
+the zone back with it.
 
-**2. The ping variables — rename them on each host before the next job fires.**
+**2. The ping variables: rename them on each host before the next job fires.**
 
-`run_scheduled.sh` is vendored and carries no project prefix, so it reads `PING_*`
-where the units' env file still says `RELAB_PING_*`. An unset variable disables
-pinging *silently*, which is precisely what the dead-man's switch exists to prevent.
-On each host:
+`run_scheduled.sh` is vendored and carries no project prefix, so it reads `PING_*` where the units'
+env file still says `RELAB_PING_*`. An unset variable disables pinging *silently*. On each host:
 
 ```bash
 sudo sed -i 's/^RELAB_PING_/PING_/' /etc/relab/relab.env
@@ -795,18 +684,17 @@ just timers-install prod        # re-render the units; warns if any URL is still
 just watchdog prod              # check 3b confirms PING_WATCHDOG resolves
 ```
 
-`just timers-install` warns about missing *and* empty `PING_*` names, so a host
-skipped here reports itself the next time it is touched — and healthchecks.io fires
-its own "no ping received" alarm within the job's period regardless.
+`just timers-install` warns about missing *and* empty `PING_*` names, so a host skipped here reports
+itself the next time it is touched, and healthchecks.io fires its own "no ping received" alarm
+within the job's period regardless.
 
 ______________________________________________________________________
 
 ## 7. Stop the old stack — from the old checkout
 
-Five services were renamed (`docs-site`→`docs`, `app-site`→`app`,
-`web-site`→`www`, and `uploads-backup`+`postgres-backup`→`backup`). The new
-compose files do not know the old names, so stopping the stack from the old
-checkout is still the clean path.
+Five services were renamed (`docs-site`→`docs`, `app-site`→`app`, `web-site`→`www`, and
+`uploads-backup`+`postgres-backup`→`backup`). The new compose files do not know the old names, so
+stop the stack from the old checkout.
 
 **Stop first, then switch:**
 
@@ -821,61 +709,54 @@ Only then:
 git checkout <release-branch> && git pull --ff-only
 ```
 
-If you switched too early, `just prod-down YES` now passes `--remove-orphans`
-and clears the renamed containers for you; verify with
-`docker ps -a | grep relab_prod`.
+If you switched too early, `just prod-down YES` passes `--remove-orphans` and clears the renamed
+containers; verify with `docker ps -a | grep relab_prod`.
 
 ______________________________________________________________________
 
 ## 8. Build, start, migrate
 
-Images are built locally and pinned to `:prod-local` with no registry pull — a
-stale image silently runs the *old* code, so the rebuild is mandatory:
+Images are built locally and pinned to `:prod-local` with no registry pull. A stale image silently
+runs the *old* code, so the rebuild is mandatory:
 
 ```bash
 just prod-build
 ```
 
-Confirm no seeding is enabled (`SEED_DUMMY_DATA`, `SEED_CPV_CATEGORIES`,
-`SEED_CPV_PRODUCT_TYPES`, `SEED_HS_CATEGORIES` unset or false) — the taxonomy
-seeds are not gated on an empty database.
+Confirm no seeding is enabled (`SEED_DUMMY_DATA`, `SEED_CPV_CATEGORIES`, `SEED_CPV_PRODUCT_TYPES`,
+`SEED_HS_CATEGORIES` unset or false); the taxonomy seeds are not gated on an empty database.
 
 ```bash
-just prod-up YES scanning   # drop `scanning` if you decided against ClamAV in 1a
+just prod-up YES
 just prod-migrate YES
 ```
 
-`prod-up` starts the database, cache, and (with the profile) ClamAV; expect the
-API to stay unhealthy for a few minutes on first boot while virus signatures
-download.
-`prod-migrate` runs every pending migration in one transaction, then always runs
-`create_superuser` (which only creates when absent — it will not reset your
-existing superuser's password).
+`prod-up` starts the database, cache, and (unless disabled in 1a) ClamAV; expect the API to stay
+unhealthy for a few minutes on first boot while virus signatures download. `prod-migrate` runs every
+pending migration in one transaction, then always runs `create_superuser` (which only creates when
+absent; it will not reset your existing superuser's password).
 
-If the migration aborts, prod is untouched at `6f2b9e4a1c3d`. Fix the data
-(almost certainly a query-A email, or a query-G quantity/amount_in_parent row),
-and re-run.
+If the migration aborts, prod is untouched at `6f2b9e4a1c3d`. Fix the data (almost certainly a
+query-A email, or a query-G quantity/amount_in_parent row), and re-run.
 
-This two-command order means the API serves against the *old* schema between
-`prod-up` and `prod-migrate`. That is fine here — the cutover is a full outage
-behind a closed tunnel — but it is not fine for a routine release. For those,
-start the stack with the `migrations` profile instead and the API waits for the
+This two-command order means the API serves against the *old* schema between `prod-up` and
+`prod-migrate`. That is acceptable here, in a full outage behind a closed tunnel, but not for a
+routine release. For those, start the stack with the `migrations` profile and the API waits for the
 migrator to exit 0 before it starts:
 
 ```bash
-just prod-up YES scanning migrations   # migrate, then serve, in one step
+just prod-up YES migrations   # migrate, then serve, in one step
 ```
 
-The dependency is declared `required: false`, so a profile-less `prod-up`
-behaves exactly as it always has. If the migration fails, the migrator exits
-non-zero and the API never starts — the schema and the code stay in step.
+The dependency is declared `required: false`, so a profile-less `prod-up` behaves as it always has.
+If the migration fails, the migrator exits non-zero and the API never starts.
 
-Once the migration succeeds, backfill the byte-quota ledger (see the quota
-lockout note above; wraps the same script as `just backfill-upload-sizes`,
-which only exists locally, not in the container):
+Once the migration succeeds, backfill the byte-quota ledger (see the quota lockout note above; this
+wraps the same script as `just backfill-upload-sizes`, which only exists locally, not in the
+container):
 
 ```bash
-docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+ENVIRONMENT=prod PROJECT=relab docker compose -p relab_prod --env-file .env \
   -f compose.yaml -f compose.deploy.yaml \
   --profile migrations run --rm --entrypoint python \
   migrator -m scripts.maintenance.backfill_upload_sizes
@@ -885,51 +766,46 @@ ______________________________________________________________________
 
 ## 8a. Encrypt the previously plaintext columns
 
-Only if step 0 found prod at `main` (or any revision without
-`DATA_ENCRYPTION_KEY`). `main` stores OAuth access/refresh tokens and YouTube
-broadcast keys as plaintext; the release expects them AES-256-GCM encrypted
-under `secrets/prod/data_encryption_key`. Until this runs, OAuth refresh and
-any YouTube flow will fail to read their stored values.
+Only if step 0 found prod at `main` (or any revision without `DATA_ENCRYPTION_KEY`). `main` stores
+OAuth access/refresh tokens and YouTube broadcast keys as plaintext; the release expects them
+AES-256-GCM encrypted under `secrets/prod/data_encryption_key`. Until this runs, OAuth refresh and
+any YouTube flow fail to read their stored values.
 
 Dry run first:
 
 ```bash
-docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+ENVIRONMENT=prod PROJECT=relab docker compose -p relab_prod --env-file .env \
   -f compose.yaml -f compose.deploy.yaml \
   --profile migrations run --rm --entrypoint python \
   migrator -m scripts.maintenance.migrate_encryption_v1_to_v2 --dry-run
 ```
 
-If it reports no errors, run it for real by dropping `--dry-run`. It is a
-one-time pass tied to the key created in step 4 — losing that key makes the
-encrypted columns unrecoverable.
+If it reports no errors, run it for real by dropping `--dry-run`. It is a one-time pass tied to the
+key created in step 4; losing that key makes the encrypted columns unrecoverable.
 
 ______________________________________________________________________
 
 ## 8b. Promote the lab accounts — before anyone tries to upload
 
-The role model (added 2026-08-18) backfills **every** existing account to
-`contributor`, deliberately: the migration cannot know who the lab is, and
-guessing high would hand lab storage to every external contributor. So until
-this step runs, the account holding the bulk of prod's media is over its tier
-and cannot upload (see the quota lockout note in step 3).
+The role model (added 2026-08-18) backfills **every** existing account to `contributor`. Until this
+step runs, the account holding the bulk of prod's media is over its tier and cannot upload (see the
+quota lockout note in step 3).
 
-Find who is affected. This reads the ledger *after* the backfill, so it is the
-authoritative list rather than query E's estimate:
+Find who is affected. This reads the ledger *after* the backfill, so it is the authoritative list
+rather than query E's estimate:
 
 ```bash
-docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+ENVIRONMENT=prod PROJECT=relab docker compose -p relab_prod --env-file .env \
   -f compose.yaml -f compose.deploy.yaml \
   --profile migrations run --rm --entrypoint python \
   migrator -m scripts.maintenance.list_accounts_over_contributor_quota
 ```
 
-It logs one line per account that is over the quota its current role grants,
-**by id only** — no email or username reaches those logs. An empty report means
-nothing is locked out and this step is a no-op.
+It logs one line per account that is over the quota its current role grants, **by id only**; no
+email or username reaches those logs. An empty report means nothing is locked out and this step is a
+no-op.
 
-Promote through the admin API, which audit-logs the change. As a superuser with
-a bearer token:
+Promote through the admin API, which audit-logs the change. As a superuser with a bearer token:
 
 ```bash
 curl -fsS -X PUT https://api.cml-relab.org/v1/admin/users/<user_id>/role \
@@ -938,25 +814,22 @@ curl -fsS -X PUT https://api.cml-relab.org/v1/admin/users/<user_id>/role \
   -d '{"role": "lab"}'
 ```
 
-If the tunnel is still closed at this point in the window, the same change by
-SQL is acceptable — it skips the audit event, so note in the launch record that
-it was done this way and why:
+If the tunnel is still closed at this point in the window, the same change by SQL is acceptable. It
+skips the audit event, so note in the launch record that it was done this way and why:
 
 ```sql
 UPDATE "user" SET role = 'lab' WHERE id = '<user_id>';
 ```
 
-Re-run the report; it must come back empty before you proceed. Then confirm the
-tiers are what you intended:
+Re-run the report; it must come back empty before you proceed. Then confirm the tiers:
 
 ```sql
 SELECT role, count(*), max(upload_file_count) AS max_files, max(upload_total_bytes) AS max_bytes
 FROM "user" GROUP BY role;
 ```
 
-`role` accepts only `contributor` and `lab` — a `ck_user_role_valid` check
-constraint rejects anything else, so a typo in the SQL form fails loudly rather
-than creating a third tier nothing enforces.
+`role` accepts only `contributor` and `lab`; the `ck_user_role_valid` check constraint rejects
+anything else, so a typo in the SQL form fails loudly.
 
 ______________________________________________________________________
 
@@ -1004,16 +877,15 @@ WHERE (role = 'contributor' AND upload_file_count > 1000)
 ANALYZE product; ANALYZE "user"; ANALYZE image; ANALYZE file;
 ```
 
-The `ANALYZE` matters more than it looks: the release adds trigram, composite
-and partial indexes that the planner will not choose until it has statistics
-for them. Confirm they are actually used rather than assuming — on real data,
-not on the empty dev database where every plan is a sequential scan anyway:
+The `ANALYZE` matters: the release adds trigram, composite and partial indexes that the planner will
+not choose until it has statistics for them. Confirm they are used, on real data (on the empty dev
+database every plan is a sequential scan):
 
 ```sql
--- Trigram search must reach the index, not fall back to a scan. A Seq Scan here
--- means a query is comparing a wrapped column (lower(name)) against an index
--- built on the bare one.
-EXPLAIN SELECT id FROM product WHERE name % 'drill';
+-- Trigram search must reach the index, not fall back to a scan. The indexes are
+-- built on relab_unaccent(column) since a9c2e4f60b18, so a query on the bare
+-- column (or lower(name)) is the Seq Scan to look for.
+EXPLAIN SELECT id FROM product WHERE relab_unaccent(name) % relab_unaccent('drill');
 
 -- The product thumbnail subquery must read one index entry, with no Sort node
 -- above the image scan.
@@ -1023,19 +895,18 @@ EXPLAIN SELECT p.id, (SELECT i.file FROM image i
 FROM product p ORDER BY p.id LIMIT 50;
 ```
 
-Then re-measure the API itself against the prod-shaped dataset, since the
-list-endpoint work only shows up at real row counts. Needs `k6` on the host,
-and the run is read-only — two virtual users against public GET paths:
+Then re-measure the API against the prod-shaped dataset; the list-endpoint work only shows up at
+real row counts. Needs `k6` on the host; the run is read-only, two virtual users against public GET
+paths:
 
 ```bash
 cd backend
 BASE_URL=https://api.cml-relab.org just perf-baseline
 ```
 
-It writes `backend/reports/performance/latest-k6-summary.json`. Record the
-`product_list_read` p95 next to the counts from the step 3 baseline — that is the
-reference point for the next release that touches a read path, and the only
-place these numbers exist for prod-shaped data.
+It writes `backend/reports/performance/latest-k6-summary.json`. Record the `product_list_read` p95
+next to the counts from the step 3 baseline; it is the reference point for the next release that
+touches a read path.
 
 Then exercise the real paths:
 
@@ -1044,8 +915,8 @@ curl -fsS https://api.cml-relab.org/live
 curl -fsS https://api.cml-relab.org/health
 ```
 
-Every public origin, not just the API — a healthy API behind a broken tunnel
-route still reads as a failed launch to everyone else:
+Every public origin, not just the API; a healthy API behind a broken tunnel route still reads as a
+failed launch:
 
 ```bash
 curl -fsS -o /dev/null -w '%{http_code} %{url_effective}\n' \
@@ -1056,9 +927,8 @@ curl -fsS -o /dev/null -w '%{http_code} %{url_effective}\n' \
   https://docs.cml-relab.org/
 ```
 
-No container may be restarting or unhealthy — the API in particular reports
-`unhealthy` whenever Postgres or Redis is unreachable, which is the failure this
-catches before a user does:
+No container may be restarting or unhealthy. The API reports `unhealthy` whenever Postgres or Redis
+is unreachable:
 
 ```bash
 docker compose -p relab_prod ps --format '{{.Service}}\t{{.Status}}'
@@ -1076,83 +946,74 @@ docker compose -p relab_prod ps -q | xargs docker inspect \
   --format '{{.Name}} {{json .HostConfig.LogConfig.Config}}' \
   # every line must show "max-size":"10m"; an empty {} is a finding, not noise
 
-# Telemetry actually leaving the host. Alloy fails loudly on a bad token or a
-# challenged edge (the WAF-skip rule matches TELEMETRY_EDGE_KEY — if the zone rule
-# and the host .env disagree, exports are bot-challenged and dropped). Zero matches
-# is the pass condition.
+# Telemetry actually leaving the host. Alloy logs a bad token or a challenged edge
+# (TELEMETRY_EDGE_KEY differing from the zone's). Zero matches is the pass condition.
 docker logs --since 10m "$(docker compose -p relab_prod ps -q alloy)" 2>&1 \
   | grep -Ei 'error|failed|401|403' || echo "alloy: no export errors"
 ```
 
-By hand: log in with Google **and** GitHub (the GitHub client changed in this
-release), open a product with images, and **upload one image as the lab account
-that owns the bulk of the media** — any other account has a near-empty ledger
-and would pass the quota check without proving anything. If that account was
-promoted in step 8b, also confirm the "Research files" block is visible on one
-of its records: it renders only for `lab`, so its absence means the promotion
-did not take.
+By hand: log in with Google **and** GitHub (the GitHub client changed in this release), open a
+product with images, and **upload one image as the lab account that owns the bulk of the media**;
+any other account has a near-empty ledger and would pass the quota check without proving anything.
+If that account was promoted in step 8b, also confirm the "Research files" block is visible on one
+of its records: it renders only for `lab`, so its absence means the promotion did not take.
 
 ### Go / no-go
 
-There is no automated gate and nothing pages anyone, so this is a deliberate
-decision a human makes, once, out loud. **Go** requires all of:
+There is no automated gate and nothing pages anyone; a human makes this decision, once. **Go**
+requires all of:
 
-- `alembic_version` equals the release checkout's `alembic heads`, and every
-  count above matches the step 3 baseline,
+- `alembic_version` equals the release checkout's `alembic heads`, and every count above matches the
+  step 3 baseline,
 - all five origins return 2xx and no container is restarting or unhealthy,
-- both OAuth providers, a product page, and one image upload **by the lab
-  account** work by hand,
+- both OAuth providers, a product page, and one image upload **by the lab account** work by hand,
 - the over-quota report from step 8b comes back empty.
 
-Anything unresolved is **no-go**: roll back with §12 and retry in a later
-window. Do not launch "mostly working" and fix forward — the pre-upgrade dump
-gets less useful the longer prod accepts writes on the new schema.
+Anything unresolved is **no-go**: roll back with §12 and retry in a later window. Do not launch
+"mostly working" and fix forward; the pre-upgrade dump gets less useful the longer prod accepts
+writes on the new schema.
 
 ______________________________________________________________________
 
 ## 10. Set up backups
 
-The full procedure — repository, timer, offsite credential, monitoring crons — is
-**[DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1**. It is standing host setup, not cutover
-work, and it stays after this runbook is deleted. Do it now, then come back.
+The full procedure (repository, timer, offsite credential, monitoring crons) is
+**[DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1**. It is standing host setup and stays after this runbook
+is deleted. Do it now, then come back.
 
-Only two things are specific to this cutover:
+Specific to this cutover:
 
-- **This is first-time setup, not a re-enable.** `main` has no restic tooling at all,
-  so there are no pre-existing snapshots and nothing to migrate. The old plain-copy
-  backup directory was preserved in §2; it is not readable by the new tooling, so keep
-  it until §0b's abort conditions are all satisfied.
+- **This is first-time setup.** `main` has no restic tooling, so there are no pre-existing
+  snapshots. The old plain-copy backup directory was preserved in §2; the new tooling cannot read
+  it, so keep it until §0b's abort conditions are all satisfied.
 
-- **Retire the old backup container if the host ever ran one.** Compose does not remove
-  a container whose profile went away, so it would keep running beside the new timer:
+- **Retire the old backup container if the host ever ran one.** Compose does not remove a container
+  whose profile went away, so it would keep running beside the new timer:
 
   ```bash
-  docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+  ENVIRONMENT=prod PROJECT=relab docker compose -p relab_prod --env-file .env \
     -f compose.yaml -f compose.deploy.yaml --profile backups rm -sf backup
   ```
 
-- **Reclaim `/var` once the old directory is genuinely dead.** The plain-copy backups
-  are the largest thing on that filesystem and they are not small: as of 2026-08-27 the
-  host carried 25.5 GB under `/var/backups/relab` — 9 daily, 4 weekly and 6
-  monthly `user_uploads` tarballs at ~1.5 GB each — against 12.1 GB free on an 86 GB
-  `/var`. The daily tier grows 1.5 GB a day and showed no sign of pruning, so the
-  headroom is a matter of days, and a full `/var` takes Docker, Loki, Tempo and
-  Prometheus down together on that host.
+- **Reclaim `/var` once the old directory is dead.** As of 2026-08-27 the host carried 25.5 GB under
+  `/var/backups/relab` (9 daily, 4 weekly and 6 monthly `user_uploads` tarballs at ~1.5 GB each)
+  against 12.1 GB free on an 86 GB `/var`. The daily tier grows 1.5 GB a day with no sign of
+  pruning, and a full `/var` takes Docker, Loki, Tempo and Prometheus down together on that host.
 
-  These are full tarballs, not incrementals, which is most of why they are that large;
-  restic dedup should collapse the same history to a fraction. Delete the old directory
-  only when all of these hold, in order:
+  These are full tarballs, not incrementals; restic dedup should collapse the same history to a
+  fraction. Delete the old directory only when all of these hold, in order:
 
   1. `just restore-check prod` passes against a restic snapshot;
-  1. every §0b abort condition is satisfied, so there is no path back that needs the
-     old copies;
-  1. at least one restic snapshot has been verified **offsite** — the point of the
-     migration is that the backup does not share a disk with the thing it protects.
+  1. every §0b abort condition is satisfied, so there is no path back that needs the old copies;
+  1. at least one restic snapshot has been verified **offsite**.
 
-  Until all three hold, keep them and free space elsewhere instead.
+  Until all three hold, keep them and free space elsewhere.
 
-Do not declare this step done until `just restore-check prod` passes — §0b
-depends on it.
+Do not declare this step done until `just restore-check prod` passes; §0b depends on it. **That
+check only began asserting anything on 2026-09-06**: it piped its "restored N tables, M rows"
+test into `psql` through a `docker exec` with no stdin, so it read EOF and exited 0 without
+running. Verified on staging that day; prod has never had it run for real, so treat this as a
+first run and read the `NOTICE: restored N tables, M rows` line, not just the exit code.
 
 ______________________________________________________________________
 
@@ -1160,12 +1021,12 @@ ______________________________________________________________________
 
 **Do not run `just cloudflare-apply prod`** during or after this cutover.
 
-Live traffic depends only on `CLOUDFLARE_TUNNEL_TOKEN` being set in the root
-`.env` for the `cloudflared` service. It does not depend on this Terraform, and
-importing does not change or reissue that token.
+Live traffic depends only on `CLOUDFLARE_TUNNEL_TOKEN` being set in the root `.env` for the
+`cloudflared` service. It does not depend on this Terraform, and importing does not change or
+reissue that token.
 
-`just cloudflare-check` remains safe at any time — it verifies a throwaway copy
-of each root, so it needs no credentials, no network, and no state access.
+`just cloudflare-check` is safe at any time: it verifies a throwaway copy of each root, so it needs
+no credentials, no network, and no state access.
 
 ### What is adopted, as of 2026-08-19
 
@@ -1175,7 +1036,7 @@ of each root, so it needs no credentials, no network, and no state access.
 | `infra/cloudflare/`      | `staging` | **Adopted and applied.** Its tunnel now answers to `relab-staging`, renamed from `cml-relab-test`.       |
 | `infra/cloudflare/`      | `prod`    | **Nothing.** No workspace, no state.                                                                     |
 
-Confirm rather than trust this table — it records one day's observation:
+Confirm before trusting this table:
 
 ```bash
 just cloudflare-plan staging     # a plan, not an apply
@@ -1184,36 +1045,30 @@ just cloudflare-zone-plan
 
 ### Three things the staging adoption taught, that prod will meet too
 
-- **The live tunnels carry their original names.** Staging's was
-  `cml-relab-test` while the module computes `relab-${environment}`, so applying
-  **renames** it, and staging's apply did exactly that. The rename is safe — the
-  tunnel id is unchanged and `cloudflared` authenticates by id and secret, not
-  name — but it is a real change. Prod's tunnel is `cml-relab-prod`
-  (`9f5762a9-…`), so adopting prod will rename it to `relab-prod`. The account
-  also holds tunnels this repo does not manage (`cml-monitoring`, the `ssh-…`
-  and `cml-rpi5-…` ones); leave them alone.
+- **The live tunnels carry their original names.** Staging's was `cml-relab-test` while the module
+  computes `relab-${environment}`, so applying **renames** it. The rename is safe (the tunnel id is
+  unchanged and `cloudflared` authenticates by id and secret, not name) but it is a real change.
+  Prod's tunnel is `cml-relab-prod` (`9f5762a9-…`), so adopting prod will rename it to
+  `relab-prod`. The account also holds tunnels this repo does not manage (`cml-monitoring`, the
+  `ssh-…` and `cml-rpi5-…` ones); leave them alone.
 
-- **Zone-scoped resources are shared.** prod and staging share
-  `cml-relab.org`, so the TLS settings and the three entrypoint rulesets affect
-  both environments at once. They now live in `infra/cloudflare-zone/` with a
-  single owner, which is why prod's own import list is just six per-environment
-  resources. The zone was found at TLS 1.0 and is now at 1.2, for every hostname
+- **Zone-scoped resources are shared.** prod and staging share `cml-relab.org`, so the TLS settings
+  and the three entrypoint rulesets affect both environments at once. They live in
+  `infra/cloudflare-zone/` with a single owner, which is why prod's own import list is six
+  per-environment resources. The zone was found at TLS 1.0 and is now at 1.2, for every hostname
   including prod's.
 
-- **This zone's Cloudflare plan is restrictive, and it fails at apply time.**
-  The `http_ratelimit` phase allows one rule, a 10s counting period and a 10s
-  mitigation timeout, and neither the `matches` operator nor `http.host` may be
-  used in it. Each of those refusals landed *partway through* an apply, after
-  earlier resources had already changed. They are asserted in
-  `infra/cloudflare-zone/tests/` now, so `just cloudflare-check` catches a
-  regression instead of an apply doing it live.
+- **This zone's Cloudflare plan is restrictive, and it fails at apply time.** The `http_ratelimit`
+  phase allows one rule, a 10s counting period and a 10s mitigation timeout, and neither the
+  `matches` operator nor `http.host` may be used in it. Each refusal landed *partway through* an
+  apply, after earlier resources had already changed. They are asserted in
+  `infra/cloudflare-zone/tests/`, so `just cloudflare-check` catches a regression.
 
 ### Adopting prod, as separate work outside any window
 
-No `prod` workspace exists, so a plan today would show every resource as a
-*create*: duplicate DNS records, a **second** tunnel whose id does not match the
-live `CLOUDFLARE_TUNNEL_TOKEN`, and a replacement for the rulesets that protect
-prod right now.
+No `prod` workspace exists, so a plan today would show every resource as a *create*: duplicate DNS
+records, a **second** tunnel whose id does not match the live `CLOUDFLARE_TUNNEL_TOKEN`, and a
+replacement for the rulesets that protect prod right now.
 
 Generate the import blocks rather than writing them by hand:
 
@@ -1224,15 +1079,14 @@ cat imports.tf                       # review before running anything
 just cloudflare-plan prod            # must show 0 to add, 0 to destroy
 ```
 
-If it reports no tunnel by the expected names, it lists every tunnel in the
-account with its id and connection count; re-run with
-`RELAB_TUNNEL_NAME='<name>'` once you know which one serves prod.
+If it reports no tunnel by the expected names, it lists every tunnel in the account with its id and
+connection count; re-run with `RELAB_TUNNEL_NAME='<name>'` once you know which one serves prod.
 
-Delete `imports.tf` once the apply succeeds — import blocks re-run on every plan
-until removed, and they make `tofu test` unusable while present.
+Delete `imports.tf` once the apply succeeds: import blocks re-run on every plan until removed, and
+they make `tofu test` unusable while present.
 
-`infra/cloudflare/README.md` carries the token scopes, where state lives, the
-state-encryption rules, and the full import workflow.
+`infra/cloudflare/README.md` carries the token scopes, where state lives, the state-encryption
+rules, and the full import workflow.
 
 ______________________________________________________________________
 
@@ -1254,52 +1108,37 @@ If verification fails and the release cannot be trusted:
 
 1. Restore uploads from `user_uploads-pre-mvp.tar.gz` if anything wrote to them.
 
-1. `just prod-up YES scanning` on `main` (drop `scanning` if you disabled
-   it in 1a; the backup service is timer-driven, not part of `up`).
+1. `just prod-up YES` on `main` (the backup service is timer-driven, not part of `up`).
 
-`just prod-build` also tags each image it builds with the commit it was built
-from (`relab-backend:prod-<sha>` alongside `relab-backend:prod-local`), so
-rolling back to the previous build needs no rebuild — per image:
+For later releases, `just prod-rollback YES <sha> [<revision>]` does this from the images
+`prod-build` tags with the commit sha ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 3). It cannot help
+here: `main` was never built by that recipe.
 
-```bash
-docker tag relab-backend:prod-<oldsha> relab-backend:prod-local
-just prod-up YES scanning   # drop `scanning` only if you disabled it in 1a
-```
-
-The schema has no scripted down-migration path for the dropped data: the
-`downgrade()` functions restore column *shape* but not content. The dump from
-step 2 is the real recovery mechanism, which is why step 0 forbids deleting it
-early.
+The schema has no scripted down-migration path for the dropped data: the `downgrade()` functions
+restore column *shape* but not content. The dump from step 2 is the real recovery mechanism, which
+is why step 0 forbids deleting it early.
 
 ## Known post-launch gaps
 
-Accepted risks, not blockers — but they are accepted by a person, not by
-default. Owner: the deploy operator, who is also the one making the go/no-go
-call in §9. Do not discover these by surprise:
+Accepted risks, not blockers. Owner: the deploy operator, who also makes the go/no-go call in §9.
 
-- **No scripted schema rollback.** All 40 migrations define `downgrade()`, and
-  `test_migrations_downgrade_upgrade` proves the newest one round-trips — but on
-  an empty schema, one step only. Nothing tests a multi-step downgrade or data
-  preservation, and a downgrade that re-adds a dropped column re-adds it empty.
-  The §2 dump is the only data rollback; §12 is the only rehearsed path.
+- **Schema rollback is shape-only.** `just prod-rollback` can `alembic downgrade`, but refuses when
+  a migration in the range dropped or rewrote data, because a downgrade re-adds such objects empty.
+  For this release the §2 dump is the only data rollback; §12 is the only rehearsed path.
 
-- **Rate-limit buckets reset once at this deploy.** The rate-limiter's HMAC
-  signing key moved to `cache_signing_secret`, so every existing bucket key
-  changes and in-flight windows restart from zero. Harmless (limits are
-  short-lived), but do not read a post-deploy lull in 429s as a real change in
-  traffic.
+- **Rate-limit buckets reset once at this deploy.** The rate-limiter's HMAC signing key moved to
+  `cache_signing_secret`, so every existing bucket key changes and in-flight windows restart from
+  zero. Harmless (limits are short-lived), but do not read a post-deploy lull in 429s as a real
+  change in traffic.
 
-- **Alerting is two mechanisms, deliberately.** Everything observable — container logs,
-  host metrics, application traces — goes to the central Grafana stack. One thing does
-  not: a per-job dead-man's switch that pushes from this host to healthchecks.io, so a
-  dead host, a dead collector or a broken tunnel still produces an alarm rather than
-  silence that looks like health. `just watchdog prod` is the local check whose exit
-  code that ping reports. Setup for both is standing configuration that outlives this
-  runbook — see [DEPLOY-PROD.md](DEPLOY-PROD.md) Parts 1.2, 1.4 and 1.5.
+- **Alerting is two mechanisms.** Container logs, host metrics and application traces go to the
+  central Grafana stack. A per-job dead-man's switch pushes from this host to healthchecks.io, so a
+  dead host, a dead collector or a broken tunnel still produces an alarm. `just watchdog prod` is
+  the local check whose exit code that ping reports. Setup for both is standing configuration; see
+  [DEPLOY-PROD.md](DEPLOY-PROD.md) Parts 1.2, 1.4 and 1.5.
 
-- **This cutover is start-then-migrate.** The §8 commands bring the API up
-  against the old schema before `prod-migrate` runs. Harmless here because you
-  are taking a full outage. For routine releases, pass the `migrations` profile
-  to `prod-up` instead and the API waits for the migrator to exit 0 (see §8) —
-  that closes the window but is still not a zero-downtime deploy, since the API
-  is down for the length of the migration.
+- **This cutover is start-then-migrate.** The §8 commands bring the API up against the old schema
+  before `prod-migrate` runs. Harmless here because you are taking a full outage. For routine
+  releases, pass the `migrations` profile to `prod-up` instead and the API waits for the migrator to
+  exit 0 (see §8). That closes the window but is still not a zero-downtime deploy, since the API is
+  down for the length of the migration.

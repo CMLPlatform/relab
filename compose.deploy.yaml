@@ -1,12 +1,10 @@
 # compose.deploy.yaml (DEPLOY — covers prod AND staging)
 #
-# Single artifact for both environments. ENVIRONMENT (required) selects which.
-# Per-environment non-secret knobs live in committed `deploy/env/*.compose.env`
-# files; host-local operator inputs for Compose interpolation live in the
-# gitignored root `.env`.
+# Single artifact for both environments. ENVIRONMENT (required) selects which; the
+# deploy recipes set it and PROJECT, every other value comes from the root `.env`.
 #
 # Invocation (normally through root just recipes):
-#   docker compose -p relab_prod --env-file .env --env-file deploy/env/prod.compose.env \
+#   ENVIRONMENT=prod PROJECT=relab docker compose -p relab_prod --env-file .env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
 # --- Reusable fragments ------------------------------------------------------
@@ -120,11 +118,13 @@ services:
       #
       #                    per worker  x  workers  =  total (prod)
       # Image threads:          5      x     4     =   20  (CPU-bound)
-      # DB connections:    10 + 10     x     4     =   80  (configured postgres max_connections=100 below)
+      # DB connections:     3 + 10     x     4     =   52  (configured postgres max_connections=100 below)
       # Outbound HTTP:        100      x     4     =  400  (mostly idle)
       WEB_CONCURRENCY: "4"
       IMAGE_RESIZE_WORKERS: "5"
-      DB_POOL_SIZE: "10"
+      # Measured 2026-09-06: 0.26 req/s peak at 5 ms p99 never touched overflow;
+      # 3 base per worker is still ~1000x that, and the pool lets bursts overflow.
+      DB_POOL_SIZE: "3"
       DB_POOL_MAX_OVERFLOW: "10"
       UVICORN_LIMIT_CONCURRENCY: "100"
       # Upload ceilings. Raise these from the root .env on an instance whose
@@ -132,8 +132,8 @@ services:
       # rows, so an over-limit owner is blocked from uploading entirely).
       MAX_UPLOAD_FILES_PER_USER: "${MAX_UPLOAD_FILES_PER_USER:-5000}"
       MAX_UPLOAD_BYTES_PER_USER_MB: "${MAX_UPLOAD_BYTES_PER_USER_MB:-2048}"
-      # Must agree with the `scanning` profile below: leaving this true without
-      # starting clamav fails uploads closed rather than letting them through.
+      # deploy_ops.sh adds the `scanning` profile below whenever this is not false;
+      # true without a running clamav fails uploads closed.
       MALWARE_SCAN_ENABLED: "${MALWARE_SCAN_ENABLED:-true}"
       CLAMAV_HOST: clamav
     depends_on:
@@ -261,8 +261,8 @@ services:
       # Offsite copy, run at the end of the DAILY maintenance cycle when set (the
       # hourly snapshot runs skip it). Unset means the only copy of the backups lives
       # on the same host disk as the data.
-      # `rclone:<remote>:<path>` targets read their remote from the mounted
-      # rclone.conf secret; the offsite repo reuses restic_password.
+      # Empty means "the one remote in rclone.conf" (derive_offsite_repository);
+      # the offsite repo reuses restic_password.
       RESTIC_OFFSITE_REPOSITORY: ${RESTIC_OFFSITE_REPOSITORY:-}
       RCLONE_CONFIG: /run/secrets/rclone.conf
     secrets:
@@ -329,10 +329,10 @@ services:
     logging: *json-logging
     # Compose replaces `command` instead of appending to it, so this repeats the
     # base tuning from compose.yaml verbatim — NOTE: keep the two in sync. Only
-    # max_connections differs: the API alone needs 80 (4 workers x pool 10 +
+    # max_connections differs: the API alone can reach 52 (4 workers x pool 3 +
     # overflow 10), and 100 leaves margin for migrator, backup and operator psql.
     # NOTE: work_mem is per sort, so 100 busy connections could in theory outrun
-    # mem_limit; the real ceiling is the 80-connection app pool, mostly idle.
+    # mem_limit; the real ceiling is the 52-connection app pool, mostly idle.
     command:
       - postgres
       - -c
@@ -455,8 +455,8 @@ secrets:
     file: ./secrets/${ENVIRONMENT}/redis_password
   restic_password:
     file: ./secrets/${ENVIRONMENT}/restic_password
-  # Only read when RESTIC_OFFSITE_REPOSITORY is an `rclone:` target; same path
-  # the manual `just backup-offsite-copy` helper expects.
+  # Its one remote is the offsite target; same path the manual
+  # `just backup-offsite-copy` helper expects.
   rclone.conf:
     file: ./secrets/${ENVIRONMENT}/rclone.conf
   auth_token_secret:
