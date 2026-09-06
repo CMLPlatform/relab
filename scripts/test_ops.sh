@@ -333,5 +333,43 @@ for unit_job in $(sed -n 's|.*run_scheduled\.sh \([a-z-]*\) %i.*|\1|p' deploy/sy
     )"
 done
 
+# ---------------------------------------------------------------------------
+# The collapsed-dump guard in backup_relab_restic.sh. An empty database dumps
+# happily, and once archived it becomes the newest snapshot that retention ages the
+# good copies out behind — so the guard has to reject the dump BEFORE the write.
+# `restic` and the dump file are stubbed; no repository and no docker are involved.
+# ---------------------------------------------------------------------------
+collapse_guard() {
+    local new_bytes="$1" prev_bytes="$2" ratio="${3:-}" tmp out status
+    tmp="$(mktemp -d)"
+    # A stub restic on PATH, answering only the `stats --json` call the guard makes.
+    printf '#!/usr/bin/env bash\nprintf %%s "{\\"total_size\\":%s}"\n' "$prev_bytes" >"$tmp/restic"
+    chmod +x "$tmp/restic"
+    head -c "$new_bytes" /dev/zero >"$tmp/dump"
+    out="$(
+        PATH="$tmp:$PATH" RESTIC_MIN_DUMP_RATIO="$ratio" bash -c '
+            set -euo pipefail
+            # Define just enough of the script to call the guard in isolation.
+            log() { printf "%s\n" "$*"; }
+            eval "$(sed -n "/^assert_dump_not_collapsed()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+            assert_dump_not_collapsed "$1"
+        ' _ "$tmp/dump" 2>&1
+    )"
+    status=$?
+    rm -rf "$tmp"
+    printf '%s|%s' "$status" "$(printf '%s' "$out" | grep -c 'refusing to archive')"
+}
+
+assert_eq "a dump collapsed to 23% of the previous snapshot is refused" "1|1" \
+    "$(collapse_guard 59353 259672)"
+assert_eq "a dump the same size as the previous snapshot is archived" "0|0" \
+    "$(collapse_guard 259672 259672)"
+assert_eq "an ordinary shrink above the ratio is archived" "0|0" \
+    "$(collapse_guard 200000 259672)"
+assert_eq "RESTIC_MIN_DUMP_RATIO=0 archives a collapsed dump deliberately" "0|0" \
+    "$(collapse_guard 59353 259672 0)"
+assert_eq "no previous snapshot means nothing to compare against" "0|0" \
+    "$(collapse_guard 59353 0)"
+
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1

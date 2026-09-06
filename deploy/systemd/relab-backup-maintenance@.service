@@ -1,4 +1,4 @@
-# Relab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+# Relab scheduled job: backup repository maintenance. Instance is the environment, e.g. relab-backup-maintenance@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -9,7 +9,7 @@
 # host. These units run a writable git checkout as unattended, scheduled, effectively
 # root-level jobs — treat that directory as privileged.
 [Unit]
-Description=Relab encrypted backup (%i)
+Description=Relab backup maintenance: retention, integrity check, offsite copy (%i)
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
@@ -29,17 +29,18 @@ WorkingDirectory=/opt/relab
 # file is optional and a missing one simply disables pinging.
 EnvironmentFile=-/etc/relab/relab.env
 Environment=JUST_BIN=/usr/bin/just
-Environment=BACKUP_MAINTENANCE=skip
-ExecStart=/opt/relab/scripts/run_scheduled.sh backup %i
-TimeoutStartSec=1800
+Environment=BACKUP_MAINTENANCE=only
+ExecStart=/opt/relab/scripts/run_scheduled.sh backup-maintenance %i
+TimeoutStartSec=7200
 # `compose run` starts a container that is a child of dockerd, NOT of this unit's
 # cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
 # holding a plaintext pg_dump, the 0400 secret copies, and internet egress. Reap it.
-ExecStopPost=-/usr/bin/docker rm -f relab-backup-%i
-# A transient fault costs an hour of RPO rather than a day now, so the retry is short
-# enough to land well before the next hourly trigger.
+ExecStopPost=-/usr/bin/docker rm -f relab-backup-maintenance-%i
+# Maintenance is not on the data path — the hourly snapshots keep arriving whether or
+# not this succeeds — but a repository that is never pruned or copied offsite degrades
+# quietly, so retry rather than waiting a full day.
 Restart=on-failure
-RestartSec=5min
+RestartSec=15min
 # CPU: niced, so it still gets a guaranteed slice, just a small one.
 Nice=10
 # I/O: best-effort/7, deliberately NOT idle. A host that also runs compute jobs can keep
@@ -49,4 +50,4 @@ IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 
 [Install]
-# Nothing: triggered by relab-backup@%i.timer, never enabled directly.
+# Nothing: triggered by relab-backup-maintenance@%i.timer, never enabled directly.

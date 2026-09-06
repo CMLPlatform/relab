@@ -50,11 +50,30 @@ every later snapshot depends on it.
 co-located on one machine would share a restic directory. It fails closed rather than
 corrupting, but only one of them gets backups. Give each host a single environment.
 
+**Before anything destructive, take a tagged backup:**
+
+```bash
+just backup prod manual
+```
+
+The `manual` tag is retained unconditionally (`--keep-tag=manual`), which matters
+because retention thins hourly snapshots down to daily ones as they age. Before the tag
+existed, hourly retention was off entirely and `--keep-daily` kept only the newest
+snapshot per calendar day, so *any* later run that day expired the safety copy you had
+just taken — which is exactly what happened on 2026-09-06.
+
+A backup also refuses to archive a dump that has collapsed to under half the newest
+stored snapshot, and exits non-zero saying so. An empty or truncated database dumps
+perfectly happily; once archived it becomes the newest snapshot, and retention then
+starts ageing out the good copies behind it. If a large shrink is real — a genuine mass
+deletion — re-run with `RESTIC_MIN_DUMP_RATIO=0`. Set the ratio yourself to tune it.
+
 ### 1.2 Scheduled jobs
 
-Three jobs run on a schedule: the nightly backup, an hourly watchdog, and a monthly
-restore verification. All three are systemd timers — one mechanism, one place to look
-(`systemctl list-timers`), and catch-up after downtime where it matters.
+Four jobs run on a schedule: an hourly backup, a daily repository maintenance pass, an
+hourly watchdog, and a monthly restore verification. All four are systemd timers — one
+mechanism, one place to look (`systemctl list-timers`), and catch-up after downtime
+where it matters.
 
 ```bash
 just timers-render            # inspect what will be installed
@@ -66,15 +85,29 @@ the timer runs and that exits. The committed units carry placeholders — the in
 substitutes this checkout, the deploy user, and the `just` location, the last because
 systemd runs without a login `PATH`.
 
-| Job                        | When             | Catch-up                                                 |
-| -------------------------- | ---------------- | -------------------------------------------------------- |
-| `relab-backup@prod`        | 02:30 daily      | yes — a night missed while the host was off runs at boot |
-| `relab-watchdog@prod`      | hourly           | no — a missed check self-heals within the hour           |
-| `relab-restore-check@prod` | 03:40 on the 1st | yes — this is why it is a timer and not cron             |
+| Job                             | When             | Catch-up                                                 |
+| ------------------------------- | ---------------- | -------------------------------------------------------- |
+| `relab-backup@prod`             | hourly           | yes — an hour missed while the host was off runs at boot |
+| `relab-backup-maintenance@prod` | 02:30 daily      | yes — a night missed while the host was off runs at boot |
+| `relab-watchdog@prod`           | hourly           | no — a missed check self-heals within the hour           |
+| `relab-restore-check@prod`      | 03:40 on the 1st | yes — this is why it is a timer and not cron             |
 
 That last row is the reason not to use cron here: a monthly job skipped because the host
 was down on the 1st would not run again for two months, and it is the only check that
 proves a snapshot actually restores rather than merely exists.
+
+**The first two rows are one backup system split in half, and the split is deliberate.**
+The hourly job only takes the snapshot: a `pg_dump` plus a restic write, about two
+seconds, which is what caps data loss at an hour instead of a day. Retention, the
+integrity check and the offsite copy — around a minute, and the part that repacks the
+repository — run once a day from the maintenance job. Folding them back into the hourly
+run would repack the repository twenty-four times a day and make twenty-four SURFdrive
+round trips for no extra safety.
+
+The consequence worth knowing: **the offsite copy is still daily.** An hourly local
+snapshot protects against the loss you are actually likely to cause — a bad migration, a
+dropped volume, a mistaken delete. Losing the host itself still costs up to a day, the
+same as before.
 
 ### How a failed job reaches you
 
@@ -83,9 +116,10 @@ dead-man's-switch URL per job. Fill them in from healthchecks.io — one check p
 because sharing a URL lets the hourly job's pings mask the monthly job's silence:
 
 ```ini
-PING_BACKUP=https://hc-ping.com/...          # period 1 day
+PING_BACKUP=https://hc-ping.com/...             # period 1 hour
 PING_WATCHDOG=https://hc-ping.com/...        # period 1 hour
-PING_RESTORE_CHECK=https://hc-ping.com/...   # period 35 days
+PING_BACKUP_MAINTENANCE=https://hc-ping.com/... # period 1 day
+PING_RESTORE_CHECK=https://hc-ping.com/...      # period 35 days
 ```
 
 Each job pings on success, and on failure pings `/fail` with its own output as the body,

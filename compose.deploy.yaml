@@ -75,7 +75,7 @@ services:
     tmpfs:
       - /tmp:mode=1777
     environment:
-      <<: [*backend-public-origins, *backend-host-overrides]
+      !!merge <<: [*backend-public-origins, *backend-host-overrides]
       ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
       # Trust forwarded headers only from Docker-internal proxy addresses.
       FORWARDED_ALLOW_IPS: 172.16.0.0/12
@@ -200,7 +200,7 @@ services:
     user: "1001:1001"
     secrets: *backend-runtime-secrets
     environment:
-      <<: [*backend-public-origins, *backend-host-overrides]
+      !!merge <<: [*backend-public-origins, *backend-host-overrides]
       ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
     tmpfs:
       - /tmp:mode=1777
@@ -251,15 +251,17 @@ services:
       XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
       BACKUP_WORK_DIR: /tmp/relab-backups
-      # Explicitly 0: backups run once a day (systemd timer), so the script's
-      # default of keep-hourly=24 would resolve to 24 distinct DAYS and silently
-      # override the 14 below. Hourly retention only means something sub-daily.
-      RESTIC_KEEP_HOURLY: "0"
+      # Backups are hourly (relab-backup@.timer), so keep-hourly is meaningful again:
+      # restic counts distinct HOURS that contain a snapshot, which is why this was 0
+      # while backups were daily — 24 would have resolved to 24 distinct DAYS and
+      # silently overridden the 14 below. 48 keeps two days of hourly granularity.
+      RESTIC_KEEP_HOURLY: "48"
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
       RESTIC_KEEP_MONTHLY: "12"
-      # Offsite copy, run at the end of every backup cycle when set. Unset means
-      # the only copy of the backups lives on the same host disk as the data.
+      # Offsite copy, run at the end of the DAILY maintenance cycle when set (the
+      # hourly snapshot runs skip it). Unset means the only copy of the backups lives
+      # on the same host disk as the data.
       # `rclone:<remote>:<path>` targets read their remote from the mounted
       # rclone.conf secret; the offsite repo reuses restic_password.
       RESTIC_OFFSITE_REPOSITORY: ${RESTIC_OFFSITE_REPOSITORY:-}
@@ -289,7 +291,7 @@ services:
       # Persist cache data in both prod and staging (AOF persistence).
       - cache_data:/data
     healthcheck:
-      test: [ "CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping | grep -q PONG" ]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/redis_password)\" redis-cli ping | grep -q PONG"]
     # This command replaces the base one wholesale, so it must repeat every flag
     # from compose.yaml's redis command — NOTE: keep the two in sync. The memory
     # bounds are not optional here: Redis holds refresh-token blacklists, so

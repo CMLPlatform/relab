@@ -7,6 +7,17 @@ log() {
     printf '[%s] %s\n' "$(date -Iseconds)" "$*"
 }
 
+# Extra tags applied to every snapshot this run creates. BACKUP_MANUAL=true marks a
+# hand-run backup with `manual`, which the retention policy keeps unconditionally
+# (--keep-tag=manual). Hourly retention is off in compose (RESTIC_KEEP_HOURLY=0), so
+# --keep-daily keeps just the newest snapshot per calendar day: without this tag, a
+# backup taken deliberately before a risky operation is expired by ANY later run the
+# same day, not merely one in the same hour.
+BACKUP_TAG_ARGS=()
+if [[ "${BACKUP_MANUAL:-false}" == "true" ]]; then
+    BACKUP_TAG_ARGS=(--tag manual)
+fi
+
 read_secret() {
     local name="$1"
     local file_name="${name}_FILE"
@@ -71,9 +82,41 @@ backup_database() {
         --schema="${POSTGRES_SCHEMA:-public}" \
         --file="$dump_file"
 
+    assert_dump_not_collapsed "$dump_file"
+
     log "Backing up PostgreSQL dump to restic"
-    restic backup "$dump_file" --tag postgres --tag relab
+    restic backup "$dump_file" --tag postgres --tag relab "${BACKUP_TAG_ARGS[@]}"
     rm -f "$dump_file"
+}
+
+# Refuse to archive a dump that has collapsed against the newest stored one. An empty
+# or truncated database dumps and uploads perfectly happily, and once it is the newest
+# snapshot the retention policy starts ageing out the good copies behind it — so the
+# check belongs here, before the write, not in the monthly restore verification.
+# Set RESTIC_MIN_DUMP_RATIO=0 to archive anyway (a deliberate mass deletion).
+assert_dump_not_collapsed() {
+    local dump_file="$1" ratio="${RESTIC_MIN_DUMP_RATIO:-50}" new_size prev_size pct
+    [[ "$ratio" == 0 ]] && return 0
+
+    new_size="$(stat -c %s "$dump_file")"
+    # `restic stats --json` on the newest postgres snapshot: its raw size is the dump's
+    # own byte count, so the two numbers are directly comparable.
+    prev_size="$(restic stats latest --tag postgres --mode raw-data --json 2>/dev/null \
+        | sed -n 's/.*"total_size":\([0-9]*\).*/\1/p')" || true
+    if [[ -z "$prev_size" || "$prev_size" == 0 ]]; then
+        log "No previous PostgreSQL snapshot to compare against; archiving ${new_size} bytes"
+        return 0
+    fi
+
+    pct=$((new_size * 100 / prev_size))
+    if ((pct < ratio)); then
+        log "ERROR: new dump is ${pct}% of the previous snapshot (${new_size} vs ${prev_size} bytes)."
+        log "ERROR: refusing to archive it -- a collapsed dump would age out the good snapshots."
+        log "ERROR: if this shrink is real, re-run with RESTIC_MIN_DUMP_RATIO=0."
+        rm -f "$dump_file"
+        exit 1
+    fi
+    log "Dump size ${new_size} bytes (${pct}% of previous); archiving"
 }
 
 backup_uploads() {
@@ -83,7 +126,7 @@ backup_uploads() {
     fi
 
     log "Backing up user uploads to restic: ${UPLOADS_DIR}"
-    restic backup "$UPLOADS_DIR" --tag user-uploads --tag relab
+    restic backup "$UPLOADS_DIR" --tag user-uploads --tag relab "${BACKUP_TAG_ARGS[@]}"
 }
 
 prune_repo() {
@@ -97,6 +140,7 @@ prune_repo() {
     # so restic can find a parent snapshot, but retention must not depend on that.
     restic "$@" forget \
         --prune \
+        --keep-tag=manual \
         --keep-hourly="${RESTIC_KEEP_HOURLY:-24}" \
         --keep-daily="${RESTIC_KEEP_DAILY:-14}" \
         --keep-weekly="${RESTIC_KEEP_WEEKLY:-8}" \
@@ -187,25 +231,48 @@ main() {
 
     ensure_restic_repository
 
+    # BACKUP_MAINTENANCE splits the hourly snapshot from the daily upkeep:
+    #   auto (default) — snapshot, then prune/check/copy. One self-contained run, which
+    #                    is what a hand-run `just backup <env>` should still do.
+    #   skip           — snapshot only. The hourly timer: cheap, and it must not repack
+    #                    the repository 24x a day.
+    #   only           — prune/check/copy, no new snapshot. The daily maintenance timer.
+    local maintenance="${BACKUP_MAINTENANCE:-auto}"
+    case "$maintenance" in
+        auto | skip | only) ;;
+        *)
+            log "ERROR: BACKUP_MAINTENANCE must be auto, skip or only; got '${maintenance}'"
+            exit 2
+            ;;
+    esac
+
     local did_backup=false
-    if [[ "${SKIP_DATABASE_BACKUP:-false}" != "true" ]]; then
-        backup_database
-        did_backup=true
-    fi
-    if [[ "${SKIP_UPLOAD_BACKUP:-false}" != "true" ]]; then
-        backup_uploads
-        did_backup=true
+    if [[ "$maintenance" != "only" ]]; then
+        if [[ "${SKIP_DATABASE_BACKUP:-false}" != "true" ]]; then
+            backup_database
+            did_backup=true
+        fi
+        if [[ "${SKIP_UPLOAD_BACKUP:-false}" != "true" ]]; then
+            backup_uploads
+            did_backup=true
+        fi
     fi
 
     # Retention/prune is local maintenance for a real backup; a copy-only run
     # (both backups skipped) must not expire local snapshots as a side effect.
-    if [[ "$did_backup" == "true" ]]; then
+    # `only` is the exception: it exists to do exactly this upkeep, on a repository the
+    # hourly runs have been adding to.
+    if [[ "$maintenance" == "only" || ("$maintenance" == "auto" && "$did_backup" == "true") ]]; then
         log "Applying restic retention policy"
         prune_repo
         log "Checking restic repository integrity"
         restic check
+        copy_to_offsite true
+    elif [[ "$maintenance" == "auto" ]]; then
+        copy_to_offsite "$did_backup"
+    else
+        log "Maintenance skipped (BACKUP_MAINTENANCE=skip); prune, check and offsite copy run on the daily maintenance timer"
     fi
-    copy_to_offsite "$did_backup"
     log "Backup run completed"
 }
 

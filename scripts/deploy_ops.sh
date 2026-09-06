@@ -565,8 +565,20 @@ stack_command() {
             # run's container holding the name, which would then block every later run.
             # Same guard verify_postgres_restore uses for its deterministic name.
             docker rm -f "relab-backup-$env" >/dev/null 2>&1 || true
+            # BACKUP_MANUAL tags this run's snapshots `manual`, which retention keeps
+            # unconditionally. Set by `just backup <env> manual`, never by the timer.
             run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
+                -e "BACKUP_MANUAL=${BACKUP_MANUAL:-false}" \
+                -e "BACKUP_MAINTENANCE=${BACKUP_MAINTENANCE:-auto}" \
                 --name "relab-backup-$env" backup
+            ;;
+        backup-maintenance)
+            # Retention, integrity check and offsite copy, without taking a snapshot.
+            # The hourly backup timer skips all three; this is where they happen.
+            docker rm -f "relab-backup-maintenance-$env" >/dev/null 2>&1 || true
+            run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
+                -e "BACKUP_MAINTENANCE=only" \
+                --name "relab-backup-maintenance-$env" backup
             ;;
         down)
             parse_profiles "$env" "migrations backups scanning" "$@"

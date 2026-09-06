@@ -509,9 +509,16 @@ staging-logs:
 staging-migrate confirm='':
     @bash scripts/deploy_ops.sh stack staging migrate {{ quote(confirm) }}
 
-# Run one backup cycle now (what the systemd timer calls; see deploy/systemd/)
-backup env:
-    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
+# Run one backup cycle now (what the systemd timer calls; see deploy/systemd/).
+# Pass `manual` before a risky operation: retention keeps `manual` snapshots
+# unconditionally, so the next scheduled run cannot expire your safety copy.
+backup env manual='':
+    @BACKUP_MANUAL={{ if manual == "manual" { "true" } else { "false" } }} bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
+
+# Backup upkeep only: retention, integrity check, offsite copy — no new snapshot.
+# Run daily by relab-backup-maintenance@<env>.timer; the hourly backup skips this work.
+backup-maintenance env:
+    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup-maintenance
 
 # List the restic snapshots for one environment (read-only)
 snapshots env count='20':
@@ -526,7 +533,7 @@ timers-install env:
     @bash scripts/install_timers.sh install {{ quote(env) }}
 
 # Watchdog: alert when the API is unhealthy or the newest backup snapshot is stale (cron this on the host)
-watchdog env max_age_hours='26':
+watchdog env max_age_hours='3':
     @bash scripts/deploy_watchdog.sh {{ quote(env) }} {{ quote(max_age_hours) }}
 
 # ============================================================================

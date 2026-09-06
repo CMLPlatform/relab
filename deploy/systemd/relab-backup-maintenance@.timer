@@ -1,4 +1,4 @@
-# Relab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+# Relab scheduled job: backup repository maintenance. Instance is the environment, e.g. relab-backup-maintenance@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -9,15 +9,15 @@
 # host. These units run a writable git checkout as unattended, scheduled, effectively
 # root-level jobs — treat that directory as privileged.
 [Unit]
-Description=Relab encrypted backup schedule (%i)
+Description=Relab backup maintenance schedule (%i)
 
 [Timer]
-# Hourly: the snapshot itself is cheap, and it caps data loss at an hour instead of a
-# day. Prune, integrity check and the offsite copy are NOT here — they run once a day
-# from relab-backup-maintenance@.timer, so this does not repack the repository 24x/day.
-OnCalendar=hourly
+# Daily, after the hourly snapshots have accumulated. Persistent so a day missed while
+# the host was off still prunes and copies offsite at boot: skipping it silently is how
+# a repository grows without bound and the offsite copy goes stale.
+OnCalendar=*-*-* 02:30:00
 Persistent=true
-RandomizedDelaySec=5m
+RandomizedDelaySec=15m
 
 [Install]
 WantedBy=timers.target

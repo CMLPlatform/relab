@@ -14,7 +14,7 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 UNIT_DIR="$ROOT_DIR/deploy/systemd"
 SYSTEM_DIR=/etc/systemd/system
 HOST_ENV=/etc/relab/relab.env
-JOBS=(relab-backup relab-watchdog relab-restore-check)
+JOBS=(relab-backup relab-backup-maintenance relab-watchdog relab-restore-check)
 
 render_one() {
     local file="$1" just_bin root_dir_repl just_bin_repl

@@ -22,10 +22,11 @@ sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
 just backup staging
 just restore-check staging
 
-just timers-install staging   # backup + watchdog + restore-check timers
+just timers-install staging   # backup, backup-maintenance, watchdog, restore-check
 ```
 
-Then fill in `/etc/relab/relab.env` with staging's own healthchecks.io URLs. Do not
+Then fill in `/etc/relab/relab.env` with staging's own healthchecks.io URLs — four of
+them now, one per job (`PING_BACKUP` is hourly, `PING_BACKUP_MAINTENANCE` daily). Do not
 reuse prod's — a shared check cannot tell you which host went quiet. See
 [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.2 for why the ping exists alongside Grafana.
 
@@ -89,9 +90,13 @@ These are the reasons the two documents are not one:
 ## Rebuilding from scratch
 
 The one host where this is cheap, and the honest test of whether the deploy path works
-on a clean machine. Not run since the 2026-08-19 backup rework, so it is still owed:
+on a clean machine. Last run 2026-09-06, clean: the stack came back healthy with no
+undocumented manual step, the migrator exited 0, and the three least-privilege database
+roles were created by the init scripts — which only ever happens on an empty volume, and
+so is the one part of this that prod's existing volume will never rehearse.
 
 ```bash
+just backup staging manual                     # tagged, so retention cannot expire it
 just staging-down YES scanning
 docker volume rm relab_staging_database_data   # destroys staging data — intended
 just staging-up YES scanning migrations
