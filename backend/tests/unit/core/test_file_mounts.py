@@ -3,8 +3,9 @@
 from typing import TYPE_CHECKING
 from urllib.parse import quote
 
+import httpx
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from httpx import ASGITransport
 
 from app.core.config import settings
 from app.core.static import mount_static_directories
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _mounted_uploads_client(tmp_path, monkeypatch) -> tuple[TestClient, Path, Path]:
+def _mounted_uploads_client(tmp_path, monkeypatch) -> tuple[httpx.AsyncClient, Path, Path]:
     uploads = tmp_path / "uploads"
     files = uploads / "files"
     images = uploads / "images"
@@ -29,28 +30,30 @@ def _mounted_uploads_client(tmp_path, monkeypatch) -> tuple[TestClient, Path, Pa
 
     app = FastAPI()
     mount_static_directories(app)
-    return TestClient(app), files, images
+    return httpx.AsyncClient(transport=ASGITransport(app=app), base_url="https://test"), files, images
 
 
-def test_upload_file_responses_are_downloads_with_nosniff(tmp_path, monkeypatch) -> None:
+async def test_upload_file_responses_are_downloads_with_nosniff(tmp_path, monkeypatch) -> None:
     """Generic uploaded files should be served as downloads with MIME sniffing disabled."""
     client, files, _images = _mounted_uploads_client(tmp_path, monkeypatch)
     files.joinpath("manual.pdf").write_bytes(b"%PDF-1.7\n")
 
-    response = client.get("/uploads/files/manual.pdf")
+    async with client:
+        response = await client.get("/uploads/files/manual.pdf")
 
     assert response.status_code == 200
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["content-disposition"] == 'attachment; filename="manual.pdf"'
 
 
-def test_upload_file_download_header_encodes_unsafe_names(tmp_path, monkeypatch) -> None:
+async def test_upload_file_download_header_encodes_unsafe_names(tmp_path, monkeypatch) -> None:
     """Download headers should encode unsafe request-path filenames for HTTP header contexts."""
     client, files, _images = _mounted_uploads_client(tmp_path, monkeypatch)
     filename = 'manual évil "quote".pdf'
     files.joinpath(filename).write_bytes(b"%PDF-1.7\n")
 
-    response = client.get(f"/uploads/files/{quote(filename)}")
+    async with client:
+        response = await client.get(f"/uploads/files/{quote(filename)}")
 
     assert response.status_code == 200
     header = response.headers["content-disposition"]
@@ -60,12 +63,13 @@ def test_upload_file_download_header_encodes_unsafe_names(tmp_path, monkeypatch)
     assert '"quote"' not in header
 
 
-def test_upload_image_responses_stay_inline_with_nosniff(tmp_path, monkeypatch) -> None:
+async def test_upload_image_responses_stay_inline_with_nosniff(tmp_path, monkeypatch) -> None:
     """Uploaded images should remain inline for app galleries."""
     client, _files, images = _mounted_uploads_client(tmp_path, monkeypatch)
     images.joinpath("photo.jpg").write_bytes(b"\xff\xd8\xff\xd9")
 
-    response = client.get("/uploads/images/photo.jpg")
+    async with client:
+        response = await client.get("/uploads/images/photo.jpg")
 
     assert response.status_code == 200
     assert response.headers["x-content-type-options"] == "nosniff"

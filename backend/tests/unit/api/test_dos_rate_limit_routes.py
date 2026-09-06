@@ -2,10 +2,11 @@
 
 from inspect import signature
 
+import httpx
 import pytest
 from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
-from fastapi.testclient import TestClient
+from httpx import ASGITransport
 
 from app.api.common.rate_limiting import Limiter, RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.data_collection.routers.component_core_routers import component_core_router
@@ -35,7 +36,7 @@ def _assert_rate_limited(route: APIRoute, dependency_name: str) -> None:
     assert "request" not in signature(route.endpoint).parameters
 
 
-def test_rate_limit_dependency_returns_429() -> None:
+async def test_rate_limit_dependency_returns_429() -> None:
     """The FastAPI dependency helper should enforce limits without endpoint wrappers."""
     app = FastAPI()
     limiter = Limiter(key_func=lambda _: "dependency-key", storage_uri="memory://")
@@ -45,9 +46,9 @@ def test_rate_limit_dependency_returns_429() -> None:
     async def limited_endpoint() -> dict[str, bool]:
         return {"ok": True}
 
-    client = TestClient(app)
-    assert client.get("/limited").status_code == 200
-    assert client.get("/limited").status_code == 429
+    async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as client:
+        assert (await client.get("/limited")).status_code == 200
+        assert (await client.get("/limited")).status_code == 429
 
 
 def test_expensive_public_product_search_routes_are_rate_limited() -> None:

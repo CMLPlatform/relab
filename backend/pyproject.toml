@@ -100,7 +100,7 @@
     # Database testing
     { include-group = "migrations" },  # Migrations are run to set up the testcontainers database schema
     "pytest-alembic>=0.12.1",          # Migration testing - verify schema changes
-    "testcontainers[postgres]>=4.8.2", # Ephemeral PostgreSQL for integration tests
+    "testcontainers[postgres]>=4.15.0", # Ephemeral PostgreSQL for integration tests
 
     # Redis testing
     "fakeredis[lua]>=2.25.0", # In-memory Redis for testing
