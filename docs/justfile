@@ -67,8 +67,9 @@ rpi-cam-schema-check:
     @curl -fsSL {{ rpi_cam_schema_url }} | diff -u {{ rpi_cam_schema_path }} - \
         || { echo "❌ {{ rpi_cam_schema_path }} is stale — run 'just docs/rpi-cam-schema'"; exit 1; }
 
-# Run the docs CI test suite (build + e2e + link check)
-test-ci: rpi-cam-schema-check
+# Run the docs CI test suite (build + e2e + link check). The pnpm chain runs
+# Playwright directly, so the browser bootstrap is a dependency here too.
+test-ci: rpi-cam-schema-check (_browsers "chromium")
     pnpm run test:ci
 
 # Run the full docs CI pipeline locally

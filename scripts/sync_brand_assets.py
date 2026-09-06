@@ -705,6 +705,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _report(out_of_sync: list[str], *, check: bool) -> int:
+    """Print the outcome and return the process exit code."""
+    if check and out_of_sync:
+        sys.stderr.write("Shared brand assets are out of sync:\n")
+        for path in out_of_sync:
+            sys.stderr.write(f"- {path}\n")
+        return 1
+
+    message = "Shared brand assets are in sync." if check else "Shared brand assets synced."
+    sys.stdout.write(f"{message}\n")
+    return 0
+
+
 def main() -> int:
     """Sync or verify shared brand assets."""
     args = parse_args()
@@ -719,6 +732,13 @@ def main() -> int:
         if args.check:
             out_of_sync.extend(check_brand_parity())
             out_of_sync.extend(check_brand_coverage())
+        # Rendered assets need ImageMagick. Verification re-renders and compares
+        # bytes, which only holds against the same ImageMagick build, so a host
+        # without it (CI runners) checks everything else and says what it skipped.
+        # Syncing still fails loudly: generating without the CLI is impossible.
+        if args.check and imagemagick_cli() is None:
+            sys.stderr.write("ImageMagick not found: skipping rendered brand asset comparison.\n")
+            return _report(out_of_sync, check=args.check)
         # Each render spawns a serial ImageMagick process (~0.6s); fan them out
         # across cores since they're subprocess-bound and independent.
         with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
@@ -732,15 +752,7 @@ def main() -> int:
         sys.stderr.write(f"{exc}\n")
         return 1
 
-    if args.check and out_of_sync:
-        sys.stderr.write("Shared brand assets are out of sync:\n")
-        for path in out_of_sync:
-            sys.stderr.write(f"- {path}\n")
-        return 1
-
-    message = "Shared brand assets are in sync." if args.check else "Shared brand assets synced."
-    sys.stdout.write(f"{message}\n")
-    return 0
+    return _report(out_of_sync, check=args.check)
 
 
 if __name__ == "__main__":
