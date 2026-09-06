@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from sqlalchemy import Computed, ForeignKey, Index, String, and_
+from sqlalchemy import Computed, ForeignKey, Index, String, and_, func, literal_column
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship
@@ -26,7 +26,7 @@ class CategoryMaterialLink(Base):
     """Association table to link Category with Material."""
 
     __tablename__ = "categorymateriallink"
-    # The composite primary key already covers category_id as its leading column.
+    # The composite primary key already indexes category_id as its leading column.
     __table_args__ = (Index("ix_categorymateriallink_material_id", "material_id"),)
 
     category_id: Mapped[int] = mapped_column(ForeignKey("category.id"), primary_key=True)
@@ -37,7 +37,7 @@ class CategoryProductTypeLink(Base):
     """Association table to link Category with ProductType."""
 
     __tablename__ = "categoryproducttypelink"
-    # The composite primary key already covers category_id as its leading column.
+    # The composite primary key already indexes category_id as its leading column.
     __table_args__ = (Index("ix_categoryproducttypelink_product_type_id", "product_type_id"),)
 
     category_id: Mapped[int] = mapped_column(ForeignKey("category.id"), primary_key=True)
@@ -76,7 +76,12 @@ class Category(TimeStampMixinBare, Base):
 
     __table_args__ = (
         Index("category_search_vector_idx", "search_vector", postgresql_using="gin"),
-        Index("category_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+        Index(
+            "category_name_trgm_idx",
+            func.relab_unaccent(literal_column("name")).label("name_unaccent"),
+            postgresql_using="gin",
+            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+        ),
         # Subcategories load eagerly; taxonomy_id backs the per-taxonomy reads.
         Index("ix_category_supercategory_id", "supercategory_id"),
         Index("ix_category_taxonomy_id", "taxonomy_id"),
@@ -85,7 +90,7 @@ class Category(TimeStampMixinBare, Base):
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
         Computed(
-            "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, ''))",
+            "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, ''))",
             persisted=True,
         ),
         default=None,
@@ -137,13 +142,18 @@ class Material(TimeStampMixinBare, Base):
 
     __table_args__ = (
         Index("material_search_vector_idx", "search_vector", postgresql_using="gin"),
-        Index("material_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+        Index(
+            "material_name_trgm_idx",
+            func.relab_unaccent(literal_column("name")).label("name_unaccent"),
+            postgresql_using="gin",
+            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+        ),
     )
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
         Computed(
-            "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
+            "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
             "coalesce(source, ''))",
             persisted=True,
         ),
@@ -189,19 +199,24 @@ class ProductType(TimeStampMixinBare, Base):
 
     __table_args__ = (
         Index("producttype_search_vector_idx", "search_vector", postgresql_using="gin"),
-        Index("producttype_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
+        Index(
+            "producttype_name_trgm_idx",
+            func.relab_unaccent(literal_column("name")).label("name_unaccent"),
+            postgresql_using="gin",
+            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+        ),
         Index(
             "producttype_description_trgm_idx",
-            "description",
+            func.relab_unaccent(literal_column("description")).label("description_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"description": "gin_trgm_ops"},
+            postgresql_ops={"description_unaccent": "gin_trgm_ops"},
         ),
     )
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
         Computed(
-            "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, ''))",
+            "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, ''))",
             persisted=True,
         ),
         default=None,

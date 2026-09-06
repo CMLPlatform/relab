@@ -3,7 +3,7 @@ title: Roadmap
 description: Research and platform priorities for the next Relab phases.
 ---
 
-Reviewed: 2026-08
+Reviewed: 2026-09
 
 ## Research direction
 
@@ -29,4 +29,7 @@ The live work list is tracked in the public
 - [ ] improve API guidance and exports for analysis scripts, reproducible research, and LCA work
 - [ ] explore human-verified assistance for label reading, component suggestion, and quality
   control, with provenance records for assisted values
+- [ ] make reference-data search multilingual and meaning-based: embedding search over categories
+  and product types next to the current full-text and fuzzy matching (accent-insensitive since
+  2026-09)
 - [ ] explore interoperability with semantic vocabularies and Digital Product Passport identifiers

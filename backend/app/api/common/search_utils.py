@@ -24,6 +24,11 @@ from sqlalchemy import ColumnElement, Select, func, or_
 
 type SearchableColumn = Any  # Column-like; typed loosely to avoid SA import coupling
 
+# ``english`` plus the unaccent filter, created by migration a9c2e4f60b18; the
+# generated ``search_vector`` columns use the same one, which is what makes a
+# query and a stored vector stem and unaccent identically.
+TEXT_SEARCH_CONFIG = "public.relab"
+
 LIKE_ESCAPE_CHAR = "\\"
 _LIKE_WILDCARDS = str.maketrans({LIKE_ESCAPE_CHAR: LIKE_ESCAPE_CHAR * 2, "%": "\\%", "_": "\\_"})
 
@@ -38,11 +43,10 @@ def build_text_search_clause(
 ) -> ColumnElement[bool]:
     """Return a WHERE clause combining tsvector @@ tsquery with optional trigram fuzzy matches.
 
-    The trigram comparison runs against the bare column, never ``lower(column)``:
-    the ``gin_trgm_ops`` indexes are built on the column itself, and an expression
-    the index was not built on is an expression the planner cannot use it for.
-    Folding case by hand would buy nothing anyway — pg_trgm lowercases text before
-    it extracts trigrams, so ``'Drill' % 'drill'`` is already true.
+    Trigram matching runs on ``relab_unaccent(column)`` and nothing else (no
+    ``lower()``: pg_trgm is case-insensitive anyway), because that is the exact
+    expression the ``gin_trgm_ops`` indexes are built on; the search term is
+    unaccented the same way so both sides compare the same trigrams.
 
     Args:
         search: The raw search string from the user.
@@ -52,9 +56,10 @@ def build_text_search_clause(
     Returns:
         An OR-combined SQLAlchemy ``ColumnElement`` suitable for ``.where()``.
     """
-    ts_query = func.websearch_to_tsquery("english", search)
+    ts_query = func.websearch_to_tsquery(TEXT_SEARCH_CONFIG, search)
     conditions: list[ColumnElement[bool]] = [search_vector_col.op("@@")(ts_query)]
-    conditions.extend([field.op("%")(search) for field in trigram_fields])
+    unaccented_search = func.relab_unaccent(search)
+    conditions.extend([func.relab_unaccent(field).op("%")(unaccented_search) for field in trigram_fields])
     return or_(*conditions)
 
 
@@ -77,5 +82,5 @@ def apply_ts_rank_ordering(query: Select[Any], search_vector_col: ColumnElement[
     The extra column is computed per-row from the tsvector + search, so
     duplicate rows share the same rank and ``DISTINCT`` still collapses them.
     """
-    rank = func.ts_rank(search_vector_col, func.websearch_to_tsquery("english", search)).label("ts_rank_score")
+    rank = func.ts_rank(search_vector_col, func.websearch_to_tsquery(TEXT_SEARCH_CONFIG, search)).label("ts_rank_score")
     return query.add_columns(rank).order_by(rank.desc())

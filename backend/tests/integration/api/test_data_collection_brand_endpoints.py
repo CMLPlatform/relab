@@ -140,3 +140,15 @@ async def test_product_facets_return_counts(
             {"value": "Dell", "count": 1},
         ]
     }
+
+
+async def test_search_ignores_accents(
+    api_client_light: AsyncClient, db_session: AsyncSession, db_superuser: User
+) -> None:
+    """A search typed without diacritics finds a brand stored with them, and the reverse."""
+    await seed_brands(db_session, db_superuser.id, "Citroën", "Škoda")
+
+    for search, expected in (("citroen", "Citroën"), ("skoda", "Škoda"), ("Citroën", "Citroën")):
+        response = await api_client_light.get("/v1/products/suggestions/brands", params={"search": search})
+        assert response.status_code == status.HTTP_200_OK
+        assert expected in response.json()["items"], search

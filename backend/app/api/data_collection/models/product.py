@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
-from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, select
+from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, func, literal_column, select
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import (
     Mapped,
@@ -35,21 +35,32 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
 
     __table_args__ = (
         Index("product_search_vector_idx", "search_vector", postgresql_using="gin"),
-        Index("product_name_trgm_idx", "name", postgresql_using="gin", postgresql_ops={"name": "gin_trgm_ops"}),
-        Index("product_brand_trgm_idx", "brand", postgresql_using="gin", postgresql_ops={"brand": "gin_trgm_ops"}),
-        # The model suggestion endpoint trigram-matches this column. Without its own
-        # index the OR against search_vector falls back to a sequential scan, which
-        # would leave the indexed half of the clause doing nothing.
-        Index("product_model_trgm_idx", "model", postgresql_using="gin", postgresql_ops={"model": "gin_trgm_ops"}),
-        # All owned rows, including components; used for product-owned media quota checks
-        # and for base-product listings, which add a `parent_id IS NULL` filter on top.
+        Index(
+            "product_name_trgm_idx",
+            func.relab_unaccent(literal_column("name")).label("name_unaccent"),
+            postgresql_using="gin",
+            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+        ),
+        Index(
+            "product_brand_trgm_idx",
+            func.relab_unaccent(literal_column("brand")).label("brand_unaccent"),
+            postgresql_using="gin",
+            postgresql_ops={"brand_unaccent": "gin_trgm_ops"},
+        ),
+        # The model suggestion endpoint trigram-matches this column in an OR with
+        # search_vector; an unindexed side seq-scans the whole OR.
+        Index(
+            "product_model_trgm_idx",
+            func.relab_unaccent(literal_column("model")).label("model_unaccent"),
+            postgresql_using="gin",
+            postgresql_ops={"model_unaccent": "gin_trgm_ops"},
+        ),
+        # Media quota checks and base-product listings filter on owner.
         Index("ix_product_owner_id", "owner_id"),
-        # Components load eagerly on every product read, and the delete cascade
-        # walks the same column.
+        # Components load eagerly on every product read.
         Index("ix_product_parent_id", "parent_id"),
         Index("ix_product_product_type_id", "product_type_id"),
-        # Exposed as both a sort key and a range filter on the product list, and the
-        # stats series buckets every product by it.
+        # Sort key and range filter on the product list; stats series bucket by it.
         Index("ix_product_created_at", "created_at"),
         CheckConstraint(
             "(parent_id IS NULL AND amount_in_parent IS NULL) "
@@ -61,7 +72,7 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
         Computed(
-            "to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
+            "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
             "coalesce(brand, '') || ' ' || coalesce(model, ''))",
             persisted=True,
         ),
@@ -72,9 +83,7 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     def first_image_file(self) -> MappedSQLExpression[Any | None]:
         """Column property exposing the earliest image's stored file, for thumbnails.
 
-        Lets summary reads (product lists, component lists) carry a thumbnail
-        without loading the ``images`` relationship — one correlated subquery
-        per row instead of an extra round-trip per page.
+        One correlated subquery per row, so list reads need not load ``images``.
         """
         return column_property(
             select(Image.file)
@@ -86,7 +95,6 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
             .scalar_subquery()
         )
 
-    # Self-referential relationship for hierarchy
     parent_id: Mapped[int | None] = mapped_column(ForeignKey("product.id"), default=None)
     parent: Mapped[Product | None] = relationship(
         back_populates="components",
@@ -103,7 +111,7 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         join_depth=1,
     )
 
-    # One-to-many relationships (file storage) — generic FK, no DB-level constraint
+    # Generic media FK, no DB-level constraint.
     files: Mapped[list[File] | None] = relationship(
         primaryjoin=lambda: and_(
             Product.id == foreign(File.parent_id),
@@ -123,11 +131,8 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     )
     videos: Mapped[list[Video] | None] = relationship(cascade="all, delete-orphan")
 
-    # Many-to-one: owner. NOT NULL on every row — components denormalize their
-    # root base product's owner so ownership and per-owner queries stay O(1).
-    # Both ProductRead and ComponentRead expose owner_id so clients can key
-    # ownership on the stable user id rather than a mutable username.
-    # Python type allows None so privacy redaction can clear it in memory.
+    # NOT NULL: components denormalize their root product's owner so per-owner queries
+    # stay O(1). The Python type allows None so privacy redaction can clear it in memory.
     owner_id: Mapped[UUID4 | None] = mapped_column(ForeignKey("user.id"), nullable=False)
     owner: Mapped[User | None] = relationship(
         uselist=False,
@@ -135,11 +140,9 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         foreign_keys="[Product.owner_id]",
     )
 
-    # Many-to-one: product type
     product_type_id: Mapped[int | None] = mapped_column(ForeignKey("producttype.id"), default=None)
     product_type: Mapped[ProductType] = relationship(uselist=False)
 
-    # Many-to-many: bill of materials
     bill_of_materials: Mapped[list[MaterialProductLink] | None] = relationship(
         back_populates="product", lazy="selectin", cascade="all, delete-orphan"
     )
@@ -163,12 +166,11 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
         return f"{self.name} (id: {self.id})"
 
 
-### MaterialProductLink; lives here so Product and Material are both in scope ###
 class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, Base):
     """Association table to link Material with Product."""
 
     __tablename__ = "materialproductlink"
-    # The composite primary key already covers material_id as its leading column.
+    # The composite primary key already indexes material_id as its leading column.
     __table_args__ = (
         Index("ix_materialproductlink_product_id", "product_id"),
         CheckConstraint("quantity > 0", name="ck_materialproductlink_quantity_positive"),
