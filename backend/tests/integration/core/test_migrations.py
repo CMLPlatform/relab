@@ -6,6 +6,11 @@ from typing import TYPE_CHECKING
 import pytest
 from alembic import command
 from sqlalchemy import inspect
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.schema import CreateIndex
+
+from app.api.common.models.base import Base
+from app.core.model_registry import load_models
 
 if TYPE_CHECKING:
     from alembic.config import Config
@@ -164,6 +169,49 @@ def test_alembic_autogenerate_is_clean(relab_alembic_config: Config) -> None:
     drifted from the migration history, this assertion fails.
     """
     command.check(relab_alembic_config)
+
+
+@pytest.mark.migration
+def test_partial_index_predicates_match_the_models(migration_helper: MigrationHelper) -> None:
+    """Every partial index's predicate must match the one the models declare.
+
+    ``alembic check`` compares an index's columns but not its ``postgresql_where``,
+    so editing a predicate without writing a migration passes the autogenerate test
+    while production keeps indexing a different subset of rows. Postgres normalizes
+    a predicate when it stores it, so the model's version is compared after the same
+    round trip rather than as a string.
+    """
+    load_models()
+    partial_indexes = [
+        index
+        for table in Base.metadata.tables.values()
+        for index in table.indexes
+        if index.dialect_options["postgresql"].get("where") is not None
+    ]
+    assert partial_indexes, "found no partial indexes; this test is discovering nothing"
+
+    probes = {}
+    for index in partial_indexes:
+        ddl = str(CreateIndex(index).compile(dialect=postgresql.dialect())).strip()
+        probes[index.name] = f"{index.name}_predicate_probe"
+        migration_helper.execute_sql(ddl.replace(index.name, probes[index.name], 1))
+
+    try:
+        predicates = dict(
+            migration_helper.execute_sql(
+                "SELECT c.relname, pg_get_expr(i.indpred, i.indrelid) "
+                "FROM pg_index i JOIN pg_class c ON c.oid = i.indexrelid "
+                "WHERE i.indpred IS NOT NULL"
+            )
+        )
+    finally:
+        for probe in probes.values():
+            migration_helper.execute_sql(f"DROP INDEX {probe}")
+
+    for name, probe in probes.items():
+        assert predicates[name] == predicates[probe], (
+            f"{name} predicate drifted: database has {predicates[name]}, models declare {predicates[probe]}"
+        )
 
 
 @pytest.mark.migration

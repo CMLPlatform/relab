@@ -115,11 +115,8 @@ async def init_email_checker(redis: Redis) -> EmailChecker | None:
     """Initialize the EmailChecker instance."""
     if settings.environment in (Environment.DEV, Environment.TESTING):
         return None
-    try:
-        checker = EmailChecker(redis)
-        await checker.initialize()
-    except (RuntimeError, ValueError, ConnectionError) as e:
-        logger.warning("Failed to initialize email checker: %s", e)
-        return None
-    else:
-        return checker
+    # No try here: initialize() already swallows every recoverable error and leaves
+    # the checker uninitialized, which is_disposable reads as "allow".
+    checker = EmailChecker(redis)
+    await checker.initialize()
+    return checker
