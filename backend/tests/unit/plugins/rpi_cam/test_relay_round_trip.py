@@ -9,6 +9,7 @@ fake Pi that answers on the socket, so command correlation, envelope parsing and
 response ownership all have to line up for the test to pass.
 """
 
+import asyncio
 import json
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -106,3 +107,44 @@ async def test_a_second_camera_cannot_answer_another_cameras_command(
     method, path = _ALLOWED_COMMAND
     with pytest.raises(HTTPException, match="did not respond in time"):
         await relay_via_websocket(camera_id, method, path, redis=AsyncMock())
+
+
+async def test_a_camera_dropping_mid_command_fails_the_caller_immediately(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A disconnect must fail the waiting caller, not leave it on the relay deadline.
+
+    ``unregister`` sets an exception on every future the camera still owes, which is
+    what turns a dropped camera into a prompt 503. Without it the request would sit
+    until the relay timeout expires, holding a worker for the full deadline while the
+    camera is already known to be gone.
+    """
+    # Restore a deadline long enough that only the disconnect can end this command:
+    # under the shortened one, the timeout path returns an indistinguishable 503.
+    monkeypatch.setattr(f"{_RELAY_MODULE}.DEFAULT_COMMAND_TIMEOUT", 30.0)
+    manager = CameraConnectionManager()
+    camera_id = uuid4()
+    websocket = AsyncMock()
+    command_sent = asyncio.Event()
+    # Accept the command and never answer: the camera drops while it is still pending.
+    websocket.send_text = AsyncMock(side_effect=lambda *_a, **_kw: command_sent.set())
+    await manager.register(camera_id, websocket)
+    monkeypatch.setattr(f"{_RELAY_MODULE}.get_connection_manager", lambda: manager)
+
+    method, path = _ALLOWED_COMMAND
+    command = asyncio.create_task(relay_via_websocket(camera_id, method, path, redis=AsyncMock()))
+    try:
+        await asyncio.wait_for(command_sent.wait(), timeout=1)
+        assert manager.unregister(camera_id, websocket)
+
+        with pytest.raises(HTTPException) as excinfo:
+            await asyncio.wait_for(command, timeout=1)
+    finally:
+        if not command.done():
+            command.cancel()
+            await asyncio.gather(command, return_exceptions=True)
+
+    assert excinfo.value.status_code == 503
+    assert "Retry-After" in excinfo.value.headers
+    # Must be the disconnect response, not the deadline expiring on a still-pending command.
+    assert excinfo.value.detail == "Camera is not connected via WebSocket."

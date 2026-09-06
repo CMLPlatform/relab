@@ -87,6 +87,7 @@
     # Core testing frameworks
     "pytest-asyncio>=1.0.0",
     "pytest-cov>=6.2.1",
+    "pytest-timeout>=2.3.0", # Fail a hung test instead of stalling the run
     "pytest-xdist>=3.5.0",   # Parallel test execution
     "pytest>=8.4.1",
 
@@ -129,7 +130,11 @@
     type    = "module"
 
 [tool.pytest.ini_options]
-  addopts = "-ra --strict-markers --strict-config"
+  # A deadlock otherwise burns the whole CI job, and under xdist it takes the other
+  # workers' output with it. Sized to sit above the slowest legitimate test (~5s) and
+  # below the production timeouts a stuck test would wait on; --durations polices
+  # merely-slow tests.
+  addopts = "-ra --strict-markers --strict-config --timeout=60"
   asyncio_default_fixture_loop_scope = "function"
   asyncio_mode = "auto"
   log_cli = false
