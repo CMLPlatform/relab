@@ -56,18 +56,20 @@ just timers-install prod      # render, install, enable, start (needs sudo)
 ### How a failed job reaches you
 
 The installer seeds `/etc/relab/relab.env` (mode 0600, never committed) with one dead-man's-switch
-URL per job. Fill them in from healthchecks.io, one check per job. Sharing a URL lets the hourly
-job's pings mask the monthly job's silence:
+URL variable per job. Only `PING_WATCHDOG` has to be filled in: the hourly watchdog checks every
+other job's timer state, last result and staleness, and puts a failing job's own output in the
+alert body. The other three are optional; set one to give that job its own healthchecks.io check,
+and never share a URL between jobs, or the hourly job's pings mask the monthly job's silence:
 
 ```ini
-PING_BACKUP=https://hc-ping.com/...             # period 1 hour
-PING_WATCHDOG=https://hc-ping.com/...        # period 1 hour
-PING_BACKUP_MAINTENANCE=https://hc-ping.com/... # period 1 day
-PING_RESTORE_CHECK=https://hc-ping.com/...      # period 35 days
+PING_WATCHDOG=https://hc-ping.com/...           # required; period 1 hour, grace 30 min
+PING_BACKUP=                                    # optional; period 1 hour
+PING_BACKUP_MAINTENANCE=                        # optional; period 1 day
+PING_RESTORE_CHECK=                             # optional; period 35 days
 ```
 
-Each job pings on success, and on failure pings `/fail` with its own output as the body, so the
-alert carries the reason. An empty URL disables that job's ping without failing the job. The failure
+Each job with a URL pings on success, and on failure pings `/fail` with its own output as the body,
+so the alert carries the reason. An empty URL disables that job's ping without failing the job. The failure
 body puts job output (hostnames, paths, restic summaries) in a third party's hands.
 
 The deploy user needs docker-group membership, which is root-equivalent: these units run a writable
@@ -128,7 +130,7 @@ restic REST server with `--append-only` is the only real defence; WebDAV is neit
   `BACKUP_DISK_ALERT_PCENT` overrides)
 - all four scheduled-job timers (installed, enabled, active, last run not failed, last trigger not
   overdue)
-- that the `PING_*` URLs are filled in
+- that `PING_WATCHDOG` is filled in
 - deployment drift (uncommitted changes, or commits that exist nowhere else)
 - that telemetry exports reach the collector
 
@@ -221,8 +223,9 @@ ______________________________________________________________________
 
 ## Part 3 — Recovery
 
-Migrations run in a single transaction, so a failed migrate leaves the schema untouched at its
-previous revision. Fix forward where possible.
+Migrations commit one revision at a time (`transaction_per_migration=True` in
+`backend/alembic/env.py`), so a failed migrate leaves `alembic_version` at the last revision that
+succeeded, and a re-run resumes from there. Fix forward where possible.
 
 Every `just prod-build` tags its images with the commit sha of the checkout it built (unrelated to
 the alembic revision, which names the schema), so a release can be rolled back without a rebuild.

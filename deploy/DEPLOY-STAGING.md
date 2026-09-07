@@ -12,9 +12,9 @@ ______________________________________________________________________
 Same as [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1 with `staging` substituted for `prod`: the
 install guide's "First backup" and "Scheduling backups", then `just timers-install staging`.
 
-Then fill in `/etc/relab/relab.env` with staging's own healthchecks.io URLs, one per job
-(`PING_BACKUP` is hourly, `PING_BACKUP_MAINTENANCE` daily). Do not reuse prod's: a shared check
-cannot tell you which host went quiet. See [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.2.
+Then fill in `PING_WATCHDOG` in `/etc/relab/relab.env` with staging's own healthchecks.io URL.
+Do not reuse prod's: a shared check cannot tell you which host went quiet. See
+[DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.2.
 
 Set telemetry the same way as prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5):
 `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTLP_AUTH_TOKEN`, `TELEMETRY_EDGE_KEY` and

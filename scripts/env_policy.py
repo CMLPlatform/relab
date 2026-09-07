@@ -107,6 +107,8 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     # Upload ceilings and malware scanning, overridable per instance.
     "MAX_UPLOAD_FILES_PER_USER",
     "MAX_UPLOAD_BYTES_PER_USER_MB",
+    "MAX_UPLOAD_FILES_PER_LAB_USER",
+    "MAX_UPLOAD_BYTES_PER_LAB_USER_MB",
     "MALWARE_SCAN_ENABLED",
 }
 STALE_ENV_NAMES = {

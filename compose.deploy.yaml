@@ -132,6 +132,8 @@ services:
       # rows, so an over-limit owner is blocked from uploading entirely).
       MAX_UPLOAD_FILES_PER_USER: "${MAX_UPLOAD_FILES_PER_USER:-5000}"
       MAX_UPLOAD_BYTES_PER_USER_MB: "${MAX_UPLOAD_BYTES_PER_USER_MB:-2048}"
+      MAX_UPLOAD_FILES_PER_LAB_USER: "${MAX_UPLOAD_FILES_PER_LAB_USER:-20000}"
+      MAX_UPLOAD_BYTES_PER_LAB_USER_MB: "${MAX_UPLOAD_BYTES_PER_LAB_USER_MB:-20480}"
       # deploy_ops.sh adds the `scanning` profile below whenever this is not false;
       # true without a running clamav fails uploads closed.
       MALWARE_SCAN_ENABLED: "${MALWARE_SCAN_ENABLED:-true}"
