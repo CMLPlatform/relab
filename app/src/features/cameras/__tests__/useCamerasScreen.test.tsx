@@ -1,0 +1,109 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { act, renderHook } from '@testing-library/react-native';
+import { useCamerasScreen } from '@/features/cameras/useCamerasScreen';
+
+const mockReplace = jest.fn();
+const mockPush = jest.fn();
+const mockSetOptions = jest.fn();
+const mockRefetch = jest.fn();
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    back: jest.fn(),
+  }),
+  useNavigation: () => ({
+    setOptions: mockSetOptions,
+  }),
+  useLocalSearchParams: () => ({}),
+}));
+
+jest.mock('@/context/auth', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1', email: 'test@example.com' },
+  }),
+}));
+
+jest.mock('@/context/streamSession', () => ({
+  useStreamSession: () => ({
+    setActiveStream: jest.fn(),
+  }),
+}));
+
+jest.mock('@/hooks/useAppFeedback', () => ({
+  useAppFeedback: () => ({
+    alert: jest.fn(),
+    error: jest.fn(),
+  }),
+}));
+
+jest.mock('@/features/cameras/useEffectiveCameraConnection', () => ({
+  resolveEffectiveCameraConnection: () => ({ isReachable: true }),
+}));
+
+jest.mock('@/hooks/useBreakpoint', () => ({
+  useBreakpoint: () => ({ isMd: false, isLg: false }),
+}));
+
+jest.mock('@/features/product-entity/queries', () => ({
+  baseProductQueryOptions: () => ({ queryKey: ['baseProduct', null], enabled: false }),
+}));
+
+const mockCamerasQueryData = [
+  {
+    id: 'camera-1',
+    name: 'Test Camera',
+  },
+];
+
+jest.mock('@/features/cameras/rpi/hooks', () => ({
+  useCamerasQuery: () => ({
+    data: mockCamerasQueryData,
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+    refetch: mockRefetch,
+  }),
+  useCaptureAllMutation: () => ({
+    mutate: jest.fn(),
+    isPending: false,
+  }),
+}));
+
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({
+    invalidateQueries: jest.fn(),
+  }),
+  // Only the streamed product's lookup goes through useQuery here; the camera
+  // queries are mocked at the hook level below.
+  useQuery: () => ({ data: null }),
+}));
+
+describe('useCamerasScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns grouped screen, selection, streaming, and action domains', () => {
+    const { result } = renderHook(() => useCamerasScreen());
+
+    expect(result.current.screen.rows).toEqual(mockCamerasQueryData);
+    expect(result.current.selection.selectedCount).toBe(0);
+    expect(result.current.streaming.streamDialog.cameraId).toBeNull();
+    expect(typeof result.current.actions.openAddCamera).toBe('function');
+  });
+
+  it('uses named actions for add-camera navigation and selection mode', () => {
+    const { result } = renderHook(() => useCamerasScreen());
+
+    act(() => {
+      result.current.actions.openAddCamera();
+      result.current.actions.handleCardLongPress(mockCamerasQueryData[0] as never);
+    });
+
+    expect(mockPush).toHaveBeenCalledWith('/cameras/add');
+    expect(result.current.selection.selectionMode).toBe(false);
+  });
+});

@@ -1,32 +1,18 @@
 ---
 title: Architecture
-description: System design, data model, API, auth, and operations.
-owner: docs
-status: canonical
-lastReviewed: '2026-04-15'
+description: System design, data model, API, and auth.
 ---
 
-<div class="grid cards relab-card-grid" markdown>
+For maintainers and contributors who need the main system boundaries before changing code.
 
-- **[System Design](system-design/)**
-  Monorepo structure, runtime components, and design priorities.
+Start with [System design](system-design/): the split across app, web, backend, and docs that the
+rest of this section assumes. [Data model](datamodel/) and [API structure](api/) cover the entities
+and their relationships, and how routes are organized around them. [App navigation
+flow](app-flow/) covers the mobile app's screens and redirects.
 
-- **[Data Model](datamodel/)**
-  Main entities and relationships.
+[Authentication](auth/) and [RPi camera plugin](rpi-cam/) are self-contained. Read them before
+changing login, sessions, and OAuth, or the camera pairing and streaming path. Both describe
+security-relevant behavior; treat them as the reference.
 
-- **[API Structure](api/)**
-  Route organisation and integration flow.
-
-- **[Authentication](auth/)**
-  Login, refresh, OAuth, and session handling.
-
-- **[RPI Camera Plugin](rpi-cam/)**
-  Camera plugin architecture and interaction flows.
-
-- **[Deployment & Operations](deployment/)**
-  How the system is run today and the main operational trade-offs.
-
-- **[Engineering Configuration](engineering-config/)**
-  Runtime/tooling versions, manifest ownership, env files, and infra review rules.
-
-</div>
+To run the stack, see [Install and self-host](/operations/install/) and
+[Deployment](/operations/deployment/).

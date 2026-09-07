@@ -2,27 +2,37 @@
 # Provides credentials via .env.test so services can start without real secrets.
 name: relab_test
 
+x-test-env-file: &test-env-file ./backend/.env.test
+
 services:
   api:
     environment:
       ENVIRONMENT: testing
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
   migrator:
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
   postgres:
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
   redis:
-    env_file: ./backend/.env.test
+    env_file: *test-env-file
 
-  app-site:
+  app:
     build:
       args:
-        BUILD_MODE: test
+        ENVIRONMENT: test
+        EXPO_PUBLIC_API_URL: http://127.0.0.1:18010
+        EXPO_PUBLIC_WEBSITE_URL: http://127.0.0.1:18013
+        EXPO_PUBLIC_DOCS_URL: http://127.0.0.1:18012
+    environment:
+      CADDY_API_ORIGIN: http://127.0.0.1:18010
 
-  web-site:
+  www:
     build:
       args:
-        BUILD_MODE: test
+        ENVIRONMENT: test
+        PUBLIC_APP_URL: http://127.0.0.1:18011
+        PUBLIC_DOCS_URL: http://127.0.0.1:18012
+        PUBLIC_SITE_URL: http://127.0.0.1:18013

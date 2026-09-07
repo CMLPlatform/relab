@@ -1,30 +1,31 @@
 """Ownership validation helpers shared across API modules."""
 
-from typing import cast
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4
 from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.api.auth.exceptions import UserOwnershipError
 from app.api.common.crud.exceptions import ModelNotFoundError
-from app.api.common.models.custom_types import IDT, MT
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from app.api.common.models.base import Base
 
 
-async def get_user_owned_object(
+async def get_user_owned_object[MT: Base](
     db: AsyncSession,
     model: type[MT],
-    model_id: IDT,
+    model_id: int | UUID,
     owner_id: UUID4,
     user_fk: str = "owner_id",
 ) -> MT:
-    """Validate user ownership of a model instance with a many-to-one relationship."""
-    model_id_column = cast("InstrumentedAttribute[IDT]", inspect(model).primary_key[0])
-    statement = select(model).where(model_id_column == model_id)
+    """Load a model instance only from the current user's owned scope."""
+    model_id_column = inspect(model).primary_key[0]
+    owner_id_column = getattr(model, user_fk)
+    statement = select(model).where(model_id_column == model_id, owner_id_column == owner_id)
     db_model = (await db.execute(statement)).scalars().unique().one_or_none()
     if db_model is None:
         raise ModelNotFoundError(model, model_id)
-    if getattr(db_model, user_fk) != owner_id:
-        raise UserOwnershipError(model_type=model, model_id=model_id, user_id=owner_id)
     return db_model

@@ -6,8 +6,6 @@ Create Date: 2026-03-30 00:00:00.000000
 
 """
 
-# spell-checker: ignore trgm
-
 from collections.abc import Sequence
 
 from alembic import op

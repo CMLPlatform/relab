@@ -1,31 +1,28 @@
 ---
-title: Use Cases
-description: The primary research use cases RELab is designed to support and the things it is not.
-owner: docs
-status: reviewed
-lastReviewed: '2026-04-15'
+title: Use cases
+description: The primary research use cases Relab is designed to support and the things it is not.
 ---
 
-## Primary Research Use Case
+## What Relab is for
 
-RELab collects product data through disassembly records with media. Middle- and end-of-life actors can add observations directly.
+Relab documents real products as they are taken apart: product identity, component hierarchy, photos, measurements, material notes, and uncertainty in one record.
 
-It keeps item identity, component hierarchy, media, and material notes.
+The main use case is research data collection for durable goods, with enough structure for later comparison and still practical on a lab bench or in a repair workspace.
 
-Typical contributors:
+Typical contributors include:
 
 - repairers and refurbishers
 - manual dismantlers and recyclers
 - researchers and lab assistants
 - citizen scientists
 
-## Non-Goals
+## What Relab is not
 
-RELab is not:
+Relab is not:
 
 - a general-purpose product lifecycle management system
 - a mass-scale crowdsourcing platform
 - a fully automated computer-vision pipeline
 - a highly elastic cloud-native platform
 
-The scope stays narrow because the research questions drive what gets built.
+The narrow scope keeps the platform small enough for a small research team to run.

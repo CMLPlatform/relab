@@ -1,0 +1,430 @@
+/**
+ * Product detail page E2E tests.
+ *
+ * Covers: creating a new product via capture-first creation (name → Create),
+ * verifying the detail page loads in edit mode, editing fields, and the
+ * unsaved-changes guard.
+ *
+ * The test user (e2e-admin) is a verified superuser, so the "Create New
+ * Product" dialog is always accessible without the email-verification gate.
+ */
+
+import { expect, test } from '@playwright/test';
+import {
+  loginAndReachProducts,
+  openNewProductPage,
+  openSeededProductFromProductsPage,
+  reachProductsPage,
+} from './helpers';
+
+test.setTimeout(60_000);
+
+const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
+const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
+const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
+// The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
+// not a link — see HeaderBackButton.
+const BACK_CONTROL_NAME_PATTERN = /back/i;
+const PRODUCT_ID_TEXT_PATTERN = /Product ID: \d+/;
+const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
+// Empty optional sections collapse to a single "Add …" row in edit mode
+// (Section.tsx showAddRow); pressing it reveals the real fields.
+const ADD_DESCRIPTION_LABEL = 'Add a description';
+// Measurements and circularity notes share one Properties section, so one
+// add-row opens both blocks.
+const ADD_PROPERTIES_LABEL = 'Add properties';
+const DESCRIPTION_PLACEHOLDER = 'Add a product description';
+
+// Stage 1 of capture-first creation: fill the name on the capture screen and
+// press Create. The backend saves immediately and the app redirects to the
+// new product's detail page in edit mode (?edit=1) — granular capture-form
+// validation (short names, Create disabled/enabled) is unit-tested on
+// CaptureScreen itself; this only proves the real navigation round-trip.
+async function createProduct(page: import('@playwright/test').Page, name: string): Promise<void> {
+  await openNewProductPage(page);
+  await page.getByRole('textbox', { name: 'Name' }).fill(name);
+  await page.getByRole('button', { name: 'Create product' }).click();
+  await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
+}
+
+// Stage 2: detail-in-edit. The product already exists at this point, so this
+// is an ordinary existing-record edit — same "Add …" row pattern as any other
+// empty section (see the 2a add-row coverage below).
+async function fillRequiredProductFields(
+  page: import('@playwright/test').Page,
+  name: string,
+): Promise<void> {
+  await createProduct(page, name);
+  await page.getByRole('button', { name: ADD_PROPERTIES_LABEL }).click();
+  const weightInput = page.getByPlaceholder('e.g. 12').first();
+  await weightInput.fill('42');
+  await weightInput.blur();
+}
+
+async function saveNewProduct(page: import('@playwright/test').Page, name: string): Promise<void> {
+  await fillRequiredProductFields(page, name);
+  await expect(page.getByRole('button', { name: 'Save Product' })).toBeEnabled({
+    timeout: 5_000,
+  });
+  await page.getByRole('button', { name: 'Save Product' }).click();
+}
+
+// ─── Product detail navigation ─────────────────────────────────────────────────
+
+test.describe('Product detail: navigation', () => {
+  test('clicking a product card navigates to the detail page', { tag: '@cross-browser' }, async ({
+    page,
+  }) => {
+    await reachProductsPage(page);
+    await openSeededProductFromProductsPage(page);
+  });
+
+  test('product detail page shows the product name in the header', async ({ page }) => {
+    await reachProductsPage(page);
+    await openSeededProductFromProductsPage(page);
+    await expect(
+      page.getByRole('heading', { name: SEEDED_PRODUCT_NAME_PATTERN }).last(),
+    ).toBeVisible({ timeout: 5_000 });
+  });
+});
+
+// ─── Section nav anchors ────────────────────────────────────────────────────
+// Regression net for the section-anchor coordinate bug: Section registered
+// its onLayout y relative to its parent View, not the scroll content, so
+// chip taps landed roughly one section short (missing the gallery height).
+test.describe('Product detail: section navigation', () => {
+  test('clicking the Properties chip scrolls that section to the top of the viewport', async ({
+    page,
+  }) => {
+    await reachProductsPage(page);
+    await openSeededProductFromProductsPage(page);
+
+    // Both seeded products have physical properties set, so the section (and
+    // its nav chip/outline entry) is visible in view mode without editing.
+    await page.getByRole('button', { name: 'Properties' }).click();
+
+    // The chip/outline entry and the Section heading share the same text; the
+    // Section heading is the last match in DOM order (nav renders first).
+    const heading = page.getByText('Properties', { exact: true }).last();
+    await expect(heading).toBeVisible({ timeout: 5_000 });
+    // The heading settles just under the sticky chrome (top nav + product header
+    // + chip bar), so the ceiling is measured from that chrome rather than a
+    // magic number that drifts every time the header changes height. Pre-fix the
+    // scroll landed ~a full section short — hundreds of px below this bound.
+    const chipBar = await page.getByRole('button', { name: 'Properties' }).boundingBox();
+    const chromeBottom = (chipBar?.y ?? 0) + (chipBar?.height ?? 0);
+    // Poll: scrollTo animates, so the heading needs a moment to settle.
+    await expect
+      .poll(async () => (await heading.boundingBox())?.y ?? Number.POSITIVE_INFINITY, {
+        timeout: 5_000,
+      })
+      .toBeLessThan(chromeBottom + 100);
+  });
+});
+
+// ─── Chunking at phone width ────────────────────────────────────────────────
+// Six sections used to make six chips, of which two sat off-screen at 390pt.
+// Assert the painted result: every chip's right edge inside the viewport, in
+// edit mode (where every section, empty or not, is present).
+test.describe('Product detail: phone chunking', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('all section chips fit one row at 390pt in edit mode', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Chunk ${Date.now()}`);
+    const chips = page.getByTestId('section-nav-chips').getByRole('button');
+    await expect(chips).toHaveCount(4);
+    const boxes = await Promise.all((await chips.all()).map((chip) => chip.boundingBox()));
+    for (const box of boxes) {
+      expect(box).not.toBeNull();
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+    }
+  });
+
+  test('edit mode has exactly one name control, at display scale', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Name ${Date.now()}`);
+    const nameInputs = page.getByRole('textbox', { name: 'Product name' });
+    await expect(nameInputs).toHaveCount(1);
+    const fontSize = await nameInputs.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    // The display step is the largest text on the screen (DESIGN.md §Hierarchy).
+    expect(fontSize).toBeGreaterThanOrEqual(30);
+  });
+
+  test('compact empty gallery keeps the product name in the first viewport', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Gallery ${Date.now()}`);
+
+    const gallery = page.getByTestId('empty-gallery-actions');
+    const productName = page.getByRole('textbox', { name: 'Product name' });
+    const [galleryBox, nameBox] = await Promise.all([
+      gallery.boundingBox(),
+      productName.boundingBox(),
+    ]);
+    expect(galleryBox).not.toBeNull();
+    expect(galleryBox?.height ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(112);
+    expect(nameBox).not.toBeNull();
+    expect((nameBox?.y ?? 0) + (nameBox?.height ?? 0)).toBeLessThanOrEqual(844);
+  });
+
+  test('Properties has internal hierarchy and its fields clear the flow Save bar', async ({
+    page,
+  }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Properties ${Date.now()}`);
+    await page.getByRole('button', { name: ADD_PROPERTIES_LABEL }).click();
+
+    await expect(page.getByText('Measurements', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Circularity notes' })).toBeVisible();
+
+    const saveBar = page.getByTestId('save-bar-dock');
+    const noteFields = page.locator('textarea');
+    await expect(noteFields).toHaveCount(3);
+    const fields = await noteFields.all();
+    await Promise.all(fields.map((noteField) => noteField.scrollIntoViewIfNeeded()));
+    const [fieldBoxes, saveBox] = await Promise.all([
+      Promise.all(fields.map((noteField) => noteField.boundingBox())),
+      saveBar.boundingBox(),
+    ]);
+    expect(saveBox).not.toBeNull();
+    for (const fieldBox of fieldBoxes) {
+      expect(fieldBox).not.toBeNull();
+      expect((fieldBox?.y ?? 0) + (fieldBox?.height ?? 0)).toBeLessThanOrEqual(saveBox?.y ?? 0);
+    }
+  });
+});
+
+// ─── Product creation flow ─────────────────────────────────────────────────────
+// Capture-form-level validation (short names, Create disabled/enabled, 100-char
+// behavior) is unit-tested on CaptureScreen; these only prove the real
+// capture → detail round-trip through the app and backend.
+
+test.describe('Product creation', () => {
+  test('creating a product via capture lands on its saved detail page in edit mode', {
+    tag: ['@cross-browser', '@auth'],
+  }, async ({ page }) => {
+    await loginAndReachProducts(page);
+    const productName = `E2E Test ${Date.now()}`;
+    await createProduct(page, productName);
+
+    // In edit mode the header *is* the name field (a textbox), not a
+    // static heading — see productPageHelpers.tsx's useProductPageHeader.
+    await expect(page.getByRole('textbox', { name: 'Product name' })).toHaveValue(productName, {
+      timeout: 10_000,
+    });
+    await expect(page.getByRole('button', { name: 'Save Product' })).toBeVisible();
+  });
+
+  test('discarding the capture draft returns to the products page', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await openNewProductPage(page);
+    await page.getByRole('textbox', { name: 'Name' }).fill('Discard me');
+    // Unlike the detail screen (a custom Pressable back button), the capture
+    // screen uses expo-router's default web back control, which renders as a
+    // link rather than a button.
+    await page.getByRole('link', { name: BACK_CONTROL_NAME_PATTERN }).click();
+    await expect(page.getByText('Discard changes?')).toBeVisible({
+      timeout: 10_000,
+    });
+    await page.getByRole('button', { name: 'Discard' }).click();
+    await expect(page).toHaveURL(PRODUCTS_LIST_URL_PATTERN, {
+      timeout: 10_000,
+    });
+  });
+
+  test('saving physical properties on a freshly created product persists them', async ({
+    page,
+  }) => {
+    await loginAndReachProducts(page);
+    await saveNewProduct(page, `E2E Test ${Date.now()}`);
+
+    await expect(page.getByRole('button', { name: 'Properties' })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+});
+
+// ─── Product detail edit mode ──────────────────────────────────────────────────
+// Carried over from 2a-T7 almost verbatim: once a product exists (whether just
+// created via capture or opened from the list) its detail-in-edit behavior —
+// collapsed "Add …" rows, the unsaved-changes guard — is identical.
+
+test.describe('Product detail: edit mode', () => {
+  test('a freshly created product opens in edit mode with collapsed optional sections', async ({
+    page,
+  }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Test ${Date.now()}`);
+
+    // A fresh product's optional sections are all empty, so they collapse to a
+    // single "Add …" row (Section.tsx showAddRow) instead of their full
+    // content. Assert the row for Overview, then press it to prove it
+    // actually reveals the description field.
+    const addDescriptionRow = page.getByRole('button', { name: ADD_DESCRIPTION_LABEL });
+    await expect(addDescriptionRow).toBeVisible({ timeout: 10_000 });
+    await addDescriptionRow.click();
+    await expect(page.getByPlaceholder(DESCRIPTION_PLACEHOLDER)).toBeVisible({
+      timeout: 5_000,
+    });
+
+    // Other empty sections stay collapsed but present.
+    await expect(page.getByRole('button', { name: ADD_PROPERTIES_LABEL })).toBeVisible({
+      timeout: 5_000,
+    });
+    // The metadata footer (dates, owner, id) is not a section and never
+    // collapses; its always-present "Product ID: N" line proves it rendered.
+    await expect(page.getByText(PRODUCT_ID_TEXT_PATTERN)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Test ${Date.now()}`);
+
+    // Overview is empty on a fresh product, so the description field sits
+    // behind the "Add a description" row until pressed.
+    await page.getByRole('button', { name: ADD_DESCRIPTION_LABEL }).click();
+    const descriptionInput = page.getByPlaceholder(DESCRIPTION_PLACEHOLDER);
+    await expect(descriptionInput).toBeVisible({ timeout: 10_000 });
+    // Make the form dirty so the unsaved-changes guard fires (form starts pristine after creation)
+    await descriptionInput.fill('test description');
+
+    // Attempt to leave via the in-app header back control; the unsaved-changes guard should intercept.
+    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
+    await expect(page.getByText('Discard changes?')).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByRole('button', { name: "Don't leave" })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();
+
+    // Choose "Don't leave"; stays on the product page
+    await page.getByRole('button', { name: "Don't leave" }).click();
+    await expect(page.getByText('Discard changes?')).not.toBeVisible();
+    await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN);
+  });
+});
+
+// ─── Adding a child component ──────────────────────────────────────────────────
+// Composing a product out of parts is the whole point of the data model, and no
+// spec drove it end to end: the add affordance, the child capture screen, the
+// parent-child link, and the parent's rendering of it were all only unit-tested
+// against mocks.
+
+const COMPONENT_DETAIL_URL_PATTERN = /components\/\d+/;
+const NEW_COMPONENT_URL_PATTERN = /\/products\/\d+\/components\/new$/;
+// No ?edit=1: the product detail page after the save round-trip has completed.
+const SAVED_PRODUCT_URL_PATTERN = /\/products\/\d+$/;
+
+test.describe('Product detail: components', () => {
+  test('adding a component links it to the parent product', async ({ page }) => {
+    await loginAndReachProducts(page);
+    const componentName = `E2E Component ${Date.now()}`;
+    await saveNewProduct(page, `E2E Parent ${Date.now()}`);
+
+    // "Add component" only renders once the save has dropped ?edit=1 — a
+    // component needs a persisted parent — so this also waits out the save.
+    // The name is unambiguous: the Components section's info tooltip, whose
+    // label used to contain this one, is edit-mode only.
+    const addComponent = page.getByRole('button', { name: 'Add component' });
+    await expect(addComponent).toBeVisible({ timeout: 15_000 });
+    await addComponent.click();
+
+    // Wait for the capture screen before touching it. Without this a lost
+    // navigation surfaces 60s later as "Create component not found", pointing at
+    // the wrong step entirely — the parent page has no such button.
+    await expect(page).toHaveURL(NEW_COMPONENT_URL_PATTERN, { timeout: 15_000 });
+
+    // The child capture screen is the same CaptureScreen as product creation,
+    // with entityRole="component" — hence "Create component" rather than
+    // "Create product".
+    await page.getByRole('textbox', { name: 'Name' }).fill(componentName);
+    await page.getByRole('button', { name: 'Create component' }).click();
+    await expect(page).toHaveURL(COMPONENT_DETAIL_URL_PATTERN, { timeout: 15_000 });
+
+    // Back to the parent: the component must now show up in its Components
+    // section. This is the assertion that proves the parent link persisted
+    // server-side rather than just the child record being created.
+    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
+    await expect(page).toHaveURL(SAVED_PRODUCT_URL_PATTERN, { timeout: 15_000 });
+    // The row itself, not just the text: it is the pressable that navigates
+    // back down into the child, so its presence proves the parent actually
+    // holds the link rather than the name merely appearing somewhere.
+    // exact: the row sits beside a "Show components of <name>" expander, whose
+    // accessible name also contains the component's.
+    await expect(page.getByRole('button', { name: componentName, exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+});
+
+// ─── Image upload ──────────────────────────────────────────────────────────────
+// The gallery spec mocks /products and the image URLs outright, so a broken
+// upload, storage write, or thumbnail pipeline could not fail the suite. This
+// drives the real multipart upload and then fetches the stored bytes back.
+
+test.describe('Product detail: image upload', () => {
+  test('uploads an image and serves it back from storage', async ({ page }) => {
+    await loginAndReachProducts(page);
+    const productName = `E2E Upload ${Date.now()}`;
+    await createProduct(page, productName);
+
+    // Seeded products already put /uploads/ thumbnails in the DOM, so record
+    // them first — otherwise an assertion on "an uploaded image exists" passes
+    // without this test having uploaded anything.
+    const storedImages = page.locator('img[src*="/uploads/"]');
+    const before = new Set(
+      await storedImages.evaluateAll((els) => els.map((el) => (el as HTMLImageElement).src)),
+    );
+
+    // expo-image-picker builds its <input type="file"> on click rather than
+    // rendering one, so intercept the chooser instead of locating an input.
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByRole('button', { name: 'Add photos from gallery' }).click(),
+    ]);
+    await chooser.setFiles('e2e/fixtures/test-image.png');
+    // setFiles returns before the app has read the file into the form. Saving
+    // first would persist a product with no images and never issue the upload.
+    await expect(page.getByRole('button', { name: `View ${productName}` })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // Picking only stages the file client-side; Save is what uploads it.
+    const [upload] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.request().method() === 'POST' && PRODUCT_IMAGE_UPLOAD_PATH_PATTERN.test(r.url()),
+        { timeout: 30_000 },
+      ),
+      page.getByRole('button', { name: 'Save Product' }).click(),
+    ]);
+    expect(upload.status()).toBeLessThan(300);
+
+    // A URL that was not on the page before: proof this product's own image was
+    // stored, rather than a seeded one being re-read.
+    await expect
+      .poll(
+        async () => {
+          const srcs = await storedImages.evaluateAll((els) =>
+            els.map((el) => (el as HTMLImageElement).src),
+          );
+          return srcs.filter((src) => !before.has(src));
+        },
+        { timeout: 30_000 },
+      )
+      .not.toHaveLength(0);
+
+    const srcs = await storedImages.evaluateAll((els) =>
+      els.map((el) => (el as HTMLImageElement).src),
+    );
+    const uploadedSrc = srcs.find((src) => !before.has(src));
+
+    // Fetch the bytes back out of storage. This is what separates "the client
+    // rendered something" from "the pipeline actually stored it".
+    const response = await page.request.get(uploadedSrc as string);
+    expect(response.status()).toBe(200);
+    expect((await response.body()).byteLength).toBeGreaterThan(0);
+
+    await expect(page.getByRole('button', { name: `View ${productName}` })).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+});

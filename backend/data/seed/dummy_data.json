@@ -112,6 +112,72 @@
       "bill_of_materials": [
         {"material": "Aluminum", "quantity": 0.5, "unit": "kg"},
         {"material": "Polycarbonate", "quantity": 0.3, "unit": "kg"}
+      ],
+      "components": [
+        {
+          "name": "Display assembly",
+          "description": "Lid, hinges and LCD panel as one removable unit.",
+          "amount_in_parent": 1,
+          "physical_properties": {"weight_g": 258},
+          "components": [
+            {
+              "name": "LCD panel",
+              "description": "13.3-inch IPS panel.",
+              "amount_in_parent": 1,
+              "physical_properties": {"weight_g": 163}
+            },
+            {
+              "name": "Lid and hinges",
+              "description": "Aluminium lid with both hinges attached.",
+              "amount_in_parent": 1,
+              "physical_properties": {"weight_g": 95}
+            }
+          ]
+        },
+        {
+          "name": "Bottom cover",
+          "description": "Machined aluminium base plate.",
+          "amount_in_parent": 1,
+          "physical_properties": {"weight_g": 156}
+        },
+        {
+          "name": "Keyboard",
+          "description": "Backlit keyboard, removed from its frame.",
+          "amount_in_parent": 1,
+          "physical_properties": {"weight_g": 94}
+        },
+        {
+          "name": "Motherboard assembly",
+          "description": "Mainboard with heatsink and port brackets.",
+          "amount_in_parent": 1,
+          "physical_properties": {"weight_g": 88},
+          "components": [
+            {
+              "name": "PCB assembly",
+              "description": "Populated mainboard PCB.",
+              "amount_in_parent": 1,
+              "physical_properties": {"weight_g": 66}
+            },
+            {
+              "name": "Port brackets",
+              "description": "USB-C and audio port brackets.",
+              "amount_in_parent": 2,
+              "physical_properties": {"weight_g": 22}
+            }
+          ]
+        },
+        {
+          "name": "Keyboard frame assembly",
+          "description": "Magnesium frame the keyboard mounts into.",
+          "amount_in_parent": 1,
+          "physical_properties": {"weight_g": 71}
+        },
+        {
+          "name": "SSD",
+          "description": "M.2 2280 NVMe drive.",
+          "amount_in_parent": 1,
+          "physical_properties": {"weight_g": 8.4}
+        }
       ]
     }
   ],
@@ -120,6 +186,41 @@
       "description": "Example phone image",
       "filename": "example_phone.jpg",
       "parent_product_name": "iPhone 12"
+    },
+    {
+      "description": "Dell XPS 13 before disassembly",
+      "filename": "xps13_laptop.webp",
+      "parent_product_name": "Dell XPS 13"
+    },
+    {
+      "description": "Display assembly, removed",
+      "filename": "xps13_screen.webp",
+      "parent_product_name": "Display assembly"
+    },
+    {
+      "description": "Bottom cover, inner face",
+      "filename": "xps13_bottom_cover.webp",
+      "parent_product_name": "Bottom cover"
+    },
+    {
+      "description": "Keyboard, removed from its frame",
+      "filename": "xps13_keyboard.webp",
+      "parent_product_name": "Keyboard"
+    },
+    {
+      "description": "Motherboard assembly, removed",
+      "filename": "xps13_mobo.webp",
+      "parent_product_name": "Motherboard assembly"
+    },
+    {
+      "description": "Keyboard frame assembly, removed",
+      "filename": "xps13_keyboard_frame_assembly.webp",
+      "parent_product_name": "Keyboard frame assembly"
+    },
+    {
+      "description": "M.2 NVMe SSD, removed",
+      "filename": "xps13_ssd.webp",
+      "parent_product_name": "SSD"
     }
   ]
 }

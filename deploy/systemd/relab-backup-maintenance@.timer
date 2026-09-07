@@ -1,0 +1,21 @@
+# Relab scheduled job: backup repository maintenance. Instance is the environment, e.g. relab-backup-maintenance@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab backup maintenance schedule (%i)
+
+[Timer]
+# Daily, after the hourly snapshots have accumulated. Persistent so a day missed while
+# the host was off still prunes and copies offsite at boot.
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

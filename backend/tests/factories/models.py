@@ -1,28 +1,40 @@
 """Modern test factories using polyfactory for backend test models."""
-# spell-checker: ignore bothify, numerify
 
-from typing import Any, TypeVar
+import os
+from random import Random
+from typing import TYPE_CHECKING, Any, TypeVar
 
+from faker import Faker
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
+from polyfactory.fields import Ignore
+from polyfactory.utils.predicates import is_optional
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.models import Organization, User
-from app.api.background_data.models import (
+from app.api.auth.models import User
+from app.api.auth.roles import UserRole
+from app.api.data_collection.models.product import (
+    MaterialProductLink,
+    Product,
+)
+from app.api.plugins.rpi_cam.models import Camera
+from app.api.reference_data.models import (
     Category,
-    CategoryMaterialLink,
-    CategoryProductTypeLink,
     Material,
     ProductType,
     Taxonomy,
     TaxonomyDomain,
 )
-from app.api.data_collection.models.product import (
-    MaterialProductLink,
-    Product,
-)
+
+if TYPE_CHECKING:
+    from polyfactory.field_meta import FieldMeta
 
 T = TypeVar("T")
+
+TEST_SEED = int(os.environ.get("TEST_SEED", "0"))
+_RANDOM = Random(TEST_SEED)  # noqa: S311 # Test data, not cryptography
+_FAKER = Faker()
+_FAKER.seed_instance(TEST_SEED)
 
 
 class BaseModelFactory[T](SQLAlchemyFactory[T]):
@@ -30,6 +42,26 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
 
     __is_base_factory__ = True
     __set_relationships__ = False  # Skip relationship introspection to avoid SQLAlchemy/polyfactory conflicts
+
+    # Both generators are seeded, so a run is reproducible. Unseeded, they draw fresh
+    # values every run, which turns any test that depends on a generated value into a CI
+    # failure that will not reproduce locally. Faker needs seeding separately — it owns
+    # the randomness behind most field values, so seeding __random__ alone leaves runs
+    # non-deterministic. Set TEST_SEED to re-shuffle and shake out tests that only pass
+    # under seed 0.
+    __random__ = _RANDOM
+    __faker__ = _FAKER
+
+    @classmethod
+    def should_set_none_value(cls, field_meta: FieldMeta) -> bool:
+        """Leave every nullable column empty unless the caller asks for a value.
+
+        Polyfactory's default is a coin flip per optional field, so a generated user
+        would arrive having randomly accepted the terms or logged in before. A factory
+        should build the emptiest valid row; a test that needs a column populated is the
+        one that knows what it should contain, so it passes the value in.
+        """
+        return is_optional(field_meta.annotation)
 
     @classmethod
     def get_sqlalchemy_types(cls) -> dict[Any, Any]:
@@ -47,7 +79,7 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         return super()._get_type_from_type_engine(type_engine)
 
     @classmethod
-    def build(cls, **kwargs: Any) -> T:  # noqa: ANN401 # Polyfactory accepts Any-typed kwargs for model fields
+    def build(cls, **kwargs: Any) -> T:  # Polyfactory accepts Any-typed kwargs for model fields
         """Build an instance while skipping DB-computed columns like generated TSVECTOR fields."""
         build_context = cls._get_build_context(kwargs.get("_build_context"))
         build_context["skip_computed_fields"] = True
@@ -60,11 +92,13 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         session: AsyncSession | None = None,
         *,
         refresh_instance: bool = False,
-        **kwargs: Any,  # noqa: ANN401 - Any-typed kwargs are expected by the parent class signature.
+        **kwargs: Any,
     ) -> T:
         """Create a new instance, optionally using a provided session."""
         if session:
             instance = cls.build(**kwargs)
+            if "id" not in kwargs and getattr(instance, "id", None) == 0:
+                object.__setattr__(instance, "id", None)
             session.add(instance)
             await session.flush()
             if refresh_instance:
@@ -77,61 +111,49 @@ class UserFactory(BaseModelFactory[User]):
     """Factory for creating User test instances."""
 
     __model__ = User
+    email_canonical = Ignore()
+    hashed_password = "not_really_hashed"
+    is_active = True
+    is_superuser = False
+    is_verified = True
+    mfa_enabled = False
+    mfa_totp_secret = None
+    mfa_confirmed_at = None
+    # Pinned: role is an enum column, so an unpinned factory draws randomly between
+    # tiers and a test that means "an ordinary contributor" silently becomes lab.
+    role = UserRole.CONTRIBUTOR
+    upload_file_count = 0
+    upload_total_bytes = 0
 
     @classmethod
     def email(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `email` value for generated instances."""
         return cls.__faker__.email()
 
     @classmethod
-    def hashed_password(cls) -> str:
-        """Generate mock value."""
-        return "not_really_hashed"
-
-    @classmethod
-    def is_active(cls) -> bool:
-        """Generate mock value."""
-        return True
-
-    @classmethod
-    def is_superuser(cls) -> bool:
-        """Generate mock value."""
-        return False
-
-    @classmethod
-    def is_verified(cls) -> bool:
-        """Generate mock value."""
-        return True
-
-    @classmethod
     def username(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `username` value for generated instances."""
         return cls.__faker__.user_name()
 
     @classmethod
-    def organization(cls) -> None:
-        """Generate mock value."""
-        return
-
-    @classmethod
-    def organization_id(cls) -> None:
-        """Generate mock value."""
-        return
-
-    @classmethod
-    def owned_organization(cls) -> None:
-        """Generate mock value."""
-        return
-
-    @classmethod
     def products(cls) -> list:
-        """Generate mock value."""
+        """Provide the default `products` value for generated instances."""
         return []
 
     @classmethod
     def oauth_accounts(cls) -> list:
-        """Generate mock value."""
+        """Provide the default `oauth_accounts` value for generated instances."""
         return []
+
+    @classmethod
+    def preferences(cls) -> dict[str, Any]:
+        """Provide the default `preferences` value for generated instances."""
+        return {}
+
+    @classmethod
+    def profile_stats(cls) -> dict[str, Any]:
+        """Provide the default `profile_stats` value for generated instances."""
+        return {}
 
 
 class TaxonomyFactory(BaseModelFactory[Taxonomy]):
@@ -141,22 +163,22 @@ class TaxonomyFactory(BaseModelFactory[Taxonomy]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `name` value for generated instances."""
         return cls.__faker__.catch_phrase()
 
     @classmethod
     def version(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `version` value for generated instances."""
         return cls.__faker__.numerify(text="v#.#.#")
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.text(max_nb_chars=200) if cls.__faker__.boolean() else None
 
     @classmethod
     def domains(cls) -> set[TaxonomyDomain]:
-        """Generate mock value."""
+        """Provide the default `domains` value for generated instances."""
         # Return at least one domain
         domains = [TaxonomyDomain.MATERIALS]
         if cls.__faker__.boolean():
@@ -165,12 +187,12 @@ class TaxonomyFactory(BaseModelFactory[Taxonomy]):
 
     @classmethod
     def categories(cls) -> list[Category]:
-        """Generate mock value."""
+        """Provide the default `categories` value for generated instances."""
         return []
 
     @classmethod
     def source(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `source` value for generated instances."""
         return cls.__faker__.url() if cls.__faker__.boolean() else None
 
 
@@ -181,30 +203,23 @@ class CategoryFactory(BaseModelFactory[Category]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `name` value for generated instances."""
         return cls.__faker__.word().title()
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
     @classmethod
     def external_id(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `external_id` value for generated instances."""
         return cls.__faker__.uuid4() if cls.__faker__.boolean() else None
 
-    @classmethod
-    def supercategory_id(cls) -> int | None:
-        """Generate mock value."""
-        return None
+    supercategory_id = None
+    supercategory = None
 
-    @classmethod
-    def supercategory(cls) -> None:
-        """Generate mock value."""
-        return
-
-    # taxonomy_id and supercategory_id should be set explicitly in tests
+    # taxonomy_id should be set explicitly in tests
 
 
 class MaterialFactory(BaseModelFactory[Material]):
@@ -214,23 +229,23 @@ class MaterialFactory(BaseModelFactory[Material]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `name` value for generated instances."""
         materials = ["Steel", "Aluminum", "Copper", "Titanium", "Carbon Fiber", "Glass", "Ceramic"]
         return cls.__faker__.random_element(elements=materials)
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
 
     @classmethod
     def source(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `source` value for generated instances."""
         return cls.__faker__.url() if cls.__faker__.boolean() else None
 
     @classmethod
     def density_kg_m3(cls) -> float | None:
-        """Generate mock value."""
+        """Provide the default `density_kg_m3` value for generated instances."""
         return (
             round(cls.__faker__.pyfloat(min_value=100, max_value=20000), 2)
             if cls.__faker__.boolean(chance_of_getting_true=80)
@@ -239,7 +254,7 @@ class MaterialFactory(BaseModelFactory[Material]):
 
     @classmethod
     def is_crm(cls) -> bool | None:
-        """Generate mock value."""
+        """Provide the default `is_crm` value for generated instances."""
         return cls.__faker__.boolean() if cls.__faker__.boolean(chance_of_getting_true=80) else None
 
 
@@ -250,30 +265,14 @@ class ProductTypeFactory(BaseModelFactory[ProductType]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `name` value for generated instances."""
         product_types = ["Electronics", "Furniture", "Appliances", "Tools", "Packaging", "Automotive Parts"]
         return cls.__faker__.random_element(elements=product_types)
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.sentence() if cls.__faker__.boolean() else None
-
-
-class CategoryMaterialLinkFactory(BaseModelFactory[CategoryMaterialLink]):
-    """Factory for creating CategoryMaterialLink instances."""
-
-    __model__ = CategoryMaterialLink
-
-    # category_id and material_id should be set explicitly
-
-
-class CategoryProductTypeLinkFactory(BaseModelFactory[CategoryProductTypeLink]):
-    """Factory for creating CategoryProductTypeLink instances."""
-
-    __model__ = CategoryProductTypeLink
-
-    # category_id and product_type_id should be set explicitly
 
 
 class ProductFactory(BaseModelFactory[Product]):
@@ -283,42 +282,36 @@ class ProductFactory(BaseModelFactory[Product]):
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
+        """Provide the default `name` value for generated instances."""
         return cls.__faker__.bs().title()
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `description` value for generated instances."""
         return cls.__faker__.text(max_nb_chars=200)
 
     @classmethod
     def brand(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `brand` value for generated instances."""
         return cls.__faker__.company()
 
     @classmethod
     def model(cls) -> str | None:
-        """Generate mock value."""
+        """Provide the default `model` value for generated instances."""
         return cls.__faker__.bothify(text="??-####")
 
-    @classmethod
-    def parent_id(cls) -> int | None:
-        """Generate mock value."""
-        return None
-
-    @classmethod
-    def amount_in_parent(cls) -> int | None:
-        """Generate mock value."""
-        return None
+    parent_id = None
+    amount_in_parent = None
+    circularity_properties = None
 
     @classmethod
     def components(cls) -> list:
-        """Generate mock value."""
+        """Provide the default `components` value for generated instances."""
         return []
 
     @classmethod
     def bill_of_materials(cls) -> list:
-        """Generate mock value."""
+        """Provide the default `bill_of_materials` value for generated instances."""
         return []
 
 
@@ -329,26 +322,37 @@ class MaterialProductLinkFactory(BaseModelFactory[MaterialProductLink]):
 
     @classmethod
     def quantity(cls) -> float:
-        """Generate mock value."""
+        """Provide the default `quantity` value for generated instances."""
         return cls.__faker__.pyfloat(positive=True, min_value=0.1, max_value=10.0)
 
 
-class OrganizationFactory(BaseModelFactory[Organization]):
-    """Factory for creating Organization test instances."""
+class CameraFactory(BaseModelFactory[Camera]):
+    """Factory for creating Camera test instances."""
 
-    __model__ = Organization
+    __model__ = Camera
 
     @classmethod
     def name(cls) -> str:
-        """Generate mock value."""
-        return cls.__faker__.unique.company()
-
-    @classmethod
-    def location(cls) -> str | None:
-        """Generate mock value."""
-        return cls.__faker__.city() if cls.__faker__.boolean() else None
+        """Provide the default `name` value for generated instances."""
+        return cls.__faker__.catch_phrase()
 
     @classmethod
     def description(cls) -> str | None:
-        """Generate mock value."""
-        return cls.__faker__.catch_phrase() if cls.__faker__.boolean() else None
+        """Provide the default `description` value for generated instances."""
+        return cls.__faker__.sentence() if cls.__faker__.boolean() else None
+
+    @classmethod
+    def relay_public_key_jwk(cls) -> dict[str, str]:
+        """Provide the default `relay_public_key_jwk` value for generated instances."""
+        return {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": cls.__faker__.bothify(text="?" * 43),
+            "y": cls.__faker__.bothify(text="?" * 43),
+            "kid": cls.__faker__.uuid4(),
+        }
+
+    @classmethod
+    def relay_key_id(cls) -> str:
+        """Provide the default `relay_key_id` value for generated instances."""
+        return cls.__faker__.uuid4()

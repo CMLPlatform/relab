@@ -1,0 +1,228 @@
+---
+
+import GithubIcon from '@/assets/icons/brand/github.svg';
+import LinkedinIcon from '@/assets/icons/brand/linkedin.svg';
+import YoutubeIcon from '@/assets/icons/brand/youtube.svg';
+import { research } from '@/copy/research.generated.ts';
+
+import ThemeControl from './ThemeControl.astro';
+
+// The page foot, in two bands: the research colophon, then the site chrome.
+// No wordmark here; the sticky header carries the mark on every page.
+interface Props {
+  contactEmail: string;
+  currentYear: number;
+  docsUrl: string;
+  githubUrl: string;
+  linkedInUrl: string;
+  youtubeUrl: string;
+}
+
+const { contactEmail, currentYear, docsUrl, githubUrl, linkedInUrl, youtubeUrl } = Astro.props;
+const datasetUrl = `${docsUrl.replace(/\/$/, '')}/project/dataset/`;
+---
+
+<footer class="site-footer">
+  <div class="frame site-footer-inner">
+    {/* Research provenance, sourced from CITATION.cff and LICENSE via
+        src/copy/site-meta.ts. The dataset's terms are a link, not a restatement:
+        the docs hold the one canonical statement.
+        aria-label rather than a visually-hidden <h2>: a heading here would join
+        every page's outline. */}
+    <section class="colophon" aria-label="About this project">
+      <dl class="colophon-list">
+        <div class="colophon-entry">
+          <dt>Run by</dt>
+          <dd>{research.institution}</dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Authors</dt>
+          <dd>{research.authors}</dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Cite as</dt>
+          <dd>
+            <a href={research.citationUrl} target="_blank" rel="noopener noreferrer"
+              >doi:{research.doi}<span class="visually-hidden"> (opens in new tab)</span></a
+            >
+          </dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Licence</dt>
+          <dd>
+            {/* Explicit spaces: Astro strips the inter-node newline around an <a>. */}
+            Software under{' '}
+            <a href={research.licenceUrl} target="_blank" rel="noopener noreferrer"
+              >{research.licence}<span class="visually-hidden"> (opens in new tab)</span></a
+            >. Curated dataset releases are{' '}
+            <a href={datasetUrl} target="_blank" rel="noopener noreferrer"
+              >planned under CC BY 4.0<span class="visually-hidden"> (opens in new tab)</span></a
+            >; no release has been published yet.
+          </dd>
+        </div>
+        <div class="colophon-entry">
+          <dt>Funding</dt>
+          <dd>{research.funding}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <div class="footer-chrome">
+      <div class="footer-meta">
+        <p class="footer-copy">© {currentYear} CML, Leiden University</p>
+        <a href="/privacy" class="footer-link" aria-label="Read the Relab privacy policy">
+          Privacy policy
+        </a>
+        <a href="/terms" class="footer-link" aria-label="Read the Relab terms of use">
+          Terms of use
+        </a>
+        <a
+          href="/accessibility"
+          class="footer-link"
+          aria-label="Read the Relab accessibility statement"
+        >
+          Accessibility
+        </a>
+      </div>
+
+      <nav class="footer-links" aria-label="Footer">
+        <a href={`mailto:${contactEmail}`} class="footer-link">
+          {contactEmail}
+        </a>
+        <div class="footer-social">
+          <a
+            href={githubUrl}
+            class="footer-social-link"
+            aria-label="GitHub (opens in new tab)"
+            title="GitHub"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <GithubIcon aria-hidden="true" />
+          </a>
+          <a
+            href={linkedInUrl}
+            class="footer-social-link"
+            aria-label="LinkedIn (opens in new tab)"
+            title="LinkedIn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <LinkedinIcon aria-hidden="true" />
+          </a>
+          <a
+            href={youtubeUrl}
+            class="footer-social-link"
+            aria-label="YouTube (opens in new tab)"
+            title="YouTube"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <YoutubeIcon aria-hidden="true" />
+          </a>
+        </div>
+      </nav>
+
+      <div class="footer-theme">
+        <ThemeControl />
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  /* Label/value pairs, set tight at meta size with no rule per row. */
+  .colophon-list {
+    margin: 0;
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .colophon-entry {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    column-gap: 1rem;
+    align-items: baseline;
+  }
+
+  .colophon-entry dt {
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: var(--relab-type-micro-size);
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .colophon-entry dd {
+    margin: 0;
+    max-width: 80ch;
+    font-size: var(--relab-type-body-size);
+    line-height: 1.5;
+  }
+
+  .footer-link {
+    position: relative;
+    font-size: var(--relab-type-body-size);
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+  }
+
+  /* 44px pointer target (WCAG 2.5.8) over a 22.8px text box, matching
+     .footer-social-link and .theme-toggle. When a row wraps, neighbouring
+     overlays can overlap by a few px vertically, still far above the 24px
+     2.5.8 requires. */
+  .footer-link::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 44px;
+    width: 100%;
+    height: 44px;
+    translate: -50% -50%;
+  }
+
+  .footer-link:hover,
+  .footer-link:focus-visible {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .footer-social {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+  }
+
+  /* 44px hit area (WCAG 2.5.8) around a 1.18rem glyph. */
+  .footer-social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    color: var(--color-muted);
+  }
+
+  .footer-social-link:hover,
+  .footer-social-link:focus-visible {
+    color: var(--color-primary);
+  }
+
+  /* Brand marks are filled with currentColor at the shared icon size, never
+     recoloured into their own brand palettes (assets/DESIGN.md). */
+  .footer-social-link :global(svg) {
+    width: 1.18rem;
+    height: 1.18rem;
+    fill: currentColor;
+  }
+
+  @media (max-width: 860px) {
+    .colophon-entry {
+      grid-template-columns: 1fr;
+      row-gap: 0.3rem;
+    }
+  }
+</style>

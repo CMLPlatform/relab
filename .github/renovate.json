@@ -1,97 +1,91 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:best-practices",
-    ":approveMajorUpdates",
-    ":maintainLockFilesWeekly",
-    ":preserveSemverRanges",
-    "schedule:weekly"
-  ],
-  "semanticCommits": "enabled",
+  "extends": ["config:best-practices", ":approveMajorUpdates", "schedule:weekly"],
+  "timezone": "Europe/Amsterdam",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
-  "platformAutomerge": true,
-  "configMigration": true,
-  "pep621": {
-    "enabled": true
-  },
+  "prConcurrentLimit": 8,
   "pre-commit": {
     "enabled": true
   },
-  "lockFileMaintenance": {
-    "enabled": true,
-    "automerge": true
+  "minimumReleaseAge": "7 days",
+  "labels": ["dependencies"],
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "addLabels": ["security"]
   },
   "packageRules": [
     {
-      "groupName": "runtime-containers",
-      "matchManagers": ["docker-compose", "dockerfile"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
-      "pinDigests": true,
-      "automerge": false,
-      "labels": ["runtime-risk", "containers"]
+      "description": "Non-breaking updates merge themselves once CI is green",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
     },
     {
-      "matchUpdateTypes": ["minor", "patch"],
-      "automerge": true,
-      "labels": ["automerge"],
+      "description": "Expo SDK-managed packages: the SDK pins these, Renovate cannot read bundledNativeModules.json. Dashboard-only so an available bump stays visible; do not approve individually - run `just app/update` (expo install --fix + expo-doctor) at SDK upgrade time. Vulnerability fixes still raise PRs, they override this.",
+      "matchFileNames": ["app/package.json"],
       "matchPackageNames": [
-        "*"
-      ]
+        "expo",
+        "/^expo($|-)/",
+        "@expo/**",
+        "react",
+        "react-dom",
+        "react-native",
+        "@types/react",
+        "jest-expo",
+        "react-native-gesture-handler",
+        "react-native-reanimated",
+        "react-native-safe-area-context",
+        "react-native-screens",
+        "react-native-svg",
+        "react-native-web"
+      ],
+      "dependencyDashboardApproval": true,
+      "automerge": false
+    },
+    {
+      "description": "One PR per subrepo instead of one per package",
+      "groupName": "backend",
+      "matchFileNames": ["backend/**"]
+    },
+    {
+      "groupName": "app",
+      "matchFileNames": ["app/**"]
+    },
+    {
+      "groupName": "www",
+      "matchFileNames": ["www/**"]
+    },
+    {
+      "groupName": "docs",
+      "matchFileNames": ["docs/**"]
     },
     {
       "groupName": "repo-tooling",
       "matchFileNames": [
+        ".tool-versions",
+        ".node-version",
         ".pre-commit-config.yaml",
-        ".github/**",
         ".devcontainer/**",
-        ".vscode/**",
-        ".python-version",
-        "backend/.python-version",
         "package.json",
         "pnpm-lock.yaml",
         "pyproject.toml",
         "uv.lock"
-      ],
-      "labels": ["tooling"]
-    },
-    {
-      "groupName": "backend-python-runtime",
-      "matchFileNames": ["backend/pyproject.toml", "backend/uv.lock", "backend/Dockerfile*"]
-    },
-    {
-      "groupName": "docs-site-runtime-tooling",
-      "matchFileNames": ["docs/package.json", "docs/pnpm-lock.yaml", "docs/Dockerfile*"]
-    },
-    {
-      "groupName": "frontend-web-runtime-tooling",
-      "matchFileNames": [
-        "frontend-web/package.json",
-        "frontend-web/pnpm-lock.yaml",
-        "frontend-web/Dockerfile*"
       ]
     },
     {
-      "groupName": "frontend-app-runtime-tooling",
-      "matchFileNames": [
-        "frontend-app/package.json",
-        "frontend-app/pnpm-lock.yaml",
-        "frontend-app/Dockerfile*"
-      ]
-    },
-    {
-      "groupName": "containers-compose",
-      "matchFileNames": ["**/compose.*.yaml", "**/compose.yaml"],
-      "pinDigests": true
-    },
-    {
-      "groupName": "github-actions",
+      "description": "Batch GitHub Actions updates into one PR",
       "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
-      "pinDigests": true,
-      "automerge": true,
-      "labels": ["automerge", "github-actions"]
+      "groupName": "github-actions"
+    },
+    {
+      "description": "Batch container image updates into one PR",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "groupName": "container-images"
+    },
+    {
+      "description": "7 days everywhere; config:best-practices only waits 3 days on npm (npm's 72h unpublish window, not a security floor)",
+      "matchDatasources": ["npm"],
+      "minimumReleaseAge": "7 days"
     }
-  ],
-  "labels": ["dependencies", "renovate"]
+  ]
 }

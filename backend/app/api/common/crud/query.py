@@ -1,7 +1,5 @@
 """Small query helpers for common SQLAlchemy CRUD operations."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import Select, select
@@ -9,72 +7,118 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.exceptions import CRUDConfigurationError, ModelsNotFoundError
 from app.api.common.crud.filtering import apply_filter
-from app.api.common.crud.loading import LoaderProfile, apply_loader_profile
+from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.utils import ensure_model_exists
-from app.api.common.models.custom_types import IDT, MT
+from app.api.common.sa_typing import column_expr
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from uuid import UUID
 
-    from fastapi_filter.contrib.sqlalchemy import Filter
     from fastapi_pagination import Page
     from pydantic import BaseModel
+
+    from app.api.common.crud.filtering import BaseFilterSet
+    from app.api.common.models.base import Base
 
 
 async def page_models(
     db: AsyncSession,
-    model: type[MT],
+    model: type[Base],
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
-    filters: Filter | None = None,
+    loaders: frozenset[str] | set[str] | None = None,
+    filters: BaseFilterSet | None = None,
     statement: Select[tuple[Any]] | None = None,
     read_schema: type[BaseModel] | None = None,
-    mutate_items: Callable[[list[Any]], None] | None = None,
 ) -> Page[Any]:
     """Return a page of models matching a query."""
     statement = statement if statement is not None else select(model)
-    statement = apply_filter(statement, model, filters)
+    statement = apply_filter(statement, filters)
     statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
-    return await paginate_select(db, statement, model=model, mutate_items=mutate_items)
+    return await paginate_select(db, statement, model=model)
 
 
-async def get_model(
+async def get_model[MT: Base](
     db: AsyncSession,
     model: type[MT],
-    model_id: IDT,
+    model_id: int | UUID,
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+    loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
+    raiseload_nested: bool = False,
 ) -> MT | None:
     """Return a model by primary key, or None when missing."""
+    return await _get_model(
+        db,
+        model,
+        model_id,
+        loaders=loaders,
+        read_schema=read_schema,
+        raiseload_nested=raiseload_nested,
+        for_update=False,
+    )
+
+
+async def _get_model[MT: Base](
+    db: AsyncSession,
+    model: type[MT],
+    model_id: int | UUID,
+    *,
+    loaders: frozenset[str] | set[str] | None,
+    read_schema: type[BaseModel] | None,
+    for_update: bool,
+    raiseload_nested: bool = False,
+) -> MT | None:
+    """Return a model by primary key, optionally with a row-level write lock."""
     if not hasattr(model, "id"):
         err_msg = f"Model {model} does not have an id field."
         raise CRUDConfigurationError(err_msg)
 
     statement: Select[tuple[MT]] = select(model).filter_by(id=model_id)
-    statement = apply_loader_profile(statement, model, loaders, read_schema=read_schema)
+    statement = apply_loader_profile(
+        statement, model, loaders, read_schema=read_schema, raiseload_nested=raiseload_nested
+    )
+    if for_update:
+        statement = statement.with_for_update()
     return (await db.execute(statement)).scalars().unique().one_or_none()
 
 
-async def require_model(
+async def require_model[MT: Base](
     db: AsyncSession,
     model: type[MT],
-    model_id: IDT,
+    model_id: int | UUID,
     *,
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+    loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
+    raiseload_nested: bool = False,
 ) -> MT:
     """Return a model by primary key or raise ModelNotFoundError."""
     return ensure_model_exists(
-        await get_model(db, model, model_id, loaders=loaders, read_schema=read_schema),
+        await get_model(
+            db, model, model_id, loaders=loaders, read_schema=read_schema, raiseload_nested=raiseload_nested
+        ),
         model,
         model_id,
     )
 
 
-async def require_models(
+async def require_locked_model[MT: Base](
+    db: AsyncSession,
+    model: type[MT],
+    model_id: int | UUID,
+    *,
+    loaders: frozenset[str] | set[str] | None = None,
+    read_schema: type[BaseModel] | None = None,
+) -> MT:
+    """Return a model by primary key with a row-level write lock."""
+    return ensure_model_exists(
+        await _get_model(db, model, model_id, loaders=loaders, read_schema=read_schema, for_update=True),
+        model,
+        model_id,
+    )
+
+
+async def require_models[MT: Base](
     db: AsyncSession,
     model: type[MT],
     model_ids: set[int] | set[UUID],
@@ -84,7 +128,7 @@ async def require_models(
         err_msg = f"{model} does not have an 'id' attribute"
         raise CRUDConfigurationError(err_msg)
 
-    statement = select(model).where(cast("Any", model).id.in_(model_ids))
+    statement = select(model).where(column_expr(model.id).in_(model_ids))  # type: ignore[attr-defined]
     found_models = list((await db.execute(statement)).scalars().all())
     if len(found_models) != len(model_ids):
         found_ids: set[int | UUID] = {cast("int | UUID", db_model.__dict__["id"]) for db_model in found_models}
@@ -93,6 +137,6 @@ async def require_models(
     return found_models
 
 
-async def exists(db: AsyncSession, model: type[MT], model_id: IDT) -> bool:
+async def exists(db: AsyncSession, model: type[Base], model_id: int | UUID) -> bool:
     """Return whether a model exists."""
     return await get_model(db, model, model_id) is not None

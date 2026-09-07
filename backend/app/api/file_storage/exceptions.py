@@ -1,11 +1,17 @@
 """Custom exceptions for file storage database models."""
 
+from typing import TYPE_CHECKING
+
 from app.api.common.exceptions import NotFoundError, PayloadTooLargeError
 from app.api.common.models.base import get_model_label
-from app.api.common.models.custom_types import IDT, MT
+
+if TYPE_CHECKING:
+    from uuid import UUID
+
+    from app.api.common.models.base import Base
 
 
-class FastAPIStorageFileNotFoundError(NotFoundError):
+class StorageFileNotFoundError(NotFoundError):
     """Custom error for file not found in storage."""
 
     def __init__(self, filename: str, details: str | None = None) -> None:
@@ -16,7 +22,7 @@ class ModelFileNotFoundError(NotFoundError):
     """Exception raised when a file of a database model is not found in the local storage."""
 
     def __init__(
-        self, model_type: type[MT] | None = None, model_id: IDT | None = None, details: str | None = None
+        self, model_type: type[Base] | None = None, model_id: int | UUID | None = None, details: str | None = None
     ) -> None:
         super().__init__(
             message=f"File for {get_model_label(model_type)}{f'with id {model_id}'} not found.",
@@ -24,21 +30,20 @@ class ModelFileNotFoundError(NotFoundError):
         )
 
 
-class ParentStorageOwnershipError(NotFoundError):
-    """Raised when a stored item does not belong to the requested parent resource."""
-
-    def __init__(self, storage_model: type[MT], storage_id: IDT, parent_model: type[MT], parent_id: IDT) -> None:
-        storage_model_name = get_model_label(storage_model)
-        parent_model_name = get_model_label(parent_model)
-        super().__init__(
-            message=f"{storage_model_name} with id {storage_id} not found for {parent_model_name} {parent_id}"
-        )
-
-
 class UploadTooLargeError(PayloadTooLargeError):
     """Raised when an uploaded file exceeds the configured size limit."""
 
-    def __init__(self, *, file_size_bytes: int, max_size_mb: int) -> None:
+    def __init__(self, *, upload_size_bytes: int, max_size_mb: int) -> None:
         super().__init__(
-            message=f"File size too large: {file_size_bytes / 1024 / 1024:.2f} MB. Maximum size: {max_size_mb} MB"
+            message=f"File size too large: {upload_size_bytes / 1024 / 1024:.2f} MB. Maximum size: {max_size_mb} MB"
         )
+
+
+class StorageBackendError(OSError):
+    """Raised when a storage backend operation fails for a reason worth surfacing.
+
+    Subclasses ``OSError`` so best-effort storage-cleanup call sites — written against
+    the filesystem backend, where a real unlink failure is already an ``OSError`` —
+    transparently also catch S3/backend failures translated into this type, without
+    needing botocore-specific imports outside file_storage.
+    """

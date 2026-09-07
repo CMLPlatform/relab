@@ -5,7 +5,6 @@ Revises: da288fbcf15e
 Create Date: 2026-03-22 00:00:00.000000
 
 """
-# spell-checker: ignore trgm
 
 from collections.abc import Sequence
 

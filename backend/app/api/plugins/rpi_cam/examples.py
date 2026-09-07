@@ -1,19 +1,11 @@
 """Centralized OpenAPI examples for the Raspberry Pi Camera plugin."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from app.api.common.openapi_examples import openapi_example, openapi_examples
 
 if TYPE_CHECKING:
     from fastapi.openapi.models import Example
-
-
-INCLUDE_STATUS_DISABLED = False
-INCLUDE_STATUS_ENABLED = True
-FORCE_REFRESH_DISABLED = False
-FORCE_REFRESH_ENABLED = True
 
 
 CAMERA_CREATE_EXAMPLES = [
@@ -39,7 +31,8 @@ CAMERA_READ_EXAMPLES = [
         "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
         "relay_key_id": "cam-key-1",
         "relay_credential_status": "active",
-        "relay_last_seen_at": None,
+        "created_at": "2026-04-28T10:00:00Z",
+        "updated_at": "2026-04-28T10:00:00Z",
     }
 ]
 
@@ -50,13 +43,13 @@ CAMERA_UPDATE_EXAMPLES = [
 ]
 
 CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    disabled=openapi_example(INCLUDE_STATUS_DISABLED, summary="Return camera metadata only"),
-    enabled=openapi_example(INCLUDE_STATUS_ENABLED, summary="Include current online status"),
+    disabled=openapi_example(value=False, summary="Return camera metadata only"),
+    enabled=openapi_example(value=True, summary="Include current online status"),
 )
 
 CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
-    cached=openapi_example(FORCE_REFRESH_DISABLED, summary="Use cached status when available"),
-    refresh=openapi_example(FORCE_REFRESH_ENABLED, summary="Bypass cache and query the camera directly"),
+    cached=openapi_example(value=False, summary="Use cached status when available"),
+    refresh=openapi_example(value=True, summary="Bypass cache and query the camera directly"),
 )
 
 CAMERA_MODE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(

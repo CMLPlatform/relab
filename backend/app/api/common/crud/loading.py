@@ -1,34 +1,17 @@
 """Relationship loading helpers for SQLAlchemy CRUD queries."""
-# spell-checker: ignore joinedload
 
-from enum import StrEnum
-from typing import Any, Self, cast
+from typing import Any, cast
 
 from pydantic import BaseModel
 from sqlalchemy import Select, inspect
-from sqlalchemy.orm import joinedload, noload, selectinload
+from sqlalchemy.orm import noload, raiseload, selectinload
 from sqlalchemy.orm.attributes import QueryableAttribute
 
 from app.api.common.crud.exceptions import CRUDConfigurationError
-from app.api.common.models.custom_types import MT
+from app.api.common.models.base import Base
 
 
-class RelationshipLoadStrategy(StrEnum):
-    """Loading strategies for relationships in SQLAlchemy queries."""
-
-    SELECTIN = "selectin"
-    JOINED = "joined"
-
-
-class LoaderProfile(frozenset[str]):
-    """Named set of relationships to eagerly load for a response shape."""
-
-    def __new__(cls, relationships: set[str] | frozenset[str] = frozenset()) -> Self:
-        """Create a loader profile from relationship names."""
-        return cast("Self", super().__new__(cls, relationships))
-
-
-def _get_model_relationships(model: type[MT]) -> dict[str, QueryableAttribute[Any]]:
+def _get_model_relationships(model: type[Base]) -> dict[str, QueryableAttribute[Any]]:
     """Return relationship attributes keyed by relationship name."""
     mapper = inspect(model)
     if not mapper:
@@ -37,33 +20,27 @@ def _get_model_relationships(model: type[MT]) -> dict[str, QueryableAttribute[An
     return {rel.key: cast("QueryableAttribute[Any]", getattr(model, rel.key)) for rel in mapper.relationships}
 
 
-def relationship_names(model: type[MT]) -> set[str]:
-    """Return valid relationship names for a model."""
-    return set(_get_model_relationships(model))
-
-
-def relationship_attr(model: type[MT], name: str) -> QueryableAttribute[Any]:
-    """Return a typed relationship attribute by name."""
-    relationships = _get_model_relationships(model)
-    try:
-        return relationships[name]
-    except KeyError as exc:
-        err_msg = f"{model.__name__} has no relationship named {name!r}"
-        raise CRUDConfigurationError(err_msg) from exc
-
-
-def apply_loader_profile(
-    statement: Select,
-    model: type[MT],
-    loaders: LoaderProfile | frozenset[str] | set[str] | None = None,
+def apply_loader_profile[T, ModelT: Base](
+    statement: Select[tuple[T]],
+    model: type[ModelT],
+    loaders: frozenset[str] | set[str] | None = None,
     *,
     read_schema: type[BaseModel] | None = None,
-    load_strategy: RelationshipLoadStrategy = RelationshipLoadStrategy.SELECTIN,
-) -> Select:
-    """Apply eager/noload options for relationships selected by a loader profile."""
+    raiseload_nested: bool = False,
+) -> Select[tuple[T]]:
+    """Apply eager/noload options for relationships selected by a loader profile.
+
+    ``raiseload_nested`` chains ``raiseload("*")`` under each eagerly loaded relationship,
+    so a selected relationship's own children are not loaded. Use it when the nested read
+    schema declares no relationships of its own (e.g. categorized-reference categories load
+    as ``CategoryRead``, which has neither ``subcategories`` nor ``supercategory``) to avoid
+    firing the target model's default eager loaders and discarding the result.
+    """
     relationships = _get_model_relationships(model)
     if not relationships:
         return statement
+
+    statement = statement.options(raiseload("*"))
 
     schema_relationships = (
         {name for name in relationships if name in read_schema.model_fields}
@@ -78,9 +55,8 @@ def apply_loader_profile(
         raise CRUDConfigurationError(err_msg)
 
     for rel_name in selected:
-        rel_attr = relationships[rel_name]
-        option = joinedload(rel_attr) if load_strategy == RelationshipLoadStrategy.JOINED else selectinload(rel_attr)
-        statement = statement.options(option)
+        loader = selectinload(relationships[rel_name])
+        statement = statement.options(loader.raiseload("*") if raiseload_nested else loader)
 
     if read_schema is not None:
         for rel_name in schema_relationships - selected:

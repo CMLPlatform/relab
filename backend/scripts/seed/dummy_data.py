@@ -6,12 +6,12 @@ from functools import partial
 from anyio import run
 
 from app.core.logging import setup_logging
-from scripts.seed.dummy_seed.products import logger, normalize_unit
+from scripts.seed.dummy_seed.products import normalize_unit
 from scripts.seed.dummy_seed.runner import async_main
 
 setup_logging()
 
-__all__ = ["async_main", "logger", "main", "normalize_unit"]
+__all__ = ["async_main", "main", "normalize_unit"]
 
 
 def main() -> None:

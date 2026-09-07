@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -11,16 +11,48 @@
       "playwright": "all",
       "project": "all",
       "react": "all",
-      "test": "all",
-      "types": "all"
+      "test": "all"
     },
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": "on",
+      "correctness": {
+        // Biome's unresolved-import scanner false-positives on Astro, package
+        // export maps, and React Native tooling; type checkers own resolution.
+        "noUnresolvedImports": "off"
+      },
       "performance": "on",
-      "security": "on"
+      "security": "on",
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": ["http://**", "https://**", "//**"],
+                "message": "Do not import browser runtime JavaScript from remote or CDN URLs; install and bundle dependencies locally."
+              },
+              {
+                // Import convention: './' only for same-directory siblings,
+                // '@/' alias for everything cross-directory. Parent-relative
+                // paths break when files move and hide module boundaries.
+                "group": ["..", "../**"],
+                "message": "Use the '@/' alias for cross-directory imports instead of parent-relative paths ('../')."
+              }
+            ]
+          }
+        }
+      }
     }
   },
+  "overrides": [
+    {
+      // Standalone .svg assets are decorative icon sources; the component that
+      // renders one supplies the accessible name (title/aria-label), not the file.
+      "includes": ["**/*.svg"],
+      "linter": { "rules": { "a11y": { "noSvgWithoutTitle": "off" } } }
+    }
+  ],
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -31,6 +63,10 @@
       "quoteStyle": "single",
       "trailingCommas": "all"
     }
+  },
+  "html": {
+    // Disabled: corrupts Astro frontmatter by inserting blank lines on every format run.
+    "experimentalFullSupportEnabled": false
   },
   "json": {
     "formatter": {

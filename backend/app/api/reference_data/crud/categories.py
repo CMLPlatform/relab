@@ -1,0 +1,182 @@
+"""Category CRUD operations."""
+
+from typing import TYPE_CHECKING
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
+
+from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.query import require_model
+from app.api.common.crud.utils import enum_format_id_set, format_id_set
+from app.api.common.exceptions import BadRequestError
+from app.api.common.sa_typing import orm_attr
+from app.api.reference_data.filters import CategoryFilter, CategoryFilterWithRelationships
+from app.api.reference_data.models import Category, Taxonomy, TaxonomyDomain
+from app.api.reference_data.schemas import CategoryCreate
+
+if TYPE_CHECKING:
+    from sqlalchemy import Select
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+
+async def resolve_category_parents(
+    db: AsyncSession,
+    category: CategoryCreate,
+    taxonomy_id: int | None = None,
+    supercategory_id: int | None = None,
+) -> tuple[int, Category | None]:
+    """Resolve the effective ``taxonomy_id`` and supercategory row for a new category.
+
+    When a supercategory is given, its taxonomy is inherited (the incoming
+    ``taxonomy_id`` is ignored — clients don't need to get it right). Root
+    categories must supply ``taxonomy_id`` explicitly.
+    """
+    supercategory_id = supercategory_id or category.supercategory_id
+    if supercategory_id:
+        supercategory: Category = await require_model(db, Category, supercategory_id)
+        return supercategory.taxonomy_id, supercategory
+
+    taxonomy_id = taxonomy_id or category.taxonomy_id
+    if not taxonomy_id:
+        err_msg = "Taxonomy ID is required for top-level categories"
+        raise BadRequestError(err_msg)
+
+    await require_model(db, Taxonomy, taxonomy_id)
+    return taxonomy_id, None
+
+
+async def validate_category_taxonomy_domains(
+    db: AsyncSession, category_ids: set[int], expected_domains: TaxonomyDomain | set[TaxonomyDomain]
+) -> list[Category]:
+    """Return categories after validating that their taxonomies include expected domains."""
+    categories_statement: Select[tuple[Category]] = (
+        select(Category)
+        .join(Taxonomy)
+        .where(Category.id.in_(category_ids))
+        .options(selectinload(orm_attr(Category.taxonomy)))
+    )
+    categories = list((await db.execute(categories_statement)).scalars().all())
+
+    if len(categories) != len(category_ids):
+        missing = set(category_ids) - {c.id for c in categories}
+        err_msg = f"Categories with id {format_id_set(missing)} not found"
+        raise BadRequestError(err_msg)
+
+    if isinstance(expected_domains, TaxonomyDomain):
+        expected_domains = {expected_domains}
+
+    invalid = {c.id for c in categories if not (set(c.taxonomy.domains) & expected_domains)}
+    if invalid:
+        err_msg = (
+            f"Categories with id {format_id_set(invalid)} belong to taxonomies "
+            f"outside of domains: {enum_format_id_set(expected_domains)}"
+        )
+        raise BadRequestError(err_msg)
+
+    return categories
+
+
+def _top_level_categories_statement(
+    *,
+    supercategory_id: int | None,
+    taxonomy_id: int | None,
+    category_filter: CategoryFilter | CategoryFilterWithRelationships | None,
+) -> Select[tuple[Category]]:
+    """Build the filtered top-level (root or direct-child) category query for a tree."""
+    statement: Select[tuple[Category]] = select(Category).where(Category.supercategory_id == supercategory_id)
+    if taxonomy_id:
+        statement = statement.where(Category.taxonomy_id == taxonomy_id)
+    return apply_filter(statement, category_filter)
+
+
+async def _validate_tree_scope(db: AsyncSession, *, supercategory_id: int | None, taxonomy_id: int | None) -> None:
+    if supercategory_id and taxonomy_id:
+        err_msg = "Provide either supercategory_id or taxonomy_id, not both"
+        raise BadRequestError(err_msg)
+    if supercategory_id:
+        await require_model(db, Category, supercategory_id)
+    if taxonomy_id:
+        await require_model(db, Taxonomy, taxonomy_id)
+
+
+async def get_category_trees(
+    db: AsyncSession,
+    recursion_depth: int = 1,
+    *,
+    supercategory_id: int | None = None,
+    taxonomy_id: int | None = None,
+    category_filter: CategoryFilter | CategoryFilterWithRelationships | None = None,
+    offset: int | None = None,
+    limit: int | None = None,
+) -> list[Category]:
+    """Get categories with their subcategories up to specified depth.
+
+    Pass ``offset``/``limit`` to expand only a window of top-level categories: a paged
+    caller then builds subtrees for that page alone instead of the whole taxonomy. The
+    window is ordered by id so paging is stable; pair it with ``count_category_trees`` for
+    the page total.
+    """
+    await _validate_tree_scope(db, supercategory_id=supercategory_id, taxonomy_id=taxonomy_id)
+
+    statement = _top_level_categories_statement(
+        supercategory_id=supercategory_id, taxonomy_id=taxonomy_id, category_filter=category_filter
+    ).execution_options(populate_existing=True)
+    statement = statement.order_by(Category.id)
+    if offset is not None:
+        statement = statement.offset(offset)
+    if limit is not None:
+        statement = statement.limit(limit)
+    statement = statement.options(selectinload(orm_attr(Category.subcategories), recursion_depth=recursion_depth))
+
+    return list((await db.execute(statement)).scalars().all())
+
+
+async def count_category_trees(
+    db: AsyncSession,
+    *,
+    supercategory_id: int | None = None,
+    taxonomy_id: int | None = None,
+    category_filter: CategoryFilter | CategoryFilterWithRelationships | None = None,
+) -> int:
+    """Count the top-level categories ``get_category_trees`` would return, ignoring paging."""
+    statement = _top_level_categories_statement(
+        supercategory_id=supercategory_id, taxonomy_id=taxonomy_id, category_filter=category_filter
+    )
+    return await db.scalar(select(func.count()).select_from(statement.subquery())) or 0
+
+
+async def create_category(
+    db: AsyncSession,
+    category: CategoryCreate,
+    taxonomy_id: int | None = None,
+    supercategory_id: int | None = None,
+    *,
+    _is_recursive_call: bool = False,
+) -> Category:
+    """Create a new category in the database and handle subcategory categories recursively."""
+    taxonomy_id, supercategory = await resolve_category_parents(db, category, taxonomy_id, supercategory_id)
+
+    db_category = Category(
+        name=category.name,
+        description=category.description,
+        taxonomy_id=taxonomy_id,
+        supercategory_id=supercategory.id if supercategory else None,
+    )
+    db.add(db_category)
+    await db.flush()
+
+    if category.subcategories:
+        for subcategory in category.subcategories:
+            await create_category(
+                db,
+                subcategory,
+                taxonomy_id=taxonomy_id,
+                supercategory_id=db_category.id,
+                _is_recursive_call=True,
+            )
+
+    if not _is_recursive_call:
+        await db.commit()
+        await db.refresh(db_category)
+
+    return db_category

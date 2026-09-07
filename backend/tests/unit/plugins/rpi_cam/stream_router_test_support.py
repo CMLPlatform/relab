@@ -1,17 +1,12 @@
 """Shared support code for split RPi Cam stream-router tests."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-import pytest
 from pydantic import SecretStr
 
 from app.api.auth.models import User
-from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.schemas import RelayPublicKeyJWK
-from app.api.plugins.rpi_cam.services import YoutubeStreamConfigWithID
+from app.api.plugins.rpi_cam.services.youtube import YoutubeStreamConfigWithID
 from tests.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -19,8 +14,6 @@ if TYPE_CHECKING:
 
 TEST_EMAIL = "test@example.com"
 TEST_HASHED_PASSWORD = "hashed_password"
-TEST_CAMERA_NAME = "Test Camera"
-TEST_CAMERA_DESC = "Test Camera"
 TEST_STREAM_URL = "http://stream.url"
 YOUTUBE_STREAM_URL = "http://youtube.stream"
 FAKE_ACCESS_TOKEN = "test"
@@ -50,32 +43,6 @@ def build_user() -> User:
     )
     assert user.id is not None
     return user
-
-
-@pytest.fixture
-def mock_user() -> User:
-    """Return a mock user for testing."""
-    return build_user()
-
-
-@pytest.fixture
-def mock_camera(mock_user: User) -> Camera:
-    """Return a mock camera for testing."""
-    owner_id = require_uuid(mock_user.id)
-    return Camera(
-        id=uuid4(),
-        name=TEST_CAMERA_NAME,
-        description=TEST_CAMERA_DESC,
-        relay_public_key_jwk=RelayPublicKeyJWK(
-            kty="EC",
-            crv="P-256",
-            x="x",
-            y="y",
-            kid="test-key-id",
-        ).model_dump(),
-        relay_key_id="test-key-id",
-        owner_id=owner_id,
-    )
 
 
 def build_stream_config() -> YoutubeStreamConfigWithID:

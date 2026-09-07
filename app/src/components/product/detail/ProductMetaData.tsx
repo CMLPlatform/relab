@@ -1,0 +1,49 @@
+import { Link } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
+import { AppText } from '@/components/base/AppText';
+import { useAppTheme } from '@/theme';
+import { entityLabelTitle, type Product } from '@/types/Product';
+import { getProfileHref } from '@/utils/router/profiles';
+
+interface Props {
+  product: Product;
+}
+
+export default function ProductMetaData({ product }: Props) {
+  const theme = useAppTheme();
+  return (
+    <View className="gap-2 mb-2">
+      {product.createdAt ? (
+        <AppText variant="body" className="text-muted-foreground">
+          Created: {new Date(product.createdAt).toLocaleDateString()}
+        </AppText>
+      ) : null}
+      {product.updatedAt ? (
+        <AppText variant="body" className="text-muted-foreground">
+          Last Updated: {new Date(product.updatedAt).toLocaleDateString()}
+        </AppText>
+      ) : null}
+      <AppText variant="body" className="text-muted-foreground">
+        Owner:{' '}
+        {product.ownerUsername ? (
+          // expo-router's Link ignores className.
+          <Link
+            href={getProfileHref(product.ownerUsername)}
+            style={[styles.link, { color: theme.tokens.text.link }]}
+          >
+            {product.ownerUsername}
+          </Link>
+        ) : (
+          'Anonymous'
+        )}
+      </AppText>
+      <AppText variant="body" className="text-muted-foreground">
+        {entityLabelTitle(product)} ID: {product.id}
+      </AppText>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  link: { textDecorationLine: 'underline' },
+});

@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Project identity that CITATION.cff cannot express. CFF 1.2.0 is a strict schema and",
+    "rejects unknown keys, so funding, the dataset licence, and the display forms of the",
+    "institution live here instead. Everything CFF DOES model (authors, ORCIDs, DOI, code",
+    "licence, repository) is read from CITATION.cff and must not be duplicated here.",
+    "Consumed by scripts/sync_brand_assets.py; run `just assets-sync` after editing."
+  ],
+  "institution": "Institute of Environmental Sciences (CML), Leiden University",
+  "institutionShort": "CML",
+  "department": "Department of Industrial Ecology",
+  "contactEmail": "relab@cml.leidenuniv.nl",
+  "dataLicence": {
+    "name": "CC BY 4.0",
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "status": "planned",
+    "docsPath": "/project/dataset/",
+    "_comment": "status is 'planned': no release has been published yet, and neither site may state the terms flat. See docs/src/content/docs/project/dataset.md, the canonical statement."
+  },
+  "funding": {
+    "short": "Leiden University Starter Fund; Depack grant (Leiden University Fund); Sectorplan Gelden",
+    "sentence": "Supported by the Leiden University Starter Fund, the Depack grant (Leiden University Fund), and Sectorplan Gelden, a research infrastructure fund of the Dutch government."
+  }
+}

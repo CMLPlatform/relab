@@ -7,38 +7,37 @@ from fastapi import BackgroundTasks, HTTPException, Query
 from pydantic import UUID4
 from relab_rpi_cam_models import LocalAccessInfo
 from sqlalchemy import select
+from starlette.responses import FileResponse
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
+from app.api.common.crud.persistence import update_and_commit
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.common.routers.openapi import PublicAPIRouter
 from app.api.plugins.rpi_cam import crud
-from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, CameraTransferOwnerIDDep, UserOwnedCameraDep
+from app.api.plugins.rpi_cam.dependencies import CameraFilterDep, UserOwnedCameraDep
 from app.api.plugins.rpi_cam.device_assertion import AuthenticatedCameraDep
 from app.api.plugins.rpi_cam.examples import (
     CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES,
 )
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
-from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
-from app.api.plugins.rpi_cam.service_runtime import get_preview_thumbnail_path
-from app.api.plugins.rpi_cam.services import (
-    get_camera_status as fetch_camera_status,
-)
-from app.api.plugins.rpi_cam.services import (
+from app.api.plugins.rpi_cam.runtime.preview import (
+    get_preview_thumbnail_path,
     get_preview_thumbnail_urls_per_camera,
+    remove_preview_thumbnail,
 )
-from app.api.plugins.rpi_cam.websocket.relay import relay_via_websocket
-from app.core.redis import OptionalRedisDep
+from app.api.plugins.rpi_cam.runtime.status import get_camera_status as fetch_camera_status
+from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead, CameraReadWithStatus, CameraUpdate
+from app.api.plugins.rpi_cam.websocket.message_relay import relay_via_websocket
+from app.core.redis import RedisDep
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-    from pathlib import Path
-
     from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
 
 camera_router = PublicAPIRouter(tags=["rpi-cam-management"])
+device_router = DeviceAPIRouter(tags=["rpi-cam-device"])
 router = PublicAPIRouter()
 
 
@@ -51,7 +50,7 @@ async def get_user_cameras(
     session: AsyncSessionDep,
     current_user: CurrentActiveUserDep,
     camera_filter: CameraFilterDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     *,
     include_status: bool = Query(
         default=False,
@@ -66,10 +65,10 @@ async def get_user_cameras(
             "come back with ``telemetry: null``."
         ),
     ),
-) -> Sequence[Camera | CameraReadWithStatus]:
+) -> list[Camera | CameraReadWithStatus]:
     """Get all Raspberry Pi cameras of the current user."""
     statement = select(Camera).where(Camera.owner_id == current_user.id)
-    statement = apply_filter(statement, Camera, camera_filter)
+    statement = apply_filter(statement, camera_filter)
     db_cameras = list((await session.execute(statement)).scalars().unique().all())
 
     if not (include_status or include_telemetry):
@@ -97,7 +96,7 @@ async def get_user_cameras(
 )
 async def get_user_camera(
     db_camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
     *,
     include_status: bool = Query(
         default=False,
@@ -124,12 +123,36 @@ async def get_user_camera(
 
 
 @camera_router.get(
+    "/{camera_id}/preview-thumbnail",
+    summary="Get a camera's cached preview thumbnail",
+    response_class=FileResponse,
+    responses={404: {"description": "No cached preview thumbnail available for this camera."}},
+)
+async def get_camera_preview_thumbnail(camera: UserOwnedCameraDep) -> FileResponse:
+    """Serve the owner's cached preview thumbnail.
+
+    Owner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the
+    private preview directory rather than the public ``/uploads/images`` mount, so
+    a camera id alone no longer grants a stranger a recent frame. Cached only
+    privately and revalidated — never long-lived immutable like the public mount.
+    """
+    path = get_preview_thumbnail_path(camera.id)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="No preview thumbnail available for this camera.")
+    return FileResponse(
+        path,
+        media_type="image/jpeg",
+        headers={"Cache-Control": "private, no-cache", "X-Content-Type-Options": "nosniff"},
+    )
+
+
+@camera_router.get(
     "/{camera_id}/status",
     summary="Get Raspberry Pi camera online status",
 )
 async def get_user_camera_status(
     db_camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> CameraStatus:
     """Get Raspberry Pi camera online status."""
     return await fetch_camera_status(redis, db_camera.id)
@@ -159,10 +182,9 @@ async def update_user_camera(
     session: AsyncSessionDep,
     db_camera: UserOwnedCameraDep,
     camera_in: CameraUpdate,
-    transfer_owner_id: CameraTransferOwnerIDDep,
 ) -> Camera:
     """Update Raspberry Pi camera."""
-    return await crud.update_camera(session, db_camera, camera_in, new_owner_id=transfer_owner_id)
+    return await update_and_commit(session, db_camera, camera_in)
 
 
 @camera_router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
@@ -170,25 +192,24 @@ async def delete_user_camera(
     background_tasks: BackgroundTasks,
     db: AsyncSessionDep,
     camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
     preview_thumbnail_path = get_preview_thumbnail_path(camera.id)
     await db.delete(camera)
     await db.commit()
     background_tasks.add_task(_notify_camera_unpair, camera.id, redis)
-    background_tasks.add_task(_remove_preview_thumbnail, preview_thumbnail_path)
+    background_tasks.add_task(remove_preview_thumbnail, preview_thumbnail_path)
 
 
-@camera_router.delete(
+@device_router.delete(
     "/{camera_id}/self",
     summary="Pi-initiated self-unpair",
     status_code=204,
     description=(
         "Called by the Pi when the user triggers unpair from the local /setup page. "
         "Authenticates via the device's ES256 assertion. Deletes the camera from the "
-        "database so the backend no longer shows it as offline. Does NOT send a relay "
-        "message back to the Pi — the Pi is already unpairing itself."
+        "database so the backend no longer shows it as offline."
     ),
 )
 async def self_unpair_camera(
@@ -197,7 +218,7 @@ async def self_unpair_camera(
 ) -> None:
     """Device-initiated self-deletion. Pi calls this on local unpair."""
     logger.info("Camera %s self-unpaired via device assertion", camera.id)
-    _remove_preview_thumbnail(get_preview_thumbnail_path(camera.id))
+    remove_preview_thumbnail(get_preview_thumbnail_path(camera.id))
     await db.delete(camera)
     await db.commit()
 
@@ -215,7 +236,7 @@ async def self_unpair_camera(
 )
 async def get_camera_local_access(
     db_camera: UserOwnedCameraDep,
-    redis: OptionalRedisDep,
+    redis: RedisDep,
 ) -> LocalAccessInfo:
     """Relay local access info from the Pi to the authenticated frontend user."""
     response = await relay_via_websocket(
@@ -228,7 +249,7 @@ async def get_camera_local_access(
     return LocalAccessInfo.model_validate(response.json())
 
 
-async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:
+async def _notify_camera_unpair(camera_id: UUID4, redis: Redis) -> None:
     """Best-effort relay of DELETE /pairing to the camera.
 
     Logs a warning and continues if the camera is offline or unresponsive —
@@ -249,13 +270,4 @@ async def _notify_camera_unpair(camera_id: UUID4, redis: Redis | None) -> None:
         )
 
 
-def _remove_preview_thumbnail(path: Path) -> None:
-    """Best-effort cleanup of a camera's cached preview thumbnail file."""
-    try:
-        path.unlink(missing_ok=True)
-    except OSError:
-        logger.warning("Could not remove preview thumbnail at %s", path)
-
-
 router.include_router(camera_router, prefix="/plugins/rpi-cam/cameras")
-router.include_router(camera_router, prefix="/users/me/cameras")

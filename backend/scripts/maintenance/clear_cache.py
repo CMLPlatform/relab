@@ -6,15 +6,15 @@ This script can be used to clear cache for specific namespaces.
 Run with: python -m scripts.maintenance.clear_cache [namespace]
 
 Available namespaces:
-- background-data (default): All background data GET endpoints
-- docs: OpenAPI documentation endpoints
+- reference-data (default): All reference data GET endpoints
+- stats: Contribution statistics endpoints
 """
 
 import asyncio
 import logging
 import sys
 
-from app.core.cache import clear_cache_namespace, init_fastapi_cache
+from app.core.cache import clear_cache_namespace, init_cache
 from app.core.config import CacheNamespace
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
@@ -38,7 +38,7 @@ async def clear_cache(namespace: CacheNamespace) -> int:
         logger.warning("Redis unavailable; cache not cleared.")
         return 1
 
-    init_fastapi_cache(redis_client)
+    init_cache(redis_client)
     await clear_cache_namespace(namespace)
     await close_redis(redis_client)
 
@@ -48,15 +48,17 @@ async def clear_cache(namespace: CacheNamespace) -> int:
 
 def main() -> None:
     """Run the cache clearing script."""
-    # Parse namespace from command line argument, default to background-data
-    namespace_arg = sys.argv[1] if len(sys.argv) > 1 else CacheNamespace.BACKGROUND_DATA
+    # Parse namespace from command line argument, default to reference-data
+    namespace_arg = sys.argv[1] if len(sys.argv) > 1 else CacheNamespace.REFERENCE_DATA
 
     # Validate namespace
     try:
         namespace = CacheNamespace(namespace_arg)
     except ValueError:
         valid_namespaces = ", ".join([ns.value for ns in CacheNamespace])
-        logger.exception("Invalid namespace '%s'. Valid namespaces: %s", namespace_arg, valid_namespaces)
+        logger.error(  # noqa: TRY400 # user input error, traceback adds no value
+            "Invalid namespace '%s'. Valid namespaces: %s", namespace_arg, valid_namespaces
+        )
         raise SystemExit(1) from None
 
     logger.info("Clearing cache namespace: %s", namespace)

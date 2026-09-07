@@ -1,0 +1,217 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { act, fireEvent, screen } from '@testing-library/react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Platform } from 'react-native';
+import ResetPasswordScreen from '@/app/(auth)/reset-password';
+import { apiFetch } from '@/services/api/client';
+import { renderWithProviders } from '@/test-utils/index';
+
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: jest.fn(),
+  useRouter: jest.fn(),
+}));
+
+jest.mock('@/services/api/client', () => ({
+  apiFetch: jest.fn(),
+}));
+
+const AT_LEAST_12_PATTERN = /at least 12/i;
+const PASSWORDS_MATCH_PATTERN = /passwords must match/i;
+const PASSWORD_RESET_SUCCESS_PATTERN = /Password reset\. You can now sign in\./i;
+const REDIRECTING_TO_LOGIN_PATTERN = /Redirecting to login/i;
+
+const mockedApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>;
+const mockPush = jest.fn();
+
+function createMockResponse(ok: boolean, body: Record<string, unknown> = {}): Response {
+  return {
+    ok,
+    json: async () => body,
+  } as unknown as Response;
+}
+
+function renderResetPasswordScreen() {
+  renderWithProviders(<ResetPasswordScreen />);
+}
+
+async function settleForm() {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
+async function submitResetPassword(password: string, confirmPassword = password) {
+  fireEvent.changeText(screen.getByTestId('password-input'), password);
+  fireEvent.changeText(screen.getByTestId('confirm-password-input'), confirmPassword);
+  await settleForm();
+  expect(screen.getByRole('button', { name: 'Reset password' })).not.toBeDisabled();
+  fireEvent.press(screen.getByRole('button', { name: 'Reset password' }));
+  await settleForm();
+}
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  jest.replaceProperty(Platform, 'OS', 'ios');
+  mockedApiFetch.mockResolvedValue(createMockResponse(true));
+  (useLocalSearchParams as jest.Mock).mockReturnValue({ token: 'valid-reset-token' });
+  (useRouter as jest.Mock).mockReturnValue({
+    push: mockPush,
+    replace: jest.fn(),
+    back: jest.fn(),
+    setParams: jest.fn(),
+  });
+});
+
+describe('ResetPasswordScreen rendering', () => {
+  it('renders the reset password form', () => {
+    renderResetPasswordScreen();
+    expect(screen.getAllByText('Reset password')).not.toHaveLength(0);
+    expect(screen.getByTestId('password-input')).toBeOnTheScreen();
+    expect(screen.getByTestId('confirm-password-input')).toBeOnTheScreen();
+    expect(screen.getByText('Back to login')).toBeOnTheScreen();
+  });
+
+  it('removes the token from browser history on web', () => {
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+    jest.replaceProperty(Platform, 'OS', 'web');
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        hash: '#token=fragment-reset-token',
+        pathname: '/reset-password',
+        search: '',
+      },
+    });
+
+    renderResetPasswordScreen();
+
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/reset-password');
+
+    replaceStateSpy.mockRestore();
+  });
+
+  it('shows a validation error for a short password', async () => {
+    renderResetPasswordScreen();
+
+    fireEvent.changeText(screen.getByTestId('password-input'), 'short');
+    await settleForm();
+
+    expect(screen.getByText(AT_LEAST_12_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('shows a validation error when password confirmation does not match', async () => {
+    renderResetPasswordScreen();
+
+    fireEvent.changeText(screen.getByTestId('password-input'), 'correct-horse-battery-staple-v42');
+    fireEvent.changeText(
+      screen.getByTestId('confirm-password-input'),
+      'correct-horse-battery-staple-v43',
+    );
+    await settleForm();
+
+    expect(screen.getByText(PASSWORDS_MATCH_PATTERN)).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Reset password' })).toBeDisabled();
+  });
+});
+
+describe('ResetPasswordScreen submission', () => {
+  it('shows an error when no reset token is provided', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+
+    renderResetPasswordScreen();
+    await submitResetPassword('correct-horse-battery-staple-v42');
+
+    expect(screen.getByText('This reset link is invalid. Request a new one.')).toBeOnTheScreen();
+    expect(mockedApiFetch).not.toHaveBeenCalled();
+  });
+
+  it('submits the new password and shows the success state', async () => {
+    renderResetPasswordScreen();
+    await submitResetPassword('correct-horse-battery-staple-v42');
+
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/reset-password'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          token: 'valid-reset-token',
+          password: 'correct-horse-battery-staple-v42',
+        }),
+      }),
+    );
+    expect(screen.getByText(PASSWORD_RESET_SUCCESS_PATTERN)).toBeOnTheScreen();
+    expect(screen.getByText(REDIRECTING_TO_LOGIN_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('submits a web fragment token after scrubbing it from the URL', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    (useLocalSearchParams as jest.Mock).mockReturnValue({});
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        hash: '#token=fragment-reset-token',
+        pathname: '/reset-password',
+        search: '',
+      },
+    });
+    const replaceStateSpy = jest.spyOn(window.history, 'replaceState').mockImplementation(() => {
+      window.location.hash = '';
+    });
+
+    renderResetPasswordScreen();
+    await submitResetPassword('correct-horse-battery-staple-v42');
+
+    expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/reset-password');
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/reset-password'),
+      expect.objectContaining({
+        body: JSON.stringify({
+          token: 'fragment-reset-token',
+          password: 'correct-horse-battery-staple-v42',
+        }),
+      }),
+    );
+
+    replaceStateSpy.mockRestore();
+  });
+
+  it('shows the API error message when the reset fails', async () => {
+    mockedApiFetch.mockResolvedValue(createMockResponse(false, { detail: 'Reset token expired' }));
+
+    renderResetPasswordScreen();
+    await submitResetPassword('correct-horse-battery-staple-v42');
+
+    expect(screen.getByText('Reset token expired')).toBeOnTheScreen();
+  });
+
+  it('shows a generic error when the reset request throws', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockedApiFetch.mockRejectedValue(new Error('network down'));
+
+    renderResetPasswordScreen();
+    await submitResetPassword('correct-horse-battery-staple-v42');
+
+    expect(screen.getByText("Couldn't reset your password. Please try again.")).toBeOnTheScreen();
+
+    consoleErrorSpy.mockRestore();
+  });
+});
+
+describe('ResetPasswordScreen navigation', () => {
+  it('navigates to login from the button and after success delay', async () => {
+    renderResetPasswordScreen();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Back to login' }));
+    expect(mockPush).toHaveBeenCalledWith('/login');
+
+    await submitResetPassword('correct-horse-battery-staple-v42');
+    await screen.findByText(PASSWORD_RESET_SUCCESS_PATTERN);
+
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    expect(mockPush).toHaveBeenCalledWith('/login');
+  });
+});

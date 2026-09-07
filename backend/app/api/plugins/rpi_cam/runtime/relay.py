@@ -1,0 +1,59 @@
+"""Camera access helpers shared across the relay service layer and router handlers."""
+
+from typing import TYPE_CHECKING
+
+from fastapi import HTTPException
+
+from app.api.common.ownership import get_user_owned_object
+from app.api.plugins.rpi_cam.constants import HttpMethod
+from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus
+from app.api.plugins.rpi_cam.relay_response import RelayResponse
+from app.api.plugins.rpi_cam.runtime.status import get_camera_status
+from app.api.plugins.rpi_cam.websocket.message_relay import relay_via_websocket
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from pydantic import UUID4
+    from redis.asyncio import Redis
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+
+async def get_user_owned_camera(session: AsyncSession, camera_id: UUID4, user_id: UUID4, redis: Redis) -> Camera:
+    """Get a camera owned by a user, verifying it is connected."""
+    camera = await get_user_owned_object(session, Camera, camera_id, user_id)
+    camera_status = await get_camera_status(redis, camera.id)
+
+    if (camera_connection := camera_status.connection) != CameraConnectionStatus.ONLINE:
+        status_code, msg = camera_connection.to_http_error()
+        raise HTTPException(status_code=status_code, detail=msg)
+
+    return camera
+
+
+def build_camera_request(
+    camera: Camera,
+    redis: Redis,
+) -> Callable[..., Awaitable[RelayResponse]]:
+    """Build a reusable request callable bound to one camera.
+
+    Pass ``redis`` so the relay can fall back to the cross-worker bridge when
+    the camera's WebSocket is registered in a different Uvicorn worker process.
+    """
+
+    async def request(
+        endpoint: str,
+        method: HttpMethod,
+        error_msg: str | None = None,
+        body: dict | None = None,
+    ) -> RelayResponse:
+        return await relay_via_websocket(
+            camera.id,
+            method.value,
+            endpoint,
+            body=body,
+            error_msg=error_msg,
+            redis=redis,
+        )
+
+    return request

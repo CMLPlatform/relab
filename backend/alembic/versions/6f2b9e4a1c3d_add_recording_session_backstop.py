@@ -5,7 +5,6 @@ Revises: 4d379aaa416a
 Create Date: 2026-04-15 13:10:00.000000
 
 """
-# spell-checker: ignore astext, ondelete
 
 from collections.abc import Sequence
 

@@ -1,35 +1,23 @@
 """S3-compatible storage backend."""
 
-from __future__ import annotations
-
-import io
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from anyio import to_thread
 
-from app.api.file_storage.exceptions import FastAPIStorageFileNotFoundError
+from app.api.file_storage.exceptions import StorageBackendError
 from app.api.file_storage.models.storage_core import BaseStorage, secure_filename
-from app.core.config import settings
-from app.core.images import validate_image_file
 
 if TYPE_CHECKING:
-    from typing import BinaryIO, Protocol
+    from typing import BinaryIO
 
     from fastapi import UploadFile
 
-    class _S3Client(Protocol):
-        """Narrow protocol for the boto3 S3 client methods used by S3Storage."""
 
-        def head_object(self, *, bucket: str, key: str) -> dict: ...  # lgtm[py/ineffectual-statement]
-        def get_object(self, *, bucket: str, key: str) -> dict: ...  # lgtm[py/ineffectual-statement]
-        def upload_fileobj(
-            self, fileobj: BinaryIO, *, bucket: str, key: str
-        ) -> None: ...  # lgtm[py/ineffectual-statement]
-
-
-def _import_boto3() -> object:
+# boto3 is an optional dep; its stubs live in boto3-stubs (heavy, not installed).
+# We expose the client as Any so the dynamic boto3 API doesn't require per-call casts.
+def _import_boto3() -> Any:  # noqa: ANN401
     """Import boto3 lazily so the optional dependency stays optional."""
     return import_module("boto3")
 
@@ -44,6 +32,15 @@ def _client_error_type() -> type[Exception]:
             """Fallback exception used when botocore is not installed."""
 
         return ClientError
+
+
+def _s3_delete_error_types() -> tuple[type[Exception], ...]:
+    """Return botocore's ClientError/BotoCoreError, or a local fallback when unavailable."""
+    try:
+        botocore_exceptions = import_module("botocore.exceptions")
+    except ImportError:
+        return (_client_error_type(),)
+    return (botocore_exceptions.ClientError, botocore_exceptions.BotoCoreError)
 
 
 class S3Storage(BaseStorage):
@@ -67,13 +64,13 @@ class S3Storage(BaseStorage):
         self._secret_access_key = secret_access_key or None
         self._endpoint_url = endpoint_url
         self._base_url = base_url.rstrip("/") if base_url else None
-        self._client: _S3Client | None = None
+        self._client: Any = None
 
-    def _get_client(self) -> _S3Client:
+    def _get_client(self) -> Any:  # noqa: ANN401
         """Return a cached boto3 S3 client, importing boto3 lazily."""
         if self._client is None:
             try:
-                boto3 = cast("Any", _import_boto3())
+                boto3 = _import_boto3()
             except ImportError:
                 msg = "boto3 is required for S3 storage. Install it with: uv sync --group s3"
                 raise ImportError(msg) from None
@@ -105,65 +102,36 @@ class S3Storage(BaseStorage):
             return f"{self._endpoint_url.rstrip('/')}/{self._bucket}/{key}"
         return f"https://{self._bucket}.s3.{self._region}.amazonaws.com/{key}"
 
-    def get_size(self, name: str) -> int:
-        """Return the object size in bytes via a HEAD request."""
-        client = cast("Any", self._get_client())
-        response = client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
-        return response["ContentLength"]
-
-    def open(self, name: str) -> BinaryIO:
-        """Download and return the object body as a BytesIO buffer."""
-        client_error = _client_error_type()
-        client = cast("Any", self._get_client())
-        try:
-            response = client.get_object(Bucket=self._bucket, Key=self._s3_key(name))
-            return io.BytesIO(response["Body"].read())
-        except client_error as e:
-            error_response = cast("dict[str, Any]", getattr(e, "response", {}))
-            if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
-                details = str(e) if settings.debug else None
-                raise FastAPIStorageFileNotFoundError(name, details=details) from e
-            raise
-
     def write(self, file: BinaryIO, name: str) -> str:
         """Upload a binary file to S3 and return the stored name."""
         filename = self.get_name(name)
         file.seek(0)
-        client = cast("Any", self._get_client())
+        client = self._get_client()
         client.upload_fileobj(file, Bucket=self._bucket, Key=self._s3_key(name))
         return filename
-
-    def generate_new_filename(self, filename: str) -> str:
-        """Return a collision-free key name by probing S3 with HEAD requests."""
-        client_error = _client_error_type()
-        client = cast("Any", self._get_client())
-        counter = 0
-        stem, extension = Path(filename).stem, Path(filename).suffix
-        name = filename
-        while True:
-            try:
-                client.head_object(Bucket=self._bucket, Key=self._s3_key(name))
-            except client_error as e:
-                error_response = cast("dict[str, Any]", getattr(e, "response", {}))
-                if error_response.get("Error", {}).get("Code") in ("404", "NoSuchKey"):
-                    break
-                raise
-            counter += 1
-            name = f"{stem}_{counter}{extension}"
-        return name
 
     async def write_upload(self, upload_file: UploadFile, name: str) -> str:
         """Upload a file to S3 using a background thread and return the stored name."""
         filename = self.get_name(name)
         await upload_file.seek(0)
-        client = cast("Any", self._get_client())
+        client = self._get_client()
         bucket, key = self._bucket, self._s3_key(name)
         file_obj = upload_file.file
         await to_thread.run_sync(lambda: client.upload_fileobj(file_obj, Bucket=bucket, Key=key))
         await upload_file.close()
         return filename
 
-    async def write_image_upload(self, upload_file: UploadFile, name: str) -> str:
-        """Validate and upload an image to S3."""
-        await to_thread.run_sync(validate_image_file, upload_file.file)
-        return await self.write_upload(upload_file, name)
+    async def delete(self, name: str) -> None:
+        """Delete an S3 object. ``delete_object`` is idempotent for missing keys.
+
+        A real failure (auth, network, throttling) surfaces as botocore's
+        ``ClientError``/``BotoCoreError``, translated to ``StorageBackendError`` so
+        best-effort cleanup callers don't need a botocore-specific except clause.
+        """
+        client = self._get_client()
+        bucket, key = self._bucket, self._s3_key(name)
+        try:
+            await to_thread.run_sync(lambda: client.delete_object(Bucket=bucket, Key=key))
+        except _s3_delete_error_types() as e:
+            msg = f"Failed to delete S3 object {key!r}: {e}"
+            raise StorageBackendError(msg) from e

@@ -1,0 +1,67 @@
+---
+// Header brand lockup: the theme-swapped wordmark plus a "Docs" cue.
+const { siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+<a href={siteTitleHref} class="site-title sl-flex" translate="no">
+  <img
+    class="brand-wordmark dark:sl-hidden"
+    src="/images/wordmark.svg"
+    alt="Relab"
+    width="810"
+    height="256"
+  />
+  <img
+    class="brand-wordmark light:sl-hidden"
+    src="/images/wordmark-dark.svg"
+    alt=""
+    aria-hidden="true"
+    width="810"
+    height="256"
+  />
+  <span class="brand-docs">Docs</span>
+</a>
+
+<style>
+  .site-title {
+    align-items: center;
+    gap: 0.55rem;
+    text-decoration: none;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .brand-wordmark {
+    height: calc(var(--sl-nav-height) - 2 * var(--sl-nav-pad-y));
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: 0 50%;
+  }
+  .brand-docs {
+    position: relative;
+    padding-inline-start: 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    /* gray-3 clears only ~4.49:1 against --sl-color-bg-nav in dark mode (WCAG
+       AA needs 4.5:1); gray-2 clears 10.92:1 light, 8.57:1 dark. */
+    color: var(--sl-color-gray-2);
+  }
+  .brand-docs::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    height: 1rem;
+    width: 1px;
+    transform: translateY(-50%);
+    background: var(--sl-color-gray-5);
+  }
+  /* keep the header tight on very small screens */
+  @media (max-width: 30rem) {
+    .brand-docs {
+      display: none;
+    }
+  }
+</style>

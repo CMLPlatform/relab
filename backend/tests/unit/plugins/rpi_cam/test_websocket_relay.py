@@ -1,17 +1,29 @@
 """Unit tests for WebSocket relay transport helpers."""
-# spell-checker: ignore whep
-# ruff: noqa: SLF001 # Private member behaviour is tested here, so we want to allow it.
-
-from __future__ import annotations
 
 import asyncio
 from unittest.mock import AsyncMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
+from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL
 
-from app.api.plugins.rpi_cam.websocket import relay as relay_mod
+from app.api.plugins.rpi_cam.runtime.status import get_camera_online_cache_key
+from app.api.plugins.rpi_cam.websocket import message_relay as relay_mod
+from app.api.plugins.rpi_cam.websocket.connection_manager import CameraDisconnectedDuringCommandError
+
+
+class _FakeRedis:
+    """Dict-backed stand-in for the online-status key reads the relay makes."""
+
+    def __init__(self) -> None:
+        self.store: dict[str, str] = {}
+
+    async def get(self, key: str) -> str | None:
+        return self.store.get(key)
+
+    def mark_online(self, camera_id: UUID) -> None:
+        self.store[get_camera_online_cache_key(camera_id)] = "1"
 
 
 async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnected() -> None:
@@ -19,12 +31,18 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnect
     camera_id = uuid4()
     manager = AsyncMock()
     manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = _FakeRedis()
+    redis.mark_online(camera_id)
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(side_effect=RuntimeError("camera offline in all workers")),
+        ),
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
@@ -38,13 +56,13 @@ async def test_relay_via_websocket_forwards_trace_headers_to_local_manager() -> 
     manager.send_command.return_value = ({"status": 200, "data": {"ok": True}}, None)
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay._build_relay_trace_headers",
+            "app.api.plugins.rpi_cam.websocket.message_relay._build_relay_trace_headers",
             return_value={"traceparent": "00-abc-def-01", "tracestate": "vendor=value"},
         ),
     ):
-        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
+        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=AsyncMock())
 
     assert response.status_code == 200
     manager.send_command.assert_awaited_once_with(
@@ -69,11 +87,11 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_times_out() -
     manager.send_command.side_effect = _never_returns
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.DEFAULT_COMMAND_TIMEOUT", 0.001),
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.DEFAULT_COMMAND_TIMEOUT", 0.001),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=AsyncMock())
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera did not respond in time: /camera"
@@ -90,43 +108,104 @@ async def test_relay_via_websocket_sanitizes_path_and_response_in_warning_log(ca
     )
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         pytest.raises(HTTPException),
         caplog.at_level("WARNING"),
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera")
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=AsyncMock())
 
     assert any("bad payload value" in record.message and "GET /camera" in record.message for record in caplog.records)
 
 
-async def test_cross_worker_relay_opens_circuit_after_three_failures() -> None:
-    """After three failed cross-worker attempts, later requests should fast-fail."""
+async def test_mid_command_disconnect_skips_cross_worker_bridge() -> None:
+    """A disconnect mid-command must not fall through to the cross-worker bridge."""
     camera_id = uuid4()
     manager = AsyncMock()
-    manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
-
-    relay_mod._reset_cross_worker_cb_for_tests()
+    manager.send_command.side_effect = CameraDisconnectedDuringCommandError("camera disconnected during command")
+    redis = _FakeRedis()
+    redis.mark_online(camera_id)
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
-            AsyncMock(side_effect=RuntimeError("camera offline")),
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(),
         ) as relay_cross_worker,
+        pytest.raises(HTTPException) as exc_info,
     ):
-        for _ in range(3):
-            with pytest.raises(HTTPException) as exc_info:
-                await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
-            assert exc_info.value.status_code == 503
-
-        with pytest.raises(HTTPException) as exc_info:
-            await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
-    assert relay_cross_worker.await_count == 3
+    relay_cross_worker.assert_not_awaited()
+
+
+async def test_cross_worker_relay_fast_fails_when_camera_not_marked_online() -> None:
+    """Without the heartbeat-maintained online key, the bridge is skipped entirely."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = _FakeRedis()
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(),
+        ) as relay_cross_worker,
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Camera is not connected via WebSocket."
+    relay_cross_worker.assert_not_awaited()
+
+
+async def test_cross_worker_allowlist_rejection_surfaces_as_403() -> None:
+    """A ``RelayCommandRejectedError`` from the owning worker must surface as 403, not 503."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = _FakeRedis()
+    redis.mark_online(camera_id)
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(
+                side_effect=relay_mod.RelayCommandRejectedError(403, RELAY_COMMAND_FORBIDDEN_DETAIL),
+            ),
+        ),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == RELAY_COMMAND_FORBIDDEN_DETAIL
+
+
+async def test_cross_worker_generic_error_still_surfaces_as_503() -> None:
+    """A generic cross-worker RuntimeError (not an explicit 4xx) keeps the 503 behavior."""
+    camera_id = uuid4()
+    manager = AsyncMock()
+    manager.send_command.side_effect = RuntimeError("camera disconnected")
+    redis = _FakeRedis()
+    redis.mark_online(camera_id)
+
+    with (
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
+        patch(
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
+            AsyncMock(side_effect=RuntimeError("camera offline in all workers")),
+        ),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+
+    assert exc_info.value.status_code == 503
+    assert exc_info.value.detail == "Camera is not connected via WebSocket."
 
 
 async def test_cross_worker_relay_forwards_trace_headers() -> None:
@@ -134,19 +213,17 @@ async def test_cross_worker_relay_forwards_trace_headers() -> None:
     camera_id = uuid4()
     manager = AsyncMock()
     manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
-
-    relay_mod._reset_cross_worker_cb_for_tests()
+    redis = _FakeRedis()
+    redis.mark_online(camera_id)
 
     with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
+        patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay._build_relay_trace_headers",
+            "app.api.plugins.rpi_cam.websocket.message_relay._build_relay_trace_headers",
             return_value={"traceparent": "00-abc-def-01", "baggage": "user_id=42"},
         ),
         patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
+            "app.api.plugins.rpi_cam.websocket.message_relay.relay_cross_worker",
             AsyncMock(return_value=({"status": 200, "data": {"ok": True}}, None)),
         ) as relay_cross_worker,
     ):
@@ -165,126 +242,53 @@ async def test_cross_worker_relay_forwards_trace_headers() -> None:
     )
 
 
-async def test_cross_worker_relay_success_resets_circuit() -> None:
-    """A successful cross-worker call should clear prior failure state."""
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/camera"),
+        ("GET", "/preview/hls/cam-preview/index.m3u8"),
+    ],
+)
+async def test_allowed_commands_are_dispatched(method: str, path: str) -> None:
+    """Allowlisted method/path pairs should be dispatched to the manager."""
     camera_id = uuid4()
     manager = AsyncMock()
-    manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
+    manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
 
-    relay_mod._reset_cross_worker_cb_for_tests()
+    with patch("app.api.plugins.rpi_cam.websocket.message_relay.get_connection_manager", return_value=manager):
+        response = await relay_mod.relay_via_websocket(camera_id, method, path, redis=AsyncMock())
 
-    with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
-        patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
-            AsyncMock(
-                side_effect=[
-                    RuntimeError("camera offline"),
-                    RuntimeError("camera offline"),
-                    ({"status": 200, "data": {"ok": True}}, None),
-                    RuntimeError("camera offline"),
-                ]
-            ),
-        ) as relay_cross_worker,
-    ):
-        for _ in range(2):
-            with pytest.raises(HTTPException):
-                await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
-
-        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
-        assert response.status_code == 200
-
-        with pytest.raises(HTTPException) as exc_info:
-            await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
-
-    assert exc_info.value.status_code == 503
-    assert relay_cross_worker.await_count == 4
+    assert response.status_code == 200
 
 
-async def test_cross_worker_relay_half_opens_after_cooldown() -> None:
-    """Once cooldown expires, the next call should probe the camera again."""
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("DELETE", "/camera"),
+        ("PUT", "/streams/youtube"),
+        ("GET", "/v1/admin"),
+        ("GET", "/captures/preview"),
+        ("PATCH", "/camera"),
+        ("GET", "/"),
+        # The Pi pushes directly via HTTPS to the upload endpoint; any `GET /captures/{id}`
+        # attempt must now be rejected.
+        ("GET", "/captures/abc123"),
+        ("GET", "/captures/"),
+        # HLS must stay read-only and under the /preview/hls/ prefix.
+        ("POST", "/preview/hls/cam-preview/index.m3u8"),
+        ("DELETE", "/preview/hls/cam-preview/segment0.mp4"),
+        ("GET", "/preview/hls"),  # bare /hls without trailing slash
+        # Telemetry must stay read-only.
+        ("POST", "/system/telemetry"),
+        ("DELETE", "/system/telemetry"),
+    ],
+)
+async def test_blocked_commands_raise_403(method: str, path: str) -> None:
+    """Non-allowlisted method/path pairs should raise HTTP 403."""
     camera_id = uuid4()
-    manager = AsyncMock()
-    manager.send_command.side_effect = RuntimeError("camera disconnected")
-    redis = AsyncMock()
-    redis.exists = AsyncMock(return_value=0)
 
-    relay_mod._reset_cross_worker_cb_for_tests()
-    relay_mod._cross_worker_cb_state[camera_id] = (
-        relay_mod._CROSS_WORKER_CB_FAILURE_THRESHOLD,
-        0.0,
-    )
+    with pytest.raises(HTTPException) as exc_info:
+        await relay_mod.relay_via_websocket(camera_id, method, path, redis=AsyncMock())
 
-    with (
-        patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager),
-        patch(
-            "app.api.plugins.rpi_cam.websocket.relay.relay_cross_worker",
-            AsyncMock(side_effect=RuntimeError("camera still offline")),
-        ) as relay_cross_worker,
-        pytest.raises(HTTPException),
-    ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
-    assert relay_cross_worker.await_count == 1
-
-
-class TestRelayCommandAllowlist:
-    """Tests for the relay command allowlist."""
-
-    @pytest.mark.parametrize(
-        ("method", "path"),
-        [
-            ("GET", "/camera"),
-            ("POST", "/captures"),
-            ("GET", "/streams/youtube"),
-            ("POST", "/streams/youtube"),
-            ("DELETE", "/streams/youtube"),
-            ("GET", "/system/telemetry"),
-            ("GET", "/preview/hls/cam-preview/index.m3u8"),
-            ("GET", "/preview/hls/cam-preview/segment0.mp4"),
-            ("DELETE", "/pairing"),
-        ],
-    )
-    async def test_allowed_commands_are_dispatched(self, method: str, path: str) -> None:
-        """Allowlisted method/path pairs should be dispatched to the manager."""
-        camera_id = uuid4()
-        manager = AsyncMock()
-        manager.send_command = AsyncMock(return_value=({"status": 200, "data": {}}, None))
-
-        with patch("app.api.plugins.rpi_cam.websocket.relay.get_connection_manager", return_value=manager):
-            response = await relay_mod.relay_via_websocket(camera_id, method, path)
-
-        assert response.status_code == 200
-
-    @pytest.mark.parametrize(
-        ("method", "path"),
-        [
-            ("DELETE", "/camera"),
-            ("PUT", "/streams/youtube"),
-            ("GET", "/admin"),
-            ("GET", "/captures/preview"),
-            ("PATCH", "/camera"),
-            ("GET", "/"),
-            # The Pi pushes directly via HTTPS to the upload endpoint; any `GET /captures/{id}`
-            # attempt must now be rejected.
-            ("GET", "/captures/abc123"),
-            ("GET", "/captures/"),
-            # HLS must stay read-only and under the /preview/hls/ prefix.
-            ("POST", "/preview/hls/cam-preview/index.m3u8"),
-            ("DELETE", "/preview/hls/cam-preview/segment0.mp4"),
-            ("GET", "/preview/hls"),  # bare /hls without trailing slash
-            # Telemetry must stay read-only.
-            ("POST", "/system/telemetry"),
-            ("DELETE", "/system/telemetry"),
-        ],
-    )
-    async def test_blocked_commands_raise_403(self, method: str, path: str) -> None:
-        """Non-allowlisted method/path pairs should raise HTTP 403."""
-        camera_id = uuid4()
-
-        with pytest.raises(HTTPException) as exc_info:
-            await relay_mod.relay_via_websocket(camera_id, method, path)
-
-        assert exc_info.value.status_code == 403
-        assert "not allowed" in exc_info.value.detail
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == RELAY_COMMAND_FORBIDDEN_DETAIL

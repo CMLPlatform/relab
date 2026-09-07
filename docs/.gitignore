@@ -1,16 +1,30 @@
-# Node dependencies
+### Auto-generated
+# Dependencies
 node_modules/
 
-# Build output
+# Astro
 dist/
 .astro/
 site/
 
-# Local Python virtualenv left over from the retired docs stack
-.venv/
+# TypeScript
+*.tsbuildinfo
 
-# Local cache from the retired docs stack
-.cache/
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 
-# Test results
+# Local env overrides
+.env.local
+
+# Playwright
+playwright-report/
 test-results/
+
+### Manual additions
+# Test coverage
+coverage/
+
+# Local cache
+.cache/

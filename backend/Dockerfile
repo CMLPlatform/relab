@@ -7,7 +7,7 @@
 ARG WORKDIR=/opt/relab/backend
 
 # --- Build stage (prod deps only) ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS build
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:2e5867a06156cb8be272125d32fc5032ed750a1268a9350d87a7d322540eb59f AS build
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups
 
 # --- Dev stage (all groups, hot reload) ---
-FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:37ec7fe8c82064a87c1c3d57e8ef5ff108b64bc34b17f64a4c00094b64928330 AS dev
+FROM ghcr.io/astral-sh/uv:0.11-python3.14-trixie-slim@sha256:2e5867a06156cb8be272125d32fc5032ed750a1268a9350d87a7d322540eb59f AS dev
 
 ARG WORKDIR
 WORKDIR $WORKDIR
@@ -56,13 +56,17 @@ EXPOSE 8000
 CMD [".venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "app"]
 
 # --- Runtime stage (default) ---
-FROM python:3.14-slim-trixie@sha256:bc389f7dfcb21413e72a28f491985326994795e34d2b86c8ae2f417b4e7818aa AS runtime
+FROM python:3.14-slim-trixie@sha256:656d12e70054d5fda18a045e2494c96701e9792dd1445f95b3d038df954f57e9 AS runtime
 
 ARG WORKDIR
 ARG APP_USER=appuser
 ARG APP_UID=1001
 
-RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER"
+RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
+    # This stage runs only the uv-built venv copied in below, so the base image's
+    # own pip is dead weight: unused at runtime, and its vendored dependencies
+    # keep surfacing in image scans. Drop it.
+    && pip uninstall --yes --quiet pip
 
 WORKDIR $WORKDIR
 
@@ -86,4 +90,6 @@ USER $APP_USER
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/live',timeout=5).status==200 else 1)"
 
-CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --workers ${WEB_CONCURRENCY:-1}"]
+# UVICORN_* env vars below are read directly by the uvicorn CLI, not through app
+# Settings; this CMD line is their single source of truth.
+CMD ["sh", "-c", ".venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips='${FORWARDED_ALLOW_IPS:-127.0.0.1}' --no-server-header --workers ${WEB_CONCURRENCY:-1} --limit-concurrency ${UVICORN_LIMIT_CONCURRENCY:-100} --timeout-keep-alive ${UVICORN_TIMEOUT_KEEP_ALIVE:-5} --h11-max-incomplete-event-size ${UVICORN_H11_MAX_INCOMPLETE_EVENT_SIZE:-16384} --ws-max-size ${RPI_CAM_WS_BINARY_FRAME_LIMIT_BYTES:-10485760} --ws-max-queue ${UVICORN_WS_MAX_QUEUE:-8} --ws-per-message-deflate false"]

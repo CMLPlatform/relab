@@ -1,0 +1,60 @@
+{
+	admin off
+}
+
+:8081 {
+	root * /srv
+	encode zstd gzip
+
+	handle /health {
+		respond "ok" 200
+	}
+
+	@dangerous_methods method TRACE TRACK CONNECT
+	handle @dangerous_methods {
+		header Allow "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
+		respond "HTTP method is not allowed." 405
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		Referrer-Policy "no-referrer"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		# Inline styles are still needed by Astro output. Scripts stay bundled
+		# and same-origin so the enforced policy can reject inline/eval script.
+		# CADDY_API_ORIGIN (injected per deployment) lets the homepage stats
+		# panel fetch the public stats API and the hero load the featured
+		# teardown's photos from it, matching the app/docs frontends.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$CADDY_API_ORIGIN}; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+	}
+
+	# Astro content-hashed static assets: immutable, cache forever
+	@static_assets path /_astro/* /assets/*
+	handle @static_assets {
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Fonts: synced brand assets with stable (unhashed) filenames, so long
+	# cache without immutable: a week keeps navigations cheap and a font swap
+	# propagates within days
+	@fonts path /fonts/*
+	handle @fonts {
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+
+	# HTML pages: always revalidate to pick up latest deploy
+	handle {
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	handle_errors {
+		@notFound expression `{http.error.status_code} == 404`
+		rewrite @notFound /404.html
+		file_server
+	}
+}

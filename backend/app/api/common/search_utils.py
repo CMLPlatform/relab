@@ -1,45 +1,36 @@
 """Shared utilities for PostgreSQL full-text (tsvector) and trigram search.
 
-Usage in a Filter subclass
---------------------------
+Usage in a filter class
+-----------------------
 1.  Add a ``search_vector`` computed column to the model (see
     ``app.api.data_collection.models.Product`` for the pattern).
-2.  Subclass ``TSVectorSearchMixin`` *before* ``Filter`` in the MRO.
-3.  Implement ``_search_vector_col`` and ``_trigram_cols`` as classmethods.
-4.  Remove ``search_model_fields`` from the inner ``Constants`` class so
-    fastapi-filter does not generate its own ILIKE queries for ``search``.
+2.  Implement ``search_vector_column`` and ``trigram_columns`` on the filter class.
+3.  Let ``app.api.common.crud.filtering`` apply the search clause.
 
 Example:
-    class MyFilter(TSVectorSearchMixin, Filter):
-        search: str | None = None
-        order_by: list[str] | None = None
-
+    class MyFilter(BaseFilterSet):
         @classmethod
-        def _search_vector_col(cls):
+        def search_vector_column(cls):
             return cast("ColumnElement[Any]", MyModel.search_vector)
 
         @classmethod
-        def _trigram_cols(cls):
+        def trigram_columns(cls):
             return [cast("SearchableColumn", MyModel.name)]
-
-        class Constants(Filter.Constants):
-            model = MyModel
-            # search_model_fields intentionally omitted
 """
 
-# spell-checker: ignore trgm
-
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import ColumnElement, Select, func, or_
-from sqlalchemy.orm import Query
-
-if TYPE_CHECKING:
-    from fastapi_filter.contrib.sqlalchemy import Filter as _FilterBase
-else:
-    _FilterBase = object
 
 type SearchableColumn = Any  # Column-like; typed loosely to avoid SA import coupling
+
+# ``english`` plus the unaccent filter, created by migration a9c2e4f60b18; the
+# generated ``search_vector`` columns use the same one, which is what makes a
+# query and a stored vector stem and unaccent identically.
+TEXT_SEARCH_CONFIG = "public.relab"
+
+LIKE_ESCAPE_CHAR = "\\"
+_LIKE_WILDCARDS = str.maketrans({LIKE_ESCAPE_CHAR: LIKE_ESCAPE_CHAR * 2, "%": "\\%", "_": "\\_"})
 
 
 # ─── Clause builders ──────────────────────────────────────────────────────────
@@ -52,6 +43,11 @@ def build_text_search_clause(
 ) -> ColumnElement[bool]:
     """Return a WHERE clause combining tsvector @@ tsquery with optional trigram fuzzy matches.
 
+    Trigram matching runs on ``relab_unaccent(column)`` and nothing else (no
+    ``lower()``: pg_trgm is case-insensitive anyway), because that is the exact
+    expression the ``gin_trgm_ops`` indexes are built on; the search term is
+    unaccented the same way so both sides compare the same trigrams.
+
     Args:
         search: The raw search string from the user.
         search_vector_col: The computed ``tsvector`` column on the model.
@@ -60,11 +56,21 @@ def build_text_search_clause(
     Returns:
         An OR-combined SQLAlchemy ``ColumnElement`` suitable for ``.where()``.
     """
-    ts_query = func.websearch_to_tsquery("english", search)
-    search_lower = search.lower()
+    ts_query = func.websearch_to_tsquery(TEXT_SEARCH_CONFIG, search)
     conditions: list[ColumnElement[bool]] = [search_vector_col.op("@@")(ts_query)]
-    conditions.extend([func.lower(field).op("%")(search_lower) for field in trigram_fields])
+    unaccented_search = func.relab_unaccent(search)
+    conditions.extend([func.relab_unaccent(field).op("%")(unaccented_search) for field in trigram_fields])
     return or_(*conditions)
+
+
+def build_contains_clause(search: str, *columns: SearchableColumn) -> ColumnElement[bool]:
+    """Return a case-insensitive substring match across *columns*.
+
+    LIKE wildcards in the user's input are escaped, so searching for ``%`` looks
+    for a literal percent sign instead of matching every row in the table.
+    """
+    pattern = f"%{search.translate(_LIKE_WILDCARDS)}%"
+    return or_(*[column.ilike(pattern, escape=LIKE_ESCAPE_CHAR) for column in columns])
 
 
 def apply_ts_rank_ordering(query: Select[Any], search_vector_col: ColumnElement[Any], search: str) -> Select[Any]:
@@ -76,55 +82,5 @@ def apply_ts_rank_ordering(query: Select[Any], search_vector_col: ColumnElement[
     The extra column is computed per-row from the tsvector + search, so
     duplicate rows share the same rank and ``DISTINCT`` still collapses them.
     """
-    rank = func.ts_rank(search_vector_col, func.websearch_to_tsquery("english", search)).label("ts_rank_score")
+    rank = func.ts_rank(search_vector_col, func.websearch_to_tsquery(TEXT_SEARCH_CONFIG, search)).label("ts_rank_score")
     return query.add_columns(rank).order_by(rank.desc())
-
-
-# ─── Mixin ────────────────────────────────────────────────────────────────────
-
-
-class TSVectorSearchMixin(_FilterBase):
-    """Mixin that replaces fastapi-filter's default ILIKE ``search`` with tsvector + trigram.
-
-    Must appear before ``Filter`` in the class MRO so that ``super().filter()``
-    delegates to the real ``Filter.filter()`` after we have cleared ``self.search``.
-
-    By default, ``ts_rank`` ordering is added whenever a search term is active.
-    Subclasses may override ``_apply_rank_ordering`` to change this behaviour
-    (e.g. ``ProductFilter`` only ranks by relevance when no explicit ``order_by``
-    is requested, or when the caller passes ``order_by=rank``).
-    """
-
-    @classmethod
-    def _search_vector_col(cls) -> ColumnElement[Any]:
-        """Return the tsvector column for this model. Must be implemented by the subclass."""
-        msg = f"{cls.__name__} must implement _search_vector_col()"
-        raise NotImplementedError(msg)
-
-    @classmethod
-    def _trigram_cols(cls) -> list[SearchableColumn]:
-        """Return the list of text columns to fuzzy-match with trigram similarity.
-
-        Override in the subclass to enable trigram fallback on specific fields.
-        """
-        return []
-
-    def _apply_rank_ordering(self, query: Select[Any], search: str) -> Select[Any]:
-        """Append ``ts_rank`` ordering to *query*. Override to change the behaviour."""
-        return apply_ts_rank_ordering(query, self._search_vector_col(), search)
-
-    def filter(self, query: Query | Select[Any]) -> Query | Select[Any]:
-        """Apply tsvector + trigram search, replacing fastapi-filter's default ILIKE logic."""
-        search: str | None = getattr(self, "search", None)
-        # Temporarily suppress self.search so fastapi-filter's super().filter()
-        # does not try to apply it (we have intentionally omitted search_model_fields).
-        object.__setattr__(self, "search", None)
-        query = super().filter(query)
-        object.__setattr__(self, "search", search)
-
-        if search:
-            clause = build_text_search_clause(search, self._search_vector_col(), *self._trigram_cols())
-            query = query.where(clause)
-            query = self._apply_rank_ordering(query, search)
-
-        return query

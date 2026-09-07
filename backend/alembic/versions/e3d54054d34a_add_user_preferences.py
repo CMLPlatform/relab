@@ -5,7 +5,6 @@ Revises: 70e78d937e0b
 Create Date: 2026-04-08 03:57:06.451232
 
 """
-# spell-checker: ignore astext
 
 from collections.abc import Sequence
 

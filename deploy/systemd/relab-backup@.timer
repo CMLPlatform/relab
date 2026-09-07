@@ -1,0 +1,24 @@
+# Relab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab encrypted backup schedule (%i)
+
+[Timer]
+# Hourly snapshot only. Prune, integrity check and the offsite copy run once a day from
+# relab-backup-maintenance@.timer.
+# No RandomizedDelaySec, so the watchdog's staleness check can use a 2h limit.
+# The 30-minute calendar gap to the maintenance timer is not a lock: a long prune can
+# still hold restic's exclusive lock at 03:00, so the backup script passes --retry-lock.
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

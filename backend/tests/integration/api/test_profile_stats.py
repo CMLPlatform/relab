@@ -1,0 +1,152 @@
+"""Integration tests for public profile statistics."""
+
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.auth.models import User
+from app.api.data_collection.crud.profile_stats import (
+    compute_profile_stats,
+    recompute_user_profile_stats,
+)
+from app.api.data_collection.models.product import Product
+from app.api.reference_data.models import ProductType
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
+
+
+async def create_root_with_component(db_session: AsyncSession, user: User) -> None:
+    """Create one base product and one component with separate weights."""
+    product_type = ProductType(name="Profile Stats Tool", description="Profile stats test product type")
+    root = Product(
+        owner_id=user.id,
+        name="Root product",
+        product_type=product_type,
+        weight_g=35_000,
+    )
+    component = Product(
+        owner_id=user.id,
+        name="Child component",
+        product_type=product_type,
+        parent=root,
+        amount_in_parent=1,
+        weight_g=37_000,
+    )
+    db_session.add_all([product_type, root, component])
+    await db_session.flush()
+
+
+async def test_recompute_user_profile_stats_counts_base_product_weight_only(
+    db_session: AsyncSession,
+    db_superuser: User,
+) -> None:
+    """Profile weight should not count component rows on top of the base product."""
+    await create_root_with_component(db_session, db_superuser)
+
+    stats = await recompute_user_profile_stats(db_session, db_superuser.id)
+
+    assert stats.product_count == 1
+    assert stats.total_weight_g == 35_000
+
+
+async def test_compute_profile_stats_is_read_only(
+    db_session: AsyncSession,
+    db_superuser: User,
+) -> None:
+    """compute_profile_stats returns the numbers without staging a snapshot write.
+
+    The public-profile GET relies on this to stay write-free (a committing read
+    breaks read-replica routing); recompute_* is the write path.
+    """
+    await create_root_with_component(db_session, db_superuser)
+    db_superuser.profile_stats = {}
+    db_superuser.profile_stats_computed_at = None
+    await db_session.flush()
+
+    stats = await compute_profile_stats(db_session, db_superuser.id)
+
+    assert stats.product_count == 1
+    assert db_superuser.profile_stats == {}
+    assert db_superuser.profile_stats_computed_at is None
+
+
+async def test_public_profile_computes_missing_snapshot_on_read(
+    db_session: AsyncSession,
+    api_client: AsyncClient,
+    db_superuser: User,
+) -> None:
+    """A profile with no snapshot yet still returns freshly computed stats."""
+    await create_root_with_component(db_session, db_superuser)
+    db_superuser.profile_stats = {}
+    db_superuser.profile_stats_computed_at = None
+    await db_session.flush()
+
+    response = await api_client.get(f"/v1/profiles/{db_superuser.username}")
+
+    assert response.status_code == 200
+    assert response.json()["total_weight_kg"] == 35.0
+
+
+async def test_public_profile_returns_latest_snapshot_without_external_cache(
+    db_session: AsyncSession,
+    api_client: AsyncClient,
+    db_superuser: User,
+) -> None:
+    """Profile reads should return the latest persisted snapshot without Redis invalidation."""
+    db_superuser.profile_stats = {
+        "product_count": 1,
+        "total_weight_g": 35_000,
+        "image_count": 0,
+        "top_category": "Profile Stats Tool",
+    }
+    db_superuser.profile_stats_computed_at = datetime.now(UTC)
+    await db_session.flush()
+
+    response = await api_client.get(f"/v1/profiles/{db_superuser.username}")
+    assert response.status_code == 200
+    assert response.json()["total_weight_kg"] == 35.0
+
+    db_superuser.profile_stats = {
+        "product_count": 1,
+        "total_weight_g": 72_000,
+        "image_count": 0,
+        "top_category": "Profile Stats Tool",
+    }
+    db_superuser.profile_stats_computed_at = datetime.now(UTC)
+    await db_session.flush()
+
+    fresh_response = await api_client.get(f"/v1/profiles/{db_superuser.username}")
+    assert fresh_response.status_code == 200
+    assert fresh_response.json()["total_weight_kg"] == 72.0
+
+
+async def test_public_profile_does_not_resolve_uuid_identifiers(
+    api_client: AsyncClient,
+    db_superuser: User,
+) -> None:
+    """Profile URLs are username-only; UUID-looking identifiers are not user IDs."""
+    response = await api_client.get(f"/v1/profiles/{db_superuser.id}")
+
+    assert response.status_code == 404
+
+
+async def test_public_profile_does_not_resolve_users_without_username(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """Incomplete users are not addressable by public profile URL."""
+    user = User(
+        email="incomplete-profile@example.com",
+        hashed_password="hashed",
+        username=None,
+        is_active=True,
+        is_verified=True,
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    response = await api_client.get("/v1/profiles/incomplete-profile")
+
+    assert response.status_code == 404

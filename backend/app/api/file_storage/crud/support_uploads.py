@@ -1,7 +1,7 @@
 """Upload validation and filename helpers for stored media."""
 
-from __future__ import annotations
-
+import re
+import unicodedata
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any
 from anyio import to_thread
 from fastapi import UploadFile
 from pydantic import UUID4
-from slugify import slugify
 
+from app.api.common.exceptions import BadRequestError
 from app.api.file_storage.exceptions import UploadTooLargeError
 from app.api.file_storage.schemas import ImageCreateFromForm, ImageCreateInternal
 
@@ -18,6 +18,27 @@ from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
     from typing import BinaryIO
+
+_FILENAME_SEPARATOR_RE = re.compile(r"[^A-Za-z0-9]+")
+_FILENAME_SEPARATOR = "-"
+
+
+def _slugify_filename_stem(stem: str, max_length: int) -> str:
+    """Return an ASCII-safe filename stem."""
+    normalized = unicodedata.normalize("NFKD", stem).encode("ascii", "ignore").decode("ascii")
+    slug = _FILENAME_SEPARATOR_RE.sub(_FILENAME_SEPARATOR, normalized).strip(_FILENAME_SEPARATOR)
+    if not slug:
+        return "file"
+
+    if len(slug) <= max_length:
+        return slug
+
+    truncated = slug[:max_length].rstrip(_FILENAME_SEPARATOR)
+    if _FILENAME_SEPARATOR in truncated:
+        word_boundary = truncated.rsplit(_FILENAME_SEPARATOR, 1)[0].rstrip(_FILENAME_SEPARATOR)
+        if word_boundary:
+            return word_boundary
+    return truncated or "file"
 
 
 def sanitize_filename(filename: str, max_length: int = 42) -> str:
@@ -28,26 +49,32 @@ def sanitize_filename(filename: str, max_length: int = 42) -> str:
     for suffix in path.suffixes[::-1]:
         name = name.removesuffix(suffix)
 
-    sanitized_filename = slugify(
-        name[:-1] + "_" if len(name) > max_length else name,
-        lowercase=False,
-        max_length=max_length,
-        word_boundary=True,
-    )
+    sanitized_filename = _slugify_filename_stem(name, max_length=max_length)
 
     return f"{sanitized_filename}{''.join(path.suffixes)}"
 
 
-def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str]:
-    """Process an UploadFile for storing in the database."""
+def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str, str]:
+    """Process an UploadFile for storing in the database.
+
+    Returns the (file, file_id, original_filename, stored_filename) tuple. ``stored_filename``
+    is the prefixed name assigned to ``file.filename`` — returning it lets callers use a
+    narrowly-typed ``str`` instead of the ``str | None`` attribute.
+    """
     if file.filename is None:
         msg = "File name is empty."
-        raise ValueError(msg)
+        raise BadRequestError(msg)
 
     original_filename = sanitize_filename(file.filename)
     file_id = uuid.uuid4()
-    file.filename = f"{file_id.hex}_{original_filename}"
-    return file, file_id, original_filename
+    extension = Path(original_filename).suffix.lower()
+    if not extension:
+        msg = "File extension is required."
+        raise BadRequestError(msg)
+
+    stored_filename = f"{file_id.hex}{extension}"
+    file.filename = stored_filename
+    return file, file_id, original_filename, stored_filename
 
 
 def _measure_file_size(file: BinaryIO) -> int:
@@ -59,7 +86,7 @@ def _measure_file_size(file: BinaryIO) -> int:
     return file_size
 
 
-async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> None:
+async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> int:
     """Validate upload size, even when UploadFile.size is unavailable."""
     file_size = upload_file.size
     if file_size is None:
@@ -67,15 +94,17 @@ async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> Non
 
     if file_size == 0:
         msg = "File size is zero."
-        raise ValueError(msg)
+        raise BadRequestError(msg)
     if file_size > max_size_mb * 1024 * 1024:
-        raise UploadTooLargeError(file_size_bytes=file_size, max_size_mb=max_size_mb)
+        raise UploadTooLargeError(upload_size_bytes=file_size, max_size_mb=max_size_mb)
+    return file_size
 
 
 def build_storage_instance[StorageModelT: StorageModel](
     *,
     model: type[StorageModelT],
     file_id: UUID4,
+    upload_size_bytes: int,
     original_filename: str,
     stored_name: str,
     payload: StorageCreateSchema,
@@ -86,6 +115,7 @@ def build_storage_instance[StorageModelT: StorageModel](
         "description": payload.description,
         "filename": original_filename,
         "file": stored_name,
+        "upload_size_bytes": upload_size_bytes,
         "parent_type": payload.parent_type,
         "parent_id": payload.parent_id,
     }

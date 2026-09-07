@@ -10,7 +10,49 @@
 		respond "ok" 200
 	}
 
-	file_server
+	@dangerous_methods method TRACE TRACK CONNECT
+	handle @dangerous_methods {
+		header Allow "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD"
+		respond "HTTP method is not allowed." 405
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		Referrer-Policy "no-referrer"
+		Cross-Origin-Opener-Policy "same-origin"
+		Cross-Origin-Resource-Policy "same-site"
+		# Starlight currently emits inline page styles/scripts. The report-only
+		# policy tracks the stricter target before enforcement.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+	}
+
+	# Astro content-hashed static assets — immutable, cache forever
+	@static_assets path /_astro/* /assets/*
+	handle @static_assets {
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# Fonts and the remaining /images/* assets — favicons, the apple-touch
+	# icon, and OG cards need stable (unhashed) URLs that crawlers and
+	# browsers can pin, as do the synced brand fonts. So: long cache without
+	# immutable — a week keeps navigations cheap and a brand-asset swap
+	# propagates within days. The backdrops moved to src/assets/ and are
+	# served hashed under /_astro/ by the matcher above.
+	@long_lived path /fonts/* /images/*
+	handle @long_lived {
+		header Cache-Control "public, max-age=604800"
+		file_server
+	}
+
+	# Docs HTML — browser always revalidates; Cloudflare edge-caches for 1hr
+	# via s-maxage with stale-while-revalidate fallback for 24hr
+	handle {
+		header Cache-Control "public, no-cache, s-maxage=3600, stale-while-revalidate=86400"
+		file_server
+	}
 
 	handle_errors {
 		rewrite * /404.html

@@ -1,0 +1,47 @@
+# Relab scheduled job: backup repository maintenance. Instance is the environment, e.g. relab-backup-maintenance@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab backup maintenance: retention, integrity check, offsite copy (%i)
+Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
+Requires=docker.service
+After=docker.service
+# Bound retries: at RestartSec=15min systemd's default start-limit window (5 starts
+# in 10s) can never trip.
+StartLimitIntervalSec=1d
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=relab
+WorkingDirectory=/opt/relab
+# Dead-man's-switch URL, one per job. Host-local and never committed; `-` means the
+# file is optional and a missing one simply disables pinging.
+EnvironmentFile=-/etc/relab/relab.env
+Environment=JUST_BIN=/usr/bin/just
+Environment=BACKUP_MAINTENANCE=only
+ExecStart=/opt/relab/scripts/run_scheduled.sh backup-maintenance %i
+TimeoutStartSec=7200
+# `compose run` starts a container that is a child of dockerd, NOT of this unit's
+# cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
+# holding the 0400 secret copies and internet egress. Reap it.
+ExecStopPost=-/usr/bin/docker rm -f relab-backup-maintenance-%i
+# A repository that is never pruned or copied offsite degrades quietly, so retry
+# rather than waiting for the next daily run.
+Restart=on-failure
+RestartSec=15min
+# Low CPU and I/O priority, but not the `idle` I/O class: under `idle` a host that
+# also runs compute jobs can starve this until its timeout kills it.
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+# Nothing: triggered by relab-backup-maintenance@%i.timer, never enabled directly.

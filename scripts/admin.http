@@ -1,0 +1,78 @@
+# Admin API scratchpad — VS Code REST Client (humao.rest-client).
+# Run "login" first (click "Send Request" above it), then any call below reuses the token.
+# Swap @baseUrl for the environment you're targeting; paste real credentials.
+
+@baseUrl = http://localhost:8010/v1
+# @baseUrl = https://relab.example.org/v1   # staging/prod
+
+# @name login
+POST {{baseUrl}}/auth/bearer/login
+Content-Type: application/x-www-form-urlencoded
+
+username=you@example.com&password=CHANGE_ME
+
+###
+# Token captured from the login response above.
+# If your account has MFA, login returns an mfa-pending response instead of a
+# token — skip it and hardcode a token grabbed from the app: @token = eyJ...
+@token = {{login.response.body.access_token}}
+
+## Cache -------------------------------------------------------------------
+
+### Force-refresh the public stats (clears the cached /stats/* responses).
+POST {{baseUrl}}/admin/cache/clear/stats
+Authorization: Bearer {{token}}
+
+### Clear any cache namespace: stats | reference-data | docs.
+POST {{baseUrl}}/admin/cache/clear/reference-data
+Authorization: Bearer {{token}}
+
+## Users -------------------------------------------------------------------
+
+### List users (paginated; add filters like ?email[ilike]=%acme.com).
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{token}}
+
+### View one user.
+GET {{baseUrl}}/admin/users/REPLACE_USER_ID
+Authorization: Bearer {{token}}
+
+### Reset a locked-out user's MFA enrollment.
+POST {{baseUrl}}/admin/users/REPLACE_USER_ID/mfa/reset
+Authorization: Bearer {{token}}
+
+### Delete a user (irreversible).
+DELETE {{baseUrl}}/admin/users/REPLACE_USER_ID
+Authorization: Bearer {{token}}
+
+## RPi cameras -------------------------------------------------------------
+
+### List paired cameras.
+GET {{baseUrl}}/admin/plugins/rpi-cam/cameras
+Authorization: Bearer {{token}}
+
+### Check a camera's online status.
+GET {{baseUrl}}/admin/plugins/rpi-cam/cameras/REPLACE_CAMERA_ID/status
+Authorization: Bearer {{token}}
+
+## Reference data ----------------------------------------------------------
+
+### Create a taxonomy (only `name` is required).
+POST {{baseUrl}}/admin/taxonomies
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "New taxonomy",
+  "description": "Created via admin.http"
+}
+
+### Create a category under a taxonomy (`name` + `taxonomy_id` for a root).
+POST {{baseUrl}}/admin/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "New category",
+  "taxonomy_id": "REPLACE_TAXONOMY_ID"
+}

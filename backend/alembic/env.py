@@ -1,50 +1,32 @@
 # noqa: D100 (the alembic folder should not be recognized as a module)
-import contextlib
 import logging
-import sys
-from pathlib import Path
 
-with contextlib.suppress(ModuleNotFoundError):
-    # Registers Alembic plugin for enum migrations; installed via `migrations` extra
-    import alembic_postgresql_enum  # lgtm[py/unused-import]
+import alembic_postgresql_enum
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 from sqlalchemy.engine.url import make_url
 
 from app.api.common.models.base import Base
-from app.core.config import settings
-from app.core.logging import setup_logging
 from app.core.model_registry import load_models
 
-# Load settings from the FastAPI app config
-project_root = Path(__file__).resolve().parents[1]
-sys.path.append(str(project_root))
-
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 config = context.config
 
-# Set the synchronous database URL if not already set in the test environment
-if config.get_alembic_option("is_test") != "true":  # noqa: PLR2004 # This variable is set in tests/conftest.py to indicate a test environment
+# Tests and scripted callers can inject a database URL; CLI migrations fall back to app settings.
+database_url = config.get_alembic_option("sqlalchemy.url")
+if not database_url:
+    from app.core.config import settings
+    from app.core.logging import setup_logging
+
     setup_logging()
-    config.set_main_option("sqlalchemy.url", settings.sync_database_url)
-else:
-    # In tests, logging is already configured in conftest.py.
-    # We just need to ensure the alembic.env logger exists.
-    pass
+    database_url = settings.database.sync_migration_url
+
+config.set_main_option("sqlalchemy.url", str(database_url))
 
 logger = logging.getLogger("alembic.env")
 
 # Import all models so Base.metadata is complete for autogenerate
 load_models()
-
-# Combine metadata from all imported models
 target_metadata = Base.metadata
-
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option") # noqa: ERA001
-# ... etc.
 
 
 def run_migrations_offline() -> None:
@@ -89,7 +71,23 @@ def run_migrations_online() -> None:
     logger.info("Running migrations online on database: %s", make_url(url).render_as_string(hide_password=True))
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        # NOTE: an ACCESS EXCLUSIVE lock that cannot be acquired promptly must abort, not
+        # queue behind readers and block every other query on prod.
+        connection.exec_driver_sql("SET lock_timeout = '5s'")
+        # Bounds how long a statement may hold a lock. A long backfill raises its own ceiling
+        # with `op.execute("SET LOCAL statement_timeout = '15min'")`.
+        connection.exec_driver_sql("SET statement_timeout = '60s'")
+        # Commit the auto-begun transaction so alembic's own is the outer one, not a
+        # savepoint that gets rolled back on close.
+        connection.commit()
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            # A chain-wide transaction holds every lock until the last revision commits, and
+            # autocommit_block() (CREATE INDEX CONCURRENTLY) would commit earlier revisions
+            # anyway. A mid-chain failure leaves earlier revisions applied; re-run to resume.
+            transaction_per_migration=True,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

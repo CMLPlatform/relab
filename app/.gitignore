@@ -1,0 +1,55 @@
+### Auto-generated
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+expo-env.d.ts
+src/uniwind-types.d.ts
+dist/
+web-build/
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+android/
+ios/
+
+# Metro
+.metro-health-check*
+
+# TypeScript
+*.tsbuildinfo
+.eslintcache
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Local certs / keys
+*.pem
+
+# Local env overrides
+.env.local
+
+### Manual additions
+# Testing
+coverage/
+junit.xml
+playwright-report/
+test-results/
+
+# Custom jest timing output files
+.jest-*.json
+
+# Env files (frontend env files are all public)
+!.env.development
+!.env.staging
+!.env.prod
+!.env.test

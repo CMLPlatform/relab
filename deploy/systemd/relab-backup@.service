@@ -1,0 +1,47 @@
+# Relab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+#
+# Do not install by hand — `just timers-install <env>` renders these for this host
+# (checkout path, deploy user, `just` location) and enables them. The committed values
+# are placeholders; an unrendered unit runs as the wrong user in the wrong directory and
+# stays silent until its first fire.
+#
+# NOTE: the deploy user needs docker-group membership, which is root-equivalent on the
+# host. These units run a writable git checkout as unattended, scheduled, effectively
+# root-level jobs — treat that directory as privileged.
+[Unit]
+Description=Relab encrypted backup (%i)
+Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
+Requires=docker.service
+After=docker.service
+# Bound retries: at RestartSec=5min systemd's default start-limit window (5 starts in
+# 10s) can never trip. systemd counts every start, successful ones included, so this
+# window must stay shorter than the hourly timer period.
+StartLimitIntervalSec=30min
+StartLimitBurst=3
+
+[Service]
+Type=oneshot
+User=relab
+WorkingDirectory=/opt/relab
+# Dead-man's-switch URL, one per job. Host-local and never committed; `-` means the
+# file is optional and a missing one simply disables pinging.
+EnvironmentFile=-/etc/relab/relab.env
+Environment=JUST_BIN=/usr/bin/just
+Environment=BACKUP_MAINTENANCE=skip
+ExecStart=/opt/relab/scripts/run_scheduled.sh backup %i
+TimeoutStartSec=1800
+# `compose run` starts a container that is a child of dockerd, NOT of this unit's
+# cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
+# holding a plaintext pg_dump, the 0400 secret copies, and internet egress. Reap it.
+ExecStopPost=-/usr/bin/docker rm -f relab-backup-%i
+# Short enough to land well before the next hourly trigger.
+Restart=on-failure
+RestartSec=5min
+# Low CPU and I/O priority, but not the `idle` I/O class: under `idle` a host that
+# also runs compute jobs can starve this until its timeout kills it.
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+# Nothing: triggered by relab-backup@%i.timer, never enabled directly.

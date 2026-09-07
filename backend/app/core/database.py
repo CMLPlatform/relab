@@ -18,12 +18,13 @@ load_models()
 
 ### Async database connection
 async_engine: AsyncEngine = create_async_engine(
-    settings.async_database_url,
-    connect_args=settings.async_database_connect_args,
-    future=True,
+    settings.database.async_url,
+    connect_args=settings.database.async_connect_args,
     echo=settings.debug,
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_pool_max_overflow,
+    pool_pre_ping=True,
+    pool_recycle=1800,
 )
 async_sessionmaker_factory = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
 
@@ -32,6 +33,12 @@ async def get_async_session() -> AsyncGenerator[AsyncSession]:
     """Get a new asynchronous database session. Can be used in FastAPI dependencies."""
     async with async_sessionmaker_factory() as session:
         yield session
+
+
+async def check_database_connection() -> None:
+    """Open a pooled connection so SQLAlchemy verifies PostgreSQL on checkout."""
+    async with async_engine.connect():
+        pass
 
 
 async def close_async_engine() -> None:

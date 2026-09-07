@@ -1,7 +1,5 @@
 """Common non-query utility functions for CRUD operations."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any, cast
 
 from app.api.common.crud.exceptions import (
@@ -10,15 +8,16 @@ from app.api.common.crud.exceptions import (
     ModelNotFoundError,
     NoLinkedItemsError,
 )
-from app.api.common.models.custom_types import ET, IDT, MT
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+    from enum import Enum
     from uuid import UUID
 
+    from app.api.common.models.base import Base
 
-### Error Handling Utilities ###
-def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: IDT) -> MT:
+
+def ensure_model_exists[MT: Base](db_result: MT | None, model_type: type[MT], model_id: int | UUID) -> MT:
     """Ensure a model with a given ID exists, providing type-safe return.
 
     Args:
@@ -37,8 +36,7 @@ def ensure_model_exists(db_result: MT | None, model_type: type[MT], model_id: ID
     return cast("MT", db_result)
 
 
-### Linked Item Validation ###
-def validate_linked_items(
+def _validate_linked_items(
     item_ids: set[int] | set[UUID],
     existing_items: Sequence[Any] | None,
     model_name_plural: str,
@@ -78,13 +76,12 @@ def validate_linked_items(
             raise LinkedItemsMissingError(model_name_plural, missing)
 
 
-### Formatting Utilities ###
 def format_id_set(id_set: set[Any]) -> str:
     """Format a set of IDs as a comma-separated string."""
     return ", ".join(map(str, sorted(id_set)))
 
 
-def enum_format_id_set(enum_set: set[ET]) -> str:
+def enum_format_id_set[ET: Enum](enum_set: set[ET]) -> str:
     """Format a set of enum values as a comma-separated string."""
     return ", ".join(str(e.value) for e in sorted(enum_set, key=lambda x: x.value))
 
@@ -97,7 +94,7 @@ def validate_no_duplicate_linked_items(
     id_attr: str = "id",
 ) -> None:
     """Validate that new items are not already in the existing items list."""
-    validate_linked_items(
+    _validate_linked_items(
         new_ids,
         existing_items,
         model_name_plural,
@@ -115,7 +112,7 @@ def validate_linked_items_exist(
     id_attr: str = "id",
 ) -> None:
     """Validate that all item_ids are present in existing_items."""
-    validate_linked_items(
+    _validate_linked_items(
         item_ids,
         existing_items,
         model_name_plural,

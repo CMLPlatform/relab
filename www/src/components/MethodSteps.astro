@@ -1,0 +1,248 @@
+---
+// The data-collection workflow as HTML, not a rendered diagram, so the text
+// scales and reflows. assets/method-flow.mmd is the paper figure's source and
+// is not a www dependency; keep the two in step.
+interface Props {
+  docsUrl: string;
+}
+
+const { docsUrl } = Astro.props;
+const frameworkUrl = `${docsUrl.replace(/\/$/, '')}/project/9r-framework/`;
+
+const phases = [
+  {
+    name: 'Intake',
+    steps: [
+      {
+        name: 'Product in',
+        detail:
+          'A product arrives for teardown: durable goods that hand tools can open non-destructively.',
+      },
+      {
+        name: 'Photograph',
+        detail: 'Capture first, before recording anything else, by phone or a fixed camera rig.',
+      },
+      {
+        name: 'Register product',
+        detail: 'Create the product record: its type, brand, and model.',
+      },
+    ],
+  },
+  {
+    // The two steps inside the source diagram's loop subgraph.
+    name: 'For each component',
+    repeats: true,
+    steps: [
+      { name: 'Identify', detail: 'Name each component and identify what it is made of.' },
+      { name: 'Weigh and measure', detail: 'Record mass and dimensions for every component.' },
+    ],
+  },
+  {
+    name: 'Output',
+    steps: [
+      {
+        name: 'Nest into component hierarchy',
+        detail: 'Attach each component to its parent; assemblies nest to any depth.',
+      },
+      {
+        // TODO: after the first curated dataset release is published, replace
+        // this with the release DOI and switch the wording to present tense
+        // (scope and terms: docs/src/content/docs/project/dataset.md). Until
+        // then this step must not imply an openly licensed dataset exists.
+        name: 'Browse and reuse the records',
+        detail:
+          'The record becomes browsable in the app and over the API. Curated dataset releases are planned under CC BY 4.0; none has been published yet.',
+      },
+      {
+        name: 'LCA and circular-economy research',
+        detail: 'Records support life-cycle assessment and circularity analysis.',
+      },
+    ],
+  },
+];
+---
+
+<section class="section method-steps" aria-labelledby="method-steps-heading">
+  <h2 id="method-steps-heading">From teardown to data</h2>
+  <p class="method-lede">
+    Every record is built the same way, in three passes: the product is taken in, each component is
+    worked through in turn, and the finished record is published.
+  </p>
+
+  {/* Ordered lists carry the order; no arrow glyphs. */}
+  <ol class="flow" role="list">
+    {
+      phases.map((phase, phaseIndex) => (
+        <li class="flow-phase">
+          <p class="flow-phase-name">
+            <span class="flow-phase-num">{phaseIndex + 1}</span>
+            {phase.name}
+            {phase.repeats && <span class="flow-phase-repeat">repeats per part</span>}
+          </p>
+          <ol class="flow-steps" role="list">
+            {phase.steps.map((step) => (
+              <li class="flow-step">
+                <h3 class="flow-step-name">{step.name}</h3>
+                <p class="flow-step-detail">{step.detail}</p>
+              </li>
+            ))}
+          </ol>
+        </li>
+      ))
+    }
+  </ol>
+
+  {/* Framing from the project's papers. Do not say records "are read through the
+      9R framework": the platform performs no such analysis step. */}
+  <p class="method-lens">
+    A finished record says what one product is made of, how it comes apart, and how it has fared.
+    That is the primary data life-cycle assessment and material-flow analysis are built on, and it
+    is scarcest exactly where it is most observable: products are documented as designed, rarely as
+    they are found at the end of their life.
+  </p>
+  {/* Background, not method: the 9R framework is not part of how records are
+      made or read. The wordmark stays artwork, never spelled out as text. */}
+  <p class="method-aside">
+    {/* Explicit spaces: Astro strips the inter-node newline around an <a>. */}
+    Background: the nine in the mark is a nod to the 9R framework, the ten circular-economy
+    strategies from Refuse to Recover that the project takes its cue from.{' '}
+    <a href={frameworkUrl} target="_blank" rel="noopener noreferrer"
+      >See the ladder in the docs<span class="visually-hidden"> (opens in new tab)</span></a
+    >.
+  </p>
+</section>
+
+<style>
+  .method-steps {
+    min-width: 0;
+  }
+
+  .method-steps h2 {
+    margin: 0 0 0.6rem;
+  }
+
+  .method-lede {
+    margin: 0 0 1.6rem;
+    max-width: 80ch;
+    font-size: var(--font-size-body-compact);
+    line-height: var(--line-height-body-compact);
+    color: var(--color-muted);
+  }
+
+  /* Three phases across, one column on a narrow screen. */
+  .flow {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  .flow-phase {
+    display: grid;
+    align-content: start;
+    gap: 0.9rem;
+    border-top: 1px solid var(--color-page-border);
+    padding-top: 0.8rem;
+  }
+
+  .flow-phase-name {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: var(--relab-type-label-size);
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  /* Ink, not manila: these ordinals label a section, and the accent rule
+     reserves manila for a datum. Weight carries the emphasis.
+     Mirrors assets/DESIGN.md:163 — change it there first. */
+  .flow-phase-num {
+    color: var(--color-on-surface);
+    font-weight: 600;
+  }
+
+  /* The looping phase says so; the column layout cannot draw the arrow back. */
+  .flow-phase-repeat {
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--color-page-border);
+    border-radius: var(--radius-control);
+    font-size: var(--relab-type-micro-size);
+    letter-spacing: 0.06em;
+    text-transform: none;
+  }
+
+  .flow-steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.75rem;
+    counter-reset: step;
+  }
+
+  /* Hairline row, numbered within its phase by CSS counter. */
+  .flow-step {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 1.4rem minmax(0, 1fr);
+    column-gap: 0.6rem;
+  }
+
+  .flow-step::before {
+    content: counter(step);
+    grid-row: 1 / span 2;
+    font-family: var(--relab-brand-font-mono), monospace;
+    font-size: var(--relab-type-micro-size);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  .flow-step-name {
+    margin: 0;
+    font-family: var(--relab-brand-font), sans-serif;
+    font-size: var(--relab-type-body-size);
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+    color: var(--color-on-surface);
+  }
+
+  .flow-step-detail {
+    margin: 0.15rem 0 0;
+    font-size: var(--relab-type-caption-size);
+    line-height: 1.5;
+    color: var(--color-muted);
+  }
+
+  .method-lens {
+    margin: 1.8rem 0 0;
+    max-width: 72ch;
+    font-size: var(--font-size-body-compact);
+    line-height: var(--line-height-body-compact);
+    color: var(--color-text);
+  }
+
+  /* Subordinate to the line above: context, not method. */
+  .method-aside {
+    margin: 0.7rem 0 0;
+    max-width: 72ch;
+    font-size: var(--font-size-meta);
+    color: var(--color-muted);
+  }
+
+  @media (max-width: 900px) {
+    .flow {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.5rem;
+    }
+  }
+</style>

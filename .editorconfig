@@ -1,0 +1,11 @@
+# Shell only. Without this, a bare `shfmt` (no flags) inherits whatever the
+# nearest .editorconfig up the tree sets — often indent_size 2 — and fights the
+# repo's own shfmt hook, which pins `-i 4 -ci -bn` in .pre-commit-config.yaml.
+# These three keys are shfmt's editorconfig spelling of exactly those flags.
+# Deliberately not `root = true`: every other file type keeps inheriting.
+
+[*.sh]
+indent_style = space
+indent_size = 4
+switch_case_indent = true
+binary_next_line = true

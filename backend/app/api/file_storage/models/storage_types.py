@@ -1,7 +1,5 @@
 """SQLAlchemy column types backed by configured storage backends."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from sqlalchemy.engine.interfaces import Dialect

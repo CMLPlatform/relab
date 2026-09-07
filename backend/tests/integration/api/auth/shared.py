@@ -1,11 +1,20 @@
-"""Shared constants for auth integration and unit-style endpoint tests."""
+"""Shared constants and helpers for auth integration tests."""
 
-from functools import lru_cache
+from typing import TYPE_CHECKING, Any
 
-from pwdlib import PasswordHash
+from fastapi import status
+
+from app.api.auth.services.password_hashing import build_password_helper
+from tests.factories.models import UserFactory
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.auth.models import User
 
 TEST_EMAIL = "newuser@example.com"
-TEST_PASSWORD = "SecurePassword123"
+TEST_PASSWORD = "correct-horse-battery-staple-v42"
 TEST_USERNAME = "newuser"
 DUPLICATE_EMAIL = "existing@example.com"
 UNIQUE_USERNAME = "uniqueuser"
@@ -13,10 +22,6 @@ DIFFERENT_EMAIL = "different@example.com"
 EXISTING_USERNAME = "existing_user"
 DISPOSABLE_EMAIL = "temp@tempmail.com"
 WEAK_PASSWORD = "short"
-OWNER_EMAIL = "owner@example.com"
-ORG_NAME = "Test Organization"
-ORG_LOCATION = "Test City"
-ORG_DESC = "Test Description"
 LOGIN_EMAIL = "logintest@example.com"
 LOGIN_USERNAME = "logintest"
 COOKIE_EMAIL = "cookie_test@example.com"
@@ -35,12 +40,45 @@ JWT_DOT_COUNT = 2
 TEST_STATE_JWT_SECRET = "test-state-jwt-secret-32-bytes-long"
 
 
-@lru_cache(maxsize=1)
-def _password_hasher() -> PasswordHash:
-    """Return a stable password hasher for auth integration test data."""
-    return PasswordHash.recommended()
-
-
 def hash_test_password(password: str) -> str:
     """Hash a password with a real supported scheme for auth-focused tests."""
-    return _password_hasher().hash(password)
+    return build_password_helper().hash(password)
+
+
+async def create_password_user(db_session: AsyncSession, *, email: str, username: str, **overrides: Any) -> User:
+    """Create a user whose password is really hashed, for password-auth tests."""
+    return await UserFactory.create_async(
+        db_session,
+        email=email,
+        username=username,
+        hashed_password=hash_test_password(TEST_PASSWORD),
+        **overrides,
+    )
+
+
+async def login_bearer(api_client: AsyncClient, *, email: str, password: str) -> dict[str, Any]:
+    """Log in without MFA and return bearer token JSON."""
+    response = await api_client.post(
+        "/v1/auth/bearer/login",
+        data={"username": email, "password": password},
+    )
+    assert response.status_code == status.HTTP_200_OK
+    return dict(response.json())
+
+
+async def login_session(api_client: AsyncClient, *, email: str, password: str) -> None:
+    """Log in without MFA and keep session cookies on the client."""
+    response = await api_client.post(
+        "/v1/auth/session/login",
+        data={"username": email, "password": password},
+    )
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+
+async def assert_refresh_session_revoked(api_client: AsyncClient, refresh_token: str) -> None:
+    """Assert that a refresh token can no longer be used to obtain new tokens."""
+    response = await api_client.post(
+        "/v1/auth/bearer/refresh",
+        json={"refresh_token": refresh_token},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

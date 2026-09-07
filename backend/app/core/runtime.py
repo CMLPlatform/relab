@@ -1,36 +1,42 @@
 """Typed runtime services stored on FastAPI connection state."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
 from fastapi import FastAPI, Request
 
 if TYPE_CHECKING:
-    import anyio
     from httpx import AsyncClient
     from redis.asyncio import Redis
     from starlette.requests import HTTPConnection
 
-    from app.api.auth.services.email_checker import EmailChecker
-    from app.api.file_storage.services.manager import FileCleanupManager
-    from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
+_REQUIRED_SERVICE_UNAVAILABLE = "Required service is temporarily unavailable."
+
+
+class RequiredServiceUnavailableError(RuntimeError):
+    """Raised when a core runtime service a request needs was never initialized.
+
+    Core owns this error; the API layer maps it to a 503 response.
+    """
+
+    def __init__(self, message: str = _REQUIRED_SERVICE_UNAVAILABLE, *, log_message: str | None = None) -> None:
+        self.message = message
+        self.log_message = log_message or message
+        super().__init__(message)
 
 
 @dataclass(slots=True)
 class AppServices:
-    """Typed container for long-lived runtime services."""
+    """Container for long-lived runtime services.
+
+    Core owns only the infrastructure services it creates itself. Domain-owned
+    services live in ``extras`` under a domain-namespaced key, with typed
+    accessors provided by the owning domain — core stays free of domain imports.
+    """
 
     redis: Redis | None = None
-    blocking_redis: Redis | None = None
-    email_checker: EmailChecker | None = None
-    camera_connection_manager: CameraConnectionManager | None = None
-    file_cleanup_manager: FileCleanupManager | None = None
     http_client: AsyncClient | None = None
-    image_resize_limiter: anyio.CapacityLimiter | None = None
-    storage_ready: bool = False
-    telemetry_enabled: bool = False
+    extras: dict[str, object] = field(default_factory=dict)
 
 
 def get_connection_services(connection: HTTPConnection) -> AppServices:
@@ -52,75 +58,18 @@ def get_request_services(request: Request) -> AppServices:
     return get_connection_services(request)
 
 
-def require_connection_services(connection: HTTPConnection) -> AppServices:
-    """Return runtime services for a connection.
-
-    This helper documents intent at call sites that expect the container to be
-    present as part of normal application startup.
-    """
-    return get_connection_services(connection)
-
-
-def get_connection_redis(connection: HTTPConnection) -> Redis | None:
-    """Return the shared Redis client for a request or websocket."""
-    return get_connection_services(connection).redis
-
-
-def get_connection_blocking_redis(connection: HTTPConnection) -> Redis | None:
-    """Return the shared blocking Redis client for a request or websocket."""
-    return get_connection_services(connection).blocking_redis
-
-
-def get_connection_http_client(connection: HTTPConnection) -> AsyncClient | None:
-    """Return the shared outbound HTTP client for a request or websocket."""
-    return get_connection_services(connection).http_client
-
-
-def get_connection_camera_manager(connection: HTTPConnection) -> CameraConnectionManager | None:
-    """Return the shared camera connection manager for a request or websocket."""
-    return get_connection_services(connection).camera_connection_manager
-
-
-def get_connection_image_resize_limiter(connection: HTTPConnection) -> anyio.CapacityLimiter | None:
-    """Return the shared image resize limiter for a request or websocket."""
-    return get_connection_services(connection).image_resize_limiter
-
-
-def get_request_email_checker(request: Request) -> EmailChecker | None:
-    """Return the shared disposable-email checker for a request."""
-    return get_request_services(request).email_checker
-
-
-def get_connection_file_cleanup_manager(connection: HTTPConnection) -> FileCleanupManager | None:
-    """Return the shared file cleanup manager for a request or websocket."""
-    return get_connection_services(connection).file_cleanup_manager
-
-
-def require_connection_camera_manager(connection: HTTPConnection) -> CameraConnectionManager:
-    """Return the shared camera manager, raising when runtime init is incomplete."""
-    manager = get_connection_camera_manager(connection)
-    if manager is None:
-        msg = "Camera connection manager is not initialized"
-        raise RuntimeError(msg)
-    return manager
+def require_redis(redis_client: Redis | None) -> Redis:
+    """Raise an HTTP-style error if Redis is unavailable."""
+    if redis_client is None:
+        raise RequiredServiceUnavailableError(
+            log_message="Redis is required for this operation.",
+        )
+    return redis_client
 
 
 def require_connection_redis(connection: HTTPConnection) -> Redis:
     """Return the shared Redis client, raising when runtime init is incomplete."""
-    redis = get_connection_redis(connection)
-    if redis is None:
-        msg = "Redis is not initialized"
-        raise RuntimeError(msg)
-    return redis
-
-
-def require_connection_http_client(connection: HTTPConnection) -> AsyncClient:
-    """Return the shared outbound HTTP client, raising when runtime init is incomplete."""
-    http_client = get_connection_http_client(connection)
-    if http_client is None:
-        msg = "HTTP client is not initialized"
-        raise RuntimeError(msg)
-    return http_client
+    return require_redis(get_connection_services(connection).redis)
 
 
 def reset_app_services(app: FastAPI) -> AppServices:

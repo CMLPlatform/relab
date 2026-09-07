@@ -9,7 +9,7 @@ Supports both connection modes:
 
   WebSocket mode:
     uv run python scripts/plugins/rpi-cam/webcam_fake_camera.py ws \
-        --backend-url ws://localhost:8000/plugins/rpi-cam/ws/connect \
+        --backend-url ws://localhost:8000/v1/plugins/rpi-cam/ws/connect \
         --camera-id <uuid> \
         --api-key <key>
     → Connects outbound to the backend WebSocket relay.
@@ -18,9 +18,6 @@ Supports both connection modes:
 Requirements:
     uv sync --group fake-camera
 """
-# spell-checker: ignore imencode, IMWRITE
-
-from __future__ import annotations
 
 import argparse
 import asyncio
@@ -31,7 +28,7 @@ import threading
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -64,10 +61,11 @@ _FRAME_READ_ERR = "Failed to read frame from webcam"
 
 
 class _CameraState:
-    """Mutable container for the shared webcam handle, avoiding module-level globals."""
+    """Mutable container for shared webcam state, avoiding module-level globals."""
 
     camera: cv2.VideoCapture | None = None
     lock = threading.Lock()
+    ws_captured_images: ClassVar[dict[str, bytes]] = {}
 
 
 def _ensure_camera() -> cv2.VideoCapture:
@@ -162,8 +160,6 @@ def run_http(port: int, host: str = "127.0.0.1") -> None:
 # WebSocket mode — connects outbound to the backend relay
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_ws_captured_images: dict[str, bytes] = {}
-
 
 def run_websocket(backend_url: str, camera_id: str, api_key: str) -> None:
     """Start the WebSocket fake camera client."""
@@ -236,7 +232,7 @@ async def _handle_command(ws: websockets.ClientConnection, msg_id: str, method: 
     if method == _METHOD_POST and path == _PATH_IMAGES:
         jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=92))
         image_id = str(uuid.uuid4())
-        _ws_captured_images[image_id] = jpeg
+        _CameraState.ws_captured_images[image_id] = jpeg
         logger.info("Captured image %s (%d bytes)", image_id[:8], len(jpeg))
         await ws.send(
             json.dumps(
@@ -259,7 +255,7 @@ async def _handle_command(ws: websockets.ClientConnection, msg_id: str, method: 
 
     elif method == _METHOD_GET and path.startswith(_PATH_IMAGES_PREFIX):
         image_id = path.split(_PATH_IMAGES_PREFIX, 1)[1]
-        jpeg = _ws_captured_images.pop(image_id, None)
+        jpeg = _CameraState.ws_captured_images.pop(image_id, None)
         if jpeg is None:
             jpeg = await loop.run_in_executor(None, lambda: grab_frame(quality=92))
         await ws.send(
@@ -317,7 +313,7 @@ examples:
 
   # WebSocket mode — connects to the backend relay
   python scripts/webcam_fake_camera.py ws \\
-      --backend-url ws://localhost:8000/plugins/rpi-cam/ws/connect \\
+      --backend-url ws://localhost:8000/v1/plugins/rpi-cam/ws/connect \\
       --camera-id 550e8400-e29b-41d4-a716-446655440000 \\
       --api-key abc123
         """,
@@ -332,7 +328,7 @@ examples:
     # WebSocket
     ws_parser = sub.add_parser("ws", help="Connect to backend via WebSocket relay")
     ws_parser.add_argument("--backend-url", required=True, help="WebSocket URL of the backend relay")
-    ws_parser.add_argument("--camera-id", required=True, help="Camera UUID from ReLab")
+    ws_parser.add_argument("--camera-id", required=True, help="Camera UUID from Relab")
     ws_parser.add_argument("--api-key", required=True, help="API key from camera registration")
 
     args = parser.parse_args()

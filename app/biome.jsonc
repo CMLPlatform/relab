@@ -1,0 +1,130 @@
+{
+  "$schema": "../node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["../biome.base.jsonc"],
+  "files": {
+    "includes": [
+      "**",
+      "!.expo",
+      "!coverage",
+      "!dist",
+      "!!node_modules",
+
+      // Generated fixtures are intentionally machine-managed.
+      "!src/assets/data/*.json",
+
+      // Canonical OpenAPI schema is emitted by the backend exporter (Python
+      // json.dumps); keep biome from reformatting it so `openapi-check` stays green.
+      "!src/types/openapi.json",
+
+      // Generated palette artifacts are emitted by scripts/sync_brand_assets.py;
+      // keep biome from reformatting them so `--check` stays byte-stable.
+      "!src/theme/brand.generated.css",
+      "!src/theme/palette.generated.ts",
+      "!src/theme/tokens.generated.ts"
+    ]
+  },
+  "linter": {
+    "rules": {
+      "complexity": {
+        "noExcessiveLinesPerFunction": {
+          "level": "warn",
+          "options": {
+            "maxLines": 100
+          }
+        }
+      },
+      "correctness": {
+        "noReactPropAssignments": "error",
+        "useExhaustiveDependencies": "error",
+        "useHookAtTopLevel": "error",
+        "useImportExtensions": "off"
+      },
+      "style": {
+        "useComponentExportOnlyModules": "warn"
+      },
+      "suspicious": {
+        "noSkippedTests": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      // Tooling config files run in Node and occasionally need interop imports.
+      "includes": ["eslint.config.mjs"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noNamespaceImport": "off"
+          }
+        }
+      }
+    },
+    {
+      // Test files routinely contain dummy secrets and looser fixture setup.
+      "includes": [
+        "babel.config.*",
+        "config/**",
+        "e2e/**",
+        "jest.config.*",
+        "jest.setup.*",
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
+          "security": {
+            "noSecrets": "off"
+          }
+        }
+      }
+    },
+    {
+      // Style modules are flat StyleSheet token maps: declarative data, not
+      // control flow. The line-count heuristic misfires on them.
+      "includes": ["**/styles.ts", "**/styles.tsx"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          }
+        }
+      }
+    },
+    {
+      // NativeWind's global.css uses Tailwind CSS v4 at-rules (@source, @theme)
+      // that Biome's CSS parser rejects unless explicitly enabled.
+      "includes": ["global.css"],
+      "css": {
+        "parser": {
+          "tailwindDirectives": true
+        }
+      }
+    },
+    {
+      // Vendored react-native-reusables (shadcn-style) primitives — upstream code we
+      // don't hand-refactor. Namespace imports, mixed component/variant-constant
+      // exports, and decorative web-only fragments are inherent to the template.
+      "includes": ["src/components/base/ui/**"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noUselessFragments": "off"
+          },
+          "performance": {
+            "noNamespaceImport": "off"
+          },
+          "security": {
+            "noSecrets": "off"
+          },
+          "style": {
+            "useComponentExportOnlyModules": "off"
+          }
+        }
+      }
+    }
+  ]
+}

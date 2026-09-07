@@ -7,13 +7,6 @@ class InvalidProductTreeError(BadRequestError):
     """Raised when a product/component tree payload is structurally invalid."""
 
 
-class ProductTreeMissingContentError(InvalidProductTreeError):
-    """Raised when a product tree has neither materials nor components."""
-
-    def __init__(self) -> None:
-        super().__init__("Product needs materials or components")
-
-
 class ProductOwnerRequiredError(InvalidProductTreeError):
     """Raised when product tree creation is attempted without an owner."""
 

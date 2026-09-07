@@ -45,6 +45,7 @@ backups/*
 # Test coverage reports
 reports/coverage/*
 !reports/coverage/badge.svg
+reports/junit.xml
 
 # Performance artifacts (k6 summaries + dated baselines)
 reports/performance/*.json

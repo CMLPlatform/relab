@@ -1,22 +1,14 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.12/schema.json",
+  "$schema": "../node_modules/@biomejs/biome/configuration_schema.json",
   "extends": ["../biome.base.jsonc"],
   "files": {
     "includes": [
-      // Keep docs linting focused on checked-in source and config files.
+      // Lint all checked-in docs sources, minus generated output and caches.
       ".",
-      "astro.config.mjs",
-      "playwright.config.ts",
-      "package.json",
-      "tsconfig.json",
-      "scripts/**/*.mjs",
-      "src/components/**",
-      "src/styles/**",
       "!.astro",
       "!dist",
-      "!node_modules",
+      "!!node_modules",
       "!playwright-report",
-      "!site",
       "!test-results",
 
       // This wrapper re-exports Starlight's default head component.
@@ -29,7 +21,6 @@
       "correctness": {
         "noNodejsModules": "off"
       },
-      "style": "on",
       "suspicious": "on"
     }
   },

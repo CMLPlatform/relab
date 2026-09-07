@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1
+
+# Runtime image for encrypted Relab backups.
+FROM postgres:18@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
+
+ARG WORKDIR=/opt/relab/backups
+ARG APP_USER=backupuser
+ARG APP_UID=1001
+# Debian package versions, pinned; see the install step below.
+ARG RCLONE_VERSION=1.60.1+dfsg-4
+ARG RESTIC_VERSION=0.18.0-1+b4
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update \
+    # Pinned deliberately. This container reads the entire database and every
+    # upload, and is the only service besides cloudflared with a route off-host,
+    # so an unreviewed rclone/restic bump is an exfiltration surface. Bump these
+    # on purpose. backup_relab_restic.sh also depends on restic >= 0.17 exit-code
+    # semantics (exit 10 = repository does not exist).
+    && apt-get install -y --no-install-recommends ca-certificates \
+    "rclone=${RCLONE_VERSION}" "restic=${RESTIC_VERSION}" \
+    # postgres:18 lags Debian's openssl security updates by a rebuild cycle, and
+    # this image talks TLS to the database and to the offsite remote. Upgrade the
+    # openssl packages the base already carries rather than wait for the rebuild.
+    && apt-get install -y --only-upgrade openssl libssl3t64 openssl-provider-legacy \
+    && rm -rf /var/lib/apt/lists/* \
+    # Postgres ships gosu for its own entrypoint; this image has its own and runs
+    # as an unprivileged user, so drop the setuid-capable Go binary.
+    && rm -f /usr/local/bin/gosu \
+    && useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
+    && install -d -o "$APP_UID" -g "$APP_UID" -m 0755 "$WORKDIR" \
+    # restic's cache lives on a named volume so it survives --rm. Create it here,
+    # owned by APP_UID: Docker seeds an empty named volume from the image path, so
+    # without this the volume comes up root-owned, the unprivileged user cannot
+    # write, and restic silently falls back to running with no cache at all.
+    && install -d -o "$APP_UID" -g "$APP_UID" -m 0755 /var/cache/restic
+
+WORKDIR $WORKDIR
+
+COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_relab_restic.sh .
+COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_relab_restic_entrypoint.sh .
+
+ENV BACKUP_SCRIPT=$WORKDIR/backup_relab_restic.sh
+
+USER $APP_USER
+
+# No HEALTHCHECK: this image is a one-shot run by a systemd timer on the host, not
+# a long-running service. Its exit code is the health signal, and `systemctl
+# is-failed` is what the watchdog reads.
+ENTRYPOINT ["./backup_relab_restic_entrypoint.sh"]

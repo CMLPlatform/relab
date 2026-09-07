@@ -1,10 +1,7 @@
 """Helpers for the private backend<->plugin device seam."""
 
-from __future__ import annotations
-
 from pydantic import TypeAdapter
 from relab_rpi_cam_models import (
-    DevicePublicKeyJWK,
     PairingClaimedBootstrap,
     PairingClaimedRecord,
     PairingPendingRecord,
@@ -22,20 +19,6 @@ def parse_pairing_record(raw: str) -> PairingPendingRecord | PairingClaimedRecor
 def dump_pairing_record(record: PairingPendingRecord | PairingClaimedRecord) -> str:
     """Serialize a typed pairing record for Redis storage."""
     return record.model_dump_json(exclude_none=True)
-
-
-def build_waiting_record(
-    *,
-    rpi_fingerprint: str,
-    public_key_jwk: DevicePublicKeyJWK,
-    key_id: str,
-) -> PairingPendingRecord:
-    """Build the waiting-state record stored before claim."""
-    return PairingPendingRecord(
-        rpi_fingerprint=rpi_fingerprint,
-        public_key_jwk=public_key_jwk,
-        key_id=key_id,
-    )
 
 
 def build_claimed_bootstrap(

@@ -1,0 +1,45 @@
+# compose.telemetry.gpu.yml, VENDORED from the CML monitoring repository at a pinned tag.
+#
+# OPTIONAL OVERLAY: GPU metrics on a host with NVIDIA hardware. The Alloy agent
+# discovers and scrapes the exporter automatically.
+#
+#   docker compose ... -f compose.telemetry.yml -f compose.telemetry.gpu.yml up -d
+#
+# Deploy tooling that builds its `-f` list from the host's `.env` should key on
+# `GPU_METRICS=1`. Nothing in these templates reads it, but one name across every spoke
+# keeps the runbooks identical, and the switch has to exist: including this overlay on a
+# host without the NVIDIA container runtime makes `up` abort with "could not select
+# device driver".
+#
+# nvidia_gpu_exporter, not dcgm-exporter: DCGM's profiling fields are datacentre-only,
+# and on a consumer card it keeps only its SYS_ADMIN requirement.
+
+services:
+  nvidia-gpu-exporter:
+    image: utkuozdemir/nvidia_gpu_exporter:1.14.0-nvml@sha256:82acc3fc60a5a709846ea9757bbccb170fd141039fa47e5899c55fe9a60f56fe
+    restart: unless-stopped
+    # The NVML backend reports XID error counters; the nvidia-smi backend cannot.
+    environment:
+      NVIDIA_DRIVER_CAPABILITIES: utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    mem_limit: 256m
+    pids_limit: 256
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # No published ports: Alloy reaches it over the Compose network.
+    networks:
+      - egress
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

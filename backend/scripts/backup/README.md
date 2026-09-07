@@ -1,94 +1,60 @@
-# RELab Backups
+# Relab Backups
 
-These scripts back up RELab data locally and can optionally sync it to remote storage.
+One restic-based workflow serves production and staging. The backup container creates:
 
-Two kinds of data are covered:
+- a logical PostgreSQL dump with `pg_dump` using `DATABASE_BACKUP_USER`
+- a restic snapshot of that dump tagged `postgres`
+- a restic snapshot of uploaded files tagged `user-uploads`
 
-- PostgreSQL backups
-- uploaded files and images
+The restic repository is encrypted with `RESTIC_PASSWORD` / `RESTIC_PASSWORD_FILE`.
 
-## Important Note
+## Runtime
 
-By default, these scripts target services reachable from the host. If your stack runs in Docker, make sure the scripts point at the right database host and upload storage path. Do not assume the defaults match your deployment.
-
-## Local Backups
-
-Set the root backup directory in the root `.env` file:
-
-```env
-BACKUP_DIR=/path/to/local/backups
-```
-
-The scripts create:
-
-- `$BACKUP_DIR/postgres_db`
-- `$BACKUP_DIR/user_upload_backups`
-
-### Manual Use
-
-Run from `backend/scripts/backup/`:
+The deploy overlay exposes the `relab-backup` service behind the `backups` profile:
 
 ```bash
-./backup_user_uploads.sh
-./backup_pg_database.sh
+just prod-up YES backups
+just staging-up YES backups
 ```
 
-### Automated Use
+Backups are stored under:
 
-From the repo root:
+```text
+$BACKUP_HOST_DIR/restic
+```
+
+The Compose service reads `BACKUP_HOST_DIR` from the root `.env` (default `./backups`). Shell
+helpers such as `just restore-check` read exported environment variables instead; export
+`BACKUP_HOST_DIR` first for a non-default path. Never put real secrets under `deploy/`.
+
+## Required Secrets
+
+Run `just deploy-secrets-template prod` (or `staging`) to create the missing secret files, then
+replace the placeholder values. `just deploy-secrets-check` verifies that rendered Compose secrets
+point at the expected `secrets/<env>/` files.
+
+## Restore Smoke Test
+
+From the repo root, restore the latest database dump into a disposable Postgres container:
 
 ```bash
-docker compose -f compose.yaml -f compose.deploy.yaml --profile backups up -d
+just restore-check prod
 ```
 
-This starts:
+This restores the latest `postgres` snapshot with `pg_restore` and verifies `SELECT 1` plus the
+`public.alembic_version` table.
 
-- `uploads-backup` for user uploads
-- `postgres-backup` for PostgreSQL dumps
+## Optional Offsite Copy
 
-Schedules and retention settings live in [compose.deploy.yaml](../../../compose.deploy.yaml).
-
-## Remote Sync
-
-You can sync local backups to remote storage with either `rsync` or `rclone`. Both sync scripts include safety checks to reduce the chance of pushing an empty local directory over a valid remote backup set.
-
-### rsync
-
-Use this for SSH-accessible servers or local-network targets.
-
-Add to the root `.env`:
-
-```env
-BACKUP_RSYNC_REMOTE_HOST=user@hostname
-BACKUP_RSYNC_REMOTE_PATH=/path/to/remote/backup
-```
-
-Manual run:
+The local restic repository is the primary restore point. Write one rclone remote into
+`secrets/<env>/rclone.conf` and the maintenance run copies snapshots to `rclone:<remote>:`; on
+demand:
 
 ```bash
-./backend/scripts/backup/rsync_backup.sh
+just backup-offsite-copy staging
 ```
 
-### rclone
+`RESTIC_OFFSITE_REPOSITORY` in the root `.env` overrides the derived target.
 
-Use this for cloud or remote object storage.
-
-Add to the root `.env`:
-
-```env
-BACKUP_RCLONE_REMOTE=myremote:/backup/relab
-BACKUP_RCLONE_MULTI_THREAD_STREAMS=16
-```
-
-Manual run:
-
-```bash
-./backend/scripts/backup/rclone_backup.sh
-```
-
-## Cron Examples
-
-```cron
-30 3 * * * /path/to/relab/backend/scripts/backup/rsync_backup.sh >> /var/log/relab/rsync_backup.log 2>&1
-30 3 * * * /path/to/relab/backend/scripts/backup/rclone_backup.sh >> /var/log/relab/rclone_backup.log 2>&1
-```
+Do not mirror the raw repository directory with rsync or rclone. Use `restic copy`; rclone is only
+restic's transport.

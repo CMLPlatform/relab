@@ -1,0 +1,57 @@
+---
+
+import BrandHero from '@/components/BrandHero.astro';
+import HeroTeardown from '@/components/HeroTeardown.astro';
+import MethodSteps from '@/components/MethodSteps.astro';
+import StatsPanel from '@/components/StatsPanel.astro';
+import WhyRelab from '@/components/WhyRelab.astro';
+import { getPublicSiteConfig } from '@/config/public.ts';
+import { siteMeta } from '@/copy/site-meta.ts';
+import Layout from '@/layouts/Layout.astro';
+import { loadLandingData } from '@/lib/landing.ts';
+
+const publicSiteConfig = getPublicSiteConfig();
+
+// Runs at build time only. Never throws; falls back to a committed fixture.
+const landing = await loadLandingData();
+---
+
+<Layout
+  title="Relab | Product data and disassembly records for the circular economy"
+  description={siteMeta.defaultDescription}
+  heroBrand={true}
+>
+  {/* Order: hero (pitch beside one real record) -> motivation -> method ->
+      stats. Citation and licence live in the footer colophon. */}
+  <div class="hero-split">
+    <BrandHero stats={landing.stats} appUrl={publicSiteConfig.appUrl} />
+    <HeroTeardown
+      teardown={landing.teardown}
+      fromFixture={landing.fromFixture}
+      appUrl={publicSiteConfig.appUrl}
+    />
+  </div>
+  <WhyRelab />
+  <MethodSteps docsUrl={publicSiteConfig.docsUrl} />
+  <StatsPanel />
+</Layout>
+
+<style>
+  /* Pitch and record side by side at close to even width, so the headline can
+     break after "for". Collapses to one column before tablet width. */
+  .hero-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 2.5rem;
+    align-items: start;
+    padding-bottom: 3rem;
+  }
+
+  @media (max-width: 1000px) {
+    .hero-split {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      padding-bottom: 2rem;
+    }
+  }
+</style>

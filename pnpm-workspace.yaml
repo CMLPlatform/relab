@@ -1,0 +1,66 @@
+packages:
+  - app
+  - docs
+  - www
+
+engineStrict: true
+preferFrozenLockfile: true
+
+# Mirror of the allow-ghsas list on ci.yml's dependency-review step, which holds
+# the per-advisory justifications and removal conditions. Keep the two in sync.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-5p2g-fcmc-qvqq # image-size (metro build tooling, no fix in range)
+    - GHSA-w3rx-r6r6-pgpr # image-size (same)
+    - GHSA-vcc3-ghjq-m6fr # decode-uri-component (query-string@7 pins ^0.2.2)
+
+# Wait 3 days before accepting newly published packages.
+minimumReleaseAge: 4320
+minimumReleaseAgeStrict: false
+# Some registry metadata omits publish times; warn and continue in that case.
+minimumReleaseAgeIgnoreMissingTime: true
+
+# Approve only install scripts that are needed for native/runtime setup.
+allowBuilds:
+  esbuild: true
+  msw: true
+  sharp: true
+  vue-demi: false
+
+overrides:
+  # Keep Monaco's DOMPurify transitive dependency on a patched release.
+  monaco-editor@0.55.1>dompurify: 3.4.2
+  # Patch transitive vulnerabilities in expo/metro dev tooling (GHSA advisories).
+  # Scoped to the vulnerable ranges so unrelated consumers keep their major.
+  "shell-quote@<1.8.4": ">=1.8.4" # GHSA-wpn peer7jw-789q-3m8p
+  "ws@>=7.0.0 <7.5.11": ">=7.5.11 <8" # GHSA-96hv-2xvq-fx4p
+  "uuid@<11.1.1": ">=11.1.1" # GHSA-w5hq-g745-h8pq
+  "yaml@<2.8.1": ">=2.8.1" # GHSA-48c2-rrv3-qjmp
+  "postcss@<8.5.18": ">=8.5.18" # GHSA-r28c-9q8g-f849
+  "brace-expansion@<1.1.17": ">=1.1.17 <2" # GHSA-mh99-v99m-4gvg
+  "brace-expansion@>=4.0.0 <5.0.8": ">=5.0.8" # GHSA-mh99-v99m-4gvg
+  # 3.15.1 already carries the fix, so only the 4.x range needs lifting.
+  "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1 <5" # GHSA-5p4m-2wfm-xmqj
+  # NativeWind v5 requires pinning lightningcss (per its install docs).
+  lightningcss: 1.33.0
+
+catalog:
+  "@astrojs/check": ^0.9.10
+  "@axe-core/playwright": ^4.12.1
+  "@biomejs/biome": ^2.5.8
+  astro: 7.1.6
+  "@playwright/test": ^1.62.1
+  "@types/node": ^26.2.0
+  playwright: ^1.62.1
+  tailwindcss: 4.3.2
+  typescript: ^6.0.3
+
+# Expo SDK packages land in same-day waves, so the release-age gate would block
+# every `expo install --fix`. Name patterns match all versions; everything
+# outside the Expo family still waits out minimumReleaseAge.
+minimumReleaseAgeExclude:
+  - expo
+  - 'expo-*'
+  - '@expo/*'
+  - babel-preset-expo
+  - jest-expo

@@ -1,26 +1,27 @@
 """Parent-scoped CRUD operations for stored media."""
 
-from __future__ import annotations
-
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from pydantic import UUID4
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.common.models.custom_types import MT
+from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, BaseFilterSet
+from app.api.common.exceptions import BadRequestError
+from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
-    FastAPIStorageFileNotFoundError,
+    StorageFileNotFoundError,
 )
-from app.api.file_storage.models import MediaParentType
+from app.api.file_storage.models import Image, MediaParentType
 from app.core.logging import sanitize_log_value
 
-from .support_paths import storage_item_exists
-from .support_queries import get_parent_owned_storage_item, list_parent_storage_items
+from .support_paths import delete_file_from_storage, delete_image_from_storage, storage_item_exists
+from .support_services import get_parent_owned_storage_item, list_parent_storage_items
 from .support_types import StorageCreateSchema, StorageModel
 
 if TYPE_CHECKING:
-    from fastapi_filter.contrib.sqlalchemy import Filter
+    from uuid import UUID
 
     from .support_services import StoredMediaService
 
@@ -37,20 +38,20 @@ def validate_parent_media_scope[CreateSchemaT: StorageCreateSchema](
     """Ensure the payload is already scoped to this parent."""
     if item_data.parent_id != parent_id:
         msg = f"Parent ID mismatch: expected {parent_id}, got {item_data.parent_id}"
-        raise ValueError(msg)
+        raise BadRequestError(msg)
     if item_data.parent_type != parent_type:
         msg = f"Parent type mismatch: expected {parent_type}, got {item_data.parent_type}"
-        raise ValueError(msg)
+        raise BadRequestError(msg)
 
 
 async def list_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[object],
+    parent_model: type[Base],
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
-    filter_params: Filter | None = None,
+    filter_params: BaseFilterSet | None = None,
 ) -> list[StorageModelT]:
     """Get all storage items for a parent, excluding items with missing files."""
     items = await list_parent_storage_items(
@@ -59,6 +60,7 @@ async def list_parent_media[StorageModelT: StorageModel](
         parent_type=parent_type,
         parent_id=parent_id,
         filter_params=filter_params,
+        limit=SUB_RESOURCE_LIMIT,
     )
     valid_items = [item for item in items if storage_item_exists(item)]
     if len(valid_items) < len(items):
@@ -76,7 +78,8 @@ async def list_parent_media[StorageModelT: StorageModel](
 async def get_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[object],
+    parent_model: type[Base],
+    parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
@@ -84,14 +87,15 @@ async def get_parent_media[StorageModelT: StorageModel](
     """Get one storage item for a parent, raising when the file is missing."""
     db_item = await get_parent_owned_storage_item(
         db,
-        parent_model=cast("type[MT]", parent_model),
+        parent_model=parent_model,
         model=storage_model,
         parent_id=parent_id,
         item_id=item_id,
+        parent_type=parent_type,
     )
 
     if not storage_item_exists(db_item):
-        raise FastAPIStorageFileNotFoundError(filename=getattr(db_item, "filename", str(item_id)))
+        raise StorageFileNotFoundError(filename=getattr(db_item, "filename", str(item_id)))
 
     return db_item
 
@@ -103,16 +107,18 @@ async def create_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
     parent_type: MediaParentType,
     storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
     item_data: CreateSchemaT,
+    quota_user_id: UUID | None = None,
 ) -> StorageModelT:
     """Create a new parent-scoped storage item."""
     validate_parent_media_scope(parent_id=parent_id, parent_type=parent_type, item_data=item_data)
-    return await storage_service.create(db, item_data)
+    return await storage_service.create(db, item_data, quota_user_id=quota_user_id)
 
 
 async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
     db: AsyncSession,
     *,
-    parent_model: type[object],
+    parent_model: type[Base],
+    parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
@@ -121,34 +127,60 @@ async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
     """Delete one storage item from a parent."""
     await get_parent_owned_storage_item(
         db,
-        parent_model=cast("type[MT]", parent_model),
+        parent_model=parent_model,
         model=storage_model,
         parent_id=parent_id,
         item_id=item_id,
+        parent_type=parent_type,
     )
     await storage_service.delete(db, item_id)
 
 
-async def delete_all_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
+async def delete_all_parent_media[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[object],
     parent_type: MediaParentType,
     storage_model: type[StorageModelT],
     parent_id: int,
-    storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
-) -> None:
-    """Delete all storage items associated with a parent."""
-    items = await list_parent_media(
+) -> list[StorageModelT]:
+    """Delete all of a parent's storage rows in one round-trip, WITHOUT committing.
+
+    Returns the items whose bytes still need deleting; pass them to
+    ``unlink_stored_media`` after the caller commits. The caller owns the commit so these
+    row deletes can share one transaction with sibling deletes (e.g. the parent row),
+    keeping the whole delete atomic. Bytes are removed only after that commit is durable —
+    a commit that later fails then leaves the files intact rather than stranding a live row
+    that points at deleted bytes.
+    """
+    items = await list_parent_storage_items(
         db,
-        parent_model=parent_model,
+        model=storage_model,
         parent_type=parent_type,
-        storage_model=storage_model,
         parent_id=parent_id,
     )
-    for item in items:
-        if item.id is not None:
-            await storage_service.delete(db, item.id)
+    persisted = [item for item in items if item.id is not None]
+    if not persisted:
+        return []
+
+    await db.execute(delete(storage_model).where(storage_model.id.in_([item.id for item in persisted])))
+    return persisted
+
+
+async def unlink_stored_media[StorageModelT: StorageModel](pending: list[StorageModelT]) -> None:
+    """Delete the physical bytes of already-deleted storage rows. Call only after commit.
+
+    Best-effort: the DB rows are already gone by the time this runs, so a storage
+    failure for one item is logged and skipped rather than raised, matching the
+    documented missing-file fallback semantics elsewhere in this module.
+    """
+    for item in pending:
+        try:
+            if isinstance(item, Image):
+                await delete_image_from_storage(item)
+            else:
+                await delete_file_from_storage(item)
+        except OSError:
+            logger.warning("Storage cleanup failed for an already-deleted %s row.", type(item).__name__, exc_info=True)
 
 
 class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
@@ -157,7 +189,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
     def __init__(
         self,
         *,
-        parent_model: type[object],
+        parent_model: type[Base],
         parent_type: MediaParentType,
         storage_model: type[StorageModelT],
         storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
@@ -172,7 +204,7 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
         db: AsyncSession,
         parent_id: int,
         *,
-        filter_params: Filter | None = None,
+        filter_params: BaseFilterSet | None = None,
     ) -> list[StorageModelT]:
         """Get all storage items for a parent, excluding items with missing files."""
         return await list_parent_media(
@@ -184,17 +216,14 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             filter_params=filter_params,
         )
 
-    async def get_by_id(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> StorageModelT:
-        """Get a specific storage item for a parent, raising an error if the file is missing."""
-        return await get_parent_media(
-            db,
-            parent_model=cast("type[MT]", self.parent_model),
-            storage_model=self.storage_model,
-            parent_id=parent_id,
-            item_id=item_id,
-        )
-
-    async def create(self, db: AsyncSession, parent_id: int, item_data: CreateSchemaT) -> StorageModelT:
+    async def create(
+        self,
+        db: AsyncSession,
+        parent_id: int,
+        item_data: CreateSchemaT,
+        *,
+        quota_user_id: UUID | None = None,
+    ) -> StorageModelT:
         """Create a new storage item for a parent."""
         return await create_parent_media(
             db,
@@ -202,26 +231,26 @@ class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateS
             parent_type=self.parent_type,
             storage_service=self.storage_service,
             item_data=item_data,
+            quota_user_id=quota_user_id,
         )
 
     async def delete(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> None:
         """Delete a storage item from a parent."""
         await delete_parent_media(
             db,
-            parent_model=cast("type[MT]", self.parent_model),
-            storage_model=self.storage_model,
-            parent_id=parent_id,
-            item_id=item_id,
-            storage_service=cast("StoredMediaService[StorageModelT, StorageCreateSchema]", self.storage_service),
-        )
-
-    async def delete_all(self, db: AsyncSession, parent_id: int) -> None:
-        """Delete all storage items associated with a parent."""
-        await delete_all_parent_media(
-            db,
             parent_model=self.parent_model,
             parent_type=self.parent_type,
             storage_model=self.storage_model,
             parent_id=parent_id,
-            storage_service=cast("StoredMediaService[StorageModelT, StorageCreateSchema]", self.storage_service),
+            item_id=item_id,
+            storage_service=self.storage_service,
+        )
+
+    async def delete_all(self, db: AsyncSession, parent_id: int) -> list[StorageModelT]:
+        """Delete all of a parent's storage rows without committing; return items to unlink."""
+        return await delete_all_parent_media(
+            db,
+            parent_type=self.parent_type,
+            storage_model=self.storage_model,
+            parent_id=parent_id,
         )
