@@ -5,18 +5,19 @@
   "include-v-in-tag": true,
   "packages": {
     ".": {
-      "release-type": "python",
+      "release-type": "node",
       "package-name": "relab",
       "extra-files": [
         "CITATION.cff",
         "backend/app/__version__.py",
-        "backend/pyproject.toml",
-        "docs/package.json",
-        "app/app.json",
+        {
+          "type": "json",
+          "path": "app/app.json",
+          "jsonpath": "$.expo.version"
+        },
         "app/package.json",
-        "www/package.json",
-        "package.json",
-        "pyproject.toml"
+        "docs/package.json",
+        "www/package.json"
       ]
     }
   },
