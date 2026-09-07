@@ -21,26 +21,29 @@
       "automerge": true
     },
     {
-      "description": "Expo SDK-managed packages: the SDK pins these, Renovate cannot read bundledNativeModules.json. Dashboard-only so an available bump stays visible; do not approve individually - run `just app/update` (expo install --fix + expo-doctor) at SDK upgrade time. Vulnerability fixes still raise PRs, they override this.",
-      "matchFileNames": ["app/package.json"],
+      "description": "Expo owns these: the SDK pins them and Renovate cannot read bundledNativeModules.json. Matched by name only, because matchFileNames also matches the shared pnpm lockfile and a later group rule then wins. Upgrade with `just app/update` (expo install --fix + expo-doctor) at SDK upgrade time. Vulnerability alerts still raise PRs.",
       "matchPackageNames": [
         "expo",
         "/^expo($|-)/",
         "@expo/**",
+        "@react-native/**",
         "react",
         "react-dom",
         "react-native",
         "@types/react",
         "jest-expo",
+        "babel-preset-expo",
         "react-native-gesture-handler",
+        "react-native-keyboard-controller",
         "react-native-reanimated",
         "react-native-safe-area-context",
         "react-native-screens",
         "react-native-svg",
-        "react-native-web"
+        "react-native-web",
+        "react-native-webview",
+        "react-native-worklets"
       ],
-      "dependencyDashboardApproval": true,
-      "automerge": false
+      "enabled": false
     },
     {
       "description": "One PR per subrepo instead of one per package",
