@@ -649,14 +649,15 @@ OpenTelemetry resource attributes `service.name`, `env` and `project`. Existing 
 filtering on `host=` need updating.
 
 > **Telemetry is one switch and two credentials.** Set
-> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org`, `OTLP_AUTH_TOKEN` (a bearer token from
-> the monitoring stack operator) and `TELEMETRY_EDGE_KEY` (shared with `infra/cloudflare-zone`). The
+> `OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org`, `OTLP_AUTH_TOKEN` (a bearer token from the
+> monitoring stack operator) and `TELEMETRY_EDGE_KEY` (shared with `infra/cloudflare-zone`). The
 > endpoint switch turns on the API's own OpenTelemetry exporter **and** auto-includes
 > `compose.telemetry.yml`, a Grafana Alloy agent that forwards every other container's stdout to the
-> same endpoint. **Then run `./bootstrap.sh relab prod` on the monitoring host as part of this
-> step**: telemetry flowing and telemetry being *watched* are two different things, and only the
-> second survives this host going quiet. `just deploy-secrets-check` fails if the endpoint is set
-> without both credentials.
+> same endpoint. **Then run `./bootstrap.sh relab prod` on the monitoring host as part of this step**:
+> telemetry flowing and telemetry being *watched* are two different things, and only the second
+> survives this host going quiet. Run it before step 8 starts the stack — the hub's coverage alert
+> fires on telemetry arriving for a pair nobody bootstrapped. `just deploy-secrets-check` fails if the
+> endpoint is set without both credentials.
 >
 > Compose derives `OTEL_EXPORTER_OTLP_HEADERS` from the token, so you do not write the SDK's
 > percent-encoded header format by hand.
