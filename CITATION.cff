@@ -21,7 +21,7 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.16637742
     description: Concept DOI for all versions of Relab
-date-released: 2026-04-23
+date-released: 2026-04-23 # x-release-please-date
 url: https://cml-relab.org
 repository-code: "https://github.com/CMLPlatform/relab"
 license: "AGPL-3.0-or-later"

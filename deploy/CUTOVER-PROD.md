@@ -208,8 +208,7 @@ branch commit into the commit body, so override the message in the merge dialog 
 
 The release PR it opens bumps every version string (`CITATION.cff`, `backend/app/__version__.py`,
 `app/app.json`, and each `package.json`) and prepends a generated changelog section. For this
-release, keep the hand-written section and delete the generated one. Set `date-released` in
-`CITATION.cff` by hand; release-please only rewrites versions.
+release, keep the hand-written section and delete the generated one.
 
 ```bash
 gh pr list --label 'autorelease: pending' --state open
