@@ -89,6 +89,12 @@
       "description": "7 days everywhere; config:best-practices only waits 3 days on npm (npm's 72h unpublish window, not a security floor)",
       "matchDatasources": ["npm"],
       "minimumReleaseAge": "7 days"
+    },
+    {
+      "description": "Renovate rewrites this SHA-pinned rev to the tag v3.4.0, a downgrade that drops check-shebang-scripts-are-executable. Bump by hand: `prek update --freeze` keeps the SHA form.",
+      "matchManagers": ["pre-commit"],
+      "matchPackageNames": ["pre-commit/pre-commit-hooks"],
+      "enabled": false
     }
   ]
 }
