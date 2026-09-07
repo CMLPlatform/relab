@@ -1336,14 +1336,15 @@ def verify(root: Path) -> list[str]:
                 f"{path.name}: leaked value {value!r}" for value in forbidden_values(parquet_cell_text(table))
             ]
 
-    for path in sorted((root / "images").glob("*")):
+    images = sorted((root / "images").glob("*"))
+    for path in images:
         violations += [f"{path.name}: EXIF tag 0x{tag:04X} outside the allowlist" for tag in exif_violations(path)]
 
     records = read_parquet(root / "records.parquet")
     manifest = read_csv(root / "manifest.csv")
     materials_used = read_parquet(root / "record_materials.parquet")
     record_ids = {_key(row["id"]) for row in records}
-    image_files = {f"images/{path.name}" for path in (root / "images").glob("*")}
+    image_files = {f"images/{path.name}" for path in images}
 
     violations += [f"manifest: {row['file']} is not in images/" for row in manifest if row["file"] not in image_files]
     # And the other way round: an image nobody references is an unattributed publication.
@@ -1359,12 +1360,11 @@ def verify(root: Path) -> list[str]:
         materials_used, "material_id", _ids(root / "reference/materials.parquet"), "record_materials"
     )
     categories = read_parquet(root / "reference/categories.parquet")
+    category_ids = {_key(row["id"]) for row in categories}
     violations += missing_references(
         categories, "taxonomy_id", _ids(root / "reference/taxonomies.parquet"), "categories"
     )
-    violations += missing_references(
-        categories, "supercategory_id", _ids(root / "reference/categories.parquet"), "categories"
-    )
+    violations += missing_references(categories, "supercategory_id", category_ids, "categories")
     violations += checksum_violations(root)
     return violations
 
