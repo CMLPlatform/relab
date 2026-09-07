@@ -6185,8 +6185,7 @@
     "version": "1.0.0",
     "x-api-major": "v1",
     "x-api-version": "1.0.0",
-    "x-deprecation-policy": "Breaking changes are documented in release notes.",
-    "x-service-version": "0.2.0"
+    "x-deprecation-policy": "Breaking changes are documented in release notes."
   },
   "openapi": "3.1.0",
   "paths": {

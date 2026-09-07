@@ -75,7 +75,8 @@ async def test_canonical_openapi_json_can_be_generated(openapi_client: AsyncClie
     assert "x-tagGroups" in payload
     assert payload["info"]["version"] == "1.0.0"
     assert payload["info"]["x-api-major"] == "v1"
-    assert "x-service-version" in payload["info"]
+    # The service version is not disclosed on unauthenticated routes; only the API contract version is.
+    assert "x-service-version" not in payload["info"]
     paths = payload["paths"]
     assert "/v1/organizations" not in paths
     assert "/v1/admin/organizations" not in paths

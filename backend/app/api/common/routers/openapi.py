@@ -9,7 +9,6 @@ from fastapi.requests import Request
 from fastapi.responses import Response
 from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 
-from app.__version__ import version as service_version
 from app.api.common.audiences import RouteAudience, route_audiences
 from app.api.common.config import settings as api_settings
 from app.core.responses import conditional_json_response
@@ -95,7 +94,6 @@ def _add_schema_metadata(schema: dict[str, Any], *, tag_groups: list[dict[str, s
     schema["info"]["version"] = API_CONTRACT_VERSION
     schema["info"]["x-api-version"] = API_CONTRACT_VERSION
     schema["info"]["x-api-major"] = API_MAJOR
-    schema["info"]["x-service-version"] = service_version
     schema["info"]["x-deprecation-policy"] = "Breaking changes are documented in release notes."
 
 
