@@ -23,7 +23,7 @@ describe('useRpiIntegration', () => {
     jest.clearAllMocks();
   });
 
-  it('reflects the stored preference and loading state', () => {
+  it('reflects the stored preference and loading state', async () => {
     mockedUseAuth.mockReturnValue({
       user: {
         id: 'user-1',
@@ -34,7 +34,7 @@ describe('useRpiIntegration', () => {
       isLoading: false,
     });
 
-    const { result } = renderHook(() => useRpiIntegration());
+    const { result } = await renderHook(() => useRpiIntegration());
 
     expect(result.current.enabled).toBe(true);
     expect(result.current.loading).toBe(false);
@@ -52,7 +52,7 @@ describe('useRpiIntegration', () => {
     });
     mockedUpdateUser.mockResolvedValue(undefined);
 
-    const { result } = renderHook(() => useRpiIntegration());
+    const { result } = await renderHook(() => useRpiIntegration());
 
     await act(async () => {
       await result.current.setEnabled(true);
@@ -64,14 +64,14 @@ describe('useRpiIntegration', () => {
     expect(refetch).toHaveBeenCalledWith(false);
   });
 
-  it('reports loading when auth has not produced a user yet', () => {
+  it('reports loading when auth has not produced a user yet', async () => {
     mockedUseAuth.mockReturnValue({
       user: undefined,
       refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: true,
     });
 
-    const { result } = renderHook(() => useRpiIntegration());
+    const { result } = await renderHook(() => useRpiIntegration());
 
     expect(result.current.enabled).toBe(false);
     expect(result.current.loading).toBe(true);

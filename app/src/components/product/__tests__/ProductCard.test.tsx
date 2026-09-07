@@ -11,8 +11,8 @@ const EMPTY_SPEC_PATTERN = /\b0\b|unknown|missing|not measured/i;
 
 describe('ProductCard', () => {
   const user = setupUser();
-  it('renders name and description', () => {
-    renderWithProviders(
+  it('renders name and description', async () => {
+    await renderWithProviders(
       <ProductCard
         product={{
           ...baseProduct,
@@ -26,8 +26,8 @@ describe('ProductCard', () => {
     expect(screen.getByText('A nice product')).toBeOnTheScreen();
   });
 
-  it('uses the existing secondary line for a measured mass', () => {
-    renderWithProviders(
+  it('uses the existing secondary line for a measured mass', async () => {
+    await renderWithProviders(
       <ProductCard product={{ ...baseProduct, description: 'A nice product' }} />,
     );
 
@@ -35,9 +35,9 @@ describe('ProductCard', () => {
     expect(screen.queryByText('A nice product')).toBeNull();
   });
 
-  it('includes a positive component count only when components are loaded', () => {
+  it('includes a positive component count only when components are loaded', async () => {
     const component = { ...baseProduct, id: 2, role: 'component' as const };
-    renderWithProviders(
+    await renderWithProviders(
       <ProductCard
         product={{
           ...baseProduct,
@@ -50,8 +50,8 @@ describe('ProductCard', () => {
     expect(screen.getByText('1 component')).toBeOnTheScreen();
   });
 
-  it('renders no zero or placeholder spec when facts are missing', () => {
-    renderWithProviders(
+  it('renders no zero or placeholder spec when facts are missing', async () => {
+    await renderWithProviders(
       <ProductCard
         product={{
           ...baseProduct,
@@ -65,22 +65,22 @@ describe('ProductCard', () => {
     expect(screen.queryByText(EMPTY_SPEC_PATTERN)).toBeNull();
   });
 
-  it('falls back to placeholder text for missing name', () => {
-    renderWithProviders(
+  it('falls back to placeholder text for missing name', async () => {
+    await renderWithProviders(
       <ProductCard product={{ ...baseProduct, name: '', description: undefined }} />,
     );
     expect(screen.getByText('Unnamed Product')).toBeOnTheScreen();
   });
 
-  it('renders detail line with brand and model', () => {
-    renderWithProviders(
+  it('renders detail line with brand and model', async () => {
+    await renderWithProviders(
       <ProductCard product={{ ...baseProduct, brand: 'CircularTech', model: 'V1' }} />,
     );
     expect(screen.getByText('CircularTech • V1')).toBeOnTheScreen();
   });
 
-  it('includes productTypeName in the detail line', () => {
-    renderWithProviders(
+  it('includes productTypeName in the detail line', async () => {
+    await renderWithProviders(
       <ProductCard
         product={{
           ...baseProduct,
@@ -92,27 +92,29 @@ describe('ProductCard', () => {
     expect(screen.getByText('CircularTech • Electronics')).toBeOnTheScreen();
   });
 
-  it('shows thumbnail when thumbnailUrl is provided', () => {
-    renderWithProviders(
+  it('shows thumbnail when thumbnailUrl is provided', async () => {
+    await renderWithProviders(
       <ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />,
     );
     expect(screen.getByTestId('product-thumbnail')).toBeOnTheScreen();
   });
 
-  it('marks the thumbnail as decorative (empty alt) since the name is shown as text', () => {
-    renderWithProviders(
+  it('marks the thumbnail as decorative (empty alt) since the name is shown as text', async () => {
+    await renderWithProviders(
       <ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />,
     );
     expect(screen.getByTestId('product-thumbnail').props.accessibilityLabel).toBe('');
   });
 
-  it('uses the placeholder thumbnail when thumbnailUrl is missing', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, thumbnailUrl: undefined }} />);
+  it('uses the placeholder thumbnail when thumbnailUrl is missing', async () => {
+    await renderWithProviders(
+      <ProductCard product={{ ...baseProduct, thumbnailUrl: undefined }} />,
+    );
     expect(screen.getByTestId('product-thumbnail')).toBeOnTheScreen();
   });
 
-  it('falls back to the placeholder thumbnail when image loading fails', () => {
-    renderWithProviders(
+  it('falls back to the placeholder thumbnail when image loading fails', async () => {
+    await renderWithProviders(
       <ProductCard
         product={{
           ...baseProduct,
@@ -121,13 +123,15 @@ describe('ProductCard', () => {
       />,
     );
 
-    fireEvent(screen.getByTestId('product-thumbnail'), 'error');
+    await fireEvent(screen.getByTestId('product-thumbnail'), 'error');
 
     expect(screen.getByTestId('product-thumbnail')).toBeOnTheScreen();
   });
 
-  it('shows relative creation date', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, createdAt: TWO_MONTHS_AGO }} />);
+  it('shows relative creation date', async () => {
+    await renderWithProviders(
+      <ProductCard product={{ ...baseProduct, createdAt: TWO_MONTHS_AGO }} />,
+    );
     expect(screen.getByText(MONTHS_AGO_PATTERN)).toBeOnTheScreen();
   });
 
@@ -136,7 +140,9 @@ describe('ProductCard', () => {
   it('opens the product when the creation date is pressed', async () => {
     const mockPush = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
-    renderWithProviders(<ProductCard product={{ ...baseProduct, createdAt: TWO_MONTHS_AGO }} />);
+    await renderWithProviders(
+      <ProductCard product={{ ...baseProduct, createdAt: TWO_MONTHS_AGO }} />,
+    );
     await user.press(screen.getByText(MONTHS_AGO_PATTERN));
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/products/[id]',
@@ -144,18 +150,22 @@ describe('ProductCard', () => {
     });
   });
 
-  it('does not render a date for an invalid createdAt string', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, createdAt: 'not-a-date' }} />);
+  it('does not render a date for an invalid createdAt string', async () => {
+    await renderWithProviders(
+      <ProductCard product={{ ...baseProduct, createdAt: 'not-a-date' }} />,
+    );
     expect(screen.queryByText(AGO_PATTERN)).toBeNull();
   });
 
-  it('shows "you" for own product when showOwner is true', () => {
-    renderWithProviders(<ProductCard product={{ ...baseProduct, ownedBy: 'me' }} showOwner />);
+  it('shows "you" for own product when showOwner is true', async () => {
+    await renderWithProviders(
+      <ProductCard product={{ ...baseProduct, ownedBy: 'me' }} showOwner />,
+    );
     expect(screen.getByText('you')).toBeOnTheScreen();
   });
 
-  it("shows username for another user's product when showOwner is true", () => {
-    renderWithProviders(
+  it("shows username for another user's product when showOwner is true", async () => {
+    await renderWithProviders(
       <ProductCard
         product={{
           ...baseProduct,
@@ -168,8 +178,8 @@ describe('ProductCard', () => {
     expect(screen.getByText('alice')).toBeOnTheScreen();
   });
 
-  it('hides owner label when ownerUsername is absent', () => {
-    renderWithProviders(
+  it('hides owner label when ownerUsername is absent', async () => {
+    await renderWithProviders(
       <ProductCard
         product={{
           ...baseProduct,
@@ -182,8 +192,8 @@ describe('ProductCard', () => {
     expect(screen.queryByText(OWNER_PATTERN)).toBeNull();
   });
 
-  it('hides owner label when showOwner is false', () => {
-    renderWithProviders(
+  it('hides owner label when showOwner is false', async () => {
+    await renderWithProviders(
       <ProductCard product={{ ...baseProduct, ownedBy: 'me' }} showOwner={false} />,
     );
     expect(screen.queryByText('you')).toBeNull();
@@ -193,7 +203,7 @@ describe('ProductCard', () => {
     const mockPush = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
 
-    renderWithProviders(<ProductCard product={baseProduct} />);
+    await renderWithProviders(<ProductCard product={baseProduct} />);
     await user.press(screen.getByText('Recycled Aluminum Laptop Stand'));
 
     expect(mockPush).toHaveBeenCalledWith({
@@ -206,7 +216,7 @@ describe('ProductCard', () => {
     const mockPush = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductCard product={{ ...baseProduct, role: 'component', parentID: 7 }} />,
     );
     await user.press(screen.getByText('Recycled Aluminum Laptop Stand'));
@@ -221,7 +231,7 @@ describe('ProductCard', () => {
     const mockPush = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
 
-    renderWithProviders(<ProductCard product={baseProduct} enabled={false} />);
+    await renderWithProviders(<ProductCard product={baseProduct} enabled={false} />);
     await user.press(screen.getByText('Recycled Aluminum Laptop Stand'));
     expect(mockPush).not.toHaveBeenCalled();
   });

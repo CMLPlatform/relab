@@ -34,8 +34,8 @@ describe('useMfaScreen guards', () => {
         }),
     );
 
-    const { result } = renderHook(() => useMfaScreen());
-    act(() => result.current.handleCodeChange('123456'));
+    const { result } = await renderHook(() => useMfaScreen());
+    await act(() => result.current.handleCodeChange('123456'));
 
     await act(async () => {
       void result.current.submit();

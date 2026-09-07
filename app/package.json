@@ -95,7 +95,7 @@
     "@playwright/test": "catalog:",
     "@react-native/jest-preset": "^0.86.2",
     "@tailwindcss/postcss": "4.3.3",
-    "@testing-library/react-native": "13.3.3",
+    "@testing-library/react-native": "14.0.1",
     "@types/jest": "30.0.0",
     "@types/node": "catalog:",
     "@types/react": "~19.2.18",
@@ -114,6 +114,7 @@
     "postcss": "8.5.26",
     "serve": "14.2.6",
     "tailwindcss": "catalog:",
+    "test-renderer": "1.2.0",
     "typescript": "catalog:"
   },
   "private": true

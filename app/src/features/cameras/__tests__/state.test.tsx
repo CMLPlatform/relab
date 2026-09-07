@@ -18,10 +18,10 @@ describe('camera controllers', () => {
     mockUseLocalSearchParams.mockReturnValue({});
   });
 
-  it('parses capture and stream route modes', () => {
+  it('parses capture and stream route modes', async () => {
     mockUseLocalSearchParams.mockReturnValue({ product: '42', stream: '99' });
 
-    const { result } = renderHook(() => useCameraRouteModes());
+    const { result } = await renderHook(() => useCameraRouteModes());
 
     expect(result.current.captureAllProductId).toBe(42);
     expect(result.current.captureModeEnabled).toBe(true);
@@ -29,10 +29,10 @@ describe('camera controllers', () => {
     expect(result.current.streamModeEnabled).toBe(true);
   });
 
-  it('manages stream dialog state', () => {
-    const { result } = renderHook(() => useCameraStreamingController());
+  it('manages stream dialog state', async () => {
+    const { result } = await renderHook(() => useCameraStreamingController());
 
-    act(() => {
+    await act(() => {
       result.current.openStreamDialog('camera-1', 'Bench Cam', 'Default Title');
       result.current.setStreamTitle('Custom Title');
       result.current.setStreamPrivacy('public');
@@ -45,17 +45,17 @@ describe('camera controllers', () => {
       privacy: 'public',
     });
 
-    act(() => {
+    await act(() => {
       result.current.closeStreamDialog();
     });
 
     expect(result.current.streamDialog.cameraId).toBeNull();
   });
 
-  it('manages selection state and select-all action', () => {
-    const { result } = renderHook(() => useCameraSelectionController());
+  it('manages selection state and select-all action', async () => {
+    const { result } = await renderHook(() => useCameraSelectionController());
 
-    act(() => {
+    await act(() => {
       result.current.enterSelectionMode('camera-1');
       result.current.toggleSelected('camera-2');
     });
@@ -63,31 +63,31 @@ describe('camera controllers', () => {
     expect(result.current.selectionMode).toBe(true);
     expect(result.current.selectedCount).toBe(2);
 
-    act(() => {
+    await act(() => {
       result.current.clearSelection();
     });
 
     expect(result.current.selectionMode).toBe(false);
     expect(result.current.selectedCount).toBe(0);
 
-    act(() => {
+    await act(() => {
       result.current.selectAll(['camera-1', 'camera-2']);
     });
 
     expect(result.current.selectedCount).toBe(2);
   });
 
-  it('prunes selected ids for cameras that leave the list', () => {
-    const { result } = renderHook(() => useCameraSelectionController());
+  it('prunes selected ids for cameras that leave the list', async () => {
+    const { result } = await renderHook(() => useCameraSelectionController());
 
-    act(() => {
+    await act(() => {
       result.current.enterSelectionMode('camera-1');
       result.current.toggleSelected('camera-2');
     });
     expect(result.current.selectedCount).toBe(2);
 
     // camera-2 disappears from the live list (e.g. unpaired on refetch).
-    act(() => {
+    await act(() => {
       result.current.retainSelected(new Set(['camera-1']));
     });
     expect(result.current.selectedCount).toBe(1);
@@ -95,7 +95,7 @@ describe('camera controllers', () => {
 
     // No-op when every selected id is still present (keeps the same Set reference).
     const before = result.current.selectedIds;
-    act(() => {
+    await act(() => {
       result.current.retainSelected(new Set(['camera-1', 'camera-9']));
     });
     expect(result.current.selectedIds).toBe(before);

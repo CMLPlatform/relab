@@ -67,8 +67,8 @@ describe('tab stack layouts', () => {
   // Each tab owns its own stack now, so hideForTopNav lives in three places
   // instead of one. TopNav covers the three tab roots on >=lg web; every
   // deeper screen keeps its header at any width.
-  it('hides only the TopNav-covered tab roots, and only at lg', () => {
-    render(
+  it('hides only the TopNav-covered tab roots, and only at lg', async () => {
+    await render(
       <>
         <ProductsTabLayout />
         <CamerasTabLayout />
@@ -84,7 +84,7 @@ describe('tab stack layouts', () => {
     expect(mockScreenOptions['products/new']?.headerShown).toBeUndefined();
 
     mockUseBreakpoint.mockReturnValue({ isLg: true });
-    render(
+    await render(
       <>
         <ProductsTabLayout />
         <CamerasTabLayout />
@@ -100,8 +100,8 @@ describe('tab stack layouts', () => {
 
   // The products tab owns the /components tree too, so a component's creation
   // screen has to be declared here rather than on the root stack.
-  it('keeps both the products and components trees in the products tab', () => {
-    render(<ProductsTabLayout />);
+  it('keeps both the products and components trees in the products tab', async () => {
+    await render(<ProductsTabLayout />);
 
     expect(mockScreenOptions['products/[id]/components/new']?.title).toBe('New component');
     expect(mockScreenOptions['components/[id]/components/new']?.title).toBe('New component');
@@ -109,8 +109,8 @@ describe('tab stack layouts', () => {
 
   // A replace from the account tab to the products tab resolves above the tab
   // navigator and swaps the whole thing out, resetting every tab's trail.
-  it('leaves the account tab by navigating, never replacing', () => {
-    render(<AccountTabLayout />);
+  it('leaves the account tab by navigating, never replacing', async () => {
+    await render(<AccountTabLayout />);
     const headerLeft = mockScreenOptions['account/index']?.headerLeft as (props: object) => {
       props: { onPress: () => void };
     };
@@ -123,8 +123,8 @@ describe('tab stack layouts', () => {
 
   // The cameras back arrow targets its own stack, so a replace stays inside
   // the tab — no other trail is touched.
-  it('keeps the cameras back arrow a same-stack replace', () => {
-    render(<CamerasTabLayout />);
+  it('keeps the cameras back arrow a same-stack replace', async () => {
+    await render(<CamerasTabLayout />);
     const headerLeft = mockScreenOptions['cameras/add']?.headerLeft as (props: object) => {
       props: { onPress: () => void };
     };
@@ -137,8 +137,8 @@ describe('tab stack layouts', () => {
   // Each Tabs.Screen name is a group segment, and BottomNav resolves the
   // active tab by comparing `tabRouteName(key)` against the current route —
   // a typo here would silently break tab-active-state matching.
-  it('names each tab group after tabRouteName(key)', () => {
-    render(<TabsLayout />);
+  it('names each tab group after tabRouteName(key)', async () => {
+    await render(<TabsLayout />);
 
     expect(mockTabScreenNames).toEqual([
       tabRouteName('products'),

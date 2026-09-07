@@ -134,7 +134,7 @@ function renderAccountScreen() {
 }
 
 async function renderAccount() {
-  const result = renderAccountScreen();
+  const result = await renderAccountScreen();
   await act(async () => {});
   return result;
 }
@@ -213,13 +213,13 @@ describe('AccountScreen', () => {
   it('pressing the Danger zone chip calls the nav scrollTo handler', async () => {
     await renderAccount();
     const chips = screen.getByTestId('section-nav-chips');
-    fireEvent.press(within(chips).getByText('Danger zone'));
+    await fireEvent.press(within(chips).getByText('Danger zone'));
     expect(mockScrollTo).toHaveBeenCalledWith('danger');
   });
 
   it('still opens the edit-username dialog', async () => {
     const { findByLabelText, findByText } = await renderAccount();
-    fireEvent.press(await findByLabelText('Edit username'));
+    await fireEvent.press(await findByLabelText('Edit username'));
     expect(await findByText('Save')).toBeTruthy();
   });
 });

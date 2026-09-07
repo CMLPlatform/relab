@@ -72,8 +72,8 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe('useProductQueries', () => {
-  afterEach(() => {
-    act(() => onlineManager.setOnline(true));
+  afterEach(async () => {
+    await act(() => onlineManager.setOnline(true));
   });
 
   const mockedProducts = jest.mocked(products);
@@ -126,7 +126,7 @@ describe('useProductQueries', () => {
       const mockData = { items: [], total: 0, page: 1, pages: 1, size: 24 };
       mockedProducts.mockResolvedValue(mockData);
 
-      const { result } = renderHook(
+      const { result } = await renderHook(
         () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
         { wrapper },
       );
@@ -140,7 +140,7 @@ describe('useProductQueries', () => {
       const mockData = { items: [], total: 0, page: 1, pages: 1, size: 24 };
       mockedProducts.mockResolvedValue(mockData);
 
-      const { result } = renderHook(
+      const { result } = await renderHook(
         () => useInfiniteQuery(productsInfiniteQueryOptions('mine', '')),
         { wrapper },
       );
@@ -154,7 +154,7 @@ describe('useProductQueries', () => {
       const createdAfter = new Date('2026-01-02T03:04:05.000Z');
       mockedProducts.mockResolvedValue(mockData);
 
-      renderHook(
+      await renderHook(
         () =>
           useInfiniteQuery(
             productsInfiniteQueryOptions('all', 'lamp', ['+name'], {
@@ -189,7 +189,7 @@ describe('useProductQueries', () => {
         size: 24,
       });
 
-      const { result } = renderHook(
+      const { result } = await renderHook(
         () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
         {
           wrapper,
@@ -210,7 +210,7 @@ describe('useProductQueries', () => {
         size: 24,
       });
 
-      const { result } = renderHook(
+      const { result } = await renderHook(
         () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
         {
           wrapper,
@@ -249,7 +249,7 @@ describe('useProductQueries', () => {
           size: 24,
         });
 
-      const { result } = renderHook(
+      const { result } = await renderHook(
         () => useInfiniteQuery(productsInfiniteQueryOptions('all', '')),
         {
           wrapper,
@@ -275,8 +275,8 @@ describe('useProductQueries', () => {
     mockedSearchBrands.mockResolvedValue([]);
     mockedSearchProductTypes.mockResolvedValue([]);
 
-    renderHook(() => useSearchBrandsQuery(''), { wrapper });
-    renderHook(() => useSearchProductTypesQuery(''), { wrapper });
+    await renderHook(() => useSearchBrandsQuery(''), { wrapper });
+    await renderHook(() => useSearchProductTypesQuery(''), { wrapper });
 
     await waitFor(() => expect(searchProductBrands).toHaveBeenCalled());
     expect(searchProductBrands).toHaveBeenCalledWith(undefined, 1, 50);
@@ -286,7 +286,7 @@ describe('useProductQueries', () => {
   it('useBaseProductQuery calls getBaseProduct and respects enabled state', async () => {
     mockedGetBaseProduct.mockResolvedValue(existingProduct);
 
-    const { result, rerender } = renderHook<
+    const { result, rerender } = await renderHook<
       ReturnType<typeof useBaseProductQuery>,
       { id: number | undefined }
     >(({ id }: { id: number | undefined }) => useBaseProductQuery(id), {
@@ -297,7 +297,7 @@ describe('useProductQueries', () => {
     expect(result.current.isLoading).toBe(false);
     expect(getBaseProduct).not.toHaveBeenCalled();
 
-    rerender({ id: 123 });
+    await rerender({ id: 123 });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getBaseProduct).toHaveBeenCalledWith(123);
@@ -306,7 +306,7 @@ describe('useProductQueries', () => {
   it('useComponentQuery calls getComponent and respects enabled state', async () => {
     mockedGetComponent.mockResolvedValue(existingProduct);
 
-    const { result, rerender } = renderHook<
+    const { result, rerender } = await renderHook<
       ReturnType<typeof useComponentQuery>,
       { id: number | undefined }
     >(({ id }: { id: number | undefined }) => useComponentQuery(id), {
@@ -317,7 +317,7 @@ describe('useProductQueries', () => {
     expect(result.current.isLoading).toBe(false);
     expect(getComponent).not.toHaveBeenCalled();
 
-    rerender({ id: 77 });
+    await rerender({ id: 77 });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getComponent).toHaveBeenCalledWith(77);
@@ -326,7 +326,7 @@ describe('useProductQueries', () => {
   it('useBaseProductQuery does not retry when the product is missing', async () => {
     mockedGetBaseProduct.mockRejectedValue(new ProductNotFoundError(123));
 
-    const { result } = renderHook(() => useBaseProductQuery(123), { wrapper });
+    const { result } = await renderHook(() => useBaseProductQuery(123), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(getBaseProduct).toHaveBeenCalledTimes(1);
@@ -337,7 +337,7 @@ describe('useProductQueries', () => {
     mockedSaveProduct.mockResolvedValue(mockSavedId);
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'New' },
@@ -358,7 +358,7 @@ describe('useProductQueries', () => {
     mockedSaveProduct.mockResolvedValue(789);
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, role: 'component', name: 'Child', parentID: 321 },
@@ -386,7 +386,7 @@ describe('useProductQueries', () => {
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
     invalidateSpy.mockClear();
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'New' },
@@ -405,7 +405,7 @@ describe('useProductQueries', () => {
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
     invalidateSpy.mockClear();
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'New' },
@@ -421,7 +421,7 @@ describe('useProductQueries', () => {
   it('useSaveProductMutation does not retry a real server response, to avoid re-POSTing a create the server already accepted or rejected', async () => {
     mockedSaveProduct.mockRejectedValue(new ApiError('Validation failed', 422));
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'New' },
@@ -436,7 +436,7 @@ describe('useProductQueries', () => {
   it('useSaveProductMutation retries a network-level failure that never reached the server', async () => {
     mockedSaveProduct.mockRejectedValue(new TypeError('Network request failed'));
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'New' },
@@ -458,7 +458,7 @@ describe('useProductQueries', () => {
       .mockRejectedValueOnce(new ApiError('Request already in progress', 409))
       .mockResolvedValueOnce(321);
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'New' },
@@ -480,7 +480,7 @@ describe('useProductQueries', () => {
       .mockRejectedValueOnce(new TypeError('Network request failed'))
       .mockResolvedValueOnce(321);
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'New' },
@@ -497,10 +497,10 @@ describe('useProductQueries', () => {
   });
 
   it('pauses offline instead of failing or firing, then sends the POST on reconnect', async () => {
-    act(() => onlineManager.setOnline(false));
+    await act(() => onlineManager.setOnline(false));
     mockedSaveProduct.mockResolvedValue(999);
 
-    const { result } = renderHook(() => useSaveProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
 
     result.current.mutate({
       product: { ...newProductDraft, name: 'Offline capture' },
@@ -512,7 +512,7 @@ describe('useProductQueries', () => {
     expect(result.current.isSuccess).toBe(false);
     expect(mockedSaveProduct).not.toHaveBeenCalled();
 
-    act(() => onlineManager.setOnline(true));
+    await act(() => onlineManager.setOnline(true));
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockedSaveProduct).toHaveBeenCalledTimes(1);
@@ -525,7 +525,7 @@ describe('useProductQueries', () => {
     const removeSpy = jest.spyOn(queryClient, 'removeQueries');
     removeSpy.mockClear();
 
-    const { result } = renderHook(() => useDeleteProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useDeleteProductMutation(), { wrapper });
 
     result.current.mutate(existingProduct);
 
@@ -538,7 +538,7 @@ describe('useProductQueries', () => {
     const removeSpy = jest.spyOn(queryClient, 'removeQueries');
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useDeleteProductMutation(), { wrapper });
+    const { result } = await renderHook(() => useDeleteProductMutation(), { wrapper });
 
     result.current.mutate({ ...existingProduct, id: 123, name: 'Old' });
 

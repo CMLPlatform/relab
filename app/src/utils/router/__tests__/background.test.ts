@@ -7,9 +7,9 @@ jest.mock('expo-router', () => ({ usePathname: jest.fn() }));
 
 const mockUsePathname = jest.mocked(usePathname);
 
-function overlayFor(pathname: string, isDark = false) {
+async function overlayFor(pathname: string, isDark = false) {
   mockUsePathname.mockReturnValue(pathname);
-  return renderHook(() => useBackgroundOverlay(isDark)).result.current;
+  return (await renderHook(() => useBackgroundOverlay(isDark))).result.current;
 }
 
 describe('useBackgroundOverlay', () => {
@@ -17,8 +17,8 @@ describe('useBackgroundOverlay', () => {
 
   // Only these two have content bare on the photo, so only these two need the
   // gradient to read against.
-  it.each(['/login', '/new-account'])('uses the hero gradient bands on %s', (pathname) => {
-    expect(overlayFor(pathname)).toEqual({
+  it.each(['/login', '/new-account'])('uses the hero gradient bands on %s', async (pathname) => {
+    expect(await overlayFor(pathname)).toEqual({
       color: overlay.heroBand,
       edgeColor: overlay.heroEdge,
     });
@@ -28,8 +28,8 @@ describe('useBackgroundOverlay', () => {
   // is enough and the backdrop stays livelier.
   it.each(['/onboarding', '/forgot-password', '/reset-password', '/mfa', '/verify'])(
     'uses the flat hero scrim on %s',
-    (pathname) => {
-      expect(overlayFor(pathname)).toEqual({ color: overlay.hero, edgeColor: null });
+    async (pathname) => {
+      expect(await overlayFor(pathname)).toEqual({ color: overlay.hero, edgeColor: null });
     },
   );
 
@@ -37,14 +37,14 @@ describe('useBackgroundOverlay', () => {
   // a gradient, so it is part of the contract, not an incidental value.
   it.each(['/products', '/cameras', '/account'])(
     'uses the flat near-opaque page overlay on %s',
-    (pathname) => {
-      expect(overlayFor(pathname)).toEqual({ color: overlay.page, edgeColor: null });
+    async (pathname) => {
+      expect(await overlayFor(pathname)).toEqual({ color: overlay.page, edgeColor: null });
     },
   );
 
-  it('resolves the scrim against the active colour scheme', () => {
+  it('resolves the scrim against the active colour scheme', async () => {
     const dark = getAppTheme('dark').tokens.overlay;
-    expect(overlayFor('/login', true)).toEqual({
+    expect(await overlayFor('/login', true)).toEqual({
       color: dark.heroBand,
       edgeColor: dark.heroEdge,
     });

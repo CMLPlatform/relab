@@ -136,8 +136,8 @@ describe('useProductPageScreen', () => {
     mockUseProductForm.mockReturnValue(baseFormReturn);
   });
 
-  it('returns grouped screen, editing, streaming, capabilities, and actions domains', () => {
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
+  it('returns grouped screen, editing, streaming, capabilities, and actions domains', async () => {
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.screen.product).toEqual(baseProduct);
     expect(result.current.editing.editMode).toBe(false);
@@ -146,26 +146,26 @@ describe('useProductPageScreen', () => {
     expect(typeof result.current.actions.saveAndExit).toBe('function');
   });
 
-  it('opens and closes the stream picker through named actions', () => {
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
+  it('opens and closes the stream picker through named actions', async () => {
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.streaming.streamPickerVisible).toBe(false);
 
-    act(() => {
+    await act(() => {
       result.current.streaming.openStreamPicker();
     });
     expect(result.current.streaming.streamPickerVisible).toBe(true);
 
-    act(() => {
+    await act(() => {
       result.current.streaming.closeStreamPicker();
     });
     expect(result.current.streaming.streamPickerVisible).toBe(false);
   });
 
-  it('navigates back immediately when not editing', () => {
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
+  it('navigates back immediately when not editing', async () => {
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackWithGuards();
     });
 
@@ -173,16 +173,16 @@ describe('useProductPageScreen', () => {
     expect(mockAlert).not.toHaveBeenCalled();
   });
 
-  it('prompts before navigating back when editing', () => {
+  it('prompts before navigating back when editing', async () => {
     mockUseProductForm.mockReturnValueOnce({
       ...baseFormReturn,
       editMode: true,
       isDirty: true,
     });
 
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackWithGuards();
     });
 
@@ -194,16 +194,16 @@ describe('useProductPageScreen', () => {
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('navigates back without a discard prompt when editing with no unsaved changes', () => {
+  it('navigates back without a discard prompt when editing with no unsaved changes', async () => {
     mockUseProductForm.mockReturnValueOnce({
       ...baseFormReturn,
       editMode: true,
       isDirty: false,
     });
 
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackWithGuards();
     });
 
@@ -211,7 +211,7 @@ describe('useProductPageScreen', () => {
     expect(mockAlert).not.toHaveBeenCalled();
   });
 
-  it('uses the component parent role when navigating back before ancestor crumbs load', () => {
+  it('uses the component parent role when navigating back before ancestor crumbs load', async () => {
     mockUseProductForm.mockReturnValueOnce({
       ...baseFormReturn,
       product: {
@@ -224,9 +224,9 @@ describe('useProductPageScreen', () => {
     });
     mockUseAncestorTrail.mockReturnValueOnce({ ancestors: [], isLoading: true });
 
-    const { result } = renderHook(() => useProductPageScreen({ role: 'component' }));
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'component' }));
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackWithGuards();
     });
 
@@ -236,7 +236,7 @@ describe('useProductPageScreen', () => {
     });
   });
 
-  it('defers back navigation until the record loads, instead of reading the loading sentinel', () => {
+  it('defers back navigation until the record loads, instead of reading the loading sentinel', async () => {
     // useProductForm seeds a blank `newProduct()` while the query is in flight,
     // and that sentinel's role is 'product' with no parentID — indistinguishable
     // from a real top-level product. Pressing back in that window used to
@@ -249,9 +249,11 @@ describe('useProductPageScreen', () => {
       isLoading: true,
     });
 
-    const { result, rerender } = renderHook(() => useProductPageScreen({ role: 'component' }));
+    const { result, rerender } = await renderHook(() =>
+      useProductPageScreen({ role: 'component' }),
+    );
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackWithGuards();
     });
 
@@ -264,8 +266,8 @@ describe('useProductPageScreen', () => {
       isLoading: false,
     });
 
-    act(() => {
-      rerender({});
+    await act(async () => {
+      await rerender({});
     });
 
     expect(mockReplace).toHaveBeenCalledWith({
@@ -274,16 +276,16 @@ describe('useProductPageScreen', () => {
     });
   });
 
-  it('does not show the discard dialog twice after confirming a guarded back action', () => {
+  it('does not show the discard dialog twice after confirming a guarded back action', async () => {
     mockUseProductForm.mockReturnValueOnce({
       ...baseFormReturn,
       editMode: true,
       isDirty: true,
     });
 
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackWithGuards();
     });
 
@@ -296,13 +298,13 @@ describe('useProductPageScreen', () => {
 
     expect(discardButton).toBeDefined();
 
-    act(() => {
+    await act(() => {
       discardButton?.onPress?.();
     });
 
     expect(mockReplace).toHaveBeenCalledWith('/products');
 
-    act(() => {
+    await act(() => {
       beforeRemoveListener?.({
         preventDefault: jest.fn(),
         data: { action: { type: 'GO_BACK' } },
@@ -312,12 +314,12 @@ describe('useProductPageScreen', () => {
     expect(mockAlert).toHaveBeenCalledTimes(1);
   });
 
-  it('collapses the FAB when the hook receives a downward scroll event', () => {
-    const { result } = renderHook(() => useProductPageScreen({ role: 'product' }));
+  it('collapses the FAB when the hook receives a downward scroll event', async () => {
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.editing.fabExtended).toBe(true);
 
-    act(() => {
+    await act(() => {
       result.current.editing.onScroll({
         nativeEvent: { contentOffset: { y: 120 } },
       } as never);

@@ -26,18 +26,18 @@ afterEach(() => {
 });
 
 describe('AppDialog', () => {
-  it('returns focus to the element that opened it', () => {
+  it('returns focus to the element that opened it', async () => {
     mockPlatform('web');
     const trigger = { focus: jest.fn(), isConnected: true };
     stubDocument(trigger);
 
-    const { rerender } = renderWithProviders(
+    const { rerender } = await renderWithProviders(
       <AppDialog visible={false} onDismiss={jest.fn()}>
         <Text>Body</Text>
       </AppDialog>,
     );
 
-    rerender(
+    await rerender(
       <AppDialog visible onDismiss={jest.fn()}>
         <Text>Body</Text>
       </AppDialog>,
@@ -45,7 +45,7 @@ describe('AppDialog', () => {
     expect(trigger.focus).not.toHaveBeenCalled();
     expect(screen.getByText('Body')).toBeOnTheScreen();
 
-    rerender(
+    await rerender(
       <AppDialog visible={false} onDismiss={jest.fn()}>
         <Text>Body</Text>
       </AppDialog>,
@@ -54,22 +54,22 @@ describe('AppDialog', () => {
     expect(trigger.focus).toHaveBeenCalledTimes(1);
   });
 
-  it('leaves focus alone when the trigger is gone', () => {
+  it('leaves focus alone when the trigger is gone', async () => {
     mockPlatform('web');
     const trigger = { focus: jest.fn(), isConnected: false };
     stubDocument(trigger);
 
-    const { rerender } = renderWithProviders(
+    const { rerender } = await renderWithProviders(
       <AppDialog visible={false} onDismiss={jest.fn()}>
         <Text>Body</Text>
       </AppDialog>,
     );
-    rerender(
+    await rerender(
       <AppDialog visible onDismiss={jest.fn()}>
         <Text>Body</Text>
       </AppDialog>,
     );
-    rerender(
+    await rerender(
       <AppDialog visible={false} onDismiss={jest.fn()}>
         <Text>Body</Text>
       </AppDialog>,
@@ -78,7 +78,7 @@ describe('AppDialog', () => {
     expect(trigger.focus).not.toHaveBeenCalled();
   });
 
-  it('restores native screen-reader focus to a passed-in triggerRef', () => {
+  it('restores native screen-reader focus to a passed-in triggerRef', async () => {
     mockPlatform('ios');
     const setFocus = jest
       .spyOn(AccessibilityInfo, 'setAccessibilityFocus')
@@ -90,7 +90,7 @@ describe('AppDialog', () => {
       component === triggerRef.current ? 7 : null,
     );
 
-    const { rerender } = renderWithProviders(
+    const { rerender } = await renderWithProviders(
       <>
         <View ref={triggerRef} />
         <AppDialog visible={false} onDismiss={jest.fn()} triggerRef={triggerRef}>
@@ -99,7 +99,7 @@ describe('AppDialog', () => {
       </>,
     );
 
-    rerender(
+    await rerender(
       <>
         <View ref={triggerRef} />
         <AppDialog visible onDismiss={jest.fn()} triggerRef={triggerRef}>
@@ -107,7 +107,7 @@ describe('AppDialog', () => {
         </AppDialog>
       </>,
     );
-    rerender(
+    await rerender(
       <>
         <View ref={triggerRef} />
         <AppDialog visible={false} onDismiss={jest.fn()} triggerRef={triggerRef}>

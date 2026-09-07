@@ -31,7 +31,7 @@ afterEach(() => {
 describe('useMfaSetup enroll', () => {
   it('opens the enroll dialog with setup material after start', async () => {
     mockStart.mockResolvedValue(SETUP);
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
 
     await act(async () => {
       await result.current.start();
@@ -41,20 +41,20 @@ describe('useMfaSetup enroll', () => {
     expect(result.current.setup).toEqual(SETUP);
   });
 
-  it('strips non-digits and caps the code at 6', () => {
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
-    act(() => result.current.setCode('12ab34567'));
+  it('strips non-digits and caps the code at 6', async () => {
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
+    await act(() => result.current.setCode('12ab34567'));
     expect(result.current.code).toBe('123456');
   });
 
   it('does not submit until a password is entered', async () => {
     mockStart.mockResolvedValue(SETUP);
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
 
     await act(async () => {
       await result.current.start();
     });
-    act(() => result.current.setCode('123456'));
+    await act(() => result.current.setCode('123456'));
     expect(result.current.canSubmit).toBe(false);
     await act(async () => {
       await result.current.confirm('123456');
@@ -66,12 +66,12 @@ describe('useMfaSetup enroll', () => {
     mockStart.mockResolvedValue(SETUP);
     mockConfirm.mockResolvedValue(CODES);
     const onChange = jest.fn();
-    const { result } = renderHook(() => useMfaSetup(onChange));
+    const { result } = await renderHook(() => useMfaSetup(onChange));
 
     await act(async () => {
       await result.current.start();
     });
-    act(() => result.current.setPassword('pw'));
+    await act(() => result.current.setPassword('pw'));
     await act(async () => {
       await result.current.confirm('123456');
     });
@@ -85,12 +85,12 @@ describe('useMfaSetup enroll', () => {
   it('surfaces an error and stays open on a bad code', async () => {
     mockStart.mockResolvedValue(SETUP);
     mockConfirm.mockRejectedValue(new Error('nope'));
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
 
     await act(async () => {
       await result.current.start();
     });
-    act(() => result.current.setPassword('pw'));
+    await act(() => result.current.setPassword('pw'));
     await act(async () => {
       await result.current.confirm('000000');
     });
@@ -104,9 +104,9 @@ describe('useMfaSetup disable', () => {
   it('turns off MFA and closes', async () => {
     mockDisable.mockResolvedValue(undefined);
     const onChange = jest.fn();
-    const { result } = renderHook(() => useMfaSetup(onChange));
+    const { result } = await renderHook(() => useMfaSetup(onChange));
 
-    act(() => result.current.beginDisable(false));
+    await act(() => result.current.beginDisable(false));
     expect(result.current.mode).toBe('disable');
 
     await act(async () => {
@@ -121,9 +121,9 @@ describe('useMfaSetup disable', () => {
   it('reset chains disable into a fresh enrollment', async () => {
     mockDisable.mockResolvedValue(undefined);
     mockStart.mockResolvedValue(SETUP);
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
 
-    act(() => result.current.beginDisable(true));
+    await act(() => result.current.beginDisable(true));
     await act(async () => {
       await result.current.disable('123456');
     });
@@ -138,9 +138,9 @@ describe('useMfaSetup disable', () => {
 describe('useMfaSetup regenerate', () => {
   it('reissues recovery codes after a current code and shows them', async () => {
     mockRegenerate.mockResolvedValue(CODES);
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
 
-    act(() => result.current.beginRegenerate());
+    await act(() => result.current.beginRegenerate());
     expect(result.current.mode).toBe('regenerate');
 
     await act(async () => {
@@ -166,10 +166,10 @@ describe('useMfaSetup guards', () => {
         }),
     );
 
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
     await act(async () => await result.current.start());
-    act(() => result.current.setPassword('pw'));
-    act(() => result.current.setCode('123456'));
+    await act(() => result.current.setPassword('pw'));
+    await act(() => result.current.setCode('123456'));
 
     await act(async () => {
       void result.current.confirm();
@@ -194,9 +194,9 @@ describe('useMfaSetup guards', () => {
         }),
     );
 
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
-    act(() => result.current.beginDisable(false));
-    act(() => result.current.setCode('123456'));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
+    await act(() => result.current.beginDisable(false));
+    await act(() => result.current.setCode('123456'));
 
     await act(async () => {
       void result.current.disable();
@@ -217,11 +217,11 @@ describe('useMfaSetup guards', () => {
     mockStart.mockResolvedValue(SETUP);
     mockConfirm.mockResolvedValue(CODES);
 
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
     await act(async () => await result.current.start());
     expect(result.current.setup).not.toBeNull();
 
-    act(() => result.current.setPassword('pw'));
+    await act(() => result.current.setPassword('pw'));
     await act(async () => await result.current.confirm('123456'));
 
     expect(result.current.mode).toBe('codes');
@@ -234,13 +234,13 @@ describe('useMfaSetup guards', () => {
     mockStart.mockResolvedValue(SETUP);
     mockConfirm.mockResolvedValue(CODES);
 
-    const { result } = renderHook(() => useMfaSetup(jest.fn()));
+    const { result } = await renderHook(() => useMfaSetup(jest.fn()));
     await act(async () => await result.current.start());
-    act(() => result.current.setPassword('pw'));
+    await act(() => result.current.setPassword('pw'));
     await act(async () => await result.current.confirm('123456'));
     expect(result.current.recoveryCodes).toEqual(CODES);
 
-    act(() => result.current.cancel());
+    await act(() => result.current.cancel());
 
     expect(result.current.recoveryCodes).toBeNull();
     expect(result.current.setup).toBeNull();
@@ -256,8 +256,8 @@ describe('useMfaSetup guards', () => {
       throw new Error('network down');
     });
 
-    const { result } = renderHook(() => useMfaSetup(onChange));
-    act(() => result.current.beginDisable(false));
+    const { result } = await renderHook(() => useMfaSetup(onChange));
+    await act(() => result.current.beginDisable(false));
 
     await act(async () => await result.current.disable('123456'));
 

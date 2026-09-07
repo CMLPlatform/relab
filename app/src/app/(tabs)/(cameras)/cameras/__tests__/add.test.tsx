@@ -47,16 +47,16 @@ describe('AddCameraScreen', () => {
   });
 
   it('submits the pairing flow with sanitized uppercase codes', async () => {
-    renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />);
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
     const cameraNameInput = screen.getByLabelText('Camera name, required');
     const descriptionInput = screen.getByLabelText('Description (optional)');
-    fireEvent.changeText(pairingCodeInput, 'ab-12cd9');
-    fireEvent.changeText(cameraNameInput, 'Workbench Camera');
-    fireEvent.changeText(descriptionInput, 'Bench setup');
+    await fireEvent.changeText(pairingCodeInput, 'ab-12cd9');
+    await fireEvent.changeText(cameraNameInput, 'Workbench Camera');
+    await fireEvent.changeText(descriptionInput, 'Bench setup');
 
-    fireEvent.press(screen.getByText('Pair camera'));
+    await fireEvent.press(screen.getByText('Pair camera'));
 
     await waitFor(() =>
       expect(claimMutate).toHaveBeenCalledWith(
@@ -74,13 +74,13 @@ describe('AddCameraScreen', () => {
   });
 
   it('alerts on pairing error', async () => {
-    renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />);
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
     const cameraNameInput = screen.getByLabelText('Camera name, required');
-    fireEvent.changeText(pairingCodeInput, 'AB12CD');
-    fireEvent.changeText(cameraNameInput, 'Test Camera');
-    fireEvent.press(screen.getByText('Pair camera'));
+    await fireEvent.changeText(pairingCodeInput, 'AB12CD');
+    await fireEvent.changeText(cameraNameInput, 'Test Camera');
+    await fireEvent.press(screen.getByText('Pair camera'));
 
     await waitFor(() => expect(claimMutate).toHaveBeenCalled());
     const pairOnError = (
@@ -91,13 +91,13 @@ describe('AddCameraScreen', () => {
   });
 
   it('dismisses the pairing success dialog and navigates to the camera list', async () => {
-    renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />);
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
     const cameraNameInput = screen.getByLabelText('Camera name, required');
-    fireEvent.changeText(pairingCodeInput, 'AB12CD');
-    fireEvent.changeText(cameraNameInput, 'Test Camera');
-    fireEvent.press(screen.getByText('Pair camera'));
+    await fireEvent.changeText(pairingCodeInput, 'AB12CD');
+    await fireEvent.changeText(cameraNameInput, 'Test Camera');
+    await fireEvent.press(screen.getByText('Pair camera'));
 
     await waitFor(() => expect(claimMutate).toHaveBeenCalled());
     const onSuccess = (claimMutate.mock.calls[0]?.[1] as { onSuccess?: () => void } | undefined)
@@ -108,7 +108,7 @@ describe('AddCameraScreen', () => {
 
     expect(await screen.findByText('Camera paired')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Done'));
+    await fireEvent.press(screen.getByText('Done'));
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/cameras'));
   });
@@ -116,7 +116,7 @@ describe('AddCameraScreen', () => {
   it('redirects unauthenticated users to login', async () => {
     mockUseAuth.mockReturnValue({ user: undefined });
 
-    renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />);
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({

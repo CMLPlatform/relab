@@ -53,7 +53,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
       );
     }
 
-    const { result } = renderHook(() => useAuth(), { wrapper });
+    const { result } = await renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.user?.id).toBe('u1'));
     expect(clearSpy).not.toHaveBeenCalled();
 
@@ -88,7 +88,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
       );
     }
 
-    const { result } = renderHook(() => useAuth(), { wrapper });
+    const { result } = await renderHook(() => useAuth(), { wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     mockedGetUser.mockResolvedValueOnce(signedInUser);

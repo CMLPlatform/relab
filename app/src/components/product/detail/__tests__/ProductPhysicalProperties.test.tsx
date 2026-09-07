@@ -19,8 +19,8 @@ const baseProduct: Product = {
 };
 
 describe('ProductPhysicalProperties', () => {
-  it('renders all four property labels', () => {
-    renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
+  it('renders all four property labels', async () => {
+    await renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
     expect(screen.getByText('Measurements')).toBeOnTheScreen();
     expect(screen.getByText('Weight')).toBeOnTheScreen();
     expect(screen.getByText('Height')).toBeOnTheScreen();
@@ -28,15 +28,15 @@ describe('ProductPhysicalProperties', () => {
     expect(screen.getByText('Depth')).toBeOnTheScreen();
   });
 
-  it('renders current weight value', () => {
-    renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
+  it('renders current weight value', async () => {
+    await renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
     expect(screen.getByDisplayValue('500')).toBeOnTheScreen();
   });
 
   // The rows come from Object.keys(physicalProperties), so an unmeasured
   // property must stay a present key holding undefined — dropping the key
   // would silently render fewer rows, and an empty field must not read "NaN".
-  it('renders all four rows as empty for a fully unmeasured product', () => {
+  it('renders all four rows as empty for a fully unmeasured product', async () => {
     const unmeasured: Product = {
       ..._base,
       physicalProperties: {
@@ -46,7 +46,7 @@ describe('ProductPhysicalProperties', () => {
         weight: undefined,
       },
     };
-    renderWithProviders(<ProductPhysicalProperties product={unmeasured} editMode={true} />);
+    await renderWithProviders(<ProductPhysicalProperties product={unmeasured} editMode={true} />);
 
     for (const label of ['Weight', 'Height', 'Width', 'Depth']) {
       expect(screen.getByText(label)).toBeOnTheScreen();
@@ -55,9 +55,9 @@ describe('ProductPhysicalProperties', () => {
     expect(screen.getAllByDisplayValue('')).toHaveLength(4);
   });
 
-  it('calls onChangePhysicalProperties when a value changes', () => {
+  it('calls onChangePhysicalProperties when a value changes', async () => {
     const onChangePhysicalProperties = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductPhysicalProperties
         product={baseProduct}
         editMode={true}
@@ -65,8 +65,8 @@ describe('ProductPhysicalProperties', () => {
       />,
     );
     const weightInput = screen.getByDisplayValue('500');
-    fireEvent.changeText(weightInput, '750');
-    fireEvent(weightInput, 'blur');
+    await fireEvent.changeText(weightInput, '750');
+    await fireEvent(weightInput, 'blur');
     // Assert the whole object, not objectContaining: dropping the `...spread` in
     // the change handler would wipe the other three dimensions, and
     // objectContaining({ weight: 750 }) would happily pass.
@@ -78,25 +78,25 @@ describe('ProductPhysicalProperties', () => {
     });
   });
 
-  it('renders measurements as spec rows, not disabled inputs, when editMode is false', () => {
+  it('renders measurements as spec rows, not disabled inputs, when editMode is false', async () => {
     // View mode used to render a disabled TextInput per measurement, which reads
     // as a form control to assistive tech when there is nothing to fill in, and
     // missed the Spec Row treatment DESIGN.md calls the app's signature. The
     // value now renders as text with its unit.
-    renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
+    await renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
     expect(screen.queryByDisplayValue('500')).toBeNull();
     expect(screen.getByText('500 g')).toBeOnTheScreen();
   });
 
-  it('renders editable inputs when editMode is true', () => {
-    renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
+  it('renders editable inputs when editMode is true', async () => {
+    await renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={true} />);
     const weightInput = screen.getByDisplayValue('500');
     expect(weightInput.props.editable).toBe(true);
     expect(screen.getByTestId('svg-cube-compact')).toBeOnTheScreen();
   });
 
-  it('keeps the full cube presentation in view mode', () => {
-    renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
+  it('keeps the full cube presentation in view mode', async () => {
+    await renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
 
     expect(screen.getByTestId('svg-cube-full')).toBeOnTheScreen();
   });
@@ -112,8 +112,8 @@ describe('ProductPhysicalProperties validation messages', () => {
     physicalProperties: { width: 10, height: 5, depth: 3, weight: 0 },
   };
 
-  it('links the weight error to its input for assistive technology', () => {
-    renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={true} />);
+  it('links the weight error to its input for assistive technology', async () => {
+    await renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={true} />);
 
     const message = screen.getByText('Weight must be a positive number');
     const input = screen.getByLabelText('Weight');
@@ -122,17 +122,17 @@ describe('ProductPhysicalProperties validation messages', () => {
     expect(message.props.accessibilityRole).toBe('alert');
   });
 
-  it('leaves the valid dimensions unflagged', () => {
-    renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={true} />);
+  it('leaves the valid dimensions unflagged', async () => {
+    await renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={true} />);
 
     expect(screen.queryByText('Height must be a positive number')).not.toBeOnTheScreen();
     expect(screen.getByLabelText('Height').props.accessibilityDescribedBy).toBeUndefined();
   });
 
-  it('stays silent outside edit mode', () => {
+  it('stays silent outside edit mode', async () => {
     // In read-only mode there is nothing for the user to correct, so an error
     // message would be noise on a product someone else has to fix.
-    renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={false} />);
+    await renderWithProviders(<ProductPhysicalProperties product={zeroWeight} editMode={false} />);
 
     expect(screen.queryByText('Weight must be a positive number')).not.toBeOnTheScreen();
   });

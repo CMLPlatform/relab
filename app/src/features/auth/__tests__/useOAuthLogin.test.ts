@@ -27,13 +27,13 @@ jest.mock('expo-linking', () => ({ createURL: (path: string) => `relab://${path}
 
 const ACCOUNT_NOT_LINKED = 'OAUTH_USER_ALREADY_EXISTS';
 
-function renderOAuthLogin() {
+async function renderOAuthLogin() {
   const dialog = { alert: jest.fn(), input: jest.fn(), toast: jest.fn() };
   const completeSuccessfulLogin = jest.fn<(user: unknown) => Promise<void>>();
   const showAccountAlreadyRegisteredDialog = jest.fn();
   const handleMfaPending = jest.fn();
 
-  const { result } = renderHook(() =>
+  const { result } = await renderHook(() =>
     useOAuthLogin({
       // biome-ignore lint/suspicious/noExplicitAny: test doubles for the hook's collaborators
       dialog: dialog as any,
@@ -78,7 +78,7 @@ describe('useOAuthLogin', () => {
   it('routes an mfa_required callback into the MFA handoff instead of signing in', async () => {
     mockParseCallbackUrl.mockReturnValue({ status: 'mfa_required', mfaHandoff: 'handoff-token' });
     mockClaimOAuthMfaHandoff.mockResolvedValue({ mfaToken: 'mfa-token' });
-    const { result, handleMfaPending, completeSuccessfulLogin } = renderOAuthLogin();
+    const { result, handleMfaPending, completeSuccessfulLogin } = await renderOAuthLogin();
 
     await act(async () => {
       await result.current.handleOAuthLogin('google');
@@ -97,7 +97,7 @@ describe('useOAuthLogin', () => {
       status: 400,
       detail: ACCOUNT_NOT_LINKED,
     });
-    const { result, showAccountAlreadyRegisteredDialog, dialog } = renderOAuthLogin();
+    const { result, showAccountAlreadyRegisteredDialog, dialog } = await renderOAuthLogin();
 
     await act(async () => {
       await result.current.handleOAuthLogin('google');
@@ -114,7 +114,7 @@ describe('useOAuthLogin', () => {
     // waiting on them.
     jest.useFakeTimers();
     mockGetUser.mockResolvedValue(null);
-    const { result, dialog, completeSuccessfulLogin } = renderOAuthLogin();
+    const { result, dialog, completeSuccessfulLogin } = await renderOAuthLogin();
 
     await act(async () => {
       const pending = result.current.handleOAuthLogin('google');
@@ -128,7 +128,7 @@ describe('useOAuthLogin', () => {
   });
 
   it('completes the login when the callback reports success', async () => {
-    const { result, completeSuccessfulLogin } = renderOAuthLogin();
+    const { result, completeSuccessfulLogin } = await renderOAuthLogin();
 
     await act(async () => {
       await result.current.handleOAuthLogin('google');
@@ -139,7 +139,7 @@ describe('useOAuthLogin', () => {
 
   it('surfaces a suspended account instead of completing the login', async () => {
     mockGetUser.mockResolvedValue({ id: 'user-1', isActive: false });
-    const { result, dialog, completeSuccessfulLogin } = renderOAuthLogin();
+    const { result, dialog, completeSuccessfulLogin } = await renderOAuthLogin();
 
     await act(async () => {
       await result.current.handleOAuthLogin('google');

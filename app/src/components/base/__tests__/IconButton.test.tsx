@@ -5,34 +5,36 @@ import { IconButton } from '@/components/base/IconButton';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 
 describe('IconButton', () => {
-  it('fires onPress', () => {
+  it('fires onPress', async () => {
     const onPress = jest.fn();
-    render(<IconButton icon="x" onPress={onPress} accessibilityLabel="Close" />);
-    fireEvent.press(screen.getByRole('button'));
+    await render(<IconButton icon="x" onPress={onPress} accessibilityLabel="Close" />);
+    await fireEvent.press(screen.getByRole('button'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('blocks onPress while loading', () => {
+  it('blocks onPress while loading', async () => {
     const onPress = jest.fn();
-    render(<IconButton icon="refresh-cw" onPress={onPress} accessibilityLabel="Refresh" loading />);
-    fireEvent.press(screen.getByRole('button'));
+    await render(
+      <IconButton icon="refresh-cw" onPress={onPress} accessibilityLabel="Refresh" loading />,
+    );
+    await fireEvent.press(screen.getByRole('button'));
     expect(onPress).not.toHaveBeenCalled();
   });
 
-  it('shows a spinner instead of the icon while loading', () => {
-    render(
+  it('shows a spinner instead of the icon while loading', async () => {
+    await render(
       <IconButton icon="refresh-cw" onPress={jest.fn()} accessibilityLabel="Refresh" loading />,
     );
     expect(screen.queryByTestId('icon-refresh')).toBeNull();
   });
 
-  it('exposes the accessibility label', () => {
-    render(<IconButton icon="pencil" onPress={jest.fn()} accessibilityLabel="Edit name" />);
+  it('exposes the accessibility label', async () => {
+    await render(<IconButton icon="pencil" onPress={jest.fn()} accessibilityLabel="Edit name" />);
     expect(screen.getByLabelText('Edit name')).toBeOnTheScreen();
   });
 
-  it('meets the 44px a11y tap-target floor', () => {
-    render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
+  it('meets the 44px a11y tap-target floor', async () => {
+    await render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
     // Resolved through the state callback — the floor lives in the style
     // function, never in a className (mixing the two drops the function).
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
@@ -42,8 +44,8 @@ describe('IconButton', () => {
     expect(style.minHeight).toBe(44);
   });
 
-  it('forwards arbitrary accessibility props (accessibilityHint)', () => {
-    render(
+  it('forwards arbitrary accessibility props (accessibilityHint)', async () => {
+    await render(
       <IconButton
         icon="pencil"
         onPress={jest.fn()}
@@ -54,8 +56,8 @@ describe('IconButton', () => {
     expect(screen.getByRole('button').props.accessibilityHint).toBe('Opens the name editor');
   });
 
-  it('uses the control radius, not a bespoke circle', () => {
-    render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
+  it('uses the control radius, not a bespoke circle', async () => {
+    await render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.borderRadius).toBe(radius.control);
   });

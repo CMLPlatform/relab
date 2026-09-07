@@ -61,7 +61,7 @@ describe('useProductGalleryImageActions', () => {
   // the next time the user added or removed a photo.
   it('deleting a visible image preserves an image whose url did not resolve', async () => {
     const onImagesChange = jest.fn();
-    const { result } = setup(onImagesChange);
+    const { result } = await setup(onImagesChange);
 
     await act(async () => {
       result.current.handleDeleteImage(0);
@@ -75,7 +75,7 @@ describe('useProductGalleryImageActions', () => {
 
   it('deletes the row the user is actually looking at', async () => {
     const onImagesChange = jest.fn();
-    const { result } = setup(onImagesChange);
+    const { result } = await setup(onImagesChange);
 
     // Index 2 is the third slide; with the old filtering it addressed image 'c'
     // via a two-element array and would have thrown the index away.
@@ -91,7 +91,7 @@ describe('useProductGalleryImageActions', () => {
 
   it('deleting the unresolvable image itself removes exactly that row', async () => {
     const onImagesChange = jest.fn();
-    const { result } = setup(onImagesChange);
+    const { result } = await setup(onImagesChange);
 
     await act(async () => {
       result.current.handleDeleteImage(1);
@@ -108,7 +108,7 @@ describe('undo', () => {
   it('offers an Undo action on the removal toast', async () => {
     toastCalls.length = 0;
     const onImagesChange = jest.fn();
-    const { result } = setup(onImagesChange);
+    const { result } = await setup(onImagesChange);
 
     await act(async () => {
       result.current.handleDeleteImage(0);
@@ -122,7 +122,7 @@ describe('undo', () => {
   it('undo puts the photo back at the index it came from', async () => {
     toastCalls.length = 0;
     const onImagesChange = jest.fn();
-    const { result } = setup(onImagesChange);
+    const { result } = await setup(onImagesChange);
 
     await act(async () => {
       result.current.handleDeleteImage(1);
@@ -141,14 +141,14 @@ describe('undo', () => {
     toastCalls.length = 0;
     const added = { url: 'data:image/png;base64,x', description: '' };
     const onImagesChange = jest.fn();
-    const { result, rerender } = setup(onImagesChange);
+    const { result, rerender } = await setup(onImagesChange);
 
     await act(async () => {
       result.current.handleDeleteImage(0);
     });
     // A photo is imported before the toast expires, so the form re-renders with
     // the shortened list plus the new import.
-    rerender({ productImages: [IMAGES[1], IMAGES[2], added] });
+    await rerender({ productImages: [IMAGES[1], IMAGES[2], added] });
     await act(async () => {
       toastCalls[0]?.action?.onPress();
     });

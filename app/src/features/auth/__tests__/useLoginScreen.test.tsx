@@ -70,16 +70,16 @@ describe('useLoginScreen', () => {
     jest.clearAllMocks();
   });
 
-  it('returns grouped form and action domains', () => {
-    const { result } = renderHook(() => useLoginScreen());
+  it('returns grouped form and action domains', async () => {
+    const { result } = await renderHook(() => useLoginScreen());
 
     expect(result.current.form.control).toEqual({ field: 'control' });
     expect(typeof result.current.form.submit).toBe('function');
     expect(typeof result.current.actions.loginWithGoogle).toBe('function');
   });
 
-  it('uses named navigation actions for browse, forgot password, and create account', () => {
-    const { result } = renderHook(() => useLoginScreen());
+  it('uses named navigation actions for browse, forgot password, and create account', async () => {
+    const { result } = await renderHook(() => useLoginScreen());
 
     result.current.actions.browseProducts();
     result.current.actions.goToForgotPassword();

@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
-import { Svg } from 'react-native-svg';
 import ProductTags from '@/components/product/detail/ProductTags';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
-import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
+import { baseProduct as _base, queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 const BRAND_PATTERN = /CircularTech/;
@@ -31,134 +30,138 @@ describe('ProductTags', () => {
     });
   });
 
-  it('renders brand and model chip values', () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
+  it('renders brand and model chip values', async () => {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
     expect(screen.getByText(BRAND_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText(MODEL_PATTERN)).toBeOnTheScreen();
   });
 
-  it("renders 'Not recorded' when brand is missing, without an error state", () => {
+  it("renders 'Not recorded' when brand is missing, without an error state", async () => {
     const product = { ...baseProduct, brand: undefined };
-    renderWithProviders(<ProductTags product={product} editMode={false} />, {
+    await renderWithProviders(<ProductTags product={product} editMode={false} />, {
       withDialog: true,
     });
     expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
   });
 
-  it("renders 'Not recorded' when model is missing, without an error state", () => {
+  it("renders 'Not recorded' when model is missing, without an error state", async () => {
     const product = { ...baseProduct, model: undefined };
-    renderWithProviders(<ProductTags product={product} editMode={false} />, {
+    await renderWithProviders(<ProductTags product={product} editMode={false} />, {
       withDialog: true,
     });
     expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
   });
 
   it('opens brand selection modal on brand chip press in editMode', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(BRAND_PATTERN));
+    await fireEvent.press(screen.getByText(BRAND_PATTERN));
     expect(screen.getByText('Select brand')).toBeOnTheScreen();
   });
 
   it('does not open brand modal when not in editMode', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(BRAND_PATTERN));
+    await fireEvent.press(screen.getByText(BRAND_PATTERN));
     expect(screen.queryByText('Select brand')).toBeNull();
   });
 
   it('calls onBrandChange when a brand chip is pressed in the modal', async () => {
     const onBrandChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags product={baseProduct} editMode={true} onBrandChange={onBrandChange} />,
       {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText(BRAND_PATTERN));
+    await fireEvent.press(screen.getByText(BRAND_PATTERN));
     await screen.findByText('Select brand');
-    fireEvent.press(screen.getByText('Samsung'));
+    await fireEvent.press(screen.getByText('Samsung'));
     expect(onBrandChange).toHaveBeenCalledWith('Samsung');
   });
 
   it('shows a "+ new brand" chip when search text is not in the list', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(BRAND_PATTERN));
+    await fireEvent.press(screen.getByText(BRAND_PATTERN));
     await screen.findByText('Select brand');
-    fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
+    await fireEvent.changeText(
+      screen.getByPlaceholderText('Search or type a brand…'),
+      'MyNewBrand',
+    );
     await screen.findByText('MyNewBrand');
   });
 
   it('calls onBrandChange with custom typed brand when new-brand chip is pressed', async () => {
     const onBrandChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags product={baseProduct} editMode={true} onBrandChange={onBrandChange} />,
       {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText(BRAND_PATTERN));
+    await fireEvent.press(screen.getByText(BRAND_PATTERN));
     await screen.findByText('Select brand');
-    fireEvent.changeText(screen.getByPlaceholderText('Search or type a brand…'), 'MyNewBrand');
+    await fireEvent.changeText(
+      screen.getByPlaceholderText('Search or type a brand…'),
+      'MyNewBrand',
+    );
     await screen.findByText('MyNewBrand');
-    fireEvent.press(screen.getByText('MyNewBrand'));
+    await fireEvent.press(screen.getByText('MyNewBrand'));
     expect(onBrandChange).toHaveBeenCalledWith('MyNewBrand');
   });
 
   it('opens model input dialog on model chip press in editMode', async () => {
-    renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
-    fireEvent.press(screen.getByText(MODEL_PATTERN));
+    await fireEvent.press(screen.getByText(MODEL_PATTERN));
     expect(screen.getByText('Set model')).toBeOnTheScreen();
   });
 
   it('calls onModelChange with the new name when OK is pressed in the model dialog', async () => {
     const onModelChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags product={baseProduct} editMode={true} onModelChange={onModelChange} />,
       {
         withDialog: true,
       },
     );
-    fireEvent.press(screen.getByText(MODEL_PATTERN));
-    fireEvent.changeText(screen.getByPlaceholderText('Model name'), 'NewModel');
-    fireEvent.press(screen.getByText('OK'));
+    await fireEvent.press(screen.getByText(MODEL_PATTERN));
+    await fireEvent.changeText(screen.getByPlaceholderText('Model name'), 'NewModel');
+    await fireEvent.press(screen.getByText('OK'));
     expect(onModelChange).toHaveBeenCalledWith('NewModel');
   });
 
-  it('renders no edit-pencil icon on brand/model chips outside editMode', () => {
-    const { UNSAFE_root } = renderWithProviders(
-      <ProductTags product={baseProduct} editMode={false} />,
-      { withDialog: true },
-    );
+  it('renders no edit-pencil icon on brand/model chips outside editMode', async () => {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
     // Chip's icon prop is `editMode && <Icon .../>`, i.e. `false` when not
     // editing — regression check that Chip renders nothing for it (no crash,
     // no stray icon) rather than the string "false" or an empty slot.
-    expect(UNSAFE_root.findAllByType(Svg)).toHaveLength(0);
+    expect(queryAllHostsByType('RNSVGSvgView')).toHaveLength(0);
   });
 
-  it('renders an edit-pencil icon on both brand and model chips in editMode', () => {
-    const { UNSAFE_root } = renderWithProviders(
-      <ProductTags product={baseProduct} editMode={true} />,
-      { withDialog: true },
-    );
-    expect(UNSAFE_root.findAllByType(Svg)).toHaveLength(2);
+  it('renders an edit-pencil icon on both brand and model chips in editMode', async () => {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
+    expect(queryAllHostsByType('RNSVGSvgView')).toHaveLength(2);
   });
 
-  it('renders Brand/Model/Amount chips when product is a component (isComponent=true)', () => {
+  it('renders Brand/Model/Amount chips when product is a component (isComponent=true)', async () => {
     const componentProduct = {
       ...baseProduct,
       brand: undefined,
       model: undefined,
     };
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags product={componentProduct} editMode={true} isComponent={true} />,
       {
         withDialog: true,
@@ -175,8 +178,8 @@ describe('ProductTags', () => {
 describe('AmountChip (isComponent=true)', () => {
   const componentProduct: Product = { ...baseProduct, amountInParent: 3 };
 
-  it('shows the amount value in view mode', () => {
-    renderWithProviders(
+  it('shows the amount value in view mode', async () => {
+    await renderWithProviders(
       <ProductTags product={componentProduct} editMode={false} isComponent={true} />,
       {
         withDialog: true,
@@ -185,8 +188,8 @@ describe('AmountChip (isComponent=true)', () => {
     expect(screen.getByText('3')).toBeOnTheScreen();
   });
 
-  it('does not render when isComponent is false', () => {
-    renderWithProviders(
+  it('does not render when isComponent is false', async () => {
+    await renderWithProviders(
       <ProductTags product={componentProduct} editMode={false} isComponent={false} />,
       {
         withDialog: true,
@@ -195,16 +198,19 @@ describe('AmountChip (isComponent=true)', () => {
     expect(screen.queryByText('Amount')).toBeNull();
   });
 
-  it('defaults to 1 when amountInParent is undefined', () => {
+  it('defaults to 1 when amountInParent is undefined', async () => {
     const product = { ...baseProduct, amountInParent: undefined };
-    renderWithProviders(<ProductTags product={product} editMode={false} isComponent={true} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductTags product={product} editMode={false} isComponent={true} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.getByText('1')).toBeOnTheScreen();
   });
 
-  it('shows a text input with the current amount in edit mode', () => {
-    renderWithProviders(
+  it('shows a text input with the current amount in edit mode', async () => {
+    await renderWithProviders(
       <ProductTags product={componentProduct} editMode={true} isComponent={true} />,
       {
         withDialog: true,
@@ -213,9 +219,9 @@ describe('AmountChip (isComponent=true)', () => {
     expect(screen.getByDisplayValue('3')).toBeOnTheScreen();
   });
 
-  it('commits once on blur with the final typed value, not once per keystroke', () => {
+  it('commits once on blur with the final typed value, not once per keystroke', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -225,17 +231,17 @@ describe('AmountChip (isComponent=true)', () => {
       { withDialog: true },
     );
     const input = screen.getByDisplayValue('3');
-    fireEvent.changeText(input, '2');
-    fireEvent.changeText(input, '25');
+    await fireEvent.changeText(input, '2');
+    await fireEvent.changeText(input, '25');
     expect(onAmountChange).not.toHaveBeenCalled();
-    fireEvent(input, 'blur');
+    await fireEvent(input, 'blur');
     expect(onAmountChange).toHaveBeenCalledTimes(1);
     expect(onAmountChange).toHaveBeenCalledWith(25);
   });
 
-  it('commits on submitEditing (keyboard return) as well as blur', () => {
+  it('commits on submitEditing (keyboard return) as well as blur', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -245,15 +251,15 @@ describe('AmountChip (isComponent=true)', () => {
       { withDialog: true },
     );
     const input = screen.getByDisplayValue('3');
-    fireEvent.changeText(input, '9');
-    fireEvent(input, 'submitEditing');
+    await fireEvent.changeText(input, '9');
+    await fireEvent(input, 'submitEditing');
     expect(onAmountChange).toHaveBeenCalledTimes(1);
     expect(onAmountChange).toHaveBeenCalledWith(9);
   });
 
-  it('strips non-numeric characters from text input, committed on blur', () => {
+  it('strips non-numeric characters from text input, committed on blur', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -263,14 +269,14 @@ describe('AmountChip (isComponent=true)', () => {
       { withDialog: true },
     );
     const input = screen.getByDisplayValue('3');
-    fireEvent.changeText(input, '5abc');
-    fireEvent(input, 'blur');
+    await fireEvent.changeText(input, '5abc');
+    await fireEvent(input, 'blur');
     expect(onAmountChange).toHaveBeenCalledWith(5);
   });
 
-  it('clamps value to 10000 on blur and exposes the valid range via accessibilityHint', () => {
+  it('clamps value to 10000 on blur and exposes the valid range via accessibilityHint', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -281,14 +287,14 @@ describe('AmountChip (isComponent=true)', () => {
     );
     const input = screen.getByDisplayValue('3');
     expect(input.props.accessibilityHint).toMatch(AMOUNT_RANGE_HINT_PATTERN);
-    fireEvent.changeText(input, '99999');
-    fireEvent(input, 'blur');
+    await fireEvent.changeText(input, '99999');
+    await fireEvent(input, 'blur');
     expect(onAmountChange).toHaveBeenCalledWith(10000);
   });
 
-  it('resets to 1 on blur when input is empty', () => {
+  it('resets to 1 on blur when input is empty', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -298,14 +304,14 @@ describe('AmountChip (isComponent=true)', () => {
       { withDialog: true },
     );
     const input = screen.getByDisplayValue('3');
-    fireEvent.changeText(input, '');
-    fireEvent(input, 'blur');
+    await fireEvent.changeText(input, '');
+    await fireEvent(input, 'blur');
     expect(onAmountChange).toHaveBeenCalledWith(1);
   });
 
-  it('calls onAmountChange with amount + 1 when increment is pressed', () => {
+  it('calls onAmountChange with amount + 1 when increment is pressed', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -314,13 +320,13 @@ describe('AmountChip (isComponent=true)', () => {
       />,
       { withDialog: true },
     );
-    fireEvent.press(screen.getByLabelText('Increase amount'));
+    await fireEvent.press(screen.getByLabelText('Increase amount'));
     expect(onAmountChange).toHaveBeenCalledWith(4);
   });
 
-  it('calls onAmountChange with amount - 1 when decrement is pressed', () => {
+  it('calls onAmountChange with amount - 1 when decrement is pressed', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -329,32 +335,38 @@ describe('AmountChip (isComponent=true)', () => {
       />,
       { withDialog: true },
     );
-    fireEvent.press(screen.getByLabelText('Decrease amount'));
+    await fireEvent.press(screen.getByLabelText('Decrease amount'));
     expect(onAmountChange).toHaveBeenCalledWith(2);
   });
 
-  it('decrement button is disabled when amount is 1', () => {
+  it('decrement button is disabled when amount is 1', async () => {
     const product = { ...baseProduct, amountInParent: 1 };
-    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductTags product={product} editMode={true} isComponent={true} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.getByLabelText('Decrease amount')).toBeDisabled();
   });
 
-  it('increment button is disabled when amount is 10000', () => {
+  it('increment button is disabled when amount is 10000', async () => {
     const product = { ...baseProduct, amountInParent: 10000 };
-    renderWithProviders(<ProductTags product={product} editMode={true} isComponent={true} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductTags product={product} editMode={true} isComponent={true} />,
+      {
+        withDialog: true,
+      },
+    );
     expect(screen.getByLabelText('Increase amount')).toBeDisabled();
   });
 
   // Fix round 1 (item 2, Minor): typing then tapping +/- used to discard the
   // typed digits because the steppers stepped off the last *committed*
   // amount, not what's currently on screen.
-  it('increments from the typed draft, not the last committed amount, when pressed before blur', () => {
+  it('increments from the typed draft, not the last committed amount, when pressed before blur', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -363,14 +375,14 @@ describe('AmountChip (isComponent=true)', () => {
       />,
       { withDialog: true },
     );
-    fireEvent.changeText(screen.getByDisplayValue('3'), '50');
-    fireEvent.press(screen.getByLabelText('Increase amount'));
+    await fireEvent.changeText(screen.getByDisplayValue('3'), '50');
+    await fireEvent.press(screen.getByLabelText('Increase amount'));
     expect(onAmountChange).toHaveBeenCalledWith(51);
   });
 
-  it('decrements from the typed draft, not the last committed amount, when pressed before blur', () => {
+  it('decrements from the typed draft, not the last committed amount, when pressed before blur', async () => {
     const onAmountChange = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductTags
         product={componentProduct}
         editMode={true}
@@ -379,8 +391,8 @@ describe('AmountChip (isComponent=true)', () => {
       />,
       { withDialog: true },
     );
-    fireEvent.changeText(screen.getByDisplayValue('3'), '50');
-    fireEvent.press(screen.getByLabelText('Decrease amount'));
+    await fireEvent.changeText(screen.getByDisplayValue('3'), '50');
+    await fireEvent.press(screen.getByLabelText('Decrease amount'));
     expect(onAmountChange).toHaveBeenCalledWith(49);
   });
 });
@@ -395,10 +407,10 @@ describe('AmountChip (isComponent=true)', () => {
 describe('AmountChip draft flush (Save without blur)', () => {
   const componentProduct: Product = { ...baseProduct, amountInParent: 3 };
 
-  it('flushes a typed-but-unblurred amount when Save invokes the registered flush, with no blur event', () => {
+  it('flushes a typed-but-unblurred amount when Save invokes the registered flush, with no blur event', async () => {
     const onAmountChange = jest.fn();
     const flushRef: { current: (() => number | undefined) | null } = { current: null };
-    renderWithProviders(
+    await renderWithProviders(
       <AmountDraftFlushContext.Provider value={flushRef}>
         <ProductTags
           product={componentProduct}
@@ -409,12 +421,12 @@ describe('AmountChip draft flush (Save without blur)', () => {
       </AmountDraftFlushContext.Provider>,
       { withDialog: true },
     );
-    fireEvent.changeText(screen.getByDisplayValue('3'), '50');
+    await fireEvent.changeText(screen.getByDisplayValue('3'), '50');
     // No blur/submitEditing fired on the input — Save reaches the flush ref first.
     expect(onAmountChange).not.toHaveBeenCalled();
 
     let flushed: number | undefined;
-    act(() => {
+    await act(() => {
       flushed = flushRef.current?.();
     });
 
@@ -426,10 +438,10 @@ describe('AmountChip draft flush (Save without blur)', () => {
   // saveAndExit reads any number from the flush as "the form is dirty", so a
   // draft that resolves to the amount already stored would PATCH an untouched
   // entity.
-  it('reports no change when the typed draft clamps back to the current amount', () => {
+  it('reports no change when the typed draft clamps back to the current amount', async () => {
     const onAmountChange = jest.fn();
     const flushRef: { current: (() => number | undefined) | null } = { current: null };
-    renderWithProviders(
+    await renderWithProviders(
       <AmountDraftFlushContext.Provider value={flushRef}>
         <ProductTags
           product={componentProduct}
@@ -440,20 +452,20 @@ describe('AmountChip draft flush (Save without blur)', () => {
       </AmountDraftFlushContext.Provider>,
       { withDialog: true },
     );
-    fireEvent.changeText(screen.getByDisplayValue('3'), '3');
+    await fireEvent.changeText(screen.getByDisplayValue('3'), '3');
 
     let flushed: number | undefined = 0;
-    act(() => {
+    await act(() => {
       flushed = flushRef.current?.();
     });
 
     expect(flushed).toBeUndefined();
   });
 
-  it('flush is a no-op when there is no pending draft (already blurred, or untouched)', () => {
+  it('flush is a no-op when there is no pending draft (already blurred, or untouched)', async () => {
     const onAmountChange = jest.fn();
     const flushRef: { current: (() => number | undefined) | null } = { current: null };
-    renderWithProviders(
+    await renderWithProviders(
       <AmountDraftFlushContext.Provider value={flushRef}>
         <ProductTags
           product={componentProduct}
@@ -470,13 +482,13 @@ describe('AmountChip draft flush (Save without blur)', () => {
   });
 });
 
-it('never marks a missing brand or model as required', () => {
+it('never marks a missing brand or model as required', async () => {
   // PRODUCT.md: an empty or unconfirmed field must never render as an error, a
   // warning, or a completeness penalty. Chip composes ", required" into its
   // accessible name when `error` is set, so the absence of that string is the
   // assertion — it checks the state a screen reader would announce rather than
   // the colour a sighted user would see.
-  renderWithProviders(
+  await renderWithProviders(
     <ProductTags product={{ ...baseProduct, brand: undefined, model: undefined }} editMode />,
     { withDialog: true },
   );

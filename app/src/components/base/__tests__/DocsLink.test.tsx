@@ -23,19 +23,19 @@ beforeEach(() => {
 });
 
 describe('DocsLink', () => {
-  it('resolves the path against the configured docs origin', () => {
-    render(
+  it('resolves the path against the configured docs origin', async () => {
+    await render(
       <DocsLink path="/user-guides/data-collection" accessibilityLabel="Read the guide">
         Read the guide
       </DocsLink>,
     );
-    fireEvent.press(screen.getByRole('link'));
+    await fireEvent.press(screen.getByRole('link'));
 
     expect(mockOpen).toHaveBeenCalledWith('https://docs.example.com/user-guides/data-collection');
   });
 
-  it('announces itself as a link with its own label, not the visible text', () => {
-    render(
+  it('announces itself as a link with its own label, not the visible text', async () => {
+    await render(
       <DocsLink path="/x" accessibilityLabel="Open the data collection guide">
         Learn more
       </DocsLink>,
@@ -46,9 +46,9 @@ describe('DocsLink', () => {
   });
 
   // Self-hosters can run without a docs site; a dead link is worse than no link.
-  it('renders nothing when no docs URL is configured', () => {
+  it('renders nothing when no docs URL is configured', async () => {
     mockConfig.DOCS_URL = '';
-    render(
+    await render(
       <DocsLink path="/x" accessibilityLabel="Read the guide">
         Read the guide
       </DocsLink>,

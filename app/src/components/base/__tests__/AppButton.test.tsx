@@ -17,38 +17,38 @@ jest.mock('react-native', () => {
   return actual;
 });
 
-test('fires onPress', () => {
+test('fires onPress', async () => {
   const onPress = jest.fn();
-  render(<AppButton onPress={onPress}>Save</AppButton>);
-  fireEvent.press(screen.getByText('Save'));
+  await render(<AppButton onPress={onPress}>Save</AppButton>);
+  await fireEvent.press(screen.getByText('Save'));
   expect(onPress).toHaveBeenCalledTimes(1);
 });
 
-test('loading disables the button and blocks presses', () => {
+test('loading disables the button and blocks presses', async () => {
   const onPress = jest.fn();
-  render(
+  await render(
     <AppButton onPress={onPress} loading>
       Save
     </AppButton>,
   );
-  fireEvent.press(screen.getByText('Save'));
+  await fireEvent.press(screen.getByText('Save'));
   expect(onPress).not.toHaveBeenCalled();
 });
 
-test('primary variant label uses the primary-foreground text color', () => {
-  render(<AppButton variant="primary">Save</AppButton>);
+test('primary variant label uses the primary-foreground text color', async () => {
+  await render(<AppButton variant="primary">Save</AppButton>);
   expect(screen.getByText('Save').props.className).toEqual(
     expect.stringContaining('text-primary-foreground'),
   );
 });
 
-test('destructive variant label uses the white text color', () => {
-  render(<AppButton variant="destructive">Delete</AppButton>);
+test('destructive variant label uses the white text color', async () => {
+  await render(<AppButton variant="destructive">Delete</AppButton>);
   expect(screen.getByText('Delete').props.className).toEqual(expect.stringContaining('text-white'));
 });
 
-test('tonal variant uses the soft-primary fill and primary text color', () => {
-  render(<AppButton variant="tonal">Sign in</AppButton>);
+test('tonal variant uses the soft-primary fill and primary text color', async () => {
+  await render(<AppButton variant="tonal">Sign in</AppButton>);
   expect(screen.getByRole('button').props.className).toEqual(
     expect.stringContaining('bg-primary/12'),
   );
@@ -65,8 +65,8 @@ const ACCENT_CLASS_PATTERN = /\baccent\b/;
 // generated from assets/tokens.json into --radius-md in brand.generated.css).
 test.each(['primary', 'tonal', 'outline', 'ghost', 'destructive'] as const)(
   '%s variant is flat and uses the control radius',
-  (variant) => {
-    render(<AppButton variant={variant}>Label</AppButton>);
+  async (variant) => {
+    await render(<AppButton variant={variant}>Label</AppButton>);
     const className = screen.getByRole('button').props.className;
     expect(className).not.toMatch(SHADOW_CLASS_PATTERN);
     expect(className).toEqual(expect.stringContaining('rounded-md'));
@@ -79,8 +79,8 @@ test.each(['primary', 'tonal', 'outline', 'ghost', 'destructive'] as const)(
 // button variant or state may reference it — pressed/hover are primary-derived.
 test.each(['primary', 'tonal', 'outline', 'ghost', 'destructive'] as const)(
   '%s variant never uses the accent for a fill or state',
-  (variant) => {
-    render(<AppButton variant={variant}>Label</AppButton>);
+  async (variant) => {
+    await render(<AppButton variant={variant}>Label</AppButton>);
     expect(screen.getByRole('button').props.className).not.toMatch(ACCENT_CLASS_PATTERN);
     expect(screen.getByText('Label').props.className).not.toMatch(ACCENT_CLASS_PATTERN);
   },
@@ -88,26 +88,26 @@ test.each(['primary', 'tonal', 'outline', 'ghost', 'destructive'] as const)(
 
 test.each(['outline', 'ghost'] as const)(
   '%s variant uses a primary tint state-layer, not a neutral',
-  (variant) => {
-    render(<AppButton variant={variant}>Label</AppButton>);
+  async (variant) => {
+    await render(<AppButton variant={variant}>Label</AppButton>);
     expect(screen.getByRole('button').props.className).toEqual(
       expect.stringContaining('active:bg-primary/'),
     );
   },
 );
 
-test('meets the 44px a11y tap-target floor regardless of caller className', () => {
-  render(<AppButton className="mx-4 my-2">Add component</AppButton>);
+test('meets the 44px a11y tap-target floor regardless of caller className', async () => {
+  await render(<AppButton className="mx-4 my-2">Add component</AppButton>);
   expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('min-h-11'));
 });
 
-test('forwards arbitrary accessibility props (accessibilityHint) to the underlying button', () => {
-  render(<AppButton accessibilityHint="Saves the current product">Save</AppButton>);
+test('forwards arbitrary accessibility props (accessibilityHint) to the underlying button', async () => {
+  await render(<AppButton accessibilityHint="Saves the current product">Save</AppButton>);
   expect(screen.getByRole('button').props.accessibilityHint).toBe('Saves the current product');
 });
 
-test('has web hover, cursor, and focus-visible affordances', () => {
-  render(<AppButton>Save</AppButton>);
+test('has web hover, cursor, and focus-visible affordances', async () => {
+  await render(<AppButton>Save</AppButton>);
   const className = screen.getByRole('button').props.className;
   expect(className).toEqual(expect.stringContaining('cursor-pointer'));
   expect(className).toEqual(expect.stringContaining('hover:'));

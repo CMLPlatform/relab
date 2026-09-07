@@ -116,7 +116,7 @@ describe('CategorySelection', () => {
 
   it('redirects guests to login', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
@@ -132,7 +132,7 @@ describe('CategorySelection', () => {
   });
 
   it('renders root category items initially', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await waitFor(() => {
       expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
       expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
@@ -140,9 +140,9 @@ describe('CategorySelection', () => {
   });
 
   it('hands the picked type to the pending slot and pops back when a leaf is pressed', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('Petroleum products');
-    fireEvent.press(screen.getByText('Petroleum products'));
+    await fireEvent.press(screen.getByText('Petroleum products'));
     await waitFor(() => {
       expect(mockedSetPending).toHaveBeenCalledWith(2);
       expect(mockBack).toHaveBeenCalled();
@@ -150,36 +150,36 @@ describe('CategorySelection', () => {
   });
 
   it('navigates into subcategory when subcategories button is pressed', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     // Agricultural products has 1 subcategory; shows "1 subcategories" link
     await waitFor(() => {
       expect(screen.getByText(SUBCATEGORY_COUNT_PATTERN)).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByText('1 subcategories'));
+    await fireEvent.press(screen.getByText('1 subcategories'));
     await waitFor(() => {
       expect(screen.getByText('Agricultural and horticultural products')).toBeOnTheScreen();
     });
   });
 
   it('shows history breadcrumb after navigating into subcategory', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('1 subcategories');
-    fireEvent.press(screen.getByText('1 subcategories'));
+    await fireEvent.press(screen.getByText('1 subcategories'));
     await waitFor(() => {
       expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
     });
   });
 
   it('pressing the history breadcrumb navigates back up to the parent level', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('1 subcategories');
-    fireEvent.press(screen.getByText('1 subcategories'));
+    await fireEvent.press(screen.getByText('1 subcategories'));
     // Now inside Agricultural products; breadcrumb shows
     await waitFor(() => {
       expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
     });
     // Pressing the breadcrumb triggers moveUp; root categories re-appear
-    fireEvent.press(screen.getByText('Agricultural products'));
+    await fireEvent.press(screen.getByText('Agricultural products'));
     await waitFor(() => {
       expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
     });
@@ -187,7 +187,7 @@ describe('CategorySelection', () => {
 
   it('shows a Recent section above the list at the root when there are recent picks', async () => {
     useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('Agricultural products');
 
     expect(screen.getByText('Recent')).toBeOnTheScreen();
@@ -196,7 +196,7 @@ describe('CategorySelection', () => {
   });
 
   it('omits the Recent section when there are no recent picks', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('Agricultural products');
 
     expect(screen.queryByText('Recent')).toBeNull();
@@ -204,10 +204,10 @@ describe('CategorySelection', () => {
 
   it('hides the Recent section once a search is active', async () => {
     useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('Recent');
 
-    fireEvent.changeText(screen.getByPlaceholderText('Search'), 'agri');
+    await fireEvent.changeText(screen.getByPlaceholderText('Search'), 'agri');
 
     await waitFor(() => {
       expect(screen.queryByText('Recent')).toBeNull();
@@ -216,10 +216,10 @@ describe('CategorySelection', () => {
 
   it('hides the Recent section once browsed into a subcategory', async () => {
     useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('1 subcategories');
 
-    fireEvent.press(screen.getByText('1 subcategories'));
+    await fireEvent.press(screen.getByText('1 subcategories'));
 
     await waitFor(() => {
       expect(screen.queryByText('Recent')).toBeNull();
@@ -228,10 +228,10 @@ describe('CategorySelection', () => {
 
   it('selecting a recent category hands it to the pending slot like a normal pick', async () => {
     useRecentCategories.setState({ recents: [PETROLEUM_RECENT] });
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('Recent');
 
-    fireEvent.press(screen.getAllByText('Petroleum products')[0]);
+    await fireEvent.press(screen.getAllByText('Petroleum products')[0]);
 
     await waitFor(() => {
       expect(mockedSetPending).toHaveBeenCalledWith(2);
@@ -240,10 +240,10 @@ describe('CategorySelection', () => {
   });
 
   it('records the picked category as a recent when a leaf is selected', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByText('Petroleum products');
 
-    fireEvent.press(screen.getByText('Petroleum products'));
+    await fireEvent.press(screen.getByText('Petroleum products'));
 
     await waitFor(() => {
       expect(useRecentCategories.getState().recents.map((c) => c.id)).toEqual([2]);
@@ -251,18 +251,18 @@ describe('CategorySelection', () => {
   });
 
   it('shows the plain-language blurb and contextual CPV help tooltip', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByPlaceholderText('Search');
     expect(screen.getByText(BLURB_PATTERN)).toBeOnTheScreen();
     expect(screen.getByLabelText(INFO_TOOLTIP_LABEL_PATTERN)).toBeOnTheScreen();
   });
 
   it('meets the 44px tap-target floor on the subcategories link and history breadcrumb', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     const linkButton = await screen.findByRole('button', { name: 'Browse 1 subcategories' });
     expect(StyleSheet.flatten(linkButton.props.style).minHeight).toBe(MIN_TAP_TARGET);
 
-    fireEvent.press(linkButton);
+    await fireEvent.press(linkButton);
     const historyButton = await screen.findByRole('button', {
       name: 'Go back to parent category',
     });
@@ -270,9 +270,9 @@ describe('CategorySelection', () => {
   });
 
   it('filters categories by search query', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByPlaceholderText('Search');
-    fireEvent.changeText(screen.getByPlaceholderText('Search'), 'petroleum');
+    await fireEvent.changeText(screen.getByPlaceholderText('Search'), 'petroleum');
     // Step the 300ms debounce off the fake clock instead of letting waitFor poll
     // for it. Polling costs seconds in this one test where every sibling here
     // runs in milliseconds, and it crossed the per-test budget on CI hardware.
@@ -284,9 +284,9 @@ describe('CategorySelection', () => {
   });
 
   it('shows an empty state when the search query matches nothing', async () => {
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
     await screen.findByPlaceholderText('Search');
-    fireEvent.changeText(screen.getByPlaceholderText('Search'), 'nonexistent-widget');
+    await fireEvent.changeText(screen.getByPlaceholderText('Search'), 'nonexistent-widget');
     await waitFor(() => {
       expect(
         screen.getByText('No categories match “nonexistent-widget”. Try a broader term.'),
@@ -299,7 +299,7 @@ describe('CategorySelection', () => {
   // input's immediate searchQuery. Force that mismatch directly rather than
   // timing the real debounce, and assert the empty-state message quotes the
   // query `filtered` was actually computed from.
-  it('quotes the debounced query, not the in-flight keystroke, in the empty state', () => {
+  it('quotes the debounced query, not the in-flight keystroke, in the empty state', async () => {
     (useCategorySelection as jest.Mock).mockReturnValueOnce({
       user: { id: '1', username: 'testuser' },
       cpvClass: { id: 0, name: 'root', description: 'root', directChildren: [], allChildren: [] },
@@ -314,7 +314,7 @@ describe('CategorySelection', () => {
       selectType: jest.fn(),
     });
 
-    renderWithProviders(<CategorySelection />);
+    await renderWithProviders(<CategorySelection />);
 
     expect(screen.getByText('No categories match “typing”. Try a broader term.')).toBeOnTheScreen();
     expect(screen.queryByText(TYPING_NOW_PATTERN)).toBeNull();

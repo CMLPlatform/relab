@@ -24,8 +24,8 @@ const mockReplace = jest.fn();
 const mockRefetch = jest.fn();
 const mockedUpdateUser = jest.mocked(updateUser);
 
-function renderOnboardingScreen() {
-  renderWithProviders(<Onboarding />, { withDialog: true });
+async function renderOnboardingScreen() {
+  await renderWithProviders(<Onboarding />, { withDialog: true });
 }
 
 beforeEach(() => {
@@ -44,8 +44,8 @@ beforeEach(() => {
 });
 
 describe('Onboarding screen rendering', () => {
-  it('renders the Welcome text, username input and Continue button', () => {
-    renderOnboardingScreen();
+  it('renders the Welcome text, username input and Continue button', async () => {
+    await renderOnboardingScreen();
     expect(screen.getByText('Welcome!')).toBeOnTheScreen();
     expect(screen.getByPlaceholderText('e.g. awesome_user')).toBeOnTheScreen();
     expect(screen.getByText('Continue')).toBeOnTheScreen();
@@ -56,10 +56,10 @@ describe('Onboarding screen submission', () => {
   it('saves the username and routes into the authenticated flow', async () => {
     mockedUpdateUser.mockResolvedValue(undefined);
 
-    renderOnboardingScreen();
+    await renderOnboardingScreen();
 
-    fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'new_user');
-    fireEvent(screen.getByPlaceholderText('e.g. awesome_user'), 'submitEditing');
+    await fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'new_user');
+    await fireEvent(screen.getByPlaceholderText('e.g. awesome_user'), 'submitEditing');
 
     await waitFor(() => {
       expect(mockedUpdateUser).toHaveBeenCalledWith({ username: 'new_user' });
@@ -74,10 +74,10 @@ describe('Onboarding screen submission', () => {
   it('shows an error dialog when onboarding fails', async () => {
     mockedUpdateUser.mockRejectedValue(new Error('Username already exists'));
 
-    renderOnboardingScreen();
+    await renderOnboardingScreen();
 
-    fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'taken_name');
-    fireEvent(screen.getByPlaceholderText('e.g. awesome_user'), 'submitEditing');
+    await fireEvent.changeText(screen.getByPlaceholderText('e.g. awesome_user'), 'taken_name');
+    await fireEvent(screen.getByPlaceholderText('e.g. awesome_user'), 'submitEditing');
 
     await waitFor(() => {
       expect(screen.getByText("Couldn't save username")).toBeOnTheScreen();
@@ -87,8 +87,8 @@ describe('Onboarding screen submission', () => {
 });
 
 describe('Onboarding screen behavior', () => {
-  it('Continue button is disabled when username is empty', () => {
-    renderOnboardingScreen();
+  it('Continue button is disabled when username is empty', async () => {
+    await renderOnboardingScreen();
 
     // No text entered — form is invalid, button should be disabled
     const button = screen.getByText('Continue');
@@ -97,32 +97,32 @@ describe('Onboarding screen behavior', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
   });
 
-  it('renders correctly in dark mode — covers colorScheme !== light branches', () => {
+  it('renders correctly in dark mode — covers colorScheme !== light branches', async () => {
     mockUseEffectiveColorScheme.mockReturnValue('dark');
 
-    renderOnboardingScreen();
+    await renderOnboardingScreen();
 
     expect(screen.getByText('Welcome!')).toBeOnTheScreen();
     expect(screen.getByText('Choose a username to continue.')).toBeOnTheScreen();
   });
 
-  it('renders on iOS with keyboard metrics — covers Platform.OS !== web branch', () => {
+  it('renders on iOS with keyboard metrics — covers Platform.OS !== web branch', async () => {
     mockPlatform('ios');
     jest
       .spyOn(Keyboard, 'metrics')
       .mockReturnValue({ height: 300, screenX: 0, screenY: 0, width: 375 });
 
-    renderOnboardingScreen();
+    await renderOnboardingScreen();
 
     expect(screen.getByText('Welcome!')).toBeOnTheScreen();
 
     restorePlatform();
   });
 
-  it('renders on web with bottom padding 0 — covers Platform.OS === web branch', () => {
+  it('renders on web with bottom padding 0 — covers Platform.OS === web branch', async () => {
     mockPlatform('web');
 
-    renderOnboardingScreen();
+    await renderOnboardingScreen();
 
     expect(screen.getByText('Welcome!')).toBeOnTheScreen();
 

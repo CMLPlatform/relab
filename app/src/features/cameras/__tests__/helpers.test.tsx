@@ -23,9 +23,9 @@ function applyHeader(overrides: Partial<Parameters<typeof setCamerasHeaderOption
   return { options, navigate };
 }
 
-function pressBack(options: Options) {
-  render(options.headerLeft({}));
-  fireEvent.press(screen.getByRole('button', { name: 'Go back' }));
+async function pressBack(options: Options) {
+  await render(options.headerLeft({}));
+  await fireEvent.press(screen.getByRole('button', { name: 'Go back' }));
 }
 
 describe('setCamerasHeaderOptions — title', () => {
@@ -41,9 +41,9 @@ describe('setCamerasHeaderOptions — title', () => {
 // The cameras screen is reached from a product in two different flows, and the
 // back affordance has to land on that product rather than the cameras tab root.
 describe('setCamerasHeaderOptions — back target', () => {
-  it('returns to the capture-all product', () => {
+  it('returns to the capture-all product', async () => {
     const { options, navigate } = applyHeader({ captureAllProductId: 12 });
-    pressBack(options);
+    await pressBack(options);
 
     expect(navigate).toHaveBeenCalledWith({
       pathname: '/products/[id]',
@@ -51,9 +51,9 @@ describe('setCamerasHeaderOptions — back target', () => {
     });
   });
 
-  it('returns to the stream product when no capture-all flow is active', () => {
+  it('returns to the stream product when no capture-all flow is active', async () => {
     const { options, navigate } = applyHeader({ streamProductId: 7 });
-    pressBack(options);
+    await pressBack(options);
 
     expect(navigate).toHaveBeenCalledWith({
       pathname: '/products/[id]',
@@ -61,9 +61,9 @@ describe('setCamerasHeaderOptions — back target', () => {
     });
   });
 
-  it('prefers the capture-all product when both flows are set', () => {
+  it('prefers the capture-all product when both flows are set', async () => {
     const { options, navigate } = applyHeader({ captureAllProductId: 12, streamProductId: 7 });
-    pressBack(options);
+    await pressBack(options);
 
     expect(navigate).toHaveBeenCalledWith({
       pathname: '/products/[id]',
@@ -71,18 +71,18 @@ describe('setCamerasHeaderOptions — back target', () => {
     });
   });
 
-  it('falls back to the products list when neither flow is active', () => {
+  it('falls back to the products list when neither flow is active', async () => {
     const { options, navigate } = applyHeader();
-    pressBack(options);
+    await pressBack(options);
 
     expect(navigate).toHaveBeenCalledWith('/products');
   });
 
   // navigate(), not replace(): this crosses tabs, and replace would reset every
   // tab's trail.
-  it('navigates rather than replacing, so the other tabs keep their history', () => {
+  it('navigates rather than replacing, so the other tabs keep their history', async () => {
     const { options, navigate } = applyHeader({ captureAllProductId: 3 });
-    pressBack(options);
+    await pressBack(options);
 
     expect(navigate).toHaveBeenCalledTimes(1);
   });

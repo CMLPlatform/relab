@@ -4,8 +4,8 @@ import { Text } from 'react-native';
 import IndexRoute from '@/app/index';
 
 describe('index route', () => {
-  it('redirects guests to /products', () => {
-    renderRouter({
+  it('redirects guests to /products', async () => {
+    await renderRouter({
       index: IndexRoute,
       'products/index': () => <Text>Products route</Text>,
     });

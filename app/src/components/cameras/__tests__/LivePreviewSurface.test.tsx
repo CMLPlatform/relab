@@ -30,15 +30,15 @@ describe('LivePreview', () => {
     jest.clearAllMocks();
   });
 
-  it('returns null when there is no hlsUrl', () => {
+  it('returns null when there is no hlsUrl', async () => {
     mockUseCameraLivePreview.mockReturnValue({ hlsUrl: null } as never);
-    const { toJSON } = render(<LivePreview camera={{ id: '1' }} />);
+    const { toJSON } = await render(<LivePreview camera={{ id: '1' }} />);
     expect(toJSON()).toBeNull();
   });
 
-  it('returns null when camera is null', () => {
+  it('returns null when camera is null', async () => {
     mockUseCameraLivePreview.mockReturnValue({ hlsUrl: null } as never);
-    const { toJSON } = render(<LivePreview camera={null} />);
+    const { toJSON } = await render(<LivePreview camera={null} />);
     expect(toJSON()).toBeNull();
   });
 
@@ -56,21 +56,21 @@ describe('LivePreview', () => {
       Object.defineProperty(rn.Platform, 'OS', { value: 'ios', configurable: true });
     });
 
-    it('renders caption when hlsUrl is present', () => {
-      const { getByText } = render(<LivePreview camera={{ id: '1' }} />);
+    it('renders caption when hlsUrl is present', async () => {
+      const { getByText } = await render(<LivePreview camera={{ id: '1' }} />);
       expect(getByText('Live preview · LL-HLS')).toBeTruthy();
     });
 
-    it('renders the preview player with the HLS URL', () => {
-      const { getByTestId } = render(<LivePreview camera={{ id: '1' }} />);
+    it('renders the preview player with the HLS URL', async () => {
+      const { getByTestId } = await render(<LivePreview camera={{ id: '1' }} />);
       expect(getByTestId('preview-player').props.children).toBe(
         'player:http://example/stream.m3u8',
       );
     });
 
-    it('passes enabled=false to useCameraLivePreview', () => {
+    it('passes enabled=false to useCameraLivePreview', async () => {
       mockUseCameraLivePreview.mockReturnValue({ hlsUrl: null } as never);
-      const { toJSON } = render(<LivePreview camera={{ id: '1' }} enabled={false} />);
+      const { toJSON } = await render(<LivePreview camera={{ id: '1' }} enabled={false} />);
       expect(useCameraLivePreview).toHaveBeenCalledWith({ id: '1' }, { enabled: false });
       expect(toJSON()).toBeNull();
     });
@@ -85,8 +85,8 @@ describe('LivePreview', () => {
       } as never);
     });
 
-    it('renders the preview player and caption', () => {
-      const { getByTestId, getByText } = render(<LivePreview camera={{ id: '1' }} />);
+    it('renders the preview player and caption', async () => {
+      const { getByTestId, getByText } = await render(<LivePreview camera={{ id: '1' }} />);
       expect(getByTestId('preview-player')).toBeTruthy();
       expect(getByText('Live preview · LL-HLS')).toBeTruthy();
     });

@@ -47,12 +47,12 @@ describe('camera stream action hooks', () => {
     }));
   });
 
-  it('routes stream-mode taps, detail navigation, and offline warnings correctly', () => {
+  it('routes stream-mode taps, detail navigation, and offline warnings correctly', async () => {
     const openStreamDialog = jest.fn();
     const toggleSelected = jest.fn();
     const feedback = { alert: jest.fn(), error: jest.fn(), toast: jest.fn() };
 
-    const { result, rerender } = renderHook(
+    const { result, rerender } = await renderHook(
       ({
         streamModeEnabled,
         selectionMode,
@@ -82,7 +82,7 @@ describe('camera stream action hooks', () => {
       { initialProps: { streamModeEnabled: true, selectionMode: false } },
     );
 
-    act(() => {
+    await act(() => {
       result.current.handleCardTap({ id: 'cam-offline', name: 'Offline Cam' } as never);
       result.current.handleCardTap({ id: 'cam-1', name: 'Camera 1' } as never);
     });
@@ -90,21 +90,21 @@ describe('camera stream action hooks', () => {
     expect(feedback.toast).toHaveBeenCalledWith("Offline Cam is offline — can't stream.");
     expect(openStreamDialog).toHaveBeenCalledWith('cam-1', 'Camera 1', 'Desk Radio');
 
-    rerender({ streamModeEnabled: false, selectionMode: false });
+    await rerender({ streamModeEnabled: false, selectionMode: false });
 
-    act(() => {
+    await act(() => {
       result.current.handleCardTap({ id: 'cam-2', name: 'Camera 2' } as never);
     });
 
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/cameras/[id]', params: { id: 'cam-2' } });
   });
 
-  function renderStartStream() {
+  async function renderStartStream() {
     const closeStreamDialog = jest.fn();
     const setIsStartingStream = jest.fn();
     const feedback = { alert: jest.fn(), error: jest.fn(), toast: jest.fn() };
 
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamActions({
         streamModeEnabled: true,
         selectionMode: false,
@@ -130,7 +130,7 @@ describe('camera stream action hooks', () => {
   }
 
   it('starts a stream successfully and handles start failures', async () => {
-    const { result, closeStreamDialog, setIsStartingStream, feedback } = renderStartStream();
+    const { result, closeStreamDialog, setIsStartingStream, feedback } = await renderStartStream();
 
     await act(async () => {
       await result.current.handleStartStream();
@@ -187,7 +187,7 @@ describe('camera stream action hooks', () => {
         'STREAM_ALREADY_ACTIVE',
       );
     });
-    const { result, closeStreamDialog, feedback } = renderStartStream();
+    const { result, closeStreamDialog, feedback } = await renderStartStream();
 
     await act(async () => {
       await result.current.handleStartStream();
@@ -205,7 +205,7 @@ describe('camera stream action hooks', () => {
     mockAddProductVideo.mockImplementationOnce(async () => {
       throw new Error('disk full');
     });
-    const { result, closeStreamDialog, feedback } = renderStartStream();
+    const { result, closeStreamDialog, feedback } = await renderStartStream();
 
     await act(async () => {
       await result.current.handleStartStream();
@@ -223,7 +223,7 @@ describe('camera stream action hooks', () => {
 
   it('does not start a stream when no product is selected', async () => {
     const feedback = { alert: jest.fn(), error: jest.fn(), toast: jest.fn() };
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamActions({
         streamModeEnabled: true,
         selectionMode: false,

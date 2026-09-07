@@ -8,9 +8,9 @@ jest.mock('@/hooks/useBreakpoint', () => ({
   useBreakpoint: () => mockUseBreakpoint(),
 }));
 
-function renderToolbar(props: Partial<Parameters<typeof ProductsSearchToolbar>[0]> = {}) {
+async function renderToolbar(props: Partial<Parameters<typeof ProductsSearchToolbar>[0]> = {}) {
   const onToggleFilters = jest.fn();
-  const renderResult = render(
+  const renderResult = await render(
     <ProductsSearchToolbar
       searchQuery=""
       debouncedSearchQuery=""
@@ -31,12 +31,12 @@ describe('ProductsSearchToolbar filters toggle', () => {
     mockUseBreakpoint.mockReturnValue({ isMd: false, isLg: false });
   });
 
-  it('keeps the phone placeholder short and shows the keyboard hint on wide web', () => {
-    const { rerender } = renderToolbar();
+  it('keeps the phone placeholder short and shows the keyboard hint on wide web', async () => {
+    const { rerender } = await renderToolbar();
     expect(screen.getByPlaceholderText('Search products')).toBeOnTheScreen();
 
     mockUseBreakpoint.mockReturnValue({ isMd: true, isLg: false });
-    rerender(
+    await rerender(
       <ProductsSearchToolbar
         searchQuery=""
         debouncedSearchQuery=""
@@ -52,17 +52,17 @@ describe('ProductsSearchToolbar filters toggle', () => {
     expect(screen.getByLabelText('Search products')).toBeOnTheScreen();
   });
 
-  it('announces the collapsed state and toggles on press', () => {
-    const { onToggleFilters } = renderToolbar();
+  it('announces the collapsed state and toggles on press', async () => {
+    const { onToggleFilters } = await renderToolbar();
     const toggle = screen.getByLabelText('Filters');
     expect(screen.getByText('Filters')).toBeOnTheScreen();
     expect(toggle.props.accessibilityState.expanded).toBe(false);
-    fireEvent.press(toggle);
+    await fireEvent.press(toggle);
     expect(onToggleFilters).toHaveBeenCalledTimes(1);
   });
 
-  it('carries the active count in its name and the expanded state', () => {
-    renderToolbar({ filtersExpanded: true, activeFilterCount: 2 });
+  it('carries the active count in its name and the expanded state', async () => {
+    await renderToolbar({ filtersExpanded: true, activeFilterCount: 2 });
     expect(screen.getByLabelText('Filters, 2 active').props.accessibilityState.expanded).toBe(true);
   });
 });

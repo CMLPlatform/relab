@@ -74,19 +74,19 @@ describe('NewAccount screen', () => {
     });
   });
 
-  it('renders the username section by default', () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+  it('renders the username section by default', async () => {
+    await renderWithProviders(<NewAccount />, { withDialog: true });
     expect(screen.getByLabelText('Username')).toBeOnTheScreen();
     expect(screen.getByText('Who are you?')).toBeOnTheScreen();
   });
 
   it('shows validation error for invalid username', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'a');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'a');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     await waitFor(() => {
@@ -95,53 +95,53 @@ describe('NewAccount screen', () => {
   });
 
   it('chevron button is disabled for invalid username', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
     const input = screen.getByLabelText('Username');
     await act(async () => {
-      fireEvent.changeText(input, '');
+      await fireEvent.changeText(input, '');
     });
     expect(screen.getByLabelText('Username')).toBeOnTheScreen();
   });
 
   it('advances to email section with valid username', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     expect(screen.getByText(HOW_DO_WE_REACH_YOU_PATTERN)).toBeOnTheScreen();
   });
 
   it('does not advance from username when invalid', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'a');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'a');
     });
 
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     expect(screen.queryByText(HOW_DO_WE_REACH_YOU_PATTERN)).toBeNull();
   });
 
   it('shows email validation error for invalid email', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
     await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Email address'), 'not_an_email');
+      await fireEvent.changeText(screen.getByLabelText('Email address'), 'not_an_email');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
     });
 
     await waitFor(() => {
@@ -153,29 +153,32 @@ describe('NewAccount screen', () => {
     mockedRegister.mockResolvedValue({ success: true });
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'newuser');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'newuser');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Email address'), 'user@example.com');
+      await fireEvent.changeText(screen.getByLabelText('Email address'), 'user@example.com');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
     });
 
     await screen.findByLabelText('Password');
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
+      await fireEvent.changeText(
+        screen.getByLabelText('Password'),
+        'correct-horse-battery-staple-v42',
+      );
     });
     await act(async () => {
-      fireEvent.press(screen.getByText('Create account'));
+      await fireEvent.press(screen.getByText('Create account'));
     });
 
     expect(mockedLogin).not.toHaveBeenCalled();
@@ -185,28 +188,31 @@ describe('NewAccount screen', () => {
   it('shows error when registration fails', async () => {
     mockedRegister.mockResolvedValue({ success: false, error: 'Email already in use' });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'newuser');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'newuser');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
     await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Email address'), 'taken@example.com');
+      await fireEvent.changeText(screen.getByLabelText('Email address'), 'taken@example.com');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
     });
     await screen.findByLabelText('Password');
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
+      await fireEvent.changeText(
+        screen.getByLabelText('Password'),
+        'correct-horse-battery-staple-v42',
+      );
     });
 
     await act(async () => {
-      fireEvent.press(screen.getByText('Create account'));
+      await fireEvent.press(screen.getByText('Create account'));
     });
 
     expect(register).toHaveBeenCalled();
@@ -219,25 +225,25 @@ describe('NewAccount screen', () => {
   });
 
   it('shows validation error for short password', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'validuser');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
     await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Email address'), 'valid@example.com');
+      await fireEvent.changeText(screen.getByLabelText('Email address'), 'valid@example.com');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Email address'), 'submitEditing');
     });
 
     await screen.findByLabelText('Password');
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Password'), '123');
+      await fireEvent.changeText(screen.getByLabelText('Password'), '123');
     });
 
     await waitFor(() => {
@@ -246,27 +252,27 @@ describe('NewAccount screen', () => {
   });
 
   it('navigates back through sections', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
 
     await act(async () => {
-      fireEvent.changeText(screen.getByLabelText('Username'), 'testuser');
+      await fireEvent.changeText(screen.getByLabelText('Username'), 'testuser');
     });
     await act(async () => {
-      fireEvent(screen.getByLabelText('Username'), 'submitEditing');
+      await fireEvent(screen.getByLabelText('Username'), 'submitEditing');
     });
 
     await screen.findByLabelText('Email address');
     await act(async () => {
-      fireEvent.press(screen.getByText('Edit username'));
+      await fireEvent.press(screen.getByText('Edit username'));
     });
 
     expect(screen.getByLabelText('Username')).toBeOnTheScreen();
   });
 
   it('navigates to login via "I already have an account"', async () => {
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('I already have an account'));
+      await fireEvent.press(screen.getByText('I already have an account'));
     });
     expect(mockDismissTo).toHaveBeenCalledWith('/login');
   });
@@ -306,7 +312,7 @@ describe('NewAccount – authenticated redirect', () => {
       refetch: mockRefetch,
     });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/products');
@@ -316,7 +322,7 @@ describe('NewAccount – authenticated redirect', () => {
   it('does not redirect while auth is still loading', async () => {
     mockUseAuth.mockReturnValue({ user: null, isLoading: true, refetch: mockRefetch });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
 
     expect(mockReplace).not.toHaveBeenCalled();
   });
@@ -324,7 +330,7 @@ describe('NewAccount – authenticated redirect', () => {
   it('does not redirect when no user is logged in', async () => {
     mockUseAuth.mockReturnValue({ user: null, isLoading: false, refetch: mockRefetch });
 
-    renderWithProviders(<NewAccount />, { withDialog: true });
+    await renderWithProviders(<NewAccount />, { withDialog: true });
 
     expect(mockReplace).not.toHaveBeenCalled();
   });

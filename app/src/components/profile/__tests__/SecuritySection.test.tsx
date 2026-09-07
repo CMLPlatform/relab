@@ -53,17 +53,17 @@ beforeEach(() => {
 
 describe('ProfileSecuritySection enrolment', () => {
   it('enrols with a password and a setup code, then shows the recovery codes once', async () => {
-    renderSection(false);
+    await renderSection(false);
 
-    fireEvent.press(screen.getByLabelText('Two-step verification'));
+    await fireEvent.press(screen.getByLabelText('Two-step verification'));
 
     expect(await screen.findByText('Set up two-step verification')).toBeOnTheScreen();
     // The shared key is shown in 4-char blocks so it can be typed by hand.
     expect(screen.getByText('ABCD EFGH')).toBeOnTheScreen();
 
-    fireEvent.changeText(screen.getByLabelText('Current password'), 'hunter2');
+    await fireEvent.changeText(screen.getByLabelText('Current password'), 'hunter2');
     // A full 6-digit code auto-submits, so no Confirm press is needed.
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() =>
       expect(mockConfirmTotpSetup).toHaveBeenCalledWith('setup-token', '123456', 'hunter2'),
@@ -75,24 +75,24 @@ describe('ProfileSecuritySection enrolment', () => {
   });
 
   it('does not submit the setup code until a password is given', async () => {
-    renderSection(false);
+    await renderSection(false);
 
-    fireEvent.press(screen.getByLabelText('Two-step verification'));
+    await fireEvent.press(screen.getByLabelText('Two-step verification'));
     await screen.findByText('Set up two-step verification');
 
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => expect(mockConfirmTotpSetup).not.toHaveBeenCalled());
   });
 
   it('keeps the dialog open and reports the error when the setup code is rejected', async () => {
     mockConfirmTotpSetup.mockRejectedValue(new Error('Invalid code'));
-    renderSection(false);
+    await renderSection(false);
 
-    fireEvent.press(screen.getByLabelText('Two-step verification'));
+    await fireEvent.press(screen.getByLabelText('Two-step verification'));
     await screen.findByText('Set up two-step verification');
-    fireEvent.changeText(screen.getByLabelText('Current password'), 'hunter2');
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
+    await fireEvent.changeText(screen.getByLabelText('Current password'), 'hunter2');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     expect(await screen.findByText('Invalid code')).toBeOnTheScreen();
     expect(screen.queryByText('Save your recovery codes')).toBeNull();
@@ -100,9 +100,9 @@ describe('ProfileSecuritySection enrolment', () => {
 
   it('surfaces a failure to start enrolment', async () => {
     mockStartTotpSetup.mockRejectedValue(new Error('backend down'));
-    renderSection(false);
+    await renderSection(false);
 
-    fireEvent.press(screen.getByLabelText('Two-step verification'));
+    await fireEvent.press(screen.getByLabelText('Two-step verification'));
 
     await waitFor(() => expect(mockStartTotpSetup).toHaveBeenCalled());
     expect(screen.queryByText('Set up two-step verification')).toBeNull();
@@ -111,26 +111,26 @@ describe('ProfileSecuritySection enrolment', () => {
 
 describe('ProfileSecuritySection management', () => {
   it('turns two-step verification off with a current code', async () => {
-    renderSection(true);
+    await renderSection(true);
 
-    fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
+    await fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
 
     expect(await screen.findByText('Enter a current code')).toBeOnTheScreen();
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '654321');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '654321');
 
     await waitFor(() => expect(mockDisableTotp).toHaveBeenCalledWith('654321'));
     expect(onEnrolled).toHaveBeenCalled();
   });
 
   it('accepts a recovery code instead when the authenticator is lost', async () => {
-    renderSection(true);
+    await renderSection(true);
 
-    fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
+    await fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
     await screen.findByText('Enter a current code');
 
-    fireEvent.press(screen.getByText('Lost your authenticator? Use a recovery code'));
-    fireEvent.changeText(screen.getByLabelText('Recovery code'), 'aaaa-1111');
-    fireEvent.press(screen.getByText('Confirm'));
+    await fireEvent.press(screen.getByText('Lost your authenticator? Use a recovery code'));
+    await fireEvent.changeText(screen.getByLabelText('Recovery code'), 'aaaa-1111');
+    await fireEvent.press(screen.getByText('Confirm'));
 
     await waitFor(() => expect(mockDisableTotp).toHaveBeenCalledWith('aaaa-1111'));
   });
@@ -138,28 +138,28 @@ describe('ProfileSecuritySection management', () => {
   // Both branches of the toggle carry a visible label, so it can't appear and
   // disappear as the user switches between them.
   it('keeps a visible label on the code field in both authenticator and recovery mode', async () => {
-    renderSection(true);
+    await renderSection(true);
 
-    fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
+    await fireEvent.press(screen.getByLabelText('Turn off two-step verification'));
     await screen.findByText('Enter a current code');
     expect(screen.getByText('Authentication code')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Lost your authenticator? Use a recovery code'));
+    await fireEvent.press(screen.getByText('Lost your authenticator? Use a recovery code'));
 
     expect(screen.getByText('Recovery code')).toBeOnTheScreen();
     expect(screen.queryByText('Authentication code')).toBeNull();
   });
 
   it('regenerates recovery codes and lets the user copy them', async () => {
-    renderSection(true);
+    await renderSection(true);
 
-    fireEvent.press(screen.getByLabelText('Generate new recovery codes'));
-    fireEvent.changeText(await screen.findByLabelText('Authentication code'), '654321');
+    await fireEvent.press(screen.getByLabelText('Generate new recovery codes'));
+    await fireEvent.changeText(await screen.findByLabelText('Authentication code'), '654321');
 
     await waitFor(() => expect(mockRegenerate).toHaveBeenCalledWith('654321'));
     expect(await screen.findByText('Save your recovery codes')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Copy all'));
+    await fireEvent.press(screen.getByText('Copy all'));
 
     await waitFor(() => expect(mockSetStringAsync).toHaveBeenCalledWith(RECOVERY_CODES.join('\n')));
   });

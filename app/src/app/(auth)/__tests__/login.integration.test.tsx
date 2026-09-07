@@ -153,7 +153,7 @@ describe('Login screen', () => {
   });
 
   it('renders login form elements', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Email or username')).toBeOnTheScreen();
     expect(screen.getByLabelText('Password')).toBeOnTheScreen();
@@ -163,14 +163,14 @@ describe('Login screen', () => {
   // and privacy line that password signup shows has to be on this screen too —
   // consenting to terms you were never shown is not consent.
   it('shows the terms and privacy links alongside the OAuth buttons', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     expect(screen.getByText('Continue with Google')).toBeOnTheScreen();
     expect(screen.getByRole('link', { name: 'Terms' })).toBeOnTheScreen();
     expect(screen.getByRole('link', { name: 'Privacy Policy' })).toBeOnTheScreen();
   });
 
   it('shows Sign in button', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
   });
 
@@ -181,7 +181,7 @@ describe('Login screen', () => {
       isLoading: false,
       refetch: mockAuthRefetch,
     });
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await waitFor(
       () => {
         expect(mockReplace).toHaveBeenCalledWith(
@@ -199,7 +199,7 @@ describe('Login screen', () => {
       isLoading: false,
       refetch: mockAuthRefetch,
     });
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/onboarding');
     });
@@ -209,12 +209,15 @@ describe('Login screen', () => {
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser()); // returned by getUser(true) inside attemptLogin
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    await fireEvent.changeText(
+      screen.getByLabelText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -228,12 +231,15 @@ describe('Login screen', () => {
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser());
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    await fireEvent.changeText(
+      screen.getByLabelText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -246,12 +252,15 @@ describe('Login screen', () => {
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValueOnce(mockUser({ username: null }));
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    await fireEvent.changeText(
+      screen.getByLabelText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -264,12 +273,15 @@ describe('Login screen', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ redirectTo: '/account' });
     mockedLogin.mockResolvedValue({ status: 'mfa_required', mfaToken: 'mfa-token' });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'correct-horse-battery-staple-v42');
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 'test@example.com');
+    await fireEvent.changeText(
+      screen.getByLabelText('Password'),
+      'correct-horse-battery-staple-v42',
+    );
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -285,12 +297,12 @@ describe('Login screen', () => {
   it('shows sign-in failure dialog when login returns null', async () => {
     mockedLogin.mockResolvedValue({ status: 'invalid_credentials' });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 'bad@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'wrongpass');
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 'bad@example.com');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'wrongpass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -306,12 +318,12 @@ describe('Login screen', () => {
   it('shows sign-in failure dialog on login exception', async () => {
     mockedLogin.mockRejectedValue(new Error('Network error'));
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 't@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 't@example.com');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await waitFor(() => {
@@ -325,16 +337,16 @@ describe('Login screen', () => {
   });
 
   it('navigates to forgot password on button press', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await screen.findByText('Forgot password?');
-    fireEvent.press(screen.getByText('Forgot password?'));
+    await fireEvent.press(screen.getByText('Forgot password?'));
     expect(mockPush).toHaveBeenCalledWith('/forgot-password');
   });
 
   it('navigates to new account on button press', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await screen.findByText('Create a new account');
-    fireEvent.press(screen.getByText('Create a new account'));
+    await fireEvent.press(screen.getByText('Create a new account'));
     expect(mockPush).toHaveBeenCalledWith('/new-account');
   });
 
@@ -364,9 +376,9 @@ describe('Login screen', () => {
     });
 
     try {
-      renderWithProviders(<Login />, { withDialog: true });
+      await renderWithProviders(<Login />, { withDialog: true });
       await act(async () => {
-        fireEvent.press(screen.getByText('Continue with GitHub'));
+        await fireEvent.press(screen.getByText('Continue with GitHub'));
       });
 
       await waitFor(() => {
@@ -397,7 +409,7 @@ describe('Login screen', () => {
     );
 
     try {
-      renderWithProviders(<Login />, { withDialog: true });
+      await renderWithProviders(<Login />, { withDialog: true });
 
       await waitFor(() => {
         expect(mockedMarkWebSessionActive).toHaveBeenCalled();
@@ -432,7 +444,7 @@ describe('Login screen', () => {
     });
 
     try {
-      renderWithProviders(<Login />, { withDialog: true });
+      await renderWithProviders(<Login />, { withDialog: true });
 
       await waitFor(() => {
         expect(mockReplace).toHaveBeenCalledWith('/mfa');
@@ -468,7 +480,7 @@ describe('Login screen', () => {
     mockedGetUser.mockResolvedValueOnce(mockUser({ username: null, email: 'oauth@example.com' }));
 
     try {
-      renderWithProviders(<Login />, { withDialog: true });
+      await renderWithProviders(<Login />, { withDialog: true });
 
       await waitFor(() => {
         expect(mockedMarkWebSessionActive).toHaveBeenCalled();
@@ -495,7 +507,7 @@ describe('Login screen', () => {
     });
 
     try {
-      renderWithProviders(<Login />, { withDialog: true });
+      await renderWithProviders(<Login />, { withDialog: true });
 
       await waitFor(() => {
         expect(mockDialogApi.alert).toHaveBeenCalledWith(
@@ -522,9 +534,9 @@ describe('Login screen', () => {
       detail: 'OAUTH_USER_ALREADY_EXISTS',
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with GitHub'));
+      await fireEvent.press(screen.getByText('Continue with GitHub'));
     });
 
     await waitFor(() => {
@@ -545,9 +557,9 @@ describe('Login screen', () => {
       url: 'exp://localhost/login#status=error&error=access_denied',
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with Google'));
+      await fireEvent.press(screen.getByText('Continue with Google'));
     });
 
     await expectAlert("Couldn't sign in", YOU_DENIED_ACCESS_PATTERN);
@@ -561,9 +573,9 @@ describe('Login screen', () => {
       url: 'exp://localhost/login#status=error',
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with Google'));
+      await fireEvent.press(screen.getByText('Continue with Google'));
     });
 
     await expectAlert("Couldn't sign in", ENSURE_DEVICE_INTERNET_PATTERN);
@@ -579,9 +591,13 @@ describe('Login screen', () => {
       .mockRejectedValueOnce(new Error('Network error')) // first getUser attempt fails
       .mockResolvedValueOnce(mockUser({ username: 'oauth_user', email: 'oauth@example.com' }));
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
+    // The retry backs off through setTimeout, and fake timers are on globally:
+    // awaiting the press alone would wait forever for a timer nothing advances.
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with Google'));
+      const pressed = fireEvent.press(screen.getByText('Continue with Google'));
+      await jest.advanceTimersByTimeAsync(1000);
+      await pressed;
     });
 
     await waitFor(
@@ -604,22 +620,22 @@ describe('Login screen', () => {
       mockUser({ username: 'suspended_user', email: 'suspended@example.com', isActive: false }),
     );
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with Google'));
+      await fireEvent.press(screen.getByText('Continue with Google'));
     });
 
     await expectAlert('Account suspended', ACCOUNT_SUSPENDED_PATTERN);
   });
 
   it('navigates back to browsing on button press', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
-    fireEvent.press(screen.getByText('Browse'));
+    await renderWithProviders(<Login />, { withDialog: true });
+    await fireEvent.press(screen.getByText('Browse'));
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
   it('shows forgot password link and create account button', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await waitFor(() => {
       expect(screen.getByText('Forgot password?')).toBeOnTheScreen();
       expect(screen.getByText('Create a new account')).toBeOnTheScreen();
@@ -630,11 +646,11 @@ describe('Login screen', () => {
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValue(mockUser({ isActive: false }));
 
-    renderWithProviders(<Login />, { withDialog: true });
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 'suspended@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
+    await renderWithProviders(<Login />, { withDialog: true });
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 'suspended@example.com');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await expectAlert('Account suspended', ACCOUNT_SUSPENDED_PATTERN);
@@ -648,9 +664,9 @@ describe('Login screen', () => {
       detail: 'Endpoint not found',
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with Google'));
+      await fireEvent.press(screen.getByText('Continue with Google'));
     });
 
     await waitFor(() => {
@@ -669,9 +685,9 @@ describe('Login screen', () => {
       type: WebBrowserResultType.CANCEL,
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with Google'));
+      await fireEvent.press(screen.getByText('Continue with Google'));
     });
 
     await waitFor(() => {
@@ -685,12 +701,12 @@ describe('Login screen', () => {
     mockedLogin.mockResolvedValue({ status: 'authenticated' });
     mockedGetUser.mockResolvedValue(undefined);
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
-    fireEvent.changeText(screen.getByLabelText('Email or username'), 't@example.com');
-    fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
+    await fireEvent.changeText(screen.getByLabelText('Email or username'), 't@example.com');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'pass');
     await act(async () => {
-      fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
     });
 
     await expectAlert("Couldn't sign in", UNABLE_TO_RETRIEVE_USER_PATTERN);
@@ -705,9 +721,9 @@ describe('Login screen', () => {
       detail: undefined,
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with GitHub'));
+      await fireEvent.press(screen.getByText('Continue with GitHub'));
     });
 
     await expectAlert("Couldn't sign in", UNEXPECTED_AUTHORIZATION_URL_PATTERN);
@@ -722,9 +738,9 @@ describe('Login screen', () => {
       detail: undefined,
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with GitHub'));
+      await fireEvent.press(screen.getByText('Continue with GitHub'));
     });
 
     await waitFor(() => {
@@ -745,9 +761,9 @@ describe('Login screen', () => {
       url: 'exp://evil.example/login#status=success',
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with Google'));
+      await fireEvent.press(screen.getByText('Continue with Google'));
     });
 
     await waitFor(() => {
@@ -762,11 +778,11 @@ describe('Login screen', () => {
   });
 
   it('shows an inline field error when a required field is cleared', async () => {
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
 
     const emailInput = screen.getByLabelText('Email or username');
-    fireEvent.changeText(emailInput, 'test@example.com');
-    fireEvent.changeText(emailInput, '');
+    await fireEvent.changeText(emailInput, 'test@example.com');
+    await fireEvent.changeText(emailInput, '');
 
     await waitFor(() => {
       expect(screen.getByText('Email is required')).toBeOnTheScreen();
@@ -778,9 +794,9 @@ describe('Login screen', () => {
       type: WebBrowserResultType.CANCEL,
     });
 
-    renderWithProviders(<Login />, { withDialog: true });
+    await renderWithProviders(<Login />, { withDialog: true });
     await act(async () => {
-      fireEvent.press(screen.getByText('Continue with GitHub'));
+      await fireEvent.press(screen.getByText('Continue with GitHub'));
     });
 
     await waitFor(() => {

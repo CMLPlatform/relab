@@ -10,17 +10,17 @@ const cat = (id: number) =>
     allChildren: [id * 100, id * 101],
   }) as never;
 
-test('records most-recent-first, dedupes, caps at 5', () => {
-  const { result } = renderHook(() => useRecentCategories());
-  act(() => {
+test('records most-recent-first, dedupes, caps at 5', async () => {
+  const { result } = await renderHook(() => useRecentCategories());
+  await act(() => {
     for (const id of [1, 2, 3, 4, 5, 6, 2]) result.current.recordRecent(cat(id));
   });
   expect(result.current.recents.map((c) => c.id)).toEqual([2, 6, 5, 4, 3]);
 });
 
-test('strips allChildren before persisting — only read by live cpvClass filtering, never by recents cards', () => {
-  const { result } = renderHook(() => useRecentCategories());
-  act(() => {
+test('strips allChildren before persisting — only read by live cpvClass filtering, never by recents cards', async () => {
+  const { result } = await renderHook(() => useRecentCategories());
+  await act(() => {
     result.current.recordRecent(cat(1));
   });
   expect(result.current.recents[0]).toMatchObject({ id: 1, allChildren: [] });
@@ -30,8 +30,8 @@ test('strips allChildren before persisting — only read by live cpvClass filter
 // memory: on a shared device the next user saw them and the next write
 // persisted them straight back.
 test('sign-out empties the live store, not just its persisted copy', async () => {
-  const { result } = renderHook(() => useRecentCategories());
-  act(() => {
+  const { result } = await renderHook(() => useRecentCategories());
+  await act(() => {
     result.current.recordRecent(cat(9));
   });
   expect(result.current.recents.length).toBeGreaterThan(0);

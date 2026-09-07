@@ -23,7 +23,7 @@ describe('useYouTubeIntegration', () => {
     jest.clearAllMocks();
   });
 
-  it('reflects the stored preference and loading state', () => {
+  it('reflects the stored preference and loading state', async () => {
     mockedUseAuth.mockReturnValue({
       user: {
         id: 'user-1',
@@ -34,20 +34,20 @@ describe('useYouTubeIntegration', () => {
       isLoading: false,
     });
 
-    const { result } = renderHook(() => useYouTubeIntegration());
+    const { result } = await renderHook(() => useYouTubeIntegration());
 
     expect(result.current.enabled).toBe(true);
     expect(result.current.loading).toBe(false);
   });
 
-  it('reports loading when auth has not produced a user yet', () => {
+  it('reports loading when auth has not produced a user yet', async () => {
     mockedUseAuth.mockReturnValue({
       user: undefined,
       refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: true,
     });
 
-    const { result } = renderHook(() => useYouTubeIntegration());
+    const { result } = await renderHook(() => useYouTubeIntegration());
 
     expect(result.current.enabled).toBe(false);
     expect(result.current.loading).toBe(true);
@@ -55,14 +55,14 @@ describe('useYouTubeIntegration', () => {
 
   // Regression: `loading` must track auth's isLoading, not `!user` — a settled
   // guest has no user and must not be reported as still loading.
-  it('is not loading once auth settles without a user', () => {
+  it('is not loading once auth settles without a user', async () => {
     mockedUseAuth.mockReturnValue({
       user: undefined,
       refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
       isLoading: false,
     });
 
-    const { result } = renderHook(() => useYouTubeIntegration());
+    const { result } = await renderHook(() => useYouTubeIntegration());
 
     expect(result.current.enabled).toBe(false);
     expect(result.current.loading).toBe(false);
@@ -80,7 +80,7 @@ describe('useYouTubeIntegration', () => {
     });
     mockedUpdateUser.mockResolvedValue(undefined);
 
-    const { result } = renderHook(() => useYouTubeIntegration());
+    const { result } = await renderHook(() => useYouTubeIntegration());
 
     await act(async () => {
       await result.current.setEnabled(true);

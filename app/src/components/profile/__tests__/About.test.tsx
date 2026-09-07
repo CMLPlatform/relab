@@ -21,21 +21,21 @@ const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openEx
 describe('ProfileAboutSection', () => {
   const user = setupUser();
 
-  it('renders the 9R framework row', () => {
-    renderWithProviders(<ProfileAboutSection />);
+  it('renders the 9R framework row', async () => {
+    await renderWithProviders(<ProfileAboutSection />);
 
     expect(screen.getByRole('button', { name: 'The 9R framework' })).toBeOnTheScreen();
     expect(screen.getByText('The nine circular-economy strategies behind Relab')).toBeOnTheScreen();
   });
 
-  it('renders the glossary row', () => {
-    renderWithProviders(<ProfileAboutSection />);
+  it('renders the glossary row', async () => {
+    await renderWithProviders(<ProfileAboutSection />);
 
     expect(screen.getByRole('button', { name: 'Glossary' })).toBeOnTheScreen();
   });
 
   it('opens the glossary on the docs site', async () => {
-    renderWithProviders(<ProfileAboutSection />);
+    await renderWithProviders(<ProfileAboutSection />);
 
     await user.press(screen.getByRole('button', { name: 'Glossary' }));
 
@@ -45,7 +45,7 @@ describe('ProfileAboutSection', () => {
   });
 
   it('opens the 9R framework page on the docs site', async () => {
-    renderWithProviders(<ProfileAboutSection />);
+    await renderWithProviders(<ProfileAboutSection />);
 
     await user.press(screen.getByRole('button', { name: 'The 9R framework' }));
 

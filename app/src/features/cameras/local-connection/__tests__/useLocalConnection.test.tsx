@@ -70,7 +70,7 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
+    const { result, unmount } = await renderHook(() => useLocalConnection('cam-1'));
 
     await settleConnectionHook();
 
@@ -78,11 +78,11 @@ describe('useLocalConnection', () => {
     expect(result.current.localBaseUrl).toBe('http://10.0.0.5:8018');
     expect(result.current.localApiKey).toBe('local-key');
 
-    unmount();
+    await unmount();
   });
 
   it('falls back to relay mode when nothing is stored for the camera', async () => {
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
+    const { result, unmount } = await renderHook(() => useLocalConnection('cam-1'));
 
     await settleConnectionHook();
 
@@ -92,7 +92,7 @@ describe('useLocalConnection', () => {
     expect(result.current.mode).toBe('relay');
     expect(result.current.localBaseUrl).toBeNull();
 
-    unmount();
+    await unmount();
   });
 
   it('engages local mode when the USB gadget probe succeeds and a key is bound', async () => {
@@ -102,7 +102,7 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-usb'));
+    const { result, unmount } = await renderHook(() => useLocalConnection('cam-usb'));
 
     await settleConnectionHook();
 
@@ -112,7 +112,7 @@ describe('useLocalConnection', () => {
     expect(result.current.mode).toBe('local');
     expect(result.current.localBaseUrl).toBe(USB_GADGET_DEFAULT);
 
-    unmount();
+    await unmount();
   });
 
   it('stays on the relay when a reachable URL has no key bound to it', async () => {
@@ -124,14 +124,14 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-nokey'));
+    const { result, unmount } = await renderHook(() => useLocalConnection('cam-nokey'));
 
     await settleConnectionHook();
 
     expect(result.current.mode).toBe('relay');
     expect(result.current.localApiKey).toBeNull();
 
-    unmount();
+    await unmount();
   });
 
   it('bootstraps local mode from relay access info when the camera is online', async () => {
@@ -142,7 +142,9 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeAll).mockImplementation(async () => 'http://10.0.0.8:8018');
 
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-1', { isOnline: true }));
+    const { result, unmount } = await renderHook(() =>
+      useLocalConnection('cam-1', { isOnline: true }),
+    );
 
     await settleConnectionHook();
 
@@ -151,7 +153,7 @@ describe('useLocalConnection', () => {
     expect(result.current.localBaseUrl).toBe('http://10.0.0.8:8018');
     expect(result.current.localApiKey).toBe('relay-key');
 
-    unmount();
+    await unmount();
   });
 
   it('does not bind a probed URL whose device key is rejected', async () => {
@@ -165,7 +167,7 @@ describe('useLocalConnection', () => {
     jest.mocked(probeAll).mockImplementation(async () => 'http://10.0.0.8:8018');
     jest.mocked(verifyLocalCredentials).mockImplementation(async () => false);
 
-    const { result, unmount } = renderHook(() =>
+    const { result, unmount } = await renderHook(() =>
       useLocalConnection('cam-wrong-pi', { isOnline: true }),
     );
 
@@ -176,11 +178,11 @@ describe('useLocalConnection', () => {
     expect(result.current.mode).not.toBe('local');
     expect(result.current.localBaseUrl).toBeNull();
 
-    unmount();
+    await unmount();
   });
 
   it('configures and probes a manual direct connection immediately', async () => {
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
+    const { result, unmount } = await renderHook(() => useLocalConnection('cam-1'));
 
     await settleConnectionHook();
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
@@ -197,7 +199,7 @@ describe('useLocalConnection', () => {
     expect(result.current.mode).toBe('local');
     expect(result.current.localBaseUrl).toBe('http://10.0.0.12:8018');
 
-    unmount();
+    await unmount();
   });
 
   // An explicit disconnect is latched per camera id for the session, so these two
@@ -209,7 +211,7 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-clear'));
+    const { result, unmount } = await renderHook(() => useLocalConnection('cam-clear'));
 
     await settleConnectionHook();
 
@@ -222,7 +224,7 @@ describe('useLocalConnection', () => {
     expect(result.current.localBaseUrl).toBeNull();
     expect(result.current.localApiKey).toBeNull();
 
-    unmount();
+    await unmount();
   });
 
   it('does not let the relay bootstrap undo an explicit disconnect', async () => {
@@ -235,7 +237,7 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeAll).mockImplementation(async () => 'http://10.0.0.8:8018');
 
-    const { result, unmount } = renderHook(() =>
+    const { result, unmount } = await renderHook(() =>
       useLocalConnection('cam-disconnect', { isOnline: true }),
     );
 
@@ -253,22 +255,22 @@ describe('useLocalConnection', () => {
     // The disconnect must not be re-persisted by a rerun of the bootstrap.
     expect(jest.mocked(storeLocalConnection).mock.calls).toHaveLength(storesBeforeClear);
 
-    unmount();
+    await unmount();
   });
 
   it('returns a stable object reference across renders while values are unchanged', async () => {
     // Regression: an unstable reference here drove an infinite render loop on the
     // cameras grid (effective-connection memo + cell effect + snapshot dedup all
     // use this object as an identity).
-    const { result, rerender, unmount } = renderHook(() => useLocalConnection('cam-1'));
+    const { result, rerender, unmount } = await renderHook(() => useLocalConnection('cam-1'));
 
     await settleConnectionHook();
     const first = result.current;
-    rerender({});
+    await rerender({});
 
     expect(result.current).toBe(first);
 
-    unmount();
+    await unmount();
   });
 
   it('pauses the re-probe interval while the app is backgrounded', async () => {
@@ -289,7 +291,7 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
-    const { result, unmount } = renderHook(() => useLocalConnection('cam-1'));
+    const { result, unmount } = await renderHook(() => useLocalConnection('cam-1'));
     await settleConnectionHook();
     expect(result.current.mode).toBe('local');
 
@@ -303,7 +305,7 @@ describe('useLocalConnection', () => {
     expect(probes()).toBe(afterBootstrap + 1);
 
     // Backgrounded: the interval is cleared, so nothing hits the LAN.
-    act(() => notify?.('background'));
+    await act(() => notify?.('background'));
     const afterBackground = probes();
     await act(async () => {
       jest.advanceTimersByTime(120_000);
@@ -318,7 +320,7 @@ describe('useLocalConnection', () => {
     });
     expect(probes()).toBe(afterBackground + 2);
 
-    unmount();
+    await unmount();
     expect(remove).toHaveBeenCalled();
     jest.useRealTimers();
   });
@@ -331,7 +333,7 @@ describe('useLocalConnection', () => {
     }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => true);
 
-    const { result, rerender } = renderHook(() => useLocalConnection('cam-1'));
+    const { result, rerender } = await renderHook(() => useLocalConnection('cam-1'));
     await settleConnectionHook();
     expect(result.current.mode).toBe('local');
 
@@ -346,7 +348,7 @@ describe('useLocalConnection', () => {
 
     // Unfocused (navigated behind another screen): the interval stops.
     mockScreenFocused.mockReturnValue(false);
-    rerender({});
+    await rerender({});
     const afterBlur = probes();
     await act(async () => {
       jest.advanceTimersByTime(120_000);
@@ -355,7 +357,7 @@ describe('useLocalConnection', () => {
 
     // Refocused: the interval resumes.
     mockScreenFocused.mockReturnValue(true);
-    rerender({});
+    await rerender({});
     await act(async () => {
       jest.advanceTimersByTime(30_000);
     });

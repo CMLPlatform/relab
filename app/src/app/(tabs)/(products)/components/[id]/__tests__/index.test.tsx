@@ -15,8 +15,8 @@ jest.mock('@/components/product/detail/ProductDetailScreen', () => {
 import ComponentPage from '@/app/(tabs)/(products)/components/[id]/index';
 
 describe('ComponentPage route', () => {
-  it('renders the shared product detail screen', () => {
-    render(<ComponentPage />);
+  it('renders the shared product detail screen', async () => {
+    await render(<ComponentPage />);
     expect(screen.getByText('DetailScreen')).toBeOnTheScreen();
   });
 });

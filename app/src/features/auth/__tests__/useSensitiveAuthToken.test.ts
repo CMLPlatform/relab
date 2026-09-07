@@ -4,22 +4,22 @@ import { Platform } from 'react-native';
 import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 
 describe('useSensitiveAuthToken', () => {
-  it('keeps native route tokens live across rerenders', () => {
+  it('keeps native route tokens live across rerenders', async () => {
     jest.replaceProperty(Platform, 'OS', 'ios');
 
-    const { result, rerender } = renderHook(
+    const { result, rerender } = await renderHook(
       ({ routeToken }: { routeToken: string | undefined }) => useSensitiveAuthToken(routeToken),
       { initialProps: { routeToken: undefined } },
     );
 
     expect(result.current).toBeUndefined();
 
-    rerender({ routeToken: 'native-route-token' });
+    await rerender({ routeToken: 'native-route-token' });
 
     expect(result.current).toBe('native-route-token');
   });
 
-  it('captures web fragment tokens before scrubbing the URL', () => {
+  it('captures web fragment tokens before scrubbing the URL', async () => {
     jest.replaceProperty(Platform, 'OS', 'web');
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -33,7 +33,7 @@ describe('useSensitiveAuthToken', () => {
       window.location.hash = '';
     });
 
-    const { result, rerender } = renderHook(
+    const { result, rerender } = await renderHook(
       ({ routeToken }: { routeToken: string | undefined }) => useSensitiveAuthToken(routeToken),
       { initialProps: { routeToken: 'route-token' } },
     );
@@ -41,7 +41,7 @@ describe('useSensitiveAuthToken', () => {
     expect(result.current).toBe('fragment-token');
     expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/verify?utm=ignored');
 
-    rerender({ routeToken: 'changed-route-token' });
+    await rerender({ routeToken: 'changed-route-token' });
 
     expect(result.current).toBe('fragment-token');
 

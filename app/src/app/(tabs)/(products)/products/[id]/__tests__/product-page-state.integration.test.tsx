@@ -229,18 +229,18 @@ describe('ProductPage state handling', () => {
       justSaved: true,
     } as never);
 
-    const { unmount } = renderWithProviders(<ProductPage />, { withDialog: true });
+    const { unmount } = await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(screen.getByTestId('icon-check')).toBeOnTheScreen();
     });
 
-    unmount();
+    await unmount();
   });
 
   // Regression: States rendered `{String(error) || fallback}`, so a non-Error
   // value showed "[object Object]" and the friendly fallback was dead code.
-  it('renders the friendly fallback when the error is not an Error', () => {
+  it('renders the friendly fallback when the error is not an Error', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       isError: true,
@@ -248,13 +248,13 @@ describe('ProductPage state handling', () => {
       refetch: jest.fn(),
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     expect(screen.queryByText('[object Object]')).toBeNull();
     expect(screen.getByText("Couldn't load the product details.")).toBeOnTheScreen();
   });
 
-  it('renders the error state and retries the load', () => {
+  it('renders the error state and retries the load', async () => {
     const refetch = jest.fn();
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
@@ -263,7 +263,7 @@ describe('ProductPage state handling', () => {
       refetch,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     expect(screen.getByText("Couldn't load product")).toBeOnTheScreen();
     // States now formats via getErrorMessage: the message, not `String(error)`
@@ -271,38 +271,38 @@ describe('ProductPage state handling', () => {
     // fallback unreachable).
     expect(screen.getByText('boom')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Try again'));
+    await fireEvent.press(screen.getByText('Try again'));
 
     expect(refetch).toHaveBeenCalled();
   });
 
-  it('renders the not-found state for missing products', () => {
+  it('renders the not-found state for missing products', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       isError: true,
       error: new ProductNotFoundError(42),
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     expect(screen.getByText('Product not found')).toBeOnTheScreen();
     expect(
       screen.getByText('This product may have been removed or the link is no longer valid.'),
     ).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Back to products'));
+    await fireEvent.press(screen.getByText('Back to products'));
 
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
-  it('renders the not-found state with component copy on component routes', () => {
+  it('renders the not-found state with component copy on component routes', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       isError: true,
       error: new ProductNotFoundError(42),
     } as never);
 
-    renderWithProviders(<ProductDetailScreen formOptions={{ role: 'component' }} />, {
+    await renderWithProviders(<ProductDetailScreen formOptions={{ role: 'component' }} />, {
       withDialog: true,
     });
 
@@ -318,19 +318,19 @@ describe('ProductPage state handling', () => {
       product: { ...baseProduct, ownedBy: 'me' },
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
     });
 
     // Fire scroll events to exercise the onScroll handler
-    fireEvent.scroll(screen.getByLabelText('Edit Product'), {
+    await fireEvent.scroll(screen.getByLabelText('Edit Product'), {
       nativeEvent: { contentOffset: { y: 100 } },
     });
 
     // Scroll back to top
-    fireEvent.scroll(screen.getByLabelText('Edit Product'), {
+    await fireEvent.scroll(screen.getByLabelText('Edit Product'), {
       nativeEvent: { contentOffset: { y: 0 } },
     });
 
@@ -346,7 +346,7 @@ describe('ProductPage state handling', () => {
     } as never);
 
     try {
-      renderWithProviders(<ProductPage />, { withDialog: true });
+      await renderWithProviders(<ProductPage />, { withDialog: true });
 
       // Initially just the skeleton, no slow-loading message
       expect(screen.queryByText(SLOW_LOADING_PATTERN)).toBeNull();
@@ -396,7 +396,7 @@ describe('ProductPage state handling', () => {
       dispatch: jest.fn(),
     });
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(mockSetOptions).toHaveBeenCalled();
@@ -412,16 +412,16 @@ describe('ProductPage state handling', () => {
     expect(setOptionsArg.headerTitle).toBeInstanceOf(Function);
     expect(setOptionsArg.headerLeft).toBeInstanceOf(Function);
 
-    renderWithProviders(setOptionsArg.headerTitle?.() as ReactElement, { withDialog: true });
+    await renderWithProviders(setOptionsArg.headerTitle?.() as ReactElement, { withDialog: true });
 
     expect(screen.getByText(PARENT_PRODUCT_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText(LONG_PRODUCT_NAME_PATTERN)).toBeOnTheScreen();
 
-    renderWithProviders(setOptionsArg.headerLeft?.() as ReactElement, {
+    await renderWithProviders(setOptionsArg.headerLeft?.() as ReactElement, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getByLabelText('header-back'));
+    await fireEvent.press(screen.getByLabelText('header-back'));
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
         pathname: '/products/[id]',
@@ -430,7 +430,7 @@ describe('ProductPage state handling', () => {
     });
   });
 
-  it('does not render the video card for components', () => {
+  it('does not render the video card for components', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: {
@@ -442,7 +442,7 @@ describe('ProductPage state handling', () => {
       isProductComponent: true,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     expect(screen.queryByText('ProductVideo')).toBeNull();
   });
@@ -457,7 +457,7 @@ describe('ProductPage state handling', () => {
       },
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(mockSetOptions).toHaveBeenCalled();
@@ -470,8 +470,8 @@ describe('ProductPage state handling', () => {
 
     expect(setOptionsArg.title).toMatch(LONG_PRODUCT_NAME_PREFIX_PATTERN);
 
-    renderWithProviders(setOptionsArg.headerLeft?.() as ReactElement, { withDialog: true });
-    fireEvent.press(screen.getByLabelText('header-back'));
+    await renderWithProviders(setOptionsArg.headerLeft?.() as ReactElement, { withDialog: true });
+    await fireEvent.press(screen.getByLabelText('header-back'));
     expect(mockReplace).toHaveBeenCalledWith('/products');
   });
 
@@ -497,7 +497,7 @@ describe('ProductPage state handling', () => {
       isDirty: true,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(beforeRemoveHandler).toBeDefined();
@@ -530,26 +530,26 @@ describe('ProductPage state handling', () => {
       editMode: false,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByLabelText('Edit Product'));
+    await fireEvent.press(screen.getByLabelText('Edit Product'));
 
     expect(mockSetParams).toHaveBeenCalledWith({ edit: '1' });
     expect(baseFormReturn.saveAndExit).not.toHaveBeenCalled();
   });
 
   it('collapses the FAB when the product list is scrolled', async () => {
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
     });
 
-    fireEvent.scroll(screen.getByTestId('product-scroll'), {
+    await fireEvent.scroll(screen.getByTestId('product-scroll'), {
       nativeEvent: { contentOffset: { y: 120 } },
     });
 
@@ -607,13 +607,13 @@ describe('Section layout', () => {
     },
   };
 
-  it('renders sections in the new spec-sheet order for a full product', () => {
+  it('renders sections in the new spec-sheet order for a full product', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: fullProduct,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     const contentTexts = collectText(screen.getByTestId('product-scroll'));
     const indexOf = (text: string) => contentTexts.indexOf(text);
@@ -639,7 +639,7 @@ describe('Section layout', () => {
     expect(indexOf('Details')).toBe(-1);
   });
 
-  it('hides an empty properties section in view mode and shows one add-row in edit mode', () => {
+  it('hides an empty properties section in view mode and shows one add-row in edit mode', async () => {
     const bareProduct = {
       ...baseProduct,
       physicalProperties: {
@@ -655,7 +655,7 @@ describe('Section layout', () => {
       editMode: false,
     } as never);
 
-    const { rerender } = renderWithProviders(<ProductPage />, { withDialog: true });
+    const { rerender } = await renderWithProviders(<ProductPage />, { withDialog: true });
 
     expect(screen.queryByText('Properties')).toBeNull();
     expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
@@ -666,21 +666,21 @@ describe('Section layout', () => {
       editMode: true,
     } as never);
 
-    rerender(<ProductPage />);
+    await rerender(<ProductPage />);
 
     expect(screen.getByText('Add properties')).toBeOnTheScreen();
     expect(screen.queryByText('ProductPhysicalProperties')).toBeNull();
     expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
   });
 
-  it('renders no more than four section-nav chips in edit mode', () => {
+  it('renders no more than four section-nav chips in edit mode', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: fullProduct,
       editMode: true,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     const chips = within(screen.getByTestId('section-nav-chips')).getAllByRole('button');
     expect(chips.map((chip) => chip.props.accessibilityLabel)).toEqual([
@@ -691,13 +691,13 @@ describe('Section layout', () => {
     ]);
   });
 
-  it('renders phone section-nav chips with Overview and Components labels', () => {
+  it('renders phone section-nav chips with Overview and Components labels', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: fullProduct,
     } as never);
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     const chips = screen.getByTestId('section-nav-chips');
     expect(within(chips).getByText('Overview')).toBeOnTheScreen();

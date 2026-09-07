@@ -53,23 +53,23 @@ describe('useCaptureEntity', () => {
     mockIsPaused = false;
   });
 
-  it('disallows creation below the name minimum and allows it at the minimum', () => {
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+  it('disallows creation below the name minimum and allows it at the minimum', async () => {
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
     expect(result.current.canCreate).toBe(false);
 
-    act(() => result.current.setName('A'));
+    await act(() => result.current.setName('A'));
     expect(result.current.canCreate).toBe(false);
 
-    act(() => result.current.setName('AB'));
+    await act(() => result.current.setName('AB'));
     expect(result.current.canCreate).toBe(true);
   });
 
   it('creates a product and resolves the saved id, without amountInParent', async () => {
     mockMutateAsync.mockResolvedValueOnce(42);
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
-    act(() => result.current.setName('Widget'));
+    await act(() => result.current.setName('Widget'));
 
     let savedId: number | undefined;
     await act(async () => {
@@ -87,9 +87,9 @@ describe('useCaptureEntity', () => {
 
   it('includes captured images in the mutation payload', async () => {
     mockMutateAsync.mockResolvedValueOnce(42);
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
-    act(() => {
+    await act(() => {
       result.current.setName('Widget');
       result.current.setImages([{ url: 'file:///photo.jpg', description: '' }]);
     });
@@ -110,11 +110,11 @@ describe('useCaptureEntity', () => {
 
   it('includes amountInParent only for components', async () => {
     mockMutateAsync.mockResolvedValueOnce(7);
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCaptureEntity({ role: 'component', parentID: 1, parentRole: 'product' }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.setName('Bolt');
       result.current.setAmount(3);
     });
@@ -138,9 +138,9 @@ describe('useCaptureEntity', () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('Network request failed'));
     mockMutateAsync.mockResolvedValueOnce(42);
     mockMutateAsync.mockResolvedValueOnce(43);
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
-    act(() => result.current.setName('Widget'));
+    await act(() => result.current.setName('Widget'));
     await act(async () => {
       await result.current.create();
     });
@@ -163,9 +163,9 @@ describe('useCaptureEntity', () => {
 
   it('on failure calls feedback.error, keeps state, and resolves undefined', async () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('network down'));
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
-    act(() => result.current.setName('Widget'));
+    await act(() => result.current.setName('Widget'));
 
     let savedId: number | undefined;
     await act(async () => {
@@ -186,9 +186,9 @@ describe('useCaptureEntity', () => {
       product.id = 42;
       throw new Error('upload failed');
     });
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
-    act(() => result.current.setName('Widget'));
+    await act(() => result.current.setName('Widget'));
 
     let savedId: number | undefined;
     await act(async () => {
@@ -207,11 +207,11 @@ describe('useCaptureEntity', () => {
       product.id = 9;
       throw new Error('upload failed');
     });
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCaptureEntity({ role: 'component', parentID: 1, parentRole: 'product' }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.setName('Bolt');
       result.current.setImages([{ url: 'file:///photo.jpg', description: '' }]);
     });
@@ -233,11 +233,11 @@ describe('useCaptureEntity', () => {
   // honestly instead of silently POSTing a top-level product.
   it('pins draft.role to the requested role even when parentID is missing', async () => {
     mockMutateAsync.mockResolvedValueOnce(3);
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCaptureEntity({ role: 'component', parentID: undefined, parentRole: 'product' }),
     );
 
-    act(() => result.current.setName('Washer'));
+    await act(() => result.current.setName('Washer'));
 
     await act(async () => {
       await result.current.create();
@@ -259,8 +259,8 @@ describe('useCaptureEntity', () => {
           resolveMutate = resolve;
         }),
     );
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
-    act(() => result.current.setName('Widget'));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
+    await act(() => result.current.setName('Widget'));
 
     let firstResult: number | undefined;
     let secondResult: number | undefined;
@@ -282,11 +282,11 @@ describe('useCaptureEntity', () => {
 
   it('createAndAddAnother resets name/images/amount but keeps typeID and toasts on success', async () => {
     mockMutateAsync.mockResolvedValueOnce(9);
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCaptureEntity({ role: 'component', parentID: 1, parentRole: 'product' }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.setName('Bolt');
       result.current.setTypeID(5);
       result.current.setAmount(4);
@@ -308,9 +308,9 @@ describe('useCaptureEntity', () => {
 
   it('createAndAddAnother returns undefined and keeps state on total failure', async () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('boom'));
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
-    act(() => result.current.setName('Widget'));
+    await act(() => result.current.setName('Widget'));
 
     let outcome: { id: number; partial: boolean } | undefined = { id: -1, partial: false };
     await act(async () => {
@@ -325,44 +325,44 @@ describe('useCaptureEntity', () => {
   // TDD for the offline-queued acknowledgment: a paused mutation must not
   // just leave the Create button spinning — the screen surfaces it (a toast,
   // fired once) and exposes isPaused so the button can swap its label.
-  it('exposes isPaused and toasts once when the save mutation pauses offline', () => {
+  it('exposes isPaused and toasts once when the save mutation pauses offline', async () => {
     mockIsPaused = true;
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
     expect(result.current.isPaused).toBe(true);
     expect(mockToast).toHaveBeenCalledTimes(1);
     expect(mockToast).toHaveBeenCalledWith('Queued — sends when online');
   });
 
-  it('does not toast when the save mutation is not paused', () => {
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+  it('does not toast when the save mutation is not paused', async () => {
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
     expect(result.current.isPaused).toBe(false);
     expect(mockToast).not.toHaveBeenCalled();
   });
 
-  it('isDirty reflects any field set beyond defaults', () => {
-    const { result } = renderHook(() => useCaptureEntity({ role: 'component', parentID: 1 }));
+  it('isDirty reflects any field set beyond defaults', async () => {
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'component', parentID: 1 }));
 
     expect(result.current.isDirty).toBe(false);
 
-    act(() => result.current.setAmount(2));
+    await act(() => result.current.setAmount(2));
     expect(result.current.isDirty).toBe(true);
 
-    act(() => result.current.setAmount(1));
+    await act(() => result.current.setAmount(1));
     expect(result.current.isDirty).toBe(false);
 
-    act(() => result.current.setName('X'));
+    await act(() => result.current.setName('X'));
     expect(result.current.isDirty).toBe(true);
   });
 
   // createAndAddAnother deliberately keeps typeID across a batch create, so
   // counting it toward isDirty made the freshly reset screen look dirty and
   // triggered a spurious "Discard changes?" prompt on the way out.
-  it('isDirty ignores a kept type selection', () => {
-    const { result } = renderHook(() => useCaptureEntity({ role: 'product' }));
+  it('isDirty ignores a kept type selection', async () => {
+    const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
 
-    act(() => result.current.setTypeID(5));
+    await act(() => result.current.setTypeID(5));
     expect(result.current.isDirty).toBe(false);
   });
 });

@@ -8,10 +8,10 @@ const SORT_OPTIONS = [
   { label: 'Oldest first', value: ['+created_at'] },
 ] as const;
 
-function renderFilterBar(props: Partial<Parameters<typeof ProductsFilterBar>[0]> = {}) {
+async function renderFilterBar(props: Partial<Parameters<typeof ProductsFilterBar>[0]> = {}) {
   const onSortChange = jest.fn();
   const onSetSortMenuVisible = jest.fn();
-  render(
+  await render(
     <ProductsFilterBar
       isAuthenticated={false}
       filterMode="all"
@@ -50,8 +50,8 @@ function renderFilterBar(props: Partial<Parameters<typeof ProductsFilterBar>[0]>
 }
 
 describe('ProductsFilterBar sort chip', () => {
-  it('puts Product Type immediately after Sort in the horizontal row', () => {
-    renderFilterBar({ isAuthenticated: true });
+  it('puts Product Type immediately after Sort in the horizontal row', async () => {
+    await renderFilterBar({ isAuthenticated: true });
 
     const controls = screen.getAllByRole('button');
     expect(controls[0]).toHaveAccessibleName('Sort: Newest first');
@@ -59,23 +59,23 @@ describe('ProductsFilterBar sort chip', () => {
     expect(controls[2]).toHaveAccessibleName('Show only my products');
   });
 
-  it('names the current sort and opens the menu on press', () => {
-    const { onSetSortMenuVisible } = renderFilterBar();
+  it('names the current sort and opens the menu on press', async () => {
+    const { onSetSortMenuVisible } = await renderFilterBar();
     const chip = screen.getByLabelText('Sort: Newest first');
     expect(screen.getByText('Newest first')).toBeOnTheScreen();
-    fireEvent.press(chip);
+    await fireEvent.press(chip);
     expect(onSetSortMenuVisible).toHaveBeenCalledWith(true);
   });
 
-  it('applies the chosen sort from the open menu', () => {
-    const { onSortChange, onSetSortMenuVisible } = renderFilterBar({ sortMenuVisible: true });
-    fireEvent.press(screen.getByText('Oldest first'));
+  it('applies the chosen sort from the open menu', async () => {
+    const { onSortChange, onSetSortMenuVisible } = await renderFilterBar({ sortMenuVisible: true });
+    await fireEvent.press(screen.getByText('Oldest first'));
     expect(onSortChange).toHaveBeenCalledWith(['+created_at']);
     expect(onSetSortMenuVisible).toHaveBeenCalledWith(false);
   });
 
-  it('offers Relevance only while a search query is applied', () => {
-    renderFilterBar({ sortMenuVisible: true });
+  it('offers Relevance only while a search query is applied', async () => {
+    await renderFilterBar({ sortMenuVisible: true });
     expect(screen.queryByText('Relevance')).toBeNull();
   });
 });

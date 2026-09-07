@@ -88,15 +88,15 @@ describe('CameraStreamPicker', () => {
   it('starts a stream and closes after camera selection and config confirmation', async () => {
     const onDismiss = jest.fn();
 
-    renderWithProviders(
+    await renderWithProviders(
       <CameraStreamPicker productId={9} productName="Desk Radio" visible onDismiss={onDismiss} />,
     );
 
-    fireEvent.press(screen.getByText('Select camera'));
+    await fireEvent.press(screen.getByText('Select camera'));
 
     expect(screen.getByText('Go Live on Bench Cam')).toBeOnTheScreen();
-    fireEvent.changeText(screen.getByDisplayValue('Desk Radio'), 'Live teardown');
-    fireEvent.press(screen.getByText('Go Live'));
+    await fireEvent.changeText(screen.getByDisplayValue('Desk Radio'), 'Live teardown');
+    await fireEvent.press(screen.getByText('Go Live'));
 
     await waitFor(() => {
       expect(startYouTubeStreamMock).toHaveBeenCalledWith('cam-1', {
@@ -129,12 +129,12 @@ describe('CameraStreamPicker', () => {
       new ApiError('Google account not linked', 403, 'GOOGLE_OAUTH_REQUIRED'),
     );
 
-    renderWithProviders(
+    await renderWithProviders(
       <CameraStreamPicker productId={9} productName="Desk Radio" visible onDismiss={jest.fn()} />,
     );
 
-    fireEvent.press(screen.getByText('Select camera'));
-    fireEvent.press(screen.getByText('Go Live'));
+    await fireEvent.press(screen.getByText('Select camera'));
+    await fireEvent.press(screen.getByText('Go Live'));
 
     await waitFor(() => {
       expect(mockAlert).toHaveBeenCalledWith(

@@ -14,26 +14,28 @@ describe('ZoomableImage', () => {
     jest.clearAllMocks();
   });
 
-  it('renders correctly with uri', () => {
-    render(<ZoomableImage uri={testUri} />);
+  it('renders correctly with uri', async () => {
+    await render(<ZoomableImage uri={testUri} />);
     const image = screen.getByTestId('expo-image');
     expect(image).toBeOnTheScreen();
     expect(image.props.source).toEqual({ uri: testUri });
   });
 
-  it('defaults to a decorative (empty) accessibilityLabel', () => {
-    render(<ZoomableImage uri={testUri} />);
+  it('defaults to a decorative (empty) accessibilityLabel', async () => {
+    await render(<ZoomableImage uri={testUri} />);
     expect(screen.getByTestId('expo-image').props.accessibilityLabel).toBe('');
   });
 
-  it('forwards a caller-supplied accessibilityLabel', () => {
-    render(<ZoomableImage uri={testUri} accessibilityLabel="Close-up of the motor housing" />);
+  it('forwards a caller-supplied accessibilityLabel', async () => {
+    await render(
+      <ZoomableImage uri={testUri} accessibilityLabel="Close-up of the motor housing" />,
+    );
     expect(screen.getByTestId('expo-image').props.accessibilityLabel).toBe(
       'Close-up of the motor housing',
     );
   });
 
-  it('executes pinch update callback', () => {
+  it('executes pinch update callback', async () => {
     const mockPinch = {
       onUpdate: jest.fn().mockReturnThis(),
       onEnd: jest.fn().mockReturnThis(),
@@ -43,11 +45,13 @@ describe('ZoomableImage', () => {
     const setIsZoomed = jest.fn();
     jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
 
-    render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
+    await render(
+      <ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />,
+    );
 
     // Call the callback captured by onUpdate
     const onUpdate = mockPinch.onUpdate.mock.calls[0][0];
-    act(() => {
+    await act(() => {
       onUpdate({ scale: 2 });
     });
 
@@ -55,7 +59,7 @@ describe('ZoomableImage', () => {
     expect(setIsZoomed).toHaveBeenLastCalledWith(true);
   });
 
-  it('resets a light pinch back to the default zoom state', () => {
+  it('resets a light pinch back to the default zoom state', async () => {
     const mockPinch = {
       onUpdate: jest.fn().mockReturnThis(),
       onEnd: jest.fn().mockReturnThis(),
@@ -65,12 +69,14 @@ describe('ZoomableImage', () => {
     const setIsZoomed = jest.fn();
     jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
 
-    render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
+    await render(
+      <ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />,
+    );
 
     const onUpdate = mockPinch.onUpdate.mock.calls[0][0];
     const onEnd = mockPinch.onEnd.mock.calls[0][0];
 
-    act(() => {
+    await act(() => {
       onUpdate({ scale: 0.8 });
       onEnd();
     });
@@ -79,7 +85,7 @@ describe('ZoomableImage', () => {
     expect(setIsZoomed).toHaveBeenLastCalledWith(false);
   });
 
-  it('executes pan update callback', () => {
+  it('executes pan update callback', async () => {
     const mockPan = {
       enabled: jest.fn().mockReturnThis(),
       onUpdate: jest.fn().mockReturnThis(),
@@ -88,17 +94,17 @@ describe('ZoomableImage', () => {
     };
     jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
 
-    render(<ZoomableImage uri={testUri} />);
+    await render(<ZoomableImage uri={testUri} />);
 
     const onUpdate = mockPan.onUpdate.mock.calls[0][0];
     const onEnd = mockPan.onEnd.mock.calls[0][0];
-    act(() => {
+    await act(() => {
       onUpdate({ translationX: 10, translationY: 20 });
       onEnd({ translationX: 10, translationY: 20 });
     });
   });
 
-  it('emits a swipe callback when a zoomed image is swiped horizontally', () => {
+  it('emits a swipe callback when a zoomed image is swiped horizontally', async () => {
     const mockPinch = {
       onUpdate: jest.fn().mockReturnThis(),
       onEnd: jest.fn().mockReturnThis(),
@@ -116,14 +122,14 @@ describe('ZoomableImage', () => {
     jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
     jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
 
-    render(<ZoomableImage uri={testUri} onSwipe={onSwipe} setIsZoomed={setIsZoomed} />);
+    await render(<ZoomableImage uri={testUri} onSwipe={onSwipe} setIsZoomed={setIsZoomed} />);
 
     const pinchUpdate = mockPinch.onUpdate.mock.calls[0][0];
     const pinchEnd = mockPinch.onEnd.mock.calls[0][0];
     const panUpdate = mockPan.onUpdate.mock.calls[0][0];
     const panEnd = mockPan.onEnd.mock.calls[0][0];
 
-    act(() => {
+    await act(() => {
       pinchUpdate({ scale: 2 });
       pinchEnd();
       panUpdate({ translationX: 120, translationY: 10 });
@@ -134,7 +140,7 @@ describe('ZoomableImage', () => {
     expect(setIsZoomed).toHaveBeenLastCalledWith(false);
   });
 
-  it('does not swipe when a zoomed image is panned across several small drags', () => {
+  it('does not swipe when a zoomed image is panned across several small drags', async () => {
     const mockPinch = {
       onUpdate: jest.fn().mockReturnThis(),
       onEnd: jest.fn().mockReturnThis(),
@@ -151,7 +157,7 @@ describe('ZoomableImage', () => {
     jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
     jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
 
-    render(<ZoomableImage uri={testUri} onSwipe={onSwipe} />);
+    await render(<ZoomableImage uri={testUri} onSwipe={onSwipe} />);
 
     const pinchUpdate = mockPinch.onUpdate.mock.calls[0][0];
     const pinchEnd = mockPinch.onEnd.mock.calls[0][0];
@@ -160,7 +166,7 @@ describe('ZoomableImage', () => {
 
     // Each drag stays under the swipe threshold but they accumulate far past it.
     // Comparing the accumulated offset rather than the per-gesture delta fires onSwipe here.
-    act(() => {
+    await act(() => {
       pinchUpdate({ scale: 2 });
       pinchEnd();
       for (let i = 0; i < 4; i++) {
@@ -172,7 +178,7 @@ describe('ZoomableImage', () => {
     expect(onSwipe).not.toHaveBeenCalled();
   });
 
-  it('scales the swipe threshold to the measured container width, not the window', () => {
+  it('scales the swipe threshold to the measured container width, not the window', async () => {
     const mockPinch = {
       onUpdate: jest.fn().mockReturnThis(),
       onEnd: jest.fn().mockReturnThis(),
@@ -189,11 +195,11 @@ describe('ZoomableImage', () => {
     jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
     jest.spyOn(Gesture, 'Pan').mockReturnValue(mockPan as unknown as PanGestureType);
 
-    render(<ZoomableImage uri={testUri} onSwipe={onSwipe} />);
+    await render(<ZoomableImage uri={testUri} onSwipe={onSwipe} />);
 
     // A 100pt-wide container puts the 15% threshold at 15pt — well under the
     // window-width threshold the module-level constant used to impose.
-    act(() => {
+    await act(() => {
       screen.getByTestId('zoomable-image').props.onLayout({
         nativeEvent: { layout: { width: 100, height: 100 } },
       });
@@ -204,7 +210,7 @@ describe('ZoomableImage', () => {
     const panUpdate = mockPan.onUpdate.mock.calls[0][0];
     const panEnd = mockPan.onEnd.mock.calls[0][0];
 
-    act(() => {
+    await act(() => {
       pinchUpdate({ scale: 2 });
       pinchEnd();
       panUpdate({ translationX: 20, translationY: 0 });
@@ -214,20 +220,20 @@ describe('ZoomableImage', () => {
     expect(onSwipe).toHaveBeenLastCalledWith(-1);
   });
 
-  it('fills its slide rather than a width measured at module load', () => {
-    render(<ZoomableImage uri={testUri} />);
+  it('fills its slide rather than a width measured at module load', async () => {
+    await render(<ZoomableImage uri={testUri} />);
 
     expect(StyleSheet.flatten(screen.getByTestId('zoomable-image').props.style)).toEqual(
       expect.objectContaining({ width: '100%', height: '100%' }),
     );
   });
 
-  it('zooms in, out and resets through the imperative handle', () => {
+  it('zooms in, out and resets through the imperative handle', async () => {
     const onScaleChange = jest.fn();
     const setIsZoomed = jest.fn();
     const zoomRef = createRef<ZoomableImageHandle>();
 
-    render(
+    await render(
       <ZoomableImage
         uri={testUri}
         zoomRef={zoomRef}
@@ -236,21 +242,21 @@ describe('ZoomableImage', () => {
       />,
     );
 
-    act(() => zoomRef.current?.zoomBy(1));
+    await act(() => zoomRef.current?.zoomBy(1));
     expect(onScaleChange).toHaveBeenLastCalledWith(2);
     expect(setIsZoomed).toHaveBeenLastCalledWith(true);
 
-    act(() => zoomRef.current?.reset());
+    await act(() => zoomRef.current?.reset());
     expect(onScaleChange).toHaveBeenLastCalledWith(1);
     expect(setIsZoomed).toHaveBeenLastCalledWith(false);
 
     // Stepping below 1 clamps to the identity scale instead of inverting.
-    act(() => zoomRef.current?.zoomBy(1));
-    act(() => zoomRef.current?.zoomBy(-2));
+    await act(() => zoomRef.current?.zoomBy(1));
+    await act(() => zoomRef.current?.zoomBy(-2));
     expect(onScaleChange).toHaveBeenLastCalledWith(1);
   });
 
-  it('executes double tap end callback', () => {
+  it('executes double tap end callback', async () => {
     const mockTap = {
       numberOfTaps: jest.fn().mockReturnThis(),
       onEnd: jest.fn().mockReturnThis(),
@@ -259,10 +265,12 @@ describe('ZoomableImage', () => {
     const setIsZoomed = jest.fn();
     jest.spyOn(Gesture, 'Tap').mockReturnValue(mockTap as unknown as TapGestureType);
 
-    render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
+    await render(
+      <ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />,
+    );
 
     const onEnd = mockTap.onEnd.mock.calls[0][0];
-    act(() => {
+    await act(() => {
       onEnd();
     });
 
@@ -270,7 +278,7 @@ describe('ZoomableImage', () => {
     expect(setIsZoomed).toHaveBeenLastCalledWith(true);
   });
 
-  it('resets a zoomed image when double tapped again', () => {
+  it('resets a zoomed image when double tapped again', async () => {
     const mockPinch = {
       onUpdate: jest.fn().mockReturnThis(),
       onEnd: jest.fn().mockReturnThis(),
@@ -286,13 +294,15 @@ describe('ZoomableImage', () => {
     jest.spyOn(Gesture, 'Pinch').mockReturnValue(mockPinch as unknown as PinchGestureType);
     jest.spyOn(Gesture, 'Tap').mockReturnValue(mockTap as unknown as TapGestureType);
 
-    render(<ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />);
+    await render(
+      <ZoomableImage uri={testUri} onScaleChange={onScaleChange} setIsZoomed={setIsZoomed} />,
+    );
 
     const pinchUpdate = mockPinch.onUpdate.mock.calls[0][0];
     const pinchEnd = mockPinch.onEnd.mock.calls[0][0];
     const onEnd = mockTap.onEnd.mock.calls[0][0];
 
-    act(() => {
+    await act(() => {
       pinchUpdate({ scale: 2 });
       pinchEnd();
       onEnd();

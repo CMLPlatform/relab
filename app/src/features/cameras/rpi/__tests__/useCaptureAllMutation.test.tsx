@@ -44,7 +44,7 @@ describe('useCaptureAllMutation', () => {
       .mockResolvedValueOnce(fakeCapture('img-2'))
       .mockRejectedValueOnce(new Error('camera-3 offline'));
 
-    const { result } = renderHook(() => useCaptureAllMutation(), { wrapper });
+    const { result } = await renderHook(() => useCaptureAllMutation(), { wrapper });
 
     let summary: CaptureAllResult | undefined;
     await act(async () => {
@@ -69,7 +69,7 @@ describe('useCaptureAllMutation', () => {
   });
 
   it('returns a 0/0 summary for an empty camera list', async () => {
-    const { result } = renderHook(() => useCaptureAllMutation(), { wrapper });
+    const { result } = await renderHook(() => useCaptureAllMutation(), { wrapper });
 
     let summary: CaptureAllResult | undefined;
     await act(async () => {
@@ -88,7 +88,7 @@ describe('useCaptureAllMutation', () => {
   it('wraps a non-Error rejection in a real Error', async () => {
     mockedCapture.mockRejectedValueOnce('string reason');
 
-    const { result } = renderHook(() => useCaptureAllMutation(), { wrapper });
+    const { result } = await renderHook(() => useCaptureAllMutation(), { wrapper });
 
     let summary: CaptureAllResult | undefined;
     await act(async () => {

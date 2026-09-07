@@ -66,8 +66,8 @@ describe('useCameraStreamPicker', () => {
     addProductVideoMock.mockResolvedValue(undefined);
   });
 
-  it('starts in camera-selection mode and transitions into config mode when a camera is chosen', () => {
-    const { result } = renderHook(() =>
+  it('starts in camera-selection mode and transitions into config mode when a camera is chosen', async () => {
+    const { result } = await renderHook(() =>
       useCameraStreamPicker({
         productId: 9,
         productName: 'Desk Radio',
@@ -78,7 +78,7 @@ describe('useCameraStreamPicker', () => {
     expect(result.current.state.isSelectingCamera).toBe(true);
     expect(result.current.state.config).toBeNull();
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleCameraSelect({ id: 'cam-1', name: 'Bench Cam' } as never);
     });
 
@@ -90,9 +90,9 @@ describe('useCameraStreamPicker', () => {
     });
   });
 
-  it('supports editing title/privacy plus back and dismiss flows', () => {
+  it('supports editing title/privacy plus back and dismiss flows', async () => {
     const onDismiss = jest.fn();
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamPicker({
         productId: 9,
         productName: 'Desk Radio',
@@ -100,7 +100,7 @@ describe('useCameraStreamPicker', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleCameraSelect({ id: 'cam-1', name: 'Bench Cam' } as never);
       result.current.actions.setTitle('Live teardown');
       result.current.actions.setPrivacy('unlisted');
@@ -111,13 +111,13 @@ describe('useCameraStreamPicker', () => {
       privacy: 'unlisted',
     });
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleBack();
     });
 
     expect(result.current.state.config).toBeNull();
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleDismiss();
     });
 
@@ -126,7 +126,7 @@ describe('useCameraStreamPicker', () => {
 
   it('starts a stream, persists product video metadata, and dismisses on success', async () => {
     const onDismiss = jest.fn();
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamPicker({
         productId: 9,
         productName: 'Desk Radio',
@@ -134,7 +134,7 @@ describe('useCameraStreamPicker', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleCameraSelect({ id: 'cam-1', name: 'Bench Cam' } as never);
       result.current.actions.setTitle('  Live teardown  ');
     });
@@ -168,7 +168,7 @@ describe('useCameraStreamPicker', () => {
   });
 
   it('falls back to generic title when the configured title is blank', async () => {
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamPicker({
         productId: 9,
         productName: 'Desk Radio',
@@ -176,7 +176,7 @@ describe('useCameraStreamPicker', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleCameraSelect({ id: 'cam-1', name: 'Bench Cam' } as never);
       result.current.actions.setTitle('   ');
     });
@@ -200,7 +200,7 @@ describe('useCameraStreamPicker', () => {
     startYouTubeStreamMock.mockRejectedValue(
       new ApiError('Google account not linked', 403, 'GOOGLE_OAUTH_REQUIRED'),
     );
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamPicker({
         productId: 9,
         productName: 'Desk Radio',
@@ -208,7 +208,7 @@ describe('useCameraStreamPicker', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleCameraSelect({ id: 'cam-1', name: 'Bench Cam' } as never);
     });
 
@@ -224,7 +224,7 @@ describe('useCameraStreamPicker', () => {
 
   it('shows generic stream-start feedback for non-OAuth failures', async () => {
     startYouTubeStreamMock.mockRejectedValue(new Error('stream backend unavailable'));
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamPicker({
         productId: 9,
         productName: 'Desk Radio',
@@ -232,7 +232,7 @@ describe('useCameraStreamPicker', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleCameraSelect({ id: 'cam-1', name: 'Bench Cam' } as never);
     });
 
@@ -250,7 +250,7 @@ describe('useCameraStreamPicker', () => {
   });
 
   it('no-ops when start is requested before a camera has been selected', async () => {
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraStreamPicker({
         productId: 9,
         productName: 'Desk Radio',

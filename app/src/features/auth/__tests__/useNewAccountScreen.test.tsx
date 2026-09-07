@@ -92,8 +92,8 @@ describe('useNewAccountScreen', () => {
     mockRefetch.mockImplementation(async () => undefined);
   });
 
-  it('returns grouped ui, flow, form, and action domains', () => {
-    const { result } = renderHook(() => useNewAccountScreen());
+  it('returns grouped ui, flow, form, and action domains', async () => {
+    const { result } = await renderHook(() => useNewAccountScreen());
 
     expect(result.current.ui.colorScheme).toBe('light');
     expect(result.current.flow.section).toBe('username');
@@ -103,14 +103,14 @@ describe('useNewAccountScreen', () => {
   });
 
   it('uses named flow actions to advance and go back between sections', async () => {
-    const { result } = renderHook(() => useNewAccountScreen());
+    const { result } = await renderHook(() => useNewAccountScreen());
 
     await act(async () => {
       await result.current.actions.advanceFromUsername();
     });
     expect(result.current.flow.section).toBe('email');
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackToUsername();
     });
     expect(result.current.flow.section).toBe('username');
@@ -121,16 +121,16 @@ describe('useNewAccountScreen', () => {
     });
     expect(result.current.flow.section).toBe('password');
 
-    act(() => {
+    await act(() => {
       result.current.actions.goBackToEmail();
     });
     expect(result.current.flow.section).toBe('email');
   });
 
-  it('navigates to login with the named action', () => {
-    const { result } = renderHook(() => useNewAccountScreen());
+  it('navigates to login with the named action', async () => {
+    const { result } = await renderHook(() => useNewAccountScreen());
 
-    act(() => {
+    await act(() => {
       result.current.actions.goToLogin();
     });
 
@@ -141,7 +141,7 @@ describe('useNewAccountScreen', () => {
   // reveal (success vs failure) whether the email already had an account, which
   // is exactly what the non-enumerable server registration avoids.
   it('creates an account, prompts to verify email, and returns to login without logging in', async () => {
-    const { result } = renderHook(() => useNewAccountScreen());
+    const { result } = await renderHook(() => useNewAccountScreen());
 
     await act(async () => {
       await result.current.actions.createAccount();
@@ -168,7 +168,7 @@ describe('useNewAccountScreen', () => {
         }),
     );
 
-    const { result } = renderHook(() => useNewAccountScreen());
+    const { result } = await renderHook(() => useNewAccountScreen());
 
     await act(async () => {
       void result.current.actions.createAccount();

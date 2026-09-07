@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react-native';
 import { SpecFacts } from '@/components/product/detail/SpecFacts';
 
-test('renders label/value pairs', () => {
-  render(
+test('renders label/value pairs', async () => {
+  await render(
     <SpecFacts
       facts={[
         { label: 'Components', value: '8' },
@@ -14,7 +14,7 @@ test('renders label/value pairs', () => {
   expect(screen.getByText('1.2 kg')).toBeOnTheScreen();
 });
 
-test('renders nothing for empty facts', () => {
-  render(<SpecFacts facts={[]} />);
+test('renders nothing for empty facts', async () => {
+  await render(<SpecFacts facts={[]} />);
   expect(screen.toJSON()).toBeNull();
 });

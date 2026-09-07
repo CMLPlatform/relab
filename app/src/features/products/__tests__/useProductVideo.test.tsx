@@ -35,8 +35,8 @@ jest.mock('@/features/cameras/youtube/useYouTubeIntegration', () => ({
 const product = { id: 42, name: 'Desk Radio', ownedBy: 'me' } as Product;
 
 describe('useProductVideo', () => {
-  it('derives streaming capabilities from integrations and stream session', () => {
-    const { result } = renderHook(() => useProductVideo(product));
+  it('derives streaming capabilities from integrations and stream session', async () => {
+    const { result } = await renderHook(() => useProductVideo(product));
 
     expect(result.current.rpiEnabled).toBe(true);
     expect(result.current.youtubeEnabled).toBe(true);
@@ -46,17 +46,17 @@ describe('useProductVideo', () => {
     expect(result.current.streamingOtherProduct).toBe(true);
   });
 
-  it('flags streaming for the product that owns the active stream', () => {
-    const { result } = renderHook(() => useProductVideo({ ...product, id: 99 }));
+  it('flags streaming for the product that owns the active stream', async () => {
+    const { result } = await renderHook(() => useProductVideo({ ...product, id: 99 }));
 
     expect(result.current.streamingThisProduct).toBe(true);
     expect(result.current.streamingOtherProduct).toBe(false);
   });
 
-  it('navigates to the active stream product and profile setup routes', () => {
-    const { result } = renderHook(() => useProductVideo(product));
+  it('navigates to the active stream product and profile setup routes', async () => {
+    const { result } = await renderHook(() => useProductVideo(product));
 
-    act(() => {
+    await act(() => {
       result.current.goToActiveStreamProduct();
       result.current.goToProfile();
     });

@@ -15,8 +15,8 @@ describe('InfoTooltip component', () => {
     restorePlatform();
   });
 
-  it('renders correctly on standard platforms', () => {
-    renderWithProviders(<InfoTooltip title={title} />);
+  it('renders correctly on standard platforms', async () => {
+    await renderWithProviders(<InfoTooltip title={title} />);
     expect(screen.getByTestId('info-icon')).toBeOnTheScreen();
   });
 
@@ -29,7 +29,7 @@ describe('InfoTooltip component', () => {
       configurable: true,
     });
 
-    renderWithProviders(<InfoTooltip title={title} />);
+    await renderWithProviders(<InfoTooltip title={title} />);
 
     const pressable = screen.getByTestId('info-pressable');
     // 20px glyph + spacing.sm padding (36px) + 4px hitSlop/side = 44px a11y floor.
@@ -38,7 +38,7 @@ describe('InfoTooltip component', () => {
 
     expect(screen.getByText(title)).toBeOnTheScreen();
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(1500);
     });
 
@@ -52,8 +52,8 @@ describe('InfoTooltip component', () => {
     });
   });
 
-  it('clears timer on unmount', () => {
-    const { unmount } = renderWithProviders(<InfoTooltip title={title} />);
-    unmount();
+  it('clears timer on unmount', async () => {
+    const { unmount } = await renderWithProviders(<InfoTooltip title={title} />);
+    await unmount();
   });
 });

@@ -40,8 +40,8 @@ beforeEach(() => {
 });
 
 describe('useAncestorTrail', () => {
-  it('is idle with an empty trail when there is no parent', () => {
-    const { result } = renderTrail(undefined);
+  it('is idle with an empty trail when there is no parent', async () => {
+    const { result } = await renderTrail(undefined);
 
     expect(result.current.ancestors).toEqual([]);
     expect(result.current.isLoading).toBe(false);
@@ -57,7 +57,7 @@ describe('useAncestorTrail', () => {
     });
     mockGetBaseProduct.mockResolvedValue(node(1, 'product'));
 
-    const { result } = renderTrail(3);
+    const { result } = await renderTrail(3);
 
     await waitFor(() => expect(result.current.ancestors).toHaveLength(3));
     expect(result.current.ancestors).toEqual([
@@ -71,7 +71,7 @@ describe('useAncestorTrail', () => {
     mockGetComponent.mockRejectedValue(new ProductNotFoundError(9));
     mockGetBaseProduct.mockResolvedValue(node(9, 'product'));
 
-    const { result } = renderTrail(9);
+    const { result } = await renderTrail(9);
 
     await waitFor(() => expect(result.current.ancestors).toHaveLength(1));
     expect(result.current.ancestors[0]).toEqual({ id: 9, name: 'node-9', role: 'product' });
@@ -84,7 +84,7 @@ describe('useAncestorTrail', () => {
       node(id, 'component', id === 1 ? 2 : 1),
     );
 
-    const { result } = renderTrail(1);
+    const { result } = await renderTrail(1);
 
     await waitFor(() => expect(result.current.ancestors).toHaveLength(2));
     expect(result.current.ancestors.map((crumb) => crumb.id)).toEqual([2, 1]);
@@ -94,7 +94,7 @@ describe('useAncestorTrail', () => {
     // Every node parents the next id, so the chain never terminates on its own.
     mockGetComponent.mockImplementation(async (id: number) => node(id, 'component', id + 1));
 
-    const { result } = renderTrail(1);
+    const { result } = await renderTrail(1);
 
     await waitFor(() => expect(result.current.ancestors).toHaveLength(12));
   });
@@ -102,7 +102,7 @@ describe('useAncestorTrail', () => {
   it('surfaces an empty trail when a lookup fails for a non-404 reason', async () => {
     mockGetComponent.mockRejectedValue(new Error('network down'));
 
-    const { result } = renderTrail(4);
+    const { result } = await renderTrail(4);
 
     // A non-404 is retried once by the shared query policy before it settles.
     await waitFor(() => expect(result.current.isLoading).toBe(false), { timeout: 5000 });

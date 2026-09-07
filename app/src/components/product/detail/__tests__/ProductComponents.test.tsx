@@ -28,7 +28,7 @@ describe('ProductComponents', () => {
   // (title + titleSuffix, see content-sections.test.ts) — this component no
   // longer owns a heading of its own.
   it("shows 'no subcomponents' message when empty", async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+    await renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -44,7 +44,7 @@ describe('ProductComponents', () => {
       parentID: baseProduct.id,
       name: 'Sub Component',
     };
-    renderWithProviders(
+    await renderWithProviders(
       <ProductComponents
         product={{ ...baseProduct, components: [componentProduct] }}
         editMode={false}
@@ -67,7 +67,7 @@ describe('ProductComponents', () => {
       name: `Component ${index + 1}`,
     }));
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductComponents
         product={{ ...baseProduct, components: manyComponents }}
         editMode={false}
@@ -84,7 +84,7 @@ describe('ProductComponents', () => {
     const collapsed = screen.getByRole('button', { name: 'Show 2 more components' });
     expect(collapsed.props.accessibilityState).toMatchObject({ expanded: false });
 
-    fireEvent.press(collapsed);
+    await fireEvent.press(collapsed);
     expect(screen.getByText('Component 6')).toBeOnTheScreen();
     expect(screen.getByText('Component 7')).toBeOnTheScreen();
     const expandedToggle = screen.getByRole('button', { name: 'Show fewer components' });
@@ -92,12 +92,12 @@ describe('ProductComponents', () => {
 
     // Collapsing again must actually hide the extra rows — an assertion that
     // fails if the toggle stops toggling.
-    fireEvent.press(expandedToggle);
+    await fireEvent.press(expandedToggle);
     expect(screen.queryByText('Component 6')).toBeNull();
   });
 
   it('shows Add component button when owned by me and not in editMode', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+    await renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -110,7 +110,7 @@ describe('ProductComponents', () => {
   // next step exactly when the user has the opened product in front of them.
   // The record is already persisted on that route, so the gate is `id`.
   it('shows Add component in editMode once the record has an id', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={true} />, {
+    await renderWithProviders(<ProductComponents product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -120,7 +120,7 @@ describe('ProductComponents', () => {
 
   it('hides Add component while the record has no id yet', async () => {
     const unsaved = { ...baseProduct, id: undefined };
-    renderWithProviders(<ProductComponents product={unsaved} editMode={true} />, {
+    await renderWithProviders(<ProductComponents product={unsaved} editMode={true} />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -130,7 +130,7 @@ describe('ProductComponents', () => {
 
   it('hides Add component button when not owned by me', async () => {
     const notMine = { ...baseProduct, ownedBy: 'other' };
-    renderWithProviders(<ProductComponents product={notMine} editMode={false} />, {
+    await renderWithProviders(<ProductComponents product={notMine} editMode={false} />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -139,11 +139,11 @@ describe('ProductComponents', () => {
   });
 
   it('navigates to the base-product scoped create route when Add component is pressed on a product', async () => {
-    renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
+    await renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(await screen.findByText('Add component'));
+    await fireEvent.press(await screen.findByText('Add component'));
 
     // The push is deferred one frame so it cannot race the
     // `setParams({ edit: undefined })` that leaving edit mode dispatches — see
@@ -165,11 +165,11 @@ describe('ProductComponents', () => {
       parentID: baseProduct.id,
       name: 'Existing component',
     };
-    renderWithProviders(<ProductComponents product={componentProduct} editMode={false} />, {
+    await renderWithProviders(<ProductComponents product={componentProduct} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(await screen.findByText('Add component'));
+    await fireEvent.press(await screen.findByText('Add component'));
 
     // The push is deferred one frame so it cannot race the
     // `setParams({ edit: undefined })` that leaving edit mode dispatches — see
@@ -200,7 +200,7 @@ describe('ProductComponents', () => {
       components: [{ ...baseProduct, id: 8, role: 'component', name: 'Screw' }],
     };
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductComponents
         product={{ ...baseProduct, components: [componentProduct] }}
         editMode={true}
@@ -208,7 +208,7 @@ describe('ProductComponents', () => {
       { withDialog: true },
     );
 
-    fireEvent.press(await screen.findByLabelText('Duplicate Aluminium bracket'));
+    await fireEvent.press(await screen.findByLabelText('Duplicate Aluminium bracket'));
 
     await waitFor(() => expect(saveProduct).toHaveBeenCalled());
     const copy = (saveProduct as jest.Mock).mock.calls[0]?.[0] as Product;
@@ -240,7 +240,7 @@ describe('ProductComponents', () => {
       parentID: baseProduct.id,
       name: 'Aluminium bracket',
     };
-    renderWithProviders(
+    await renderWithProviders(
       <ProductComponents
         product={{ ...baseProduct, components: [componentProduct] }}
         editMode={false}

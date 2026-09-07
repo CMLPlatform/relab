@@ -5,7 +5,7 @@ import { CaptureScreen } from '@/components/product/capture/CaptureScreen';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
 import { loadCPV } from '@/services/cpv';
-import { renderWithProviders } from '@/test-utils/index';
+import { queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
 
 const NAME_PLACEHOLDER = /e\.g\. Cordless drill/i;
 const CHOOSE_INVITE_TEXT_PATTERN = /^Choose /;
@@ -100,7 +100,7 @@ const mockedTakePending = jest.mocked(takePendingTypeSelection);
 // Renders and flushes the type row's loadCPV() resolution, so tests don't
 // leave a pending act() warning from the async setSelectedType update.
 async function renderCapture(props: Parameters<typeof CaptureScreen>[0]) {
-  const result = renderWithProviders(<CaptureScreen {...props} />, { withDialog: true });
+  const result = await renderWithProviders(<CaptureScreen {...props} />, { withDialog: true });
   // Role-agnostic: the invite's wording differs per role, and this only waits
   // for the row to render. The wording itself is pinned by its own tests.
   await screen.findByText(CHOOSE_INVITE_TEXT_PATTERN);
@@ -145,7 +145,7 @@ describe('CaptureScreen', () => {
   it('shows a queued label and no spinner on both Create buttons while paused offline', async () => {
     mockIsPending = true;
     mockIsPaused = true;
-    const { UNSAFE_root } = await renderCapture({ entityRole: 'product' });
+    await renderCapture({ entityRole: 'product' });
 
     // Both Create buttons, plus the one-time toast useCaptureEntity fires on
     // the isPaused transition (see useCaptureEntity.test.tsx for that in isolation).
@@ -153,7 +153,7 @@ describe('CaptureScreen', () => {
     expect(screen.queryByText('Create product')).toBeNull();
     expect(screen.queryByText('Create & add another')).toBeNull();
     const { ActivityIndicator } = jest.requireActual<typeof import('react-native')>('react-native');
-    expect(UNSAFE_root.findAllByType(ActivityIndicator)).toHaveLength(0);
+    expect(queryAllHostsByType('ActivityIndicator')).toHaveLength(0);
   });
 
   // Only a component can be a material; a product is always a type.
@@ -182,7 +182,7 @@ describe('CaptureScreen', () => {
 
     expect(screen.getByText('Create product')).toBeDisabled();
 
-    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Cordless drill');
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Cordless drill');
 
     expect(screen.getByText('Create product')).toBeEnabled();
   });
@@ -191,8 +191,8 @@ describe('CaptureScreen', () => {
     mockMutateAsync.mockResolvedValueOnce(77);
     await renderCapture({ entityRole: 'product' });
 
-    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Cordless drill');
-    fireEvent.press(screen.getByText('Create product'));
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Cordless drill');
+    await fireEvent.press(screen.getByText('Create product'));
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
@@ -206,8 +206,8 @@ describe('CaptureScreen', () => {
     mockMutateAsync.mockResolvedValueOnce(31);
     await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
 
-    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
-    fireEvent.press(screen.getByText('Create component'));
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
+    await fireEvent.press(screen.getByText('Create component'));
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
@@ -230,8 +230,8 @@ describe('CaptureScreen', () => {
     mockMutateAsync.mockResolvedValueOnce(9);
     await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
 
-    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
-    fireEvent.press(screen.getByText('Create & add another'));
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
+    await fireEvent.press(screen.getByText('Create & add another'));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalled();
@@ -252,8 +252,8 @@ describe('CaptureScreen', () => {
     });
     await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
 
-    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
-    fireEvent.press(screen.getByText('Create & add another'));
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
+    await fireEvent.press(screen.getByText('Create & add another'));
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
@@ -269,8 +269,8 @@ describe('CaptureScreen', () => {
     mockMutateAsync.mockRejectedValueOnce(new Error('network down'));
     await renderCapture({ entityRole: 'product' });
 
-    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Widget');
-    fireEvent.press(screen.getByText('Create product'));
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Widget');
+    await fireEvent.press(screen.getByText('Create product'));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalled();
@@ -283,7 +283,7 @@ describe('CaptureScreen', () => {
   it('redirects unauthenticated users to login', async () => {
     mockUseAuth.mockReturnValue({ user: undefined });
 
-    renderWithProviders(<CaptureScreen entityRole="product" />, { withDialog: true });
+    await renderWithProviders(<CaptureScreen entityRole="product" />, { withDialog: true });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
@@ -312,7 +312,7 @@ describe('CaptureScreen', () => {
   it('navigates to category selection when the empty-state row is pressed', async () => {
     await renderCapture({ entityRole: 'product' });
 
-    fireEvent.press(screen.getByText('Choose a product type'));
+    await fireEvent.press(screen.getByText('Choose a product type'));
 
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
@@ -327,7 +327,7 @@ describe('CaptureScreen', () => {
     };
 
     await renderCapture({ entityRole: 'product' });
-    fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Widget');
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Widget');
 
     const preventDefault = jest.fn();
     await act(async () => {

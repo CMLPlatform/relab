@@ -179,7 +179,7 @@ describe('ProductPage route protection', () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ id: '42' });
     mockUseAuth.mockReturnValue({ user: null });
 
-    renderWithProviders(<ProductPage />, { withDialog: true });
+    await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
       expect(getBaseProduct).toHaveBeenCalledWith(42);

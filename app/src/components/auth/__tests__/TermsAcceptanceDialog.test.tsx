@@ -56,35 +56,35 @@ describe('TermsAcceptanceDialog', () => {
     setWebsiteUrl('https://relab.example');
   });
 
-  it('stays closed when the account has already accepted', () => {
+  it('stays closed when the account has already accepted', async () => {
     signedInWith(false);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
 
     expect(screen.queryByText('Contributor terms')).toBeNull();
   });
 
-  it('stays closed when signed out', () => {
+  it('stays closed when signed out', async () => {
     mockUseAuth.mockReturnValue({ user: undefined, isLoading: false, refetch });
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
 
     expect(screen.queryByText('Contributor terms')).toBeNull();
   });
 
-  it('prompts an account that still owes acceptance', () => {
+  it('prompts an account that still owes acceptance', async () => {
     signedInWith(true);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
 
     expect(screen.getByText('Contributor terms')).toBeTruthy();
     expect(screen.getByText('Accept')).toBeTruthy();
   });
 
-  it('says plainly that declining costs nothing', () => {
+  it('says plainly that declining costs nothing', async () => {
     signedInWith(true);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
 
     // The consent is only meaningful if the refusal is real and seen to be free.
     expect(screen.getByText(DECLINE_IS_FREE)).toBeTruthy();
@@ -93,44 +93,44 @@ describe('TermsAcceptanceDialog', () => {
   it('accepts, then closes without asking again', async () => {
     signedInWith(true);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
-    fireEvent.press(screen.getByText('Accept'));
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await fireEvent.press(screen.getByText('Accept'));
 
     await waitFor(() => expect(acceptContributorTerms).toHaveBeenCalledTimes(1));
     // Refetched rather than patched locally: the server owns the version it stamped.
     await waitFor(() => expect(refetch).toHaveBeenCalledWith(true));
 
     signedInWith(false);
-    screen.rerender(<TermsAcceptanceDialog />);
+    await screen.rerender(<TermsAcceptanceDialog />);
     expect(screen.queryByText('Accept')).toBeNull();
   });
 
-  it('dismisses for the session without recording anything', () => {
+  it('dismisses for the session without recording anything', async () => {
     signedInWith(true);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
-    fireEvent.press(screen.getByText('Not now'));
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await fireEvent.press(screen.getByText('Not now'));
 
     expect(acceptContributorTerms).not.toHaveBeenCalled();
     expect(useTermsPromptDismissed.getState().dismissed).toBe(true);
     expect(screen.queryByText('Accept')).toBeNull();
   });
 
-  it('opens the public terms page rather than restating them in the app', () => {
+  it('opens the public terms page rather than restating them in the app', async () => {
     signedInWith(true);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
-    fireEvent.press(screen.getByText('Read terms'));
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await fireEvent.press(screen.getByText('Read terms'));
 
     expect(openExternalUrl).toHaveBeenCalledTimes(1);
     expect(String(openExternalUrl.mock.calls[0][0])).toContain('/terms');
   });
 
-  it('hides the terms link when no public site URL is configured', () => {
+  it('hides the terms link when no public site URL is configured', async () => {
     setWebsiteUrl(undefined);
     signedInWith(true);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
 
     // A button that opens nothing is worse than no button. Accepting still works:
     // an unconfigured site URL must not block the grant itself.
@@ -138,23 +138,23 @@ describe('TermsAcceptanceDialog', () => {
     expect(screen.getByText('Accept')).toBeTruthy();
   });
 
-  it('remembers the dismissal across a reload', () => {
+  it('remembers the dismissal across a reload', async () => {
     // Regression: the dismissal used to be in-memory only, so every page load
     // re-opened the modal. That is nagging rather than asking, and it blocked
     // every authenticated e2e spec that navigates with a full page load.
     signedInWith(true);
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
-    fireEvent.press(screen.getByText('Not now'));
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await fireEvent.press(screen.getByText('Not now'));
 
     expect(globalThis.sessionStorage.getItem('terms_prompt_dismissed')).toBe('true');
   });
 
-  it('keeps the prompt due after a dismissal, so the next login asks again', () => {
+  it('keeps the prompt due after a dismissal, so the next login asks again', async () => {
     signedInWith(true);
     useTermsPromptDismissed.setState({ dismissed: true });
 
-    renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
 
     // Dismissal hides the dialog but must not look like acceptance anywhere else:
     // the account row keys off `required`, which is untouched.

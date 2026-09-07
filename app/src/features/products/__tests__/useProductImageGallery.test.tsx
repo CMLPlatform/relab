@@ -70,8 +70,8 @@ describe('useProductImageGallery', () => {
     mockUseCamerasQuery.mockReturnValue({ data: [], isLoading: false });
   });
 
-  it('returns derived gallery state for the current product', () => {
-    const { result } = renderHook(() =>
+  it('returns derived gallery state for the current product', async () => {
+    const { result } = await renderHook(() =>
       useProductImageGallery({
         product: baseProduct,
         editMode: true,
@@ -85,8 +85,8 @@ describe('useProductImageGallery', () => {
     expect(result.current.viewer.selectedIndex).toBe(0);
   });
 
-  it('alerts when trying to capture from an RPi camera before the product is saved', () => {
-    const { result } = renderHook(() =>
+  it('alerts when trying to capture from an RPi camera before the product is saved', async () => {
+    const { result } = await renderHook(() =>
       useProductImageGallery({
         product: { ...baseProduct, id: undefined } as Product,
         editMode: true,
@@ -94,7 +94,7 @@ describe('useProductImageGallery', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.requestRpiCapture();
     });
 
@@ -104,8 +104,8 @@ describe('useProductImageGallery', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('routes to camera setup when no RPi cameras are configured', () => {
-    const { result } = renderHook(() =>
+  it('routes to camera setup when no RPi cameras are configured', async () => {
+    const { result } = await renderHook(() =>
       useProductImageGallery({
         product: baseProduct,
         editMode: true,
@@ -113,15 +113,15 @@ describe('useProductImageGallery', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.requestRpiCapture();
     });
 
     expect(mockNavigate).toHaveBeenCalledWith('/cameras');
   });
 
-  it('opens and closes the lightbox through named actions', () => {
-    const { result } = renderHook(() =>
+  it('opens and closes the lightbox through named actions', async () => {
+    const { result } = await renderHook(() =>
       useProductImageGallery({
         product: baseProduct,
         editMode: true,
@@ -129,23 +129,23 @@ describe('useProductImageGallery', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.openLightbox(0);
     });
     expect(result.current.viewer.lightboxOpen).toBe(true);
 
-    act(() => {
+    await act(() => {
       result.current.actions.closeLightbox();
     });
     expect(result.current.viewer.lightboxOpen).toBe(false);
   });
 
-  it('selects and dismisses the preview camera through named actions', () => {
+  it('selects and dismisses the preview camera through named actions', async () => {
     const camera = { id: 'cam-1', name: 'Bench Cam' } as CameraReadWithStatus;
 
     mockUseCamerasQuery.mockReturnValue({ data: [camera], isLoading: false });
 
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useProductImageGallery({
         product: baseProduct,
         editMode: true,
@@ -153,18 +153,18 @@ describe('useProductImageGallery', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.selectPreviewCamera(camera);
     });
     expect(result.current.viewer.previewCamera).toEqual(camera);
 
-    act(() => {
+    await act(() => {
       result.current.actions.dismissPreview();
     });
     expect(result.current.viewer.previewCamera).toBeNull();
   });
 
-  it('appends a captured image when the camera capture succeeds', () => {
+  it('appends a captured image when the camera capture succeeds', async () => {
     const onImagesChange = jest.fn();
     const camera = { id: 'cam-1', name: 'Bench Cam' } as CameraReadWithStatus;
 
@@ -186,7 +186,7 @@ describe('useProductImageGallery', () => {
       });
     });
 
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useProductImageGallery({
         product: baseProduct,
         editMode: true,
@@ -194,11 +194,11 @@ describe('useProductImageGallery', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.selectPreviewCamera(camera);
     });
 
-    act(() => {
+    await act(() => {
       result.current.actions.capturePreview();
     });
 
@@ -211,7 +211,7 @@ describe('useProductImageGallery', () => {
     ]);
   });
 
-  it('surfaces capture failures through feedback', () => {
+  it('surfaces capture failures through feedback', async () => {
     const camera = { id: 'cam-1', name: 'Bench Cam' } as CameraReadWithStatus;
 
     mockCaptureMutate.mockImplementation((_args, options) => {
@@ -219,7 +219,7 @@ describe('useProductImageGallery', () => {
       typedOptions.onError?.(new Error('camera timeout'));
     });
 
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useProductImageGallery({
         product: baseProduct,
         editMode: true,
@@ -227,11 +227,11 @@ describe('useProductImageGallery', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.actions.selectPreviewCamera(camera);
     });
 
-    act(() => {
+    await act(() => {
       result.current.actions.capturePreview();
     });
 

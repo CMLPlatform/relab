@@ -10,21 +10,23 @@ const DELETE_CONFIRMATION_PATTERN = /Are you sure/;
 describe('ProductDelete', () => {
   const user = setupUser();
 
-  it("returns null when product.id is 'new'", () => {
+  it("returns null when product.id is 'new'", async () => {
     const product = { ...existingProduct, id: undefined };
-    renderWithProviders(<ProductDelete product={product} editMode={true} />, { withDialog: true });
-    expect(screen.queryByText('Delete product')).toBeNull();
-  });
-
-  it('returns null when editMode is false', () => {
-    renderWithProviders(<ProductDelete product={existingProduct} editMode={false} />, {
+    await renderWithProviders(<ProductDelete product={product} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.queryByText('Delete product')).toBeNull();
   });
 
-  it('renders the delete button for existing product in edit mode', () => {
-    renderWithProviders(<ProductDelete product={existingProduct} editMode={true} />, {
+  it('returns null when editMode is false', async () => {
+    await renderWithProviders(<ProductDelete product={existingProduct} editMode={false} />, {
+      withDialog: true,
+    });
+    expect(screen.queryByText('Delete product')).toBeNull();
+  });
+
+  it('renders the delete button for existing product in edit mode', async () => {
+    await renderWithProviders(<ProductDelete product={existingProduct} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.getByText('Delete product')).toBeOnTheScreen();
@@ -32,7 +34,7 @@ describe('ProductDelete', () => {
 
   it('uses component wording for components', async () => {
     const component = { ...existingProduct, role: 'component' as const, parentID: 1 };
-    renderWithProviders(<ProductDelete product={component} editMode={true} />, {
+    await renderWithProviders(<ProductDelete product={component} editMode={true} />, {
       withDialog: true,
     });
 
@@ -47,7 +49,7 @@ describe('ProductDelete', () => {
   });
 
   it('shows confirmation dialog when delete button is pressed', async () => {
-    renderWithProviders(<ProductDelete product={existingProduct} editMode={true} />, {
+    await renderWithProviders(<ProductDelete product={existingProduct} editMode={true} />, {
       withDialog: true,
     });
 
@@ -59,7 +61,7 @@ describe('ProductDelete', () => {
 
   it('pressing Cancel in the dialog does not call onDelete', async () => {
     const onDelete = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductDelete product={existingProduct} editMode={true} onDelete={onDelete} />,
       {
         withDialog: true,
@@ -72,7 +74,7 @@ describe('ProductDelete', () => {
 
   it('calls onDelete when Delete button in dialog is pressed', async () => {
     const onDelete = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <ProductDelete product={existingProduct} editMode={true} onDelete={onDelete} />,
       {
         withDialog: true,

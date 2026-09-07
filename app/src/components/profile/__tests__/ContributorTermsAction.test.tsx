@@ -34,42 +34,42 @@ describe('the contributor-terms row on the account screen', () => {
     useTermsPromptDismissed.setState({ dismissed: false });
   });
 
-  it('is absent once acceptance is on record', () => {
+  it('is absent once acceptance is on record', async () => {
     signedInWith(false);
 
-    renderWithProviders(<ContributorTermsAction />, { withDialog: true });
+    await renderWithProviders(<ContributorTermsAction />, { withDialog: true });
 
     // A settled agreement is not a setting.
     expect(screen.queryByText('Contributor terms')).toBeNull();
   });
 
-  it('shows the unaccepted state and what it costs', () => {
+  it('shows the unaccepted state and what it costs', async () => {
     signedInWith(true);
 
-    renderWithProviders(<ContributorTermsAction />, { withDialog: true });
+    await renderWithProviders(<ContributorTermsAction />, { withDialog: true });
 
     expect(screen.getByText('Contributor terms')).toBeTruthy();
     expect(screen.getByText(EXCLUDED_FROM_DATASETS)).toBeTruthy();
   });
 
-  it('clears the shared dismissal so the mounted dialog reopens', () => {
+  it('clears the shared dismissal so the mounted dialog reopens', async () => {
     // The regression this guards: the dialog is mounted once globally while this row
     // lives on another screen. With the dismissal held in hook-local state, each
     // caller got its own copy and pressing this row reopened nothing.
     signedInWith(true);
     useTermsPromptDismissed.setState({ dismissed: true });
 
-    renderWithProviders(<ContributorTermsAction />, { withDialog: true });
-    fireEvent.press(screen.getByText('Contributor terms'));
+    await renderWithProviders(<ContributorTermsAction />, { withDialog: true });
+    await fireEvent.press(screen.getByText('Contributor terms'));
 
     expect(useTermsPromptDismissed.getState().dismissed).toBe(false);
   });
 
-  it('stays visible after a dismissal, so the way back is never lost', () => {
+  it('stays visible after a dismissal, so the way back is never lost', async () => {
     signedInWith(true);
     useTermsPromptDismissed.setState({ dismissed: true });
 
-    renderWithProviders(<ContributorTermsAction />, { withDialog: true });
+    await renderWithProviders(<ContributorTermsAction />, { withDialog: true });
 
     expect(screen.getByText('Contributor terms')).toBeTruthy();
   });

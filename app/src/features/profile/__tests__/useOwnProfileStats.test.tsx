@@ -41,7 +41,9 @@ describe('useOwnProfileStats', () => {
   });
 
   it('returns grouped state', async () => {
-    const { result } = renderHook(() => useOwnProfileStats('tester'), { wrapper: createWrapper() });
+    const { result } = await renderHook(() => useOwnProfileStats('tester'), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.state.loading).toBe(false));
 
@@ -49,8 +51,8 @@ describe('useOwnProfileStats', () => {
     expect(result.current.state.error).toBeNull();
   });
 
-  it('does not fetch and reports no stats without a username', () => {
-    const { result } = renderHook(() => useOwnProfileStats(undefined), {
+  it('does not fetch and reports no stats without a username', async () => {
+    const { result } = await renderHook(() => useOwnProfileStats(undefined), {
       wrapper: createWrapper(),
     });
 
@@ -61,14 +63,14 @@ describe('useOwnProfileStats', () => {
 
   it('refetches stats when the username changes', async () => {
     const wrapper = createWrapper();
-    const { result, rerender } = renderHook(
+    const { result, rerender } = await renderHook(
       ({ username }: { username: string }) => useOwnProfileStats(username),
       { initialProps: { username: 'tester' }, wrapper },
     );
     await waitFor(() => expect(result.current.state.loading).toBe(false));
 
     mockGetPublicProfile.mockImplementation(async () => OTHER_STATS);
-    rerender({ username: 'other' });
+    await rerender({ username: 'other' });
 
     await waitFor(() => expect(result.current.state.stats?.product_count).toBe(99));
     expect(mockGetPublicProfile).toHaveBeenCalledWith('tester');
@@ -80,7 +82,7 @@ describe('useOwnProfileStats', () => {
   // person's product and photo counts.
   it('never surfaces the previous username’s stats after a change', async () => {
     const wrapper = createWrapper();
-    const { result, rerender } = renderHook(
+    const { result, rerender } = await renderHook(
       ({ username }: { username: string }) => useOwnProfileStats(username),
       { initialProps: { username: 'tester' }, wrapper },
     );
@@ -93,7 +95,7 @@ describe('useOwnProfileStats', () => {
           release = resolve;
         }),
     );
-    rerender({ username: 'other' });
+    await rerender({ username: 'other' });
 
     // While 'other' is in flight, 'tester' stats must not be shown.
     expect(result.current.state.stats).toBeNull();
@@ -110,7 +112,9 @@ describe('useOwnProfileStats', () => {
       throw new Error('boom');
     });
 
-    const { result } = renderHook(() => useOwnProfileStats('tester'), { wrapper: createWrapper() });
+    const { result } = await renderHook(() => useOwnProfileStats('tester'), {
+      wrapper: createWrapper(),
+    });
 
     await waitFor(() => expect(result.current.state.error).not.toBeNull());
     expect(result.current.state.stats).toBeNull();

@@ -130,8 +130,8 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
 
   // ── Gallery display ────────────────────────────────────────────────────────
 
-  it('renders placeholder when images === []', () => {
-    renderWithProviders(
+  it('renders placeholder when images === []', async () => {
+    await renderWithProviders(
       <ProductImageGallery product={{ ...baseProduct, images: [] }} editMode={false} />,
       { withDialog: true },
     );
@@ -139,20 +139,26 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
   });
 
-  it('renders the carousel when images.length > 1', () => {
-    renderWithProviders(<ProductImageGallery product={productWithImages(2)} editMode={false} />, {
-      withDialog: true,
-    });
+  it('renders the carousel when images.length > 1', async () => {
+    await renderWithProviders(
+      <ProductImageGallery product={productWithImages(2)} editMode={false} />,
+      {
+        withDialog: true,
+      },
+    );
 
     // Images appear in both the main carousel and the thumbnail strip
     expect(screen.getAllByText('img:file://photo1.jpg').length).toBeGreaterThan(0);
     expect(screen.getAllByText('img:file://photo2.jpg').length).toBeGreaterThan(0);
   });
 
-  it('renders the thumbnail strip when images.length > 1', () => {
-    renderWithProviders(<ProductImageGallery product={productWithImages(2)} editMode={false} />, {
-      withDialog: true,
-    });
+  it('renders the thumbnail strip when images.length > 1', async () => {
+    await renderWithProviders(
+      <ProductImageGallery product={productWithImages(2)} editMode={false} />,
+      {
+        withDialog: true,
+      },
+    );
 
     // Two thumbnail strip items — undescribed images fall back to the product
     // name plus a 1-based position so they stay distinguishable.
@@ -165,7 +171,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
   it('delete button removes the image at the selected index', async () => {
     const onImagesChange = jest.fn();
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageGallery
         product={productWithImages(2)}
         editMode={true}
@@ -174,7 +180,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByLabelText('Delete photo'));
+    await fireEvent.press(screen.getByLabelText('Delete photo'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([
@@ -190,7 +196,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
   it('delete clamps new index to the last image when the last item is removed', async () => {
     const onImagesChange = jest.fn();
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageGallery
         product={productWithImages(1)}
         editMode={true}
@@ -199,7 +205,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByLabelText('Delete photo'));
+    await fireEvent.press(screen.getByLabelText('Delete photo'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([]);
@@ -212,12 +218,15 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     // We trigger a scroll event on the FlatList to change the selected index.
     // The FlatList mock renders all items, and the mock captures onMomentumScrollEnd props.
 
-    renderWithProviders(<ProductImageGallery product={productWithImages(2)} editMode={false} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductImageGallery product={productWithImages(2)} editMode={false} />,
+      {
+        withDialog: true,
+      },
+    );
 
     // Press the "Next image" chevron to move to index 1
-    fireEvent.press(screen.getByLabelText('Next image'));
+    await fireEvent.press(screen.getByLabelText('Next image'));
 
     await waitFor(() => {
       expect(AsyncStorage.setItem).toHaveBeenCalledWith('product_gallery_index_42', '1');
@@ -227,9 +236,12 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
   it('restores selected index from AsyncStorage on mount', async () => {
     jest.mocked(AsyncStorage.getItem).mockResolvedValueOnce('1');
 
-    renderWithProviders(<ProductImageGallery product={productWithImages(2)} editMode={false} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductImageGallery product={productWithImages(2)} editMode={false} />,
+      {
+        withDialog: true,
+      },
+    );
 
     await waitFor(() => {
       expect(AsyncStorage.getItem).toHaveBeenCalledWith('product_gallery_index_42');
@@ -238,26 +250,32 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
 
   // ── RPi button visibility ──────────────────────────────────────────────────
 
-  it('hides the RPi button when rpiEnabled === false', () => {
+  it('hides the RPi button when rpiEnabled === false', async () => {
     mockUseRpiIntegration.mockReturnValue({
       enabled: false,
       loading: false,
       setEnabled: jest.fn(),
     });
 
-    renderWithProviders(<ProductImageGallery product={productWithImages(1)} editMode={true} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductImageGallery product={productWithImages(1)} editMode={true} />,
+      {
+        withDialog: true,
+      },
+    );
 
     expect(screen.queryByLabelText(RPI_CAMERA_BUTTON_PATTERN)).toBeNull();
   });
 
-  it('shows the RPi button when rpiEnabled === true', () => {
+  it('shows the RPi button when rpiEnabled === true', async () => {
     mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });
 
-    renderWithProviders(<ProductImageGallery product={productWithImages(1)} editMode={true} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductImageGallery product={productWithImages(1)} editMode={true} />,
+      {
+        withDialog: true,
+      },
+    );
 
     // Either "Capture from RPi camera" (has cameras) or "Set up RPi camera" (no cameras)
     expect(
@@ -275,12 +293,12 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       isLoading: false,
     });
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageGallery product={{ ...baseProduct, id: 42 }} editMode={true} />,
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
+    await fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
 
     await waitFor(() => {
       expect(screen.getByText('Select camera')).toBeOnTheScreen();
@@ -296,15 +314,15 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       isLoading: false,
     });
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageGallery product={{ ...baseProduct, id: 42 }} editMode={true} />,
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
+    await fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
     await waitFor(() => expect(screen.getByText('Select camera')).toBeOnTheScreen());
 
-    fireEvent.press(screen.getByText('Bench Cam'));
+    await fireEvent.press(screen.getByText('Bench Cam'));
 
     await waitFor(() => {
       // The preview dialog title is the camera name
@@ -329,17 +347,17 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       opts.onSettled();
     }) as unknown as (...args: unknown[]) => unknown);
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageGallery product={{ ...baseProduct, id: 42, images: [] }} editMode={true} />,
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
+    await fireEvent.press(screen.getByLabelText('Capture from RPi camera'));
     await waitFor(() => expect(screen.getByText('Select camera')).toBeOnTheScreen());
-    fireEvent.press(screen.getByText('Bench Cam'));
+    await fireEvent.press(screen.getByText('Bench Cam'));
     await waitFor(() => expect(screen.getByText('Capture')).toBeOnTheScreen());
 
-    fireEvent.press(screen.getByText('Capture'));
+    await fireEvent.press(screen.getByText('Capture'));
 
     await waitFor(() => {
       expect(screen.getByText('Capture failed')).toBeOnTheScreen();

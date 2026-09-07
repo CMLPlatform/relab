@@ -7,10 +7,10 @@ describe('camera detail controllers', () => {
     localBaseUrl: 'http://camera.local',
   } as never;
 
-  it('seeds manual setup state from the current local connection', () => {
-    const { result } = renderHook(() => useCameraDetailDialogs(localConnection));
+  it('seeds manual setup state from the current local connection', async () => {
+    const { result } = await renderHook(() => useCameraDetailDialogs(localConnection));
 
-    act(() => {
+    await act(() => {
       result.current.actions.setLocalKey('stale-key');
       result.current.actions.openManualSetup();
     });
@@ -20,13 +20,13 @@ describe('camera detail controllers', () => {
     expect(result.current.dialogs.localKeyInput).toBe('');
   });
 
-  it('toggles preview state and manages dialog visibility', () => {
-    const { result } = renderHook(() => useCameraDetailDialogs(localConnection));
+  it('toggles preview state and manages dialog visibility', async () => {
+    const { result } = await renderHook(() => useCameraDetailDialogs(localConnection));
 
     // Preview is opt-in: off until the user taps "Load preview".
     expect(result.current.preview.enabled).toBe(false);
 
-    act(() => {
+    await act(() => {
       result.current.actions.requestDelete();
       result.current.actions.togglePreview();
     });
@@ -34,7 +34,7 @@ describe('camera detail controllers', () => {
     expect(result.current.dialogs.deleteVisible).toBe(true);
     expect(result.current.preview.enabled).toBe(true);
 
-    act(() => {
+    await act(() => {
       result.current.actions.closeDelete();
       result.current.actions.togglePreview();
     });
@@ -43,10 +43,10 @@ describe('camera detail controllers', () => {
     expect(result.current.preview.enabled).toBe(false);
   });
 
-  it('tracks local setup field edits and saving state', () => {
-    const { result } = renderHook(() => useCameraDetailDialogs(localConnection));
+  it('tracks local setup field edits and saving state', async () => {
+    const { result } = await renderHook(() => useCameraDetailDialogs(localConnection));
 
-    act(() => {
+    await act(() => {
       result.current.actions.openManualSetup();
       result.current.actions.setLocalUrl('https://relay.local');
       result.current.actions.setLocalKey('secret-key');
@@ -57,7 +57,7 @@ describe('camera detail controllers', () => {
     expect(result.current.dialogs.localKeyInput).toBe('secret-key');
     expect(result.current.dialogs.localSetupSaving).toBe(true);
 
-    act(() => {
+    await act(() => {
       result.current.actions.closeManualSetup();
       result.current.actions.setLocalSetupSaving(false);
     });

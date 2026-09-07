@@ -114,7 +114,7 @@ describe('Camera detail screen', () => {
   });
 
   it('does not auto-load the live preview for an online camera and sets the screen title', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     // Preview is opt-in: nothing streams until the user taps "Load preview".
     expect(screen.queryByText('live-preview-stub')).toBeNull();
@@ -123,15 +123,15 @@ describe('Camera detail screen', () => {
   });
 
   it('can load and stop the live preview without leaving the detail screen', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.queryByText('live-preview-stub')).toBeNull();
 
-    fireEvent.press(screen.getByText('Load preview'));
+    await fireEvent.press(screen.getByText('Load preview'));
 
     expect(screen.getByText('live-preview-stub')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Stop preview'));
+    await fireEvent.press(screen.getByText('Stop preview'));
 
     expect(screen.queryByText('live-preview-stub')).toBeNull();
     expect(screen.getByText('Load preview')).toBeOnTheScreen();
@@ -162,25 +162,25 @@ describe('Camera detail screen', () => {
         canUseRelay: false,
       }),
     );
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.getByText('Waiting for camera to connect via WebSocket relay')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByLabelText('Refresh status'));
+    await fireEvent.press(screen.getByLabelText('Refresh status'));
 
     expect(mockRefetch).toHaveBeenCalled();
   });
 
   it('opens the edit-name dialog and saves the trimmed camera name', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
-    fireEvent.press(screen.getByLabelText('Edit name'));
+    await fireEvent.press(screen.getByLabelText('Edit name'));
 
     expect(screen.getByText('Edit name')).toBeOnTheScreen();
     expect(screen.getByDisplayValue('Workbench Camera')).toBeOnTheScreen();
 
-    fireEvent.changeText(screen.getByDisplayValue('Workbench Camera'), '  Studio Camera  ');
-    fireEvent.press(screen.getByText('Save'));
+    await fireEvent.changeText(screen.getByDisplayValue('Workbench Camera'), '  Studio Camera  ');
+    await fireEvent.press(screen.getByText('Save'));
 
     expect(mockUpdateMutate).toHaveBeenCalledWith(
       { name: 'Studio Camera' },
@@ -190,7 +190,7 @@ describe('Camera detail screen', () => {
     );
   });
 
-  it('shows a loading spinner while the camera query is in progress', () => {
+  it('shows a loading spinner while the camera query is in progress', async () => {
     mockUseCameraQuery.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -209,7 +209,7 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.queryByText('Workbench Camera')).toBeNull();
     expect(screen.queryByText('Delete camera')).toBeNull();
@@ -234,23 +234,23 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.getByText(FAILED_TO_LOAD_CAMERA_PATTERN)).toBeOnTheScreen();
-    fireEvent.press(screen.getByText('Retry'));
+    await fireEvent.press(screen.getByText('Retry'));
     expect(mockRefetch).toHaveBeenCalled();
   });
 
   it('opens the edit-description dialog and saves the trimmed description', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
-    fireEvent.press(screen.getByLabelText('Edit description'));
+    await fireEvent.press(screen.getByLabelText('Edit description'));
 
     expect(screen.getByText('Edit description')).toBeOnTheScreen();
     expect(screen.getByDisplayValue('Bench setup')).toBeOnTheScreen();
 
-    fireEvent.changeText(screen.getByDisplayValue('Bench setup'), '  Updated description  ');
-    fireEvent.press(screen.getByText('Save'));
+    await fireEvent.changeText(screen.getByDisplayValue('Bench setup'), '  Updated description  ');
+    await fireEvent.press(screen.getByText('Save'));
 
     expect(mockUpdateMutate).toHaveBeenCalledWith(
       { description: 'Updated description' },
@@ -277,14 +277,14 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     // error is null (not an Error), so getErrorMessage falls back to
     // 'Camera not found.' — confirm the error view branch (isError || !camera)
     // is entered via Retry.
     expect(screen.getByText('Camera not found.')).toBeOnTheScreen();
     expect(screen.getByText('Retry')).toBeOnTheScreen();
-    fireEvent.press(screen.getByText('Retry'));
+    await fireEvent.press(screen.getByText('Retry'));
     expect(mockRefetch).toHaveBeenCalled();
   });
 
@@ -314,37 +314,37 @@ describe('Camera detail screen', () => {
       }),
     );
 
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     expect(screen.getAllByText('Offline').length).toBeGreaterThan(0);
   });
 
   it('dismisses the edit-name dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
-    fireEvent.press(screen.getByLabelText('Edit name'));
+    await fireEvent.press(screen.getByLabelText('Edit name'));
     expect(screen.getByText('Edit name')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Cancel'));
+    await fireEvent.press(screen.getByText('Cancel'));
 
     expect(screen.queryByText('Edit name')).toBeNull();
   });
 
   it('dismisses the edit-description dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
-    fireEvent.press(screen.getByLabelText('Edit description'));
+    await fireEvent.press(screen.getByLabelText('Edit description'));
     expect(screen.getByText('Edit description')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Cancel'));
+    await fireEvent.press(screen.getByText('Cancel'));
 
     expect(screen.queryByText('Edit description')).toBeNull();
   });
 
   it('dismisses the delete dialog when Cancel is pressed', async () => {
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
-    fireEvent.press(screen.getByText('Delete camera'));
+    await fireEvent.press(screen.getByText('Delete camera'));
     expect(screen.getByText('Delete camera?')).toBeOnTheScreen();
 
     const cancelButtons = screen.getAllByText('Cancel');
@@ -353,8 +353,8 @@ describe('Camera detail screen', () => {
     if (!cancelButton) {
       throw new Error('Cancel button not found');
     }
-    fireEvent.press(cancelButton);
-    act(() => {
+    await fireEvent.press(cancelButton);
+    await act(() => {
       jest.runOnlyPendingTimers();
     });
 
@@ -367,12 +367,12 @@ describe('Camera detail screen', () => {
       options?.onSuccess?.();
     });
 
-    renderWithProviders(<CameraDetailScreen />, { withDialog: true });
+    await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
-    fireEvent.press(screen.getByText('Delete camera'));
+    await fireEvent.press(screen.getByText('Delete camera'));
     expect(screen.getByText('Delete camera?')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('Delete'));
+    await fireEvent.press(screen.getByText('Delete'));
 
     expect(mockDeleteMutate).toHaveBeenCalledWith(
       'cam-1',

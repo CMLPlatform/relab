@@ -86,7 +86,7 @@ const PREVIEW_ERROR = /Couldn't load the preview/;
  * test — and so assertions see the credentialed source.
  */
 async function renderPreview(ui: Parameters<typeof renderWithProviders>[0]) {
-  const utils = renderWithProviders(ui);
+  const utils = await renderWithProviders(ui);
   await act(async () => {});
   return utils;
 }
@@ -104,26 +104,26 @@ describe('LivePreview', () => {
 
   // ── Null-return cases ──────────────────────────────────────────────────────
 
-  it('returns null when camera is null', () => {
+  it('returns null when camera is null', async () => {
     mockUseCameraLivePreview.mockReturnValue({ hlsUrl: null });
 
-    renderWithProviders(<LivePreview camera={null} />);
+    await renderWithProviders(<LivePreview camera={null} />);
 
     expect(screen.queryByText(LIVE_PREVIEW_PATTERN)).toBeNull();
   });
 
-  it('returns null when enabled is false', () => {
+  it('returns null when enabled is false', async () => {
     mockUseCameraLivePreview.mockReturnValue({ hlsUrl: null });
 
-    renderWithProviders(<LivePreview camera={CAMERA} enabled={false} />);
+    await renderWithProviders(<LivePreview camera={CAMERA} enabled={false} />);
 
     expect(screen.queryByText(LIVE_PREVIEW_PATTERN)).toBeNull();
   });
 
-  it('returns null when useCameraLivePreview yields a null hlsUrl even when enabled', () => {
+  it('returns null when useCameraLivePreview yields a null hlsUrl even when enabled', async () => {
     mockUseCameraLivePreview.mockReturnValue({ hlsUrl: null });
 
-    renderWithProviders(<LivePreview camera={CAMERA} />);
+    await renderWithProviders(<LivePreview camera={CAMERA} />);
 
     expect(screen.queryByText(LIVE_PREVIEW_PATTERN)).toBeNull();
   });
@@ -203,7 +203,7 @@ describe('LivePreview', () => {
     await renderPreview(<LivePreview camera={CAMERA} />);
 
     expect(screen.getByText("Couldn't load the preview")).toBeOnTheScreen();
-    fireEvent.press(screen.getByText('Tap to retry'));
+    await fireEvent.press(screen.getByText('Tap to retry'));
     expect(mockVideoPlayerInstance.replaceAsync).toHaveBeenCalled();
     // The setup callback also calls play() on each (re)render, so counts are
     // racy — the retry contract is that a play() FOLLOWS the replaceAsync.
@@ -219,18 +219,18 @@ describe('LivePreview', () => {
   it('leaves the player release to useVideoPlayer on unmount', async () => {
     const { unmount } = await renderPreview(<LivePreview camera={CAMERA} />);
 
-    unmount();
+    await unmount();
 
     expect(mockVideoPlayerInstance.release).not.toHaveBeenCalled();
   });
 
-  it('shows a fallback when the preview player throws during render', () => {
-    const ThrowingPreview = () => {
+  it('shows a fallback when the preview player throws during render', async () => {
+    const ThrowingPreview = async () => {
       throw new Error('boom');
     };
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
-      renderWithProviders(
+      await renderWithProviders(
         <PreviewErrorBoundary>
           <ThrowingPreview />
         </PreviewErrorBoundary>,
@@ -247,8 +247,8 @@ describe('LivePreview', () => {
 
     expect(mockUseCameraLivePreview).toHaveBeenCalledWith({ id: 'cam-1' }, { enabled: true });
 
-    act(() => {
-      rerender(<LivePreview camera={{ id: 'cam-2' }} />);
+    await act(async () => {
+      await rerender(<LivePreview camera={{ id: 'cam-2' }} />);
     });
 
     expect(mockUseCameraLivePreview).toHaveBeenCalledWith({ id: 'cam-2' }, { enabled: true });
