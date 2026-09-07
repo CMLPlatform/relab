@@ -24,8 +24,8 @@
     "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl'"
   },
   "dependencies": {
-    "@astrojs/mdx": "7.0.5",
-    "@astrojs/starlight": "0.41.7",
+    "@astrojs/mdx": "7.0.8",
+    "@astrojs/starlight": "0.41.10",
     "@mermaid-js/layout-elk": "^0.2.2",
     "@scalar/api-reference": "^1.64.1",
     "astro": "catalog:",
@@ -37,9 +37,9 @@
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "linkinator": "^7.6.1",
+    "linkinator": "7.6.1",
     "playwright": "catalog:",
     "typescript": "catalog:",
-    "vitest": "^4.1.10"
+    "vitest": "4.1.10"
   }
 }

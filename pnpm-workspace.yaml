@@ -29,7 +29,7 @@ allowBuilds:
 
 overrides:
   # Keep Monaco's DOMPurify transitive dependency on a patched release.
-  monaco-editor@0.55.1>dompurify: 3.4.13
+  monaco-editor@0.55.1>dompurify: 3.4.14
   # Patch transitive vulnerabilities in expo/metro dev tooling (GHSA advisories).
   # Scoped to the vulnerable ranges so unrelated consumers keep their major.
   "shell-quote@<1.8.4": ">=1.8.4" # GHSA-wpn peer7jw-789q-3m8p
@@ -48,11 +48,11 @@ catalog:
   "@astrojs/check": ^0.9.10
   "@axe-core/playwright": ^4.12.1
   "@biomejs/biome": ^2.5.8
-  astro: 7.1.6
+  astro: 7.2.9
   "@playwright/test": ^1.62.1
   "@types/node": ^26.2.0
   playwright: ^1.62.1
-  tailwindcss: 4.3.2
+  tailwindcss: 4.3.3
   typescript: ^6.0.3
 
 # Expo SDK packages land in same-day waves, so the release-age gate would block
