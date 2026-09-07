@@ -1,5 +1,4 @@
 import { afterAll, afterEach, beforeEach, jest } from '@jest/globals';
-import { cleanup } from '@testing-library/react-native';
 import type React from 'react';
 import { server } from '@/test-utils/server';
 
@@ -30,11 +29,9 @@ beforeEach(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   server.close();
-  cleanup();
   jest.clearAllTimers();
 });
 afterAll(() => {
-  cleanup();
   jest.clearAllTimers();
   jest.useRealTimers();
   server.close();

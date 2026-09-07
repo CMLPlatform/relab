@@ -36,12 +36,17 @@ export function AppButton({
   ...rest
 }: AppButtonProps) {
   const { colors } = useAppTheme();
-  // Bare RN text nodes must live inside <Text>, and an interpolated label
-  // ("Select all ({count})") arrives as an array of them, not a single string.
-  // Wrap each primitive and leave element children alone.
-  const renderedChildren = Children.map(children, (child) =>
-    typeof child === 'string' || typeof child === 'number' ? <Text>{child}</Text> : child,
-  );
+  // Bare RN text nodes must live inside <Text>. An interpolated label
+  // ("Select all ({count})") arrives as an array of primitives; wrap the whole
+  // run in one <Text> so it stays a single node (no flex gaps, one a11y label).
+  const parts = Children.toArray(children);
+  const isPrimitive = (c: unknown) => typeof c === 'string' || typeof c === 'number';
+  const renderedChildren =
+    parts.length > 0 && parts.every(isPrimitive) ? (
+      <Text>{children}</Text>
+    ) : (
+      Children.map(children, (child) => (isPrimitive(child) ? <Text>{child}</Text> : child))
+    );
   return (
     <Button
       variant={VARIANT_MAP[variant]}

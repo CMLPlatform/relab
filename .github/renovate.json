@@ -12,7 +12,8 @@
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
-    "addLabels": ["security"]
+    "addLabels": ["security"],
+    "enabled": true
   },
   "packageRules": [
     {
