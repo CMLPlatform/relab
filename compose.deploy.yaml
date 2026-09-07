@@ -163,7 +163,7 @@ services:
     # MALWARE_SCAN_ENABLED=false, and treat that as an accepted risk.
     profiles:
       - scanning
-    image: clamav/clamav:1.5.3_base-debian@sha256:cb5b15312564be66d20d341390d8ec8ddcbfdfcd410a9c26ece8b5e8df6200c0
+    image: clamav/clamav:1.5.4_base-debian@sha256:2bc2f9c5c1fd5120a334490d005c694430f0589d085a7aca400bbd93458fe1f0
     logging: *json-logging
     entrypoint: /init-unprivileged
     user: clamav
@@ -303,7 +303,7 @@ services:
 
   cloudflared:
     # Cloudflared tunnel service
-    image: cloudflare/cloudflared:2026.8.2@sha256:0aa26e284f05e6c77ae375b8c9c11d9eb6a448fb7bcd8d40f31cb6176189eb38
+    image: cloudflare/cloudflared:2026.8.3@sha256:51c9cefcb4569df44e1ad403ab1d3d8065aa8e84339bcfc6aee75502e1140339
     logging: *json-logging
     restart: unless-stopped
     depends_on:
