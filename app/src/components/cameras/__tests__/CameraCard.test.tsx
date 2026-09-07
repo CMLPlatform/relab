@@ -8,14 +8,11 @@ import { renderWithProviders } from '@/test-utils/index';
 const LAST_SEEN_PATTERN = /Last seen/;
 
 // Stub out expo-image so we can query it by accessible content
-jest.mock('expo-image', () => {
-  const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-  return {
-    Image: ({ source }: { source?: { uri?: string } }) =>
-      React.createElement(Text, { testID: 'camera-thumbnail' }, `img:${source?.uri ?? ''}`),
-  };
-});
+jest.mock('expo-image', () =>
+  jest
+    .requireActual<typeof import('@/test-utils/native-mocks')>('@/test-utils/native-mocks')
+    .mockExpoImage({ testID: 'camera-thumbnail' }),
+);
 
 // Preview thumbnails are owner-checked: on native the source carries a bearer
 // token, so the token has to resolve before the <Image> renders.

@@ -18,21 +18,11 @@ const RPI_CAMERA_BUTTON_PATTERN = /RPi camera|Set up RPi camera/i;
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
 
-jest.mock('expo-image', () => ({
-  Image: Object.assign(
-    ({ source }: { source?: { uri?: string } }) => {
-      const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-      const React = jest.requireActual<typeof import('react')>('react');
-      return React.createElement(Text, null, `img:${source?.uri ?? ''}`);
-    },
-    { prefetch: jest.fn() },
-  ),
-  ImageBackground: ({ children }: { children?: React.ReactNode }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    const React = jest.requireActual<typeof import('react')>('react');
-    return React.createElement(Text, null, children);
-  },
-}));
+jest.mock('expo-image', () =>
+  jest
+    .requireActual<typeof import('@/test-utils/native-mocks')>('@/test-utils/native-mocks')
+    .mockExpoImage({ prefetch: true, imageBackground: true }),
+);
 
 jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(),
@@ -52,68 +42,11 @@ jest.mock('@/components/product/ZoomableImage', () => {
   };
 });
 
-jest.mock('react-native-gesture-handler', () => {
-  const React = jest.requireActual<typeof import('react')>('react');
-  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const FlatListMock = React.forwardRef(function FlatListMock(
-    {
-      data,
-      renderItem,
-      ...props
-    }: {
-      data?: unknown[];
-      renderItem?: (info: { item: unknown; index: number }) => React.ReactNode;
-      [key: string]: unknown;
-    },
-    ref: React.ForwardedRef<{ scrollToIndex: () => void; scrollToOffset: () => void }>,
-  ) {
-    React.useImperativeHandle(
-      ref,
-      () => ({ scrollToIndex: jest.fn(), scrollToOffset: jest.fn() }),
-      [],
-    );
-    return React.createElement(
-      View,
-      props,
-      Array.isArray(data) && renderItem
-        ? data.map((item, index) =>
-            React.createElement(React.Fragment, { key: index }, renderItem({ item, index })),
-          )
-        : null,
-    );
-  });
-  FlatListMock.displayName = 'FlatListMock';
-  return {
-    FlatList: FlatListMock,
-    GestureHandlerRootView: ({
-      children,
-      style,
-    }: {
-      children?: React.ReactNode;
-      style?: Record<string, unknown>;
-    }) => React.createElement(View, { style }, children),
-    GestureDetector: ({ children }: { children?: React.ReactNode }) => children ?? null,
-    Gesture: {
-      Tap: () => ({
-        numberOfTaps: () => ({ onEnd: (cb: unknown) => cb, onStart: (cb: unknown) => cb }),
-      }),
-      Pan: () => ({
-        minPointers: () => ({
-          onUpdate: (cb: unknown) => cb,
-          onEnd: (cb: unknown) => cb,
-          onStart: (cb: unknown) => cb,
-        }),
-      }),
-      Pinch: () => ({
-        onUpdate: (cb: unknown) => cb,
-        onEnd: (cb: unknown) => cb,
-        onStart: (cb: unknown) => cb,
-      }),
-      Simultaneous: () => ({}),
-      Exclusive: () => ({}),
-    },
-  };
-});
+jest.mock('react-native-gesture-handler', () =>
+  jest
+    .requireActual<typeof import('@/test-utils/native-mocks')>('@/test-utils/native-mocks')
+    .mockGestureHandler({ gestures: true }),
+);
 
 // LivePreview is a noop in this test suite
 jest.mock('@/components/cameras/LivePreview', () => ({
