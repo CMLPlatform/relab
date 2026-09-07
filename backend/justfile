@@ -144,7 +144,7 @@ datamodel-check:
 
 # Build a publishable dataset release directory (verification failures abort the build)
 # Scope is decided by contributor consent; --owner only narrows within it.
-# Usage: just release-build [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
+# Usage: just release-build --software-doi 10.5281/zenodo.NNNNNNN [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
 #        exclusions: --exclude-owner USERNAME | --exclude-product ID | --exclude-name-word WORD | --no-name-filter
 # Dry run, every account, writes nothing: just release-build --inventory
 # The pseudonym salt comes from $RELAB_PSEUDONYM_SALT, else secrets/<env>/dataset_pseudonym_salt

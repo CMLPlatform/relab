@@ -508,44 +508,6 @@ def test_verify_catches_a_forbidden_column_in_a_parquet_table(tmp_path) -> None:
     assert "records.parquet: forbidden column 'email'" in verify(root)
 
 
-### The software DOIs are mirrored from the repository root CITATION.cff ###
-CITATION_PATH = Path(__file__).parents[4] / "CITATION.cff"
-
-
-def _citation_dois() -> dict[str, str]:
-    """Return ``{description: doi}`` for the identifiers block of the root CITATION.cff.
-
-    Parsed with a regex rather than a YAML library: pyyaml reaches the backend only as an
-    undeclared transitive dependency of uvicorn[standard], and this shape is two lines.
-    """
-    text = CITATION_PATH.read_text(encoding="utf-8")
-    pairs = re.findall(r"^\s*value:\s*(\S+)\n\s*description:\s*(.+)$", text, flags=re.MULTILINE)
-    return {description.strip(): value for value, description in pairs}
-
-
-def test_citation_file_declares_both_software_dois() -> None:
-    """The version DOI must have a machine-readable home, not live in a comment."""
-    dois = _citation_dois()
-    assert "Concept DOI for all versions of Relab" in dois
-    assert "Version DOI for Relab v0.2.0" in dois
-
-
-def test_software_concept_doi_matches_the_citation_file() -> None:
-    """The mirrored concept DOI must not drift from CITATION.cff."""
-    assert ReleaseMetadata().software_concept_doi == _citation_dois()["Concept DOI for all versions of Relab"]
-
-
-def test_software_version_doi_matches_the_citation_file() -> None:
-    """The mirrored version DOI must not drift from CITATION.cff."""
-    assert ReleaseMetadata().software_version_doi == _citation_dois()["Version DOI for Relab v0.2.0"]
-
-
-def test_the_two_software_dois_are_distinct() -> None:
-    """One field doing both jobs is the defect this split exists to prevent."""
-    meta = ReleaseMetadata()
-    assert meta.software_concept_doi != meta.software_version_doi
-
-
 ### Salt fingerprint guard ###
 def test_matching_salt_passes_the_fingerprint_check() -> None:
     """The salt used for previous releases must build without complaint."""

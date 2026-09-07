@@ -206,20 +206,17 @@ branch commit into the commit body, so override the message in the merge dialog 
 `gh pr merge --squash --subject ... --body-file ...`): subject `feat!: release v0.3.0`, body with a
 `BREAKING CHANGE:` footer. With `bump-minor-pre-major: true` that resolves to `0.3.0`.
 
-The release PR it opens rewrites version strings into nine `extra-files`, including
-`CITATION.cff`, `app/app.json`, and every `package.json`, and prepends its own generated changelog
-section. For this release, keep the hand-written section and delete the generated one, then check
-every version string it missed (files without `x-release-please-version` annotations, such as
-`CITATION.cff` and `backend/app/__version__.py`, only change if their updater recognises the
-extension):
+The release PR it opens bumps every version string (`CITATION.cff`, `backend/app/__version__.py`,
+`app/app.json`, and each `package.json`) and prepends a generated changelog section. For this
+release, keep the hand-written section and delete the generated one.
 
 ```bash
 gh pr list --label 'autorelease: pending' --state open
-git grep -n '0\.2\.0' -- CITATION.cff backend/app/__version__.py app/app.json '*.json' '*.toml'
 ```
 
 Confirm the version, changelog, and release notes match this release's scope **before** merging
 that PR. The GitHub release it publishes gets the changelog section as its body, as `v0.2.0` did.
+Zenodo archives the release on its own; the concept DOI in `CITATION.cff` resolves to it.
 
 ## 0b. Abort rule
 

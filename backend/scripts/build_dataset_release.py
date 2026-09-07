@@ -285,6 +285,10 @@ class Creator:
         return f"{self.family_names}, {self.given_names[:1]}."
 
 
+# Version DOI of software release v0.2.0, the last one to ship the pilot SQL dump.
+PILOT_DUMP_RELEASE_DOI = "10.5281/zenodo.19703316"
+
+
 @dataclass(frozen=True)
 class ReleaseMetadata:
     """Everything the archive artefacts are rendered from."""
@@ -296,11 +300,11 @@ class ReleaseMetadata:
     doi: str = "10.5281/zenodo.XXXXXXX"
     # Names the salt generation, so two releases can be checked for linkability without the salt.
     pseudonym_salt_fingerprint: str = ""
-    # Concept DOI resolves to the newest software release; version DOI names one frozen
-    # release and is what provenance links use. Both mirror the root CITATION.cff
-    # (checked by tests/unit/scripts/test_build_dataset_release.py).
+    # The concept DOI resolves to the newest software release (same value as CITATION.cff).
+    # Provenance links must name one frozen release, so the version DOI of the release the
+    # data was exported from comes from --software-doi; the concept record lists them.
     software_concept_doi: str = "10.5281/zenodo.16637742"
-    software_version_doi: str = "10.5281/zenodo.19703316"
+    software_version_doi: str = "10.5281/zenodo.XXXXXXX"
     affiliation: str = "Institute of Environmental Sciences (CML), Leiden University"
     licence_name: str = "CC BY 4.0"
     licence_spdx: str = "CC-BY-4.0"
@@ -1030,7 +1034,7 @@ def render_changelog(meta: ReleaseMetadata, stats: BuildStats) -> str:
   licensed under {meta.licence_name}.
 - Tabular records plus an image tree, replacing the PostgreSQL dump
   (`RELab-pilot-dataset.sql.zst`) that shipped inside software release v0.2.0
-  ({meta.software_version_doi}). That pilot file is superseded, not retracted.
+  ({PILOT_DUMP_RELEASE_DOI}). That pilot file is superseded, not retracted.
 - Reference tables (taxonomy, categories, materials, product types, units) are frozen into
   the release so record foreign keys stay resolvable.
 - Owner identity replaced by stable pseudonyms; no account data is included.
@@ -1747,6 +1751,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--version", default=ReleaseMetadata.version, help="dataset version")
     parser.add_argument("--doi", default=ReleaseMetadata.doi, help="DOI once the Zenodo record exists")
     parser.add_argument(
+        "--software-doi",
+        default=ReleaseMetadata.software_version_doi,
+        help="version DOI of the Relab release the data was exported from (provenance link)",
+    )
+    parser.add_argument(
         "--pseudonym-salt",
         default=None,
         help=(
@@ -1779,7 +1788,9 @@ def main() -> None:
         # Reads and reports only; no salt needed.
         inventory(args.inventory_out, rules)
         return
-    meta = ReleaseMetadata(version=args.version, doi=args.doi)
+    if args.software_doi == ReleaseMetadata.software_version_doi:
+        sys.exit("--software-doi is required: provenance must pin one frozen software release")
+    meta = ReleaseMetadata(version=args.version, doi=args.doi, software_version_doi=args.software_doi)
     if args.credit is not None:
         meta = replace(meta, named_lab_contributors=tuple(name for name in args.credit if name))
     salt = read_pseudonym_salt(args.pseudonym_salt)

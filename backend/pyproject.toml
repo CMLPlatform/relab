@@ -55,7 +55,9 @@
     "fastapi-filters[sqlalchemy]>=0.3.3",
   ]
   requires-python = ">=3.14"
-  version = "0.2.0"
+  # Not a distributed package. The app reads app/__version__.py; a static value here
+  # keeps uv.lock out of every release bump.
+  version = "0.0.0"
 
   [project.urls]
     Homepage   = "https://github.com/CMLPlatform/relab"

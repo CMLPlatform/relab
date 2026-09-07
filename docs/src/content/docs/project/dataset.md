@@ -65,8 +65,11 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
    `no-terms-acceptance` rule and listed in `excluded-records.csv`. Accounts created before
    acceptance was tracked hold no grant until they answer the in-app prompt, and declining is a
    real outcome.
-1. `just release-build --out dist/dataset-vX.Y`: builds the release directory. The verification
-   pass at the end fails the build rather than warning.
+1. `just release-build --out dist/dataset-vX.Y --software-doi 10.5281/zenodo.NNNNNNN`: builds the
+   release directory. The software DOI is the version DOI of the Relab release the data was
+   exported from, listed on the [concept record](https://doi.org/10.5281/zenodo.16637742); the
+   provenance link must name one frozen release. The verification pass at the end fails the build
+   rather than warning.
 1. Review `dist/dataset-vX.Y/review/` by hand, including `excluded-records.csv` and the rule that
    excluded each record. This directory is not part of the published archive.
 1. The pseudonymisation salt comes from `RELAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or

@@ -19,8 +19,9 @@
 
   ## Dependencies and version constraints
   requires-python = ">=3.14"
-  # NOTE: package versioning across the repo is managed by release-please.
-  version = "0.2.0"
+  # Not a distributed package. The release version lives in .github/.release-please-manifest.json;
+  # a static value here keeps uv.lock out of every release bump.
+  version = "0.0.0"
 
 [dependency-groups]
   # pyyaml is used directly by scripts/sync_brand_assets.py to read CITATION.cff.
