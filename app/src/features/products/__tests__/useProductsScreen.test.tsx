@@ -97,7 +97,7 @@ describe('useProductsScreen', () => {
   });
 
   async function renderUseProductsScreen() {
-    const hook = renderHook(() => useProductsScreen());
+    const hook = await renderHook(() => useProductsScreen());
 
     await act(async () => {
       await Promise.resolve();
@@ -130,7 +130,7 @@ describe('useProductsScreen', () => {
   it('syncs debounced search text back to the URL', async () => {
     const { result } = await renderUseProductsScreen();
 
-    act(() => {
+    await act(() => {
       result.current.search.setQuery('laptop');
       jest.advanceTimersByTime(500);
     });
@@ -144,7 +144,7 @@ describe('useProductsScreen', () => {
     const { result, rerender } = await renderUseProductsScreen();
 
     // User types; it settles into the URL.
-    act(() => {
+    await act(() => {
       result.current.search.setQuery('laptop');
       jest.advanceTimersByTime(500);
     });
@@ -152,18 +152,18 @@ describe('useProductsScreen', () => {
       expect(mockSetParams).toHaveBeenCalledWith({ q: 'laptop' });
     });
     mockSearchParams = { q: 'laptop' };
-    rerender({});
+    await rerender({});
     mockSetParams.mockClear();
 
     // External navigation (browser back/forward) points ?q= somewhere else.
     mockSearchParams = { q: 'phone' };
-    rerender({});
+    await rerender({});
 
     // The toolbar reflects the external query...
     expect(result.current.search.query).toBe('phone');
 
     // ...and the settling debounce must not write the stale 'laptop' back.
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(500);
     });
     await act(async () => {
@@ -190,7 +190,7 @@ describe('useProductsScreen', () => {
   it('prompts guests to sign in before creating a product', async () => {
     const { result } = await renderUseProductsScreen();
 
-    act(() => {
+    await act(() => {
       result.current.actions.createProduct();
     });
 
@@ -220,7 +220,7 @@ describe('useProductsScreen', () => {
     expect(result.current.list.isFetchingNextPage).toBe(false);
     expect(typeof result.current.list.fetchNextPage).toBe('function');
 
-    act(() => {
+    await act(() => {
       result.current.list.fetchNextPage();
     });
     expect(mockFetchNextPage).toHaveBeenCalledTimes(1);
@@ -229,7 +229,7 @@ describe('useProductsScreen', () => {
   it('applies filter actions through named handlers', async () => {
     const { result } = await renderUseProductsScreen();
 
-    act(() => {
+    await act(() => {
       result.current.filters.toggleMine();
       result.current.filters.applyBrandSelection(['Apple', 'Dell']);
     });
@@ -274,7 +274,7 @@ describe('useProductsScreen', () => {
       ).createdAfter.toISOString();
 
       jest.advanceTimersByTime(500);
-      rerender({});
+      await rerender({});
 
       const lastIso = (
         mockedFn.mock.calls[mockedFn.mock.calls.length - 1][3] as { createdAfter: Date }
@@ -293,7 +293,7 @@ describe('useProductsScreen filters disclosure', () => {
   });
 
   async function renderUseProductsScreen() {
-    const hook = renderHook(() => useProductsScreen());
+    const hook = await renderHook(() => useProductsScreen());
     await act(async () => {
       await Promise.resolve();
     });
@@ -306,7 +306,7 @@ describe('useProductsScreen filters disclosure', () => {
     expect(result.current.filters.expanded).toBe(false);
     expect(result.current.filters.activeCount).toBe(0);
 
-    act(() => result.current.filters.toggleExpanded());
+    await act(() => result.current.filters.toggleExpanded());
     expect(result.current.filters.expanded).toBe(true);
   });
 

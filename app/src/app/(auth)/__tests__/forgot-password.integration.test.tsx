@@ -31,16 +31,16 @@ function createMockResponse(ok: boolean, body: Record<string, unknown> = {}): Re
   } as unknown as Response;
 }
 
-function renderForgotPasswordScreen() {
-  renderWithProviders(<ForgotPasswordScreen />);
+async function renderForgotPasswordScreen() {
+  await renderWithProviders(<ForgotPasswordScreen />);
 }
 
 async function submitForgotPasswordEmail(email: string) {
-  fireEvent.changeText(screen.getByLabelText('Email'), email);
+  await fireEvent.changeText(screen.getByLabelText('Email'), email);
   await waitFor(() => {
     expect(screen.getByText('Send reset link')).not.toBeDisabled();
   });
-  fireEvent.press(screen.getByText('Send reset link'));
+  await fireEvent.press(screen.getByText('Send reset link'));
 }
 
 beforeEach(() => {
@@ -55,16 +55,16 @@ beforeEach(() => {
 });
 
 describe('ForgotPasswordScreen rendering', () => {
-  it('renders the forgot password form', () => {
-    renderForgotPasswordScreen();
+  it('renders the forgot password form', async () => {
+    await renderForgotPasswordScreen();
     expect(screen.getByText('Forgot password')).toBeOnTheScreen();
     expect(screen.getAllByText('Send reset link')).not.toHaveLength(0);
     expect(screen.getByText(FORGOT_PASSWORD_INSTRUCTIONS_PATTERN)).toBeOnTheScreen();
   });
 
   it('shows a validation error for an invalid email address', async () => {
-    renderForgotPasswordScreen();
-    fireEvent.changeText(screen.getByLabelText('Email'), 'not-an-email');
+    await renderForgotPasswordScreen();
+    await fireEvent.changeText(screen.getByLabelText('Email'), 'not-an-email');
 
     await waitFor(() => {
       expect(screen.getByText(VALID_EMAIL_PATTERN)).toBeOnTheScreen();
@@ -74,7 +74,7 @@ describe('ForgotPasswordScreen rendering', () => {
 
 describe('ForgotPasswordScreen submission', () => {
   it('submits the email and shows the success state', async () => {
-    renderForgotPasswordScreen();
+    await renderForgotPasswordScreen();
     await submitForgotPasswordEmail('user@example.com');
 
     await waitFor(() => {
@@ -92,7 +92,7 @@ describe('ForgotPasswordScreen submission', () => {
   it('shows the API error message when the request fails', async () => {
     mockedApiFetch.mockResolvedValue(createMockResponse(false, { detail: 'No matching account' }));
 
-    renderForgotPasswordScreen();
+    await renderForgotPasswordScreen();
     await submitForgotPasswordEmail('user@example.com');
 
     await waitFor(() => {
@@ -104,7 +104,7 @@ describe('ForgotPasswordScreen submission', () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockedApiFetch.mockRejectedValue(new Error('network down'));
 
-    renderForgotPasswordScreen();
+    await renderForgotPasswordScreen();
     await submitForgotPasswordEmail('user@example.com');
 
     await waitFor(() => {
@@ -117,7 +117,7 @@ describe('ForgotPasswordScreen submission', () => {
 
 describe('ForgotPasswordScreen navigation', () => {
   it('redirects to login after a successful request delay', async () => {
-    renderForgotPasswordScreen();
+    await renderForgotPasswordScreen();
     await submitForgotPasswordEmail('user@example.com');
 
     await screen.findByText(ACCOUNT_EXISTS_MESSAGE_PATTERN);
@@ -130,16 +130,16 @@ describe('ForgotPasswordScreen navigation', () => {
   });
 
   it('navigates to login from both states (not history back, which may be invalid)', async () => {
-    renderForgotPasswordScreen();
+    await renderForgotPasswordScreen();
 
-    fireEvent.press(screen.getByText('Back to login'));
+    await fireEvent.press(screen.getByText('Back to login'));
     expect(mockReplace).toHaveBeenCalledWith('/login');
     expect(mockBack).not.toHaveBeenCalled();
 
     await submitForgotPasswordEmail('user@example.com');
     await screen.findByText(ACCOUNT_EXISTS_MESSAGE_PATTERN);
 
-    fireEvent.press(screen.getByText('Back to login'));
+    await fireEvent.press(screen.getByText('Back to login'));
     expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 });

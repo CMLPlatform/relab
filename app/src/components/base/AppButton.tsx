@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { Children, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import {
   type AppButtonVariant,
@@ -36,13 +36,12 @@ export function AppButton({
   ...rest
 }: AppButtonProps) {
   const { colors } = useAppTheme();
-  // Bare RN text nodes must live inside <Text>.
-  const renderedChildren =
-    typeof children === 'string' || typeof children === 'number' ? (
-      <Text>{children}</Text>
-    ) : (
-      children
-    );
+  // Bare RN text nodes must live inside <Text>, and an interpolated label
+  // ("Select all ({count})") arrives as an array of them, not a single string.
+  // Wrap each primitive and leave element children alone.
+  const renderedChildren = Children.map(children, (child) =>
+    typeof child === 'string' || typeof child === 'number' ? <Text>{child}</Text> : child,
+  );
   return (
     <Button
       variant={VARIANT_MAP[variant]}

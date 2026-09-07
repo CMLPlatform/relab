@@ -5,6 +5,12 @@
 export * from '@testing-library/react-native';
 export { mockResponse, mockUser, setupFetchMock } from './api-mocks';
 export { baseProduct } from './fixtures';
+export {
+  getHostByType,
+  queryAllHostsByProps,
+  queryAllHostsByType,
+  queryHostByProps,
+} from './host';
 export { mockPlatform, restorePlatform } from './platform';
 export { renderWithProviders } from './render';
 export { handlers, server } from './server';

@@ -46,7 +46,7 @@ describe('useLoginForm guards', () => {
         }),
     );
 
-    const { result } = renderHook(() => useLoginForm(makeArgs()));
+    const { result } = await renderHook(() => useLoginForm(makeArgs()));
 
     await act(async () => {
       void result.current.submit();

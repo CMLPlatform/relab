@@ -37,62 +37,62 @@ afterEach(() => {
   restorePlatform();
 });
 
-test('renders nothing below lg', () => {
+test('renders nothing below lg', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: false });
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.queryByText('Products')).toBeNull();
 });
 
-test('renders destinations at lg', () => {
+test('renders destinations at lg', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.getByText('Products')).toBeOnTheScreen();
   expect(screen.getByText('Cameras')).toBeOnTheScreen();
 });
 
-test('marks the active destination from the pathname', () => {
+test('marks the active destination from the pathname', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   (usePathname as jest.Mock).mockReturnValue('/cameras');
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.getByLabelText('Cameras, current page')).toBeOnTheScreen();
   expect(screen.getByLabelText('Products')).toBeOnTheScreen();
 });
 
-test('marks the active destination on a detail route (prefix match)', () => {
+test('marks the active destination on a detail route (prefix match)', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   (usePathname as jest.Mock).mockReturnValue('/products/123');
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.getByLabelText('Products, current page')).toBeOnTheScreen();
   expect(screen.getByLabelText('Cameras')).toBeOnTheScreen();
 });
 
-test('pressing a destination routes', () => {
+test('pressing a destination routes', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
-  render(<TopNav />);
-  fireEvent.press(screen.getByText('Cameras'));
+  await render(<TopNav />);
+  await fireEvent.press(screen.getByText('Cameras'));
   expect(navigate).toHaveBeenCalledWith('/cameras');
 });
 
-test('destinations have a web hover affordance', () => {
+test('destinations have a web hover affordance', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.getByLabelText('Cameras').props.className).toEqual(
     expect.stringContaining('hover:'),
   );
 });
 
-test('hides Cameras when rpi cameras are disabled', () => {
+test('hides Cameras when rpi cameras are disabled', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   mockUseRpiIntegration.mockReturnValue({ enabled: false });
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.getByText('Products')).toBeOnTheScreen();
   expect(screen.queryByText('Cameras')).toBeNull();
 });
 
-test('shows Cameras when rpi cameras are enabled', () => {
+test('shows Cameras when rpi cameras are enabled', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   mockUseRpiIntegration.mockReturnValue({ enabled: true });
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.getByText('Products')).toBeOnTheScreen();
   expect(screen.getByText('Cameras')).toBeOnTheScreen();
 });
@@ -106,9 +106,9 @@ test.each([
   '/reset-password',
   '/mfa',
   '/category-selection',
-])('renders nothing on the chrome-free route %s, even at lg', (path) => {
+])('renders nothing on the chrome-free route %s, even at lg', async (path) => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   (usePathname as jest.Mock).mockReturnValue(path);
-  render(<TopNav />);
+  await render(<TopNav />);
   expect(screen.queryByText('Products')).toBeNull();
 });

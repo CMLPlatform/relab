@@ -25,8 +25,8 @@ function Harness() {
 }
 
 test('renders label, propagates input, and announces the zod error', async () => {
-  renderWithProviders(<Harness />);
+  await renderWithProviders(<Harness />);
   expect(screen.getByText('Camera name')).toBeTruthy();
-  fireEvent.changeText(screen.getByPlaceholderText('Camera name'), 'x');
+  await fireEvent.changeText(screen.getByPlaceholderText('Camera name'), 'x');
   expect(await screen.findByText('Name is too short')).toBeTruthy();
 });

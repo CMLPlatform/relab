@@ -21,15 +21,15 @@ const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openEx
 describe('PrivacyPolicy', () => {
   const user = setupUser();
 
-  it('names both agreements a new account accepts', () => {
-    renderWithProviders(<PrivacyPolicy />);
+  it('names both agreements a new account accepts', async () => {
+    await renderWithProviders(<PrivacyPolicy />);
 
     expect(screen.getByText('Terms')).toBeOnTheScreen();
     expect(screen.getByText('Privacy Policy')).toBeOnTheScreen();
   });
 
   it('opens the terms page on the website', async () => {
-    renderWithProviders(<PrivacyPolicy />);
+    await renderWithProviders(<PrivacyPolicy />);
 
     await user.press(screen.getByText('Terms'));
 
@@ -37,7 +37,7 @@ describe('PrivacyPolicy', () => {
   });
 
   it('opens the privacy policy on the website', async () => {
-    renderWithProviders(<PrivacyPolicy />);
+    await renderWithProviders(<PrivacyPolicy />);
 
     await user.press(screen.getByText('Privacy Policy'));
 

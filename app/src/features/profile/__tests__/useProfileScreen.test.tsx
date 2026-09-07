@@ -162,7 +162,7 @@ describe('useProfileScreen', () => {
   });
 
   it('shows a toast when verification email is sent successfully', async () => {
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.actions.onVerifyAccount();
@@ -176,7 +176,7 @@ describe('useProfileScreen', () => {
   });
 
   it('updates the recurring email preference and refetches the profile', async () => {
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       await result.current.profile.handleEmailUpdatesChange(true);
@@ -190,7 +190,7 @@ describe('useProfileScreen', () => {
   });
 
   it('rejects too-short usernames before calling updateUser', async () => {
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.profile.openEditUsername();
@@ -208,7 +208,7 @@ describe('useProfileScreen', () => {
   });
 
   it('logs out, clears the active stream, refetches auth, and redirects', async () => {
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.dialogs.logoutDialog.open();
@@ -229,7 +229,7 @@ describe('useProfileScreen', () => {
       options?.onError?.(new Error('stop failed'));
     });
 
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.actions.confirmLogout();
@@ -247,7 +247,7 @@ describe('useProfileScreen', () => {
   // Regression: "Sign out everywhere" used to fire on a single tap, with no
   // confirmation, while the milder logout and unlink both asked first.
   it('does not sign out everywhere until the confirmation is accepted', async () => {
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.actions.onRevokeAllSessions();
@@ -262,7 +262,7 @@ describe('useProfileScreen', () => {
   });
 
   it('stops an active stream before signing out everywhere', async () => {
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.actions.onRevokeAllSessions();
@@ -284,7 +284,7 @@ describe('useProfileScreen', () => {
       options?.onError?.(new Error('stop failed'));
     });
 
-    const { result } = renderHook(() => useProfileScreen(), { wrapper: Wrapper });
+    const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 
     await act(async () => {
       result.current.actions.onRevokeAllSessions();

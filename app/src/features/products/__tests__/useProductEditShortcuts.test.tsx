@@ -55,31 +55,31 @@ describe('useProductEditShortcuts', () => {
     Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatform });
   });
 
-  it('exits edit mode on Escape', () => {
-    render();
+  it('exits edit mode on Escape', async () => {
+    await render();
 
-    act(() => {
+    await act(() => {
       press({ key: 'Escape' });
     });
 
     expect(onExit).toHaveBeenCalled();
   });
 
-  it('leaves Escape to a text field the user has typed into', () => {
-    render();
+  it('leaves Escape to a text field the user has typed into', async () => {
+    await render();
 
-    act(() => {
+    await act(() => {
       press({ key: 'Escape', target: { tagName: 'INPUT', value: 'half a name' } as never });
     });
 
     expect(onExit).not.toHaveBeenCalled();
   });
 
-  it('saves on Cmd/Ctrl+S and stops the browser save dialog', () => {
-    render();
+  it('saves on Cmd/Ctrl+S and stops the browser save dialog', async () => {
+    await render();
 
     let preventDefault = jest.fn();
-    act(() => {
+    await act(() => {
       preventDefault = press({ key: 's', metaKey: true });
     });
 
@@ -87,11 +87,11 @@ describe('useProductEditShortcuts', () => {
     expect(preventDefault).toHaveBeenCalled();
   });
 
-  it('swallows Cmd+S but does not save an invalid form', () => {
-    render({ canSave: false });
+  it('swallows Cmd+S but does not save an invalid form', async () => {
+    await render({ canSave: false });
 
     let preventDefault = jest.fn();
-    act(() => {
+    await act(() => {
       preventDefault = press({ key: 's', ctrlKey: true });
     });
 
@@ -99,12 +99,12 @@ describe('useProductEditShortcuts', () => {
     expect(preventDefault).toHaveBeenCalled();
   });
 
-  it('does not listen outside edit mode or off web', () => {
-    render({ editMode: false });
+  it('does not listen outside edit mode or off web', async () => {
+    await render({ editMode: false });
     expect(addEventListener).not.toHaveBeenCalled();
 
     Object.defineProperty(Platform, 'OS', { configurable: true, value: 'ios' });
-    render();
+    await render();
     expect(addEventListener).not.toHaveBeenCalled();
   });
 });

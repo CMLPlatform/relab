@@ -14,49 +14,49 @@ const TESTUSER_PATTERN = /testuser/;
 const COMPONENT_ID_PATTERN = /Component ID: 42/;
 
 describe('ProductMetaData', () => {
-  it('shows the product ID', () => {
-    renderWithProviders(<ProductMetaData product={baseProduct} />);
+  it('shows the product ID', async () => {
+    await renderWithProviders(<ProductMetaData product={baseProduct} />);
     expect(screen.getByText(PRODUCT_ID_PATTERN)).toBeOnTheScreen();
   });
 
-  it('shows the component ID for components', () => {
+  it('shows the component ID for components', async () => {
     const component = { ...baseProduct, role: 'component' as const, parentID: 1 };
-    renderWithProviders(<ProductMetaData product={component} />);
+    await renderWithProviders(<ProductMetaData product={component} />);
     expect(screen.getByText(COMPONENT_ID_PATTERN)).toBeOnTheScreen();
   });
 
-  it('shows creation date when createdAt is present', () => {
+  it('shows creation date when createdAt is present', async () => {
     const product = { ...baseProduct, createdAt: '2024-01-15T00:00:00Z' };
-    renderWithProviders(<ProductMetaData product={product} />);
+    await renderWithProviders(<ProductMetaData product={product} />);
     expect(screen.getByText(CREATED_PATTERN)).toBeOnTheScreen();
   });
 
-  it('shows updated date when updatedAt is present', () => {
+  it('shows updated date when updatedAt is present', async () => {
     const product = { ...baseProduct, updatedAt: '2024-06-01T00:00:00Z' };
-    renderWithProviders(<ProductMetaData product={product} />);
+    await renderWithProviders(<ProductMetaData product={product} />);
     expect(screen.getByText(LAST_UPDATED_PATTERN)).toBeOnTheScreen();
   });
 
-  it('does not show creation date when createdAt is absent', () => {
-    renderWithProviders(<ProductMetaData product={baseProduct} />);
+  it('does not show creation date when createdAt is absent', async () => {
+    await renderWithProviders(<ProductMetaData product={baseProduct} />);
     expect(screen.queryByText(CREATED_PATTERN)).toBeNull();
   });
 
-  it('does not show updated date when updatedAt is absent', () => {
-    renderWithProviders(<ProductMetaData product={baseProduct} />);
+  it('does not show updated date when updatedAt is absent', async () => {
+    await renderWithProviders(<ProductMetaData product={baseProduct} />);
     expect(screen.queryByText(LAST_UPDATED_PATTERN)).toBeNull();
   });
 
-  it('shows Anonymous when ownerUsername is null', () => {
+  it('shows Anonymous when ownerUsername is null', async () => {
     const product = { ...baseProduct, ownerUsername: undefined };
-    renderWithProviders(<ProductMetaData product={product} />);
+    await renderWithProviders(<ProductMetaData product={product} />);
     expect(screen.getByText(OWNER_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText(ANONYMOUS_PATTERN)).toBeOnTheScreen();
   });
 
-  it('shows username and link when ownerUsername is present', () => {
+  it('shows username and link when ownerUsername is present', async () => {
     const product = { ...baseProduct, ownerUsername: 'testuser' };
-    renderWithProviders(<ProductMetaData product={product} />);
+    await renderWithProviders(<ProductMetaData product={product} />);
     expect(screen.getByText(OWNER_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText(TESTUSER_PATTERN)).toBeOnTheScreen();
   });

@@ -129,7 +129,14 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
         ? React.createElement(ListEmptyComponent)
         : ListEmptyComponent;
 
-    return React.createElement(View, props, items && items.length > 0 ? items : empty, footer);
+    // testID gives the test a handle on the list's props: the real FlatList's
+    // are consumed before they reach a host element.
+    return React.createElement(
+      View,
+      { testID: 'flat-list-mock', ...props },
+      items && items.length > 0 ? items : empty,
+      footer,
+    );
   });
   return {
     __esModule: true,
@@ -271,36 +278,36 @@ function renderProducts() {
 }
 
 /** The sort/filter chips sit behind one toggle; the toggle's name carries the active count. */
-function openFilters() {
-  fireEvent.press(screen.getByLabelText(FILTERS_TOGGLE_PATTERN));
+async function openFilters() {
+  await fireEvent.press(screen.getByLabelText(FILTERS_TOGGLE_PATTERN));
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('Products screen', () => {
   it('renders the search bar and the filters toggle, with the chips collapsed', async () => {
-    renderProducts();
+    await renderProducts();
     expect(screen.getByPlaceholderText('Search products')).toBeOnTheScreen();
     expect(screen.getByLabelText('Filters').props.accessibilityState.expanded).toBe(false);
     expect(screen.queryByText('Date')).toBeNull();
-    openFilters();
+    await openFilters();
     expect(screen.getByText('Date')).toBeOnTheScreen();
   });
 
   it('opens the chips and counts them when the URL carries a filter', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '7', brands: 'Bosch' });
-    renderProducts();
+    await renderProducts();
     expect(screen.getByLabelText('Filters, 2 active').props.accessibilityState.expanded).toBe(true);
     expect(screen.getByText('Last 7d')).toBeOnTheScreen();
   });
 
   it('shows skeleton rows while loading', async () => {
-    renderProducts();
+    await renderProducts();
     expect(screen.getAllByTestId('product-card-skeleton').length).toBeGreaterThan(0);
   });
 
   it('shows empty state when no products match', async () => {
-    renderProducts();
+    await renderProducts();
     await waitFor(() =>
       expect(
         screen.getByText('No products available yet. Sign in to add your own.'),
@@ -309,34 +316,34 @@ describe('Products screen', () => {
   });
 
   it('shows search-specific empty state when searching', async () => {
-    renderProducts();
+    await renderProducts();
     await waitFor(() => expect(screen.queryByTestId('product-card-skeleton')).toBeNull());
 
-    fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'xyz');
+    await fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'xyz');
     expect(screen.getByText('No products match your search.')).toBeOnTheScreen();
   });
 
   it('clears the search query from the URL when the search box is emptied', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'saved query' });
-    renderProducts();
-    fireEvent.changeText(screen.getByPlaceholderText('Search products'), '');
+    await renderProducts();
+    await fireEvent.changeText(screen.getByPlaceholderText('Search products'), '');
 
     expect(mockSetParams).toHaveBeenCalledWith({ q: undefined });
   });
 
   it('resets page to 1 when sort changes (colocated in onPress)', async () => {
-    renderProducts();
-    openFilters();
+    await renderProducts();
+    await openFilters();
 
     // Open sort menu and pick a different option
-    fireEvent.press(screen.getByLabelText('Sort: Newest first'));
-    fireEvent.press(screen.getByText('Oldest first'));
+    await fireEvent.press(screen.getByLabelText('Sort: Newest first'));
+    await fireEvent.press(screen.getByText('Oldest first'));
 
     expect(mockSetParams).toHaveBeenCalledWith({ sort: 'created_at' });
   });
 
   it('renders welcome banner on first visit', async () => {
-    renderProducts();
+    await renderProducts();
     expect(screen.getByText('Welcome to Relab')).toBeOnTheScreen();
     expect(
       screen.getByText('Browse products freely. Sign in when you are ready to add your own.'),
@@ -344,14 +351,14 @@ describe('Products screen', () => {
   });
 
   it('dismisses welcome banner when Maybe later is pressed', async () => {
-    renderProducts();
-    fireEvent.press(screen.getByText('Maybe later'));
+    await renderProducts();
+    await fireEvent.press(screen.getByText('Maybe later'));
     expect(screen.queryByText('Welcome to Relab')).toBeNull();
   });
 
   it('shows no welcome card to verified users', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    renderProducts();
+    await renderProducts();
 
     expect(screen.queryByText('Got it')).toBeNull();
     expect(screen.queryByTestId('profile-pill-label')).toBeNull();
@@ -360,7 +367,7 @@ describe('Products screen', () => {
   it('prompts unverified signed-in users to verify their email', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser({ isVerified: false }) });
 
-    renderProducts();
+    await renderProducts();
 
     expect(screen.getByText('Verify your email to start creating')).toBeOnTheScreen();
     expect(screen.getByText('Verify email to add product')).toBeOnTheScreen();
@@ -368,7 +375,7 @@ describe('Products screen', () => {
     expect(screen.getByText('Got it')).toBeOnTheScreen();
     expect(screen.getByText('Verify email')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Verify email' }));
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/account');
     });
@@ -377,7 +384,7 @@ describe('Products screen', () => {
   it('uses Got it for the dismiss action when signed in but unverified', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser({ isVerified: false }) });
 
-    renderProducts();
+    await renderProducts();
 
     expect(screen.getByText('Got it')).toBeOnTheScreen();
     expect(screen.getByTestId('profile-pill-label')).toBeOnTheScreen();
@@ -386,8 +393,8 @@ describe('Products screen', () => {
 
 describe('FAB and new-product flow', () => {
   it('shows sign-in dialog when guest presses the FAB', async () => {
-    renderProducts();
-    fireEvent.press(screen.getByLabelText('Sign in to add product'));
+    await renderProducts();
+    await fireEvent.press(screen.getByLabelText('Sign in to add product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Sign in required' }),
     );
@@ -395,16 +402,16 @@ describe('FAB and new-product flow', () => {
 
   it('navigates to /products/new when verified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    renderProducts();
-    fireEvent.press(screen.getByLabelText('New product'));
+    await renderProducts();
+    await fireEvent.press(screen.getByLabelText('New product'));
     expect(mockDialogApi.input).not.toHaveBeenCalled();
     expect(mockPush).toHaveBeenCalledWith('/products/new');
   });
 
   it('shows email-verification dialog when unverified user presses FAB', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser({ isVerified: false }) });
-    renderProducts();
-    fireEvent.press(screen.getByLabelText('Verify email to add product'));
+    await renderProducts();
+    await fireEvent.press(screen.getByLabelText('Verify email to add product'));
     expect(mockDialogApi.alert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Verify your email first' }),
     );
@@ -413,48 +420,48 @@ describe('FAB and new-product flow', () => {
 
 describe('Filter chips and modals', () => {
   it('opens brand filter modal when Brand chip is pressed', async () => {
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByText('Brand'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByText('Brand'));
     expect(screen.getByText('Filter by brand')).toBeOnTheScreen();
   });
 
   it('opens product type filter modal when Type chip is pressed', async () => {
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByText('Product type'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByText('Product type'));
     expect(screen.getByText('Filter by product type')).toBeOnTheScreen();
   });
 
   it('shows Date chip and opens dropdown menu when pressed', async () => {
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByText('Date'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByText('Date'));
     expect(screen.getByText('Last 7d')).toBeOnTheScreen();
     expect(screen.getByText('Last 30d')).toBeOnTheScreen();
     expect(screen.getByText('Last 90d')).toBeOnTheScreen();
   });
 
   it('activates a date preset when selected from the dropdown menu', async () => {
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByText('Date'));
-    fireEvent.press(screen.getByText('Last 7d'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByText('Date'));
+    await fireEvent.press(screen.getByText('Last 7d'));
     expect(mockSetParams).toHaveBeenCalledWith({ days: '7' });
   });
 
   it('shows the active preset label on the Date chip', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '30' });
-    renderProducts();
+    await renderProducts();
     expect(screen.getByText('Last 30d')).toBeOnTheScreen();
   });
 
   it('clears an active date preset via the chip close button', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '7' });
-    renderProducts();
+    await renderProducts();
     expect(screen.getByText('Last 7d')).toBeOnTheScreen();
     const closeBtn = screen.getByLabelText('Clear Last 7d filter');
-    fireEvent.press(closeBtn);
+    await fireEvent.press(closeBtn);
     expect(mockSetParams).toHaveBeenCalledWith({ days: undefined });
   });
 });
@@ -466,7 +473,7 @@ describe('Error state', () => {
         HttpResponse.json({ detail: 'Network failure' }, { status: 500 }),
       ),
     );
-    renderProducts();
+    await renderProducts();
     await waitFor(() => expect(screen.getByText(NETWORK_FAILURE_PATTERN)).toBeOnTheScreen());
     expect(screen.getByLabelText('Retry loading products')).toBeOnTheScreen();
   });
@@ -475,11 +482,11 @@ describe('Error state', () => {
 describe('Empty-state messages', () => {
   it('shows mine-specific empty state when authenticated and filterMode=mine', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    renderProducts();
-    openFilters();
+    await renderProducts();
+    await openFilters();
 
     // Switch to mine filter via the Mine chip
-    fireEvent.press(screen.getByText('Mine'));
+    await fireEvent.press(screen.getByText('Mine'));
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine' });
   });
 
@@ -487,7 +494,7 @@ describe('Empty-state messages', () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
 
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() =>
       expect(screen.getByText("You haven't created any products yet. Tap the")).toBeOnTheScreen(),
@@ -497,7 +504,7 @@ describe('Empty-state messages', () => {
 
   it('shows creation prompt when authenticated user has no products', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(screen.getByText('No products yet. Tap the')).toBeOnTheScreen());
     expect(screen.getAllByText('New product').length).toBeGreaterThan(0);
@@ -507,7 +514,7 @@ describe('Empty-state messages', () => {
 describe('Infinite scroll', () => {
   it('shows a Load more button when more results exist', async () => {
     server.use(threePageProductsHandler());
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeOnTheScreen());
     expect(screen.getByText('Product A')).toBeOnTheScreen();
@@ -518,12 +525,12 @@ describe('Infinite scroll', () => {
   // next page's items below the ones already rendered, never replace them.
   it('appends page-2 items below page-1 items when Load more is pressed', async () => {
     server.use(threePageProductsHandler());
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeOnTheScreen());
     expect(screen.queryByText('Product C')).toBeNull();
 
-    fireEvent.press(screen.getByLabelText('Load more products'));
+    await fireEvent.press(screen.getByLabelText('Load more products'));
 
     await waitFor(() => expect(screen.getByText('Product C')).toBeOnTheScreen());
     // Page-1 items are still there — the new page was appended, not swapped in.
@@ -534,11 +541,11 @@ describe('Infinite scroll', () => {
 
   it('fires onEndReached (scroll-triggered append) instead of only responding to the button', async () => {
     server.use(threePageProductsHandler());
-    const { UNSAFE_getByType } = renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(screen.getByText('Product B')).toBeOnTheScreen());
 
-    const list = UNSAFE_getByType(FlatList);
+    const list = screen.getByTestId('flat-list-mock');
     expect(list.props.onEndReachedThreshold).toBe(0.5);
     await act(async () => {
       list.props.onEndReached();
@@ -550,12 +557,12 @@ describe('Infinite scroll', () => {
 
   it('does not touch URL params when loading more — pagination is local to the query', async () => {
     server.use(threePageProductsHandler());
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(screen.getByLabelText('Load more products')).toBeOnTheScreen());
     mockSetParams.mockClear();
 
-    fireEvent.press(screen.getByLabelText('Load more products'));
+    await fireEvent.press(screen.getByLabelText('Load more products'));
     await waitFor(() => expect(screen.getByText('Product C')).toBeOnTheScreen());
 
     expect(mockSetParams).not.toHaveBeenCalled();
@@ -573,7 +580,7 @@ describe('Infinite scroll', () => {
         }),
       ),
     );
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(screen.getByText('1 of 1 products')).toBeOnTheScreen());
     expect(screen.queryByLabelText('Load more products')).toBeNull();
@@ -583,37 +590,37 @@ describe('Infinite scroll', () => {
 describe('Mine filter chip', () => {
   it('is not shown for guest users', async () => {
     mockUseAuth.mockReturnValue({ user: null });
-    renderProducts();
+    await renderProducts();
     expect(screen.queryByText('Mine')).toBeNull();
   });
 
   it('is shown for authenticated users', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    renderProducts();
-    openFilters();
+    await renderProducts();
+    await openFilters();
     expect(screen.getByText('Mine')).toBeOnTheScreen();
   });
 
   it('sets filterMode=mine when pressed while in all-products mode', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByText('Mine'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByText('Mine'));
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'mine' });
   });
 
   it('clears filterMode when pressed while already in mine mode', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
-    renderProducts();
-    fireEvent.press(screen.getByText('Mine'));
+    await renderProducts();
+    await fireEvent.press(screen.getByText('Mine'));
     expect(mockSetParams).toHaveBeenCalledWith({ filterMode: 'all' });
   });
 
   it('exposes the active filter to screen readers via accessibilityState.selected', async () => {
     mockUseAuth.mockReturnValue({ user: mockUser() });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode: 'mine' });
-    renderProducts();
+    await renderProducts();
     expect(screen.getByLabelText('Show all products').props.accessibilityState).toMatchObject({
       selected: true,
     });
@@ -622,7 +629,7 @@ describe('Mine filter chip', () => {
 
 describe('Date filter dropdown', () => {
   it('renders a single Date chip instead of multiple preset chips', async () => {
-    renderProducts();
+    await renderProducts();
     // Individual preset labels are not visible until menu is opened
     expect(screen.queryByText('Last 7d')).toBeNull();
     expect(screen.queryByText('Last 30d')).toBeNull();
@@ -630,25 +637,25 @@ describe('Date filter dropdown', () => {
   });
 
   it('opens menu with all preset options when the chip is pressed', async () => {
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByText('Date'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByText('Date'));
     expect(screen.getByText('Last 7d')).toBeOnTheScreen();
     expect(screen.getByText('Last 30d')).toBeOnTheScreen();
     expect(screen.getByText('Last 90d')).toBeOnTheScreen();
   });
 
   it('sets days param when a menu option is selected', async () => {
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByText('Date'));
-    fireEvent.press(screen.getByText('Last 30d'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByText('Date'));
+    await fireEvent.press(screen.getByText('Last 30d'));
     expect(mockSetParams).toHaveBeenCalledWith({ days: '30' });
   });
 
   it('shows the active preset label on the chip when days param is set', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ days: '90' });
-    renderProducts();
+    await renderProducts();
     expect(screen.getByText('Last 90d')).toBeOnTheScreen();
   });
 });
@@ -656,7 +663,7 @@ describe('Date filter dropdown', () => {
 describe('Sort — Relevance default when searching', () => {
   it('omits explicit sort when a search query is in the URL', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(mockProductsInfiniteQueryOptions).toHaveBeenCalled());
     const sortArgs = mockProductsInfiniteQueryOptions.mock.calls.map((c) => c[2] as string[]);
@@ -665,7 +672,7 @@ describe('Sort — Relevance default when searching', () => {
 
   it('defaults to newest-first sort when there is no search query', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(mockProductsInfiniteQueryOptions).toHaveBeenCalled());
     const sortArgs = mockProductsInfiniteQueryOptions.mock.calls.map((c) => c[2] as string[]);
@@ -674,7 +681,7 @@ describe('Sort — Relevance default when searching', () => {
 
   it('uses an explicit sort param from URL even when search is active', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum', sort: 'name' });
-    renderProducts();
+    await renderProducts();
 
     await waitFor(() => expect(mockProductsInfiniteQueryOptions).toHaveBeenCalled());
     const sortArgs = mockProductsInfiniteQueryOptions.mock.calls.map((c) => c[2] as string[]);
@@ -683,27 +690,27 @@ describe('Sort — Relevance default when searching', () => {
 
   it('shows Relevance option in the sort menu when a search is active', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByLabelText('Sort: Relevance'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByLabelText('Sort: Relevance'));
     // The chip itself reads "Relevance"; the second match is the menu item.
     expect(screen.getAllByText('Relevance')).toHaveLength(2);
   });
 
   it('hides Relevance option in the sort menu when there is no search', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByLabelText('Sort: Newest first'));
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByLabelText('Sort: Newest first'));
     expect(screen.queryByText('Relevance')).toBeNull();
   });
 
   it('clears explicit sort when Relevance is selected from the sort menu', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'aluminum' });
-    renderProducts();
-    openFilters();
-    fireEvent.press(screen.getByLabelText('Sort: Relevance'));
-    fireEvent.press(screen.getAllByText('Relevance')[1]);
+    await renderProducts();
+    await openFilters();
+    await fireEvent.press(screen.getByLabelText('Sort: Relevance'));
+    await fireEvent.press(screen.getAllByText('Relevance')[1]);
     expect(mockSetParams).toHaveBeenCalledWith({ sort: undefined });
   }, 15_000);
 });

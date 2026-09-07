@@ -11,8 +11,8 @@ type SingleProps = React.ComponentProps<typeof SingleSelectFilterModal>;
 
 // Every test renders the modal open with a controlled, empty search; only the
 // title, items, labels and the handler under assertion vary.
-const renderMulti = (props: Partial<MultiProps>) =>
-  renderWithProviders(
+const renderMulti = async (props: Partial<MultiProps>) =>
+  await renderWithProviders(
     <FilterSelectionModal
       visible
       onDismiss={jest.fn()}
@@ -27,8 +27,8 @@ const renderMulti = (props: Partial<MultiProps>) =>
     { withDialog: true },
   );
 
-const renderSingle = (props: Partial<SingleProps>) =>
-  renderWithProviders(
+const renderSingle = async (props: Partial<SingleProps>) =>
+  await renderWithProviders(
     <SingleSelectFilterModal
       visible
       onDismiss={jest.fn()}
@@ -46,8 +46,8 @@ const renderSingle = (props: Partial<SingleProps>) =>
 describe('FilterSelectionModal', () => {
   const user = setupUser();
 
-  it('shows a loading indicator while items are being fetched', () => {
-    renderMulti({ title: 'Pick one', items: [], isLoading: true });
+  it('shows a loading indicator while items are being fetched', async () => {
+    await renderMulti({ title: 'Pick one', items: [], isLoading: true });
 
     expect(screen.getByRole('progressbar')).toBeOnTheScreen();
   });
@@ -57,7 +57,7 @@ describe('FilterSelectionModal', () => {
     // in `description`; filtering matches the stored name, so the value the
     // caller gets back has to stay the code.
     const onSelectionChange = jest.fn();
-    renderMulti({
+    await renderMulti({
       title: 'Filter by product type',
       items: ['CPV: 302132'],
       labels: { 'CPV: 302132': 'Tablet computer' },
@@ -70,8 +70,8 @@ describe('FilterSelectionModal', () => {
     expect(onSelectionChange).toHaveBeenCalledWith(['CPV: 302132']);
   });
 
-  it('labels a selected value that is missing from the current results', () => {
-    renderMulti({
+  it('labels a selected value that is missing from the current results', async () => {
+    await renderMulti({
       title: 'Filter by product type',
       items: ['Laptop'],
       labels: { 'CPV: 302132': 'Tablet computer' },
@@ -83,14 +83,14 @@ describe('FilterSelectionModal', () => {
     expect(screen.queryByText('CPV: 302132')).not.toBeOnTheScreen();
   });
 
-  it('falls back to the raw value when no label is supplied', () => {
-    renderMulti({ title: 'Filter by brand', items: ['Dell'] });
+  it('falls back to the raw value when no label is supplied', async () => {
+    await renderMulti({ title: 'Filter by brand', items: ['Dell'] });
 
     expect(screen.getByText('Dell')).toBeOnTheScreen();
   });
 
-  it('shows an empty state when there are no results', () => {
-    renderMulti({ title: 'Pick one', items: [] });
+  it('shows an empty state when there are no results', async () => {
+    await renderMulti({ title: 'Pick one', items: [] });
 
     expect(screen.getByText('No results')).toBeOnTheScreen();
   });
@@ -98,7 +98,7 @@ describe('FilterSelectionModal', () => {
   it('toggles selections', async () => {
     const onSelectionChange = jest.fn();
 
-    renderMulti({
+    await renderMulti({
       title: 'Pick one',
       items: ['alpha', 'beta'],
       selectedValues: ['alpha'],
@@ -110,8 +110,8 @@ describe('FilterSelectionModal', () => {
     expect(onSelectionChange).toHaveBeenCalledWith(['alpha', 'beta']);
   });
 
-  it('does not show an add-new chip even when search yields no matches', () => {
-    renderMulti({ title: 'Filter by brand', items: [], searchQuery: 'BrandNew' });
+  it('does not show an add-new chip even when search yields no matches', async () => {
+    await renderMulti({ title: 'Filter by brand', items: [], searchQuery: 'BrandNew' });
 
     expect(screen.getByText('No results')).toBeOnTheScreen();
   });
@@ -120,10 +120,10 @@ describe('FilterSelectionModal', () => {
 describe('SingleSelectFilterModal', () => {
   const user = setupUser();
 
-  it('shows add-new chip instead of "No results" when search yields no matches', () => {
+  it('shows add-new chip instead of "No results" when search yields no matches', async () => {
     // Regression: previously the add-new chip was hidden inside the visibleItems.length > 0
     // branch, so typing a brand not in the list showed "No results" with no way to add it.
-    renderSingle({ title: 'Select brand', items: [], searchQuery: 'BrandNew' });
+    await renderSingle({ title: 'Select brand', items: [], searchQuery: 'BrandNew' });
 
     expect(screen.queryByText('No results')).toBeNull();
     expect(screen.getByText('BrandNew')).toBeOnTheScreen();
@@ -133,7 +133,7 @@ describe('SingleSelectFilterModal', () => {
     const onValueChange = jest.fn();
     const onDismiss = jest.fn();
 
-    renderSingle({
+    await renderSingle({
       title: 'Select brand',
       items: [],
       searchQuery: 'BrandNew',
@@ -151,7 +151,7 @@ describe('SingleSelectFilterModal', () => {
     const onValueChange = jest.fn();
     const onDismiss = jest.fn();
 
-    renderSingle({
+    await renderSingle({
       title: 'Pick one',
       items: ['alpha'],
       searchQuery: 'gamma',
@@ -170,7 +170,7 @@ describe('SingleSelectFilterModal', () => {
     const onValueChange = jest.fn();
     const onDismiss = jest.fn();
 
-    renderSingle({
+    await renderSingle({
       title: 'Select brand',
       items: ['alpha', 'beta'],
       onValueChange,

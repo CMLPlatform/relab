@@ -30,8 +30,8 @@ describe('useGalleryKeyboardNavigation', () => {
     });
   });
 
-  it('registers a keyboard listener only on web when enabled', () => {
-    renderHook(() =>
+  it('registers a keyboard listener only on web when enabled', async () => {
+    await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 3,
@@ -44,11 +44,11 @@ describe('useGalleryKeyboardNavigation', () => {
     expect(addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
   });
 
-  it('triggers previous and next handlers on arrow keys', () => {
+  it('triggers previous and next handlers on arrow keys', async () => {
     const onPrevious = jest.fn();
     const onNext = jest.fn();
 
-    renderHook(() =>
+    await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 3,
@@ -60,7 +60,7 @@ describe('useGalleryKeyboardNavigation', () => {
 
     const handler = addEventListener.mock.calls[0]?.[1] as (event: KeyboardEvent) => void;
 
-    act(() => {
+    await act(() => {
       handler({ key: 'ArrowLeft' } as KeyboardEvent);
       handler({ key: 'ArrowRight' } as KeyboardEvent);
     });
@@ -69,11 +69,11 @@ describe('useGalleryKeyboardNavigation', () => {
     expect(onNext).toHaveBeenCalled();
   });
 
-  it('ignores keys when disabled or at bounds', () => {
+  it('ignores keys when disabled or at bounds', async () => {
     const onPrevious = jest.fn();
     const onNext = jest.fn();
 
-    const disabled = renderHook(() =>
+    const disabled = await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: false,
         imageCount: 3,
@@ -83,9 +83,9 @@ describe('useGalleryKeyboardNavigation', () => {
       }),
     );
     expect(addEventListener).not.toHaveBeenCalled();
-    disabled.unmount();
+    await disabled.unmount();
 
-    renderHook(() =>
+    await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 3,
@@ -96,13 +96,13 @@ describe('useGalleryKeyboardNavigation', () => {
     );
 
     const handler = addEventListener.mock.calls[0]?.[1] as (event: KeyboardEvent) => void;
-    act(() => {
+    await act(() => {
       handler({ key: 'ArrowLeft' } as KeyboardEvent);
     });
     expect(onPrevious).not.toHaveBeenCalled();
 
     jest.clearAllMocks();
-    renderHook(() =>
+    await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 3,
@@ -112,14 +112,14 @@ describe('useGalleryKeyboardNavigation', () => {
       }),
     );
     const lastHandler = addEventListener.mock.calls[0]?.[1] as (event: KeyboardEvent) => void;
-    act(() => {
+    await act(() => {
       lastHandler({ key: 'ArrowRight' } as KeyboardEvent);
     });
     expect(onNext).not.toHaveBeenCalled();
   });
 
-  it('removes the listener on cleanup', () => {
-    const { unmount } = renderHook(() =>
+  it('removes the listener on cleanup', async () => {
+    const { unmount } = await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 3,
@@ -130,18 +130,18 @@ describe('useGalleryKeyboardNavigation', () => {
     );
 
     const handler = addEventListener.mock.calls[0]?.[1];
-    unmount();
+    await unmount();
 
     expect(removeEventListener).toHaveBeenCalledWith('keydown', handler);
   });
 
-  it('keeps one listener while using the latest callbacks after rerenders', () => {
+  it('keeps one listener while using the latest callbacks after rerenders', async () => {
     const originalPrevious = jest.fn();
     const originalNext = jest.fn();
     const latestPrevious = jest.fn();
     const latestNext = jest.fn();
 
-    const { rerender } = renderHook(
+    const { rerender } = await renderHook(
       ({
         selectedIndex,
         onPrevious,
@@ -169,7 +169,7 @@ describe('useGalleryKeyboardNavigation', () => {
 
     const handler = addEventListener.mock.calls[0]?.[1] as (event: KeyboardEvent) => void;
 
-    rerender({
+    await rerender({
       selectedIndex: 1,
       onPrevious: latestPrevious,
       onNext: latestNext,
@@ -177,7 +177,7 @@ describe('useGalleryKeyboardNavigation', () => {
 
     expect(addEventListener).toHaveBeenCalledTimes(1);
 
-    act(() => {
+    await act(() => {
       handler({ key: 'ArrowLeft' } as KeyboardEvent);
       handler({ key: 'ArrowRight' } as KeyboardEvent);
     });
@@ -218,10 +218,10 @@ describe('useGalleryKeyboardNavigation guards', () => {
   // Regression: arrow keys typed into a text field also moved the gallery slide.
   it.each([['INPUT'], ['TEXTAREA'], ['SELECT']])(
     'ignores arrow keys typed inside a %s',
-    (tagName) => {
+    async (tagName) => {
       const onPrevious = jest.fn();
       const onNext = jest.fn();
-      renderHook(() =>
+      await renderHook(() =>
         useGalleryKeyboardNavigation({
           enabled: true,
           imageCount: 3,
@@ -231,17 +231,17 @@ describe('useGalleryKeyboardNavigation guards', () => {
         }),
       );
 
-      act(() => press('ArrowRight', { tagName, isContentEditable: false }));
-      act(() => press('ArrowLeft', { tagName, isContentEditable: false }));
+      await act(() => press('ArrowRight', { tagName, isContentEditable: false }));
+      await act(() => press('ArrowLeft', { tagName, isContentEditable: false }));
 
       expect(onNext).not.toHaveBeenCalled();
       expect(onPrevious).not.toHaveBeenCalled();
     },
   );
 
-  it('ignores arrow keys inside a contentEditable element', () => {
+  it('ignores arrow keys inside a contentEditable element', async () => {
     const onNext = jest.fn();
-    renderHook(() =>
+    await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 3,
@@ -251,14 +251,14 @@ describe('useGalleryKeyboardNavigation guards', () => {
       }),
     );
 
-    act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: true }));
+    await act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: true }));
 
     expect(onNext).not.toHaveBeenCalled();
   });
 
-  it('still navigates when the key lands outside a text field', () => {
+  it('still navigates when the key lands outside a text field', async () => {
     const onNext = jest.fn();
-    renderHook(() =>
+    await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 3,
@@ -268,15 +268,15 @@ describe('useGalleryKeyboardNavigation guards', () => {
       }),
     );
 
-    act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: false }));
+    await act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: false }));
 
     expect(onNext).toHaveBeenCalled();
   });
 
   // Regression: every existing test passed imageCount 3, so the single-image
   // guard could be deleted with the suite still green.
-  it('does not bind arrow keys for a single-image gallery', () => {
-    renderHook(() =>
+  it('does not bind arrow keys for a single-image gallery', async () => {
+    await renderHook(() =>
       useGalleryKeyboardNavigation({
         enabled: true,
         imageCount: 1,

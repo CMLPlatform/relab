@@ -7,28 +7,28 @@ import { renderWithProviders } from '@/test-utils/render';
 const OFFLINE_TEXT = /offline/i;
 
 describe('OfflineBanner', () => {
-  afterEach(() => {
-    act(() => onlineManager.setOnline(true));
+  afterEach(async () => {
+    await act(() => onlineManager.setOnline(true));
   });
 
-  it('renders nothing while online', () => {
-    renderWithProviders(<OfflineBanner />);
+  it('renders nothing while online', async () => {
+    await renderWithProviders(<OfflineBanner />);
     expect(screen.queryByText(OFFLINE_TEXT)).toBeNull();
   });
 
-  it('shows a polite live-region message when offline', () => {
-    renderWithProviders(<OfflineBanner />);
-    act(() => onlineManager.setOnline(false));
+  it('shows a polite live-region message when offline', async () => {
+    await renderWithProviders(<OfflineBanner />);
+    await act(() => onlineManager.setOnline(false));
     const message = screen.getByText(OFFLINE_TEXT);
     expect(message).toBeOnTheScreen();
     expect(message.props.accessibilityLiveRegion).toBe('polite');
   });
 
-  it('hides again once back online', () => {
-    renderWithProviders(<OfflineBanner />);
-    act(() => onlineManager.setOnline(false));
+  it('hides again once back online', async () => {
+    await renderWithProviders(<OfflineBanner />);
+    await act(() => onlineManager.setOnline(false));
     expect(screen.getByText(OFFLINE_TEXT)).toBeOnTheScreen();
-    act(() => onlineManager.setOnline(true));
+    await act(() => onlineManager.setOnline(true));
     expect(screen.queryByText(OFFLINE_TEXT)).toBeNull();
   });
 });

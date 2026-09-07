@@ -27,24 +27,24 @@ beforeEach(() => {
 });
 
 describe('layout helpers rendering', () => {
-  it('renders HeaderRightPill for guests and signed-in users', () => {
+  it('renders HeaderRightPill for guests and signed-in users', async () => {
     mockUseAuth.mockReturnValueOnce({ user: null });
-    const { rerender } = renderWithProviders(<HeaderRightPill />);
+    const { rerender } = await renderWithProviders(<HeaderRightPill />);
     expect(screen.getByText('Sign in')).toBeOnTheScreen();
 
     mockUseAuth.mockReturnValueOnce({
       user: { id: 'user-1', username: 'averyverylongusername', email: 'test@example.com' },
     });
-    rerender(<HeaderRightPill />);
+    await rerender(<HeaderRightPill />);
 
     expect(screen.getByText('averyverylongu…')).toBeOnTheScreen();
   });
 
-  it('renders a safe prompt for signed-in users without a username', () => {
+  it('renders a safe prompt for signed-in users without a username', async () => {
     mockUseAuth.mockReturnValueOnce({
       user: { id: 'user-1', username: null, email: 'test@example.com' },
     });
-    renderWithProviders(<HeaderRightPill />);
+    await renderWithProviders(<HeaderRightPill />);
 
     expect(screen.getByText('Complete profile')).toBeOnTheScreen();
   });
@@ -80,10 +80,10 @@ describe('layout helpers rendering', () => {
 
   // Reads the values from the tokens rather than restating them: hardcoded
   // rgba literals here just break whenever the scrim is retuned.
-  it('returns the overlay for normal and auth routes', () => {
+  it('returns the overlay for normal and auth routes', async () => {
     const light = getAppTheme('light').tokens.overlay;
     const dark = getAppTheme('dark').tokens.overlay;
-    const { result, rerender } = renderHook<BackgroundOverlay, { isDark: boolean }>(
+    const { result, rerender } = await renderHook<BackgroundOverlay, { isDark: boolean }>(
       ({ isDark }) => useBackgroundOverlay(isDark),
       { initialProps: { isDark: false } },
     );
@@ -91,7 +91,7 @@ describe('layout helpers rendering', () => {
     expect(result.current).toEqual({ color: light.page, edgeColor: null });
 
     mockUsePathname.mockReturnValue('/login');
-    rerender({ isDark: true });
+    await rerender({ isDark: true });
 
     // /login is a band route: gradient, not the flat hero scrim.
     expect(result.current).toEqual({ color: dark.heroBand, edgeColor: dark.heroEdge });

@@ -60,7 +60,7 @@ describe('ProductType', () => {
 
   // Only a component can be a material, so the row is labelled by role.
   it('labels the type row "Product type" for a product', async () => {
-    renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
+    await renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
     expect(await screen.findByText('Product type')).toBeOnTheScreen();
     expect(screen.getByText('Choose a product type')).toBeOnTheScreen();
     expect(screen.queryByText('Component type or material')).toBeNull();
@@ -68,7 +68,7 @@ describe('ProductType', () => {
 
   it('labels the type row "Component type or material" for a component', async () => {
     const component = { ...baseProduct, role: 'component' as const, parentID: 1 };
-    renderWithProviders(<ProductType product={component} editMode={true} />);
+    await renderWithProviders(<ProductType product={component} editMode={true} />);
     expect(await screen.findByText('Component type or material')).toBeOnTheScreen();
     expect(screen.getByText('Choose component type or material')).toBeOnTheScreen();
     expect(screen.queryByText('Select a fitting category for the product.')).toBeNull();
@@ -78,13 +78,13 @@ describe('ProductType', () => {
   // that CPVCard renders as a red error card — a typeless product must never
   // show that as its default first impression.
   it('shows an inviting empty state instead of the undefined category card when no type is picked', async () => {
-    renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
+    await renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
     expect(await screen.findByText('Choose a product type')).toBeOnTheScreen();
     expect(screen.queryByText('Category undefined')).toBeNull();
   });
 
   it('renders nothing for a typeless product in view mode', async () => {
-    const { queryByText } = renderWithProviders(
+    const { queryByText } = await renderWithProviders(
       <ProductType product={baseProduct} editMode={false} />,
     );
     // Flush the loadCPV() effect (its result is unused for a typeless
@@ -97,7 +97,7 @@ describe('ProductType', () => {
 
   it('renders the correct category description when productTypeID is set', async () => {
     const product = { ...baseProduct, productTypeID: 1 };
-    renderWithProviders(<ProductType product={product} editMode={false} />);
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
     expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
   });
 
@@ -105,7 +105,7 @@ describe('ProductType', () => {
   // cpv.root, which CPVCard renders as a red "Category undefined" error card.
   it('renders nothing for an unresolvable type id instead of the undefined error card', async () => {
     const product = { ...baseProduct, productTypeID: 999 };
-    renderWithProviders(<ProductType product={product} editMode={false} />);
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
     await act(async () => {});
     expect(screen.queryByText('Category undefined')).toBeNull();
   });
@@ -117,7 +117,7 @@ describe('ProductType', () => {
     (useFocusEffect as jest.Mock).mockImplementation((cb: unknown) => (cb as () => void)());
     mockedTakePending.mockReturnValue(123);
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductType product={baseProduct} editMode={false} onTypeChange={onTypeChange} />,
     );
 
@@ -127,7 +127,7 @@ describe('ProductType', () => {
   });
 
   it('navigates to category selection on press in editMode', async () => {
-    renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
+    await renderWithProviders(<ProductType product={baseProduct} editMode={true} />);
     await user.press(await screen.findByText('Choose a product type'));
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
@@ -136,14 +136,14 @@ describe('ProductType', () => {
   // id), so a new product could never set its type before the first save.
   it('opens the picker for an unsaved draft (no id) in editMode', async () => {
     const draft = { ...baseProduct, id: undefined } as unknown as Product;
-    renderWithProviders(<ProductType product={draft} editMode={true} />);
+    await renderWithProviders(<ProductType product={draft} editMode={true} />);
     await user.press(await screen.findByText('Choose a product type'));
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
   it('does not navigate when not in editMode', async () => {
     const product = { ...baseProduct, productTypeID: 1 };
-    renderWithProviders(<ProductType product={product} editMode={false} />);
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
     await user.press(await screen.findByText('Agricultural products'));
     expect(mockPush).not.toHaveBeenCalled();
   });

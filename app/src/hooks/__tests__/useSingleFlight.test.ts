@@ -7,7 +7,7 @@ describe('useSingleFlight', () => {
     let release: () => void = () => {};
     const action = jest.fn(() => new Promise<void>((resolve) => (release = resolve)));
 
-    const { result } = renderHook(() => useSingleFlight(action));
+    const { result } = await renderHook(() => useSingleFlight(action));
 
     await act(async () => {
       void result.current();
@@ -29,7 +29,7 @@ describe('useSingleFlight', () => {
       throw new Error('boom');
     });
 
-    const { result } = renderHook(() => useSingleFlight(action));
+    const { result } = await renderHook(() => useSingleFlight(action));
 
     await act(async () => {
       await expect(result.current()).rejects.toThrow('boom');
@@ -43,7 +43,7 @@ describe('useSingleFlight', () => {
   it('forwards arguments to the wrapped action', async () => {
     const action = jest.fn(async (_code: string) => undefined);
 
-    const { result } = renderHook(() => useSingleFlight(action));
+    const { result } = await renderHook(() => useSingleFlight(action));
 
     await act(async () => {
       await result.current('123456');

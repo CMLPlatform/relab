@@ -32,11 +32,11 @@ describe('DialogProvider destructive action hierarchy', () => {
       );
     }
 
-    renderWithProviders(<Trigger />, { withDialog: true });
+    await renderWithProviders(<Trigger />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
     // submitEditing is a custom event not supported by userEvent
-    fireEvent(screen.getByPlaceholderText('Product name'), 'submitEditing');
+    await fireEvent(screen.getByPlaceholderText('Product name'), 'submitEditing');
 
     expect(onDelete).not.toHaveBeenCalled();
   });
@@ -55,7 +55,7 @@ describe('DialogProvider destructive action hierarchy', () => {
       );
     }
 
-    renderWithProviders(<Trigger />, { withDialog: true });
+    await renderWithProviders(<Trigger />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -83,7 +83,7 @@ describe('DialogProvider destructive action hierarchy', () => {
       );
     }
 
-    renderWithProviders(<Trigger />, { withDialog: true });
+    await renderWithProviders(<Trigger />, { withDialog: true });
     await user.press(screen.getByTestId('trigger'));
 
     const submitClassName = screen.getByRole('button', { name: 'Sign out' }).props

@@ -5,6 +5,7 @@ import { PRODUCTS_FAB_EDGE_GAP } from '@/components/product/products-screen/shar
 import { MIN_TAP_TARGET } from '@/constants';
 import {
   baseProduct,
+  getHostByType,
   mockPlatform,
   renderWithProviders,
   restorePlatform,
@@ -46,8 +47,8 @@ function renderList({
 }
 
 describe('ProductsListContent skeleton handoff', () => {
-  it('fades the product list in rather than hard-cutting from the skeletons', () => {
-    const { getByTestId, UNSAFE_getByType } = renderList();
+  it('fades the product list in rather than hard-cutting from the skeletons', async () => {
+    const { getByTestId } = await renderList();
     // The skeleton branch renders a different tree entirely, so without this the
     // swap is eight grey cards replaced by eight real ones in a single frame.
     // The fade lives on a flex-1 wrapper, not on Animated.FlatList — reanimated's
@@ -55,28 +56,37 @@ describe('ProductsListContent skeleton handoff', () => {
     // (its own source warns "wrap your component with an animated view and
     // apply the layout animation on the wrapper" for exactly this reason).
     expect(getByTestId('products-list-fade').props.entering).toBeDefined();
-    expect(UNSAFE_getByType(FlatList)).toBeTruthy();
+    expect(getHostByType('RCTScrollView')).toBeTruthy();
   });
 
   // Regression guard for the crash above: `entering`/`layout` must never land
   // directly on the virtualized FlatList itself, only on the wrapper.
-  it('never applies a layout animation to the FlatList itself', () => {
-    const { UNSAFE_getByType } = renderList();
+  it('never applies a layout animation to the FlatList itself', async () => {
+    await renderList();
 
-    const list = UNSAFE_getByType(FlatList);
+    const list = getHostByType('RCTScrollView');
     expect(list.props.entering).toBeUndefined();
     expect(list.props.layout).toBeUndefined();
   });
 });
 
+// RefreshControl's props stay on the element the list holds: the host it renders
+// (RCTRefreshControl) carries only children, so there is no handler to fire on.
+function refreshControl() {
+  const list = getHostByType('RCTScrollView');
+  const { refreshControl: control } = list.props as {
+    refreshControl: { props: { refreshing: boolean; onRefresh: () => void } };
+  };
+  return control.props;
+}
+
 describe('ProductsListContent pull-to-refresh', () => {
-  it('does not spin the pull-to-refresh control for a background refetch', () => {
+  it('does not spin the pull-to-refresh control for a background refetch', async () => {
     // isFetchingNextPage must never drive the pull-to-refresh spinner — only a
     // user-initiated pull (handled below) may.
-    const { UNSAFE_getByProps } = renderList({ isFetchingNextPage: true });
+    await renderList({ isFetchingNextPage: true });
 
-    const refreshControl = UNSAFE_getByProps({ refreshing: false });
-    expect(refreshControl).toBeTruthy();
+    expect(refreshControl().refreshing).toBe(false);
   });
 
   it('spins the pull-to-refresh control only while a user-initiated refresh is in flight', async () => {
@@ -87,29 +97,29 @@ describe('ProductsListContent pull-to-refresh', () => {
           resolveRefresh = resolve;
         }),
     );
-    const { UNSAFE_getByProps } = renderList({ onRefresh });
+    await renderList({ onRefresh });
 
-    const refreshControl = UNSAFE_getByProps({ refreshing: false });
+    expect(refreshControl().refreshing).toBe(false);
 
     await act(async () => {
-      fireEvent(refreshControl, 'refresh');
+      refreshControl().onRefresh();
     });
     expect(onRefresh).toHaveBeenCalledTimes(1);
-    expect(UNSAFE_getByProps({ refreshing: true })).toBeTruthy();
+    expect(refreshControl().refreshing).toBe(true);
 
     await act(async () => {
       resolveRefresh();
     });
-    expect(UNSAFE_getByProps({ refreshing: false })).toBeTruthy();
+    expect(refreshControl().refreshing).toBe(false);
   });
 });
 
 describe('ProductsListContent infinite scroll', () => {
   it('wires onEndReached to fetch the next page when more results exist', async () => {
     const onFetchNextPage = jest.fn();
-    const { UNSAFE_getByType } = renderList({ hasNextPage: true, onFetchNextPage });
+    await renderList({ hasNextPage: true, onFetchNextPage });
 
-    const list = UNSAFE_getByType(FlatList);
+    const list = getHostByType('RCTScrollView');
     expect(list.props.onEndReachedThreshold).toBe(0.5);
 
     await act(async () => {
@@ -121,9 +131,9 @@ describe('ProductsListContent infinite scroll', () => {
 
   it('does not fetch past the end when there is no next page', async () => {
     const onFetchNextPage = jest.fn();
-    const { UNSAFE_getByType } = renderList({ hasNextPage: false, onFetchNextPage });
+    await renderList({ hasNextPage: false, onFetchNextPage });
 
-    const list = UNSAFE_getByType(FlatList);
+    const list = getHostByType('RCTScrollView');
     await act(async () => {
       list.props.onEndReached();
     });
@@ -131,8 +141,8 @@ describe('ProductsListContent infinite scroll', () => {
     expect(onFetchNextPage).not.toHaveBeenCalled();
   });
 
-  it('shows a footer spinner while fetching the next page, not the Load more button', () => {
-    const { getByLabelText, queryByLabelText } = renderList({
+  it('shows a footer spinner while fetching the next page, not the Load more button', async () => {
+    const { getByLabelText, queryByLabelText } = await renderList({
       hasNextPage: true,
       isFetchingNextPage: true,
     });
@@ -141,20 +151,20 @@ describe('ProductsListContent infinite scroll', () => {
     expect(queryByLabelText('Load more products')).toBeNull();
   });
 
-  it('shows an explicit Load more button when more results exist and nothing is in flight', () => {
+  it('shows an explicit Load more button when more results exist and nothing is in flight', async () => {
     const onFetchNextPage = jest.fn();
-    const { getByLabelText, queryByLabelText } = renderList({
+    const { getByLabelText, queryByLabelText } = await renderList({
       hasNextPage: true,
       onFetchNextPage,
     });
 
     expect(queryByLabelText('Loading more products')).toBeNull();
-    fireEvent.press(getByLabelText('Load more products'));
+    await fireEvent.press(getByLabelText('Load more products'));
     expect(onFetchNextPage).toHaveBeenCalledTimes(1);
   });
 
-  it('shows neither spinner nor Load more once every page is loaded', () => {
-    const { queryByLabelText, getByText } = renderList({
+  it('shows neither spinner nor Load more once every page is loaded', async () => {
+    const { queryByLabelText, getByText } = await renderList({
       hasNextPage: false,
       isFetchingNextPage: false,
       products: [baseProduct],
@@ -166,8 +176,12 @@ describe('ProductsListContent infinite scroll', () => {
     expect(getByText('1 of 1 products')).toBeOnTheScreen();
   });
 
-  it('shows the muted product-count caption', () => {
-    const { getByText } = renderList({ products: [baseProduct], total: 55, hasNextPage: true });
+  it('shows the muted product-count caption', async () => {
+    const { getByText } = await renderList({
+      products: [baseProduct],
+      total: 55,
+      hasNextPage: true,
+    });
 
     expect(getByText('1 of 55 products')).toBeOnTheScreen();
   });
@@ -178,15 +192,15 @@ describe('ProductsListContent chrome', () => {
 
   // Focus refetch (TanStack `refetchOnWindowFocus`) and browser reload cover
   // web; a Refresh button above the list was one more control before a record.
-  it('renders no Refresh button on web', () => {
+  it('renders no Refresh button on web', async () => {
     mockPlatform('web');
-    renderList();
+    await renderList();
     expect(screen.queryByLabelText('Refresh products')).toBeNull();
   });
 
-  it('reserves enough footer space to scroll the terminal count clear of the FAB', () => {
-    const { UNSAFE_getByType } = renderList();
-    const list = UNSAFE_getByType(FlatList);
+  it('reserves enough footer space to scroll the terminal count clear of the FAB', async () => {
+    await renderList();
+    const list = getHostByType('RCTScrollView');
 
     expect(list.props.contentContainerStyle.paddingBottom).toBeGreaterThanOrEqual(
       MIN_TAP_TARGET + PRODUCTS_FAB_EDGE_GAP * 2,

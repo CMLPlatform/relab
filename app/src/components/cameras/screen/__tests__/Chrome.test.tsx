@@ -26,39 +26,39 @@ describe('CamerasFab', () => {
     restorePlatform();
   });
 
-  it('fires onPress', () => {
+  it('fires onPress', async () => {
     const onPress = jest.fn();
-    render(<CamerasFab visible onPress={onPress} />);
-    fireEvent.press(screen.getByLabelText('Add camera'));
+    await render(<CamerasFab visible onPress={onPress} />);
+    await fireEvent.press(screen.getByLabelText('Add camera'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('renders nothing when not visible', () => {
-    render(<CamerasFab visible={false} onPress={jest.fn()} />);
+  it('renders nothing when not visible', async () => {
+    await render(<CamerasFab visible={false} onPress={jest.fn()} />);
     expect(screen.queryByLabelText('Add camera')).toBeNull();
   });
 
-  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible', () => {
+  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible', async () => {
     mockPlatform('web');
     mockUseBottomNavVisible.mockReturnValue(false);
-    const { rerender } = render(<CamerasFab visible onPress={jest.fn()} />);
+    const { rerender } = await render(<CamerasFab visible onPress={jest.fn()} />);
     const hiddenBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<CamerasFab visible onPress={jest.fn()} />);
+    await rerender(<CamerasFab visible onPress={jest.fn()} />);
     const visibleBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     expect(visibleBottom - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
   });
 
-  it('does not add clearance on native even when BottomNav is visible (native is already in normal flow)', () => {
+  it('does not add clearance on native even when BottomNav is visible (native is already in normal flow)', async () => {
     mockPlatform('ios');
     mockUseBottomNavVisible.mockReturnValue(false);
-    const { rerender } = render(<CamerasFab visible onPress={jest.fn()} />);
+    const { rerender } = await render(<CamerasFab visible onPress={jest.fn()} />);
     const hiddenBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<CamerasFab visible onPress={jest.fn()} />);
+    await rerender(<CamerasFab visible onPress={jest.fn()} />);
     const visibleBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     expect(visibleBottom).toBe(hiddenBottom);

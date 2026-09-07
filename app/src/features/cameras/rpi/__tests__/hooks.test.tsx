@@ -138,7 +138,7 @@ describe('RPi camera query hooks', () => {
       },
     ]);
 
-    const { result, rerender, unmount } = renderHook(
+    const { result, rerender, unmount } = await renderHook(
       ({ enabled }: { enabled: boolean }) => useCamerasQuery(true, { enabled }),
       {
         wrapper,
@@ -150,14 +150,14 @@ describe('RPi camera query hooks', () => {
     expect(mockedFetchCameras).not.toHaveBeenCalled();
 
     await act(async () => {
-      rerender({ enabled: true });
+      await rerender({ enabled: true });
     });
 
     await waitFor(() =>
       expect(mockedFetchCameras).toHaveBeenCalledWith(true, { includeTelemetry: false }),
     );
-    act(() => {
-      unmount();
+    await act(async () => {
+      await unmount();
     });
   });
 
@@ -174,7 +174,7 @@ describe('RPi camera query hooks', () => {
       status: { connection: 'online', details: null, last_seen_at: null },
     });
 
-    const { result, rerender, unmount } = renderHook(
+    const { result, rerender, unmount } = await renderHook(
       ({ id }: { id: string }) => useCameraQuery(id, true),
       {
         wrapper,
@@ -186,14 +186,14 @@ describe('RPi camera query hooks', () => {
     expect(mockedFetchCamera).not.toHaveBeenCalled();
 
     await act(async () => {
-      rerender({ id: 'cam-2' });
+      await rerender({ id: 'cam-2' });
     });
 
     await waitFor(() =>
       expect(mockedFetchCamera).toHaveBeenCalledWith('cam-2', true, { includeTelemetry: false }),
     );
-    act(() => {
-      unmount();
+    await act(async () => {
+      await unmount();
     });
   });
 });
@@ -217,7 +217,7 @@ describe('RPi camera mutation hooks', () => {
     });
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useUpdateCameraMutation('cam-2'), { wrapper });
+    const { result } = await renderHook(() => useUpdateCameraMutation('cam-2'), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync({ name: 'Updated Camera' });
@@ -242,8 +242,8 @@ describe('RPi camera mutation hooks', () => {
     });
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result: deleteResult } = renderHook(() => useDeleteCameraMutation(), { wrapper });
-    const { result: claimResult } = renderHook(() => useClaimPairingMutation(), { wrapper });
+    const { result: deleteResult } = await renderHook(() => useDeleteCameraMutation(), { wrapper });
+    const { result: claimResult } = await renderHook(() => useClaimPairingMutation(), { wrapper });
 
     await act(async () => {
       await deleteResult.current.mutateAsync('cam-3');
@@ -270,7 +270,7 @@ describe('RPi camera mutation hooks', () => {
     });
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useCaptureImageMutation(), { wrapper });
+    const { result } = await renderHook(() => useCaptureImageMutation(), { wrapper });
 
     await act(async () => {
       await result.current.mutateAsync({ cameraId: 'cam-5', productId: 42 });
@@ -283,33 +283,33 @@ describe('RPi camera mutation hooks', () => {
 });
 
 describe('useCameraLivePreview', () => {
-  it('returns hlsUrl null when camera is null', () => {
-    const { result, unmount } = renderHook(() => useCameraLivePreview(null), { wrapper });
+  it('returns hlsUrl null when camera is null', async () => {
+    const { result, unmount } = await renderHook(() => useCameraLivePreview(null), { wrapper });
     expect(result.current.hlsUrl).toBeNull();
-    act(() => {
-      unmount();
+    await act(async () => {
+      await unmount();
     });
   });
 
-  it('returns hlsUrl null when enabled is false', () => {
-    const { result, unmount } = renderHook(
+  it('returns hlsUrl null when enabled is false', async () => {
+    const { result, unmount } = await renderHook(
       () => useCameraLivePreview({ id: 'cam-99' }, { enabled: false }),
       { wrapper },
     );
     expect(result.current.hlsUrl).toBeNull();
-    act(() => {
-      unmount();
+    await act(async () => {
+      await unmount();
     });
   });
 
-  it('returns an hlsUrl containing the camera id when enabled', () => {
-    const { result, unmount } = renderHook(() => useCameraLivePreview({ id: 'cam-99' }), {
+  it('returns an hlsUrl containing the camera id when enabled', async () => {
+    const { result, unmount } = await renderHook(() => useCameraLivePreview({ id: 'cam-99' }), {
       wrapper,
     });
     expect(result.current.hlsUrl).toContain('cam-99');
     expect(result.current.hlsUrl).toContain('index.m3u8');
-    act(() => {
-      unmount();
+    await act(async () => {
+      await unmount();
     });
   });
 });

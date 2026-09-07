@@ -12,8 +12,8 @@ test('formatWeight keeps grams, the unit the field is entered and shown in', () 
   expect(formatWeight(1200)).toBe('1200 g');
 });
 
-test('renders name, identity line, and facts that exist', () => {
-  render(
+test('renders name, identity line, and facts that exist', async () => {
+  await render(
     <SpecHeader
       product={{
         ...baseProduct,
@@ -33,8 +33,8 @@ test('renders name, identity line, and facts that exist', () => {
   expect(screen.getByText('2')).toBeOnTheScreen();
 });
 
-test('renders no facts row segments for missing data', () => {
-  render(
+test('renders no facts row segments for missing data', async () => {
+  await render(
     <SpecHeader
       product={{
         ...baseProduct,
@@ -58,8 +58,8 @@ test('renders no facts row segments for missing data', () => {
 describe('SpecHeader name field in edit mode', () => {
   const product = { ...baseProduct, name: 'Initial product name' };
 
-  test('renders the name as a display-scale input', () => {
-    render(<SpecHeader product={product} editMode />);
+  test('renders the name as a display-scale input', async () => {
+    await render(<SpecHeader product={product} editMode />);
     const input = screen.getByLabelText('Product name');
     expect(input.props.value).toBe('Initial product name');
     expect(StyleSheet.flatten(input.props.style).fontSize).toBe(
@@ -67,30 +67,30 @@ describe('SpecHeader name field in edit mode', () => {
     );
   });
 
-  test('preserves an in-progress draft when the product hydrates mid-edit', () => {
-    const { rerender } = render(<SpecHeader product={product} editMode />);
-    fireEvent.changeText(screen.getByLabelText('Product name'), 'Unsaved draft');
-    rerender(<SpecHeader product={{ ...product, name: 'Hydrated name' }} editMode />);
+  test('preserves an in-progress draft when the product hydrates mid-edit', async () => {
+    const { rerender } = await render(<SpecHeader product={product} editMode />);
+    await fireEvent.changeText(screen.getByLabelText('Product name'), 'Unsaved draft');
+    await rerender(<SpecHeader product={{ ...product, name: 'Hydrated name' }} editMode />);
     expect(screen.getByDisplayValue('Unsaved draft')).toBeOnTheScreen();
   });
 
-  test('calls onNameChange with the trimmed draft on blur', () => {
+  test('calls onNameChange with the trimmed draft on blur', async () => {
     const onNameChange = jest.fn();
-    render(<SpecHeader product={product} editMode onNameChange={onNameChange} />);
+    await render(<SpecHeader product={product} editMode onNameChange={onNameChange} />);
     const input = screen.getByLabelText('Product name');
-    fireEvent.changeText(input, '  Updated product name  ');
-    fireEvent(input, 'blur');
+    await fireEvent.changeText(input, '  Updated product name  ');
+    await fireEvent(input, 'blur');
     expect(onNameChange).toHaveBeenCalledWith('Updated product name');
   });
 
-  test('announces a validation error for a too-short name', () => {
-    render(<SpecHeader product={product} editMode />);
-    fireEvent.changeText(screen.getByLabelText('Product name'), 'A');
+  test('announces a validation error for a too-short name', async () => {
+    await render(<SpecHeader product={product} editMode />);
+    await fireEvent.changeText(screen.getByLabelText('Product name'), 'A');
     expect(screen.getByRole('alert')).toBeOnTheScreen();
   });
 
-  test('renders plain text, not an input, in view mode', () => {
-    render(<SpecHeader product={product} editMode={false} />);
+  test('renders plain text, not an input, in view mode', async () => {
+    await render(<SpecHeader product={product} editMode={false} />);
     expect(screen.queryByLabelText('Product name')).toBeNull();
     expect(screen.getByText('Initial product name')).toBeOnTheScreen();
   });

@@ -51,36 +51,36 @@ describe('useProductSearchShortcut', () => {
     Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatform });
   });
 
-  it('registers a keydown listener on web', () => {
+  it('registers a keydown listener on web', async () => {
     const searchRef = makeSearchRef();
-    renderHook(() => useProductSearchShortcut(searchRef));
+    await renderHook(() => useProductSearchShortcut(searchRef));
 
     expect(addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
   });
 
-  it('does not register a listener on native', () => {
+  it('does not register a listener on native', async () => {
     Object.defineProperty(Platform, 'OS', { configurable: true, value: 'ios' });
     const searchRef = makeSearchRef();
-    renderHook(() => useProductSearchShortcut(searchRef));
+    await renderHook(() => useProductSearchShortcut(searchRef));
 
     expect(addEventListener).not.toHaveBeenCalled();
   });
 
-  it('focuses the search field on "/"', () => {
+  it('focuses the search field on "/"', async () => {
     const searchRef = makeSearchRef();
-    renderHook(() => useProductSearchShortcut(searchRef));
+    await renderHook(() => useProductSearchShortcut(searchRef));
 
-    act(() => press('/', { tagName: 'DIV' }));
+    await act(() => press('/', { tagName: 'DIV' }));
 
     expect(searchRef.current.focus).toHaveBeenCalled();
   });
 
-  it('leaves "/" alone while a modal dialog is open', () => {
+  it('leaves "/" alone while a modal dialog is open', async () => {
     querySelector.mockReturnValue({} as Element);
     const searchRef = makeSearchRef();
-    renderHook(() => useProductSearchShortcut(searchRef));
+    await renderHook(() => useProductSearchShortcut(searchRef));
 
-    act(() => press('/', { tagName: 'DIV' }));
+    await act(() => press('/', { tagName: 'DIV' }));
 
     expect(querySelector).toHaveBeenCalledWith('[aria-modal="true"]');
     expect(searchRef.current.focus).not.toHaveBeenCalled();
@@ -88,11 +88,11 @@ describe('useProductSearchShortcut', () => {
 
   it.each([['INPUT'], ['TEXTAREA']])(
     'leaves "/" alone when already typing inside a %s',
-    (tagName) => {
+    async (tagName) => {
       const searchRef = makeSearchRef();
-      renderHook(() => useProductSearchShortcut(searchRef));
+      await renderHook(() => useProductSearchShortcut(searchRef));
 
-      act(() => press('/', { tagName }));
+      await act(() => press('/', { tagName }));
 
       expect(searchRef.current.focus).not.toHaveBeenCalled();
     },
@@ -101,30 +101,30 @@ describe('useProductSearchShortcut', () => {
   it.each([
     ['a contenteditable host', { tagName: 'DIV', isContentEditable: true }],
     ['an ARIA textbox', { tagName: 'DIV', getAttribute: () => 'textbox' }],
-  ])('leaves "/" alone when already typing inside %s', (_label, target) => {
+  ])('leaves "/" alone when already typing inside %s', async (_label, target) => {
     const searchRef = makeSearchRef();
-    renderHook(() => useProductSearchShortcut(searchRef));
+    await renderHook(() => useProductSearchShortcut(searchRef));
 
-    act(() => press('/', target));
+    await act(() => press('/', target));
 
     expect(searchRef.current.focus).not.toHaveBeenCalled();
   });
 
-  it('ignores keys other than "/"', () => {
+  it('ignores keys other than "/"', async () => {
     const searchRef = makeSearchRef();
-    renderHook(() => useProductSearchShortcut(searchRef));
+    await renderHook(() => useProductSearchShortcut(searchRef));
 
-    act(() => press('a', { tagName: 'DIV' }));
+    await act(() => press('a', { tagName: 'DIV' }));
 
     expect(searchRef.current.focus).not.toHaveBeenCalled();
   });
 
-  it('removes the listener on cleanup', () => {
+  it('removes the listener on cleanup', async () => {
     const searchRef = makeSearchRef();
-    const { unmount } = renderHook(() => useProductSearchShortcut(searchRef));
+    const { unmount } = await renderHook(() => useProductSearchShortcut(searchRef));
 
     const handler = addEventListener.mock.calls[0]?.[1];
-    unmount();
+    await unmount();
 
     expect(removeEventListener).toHaveBeenCalledWith('keydown', handler);
   });

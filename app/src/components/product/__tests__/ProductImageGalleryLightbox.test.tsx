@@ -10,7 +10,13 @@ import type React from 'react';
 import { StyleSheet, View, type ViewProps } from 'react-native';
 import ProductImages from '@/components/product/ProductImageGallery';
 import { processImage } from '@/services/imageProcessing';
-import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
+import {
+  baseProduct,
+  mockPlatform,
+  queryAllHostsByProps,
+  queryAllHostsByType,
+  renderWithProviders,
+} from '@/test-utils/index';
 import { lightTheme } from '@/theme/themes';
 import type { Product } from '@/types/Product';
 
@@ -195,15 +201,15 @@ describe('ProductImages', () => {
     keydownHandler = null;
   });
 
-  it('renders placeholder image when no images present', () => {
-    renderWithProviders(<ProductImages product={baseProduct} editMode={false} />, {
+  it('renders placeholder image when no images present', async () => {
+    await renderWithProviders(<ProductImages product={baseProduct} editMode={false} />, {
       withDialog: true,
     });
     expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
   });
 
-  it('renders placeholder image when product.images is missing', () => {
-    renderWithProviders(
+  it('renders placeholder image when product.images is missing', async () => {
+    await renderWithProviders(
       <ProductImages
         product={{ ...baseProduct, images: undefined } as unknown as Product}
         editMode={false}
@@ -215,44 +221,44 @@ describe('ProductImages', () => {
     expect(screen.getByTestId('image-placeholder')).toBeOnTheScreen();
   });
 
-  it('renders product images when present', () => {
+  it('renders product images when present', async () => {
     const productWithImages = {
       ...baseProduct,
       images: [{ id: '1', url: 'file://photo1.jpg', description: 'A photo' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
     });
     expect(screen.getByText('img:file://photo1.jpg')).toBeOnTheScreen();
   });
 
-  it('does not show image counter text for a single image', () => {
+  it('does not show image counter text for a single image', async () => {
     const productWithImages = {
       ...baseProduct,
       images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
     });
     expect(screen.queryByText('1 / 1')).toBeNull();
   });
 
-  it('does not show image counter in editMode with no images', () => {
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+  it('does not show image counter in editMode with no images', async () => {
+    await renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.queryByText(SLASH_SEPARATOR_PATTERN)).toBeNull();
   });
 
   it('shows main gallery chevrons and advances selection when pressed', async () => {
-    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
     expect(screen.getByLabelText('Previous image')).toBeOnTheScreen();
     expect(screen.getByLabelText('Next image')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByLabelText('Next image'));
+    await fireEvent.press(screen.getByLabelText('Next image'));
 
     await waitFor(() => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
@@ -267,14 +273,14 @@ describe('ProductImages', () => {
     } as never);
     mockedProcessImage.mockResolvedValueOnce('file://processed.jpg');
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
       },
     );
 
-    fireEvent.press(screen.getByText('Add photos'));
+    await fireEvent.press(screen.getByText('Add photos'));
 
     await waitFor(() => {
       expect(onImagesChange).toHaveBeenCalledWith([
@@ -288,14 +294,14 @@ describe('ProductImages', () => {
     const onImagesChange = jest.fn();
     mockedLaunchImageLibraryAsync.mockResolvedValueOnce({ canceled: true, assets: [] } as never);
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
       },
     );
 
-    fireEvent.press(screen.getByText('Add photos'));
+    await fireEvent.press(screen.getByText('Add photos'));
 
     await waitFor(() => {
       expect(onImagesChange).not.toHaveBeenCalled();
@@ -303,12 +309,12 @@ describe('ProductImages', () => {
   });
 
   it('opens lightbox when image is pressed', async () => {
-    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
     const imgs = screen.getAllByText('img:file://photo1.jpg');
-    fireEvent.press(imgs[0]);
+    await fireEvent.press(imgs[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -321,17 +327,17 @@ describe('ProductImages', () => {
       images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     } as Product;
 
-    renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getByText('img:file://photo1.jpg'));
+    await fireEvent.press(screen.getByText('img:file://photo1.jpg'));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
-    fireEvent.press(screen.getByLabelText('Close lightbox'));
+    await fireEvent.press(screen.getByLabelText('Close lightbox'));
 
     await waitFor(() => {
       expect(screen.queryByLabelText('Close lightbox')).toBeNull();
@@ -339,12 +345,11 @@ describe('ProductImages', () => {
   });
 
   it('passes the lightbox layout metrics to the modal list and supports arrow navigation', async () => {
-    const { UNSAFE_getAllByProps } = renderWithProviders(
-      <ProductImages product={twoImages} editMode={false} />,
-      { withDialog: true },
-    );
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+      withDialog: true,
+    });
 
-    fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -365,26 +370,27 @@ describe('ProductImages', () => {
       index: 1,
     });
 
-    const arrowButtons = UNSAFE_getAllByProps({ hitSlop: 15 }).filter(
-      (node) => node.props.hitSlop === 15 && typeof node.props.onPress === 'function',
-    );
+    // The gallery underneath carries the same two labels, so pick the lightbox
+    // pair by the footer bar's hitSlop.
+    const inLightbox = (label: string) => {
+      const found = screen.getAllByLabelText(label).find((node) => node.props.hitSlop === 15);
+      if (!found) throw new Error(`No lightbox "${label}" control`);
+      return found;
+    };
+    const leftArrow = inLightbox('Previous image');
+    const rightArrow = inLightbox('Next image');
 
-    const leftArrow = arrowButtons.find((node) => node.props.disabled === true);
-    const rightArrow = arrowButtons.find((node) => node.props.disabled === false);
+    // On the first image, back is the disabled end of the pair.
+    expect(leftArrow).toBeDisabled();
+    expect(rightArrow).toBeEnabled();
 
-    expect(leftArrow).toBeTruthy();
-    expect(rightArrow).toBeTruthy();
-    if (!(rightArrow && leftArrow)) {
-      throw new Error('Expected both lightbox arrow buttons to exist');
-    }
-
-    fireEvent.press(rightArrow);
+    await fireEvent.press(rightArrow);
 
     await waitFor(() => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
 
-    fireEvent.press(leftArrow);
+    await fireEvent.press(leftArrow);
 
     await waitFor(() => {
       expect(screen.getAllByText('1 / 2').length).toBeGreaterThan(0);
@@ -397,18 +403,17 @@ describe('ProductImages', () => {
     setWindowImageConstructor();
     setWindowEventListeners();
 
-    const { UNSAFE_getAllByType } = renderWithProviders(
-      <ProductImages product={twoImages} editMode={false} />,
-      { withDialog: true },
-    );
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+      withDialog: true,
+    });
 
-    fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
-    const touchTarget = UNSAFE_getAllByType(View).find(
+    const touchTarget = queryAllHostsByType('View').find(
       (node) =>
         typeof node.props.onTouchStart === 'function' &&
         typeof node.props.onTouchEnd === 'function',
@@ -419,10 +424,10 @@ describe('ProductImages', () => {
       throw new Error('Expected touch target to exist');
     }
 
-    fireEvent(touchTarget, 'touchStart', {
+    await fireEvent(touchTarget, 'touchStart', {
       nativeEvent: { touches: [{ pageX: 240 }] },
     });
-    fireEvent(touchTarget, 'touchEnd', {
+    await fireEvent(touchTarget, 'touchEnd', {
       nativeEvent: { changedTouches: [{ pageX: 120 }] },
     });
 
@@ -437,24 +442,24 @@ describe('ProductImages', () => {
     setWindowImageConstructor();
     setWindowEventListeners();
 
-    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
     });
 
-    act(() => {
+    await act(() => {
       keydownHandler?.({ key: 'ArrowRight' });
     });
     await waitFor(() => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
 
-    act(() => {
+    await act(() => {
       keydownHandler?.({ key: 'ArrowLeft' });
     });
     await waitFor(() => {
@@ -462,7 +467,7 @@ describe('ProductImages', () => {
     });
 
     // Pinch/double-tap are pointer-only; +/-/0 are the keyboard-only zoom path.
-    act(() => {
+    await act(() => {
       keydownHandler?.({ key: '+' });
       keydownHandler?.({ key: '-' });
       keydownHandler?.({ key: '0' });
@@ -480,7 +485,7 @@ describe('ProductImages', () => {
     }
     const { onScrollBeginDrag, onScrollEndDrag } = lightboxListProps;
 
-    act(() => {
+    await act(() => {
       onScrollBeginDrag({
         nativeEvent: { contentOffset: { x: 0 } },
       });
@@ -493,7 +498,7 @@ describe('ProductImages', () => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
 
-    act(() => {
+    await act(() => {
       keydownHandler?.({ key: 'Escape' });
     });
 
@@ -503,7 +508,7 @@ describe('ProductImages', () => {
   });
 
   it('keeps the gallery counter and thumbnail highlight in sync after swiping', async () => {
-    const { getAllByLabelText } = renderWithProviders(
+    const { getAllByLabelText } = await renderWithProviders(
       <ProductImages product={twoImages} editMode={false} />,
       { withDialog: true },
     );
@@ -517,7 +522,7 @@ describe('ProductImages', () => {
     }
     const { onMomentumScrollEnd: onMainGalleryMomentumScrollEnd } = mainGalleryListProps;
 
-    act(() => {
+    await act(() => {
       onMainGalleryMomentumScrollEnd({
         nativeEvent: { contentOffset: { x: 9999 } },
       });
@@ -536,11 +541,11 @@ describe('ProductImages', () => {
   });
 
   it('persists the active image when swiping in the lightbox and closing it', async () => {
-    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -555,7 +560,7 @@ describe('ProductImages', () => {
     }
     const { onMomentumScrollEnd: onLightboxMomentumScrollEnd } = lightboxListProps;
 
-    act(() => {
+    await act(() => {
       onLightboxMomentumScrollEnd({
         nativeEvent: { contentOffset: { x: 9999 } },
       });
@@ -565,7 +570,7 @@ describe('ProductImages', () => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
 
-    fireEvent.press(screen.getByLabelText('Close lightbox'));
+    await fireEvent.press(screen.getByLabelText('Close lightbox'));
 
     await waitFor(() => {
       expect(screen.queryByLabelText('Close lightbox')).toBeNull();
@@ -574,32 +579,32 @@ describe('ProductImages', () => {
     });
   });
 
-  it('shows Camera and Add photos tiles on native when no images in edit mode', () => {
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+  it('shows Camera and Add photos tiles on native when no images in edit mode', async () => {
+    await renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
     expect(screen.getByText('Add photos')).toBeOnTheScreen();
   });
 
-  it('shows only Add photos tile on desktop web when no images in edit mode', () => {
+  it('shows only Add photos tile on desktop web when no images in edit mode', async () => {
     mockPlatform('web');
     setMatchMedia(false);
     setWindowImageConstructor();
     setWindowEventListeners();
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+    await renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.queryByText('Camera')).toBeNull();
     expect(screen.getByText('Add photos')).toBeOnTheScreen();
   });
 
-  it('shows Camera and Add photos tiles on mobile web when no images in edit mode', () => {
+  it('shows Camera and Add photos tiles on mobile web when no images in edit mode', async () => {
     mockPlatform('web');
     setMatchMedia(true);
     setWindowImageConstructor();
     setWindowEventListeners();
-    renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
+    await renderWithProviders(<ProductImages product={baseProduct} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.getByText('Camera')).toBeOnTheScreen();
@@ -615,14 +620,14 @@ describe('ProductImages', () => {
     } as never);
     mockedProcessImage.mockResolvedValueOnce('file://processed.jpg');
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
       },
     );
 
-    fireEvent.press(screen.getByText('Camera'));
+    await fireEvent.press(screen.getByText('Camera'));
 
     await waitFor(() => {
       expect(mockedRequestCameraPermissionsAsync).toHaveBeenCalled();
@@ -638,14 +643,14 @@ describe('ProductImages', () => {
     const onImagesChange = jest.fn();
     mockedRequestCameraPermissionsAsync.mockResolvedValueOnce({ status: 'denied' } as never);
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImages product={baseProduct} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
       },
     );
 
-    fireEvent.press(screen.getByText('Camera'));
+    await fireEvent.press(screen.getByText('Camera'));
 
     await waitFor(() => {
       expect(mockedRequestCameraPermissionsAsync).toHaveBeenCalled();
@@ -654,19 +659,19 @@ describe('ProductImages', () => {
     });
   });
 
-  it('shows Take photo and Add photo from gallery overlay icons on native with images in edit mode', () => {
+  it('shows Take photo and Add photo from gallery overlay icons on native with images in edit mode', async () => {
     const productWithImages = {
       ...baseProduct,
       images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
+    await renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
   });
 
-  it('hides Take photo overlay icon on desktop web with images in edit mode', () => {
+  it('hides Take photo overlay icon on desktop web with images in edit mode', async () => {
     mockPlatform('web');
     setMatchMedia(false);
     setWindowImageConstructor();
@@ -675,14 +680,14 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
+    await renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.queryByLabelText('Take photo')).toBeNull();
     expect(screen.getByLabelText('Add photo from gallery')).toBeOnTheScreen();
   });
 
-  it('shows Take photo overlay icon on mobile web with images in edit mode', () => {
+  it('shows Take photo overlay icon on mobile web with images in edit mode', async () => {
     mockPlatform('web');
     setMatchMedia(true);
     setWindowImageConstructor();
@@ -691,7 +696,7 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
+    await renderWithProviders(<ProductImages product={productWithImages} editMode={true} />, {
       withDialog: true,
     });
     expect(screen.getByLabelText('Take photo')).toBeOnTheScreen();
@@ -714,14 +719,14 @@ describe('ProductImages', () => {
       ...baseProduct,
       images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
     };
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImages product={productWithImages} editMode={true} onImagesChange={onImagesChange} />,
       {
         withDialog: true,
       },
     );
 
-    fireEvent.press(screen.getByLabelText('Take photo'));
+    await fireEvent.press(screen.getByLabelText('Take photo'));
 
     await waitFor(() => {
       expect(mockedRequestCameraPermissionsAsync).not.toHaveBeenCalled();
@@ -731,11 +736,11 @@ describe('ProductImages', () => {
   });
 
   it('advances the lightbox index when a zoomed image requests a swipe navigation', async () => {
-    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -750,7 +755,7 @@ describe('ProductImages', () => {
     }
     const { onSwipe } = zoomableImageProps;
 
-    act(() => {
+    await act(() => {
       onSwipe(1);
     });
 
@@ -762,11 +767,11 @@ describe('ProductImages', () => {
   // chevron (or an arrow key) left it set, so `scrollEnabled` stayed false and
   // paging/swiping were permanently disabled on the next slide.
   it('clears the zoom flag when navigating with the lightbox chevron', async () => {
-    renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
     await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
 
     const zoomable = mockZoomableImageCalls.find((props) => props.uri === 'file://photo1.jpg');
@@ -775,12 +780,12 @@ describe('ProductImages', () => {
     const pagerScrollEnabled = () =>
       mockFlatListCalls.filter((call) => 'scrollEnabled' in call).at(-1)?.scrollEnabled;
 
-    act(() => zoomable.setIsZoomed?.(true));
+    await act(() => zoomable.setIsZoomed?.(true));
     await waitFor(() => expect(pagerScrollEnabled()).toBe(false));
 
     // The lightbox footer and the main gallery both label their button this way;
     // the lightbox one is rendered last, inside the modal.
-    fireEvent.press(screen.getAllByLabelText('Next image').at(-1) as never);
+    await fireEvent.press(screen.getAllByLabelText('Next image').at(-1) as never);
 
     await waitFor(() => expect(pagerScrollEnabled()).toBe(true));
   });
@@ -805,18 +810,18 @@ describe('ProductImages', () => {
       ],
     } as unknown as Product;
 
-    renderWithProviders(<ProductImages product={productWithDerivatives} editMode={false} />, {
+    await renderWithProviders(<ProductImages product={productWithDerivatives} editMode={false} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getAllByText('img:https://cdn.test/a_800.webp')[0]);
+    await fireEvent.press(screen.getAllByText('img:https://cdn.test/a_800.webp')[0]);
     await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
 
     // Opens on the derivative, which is all a 1x view of the screen needs.
     const opened = mockZoomableImageCalls.at(-1);
     expect(opened?.uri).toBe('https://cdn.test/a_800.webp');
 
-    act(() => opened?.onScaleChange?.(2));
+    await act(() => opened?.onScaleChange?.(2));
 
     await waitFor(() =>
       expect(mockZoomableImageCalls.at(-1)?.uri).toBe('https://cdn.test/original.jpg'),

@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe('useResetPassword', () => {
   it('rejects a missing token without calling the API', async () => {
-    const { result } = renderHook(() => useResetPassword(undefined));
+    const { result } = await renderHook(() => useResetPassword(undefined));
 
     await act(async () => {
       await result.current.submit();
@@ -49,7 +49,7 @@ describe('useResetPassword', () => {
     // An expired link is the most likely failure of this screen, and the user can
     // only recover if the reason actually reaches them.
     mockResetPassword.mockRejectedValue(new ApiError('Reset token expired', 400));
-    const { result } = renderHook(() => useResetPassword('expired-token'));
+    const { result } = await renderHook(() => useResetPassword('expired-token'));
 
     await act(async () => {
       await result.current.submit();
@@ -63,7 +63,7 @@ describe('useResetPassword', () => {
     // A dropped connection is not an ApiError, so it must not leak a raw
     // TypeError message into the UI.
     mockResetPassword.mockRejectedValue(new TypeError('Network request failed'));
-    const { result } = renderHook(() => useResetPassword('token'));
+    const { result } = await renderHook(() => useResetPassword('token'));
 
     await act(async () => {
       await result.current.submit();
@@ -77,7 +77,7 @@ describe('useResetPassword', () => {
 describe('useForgotPassword', () => {
   it('surfaces a network failure instead of reporting success', async () => {
     mockRequestPasswordReset.mockRejectedValue(new TypeError('Network request failed'));
-    const { result } = renderHook(() => useForgotPassword());
+    const { result } = await renderHook(() => useForgotPassword());
 
     await act(async () => {
       await result.current.submit();
@@ -89,7 +89,7 @@ describe('useForgotPassword', () => {
 
   it('surfaces the server message for an API failure', async () => {
     mockRequestPasswordReset.mockRejectedValue(new ApiError('Too many requests', 429));
-    const { result } = renderHook(() => useForgotPassword());
+    const { result } = await renderHook(() => useForgotPassword());
 
     await act(async () => {
       await result.current.submit();

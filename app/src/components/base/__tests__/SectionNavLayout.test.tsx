@@ -11,9 +11,9 @@ afterEach(() => {
   restorePlatform();
 });
 
-test('fires onPressSection with the section key', () => {
+test('fires onPressSection with the section key', async () => {
   const onPressSection = jest.fn();
-  render(
+  await render(
     <SectionNavLayout
       isLg={false}
       navSections={[...sections]}
@@ -23,12 +23,12 @@ test('fires onPressSection with the section key', () => {
       {null}
     </SectionNavLayout>,
   );
-  fireEvent.press(screen.getByText('Components'));
+  await fireEvent.press(screen.getByText('Components'));
   expect(onPressSection).toHaveBeenCalledWith('components');
 });
 
-test('marks the active item for accessibility', () => {
-  render(
+test('marks the active item for accessibility', async () => {
+  await render(
     <SectionNavLayout
       isLg={true}
       navSections={[...sections]}
@@ -42,9 +42,9 @@ test('marks the active item for accessibility', () => {
   expect(screen.getByLabelText('Components, current section')).toBeOnTheScreen();
 });
 
-test('has web hover, cursor, and focus-visible affordances', () => {
+test('has web hover, cursor, and focus-visible affordances', async () => {
   mockPlatform('web');
-  render(
+  await render(
     <SectionNavLayout
       isLg={false}
       navSections={[...sections]}

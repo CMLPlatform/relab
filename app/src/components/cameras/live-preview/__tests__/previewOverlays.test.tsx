@@ -4,12 +4,14 @@ import { PreviewErrorOverlay } from '@/components/cameras/live-preview/previewOv
 import { renderWithProviders } from '@/test-utils/index';
 
 describe('PreviewErrorOverlay', () => {
-  it('exposes the retry action as a button to assistive tech', () => {
+  it('exposes the retry action as a button to assistive tech', async () => {
     const onRetry = jest.fn();
-    renderWithProviders(<PreviewErrorOverlay message="Preview unavailable" onRetry={onRetry} />);
+    await renderWithProviders(
+      <PreviewErrorOverlay message="Preview unavailable" onRetry={onRetry} />,
+    );
 
     const retry = screen.getByRole('button', { name: 'Tap to retry' });
-    fireEvent.press(retry);
+    await fireEvent.press(retry);
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 });

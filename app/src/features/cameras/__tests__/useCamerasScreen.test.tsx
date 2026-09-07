@@ -86,8 +86,8 @@ describe('useCamerasScreen', () => {
     jest.clearAllMocks();
   });
 
-  it('returns grouped screen, selection, streaming, and action domains', () => {
-    const { result } = renderHook(() => useCamerasScreen());
+  it('returns grouped screen, selection, streaming, and action domains', async () => {
+    const { result } = await renderHook(() => useCamerasScreen());
 
     expect(result.current.screen.rows).toEqual(mockCamerasQueryData);
     expect(result.current.selection.selectedCount).toBe(0);
@@ -95,10 +95,10 @@ describe('useCamerasScreen', () => {
     expect(typeof result.current.actions.openAddCamera).toBe('function');
   });
 
-  it('uses named actions for add-camera navigation and selection mode', () => {
-    const { result } = renderHook(() => useCamerasScreen());
+  it('uses named actions for add-camera navigation and selection mode', async () => {
+    const { result } = await renderHook(() => useCamerasScreen());
 
-    act(() => {
+    await act(() => {
       result.current.actions.openAddCamera();
       result.current.actions.handleCardLongPress(mockCamerasQueryData[0] as never);
     });

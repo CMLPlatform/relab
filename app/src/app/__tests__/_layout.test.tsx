@@ -73,7 +73,7 @@ describe('HeaderRightPill', () => {
   it('renders "Sign in" for guests', async () => {
     (useAuth as jest.Mock).mockReturnValue({ user: null });
 
-    renderWithProviders(<HeaderRightPill />, { withAuth: true });
+    await renderWithProviders(<HeaderRightPill />, { withAuth: true });
 
     await waitFor(
       () => {
@@ -88,7 +88,7 @@ describe('HeaderRightPill', () => {
       user: { id: 1, username: 'testuser', email: 'test@test.com' },
     });
 
-    renderWithProviders(<HeaderRightPill />, { withAuth: true });
+    await renderWithProviders(<HeaderRightPill />, { withAuth: true });
 
     await waitFor(
       () => {
@@ -101,7 +101,7 @@ describe('HeaderRightPill', () => {
 
 describe('Providers', () => {
   it('renders children without crashing', async () => {
-    renderWithProviders(
+    await renderWithProviders(
       <Providers>
         <View testID="child">
           <Text>Hello</Text>
@@ -125,8 +125,8 @@ describe('AppStack', () => {
   // destination — and its header — now belongs to a tab's own stack (see
   // tab-layouts.test.tsx), and the (tabs) route must not add a second header
   // above them.
-  it('owns no tab screens and lets the tabs render their own headers', () => {
-    render(<AppStack />);
+  it('owns no tab screens and lets the tabs render their own headers', async () => {
+    await render(<AppStack />);
 
     expect(mockScreenOptions['(tabs)']?.headerShown).toBe(false);
     expect(mockScreenOptions['products/index']).toBeUndefined();

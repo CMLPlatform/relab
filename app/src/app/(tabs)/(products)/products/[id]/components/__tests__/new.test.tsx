@@ -24,8 +24,8 @@ jest.mock('@/components/product/capture/CaptureScreen', () => {
 import ComponentNewPage from '@/app/(tabs)/(products)/products/[id]/components/new';
 
 describe('ComponentNewPage route', () => {
-  it('renders CaptureScreen for a new component and seeds parent id from the URL', () => {
-    render(<ComponentNewPage />);
+  it('renders CaptureScreen for a new component and seeds parent id from the URL', async () => {
+    await render(<ComponentNewPage />);
     expect(screen.getByText('role:component parent:42 parentRole:product')).toBeOnTheScreen();
   });
 });

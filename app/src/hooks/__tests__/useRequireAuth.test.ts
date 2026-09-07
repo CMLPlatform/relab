@@ -35,26 +35,26 @@ describe('useRequireAuth', () => {
   // sign-out effect can clear the user after focus has already moved
   // elsewhere. The guard must not fire in that case, or it clobbers
   // whatever navigation already happened with a stray /login redirect.
-  it('does not redirect when the user clears after the screen has already lost focus', () => {
+  it('does not redirect when the user clears after the screen has already lost focus', async () => {
     mockScreenFocused.mockReturnValue(false);
     mockUseAuth.mockReturnValue({ user: mockUser, isLoading: false });
 
-    const { rerender } = renderHook(() => useRequireAuth('/cameras'));
+    const { rerender } = await renderHook(() => useRequireAuth('/cameras'));
 
     mockUseAuth.mockReturnValue({ user: undefined, isLoading: false });
-    rerender({});
+    await rerender({});
 
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('still redirects to login when the session expires while the screen is focused', () => {
+  it('still redirects to login when the session expires while the screen is focused', async () => {
     mockScreenFocused.mockReturnValue(true);
     mockUseAuth.mockReturnValue({ user: mockUser, isLoading: false });
 
-    const { rerender } = renderHook(() => useRequireAuth('/cameras'));
+    const { rerender } = await renderHook(() => useRequireAuth('/cameras'));
 
     mockUseAuth.mockReturnValue({ user: undefined, isLoading: false });
-    rerender({});
+    await rerender({});
 
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/login',
@@ -62,18 +62,18 @@ describe('useRequireAuth', () => {
     });
   });
 
-  it('does not redirect while the initial auth check is still loading', () => {
+  it('does not redirect while the initial auth check is still loading', async () => {
     mockUseAuth.mockReturnValue({ user: undefined, isLoading: true });
 
-    renderHook(() => useRequireAuth('/cameras'));
+    await renderHook(() => useRequireAuth('/cameras'));
 
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
-  it('does not redirect while isLoggingOut is true, even once focused and resolved', () => {
+  it('does not redirect while isLoggingOut is true, even once focused and resolved', async () => {
     mockUseAuth.mockReturnValue({ user: undefined, isLoading: false });
 
-    renderHook(() => useRequireAuth('/account', { isLoggingOut: true }));
+    await renderHook(() => useRequireAuth('/account', { isLoggingOut: true }));
 
     expect(mockReplace).not.toHaveBeenCalled();
   });

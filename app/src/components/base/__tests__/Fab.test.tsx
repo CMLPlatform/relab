@@ -6,15 +6,15 @@ import { MIN_TAP_TARGET, radius } from '@/constants';
 import { getAppTheme } from '@/theme';
 
 describe('Fab', () => {
-  it('renders the label when extended', () => {
-    render(
+  it('renders the label when extended', async () => {
+    await render(
       <Fab icon="plus" label="New product" extended onPress={jest.fn()} accessibilityLabel="a" />,
     );
     expect(screen.getByText('New product')).toBeOnTheScreen();
   });
 
-  it('omits the label when collapsed', () => {
-    render(
+  it('omits the label when collapsed', async () => {
+    await render(
       <Fab
         icon="plus"
         label="New product"
@@ -26,24 +26,24 @@ describe('Fab', () => {
     expect(screen.queryByText('New product')).toBeNull();
   });
 
-  it('fires onPress', () => {
+  it('fires onPress', async () => {
     const onPress = jest.fn();
-    render(<Fab icon="plus" label="New" extended onPress={onPress} accessibilityLabel="a" />);
-    fireEvent.press(screen.getByRole('button'));
+    await render(<Fab icon="plus" label="New" extended onPress={onPress} accessibilityLabel="a" />);
+    await fireEvent.press(screen.getByRole('button'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('blocks onPress when disabled', () => {
+  it('blocks onPress when disabled', async () => {
     const onPress = jest.fn();
-    render(
+    await render(
       <Fab icon="plus" label="New" extended onPress={onPress} disabled accessibilityLabel="a" />,
     );
-    fireEvent.press(screen.getByRole('button'));
+    await fireEvent.press(screen.getByRole('button'));
     expect(onPress).not.toHaveBeenCalled();
   });
 
-  it('renders nothing when not visible', () => {
-    render(
+  it('renders nothing when not visible', async () => {
+    await render(
       <Fab
         icon="plus"
         label="New"
@@ -56,8 +56,10 @@ describe('Fab', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it('meets the 44px a11y tap-target floor', () => {
-    render(<Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />);
+  it('meets the 44px a11y tap-target floor', async () => {
+    await render(
+      <Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />,
+    );
     // Resolved through the state callback — the floor lives in the style
     // function, never in a className (mixing the two drops the function).
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
@@ -70,8 +72,10 @@ describe('Fab', () => {
   // DESIGN.md "Form language — Flat & Sharp": the FAB is a floating surface, so
   // it takes the overlay radius (not the `full` pill radius, which is reserved
   // for avatars/true pills) plus the single shared overlay elevation tier.
-  it('uses the overlay radius and the shared elevation tier', () => {
-    render(<Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />);
+  it('uses the overlay radius and the shared elevation tier', async () => {
+    await render(
+      <Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />,
+    );
     const button = screen.getByRole('button');
     const style = StyleSheet.flatten(button.props.style);
     expect(style.borderRadius).toBe(radius.overlay);
@@ -81,8 +85,8 @@ describe('Fab', () => {
     expect(style.elevation).toBe(overlay.elevation);
   });
 
-  it('forwards arbitrary accessibility props (accessibilityHint)', () => {
-    render(
+  it('forwards arbitrary accessibility props (accessibilityHint)', async () => {
+    await render(
       <Fab
         icon="plus"
         label="New"
@@ -95,8 +99,8 @@ describe('Fab', () => {
     expect(screen.getByRole('button').props.accessibilityHint).toBe('Creates a new product');
   });
 
-  it('exposes the accessibility label', () => {
-    render(
+  it('exposes the accessibility label', async () => {
+    await render(
       <Fab
         icon="plus"
         label="New"

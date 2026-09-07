@@ -29,7 +29,7 @@ interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
  * failed queries). Pass `withDialog: true` for screens that use DialogProvider,
  * and `withAuth: true` for screens that call useAuth().
  */
-export function renderWithProviders(
+export async function renderWithProviders(
   ui: React.ReactElement,
   {
     withDialog = false,
@@ -67,5 +67,5 @@ export function renderWithProviders(
     return <QueryClientProvider client={queryClient}>{withAuth}</QueryClientProvider>;
   }
 
-  return render(ui, { wrapper: Wrapper, ...options });
+  return await render(ui, { wrapper: Wrapper, ...options });
 }

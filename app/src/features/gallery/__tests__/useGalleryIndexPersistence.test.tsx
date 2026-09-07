@@ -19,7 +19,7 @@ async function flushLoad() {
   });
 }
 
-function render({
+async function render({
   productId = 42 as number | null,
   imageCount = 3,
 }: {
@@ -27,7 +27,9 @@ function render({
   imageCount?: number;
 } = {}) {
   const onRestore = jest.fn();
-  const hook = renderHook(() => useGalleryIndexPersistence({ productId, imageCount, onRestore }));
+  const hook = await renderHook(() =>
+    useGalleryIndexPersistence({ productId, imageCount, onRestore }),
+  );
   return { ...hook, onRestore };
 }
 
@@ -41,7 +43,7 @@ describe('useGalleryIndexPersistence', () => {
   it('restores a saved index for the product', async () => {
     mockGetLocalItem.mockResolvedValueOnce('2');
 
-    const { onRestore } = render();
+    const { onRestore } = await render();
     await flushLoad();
 
     expect(mockGetLocalItem).toHaveBeenCalledWith('product_gallery_index_42');
@@ -51,21 +53,21 @@ describe('useGalleryIndexPersistence', () => {
   it('does nothing when no index was saved', async () => {
     mockGetLocalItem.mockResolvedValueOnce(null);
 
-    const { onRestore } = render();
+    const { onRestore } = await render();
     await flushLoad();
 
     expect(onRestore).not.toHaveBeenCalled();
   });
 
   it('does not read storage for an unsaved product', async () => {
-    render({ productId: null });
+    await render({ productId: null });
     await flushLoad();
 
     expect(mockGetLocalItem).not.toHaveBeenCalled();
   });
 
   it('does not read storage when the product has no images', async () => {
-    render({ imageCount: 0 });
+    await render({ imageCount: 0 });
     await flushLoad();
 
     expect(mockGetLocalItem).not.toHaveBeenCalled();
@@ -77,7 +79,7 @@ describe('useGalleryIndexPersistence', () => {
     it.each([['-1'], ['-42']])('ignores a negative saved index (%s)', async (saved) => {
       mockGetLocalItem.mockResolvedValueOnce(saved);
 
-      const { onRestore } = render();
+      const { onRestore } = await render();
       await flushLoad();
 
       expect(onRestore).not.toHaveBeenCalled();
@@ -86,7 +88,7 @@ describe('useGalleryIndexPersistence', () => {
     it.each([['3'], ['9']])('ignores an out-of-range saved index (%s)', async (saved) => {
       mockGetLocalItem.mockResolvedValueOnce(saved);
 
-      const { onRestore } = render({ imageCount: 3 });
+      const { onRestore } = await render({ imageCount: 3 });
       await flushLoad();
 
       expect(onRestore).not.toHaveBeenCalled();
@@ -95,7 +97,7 @@ describe('useGalleryIndexPersistence', () => {
     it('ignores a non-numeric saved index', async () => {
       mockGetLocalItem.mockResolvedValueOnce('not-a-number');
 
-      const { onRestore } = render();
+      const { onRestore } = await render();
       await flushLoad();
 
       expect(onRestore).not.toHaveBeenCalled();
@@ -107,7 +109,7 @@ describe('useGalleryIndexPersistence', () => {
   it('restores for product id 0, which is a real product', async () => {
     mockGetLocalItem.mockResolvedValueOnce('1');
 
-    const { onRestore } = render({ productId: 0 });
+    const { onRestore } = await render({ productId: 0 });
     await flushLoad();
 
     expect(mockGetLocalItem).toHaveBeenCalledWith('product_gallery_index_0');
@@ -123,9 +125,9 @@ describe('useGalleryIndexPersistence', () => {
         }),
     );
 
-    const { onRestore, unmount } = render();
+    const { onRestore, unmount } = await render();
     await waitFor(() => expect(mockGetLocalItem).toHaveBeenCalled());
-    unmount();
+    await unmount();
 
     await act(async () => {
       release('1');
@@ -137,7 +139,7 @@ describe('useGalleryIndexPersistence', () => {
 
   describe('persistIndex', () => {
     it('writes the index under the product key', async () => {
-      const { result } = render();
+      const { result } = await render();
 
       await result.current.persistIndex(2);
 
@@ -145,7 +147,7 @@ describe('useGalleryIndexPersistence', () => {
     });
 
     it('never writes an index for an unsaved product', async () => {
-      const { result } = render({ productId: null });
+      const { result } = await render({ productId: null });
 
       await result.current.persistIndex(2);
 
@@ -154,7 +156,7 @@ describe('useGalleryIndexPersistence', () => {
 
     it('swallows a storage failure', async () => {
       mockSetLocalItem.mockRejectedValueOnce(new Error('quota'));
-      const { result } = render();
+      const { result } = await render();
 
       await expect(result.current.persistIndex(1)).resolves.toBeUndefined();
     });

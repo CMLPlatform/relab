@@ -59,10 +59,10 @@ describe('product gallery section components', () => {
     jest.clearAllMocks();
   });
 
-  it('renders gallery controls and wires the next action', () => {
+  it('renders gallery controls and wires the next action', async () => {
     const onNext = jest.fn();
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageGalleryContent
         width={320}
         imageCount={2}
@@ -88,14 +88,14 @@ describe('product gallery section components', () => {
       />,
     );
 
-    fireEvent.press(screen.getByLabelText('Next image'));
+    await fireEvent.press(screen.getByLabelText('Next image'));
     expect(onNext).toHaveBeenCalled();
   });
 
-  it('renders empty edit state actions including RPi capture setup', () => {
+  it('renders empty edit state actions including RPi capture setup', async () => {
     const onRpiCapture = jest.fn();
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageEmptyEditState
         showCameraOption={true}
         showRpiButton={true}
@@ -108,12 +108,12 @@ describe('product gallery section components', () => {
       />,
     );
 
-    fireEvent.press(screen.getByLabelText('Set up RPi camera'));
+    await fireEvent.press(screen.getByLabelText('Set up RPi camera'));
     expect(onRpiCapture).toHaveBeenCalled();
   });
 
-  it('keeps every empty-gallery action compact and at least 44px high', () => {
-    renderWithProviders(
+  it('keeps every empty-gallery action compact and at least 44px high', async () => {
+    await renderWithProviders(
       <ProductImageEmptyEditState
         showCameraOption={true}
         showRpiButton={true}
@@ -139,11 +139,11 @@ describe('product gallery section components', () => {
     expect(actionStrip.props.className).not.toContain('h-[300px]');
   });
 
-  it('renders thumbnails and forwards selection actions', () => {
+  it('renders thumbnails and forwards selection actions', async () => {
     const onSelectIndex = jest.fn();
     const onScrollToIndex = jest.fn();
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageThumbnails
         imageCount={2}
         items={[galleryItem('a', 'a.jpg'), galleryItem('b', 'b.jpg')]}
@@ -155,16 +155,16 @@ describe('product gallery section components', () => {
       />,
     );
 
-    fireEvent.press(screen.getByLabelText('Select Widget 2'));
+    await fireEvent.press(screen.getByLabelText('Select Widget 2'));
     expect(onSelectIndex).toHaveBeenCalledWith(1);
     expect(onScrollToIndex).toHaveBeenCalledWith(1);
   });
 
-  it('renders camera dialogs and forwards preview actions', () => {
+  it('renders camera dialogs and forwards preview actions', async () => {
     const onSelectCamera = jest.fn();
     const onCapturePreview = jest.fn();
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductImageCameraDialogs
         cameraPickerVisible={true}
         previewCamera={{ id: 'cam-1', name: 'Bench Cam' } as never}
@@ -177,8 +177,8 @@ describe('product gallery section components', () => {
       { withDialog: true },
     );
 
-    fireEvent.press(screen.getByText('Select camera'));
-    fireEvent.press(screen.getByText('Capture'));
+    await fireEvent.press(screen.getByText('Select camera'));
+    await fireEvent.press(screen.getByText('Capture'));
 
     expect(onSelectCamera).toHaveBeenCalled();
     expect(onCapturePreview).toHaveBeenCalled();

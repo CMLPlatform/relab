@@ -73,8 +73,8 @@ describe('StreamingContent', () => {
     });
   });
 
-  it('renders live state, elapsed time, and the optional product link', () => {
-    renderWithProviders(<StreamingContent session={session} showProductLink />, {
+  it('renders live state, elapsed time, and the optional product link', async () => {
+    await renderWithProviders(<StreamingContent session={session} showProductLink />, {
       withDialog: true,
     });
 
@@ -83,14 +83,17 @@ describe('StreamingContent', () => {
     expect(screen.getByText('Go to Desk Radio')).toBeOnTheScreen();
   });
 
-  it('opens the YouTube URL and navigates to the product page', () => {
+  it('opens the YouTube URL and navigates to the product page', async () => {
     const onStop = jest.fn();
-    renderWithProviders(<StreamingContent session={session} showProductLink onStop={onStop} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <StreamingContent session={session} showProductLink onStop={onStop} />,
+      {
+        withDialog: true,
+      },
+    );
 
-    fireEvent.press(screen.getByText('Watch on YouTube'));
-    fireEvent.press(screen.getByText('Go to Desk Radio'));
+    await fireEvent.press(screen.getByText('Watch on YouTube'));
+    await fireEvent.press(screen.getByText('Go to Desk Radio'));
 
     expect(openExternalUrlMock).toHaveBeenCalledWith(session.youtubeUrl);
     expect(mockNavigate).toHaveBeenCalledWith({
@@ -100,13 +103,13 @@ describe('StreamingContent', () => {
     expect(onStop).toHaveBeenCalledTimes(1);
   });
 
-  it('stops the stream successfully and clears the active session', () => {
+  it('stops the stream successfully and clears the active session', async () => {
     const onStop = jest.fn();
-    renderWithProviders(<StreamingContent session={session} onStop={onStop} />, {
+    await renderWithProviders(<StreamingContent session={session} onStop={onStop} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getByText('Stop stream'));
+    await fireEvent.press(screen.getByText('Stop stream'));
 
     expect(mockSetActiveStream).toHaveBeenCalledWith(null);
     // The stream's product is invalidated by the mutation hook, not here — the
@@ -115,17 +118,17 @@ describe('StreamingContent', () => {
     expect(onStop).toHaveBeenCalled();
   });
 
-  it('shows an error when stopping the stream fails', () => {
+  it('shows an error when stopping the stream fails', async () => {
     mockStopMutate.mockImplementation((...args: unknown[]) => {
       const options = args[1] as { onError?: (error: unknown) => void } | undefined;
       options?.onError?.(new Error('stop failed hard'));
     });
 
-    renderWithProviders(<StreamingContent session={session} />, {
+    await renderWithProviders(<StreamingContent session={session} />, {
       withDialog: true,
     });
 
-    fireEvent.press(screen.getByText('Stop stream'));
+    await fireEvent.press(screen.getByText('Stop stream'));
 
     expect(mockFeedback.error).toHaveBeenCalledWith(
       'Failed to stop stream: stop failed hard',

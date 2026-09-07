@@ -62,8 +62,8 @@ describe('useYouTubeStreamCard', () => {
     });
   });
 
-  it('returns the current live stream state and uses the integration gate in the query options', () => {
-    const { result } = renderHook(() => useYouTubeStreamCard('cam-1', true));
+  it('returns the current live stream state and uses the integration gate in the query options', async () => {
+    const { result } = await renderHook(() => useYouTubeStreamCard('cam-1', true));
 
     expect(mockUseStreamStatusQuery).toHaveBeenCalledWith('cam-1', { enabled: true });
     expect(result.current.state).toMatchObject({
@@ -79,43 +79,43 @@ describe('useYouTubeStreamCard', () => {
     });
   });
 
-  it('disables the status query when the camera is offline or YouTube is disabled', () => {
+  it('disables the status query when the camera is offline or YouTube is disabled', async () => {
     mockUseYouTubeIntegration.mockReturnValue({ enabled: false });
 
-    renderHook(() => useYouTubeStreamCard('cam-2', false));
+    await renderHook(() => useYouTubeStreamCard('cam-2', false));
 
     expect(mockUseStreamStatusQuery).toHaveBeenCalledWith('cam-2', { enabled: false });
   });
 
-  it('opens the YouTube URL when watch is triggered and the stream has a URL', () => {
-    const { result } = renderHook(() => useYouTubeStreamCard('cam-1', true));
+  it('opens the YouTube URL when watch is triggered and the stream has a URL', async () => {
+    const { result } = await renderHook(() => useYouTubeStreamCard('cam-1', true));
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleWatch();
     });
 
     expect(openExternalUrlMock).toHaveBeenCalledWith('https://youtube.test/watch?v=abc');
   });
 
-  it('does nothing when watch is triggered without a stream URL', () => {
+  it('does nothing when watch is triggered without a stream URL', async () => {
     mockUseStreamStatusQuery.mockReturnValue({
       data: { started_at: '2026-04-15T10:00:00.000Z', url: '' },
       isLoading: false,
     });
 
-    const { result } = renderHook(() => useYouTubeStreamCard('cam-1', true));
+    const { result } = await renderHook(() => useYouTubeStreamCard('cam-1', true));
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleWatch();
     });
 
     expect(openExternalUrlMock).not.toHaveBeenCalled();
   });
 
-  it('confirms stop and clears the active stream on successful stop', () => {
-    const { result } = renderHook(() => useYouTubeStreamCard('cam-1', true));
+  it('confirms stop and clears the active stream on successful stop', async () => {
+    const { result } = await renderHook(() => useYouTubeStreamCard('cam-1', true));
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleStop();
     });
 
@@ -126,7 +126,7 @@ describe('useYouTubeStreamCard', () => {
     };
     const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End stream');
 
-    act(() => {
+    await act(() => {
       endStreamButton?.onPress?.();
     });
 
@@ -144,10 +144,10 @@ describe('useYouTubeStreamCard', () => {
     expect(mockSetActiveStream).toHaveBeenCalledWith(null);
   });
 
-  it('routes stop failures through shared feedback', () => {
-    const { result } = renderHook(() => useYouTubeStreamCard('cam-1', true));
+  it('routes stop failures through shared feedback', async () => {
+    const { result } = await renderHook(() => useYouTubeStreamCard('cam-1', true));
 
-    act(() => {
+    await act(() => {
       result.current.actions.handleStop();
     });
 
@@ -156,7 +156,7 @@ describe('useYouTubeStreamCard', () => {
     };
     const endStreamButton = alertConfig.buttons.find((button) => button.text === 'End stream');
 
-    act(() => {
+    await act(() => {
       endStreamButton?.onPress?.();
     });
 

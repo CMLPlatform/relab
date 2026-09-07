@@ -7,10 +7,10 @@ import * as Reanimated from 'react-native-reanimated';
 import { Skeleton } from '@/components/base/Skeleton';
 
 describe('Skeleton', () => {
-  it('gates the pulse loop behind the OS reduce-motion setting', () => {
+  it('gates the pulse loop behind the OS reduce-motion setting', async () => {
     const withRepeatSpy = jest.spyOn(Reanimated, 'withRepeat');
 
-    render(<Skeleton />);
+    await render(<Skeleton />);
 
     expect(withRepeatSpy).toHaveBeenCalledWith(
       expect.anything(),

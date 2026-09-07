@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { PageContainer } from '@/components/base/PageContainer';
 
-test('renders children', () => {
-  render(
+test('renders children', async () => {
+  await render(
     <PageContainer>
       <Text>content</Text>
     </PageContainer>,
@@ -11,8 +11,8 @@ test('renders children', () => {
   expect(screen.getByText('content')).toBeOnTheScreen();
 });
 
-test('fullBleed renders children without the width-constrained wrapper', () => {
-  render(
+test('fullBleed renders children without the width-constrained wrapper', async () => {
+  await render(
     <PageContainer fullBleed>
       <Text>hero</Text>
     </PageContainer>,
@@ -21,10 +21,10 @@ test('fullBleed renders children without the width-constrained wrapper', () => {
   expect(screen.queryByTestId('page-container-constrained')).toBeNull();
 });
 
-test('phoneFullBleed keeps the constrained (centered, max-width) wrapper', () => {
+test('phoneFullBleed keeps the constrained (centered, max-width) wrapper', async () => {
   // Distinct from fullBleed: it only drops the phone gutter, so it must still
   // render the width-constrained wrapper (desktop centering is preserved).
-  render(
+  await render(
     <PageContainer phoneFullBleed>
       <Text>list</Text>
     </PageContainer>,

@@ -18,26 +18,26 @@ const baseProps = {
 };
 
 describe('GoLiveDialog — visibility toggle group', () => {
-  it('renders all three visibility options', () => {
-    renderWithProviders(<GoLiveDialog {...baseProps} />);
+  it('renders all three visibility options', async () => {
+    await renderWithProviders(<GoLiveDialog {...baseProps} />);
     expect(screen.getByText('Private')).toBeOnTheScreen();
     expect(screen.getByText('Unlisted')).toBeOnTheScreen();
     expect(screen.getByText('Public')).toBeOnTheScreen();
   });
 
-  it('reports the newly selected visibility', () => {
+  it('reports the newly selected visibility', async () => {
     const onChangePrivacy = jest.fn();
-    renderWithProviders(<GoLiveDialog {...baseProps} onChangePrivacy={onChangePrivacy} />);
-    fireEvent.press(screen.getByText('Unlisted'));
+    await renderWithProviders(<GoLiveDialog {...baseProps} onChangePrivacy={onChangePrivacy} />);
+    await fireEvent.press(screen.getByText('Unlisted'));
     expect(onChangePrivacy).toHaveBeenCalledWith('unlisted');
   });
 
-  it('keeps the current selection when pressing the already-active option', () => {
+  it('keeps the current selection when pressing the already-active option', async () => {
     const onChangePrivacy = jest.fn();
-    renderWithProviders(
+    await renderWithProviders(
       <GoLiveDialog {...baseProps} privacy="private" onChangePrivacy={onChangePrivacy} />,
     );
-    fireEvent.press(screen.getByText('Private'));
+    await fireEvent.press(screen.getByText('Private'));
     expect(onChangePrivacy).not.toHaveBeenCalled();
   });
 });

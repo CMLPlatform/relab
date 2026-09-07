@@ -23,7 +23,7 @@ describe('useAppFeedback', () => {
     globalThis.alert = alertSpy;
   });
 
-  it('routes alerts and toasts through the dialog when available', () => {
+  it('routes alerts and toasts through the dialog when available', async () => {
     const dialog = {
       alert: jest.fn(),
       toast: jest.fn(),
@@ -31,7 +31,7 @@ describe('useAppFeedback', () => {
     };
     mockUseOptionalDialog.mockReturnValue(dialog as never);
 
-    const { result } = renderHook(() => useAppFeedback());
+    const { result } = await renderHook(() => useAppFeedback());
 
     result.current.alert({ title: 'Heads up', message: 'Saved', buttons: [{ text: 'OK' }] });
     result.current.toast('Hello');
@@ -55,22 +55,22 @@ describe('useAppFeedback', () => {
     expect(alertSpy).not.toHaveBeenCalled();
   });
 
-  it('forwards a toast action to the dialog', () => {
+  it('forwards a toast action to the dialog', async () => {
     const dialog = { alert: jest.fn(), toast: jest.fn(), input: jest.fn() };
     mockUseOptionalDialog.mockReturnValue(dialog as never);
     const onPress = jest.fn();
 
-    const { result } = renderHook(() => useAppFeedback());
+    const { result } = await renderHook(() => useAppFeedback());
     result.current.toast('Photo removed', { label: 'Undo', onPress });
 
     expect(dialog.toast).toHaveBeenCalledWith('Photo removed', { label: 'Undo', onPress });
   });
 
-  it('falls back to global alert and invokes the primary (last) action', () => {
+  it('falls back to global alert and invokes the primary (last) action', async () => {
     const primaryAction = jest.fn();
     mockUseOptionalDialog.mockReturnValue(undefined);
 
-    const { result } = renderHook(() => useAppFeedback());
+    const { result } = await renderHook(() => useAppFeedback());
 
     result.current.alert({
       title: 'Delete item?',
@@ -82,12 +82,12 @@ describe('useAppFeedback', () => {
     expect(primaryAction).toHaveBeenCalled();
   });
 
-  it('falls back to global alert but never auto-fires a destructive-tagged action', () => {
+  it('falls back to global alert but never auto-fires a destructive-tagged action', async () => {
     const cancelAction = jest.fn();
     const destructiveAction = jest.fn();
     mockUseOptionalDialog.mockReturnValue(undefined);
 
-    const { result } = renderHook(() => useAppFeedback());
+    const { result } = await renderHook(() => useAppFeedback());
 
     result.current.alert({
       title: 'Delete item?',
@@ -103,10 +103,10 @@ describe('useAppFeedback', () => {
     expect(cancelAction).not.toHaveBeenCalled();
   });
 
-  it('falls back to title when message is omitted and exposes no-op input', () => {
+  it('falls back to title when message is omitted and exposes no-op input', async () => {
     mockUseOptionalDialog.mockReturnValue(undefined);
 
-    const { result } = renderHook(() => useAppFeedback());
+    const { result } = await renderHook(() => useAppFeedback());
 
     expect(() => result.current.input({})).not.toThrow();
 

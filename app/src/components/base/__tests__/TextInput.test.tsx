@@ -11,13 +11,13 @@ jest.mock('@/context/themeMode', () => ({
 }));
 
 describe('<TextInput />', () => {
-  it('renders placeholder correctly', () => {
-    renderWithProviders(<TextInput placeholder="Enter text" />);
+  it('renders placeholder correctly', async () => {
+    await renderWithProviders(<TextInput placeholder="Enter text" />);
     expect(screen.getByPlaceholderText('Enter text')).toBeOnTheScreen();
   });
 
-  it('applies a danger border when errorOnEmpty is set and value is empty', () => {
-    renderWithProviders(<TextInput testID="test-input" errorOnEmpty={true} value="" />);
+  it('applies a danger border when errorOnEmpty is set and value is empty', async () => {
+    await renderWithProviders(<TextInput testID="test-input" errorOnEmpty={true} value="" />);
     const input = screen.getByTestId('test-input');
     expect(input).toHaveStyle({
       borderWidth: 1,
@@ -25,9 +25,9 @@ describe('<TextInput />', () => {
     });
   });
 
-  it('applies a danger border when customValidation returns false', () => {
+  it('applies a danger border when customValidation returns false', async () => {
     const failValidation = (val: string) => val.includes('valid');
-    renderWithProviders(
+    await renderWithProviders(
       <TextInput testID="validation-input" value="bad" customValidation={failValidation} />,
     );
     const input = screen.getByTestId('validation-input');
@@ -37,16 +37,18 @@ describe('<TextInput />', () => {
     });
   });
 
-  it('applies default text color when there is no error', () => {
-    renderWithProviders(<TextInput testID="normal-input" value="valid" />);
+  it('applies default text color when there is no error', async () => {
+    await renderWithProviders(<TextInput testID="normal-input" value="valid" />);
     const input = screen.getByTestId('normal-input');
     expect(input).toHaveStyle({ color: getAppTheme('light').colors.onSurface });
   });
 
-  it('applies dark mode placeholder and text colors when there is no error', () => {
+  it('applies dark mode placeholder and text colors when there is no error', async () => {
     jest.mocked(useEffectiveColorScheme).mockReturnValue('dark');
 
-    renderWithProviders(<TextInput testID="dark-input" value="valid" placeholder="Dark mode" />);
+    await renderWithProviders(
+      <TextInput testID="dark-input" value="valid" placeholder="Dark mode" />,
+    );
 
     const input = screen.getByTestId('dark-input');
     expect(input).toHaveStyle({ color: getAppTheme('dark').colors.onSurface });
@@ -57,21 +59,21 @@ describe('<TextInput />', () => {
 
   // DESIGN.md "Form language — Flat & Sharp": the primitive owns the control
   // radius so call sites don't hardcode one; a caller style may still override.
-  it('applies the control radius by default', () => {
-    renderWithProviders(<TextInput testID="radius-default" value="" />);
+  it('applies the control radius by default', async () => {
+    await renderWithProviders(<TextInput testID="radius-default" value="" />);
     expect(screen.getByTestId('radius-default')).toHaveStyle({ borderRadius: radius.control });
   });
 
-  it('lets a caller style override the default radius', () => {
-    renderWithProviders(
+  it('lets a caller style override the default radius', async () => {
+    await renderWithProviders(
       <TextInput testID="radius-override" value="" style={{ borderRadius: 2 }} />,
     );
     expect(screen.getByTestId('radius-override')).toHaveStyle({ borderRadius: 2 });
   });
 
-  it('does not treat a passing customValidation function as an error', () => {
+  it('does not treat a passing customValidation function as an error', async () => {
     const passValidation = (val: string) => val.length >= 3;
-    renderWithProviders(
+    await renderWithProviders(
       <TextInput testID="passing-validation" value="okay" customValidation={passValidation} />,
     );
     const input = screen.getByTestId('passing-validation');

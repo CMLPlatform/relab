@@ -24,8 +24,8 @@ jest.mock('@/components/product/capture/CaptureScreen', () => {
 import NestedComponentNewPage from '@/app/(tabs)/(products)/components/[id]/components/new';
 
 describe('NestedComponentNewPage route', () => {
-  it('renders CaptureScreen for a new component and seeds the component-parent context', () => {
-    render(<NestedComponentNewPage />);
+  it('renders CaptureScreen for a new component and seeds the component-parent context', async () => {
+    await render(<NestedComponentNewPage />);
     expect(screen.getByText('role:component parent:42 parentRole:component')).toBeOnTheScreen();
   });
 });

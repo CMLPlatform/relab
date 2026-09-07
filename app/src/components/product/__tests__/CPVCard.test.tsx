@@ -22,19 +22,19 @@ const mockCPV: CPVCategory = {
 
 describe('CPVCard', () => {
   const user = setupUser();
-  it('renders the CPV description', () => {
-    renderWithProviders(<CPVCard CPV={mockCPV} />);
+  it('renders the CPV description', async () => {
+    await renderWithProviders(<CPVCard CPV={mockCPV} />);
     expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
   });
 
-  it('renders CPV name as sub text', () => {
-    renderWithProviders(<CPVCard CPV={mockCPV} />);
+  it('renders CPV name as sub text', async () => {
+    await renderWithProviders(<CPVCard CPV={mockCPV} />);
     expect(screen.getByText('03000000-1')).toBeOnTheScreen();
   });
 
-  it("applies the danger text color when CPV.name is 'undefined'", () => {
+  it("applies the danger text color when CPV.name is 'undefined'", async () => {
     const errorCPV = { ...mockCPV, name: 'undefined' };
-    renderWithProviders(<CPVCard CPV={errorCPV} />);
+    await renderWithProviders(<CPVCard CPV={errorCPV} />);
     expect(screen.getByText('Agricultural products')).toHaveStyle({
       color: getAppTheme('light').tokens.status.danger,
     });
@@ -42,13 +42,13 @@ describe('CPVCard', () => {
 
   it('calls onPress when pressed', async () => {
     const onPress = jest.fn();
-    renderWithProviders(<CPVCard CPV={mockCPV} onPress={onPress} />);
+    await renderWithProviders(<CPVCard CPV={mockCPV} onPress={onPress} />);
     await user.press(screen.getByText('Agricultural products'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('renders actionElement instead of subText when provided', () => {
-    renderWithProviders(<CPVCard CPV={mockCPV} actionElement={<Text>Custom Action</Text>} />);
+  it('renders actionElement instead of subText when provided', async () => {
+    await renderWithProviders(<CPVCard CPV={mockCPV} actionElement={<Text>Custom Action</Text>} />);
     expect(screen.getByText('Custom Action')).toBeOnTheScreen();
     expect(screen.queryByText('03000000-1')).toBeNull();
   });

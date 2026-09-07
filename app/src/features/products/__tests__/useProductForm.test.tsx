@@ -87,7 +87,9 @@ describe('useProductForm', () => {
       mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
-    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
 
     await waitFor(() => {
       expect(result.current.product.id).toBe(123);
@@ -102,7 +104,9 @@ describe('useProductForm', () => {
       mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
-    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
 
     await waitFor(() => {
       expect(result.current.product.name).toBe('Recycled Aluminum Laptop Stand');
@@ -120,7 +124,7 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -154,7 +158,7 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -186,7 +190,7 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -222,7 +226,9 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     // Simulate AmountChip having a pending, unblurred draft registered when
@@ -246,7 +252,9 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     // amountFlushRef.current is null (nothing registered/pending) — same as
@@ -266,7 +274,7 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -295,7 +303,7 @@ describe('useProductForm', () => {
       mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true, onSaveSuccess }),
       { wrapper },
     );
@@ -319,7 +327,7 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -354,7 +362,7 @@ describe('useProductForm', () => {
       }),
     });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true, onSaveSuccess }),
       { wrapper },
     );
@@ -393,7 +401,7 @@ describe('useProductForm', () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm(undefined, { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -438,7 +446,9 @@ describe('useProductForm', () => {
       isPaused: true,
     });
 
-    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     expect(result.current.isPaused).toBe(true);
@@ -457,7 +467,9 @@ describe('useProductForm', () => {
       isPaused: false,
     });
 
-    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     expect(result.current.isPaused).toBe(false);
@@ -472,7 +484,9 @@ describe('useProductForm', () => {
     });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockDeleteMutate });
 
-    const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     await act(async () => {
@@ -492,7 +506,7 @@ describe('useProductForm', () => {
     });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockDeleteMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', onDeleteSuccess }),
       { wrapper },
     );
@@ -519,7 +533,7 @@ describe('useProductForm', () => {
       mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -559,7 +573,7 @@ describe('useProductForm', () => {
       mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
       { wrapper },
     );
@@ -602,7 +616,7 @@ describe('useProductForm', () => {
     });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: deleteMutate });
 
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => useProductForm('123', { role: 'product', initialEditMode: true }),
       { wrapper },
     );

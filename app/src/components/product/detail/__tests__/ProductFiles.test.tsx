@@ -39,7 +39,9 @@ describe('ProductFiles', () => {
   it('renders nothing at all for a contributor', async () => {
     signedInAs('contributor');
 
-    renderWithProviders(<ProductFiles product={savedProduct} editMode />, { withDialog: true });
+    await renderWithProviders(<ProductFiles product={savedProduct} editMode />, {
+      withDialog: true,
+    });
 
     expect(screen.queryByText('Research files')).toBeNull();
     // Asserts the payload, not only the heading. The emptiness guard below the
@@ -56,7 +58,7 @@ describe('ProductFiles', () => {
   it('lists attached files for a lab account', async () => {
     signedInAs('lab');
 
-    renderWithProviders(<ProductFiles product={savedProduct} editMode={false} />, {
+    await renderWithProviders(<ProductFiles product={savedProduct} editMode={false} />, {
       withDialog: true,
     });
 
@@ -67,20 +69,23 @@ describe('ProductFiles', () => {
   it('offers the picker to a lab owner in edit mode only', async () => {
     signedInAs('lab');
 
-    const view = renderWithProviders(<ProductFiles product={savedProduct} editMode={false} />, {
-      withDialog: true,
-    });
+    const view = await renderWithProviders(
+      <ProductFiles product={savedProduct} editMode={false} />,
+      {
+        withDialog: true,
+      },
+    );
     await screen.findByText('cube.h5');
     expect(screen.queryByText('Add research file')).toBeNull();
 
-    view.rerender(<ProductFiles product={savedProduct} editMode />);
+    await view.rerender(<ProductFiles product={savedProduct} editMode />);
     expect(await screen.findByText('Add research file')).toBeTruthy();
   });
 
   it('withholds the picker from a lab account on a record it does not own', async () => {
     signedInAs('lab');
 
-    renderWithProviders(
+    await renderWithProviders(
       <ProductFiles product={{ ...savedProduct, ownedBy: 'someone_else' }} editMode />,
       { withDialog: true },
     );
@@ -92,9 +97,12 @@ describe('ProductFiles', () => {
   it('does not offer the picker on an unsaved draft', async () => {
     signedInAs('lab');
 
-    renderWithProviders(<ProductFiles product={{ ...baseProduct, id: undefined }} editMode />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductFiles product={{ ...baseProduct, id: undefined }} editMode />,
+      {
+        withDialog: true,
+      },
+    );
 
     // No record id yet, so there is nothing to attach a file to.
     await waitFor(() => expect(fetchProductFiles).not.toHaveBeenCalled());

@@ -73,19 +73,19 @@ describe('ActiveStreamBanner', () => {
     restorePlatform();
   });
 
-  it('renders nothing when there is no active stream', () => {
+  it('renders nothing when there is no active stream', async () => {
     mockUseStreamSession.mockReturnValue({ activeStream: null });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.queryByLabelText('Manage live stream')).toBeNull();
     expect(mockStreamingSheet).not.toHaveBeenCalled();
   });
 
-  it('renders the active stream banner and opens the sheet when pressed', () => {
+  it('renders the active stream banner and opens the sheet when pressed', async () => {
     mockUseStreamSession.mockReturnValue({ activeStream: session });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByText('Desk Radio')).toBeOnTheScreen();
     expect(screen.getByText('1:23')).toBeOnTheScreen();
@@ -96,7 +96,7 @@ describe('ActiveStreamBanner', () => {
       }),
     );
 
-    fireEvent.press(screen.getByLabelText('Manage live stream'));
+    await fireEvent.press(screen.getByLabelText('Manage live stream'));
 
     expect(mockStreamingSheet).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -106,15 +106,15 @@ describe('ActiveStreamBanner', () => {
     );
   });
 
-  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible (top-level route)', () => {
+  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible (top-level route)', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     mockUseBottomNavVisible.mockReturnValue(false);
-    const { rerender } = renderWithProviders(<ActiveStreamBanner />);
+    const { rerender } = await renderWithProviders(<ActiveStreamBanner />);
     const hiddenBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<ActiveStreamBanner />);
+    await rerender(<ActiveStreamBanner />);
     const visibleBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     expect(visibleBottom - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
@@ -124,15 +124,15 @@ describe('ActiveStreamBanner', () => {
   // bar overlaps it on native exactly as it does on web — nothing shrinks the
   // box it positions against. Without this bump the banner would sit straight
   // through a detail screen's Fab once the bar lifts that Fab.
-  it('bumps its floating offset on native too when BottomNav is visible', () => {
+  it('bumps its floating offset on native too when BottomNav is visible', async () => {
     mockPlatform('ios');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     mockUseBottomNavVisible.mockReturnValue(false);
-    const { rerender } = renderWithProviders(<ActiveStreamBanner />);
+    const { rerender } = await renderWithProviders(<ActiveStreamBanner />);
     const hiddenBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<ActiveStreamBanner />);
+    await rerender(<ActiveStreamBanner />);
     const visibleBottom = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     // Safe-area insets are 0 in the test provider, so this is the bar's height
@@ -142,15 +142,15 @@ describe('ActiveStreamBanner', () => {
 
   // A notched device pads the bar by the safe-area inset on top of its own
   // height; leaving that term out is what re-introduces the Fab overlap.
-  it('adds the safe-area inset the bar pads itself with', () => {
+  it('adds the safe-area inset the bar pads itself with', async () => {
     mockPlatform('ios');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     mockUseBottomNavVisible.mockReturnValue(true);
-    const { rerender } = renderWithProviders(<ActiveStreamBanner />);
+    const { rerender } = await renderWithProviders(<ActiveStreamBanner />);
     const flat = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     mockInsets.bottom = 34;
-    rerender(<ActiveStreamBanner />);
+    await rerender(<ActiveStreamBanner />);
     const notched = screen.getByTestId('active-stream-banner-float').props.style.bottom;
 
     expect(notched - flat).toBe(34);
@@ -160,26 +160,26 @@ describe('ActiveStreamBanner', () => {
   // can be wide enough to sit under the banner's default right:16 — the
   // banner reserves SAVE_BAR_DOCK_RESERVE instead whenever the route+
   // breakpoint combination could render SaveBar (see ActiveStreamBanner.tsx).
-  it('reserves space for SaveBar on a >=md web product detail route', () => {
+  it('reserves space for SaveBar on a >=md web product detail route', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     (usePathname as jest.Mock).mockReturnValue('/products/42');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(
       SAVE_BAR_DOCK_RESERVE,
     );
   });
 
-  it('reserves space for SaveBar on a >=md web component detail route', () => {
+  it('reserves space for SaveBar on a >=md web component detail route', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     (usePathname as jest.Mock).mockReturnValue('/components/7');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(
       SAVE_BAR_DOCK_RESERVE,
@@ -189,71 +189,71 @@ describe('ActiveStreamBanner', () => {
   // Regression: '/products/new' (CaptureScreen, no SaveBar) satisfies
   // '/products/:id' too, since the literal 'new' segment matches [^/]+ just
   // like a real id would — the route predicate must exclude it explicitly.
-  it('does not reserve space on the /products/new creation route', () => {
+  it('does not reserve space on the /products/new creation route', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     (usePathname as jest.Mock).mockReturnValue('/products/new');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
   });
 
-  it('does not reserve space on a product list route even at >=md web', () => {
+  it('does not reserve space on a product list route even at >=md web', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     (usePathname as jest.Mock).mockReturnValue('/products');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
   });
 
-  it('does not reserve space on a detail route below md web width', () => {
+  it('does not reserve space on a detail route below md web width', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     (usePathname as jest.Mock).mockReturnValue('/products/42');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: false, isLg: false });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
   });
 
-  it('clears the possible flow SaveBar on a below-md web detail route', () => {
+  it('clears the possible flow SaveBar on a below-md web detail route', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     mockUseBottomNavVisible.mockReturnValue(true);
     (usePathname as jest.Mock).mockReturnValue('/products/42');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: false, isLg: false });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.bottom).toBe(
       BOTTOM_NAV_CLEARANCE + FLOW_SAVE_BAR_CLEARANCE,
     );
   });
 
-  it('does not reserve space on a nested detail sub-route (no SaveBar there)', () => {
+  it('does not reserve space on a nested detail sub-route (no SaveBar there)', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     (usePathname as jest.Mock).mockReturnValue('/products/42/components/new');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
   });
 
-  it('does not reserve space on native even on a detail route (SaveBar is web-only)', () => {
+  it('does not reserve space on native even on a detail route (SaveBar is web-only)', async () => {
     mockPlatform('ios');
     mockUseStreamSession.mockReturnValue({ activeStream: session });
     (usePathname as jest.Mock).mockReturnValue('/products/42');
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
 
-    renderWithProviders(<ActiveStreamBanner />);
+    await renderWithProviders(<ActiveStreamBanner />);
 
     expect(screen.getByTestId('active-stream-banner-float').props.style.right).toBe(16);
   });

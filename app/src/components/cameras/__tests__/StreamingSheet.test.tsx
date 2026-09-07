@@ -29,23 +29,23 @@ describe('StreamingSheet', () => {
     jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
-  it('renders nothing when hidden or when session is missing', () => {
-    const { rerender } = renderWithProviders(
+  it('renders nothing when hidden or when session is missing', async () => {
+    const { rerender } = await renderWithProviders(
       <StreamingSheet visible={false} onDismiss={jest.fn()} session={session} />,
     );
 
     expect(screen.queryByLabelText('Close')).toBeNull();
     expect(mockStreamingContent).not.toHaveBeenCalled();
 
-    rerender(<StreamingSheet visible session={null} onDismiss={jest.fn()} />);
+    await rerender(<StreamingSheet visible session={null} onDismiss={jest.fn()} />);
 
     expect(screen.queryByLabelText('Close')).toBeNull();
     expect(mockStreamingContent).not.toHaveBeenCalled();
   });
 
-  it('renders the sheet contents and dismisses from backdrop and close button', () => {
+  it('renders the sheet contents and dismisses from backdrop and close button', async () => {
     const onDismiss = jest.fn();
-    renderWithProviders(<StreamingSheet visible session={session} onDismiss={onDismiss} />);
+    await renderWithProviders(<StreamingSheet visible session={session} onDismiss={onDismiss} />);
 
     expect(screen.getByText('Bench Cam')).toBeOnTheScreen();
     expect(screen.getByLabelText('Close')).toBeOnTheScreen();
@@ -57,13 +57,13 @@ describe('StreamingSheet', () => {
       }),
     );
 
-    fireEvent.press(screen.getByLabelText('Close'));
+    await fireEvent.press(screen.getByLabelText('Close'));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('carries the overlay radius class and the single elevation tier', () => {
-    renderWithProviders(<StreamingSheet visible session={session} onDismiss={jest.fn()} />);
+  it('carries the overlay radius class and the single elevation tier', async () => {
+    await renderWithProviders(<StreamingSheet visible session={session} onDismiss={jest.fn()} />);
 
     const sheet = screen.getByTestId('streaming-sheet');
     // radius.overlay (12px) maps to Tailwind's rounded-t-xl step (0.75rem, rem inlined at 16).

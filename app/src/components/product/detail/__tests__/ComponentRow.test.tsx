@@ -41,37 +41,37 @@ describe('ComponentRow', () => {
     });
   });
 
-  it('renders name and type', () => {
-    renderWithProviders(<ComponentRow component={makeComponent()} enabled={true} />);
+  it('renders name and type', async () => {
+    await renderWithProviders(<ComponentRow component={makeComponent()} enabled={true} />);
     expect(screen.getByText('Motor Assembly')).toBeOnTheScreen();
     expect(screen.getByText('Motor')).toBeOnTheScreen();
   });
 
-  it('navigates to the component detail route on press', () => {
-    renderWithProviders(<ComponentRow component={makeComponent()} enabled={true} />);
-    fireEvent.press(screen.getByText('Motor Assembly'));
+  it('navigates to the component detail route on press', async () => {
+    await renderWithProviders(<ComponentRow component={makeComponent()} enabled={true} />);
+    await fireEvent.press(screen.getByText('Motor Assembly'));
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/components/[id]',
       params: { id: '10' },
     });
   });
 
-  it('does not navigate when disabled via enabled={false}', () => {
-    renderWithProviders(<ComponentRow component={makeComponent()} enabled={false} />);
-    fireEvent.press(screen.getByText('Motor Assembly'));
+  it('does not navigate when disabled via enabled={false}', async () => {
+    await renderWithProviders(<ComponentRow component={makeComponent()} enabled={false} />);
+    await fireEvent.press(screen.getByText('Motor Assembly'));
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it('shows neither badge nor chevron when children are loaded and empty', () => {
-    renderWithProviders(
+  it('shows neither badge nor chevron when children are loaded and empty', async () => {
+    await renderWithProviders(
       <ComponentRow component={makeComponent({ components: [] })} enabled={true} />,
     );
     expect(screen.queryByLabelText('Show components of Motor Assembly')).toBeNull();
     expect(screen.queryByText('0')).toBeNull();
   });
 
-  it('expands and collapses already-loaded children without fetching', () => {
-    renderWithProviders(
+  it('expands and collapses already-loaded children without fetching', async () => {
+    await renderWithProviders(
       <ComponentRow component={makeComponent({ components: [loadedChild] })} enabled={true} />,
     );
 
@@ -80,24 +80,24 @@ describe('ComponentRow', () => {
     const toggle = screen.getByLabelText('Show components of Motor Assembly');
     expect(toggle.props.accessibilityState).toEqual({ expanded: false });
 
-    fireEvent.press(toggle);
+    await fireEvent.press(toggle);
     expect(screen.getByText('Rotor')).toBeOnTheScreen();
     expect(mockGetComponent).not.toHaveBeenCalled();
     expect(
       screen.getByLabelText('Hide components of Motor Assembly').props.accessibilityState,
     ).toEqual({ expanded: true });
 
-    fireEvent.press(screen.getByLabelText('Hide components of Motor Assembly'));
+    await fireEvent.press(screen.getByLabelText('Hide components of Motor Assembly'));
     expect(screen.queryByText('Rotor')).toBeNull();
   });
 
   it('lazily fetches children on expand when not loaded', async () => {
     mockGetComponent.mockResolvedValue(makeComponent({ components: [loadedChild] }));
-    renderWithProviders(
+    await renderWithProviders(
       <ComponentRow component={makeComponent({ components: undefined })} enabled={true} />,
     );
 
-    fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
+    await fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
     expect(screen.getByText('Loading components…')).toBeOnTheScreen();
 
     await waitFor(() => {
@@ -108,11 +108,11 @@ describe('ComponentRow', () => {
 
   it('keeps the row expanded with a "No subcomponents" line when a fetch resolves empty', async () => {
     mockGetComponent.mockResolvedValue(makeComponent({ components: [] }));
-    renderWithProviders(
+    await renderWithProviders(
       <ComponentRow component={makeComponent({ components: undefined })} enabled={true} />,
     );
 
-    fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
+    await fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
     expect(screen.getByText('Loading components…')).toBeOnTheScreen();
 
     await waitFor(() => {
@@ -121,12 +121,12 @@ describe('ComponentRow', () => {
     // The chevron stays put (as "Hide…") instead of vanishing mid-interaction.
     expect(screen.getByLabelText('Hide components of Motor Assembly')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByLabelText('Hide components of Motor Assembly'));
+    await fireEvent.press(screen.getByLabelText('Hide components of Motor Assembly'));
     expect(screen.queryByText('No subcomponents')).toBeNull();
   });
 
-  it('falls back to "Unnamed component" for the a11y label when the name is blank', () => {
-    renderWithProviders(
+  it('falls back to "Unnamed component" for the a11y label when the name is blank', async () => {
+    await renderWithProviders(
       <ComponentRow
         component={makeComponent({ name: '', components: [loadedChild] })}
         enabled={true}
@@ -142,11 +142,11 @@ describe('ComponentRow', () => {
       .mockRejectedValueOnce(new Error('boom'))
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce(makeComponent({ components: [loadedChild] }));
-    renderWithProviders(
+    await renderWithProviders(
       <ComponentRow component={makeComponent({ components: undefined })} enabled={true} />,
     );
 
-    fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
+    await fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
     await waitFor(
       () => {
         expect(screen.getByText("Couldn't load components — tap to retry")).toBeOnTheScreen();
@@ -154,20 +154,20 @@ describe('ComponentRow', () => {
       { timeout: 5000 },
     );
 
-    fireEvent.press(screen.getByText("Couldn't load components — tap to retry"));
+    await fireEvent.press(screen.getByText("Couldn't load components — tap to retry"));
     await waitFor(() => {
       expect(screen.getByText('Rotor')).toBeOnTheScreen();
     });
   });
 
-  it('does not offer expansion on nested child rows (one level deep only)', () => {
+  it('does not offer expansion on nested child rows (one level deep only)', async () => {
     const grandchild = makeComponent({ id: 12, name: 'Magnet' });
     const child = makeComponent({ id: 11, name: 'Rotor', components: [grandchild] });
-    renderWithProviders(
+    await renderWithProviders(
       <ComponentRow component={makeComponent({ components: [child] })} enabled={true} />,
     );
 
-    fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
+    await fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
     expect(screen.getByText('Rotor')).toBeOnTheScreen();
     expect(screen.queryByLabelText('Show components of Rotor')).toBeNull();
     expect(screen.queryByText('Magnet')).toBeNull();

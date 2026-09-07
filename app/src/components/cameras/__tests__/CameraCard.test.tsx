@@ -60,7 +60,7 @@ describe('CameraCard', () => {
   it('online + preview_thumbnail_url: renders thumbnail, full opacity, "Online" chip', async () => {
     const camera = makeCamera({ preview_thumbnail_url: 'https://example.com/preview.jpg' });
 
-    const { UNSAFE_getByProps } = renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     // The preview route is owner-checked, so on native the thumbnail waits for the
     // bearer token to resolve before it has a source to render.
@@ -69,28 +69,28 @@ describe('CameraCard', () => {
     expect(screen.getByText('Online')).toBeOnTheScreen();
 
     // Card must NOT have the opacity-60 offline class
-    const card = UNSAFE_getByProps({ accessibilityLabel: 'Camera: Test Camera' });
+    const card = screen.getByLabelText('Camera: Test Camera');
     const className = card.props.className as string;
     expect(className).not.toContain('opacity-60');
     expect(className).toContain('max-w-[420px]');
   });
 
-  it('online + no stored preview: renders placeholder icon and preview caption', () => {
+  it('online + no stored preview: renders placeholder icon and preview caption', async () => {
     const camera = makeCamera({ preview_thumbnail_url: null });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.queryByTestId('camera-thumbnail')).toBeNull();
     expect(screen.getByText('No preview available')).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
   });
 
-  it('direct connection state still renders without needing snapshot queries', () => {
+  it('direct connection state still renders without needing snapshot queries', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: null, details: null },
     });
 
-    renderWithProviders(
+    await renderWithProviders(
       <CameraCard
         camera={camera}
         effectiveConnection={resolveEffectiveCameraConnection(camera, {
@@ -111,7 +111,7 @@ describe('CameraCard', () => {
       status: { connection: 'offline', last_seen_at: secsAgo(120), details: null },
     });
 
-    const { UNSAFE_getByProps } = renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
     // The card reads a bearer token for the preview URL even while offline (it
     // just doesn't render the thumbnail), so settle that update here.
     await act(async () => {});
@@ -126,89 +126,89 @@ describe('CameraCard', () => {
     expect(screen.queryByTestId('telemetry-badge')).toBeNull();
 
     // Card wrapper has the opacity-60 offline class
-    const card = UNSAFE_getByProps({ accessibilityLabel: 'Camera: Test Camera' });
+    const card = screen.getByLabelText('Camera: Test Camera');
     const className = card.props.className as string;
     expect(className).toContain('opacity-60');
   });
 
   // ── formatLastSeen boundary cases ─────────────────────────────────────────
 
-  it('formats last_seen_at = null as "never seen"', () => {
+  it('formats last_seen_at = null as "never seen"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: null, details: null },
     });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen never seen')).toBeOnTheScreen();
   });
 
-  it('formats 30s ago as "30s ago"', () => {
+  it('formats 30s ago as "30s ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(30), details: null },
     });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen 30s ago')).toBeOnTheScreen();
   });
 
-  it('formats 59s ago as "59s ago"', () => {
+  it('formats 59s ago as "59s ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(59), details: null },
     });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen 59s ago')).toBeOnTheScreen();
   });
 
-  it('formats 60s (1m) ago as "1m ago"', () => {
+  it('formats 60s (1m) ago as "1m ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(60), details: null },
     });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen 1m ago')).toBeOnTheScreen();
   });
 
-  it('formats 3600s (60m) ago as "1h ago"', () => {
+  it('formats 3600s (60m) ago as "1h ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(3600), details: null },
     });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen 1h ago')).toBeOnTheScreen();
   });
 
-  it('formats 86400s (24h) ago as "1d ago"', () => {
+  it('formats 86400s (24h) ago as "1d ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(86400), details: null },
     });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen 1d ago')).toBeOnTheScreen();
   });
 
-  it('formats 7 days ago as "7d ago"', () => {
+  it('formats 7 days ago as "7d ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(7 * 86400), details: null },
     });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByText('Last seen 7d ago')).toBeOnTheScreen();
   });
 
   // ── Accessibility ──────────────────────────────────────────────────────────
 
-  it('accessibility label contains the camera name', () => {
+  it('accessibility label contains the camera name', async () => {
     const camera = makeCamera({ name: 'Rooftop Cam' });
 
-    renderWithProviders(<CameraCard camera={camera} />);
+    await renderWithProviders(<CameraCard camera={camera} />);
 
     expect(screen.getByLabelText('Camera: Rooftop Cam')).toBeOnTheScreen();
   });

@@ -31,17 +31,17 @@ describe('DialogProvider', () => {
     restorePlatform();
   });
 
-  it('renders children without showing a dialog by default', () => {
-    renderWithProviders(<Text>Hello World</Text>, { withDialog: true });
+  it('renders children without showing a dialog by default', async () => {
+    await renderWithProviders(<Text>Hello World</Text>, { withDialog: true });
     expect(screen.getByText('Hello World')).toBeOnTheScreen();
   });
 
-  it('useDialog throws when used outside DialogProvider', () => {
+  it('useDialog throws when used outside DialogProvider', async () => {
     function BadConsumer() {
       useDialog();
       return <Text>Should not render</Text>;
     }
-    expect(() => renderWithProviders(<BadConsumer />)).toThrow(
+    await expect(renderWithProviders(<BadConsumer />)).rejects.toThrow(
       'useDialog must be used within DialogProvider',
     );
   });
@@ -54,7 +54,7 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<AlertTest />, { withDialog: true });
+    await renderWithProviders(<AlertTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -70,7 +70,7 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<MessageTest />, { withDialog: true });
+    await renderWithProviders(<MessageTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -89,7 +89,7 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<InputTest />, { withDialog: true });
+    await renderWithProviders(<InputTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -111,7 +111,7 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<InputTypingTest />, { withDialog: true });
+    await renderWithProviders(<InputTypingTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -151,7 +151,7 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<TriggerRefTest />, { withDialog: true });
+    await renderWithProviders(<TriggerRefTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Edit name')).toBeOnTheScreen();
@@ -174,7 +174,7 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<AlertTest />, { withDialog: true });
+    await renderWithProviders(<AlertTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -197,13 +197,13 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<InputSubmitTest />, { withDialog: true });
+    await renderWithProviders(<InputSubmitTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
     await user.type(screen.getByPlaceholderText('Your name'), 'hello');
     // submitEditing is a custom event not supported by userEvent
-    fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
+    await fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
 
     expect(onSubmit).toHaveBeenCalledWith('hello');
   });
@@ -225,12 +225,12 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<DisabledSubmitTest />, { withDialog: true });
+    await renderWithProviders(<DisabledSubmitTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
     // Field is empty → OK's disabled gate is active; pressing Enter must not bypass it.
-    fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
+    await fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
 
     expect(onSubmit).not.toHaveBeenCalled();
   });
@@ -241,7 +241,7 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.alert({ title: 'No Buttons' }));
     }
 
-    renderWithProviders(<DefaultTest />, { withDialog: true });
+    await renderWithProviders(<DefaultTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -254,7 +254,7 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.toast('Saved'));
     }
 
-    renderWithProviders(<ToastTest />, { withDialog: true });
+    await renderWithProviders(<ToastTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -267,13 +267,13 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.alert({ title, buttons: [{ text: 'OK' }] }));
     }
 
-    const view = renderWithProviders(<AlertTest title="First Title" />, { withDialog: true });
+    const view = await renderWithProviders(<AlertTest title="First Title" />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('First Title')).toBeOnTheScreen();
     await user.press(screen.getByText('OK'));
 
-    view.rerender(<AlertTest title="Second Title" />);
+    await view.rerender(<AlertTest title="Second Title" />);
 
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Second Title')).toBeOnTheScreen();
@@ -285,7 +285,7 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.alert({ title: 'Plain', buttons: [{ text: 'OK' }] }));
     }
 
-    renderWithProviders(<Test />, { withDialog: true });
+    await renderWithProviders(<Test />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -300,12 +300,12 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<Test />, { withDialog: true });
+    await renderWithProviders(<Test />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
     // submitEditing is a custom event not supported by userEvent
-    fireEvent(screen.getByPlaceholderText('type here'), 'submitEditing');
+    await fireEvent(screen.getByPlaceholderText('type here'), 'submitEditing');
   });
 
   it('pressing Cancel dismisses the dialog without invoking the confirm action', async () => {
@@ -321,7 +321,7 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<CancelTest />, { withDialog: true });
+    await renderWithProviders(<CancelTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Discard changes?')).toBeOnTheScreen();
@@ -338,7 +338,7 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.toast('Saved'));
     }
 
-    renderWithProviders(<ToastTest />, { withDialog: true });
+    await renderWithProviders(<ToastTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
 
@@ -351,7 +351,7 @@ describe('DialogProvider', () => {
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Saved')).toBeOnTheScreen();
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(4000);
     });
 
@@ -366,25 +366,25 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.toast('Saved'));
     }
 
-    renderWithProviders(<ToastTest />, { withDialog: true });
+    await renderWithProviders(<ToastTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Saved')).toBeOnTheScreen();
 
     // ~3s in, fire the identical message again — the 4s timer must restart.
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(3000);
     });
     await user.press(screen.getByTestId('trigger'));
 
     // 2s after the second fire (5s after the first): still visible.
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(2000);
     });
     expect(screen.getByText('Saved')).toBeOnTheScreen();
 
     // And it still auto-dismisses 4s after the second fire.
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(2100);
     });
     await waitFor(() => {
@@ -399,7 +399,7 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.toast('Photo removed', { label: 'Undo', onPress }));
     }
 
-    renderWithProviders(<ToastTest />, { withDialog: true });
+    await renderWithProviders(<ToastTest />, { withDialog: true });
 
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Photo removed')).toBeOnTheScreen();
@@ -431,15 +431,15 @@ describe('DialogProvider', () => {
       );
     }
 
-    renderWithProviders(<ToastTest />, { withDialog: true });
+    await renderWithProviders(<ToastTest />, { withDialog: true });
     await user.press(screen.getByTestId('trigger'));
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(4100);
     });
     expect(screen.getByText('Undo')).toBeOnTheScreen();
 
-    act(() => {
+    await act(() => {
       jest.advanceTimersByTime(4000);
     });
     await waitFor(() => {
@@ -456,7 +456,7 @@ describe('DialogProvider', () => {
       return renderAlertTrigger(() => dialog.toast('Saved'));
     }
 
-    renderWithProviders(<ToastTest />, { withDialog: true });
+    await renderWithProviders(<ToastTest />, { withDialog: true });
     await user.press(screen.getByTestId('trigger'));
 
     expect(announce).toHaveBeenCalledWith('Saved');

@@ -36,33 +36,33 @@ describe('ProductsFab', () => {
     restorePlatform();
   });
 
-  it('fires onPress', () => {
+  it('fires onPress', async () => {
     const onPress = jest.fn();
-    render(<ProductsFab extended creationState="verified" onPress={onPress} />);
-    fireEvent.press(screen.getByLabelText('New product'));
+    await render(<ProductsFab extended creationState="verified" onPress={onPress} />);
+    await fireEvent.press(screen.getByLabelText('New product'));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   // Guests get the fab at full strength: it is enabled for them, and
   // `createProductAction` explains the sign-in gate on press. Dimming it would
   // read as disabled, and the label must not drift from the visible one.
-  it('never dims, so it does not read as disabled', () => {
-    render(<ProductsFab extended creationState="guest" onPress={jest.fn()} />);
+  it('never dims, so it does not read as disabled', async () => {
+    await render(<ProductsFab extended creationState="guest" onPress={jest.fn()} />);
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.opacity ?? 1).toBe(1);
   });
 
   // WCAG 2.5.3: the accessible name must contain the visible label.
-  it('matches its accessible name to the visible label', () => {
-    render(<ProductsFab extended creationState="guest" onPress={jest.fn()} />);
+  it('matches its accessible name to the visible label', async () => {
+    await render(<ProductsFab extended creationState="guest" onPress={jest.fn()} />);
     expect(screen.getByLabelText('Sign in to add product')).toBeOnTheScreen();
     expect(screen.getByText('Sign in to add product')).toBeOnTheScreen();
   });
 
   it.each(CREATION_LABEL_CASES)(
     'uses the truthful label for %s creation state',
-    (creationState, label) => {
-      render(<ProductsFab extended creationState={creationState} onPress={jest.fn()} />);
+    async (creationState, label) => {
+      await render(<ProductsFab extended creationState={creationState} onPress={jest.fn()} />);
       expect(screen.getByRole('button', { name: label })).toBeOnTheScreen();
       expect(screen.getByText(label)).toBeOnTheScreen();
     },
@@ -70,8 +70,10 @@ describe('ProductsFab', () => {
 
   it.each(['guest', 'unverified'] as const)(
     'keeps the truthful %s label visible when the scroll state requests a collapsed FAB',
-    (creationState) => {
-      render(<ProductsFab extended={false} creationState={creationState} onPress={jest.fn()} />);
+    async (creationState) => {
+      await render(
+        <ProductsFab extended={false} creationState={creationState} onPress={jest.fn()} />,
+      );
       expect(
         screen.getByText(
           CREATION_LABEL_CASES.find(([state]) => state === creationState)?.[1] ?? '',
@@ -80,36 +82,36 @@ describe('ProductsFab', () => {
     },
   );
 
-  it('allows the verified-user FAB to collapse on scroll', () => {
-    render(<ProductsFab extended={false} creationState="verified" onPress={jest.fn()} />);
+  it('allows the verified-user FAB to collapse on scroll', async () => {
+    await render(<ProductsFab extended={false} creationState="verified" onPress={jest.fn()} />);
     expect(screen.queryByText('New product')).toBeNull();
   });
 
-  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible', () => {
+  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible', async () => {
     mockPlatform('web');
     mockUseBottomNavVisible.mockReturnValue(false);
-    const { rerender } = render(
+    const { rerender } = await render(
       <ProductsFab extended creationState="verified" onPress={jest.fn()} />,
     );
     const hiddenBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<ProductsFab extended creationState="verified" onPress={jest.fn()} />);
+    await rerender(<ProductsFab extended creationState="verified" onPress={jest.fn()} />);
     const visibleBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     expect(visibleBottom - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
   });
 
-  it('does not add clearance on native even when BottomNav is visible (native is already in normal flow)', () => {
+  it('does not add clearance on native even when BottomNav is visible (native is already in normal flow)', async () => {
     mockPlatform('ios');
     mockUseBottomNavVisible.mockReturnValue(false);
-    const { rerender } = render(
+    const { rerender } = await render(
       <ProductsFab extended creationState="verified" onPress={jest.fn()} />,
     );
     const hiddenBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<ProductsFab extended creationState="verified" onPress={jest.fn()} />);
+    await rerender(<ProductsFab extended creationState="verified" onPress={jest.fn()} />);
     const visibleBottom = StyleSheet.flatten(screen.getByRole('button').props.style).bottom;
 
     expect(visibleBottom).toBe(hiddenBottom);

@@ -21,8 +21,8 @@ const GENERIC_VERIFY_ERROR_PATTERN = /Couldn't verify your email/;
 const mockedGetToken = jest.mocked(getToken);
 const mockedGetUser = jest.mocked(getUser);
 
-function renderVerifyEmailScreen() {
-  renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
+async function renderVerifyEmailScreen() {
+  await renderWithProviders(<VerifyEmailScreen />, { withAuth: true });
 }
 
 beforeEach(() => {
@@ -41,7 +41,7 @@ beforeEach(() => {
 describe('VerifyEmailScreen states', () => {
   it('shows error when no token is provided', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
-    renderVerifyEmailScreen();
+    await renderVerifyEmailScreen();
     await waitFor(
       () => {
         expect(screen.getByText(NO_VERIFICATION_TOKEN_PATTERN)).toBeOnTheScreen();
@@ -59,7 +59,7 @@ describe('VerifyEmailScreen states', () => {
         return HttpResponse.json({}, { status: 200 });
       }),
     );
-    renderVerifyEmailScreen();
+    await renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText('Verifying your email…')).toBeOnTheScreen();
     });
@@ -68,7 +68,7 @@ describe('VerifyEmailScreen states', () => {
   it('shows success message when verification succeeds', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: 'valid-token' });
     server.use(http.post(`${API_URL}/auth/verify`, () => HttpResponse.json({}, { status: 200 })));
-    renderVerifyEmailScreen();
+    await renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText(EMAIL_VERIFIED_SUCCESS_PATTERN)).toBeOnTheScreen();
     });
@@ -93,7 +93,7 @@ describe('VerifyEmailScreen states', () => {
       }),
     );
 
-    renderVerifyEmailScreen();
+    await renderVerifyEmailScreen();
 
     await waitFor(() => {
       expect(screen.getByText(EMAIL_VERIFIED_SUCCESS_PATTERN)).toBeOnTheScreen();
@@ -110,7 +110,7 @@ describe('VerifyEmailScreen states', () => {
         HttpResponse.json({ detail: 'Token expired' }, { status: 400 }),
       ),
     );
-    renderVerifyEmailScreen();
+    await renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText('Token expired')).toBeOnTheScreen();
     });
@@ -119,7 +119,7 @@ describe('VerifyEmailScreen states', () => {
   it('shows error when fetch throws', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: 'valid-token' });
     server.use(http.post(`${API_URL}/auth/verify`, () => HttpResponse.error()));
-    renderVerifyEmailScreen();
+    await renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText(GENERIC_VERIFY_ERROR_PATTERN)).toBeOnTheScreen();
     });
@@ -136,11 +136,11 @@ describe('VerifyEmailScreen navigation', () => {
       setParams: jest.fn(),
     });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
-    renderVerifyEmailScreen();
+    await renderVerifyEmailScreen();
     await waitFor(() => {
       expect(screen.getByText('Back to home')).toBeOnTheScreen();
     });
-    fireEvent.press(screen.getByText('Back to home'));
+    await fireEvent.press(screen.getByText('Back to home'));
     expect(mockReplace).toHaveBeenCalledWith('/');
   });
 });

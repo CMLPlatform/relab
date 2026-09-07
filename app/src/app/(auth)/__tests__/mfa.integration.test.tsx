@@ -40,8 +40,8 @@ const mockedCompleteMfaChallenge = completeMfaChallenge as jest.MockedFunction<
   typeof completeMfaChallenge
 >;
 
-function renderMfaScreen() {
-  renderWithProviders(<MfaScreen />);
+async function renderMfaScreen() {
+  await renderWithProviders(<MfaScreen />);
 }
 
 beforeEach(() => {
@@ -58,17 +58,17 @@ describe('MfaScreen challenge flow', () => {
   // Every auth field carries a visible label, not just the recovery-code
   // fallback — getByLabelText below only sees the accessible name, so the
   // rendered label needs its own assertion.
-  it('labels the code field visibly', () => {
-    renderMfaScreen();
+  it('labels the code field visibly', async () => {
+    await renderMfaScreen();
 
     expect(screen.getByText('Authentication code')).toBeOnTheScreen();
   });
 
-  it('does not submit until a six digit code is entered', () => {
-    renderMfaScreen();
+  it('does not submit until a six digit code is entered', async () => {
+    await renderMfaScreen();
 
     expect(screen.getByText('Continue')).toBeDisabled();
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '12345');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '12345');
     expect(screen.getByText('Continue')).toBeDisabled();
     expect(mockedCompleteMfaChallenge).not.toHaveBeenCalled();
   });
@@ -76,9 +76,9 @@ describe('MfaScreen challenge flow', () => {
   it('auto-submits once six digits are entered', async () => {
     mockedCompleteMfaChallenge.mockResolvedValueOnce();
 
-    renderMfaScreen();
+    await renderMfaScreen();
 
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
@@ -91,15 +91,15 @@ describe('MfaScreen challenge flow', () => {
       .mockRejectedValueOnce(new Error('Invalid MFA code.'))
       .mockResolvedValueOnce();
 
-    renderMfaScreen();
+    await renderMfaScreen();
 
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '000000');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '000000');
 
     await waitFor(() => {
       expect(screen.getByText('Invalid MFA code.')).toBeOnTheScreen();
     });
 
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));
@@ -112,9 +112,9 @@ describe('MfaScreen challenge flow', () => {
     setPendingMfaLogin({ status: 'mfa_required', mfaToken: 'mfa-token', redirectTo: '/account' });
     mockedCompleteMfaChallenge.mockResolvedValueOnce();
 
-    renderMfaScreen();
+    await renderMfaScreen();
 
-    fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
+    await fireEvent.changeText(screen.getByLabelText('Authentication code'), '123456');
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith('/account');
@@ -122,11 +122,11 @@ describe('MfaScreen challenge flow', () => {
     expect(mockRefetch).toHaveBeenCalled();
   });
 
-  it('does not read MFA tokens from route params', () => {
+  it('does not read MFA tokens from route params', async () => {
     mockPendingMfaLogin = undefined;
     mockedUseLocalSearchParams.mockReturnValue({ token: 'route-token' });
 
-    renderMfaScreen();
+    await renderMfaScreen();
 
     expect(screen.getByText('MFA session expired. Please sign in again.')).toBeOnTheScreen();
     expect(screen.getByText('Continue')).toBeDisabled();
@@ -136,11 +136,11 @@ describe('MfaScreen challenge flow', () => {
   it('signs in with a recovery code', async () => {
     mockedCompleteMfaChallenge.mockResolvedValueOnce();
 
-    renderMfaScreen();
+    await renderMfaScreen();
 
-    fireEvent.press(screen.getByText('Use a recovery code'));
-    fireEvent.changeText(screen.getByLabelText('Recovery code'), 'ABCDE-FGHIJ');
-    fireEvent.press(screen.getByText('Sign in'));
+    await fireEvent.press(screen.getByText('Use a recovery code'));
+    await fireEvent.changeText(screen.getByLabelText('Recovery code'), 'ABCDE-FGHIJ');
+    await fireEvent.press(screen.getByText('Sign in'));
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith(expect.objectContaining({ pathname: '/products' }));

@@ -5,8 +5,8 @@ import { SectionNavContext } from '@/components/base/SectionNavContext';
 
 const child = <Text>section body</Text>;
 
-test('renders title and children when not empty', () => {
-  render(
+test('renders title and children when not empty', async () => {
+  await render(
     <Section title="Physical properties" sectionKey="physical">
       {child}
     </Section>,
@@ -15,8 +15,8 @@ test('renders title and children when not empty', () => {
   expect(screen.getByText('section body')).toBeOnTheScreen();
 });
 
-test('view mode + empty renders nothing', () => {
-  render(
+test('view mode + empty renders nothing', async () => {
+  await render(
     <Section title="Circularity" sectionKey="circularity" isEmpty>
       {child}
     </Section>,
@@ -25,8 +25,8 @@ test('view mode + empty renders nothing', () => {
   expect(screen.queryByText('section body')).toBeNull();
 });
 
-test('edit mode + empty shows the add row, expands in place on press', () => {
-  render(
+test('edit mode + empty shows the add row, expands in place on press', async () => {
+  await render(
     <Section
       title="Circularity"
       sectionKey="circularity"
@@ -40,12 +40,12 @@ test('edit mode + empty shows the add row, expands in place on press', () => {
   expect(screen.queryByText('section body')).toBeNull();
   const addRow = screen.getByRole('button', { name: 'Add circularity notes' });
   expect(addRow.props.accessibilityState).toMatchObject({ expanded: false });
-  fireEvent.press(addRow);
+  await fireEvent.press(addRow);
   expect(screen.getByText('section body')).toBeOnTheScreen();
 });
 
-test('renders titleSuffix and tooltip beside the title', () => {
-  render(
+test('renders titleSuffix and tooltip beside the title', async () => {
+  await render(
     <Section
       title="Components"
       sectionKey="components"
@@ -59,7 +59,7 @@ test('renders titleSuffix and tooltip beside the title', () => {
   expect(screen.getByText('(3)')).toBeOnTheScreen();
 });
 
-test('unregisters from the nav registry when it collapses to empty in view mode', () => {
+test('unregisters from the nav registry when it collapses to empty in view mode', async () => {
   const registerSection = jest.fn();
   const unregisterSection = jest.fn();
   const nav = {
@@ -69,7 +69,7 @@ test('unregisters from the nav registry when it collapses to empty in view mode'
     activeKey: 'overview' as const,
   };
 
-  const { rerender } = render(
+  const { rerender } = await render(
     <SectionNavContext.Provider value={nav}>
       <Section title="Circularity" sectionKey="circularity">
         {child}
@@ -82,7 +82,7 @@ test('unregisters from the nav registry when it collapses to empty in view mode'
   // Context identity churns on every scroll-spy tick (activeKey). A section
   // that stays visible must NOT be unregistered by that churn — onLayout never
   // re-fires, so an unregister here would permanently orphan the section.
-  rerender(
+  await rerender(
     <SectionNavContext.Provider value={{ ...nav, activeKey: 'physical' as const }}>
       <Section title="Circularity" sectionKey="circularity">
         {child}
@@ -91,7 +91,7 @@ test('unregisters from the nav registry when it collapses to empty in view mode'
   );
   expect(unregisterSection).not.toHaveBeenCalled();
 
-  rerender(
+  await rerender(
     <SectionNavContext.Provider value={nav}>
       <Section title="Circularity" sectionKey="circularity" isEmpty>
         {child}

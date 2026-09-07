@@ -27,56 +27,56 @@ describe('ThemeModeProvider / useThemeMode', () => {
     });
   });
 
-  it('exposes themeMode from the user preferences', () => {
-    const { result } = renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
+  it('exposes themeMode from the user preferences', async () => {
+    const { result } = await renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
     expect(result.current.themeMode).toBe('light');
   });
 
-  it('defaults themeMode to "auto" when no preference is set', () => {
+  it('defaults themeMode to "auto" when no preference is set', async () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: { preferences: {} },
       refetch: mockRefetch,
     });
-    const { result } = renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
+    const { result } = await renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
     expect(result.current.themeMode).toBe('auto');
   });
 
-  it('defaults themeMode to "auto" when user has no preferences object', () => {
+  it('defaults themeMode to "auto" when user has no preferences object', async () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: {},
       refetch: mockRefetch,
     });
-    const { result } = renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
+    const { result } = await renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
     expect(result.current.themeMode).toBe('auto');
   });
 
-  it('returns the explicit effectiveColorScheme when themeMode is "light"', () => {
-    const { result } = renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
+  it('returns the explicit effectiveColorScheme when themeMode is "light"', async () => {
+    const { result } = await renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
     expect(result.current.effectiveColorScheme).toBe('light');
   });
 
-  it('returns "dark" effectiveColorScheme when themeMode is "dark"', () => {
+  it('returns "dark" effectiveColorScheme when themeMode is "dark"', async () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: { preferences: { theme_mode: 'dark' } },
       refetch: mockRefetch,
     });
-    const { result } = renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
+    const { result } = await renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
     expect(result.current.effectiveColorScheme).toBe('dark');
   });
 
-  it('falls back to system scheme ("light") when themeMode is "auto"', () => {
+  it('falls back to system scheme ("light") when themeMode is "auto"', async () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: { preferences: { theme_mode: 'auto' } },
       refetch: mockRefetch,
     });
     // useColorScheme returns null in the test environment → resolved to 'light'
-    const { result } = renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
+    const { result } = await renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
     expect(result.current.effectiveColorScheme).toBe('light');
   });
 
   it('setThemeMode calls updateUser and refetch', async () => {
     mockRefetch.mockResolvedValue(undefined);
-    const { result } = renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
+    const { result } = await renderHook(() => useThemeMode(), { wrapper: ThemeModeProvider });
 
     await act(async () => {
       await result.current.setThemeMode('dark');
@@ -86,10 +86,10 @@ describe('ThemeModeProvider / useThemeMode', () => {
     expect(mockRefetch).toHaveBeenCalledWith(false);
   });
 
-  it('throws when used outside ThemeModeProvider', () => {
+  it('throws when used outside ThemeModeProvider', async () => {
     // Suppress the React error boundary console noise
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => renderHook(() => useThemeMode())).toThrow(
+    await expect(renderHook(() => useThemeMode())).rejects.toThrow(
       'useThemeMode must be used within ThemeModeProvider',
     );
     (console.error as jest.Mock).mockRestore();
@@ -104,29 +104,29 @@ describe('useEffectiveColorScheme', () => {
     });
   });
 
-  it('falls back to the system scheme when used outside the provider', () => {
+  it('falls back to the system scheme when used outside the provider', async () => {
     // useColorScheme() → null in test env → 'light'
-    const { result } = renderHook(() => useEffectiveColorScheme());
+    const { result } = await renderHook(() => useEffectiveColorScheme());
     expect(result.current).toBe('light');
   });
 
-  it('returns the provider effectiveColorScheme when inside the provider', () => {
+  it('returns the provider effectiveColorScheme when inside the provider', async () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: { preferences: { theme_mode: 'dark' } },
       refetch: mockRefetch,
     });
-    const { result } = renderHook(() => useEffectiveColorScheme(), {
+    const { result } = await renderHook(() => useEffectiveColorScheme(), {
       wrapper: ThemeModeProvider,
     });
     expect(result.current).toBe('dark');
   });
 
-  it('resolves "auto" to the system scheme ("light") inside the provider', () => {
+  it('resolves "auto" to the system scheme ("light") inside the provider', async () => {
     (useAuth as jest.Mock).mockReturnValue({
       user: { preferences: { theme_mode: 'auto' } },
       refetch: mockRefetch,
     });
-    const { result } = renderHook(() => useEffectiveColorScheme(), {
+    const { result } = await renderHook(() => useEffectiveColorScheme(), {
       wrapper: ThemeModeProvider,
     });
     expect(result.current).toBe('light');

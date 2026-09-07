@@ -8,15 +8,15 @@ describe('StaticBackground', () => {
 
   // The background is wrapped in an aria-hidden View (decorative — hidden from
   // screen readers and axe), so queries must opt into hidden elements.
-  it('renders the background image on native platforms', () => {
+  it('renders the background image on native platforms', async () => {
     mockPlatform('ios');
-    render(<StaticBackground />);
+    await render(<StaticBackground />);
     expect(screen.getByTestId('expo-image-bg', { includeHiddenElements: true })).toBeOnTheScreen();
   });
 
-  it('renders the background image on web platform', () => {
+  it('renders the background image on web platform', async () => {
     mockPlatform('web');
-    render(<StaticBackground />);
+    await render(<StaticBackground />);
     expect(screen.getByTestId('expo-image-bg', { includeHiddenElements: true })).toBeOnTheScreen();
   });
 });

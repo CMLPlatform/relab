@@ -54,8 +54,8 @@ describe('YouTubeStreamCard', () => {
     });
   });
 
-  it('renders live stream details when a stream is active', () => {
-    renderWithProviders(<YouTubeStreamCard cameraId="cam-1" isOnline />);
+  it('renders live stream details when a stream is active', async () => {
+    await renderWithProviders(<YouTubeStreamCard cameraId="cam-1" isOnline />);
 
     expect(screen.getByText('YouTube Live')).toBeOnTheScreen();
     expect(screen.getByText('Live for 1:23')).toBeOnTheScreen();
@@ -63,9 +63,9 @@ describe('YouTubeStreamCard', () => {
   });
 
   it('confirms stopping a stream and clears the active session on success', async () => {
-    renderWithProviders(<YouTubeStreamCard cameraId="cam-1" isOnline />);
+    await renderWithProviders(<YouTubeStreamCard cameraId="cam-1" isOnline />);
 
-    fireEvent.press(screen.getByText('Stop stream'));
+    await fireEvent.press(screen.getByText('Stop stream'));
 
     expect(mockAlert).toHaveBeenCalledWith(expect.objectContaining({ title: 'End live stream?' }));
 
@@ -92,9 +92,9 @@ describe('YouTubeStreamCard', () => {
   });
 
   it('shows an error when stopping the stream fails', async () => {
-    renderWithProviders(<YouTubeStreamCard cameraId="cam-1" isOnline />);
+    await renderWithProviders(<YouTubeStreamCard cameraId="cam-1" isOnline />);
 
-    fireEvent.press(screen.getByText('Stop stream'));
+    await fireEvent.press(screen.getByText('Stop stream'));
 
     const alertConfig = mockAlert.mock.calls[0][0] as {
       buttons: { text: string; onPress?: () => void }[];

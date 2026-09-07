@@ -30,8 +30,8 @@ function createMockResponse(ok: boolean, body: Record<string, unknown> = {}): Re
   } as unknown as Response;
 }
 
-function renderResetPasswordScreen() {
-  renderWithProviders(<ResetPasswordScreen />);
+async function renderResetPasswordScreen() {
+  await renderWithProviders(<ResetPasswordScreen />);
 }
 
 async function settleForm() {
@@ -42,11 +42,11 @@ async function settleForm() {
 }
 
 async function submitResetPassword(password: string, confirmPassword = password) {
-  fireEvent.changeText(screen.getByTestId('password-input'), password);
-  fireEvent.changeText(screen.getByTestId('confirm-password-input'), confirmPassword);
+  await fireEvent.changeText(screen.getByTestId('password-input'), password);
+  await fireEvent.changeText(screen.getByTestId('confirm-password-input'), confirmPassword);
   await settleForm();
   expect(screen.getByRole('button', { name: 'Reset password' })).not.toBeDisabled();
-  fireEvent.press(screen.getByRole('button', { name: 'Reset password' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Reset password' }));
   await settleForm();
 }
 
@@ -64,15 +64,15 @@ beforeEach(() => {
 });
 
 describe('ResetPasswordScreen rendering', () => {
-  it('renders the reset password form', () => {
-    renderResetPasswordScreen();
+  it('renders the reset password form', async () => {
+    await renderResetPasswordScreen();
     expect(screen.getAllByText('Reset password')).not.toHaveLength(0);
     expect(screen.getByTestId('password-input')).toBeOnTheScreen();
     expect(screen.getByTestId('confirm-password-input')).toBeOnTheScreen();
     expect(screen.getByText('Back to login')).toBeOnTheScreen();
   });
 
-  it('removes the token from browser history on web', () => {
+  it('removes the token from browser history on web', async () => {
     const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
     jest.replaceProperty(Platform, 'OS', 'web');
     Object.defineProperty(window, 'location', {
@@ -84,7 +84,7 @@ describe('ResetPasswordScreen rendering', () => {
       },
     });
 
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
 
     expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/reset-password');
 
@@ -92,19 +92,22 @@ describe('ResetPasswordScreen rendering', () => {
   });
 
   it('shows a validation error for a short password', async () => {
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
 
-    fireEvent.changeText(screen.getByTestId('password-input'), 'short');
+    await fireEvent.changeText(screen.getByTestId('password-input'), 'short');
     await settleForm();
 
     expect(screen.getByText(AT_LEAST_12_PATTERN)).toBeOnTheScreen();
   });
 
   it('shows a validation error when password confirmation does not match', async () => {
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
 
-    fireEvent.changeText(screen.getByTestId('password-input'), 'correct-horse-battery-staple-v42');
-    fireEvent.changeText(
+    await fireEvent.changeText(
+      screen.getByTestId('password-input'),
+      'correct-horse-battery-staple-v42',
+    );
+    await fireEvent.changeText(
       screen.getByTestId('confirm-password-input'),
       'correct-horse-battery-staple-v43',
     );
@@ -119,7 +122,7 @@ describe('ResetPasswordScreen submission', () => {
   it('shows an error when no reset token is provided', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
 
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
     await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(screen.getByText('This reset link is invalid. Request a new one.')).toBeOnTheScreen();
@@ -127,7 +130,7 @@ describe('ResetPasswordScreen submission', () => {
   });
 
   it('submits the new password and shows the success state', async () => {
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
     await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(mockedApiFetch).toHaveBeenCalledWith(
@@ -159,7 +162,7 @@ describe('ResetPasswordScreen submission', () => {
       window.location.hash = '';
     });
 
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
     await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/reset-password');
@@ -179,7 +182,7 @@ describe('ResetPasswordScreen submission', () => {
   it('shows the API error message when the reset fails', async () => {
     mockedApiFetch.mockResolvedValue(createMockResponse(false, { detail: 'Reset token expired' }));
 
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
     await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(screen.getByText('Reset token expired')).toBeOnTheScreen();
@@ -189,7 +192,7 @@ describe('ResetPasswordScreen submission', () => {
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockedApiFetch.mockRejectedValue(new Error('network down'));
 
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
     await submitResetPassword('correct-horse-battery-staple-v42');
 
     expect(screen.getByText("Couldn't reset your password. Please try again.")).toBeOnTheScreen();
@@ -200,9 +203,9 @@ describe('ResetPasswordScreen submission', () => {
 
 describe('ResetPasswordScreen navigation', () => {
   it('navigates to login from the button and after success delay', async () => {
-    renderResetPasswordScreen();
+    await renderResetPasswordScreen();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Back to login' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Back to login' }));
     expect(mockPush).toHaveBeenCalledWith('/login');
 
     await submitResetPassword('correct-horse-battery-staple-v42');

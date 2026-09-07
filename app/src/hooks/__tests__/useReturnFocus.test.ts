@@ -17,8 +17,8 @@ beforeEach(() => {
 });
 
 describe('useReturnFocus', () => {
-  it('focuses the trigger once the overlay closes', () => {
-    const { rerender } = renderHook(
+  it('focuses the trigger once the overlay closes', async () => {
+    const { rerender } = await renderHook(
       ({ visible }: { visible: boolean }) => useReturnFocus(visible),
       {
         initialProps: { visible: true },
@@ -27,37 +27,37 @@ describe('useReturnFocus', () => {
 
     expect(setFocus).not.toHaveBeenCalled();
 
-    rerender({ visible: false });
+    await rerender({ visible: false });
 
     expect(setFocus).toHaveBeenCalledWith(42);
   });
 
-  it('does not steal focus while the overlay is opening or open', () => {
+  it('does not steal focus while the overlay is opening or open', async () => {
     // Focusing the trigger on open would pull the screen reader out of the
     // overlay it just opened — the opposite of what this is for.
-    const { rerender } = renderHook(
+    const { rerender } = await renderHook(
       ({ visible }: { visible: boolean }) => useReturnFocus(visible),
       {
         initialProps: { visible: false },
       },
     );
 
-    rerender({ visible: true });
-    rerender({ visible: true });
+    await rerender({ visible: true });
+    await rerender({ visible: true });
 
     expect(setFocus).not.toHaveBeenCalled();
   });
 
-  it('stays quiet when the trigger has already unmounted', () => {
+  it('stays quiet when the trigger has already unmounted', async () => {
     mockedFindNodeHandle.mockReturnValue(null);
-    const { rerender } = renderHook(
+    const { rerender } = await renderHook(
       ({ visible }: { visible: boolean }) => useReturnFocus(visible),
       {
         initialProps: { visible: true },
       },
     );
 
-    rerender({ visible: false });
+    await rerender({ visible: false });
 
     expect(setFocus).not.toHaveBeenCalled();
   });

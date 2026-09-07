@@ -40,7 +40,7 @@ describe('useVerifyEmail post-verify redirect', () => {
     });
     jest.useFakeTimers();
 
-    renderHook(() => useVerifyEmail());
+    await renderHook(() => useVerifyEmail());
 
     // Let the verify effect resolve so `success` flips true and schedules the timer.
     await act(async () => {

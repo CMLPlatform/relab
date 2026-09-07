@@ -6,15 +6,15 @@ import {
 } from '@/features/cameras/rpi/captureActions';
 
 describe('camera capture action hooks', () => {
-  it('stores effective connection snapshots without rewriting identical values', () => {
-    const { result } = renderHook(() => useCameraConnectionSnapshots());
+  it('stores effective connection snapshots without rewriting identical values', async () => {
+    const { result } = await renderHook(() => useCameraConnectionSnapshots());
     const localConnection = {
       mode: 'local' as const,
       localBaseUrl: 'http://cam.local',
       localApiKey: 'key',
     };
 
-    act(() => {
+    await act(() => {
       result.current.handleEffectiveConnectionChange('cam-1', {
         isReachable: true,
         transport: 'direct',
@@ -33,7 +33,7 @@ describe('camera capture action hooks', () => {
     expect(result.current.connectionInfoByCameraId).toEqual({ 'cam-1': localConnection });
   });
 
-  it('handles capture selection, offline warnings, and success messaging', () => {
+  it('handles capture selection, offline warnings, and success messaging', async () => {
     const mutate = jest.fn((...args: unknown[]) => {
       const options = args[1] as {
         onSuccess: (result: { total: number; succeeded: number; failed: number }) => void;
@@ -46,7 +46,7 @@ describe('camera capture action hooks', () => {
     const toggleSelected = jest.fn();
     const selectedIds = new Set(['cam-1', 'cam-2']);
 
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useCameraCaptureActions({
         captureAll: { mutate },
         captureAllProductId: 42,
@@ -61,7 +61,7 @@ describe('camera capture action hooks', () => {
       }),
     );
 
-    act(() => {
+    await act(() => {
       result.current.handleCardLongPress({ id: 'cam-offline', name: 'Offline Cam' } as never);
       result.current.handleCardLongPress({ id: 'cam-1', name: 'Cam 1' } as never);
       result.current.handleCaptureSelected();

@@ -35,36 +35,36 @@ function renderInNavigator(navigation: ReturnType<typeof fakeNavigation>) {
 describe('useScreenFocusedSafe', () => {
   // The point of the hook: components using it also render in tests, storybook
   // and modals that sit outside a navigator, where useIsFocused would throw.
-  it('reports focused outside a navigator instead of throwing', () => {
-    const { result } = renderHook(() => useScreenFocusedSafe());
+  it('reports focused outside a navigator instead of throwing', async () => {
+    const { result } = await renderHook(() => useScreenFocusedSafe());
 
     expect(result.current).toBe(true);
   });
 
-  it('seeds from the navigator’s current focus rather than assuming focused', () => {
-    expect(renderInNavigator(fakeNavigation(false)).result.current).toBe(false);
-    expect(renderInNavigator(fakeNavigation(true)).result.current).toBe(true);
+  it('seeds from the navigator’s current focus rather than assuming focused', async () => {
+    expect((await renderInNavigator(fakeNavigation(false))).result.current).toBe(false);
+    expect((await renderInNavigator(fakeNavigation(true))).result.current).toBe(true);
   });
 
-  it('follows blur and focus events from the navigator', () => {
+  it('follows blur and focus events from the navigator', async () => {
     const navigation = fakeNavigation(true);
-    const { result } = renderInNavigator(navigation);
+    const { result } = await renderInNavigator(navigation);
 
-    act(() => navigation.emit('blur'));
+    await act(() => navigation.emit('blur'));
     expect(result.current).toBe(false);
 
-    act(() => navigation.emit('focus'));
+    await act(() => navigation.emit('focus'));
     expect(result.current).toBe(true);
   });
 
   // Screens mount and unmount constantly; a leaked listener would keep setting
   // state on an unmounted tree for the life of the navigator.
-  it('unsubscribes both listeners on unmount', () => {
+  it('unsubscribes both listeners on unmount', async () => {
     const navigation = fakeNavigation(true);
-    const { unmount } = renderInNavigator(navigation);
+    const { unmount } = await renderInNavigator(navigation);
     expect(navigation.addListener).toHaveBeenCalledTimes(2);
 
-    unmount();
+    await unmount();
     expect(navigation.unsubscribe).toHaveBeenCalledTimes(2);
   });
 });

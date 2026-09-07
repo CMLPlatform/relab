@@ -70,7 +70,7 @@ describe('shouldDehydrateQuery (persisted-cache allowlist)', () => {
 describe('paused mutations survive the query allowlist', () => {
   it('dehydrates a paused mutation even though shouldDehydrateQuery only allowlists queries', async () => {
     const queryClient = new QueryClient();
-    act(() => onlineManager.setOnline(false));
+    await act(() => onlineManager.setOnline(false));
 
     queryClient
       .getMutationCache()
@@ -97,6 +97,6 @@ describe('paused mutations survive the query allowlist', () => {
       idempotencyKey: 'test-idempotency-key',
     });
 
-    act(() => onlineManager.setOnline(true));
+    await act(() => onlineManager.setOnline(true));
   });
 });

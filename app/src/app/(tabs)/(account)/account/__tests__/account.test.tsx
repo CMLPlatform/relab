@@ -131,7 +131,7 @@ function renderProfileTab() {
 
 /** Render the profile tab and wait for all initial async effects to settle. */
 async function renderProfile() {
-  const result = renderProfileTab();
+  const result = await renderProfileTab();
   // Flush pending microtasks so profile stats loading effects settle
   // inside act() and don't trigger "not wrapped in act" warnings.
   await act(async () => {});
@@ -215,7 +215,7 @@ describe('ProfileTab', () => {
       // Stall getPublicProfile so the loading state stays visible
       (getPublicProfile as jest.Mock).mockReturnValue(new Promise(() => {}));
 
-      const { getAllByTestId } = renderProfileTab();
+      const { getAllByTestId } = await renderProfileTab();
       // statsLoading=true renders a Skeleton for each of the four stat values
       expect(getAllByTestId('stat-value-skeleton')).toHaveLength(4);
       // Settle the stats effect to avoid act() warnings
@@ -226,19 +226,19 @@ describe('ProfileTab', () => {
   describe('appearance / theme mode', () => {
     it('calls setThemeMode("dark") when the Dark option is pressed', async () => {
       const { findByLabelText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Dark theme'));
+      await fireEvent.press(await findByLabelText('Dark theme'));
       expect(mockSetThemeMode).toHaveBeenCalledWith('dark');
     });
 
     it('calls setThemeMode("light") when the Light option is pressed', async () => {
       const { findByLabelText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Light theme'));
+      await fireEvent.press(await findByLabelText('Light theme'));
       expect(mockSetThemeMode).toHaveBeenCalledWith('light');
     });
 
     it('calls setThemeMode("auto") when the Auto option is pressed', async () => {
       const { findByLabelText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Auto theme'));
+      await fireEvent.press(await findByLabelText('Auto theme'));
       expect(mockSetThemeMode).toHaveBeenCalledWith('auto');
     });
   });
@@ -248,7 +248,7 @@ describe('ProfileTab', () => {
       // Visibility Pressables have accessibilityRole="radio" but no accessibilityLabel;
       // RTL computes the accessible name from child text content, so we match by regex.
       const { findByRole } = await renderProfile();
-      fireEvent.press(await findByRole('radio', { name: PRIVATE_VISIBILITY_PATTERN }));
+      await fireEvent.press(await findByRole('radio', { name: PRIVATE_VISIBILITY_PATTERN }));
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -260,7 +260,7 @@ describe('ProfileTab', () => {
 
     it('calls updateUser and refetch for the Community option', async () => {
       const { findByRole } = await renderProfile();
-      fireEvent.press(await findByRole('radio', { name: COMMUNITY_VISIBILITY_PATTERN }));
+      await fireEvent.press(await findByRole('radio', { name: COMMUNITY_VISIBILITY_PATTERN }));
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -276,7 +276,7 @@ describe('ProfileTab', () => {
     it('calls updateUser when the email updates switch is toggled', async () => {
       const { findByRole } = await renderProfile();
       const emailSwitch = await findByRole('switch', { name: 'Receive Relab account updates' });
-      fireEvent.press(emailSwitch);
+      await fireEvent.press(emailSwitch);
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -290,18 +290,18 @@ describe('ProfileTab', () => {
   describe('logout flow', () => {
     it('opens the logout dialog when Logout is pressed', async () => {
       const { findByLabelText, findByText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Sign out'));
+      await fireEvent.press(await findByLabelText('Sign out'));
       expect(await findByText('Are you sure you want to sign out?')).toBeTruthy();
     });
 
     it('calls logout and triggers refetch on confirm', async () => {
       const { findByLabelText, findAllByText } = await renderProfile();
       // Open the logout dialog
-      fireEvent.press(await findByLabelText('Sign out'));
+      await fireEvent.press(await findByLabelText('Sign out'));
       // The dialog renders a second "Sign out" button (the confirm button)
       const logoutButtons = await findAllByText('Sign out');
       await act(async () => {
-        fireEvent.press(logoutButtons[logoutButtons.length - 1]);
+        await fireEvent.press(logoutButtons[logoutButtons.length - 1]);
       });
       await waitFor(() => {
         expect(mockLogout).toHaveBeenCalled();
@@ -312,7 +312,7 @@ describe('ProfileTab', () => {
   describe('delete account dialog', () => {
     it('opens when Delete account? is pressed', async () => {
       const { findByLabelText, findByText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Delete account?'));
+      await fireEvent.press(await findByLabelText('Delete account?'));
       expect(await findByText('Delete account')).toBeTruthy();
     });
   });
@@ -320,7 +320,7 @@ describe('ProfileTab', () => {
   describe('edit username dialog', () => {
     it('opens when the username area is pressed', async () => {
       const { findByLabelText, findByText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Edit username'));
+      await fireEvent.press(await findByLabelText('Edit username'));
       expect(await findByText('Save')).toBeTruthy();
     });
   });
@@ -367,7 +367,7 @@ describe('ProfileTab', () => {
       const { findByLabelText, findByText } = await renderProfile();
 
       expect(await findByText('YouTube Live')).toBeTruthy();
-      fireEvent.press(await findByLabelText('Manage cameras'));
+      await fireEvent.press(await findByLabelText('Manage cameras'));
       expect(mockRouterNavigate).toHaveBeenCalledWith('/cameras');
     });
   });
@@ -389,7 +389,7 @@ describe('ProfileTab', () => {
       });
 
       const { findByLabelText, findByText } = await renderProfile();
-      fireEvent.press(await findByLabelText('Unlink Google'));
+      await fireEvent.press(await findByLabelText('Unlink Google'));
       expect(await findByText('Unlink account')).toBeTruthy();
     });
   });

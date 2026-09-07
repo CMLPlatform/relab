@@ -29,15 +29,15 @@ beforeEach(() => {
 });
 
 describe('ProductFabControls — responsive action layout', () => {
-  it('uses a flow SaveBar below md in edit mode and no FAB', () => {
-    render(<ProductFabControls {...baseProps} editMode />);
+  it('uses a flow SaveBar below md in edit mode and no FAB', async () => {
+    await render(<ProductFabControls {...baseProps} editMode />);
 
     expect(screen.getByTestId('save-bar-dock')).toBeOnTheScreen();
     expect(screen.queryByTestId('product-primary-fab')).toBeNull();
   });
 
-  it('keeps the Edit FAB below md in view mode', () => {
-    render(<ProductFabControls {...baseProps} />);
+  it('keeps the Edit FAB below md in view mode', async () => {
+    await render(<ProductFabControls {...baseProps} />);
 
     expect(screen.getByTestId('product-primary-fab')).toBeOnTheScreen();
     expect(screen.queryByTestId('save-bar-dock')).toBeNull();
@@ -77,26 +77,26 @@ describe.each([
     return StyleSheet.flatten(dock().props.style).bottom as number;
   }
 
-  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible', () => {
+  it('bumps its floating offset by BOTTOM_NAV_CLEARANCE on web when BottomNav is visible', async () => {
     mockPlatform('web');
     mockUseBreakpoint.mockReturnValue({ isMd });
-    const { rerender } = render(<ProductFabControls {...baseProps} />);
+    const { rerender } = await render(<ProductFabControls {...baseProps} />);
     const hiddenBottom = dockedBottom();
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<ProductFabControls {...baseProps} />);
+    await rerender(<ProductFabControls {...baseProps} />);
 
     expect(dockedBottom() - hiddenBottom).toBe(BOTTOM_NAV_CLEARANCE);
   });
 
-  it('adds no clearance on native, where the tab bar is in normal flow', () => {
+  it('adds no clearance on native, where the tab bar is in normal flow', async () => {
     mockPlatform('ios');
     mockUseBreakpoint.mockReturnValue({ isMd });
-    const { rerender } = render(<ProductFabControls {...baseProps} />);
+    const { rerender } = await render(<ProductFabControls {...baseProps} />);
     const hiddenBottom = dockedBottom();
 
     mockUseBottomNavVisible.mockReturnValue(true);
-    rerender(<ProductFabControls {...baseProps} />);
+    await rerender(<ProductFabControls {...baseProps} />);
 
     expect(dockedBottom()).toBe(hiddenBottom);
   });
@@ -106,32 +106,34 @@ describe.each([
 // edit-mode render to SaveBar — so it has no save or validation state of its own.
 // It used to carry a whole blocked-save tooltip that no render could reach.
 describe('ProductFabControls — view-mode FAB', () => {
-  it('labels and announces the FAB by entity role', () => {
-    render(<ProductFabControls {...baseProps} entityRole="component" />);
+  it('labels and announces the FAB by entity role', async () => {
+    await render(<ProductFabControls {...baseProps} entityRole="component" />);
 
     expect(screen.getByRole('button', { name: 'Edit Component' })).toBeOnTheScreen();
   });
 
-  it('ignores validation state, which only SaveBar acts on', () => {
-    render(<ProductFabControls {...baseProps} validationValid={false} isDirty />);
+  it('ignores validation state, which only SaveBar acts on', async () => {
+    await render(<ProductFabControls {...baseProps} validationValid={false} isDirty />);
 
     expect(screen.getByRole('button', { name: 'Edit Product' })).toBeOnTheScreen();
     expect(fabButton().props.accessibilityState.disabled).toBe(false);
   });
 
-  it('says the save is queued while a paused offline mutation is in flight', () => {
-    render(<ProductFabControls {...baseProps} isSaving isPaused />);
+  it('says the save is queued while a paused offline mutation is in flight', async () => {
+    await render(<ProductFabControls {...baseProps} isSaving isPaused />);
 
     expect(screen.getByRole('button', { name: QUEUED_OFFLINE_LABEL })).toBeOnTheScreen();
   });
 
-  it('disables the FAB while saving, and shows no queued label when online', () => {
+  it('disables the FAB while saving, and shows no queued label when online', async () => {
     const onPrimaryFabPress = jest.fn();
-    render(<ProductFabControls {...baseProps} isSaving onPrimaryFabPress={onPrimaryFabPress} />);
+    await render(
+      <ProductFabControls {...baseProps} isSaving onPrimaryFabPress={onPrimaryFabPress} />,
+    );
 
     expect(screen.getByRole('button', { name: 'Edit Product' })).toBeOnTheScreen();
     expect(fabButton().props.accessibilityState.disabled).toBe(true);
-    fireEvent.press(fabButton());
+    await fireEvent.press(fabButton());
     expect(onPrimaryFabPress).not.toHaveBeenCalled();
   });
 });

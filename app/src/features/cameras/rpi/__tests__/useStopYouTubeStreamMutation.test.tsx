@@ -43,7 +43,7 @@ describe('useStopYouTubeStreamMutation', () => {
     queryClient.setQueryData(STREAM_STATUS_KEY, LIVE_STREAM);
     mockedStopYouTubeStream.mockResolvedValue(undefined);
 
-    const { result } = renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID), { wrapper });
+    const { result } = await renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID), { wrapper });
     result.current.mutate();
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -56,7 +56,9 @@ describe('useStopYouTubeStreamMutation', () => {
     mockedStopYouTubeStream.mockResolvedValue(undefined);
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID, 42), { wrapper });
+    const { result } = await renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID, 42), {
+      wrapper,
+    });
     result.current.mutate();
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -69,7 +71,7 @@ describe('useStopYouTubeStreamMutation', () => {
     mockedStopYouTubeStream.mockResolvedValue(undefined);
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
-    const { result } = renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID), { wrapper });
+    const { result } = await renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID), { wrapper });
     result.current.mutate();
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -80,7 +82,7 @@ describe('useStopYouTubeStreamMutation', () => {
     queryClient.setQueryData(STREAM_STATUS_KEY, LIVE_STREAM);
     mockedStopYouTubeStream.mockRejectedValue(new Error('relay unreachable'));
 
-    const { result } = renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID), { wrapper });
+    const { result } = await renderHook(() => useStopYouTubeStreamMutation(CAMERA_ID), { wrapper });
     result.current.mutate();
 
     await waitFor(() => expect(result.current.isError).toBe(true));

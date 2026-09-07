@@ -19,18 +19,18 @@ const baseTelemetry: CameraTelemetry = {
 };
 
 describe('TelemetryBadge', () => {
-  it('returns null when telemetry is null', () => {
-    const { toJSON } = render(<TelemetryBadge telemetry={null} />);
+  it('returns null when telemetry is null', async () => {
+    const { toJSON } = await render(<TelemetryBadge telemetry={null} />);
     expect(toJSON()).toBeNull();
   });
 
-  it('returns null when telemetry is undefined', () => {
-    const { toJSON } = render(<TelemetryBadge telemetry={undefined} />);
+  it('returns null when telemetry is undefined', async () => {
+    const { toJSON } = await render(<TelemetryBadge telemetry={undefined} />);
     expect(toJSON()).toBeNull();
   });
 
-  it('shows only the state label when cpu_temp_c is null', () => {
-    renderWithProviders(
+  it('shows only the state label when cpu_temp_c is null', async () => {
+    await renderWithProviders(
       <TelemetryBadge
         telemetry={{ ...baseTelemetry, cpu_temp_c: null, thermal_state: 'normal' }}
       />,
@@ -39,8 +39,8 @@ describe('TelemetryBadge', () => {
     expect(screen.queryByText(TEMPERATURE_PATTERN)).toBeNull();
   });
 
-  it('shows temperature and state label when cpu_temp_c is provided', () => {
-    renderWithProviders(
+  it('shows temperature and state label when cpu_temp_c is provided', async () => {
+    await renderWithProviders(
       <TelemetryBadge telemetry={{ ...baseTelemetry, cpu_temp_c: 67.4, thermal_state: 'warm' }} />,
     );
     expect(screen.getByText('67°C · Warm')).toBeOnTheScreen();
@@ -51,20 +51,24 @@ describe('TelemetryBadge', () => {
     ['warm', 'Warm'],
     ['throttle', 'Throttle'],
     ['critical', 'Critical'],
-  ] as const)('renders the %s thermal state correctly', (state, label) => {
-    renderWithProviders(
+  ] as const)('renders the %s thermal state correctly', async (state, label) => {
+    await renderWithProviders(
       <TelemetryBadge telemetry={{ ...baseTelemetry, cpu_temp_c: 55, thermal_state: state }} />,
     );
     expect(screen.getByText(`55°C · ${label}`)).toBeOnTheScreen();
   });
 
-  it('shows live session count when preview_sessions > 0', () => {
-    renderWithProviders(<TelemetryBadge telemetry={{ ...baseTelemetry, preview_sessions: 2 }} />);
+  it('shows live session count when preview_sessions > 0', async () => {
+    await renderWithProviders(
+      <TelemetryBadge telemetry={{ ...baseTelemetry, preview_sessions: 2 }} />,
+    );
     expect(screen.getByText('2 live')).toBeOnTheScreen();
   });
 
-  it('does not show live count when preview_sessions is 0', () => {
-    renderWithProviders(<TelemetryBadge telemetry={{ ...baseTelemetry, preview_sessions: 0 }} />);
+  it('does not show live count when preview_sessions is 0', async () => {
+    await renderWithProviders(
+      <TelemetryBadge telemetry={{ ...baseTelemetry, preview_sessions: 0 }} />,
+    );
     expect(screen.queryByText(LIVE_PATTERN)).toBeNull();
   });
 });

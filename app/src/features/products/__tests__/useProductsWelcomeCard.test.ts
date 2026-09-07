@@ -38,13 +38,13 @@ afterEach(() => {
 const dismissedUser = { preferences: { products_welcome_dismissed: true } };
 
 describe('useProductsWelcomeCard — signed in', () => {
-  it('reads the dismissal off the user preference, not local storage', () => {
-    const notDismissed = renderHook(() =>
+  it('reads the dismissal off the user preference, not local storage', async () => {
+    const notDismissed = await renderHook(() =>
       useProductsWelcomeCard({ isAuthenticated: true, currentUser: {} }),
     );
     expect(notDismissed.result.current.showInfoCard).toBe(true);
 
-    const dismissed = renderHook(() =>
+    const dismissed = await renderHook(() =>
       useProductsWelcomeCard({ isAuthenticated: true, currentUser: dismissedUser }),
     );
     expect(dismissed.result.current.showInfoCard).toBe(false);
@@ -53,7 +53,7 @@ describe('useProductsWelcomeCard — signed in', () => {
   it('persists the dismissal to the server and refetches without forcing a cache bypass', async () => {
     const refetchUser = jest.fn<(forceRefresh?: boolean) => Promise<unknown>>();
     refetchUser.mockResolvedValue(undefined);
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useProductsWelcomeCard({ isAuthenticated: true, currentUser: {}, refetchUser }),
     );
 
@@ -68,7 +68,7 @@ describe('useProductsWelcomeCard — signed in', () => {
   });
 
   it('does not write the guest key, which would outlive the account on a shared device', async () => {
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useProductsWelcomeCard({ isAuthenticated: true, currentUser: {} }),
     );
 
@@ -83,7 +83,7 @@ describe('useProductsWelcomeCard — signed in', () => {
   // as an unhandled rejection in the press handler.
   it('swallows a failed preference write', async () => {
     mockUpdateUser.mockRejectedValue(new Error('offline'));
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useProductsWelcomeCard({ isAuthenticated: true, currentUser: {} }),
     );
 
@@ -95,14 +95,27 @@ describe('useProductsWelcomeCard — signed in', () => {
 
 describe('useProductsWelcomeCard — guest', () => {
   it('holds showInfoCard at null until storage answers, so the card never flashes', async () => {
-    const { result } = renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
+    // Held pending on purpose: `renderHook` flushes every settled update before
+    // it resolves, so a storage read that already answered would hide the very
+    // state under test.
+    let answerStorage: (value: string | null) => void = () => {};
+    mockGetLocalItem.mockReturnValue(
+      new Promise<string | null>((resolve) => {
+        answerStorage = resolve;
+      }),
+    );
+
+    const { result } = await renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
     expect(result.current.showInfoCard).toBeNull();
 
+    await act(async () => {
+      answerStorage(null);
+    });
     await waitFor(() => expect(result.current.showInfoCard).toBe(true));
   });
 
   it('persists the dismissal locally and never calls the API', async () => {
-    const { result } = renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
+    const { result } = await renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
     await waitFor(() => expect(result.current.showInfoCard).toBe(true));
 
     await act(async () => {
@@ -115,13 +128,13 @@ describe('useProductsWelcomeCard — guest', () => {
   });
 
   it('stays dismissed on remount from the persisted flag', async () => {
-    const first = renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
+    const first = await renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
     await waitFor(() => expect(first.result.current.showInfoCard).toBe(true));
     await act(async () => {
       await first.result.current.dismissInfoCard();
     });
 
-    const second = renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
+    const second = await renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
     await waitFor(() => expect(second.result.current.showInfoCard).toBe(false));
   });
 });
@@ -131,14 +144,14 @@ describe('useProductsWelcomeCard — storage failures', () => {
   // than sitting on the null placeholder forever.
   it('shows the card when the dismissal read fails', async () => {
     mockGetLocalItem.mockRejectedValue(new Error('storage unavailable'));
-    const { result } = renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
+    const { result } = await renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
 
     await waitFor(() => expect(result.current.showInfoCard).toBe(true));
   });
 
   it('still hides the card for this session when the dismissal write fails', async () => {
     mockSetLocalItem.mockRejectedValue(new Error('storage full'));
-    const { result } = renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
+    const { result } = await renderHook(() => useProductsWelcomeCard({ isAuthenticated: false }));
     await waitFor(() => expect(result.current.showInfoCard).toBe(true));
 
     await act(async () => {
