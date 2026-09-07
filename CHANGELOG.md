@@ -1,11 +1,29 @@
 # Changelog
 
-## [0.3.1](https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1) (2026-09-07)
+## v0.3.1 - 2026-09
 
+### Description
 
-### Bug Fixes
+A maintenance release. It carries the toolchain forward, closes one interface bug that
+crashed on device, and puts the workflow files under static analysis.
 
-* **deps:** Update repo-tooling ([#146](https://github.com/CMLPlatform/relab/issues/146)) ([9850781](https://github.com/CMLPlatform/relab/commit/985078197fb7419985c4cdc10fc1767193a22cc7))
+### Fixes
+
+- A button with an interpolated label, such as the cameras "Select all (2)" control, no
+  longer crashes: its bare text now renders inside a `Text` node
+
+### Security
+
+- Monaco's transitive DOMPurify moved to a patched release
+- CodeQL analyses the GitHub Actions workflows alongside the Python and TypeScript code
+- Dropped two dependency advisory waivers that no longer match anything in the tree
+
+### Maintenance
+
+- Jest 30, pnpm 12, AsyncStorage 3, and React Native Testing Library 14
+- Refreshed container images, the Cloudflare Terraform provider, and the lockfiles
+- Held Babel and TypeScript at the majors their toolchains still support
+- Declared the licence in package metadata and added CODEOWNERS
 
 ## v0.3.0 - 2026-09
 
