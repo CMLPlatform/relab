@@ -186,29 +186,40 @@ docker restart "$(docker compose -p relab_staging ps -q alloy)"   # relab_prod o
 
 ### Confirm the CI gate actually blocks merges
 
-`just ci` runs in `.github/workflows/ci.yml`, whose terminal job is `ci-result`. Branch protection
-is **not** stored in the repository, so check it through the API:
+`just ci` runs in `.github/workflows/ci.yml`, whose terminal job is `ci-result` (context
+`CI Result`). Protection lives in a GitHub ruleset, not in the repository, so check it through the
+API (the legacy `branches/main/protection` endpoint 404s for rulesets):
 
 ```bash
-gh api repos/:owner/:repo/branches/main/protection \
-  --jq '.required_status_checks.contexts'
+gh api repos/:owner/:repo/rules/branches/main \
+  --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'
 ```
 
-`ci-result` must appear. If the call 404s, there is no protection at all and every gate in this
-release is advisory. Record the answer as launch evidence.
+`CI Result` must appear. If it does not, every gate in this release is advisory. Record the answer
+as launch evidence.
 
 ### Read what release-please proposes
 
-`CHANGELOG.md` is frozen at `v0.2.0` (2026-04) while `release-please` owns versioning from
-conventional commits on push to `main`. With `bump-minor-pre-major: true` and several months of
-commits, read the proposed bump before merging. It also rewrites version strings into nine
-`extra-files`, including `CITATION.cff`, `app/app.json`, and every `package.json`:
+`CHANGELOG.md` already carries a hand-written `v0.3.0` section; `release-please` still owns the
+version bump from the squash commit on `main`. The repository's squash default pastes every
+branch commit into the commit body, so override the message in the merge dialog (or with
+`gh pr merge --squash --subject ... --body-file ...`): subject `feat!: release v0.3.0`, body with a
+`BREAKING CHANGE:` footer. With `bump-minor-pre-major: true` that resolves to `0.3.0`.
+
+The release PR it opens rewrites version strings into nine `extra-files`, including
+`CITATION.cff`, `app/app.json`, and every `package.json`, and prepends its own generated changelog
+section. For this release, keep the hand-written section and delete the generated one, then check
+every version string it missed (files without `x-release-please-version` annotations, such as
+`CITATION.cff` and `backend/app/__version__.py`, only change if their updater recognises the
+extension):
 
 ```bash
 gh pr list --label 'autorelease: pending' --state open
+git grep -n '0\.2\.0' -- CITATION.cff backend/app/__version__.py app/app.json '*.json' '*.toml'
 ```
 
-Confirm the version and changelog match this release's scope **before** merging that PR.
+Confirm the version, changelog, and release notes match this release's scope **before** merging
+that PR. The GitHub release it publishes gets the changelog section as its body, as `v0.2.0` did.
 
 ## 0b. Abort rule
 
