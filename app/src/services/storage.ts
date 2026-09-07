@@ -21,7 +21,7 @@ export function registerSignOutReset(reset: () => void): void {
 
 export async function clearPersistedUserData(): Promise<void> {
   for (const reset of signOutResets) reset();
-  await AsyncStorage.multiRemove(SIGN_OUT_STORAGE_KEYS);
+  await AsyncStorage.removeMany(SIGN_OUT_STORAGE_KEYS);
 }
 
 export const isWeb = () => Platform.OS === 'web';

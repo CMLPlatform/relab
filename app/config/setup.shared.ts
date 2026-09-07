@@ -48,9 +48,16 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 // Mock AsyncStorage so tests never touch the native module implementation.
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
-);
+// The shipped mock is a plain in-memory object, so wrap its methods: tests
+// assert on calls (`expect(AsyncStorage.setItem).toHaveBeenCalledWith(...)`).
+jest.mock('@react-native-async-storage/async-storage', () => {
+  const { default: storage } = require('@react-native-async-storage/async-storage/jest');
+  const spied: Record<string, unknown> = { ...storage };
+  for (const [key, value] of Object.entries(storage)) {
+    if (typeof value === 'function') spied[key] = jest.fn(value as (...args: never[]) => unknown);
+  }
+  return { __esModule: true, default: spied };
+});
 
 // Mock expo-linear-gradient
 jest.mock('expo-linear-gradient', () => ({
@@ -327,6 +334,8 @@ try {
 }
 
 afterEach(async () => {
-  const AsyncStorage = require('@react-native-async-storage/async-storage');
+  // Not `clearAllMockStorages()`: that empties the mock's registry, leaving the
+  // instance already handed to importers holding its data.
+  const AsyncStorage = require('@react-native-async-storage/async-storage').default;
   await AsyncStorage.clear();
 });

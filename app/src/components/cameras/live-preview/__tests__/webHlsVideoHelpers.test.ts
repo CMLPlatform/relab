@@ -16,7 +16,7 @@ function createVideoMock(canPlayType = '') {
     addEventListener: jest.fn((event: string, handler: () => void) => {
       handlers.set(event, handler);
     }),
-    removeEventListener: jest.fn((event: string) => {
+    removeEventListener: jest.fn((event: string, _handler?: () => void) => {
       handlers.delete(event);
     }),
     canPlayType: jest.fn(() => canPlayType),
@@ -38,7 +38,7 @@ function createHlsMock() {
     destroy: jest.fn(),
   };
   const Hls = Object.assign(
-    jest.fn(() => hlsInstance),
+    jest.fn((_config?: Record<string, unknown>) => hlsInstance),
     {
       isSupported: jest.fn(() => true),
       Events: { ERROR: 'hlsError' },

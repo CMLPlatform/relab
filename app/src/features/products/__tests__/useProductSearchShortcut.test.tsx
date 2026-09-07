@@ -20,7 +20,7 @@ describe('useProductSearchShortcut', () => {
     listener = handler;
   });
   const removeEventListener = jest.fn();
-  const querySelector = jest.fn<() => Element | null>(() => null);
+  const querySelector = jest.fn<(selectors: string) => Element | null>(() => null);
 
   function press(key: string, target: unknown) {
     listener?.({ key, target, preventDefault: jest.fn() } as unknown as KeyboardEvent);

@@ -37,7 +37,7 @@
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "linkinator": "7.6.1",
+    "linkinator": "8.1.0",
     "playwright": "catalog:",
     "typescript": "catalog:",
     "vitest": "4.1.11"

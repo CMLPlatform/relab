@@ -1,8 +1,9 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
+import type { SaveProductVariables } from '@/features/products/queries';
 import { useCaptureEntity } from '@/features/products/useCaptureEntity';
 
-const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<number>>();
+const mockMutateAsync = jest.fn<(args: SaveProductVariables) => Promise<number>>();
 const mockToast = jest.fn();
 const mockError = jest.fn();
 // Plain mutable flag (not jest.fn().mockReturnValue) so the mocked hook below

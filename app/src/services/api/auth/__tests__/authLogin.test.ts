@@ -48,9 +48,15 @@ describe('authLogin', () => {
       json: async () => ({ access_token: 'native-token', refresh_token: 'native-refresh-token' }),
     } as never);
 
-    const persistAccessToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const persistRefreshToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const getUser = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
+    const persistAccessToken = jest
+      .fn<(token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    const persistRefreshToken = jest
+      .fn<(token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    const getUser = jest
+      .fn<(forceRefresh?: boolean) => Promise<undefined>>()
+      .mockResolvedValue(undefined);
 
     await expect(
       login('http://127.0.0.1:18010', 'user', 'pass', {
@@ -76,9 +82,15 @@ describe('authLogin', () => {
     isWeb.mockReturnValue(true);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    const persistAccessToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const persistRefreshToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
-    const getUser = jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined);
+    const persistAccessToken = jest
+      .fn<(token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    const persistRefreshToken = jest
+      .fn<(token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
+    const getUser = jest
+      .fn<(forceRefresh?: boolean) => Promise<undefined>>()
+      .mockResolvedValue(undefined);
 
     await expect(
       login('http://127.0.0.1:18010', 'user', 'pass', {
@@ -107,9 +119,11 @@ describe('authLogin', () => {
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
     await login('http://127.0.0.1:18010', 'user', 'pass', {
-      persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+      persistAccessToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
+      persistRefreshToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
+      getUser: jest
+        .fn<(forceRefresh?: boolean) => Promise<undefined>>()
+        .mockResolvedValue(undefined),
     });
 
     // markWebSessionActive is mocked here, so assert on the one thing login owns:
@@ -130,13 +144,19 @@ describe('authLogin', () => {
       json: async () => ({ token_type: 'bearer' }),
     } as never);
 
-    const persistAccessToken = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const persistAccessToken = jest
+      .fn<(token: string) => Promise<void>>()
+      .mockResolvedValue(undefined);
 
     await expect(
       login('http://127.0.0.1:18010', 'user', 'pass', {
         persistAccessToken,
-        persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-        getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+        persistRefreshToken: jest
+          .fn<(token: string) => Promise<void>>()
+          .mockResolvedValue(undefined),
+        getUser: jest
+          .fn<(forceRefresh?: boolean) => Promise<undefined>>()
+          .mockResolvedValue(undefined),
       }),
     ).rejects.toThrow('Invalid login response.');
 
@@ -156,9 +176,15 @@ describe('authLogin', () => {
 
     await expect(
       login('http://127.0.0.1:18010', 'user', 'pass', {
-        persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-        persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-        getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+        persistAccessToken: jest
+          .fn<(token: string) => Promise<void>>()
+          .mockResolvedValue(undefined),
+        persistRefreshToken: jest
+          .fn<(token: string) => Promise<void>>()
+          .mockResolvedValue(undefined),
+        getUser: jest
+          .fn<(forceRefresh?: boolean) => Promise<undefined>>()
+          .mockResolvedValue(undefined),
       }),
     ).rejects.toThrow('Unable to reach server. Please try again later.');
   });
@@ -178,9 +204,11 @@ describe('authLogin', () => {
     } as never);
 
     const result = await login('http://127.0.0.1:18010', 'user', 'pass', {
-      persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-      getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+      persistAccessToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
+      persistRefreshToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
+      getUser: jest
+        .fn<(forceRefresh?: boolean) => Promise<undefined>>()
+        .mockResolvedValue(undefined),
     });
 
     expect(result).toEqual({
@@ -202,9 +230,15 @@ describe('authLogin', () => {
 
     await expect(
       login('http://127.0.0.1:18010', 'user', 'pass', {
-        persistAccessToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-        persistRefreshToken: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
-        getUser: jest.fn<() => Promise<undefined>>().mockResolvedValue(undefined),
+        persistAccessToken: jest
+          .fn<(token: string) => Promise<void>>()
+          .mockResolvedValue(undefined),
+        persistRefreshToken: jest
+          .fn<(token: string) => Promise<void>>()
+          .mockResolvedValue(undefined),
+        getUser: jest
+          .fn<(forceRefresh?: boolean) => Promise<undefined>>()
+          .mockResolvedValue(undefined),
       }),
     ).rejects.toThrow('Too many login attempts.');
   });
