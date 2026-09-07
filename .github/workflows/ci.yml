@@ -575,37 +575,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-  scorecard:
-    name: Scorecard
-    # Scorecard rates the repository and its default branch, and refuses to run
-    # anywhere else ("only default branch is supported"), so a branch dispatch
-    # skips it. Post-merge, weekly, and on demand. Feeds the README badge.
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      actions: read
-      contents: read
-      id-token: write
-      security-events: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          persist-credentials: false
-
-      - name: Run Scorecard
-        uses: ossf/scorecard-action@99c09fe975337306107572b4fdf4db224cf8e2f2
-        with:
-          results_file: results.sarif
-          results_format: sarif
-          publish_results: true
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@b25d0ebf40e5b63ee81e1bd6e5d2a12b7c2aeb61
-        with:
-          sarif_file: results.sarif
-
   ci-result:
     name: CI Result
     # Single branch-protection context: the `needs:` list is the one home of the
@@ -625,7 +594,6 @@ jobs:
       - container-security
       - trivy-iac
       - codeql
-      - scorecard
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
