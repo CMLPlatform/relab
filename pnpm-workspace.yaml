@@ -37,7 +37,7 @@ overrides:
   "uuid@<11.1.1": ">=11.1.1" # GHSA-w5hq-g745-h8pq
   "yaml@<2.8.1": ">=2.8.1" # GHSA-48c2-rrv3-qjmp
   "postcss@<8.5.18": ">=8.5.18" # GHSA-r28c-9q8g-f849
-  "brace-expansion@<1.1.17": ">=1.1.17 <2" # GHSA-mh99-v99m-4gvg
+  "brace-expansion@<1.1.17": ">=1.1.17 <6" # GHSA-mh99-v99m-4gvg
   "brace-expansion@>=4.0.0 <5.0.8": ">=5.0.8" # GHSA-mh99-v99m-4gvg
   # 3.15.1 already carries the fix, so only the 4.x range needs lifting.
   "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1 <5" # GHSA-5p4m-2wfm-xmqj
@@ -64,3 +64,5 @@ minimumReleaseAgeExclude:
   - '@expo/*'
   - babel-preset-expo
   - jest-expo
+  # Renovate security update: brace-expansion@5.0.9
+  - brace-expansion@5.0.9
