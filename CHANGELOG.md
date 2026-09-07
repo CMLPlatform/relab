@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* **deps:** Update repo-tooling ([#146](https://github.com/CMLPlatform/relab/issues/146)) ([9850781](https://github.com/CMLPlatform/relab/commit/985078197fb7419985c4cdc10fc1767193a22cc7))
+
 ## v0.3.0 - 2026-09
 
 ### Description
