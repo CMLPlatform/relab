@@ -538,8 +538,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Workflow YAML is covered by actionlint + zizmor in the pre-commit hooks.
-        language: [python, javascript-typescript]
+        # `actions` complements actionlint + zizmor with dataflow-based workflow queries.
+        language: [actions, python, javascript-typescript]
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

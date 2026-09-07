@@ -16,7 +16,7 @@
 
 services:
   nvidia-gpu-exporter:
-    image: utkuozdemir/nvidia_gpu_exporter:1.14.0-nvml@sha256:82acc3fc60a5a709846ea9757bbccb170fd141039fa47e5899c55fe9a60f56fe
+    image: utkuozdemir/nvidia_gpu_exporter:1.15.1-nvml@sha256:92a73ec03e2f5cae4a7cfcc99c242b46797741c24de8f3768d394925f8e0a323
     restart: unless-stopped
     # The NVML backend reports XID error counters; the nvidia-smi backend cannot.
     environment:
