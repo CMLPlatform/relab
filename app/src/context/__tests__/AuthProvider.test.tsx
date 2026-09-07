@@ -43,7 +43,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     const queryClient = new QueryClient();
     const clearSpy = jest.spyOn(queryClient, 'clear');
-    const multiRemoveSpy = jest.spyOn(AsyncStorage, 'multiRemove');
+    const removeManySpy = jest.spyOn(AsyncStorage, 'removeMany');
 
     function wrapper({ children }: { children: React.ReactNode }) {
       return (
@@ -66,7 +66,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     await waitFor(() => expect(result.current.user).toBeUndefined());
     expect(clearSpy).toHaveBeenCalledTimes(1);
-    expect(multiRemoveSpy).toHaveBeenCalledWith(
+    expect(removeManySpy).toHaveBeenCalledWith(
       expect.arrayContaining(['relab-query-cache', 'relab-recent-categories']),
     );
   });
@@ -77,8 +77,8 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     const queryClient = new QueryClient();
     const clearSpy = jest.spyOn(queryClient, 'clear');
-    const multiRemoveSpy = jest.spyOn(AsyncStorage, 'multiRemove');
-    multiRemoveSpy.mockClear();
+    const removeManySpy = jest.spyOn(AsyncStorage, 'removeMany');
+    removeManySpy.mockClear();
 
     function wrapper({ children }: { children: React.ReactNode }) {
       return (
@@ -98,6 +98,6 @@ describe('AuthProvider — sign-out cache clearing', () => {
 
     await waitFor(() => expect(result.current.user?.id).toBe('u1'));
     expect(clearSpy).not.toHaveBeenCalled();
-    expect(multiRemoveSpy).not.toHaveBeenCalled();
+    expect(removeManySpy).not.toHaveBeenCalled();
   });
 });

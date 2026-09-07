@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { useDialog } from '@/components/base/dialogContext';
+import type { SaveProductVariables } from '@/features/products/queries';
 import {
   useBaseProductQuery,
   useDeleteProductMutation,
@@ -83,7 +84,7 @@ describe('useProductForm', () => {
   it('initializes with existing product data', async () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
@@ -98,7 +99,7 @@ describe('useProductForm', () => {
   it('handles field changes', async () => {
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
     const { result } = renderHook(() => useProductForm('123', { role: 'product' }), { wrapper });
@@ -115,7 +116,7 @@ describe('useProductForm', () => {
   });
 
   it('triggers save mutation when saveAndExit is called with a dirty form', async () => {
-    const mockMutate = jest.fn(async () => 123);
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
@@ -149,7 +150,7 @@ describe('useProductForm', () => {
   // rehydrated mutations, where minting a fresh key would rotate it and defeat
   // dedup against the request the app already sent before it was interrupted.
   it('generates an idempotencyKey for a new (id-less) product create', async () => {
-    const mockMutate = jest.fn(async () => 55);
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 55);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
@@ -217,7 +218,7 @@ describe('useProductForm', () => {
   // and saveAndExit must read it before serializing — even though isDirty is
   // still a stale react-hook-form snapshot from before the flush happened.
   it('flushes a pending amount draft before serializing, even though isDirty is still stale', async () => {
-    const mockMutate = jest.fn(async () => 123);
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
@@ -241,7 +242,7 @@ describe('useProductForm', () => {
   });
 
   it('does not treat a clean form as dirty when the flush ref has no pending draft', async () => {
-    const mockMutate = jest.fn(async () => 123);
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
 
@@ -291,7 +292,7 @@ describe('useProductForm', () => {
     const onSaveSuccess = jest.fn();
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
     const { result } = renderHook(
@@ -433,7 +434,7 @@ describe('useProductForm', () => {
       .mockReturnValue({ alert: jest.fn(), input: jest.fn(), toast: mockToast });
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
       isPaused: true,
     });
 
@@ -452,7 +453,7 @@ describe('useProductForm', () => {
       .mockReturnValue({ alert: jest.fn(), input: jest.fn(), toast: mockToast });
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
       isPaused: false,
     });
 
@@ -464,10 +465,10 @@ describe('useProductForm', () => {
   });
 
   it('calls delete mutation and navigates to /products on success', async () => {
-    const mockDeleteMutate = jest.fn(async () => undefined);
+    const mockDeleteMutate = jest.fn(async (_vars: { id: number }) => undefined);
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockDeleteMutate });
 
@@ -483,11 +484,11 @@ describe('useProductForm', () => {
   });
 
   it('routes delete through onDeleteSuccess when provided instead of the root list', async () => {
-    const mockDeleteMutate = jest.fn(async () => undefined);
+    const mockDeleteMutate = jest.fn(async (_vars: { id: number }) => undefined);
     const onDeleteSuccess = jest.fn();
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockDeleteMutate });
 
@@ -515,7 +516,7 @@ describe('useProductForm', () => {
     };
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
     const { result } = renderHook(
@@ -555,7 +556,7 @@ describe('useProductForm', () => {
     };
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
 
     const { result } = renderHook(
@@ -597,7 +598,7 @@ describe('useProductForm', () => {
     });
     (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
     (useSaveProductMutation as jest.Mock).mockReturnValue({
-      mutateAsync: jest.fn(async () => 123),
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
     });
     (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: deleteMutate });
 

@@ -20,6 +20,9 @@ repos:
       - id: check-shebang-scripts-are-executable
       - id: check-toml
       - id: check-yaml
+        # pnpm 12 writes two YAML documents: its own packageManagerDependencies,
+        # then the project lockfile. pnpm validates that file itself.
+        exclude: ^pnpm-lock\.yaml$
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: mixed-line-ending

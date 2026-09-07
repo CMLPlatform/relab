@@ -10,8 +10,6 @@ preferFrozenLockfile: true
 # the per-advisory justifications and removal conditions. Keep the two in sync.
 auditConfig:
   ignoreGhsas:
-    - GHSA-5p2g-fcmc-qvqq # image-size (metro build tooling, no fix in range)
-    - GHSA-w3rx-r6r6-pgpr # image-size (same)
     - GHSA-vcc3-ghjq-m6fr # decode-uri-component (query-string@7 pins ^0.2.2)
 
 # Wait 3 days before accepting newly published packages.
@@ -22,9 +20,11 @@ minimumReleaseAgeIgnoreMissingTime: true
 
 # Approve only install scripts that are needed for native/runtime setup.
 allowBuilds:
+  '@parcel/watcher': false
   esbuild: true
   msw: true
   sharp: true
+  unrs-resolver: false
   vue-demi: false
 
 overrides:
@@ -32,16 +32,18 @@ overrides:
   monaco-editor@0.55.1>dompurify: 3.4.14
   # Patch transitive vulnerabilities in expo/metro dev tooling (GHSA advisories).
   # Scoped to the vulnerable ranges so unrelated consumers keep their major.
-  "shell-quote@<1.8.4": ">=1.8.4" # GHSA-wpn peer7jw-789q-3m8p
-  "ws@>=7.0.0 <7.5.11": ">=7.5.11 <8" # GHSA-96hv-2xvq-fx4p
+  "shell-quote@<1.8.4": ">=1.8.4" # GHSA-w7jw-789q-3m8p
+  "ws@>=7.0.0 <7.5.11": ">=7.5.11 <9" # GHSA-96hv-2xvq-fx4p
   "uuid@<11.1.1": ">=11.1.1" # GHSA-w5hq-g745-h8pq
   "yaml@<2.8.1": ">=2.8.1" # GHSA-48c2-rrv3-qjmp
   "postcss@<8.5.18": ">=8.5.18" # GHSA-r28c-9q8g-f849
-  "brace-expansion@<1.1.17": ">=1.1.17 <2" # GHSA-mh99-v99m-4gvg
+  "brace-expansion@<1.1.17": ">=1.1.17 <6" # GHSA-mh99-v99m-4gvg
   "brace-expansion@>=4.0.0 <5.0.8": ">=5.0.8" # GHSA-mh99-v99m-4gvg
   # 3.15.1 already carries the fix, so only the 4.x range needs lifting.
-  "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1 <5" # GHSA-5p4m-2wfm-xmqj
-  # NativeWind v5 requires pinning lightningcss (per its install docs).
+  "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1 <6" # GHSA-5p4m-2wfm-xmqj
+  # Carried over from NativeWind, which the app no longer uses, but still
+  # earning its place: without it the tree resolves 1.30.1, 1.32.0 and
+  # 1.33.0 side by side, each with its own native binary.
   lightningcss: 1.33.0
 
 catalog:
@@ -53,6 +55,9 @@ catalog:
   "@types/node": ^26.2.0
   playwright: ^1.62.1
   tailwindcss: 4.3.3
+  # 7.0 is the native compiler and drops the programmatic API `astro check`
+  # loads, breaking typecheck in docs/ and www/. Renovate blocks 7.0.x only, so
+  # 7.1 arrives as a PR whose docs/www typecheck says whether the API is back.
   typescript: ^6.0.3
 
 # Expo SDK packages land in same-day waves, so the release-age gate would block
@@ -64,5 +69,3 @@ minimumReleaseAgeExclude:
   - '@expo/*'
   - babel-preset-expo
   - jest-expo
-  # Renovate security update: dompurify@3.4.13
-  - dompurify@3.4.13

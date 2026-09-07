@@ -17,11 +17,11 @@ describe('camera detail actions', () => {
   const refetch = jest.fn();
   const replace = jest.fn();
   const alert = jest.fn();
-  const configure = jest.fn<() => Promise<void>>();
+  const configure = jest.fn<(baseUrl: string, apiKey: string) => Promise<void>>();
   const clearLocalConnection = jest.fn<() => Promise<void> | undefined>();
   const input = jest.fn<(options: DialogOptions) => void>();
   const closeManualSetup = jest.fn();
-  const setLocalSetupSaving = jest.fn();
+  const setLocalSetupSaving = jest.fn<(saving: boolean) => void>();
   const updateMutate =
     jest.fn<
       (

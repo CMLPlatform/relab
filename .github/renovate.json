@@ -91,6 +91,16 @@
       "minimumReleaseAge": "7 days"
     },
     {
+      "description": "TypeScript 7.0 is the native compiler and does not expose the programmatic API that `astro check` loads, so it breaks typecheck in docs/ and www/. The TS team calls this point-in-time but has named no version; 7.1 is a probe, and docs/www typecheck in CI is the test. Widen the block if 7.1 also fails. https://github.com/withastro/roadmap/discussions/1321",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "!/^7\\.0\\./"
+    },
+    {
+      "description": "Babel 8 is rejected by react-native-worklets' babel plugin, which hard-requires `^7.0.0-0`, and babel-preset-expo is still Babel 7. Every app test suite that touches a worklet fails to transform. Lift when the Expo/RN toolchain ships Babel 8 support.",
+      "matchPackageNames": ["@babel/core", "@babel/runtime"],
+      "allowedVersions": "<8"
+    },
+    {
       "description": "Renovate rewrites this SHA-pinned rev to the tag v3.4.0, a downgrade that drops check-shebang-scripts-are-executable. Bump by hand: `prek update --freeze` keeps the SHA form.",
       "matchManagers": ["pre-commit"],
       "matchPackageNames": ["pre-commit/pre-commit-hooks"],

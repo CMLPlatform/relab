@@ -76,9 +76,9 @@ describe('rpi camera mutation helpers', () => {
   });
 
   it('supports optimistic stream status clearing and restore', async () => {
-    const cancelQueries = jest.fn(async () => undefined);
+    const cancelQueries = jest.fn(async (_filters?: unknown) => undefined);
     const getQueryData = jest.fn(() => ({ id: 'stream-1' }));
-    const setQueryData = jest.fn();
+    const setQueryData = jest.fn<(queryKey: unknown, data: unknown) => void>();
     const queryClient = {
       cancelQueries,
       getQueryData,

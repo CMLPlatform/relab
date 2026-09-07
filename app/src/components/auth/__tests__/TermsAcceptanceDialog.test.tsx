@@ -37,7 +37,7 @@ const { openExternalUrl } = jest.requireMock('@/services/externalLinks') as {
 
 const DECLINE_IS_FREE = /Nothing changes if you decline/;
 
-const refetch = jest.fn(async () => undefined);
+const refetch = jest.fn(async (_forceRefresh?: boolean) => undefined);
 
 function signedInWith(termsAcceptanceRequired: boolean) {
   mockUseAuth.mockReturnValue({
