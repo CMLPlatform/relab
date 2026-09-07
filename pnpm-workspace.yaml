@@ -29,7 +29,7 @@ allowBuilds:
 
 overrides:
   # Keep Monaco's DOMPurify transitive dependency on a patched release.
-  monaco-editor@0.55.1>dompurify: 3.4.2
+  monaco-editor@0.55.1>dompurify: 3.4.13
   # Patch transitive vulnerabilities in expo/metro dev tooling (GHSA advisories).
   # Scoped to the vulnerable ranges so unrelated consumers keep their major.
   "shell-quote@<1.8.4": ">=1.8.4" # GHSA-wpn peer7jw-789q-3m8p
@@ -64,3 +64,5 @@ minimumReleaseAgeExclude:
   - '@expo/*'
   - babel-preset-expo
   - jest-expo
+  # Renovate security update: dompurify@3.4.13
+  - dompurify@3.4.13
