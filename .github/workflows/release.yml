@@ -116,12 +116,21 @@ jobs:
           output: sbom-${{ matrix.service }}.spdx.json
 
       - name: Attest SBOM asset provenance
+        id: attest
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26
         with:
           subject-path: sbom-${{ matrix.service }}.spdx.json
 
-      - name: Upload SBOM to GitHub release
+      # The Sigstore bundle is also uploaded as a release asset: the attestation
+      # store holds it already, but Scorecard's Signed-Releases check only reads
+      # release assets and recognises the `.sigstore.json` suffix.
+      - name: Upload SBOM and signature bundle to GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release upload "$TAG_NAME" "sbom-${{ matrix.service }}.spdx.json" --clobber
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          cp "$BUNDLE_PATH" "sbom-${{ matrix.service }}.spdx.json.sigstore.json"
+          gh release upload "$TAG_NAME" \
+            "sbom-${{ matrix.service }}.spdx.json" \
+            "sbom-${{ matrix.service }}.spdx.json.sigstore.json" --clobber
