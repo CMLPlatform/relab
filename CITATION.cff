@@ -14,7 +14,7 @@ authors:
     affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
 title: "Relab - Data Collection Platform"
 abstract: "Data collection platform for disassembled power tool images and metadata supporting computer vision tasks for life cycle assessments."
-version: 0.2.0
+version: 0.3.0
 identifiers:
   # The concept DOI comes first: it always resolves to the newest release, which is
   # what a "cite this software" identifier should do. Cite the version DOI below only
@@ -27,7 +27,7 @@ identifiers:
   - type: doi
     value: 10.5281/zenodo.19703316
     description: Version DOI for Relab v0.2.0
-date-released: 2026-04-23
+date-released: 2026-09-07
 url: https://cml-relab.org
 repository-code: "https://github.com/CMLPlatform/relab"
 license: "AGPL-3.0-or-later"
