@@ -10,8 +10,6 @@ preferFrozenLockfile: true
 # the per-advisory justifications and removal conditions. Keep the two in sync.
 auditConfig:
   ignoreGhsas:
-    - GHSA-5p2g-fcmc-qvqq # image-size (metro build tooling, no fix in range)
-    - GHSA-w3rx-r6r6-pgpr # image-size (same)
     - GHSA-vcc3-ghjq-m6fr # decode-uri-component (query-string@7 pins ^0.2.2)
 
 # Wait 3 days before accepting newly published packages.
@@ -34,7 +32,7 @@ overrides:
   monaco-editor@0.55.1>dompurify: 3.4.14
   # Patch transitive vulnerabilities in expo/metro dev tooling (GHSA advisories).
   # Scoped to the vulnerable ranges so unrelated consumers keep their major.
-  "shell-quote@<1.8.4": ">=1.8.4" # GHSA-wpn peer7jw-789q-3m8p
+  "shell-quote@<1.8.4": ">=1.8.4" # GHSA-w7jw-789q-3m8p
   "ws@>=7.0.0 <7.5.11": ">=7.5.11 <9" # GHSA-96hv-2xvq-fx4p
   "uuid@<11.1.1": ">=11.1.1" # GHSA-w5hq-g745-h8pq
   "yaml@<2.8.1": ">=2.8.1" # GHSA-48c2-rrv3-qjmp
@@ -43,7 +41,9 @@ overrides:
   "brace-expansion@>=4.0.0 <5.0.8": ">=5.0.8" # GHSA-mh99-v99m-4gvg
   # 3.15.1 already carries the fix, so only the 4.x range needs lifting.
   "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1 <6" # GHSA-5p4m-2wfm-xmqj
-  # NativeWind v5 requires pinning lightningcss (per its install docs).
+  # Carried over from NativeWind, which the app no longer uses, but still
+  # earning its place: without it the tree resolves 1.30.1, 1.32.0 and
+  # 1.33.0 side by side, each with its own native binary.
   lightningcss: 1.33.0
 
 catalog:
@@ -69,5 +69,3 @@ minimumReleaseAgeExclude:
   - '@expo/*'
   - babel-preset-expo
   - jest-expo
-  # Renovate security update: dompurify@3.4.13
-  - dompurify@3.4.13
