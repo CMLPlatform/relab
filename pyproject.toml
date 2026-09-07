@@ -20,7 +20,7 @@
   ## Dependencies and version constraints
   requires-python = ">=3.14"
   # NOTE: package versioning across the repo is managed by release-please.
-  version = "0.2.0"
+  version = "0.3.0"
 
 [dependency-groups]
   # pyyaml is used directly by scripts/sync_brand_assets.py to read CITATION.cff.
