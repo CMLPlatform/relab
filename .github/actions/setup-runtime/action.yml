@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-action.json
 name: Setup Runtime
-description: Install just plus optional Python/uv or Node.js + pnpm toolchains. Versions come from .tool-versions and the root packageManager field.
+description: Install just plus optional Python/uv or Node.js + pnpm toolchains. Every version is pinned - see the table in .github/CONTRIBUTING.md.
 
 inputs:
   setup-python:
@@ -8,7 +8,7 @@ inputs:
     required: false
     default: "false"
   setup-node:
-    description: Install pnpm + Node.js (Node version from .tool-versions, pnpm version from the root packageManager field).
+    description: Install pnpm + Node.js (Node version from .node-version, pnpm version from the root packageManager field).
     required: false
     default: "false"
   uv-cache-dependency-glob:
@@ -27,10 +27,20 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Read pinned tool versions
+      id: versions
+      shell: bash
+      run: |
+        {
+          echo "node=$(cat .node-version)"
+          echo "just=$(awk '$1 == "just" { print $2 }' .tool-versions)"
+        } >> "$GITHUB_OUTPUT"
+
     - name: Install uv
       if: inputs.setup-python == 'true'
       uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78
       with:
+        version-file: .tool-versions
         enable-cache: true
         cache-dependency-glob: ${{ inputs.uv-cache-dependency-glob }}
 
@@ -40,12 +50,6 @@ runs:
       with:
         python-version-file: .tool-versions
 
-    - name: Read Node.js version
-      if: inputs.setup-node == 'true'
-      id: node-version
-      shell: bash
-      run: echo "version=$(awk '$1 == "node" { print $2 }' .tool-versions)" >> "$GITHUB_OUTPUT"
-
     # Reads the pnpm version from the root packageManager field. That version must
     # be >= 11.14.0: @pnpm/linux-x64@11.13.0 shipped without the pnpm binary, and
     # this action fails unpacking it (https://github.com/pnpm/setup/issues/29).
@@ -53,7 +57,7 @@ runs:
       if: inputs.setup-node == 'true'
       uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
       with:
-        runtime: node@${{ steps.node-version.outputs.version }}
+        runtime: node@${{ steps.versions.outputs.node }}
         cache: true
         cache-dependency-path: ${{ inputs.cache-dependency-path }}
         install: false
@@ -67,3 +71,5 @@ runs:
 
     - name: Install just
       uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3
+      with:
+        just-version: ${{ steps.versions.outputs.just }}

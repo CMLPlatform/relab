@@ -577,9 +577,10 @@ jobs:
 
   scorecard:
     name: Scorecard
-    # Scorecard rates the repository and its default branch, not a PR head, so it
-    # runs post-merge, weekly, and on demand. Feeds the README badge.
-    if: github.event_name != 'pull_request'
+    # Scorecard rates the repository and its default branch, and refuses to run
+    # anywhere else ("only default branch is supported"), so a branch dispatch
+    # skips it. Post-merge, weekly, and on demand. Feeds the README badge.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

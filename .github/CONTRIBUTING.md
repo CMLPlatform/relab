@@ -181,8 +181,17 @@ Use `just --list` in any directory to see what is available there.
 
 ## Tooling and Configuration
 
-`.tool-versions` is the source of truth for local tool versions. Do not duplicate exact versions in
-docs unless a manifest or generated file requires it.
+Every tool version is pinned exactly once, in the file the tool itself reads. CI installs what these
+files say, so a bad upstream release is a one-line rollback rather than a mystery. Renovate keeps
+them current through the `repo-tooling` group.
+
+| Tool             | Pinned in                    | Read by                            |
+| ---------------- | ---------------------------- | ---------------------------------- |
+| Node.js          | `.node-version`              | `fnm` locally, CI setup            |
+| pnpm             | `package.json` packageManager | Corepack locally, CI setup        |
+| Python, uv, just | `.tool-versions`             | CI setup (uv manages Python)       |
+
+Do not duplicate exact versions in docs unless a manifest or generated file requires it.
 
 Each configuration surface has one job:
 
