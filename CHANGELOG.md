@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.0](https://github.com/CMLPlatform/relab/compare/v0.2.0...v0.3.0) (2026-09-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* registration requires a username; recovery codes replace the email MFA reset; dismantling time fields, newsletter signup, and /organizations removed; stored videos must be HTTP URLs; frontend-app and frontend-web renamed to app and www.
+
+### Features
+
+* Release v0.3.0 ([#159](https://github.com/CMLPlatform/relab/issues/159)) ([2bf4099](https://github.com/CMLPlatform/relab/commit/2bf4099731df3cf38632394c8046f888f7d9dd27))
+
+
+### Bug Fixes
+
+* **openapi:** Stop embedding the service version in the schema ([#176](https://github.com/CMLPlatform/relab/issues/176)) ([766fa24](https://github.com/CMLPlatform/relab/commit/766fa24e2ecd8a122452138697dc7258f5bfb40b))
+
 ## v0.3.0 - 2026-09
 
 ### Description
