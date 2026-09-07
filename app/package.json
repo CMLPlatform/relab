@@ -1,7 +1,7 @@
 {
   "name": "relab-app",
   "main": "expo-router/entry",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "scripts": {
     "dev": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; BROWSER=none expo start --web --port 8011",
     "start": "[ \"$(uname)\" = Linux ] && export ELECTRON_DISABLE_SANDBOX=1; expo start",
