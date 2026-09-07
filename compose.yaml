@@ -126,7 +126,7 @@ services:
 
   redis:
     !!merge <<: *stateful-hardening
-    image: redis:8-alpine@sha256:81b6f81d6a6c5b9019231a2e8eb10085e3a139a34f833dcc965a8a959b040b72
+    image: redis:8-alpine@sha256:becdda6c7f4b3fb42e42fd7f120bbf5c54c4caaaf16f26da24e4563d2c1f0576
     restart: unless-stopped
     healthcheck:
       !!merge <<: *healthcheck-defaults
@@ -146,7 +146,7 @@ services:
 
   postgres:
     !!merge <<: *stateful-hardening
-    image: postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4
+    image: postgres:18@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280
     restart: unless-stopped
     # Hard cap matching the tuning below. These two must move together: the
     # kernel OOM-kills a backend if the cgroup limit is breached, and Postgres
