@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, render, screen } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { KeyboardShortcutsDialog } from '@/components/base/KeyboardShortcutsDialog';
+import { setShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 
 describe('KeyboardShortcutsDialog', () => {
   const originalPlatform = Platform.OS;
@@ -30,6 +31,7 @@ describe('KeyboardShortcutsDialog', () => {
       configurable: true,
       value: { querySelector },
     });
+    setShortcutsEnabled(true);
   });
 
   afterAll(() => {
@@ -62,6 +64,23 @@ describe('KeyboardShortcutsDialog', () => {
     await pressQuestionMark({ tagName: 'INPUT' });
 
     expect(screen.queryByText('Keyboard shortcuts')).not.toBeOnTheScreen();
+  });
+
+  it('offers the WCAG 2.1.4 off switch', async () => {
+    await render(<KeyboardShortcutsDialog />);
+    await pressQuestionMark();
+
+    expect(screen.getByLabelText('Single-key shortcuts')).toBeOnTheScreen();
+  });
+
+  it('still opens on "?" once single-key shortcuts are off', async () => {
+    setShortcutsEnabled(false);
+    await render(<KeyboardShortcutsDialog />);
+
+    await pressQuestionMark();
+
+    // "?" is the only route back to the switch, so it stays bound on purpose.
+    expect(screen.getByLabelText('Single-key shortcuts')).toBeOnTheScreen();
   });
 
   it('renders nothing on native', async () => {

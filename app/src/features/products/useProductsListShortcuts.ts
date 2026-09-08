@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import type { RefObject } from 'react';
 import { useCallback } from 'react';
 import { Platform, type TextInput } from 'react-native';
+import { useShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 import { isPlainShortcut } from '@/utils/keyboardShortcuts';
 
 /**
@@ -18,9 +19,10 @@ export function useProductsListShortcuts({
   onNewProduct: () => void;
   onToggleFilters: () => void;
 }) {
+  const shortcutsEnabled = useShortcutsEnabled();
   useFocusEffect(
     useCallback(() => {
-      if (Platform.OS !== 'web') return;
+      if (Platform.OS !== 'web' || !shortcutsEnabled) return;
       const onKey = (event: KeyboardEvent) => {
         if (isPlainShortcut(event, '/')) {
           event.preventDefault();
@@ -39,6 +41,6 @@ export function useProductsListShortcuts({
       };
       window.addEventListener('keydown', onKey);
       return () => window.removeEventListener('keydown', onKey);
-    }, [searchRef, onNewProduct, onToggleFilters]),
+    }, [shortcutsEnabled, searchRef, onNewProduct, onToggleFilters]),
   );
 }

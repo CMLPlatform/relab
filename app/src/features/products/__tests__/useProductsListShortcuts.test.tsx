@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { type EffectCallback, type RefObject, useEffect } from 'react';
 import { Platform, type TextInput } from 'react-native';
 import { useProductsListShortcuts } from '@/features/products/useProductsListShortcuts';
+import { setShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 
 // A real TextInput needs a host tree to mount; the hook only ever calls
 // `.focus()`, so a minimal stand-in is enough and keeps these tests cheap.
@@ -44,6 +45,7 @@ describe('useProductsListShortcuts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     listener = undefined;
+    setShortcutsEnabled(true);
     querySelector.mockReturnValue(null);
     // The unit-lane expo-router mock leaves useFocusEffect a no-op; run the
     // callback via a real effect so these tests exercise the products-screen-
@@ -153,6 +155,14 @@ describe('useProductsListShortcuts', () => {
       expect(onNewProduct).not.toHaveBeenCalled();
     },
   );
+
+  it('binds nothing once single-key shortcuts are switched off', async () => {
+    setShortcutsEnabled(false);
+
+    await renderShortcuts();
+
+    expect(addEventListener).not.toHaveBeenCalled();
+  });
 
   it('removes the listener on cleanup', async () => {
     const { unmount } = await renderShortcuts();

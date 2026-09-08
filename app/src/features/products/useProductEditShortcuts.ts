@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Platform } from 'react-native';
+import { useShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 import { isPlainShortcut, isTypingTarget } from '@/utils/keyboardShortcuts';
 
 /** A field the keypress belongs to: Escape there clears/undoes the typing. */
@@ -31,12 +32,16 @@ export function useProductEditShortcuts({
   onSave: () => void;
   onExit: () => void;
 }) {
+  // Only "e" answers to the switch: Escape and Cmd/Ctrl+S are not character
+  // key shortcuts, so SC 2.1.4 does not cover them and turning them off would
+  // cost an editor its save and exit keys for nothing.
+  const shortcutsEnabled = useShortcutsEnabled();
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== 'web') return;
       const onKey = (event: KeyboardEvent) => {
         if (!editMode) {
-          if (canEdit && isPlainShortcut(event, 'e')) {
+          if (shortcutsEnabled && canEdit && isPlainShortcut(event, 'e')) {
             event.preventDefault();
             onEdit();
           }
@@ -55,6 +60,6 @@ export function useProductEditShortcuts({
       };
       window.addEventListener('keydown', onKey);
       return () => window.removeEventListener('keydown', onKey);
-    }, [editMode, canEdit, canSave, onEdit, onSave, onExit]),
+    }, [editMode, shortcutsEnabled, canEdit, canSave, onEdit, onSave, onExit]),
   );
 }

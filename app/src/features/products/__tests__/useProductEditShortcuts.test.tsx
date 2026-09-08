@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { type EffectCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useProductEditShortcuts } from '@/features/products/useProductEditShortcuts';
+import { setShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 
 describe('useProductEditShortcuts', () => {
   const originalPlatform = Platform.OS;
@@ -42,6 +43,7 @@ describe('useProductEditShortcuts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     listener = undefined;
+    setShortcutsEnabled(true);
     // Mirrors useProductsListShortcuts' test: the unit-lane expo-router mock
     // leaves useFocusEffect a no-op, so run the callback via a real effect.
     (useFocusEffect as jest.Mock).mockImplementation((cb: unknown) => {
@@ -79,6 +81,15 @@ describe('useProductEditShortcuts', () => {
       await render({ editMode: false });
 
       press({ key: 'e', target: { tagName: 'INPUT' } as unknown as EventTarget });
+
+      expect(onEdit).not.toHaveBeenCalled();
+    });
+
+    it('ignores "e" once single-key shortcuts are switched off', async () => {
+      setShortcutsEnabled(false);
+      await render({ editMode: false });
+
+      press({ key: 'e' });
 
       expect(onEdit).not.toHaveBeenCalled();
     });
@@ -140,6 +151,18 @@ describe('useProductEditShortcuts', () => {
 
     expect(onSave).not.toHaveBeenCalled();
     expect(preventDefault).toHaveBeenCalled();
+  });
+
+  it('keeps Escape and Cmd+S bound when single-key shortcuts are off', async () => {
+    // Neither is a character key shortcut, so SC 2.1.4 does not reach them.
+    setShortcutsEnabled(false);
+    await render();
+
+    press({ key: 's', metaKey: true });
+    press({ key: 'Escape' });
+
+    expect(onSave).toHaveBeenCalled();
+    expect(onExit).toHaveBeenCalled();
   });
 
   it('does not listen off web', async () => {
