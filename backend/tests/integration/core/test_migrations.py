@@ -268,3 +268,19 @@ def test_circularity_migration_preserves_comments_and_references(
         # otherwise outlive this test and surface in any list endpoint run after it.
         migration_helper.execute_sql("DELETE FROM product WHERE name = 'Circularity fixture'")
         migration_helper.execute_sql("""DELETE FROM "user" WHERE username = 'circfixture'""")
+
+
+@pytest.mark.migration
+def test_high_churn_tables_declare_autovacuum_reloptions(migration_helper: MigrationHelper) -> None:
+    """The models own the reloptions the database has, so a flatten cannot lose them."""
+    load_models()
+    rows = dict(
+        migration_helper.execute_sql(
+            "SELECT relname, reloptions::text FROM pg_class WHERE relname IN ('product', 'image', 'file')"
+        )
+    )
+    for table in ("product", "image", "file"):
+        declared = Base.metadata.tables[table].dialect_options["postgresql"]["with"]
+        assert declared, f"{table} declares no reloptions"
+        for key, value in declared.items():
+            assert f"{key}={value}" in rows[table], (table, key, rows[table])

@@ -67,10 +67,19 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
             "OR (parent_id IS NOT NULL AND amount_in_parent IS NOT NULL AND amount_in_parent > 0)",
             name="product_role_invariants",
         ),
+        {
+            "postgresql_with": {
+                "autovacuum_vacuum_scale_factor": 0.05,
+                "autovacuum_analyze_scale_factor": 0.02,
+                "autovacuum_vacuum_cost_delay": 2,
+            }
+        },
     )
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
+        # NOTE: 'public.relab' unaccents through relab_unaccent(), a string-bodied IMMUTABLE
+        # wrapper created by the migration; pg_dump restores it with check_function_bodies off.
         Computed(
             "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
             "coalesce(brand, '') || ' ' || coalesce(model, ''))",

@@ -89,6 +89,8 @@ class Category(TimeStampMixinBare, Base):
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
+        # NOTE: 'public.relab' unaccents through relab_unaccent(), a string-bodied IMMUTABLE
+        # wrapper created by the migration; pg_dump restores it with check_function_bodies off.
         Computed(
             "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, ''))",
             persisted=True,
@@ -152,6 +154,8 @@ class Material(TimeStampMixinBare, Base):
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
+        # NOTE: 'public.relab' unaccents through relab_unaccent(), a string-bodied IMMUTABLE
+        # wrapper created by the migration; pg_dump restores it with check_function_bodies off.
         Computed(
             "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
             "coalesce(source, ''))",
@@ -215,6 +219,8 @@ class ProductType(TimeStampMixinBare, Base):
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
+        # NOTE: 'public.relab' unaccents through relab_unaccent(), a string-bodied IMMUTABLE
+        # wrapper created by the migration; pg_dump restores it with check_function_bodies off.
         Computed(
             "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, ''))",
             persisted=True,

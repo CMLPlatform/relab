@@ -29,6 +29,7 @@ class File(TimeStampMixinBare, Base):
     __table_args__ = (
         CheckConstraint("upload_size_bytes >= 0", name="ck_file_upload_size_bytes_non_negative"),
         Index("ix_file_parent_type_parent_id", "parent_type", "parent_id"),
+        {"postgresql_with": {"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02}},
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -63,6 +64,7 @@ class Image(TimeStampMixinBare, Base):
             postgresql_using="gin",
             postgresql_ops={"description": "gin_trgm_ops"},
         ),
+        {"postgresql_with": {"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02}},
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

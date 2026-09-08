@@ -4,12 +4,17 @@ import re
 from datetime import datetime  # noqa: TC003 # Used in runtime for ORM mapping, not just for type annotations
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, func
+from sqlalchemy import DateTime, Table, func
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 if TYPE_CHECKING:
     from typing import Any
+
+# SQLAlchemy's postgresql dialect only recognizes "with" (storage parameters) on
+# Index, not Table. Register it here so models can declare table-level reloptions
+# (autovacuum tuning, etc.) via postgresql_with in __table_args__.
+Table.argument_for("postgresql", "with", {})
 
 
 class Base(DeclarativeBase):
