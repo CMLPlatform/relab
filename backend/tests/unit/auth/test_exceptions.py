@@ -126,7 +126,7 @@ def test_user_ownership_error_message() -> None:
         (OAuthInactiveUserHTTPError, {}, 400, ErrorCode.LOGIN_BAD_CREDENTIALS),
         (OAuthAccountAlreadyLinkedError, {}, 400, "This account is already linked to another user."),
         (RegistrationInvalidPasswordHTTPError, {"reason": "score below threshold"}, 400, "Password validation failed"),
-        (RegistrationUnexpectedHTTPError, {}, 500, "An unexpected error occurred during registration"),
+        (RegistrationUnexpectedHTTPError, {}, 500, "Registration could not be completed"),
     ],
     ids=lambda v: v.__name__ if isinstance(v, type) else "",
 )

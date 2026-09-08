@@ -221,6 +221,10 @@ class RegistrationUnexpectedHTTPError(RegistrationHTTPError):
 
     def __init__(self) -> None:
         super().__init__(
-            detail="An unexpected error occurred during registration",
+            detail=(
+                "Registration could not be completed. If you already received a "
+                "verification email, follow its link; otherwise request a new "
+                "verification email or try again later."
+            ),
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
