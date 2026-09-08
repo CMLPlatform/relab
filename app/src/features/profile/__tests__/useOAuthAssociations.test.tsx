@@ -29,6 +29,7 @@ jest.mock('@/services/api/oauthFlow', () => ({
     authorizationUrl: 'https://oauth.example.com/start',
   })),
   isAllowedOAuthRedirectUrl: jest.fn(() => true),
+  OAUTH_BLOCKED_URL_MESSAGE: 'The sign-in provider sent a web address we do not recognise.',
   isExpectedOAuthCallbackUrl: jest.fn(() => true),
   openOAuthBrowserSession: jest.fn(async () => ({
     type: 'success',
@@ -254,7 +255,7 @@ describe('useOAuthAssociations', () => {
     expect(openOAuthBrowserSession).not.toHaveBeenCalled();
     expect(mockRefetch).not.toHaveBeenCalled();
     expect(mockFeedback.error).toHaveBeenCalledWith(
-      'Failed to start link flow: Unexpected authorization URL received. Please try again.',
+      expect.stringContaining('sent a web address we do not recognise'),
       'Link failed',
     );
   });
@@ -270,7 +271,7 @@ describe('useOAuthAssociations', () => {
 
     expect(mockRefetch).not.toHaveBeenCalled();
     expect(mockFeedback.error).toHaveBeenCalledWith(
-      'Failed to start link flow: Unexpected OAuth callback URL received. Please try again.',
+      expect.stringContaining('sent a web address we do not recognise'),
       'Link failed',
     );
   });

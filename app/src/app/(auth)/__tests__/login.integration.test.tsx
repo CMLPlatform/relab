@@ -94,8 +94,8 @@ const ALREADY_EXISTS_PATTERN = /already exists/i;
 const ENSURE_DEVICE_INTERNET_PATTERN = /check your internet connection/i;
 const ACCOUNT_SUSPENDED_PATTERN = /your account has been suspended/i;
 const UNABLE_TO_RETRIEVE_USER_PATTERN = /Couldn't load your account/;
-const UNEXPECTED_AUTHORIZATION_URL_PATTERN = /Unexpected authorization URL/;
-const UNEXPECTED_CALLBACK_URL_PATTERN = /Unexpected OAuth callback URL/;
+const UNEXPECTED_AUTHORIZATION_URL_PATTERN = /sent a web address we do not recognise/;
+const UNEXPECTED_CALLBACK_URL_PATTERN = UNEXPECTED_AUTHORIZATION_URL_PATTERN;
 
 const mockedLogin = jest.mocked(login);
 const mockedGetUser = jest.mocked(getUser);
