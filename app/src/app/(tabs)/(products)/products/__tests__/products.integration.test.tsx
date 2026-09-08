@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { HttpResponse, http } from 'msw';
-import { FlatList } from 'react-native';
 import Products from '@/app/(tabs)/(products)/products';
 import { API_URL } from '@/config';
 import { productsInfiniteQueryOptions } from '@/features/products/queries';
