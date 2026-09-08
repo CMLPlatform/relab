@@ -61,6 +61,32 @@ key therefore proposes **deleting** the live rule, so export it whenever you pla
 root. Rotate it together with the deploy hosts' `OTLP_AUTH_TOKEN`, the same token in the
 header form `Bearer <token>`.
 
+### The end-to-end credential
+
+Cloudflare's Super Bot Fight Mode challenges every headless-browser XHR, so Playwright
+cannot run against the staging hosts at all. A second shared secret, supplied the same way,
+buys those runs a skip:
+
+```bash
+export TF_VAR_e2e_edge_key='...'  # same value as E2E_EDGE_KEY in the CI/e2e environment
+```
+
+It is matched against a dedicated `X-E2E-Key` header, sent by the Playwright configs in
+`www/`, `app/` and `docs/`. As with the telemetry key, Cloudflare returns expressions in
+cleartext, so the value must be dedicated: it buys nothing but the skip. It is scoped to the
+**staging hosts only**, and leaving the key unset drops the branch, so export it whenever you
+plan this root.
+
+Because the phase is capped at five rules, this is a **branch of the RPi camera rule**, not a
+rule of its own. It therefore inherits that rule's phases: a keyed staging run skips the managed
+WAF as well as Super Bot Fight Mode. Prod is unaffected either way.
+
+The www build's fetch of `/v1/products/{id}` and its component tree is a non-browser client
+that gets challenged the same way, which makes the landing page ship its fixture. That is
+covered by `relab_public_reads_skip_bot_fight_mode` instead, which is the former stats rule
+widened to GETs under `/v1/products/` as well — public read-only data, the same reasoning. No
+build argument carries a key, which would leak into image history.
+
 ## What this zone's Cloudflare plan allows
 
 Both limits below fail at *apply* time, partway through, after other resources have already
@@ -70,6 +96,11 @@ changed, so `tests/zone.tftest.hcl` asserts them:
   10-second mitigation timeout, and only Path and Verified Bot usable as expression fields;
   `http.host` is not allowed. The single slot holds the auth endpoints. Path-only scoping works
   because only the api hostnames serve `/v1/auth/`.
+
+- **Five rules in the `http_request_firewall_custom` phase.** All five slots are taken, so a new
+  condition folds into an existing rule rather than adding one: the keyed staging E2E skip is a
+  branch of the RPi camera rule, and the product reads share the public-read rule with stats.
+  `tests/zone.tftest.hcl` asserts the count with every optional rule enabled.
 
 - **No `matches` (regex) operator.** It needs a Business or WAF Advanced plan. The affected
   expressions use `starts_with`/`ends_with` instead.

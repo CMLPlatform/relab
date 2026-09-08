@@ -8,6 +8,8 @@ const runtimeConfig = {
   // The live lane builds against the running E2E backend first (just build-e2e),
   // so its server must serve that dist/ rather than rebuild it from prod config.
   isLive: Boolean(env.WWW_E2E_LIVE?.trim()),
+  // Matches the zone's staging Super Bot Fight Mode skip rule (infra/cloudflare-zone).
+  e2eEdgeKey: env.E2E_EDGE_KEY?.trim() || undefined,
 };
 const localBaseUrl = 'http://127.0.0.1:18013';
 
@@ -47,6 +49,9 @@ export default defineConfig({
   webServer,
   use: {
     baseURL: runtimeConfig.baseUrl ?? localBaseUrl,
+    extraHTTPHeaders: runtimeConfig.e2eEdgeKey
+      ? { 'x-e2e-key': runtimeConfig.e2eEdgeKey }
+      : undefined,
     trace: 'on-first-retry',
   },
   projects: [

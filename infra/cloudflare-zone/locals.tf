@@ -101,24 +101,40 @@ locals {
       # challenge, so Super Bot Fight Mode and some managed WAF rules block them. These
       # endpoints are authenticated at the app layer by ES256 device assertions with
       # Redis replay protection, and the skip is scoped to just those paths.
+      #
+      # Keyed staging E2E rides along as a second branch of the same rule: the Free plan
+      # allows five rules in this phase and they are all spoken for, so a rule of its own
+      # would fail at apply time. Consequence of sharing: the E2E branch inherits these
+      # phases, so a keyed run also skips the managed WAF, not only Super Bot Fight Mode.
+      # Staging hosts only, and only while var.e2e_edge_key is set.
       ref         = "relab_rpi_cam_device_skip_managed_security"
-      description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic (both environments)"
-      expression = join(" and ", [
-        local.api_hosts_expression,
-        "(${join(" or ", [
-          "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/register\")",
-          "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/poll\")",
-          "http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\"",
-          "(${join(" and ", [
-            "http.request.method eq \"POST\"",
-            "starts_with(http.request.uri.path, \"/v1/plugins/rpi-cam/device/cameras/\")",
-            "(${join(" or ", [
-              "ends_with(http.request.uri.path, \"/image-upload\")",
-              "ends_with(http.request.uri.path, \"/preview-thumbnail-upload\")",
+      description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic and keyed staging E2E runs"
+      expression = join(" or ", concat([
+        join(" and ", [
+          local.api_hosts_expression,
+          "(${join(" or ", [
+            "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/register\")",
+            "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/poll\")",
+            "http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\"",
+            "(${join(" and ", [
+              "http.request.method eq \"POST\"",
+              "starts_with(http.request.uri.path, \"/v1/plugins/rpi-cam/device/cameras/\")",
+              "(${join(" or ", [
+                "ends_with(http.request.uri.path, \"/image-upload\")",
+                "ends_with(http.request.uri.path, \"/preview-thumbnail-upload\")",
+              ])})",
             ])})",
           ])})",
-        ])})",
-      ])
+        ]),
+        ], var.e2e_edge_key == "" ? [] : [
+        # Cloudflare stores and serves ruleset expressions in cleartext, so this is a
+        # dedicated key with no other use; jsonencode keeps one containing `"` or `\`
+        # from producing a malformed expression.
+        join(" and ", [
+          local.staging_hosts_expression,
+          "any(http.request.headers[\"x-e2e-key\"][*] eq ${jsonencode(var.e2e_edge_key)})",
+        ]),
+      ]))
       action = "skip"
       action_parameters = {
         phases = [
@@ -128,12 +144,21 @@ locals {
       }
     },
     {
-      ref         = "relab_stats_skip_bot_fight_mode"
-      description = "Skip Super Bot Fight Mode for public read-only stats endpoints"
+      # Public read-only data that non-browser clients legitimately fetch: the stats
+      # widgets, and the www build, which reads a product and its component tree at build
+      # time and ships its fixture instead when the fetch is challenged. One rule for both
+      # because the Free plan allows five in this phase. This zone's plan has no `matches`
+      # operator, so the prefix stands in for `^/v1/products/[0-9]+(/components/tree)?$`;
+      # every GET under it is an unauthenticated read.
+      ref         = "relab_public_reads_skip_bot_fight_mode"
+      description = "Skip Super Bot Fight Mode for public read-only stats and product endpoints"
       expression = join(" and ", [
         local.api_hosts_expression,
         "http.request.method eq \"GET\"",
-        "starts_with(http.request.uri.path, \"/v1/stats/\")",
+        "(${join(" or ", [
+          "starts_with(http.request.uri.path, \"/v1/stats/\")",
+          "starts_with(http.request.uri.path, \"/v1/products/\")",
+        ])})",
       ])
       action = "skip"
       action_parameters = {
