@@ -134,9 +134,9 @@ SELECT format('GRANT SELECT ON ALL TABLES IN SCHEMA public TO %I', :'backup_user
 SELECT format('GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO %I', :'backup_user') \gexec
 
 -- Extensions get their own schema so `just restore`, which drops and recreates
--- "public", cannot take them along. pg_trgm is the exception and stays in
--- public: every existing backup names "public.gin_trgm_ops" in its index
--- definitions, and the restore path recreates it there.
+-- "public", cannot take them along. pg_trgm moved here too, in revision
+-- 4a672549f270; snapshots older than that still name "public.gin_trgm_ops", so the
+-- restore script creates the extension in whichever schema the snapshot names.
 CREATE SCHEMA IF NOT EXISTS extensions;
 SELECT format('GRANT USAGE ON SCHEMA extensions TO %I', :'migration_user') \gexec
 SELECT format('GRANT USAGE ON SCHEMA extensions TO %I', :'app_user') \gexec
