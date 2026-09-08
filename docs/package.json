@@ -16,7 +16,7 @@
     "preview": "astro preview --port 8012 --host 127.0.0.1 --strictPort",
     "format": "biome format --write .",
     "fix": "biome check --write .",
-    "lint": "biome check .",
+    "lint": "biome check --error-on-warnings .",
     "typecheck": "astro check",
     "test": "vitest run",
     "test:e2e": "playwright test",

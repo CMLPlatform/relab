@@ -10,7 +10,7 @@
   },
   "scripts": {
     "biome": "biome",
-    "lint": "biome check",
+    "lint": "biome check --error-on-warnings",
     "format": "biome format --write",
     "fix": "biome check --write"
   },
