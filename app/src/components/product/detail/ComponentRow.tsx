@@ -97,12 +97,16 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
           className="min-h-11 flex-1 flex-row items-center gap-3 py-1.5"
         >
           {component.thumbnailUrl ? (
-            <Image
-              source={{ uri: component.thumbnailUrl }}
-              style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: radius.card }}
-              contentFit="cover"
-              testID="component-thumbnail"
-            />
+            // Decorative: the row button carries the name. expo-image drops an
+            // empty alt, so hide the subtree (same treatment as StaticBackground).
+            <View aria-hidden>
+              <Image
+                source={{ uri: component.thumbnailUrl }}
+                style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: radius.card }}
+                contentFit="cover"
+                testID="component-thumbnail"
+              />
+            </View>
           ) : (
             <ImagePlaceholder
               width={THUMBNAIL_SIZE}

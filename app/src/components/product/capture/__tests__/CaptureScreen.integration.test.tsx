@@ -7,7 +7,7 @@ import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema
 import { loadCPV } from '@/services/cpv';
 import { queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
 
-const NAME_PLACEHOLDER = /e\.g\. Cordless drill/i;
+const NAME_PLACEHOLDER = /e\.g\. (Cordless drill|Battery pack)/i;
 const CHOOSE_INVITE_TEXT_PATTERN = /^Choose /;
 
 const mockReplace = jest.fn();
@@ -23,14 +23,29 @@ const mockAddListener = jest.fn(
   ) => mockAddListenerImpl(event, handler),
 );
 const mockDispatch = jest.fn();
+const mockSetOptions = jest.fn();
+const mockGoBack = jest.fn();
+let mockCanGoBack = false;
+let mockIsLg = false;
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
-  useNavigation: () => ({ addListener: mockAddListener, dispatch: mockDispatch }),
+  useNavigation: () => ({
+    addListener: mockAddListener,
+    dispatch: mockDispatch,
+    setOptions: mockSetOptions,
+    canGoBack: () => mockCanGoBack,
+    goBack: mockGoBack,
+  }),
   // Never invokes its callback, matching the unit-lane default — the type-row
   // round-trip isn't under test here.
   useFocusEffect: jest.fn(),
+  usePathname: () => '/products/new',
   Stack: { Screen: () => null },
+}));
+
+jest.mock('@/hooks/useBreakpoint', () => ({
+  useBreakpoint: () => ({ isMd: mockIsLg, isLg: mockIsLg }),
 }));
 
 const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<number>>();
@@ -112,6 +127,8 @@ describe('CaptureScreen', () => {
     jest.clearAllMocks();
     mockIsPending = false;
     mockIsPaused = false;
+    mockCanGoBack = false;
+    mockIsLg = false;
     mockAddListenerImpl = () => jest.fn();
     mockUseAuth.mockReturnValue({ user: { id: '1', username: 'owner' } });
     mockedLoadCPV.mockResolvedValue({
@@ -167,6 +184,7 @@ describe('CaptureScreen', () => {
     await renderCapture({ entityRole: 'component' });
 
     expect(screen.getByText('Component type or material')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText('e.g. Battery pack')).toBeOnTheScreen();
   });
 
   it('renders the body inside a scrollable container, so Create stays reachable behind the keyboard', async () => {
@@ -279,7 +297,7 @@ describe('CaptureScreen', () => {
     expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('Widget');
   });
 
-  it('redirects unauthenticated users to login', async () => {
+  it('redirects unauthenticated users to login, returning to this capture route', async () => {
     mockUseAuth.mockReturnValue({ user: undefined });
 
     await renderWithProviders(<CaptureScreen entityRole="product" />, { withDialog: true });
@@ -287,7 +305,7 @@ describe('CaptureScreen', () => {
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
         pathname: '/login',
-        params: { redirectTo: '/products' },
+        params: { redirectTo: '/products/new' },
       });
     });
   });
@@ -335,5 +353,54 @@ describe('CaptureScreen', () => {
 
     expect(preventDefault).toHaveBeenCalled();
     expect(screen.getByText('Discard changes?')).toBeOnTheScreen();
+  });
+
+  // The stack only draws its own back button when it has history, so a deep
+  // link or reload of /products/new had no way back. The screen now always
+  // installs one; without history it lands on the parent, like the detail back.
+  describe('back control', () => {
+    function pressHeaderBack() {
+      const [options] = mockSetOptions.mock.lastCall as [
+        { headerLeft: (props: object) => { props: { onPress: () => void } } },
+      ];
+      options.headerLeft({}).props.onPress();
+    }
+
+    it('installs a stack header back control on phone and pops when there is history', async () => {
+      mockCanGoBack = true;
+      await renderCapture({ entityRole: 'product' });
+
+      expect(screen.queryByTestId('page-header-row')).toBeNull();
+      pressHeaderBack();
+      expect(mockGoBack).toHaveBeenCalled();
+      expect(mockReplace).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the products list for a new product without history', async () => {
+      await renderCapture({ entityRole: 'product' });
+
+      pressHeaderBack();
+      expect(mockReplace).toHaveBeenCalledWith('/products');
+    });
+
+    it('falls back to the parent detail for a new component without history', async () => {
+      await renderCapture({ entityRole: 'component', parentID: 7, parentRole: 'component' });
+
+      pressHeaderBack();
+      expect(mockReplace).toHaveBeenCalledWith({
+        pathname: '/components/[id]',
+        params: { id: '7' },
+      });
+    });
+
+    it('renders the title and back in-page at lg, where the stack header is hidden', async () => {
+      mockIsLg = true;
+      await renderCapture({ entityRole: 'product' });
+
+      expect(screen.getByTestId('page-header-row')).toBeOnTheScreen();
+      expect(screen.getByRole('header', { name: 'New product' })).toBeOnTheScreen();
+      await fireEvent.press(screen.getByRole('button', { name: 'Go back' }));
+      expect(mockReplace).toHaveBeenCalledWith('/products');
+    });
   });
 });

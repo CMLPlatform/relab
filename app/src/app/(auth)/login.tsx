@@ -1,3 +1,4 @@
+import Head from 'expo-router/head';
 import {
   LoginBrandHero,
   LoginCard,
@@ -17,23 +18,28 @@ export default function Login() {
   const handleGithubLogin = async () => actions.loginWithGithub();
 
   return (
-    <LoginLayout onBrowse={actions.browseProducts}>
-      <LoginBrandHero />
-      <LoginCard>
-        <LoginFormSection
-          control={form.control}
-          emailRef={form.emailRef}
-          onSubmit={handleSubmit}
-          onForgotPassword={actions.goToForgotPassword}
-        />
-        <LoginDivider />
-        <LoginOAuthSection onGoogle={handleGoogleLogin} onGithub={handleGithubLogin} />
-        {/* OAuth here can create an account (first sign-in provisions one), so the
-            same terms/privacy line the password signup shows has to be visible
-            before the user presses it. */}
-        <PrivacyPolicy />
-        <LoginSecondaryAction onCreateAccount={actions.goToCreateAccount} />
-      </LoginCard>
-    </LoginLayout>
+    <>
+      <Head>
+        <title>Sign in · Relab</title>
+      </Head>
+      <LoginLayout onBrowse={actions.browseProducts}>
+        <LoginBrandHero />
+        <LoginCard>
+          <LoginFormSection
+            control={form.control}
+            emailRef={form.emailRef}
+            onSubmit={handleSubmit}
+            onForgotPassword={actions.goToForgotPassword}
+          />
+          <LoginDivider />
+          <LoginOAuthSection onGoogle={handleGoogleLogin} onGithub={handleGithubLogin} />
+          {/* OAuth here can create an account (first sign-in provisions one), so the
+              same terms/privacy line the password signup shows has to be visible
+              before the user presses it. */}
+          <PrivacyPolicy />
+          <LoginSecondaryAction onCreateAccount={actions.goToCreateAccount} />
+        </LoginCard>
+      </LoginLayout>
+    </>
   );
 }

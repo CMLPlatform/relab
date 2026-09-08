@@ -127,8 +127,11 @@ const ThumbnailItem = memo(function ThumbnailItem({
       style={pressableStyle}
     >
       {uri ? (
-        // Decorative: the wrapping Pressable already carries the descriptive label.
-        <Image source={{ uri }} style={{ width: 60, height: 60 }} accessibilityLabel="" />
+        // Decorative: the Pressable carries the label. expo-image drops an empty
+        // alt, so hide the subtree.
+        <View aria-hidden>
+          <Image source={{ uri }} style={{ width: 60, height: 60 }} />
+        </View>
       ) : (
         <ImagePlaceholder width={60} height={60} borderRadius={0} />
       )}

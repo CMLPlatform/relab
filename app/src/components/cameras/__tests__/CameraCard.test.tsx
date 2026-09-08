@@ -64,8 +64,11 @@ describe('CameraCard', () => {
 
     // The preview route is owner-checked, so on native the thumbnail waits for the
     // bearer token to resolve before it has a source to render.
-    await waitFor(() => expect(screen.getByTestId('camera-thumbnail')).toBeOnTheScreen());
-    expect(screen.getByText('img:https://example.com/preview.jpg')).toBeOnTheScreen();
+    // The thumbnail is decorative (the card is labelled), so it sits in an
+    // aria-hidden frame: opt hidden elements in.
+    const hidden = { includeHiddenElements: true };
+    await waitFor(() => expect(screen.getByTestId('camera-thumbnail', hidden)).toBeOnTheScreen());
+    expect(screen.getByText('img:https://example.com/preview.jpg', hidden)).toBeOnTheScreen();
     expect(screen.getByText('Online')).toBeOnTheScreen();
 
     // Card must NOT have the opacity-60 offline class

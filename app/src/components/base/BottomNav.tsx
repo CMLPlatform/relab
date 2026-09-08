@@ -79,19 +79,21 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
   if (!visible) return null;
 
   return (
-    <View
-      className="flex-row border-t border-border bg-background"
-      style={{ paddingBottom: insets.bottom }}
-      accessibilityRole="tablist"
-    >
-      {tabs.map((tab) => (
-        <BottomNavTab
-          key={tab.key}
-          tab={tab}
-          active={activeRoute === tabRouteName(tab.key)}
-          onPress={goTo}
-        />
-      ))}
+    <View role="navigation" accessibilityLabel="Primary">
+      <View
+        className="flex-row border-t border-border bg-background"
+        style={{ paddingBottom: insets.bottom }}
+        accessibilityRole="tablist"
+      >
+        {tabs.map((tab) => (
+          <BottomNavTab
+            key={tab.key}
+            tab={tab}
+            active={activeRoute === tabRouteName(tab.key)}
+            onPress={goTo}
+          />
+        ))}
+      </View>
     </View>
   );
 }

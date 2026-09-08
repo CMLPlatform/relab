@@ -4,6 +4,7 @@ import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 // Shared by the error and success branches so the two outcomes can't drift apart.
 const RESULT_FADE = FadeIn.duration(250).reduceMotion(ReduceMotion.System);
 
+import Head from 'expo-router/head';
 import { AuthCard } from '@/components/auth/AuthCardSections';
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
@@ -14,51 +15,56 @@ export default function VerifyEmailScreen() {
   const { isLoading, error, success, isLoggedIn, goToLogin, goHome } = useVerifyEmail();
 
   return (
-    <AuthScreen>
-      <AuthCard title="Verify email" contentStyle={styles.cardContent}>
-        {isLoading ? (
-          <View className="gap-3 items-center">
-            <ActivityIndicator size="large" />
-            <AppText variant="body">Verifying your email…</AppText>
-          </View>
-        ) : null}
-
-        {error && !isLoading && (
-          <Animated.View entering={RESULT_FADE}>
+    <>
+      <Head>
+        <title>Verify email · Relab</title>
+      </Head>
+      <AuthScreen>
+        <AuthCard title="Verify email" contentStyle={styles.cardContent}>
+          {isLoading ? (
             <View className="gap-3 items-center">
-              <AppText variant="body" className="text-destructive text-center">
-                {error}
-              </AppText>
-              <AppButton variant="primary" onPress={goHome}>
-                Back to home
-              </AppButton>
+              <ActivityIndicator size="large" />
+              <AppText variant="body">Verifying your email…</AppText>
             </View>
-          </Animated.View>
-        )}
+          ) : null}
 
-        {success && !isLoading && (
-          <Animated.View entering={RESULT_FADE}>
-            <View className="gap-3 items-center">
-              <AppText variant="body" className="text-primary text-center">
-                Email verified!
-              </AppText>
-              {isLoggedIn ? (
-                <AppText variant="body">Taking you to your products…</AppText>
-              ) : (
-                <>
-                  <AppText variant="body" className="text-center">
-                    If you signed up in the app, you're still signed in there — just head back.
-                  </AppText>
-                  <AppButton variant="primary" onPress={goToLogin}>
-                    Sign in here
-                  </AppButton>
-                </>
-              )}
-            </View>
-          </Animated.View>
-        )}
-      </AuthCard>
-    </AuthScreen>
+          {error && !isLoading && (
+            <Animated.View entering={RESULT_FADE}>
+              <View className="gap-3 items-center">
+                <AppText variant="body" className="text-destructive text-center">
+                  {error}
+                </AppText>
+                <AppButton variant="primary" onPress={goHome}>
+                  Back to home
+                </AppButton>
+              </View>
+            </Animated.View>
+          )}
+
+          {success && !isLoading && (
+            <Animated.View entering={RESULT_FADE}>
+              <View className="gap-3 items-center">
+                <AppText variant="body" className="text-primary text-center">
+                  Email verified!
+                </AppText>
+                {isLoggedIn ? (
+                  <AppText variant="body">Taking you to your products…</AppText>
+                ) : (
+                  <>
+                    <AppText variant="body" className="text-center">
+                      If you signed up in the app, you're still signed in there — just head back.
+                    </AppText>
+                    <AppButton variant="primary" onPress={goToLogin}>
+                      Sign in here
+                    </AppButton>
+                  </>
+                )}
+              </View>
+            </Animated.View>
+          )}
+        </AuthCard>
+      </AuthScreen>
+    </>
   );
 }
 

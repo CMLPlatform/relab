@@ -24,6 +24,8 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
         className="absolute inset-0"
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={onDismiss}
+        accessibilityRole="button"
+        accessibilityLabel="Dismiss"
       />
 
       <Animated.View

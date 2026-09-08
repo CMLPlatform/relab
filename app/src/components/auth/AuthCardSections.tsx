@@ -22,7 +22,9 @@ export function AuthCard({
     <Card>
       <View className="p-4 gap-4" style={contentStyle}>
         <View className="gap-1.5">
-          <AppText variant="display">{title}</AppText>
+          <AppText variant="display" accessibilityRole="header">
+            {title}
+          </AppText>
           {subtitle}
         </View>
         {children}

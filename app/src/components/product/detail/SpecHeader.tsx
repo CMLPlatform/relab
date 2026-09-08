@@ -90,7 +90,9 @@ export function SpecHeader({
         // Keyed per product so a stale draft is dropped on navigation.
         <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
       ) : (
-        <AppText variant="display">{product.name}</AppText>
+        <AppText variant="display" accessibilityRole="header">
+          {product.name}
+        </AppText>
       )}
       {identity ? (
         <AppText variant="body" className="text-muted-foreground">

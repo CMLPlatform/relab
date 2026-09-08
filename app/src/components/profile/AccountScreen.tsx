@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { useCallback, useContext, useRef } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
@@ -30,35 +31,40 @@ function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: Us
   } = useAnchoredSectionNav(outerNav);
 
   return (
-    <PageContainer onLayout={onPageContainerLayout}>
-      <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
-        <ProfileHero
-          profile={profile}
-          onEditUsername={ctx.profile.openEditUsername}
-          usernameEditTriggerRef={ctx.profile.usernameEditTriggerRef}
-        />
-        <ProfileStatsSection
-          ownStats={ctx.profile.ownStats}
-          statsLoading={ctx.profile.statsLoading}
-        />
-        <SectionNavContext.Provider value={anchoredNav}>
-          {ACCOUNT_SECTIONS.map((section) => (
-            <Section
-              key={section.key}
-              sectionKey={section.key}
-              title={section.title}
-              // Section must stay a direct child of this wrapper (not nested
-              // in a per-item View) — see its className prop doc.
-              className={
-                section.key === DANGER_ZONE_KEY ? 'mt-6 border-t border-border pt-6' : undefined
-              }
-            >
-              {section.render(ctx)}
-            </Section>
-          ))}
-        </SectionNavContext.Provider>
-      </View>
-    </PageContainer>
+    <>
+      <Head>
+        <title>Account · Relab</title>
+      </Head>
+      <PageContainer onLayout={onPageContainerLayout}>
+        <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
+          <ProfileHero
+            profile={profile}
+            onEditUsername={ctx.profile.openEditUsername}
+            usernameEditTriggerRef={ctx.profile.usernameEditTriggerRef}
+          />
+          <ProfileStatsSection
+            ownStats={ctx.profile.ownStats}
+            statsLoading={ctx.profile.statsLoading}
+          />
+          <SectionNavContext.Provider value={anchoredNav}>
+            {ACCOUNT_SECTIONS.map((section) => (
+              <Section
+                key={section.key}
+                sectionKey={section.key}
+                title={section.title}
+                // Section must stay a direct child of this wrapper (not nested
+                // in a per-item View) — see its className prop doc.
+                className={
+                  section.key === DANGER_ZONE_KEY ? 'mt-6 border-t border-border pt-6' : undefined
+                }
+              >
+                {section.render(ctx)}
+              </Section>
+            ))}
+          </SectionNavContext.Provider>
+        </View>
+      </PageContainer>
+    </>
   );
 }
 

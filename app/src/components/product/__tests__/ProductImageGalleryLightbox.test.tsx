@@ -18,6 +18,9 @@ import {
 import { lightTheme } from '@/theme/themes';
 import type { Product } from '@/types/Product';
 
+// Gallery images sit in an aria-hidden wrapper (decorative); opt hidden elements in.
+const HIDDEN = { includeHiddenElements: true };
+
 type FlatListCallProps = {
   disableIntervalMomentum?: boolean;
   pagingEnabled?: boolean;
@@ -226,7 +229,7 @@ describe('ProductImages', () => {
     await renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getByText('img:file://photo1.jpg')).toBeOnTheScreen();
+    expect(screen.getByText('img:file://photo1.jpg', HIDDEN)).toBeOnTheScreen();
   });
 
   it('does not show image counter text for a single image', async () => {
@@ -310,7 +313,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    const imgs = screen.getAllByText('img:file://photo1.jpg');
+    const imgs = screen.getAllByText('img:file://photo1.jpg', HIDDEN);
     await fireEvent.press(imgs[0]);
 
     await waitFor(() => {
@@ -328,7 +331,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getByText('img:file://photo1.jpg'));
+    await fireEvent.press(screen.getByText('img:file://photo1.jpg', HIDDEN));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -346,7 +349,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg', HIDDEN)[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -404,7 +407,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg', HIDDEN)[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -443,7 +446,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg', HIDDEN)[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -542,7 +545,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg', HIDDEN)[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -572,7 +575,7 @@ describe('ProductImages', () => {
     await waitFor(() => {
       expect(screen.queryByLabelText('Close lightbox')).toBeNull();
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('img:file://photo2.jpg').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('img:file://photo2.jpg', HIDDEN).length).toBeGreaterThan(0);
     });
   });
 
@@ -737,7 +740,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg', HIDDEN)[0]);
 
     await waitFor(() => {
       expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
@@ -768,7 +771,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg')[0]);
+    await fireEvent.press(screen.getAllByText('img:file://photo1.jpg', HIDDEN)[0]);
     await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
 
     const zoomable = mockZoomableImageCalls.find((props) => props.uri === 'file://photo1.jpg');
@@ -811,7 +814,7 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:https://cdn.test/a_800.webp')[0]);
+    await fireEvent.press(screen.getAllByText('img:https://cdn.test/a_800.webp', HIDDEN)[0]);
     await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
 
     // Opens on the derivative, which is all a 1x view of the screen needs.

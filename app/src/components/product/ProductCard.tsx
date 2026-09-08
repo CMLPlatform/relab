@@ -116,7 +116,10 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
         >
           <View className="mr-4">
             {hasThumbnail ? (
+              // Decorative: the name is adjacent text. expo-image drops an empty
+              // alt, so the wrapper hides the subtree (as StaticBackground does).
               <View
+                aria-hidden
                 className="w-20 h-20 rounded-lg overflow-hidden"
                 style={{ backgroundColor: theme.colors.surfaceVariant }}
               >
@@ -126,8 +129,6 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   contentFit="cover"
                   onError={handleImageError}
                   testID="product-thumbnail"
-                  // Decorative: the name is adjacent text; empty alt avoids a double announcement.
-                  accessibilityLabel=""
                 />
               </View>
             ) : (
@@ -183,7 +184,9 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <Pressable
                 onPress={navigateToOwner}
                 accessibilityRole="link"
-                accessibilityLabel={`View ${ownerLabel}'s profile`}
+                accessibilityLabel={
+                  ownerLabel === 'you' ? 'View your profile' : `View ${ownerLabel}'s profile`
+                }
                 className="flex-row items-center gap-1 pr-2"
                 style={styles.ownerLink}
               >

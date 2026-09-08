@@ -58,6 +58,8 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
             className="flex-1 items-center justify-center"
             style={{ backgroundColor: theme.tokens.overlay.scrim }}
             onPress={hide}
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss"
           >
             <OverlaySurface
               className="py-3 px-4"

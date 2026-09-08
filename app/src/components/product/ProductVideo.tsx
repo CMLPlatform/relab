@@ -180,7 +180,12 @@ function VideoHeaderAction({
 }) {
   if (editMode) {
     return (
-      <TouchableOpacity onPress={onAdd} className="mt-1">
+      <TouchableOpacity
+        onPress={onAdd}
+        accessibilityRole="button"
+        // min-h-11: the 44px tap floor (MIN_TAP_TARGET) on a one-line text link.
+        className="mt-1 min-h-11 justify-center"
+      >
         <AppText style={{ color: linkColor }}>Add video</AppText>
       </TouchableOpacity>
     );
@@ -191,7 +196,12 @@ function VideoHeaderAction({
   }
 
   return (
-    <Pressable onPress={onToggleExpanded} className="mt-1">
+    <Pressable
+      onPress={onToggleExpanded}
+      accessibilityRole="button"
+      aria-expanded={isExpanded}
+      className="mt-1 min-h-11 justify-center"
+    >
       <AppText style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</AppText>
     </Pressable>
   );

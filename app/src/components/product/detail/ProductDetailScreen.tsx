@@ -1,5 +1,14 @@
+import Head from 'expo-router/head';
 import { useCallback, useRef } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View } from 'react-native';
+import {
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ScrollView,
+  StyleSheet,
+  type View,
+} from 'react-native';
+import { AppText } from '@/components/base/AppText';
+import { PageHeaderRow } from '@/components/base/PageHeaderRow';
 import type { SectionKey } from '@/components/base/SectionNavContext';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
 import { SectionNavLayout } from '@/components/base/SectionNavLayout';
@@ -11,6 +20,7 @@ import { useProductPageScreen } from '@/features/products/useProductPageScreen';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSectionNav } from '@/hooks/useSectionNav';
 import { isProductNotFoundError } from '@/services/api/products';
+import { entityLabelTitle, type Product } from '@/types/Product';
 import { ProductPageContent } from './Content';
 import { visibleSections } from './content-sections';
 import { ProductFabControls } from './FabControls';
@@ -42,6 +52,20 @@ function useFabPressHandler({
     }
     saveAndExit();
   }, [editMode, enterEditMode, saveAndExit]);
+}
+
+/** Document title plus the "Saved" live region (always mounted, so the text change announces). */
+function DocumentChrome({ product, justSaved }: { product: Product; justSaved: boolean }) {
+  return (
+    <>
+      <Head>
+        <title>{`${product.name?.trim() || entityLabelTitle(product)} · Relab`}</title>
+      </Head>
+      <AppText accessibilityLiveRegion="polite" style={styles.srOnly}>
+        {justSaved ? 'Saved' : ''}
+      </AppText>
+    </>
+  );
 }
 
 /** Loading/error/unresolved-id states. Not a hook: no hook calls inside. */
@@ -162,6 +186,11 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   return (
     <AmountDraftFlushContext.Provider value={amountFlushRef}>
       <SectionNavContext.Provider value={nav}>
+        <DocumentChrome product={screen.product} justSaved={editing.justSaved} />
+        {/* The stack header is hidden behind TopNav at lg; same title node and back handler in-page. */}
+        {isLg ? (
+          <PageHeaderRow title={screen.headerTitle} onBack={actions.goBackWithGuards} />
+        ) : null}
         <SectionNavLayout
           isLg={isLg}
           navSections={navSections}
@@ -194,3 +223,8 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     </AmountDraftFlushContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  // Off-canvas for sighted users, present for assistive tech.
+  srOnly: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
+});

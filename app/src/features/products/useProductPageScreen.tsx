@@ -198,7 +198,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     navigateBack();
   }, [capabilities.streamingThisProduct, confirmLeave, hasUnsavedChanges, navigateBack]);
 
-  useProductPageHeader({
+  const headerTitle = useProductPageHeader({
     navigation,
     goBackWithGuards,
     product,
@@ -243,6 +243,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     screen: {
       product,
       ancestors,
+      headerTitle,
       isLoading,
       isError,
       error,
@@ -255,6 +256,8 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       isSaving,
       isPaused,
       validationResult,
+      // True for the 3s "Saved" window after a successful save.
+      justSaved: showSavedIcon,
       primaryFabIcon: () =>
         getPrimaryFabIcon({
           isSaving,

@@ -174,4 +174,19 @@ describe('ComponentRow', () => {
     expect(screen.queryByLabelText('Show components of Rotor')).toBeNull();
     expect(screen.queryByText('Magnet')).toBeNull();
   });
+
+  it('hides the decorative thumbnail from assistive tech', async () => {
+    await renderWithProviders(
+      <ComponentRow
+        component={makeComponent({ thumbnailUrl: 'https://cdn.test/motor.jpg' })}
+        enabled={true}
+      />,
+    );
+    // RNTL's default queries mirror the a11y tree, so the wrapped image is
+    // only reachable when hidden elements are opted in.
+    expect(screen.queryByTestId('component-thumbnail')).toBeNull();
+    expect(
+      screen.getByTestId('component-thumbnail', { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
+  });
 });

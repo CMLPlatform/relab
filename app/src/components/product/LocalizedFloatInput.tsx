@@ -176,6 +176,10 @@ export default function LocalizedFloatInput({
     return (
       <View>
         <Pressable
+          // A label hit-area that focuses the input, not a control of its own:
+          // no role, no tab stop, so the textbox inside stays the one interactive.
+          accessible={false}
+          tabIndex={-1}
           style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -201,7 +205,9 @@ export default function LocalizedFloatInput({
 
   return (
     <View>
-      <Pressable onPress={onPress}>{inputContent}</Pressable>
+      <Pressable accessible={false} tabIndex={-1} onPress={onPress}>
+        {inputContent}
+      </Pressable>
       <FormFieldError errorId={errorId} message={error} />
     </View>
   );

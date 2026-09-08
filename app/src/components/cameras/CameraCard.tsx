@@ -65,6 +65,9 @@ function CameraCardComponent({
     >
       {/* Thumbnail (online only) or placeholder */}
       <View
+        // Decorative preview: the Card is labelled "Camera: <name>". expo-image
+        // drops an empty alt, so the frame hides the subtree.
+        aria-hidden={hasThumbnail}
         className="w-full overflow-hidden rounded-t-lg"
         style={[styles.thumbnailFrame, { backgroundColor: theme.colors.scrim }]}
       >

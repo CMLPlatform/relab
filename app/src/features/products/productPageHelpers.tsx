@@ -1,6 +1,6 @@
 import type { NativeStackHeaderBackProps } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { AccessibilityInfo, ActivityIndicator, Platform, View } from 'react-native';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Icon } from '@/components/base/Icon';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
@@ -15,6 +15,9 @@ export function useSavedIndicator(justSaved: boolean) {
 
   useEffect(() => {
     if (!justSaved) return;
+    // VoiceOver ignores accessibilityLiveRegion; Android and web read the
+    // live region ProductDetailScreen renders from `justSaved`.
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility('Saved');
 
     const showTimer = setTimeout(() => setShowSavedIcon(true), 0);
     const hideTimer = setTimeout(() => setShowSavedIcon(false), 3000);
@@ -49,42 +52,38 @@ export function useProductPageHeader({
   isProductComponent: boolean;
   theme: AppTheme;
 }) {
+  // Depend on product.name only; `product` is a fresh useWatch reference every render.
+  const name = product.name;
+  // Components fall through to the ancestor trail's custom title slot.
+  const showTrail = isProductComponent && ancestors.length > 0;
+
+  // Also rendered in-page by PageHeaderRow at lg, where the stack header hides.
+  const headerTitle = useMemo(
+    () =>
+      showTrail ? (
+        <AncestorTrailHeader
+          ancestors={ancestors}
+          currentNameSlot={<ProductNameHeader name={name} />}
+          theme={theme}
+        />
+      ) : (
+        <ProductNameHeader name={name} />
+      ),
+    [ancestors, name, showTrail, theme],
+  );
+
   useEffect(() => {
-    const name = product.name;
-    const showTrail = isProductComponent && ancestors.length > 0;
-    // Components fall through to the ancestor trail's custom title slot.
-    const needsCustomTitle = showTrail;
-
-    const titleSlot = <ProductNameHeader name={name} />;
-
     navigation.setOptions({
-      title: needsCustomTitle ? undefined : truncateHeaderLabel(name, 36),
+      title: showTrail ? undefined : truncateHeaderLabel(name, 36),
       headerLeft: (props: NativeStackHeaderBackProps) => (
         <HeaderBackButton {...props} onPress={goBackWithGuards} />
       ),
-      headerTitle: needsCustomTitle
-        ? () =>
-            showTrail ? (
-              <AncestorTrailHeader
-                ancestors={ancestors}
-                currentNameSlot={titleSlot}
-                theme={theme}
-              />
-            ) : (
-              titleSlot
-            )
-        : undefined,
+      headerTitle: showTrail ? () => headerTitle : undefined,
       headerRight: undefined,
     });
-  }, [
-    ancestors,
-    goBackWithGuards,
-    isProductComponent,
-    navigation,
-    // Depend on product.name only; `product` is a fresh useWatch reference every render.
-    product.name,
-    theme,
-  ]);
+  }, [goBackWithGuards, headerTitle, name, navigation, showTrail]);
+
+  return headerTitle;
 }
 
 /** The one place the "is this product the one streaming?" rule lives. */

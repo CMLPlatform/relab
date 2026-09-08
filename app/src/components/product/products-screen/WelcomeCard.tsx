@@ -31,7 +31,11 @@ export function ProductsWelcomeCard({
     <Card className="mx-0 rounded-lg bg-muted">
       <View className="gap-3">
         <View className="flex-row items-center gap-3">
-          <View className="h-11 w-11 items-center justify-center rounded-lg bg-primary/12">
+          {/* Decorative: expo-image drops an empty alt, so the wrapper hides the subtree. */}
+          <View
+            aria-hidden
+            className="h-11 w-11 items-center justify-center rounded-lg bg-primary/12"
+          >
             <Image
               source={
                 theme.dark
@@ -40,7 +44,6 @@ export function ProductsWelcomeCard({
               }
               style={styles.welcomeBrandMark}
               contentFit="contain"
-              accessibilityLabel=""
             />
           </View>
           <View className="flex-1">

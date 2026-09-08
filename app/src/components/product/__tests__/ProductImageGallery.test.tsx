@@ -14,6 +14,9 @@ import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
+// Gallery images sit in an aria-hidden wrapper (decorative); opt hidden elements in.
+const HIDDEN = { includeHiddenElements: true };
+
 const RPI_CAMERA_BUTTON_PATTERN = /RPi camera|Set up RPi camera/i;
 
 // ─── Module mocks ─────────────────────────────────────────────────────────────
@@ -148,8 +151,8 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     );
 
     // Images appear in both the main carousel and the thumbnail strip
-    expect(screen.getAllByText('img:file://photo1.jpg').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('img:file://photo2.jpg').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('img:file://photo1.jpg', HIDDEN).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('img:file://photo2.jpg', HIDDEN).length).toBeGreaterThan(0);
   });
 
   it('renders the thumbnail strip when images.length > 1', async () => {

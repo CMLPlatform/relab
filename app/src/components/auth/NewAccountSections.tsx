@@ -301,7 +301,7 @@ export function NewAccountUsernameStep({
       brandLogo
       inputProps={{
         autoCorrect: false,
-        autoComplete: 'username-new',
+        autoComplete: 'username',
         textContentType: 'username',
         placeholder: 'e.g. awesome_user',
         returnKeyType: 'next',
