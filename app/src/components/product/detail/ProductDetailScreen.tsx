@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useCallback, useRef } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView, View } from 'react-native';
 import type { SectionKey } from '@/components/base/SectionNavContext';
@@ -29,20 +28,20 @@ function useErrorSummaryPressHandler(
 
 function useFabPressHandler({
   saveAndExit,
+  enterEditMode,
   editMode,
 }: {
   saveAndExit: () => void;
+  enterEditMode: () => void;
   editMode: boolean;
 }) {
-  const router = useRouter();
   return useCallback(() => {
-    // View mode: flip ?edit=1 on the same screen (stays mounted).
     if (!editMode) {
-      router.setParams({ edit: '1' });
+      enterEditMode();
       return;
     }
     saveAndExit();
-  }, [editMode, router, saveAndExit]);
+  }, [editMode, enterEditMode, saveAndExit]);
 }
 
 /** Loading/error/unresolved-id states. Not a hook: no hook calls inside. */
@@ -101,6 +100,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
 
   const onPrimaryFabPress = useFabPressHandler({
     saveAndExit: actions.saveAndExit,
+    enterEditMode: actions.enterEditMode,
     editMode: editing.editMode,
   });
   const onErrorSummaryPress = useErrorSummaryPressHandler(

@@ -20,6 +20,7 @@ import { Uniwind } from 'uniwind';
 import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
+import { KeyboardShortcutsDialog } from '@/components/base/KeyboardShortcutsDialog';
 import { OfflineBanner } from '@/components/base/OfflineBanner';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { TopNav } from '@/components/base/TopNav';
@@ -200,6 +201,7 @@ function AppShell() {
       <OfflineBanner />
       <AppStack />
       <ActiveStreamBanner />
+      <KeyboardShortcutsDialog />
     </View>
   );
 }

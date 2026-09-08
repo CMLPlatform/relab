@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { type EffectCallback, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useProductEditShortcuts } from '@/features/products/useProductEditShortcuts';
+import { setShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 
 describe('useProductEditShortcuts', () => {
   const originalPlatform = Platform.OS;
@@ -12,6 +13,7 @@ describe('useProductEditShortcuts', () => {
     listener = handler;
   });
   const removeEventListener = jest.fn();
+  const onEdit = jest.fn();
   const onSave = jest.fn();
   const onExit = jest.fn();
 
@@ -25,11 +27,13 @@ describe('useProductEditShortcuts', () => {
     return preventDefault;
   }
 
-  function render(overrides: { canSave?: boolean; editMode?: boolean } = {}) {
+  function render(overrides: { canSave?: boolean; canEdit?: boolean; editMode?: boolean } = {}) {
     return renderHook(() =>
       useProductEditShortcuts({
         editMode: overrides.editMode ?? true,
+        canEdit: overrides.canEdit ?? true,
         canSave: overrides.canSave ?? true,
+        onEdit,
         onSave,
         onExit,
       }),
@@ -39,7 +43,8 @@ describe('useProductEditShortcuts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     listener = undefined;
-    // Mirrors useProductSearchShortcut's test: the unit-lane expo-router mock
+    setShortcutsEnabled(true);
+    // Mirrors useProductsListShortcuts' test: the unit-lane expo-router mock
     // leaves useFocusEffect a no-op, so run the callback via a real effect.
     (useFocusEffect as jest.Mock).mockImplementation((cb: unknown) => {
       useEffect(cb as EffectCallback, [cb]);
@@ -48,6 +53,55 @@ describe('useProductEditShortcuts', () => {
     Object.defineProperty(globalThis, 'window', {
       configurable: true,
       value: { addEventListener, removeEventListener },
+    });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector: () => null },
+    });
+  });
+
+  describe('view mode', () => {
+    it('opens the editor on "e"', async () => {
+      await render({ editMode: false });
+
+      press({ key: 'e' });
+
+      expect(onEdit).toHaveBeenCalled();
+    });
+
+    it('ignores "e" when the user does not own the product', async () => {
+      await render({ editMode: false, canEdit: false });
+
+      press({ key: 'e' });
+
+      expect(onEdit).not.toHaveBeenCalled();
+    });
+
+    it('ignores "e" while typing in a field', async () => {
+      await render({ editMode: false });
+
+      press({ key: 'e', target: { tagName: 'INPUT' } as unknown as EventTarget });
+
+      expect(onEdit).not.toHaveBeenCalled();
+    });
+
+    it('ignores "e" once single-key shortcuts are switched off', async () => {
+      setShortcutsEnabled(false);
+      await render({ editMode: false });
+
+      press({ key: 'e' });
+
+      expect(onEdit).not.toHaveBeenCalled();
+    });
+
+    it('leaves Escape and Cmd+S to the browser outside edit mode', async () => {
+      await render({ editMode: false });
+
+      press({ key: 'Escape' });
+      press({ key: 's', metaKey: true });
+
+      expect(onExit).not.toHaveBeenCalled();
+      expect(onSave).not.toHaveBeenCalled();
     });
   });
 
@@ -99,12 +153,24 @@ describe('useProductEditShortcuts', () => {
     expect(preventDefault).toHaveBeenCalled();
   });
 
-  it('does not listen outside edit mode or off web', async () => {
-    await render({ editMode: false });
-    expect(addEventListener).not.toHaveBeenCalled();
-
-    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'ios' });
+  it('keeps Escape and Cmd+S bound when single-key shortcuts are off', async () => {
+    // Neither is a character key shortcut, so SC 2.1.4 does not reach them.
+    setShortcutsEnabled(false);
     await render();
+
+    press({ key: 's', metaKey: true });
+    press({ key: 'Escape' });
+
+    expect(onSave).toHaveBeenCalled();
+    expect(onExit).toHaveBeenCalled();
+  });
+
+  it('does not listen off web', async () => {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'ios' });
+
+    await render();
+    await render({ editMode: false });
+
     expect(addEventListener).not.toHaveBeenCalled();
   });
 });

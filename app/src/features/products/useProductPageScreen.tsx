@@ -219,11 +219,17 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     });
   }, [capabilities.streamingThisProduct, confirmLeave, hasUnsavedChanges, navigation]);
 
-  // Web-only Escape / Cmd+S, routed through the same handlers as the header
-  // back button and the save FAB.
+  // Edit mode is the ?edit=1 query param, so entering it keeps the screen
+  // mounted. The FAB and the "e" shortcut share this one handler.
+  const enterEditMode = useCallback(() => router.setParams({ edit: '1' }), [router]);
+
+  // Web-only e / Escape / Cmd+S, routed through the same handlers as the Edit
+  // FAB, the header back button, and the save bar.
   useProductEditShortcuts({
     editMode,
+    canEdit: capabilities.ownedByMe,
     canSave: validationResult.isValid && !isSaving,
+    onEdit: enterEditMode,
     onSave: saveAndExit,
     onExit: goBackWithGuards,
   });
@@ -283,6 +289,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       onProductDelete,
       saveAndExit,
       goBackWithGuards,
+      enterEditMode,
     },
     amountFlushRef,
   };
