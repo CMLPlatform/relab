@@ -21,7 +21,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:ci": "pnpm run test && pnpm run build && pnpm run test:e2e && pnpm run test:links",
-    "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl'"
+    "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl' --skip 'doi.org'"
   },
   "dependencies": {
     "@astrojs/mdx": "7.0.8",
