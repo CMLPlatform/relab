@@ -152,7 +152,6 @@ describe('CaptureScreen', () => {
     expect(screen.getAllByText('Queued — sends when online')).toHaveLength(3);
     expect(screen.queryByText('Create product')).toBeNull();
     expect(screen.queryByText('Create & add another')).toBeNull();
-    const { ActivityIndicator } = jest.requireActual<typeof import('react-native')>('react-native');
     expect(queryAllHostsByType('ActivityIndicator')).toHaveLength(0);
   });
 

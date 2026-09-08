@@ -1,6 +1,6 @@
 import { expect, jest, test } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { ActivityIndicator, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { SaveBar } from '@/components/product/detail/SaveBar';
 import { queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
 

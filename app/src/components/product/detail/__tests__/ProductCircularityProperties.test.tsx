@@ -1,6 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { TextInput } from 'react-native';
 import ProductCircularityProperties from '@/components/product/detail/ProductCircularityProperties';
 import { baseProduct as _base, queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';

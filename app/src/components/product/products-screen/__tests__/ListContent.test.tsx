@@ -1,5 +1,4 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
-import { FlatList } from 'react-native';
 import { ProductsListContent } from '@/components/product/products-screen/ListContent';
 import { PRODUCTS_FAB_EDGE_GAP } from '@/components/product/products-screen/shared';
 import { MIN_TAP_TARGET } from '@/constants';

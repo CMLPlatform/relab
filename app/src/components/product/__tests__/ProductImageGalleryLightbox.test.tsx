@@ -6,14 +6,12 @@ import {
   requestCameraPermissionsAsync,
 } from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import type React from 'react';
-import { StyleSheet, View, type ViewProps } from 'react-native';
+import { StyleSheet } from 'react-native';
 import ProductImages from '@/components/product/ProductImageGallery';
 import { processImage } from '@/services/imageProcessing';
 import {
   baseProduct,
   mockPlatform,
-  queryAllHostsByProps,
   queryAllHostsByType,
   renderWithProviders,
 } from '@/test-utils/index';
@@ -35,7 +33,6 @@ type ZoomableImageMockProps = {
   onScaleChange?: (scale: number) => void;
   zoomRef?: { current: typeof mockZoomHandle | null };
 };
-type GestureCallback = (...args: unknown[]) => unknown;
 
 const mockFlatListCalls: Array<Record<string, unknown> & FlatListCallProps> = [];
 const mockZoomableImageCalls: ZoomableImageMockProps[] = [];
