@@ -91,7 +91,7 @@ export function CamerasGrid({
             No cameras yet
           </AppText>
           <MutedText className="mt-2 text-center">
-            Tap the + button to register your first RPi camera.
+            Tap Add camera to register your first RPi camera.
           </MutedText>
         </View>
       }

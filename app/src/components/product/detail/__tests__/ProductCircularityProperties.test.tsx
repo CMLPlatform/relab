@@ -108,7 +108,7 @@ describe('ProductCircularityProperties', () => {
     expect(screen.getByText('Recyclability')).toBeOnTheScreen();
   });
 
-  it('updates a note field in edit mode', async () => {
+  it('commits a note field on blur in edit mode', async () => {
     const onChange = jest.fn();
     await renderWithProviders(
       <ProductCircularityProperties
@@ -120,6 +120,9 @@ describe('ProductCircularityProperties', () => {
 
     const inputs = queryAllHostsByType('TextInput');
     await fireEvent.changeText(inputs[1], 'Fasteners are accessible');
+    // Typing alone commits nothing; blur does (the commit is the blur-save trigger).
+    expect(onChange).not.toHaveBeenCalled();
+    await fireEvent(inputs[1], 'blur');
 
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith({

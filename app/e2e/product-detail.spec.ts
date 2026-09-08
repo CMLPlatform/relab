@@ -26,6 +26,9 @@ const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // not a link — see HeaderBackButton.
 const BACK_CONTROL_NAME_PATTERN = /back/i;
 const PRODUCT_ID_TEXT_PATTERN = /Product ID: \d+/;
+// The status line under the title in edit mode (SpecHeader); "Saving…" and
+// the offline label are its other states.
+const SAVED_STATUS_PATTERN = /^Saved · ID \d+$/;
 const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
 // Empty optional sections collapse to a single "Add …" row in edit mode
 // (Section.tsx showAddRow); pressing it reveals the real fields.
@@ -49,7 +52,8 @@ async function createProduct(page: import('@playwright/test').Page, name: string
 
 // Stage 2: detail-in-edit. The product already exists at this point, so this
 // is an ordinary existing-record edit — same "Add …" row pattern as any other
-// empty section (see the 2a add-row coverage below).
+// empty section (see the 2a add-row coverage below). Text and number fields
+// save on blur; the status line flips back to "Saved" once the PATCH lands.
 async function fillRequiredProductFields(
   page: import('@playwright/test').Page,
   name: string,
@@ -59,14 +63,17 @@ async function fillRequiredProductFields(
   const weightInput = page.getByPlaceholder('e.g. 12').first();
   await weightInput.fill('42');
   await weightInput.blur();
+  await expect(page.getByTestId('save-status')).toHaveText(SAVED_STATUS_PATTERN, {
+    timeout: 10_000,
+  });
 }
 
+// Nothing is left unsaved after the blur-save, so the button reads Done and
+// only closes the editor.
 async function saveNewProduct(page: import('@playwright/test').Page, name: string): Promise<void> {
   await fillRequiredProductFields(page, name);
-  await expect(page.getByRole('button', { name: 'Save Product' })).toBeEnabled({
-    timeout: 5_000,
-  });
-  await page.getByRole('button', { name: 'Save Product' }).click();
+  await expect(page.getByRole('button', { name: 'Done' })).toBeEnabled({ timeout: 5_000 });
+  await page.getByRole('button', { name: 'Done' }).click();
 }
 
 // ─── Product detail navigation ─────────────────────────────────────────────────
@@ -212,7 +219,10 @@ test.describe('Product creation', () => {
     await expect(page.getByRole('textbox', { name: 'Product name' })).toHaveValue(productName, {
       timeout: 10_000,
     });
-    await expect(page.getByRole('button', { name: 'Save Product' })).toBeVisible();
+    // The record exists: the status line says so and the button closes, not saves.
+    await expect(page.getByTestId('save-status')).toHaveText(SAVED_STATUS_PATTERN);
+    await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Save Product' })).toBeHidden();
   });
 
   test('discarding the capture draft returns to the products page', async ({ page }) => {
@@ -276,17 +286,48 @@ test.describe('Product detail: edit mode', () => {
     await expect(page.getByText(PRODUCT_ID_TEXT_PATTERN)).toBeVisible({ timeout: 5_000 });
   });
 
-  test('unsaved-changes guard blocks navigation mid-edit', async ({ page }) => {
+  test('a blurred text field saves itself and leaving afterwards never prompts', async ({
+    page,
+  }) => {
     await loginAndReachProducts(page);
     await createProduct(page, `E2E Test ${Date.now()}`);
 
-    // Overview is empty on a fresh product, so the description field sits
-    // behind the "Add a description" row until pressed.
     await page.getByRole('button', { name: ADD_DESCRIPTION_LABEL }).click();
     const descriptionInput = page.getByPlaceholder(DESCRIPTION_PLACEHOLDER);
     await expect(descriptionInput).toBeVisible({ timeout: 10_000 });
-    // Make the form dirty so the unsaved-changes guard fires (form starts pristine after creation)
     await descriptionInput.fill('test description');
+    const [patch] = await Promise.all([
+      page.waitForResponse(
+        (r) => r.request().method() === 'PATCH' && PRODUCT_DETAIL_URL_PATTERN.test(r.url()),
+        { timeout: 15_000 },
+      ),
+      descriptionInput.blur(),
+    ]);
+    expect(patch.status()).toBeLessThan(300);
+    await expect(page.getByTestId('save-status')).toHaveText(SAVED_STATUS_PATTERN, {
+      timeout: 10_000,
+    });
+
+    // Everything is saved, so the back control leaves without a discard prompt.
+    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
+    await expect(page).toHaveURL(PRODUCTS_LIST_URL_PATTERN, { timeout: 10_000 });
+    await expect(page.getByText('Discard changes?')).toBeHidden();
+  });
+
+  test('unsaved-changes guard blocks navigation while a photo is staged', async ({ page }) => {
+    await loginAndReachProducts(page);
+    await createProduct(page, `E2E Test ${Date.now()}`);
+
+    // Text fields save on blur; a picked photo is what stays unsaved until
+    // Save uploads it, so it is what arms the guard.
+    const [chooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      page.getByRole('button', { name: 'Add photos from gallery' }).click(),
+    ]);
+    await chooser.setFiles('e2e/fixtures/test-image.png');
+    await expect(page.getByRole('button', { name: 'Save Product' })).toBeVisible({
+      timeout: 20_000,
+    });
 
     // Attempt to leave via the in-app header back control; the unsaved-changes guard should intercept.
     await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();

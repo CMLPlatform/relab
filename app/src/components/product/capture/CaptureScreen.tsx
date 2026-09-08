@@ -141,6 +141,12 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
           ) : null}
           <ProductImageGallery product={draftProduct} editMode onImagesChange={setImages} />
           <View className="gap-4">
+            {/* Context line first: which record this part belongs to. */}
+            {role === 'component' && parentName ? (
+              <AppText variant="caption" className="text-muted-foreground">
+                Component of: {parentName}
+              </AppText>
+            ) : null}
             <View>
               <AppText variant="eyebrow">Name</AppText>
               <Input
@@ -168,10 +174,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
             </DocsLink>
 
             {role === 'component' ? (
-              <>
-                {parentName ? <AppText>Component of: {parentName}</AppText> : null}
-                <AmountStepper value={amount} onChange={setAmount} label="How many of these" />
-              </>
+              <AmountStepper value={amount} onChange={setAmount} label="How many of these" />
             ) : null}
 
             <View className="flex-row gap-3">

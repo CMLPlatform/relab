@@ -280,8 +280,9 @@ describe('useProductForm', () => {
     );
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
+    // The type picker does not blur-save, so only the explicit Save writes.
     await act(async () => {
-      result.current.onProductNameChange('Edited Name');
+      result.current.onTypeChange(7);
     });
 
     await act(async () => {
@@ -630,5 +631,162 @@ describe('useProductForm', () => {
     expect(mockAlert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Delete failed', message: 'server exploded' }),
     );
+  });
+});
+
+describe('useProductForm blur-save', () => {
+  // mockProduct's zero measurements fail the schema; a blur-save needs a valid record.
+  const validProduct = {
+    ...mockProduct,
+    physicalProperties: {
+      weight: undefined,
+      width: undefined,
+      height: undefined,
+      depth: undefined,
+    },
+  } satisfies Product;
+
+  function renderEditForm(
+    mutateAsync: (...args: never[]) => unknown,
+    extra: Record<string, unknown> = {},
+  ) {
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+      isPaused: false,
+      isSuccess: false,
+      ...extra,
+    });
+    return renderHook(() => useProductForm('123', { role: 'product', initialEditMode: true }), {
+      wrapper,
+    });
+  }
+
+  it('saves once per changed field and clears the dirty state', async () => {
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
+    const { result } = await renderEditForm(mockMutate);
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+
+    expect(mockMutate).toHaveBeenCalledTimes(1);
+    expect(mockMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        product: expect.objectContaining({ name: 'Edited Name' }),
+      }),
+    );
+    // Saved fields are the new baseline: the guard and the Done label read clean.
+    await waitFor(() => expect(result.current.isDirty).toBe(false));
+
+    // Same value again: nothing to send.
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+    expect(mockMutate).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the same media on both sides so a blur-save never uploads', async () => {
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
+    const { result } = await renderEditForm(mockMutate);
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onImagesChange([{ url: '/media/new.png', description: '' }]);
+    });
+    expect(mockMutate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.onBrandChange('Acme');
+    });
+
+    const vars = mockMutate.mock.calls[0][0] as SaveProductVariables;
+    expect(vars.product.images).toEqual(validProduct.images);
+    expect(vars.originalImages).toEqual(validProduct.images);
+    // The pending photo is still unsaved, so the explicit Save stays armed.
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it('skips the save while the form is invalid', async () => {
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
+    const { result } = await renderEditForm(mockMutate);
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('x');
+    });
+
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(result.current.validationResult.isValid).toBe(false);
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it('treats an empty field as unset, not invalid', async () => {
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
+    const { result } = await renderEditForm(mockMutate);
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onBrandChange('');
+    });
+
+    expect(mockMutate).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays dirty while the save is queued offline', async () => {
+    let release: (id: number) => void = () => {};
+    const mockMutate = jest.fn(() => new Promise<number>((resolve) => (release = resolve)));
+    const { result } = await renderEditForm(mockMutate, { isPending: true, isPaused: true });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+
+    expect(mockMutate).toHaveBeenCalledTimes(1);
+    expect(result.current.isPaused).toBe(true);
+    expect(result.current.isDirty).toBe(true);
+
+    await act(async () => {
+      release(123);
+    });
+    await waitFor(() => expect(result.current.isDirty).toBe(false));
+  });
+
+  it('toasts a failed blur-save and keeps the field dirty for the explicit Save', async () => {
+    const mockToast = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: jest.fn(), input: jest.fn(), toast: mockToast });
+    const mockMutate = jest.fn(async () => {
+      throw new Error('Network failure');
+    });
+    const { result } = await renderEditForm(mockMutate);
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+
+    expect(mockToast).toHaveBeenCalledWith('Network failure');
+    expect(result.current.isDirty).toBe(true);
+  });
+
+  it('does not save outside edit mode', async () => {
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    const { result } = await renderHook(() => useProductForm('123', { role: 'product' }), {
+      wrapper,
+    });
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+
+    expect(mockMutate).not.toHaveBeenCalled();
   });
 });

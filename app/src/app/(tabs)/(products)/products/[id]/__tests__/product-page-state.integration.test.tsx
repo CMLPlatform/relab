@@ -529,6 +529,49 @@ describe('ProductPage state handling', () => {
     expect(screen.getByText('Discard changes?')).toBeOnTheScreen();
   });
 
+  // Post-create lands here in edit mode: the record exists and nothing is
+  // unsaved, so the screen says so and the button closes rather than saves.
+  it('shows the saved record status and a Done button on a clean edit form', async () => {
+    let beforeRemoveHandler:
+      | ((event: { preventDefault: () => void; data: { action: unknown } }) => void)
+      | undefined;
+    (useNavigation as jest.Mock).mockReturnValue({
+      setOptions: mockSetOptions,
+      canGoBack: jest.fn().mockReturnValue(false),
+      goBack: jest.fn(),
+      addListener: jest.fn((event: string, handler: typeof beforeRemoveHandler) => {
+        if (event === 'beforeRemove') beforeRemoveHandler = handler;
+        return jest.fn();
+      }),
+      dispatch: jest.fn(),
+    });
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, id: 42, ownedBy: 'me' },
+      editMode: true,
+      isDirty: false,
+      isPaused: false,
+    } as never);
+
+    await renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('save-status')).toHaveTextContent('Saved · ID 42');
+    });
+    expect(screen.queryByText('Save Product')).toBeNull();
+
+    // Leaving a fully saved record never prompts.
+    const preventDefault = jest.fn();
+    await act(async () => {
+      beforeRemoveHandler?.({ preventDefault, data: { action: { type: 'GO_BACK' } } });
+    });
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(screen.queryByText('Discard changes?')).toBeNull();
+
+    await fireEvent.press(screen.getByText('Done'));
+    expect(baseFormReturn.saveAndExit).toHaveBeenCalledTimes(1);
+  });
+
   it('flips ?edit=1 on the same screen when the detail FAB is pressed in view mode', async () => {
     const mockSetParams = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({

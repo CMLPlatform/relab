@@ -21,7 +21,10 @@ type ProfileHeroProps = {
 export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }: ProfileHeroProps) {
   return (
     <View className="gap-2 px-4 py-3">
-      <AppText variant="eyebrow">Hi,</AppText>
+      {/* A greeting, not a tag value: caption, not eyebrow (DESIGN.md Eyebrow-Is-A-Datum). */}
+      <AppText variant="caption" className="text-muted-foreground">
+        Hi,
+      </AppText>
       <Pressable
         ref={usernameEditTriggerRef}
         onPress={onEditUsername}
@@ -33,7 +36,7 @@ export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }:
           numberOfLines={Platform.OS === 'web' ? undefined : 1}
           adjustsFontSizeToFit
         >
-          {`${profile.username}.`}
+          {profile.username}
         </AppText>
       </Pressable>
 
@@ -125,7 +128,7 @@ export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSect
       <StatCard label="Weight (kg)" value={ownStats?.total_weight_kg ?? 0} loading={statsLoading} />
       <StatCard
         label="Top category"
-        value={ownStats?.top_category ?? 'None'}
+        value={ownStats?.top_category || '—'}
         loading={statsLoading}
         singleLine
       />

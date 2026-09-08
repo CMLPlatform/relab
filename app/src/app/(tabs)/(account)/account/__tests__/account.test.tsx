@@ -172,7 +172,7 @@ describe('ProfileTab', () => {
 
   it('renders username and email', async () => {
     const { findByText } = await renderProfile();
-    expect(await findByText('tester.')).toBeTruthy();
+    expect(await findByText('tester')).toBeTruthy();
     expect(await findByText('test@example.com')).toBeTruthy();
   });
 

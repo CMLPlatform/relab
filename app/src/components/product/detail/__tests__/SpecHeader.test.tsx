@@ -95,3 +95,15 @@ describe('SpecHeader name field in edit mode', () => {
     expect(screen.getByText('Initial product name')).toBeOnTheScreen();
   });
 });
+
+test('renders the record status line under the title in edit mode', async () => {
+  await render(
+    <SpecHeader product={{ ...baseProduct, id: 29 }} editMode saveStatus="Saved · ID 29" />,
+  );
+  expect(screen.getByTestId('save-status')).toHaveTextContent('Saved · ID 29');
+});
+
+test('renders no status line without one', async () => {
+  await render(<SpecHeader product={baseProduct} />);
+  expect(screen.queryByTestId('save-status')).toBeNull();
+});

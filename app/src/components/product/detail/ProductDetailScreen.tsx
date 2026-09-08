@@ -170,6 +170,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     <ProductPageContent
       product={screen.product}
       editMode={editing.editMode}
+      saveStatus={editing.saveStatus}
       isProductComponent={capabilities.isProductComponent}
       isLab={isLab}
       mediaStreamable={mediaStreamable}

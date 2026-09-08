@@ -2,7 +2,8 @@ import { describe, expect, it } from '@jest/globals';
 import { isValidElement } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@/components/base/Icon';
-import { getPrimaryFabIcon } from '@/features/products/productPageHelpers';
+import { getPrimaryFabIcon, getSaveStatus } from '@/features/products/productPageHelpers';
+import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { getAppTheme } from '@/theme';
 
 const theme = getAppTheme('light');
@@ -53,5 +54,24 @@ describe('getPrimaryFabIcon', () => {
 
     expect(element.type).toBe(Icon);
     expect(element.props.name).toBe('save');
+  });
+});
+
+describe('getSaveStatus', () => {
+  const base = { editMode: true, id: 29, isSaving: false, isPaused: false, isDirty: false };
+
+  it('names the saved record by id once nothing is pending', () => {
+    expect(getSaveStatus(base)).toBe('Saved · ID 29');
+  });
+
+  it('reports unsaved edits, saving, and the offline queue', () => {
+    expect(getSaveStatus({ ...base, isDirty: true })).toBe('Unsaved changes · ID 29');
+    expect(getSaveStatus({ ...base, isSaving: true })).toBe('Saving…');
+    expect(getSaveStatus({ ...base, isSaving: true, isPaused: true })).toBe(QUEUED_OFFLINE_LABEL);
+  });
+
+  it('is absent outside edit mode and before the record has an id', () => {
+    expect(getSaveStatus({ ...base, editMode: false })).toBeUndefined();
+    expect(getSaveStatus({ ...base, id: undefined })).toBeUndefined();
   });
 });

@@ -186,7 +186,7 @@ test('uses component labels for component pages', async () => {
 
 // These cases used to live in FabControls.test.tsx, rendering ProductFabControls
 // with editMode — which `isMd || editMode` routes straight to this component.
-test('edit mode with no edits yet stays pressable even while invalid', async () => {
+test('edit mode with nothing unsaved reads Done and stays pressable even while invalid', async () => {
   const onPrimaryPress = jest.fn();
   await renderWithProviders(
     <SaveBar
@@ -202,7 +202,8 @@ test('edit mode with no edits yet stays pressable even while invalid', async () 
       ownedByMe
     />,
   );
-  await fireEvent.press(screen.getByText('Save Product'));
+  expect(screen.queryByText('Save Product')).toBeNull();
+  await fireEvent.press(screen.getByText('Done'));
   expect(onPrimaryPress).toHaveBeenCalledTimes(1);
 });
 

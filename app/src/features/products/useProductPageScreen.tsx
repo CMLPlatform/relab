@@ -10,6 +10,7 @@ import { useAppTheme } from '@/theme';
 import {
   getPrimaryFabIcon,
   getProductCapabilities,
+  getSaveStatus,
   useProductPageHeader,
   useSavedIndicator,
 } from './productPageHelpers';
@@ -258,6 +259,13 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
       validationResult,
       // True for the 3s "Saved" window after a successful save.
       justSaved: showSavedIcon,
+      saveStatus: getSaveStatus({
+        editMode,
+        id: typeof product.id === 'number' ? product.id : undefined,
+        isSaving,
+        isPaused,
+        isDirty,
+      }),
       primaryFabIcon: () =>
         getPrimaryFabIcon({
           isSaving,

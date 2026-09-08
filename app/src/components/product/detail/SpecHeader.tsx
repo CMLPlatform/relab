@@ -74,10 +74,13 @@ function NameField({
 export function SpecHeader({
   product,
   editMode = false,
+  saveStatus,
   onNameChange,
 }: {
   product: Product;
   editMode?: boolean;
+  /** Record status line ("Saved · ID 29"); rendered under the title as data. */
+  saveStatus?: string;
   onNameChange?: (newName: string) => void;
 }) {
   const identity = [product.productTypeName, product.brand, product.model]
@@ -94,6 +97,13 @@ export function SpecHeader({
           {product.name}
         </AppText>
       )}
+      {saveStatus ? (
+        // Not a live region: DocumentChrome already announces "Saved", and
+        // the queued state is toasted.
+        <AppText variant="data" className="text-manila" testID="save-status">
+          {saveStatus}
+        </AppText>
+      ) : null}
       {identity ? (
         <AppText variant="body" className="text-muted-foreground">
           {identity}

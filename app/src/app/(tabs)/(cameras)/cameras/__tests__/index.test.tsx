@@ -105,9 +105,7 @@ describe('CamerasScreen', () => {
     await renderWithProviders(<CamerasScreen />, { withDialog: true });
 
     expect(screen.getByText('No cameras yet')).toBeOnTheScreen();
-    expect(
-      screen.getByText('Tap the + button to register your first RPi camera.'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('Tap Add camera to register your first RPi camera.')).toBeOnTheScreen();
     expect(mockSetOptions).toHaveBeenCalled();
     expect(mockSetOptions.mock.calls[0][0]).toEqual(
       expect.objectContaining({ title: 'My cameras' }),

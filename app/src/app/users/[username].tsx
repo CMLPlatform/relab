@@ -113,7 +113,8 @@ export default function UserProfileScreen() {
                     {
                       icon: 'tag',
                       color: theme.tokens.status.warning,
-                      value: profile.top_category || 'None',
+                      // Unset, not a penalty (PRODUCT.md): a dash, never "None".
+                      value: profile.top_category || '—',
                       label: 'Top category',
                     },
                   ] as const

@@ -5,6 +5,7 @@ import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { Icon } from '@/components/base/Icon';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
 import { ProductNameHeader } from '@/components/product/ProductNameHeader';
+import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import type { AppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { truncateHeaderLabel } from './truncateHeaderLabel';
@@ -84,6 +85,26 @@ export function useProductPageHeader({
   }, [goBackWithGuards, headerTitle, name, navigation, showTrail]);
 
   return headerTitle;
+}
+
+/** Inline record status under the title in edit mode; undefined outside it. */
+export function getSaveStatus({
+  editMode,
+  id,
+  isSaving,
+  isPaused,
+  isDirty,
+}: {
+  editMode: boolean;
+  id: number | undefined;
+  isSaving: boolean;
+  isPaused: boolean;
+  isDirty: boolean;
+}): string | undefined {
+  if (!editMode || typeof id !== 'number') return undefined;
+  if (isSaving && isPaused) return QUEUED_OFFLINE_LABEL;
+  if (isSaving) return 'Saving…';
+  return `${isDirty ? 'Unsaved changes' : 'Saved'} · ID ${id}`;
 }
 
 /** The one place the "is this product the one streaming?" rule lives. */

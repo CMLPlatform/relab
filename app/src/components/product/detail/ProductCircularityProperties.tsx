@@ -162,10 +162,12 @@ function CircularityNoteField({
   colors: AppColors;
   onUpdate: (key: CircularityNoteKey, value: string) => void;
 }) {
-  const handleChangeText = useCallback(
-    (text: string) => onUpdate(noteKey, text),
-    [onUpdate, noteKey],
-  );
+  // Local draft, committed on blur: the commit is what triggers the blur-save.
+  const [draft, setDraft] = useState<string | null>(null);
+  const handleBlur = useCallback(() => {
+    if (draft !== null && draft !== value) onUpdate(noteKey, draft);
+    setDraft(null);
+  }, [draft, value, onUpdate, noteKey]);
 
   return (
     <View className="py-[14px]">
@@ -177,8 +179,9 @@ function CircularityNoteField({
       </AppText>
       {editMode ? (
         <TextInput
-          value={value}
-          onChangeText={handleChangeText}
+          value={draft ?? value}
+          onChangeText={setDraft}
+          onBlur={handleBlur}
           multiline
           numberOfLines={3}
           maxLength={500}

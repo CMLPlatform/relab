@@ -79,7 +79,6 @@ export default function ProductDescription({ product, editMode, onChangeDescript
       editable={editMode}
       multiline
       numberOfLines={undefined}
-      errorOnEmpty
     />
   );
 }

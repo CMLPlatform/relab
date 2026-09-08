@@ -68,17 +68,78 @@ function buildValidationResult(
   };
 }
 
-function useProductFieldHandlers(
-  setValue: ReturnType<typeof useForm<ProductFormValues>>['setValue'],
-) {
+// Text and number fields save on blur in edit mode. Image uploads and videos
+// stay on the explicit Save button (uploads are heavy and diffed there); the
+// type picker rides along in the next blur-save or the explicit Save.
+const BLUR_SAVE_FIELDS = new Set<FieldPath<ProductFormValues>>([
+  'name',
+  'description',
+  'brand',
+  'model',
+  'amountInParent',
+  'physicalProperties',
+  'circularityProperties',
+]);
+
+function useProductFieldHandlers({
+  form,
+  editMode,
+  saveMutation,
+  serverProduct,
+  dialog,
+}: {
+  form: ReturnType<typeof useForm<ProductFormValues>>;
+  editMode: boolean;
+  saveMutation: ReturnType<typeof useSaveProductMutation>;
+  serverProduct: Product | undefined;
+  dialog: ReturnType<typeof useDialog>;
+}) {
+  const { setValue, getValues, trigger, reset, formState } = form;
+
+  /** Commit a field, then PATCH the record if the field changed and the form validates. */
+  const commit = async <K extends FieldPath<ProductFormValues>>(
+    field: K,
+    value: FieldPathValue<ProductFormValues, K>,
+  ) => {
+    const previous = getValues(field);
+    setValue(field, value, { shouldValidate: true, shouldDirty: true });
+    if (!editMode || !BLUR_SAVE_FIELDS.has(field) || !serverProduct) return;
+    if (typeof getValues('id') !== 'number') return;
+    // Unchanged (JSON: the values are plain strings, numbers or flat objects).
+    if (JSON.stringify(previous ?? null) === JSON.stringify(value ?? null)) return;
+    // An invalid form is shown by the field, never sent; the explicit Save
+    // button reports it as "N fields need attention".
+    if (!(await trigger())) return;
+
+    // Media is never part of a blur-save: same images/videos on both sides of
+    // the diff, so only the entity PATCH goes out.
+    const images = serverProduct.images ?? [];
+    const videos = serverProduct.videos ?? [];
+    const snapshot = { ...getValues(), images, videos } as Product;
+    try {
+      await saveMutation.mutateAsync({
+        product: snapshot,
+        originalImages: images,
+        originalVideos: videos,
+      });
+      // Everything in the PATCH is now the server state; pending media keeps
+      // its dirty state so the explicit Save still uploads it.
+      const defaults = formState.defaultValues ?? {};
+      reset(
+        { ...snapshot, images: defaults.images, videos: defaults.videos } as ProductFormValues,
+        { keepValues: true, keepErrors: true, keepIsValid: true },
+      );
+    } catch (err) {
+      dialog.toast(getErrorMessage(err, 'Could not save. Press Save to try again.'));
+    }
+  };
+
   const updateField = <K extends FieldPath<ProductFormValues>>(field: K) => {
-    return (value: FieldPathValue<ProductFormValues, K>) =>
-      setValue(field, value, { shouldValidate: true, shouldDirty: true });
+    return (value: FieldPathValue<ProductFormValues, K>) => void commit(field, value);
   };
 
   return {
-    onProductNameChange: (newName: string) =>
-      setValue('name', newName.trim(), { shouldValidate: true, shouldDirty: true }),
+    onProductNameChange: (newName: string) => void commit('name', newName.trim()),
     onChangeDescription: updateField('description'),
     onChangePhysicalProperties: updateField('physicalProperties'),
     onChangeCircularityProperties: updateField('circularityProperties'),
@@ -284,7 +345,13 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
   // Lives for the draft's lifetime; minted in saveAndExit.
   const idempotencyKeyRef = useRef<string | null>(null);
 
-  const fieldHandlers = useProductFieldHandlers(setValue);
+  const fieldHandlers = useProductFieldHandlers({
+    form,
+    editMode,
+    saveMutation,
+    serverProduct,
+    dialog,
+  });
   const { saveAndExit, onProductDelete } = useProductFormActions({
     amountFlushRef,
     deleteMutation,
