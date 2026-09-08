@@ -28,6 +28,7 @@ jest.mock('expo-router/js-tabs', () => {
 // keyed fresh on every render. 'mock'-prefixed names are exempt from
 // babel-jest's hoisting TDZ check, so the factory can close over it.
 const mockScreenOptions: Record<string, Record<string, unknown> | undefined> = {};
+let mockStackOptions: Record<string, unknown> | undefined;
 const mockNavigate = jest.fn();
 const mockReplace = jest.fn();
 
@@ -37,7 +38,14 @@ jest.mock('expo-router', () => {
     mockScreenOptions[name] = options;
     return null;
   }
-  function StackMock({ children }: { children?: React.ReactNode }) {
+  function StackMock({
+    children,
+    screenOptions,
+  }: {
+    children?: React.ReactNode;
+    screenOptions?: Record<string, unknown>;
+  }) {
+    mockStackOptions = screenOptions;
     return ReactActual.createElement(ReactActual.Fragment, null, children);
   }
   StackMock.Screen = StackScreenMock;
@@ -64,39 +72,24 @@ beforeEach(() => {
 });
 
 describe('tab stack layouts', () => {
-  // Each tab owns its own stack now, so hideForTopNav lives in three places
-  // instead of one. TopNav covers the three tab roots on >=lg web; every
-  // deeper screen keeps its header at any width.
-  it('hides only the TopNav-covered tab roots, and only at lg', async () => {
-    await render(
-      <>
-        <ProductsTabLayout />
-        <CamerasTabLayout />
-        <AccountTabLayout />
-      </>,
-    );
+  // DESIGN.md: at lg the persistent TopNav appears and the stack header hides,
+  // never both. The switch lives on each stack's screenOptions so no deeper
+  // screen (detail, capture, camera add) can draw a second header under TopNav;
+  // those screens render PageHeaderRow in-page instead.
+  it.each([ProductsTabLayout, CamerasTabLayout, AccountTabLayout])(
+    'hides every stack header at lg and none below it (%p)',
+    async (Layout) => {
+      await render(<Layout />);
+      expect(mockStackOptions?.headerShown).toBe(true);
+      for (const options of Object.values(mockScreenOptions)) {
+        expect(options?.headerShown).toBeUndefined();
+      }
 
-    expect(mockScreenOptions['products/index']?.headerShown).toBe(true);
-    expect(mockScreenOptions['cameras/index']?.headerShown).toBe(true);
-    expect(mockScreenOptions['account/index']?.headerShown).toBe(true);
-    expect(mockScreenOptions['cameras/add']?.headerShown).toBeUndefined();
-    expect(mockScreenOptions['cameras/[id]']?.headerShown).toBeUndefined();
-    expect(mockScreenOptions['products/new']?.headerShown).toBeUndefined();
-
-    mockUseBreakpoint.mockReturnValue({ isLg: true });
-    await render(
-      <>
-        <ProductsTabLayout />
-        <CamerasTabLayout />
-        <AccountTabLayout />
-      </>,
-    );
-
-    expect(mockScreenOptions['products/index']?.headerShown).toBe(false);
-    expect(mockScreenOptions['cameras/index']?.headerShown).toBe(false);
-    expect(mockScreenOptions['account/index']?.headerShown).toBe(false);
-    expect(mockScreenOptions['cameras/add']?.headerShown).toBeUndefined();
-  });
+      mockUseBreakpoint.mockReturnValue({ isLg: true });
+      await render(<Layout />);
+      expect(mockStackOptions?.headerShown).toBe(false);
+    },
+  );
 
   // The products tab owns the /components tree too, so a component's creation
   // screen has to be declared here rather than on the root stack.

@@ -10,14 +10,13 @@ export default function AccountTabLayout() {
   // Cross-tab target: replace() would reset every tab's trail.
   const goToProducts = useCallback(() => router.navigate('/products'), [router]);
   return (
-    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' }, headerShown: !isLg }}>
       {/* TopNav covers this screen on >=lg web. */}
       <Stack.Screen
         name="account/index"
         options={{
           title: 'Account',
           headerLeft: (props) => <HeaderBackButton {...props} onPress={goToProducts} />,
-          headerShown: !isLg,
         }}
       />
     </Stack>
