@@ -222,19 +222,14 @@ onto the `just` recipes and refuses anything else, so the key cannot open a shel
 command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... devbox-deploy
 ```
 
-The environment is the host's own root `.env`; it is never an argument. `git pull` needs a
-read-only GitHub deploy key in `/var/lib/relab/.ssh` with the remote switched to ssh. The personal
-key stays on the sudo account and never on the deploy user.
+The environment is the host's own root `.env`; it is never an argument. The repository is public,
+so `git pull` over https needs no credential; a private repository would need a read-only GitHub
+deploy key in `/var/lib/relab/.ssh` with the remote switched to ssh. The personal key stays on the
+sudo account and never on the deploy user.
 
 ______________________________________________________________________
 
 ## Part 2 — Routine release
-
-Hosts set up before 2026-09-07 need a one-time `.env` edit before the next release: add
-`ENVIRONMENT`, the four `*_PUBLIC_URL`s, and `FEATURED_PRODUCT_ID` (values were in the deleted
-`deploy/env/<env>.compose.env`), and drop `RESTIC_OFFSITE_REPOSITORY` (retired 2026-09-08; the
-offsite target is the one remote in `secrets/<env>/rclone.conf`). Until then every
-`just prod-*` recipe and the backup timers exit 2.
 
 Before you start: CI green on `main`, you know whether the release contains migrations
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
@@ -314,5 +309,6 @@ does not carry back the default privileges that let `relab_app` read tables futu
 create. (`prod-up` runs the same script on every start, so a volume that predates a change to it
 converges on the next release.)
 
-Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately, and
-prod's adoption state is its own decision.
+Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately
+(`infra/cloudflare/`, prod workspace adopted 2026-09-08); the tunnel's ingress rules live there,
+so a renamed Compose service needs a plan and apply, not a dashboard edit.
