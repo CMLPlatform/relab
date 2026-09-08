@@ -34,7 +34,17 @@ def register_middleware(app: FastAPI) -> None:
         allow_origin_regex=settings.cors_origin_regex,
         allow_credentials=True,
         allow_methods=list(CORS_HTTP_METHODS),
-        allow_headers=["Authorization", "Content-Type", "Accept", REQUEST_ID_HEADER, IDEMPOTENCY_KEY_HEADER],
+        # X-E2E-Key is the edge's staging bot-skip credential (infra/cloudflare-zone). Chromium
+        # sends Playwright's extra headers on cross-origin fetches, which turns every call into
+        # a preflight; without this entry the browser refuses them all. The API ignores it.
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            REQUEST_ID_HEADER,
+            IDEMPOTENCY_KEY_HEADER,
+            "X-E2E-Key",
+        ],
         expose_headers=[REQUEST_ID_HEADER],
     )
 
