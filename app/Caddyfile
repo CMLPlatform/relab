@@ -17,6 +17,8 @@
 	}
 
 	header {
+		# Caddy sets this itself; strip it to avoid advertising the server software
+		-Server
 		# Prevent MIME-type sniffing
 		X-Content-Type-Options "nosniff"
 		# Force HTTPS on subsequent visits
