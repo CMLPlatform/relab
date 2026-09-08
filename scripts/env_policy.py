@@ -101,9 +101,6 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     "POSTGRES_SUPERUSER",
     # May be empty: the www landing hero falls back to its committed fixture.
     "FEATURED_PRODUCT_ID",
-    # One value per host, so a host serves one environment; deploy_ops.sh refuses a
-    # recipe whose environment differs from the root .env's ENVIRONMENT.
-    "RESTIC_OFFSITE_REPOSITORY",
     # Upload ceilings and malware scanning, overridable per instance.
     "MAX_UPLOAD_FILES_PER_USER",
     "MAX_UPLOAD_BYTES_PER_USER_MB",
@@ -322,28 +319,17 @@ def assert_offsite_remote_is_configured(env: str | None = None) -> None:
     """Warn when no offsite copy will run, before the deploy rather than at 02:30.
 
     The backup derives its offsite repository from the single remote in
-    ``secrets/<env>/rclone.conf``; ``RESTIC_OFFSITE_REPOSITORY`` in the root .env
-    overrides it. Warn rather than fail: local-only backups are a legitimate configuration.
+    ``secrets/<env>/rclone.conf``. Warn rather than fail: local-only backups are a
+    legitimate configuration.
     """
-    env_file = ROOT / ".env"
-    override = (
-        env_assignments(env_file).get("RESTIC_OFFSITE_REPOSITORY", "").strip().strip("\"'") if env_file.exists() else ""
-    )
     for label in deploy_labels(env):
         config = ROOT / "secrets" / label / "rclone.conf"
         remotes = _rclone_remotes(config) if config.exists() else []
-        if override.startswith("rclone:"):
-            remote = override.removeprefix("rclone:").partition(":")[0]
-            if remote not in remotes:
-                sys.stdout.write(
-                    f"{label}: RESTIC_OFFSITE_REPOSITORY names rclone remote '{remote}' but "
-                    f"secrets/{label}/rclone.conf does not define it — backups will be LOCAL ONLY\n"
-                )
-        elif not override and len(remotes) != 1:
+        if len(remotes) != 1:
             reason = f"defines {len(remotes)} remotes" if remotes else "defines no remote"
             sys.stdout.write(
-                f"{label}: secrets/{label}/rclone.conf {reason}; set RESTIC_OFFSITE_REPOSITORY "
-                "or write exactly one remote — backups will be LOCAL ONLY\n"
+                f"{label}: secrets/{label}/rclone.conf {reason}; write exactly one remote "
+                "— backups will be LOCAL ONLY\n"
             )
 
 

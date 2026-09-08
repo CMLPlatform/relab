@@ -358,9 +358,6 @@ SQL
 
 backup_offsite_copy() {
     local env="${1:-staging}"
-    local offsite_repo="${RESTIC_OFFSITE_REPOSITORY:-}"
-    [[ -z "$offsite_repo" ]] && offsite_repo="$(read_dotenv_var RESTIC_OFFSITE_REPOSITORY)"
-
     resolve_backup_paths "$env"
 
     local rclone_config="$ROOT_DIR/secrets/$env/rclone.conf"
@@ -372,8 +369,8 @@ backup_offsite_copy() {
     # shellcheck disable=SC2064  # eager expansion is intentional here (see above)
     trap "rm -rf '$tmp_root'" EXIT
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
-    if [[ ! -f "$rclone_config" && (-z "$offsite_repo" || "$offsite_repo" == rclone:*) ]]; then
-        echo "no offsite target: write $rclone_config (one remote) or set RESTIC_OFFSITE_REPOSITORY"
+    if [[ ! -f "$rclone_config" ]]; then
+        echo "no offsite target: write $rclone_config with exactly one remote"
         exit 1
     fi
 
@@ -383,20 +380,17 @@ backup_offsite_copy() {
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic"
         -v "$tmp_root/restic_password:/run/secrets/restic_password:ro"
         -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password
-        -e RESTIC_OFFSITE_REPOSITORY="$offsite_repo"
         -e SKIP_DATABASE_BACKUP=true
         -e SKIP_UPLOAD_BACKUP=true
     )
 
-    # The container derives the repository from the config's one remote when the
-    # variable is empty (backup_relab_restic.sh derive_offsite_repository).
-    if [[ -f "$rclone_config" ]]; then
-        install -m 0444 "$rclone_config" "$tmp_root/rclone.conf"
-        docker_args+=(
-            -v "$tmp_root/rclone.conf:/run/secrets/rclone.conf:ro"
-            -e RCLONE_CONFIG=/run/secrets/rclone.conf
-        )
-    fi
+    # The container derives the repository from the config's one remote
+    # (backup_relab_restic.sh derive_offsite_repository).
+    install -m 0444 "$rclone_config" "$tmp_root/rclone.conf"
+    docker_args+=(
+        -v "$tmp_root/rclone.conf:/run/secrets/rclone.conf:ro"
+        -e RCLONE_CONFIG=/run/secrets/rclone.conf
+    )
 
     docker run "${docker_args[@]}" "$DEPLOY_BACKUP_IMAGE"
 }

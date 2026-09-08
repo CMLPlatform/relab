@@ -166,9 +166,7 @@ prune_repo() {
 
 # The offsite repository is the one remote in RCLONE_CONFIG, with an empty path: a
 # share link's WebDAV root is the shared folder, and a path appended to it would create
-# a second, empty repository nested inside the real one. RESTIC_OFFSITE_REPOSITORY,
-# when set, overrides this (a non-rclone target, or a config with several remotes).
-# Prints nothing when the config is absent, has no remote (the placeholder), or more
+# a second, empty repository nested inside the real one. Prints nothing when the config is absent, has no remote (the placeholder), or more
 # than one.
 derive_offsite_repository() {
     [[ -n "${RCLONE_CONFIG:-}" && -f "${RCLONE_CONFIG}" ]] || return 0
@@ -219,7 +217,7 @@ copy_to_offsite() {
 
     if [[ -z "${RESTIC_OFFSITE_REPOSITORY:-}" ]]; then
         if [[ -n "${RCLONE_CONFIG:-}" && -f "${RCLONE_CONFIG}" ]]; then
-            log "WARNING: offsite copy SKIPPED — ${RCLONE_CONFIG} does not define exactly one remote and RESTIC_OFFSITE_REPOSITORY is unset. Backups are LOCAL ONLY. See deploy/DEPLOY-PROD.md Part 1.3."
+            log "WARNING: offsite copy SKIPPED — ${RCLONE_CONFIG} does not define exactly one remote. Backups are LOCAL ONLY. See deploy/DEPLOY-PROD.md Part 1.3."
         fi
         return 0
     fi

@@ -278,9 +278,6 @@ backend.
    just backup-offsite-copy staging
    ```
 
-To send snapshots somewhere else (a non-rclone target, or one remote out of several), set
-`RESTIC_OFFSITE_REPOSITORY` in the root `.env`; it overrides the derived value.
-
 ### Optional: central telemetry
 
 Prod and staging can ship to a central monitoring stack (Grafana + Loki + Tempo + Prometheus):

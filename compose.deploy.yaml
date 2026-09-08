@@ -260,12 +260,11 @@ services:
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
       RESTIC_KEEP_MONTHLY: "12"
-      # Offsite copy, run at the end of the DAILY maintenance cycle when set (the
-      # hourly snapshot runs skip it). Unset means the only copy of the backups lives
-      # on the same host disk as the data.
-      # Empty means "the one remote in rclone.conf" (derive_offsite_repository);
-      # the offsite repo reuses restic_password.
-      RESTIC_OFFSITE_REPOSITORY: ${RESTIC_OFFSITE_REPOSITORY:-}
+      # Offsite copy, run at the end of the DAILY maintenance cycle (the hourly
+      # snapshot runs skip it), to the one remote in rclone.conf
+      # (derive_offsite_repository); the offsite repo reuses restic_password. A
+      # placeholder config means the only copy of the backups lives on the same
+      # host disk as the data.
       RCLONE_CONFIG: /run/secrets/rclone.conf
     secrets:
       - database_backup_password

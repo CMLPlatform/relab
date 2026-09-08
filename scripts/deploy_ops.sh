@@ -52,7 +52,6 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     EMAIL_REPLY_TO
     BOOTSTRAP_SUPERUSER_EMAIL
     MALWARE_SCAN_ENABLED
-    RESTIC_OFFSITE_REPOSITORY
     # The telemetry trio. An endpoint rename was once undone by a shell that had
     # sourced the pre-rename .env: compose preferred the exported value, so down/up
     # recreated the agent pointing at the dead hostname. These are

@@ -249,20 +249,3 @@ def test_offsite_repository_is_derived_from_the_one_rclone_remote(
     conf.write_text("[a]\ntype = webdav\n[b]\ntype = webdav\n", encoding="utf-8")
     env_policy.assert_offsite_remote_is_configured("prod")
     assert "defines 2 remotes" in capsys.readouterr().out
-
-
-def test_offsite_override_must_name_a_defined_remote(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    monkeypatch.setattr(env_policy, "ROOT", tmp_path)
-    (tmp_path / ".env").write_text("ENVIRONMENT=prod\nRESTIC_OFFSITE_REPOSITORY=rclone:offsite:\n", encoding="utf-8")
-    conf = tmp_path / "secrets" / "prod" / "rclone.conf"
-    conf.parent.mkdir(parents=True)
-    conf.write_text("[elsewhere]\ntype = webdav\n", encoding="utf-8")
-
-    env_policy.assert_offsite_remote_is_configured(None)
-    assert "names rclone remote 'offsite' but secrets/prod/rclone.conf does not define it" in capsys.readouterr().out
-
-    conf.write_text("[offsite]\ntype = webdav\n[elsewhere]\ntype = webdav\n", encoding="utf-8")
-    env_policy.assert_offsite_remote_is_configured("prod")
-    assert capsys.readouterr().out == ""

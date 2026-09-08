@@ -54,7 +54,5 @@ demand:
 just backup-offsite-copy staging
 ```
 
-`RESTIC_OFFSITE_REPOSITORY` in the root `.env` overrides the derived target.
-
 Do not mirror the raw repository directory with rsync or rclone. Use `restic copy`; rclone is only
 restic's transport.

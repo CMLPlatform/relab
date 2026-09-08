@@ -103,9 +103,9 @@ Two details fail differently:
 - `user` is the token alone. The full share URL gives a 401.
 
 The backup copies to `rclone:surfdrive_prod:`, the file's one remote with an empty path, because a
-share link's WebDAV root *is* the shared folder. Leave `RESTIC_OFFSITE_REPOSITORY` empty in the root
-`.env`; a path appended to a share link would create a second, empty repository nested inside the
-real one.
+share link's WebDAV root *is* the shared folder, and a path appended to it would create a second,
+empty repository nested inside the real one. There is no override: the conf's one remote is the
+offsite target.
 
 ```bash
 just deploy-secrets-check   # reports if the remote is still undefined
@@ -189,7 +189,8 @@ ______________________________________________________________________
 
 Hosts set up before 2026-09-07 need a one-time `.env` edit before the next release: add
 `ENVIRONMENT`, the four `*_PUBLIC_URL`s, and `FEATURED_PRODUCT_ID` (values were in the deleted
-`deploy/env/<env>.compose.env`), and drop `RESTIC_OFFSITE_REPOSITORY`. Until then every
+`deploy/env/<env>.compose.env`), and drop `RESTIC_OFFSITE_REPOSITORY` (retired 2026-09-08; the
+offsite target is the one remote in `secrets/<env>/rclone.conf`). Until then every
 `just prod-*` recipe and the backup timers exit 2.
 
 Before you start: CI green on `main`, you know whether the release contains migrations
