@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.3.1 - 2026-09
+
+### Description
+
+A maintenance release. It carries the toolchain forward, closes one interface bug that
+crashed on device, repairs two production provisioning faults, and puts the workflow
+files under static analysis.
+
+### Fixes
+
+- A button with an interpolated label, such as the cameras "Select all (2)" control, no
+  longer crashes, and the label renders as one `Text` node instead of three gapped ones
+- Provisioning hands only tables and sequences to the migrator role, so migrations that
+  drop an enum type no longer fail mid-chain
+- Stored files report their size, so the upload-size backfill fills the byte ledger
+  instead of logging an error per row
+- The lab-tier upload limits pass through the deploy stack, so they are tunable from the
+  host `.env` as documented
+
+### Security
+
+- Monaco's transitive DOMPurify moved to a patched release
+- CodeQL analyses the GitHub Actions workflows alongside the Python and TypeScript code
+- Dropped two dependency advisory waivers that no longer match anything in the tree
+- Vulnerability alerts still open pull requests for the Expo-managed packages that
+  Renovate otherwise leaves alone
+
+### Maintenance
+
+- Jest 30, pnpm 12, AsyncStorage 3, and React Native Testing Library 14
+- Refreshed container images, the Cloudflare Terraform provider, and the lockfiles
+- Held Babel and TypeScript at the majors their toolchains still support
+- Declared the licence in package metadata and added CODEOWNERS
+- Corrected the production cutover runbook against the live host
+
 ## v0.3.0 - 2026-09
 
 ### Description
