@@ -28,8 +28,10 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-import app.api.file_storage.models.storage_types
-import app.core.crypto.sqlalchemy
+# NOTE: `file.file` / `image.file` are FileType/ImageType and the token columns are
+# EncryptedString in the ORM, but those are TypeDecorators over Unicode/String and
+# render as plain VARCHAR. Spelled out here rather than imported: importing app code
+# loads Settings, which needs ENVIRONMENT and secrets the migrator does not always have.
 
 revision: str = "a9c2e4f60b18"
 down_revision: str | None = None
@@ -69,7 +71,7 @@ def upgrade() -> None:  # noqa: PLR0915
         sa.Column("description", sa.String(length=500), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("filename", sa.String(), nullable=False),
-        sa.Column("file", app.api.file_storage.models.storage_types.FileType(), nullable=False),
+        sa.Column("file", sa.Unicode(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="fileparenttype", create_type=False),
@@ -89,7 +91,7 @@ def upgrade() -> None:  # noqa: PLR0915
         sa.Column("image_metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("filename", sa.String(), nullable=False),
-        sa.Column("file", app.api.file_storage.models.storage_types.ImageType(), nullable=False),
+        sa.Column("file", sa.Unicode(), nullable=False),
         sa.Column(
             "parent_type",
             postgresql.ENUM("PRODUCT", "PRODUCT_TYPE", "MATERIAL", name="imageparenttype", create_type=False),
@@ -237,7 +239,7 @@ def upgrade() -> None:  # noqa: PLR0915
         sa.Column("email_canonical", sa.String(), nullable=False),
         sa.Column("upload_file_count", sa.Integer(), server_default="0", nullable=False),
         sa.Column("upload_total_bytes", sa.BigInteger(), server_default="0", nullable=False),
-        sa.Column("mfa_totp_secret", app.core.crypto.sqlalchemy.EncryptedString(), nullable=True),
+        sa.Column("mfa_totp_secret", sa.String(), nullable=True),
         sa.Column("mfa_enabled", sa.Boolean(), nullable=False),
         sa.Column("mfa_confirmed_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("mfa_recovery_codes", postgresql.JSONB(astext_type=sa.Text()), server_default="[]", nullable=False),
@@ -343,9 +345,9 @@ def upgrade() -> None:  # noqa: PLR0915
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("oauth_name", sa.String(), nullable=False),
-        sa.Column("access_token", app.core.crypto.sqlalchemy.EncryptedString(), nullable=False),
+        sa.Column("access_token", sa.String(), nullable=False),
         sa.Column("expires_at", sa.Integer(), nullable=True),
-        sa.Column("refresh_token", app.core.crypto.sqlalchemy.EncryptedString(), nullable=True),
+        sa.Column("refresh_token", sa.String(), nullable=True),
         sa.Column("account_id", sa.String(), nullable=False),
         sa.Column("account_email", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(["user_id"], ["user.id"], ondelete="CASCADE"),
@@ -506,7 +508,7 @@ def upgrade() -> None:  # noqa: PLR0915
     op.create_table(
         "recording_session",
         sa.Column("camera_id", sa.Uuid(), nullable=False),
-        sa.Column("broadcast_key", app.core.crypto.sqlalchemy.EncryptedString(), nullable=False),
+        sa.Column("broadcast_key", sa.String(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=True),
         sa.Column("video_id", sa.Integer(), nullable=False),

@@ -1,5 +1,7 @@
 """Tests for the rollback data-loss classifier."""
 
+from pathlib import Path
+
 import pytest
 
 from scripts.maintenance.downgrade_safety import destructive_upgrade_calls, main
@@ -90,3 +92,18 @@ def test_real_history_to_base_is_reversible(capsys: pytest.CaptureFixture[str]) 
     # Also proves the script reads the real alembic directory.
     assert main(["base"]) == 0
     assert "reverts 1 revision(s) with no data loss" in capsys.readouterr().out
+
+
+def test_revision_files_import_without_app_settings() -> None:
+    """`alembic heads` (used by backup smoke and restore-check) imports every revision file.
+
+    A revision that imports app code pulls in Settings, which needs ENVIRONMENT and
+    secrets the migrator image does not always have.
+    """
+    versions = Path(__file__).resolve().parents[4] / "alembic" / "versions"
+    offenders = [
+        path.name
+        for path in versions.glob("*.py")
+        if any(line.startswith(("import app", "from app")) for line in path.read_text(encoding="utf-8").splitlines())
+    ]
+    assert not offenders, offenders
