@@ -44,3 +44,22 @@ variable "telemetry_edge_key" {
   sensitive   = true
   default     = ""
 }
+
+variable "e2e_edge_key" {
+  description = <<-EOT
+    Value of the `X-E2E-Key` header that identifies the Playwright end-to-end runs
+    against the staging hosts, used to skip Super Bot Fight Mode for them. Export as
+    TF_VAR_e2e_edge_key; it must never be written into the repo. Empty (the default)
+    omits the rule entirely, which keeps `just cloudflare-check` runnable without secrets.
+
+    Cloudflare stores ruleset expressions in cleartext and returns them from the rulesets
+    API and the dashboard, so this key is readable by any zone-read grant. It is a
+    dedicated value with no other use: it buys nothing but the bot-product skip, on the
+    staging hosts only, and rotates independently of every other credential. The skip
+    covers Super Bot Fight Mode only, never the managed WAF, so the E2E run still
+    exercises the WAF behaviour prod gets.
+  EOT
+  type        = string
+  sensitive   = true
+  default     = ""
+}

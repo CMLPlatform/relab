@@ -61,6 +61,29 @@ key therefore proposes **deleting** the live rule, so export it whenever you pla
 root. Rotate it together with the deploy hosts' `OTLP_AUTH_TOKEN`, the same token in the
 header form `Bearer <token>`.
 
+### The end-to-end credential
+
+Cloudflare's Super Bot Fight Mode challenges every headless-browser XHR, so Playwright
+cannot run against the staging hosts at all. A second shared secret, supplied the same way,
+buys those runs a skip:
+
+```bash
+export TF_VAR_e2e_edge_key='...'  # same value as E2E_EDGE_KEY in the CI/e2e environment
+```
+
+It is matched against a dedicated `X-E2E-Key` header, sent by the Playwright configs in
+`www/`, `app/` and `docs/`. As with the telemetry key, Cloudflare returns expressions in
+cleartext, so the value must be dedicated: it buys nothing but the skip. The rule matches
+**staging hosts only** and skips **Super Bot Fight Mode only**, never the managed WAF, so
+an E2E run still exercises the WAF behaviour prod gets. Leaving the key unset omits the
+rule, so export it whenever you plan this root.
+
+The www build's fetch of `/v1/products/{id}` and its component tree is a non-browser client
+that gets challenged the same way, which makes the landing page ship its fixture. That is
+covered by `relab_product_reads_skip_bot_fight_mode` instead, an unconditional rule on both
+api hosts for GETs under `/v1/products/` — public read-only data, the same reasoning as the
+stats rule. No build argument carries a key, which would leak into image history.
+
 ## What this zone's Cloudflare plan allows
 
 Both limits below fail at *apply* time, partway through, after other resources have already

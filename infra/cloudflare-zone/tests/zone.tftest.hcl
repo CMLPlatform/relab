@@ -120,6 +120,85 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
   }
 }
 
+run "e2e_rule_is_omitted_without_its_credential" {
+  command = plan
+
+  # Without the key the rule must disappear, not skip bot protection for anyone who finds
+  # a staging hostname.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref != "relab_staging_e2e_skip_bot_fight_mode"
+    ])
+    error_message = "the e2e skip rule must not exist when no credential is configured."
+  }
+}
+
+run "e2e_rule_is_scoped_to_staging_and_its_credential" {
+  command = plan
+
+  variables {
+    e2e_edge_key = "test-e2e-key"
+  }
+
+  assert {
+    condition = anytrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref == "relab_staging_e2e_skip_bot_fight_mode" &&
+      strcontains(rule.expression, "api-test.cml-relab.org") &&
+      strcontains(rule.expression, "x-e2e-key")
+    ])
+    error_message = "the e2e skip rule must match the staging hosts AND the credential header."
+  }
+
+  # A skip that reached prod would be a bot-protection bypass on the live site.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref != "relab_staging_e2e_skip_bot_fight_mode" ||
+      !strcontains(rule.expression, "\"api.cml-relab.org\"")
+    ])
+    error_message = "the e2e skip rule must not match any prod host."
+  }
+
+  # The managed WAF must still see the E2E traffic; only the bot products are skipped.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref != "relab_staging_e2e_skip_bot_fight_mode" ||
+      rule.action_parameters.phases == tolist(["http_request_sbfm"])
+    ])
+    error_message = "the e2e skip rule must skip Super Bot Fight Mode only, never the managed WAF."
+  }
+}
+
+run "product_reads_skip_bot_fight_mode" {
+  command = plan
+
+  # The www build fetches these at build time as a non-browser client; a challenge there
+  # ships the landing page's fixture instead of real data.
+  assert {
+    condition = anytrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref == "relab_product_reads_skip_bot_fight_mode" &&
+      strcontains(rule.expression, "api.cml-relab.org") &&
+      strcontains(rule.expression, "/v1/products/") &&
+      strcontains(rule.expression, "http.request.method eq \"GET\"")
+    ])
+    error_message = "public product reads must skip Super Bot Fight Mode on both api hosts, for GET only."
+  }
+
+  # Writes must stay behind the bot products.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref != "relab_product_reads_skip_bot_fight_mode" ||
+      rule.action_parameters.phases == tolist(["http_request_sbfm"])
+    ])
+    error_message = "the product read rule must skip Super Bot Fight Mode only."
+  }
+}
+
 run "entrypoint_rulesets_keep_the_default_name" {
   command = plan
 

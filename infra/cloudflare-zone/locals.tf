@@ -92,10 +92,35 @@ locals {
     },
   ]
 
+  # Playwright drives a headless browser, whose XHRs Super Bot Fight Mode challenges, so
+  # E2E cannot run against staging at all. The rule is absent when var.e2e_edge_key is
+  # empty, so the skip never applies without a credential, and it is scoped to the staging
+  # hosts: prod is never reachable through it.
+  #
+  # Only the http_request_sbfm phase, never the managed WAF: an E2E run should see the
+  # same WAF behaviour prod does. jsonencode keeps a key containing `"` or `\` from
+  # producing a malformed expression.
+  e2e_staging_rules = var.e2e_edge_key == "" ? [] : [
+    {
+      ref         = "relab_staging_e2e_skip_bot_fight_mode"
+      description = "Skip Super Bot Fight Mode for keyed end-to-end runs against staging"
+      expression = join(" and ", [
+        local.staging_hosts_expression,
+        "any(http.request.headers[\"x-e2e-key\"][*] eq ${jsonencode(var.e2e_edge_key)})",
+      ])
+      action = "skip"
+      action_parameters = {
+        phases = [
+          "http_request_sbfm",
+        ]
+      }
+    },
+  ]
+
   # Two rules that exist in the live zone are not ported here:
   # "allow-traffic-from-api" (no rpi-cam-* hostname is served and nothing sends its bypass
   # header) and "Cache default file extensions" (Cloudflare caches those by default).
-  custom_firewall_rules = concat(local.telemetry_ingress_rules, [
+  custom_firewall_rules = concat(local.telemetry_ingress_rules, local.e2e_staging_rules, [
     {
       # RPi cameras are non-browser IoT clients that cannot solve a JS or CAPTCHA
       # challenge, so Super Bot Fight Mode and some managed WAF rules block them. These
@@ -134,6 +159,27 @@ locals {
         local.api_hosts_expression,
         "http.request.method eq \"GET\"",
         "starts_with(http.request.uri.path, \"/v1/stats/\")",
+      ])
+      action = "skip"
+      action_parameters = {
+        phases = [
+          "http_request_sbfm",
+        ]
+      }
+    },
+    {
+      # Same reasoning as the stats rule: public read-only data. The www build fetches a
+      # product and its component tree at build time, which is a non-browser client that
+      # Super Bot Fight Mode challenges, and a challenged fetch ships the fixture instead
+      # of the real landing page. This zone's plan has no `matches` operator, so the
+      # prefix stands in for `^/v1/products/[0-9]+(/components/tree)?$`; every path under
+      # it is an unauthenticated GET read.
+      ref         = "relab_product_reads_skip_bot_fight_mode"
+      description = "Skip Super Bot Fight Mode for public read-only product endpoints"
+      expression = join(" and ", [
+        local.api_hosts_expression,
+        "http.request.method eq \"GET\"",
+        "starts_with(http.request.uri.path, \"/v1/products/\")",
       ])
       action = "skip"
       action_parameters = {
