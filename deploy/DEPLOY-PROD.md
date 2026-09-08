@@ -284,7 +284,12 @@ just prod-rollback YES <sha> <alembic-revision> # also downgrade the schema to t
 With a revision, the recipe first checks that no migration in the range dropped or rewrote data
 (`scripts.maintenance.downgrade_safety`); a downgrade would re-create such objects empty, so it
 refuses and points at the backup instead. Then it stops the API, runs `alembic downgrade`, retags,
-and starts the stack. Find the revision with `cd backend && uv run alembic history`. A migration whose destructive
+and starts the stack. Find the revision with `cd backend && uv run alembic history`.
+
+History was flattened at `a9c2e4f60b18` on 2026-09-08; revisions older than that no
+longer resolve, so a schema rollback can only target that id or a newer one.
+
+A migration whose destructive
 statement is harmless declares `ROLLBACK_SAFE = True`; without it the check fails closed, including
 on dynamic SQL it cannot read.
 

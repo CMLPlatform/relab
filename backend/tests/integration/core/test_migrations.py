@@ -215,56 +215,66 @@ def test_partial_index_predicates_match_the_models(migration_helper: MigrationHe
 
 
 @pytest.mark.migration
-def test_circularity_migration_preserves_comments_and_references(
-    relab_alembic_config: Config, migration_helper: MigrationHelper
-) -> None:
-    """The circularity JSONB migration must not silently discard researcher notes.
-
-    The retired ``*_comment`` and ``*_reference`` columns held hand-entered field
-    notes and literature references. They have no home in the three-key JSONB
-    model, so the migration folds them into the note they annotated. Seeding real
-    rows is what makes this observable: the rest of the migration suite runs
-    against an empty database, where no data-dependent step does anything.
-    """
-    circularity_revision = "c7d8e9f0a1b2"
-    command.downgrade(relab_alembic_config, f"{circularity_revision}-1")
-
-    migration_helper.execute_sql("""
-        INSERT INTO "user" (id, email, hashed_password, is_active, is_superuser, is_verified, username)
-        VALUES (gen_random_uuid(), 'circularity-fixture@example.com', 'x', true, false, true, 'circfixture')
-        RETURNING id
-    """)
-    migration_helper.execute_sql("""
-        INSERT INTO product (
-            owner_id, name, weight_g, dismantling_time_start, dismantling_time_end,
-            recyclability_observation, recyclability_comment, recyclability_reference,
-            repairability_observation, repairability_comment, repairability_reference,
-            remanufacturability_observation, remanufacturability_comment, remanufacturability_reference
-        ) VALUES (
-            (SELECT id FROM "user" WHERE username = 'circfixture'),
-            'Circularity fixture', 100, now(), now(),
-            'mostly recyclable', 'casing is ABS', 'ISO 1234',
-            'hard to open', 'glued seams', 'iFixit 42',
-            '', 'no observation recorded', ''
+def test_high_churn_tables_declare_autovacuum_reloptions(migration_helper: MigrationHelper) -> None:
+    """The models own the reloptions the database has, so a flatten cannot lose them."""
+    load_models()
+    rows = dict(
+        migration_helper.execute_sql(
+            "SELECT relname, reloptions::text FROM pg_class WHERE relname IN ('product', 'image', 'file')"
         )
-        RETURNING id
-    """)
+    )
+    for table in ("product", "image", "file"):
+        declared = Base.metadata.tables[table].dialect_options["postgresql"]["with"]
+        assert declared, f"{table} declares no reloptions"
+        for key, value in declared.items():
+            assert f"{key}={value}" in (rows[table] or ""), (table, key, rows[table])
 
-    command.upgrade(relab_alembic_config, "head")
 
-    try:
-        props = migration_helper.execute_sql("""
-            SELECT circularity_properties FROM product WHERE name = 'Circularity fixture'
-        """)[0][0]
+@pytest.mark.migration
+def test_text_length_and_extension_placement(migration_helper: MigrationHelper) -> None:
+    """Revision 4a672549f270 moved pg_trgm, renamed the legacy constraint, and bounded two columns."""
+    schemas = dict(
+        migration_helper.execute_sql(
+            "SELECT e.extname, n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace"
+        )
+    )
+    assert schemas["pg_trgm"] == "extensions"
 
-        assert "casing is ABS" in props["recyclability"], props
-        assert "ISO 1234" in props["recyclability"], props
-        assert "glued seams" in props["disassemblability"], props
-        assert "iFixit 42" in props["disassemblability"], props
-        # A comment with no observation would previously have vanished entirely.
-        assert "no observation recorded" in props["remanufacturability"], props
-    finally:
-        # Raw SQL here commits, unlike the session-scoped tests, so the rows would
-        # otherwise outlive this test and surface in any list endpoint run after it.
-        migration_helper.execute_sql("DELETE FROM product WHERE name = 'Circularity fixture'")
-        migration_helper.execute_sql("""DELETE FROM "user" WHERE username = 'circfixture'""")
+    constraints = {
+        name
+        for (name,) in migration_helper.execute_sql(
+            "SELECT conname FROM pg_constraint WHERE conrelid = 'user'::regclass"
+        )
+    }
+    assert "user_profile_stats_not_null" in constraints
+    assert "user_stats_cache_not_null" not in constraints
+
+    lengths = dict(
+        migration_helper.execute_sql(
+            "SELECT table_name || '.' || column_name, character_maximum_length "
+            "FROM information_schema.columns "
+            "WHERE (table_name, column_name) IN (('video', 'title'), ('user', 'username'))"
+        )
+    )
+    assert lengths["video.title"] == 200
+    assert lengths["user.username"] == 50
+
+
+@pytest.mark.migration
+def test_trigram_indexes_are_search_only_and_schema_qualified(migration_helper: MigrationHelper) -> None:
+    """The seven search trigram indexes moved schema; the four admin-list ones are gone."""
+    definitions = dict(
+        migration_helper.execute_sql("SELECT indexname, indexdef FROM pg_indexes WHERE indexname LIKE '%_trgm_idx'")
+    )
+    expected = {
+        "category_name_trgm_idx",
+        "material_name_trgm_idx",
+        "producttype_name_trgm_idx",
+        "producttype_description_trgm_idx",
+        "product_name_trgm_idx",
+        "product_brand_trgm_idx",
+        "product_model_trgm_idx",
+    }
+    assert set(definitions) == expected
+    for name, definition in definitions.items():
+        assert "extensions.gin_trgm_ops" in definition, (name, definition)

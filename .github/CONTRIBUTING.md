@@ -425,6 +425,11 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 For code style, test commands, migration workflow, and email templates, see
 [backend/README.md](../backend/README.md).
 
+The chain was flattened once, on 2026-09-08, into the single revision `a9c2e4f60b18`.
+Write new revisions on top of it as usual. A future flatten repeats the recipe in
+`docs/superpowers/specs/2026-09-08-alembic-flatten-design.md`: keep the head id, prove the
+schema with a `pg_dump --schema-only` diff, drop data migrations.
+
 ## Frontend Development
 
 ### Frontend Code Style

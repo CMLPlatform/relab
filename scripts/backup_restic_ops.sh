@@ -150,16 +150,21 @@ replay_dump() {
     "${psql[@]}" -c 'CREATE SCHEMA IF NOT EXISTS extensions; CREATE EXTENSION IF NOT EXISTS unaccent SCHEMA extensions;'
     "${psql[@]}" -c 'DROP SCHEMA IF EXISTS public CASCADE;'
     # NOTE: --schema=public dumps omit CREATE EXTENSION, so the target is missing
-    # pg_trgm when trigram GIN indexes (gin_trgm_ops) are rebuilt. Real clusters get
-    # it from the alembic migrations (f3a8c2d1e5b7, a1b2c3d4e5f6) that own trigram
-    # search, not from initdb; mirror that list here and keep it in sync if a
-    # migration ever adds another extension. The index definitions schema-qualify
-    # the opclass as "public.gin_trgm_ops", so the extension has to exist in "public"
-    # specifically — restore pre-data (which recreates the "public" schema) first,
-    # create the extension, then restore the rest so the later post-data section can
-    # build the trigram indexes.
+    # pg_trgm when trigram GIN indexes are rebuilt. Real clusters get it from the
+    # alembic migrations that own trigram search, not from initdb. The index
+    # definitions schema-qualify the opclass, and which schema they name depends on
+    # the snapshot's age: revision 4a672549f270 moved pg_trgm to "extensions", while
+    # older snapshots say "public.gin_trgm_ops" and disaster recovery from those has
+    # to keep working. So read the schema out of the archive and create the extension
+    # there. It goes in after pre-data because pre-data recreates "public", which
+    # would take a pg_trgm installed there with it.
+    local trgm_schema=public
+    if docker exec "$container" pg_restore --section=post-data -f - "$dump" \
+        | grep -q 'extensions\.gin_trgm_ops'; then
+        trgm_schema=extensions
+    fi
     "${pg_restore[@]}" --section=pre-data
-    "${psql[@]}" -c 'CREATE EXTENSION IF NOT EXISTS pg_trgm;'
+    "${psql[@]}" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm SCHEMA $trgm_schema;"
     "${pg_restore[@]}" --section=data
     "${pg_restore[@]}" --section=post-data
     # NOTE: pg_restore can exit 0 on an empty archive, and a schema-only check passes
@@ -337,6 +342,10 @@ docker_smoke_backups() {
     # Present is not the same as functional: exercise the unaccented trigram path and
     # assert the restore landed on the same revision the checkout migrates to.
     docker exec -i "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -f - <<'SQL'
+-- pg_trgm sits in "extensions" since revision 4a672549f270 and in "public" in older
+-- snapshots; a search_path covering both keeps "%" resolvable either way, the same
+-- way provision.sh sets it for the deployed roles.
+SET search_path = public, extensions;
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM category WHERE relab_unaccent(name) % relab_unaccent('cafe')) THEN

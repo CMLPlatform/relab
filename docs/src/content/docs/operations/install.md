@@ -20,6 +20,7 @@ use, or local development. For contributor workflow and tooling policy, see
 - Contributing code additionally requires [`uv`](https://docs.astral.sh/uv/), Node and pnpm at the
   versions pinned in `.node-version` and `package.json`. See step 2 below and
   [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md)
+- PostgreSQL 18 when using an external database; the bundled compose stack ships it.
 
 ## Local Docker setup
 
@@ -166,8 +167,8 @@ the topology these steps produce.
    Upload quotas: `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB` cap `contributor`
    accounts; the `*_LAB_USER*` pair caps `lab` accounts and must not be lower. The quota counts
    existing rows, so on a host with existing data raise the limits before the first start; an owner
-   already above the limit cannot upload at all (`just list-over-quota` in `backend/` lists them).
-   Every account starts as `contributor`; a superuser promotes lab members with
+   already above the limit cannot upload at all. Every account starts as `contributor`; a superuser
+   promotes lab members with
    `PUT /v1/admin/users/{user_id}/role` and body `{"role": "lab"}`.
 
 1. Create the runtime secret files.
@@ -222,8 +223,10 @@ the topology these steps produce.
 1. Upgrade later with the same commands: pull a known-good revision, `just prod-build`, then
    `just prod-up YES migrations`. A failed migration leaves the old API serving. To return to
    the previous release, `just prod-rollback YES <sha>` retags the images that build produced;
-   add the previous alembic revision to downgrade the schema too, which the recipe allows only
-   when no migration in between dropped or rewrote data. `just prod-down YES` stops the stack.
+   add the previous alembic revision to downgrade the schema too
+   (revisions before `a9c2e4f60b18` were flattened away and cannot be targeted), which the recipe
+   allows only when no migration in between dropped or rewrote data. `just prod-down YES` stops
+   the stack.
 
 ### First backup
 

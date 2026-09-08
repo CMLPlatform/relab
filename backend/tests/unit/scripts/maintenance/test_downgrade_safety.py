@@ -1,5 +1,7 @@
 """Tests for the rollback data-loss classifier."""
 
+from pathlib import Path
+
 import pytest
 
 from scripts.maintenance.downgrade_safety import destructive_upgrade_calls, main
@@ -85,9 +87,23 @@ def test_unknown_target_revision_is_a_usage_error(capsys: pytest.CaptureFixture[
     assert "cannot resolve downgrade range" in capsys.readouterr().err
 
 
-def test_real_history_from_first_revision_is_blocked(capsys: pytest.CaptureFixture[str]) -> None:
-    """The committed history is not fully reversible."""
-    # The repository's own history drops columns, so a downgrade to its first revision
-    # must refuse; this also proves the script reads the real alembic directory.
-    assert main(["6f2b9e4a1c3d"]) == 1
-    assert "restore the pre-release backup" in capsys.readouterr().err
+def test_real_history_to_base_is_reversible(capsys: pytest.CaptureFixture[str]) -> None:
+    """Every revision in the flattened history is ROLLBACK_SAFE, so base is reachable."""
+    # Also proves the script reads the real alembic directory.
+    assert main(["base"]) == 0
+    assert "with no data loss" in capsys.readouterr().out
+
+
+def test_revision_files_import_without_app_settings() -> None:
+    """`alembic heads` (used by backup smoke and restore-check) imports every revision file.
+
+    A revision that imports app code pulls in Settings, which needs ENVIRONMENT and
+    secrets the migrator image does not always have.
+    """
+    versions = Path(__file__).resolve().parents[4] / "alembic" / "versions"
+    offenders = [
+        path.name
+        for path in versions.glob("*.py")
+        if any(line.startswith(("import app", "from app")) for line in path.read_text(encoding="utf-8").splitlines())
+    ]
+    assert not offenders, offenders

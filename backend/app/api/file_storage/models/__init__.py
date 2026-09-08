@@ -4,7 +4,7 @@ import uuid
 from enum import StrEnum
 from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -29,13 +29,14 @@ class File(TimeStampMixinBare, Base):
     __table_args__ = (
         CheckConstraint("upload_size_bytes >= 0", name="ck_file_upload_size_bytes_non_negative"),
         Index("ix_file_parent_type_parent_id", "parent_type", "parent_id"),
+        {"postgresql_with": {"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02}},
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     filename: Mapped[str] = mapped_column(doc="Original file name of the file.")
     file: Mapped[StorageFile] = mapped_column(FileType, nullable=False, doc="Local file path to the file")
     upload_size_bytes: Mapped[int] = mapped_column(default=0, server_default="0")
-    description: Mapped[str | None] = mapped_column(default=None)
+    description: Mapped[str | None] = mapped_column(String(500), default=None)
     parent_type: Mapped[MediaParentType] = mapped_column(SAEnum(MediaParentType, name="fileparenttype"), nullable=False)
     parent_id: Mapped[int] = mapped_column(nullable=False)
 
@@ -54,15 +55,9 @@ class Image(TimeStampMixinBare, Base):
         Index("ix_image_parent_type_parent_id_created_at", "parent_type", "parent_id", "created_at"),
         # Partial index for the stats series, which buckets product images by period.
         Index("ix_image_product_created_at", "created_at", postgresql_where=text("parent_type = 'PRODUCT'")),
-        Index(
-            "image_filename_trgm_idx", "filename", postgresql_using="gin", postgresql_ops={"filename": "gin_trgm_ops"}
-        ),
-        Index(
-            "image_description_trgm_idx",
-            "description",
-            postgresql_using="gin",
-            postgresql_ops={"description": "gin_trgm_ops"},
-        ),
+        # No trigram index on filename or description: the admin media list seq-scans
+        # them, which is cheaper than GIN upkeep on every upload. Revisit past ~100k rows.
+        {"postgresql_with": {"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02}},
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -73,7 +68,7 @@ class Image(TimeStampMixinBare, Base):
     # EXIF rotation, so they describe the file as stored.
     width_px: Mapped[int | None] = mapped_column(default=None, doc="Pixel width of the stored image.")
     height_px: Mapped[int | None] = mapped_column(default=None, doc="Pixel height of the stored image.")
-    description: Mapped[str | None] = mapped_column(default=None)
+    description: Mapped[str | None] = mapped_column(String(500), default=None)
     image_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
     parent_type: Mapped[MediaParentType] = mapped_column(
         SAEnum(MediaParentType, name="imageparenttype"), nullable=False
@@ -89,8 +84,8 @@ class Video(TimeStampMixinBare, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     url: Mapped[str] = mapped_column(nullable=False, doc="URL linking to the video")
-    title: Mapped[str | None] = mapped_column(default=None)
-    description: Mapped[str | None] = mapped_column(default=None)
+    title: Mapped[str | None] = mapped_column(String(200), default=None)
+    description: Mapped[str | None] = mapped_column(String(500), default=None)
     video_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
 
     product_id: Mapped[int] = mapped_column(ForeignKey("product.id"), nullable=False)

@@ -80,7 +80,7 @@ class Category(TimeStampMixinBare, Base):
             "category_name_trgm_idx",
             func.relab_unaccent(literal_column("name")).label("name_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"name_unaccent": "extensions.gin_trgm_ops"},
         ),
         # Subcategories load eagerly; taxonomy_id backs the per-taxonomy reads.
         Index("ix_category_supercategory_id", "supercategory_id"),
@@ -89,6 +89,8 @@ class Category(TimeStampMixinBare, Base):
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
+        # NOTE: 'public.relab' unaccents through relab_unaccent(), a string-bodied IMMUTABLE
+        # wrapper created by the migration; pg_dump restores it with check_function_bodies off.
         Computed(
             "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, ''))",
             persisted=True,
@@ -146,12 +148,14 @@ class Material(TimeStampMixinBare, Base):
             "material_name_trgm_idx",
             func.relab_unaccent(literal_column("name")).label("name_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"name_unaccent": "extensions.gin_trgm_ops"},
         ),
     )
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
+        # NOTE: 'public.relab' unaccents through relab_unaccent(), a string-bodied IMMUTABLE
+        # wrapper created by the migration; pg_dump restores it with check_function_bodies off.
         Computed(
             "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || "
             "coalesce(source, ''))",
@@ -203,18 +207,20 @@ class ProductType(TimeStampMixinBare, Base):
             "producttype_name_trgm_idx",
             func.relab_unaccent(literal_column("name")).label("name_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"name_unaccent": "extensions.gin_trgm_ops"},
         ),
         Index(
             "producttype_description_trgm_idx",
             func.relab_unaccent(literal_column("description")).label("description_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"description_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"description_unaccent": "extensions.gin_trgm_ops"},
         ),
     )
 
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR(),
+        # NOTE: 'public.relab' unaccents through relab_unaccent(), a string-bodied IMMUTABLE
+        # wrapper created by the migration; pg_dump restores it with check_function_bodies off.
         Computed(
             "to_tsvector('public.relab', coalesce(name, '') || ' ' || coalesce(description, ''))",
             persisted=True,

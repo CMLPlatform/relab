@@ -30,13 +30,13 @@ PARENT_TYPE_DESCRIPTION = f"Type of the parent object, e.g. {', '.join(parent.va
 class FileBase(BaseModel):
     """Shared base fields for file schemas."""
 
-    description: MultilineUserText | None = None
+    description: MultilineUserText | None = Field(default=None, max_length=500)
 
 
 class ImageBase(BaseModel):
     """Shared base fields for image schemas."""
 
-    description: MultilineUserText | None = None
+    description: MultilineUserText | None = Field(default=None, max_length=500)
     image_metadata: dict[str, Any] | None = None
 
 
@@ -44,8 +44,8 @@ class VideoBase(BaseModel):
     """Shared base fields for video schemas."""
 
     url: str
-    title: SingleLineUserText | None = None
-    description: MultilineUserText | None = None
+    title: SingleLineUserText | None = Field(default=None, max_length=200)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
     video_metadata: dict[str, Any] | None = None
 
 
@@ -209,7 +209,7 @@ class VideoUpdateWithinProduct(BaseUpdateSchema):
     model_config = ConfigDict(json_schema_extra={"examples": VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES})
 
     url: HttpUrlToDB | None = Field(default=None, description="URL linking to the video")
-    title: SingleLineUserText | None = Field(default=None, max_length=100, description="Title of the video")
+    title: SingleLineUserText | None = Field(default=None, max_length=200, description="Title of the video")
     description: MultilineUserText | None = Field(default=None, max_length=500, description="Description of the video")
     video_metadata: dict[str, Any] | None = Field(default=None, description="Video metadata as a JSON dict")
 

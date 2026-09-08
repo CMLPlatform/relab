@@ -2329,6 +2329,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -2399,6 +2400,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -2481,6 +2483,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -2613,6 +2616,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -5861,6 +5865,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -5872,6 +5877,7 @@
           "title": {
             "anyOf": [
               {
+                "maxLength": 200,
                 "type": "string"
               },
               {
@@ -5912,6 +5918,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -5933,6 +5940,7 @@
           "title": {
             "anyOf": [
               {
+                "maxLength": 200,
                 "type": "string"
               },
               {
@@ -5992,6 +6000,7 @@
           "description": {
             "anyOf": [
               {
+                "maxLength": 500,
                 "type": "string"
               },
               {
@@ -6008,6 +6017,7 @@
           "title": {
             "anyOf": [
               {
+                "maxLength": 200,
                 "type": "string"
               },
               {
@@ -6073,7 +6083,7 @@
           "title": {
             "anyOf": [
               {
-                "maxLength": 100,
+                "maxLength": 200,
                 "type": "string"
               },
               {

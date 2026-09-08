@@ -38,6 +38,8 @@ jest.mock('expo-router', () => ({
 
 const baseFormReturn = {
   product: baseProduct,
+  // The back target is read from the fetched record, not the watched form.
+  serverProduct: baseProduct,
   editMode: false,
   isProductComponent: false,
   validationResult: { isValid: true, error: '' },
@@ -375,6 +377,13 @@ describe('ProductPage state handling', () => {
         name: longProductName,
         parentID: 17,
       },
+      serverProduct: {
+        ...baseProduct,
+        id: 99,
+        role: 'component',
+        name: longProductName,
+        parentID: 17,
+      },
       isProductComponent: true,
     } as never);
     mockUseBaseProductQuery.mockReturnValue({
@@ -451,6 +460,11 @@ describe('ProductPage state handling', () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: {
+        ...baseProduct,
+        id: 100,
+        name: 'A very long product name that absolutely needs truncation for the navigation bar',
+      },
+      serverProduct: {
         ...baseProduct,
         id: 100,
         name: 'A very long product name that absolutely needs truncation for the navigation bar',
