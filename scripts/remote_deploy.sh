@@ -39,7 +39,10 @@ case "$action" in
     up)
         # `migrations` is the routine profile; anything else must be a known profile name.
         for profile in "${args[@]}"; do
-            [[ "$profile" =~ ^(migrations|backups)$ ]] || { echo "remote_deploy: unknown profile '$profile'" >&2; exit 2; }
+            [[ "$profile" =~ ^(migrations|backups)$ ]] || {
+                echo "remote_deploy: unknown profile '$profile'" >&2
+                exit 2
+            }
         done
         exec just "${env_name}-up" YES "${args[@]}"
         ;;
@@ -47,7 +50,10 @@ case "$action" in
         exec just "${env_name}-migrate" YES
         ;;
     rollback)
-        [[ "${args[0]:-}" =~ ^[0-9a-f]{7,40}$ ]] || { echo "remote_deploy: rollback needs an image sha" >&2; exit 2; }
+        [[ "${args[0]:-}" =~ ^[0-9a-f]{7,40}$ ]] || {
+            echo "remote_deploy: rollback needs an image sha" >&2
+            exit 2
+        }
         exec just "${env_name}-rollback" YES "${args[0]}" "${args[1]:-}"
         ;;
     backup)
