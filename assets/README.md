@@ -55,8 +55,9 @@ Generated consumer output groups:
 - Background images: copied to the app, docs, and www image asset folders.
 - Regular IBM Plex Sans web fonts: copied to the docs and www `public/fonts` folders.
 - Brand CSS: copied to docs and www style folders.
-- SVG logos, wordmarks, and favicons: copied from the `r9lab-*` SVGs to docs and www public image
-  folders; favicons use the square mark.
+- SVG logos, wordmarks, and favicons: copied from the `r9lab-*` SVGs to docs, www, and app (web)
+  public image folders; favicons use the square mark. The adaptive (`prefers-color-scheme`) SVG
+  favicon also goes to `app/public/images/favicon.svg`, which Expo's web export serves verbatim.
 - PNG outputs: generated for Expo app metadata, the www social preview logo, and docs/www Apple
   touch icons.
 - `.ico` fallback favicons: generated at the docs/www public root for legacy browser support and in

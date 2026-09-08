@@ -103,6 +103,7 @@ COPY_ASSETS = (
         (
             root_path("docs/public/images/favicon.svg"),
             root_path("www/public/images/favicon.svg"),
+            root_path("app/public/images/favicon.svg"),
         ),
     ),
     (
