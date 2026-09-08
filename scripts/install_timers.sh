@@ -23,6 +23,15 @@ UNIT_DIR="$ROOT_DIR/deploy/systemd"
 SYSTEM_DIR=/etc/systemd/system
 HOST_ENV=/etc/relab/relab.env
 JOBS=(relab-backup relab-backup-maintenance relab-watchdog relab-restore-check)
+# The account the units run as. Defaults to whoever runs this script; a host with a
+# dedicated sudo-less deploy user sets it, so an operator with sudo can install units
+# that run as that user (`RELAB_UNIT_USER=relab just timers-install prod`).
+UNIT_USER="${RELAB_UNIT_USER:-$(id -un)}"
+UNIT_HOME="$(getent passwd "$UNIT_USER" | cut -d: -f6)"
+[[ -n "$UNIT_HOME" ]] || {
+    echo "error: RELAB_UNIT_USER '$UNIT_USER' is not a local account" >&2
+    exit 2
+}
 
 render_one() {
     local file="$1" just_bin root_dir_repl just_bin_repl
@@ -35,9 +44,12 @@ render_one() {
     # only surface at the unit's first fire. Escape both substituted values.
     root_dir_repl="$(printf '%s' "$ROOT_DIR" | sed 's/[&|\\]/\\&/g')"
     just_bin_repl="$(printf '%s' "$just_bin" | sed 's/[&|\\]/\\&/g')"
+    # systemd gives the unit no login shell, so a per-user `uv` (the official installer
+    # puts it in ~/.local/bin) is only found through this PATH.
     sed -e "s|/opt/relab|${root_dir_repl}|g" \
-        -e "s|^User=relab$|User=$(id -un)|" \
+        -e "s|^User=relab$|User=${UNIT_USER}|" \
         -e "s|^Environment=JUST_BIN=.*$|Environment=JUST_BIN=${just_bin_repl}|" \
+        -e "s|^Environment=PATH=.*$|Environment=PATH=${UNIT_HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin|" \
         "$file"
 }
 
@@ -82,7 +94,7 @@ cmd_install() {
     if [[ ! -f "$HOST_ENV" ]]; then
         echo "Seeding ${HOST_ENV} (fill in the healthchecks.io URLs)..."
         sudo install -d -m 0755 "$(dirname "$HOST_ENV")"
-        sudo install -m 0600 -o "$(id -un)" /dev/null "$HOST_ENV"
+        sudo install -m 0600 -o "$UNIT_USER" /dev/null "$HOST_ENV"
         sudo tee "$HOST_ENV" >/dev/null <<'EOF'
 # Dead-man's-switch URLs for the Relab scheduled jobs (healthchecks.io or compatible).
 # This monitoring path does not share fate with the Grafana stack: it is a push from this
@@ -108,7 +120,7 @@ EOF
     # check 3b and the emptiness warning below both read it directly, and the watchdog
     # service runs as this user. Earlier installs seeded it root-owned, so every such
     # read failed with EACCES; fix that on existing hosts too, keeping 0600.
-    sudo chown "$(id -un)" "$HOST_ENV"
+    sudo chown "$UNIT_USER" "$HOST_ENV"
 
     sudo systemctl daemon-reload
     for job in "${JOBS[@]}"; do
