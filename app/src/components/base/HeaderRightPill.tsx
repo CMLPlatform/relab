@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable } from 'react-native';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAuth } from '@/context/auth';
 import { useAppTheme } from '@/theme';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
@@ -13,7 +13,7 @@ function truncateUsername(username: string) {
 }
 
 // backgroundColor/color stay inline: theme-dependent values with no CSS var.
-const PILL_CLASS_NAME = 'mr-4 flex-row items-center gap-1.5 rounded-[6px] px-3 py-1.5';
+const PILL_CLASS_NAME = `mr-4 flex-row items-center gap-1.5 rounded-[6px] px-3 py-1.5 ${WEB_FOCUS_RING}`;
 const PILL_TEXT_CLASS_NAME = 'text-[14px] font-semibold';
 
 export function HeaderRightPill() {

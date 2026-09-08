@@ -20,3 +20,21 @@
   --color-manila: var(--accent);
   --color-manila-foreground: var(--accent-foreground);
 }
+
+/* Painted-Focus Rule (DESIGN.md): one indicator for every keyboard-focusable
+ * control, including raw Pressables that carry a function `style` and so
+ * cannot take WEB_FOCUS_RING as a class. Same outline the utility paints;
+ * the attribute selectors outrank a utility's `outline-none`. Web only —
+ * Uniwind ignores non-class selectors on native. */
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="switch"]:focus-visible,
+[role="checkbox"]:focus-visible,
+a:focus-visible,
+button:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

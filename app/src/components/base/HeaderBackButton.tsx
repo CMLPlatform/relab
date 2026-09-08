@@ -1,6 +1,6 @@
 import type { NativeStackHeaderBackProps } from 'expo-router';
 import { Pressable } from 'react-native';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { Icon } from './Icon';
 
@@ -18,6 +18,7 @@ export function HeaderBackButton({ onPress, tintColor }: HeaderBackButtonProps) 
       accessibilityLabel="Go back"
       // hitSlop is invisible to the DOM on web, so the box itself carries the floor.
       hitSlop={12}
+      className={WEB_FOCUS_RING}
       style={{
         minWidth: MIN_TAP_TARGET,
         minHeight: MIN_TAP_TARGET,

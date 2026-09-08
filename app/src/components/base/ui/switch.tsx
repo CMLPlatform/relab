@@ -7,7 +7,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
   return (
     <SwitchPrimitives.Root
       className={cn(
-        'flex h-[1.15rem] w-8 shrink-0 flex-row items-center rounded-full border border-transparent shadow-sm shadow-black/5',
+        'flex h-[1.15rem] w-8 shrink-0 flex-row items-center rounded-full border border-transparent',
         Platform.select({
           web: cn(
             'peer inline-flex outline-none transition-colors disabled:cursor-not-allowed',

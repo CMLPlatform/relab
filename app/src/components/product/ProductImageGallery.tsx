@@ -31,7 +31,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   const rpiTriggerRef = useRef<View>(null);
 
   if (media.imageCount === 0 && !editMode) {
-    return <ProductImagePlaceholder width={media.width} label={product.name} />;
+    return <ProductImagePlaceholder width={media.width} />;
   }
 
   return (

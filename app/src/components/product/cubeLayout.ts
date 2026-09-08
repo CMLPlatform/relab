@@ -9,6 +9,25 @@ export const ISO = Math.tan(Math.PI / 6);
 export const FRAME_W = 190;
 export const FRAME_H = 150;
 
+// NOTE: SVG-drawn label; the ramp does not reach SVG props.
+export const FONT_SIZE = 12;
+export const LABEL_GAP = 15;
+/** Widest label the left gutter must hold ("123.45 cm"), at ~0.6em per glyph. */
+export const MAX_LABEL_WIDTH = Math.ceil('123.45 cm'.length * FONT_SIZE * 0.6);
+
+// Fixed viewBox (an animated viewBox is poorly supported); the padding leaves
+// room for the edge labels outside the shape.
+const PAD_LEFT = LABEL_GAP + MAX_LABEL_WIDTH;
+const PAD_RIGHT = 40;
+const PAD_TOP = 12;
+const PAD_BOTTOM = 26;
+export const VIEW_BOX = [
+  -PAD_LEFT,
+  -PAD_TOP,
+  FRAME_W + PAD_LEFT + PAD_RIGHT,
+  FRAME_H + PAD_TOP + PAD_BOTTOM,
+].join(' ');
+
 /** Floor on the shortest axis, so a wafer-thin product still shows a face. */
 const MIN_RATIO = 0.06;
 

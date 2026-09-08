@@ -60,7 +60,6 @@ function CameraCardComponent({
   return (
     <Card
       className={cn('w-full max-w-[420px] self-center', !isOnline && 'opacity-60')}
-      style={{ backgroundColor: theme.colors.elevation.level1 }}
       accessibilityLabel={`Camera: ${camera.name}`}
     >
       {/* Thumbnail (online only) or placeholder */}

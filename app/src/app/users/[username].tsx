@@ -69,7 +69,7 @@ export default function UserProfileScreen() {
           {!(loading || hasError) && profile ? (
             <View className="mt-8 items-center">
               <View className="items-center mb-12">
-                <View className="w-[120px] h-[120px] rounded-full justify-center items-center mb-6 bg-primary/10">
+                <View className="w-[120px] h-[120px] rounded-full justify-center items-center mb-6 bg-primary/12">
                   <AppText variant="body" className="font-bold" style={styles.avatarText}>
                     {profile.username.substring(0, 2).toUpperCase()}
                   </AppText>
@@ -132,8 +132,8 @@ export default function UserProfileScreen() {
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    // NOTE: avatar-initials glyph sized to fill the 120px circle; no ramp step applies.
     avatarText: {
+      // NOTE: avatar-initials glyph sized to fill the 120px circle; no ramp step applies.
       fontSize: 48,
       color: theme.colors.primary,
     },

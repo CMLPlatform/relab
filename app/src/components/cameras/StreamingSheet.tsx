@@ -37,12 +37,9 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
       >
         <View
           testID="streaming-sheet"
-          className="bottom-0 left-0 right-0 max-h-[60%] overflow-hidden rounded-t-xl pt-2"
-          style={[
-            styles.sheet,
-            theme.tokens.elevation.overlay,
-            { backgroundColor: theme.colors.elevation.level4 },
-          ]}
+          // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
+          className="bottom-0 left-0 right-0 max-h-[60%] overflow-hidden rounded-t-xl bg-background pt-2"
+          style={[styles.sheet, theme.tokens.elevation.overlay]}
         >
           <View className="flex-row items-center justify-center">
             <OverlaySurface className="h-1 w-10 rounded-xs" tone="glass" />

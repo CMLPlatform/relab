@@ -6,6 +6,8 @@ import { saveProduct } from '@/services/api/saving';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
+const SHOW_MORE_PATTERN = /Show \d+ more/;
+
 jest.mock('@/services/api/saving', () => ({
   ...(jest.requireActual('@/services/api/saving') as object),
   saveProduct: jest.fn(async () => 42),
@@ -58,8 +60,28 @@ describe('ProductComponents', () => {
     });
   });
 
-  it('shows only the first five components by default and can expand the rest', async () => {
-    const manyComponents = Array.from({ length: 7 }, (_, index) => ({
+  it('lists up to eight components in full without a disclosure', async () => {
+    const eight = Array.from({ length: 8 }, (_, index) => ({
+      ...baseProduct,
+      id: index + 2,
+      role: 'component' as const,
+      parentID: baseProduct.id,
+      name: `Component ${index + 1}`,
+    }));
+
+    await renderWithProviders(
+      <ProductComponents product={{ ...baseProduct, components: eight }} editMode={false} />,
+      { withDialog: true },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Component 8')).toBeOnTheScreen();
+    });
+    expect(screen.queryByText(SHOW_MORE_PATTERN)).toBeNull();
+  });
+
+  it('shows only the first five components by default past eight and can expand the rest', async () => {
+    const manyComponents = Array.from({ length: 9 }, (_, index) => ({
       ...baseProduct,
       id: index + 2,
       role: 'component' as const,
@@ -81,12 +103,12 @@ describe('ProductComponents', () => {
       expect(screen.getByText('Component 5')).toBeOnTheScreen();
     });
     expect(screen.queryByText('Component 6')).toBeNull();
-    const collapsed = screen.getByRole('button', { name: 'Show 2 more components' });
+    const collapsed = screen.getByRole('button', { name: 'Show 4 more components' });
     expect(collapsed.props.accessibilityState).toMatchObject({ expanded: false });
 
     await fireEvent.press(collapsed);
     expect(screen.getByText('Component 6')).toBeOnTheScreen();
-    expect(screen.getByText('Component 7')).toBeOnTheScreen();
+    expect(screen.getByText('Component 9')).toBeOnTheScreen();
     const expandedToggle = screen.getByRole('button', { name: 'Show fewer components' });
     expect(expandedToggle.props.accessibilityState).toMatchObject({ expanded: true });
 

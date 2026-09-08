@@ -92,7 +92,7 @@ describe('DialogProvider destructive action hierarchy', () => {
       .className as string;
 
     // Exact-token check: ghost's className also contains the substring
-    // "bg-primary" (inside "active:bg-primary/10"), so a plain
+    // "bg-primary" (inside "active:bg-primary/12"), so a plain
     // stringContaining check can't tell the variants apart.
     expect(submitClassName.split(' ')).toContain('bg-primary');
     expect(cancelClassName.split(' ')).not.toContain('bg-primary');

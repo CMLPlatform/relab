@@ -29,9 +29,9 @@ const buttonVariants = cva(
           }),
         ),
         outline: cn(
-          'border-border bg-background active:bg-primary/10 dark:bg-input/30 dark:border-input border',
+          'border-border bg-background active:bg-primary/12 dark:bg-input/30 dark:border-input border',
           Platform.select({
-            web: 'hover:bg-primary/10',
+            web: 'hover:bg-primary/12',
           }),
         ),
         secondary: cn(
@@ -43,7 +43,7 @@ const buttonVariants = cva(
           'bg-primary/12 active:bg-primary/20',
           Platform.select({ web: 'hover:bg-primary/20' }),
         ),
-        ghost: cn('active:bg-primary/10', Platform.select({ web: 'hover:bg-primary/10' })),
+        ghost: cn('active:bg-primary/12', Platform.select({ web: 'hover:bg-primary/12' })),
         link: '',
       },
       size: {

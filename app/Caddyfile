@@ -60,6 +60,14 @@
 		file_server
 	}
 
+	# Unhashed public files (favicon.svg and friends): cacheable for a day, never
+	# immutable, and a real 404 rather than the SPA entry point.
+	@public_images path /images/*
+	handle @public_images {
+		header Cache-Control "public, max-age=86400"
+		file_server
+	}
+
 	# Email verification and password-reset URLs carry single-use tokens in
 	# fragments. Serve the SPA entry point without browser storage.
 	@sensitive_auth_routes path /verify* /reset-password*

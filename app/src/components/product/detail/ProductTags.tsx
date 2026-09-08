@@ -251,8 +251,8 @@ function StepButton({
   );
 }
 
-// fontSize 15/fontWeight 500 has no matching lineHeight, so it stays
-// style-driven for all three call sites.
+// NOTE: 15/500 is Chip's own face, shared by title, value and input so the three
+// segments align; the body (16) and data (14) steps each break that alignment.
 const amountText = { fontWeight: '500', fontSize: 15 } as const;
 const amountStyles = { titleText: amountText, valueText: amountText, input: amountText };
 

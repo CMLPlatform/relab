@@ -69,11 +69,9 @@ export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
             <Pressable
               onPress={stopPropagation}
               accessibilityRole="menu"
-              className="rounded-xl py-1"
-              style={[
-                theme.tokens.elevation.overlay,
-                { backgroundColor: theme.colors.elevation.level2 },
-              ]}
+              // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
+              className="rounded-xl bg-background py-1"
+              style={theme.tokens.elevation.overlay}
             >
               {children}
             </Pressable>

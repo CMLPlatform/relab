@@ -1,7 +1,7 @@
 // NOTE: hand-rolled on purpose — carries 1.5s auto-dismiss and mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme, useInverseSurface } from '@/theme';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
@@ -38,7 +38,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       <View>
         <Pressable
           onPress={show}
-          className="p-2"
+          className={`p-2 ${WEB_FOCUS_RING}`}
           testID="info-pressable"
           accessibilityRole="button"
           accessibilityLabel={`Info: ${title}`}
@@ -83,7 +83,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         onPress={show}
         onHoverIn={Platform.OS === 'web' ? show : undefined}
         onHoverOut={Platform.OS === 'web' ? hide : undefined}
-        className="p-2"
+        className={`p-2 ${WEB_FOCUS_RING}`}
         accessibilityRole="button"
         accessibilityLabel={`Info: ${title}`}
         // See above: the box carries the 44px floor; hitSlop is native-only.
