@@ -49,7 +49,7 @@ render_one() {
     sed -e "s|/opt/relab|${root_dir_repl}|g" \
         -e "s|^User=relab$|User=${UNIT_USER}|" \
         -e "s|^Environment=JUST_BIN=.*$|Environment=JUST_BIN=${just_bin_repl}|" \
-        -e "s|^Environment=PATH=.*$|Environment=PATH=${UNIT_HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin|" \
+        -e "s|^Environment=PATH=.*$|Environment=PATH=${UNIT_HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin|" \
         "$file"
 }
 
@@ -135,7 +135,8 @@ EOF
     # warn about the unfinished state. Missing and empty disable pinging identically,
     # so check for both: a renamed or mistyped variable leaves no empty line to grep.
     # Only PING_WATCHDOG is required; the other jobs report through it.
-    if ! grep -qE "^PING_WATCHDOG=[^[:space:]]" "$HOST_ENV"; then
+    # The file now belongs to the unit user, who may not be the one running this.
+    if ! sudo -u "$UNIT_USER" grep -qE "^PING_WATCHDOG=[^[:space:]]" "$HOST_ENV"; then
         echo "WARNING: PING_WATCHDOG is missing or empty in ${HOST_ENV}. Every scheduled"
         echo "WARNING: job still runs, but their failures are INVISIBLE outside this host"
         echo "WARNING: until you create the healthchecks.io check and fill the URL in."

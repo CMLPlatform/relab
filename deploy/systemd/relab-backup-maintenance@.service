@@ -27,7 +27,7 @@ WorkingDirectory=/opt/relab
 # file is optional and a missing one simply disables pinging.
 EnvironmentFile=-/etc/relab/relab.env
 Environment=JUST_BIN=/usr/bin/just
-Environment=PATH=/var/lib/relab/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=/var/lib/relab/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
 Environment=BACKUP_MAINTENANCE=only
 ExecStart=/opt/relab/scripts/run_scheduled.sh backup-maintenance %i
 TimeoutStartSec=7200
