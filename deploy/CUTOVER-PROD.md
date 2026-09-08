@@ -778,7 +778,7 @@ Staging runs with the watchdog URL alone; match it unless you want per-job check
 `bootstrap.sh` still creates three checks per environment; ignore the extra two. Then:
 
 ```bash
-just timers-install prod        # sudo; installs the missing relab-backup-maintenance@prod timer
+just timers-install prod        # prompts for sudo (not `sudo just`); installs the missing relab-backup-maintenance@prod timer
 just watchdog prod              # check 3b confirms PING_WATCHDOG resolves
 ```
 
