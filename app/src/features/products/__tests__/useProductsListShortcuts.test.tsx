@@ -69,7 +69,7 @@ describe('useProductsListShortcuts', () => {
   });
 
   it('registers a keydown listener on web', async () => {
-    const { searchRef } = await renderShortcuts();
+    await renderShortcuts();
 
     expect(addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
   });
