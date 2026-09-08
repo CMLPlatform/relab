@@ -7,6 +7,7 @@ import {
   fetchOAuthAuthorizationUrl,
   isAllowedOAuthRedirectUrl,
   isExpectedOAuthCallbackUrl,
+  OAUTH_BLOCKED_URL_MESSAGE,
   openOAuthBrowserSession,
   parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
@@ -97,13 +98,13 @@ export function useOAuthAssociations({
     }
 
     if (!isAllowedOAuthRedirectUrl(authorization.authorizationUrl)) {
-      throw new Error('Unexpected authorization URL received. Please try again.');
+      throw new Error(OAUTH_BLOCKED_URL_MESSAGE);
     }
 
     const result = await openOAuthBrowserSession(authorization.authorizationUrl, redirectUri);
     if (result.type === 'success') {
       if (!result.url || !isExpectedOAuthCallbackUrl(result.url, redirectUri)) {
-        throw new Error('Unexpected OAuth callback URL received. Please try again.');
+        throw new Error(OAUTH_BLOCKED_URL_MESSAGE);
       }
       return { type: 'success', url: result.url };
     }

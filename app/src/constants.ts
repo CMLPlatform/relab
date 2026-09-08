@@ -1,5 +1,8 @@
 import { designTokens } from '@/theme/tokens.generated';
 
+/** Maintainer contact, shown wherever a user needs a human. Mirrors www's PUBLIC_CONTACT_EMAIL default. */
+export const SUPPORT_EMAIL = 'relab@cml.leidenuniv.nl';
+
 export const spacing = {
   xs: 4,
   sm: 8,
