@@ -167,8 +167,8 @@ the topology these steps produce.
    Upload quotas: `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB` cap `contributor`
    accounts; the `*_LAB_USER*` pair caps `lab` accounts and must not be lower. The quota counts
    existing rows, so on a host with existing data raise the limits before the first start; an owner
-   already above the limit cannot upload at all (`just list-over-quota` in `backend/` lists them).
-   Every account starts as `contributor`; a superuser promotes lab members with
+   already above the limit cannot upload at all. Every account starts as `contributor`; a superuser
+   promotes lab members with
    `PUT /v1/admin/users/{user_id}/role` and body `{"role": "lab"}`.
 
 1. Create the runtime secret files.
