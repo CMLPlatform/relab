@@ -140,7 +140,8 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${expanded ? 'Hide' : 'Show'} components of ${displayName}`}
-            accessibilityState={{ expanded }}
+            // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+            aria-expanded={expanded}
             onPress={toggleExpanded}
             className="h-11 w-11 items-center justify-center"
           >

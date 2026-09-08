@@ -4,7 +4,7 @@ import { renderWithProviders } from '@/test-utils/index';
 
 test('exposes a busy progressbar for screen readers', async () => {
   await renderWithProviders(<CenteredSpinner />);
-  expect(screen.getByRole('progressbar').props.accessibilityState).toEqual(
-    expect.objectContaining({ busy: true }),
-  );
+  // aria-busy, not accessibilityState: react-native-web reads only the aria prop, and
+  // RN maps it to the native busy state.
+  expect(screen.getByRole('progressbar').props['aria-busy']).toBe(true);
 });

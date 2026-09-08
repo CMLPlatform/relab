@@ -50,6 +50,15 @@ describe('FilterSelectionModal', () => {
     await renderMulti({ title: 'Pick one', items: [], isLoading: true });
 
     expect(screen.getByRole('progressbar')).toBeOnTheScreen();
+    // aria-busy, not accessibilityState: only the aria prop reaches the DOM on web.
+    expect(screen.getByRole('progressbar').props['aria-busy']).toBe(true);
+  });
+
+  it('marks a selected chip as pressed for the web build', async () => {
+    await renderMulti({ items: ['alpha', 'beta'], selectedValues: ['alpha'] });
+
+    // See FilterBar: role=button chips carry their state as aria-pressed.
+    expect(screen.getByRole('button', { name: 'alpha' }).props['aria-pressed']).toBe(true);
   });
 
   it('shows a chip by its label but still selects by its value', async () => {

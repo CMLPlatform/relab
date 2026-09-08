@@ -30,7 +30,9 @@ function SelectableChip({
       onPress={handlePress}
       style={selected ? { borderWidth: 2, borderColor: colors.primary } : undefined}
       accessibilityRole="button"
+      // See FilterBar: aria-pressed, not aria-selected, on a role=button chip.
       accessibilityState={{ selected }}
+      aria-pressed={selected}
     >
       {label ?? item}
     </Chip>
@@ -104,7 +106,8 @@ function FilterModalShell({
                 className="items-center py-6"
                 accessible
                 accessibilityRole="progressbar"
-                accessibilityState={{ busy: true }}
+                // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+                aria-busy
               >
                 <ActivityIndicator color={theme.colors.primary} />
               </View>
