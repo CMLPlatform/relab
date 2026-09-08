@@ -12,6 +12,8 @@ revision id; prod and staging already record it, so no host needs a stamp.
   not need the extension before pre-data.
 * The ``relab`` text search configuration is ``english`` with ``unaccent`` in
   front of the stemmer; the four generated ``search_vector`` columns use it.
+* Requires PostgreSQL 18: the ``RENAME CONSTRAINT`` on ``user`` relies on PG18
+  cataloguing NOT NULL constraints by name.
 
 Only ever runs on an empty database, so plain DDL throughout.
 
@@ -77,7 +79,6 @@ def upgrade() -> None:  # noqa: PLR0915
         sa.Column("upload_size_bytes", sa.Integer(), server_default="0", nullable=False),
         sa.CheckConstraint("upload_size_bytes >= 0", name="ck_file_upload_size_bytes_non_negative"),
         sa.PrimaryKeyConstraint("id"),
-        postgresql_with={"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02},
     )
     op.create_index("ix_file_parent_type_parent_id", "file", ["parent_type", "parent_id"], unique=False)
     op.create_table(
@@ -104,7 +105,6 @@ def upgrade() -> None:  # noqa: PLR0915
         ),
         sa.CheckConstraint("upload_size_bytes >= 0", name="ck_image_upload_size_bytes_non_negative"),
         sa.PrimaryKeyConstraint("id"),
-        postgresql_with={"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02},
     )
     op.create_index(
         "image_description_trgm_idx",
@@ -251,6 +251,7 @@ def upgrade() -> None:  # noqa: PLR0915
         sa.PrimaryKeyConstraint("id"),
     )
     # NOT NULL constraint name carried over from the stats_cache -> profile_stats rename
+    # PG18 names NOT NULL constraints; this rename fails on PG <= 17.
     op.execute('ALTER TABLE "user" RENAME CONSTRAINT user_profile_stats_not_null TO user_stats_cache_not_null')
     op.create_index(op.f("ix_user_email"), "user", ["email"], unique=True)
     op.create_index(op.f("ix_user_email_canonical"), "user", ["email_canonical"], unique=True)
@@ -398,11 +399,6 @@ def upgrade() -> None:  # noqa: PLR0915
             ["producttype.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
-        postgresql_with={
-            "autovacuum_vacuum_scale_factor": 0.05,
-            "autovacuum_analyze_scale_factor": 0.02,
-            "autovacuum_vacuum_cost_delay": 2,
-        },
     )
     op.create_index("ix_product_created_at", "product", ["created_at"], unique=False)
     op.create_index(op.f("ix_product_name"), "product", ["name"], unique=False)
@@ -521,6 +517,7 @@ def upgrade() -> None:  # noqa: PLR0915
         sa.PrimaryKeyConstraint("camera_id"),
     )
     op.create_index("ix_recording_session_video_id", "recording_session", ["video_id"], unique=False)
+    # NOTE: SQLAlchemy ignores postgresql_with on tables; these ALTERs apply the models' reloptions.
     op.execute(
         "ALTER TABLE product SET (autovacuum_vacuum_scale_factor = 0.05, "
         "autovacuum_analyze_scale_factor = 0.02, autovacuum_vacuum_cost_delay = 2)"

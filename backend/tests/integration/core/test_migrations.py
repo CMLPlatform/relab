@@ -227,4 +227,4 @@ def test_high_churn_tables_declare_autovacuum_reloptions(migration_helper: Migra
         declared = Base.metadata.tables[table].dialect_options["postgresql"]["with"]
         assert declared, f"{table} declares no reloptions"
         for key, value in declared.items():
-            assert f"{key}={value}" in rows[table], (table, key, rows[table])
+            assert f"{key}={value}" in (rows[table] or ""), (table, key, rows[table])

@@ -151,7 +151,7 @@ replay_dump() {
     "${psql[@]}" -c 'DROP SCHEMA IF EXISTS public CASCADE;'
     # NOTE: --schema=public dumps omit CREATE EXTENSION, so the target is missing
     # pg_trgm when trigram GIN indexes (gin_trgm_ops) are rebuilt. Real clusters get
-    # it from the alembic migrations (f3a8c2d1e5b7, a1b2c3d4e5f6) that own trigram
+    # it from the alembic migration (a9c2e4f60b18) that owns trigram
     # search, not from initdb; mirror that list here and keep it in sync if a
     # migration ever adds another extension. The index definitions schema-qualify
     # the opclass as "public.gin_trgm_ops", so the extension has to exist in "public"

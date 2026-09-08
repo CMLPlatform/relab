@@ -20,6 +20,7 @@ use, or local development. For contributor workflow and tooling policy, see
 - Contributing code additionally requires [`uv`](https://docs.astral.sh/uv/), Node and pnpm at the
   versions pinned in `.node-version` and `package.json`. See step 2 below and
   [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md)
+- PostgreSQL 18 when using an external database; the bundled compose stack ships it.
 
 ## Local Docker setup
 
