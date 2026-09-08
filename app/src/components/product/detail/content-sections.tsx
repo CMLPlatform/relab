@@ -35,6 +35,8 @@ export type SectionRenderProps = {
 // Emptiness context not derivable from `product` alone.
 export type SectionContext = {
   mediaStreamable: boolean;
+  /** Whether the record has research files attached; only lab accounts can see them. */
+  hasResearchFiles?: boolean;
 };
 
 export type SectionConfig = {
@@ -148,28 +150,36 @@ export const SECTIONS: SectionConfig[] = [
           onGoLivePress={props.onGoLivePress}
           goLiveTriggerRef={props.goLiveTriggerRef}
         />
-        {/* Renders itself away for anyone below the lab tier, so it does not
-            affect this section's emptiness for an ordinary contributor. */}
-        <ProductFiles product={props.product} editMode={props.editMode} />
       </>
     ),
   },
+  {
+    key: 'files',
+    label: 'Research files',
+    addLabel: 'Add research files',
+    isEmpty: (_product, ctx) => !ctx.hasResearchFiles,
+    render: (props) => <ProductFiles product={props.product} editMode={props.editMode} />,
+  },
 ];
 
+type GuardContext = { isProductComponent: boolean; isLab?: boolean };
+
 // Sections that do not apply at all (unlike "empty", which still shows an add-row).
-function passesGuard(section: SectionConfig, ctx: { isProductComponent: boolean }): boolean {
+function passesGuard(section: SectionConfig, ctx: GuardContext): boolean {
   if (section.key === 'media' && ctx.isProductComponent) return false;
+  // Research files are a lab-tier feature; the backend enforces it, this only hides the section.
+  if (section.key === 'files' && !ctx.isLab) return false;
   return true;
 }
 
-export function guardedSections(ctx: { isProductComponent: boolean }): SectionConfig[] {
+export function guardedSections(ctx: GuardContext): SectionConfig[] {
   return SECTIONS.filter((section) => passesGuard(section, ctx));
 }
 
 /** The sections actually rendered right now — reused by the nav chips/outline. */
 export function visibleSections(
   product: Product,
-  ctx: SectionContext & { editMode: boolean; isProductComponent: boolean },
+  ctx: SectionContext & GuardContext & { editMode: boolean },
 ): { key: SectionKey; label: string }[] {
   return guardedSections(ctx)
     .filter((section) => ctx.editMode || !section.isEmpty(product, ctx))

@@ -58,6 +58,9 @@ export function SaveBar({
   const onPrimaryButtonPress = needsAttention
     ? (onErrorSummaryPress ?? onPrimaryPress)
     : onPrimaryPress;
+  // The card exists to seat the summary text beside the button; a lone button
+  // carries its own ground, so the chrome would only frame empty padding.
+  const showsSummary = needsAttention || (blockedByValidation && Boolean(validationError));
   return (
     <View
       testID="save-bar-dock"
@@ -66,7 +69,7 @@ export function SaveBar({
           ? [flowStyle, { marginBottom: bottomOffset }]
           : [floatingStyle, { bottom: DOCK_BOTTOM + bottomOffset }]
       }
-      className="flex-row items-center justify-end gap-3 rounded-lg border border-border bg-background px-4 py-2"
+      className={`flex-row items-center justify-end gap-3${showsSummary ? ' rounded-lg border border-border bg-background px-4 py-2' : ''}`}
     >
       {/* NOTE: hand-rolled English plural. Swap it for
           Intl.PluralRules('en') behind a shared helper when the app gains a

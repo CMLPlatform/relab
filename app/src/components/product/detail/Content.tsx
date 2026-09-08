@@ -22,7 +22,9 @@ type ProductPageContentProps = {
   product: Product;
   editMode: boolean;
   isProductComponent: boolean;
+  isLab: boolean;
   mediaStreamable: boolean;
+  hasResearchFiles: boolean;
   scrollRef: RefObject<ScrollView | null>;
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onImagesChange: ComponentProps<typeof ProductImageGallery>['onImagesChange'];
@@ -44,7 +46,9 @@ export function ProductPageContent({
   product,
   editMode,
   isProductComponent,
+  isLab,
   mediaStreamable,
+  hasResearchFiles,
   scrollRef,
   onScroll,
   onImagesChange,
@@ -68,7 +72,7 @@ export function ProductPageContent({
     onSectionsWrapperLayout,
   } = useAnchoredSectionNav(outerNav);
 
-  const ctx: SectionContext = { mediaStreamable };
+  const ctx: SectionContext = { mediaStreamable, hasResearchFiles };
   const sectionProps: SectionRenderProps = {
     product,
     editMode,
@@ -105,7 +109,7 @@ export function ProductPageContent({
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
           <SpecHeader product={product} editMode={editMode} onNameChange={onProductNameChange} />
           <SectionNavContext.Provider value={anchoredNav}>
-            {guardedSections({ isProductComponent }).map((section) => (
+            {guardedSections({ isProductComponent, isLab }).map((section) => (
               <Section
                 key={section.key}
                 title={section.label}
