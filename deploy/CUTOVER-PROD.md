@@ -803,6 +803,15 @@ docker ps -a --filter label=com.docker.compose.project=relab_prod   # must be em
 Volumes are untouched by `down`. The old `prod-down` (on the backup branch) has no
 `--remove-orphans`; only the rollback in §12 needs it.
 
+**The tunnel routes by service name, and its ingress rules live in the Cloudflare dashboard, not
+in this repo.** *(2026-09-08)* Prod's tunnel is token-managed and still pointed `cml-relab.org`,
+`app.` and `docs.` at `web-site:8081`, `app-site:8081` and `docs-site:8000`, so those three origins
+went dark the moment the new stack started while `api.` (unrenamed) stayed up. Before or right after
+`prod-up`, edit the tunnel's public hostnames (Zero Trust → Networks → Tunnels → `cml-relab-prod`)
+to the origins in `infra/cloudflare/hostnames.tf`: `www:8081`, `app:8081`, `docs:8000`, `api:8000`.
+cloudflared reloads within seconds; `docker logs relab_prod-cloudflared-1 | grep 'Updated to new
+configuration'` shows the version it picked up. Adopting prod in tofu (§11) removes this manual step.
+
 ______________________________________________________________________
 
 ## 8. Build, start, migrate
