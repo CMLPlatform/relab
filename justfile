@@ -64,9 +64,10 @@ setup: install _prek-install
 # Quality Checks
 # ============================================================================
 
-# Run repository-wide policy hooks (what git runs on commit, over every file)
+# Run repository-wide policy hooks (what git runs on commit, over every file).
+# no-commit-to-branch guards commits, not file checks; on main it would fail this run.
 pre-commit:
-    uv run prek run --all-files --show-diff-on-failure
+    SKIP=no-commit-to-branch uv run prek run --all-files --show-diff-on-failure
 
 # Root-only quality gate: scripts/, tests/, brand assets, browser JS policy. CI runs
 # this directly; subrepo gates are `just <subrepo>/check`.
