@@ -32,5 +32,10 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',
     stderr: 'pipe',
+    // Astro auto-detects an agentic shell (via am-i-vibing) and daemonizes `astro
+    // preview` in that case, so the foreground process this webServer command starts
+    // exits immediately and Playwright reports "exited early". Any value here disables
+    // that detection and keeps the server in the foreground where Playwright can manage it.
+    env: { ASTRO_PREVIEW_BACKGROUND: '0' },
   },
 });
