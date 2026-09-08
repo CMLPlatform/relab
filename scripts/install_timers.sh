@@ -49,7 +49,7 @@ render_one() {
     sed -e "s|/opt/relab|${root_dir_repl}|g" \
         -e "s|^User=relab$|User=${UNIT_USER}|" \
         -e "s|^Environment=JUST_BIN=.*$|Environment=JUST_BIN=${just_bin_repl}|" \
-        -e "s|^Environment=PATH=.*$|Environment=PATH=${UNIT_HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin|" \
+        -e "s|^Environment=PATH=.*$|Environment=PATH=${UNIT_HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin|" \
         "$file"
 }
 

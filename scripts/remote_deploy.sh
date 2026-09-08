@@ -15,7 +15,7 @@ set -euo pipefail
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 # No login shell under a forced command: the deploy user's uv lives in ~/.local/bin.
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin"
 
 # `read -ra` splits on whitespace only; nothing here is ever eval'd or passed to a shell.
 read -ra words <<<"${SSH_ORIGINAL_COMMAND:-${*:-}}"
