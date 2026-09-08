@@ -1,14 +1,17 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import { HttpResponse, http } from 'msw';
 import { StyleSheet } from 'react-native';
 import CategorySelection from '@/app/category-selection';
+import { API_URL } from '@/config';
 import { MIN_TAP_TARGET } from '@/constants';
 import { setPendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useRecentCategories } from '@/features/products/useRecentCategories';
 import { loadCPV } from '@/services/cpv';
 import { renderWithProviders } from '@/test-utils/index';
+import { server } from '@/test-utils/server';
 import type { User } from '@/types/User';
 
 const mockUseAuth = jest.fn();
@@ -16,7 +19,7 @@ const mockedLoadCPV = jest.mocked(loadCPV);
 const mockedSetPending = jest.mocked(setPendingTypeSelection);
 const SUBCATEGORY_COUNT_PATTERN = /1 subcategor/;
 const TYPING_NOW_PATTERN = /typing-now/;
-const BLURB_PATTERN = /Search by name or description, or browse into a category/;
+const BLURB_PATTERN = /Type a name \(e\.g\. laptop\) to search every category/;
 const INFO_TOOLTIP_LABEL_PATTERN = /Info: Product types come from/;
 
 jest.mock('@/context/auth', () => ({
@@ -269,6 +272,66 @@ describe('CategorySelection', () => {
     expect(StyleSheet.flatten(historyButton.props.style).minHeight).toBe(MIN_TAP_TARGET);
   });
 
+  it('focuses the search field on open', async () => {
+    await renderWithProviders(<CategorySelection />);
+    expect((await screen.findByPlaceholderText('Search')).props.autoFocus).toBe(true);
+  });
+
+  it('search matches nested leaves from the root, not just the current level', async () => {
+    await renderWithProviders(<CategorySelection />);
+    await screen.findByPlaceholderText('Search');
+    await fireEvent.changeText(screen.getByPlaceholderText('Search'), 'horticultural');
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(screen.getByText('Agricultural and horticultural products')).toBeOnTheScreen();
+    expect(screen.queryByText('Petroleum products')).toBeNull();
+  });
+
+  it('search covers the whole tree even when browsed into a branch', async () => {
+    await renderWithProviders(<CategorySelection />);
+    await fireEvent.press(await screen.findByText('1 subcategories'));
+    await screen.findByText('Agricultural and horticultural products');
+    await fireEvent.changeText(screen.getByPlaceholderText('Search'), 'petroleum');
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(screen.getByText('Petroleum products')).toBeOnTheScreen();
+  });
+
+  it('lists the most-used types under "Common types" above the tree', async () => {
+    server.use(
+      http.get(`${API_URL}/stats/categories`, () =>
+        HttpResponse.json({
+          generated_at: '',
+          limit: 10,
+          scope: 'all',
+          categories: [
+            { name: '03100000-2', count: 7 },
+            { name: 'not-in-cpv', count: 3 },
+          ],
+        }),
+      ),
+    );
+    await renderWithProviders(<CategorySelection />);
+
+    await screen.findByText('Common types');
+    // The nested leaf appears in the shortcut even though the root list does not show it.
+    expect(screen.getByText('Agricultural and horticultural products')).toBeOnTheScreen();
+    expect(screen.getByText('All categories')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByText('Agricultural and horticultural products'));
+    await waitFor(() => {
+      expect(mockedSetPending).toHaveBeenCalledWith(3);
+    });
+  });
+
+  it('omits "Common types" when stats report nothing', async () => {
+    await renderWithProviders(<CategorySelection />);
+    await screen.findByText('Agricultural products');
+    expect(screen.queryByText('Common types')).toBeNull();
+  });
+
   it('filters categories by search query', async () => {
     await renderWithProviders(<CategorySelection />);
     await screen.findByPlaceholderText('Search');
@@ -305,6 +368,7 @@ describe('CategorySelection', () => {
       cpvClass: { id: 0, name: 'root', description: 'root', directChildren: [], allChildren: [] },
       history: [],
       filtered: [],
+      commonTypes: [],
       recents: [],
       searchQuery: 'typing-now',
       debouncedSearchQuery: 'typing',

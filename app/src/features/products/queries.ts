@@ -12,6 +12,7 @@ import { searchProductBrands } from '@/services/api/productSuggestions';
 import { products } from '@/services/api/products';
 import { fetchProductTypesByName, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
+import { fetchTopCategories } from '@/services/api/stats';
 import type { Product } from '@/types/Product';
 
 export type ProductRole = 'product' | 'component';
@@ -93,6 +94,14 @@ export const productTypesSearchQueryOptions = (search: string) =>
     queryFn: () => searchProductTypes(search || undefined, 1, 50),
     staleTime: 2 * 60_000,
   });
+
+/** The most-used product types, for the picker's "Common types" shortcut. */
+export const topCategoriesQueryOptions = queryOptions({
+  queryKey: ['stats', 'categories', 'all'] as const,
+  queryFn: () => fetchTopCategories(10),
+  // Usage counts drift slowly; one stale hour saves a request per picker open.
+  staleTime: 60 * 60_000,
+});
 
 /** Labels for product types already selected as filters (they arrive from the URL on a cold load). */
 export const productTypeLabelsQueryOptions = (names: string[]) => {
