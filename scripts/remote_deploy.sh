@@ -34,7 +34,16 @@ case "$action" in
         git fetch --quiet origin && git pull --ff-only && git log --oneline -1
         ;;
     build)
-        exec just "${env_name}-build"
+        # `build nocache`: www bakes the landing page's API data in at build time, so a
+        # changed edge rule or featured product needs a rebuild the layer cache would skip.
+        case "${args[0]:-}" in
+            "") exec just "${env_name}-build" ;;
+            nocache) NO_CACHE=1 exec just "${env_name}-build" ;;
+            *)
+                echo "remote_deploy: build takes 'nocache' or nothing" >&2
+                exit 2
+                ;;
+        esac
         ;;
     up)
         # `migrations` is the routine profile; anything else must be a known profile name.
@@ -70,7 +79,7 @@ case "$action" in
         exec bash scripts/deploy_ops.sh stack "$env_name" ps
         ;;
     "" | help)
-        echo "usage: ssh <deploy-host> {pull|build|up [migrations|backups]|migrate|rollback <sha> [<rev>]|backup|watchdog|logs [<since>]|status}"
+        echo "usage: ssh <deploy-host> {pull|build [nocache]|up [migrations|backups]|migrate|rollback <sha> [<rev>]|backup|watchdog|logs [<since>]|status}"
         ;;
     *)
         echo "remote_deploy: '$action' is not allowed" >&2
