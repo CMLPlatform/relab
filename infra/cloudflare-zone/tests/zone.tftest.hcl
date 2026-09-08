@@ -10,12 +10,20 @@ variables {
 run "rulesets_cover_every_environment" {
   command = plan
 
+  # Both optional rules on: the RPi rule carries the staging-only e2e branch, and its
+  # expression must still name both api hosts.
+  variables {
+    telemetry_edge_key = "test-edge-key"
+    e2e_edge_key       = "test-e2e-key"
+  }
+
   # These rulesets protect staging's api host as well as prod's, so every rule in them
   # must match both hosts.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
-      strcontains(rule.expression, "\"api.cml-relab.org\"") && strcontains(rule.expression, "\"api-test.cml-relab.org\"")
+      rule.ref == "relab_telemetry_ingress_skip_managed_security" ||
+      (strcontains(rule.expression, "\"api.cml-relab.org\"") && strcontains(rule.expression, "\"api-test.cml-relab.org\""))
     ])
     error_message = "a custom firewall rule does not match both environments' api hosts, leaving one env unprotected."
   }
@@ -120,82 +128,73 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
   }
 }
 
-run "e2e_rule_is_omitted_without_its_credential" {
+run "e2e_branch_is_absent_without_its_credential" {
   command = plan
 
-  # Without the key the rule must disappear, not skip bot protection for anyone who finds
-  # a staging hostname.
+  # Without the key nothing may match the header, or anyone who finds a staging hostname
+  # gets the managed-security skip.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
-      rule.ref != "relab_staging_e2e_skip_bot_fight_mode"
+      !strcontains(rule.expression, "x-e2e-key")
     ])
-    error_message = "the e2e skip rule must not exist when no credential is configured."
+    error_message = "no rule may match the e2e header when no credential is configured."
   }
 }
 
-run "e2e_rule_is_scoped_to_staging_and_its_credential" {
+run "e2e_branch_is_scoped_to_staging_and_its_credential" {
   command = plan
 
   variables {
     e2e_edge_key = "test-e2e-key"
   }
 
+  # Folded into the RPi rule: the Free plan's five-rule budget for this phase is full.
   assert {
     condition = anytrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
-      rule.ref == "relab_staging_e2e_skip_bot_fight_mode" &&
-      strcontains(rule.expression, "api-test.cml-relab.org") &&
-      strcontains(rule.expression, "x-e2e-key")
+      rule.ref == "relab_rpi_cam_device_skip_managed_security" &&
+      strcontains(rule.expression, "x-e2e-key") &&
+      strcontains(rule.expression, "api-test.cml-relab.org")
     ])
-    error_message = "the e2e skip rule must match the staging hosts AND the credential header."
+    error_message = "the e2e branch must match the staging hosts AND the credential header."
   }
 
-  # A skip that reached prod would be a bot-protection bypass on the live site.
+  # The header alone must never be enough: a prod host with the key must not match. The
+  # branch is joined by "and" to the staging host set, so assert that pairing survives.
   assert {
-    condition = alltrue([
+    condition = anytrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
-      rule.ref != "relab_staging_e2e_skip_bot_fight_mode" ||
-      !strcontains(rule.expression, "\"api.cml-relab.org\"")
+      strcontains(rule.expression, "${local.staging_hosts_expression} and any(http.request.headers[\"x-e2e-key\"][*] eq \"test-e2e-key\")")
     ])
-    error_message = "the e2e skip rule must not match any prod host."
-  }
-
-  # The managed WAF must still see the E2E traffic; only the bot products are skipped.
-  assert {
-    condition = alltrue([
-      for rule in cloudflare_ruleset.custom_firewall.rules :
-      rule.ref != "relab_staging_e2e_skip_bot_fight_mode" ||
-      rule.action_parameters.phases == tolist(["http_request_sbfm"])
-    ])
-    error_message = "the e2e skip rule must skip Super Bot Fight Mode only, never the managed WAF."
+    error_message = "the e2e header match must be conjoined with the staging host set, never stand alone."
   }
 }
 
-run "product_reads_skip_bot_fight_mode" {
+run "public_reads_skip_bot_fight_mode" {
   command = plan
 
-  # The www build fetches these at build time as a non-browser client; a challenge there
-  # ships the landing page's fixture instead of real data.
+  # Stats and the www build's product/component-tree fetches are non-browser clients; a
+  # challenge there ships the landing page's fixture instead of real data.
   assert {
     condition = anytrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
-      rule.ref == "relab_product_reads_skip_bot_fight_mode" &&
-      strcontains(rule.expression, "api.cml-relab.org") &&
+      rule.ref == "relab_public_reads_skip_bot_fight_mode" &&
+      strcontains(rule.expression, "/v1/stats/") &&
       strcontains(rule.expression, "/v1/products/") &&
       strcontains(rule.expression, "http.request.method eq \"GET\"")
     ])
-    error_message = "public product reads must skip Super Bot Fight Mode on both api hosts, for GET only."
+    error_message = "public stats and product reads must skip Super Bot Fight Mode on GET."
   }
 
   # Writes must stay behind the bot products.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
-      rule.ref != "relab_product_reads_skip_bot_fight_mode" ||
+      rule.ref != "relab_public_reads_skip_bot_fight_mode" ||
       rule.action_parameters.phases == tolist(["http_request_sbfm"])
     ])
-    error_message = "the product read rule must skip Super Bot Fight Mode only."
+    error_message = "the public read rule must skip Super Bot Fight Mode only."
   }
 }
 
@@ -219,6 +218,7 @@ run "expressions_stay_inside_the_zone_plan_entitlements" {
 
   variables {
     telemetry_edge_key = "test-edge-key"
+    e2e_edge_key       = "test-e2e-key"
   }
 
   # The `matches` (regex) operator needs a Business or WAF Advanced plan. Using it fails
@@ -230,6 +230,14 @@ run "expressions_stay_inside_the_zone_plan_entitlements" {
       [for rule in cloudflare_ruleset.rate_limiting.rules : !strcontains(rule.expression, " matches ")],
     ))
     error_message = "an expression uses the `matches` operator, which this zone's Cloudflare plan is not entitled to."
+  }
+
+  # The Free plan allows five rules in the http_request_firewall_custom phase. The sixth
+  # is refused at apply time, after earlier resources have already changed. Both optional
+  # rules are set in this run, so this counts the maximum the configuration can produce.
+  assert {
+    condition     = length(cloudflare_ruleset.custom_firewall.rules) <= 5
+    error_message = "the http_request_firewall_custom phase allows only five rules on this zone's Free plan; fold the condition into an existing rule."
   }
 
   # Free-tier limits, all refused at apply time: one rule in the phase, a 10s counting
