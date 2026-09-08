@@ -32,6 +32,10 @@ class FileSystemStorage(BaseStorage):
         """Normalize a file name for storage."""
         return secure_filename(Path(name).name)
 
+    def size(self, name: str) -> int:
+        """Return the file's size in bytes."""
+        return Path(self.get_path(name)).stat().st_size
+
     def get_path(self, name: str) -> str:
         """Return the absolute path for a stored file."""
         return str(self._path / Path(name))

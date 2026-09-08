@@ -53,6 +53,10 @@ class BaseStorage(ABC):
     async def delete(self, name: str) -> None:
         """Delete a stored file, tolerating an object that is already missing."""
 
+    @abstractmethod
+    def size(self, name: str) -> int:
+        """Return the stored object's size in bytes."""
+
 
 class StorageFile(str):
     """String-like file wrapper returned from storage-backed columns."""
@@ -80,6 +84,11 @@ class StorageFile(str):
     def write(self, file: BinaryIO) -> str:
         """Write binary file contents to storage."""
         return self._storage.write(file=file, name=self._name)
+
+    @property
+    def size(self) -> int:
+        """Stored size in bytes, read from the backend."""
+        return self._storage.size(self._name)
 
     def __str__(self) -> str:
         return self.path

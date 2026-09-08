@@ -88,6 +88,10 @@ class S3Storage(BaseStorage):
         filename = secure_filename(Path(name).name)
         return f"{self._prefix}/{filename}" if self._prefix else filename
 
+    def size(self, name: str) -> int:
+        """Return the object's size in bytes from its metadata."""
+        return int(self._get_client().head_object(Bucket=self._bucket, Key=self._s3_key(name))["ContentLength"])
+
     def get_name(self, name: str) -> str:
         """Normalize a file name for storage."""
         return secure_filename(Path(name).name)

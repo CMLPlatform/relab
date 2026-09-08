@@ -161,6 +161,12 @@ SELECT format('ALTER SEQUENCE %I.%I OWNER TO %I', schemaname, sequencename, :'mi
 FROM pg_sequences
 WHERE schemaname = 'public' AND sequenceowner <> :'migration_user'
 \gexec
+-- Enum types too: a migration that drops or alters one needs to own it (found on
+-- prod 2026-09-08, `DROP TYPE organizationrole` failed mid-chain).
+SELECT format('ALTER TYPE %I.%I OWNER TO %I', n.nspname, t.typname, :'migration_user')
+FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
+WHERE n.nspname = 'public' AND t.typtype = 'e' AND pg_get_userbyid(t.typowner) <> :'migration_user'
+\gexec
 
 SELECT format('ALTER DATABASE %I SET search_path = public, extensions, pg_catalog', current_database()) \gexec
 SELECT format('ALTER ROLE %I SET search_path = public, extensions, pg_catalog', :'migration_user') \gexec
