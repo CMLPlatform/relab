@@ -250,7 +250,7 @@ deploy user, and `just` location, then enables the timers:
 
 ```bash
 just timers-render                        # inspect what will be installed
-just timers-install staging               # renders, installs, enables (needs sudo)
+just timers-install staging               # renders, installs, enables (prompts for sudo; not `sudo just`)
 systemctl list-timers 'relab-*@staging.timer'   # confirm NEXT times are scheduled
 ```
 

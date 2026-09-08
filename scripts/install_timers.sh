@@ -10,6 +10,14 @@
 # systemd both run without the login PATH, which is a classic silent-failure source.
 set -euo pipefail
 
+# Run as the deploy user; the script calls sudo itself for the steps that need it.
+# Under `sudo just ...` the units would render with User=root and JUST_BIN resolved
+# from root's PATH, which hides a per-user install such as ~/.local/bin/just.
+if [[ "$EUID" -eq 0 ]]; then
+    echo "error: run install_timers.sh as the deploy user, not as root; it prompts for sudo where needed" >&2
+    exit 2
+fi
+
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 UNIT_DIR="$ROOT_DIR/deploy/systemd"
 SYSTEM_DIR=/etc/systemd/system
@@ -18,7 +26,10 @@ JOBS=(relab-backup relab-backup-maintenance relab-watchdog relab-restore-check)
 
 render_one() {
     local file="$1" just_bin root_dir_repl just_bin_repl
-    just_bin="$(command -v just || echo /usr/bin/just)"
+    just_bin="$(command -v just)" || {
+        echo "error: just is not on PATH; the rendered units would point at a missing binary" >&2
+        return 1
+    }
     # sed treats & (whole match) and the delimiter specially in the REPLACEMENT, so a
     # checkout path containing either would render silently wrong ExecStart lines that
     # only surface at the unit's first fire. Escape both substituted values.

@@ -43,7 +43,7 @@ the same day it was taken.
 ### 1.2 Scheduled jobs
 
 ```bash
-just timers-install prod      # render, install, enable, start (needs sudo)
+just timers-install prod      # render, install, enable, start (prompts for sudo; not `sudo just`)
 ```
 
 | Job                             | When             | Catch-up                                                |

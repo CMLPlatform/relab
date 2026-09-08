@@ -513,7 +513,7 @@ snapshots env count='20':
 timers-render:
     @bash scripts/install_timers.sh render
 
-# Install + enable the backup/watchdog/restore-check timers for one environment (needs sudo)
+# Install + enable the backup/watchdog/restore-check timers for one environment (prompts for sudo; run as the deploy user, not `sudo just`)
 timers-install env:
     @bash scripts/install_timers.sh install {{ quote(env) }}
 
