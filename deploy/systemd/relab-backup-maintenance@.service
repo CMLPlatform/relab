@@ -14,10 +14,9 @@ Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
 # Bound retries: at RestartSec=15min systemd's default start-limit window (5 starts
-# in 10s) can never trip. The window must stay shorter than the daily timer interval —
-# a lockout blocks the timer's own fire too, and only `systemctl reset-failed` clears it.
-StartLimitIntervalSec=4h
-StartLimitBurst=5
+# in 10s) can never trip.
+StartLimitIntervalSec=1d
+StartLimitBurst=3
 
 [Service]
 Type=oneshot
