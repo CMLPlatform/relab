@@ -11,6 +11,7 @@ from tests.constants import (
     BOM_QUANTITY,
     BOM_UNIT,
     BRAND_X,
+    COMPONENT_NAME,
     HEIGHT_10,
     NEW_PRODUCT_NAME,
     PRODUCT_BASE_NAME,
@@ -353,3 +354,33 @@ async def test_owner_me_without_a_session_is_unauthorized_not_an_error(api_clien
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == "Authentication required"
+
+
+async def test_delete_product_with_components(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """DELETE /products/{id} removes a product that still has components.
+
+    Detail reads load a product's components under ``raiseload("*")``. The delete used
+    to hand those stale instances to the flush, which walked ``product_type`` on them
+    and raised ``lazy='raise'`` — but only when a component made the cascade walk at all.
+    """
+    created = await api_client_superuser.post("/v1/products", json={"name": PRODUCT_BASE_NAME})
+    assert created.status_code == status.HTTP_201_CREATED, created.text
+    product_id = created.json()["id"]
+    component_ids = []
+    for index in range(4):
+        component = await api_client_superuser.post(
+            f"/v1/products/{product_id}/components",
+            json={"name": f"{COMPONENT_NAME}{index}", "amount_in_parent": 1},
+        )
+        assert component.status_code == status.HTTP_201_CREATED, component.text
+        component_ids.append(component.json()["id"])
+
+    response = await api_client_superuser.delete(f"/v1/products/{product_id}")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT, response.text
+    assert await db_session.get(Product, product_id) is None
+    for component_id in component_ids:
+        assert await db_session.get(Product, component_id) is None
