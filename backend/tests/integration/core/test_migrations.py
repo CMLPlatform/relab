@@ -1,11 +1,13 @@
 """Tests for Alembic migration correctness."""
 
+import importlib.util
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 from alembic import command
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateIndex
 
@@ -278,3 +280,32 @@ def test_trigram_indexes_are_search_only_and_schema_qualified(migration_helper: 
     assert set(definitions) == expected
     for name, definition in definitions.items():
         assert "extensions.gin_trgm_ops" in definition, (name, definition)
+
+
+@pytest.mark.migration
+def test_pg_trgm_move_refuses_when_extension_is_not_owned(migration_helper: MigrationHelper) -> None:
+    """A superuser-owned pg_trgm must stop the revision before it drops anything.
+
+    The suite runs as the superuser, which owns everything; a throwaway role stands in
+    for a migrator on a host provisioned before that role existed.
+    """
+    versions = Path(__file__).resolve().parents[3] / "alembic" / "versions"
+    spec = importlib.util.spec_from_file_location(
+        "revision_4a672549f270", versions / "4a672549f270_tighten_text_lengths_and_move_pg_trgm.py"
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    migration_helper.execute_sql("CREATE ROLE trgm_probe")
+    try:
+        with migration_helper.sync_engine.connect() as connection:
+            assert module.pg_trgm_state(connection) == ("extensions", True)
+            connection.execute(text("SET ROLE trgm_probe"))
+            try:
+                assert module.pg_trgm_state(connection) == ("extensions", False)
+            finally:
+                connection.execute(text("RESET ROLE"))  # the autocommit engine pools this connection
+    finally:
+        migration_helper.execute_sql("DROP ROLE trgm_probe")
