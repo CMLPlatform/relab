@@ -122,7 +122,12 @@ restic REST server with `--append-only` is the only real defence; WebDAV is neit
 
 ### 1.4 What the watchdog checks
 
-`just watchdog prod` runs hourly from the timer above; run it by hand after any change. It checks:
+`just watchdog prod` runs hourly from the timer above; run it by hand after any change. Its timer
+checks read systemd's `Result` of each unit's **last run**, so after fixing a job, clear the alert by
+running the unit (`sudo systemctl reset-failed relab-backup-maintenance@prod.service && sudo
+systemctl start relab-backup-maintenance@prod.service`), not the `just` recipe, which systemd never
+sees. `reset-failed` also lifts the start-rate limit that a few consecutive timer failures trip,
+which otherwise refuses a manual start too. It checks:
 
 - every stack service (running, and healthy where a healthcheck exists)
 - newest snapshot age

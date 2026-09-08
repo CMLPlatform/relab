@@ -14,8 +14,10 @@ import datetime, json, re, sys
 
 newest = {}
 for snapshot in json.load(sys.stdin):
-    # restic stamps nanosecond precision, which fromisoformat rejects.
-    taken = int(datetime.datetime.fromisoformat(re.sub(r"\.\d+", "", snapshot["time"])).timestamp())
+    # restic stamps nanosecond precision and a "Z" suffix; the system Python the
+    # timer runs (3.10) accepts neither, so normalise both before parsing.
+    stamp = re.sub(r"\.\d+", "", snapshot["time"]).replace("Z", "+00:00")
+    taken = int(datetime.datetime.fromisoformat(stamp).timestamp())
     for tag in snapshot.get("tags") or []:
         newest[tag] = max(newest.get(tag, 0), taken)
 
