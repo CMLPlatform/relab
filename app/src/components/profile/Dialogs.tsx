@@ -7,6 +7,7 @@ import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { TextInput } from '@/components/base/TextInput';
+import { SUPPORT_EMAIL } from '@/constants';
 import { useAppTheme } from '@/theme';
 import { createProfileSectionStyles } from './styles';
 
@@ -109,8 +110,8 @@ export function ProfileDialogs({
           Delete account
         </AppText>
         <AppText>To delete your account and all its data, email us at:</AppText>
-        <Link href="mailto:relab@cml.leidenuniv.nl">
-          <AppText className="mt-2.5 font-bold">relab@cml.leidenuniv.nl</AppText>
+        <Link href={`mailto:${SUPPORT_EMAIL}`}>
+          <AppText className="mt-2.5 font-bold">{SUPPORT_EMAIL}</AppText>
         </Link>
         <AppText className="mt-2.5">We&apos;ll confirm the deletion by email.</AppText>
         <View style={dialogActionsStyle}>

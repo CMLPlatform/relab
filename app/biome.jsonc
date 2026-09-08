@@ -69,12 +69,17 @@
         "jest.setup.*",
         "**/__tests__/**",
         "**/*.test.ts",
-        "**/*.test.tsx"
+        "**/*.test.tsx",
+        "src/test-utils/**"
       ],
       "linter": {
         "rules": {
           "complexity": {
             "noExcessiveLinesPerFunction": "off"
+          },
+          "performance": {
+            // Inline handlers in a test render once; rerender cost is not a concern.
+            "noJsxPropsBind": "off"
           },
           "security": {
             "noSecrets": "off"

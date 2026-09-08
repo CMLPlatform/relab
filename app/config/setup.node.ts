@@ -3,13 +3,11 @@
 // MSW's cookie store reads `globalThis.localStorage` at import time. Node's
 // built-in web storage is flag-gated (`--localstorage-file`), so merely touching
 // the getter prints an ExperimentalWarning in every worker. An in-memory stub
-// shadows it — and gives MSW a real place to keep cookies.
-const store = new Map<string, string>();
-
-Object.defineProperty(globalThis, 'localStorage', {
-  configurable: true,
-  writable: true,
-  value: {
+// shadows it — and gives MSW a real place to keep cookies. `sessionStorage` gets
+// the same treatment so code that persists per-session web state is testable.
+function memoryStorage(): Storage {
+  const store = new Map<string, string>();
+  return {
     get length() {
       return store.size;
     },
@@ -18,5 +16,13 @@ Object.defineProperty(globalThis, 'localStorage', {
     setItem: (key: string, value: string) => void store.set(key, String(value)),
     removeItem: (key: string) => void store.delete(key),
     clear: () => store.clear(),
-  },
-});
+  } as Storage;
+}
+
+for (const name of ['localStorage', 'sessionStorage'] as const) {
+  Object.defineProperty(globalThis, name, {
+    configurable: true,
+    writable: true,
+    value: memoryStorage(),
+  });
+}

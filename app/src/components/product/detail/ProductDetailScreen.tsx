@@ -152,17 +152,8 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
       hasResearchFiles={hasResearchFiles}
       scrollRef={scrollRef}
       onScroll={handleScroll}
-      onImagesChange={actions.onImagesChange}
-      onProductNameChange={actions.onProductNameChange}
-      onChangeDescription={actions.onChangeDescription}
-      onBrandChange={actions.onBrandChange}
-      onModelChange={actions.onModelChange}
-      onAmountInParentChange={actions.onAmountInParentChange}
-      onTypeChange={actions.onTypeChange}
-      onChangePhysicalProperties={actions.onChangePhysicalProperties}
-      onChangeCircularityProperties={actions.onChangeCircularityProperties}
-      onVideoChange={actions.onVideoChange}
-      onProductDelete={actions.onProductDelete}
+      // Every field handler the content needs is in `actions`, under the same names.
+      {...actions}
       onGoLivePress={streaming.openStreamPicker}
       goLiveTriggerRef={goLiveTriggerRef}
     />

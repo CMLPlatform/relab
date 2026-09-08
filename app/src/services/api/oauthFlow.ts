@@ -1,4 +1,5 @@
 import { openAuthSessionAsync } from 'expo-web-browser';
+import { SUPPORT_EMAIL } from '@/constants';
 import { fetchWithAuth } from '@/services/api/auth/authentication';
 import { parseApiErrorDetail } from '@/services/api/errors';
 
@@ -17,6 +18,11 @@ export type OAuthCallbackResult = {
 export function buildOAuthAuthorizeUrl(pathname: string, redirectUri: string) {
   return `${pathname}?redirect_uri=${encodeURIComponent(redirectUri)}`;
 }
+
+/** Shown when either URL guard below rejects a URL; the two cases read the same to a user. */
+export const OAUTH_BLOCKED_URL_MESSAGE =
+  `The sign-in provider sent a web address we do not recognise, so we stopped. ` +
+  `Try again. If it keeps happening, email ${SUPPORT_EMAIL}.`;
 
 export function isAllowedOAuthRedirectUrl(url: string): boolean {
   try {
