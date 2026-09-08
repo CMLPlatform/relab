@@ -51,10 +51,11 @@ test.describe('Authentication flow', () => {
     await page.getByLabel('Email or username').fill(EMAIL);
     await page.getByLabel('Password', { exact: true }).fill('wrong-password');
     await page.getByRole('button', { name: 'Sign in' }).click();
-    // The app shows a "Couldn't sign in" dialog on bad credentials
-    await expect(page.getByText("Couldn't sign in")).toBeVisible({
+    // Bad credentials surface as an inline field error, and focus stays in the field.
+    await expect(page.getByText('Invalid email or password')).toBeVisible({
       timeout: 10_000,
     });
+    await expect(page.getByLabel('Password', { exact: true })).toBeFocused();
   });
 
   test('login with correct credentials succeeds and leaves the login screen', {

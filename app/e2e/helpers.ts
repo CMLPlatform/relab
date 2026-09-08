@@ -297,7 +297,8 @@ export async function openProductByNameFromProductsPage(page: Page, name: string
   await product.click();
   await expect(page).toHaveURL(PRODUCT_DETAIL_URL_PATTERN, { timeout: 15_000 });
   // Wait for the product detail page to fully load
-  await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible({
+  // Scope to the main landmark: the stack header carries its own level-1 title.
+  await expect(page.getByRole('main').getByRole('heading', { name, level: 1 })).toBeVisible({
     timeout: 15_000,
   });
 }

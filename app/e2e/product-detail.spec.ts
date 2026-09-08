@@ -25,7 +25,7 @@ const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
 // not a link — see HeaderBackButton.
 const BACK_CONTROL_NAME_PATTERN = /back/i;
-const PRODUCT_ID_TEXT_PATTERN = /Product ID: \d+/;
+const PRODUCT_ID_LABEL = 'Product ID:';
 // The status line under the title in edit mode (SpecHeader); "Saving…" and
 // the offline label are its other states.
 const SAVED_STATUS_PATTERN = /^Saved · ID \d+$/;
@@ -182,7 +182,7 @@ test.describe('Product detail: phone chunking', () => {
     await page.getByRole('button', { name: ADD_PROPERTIES_LABEL }).click();
 
     await expect(page.getByText('Measurements', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Circularity notes' })).toBeVisible();
+    await expect(page.getByText('Circularity notes', { exact: true })).toBeVisible();
 
     const saveBar = page.getByTestId('save-bar-dock');
     const noteFields = page.locator('textarea');
@@ -230,9 +230,8 @@ test.describe('Product creation', () => {
     await openNewProductPage(page);
     await page.getByRole('textbox', { name: 'Name' }).fill('Discard me');
     // Unlike the detail screen (a custom Pressable back button), the capture
-    // screen uses expo-router's default web back control, which renders as a
-    // link rather than a button.
-    await page.getByRole('link', { name: BACK_CONTROL_NAME_PATTERN }).click();
+    // screen always renders its own back control in the stack header.
+    await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
     await expect(page.getByText('Discard changes?')).toBeVisible({
       timeout: 10_000,
     });
@@ -282,8 +281,8 @@ test.describe('Product detail: edit mode', () => {
       timeout: 5_000,
     });
     // The metadata footer (dates, owner, id) is not a section and never
-    // collapses; its always-present "Product ID: N" line proves it rendered.
-    await expect(page.getByText(PRODUCT_ID_TEXT_PATTERN)).toBeVisible({ timeout: 5_000 });
+    // collapses; its always-present "Product ID" row proves it rendered.
+    await expect(page.getByText(PRODUCT_ID_LABEL, { exact: true })).toBeVisible({ timeout: 5_000 });
   });
 
   test('a blurred text field saves itself and leaving afterwards never prompts', async ({
