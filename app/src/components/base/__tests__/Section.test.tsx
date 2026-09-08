@@ -39,6 +39,8 @@ test('edit mode + empty shows the add row, expands in place on press', async () 
   );
   expect(screen.queryByText('section body')).toBeNull();
   const addRow = screen.getByRole('button', { name: 'Add circularity notes' });
+  // Passed as aria-expanded (the only spelling react-native-web reads); RN folds it
+  // back into accessibilityState, which is what this assertion reads.
   expect(addRow.props.accessibilityState).toMatchObject({ expanded: false });
   await fireEvent.press(addRow);
   expect(screen.getByText('section body')).toBeOnTheScreen();

@@ -13,7 +13,12 @@
 
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
-import { openSeededProductFromProductsPage, reachProductsPage } from './helpers';
+import {
+  loginAndReachProducts,
+  openSeededProductFromProductsPage,
+  reachProductsPage,
+  SEEDED_MEMBER,
+} from './helpers';
 
 // Aligned across www/docs/app: WCAG 2.0-2.2, level A + AA — the stated target.
 // target-size (2.5.8) is the only 2.2-only rule axe-core ships; 2.4.11 and
@@ -50,6 +55,18 @@ test.describe('Accessibility', () => {
   test('product detail has no serious a11y violations', async ({ page }) => {
     await reachProductsPage(page);
     await openSeededProductFromProductsPage(page);
+    expect(await seriousViolations(page)).toEqual([]);
+  });
+
+  // Authenticated: the preferences radios (theme, profile visibility) render as
+  // plain Views, so their state and grouping only exist if the component spells
+  // out aria-checked / role=radiogroup — react-native-web drops accessibilityState.
+  test('account screen has no serious a11y violations @auth', async ({ page }) => {
+    await loginAndReachProducts(page, SEEDED_MEMBER);
+    await page.goto('/account');
+    await expect(page.getByRole('radio', { name: 'Auto theme' })).toBeVisible({
+      timeout: 15_000,
+    });
     expect(await seriousViolations(page)).toEqual([]);
   });
 

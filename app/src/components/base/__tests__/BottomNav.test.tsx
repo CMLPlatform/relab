@@ -97,6 +97,8 @@ test('hides Account when signed out', async () => {
 
 test('marks the navigator’s focused tab as selected', async () => {
   await renderBar(1);
+  // The state is passed as aria-selected (the only spelling react-native-web reads)
+  // and folded back into accessibilityState by RN, so these assertions guard both.
   expect(screen.getByLabelText('Cameras').props.accessibilityState).toEqual({ selected: true });
   expect(screen.getByLabelText('Products').props.accessibilityState).toEqual({ selected: false });
 });

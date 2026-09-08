@@ -32,6 +32,10 @@ if (!runtimeConfig.baseUrl) {
     command: 'pnpm run preview:built',
     url: localBaseUrl,
     reuseExistingServer: !runtimeConfig.isCi,
+    // Astro daemonizes `astro preview` when it detects an agentic shell (am-i-vibing),
+    // so the process this command starts exits at once and Playwright reports
+    // "exited early". Any value disables that detection and keeps it in the foreground.
+    env: { ASTRO_PREVIEW_BACKGROUND: '0' },
   };
 }
 

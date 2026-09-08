@@ -21,7 +21,9 @@ export function DisclosureRow({ label, expanded, onPress, className }: Disclosur
       variant="ghost"
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityState={{ expanded }}
+      // aria-*, not accessibilityState: react-native-web reads only the aria props,
+      // while RN folds them back into accessibilityState for native.
+      aria-expanded={expanded}
       className={cn('self-start px-2', className)}
     >
       <Text>{label}</Text>

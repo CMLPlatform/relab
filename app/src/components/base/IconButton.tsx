@@ -59,7 +59,9 @@ export function IconButton({
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: loading, busy: loading }}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-busy={loading}
+      aria-disabled={loading}
       hitSlop={8}
       // NOTE: never give a Pressable both a className and a function `style`:
       // the bridge merges them into an array and Pressable then drops the function.

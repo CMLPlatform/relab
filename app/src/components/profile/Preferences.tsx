@@ -24,7 +24,12 @@ export function ProfileAppearanceSection({
   const styles = createProfileSectionStyles(theme);
   return (
     <View className="mx-1">
-      <View className="flex-row gap-2 px-4 py-2.5">
+      <View
+        className="flex-row gap-2 px-4 py-2.5"
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Theme"
+        aria-label="Theme"
+      >
         {(
           [
             { mode: 'auto', icon: 'sun-moon', label: 'Auto' },
@@ -64,7 +69,12 @@ export function ProfileVisibilitySection({
   const activeVisibility = profile.preferences.profile_visibility || 'public';
 
   return (
-    <View className="mx-1">
+    <View
+      className="mx-1"
+      accessibilityRole="radiogroup"
+      accessibilityLabel="Profile visibility"
+      aria-label="Profile visibility"
+    >
       {(
         [
           {
@@ -160,8 +170,10 @@ function ThemeModeOption({
       style={[styles.themeModeOption, active && styles.themeModeOptionActive]}
       onPress={handlePress}
       accessibilityRole="radio"
-      // `checked` maps to aria-checked; `selected` emits aria-selected, which a radio does not accept.
-      accessibilityState={{ checked: active, selected: active }}
+      // accessibilityState drives the native state; react-native-web drops it
+      // entirely, so aria-checked has to be spelled out for the web build.
+      accessibilityState={{ checked: active }}
+      aria-checked={active}
       accessibilityLabel={`${label} theme`}
     >
       <Icon name={icon} size={22} color={color} />
@@ -197,8 +209,10 @@ function VisibilityOption({
       onPress={handlePress}
       disabled={saving}
       accessibilityRole="radio"
-      // See the theme option above: role=radio requires aria-checked.
-      accessibilityState={{ checked: isActive, selected: isActive }}
+      // See the theme option above: role=radio needs both spellings.
+      accessibilityState={{ checked: isActive }}
+      aria-checked={isActive}
+      accessibilityLabel={option.title}
     >
       <View className="w-8 items-center">
         <Icon

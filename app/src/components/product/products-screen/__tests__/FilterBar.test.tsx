@@ -50,6 +50,14 @@ async function renderFilterBar(props: Partial<Parameters<typeof ProductsFilterBa
 }
 
 describe('ProductsFilterBar sort chip', () => {
+  it('marks an active filter pill as pressed for the web build', async () => {
+    await renderFilterBar({ isAuthenticated: true, filterMode: 'mine' });
+
+    // react-native-web ignores accessibilityState, and aria-selected is invalid on
+    // role=button, so the pill's state reaches the DOM as aria-pressed.
+    expect(screen.getByLabelText('Show all products').props['aria-pressed']).toBe(true);
+  });
+
   it('puts Product Type immediately after Sort in the horizontal row', async () => {
     await renderFilterBar({ isAuthenticated: true });
 

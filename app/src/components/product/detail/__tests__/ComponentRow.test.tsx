@@ -78,6 +78,8 @@ describe('ComponentRow', () => {
     expect(screen.getByText('1')).toBeOnTheScreen(); // child-count badge
 
     const toggle = screen.getByLabelText('Show components of Motor Assembly');
+    // Passed as aria-expanded (the only spelling react-native-web reads); RN folds it
+    // back into accessibilityState, which is what this assertion reads.
     expect(toggle.props.accessibilityState).toEqual({ expanded: false });
 
     await fireEvent.press(toggle);

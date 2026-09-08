@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page } from '@playwright/test';
 
 const CANONICAL_URL_PATTERN =
-  /^https?:\/\/((127\.0\.0\.1|localhost):(8013|18013)|cml-relab\.org)(\/.*)?$/;
+  /^https?:\/\/((127\.0\.0\.1|localhost):(8013|18013)|([\w-]+\.)*cml-relab\.org)(\/.*)?$/;
 const HERO_HEADLINE = 'Open product data for circular-economy research';
 const HERO_LEAD_PATTERN = /every component named, weighed and photographed/i;
 

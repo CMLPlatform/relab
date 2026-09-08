@@ -565,6 +565,11 @@ docker-smoke-app:
     set -euo pipefail
     trap 'just _docker-smoke-down app' EXIT
     just _docker-smoke-up app 300
+    # Assert security headers on a live response, not just the Caddyfile text. The
+    # runtime image has no curl; wget -S is the tool its HEALTHCHECK already uses.
+    headers=$({{ ci_compose }} exec -T app wget -qS -O /dev/null http://localhost:8081/ 2>&1)
+    echo "$headers" | grep -qi 'Content-Security-Policy:'
+    echo "$headers" | grep -qi 'Strict-Transport-Security:'
 
 # Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
 docker-smoke-backups:
