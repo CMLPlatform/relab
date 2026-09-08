@@ -15,6 +15,7 @@ import { memo, type ReactNode, useCallback, useEffect } from 'react';
 import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { enableScreens } from 'react-native-screens';
 import { Uniwind } from 'uniwind';
 import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import { DialogProvider } from '@/components/base/DialogProvider';
@@ -36,6 +37,14 @@ import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
+
+// Every navigator here paints its scene transparent so StaticBackground shows through.
+// Bottom tabs only push an inactive tab behind the active one (z-index), counting on an
+// opaque scene to cover it; on web react-native-screens is off by default, so a
+// transparent scene showed the previous tab underneath. Enabling it on web swaps in the
+// Screen shim, which sets `display: none` on inactive tabs. The web stack view hides
+// its own non-focused screens regardless. Must run before any navigator renders.
+if (Platform.OS === 'web') enableScreens();
 
 // TODO: wire onlineManager to NetInfo/expo-network for native. Until then it
 // stays true on native, so mutations never pause and the queued-offline UI

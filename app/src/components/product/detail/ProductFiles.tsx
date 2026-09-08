@@ -1,7 +1,6 @@
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
-import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { IconButton } from '@/components/base/IconButton';
 import { useProductFiles } from '@/features/products/useProductFiles';
 import type { Product } from '@/types/Product';
@@ -11,7 +10,7 @@ type Props = {
   editMode: boolean;
 };
 
-/** Research files attached to a record. Rendered only for lab accounts; the backend enforces the tier. */
+/** Research files attached to a record. Its Section is guarded to lab accounts; the backend enforces the tier. */
 export default function ProductFiles({ product, editMode }: Props) {
   const {
     canManage,
@@ -29,9 +28,7 @@ export default function ProductFiles({ product, editMode }: Props) {
   if (!isLoading && files.length === 0 && !(canManage && editMode)) return null;
 
   return (
-    <View className="mt-6">
-      <DetailSectionHeader title="Research files" />
-
+    <View>
       {files.length === 0 ? (
         <AppText variant="body" className="text-muted-foreground">
           {isLoading ? 'Loading files…' : 'No research files attached.'}

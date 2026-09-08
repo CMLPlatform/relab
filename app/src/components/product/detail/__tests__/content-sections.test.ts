@@ -1,5 +1,5 @@
 import { describe, expect, it } from '@jest/globals';
-import { SECTIONS } from '@/components/product/detail/content-sections';
+import { guardedSections, SECTIONS } from '@/components/product/detail/content-sections';
 import { baseProduct } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
@@ -102,12 +102,22 @@ describe('components section tooltip', () => {
 });
 
 describe('section chunking', () => {
-  it('has four sections so the phone nav fits one row', () => {
+  it('offers a contributor four sections so the phone nav fits one row', () => {
+    expect(guardedSections({ isProductComponent: false, isLab: false }).map((s) => s.key)).toEqual([
+      'overview',
+      'components',
+      'properties',
+      'media',
+    ]);
+  });
+
+  it('appends the lab-only files section last, so the chips row scrolls rather than reflows', () => {
     expect(SECTIONS.map((section) => section.key)).toEqual([
       'overview',
       'components',
       'properties',
       'media',
+      'files',
     ]);
   });
 
@@ -152,5 +162,39 @@ describe('section chunking', () => {
       expect(properties.addLabel).toBe('Add properties');
       expect(properties.label).toBe('Properties');
     });
+  });
+});
+
+describe('files section', () => {
+  const files = SECTIONS.find((section) => section.key === 'files');
+  if (!files) throw new Error('files section missing from SECTIONS');
+
+  it('is only offered to lab accounts', () => {
+    expect(guardedSections({ isProductComponent: false, isLab: true }).map((s) => s.key)).toContain(
+      'files',
+    );
+    expect(
+      guardedSections({ isProductComponent: false, isLab: false }).map((s) => s.key),
+    ).not.toContain('files');
+  });
+
+  it('is empty until a research file is attached, independent of videos', () => {
+    expect(files.isEmpty(baseProduct, { mediaStreamable: true, hasResearchFiles: false })).toBe(
+      true,
+    );
+    expect(files.isEmpty(baseProduct, { mediaStreamable: false, hasResearchFiles: true })).toBe(
+      false,
+    );
+  });
+
+  it('does not count towards the media section', () => {
+    const media = SECTIONS.find((section) => section.key === 'media');
+    if (!media) throw new Error('media section missing from SECTIONS');
+    expect(
+      media.isEmpty(
+        { ...baseProduct, videos: [] },
+        { mediaStreamable: false, hasResearchFiles: true },
+      ),
+    ).toBe(true);
   });
 });

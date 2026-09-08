@@ -63,7 +63,8 @@ describe('ProductFiles', () => {
     });
 
     expect(await screen.findByText('cube.h5')).toBeTruthy();
-    expect(screen.getByText('Research files')).toBeTruthy();
+    // The heading belongs to the enclosing Section, not to this component.
+    expect(screen.queryByText('Research files')).toBeNull();
   });
 
   it('offers the picker to a lab owner in edit mode only', async () => {

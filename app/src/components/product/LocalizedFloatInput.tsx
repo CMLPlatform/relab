@@ -23,8 +23,14 @@ interface LocalizedFloatInputProps {
 /** The user's locale decimal separator. */
 function getDecimalSeparator(): string {
   const localeToUse = typeof navigator !== 'undefined' ? navigator.language : undefined;
-  const formatted = localeToUse ? (1.1).toLocaleString(localeToUse) : (1.1).toLocaleString();
-  return formatted.charAt(1); // The character between 1 and 1
+  try {
+    const formatted = localeToUse ? (1.1).toLocaleString(localeToUse) : (1.1).toLocaleString();
+    return formatted.charAt(1); // The character between 1 and 1
+  } catch {
+    // A malformed tag (`en-US@posix` from some Linux browsers) throws a RangeError
+    // at module load, which took the whole app down rather than one input.
+    return '.';
+  }
 }
 
 // The locale is fixed for the session.

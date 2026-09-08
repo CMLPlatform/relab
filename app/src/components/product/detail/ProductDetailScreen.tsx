@@ -6,6 +6,7 @@ import { SectionNavContext } from '@/components/base/SectionNavContext';
 import { SectionNavLayout } from '@/components/base/SectionNavLayout';
 import ProductDetailsSkeleton from '@/components/product/ProductDetailsSkeleton';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
+import { useProductFiles } from '@/features/products/useProductFiles';
 import type { UseProductFormOptions } from '@/features/products/useProductForm';
 import { useProductPageScreen } from '@/features/products/useProductPageScreen';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -89,6 +90,9 @@ function renderScreenGuard({
 export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFormOptions }) {
   const { theme, screen, editing, streaming, capabilities, actions, amountFlushRef } =
     useProductPageScreen(formOptions);
+  // Same query ProductFiles reads; here it decides whether the section is offered and empty.
+  const { isLab, files: researchFiles } = useProductFiles(screen.product);
+  const hasResearchFiles = researchFiles.length > 0;
   const { isLg } = useBreakpoint();
   const scrollRef = useRef<ScrollView>(null);
   const nav = useSectionNav((y) => scrollRef.current?.scrollTo({ y, animated: true }));
@@ -133,7 +137,9 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
   const navSections = visibleSections(screen.product, {
     editMode: editing.editMode,
     isProductComponent: capabilities.isProductComponent,
+    isLab,
     mediaStreamable,
+    hasResearchFiles,
   });
 
   const content = (
@@ -141,7 +147,9 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
       product={screen.product}
       editMode={editing.editMode}
       isProductComponent={capabilities.isProductComponent}
+      isLab={isLab}
       mediaStreamable={mediaStreamable}
+      hasResearchFiles={hasResearchFiles}
       scrollRef={scrollRef}
       onScroll={handleScroll}
       onImagesChange={actions.onImagesChange}
