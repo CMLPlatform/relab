@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.1](https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1) (2026-09-08)
+
+
+### Bug Fixes
+
+* **app:** Render interpolated button labels as one text node ([#194](https://github.com/CMLPlatform/relab/issues/194)) ([44d2330](https://github.com/CMLPlatform/relab/commit/44d233043aea4c90e84dc2b594929a15cf376ad9))
+* **deploy:** Own enum types in provision.sh and size stored files in the backfill ([03e5faf](https://github.com/CMLPlatform/relab/commit/03e5faf5fdf425b703aaf78321d90c06c17ab504))
+* **deps:** Update repo-tooling ([#146](https://github.com/CMLPlatform/relab/issues/146)) ([9850781](https://github.com/CMLPlatform/relab/commit/985078197fb7419985c4cdc10fc1767193a22cc7))
+
 ## v0.3.0 - 2026-09
 
 ### Description
