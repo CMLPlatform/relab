@@ -168,6 +168,17 @@ function AppShell() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [activeStream]);
 
+  // web.output is "single" (SPA), so there's no +html.tsx head hook; inject
+  // the theme-adaptive SVG favicon once on mount instead (app.json's PNG stays the fallback).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const link = document.createElement('link');
+    link.rel = 'icon';
+    link.type = 'image/svg+xml';
+    link.href = '/images/favicon.svg';
+    document.head.insertBefore(link, document.head.firstChild);
+  }, []);
+
   useEffect(() => {
     setBackgroundColorAsync(theme.colors.background).catch(() => {
       // Best-effort only; the app can render fine without this on unsupported targets.
