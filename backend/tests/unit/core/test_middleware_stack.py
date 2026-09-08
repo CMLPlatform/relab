@@ -130,6 +130,28 @@ async def test_composed_middleware_exposes_request_id_through_cors(monkeypatch: 
     assert response.headers["access-control-expose-headers"] == REQUEST_ID_HEADER
 
 
+async def test_composed_middleware_preflight_allows_the_edge_e2e_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A keyed staging E2E run preflights every call; the browser needs X-E2E-Key allowed."""
+    monkeypatch.setattr(settings, "allowed_hosts", ["*"])
+    monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
+    monkeypatch.setattr(settings, "cors_origin_regex", None)
+
+    app = _create_composed_middleware_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+        response = await client.options(
+            "/health",
+            headers={
+                "Origin": "https://app.example.test",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type, x-e2e-key",
+            },
+        )
+
+    assert response.status_code == 200
+    assert "x-e2e-key" in response.headers["access-control-allow-headers"].lower()
+
+
 async def test_composed_middleware_keeps_api_guards(monkeypatch: pytest.MonkeyPatch) -> None:
     """Method policy, content negotiation, and request size limits should compose together."""
     monkeypatch.setattr(settings, "allowed_hosts", ["*"])
