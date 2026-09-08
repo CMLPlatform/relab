@@ -222,8 +222,10 @@ the topology these steps produce.
 1. Upgrade later with the same commands: pull a known-good revision, `just prod-build`, then
    `just prod-up YES migrations`. A failed migration leaves the old API serving. To return to
    the previous release, `just prod-rollback YES <sha>` retags the images that build produced;
-   add the previous alembic revision to downgrade the schema too, which the recipe allows only
-   when no migration in between dropped or rewrote data. `just prod-down YES` stops the stack.
+   add the previous alembic revision to downgrade the schema too
+   (revisions before `a9c2e4f60b18` were flattened away and cannot be targeted), which the recipe
+   allows only when no migration in between dropped or rewrote data. `just prod-down YES` stops
+   the stack.
 
 ### First backup
 
