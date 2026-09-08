@@ -12,7 +12,9 @@
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
-    "addLabels": ["security"]
+    "description": "`enabled` is forced onto alert matches, so packages a rule sets `enabled: false` (the Expo-owned group) still get vulnerability PRs.",
+    "addLabels": ["security"],
+    "enabled": true
   },
   "packageRules": [
     {

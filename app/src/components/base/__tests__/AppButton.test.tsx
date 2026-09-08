@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AppButton } from '@/components/base/AppButton';
+import { Text } from '@/components/base/ui/text';
 
 // react-native's own Platform.select (Platform.ios.js) hardcodes 'ios'/'native'
 // key checks and ignores Platform.OS, and the vendored ui/button.tsx computes
@@ -112,4 +113,20 @@ test('has web hover, cursor, and focus-visible affordances', async () => {
   expect(className).toEqual(expect.stringContaining('cursor-pointer'));
   expect(className).toEqual(expect.stringContaining('hover:'));
   expect(className).toEqual(expect.stringContaining('focus-visible:'));
+});
+
+test('interpolated label renders as one Text node', async () => {
+  const count = 2;
+  await render(<AppButton onPress={() => {}}>Select all ({count})</AppButton>);
+  expect(screen.getByText('Select all (2)')).toBeTruthy();
+  expect(screen.container.queryAll((el) => el.type === 'Text')).toHaveLength(1);
+});
+
+test('element children are left unwrapped', async () => {
+  await render(
+    <AppButton onPress={() => {}}>
+      <Text>Custom</Text>
+    </AppButton>,
+  );
+  expect(screen.container.queryAll((el) => el.type === 'Text')).toHaveLength(1);
 });

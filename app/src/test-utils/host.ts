@@ -8,7 +8,7 @@ type HostElement = ReturnType<typeof screen.getByTestId>;
  * v14 renders host elements only, so the `UNSAFE_*ByType` / `UNSAFE_*ByProps`
  * queries that could return composite components are gone. Where a test asserts
  * on something with no accessible handle — an icon's stroke width, a list's
- * paging threshold — these walk the rendered tree by host name instead. React
+ * paging threshold — these query the rendered tree by host name instead. React
  * Native's host names are not the component names: a `FlatList` is
  * `RCTScrollView`, an `Svg` is `RNSVGSvgView`, a `View` and a `TextInput` keep
  * theirs.
@@ -17,16 +17,8 @@ type HostElement = ReturnType<typeof screen.getByTestId>;
  * one exists; reach for these only when the assertion is about a prop the user
  * cannot see.
  */
-function walk(node: unknown, out: HostElement[]): HostElement[] {
-  const el = node as { type?: unknown; children?: unknown[] } | null;
-  if (!el) return out;
-  if (typeof el.type === 'string') out.push(el as unknown as HostElement);
-  for (const child of el.children ?? []) walk(child, out);
-  return out;
-}
-
 function hosts(): HostElement[] {
-  return walk(screen.container, []);
+  return screen.container.queryAll((el) => typeof el.type === 'string') as HostElement[];
 }
 
 /** Every host element rendered under the given host name. */
