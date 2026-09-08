@@ -17,8 +17,8 @@ use, or local development. For contributor workflow and tooling policy, see
 
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
 - [`just`](https://just.systems/man/en/) is optional but recommended
-- Contributing code additionally requires [`uv`](https://docs.astral.sh/uv/), Node 26.x, and pnpm
-  11.x. See step 2 below and
+- Contributing code additionally requires [`uv`](https://docs.astral.sh/uv/), Node and pnpm at the
+  versions pinned in `.node-version` and `package.json`. See step 2 below and
   [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md)
 
 ## Local Docker setup
@@ -103,7 +103,9 @@ use, or local development. For contributor workflow and tooling policy, see
 ## Production and staging deployment
 
 The stack runs on one host behind a Cloudflare Tunnel, so the host needs no public ports. Deploys
-are manual on the server: pull the repo, start the stack, verify health. Every `prod-*` recipe
+are three commands on the server: pull the repo, build, start the stack. They can be run there, or
+sent from another machine over an ssh key whose forced command is `scripts/remote_deploy.sh`, which
+allows exactly those steps and nothing else (see `deploy/DEPLOY-PROD.md` Part 1.6). Every `prod-*` recipe
 takes `YES` as its first argument to confirm it acts on production; the `staging-*` recipes are the
 same commands for a staging host. [Deployment and operations](/operations/deployment/) describes
 the topology these steps produce.
@@ -254,9 +256,11 @@ just timers-install staging               # renders, installs, enables (prompts 
 systemctl list-timers 'relab-*@staging.timer'   # confirm NEXT times are scheduled
 ```
 
-The installer also seeds `/etc/relab/relab.env` with empty `PING_*` URLs. Fill them with per-job
-[healthchecks.io](https://healthchecks.io) check URLs. Until you do, job failures are invisible
-outside the host, and `just watchdog <env>` keeps saying so.
+The installer also seeds `/etc/relab/relab.env` with empty `PING_*` URLs. Fill in `PING_WATCHDOG`
+with a [healthchecks.io](https://healthchecks.io) check URL; the hourly watchdog reports every other
+job's state through it, and the other three are optional per-job checks. Until you do, job failures
+are invisible outside the host, and `just watchdog <env>` keeps saying so. With a dedicated deploy
+user, run the installer from an account with sudo as `RELAB_UNIT_USER=<user> just timers-install <env>`.
 
 Without the timers there are no recurring backups; `just watchdog <env>` reports that.
 

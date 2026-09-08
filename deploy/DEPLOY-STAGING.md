@@ -1,6 +1,6 @@
 # Operating the staging host
 
-Everything needed to run staging. Nothing here depends on the cutover runbooks.
+Everything needed to run staging.
 
 Staging shares `compose.deploy.yaml` with production, so this doubles as the rehearsal for
 [DEPLOY-PROD.md](DEPLOY-PROD.md): a step that has only ever run on prod has never been tested.
@@ -62,8 +62,8 @@ ______________________________________________________________________
   recipe at prod.
 - **No outage discipline.** Staging can be torn down and rebuilt at will.
 - **The data is disposable, the procedure is not.**
-- **Cloudflare is managed by OpenTofu for staging** but not yet for prod. Edge changes go through
-  `just cloudflare-plan staging` before apply, never as part of a deploy.
+- **Cloudflare is managed by OpenTofu for both.** Edge changes go through `just cloudflare-plan
+  staging` before apply, never as part of a deploy; staging is where a zone-wide change is tried.
 - **Backups still matter.** Staging's repository and offsite copy exist and are monitored.
 
 ## Rebuilding from scratch
