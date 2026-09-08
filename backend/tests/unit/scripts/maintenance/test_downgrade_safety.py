@@ -85,9 +85,8 @@ def test_unknown_target_revision_is_a_usage_error(capsys: pytest.CaptureFixture[
     assert "cannot resolve downgrade range" in capsys.readouterr().err
 
 
-def test_real_history_from_first_revision_is_blocked(capsys: pytest.CaptureFixture[str]) -> None:
-    """The committed history is not fully reversible."""
-    # The repository's own history drops columns, so a downgrade to its first revision
-    # must refuse; this also proves the script reads the real alembic directory.
-    assert main(["6f2b9e4a1c3d"]) == 1
-    assert "restore the pre-release backup" in capsys.readouterr().err
+def test_real_history_to_base_is_reversible(capsys: pytest.CaptureFixture[str]) -> None:
+    """The flattened history is one ROLLBACK_SAFE revision, so base is reachable."""
+    # Also proves the script reads the real alembic directory.
+    assert main(["base"]) == 0
+    assert "reverts 1 revision(s) with no data loss" in capsys.readouterr().out
