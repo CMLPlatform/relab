@@ -45,13 +45,15 @@ def build_text_search_clause(
 
     Trigram matching runs on ``relab_unaccent(column)`` and nothing else (no
     ``lower()``: pg_trgm is case-insensitive anyway), because that is the exact
-    expression the ``gin_trgm_ops`` indexes are built on; the search term is
-    unaccented the same way so both sides compare the same trigrams.
+    expression the ``extensions.gin_trgm_ops`` indexes are built on; the search term
+    is unaccented the same way so both sides compare the same trigrams. The ``%``
+    operator is schema-qualified because pg_trgm lives in ``extensions`` and the
+    test database does not carry the deployed roles' search_path.
 
     Args:
         search: The raw search string from the user.
         search_vector_col: The computed ``tsvector`` column on the model.
-        *trigram_fields: Zero or more text columns to fuzzy-match with ``%`` (gin_trgm_ops).
+        *trigram_fields: Zero or more text columns to fuzzy-match with ``%`` (extensions.gin_trgm_ops).
 
     Returns:
         An OR-combined SQLAlchemy ``ColumnElement`` suitable for ``.where()``.
@@ -59,7 +61,8 @@ def build_text_search_clause(
     ts_query = func.websearch_to_tsquery(TEXT_SEARCH_CONFIG, search)
     conditions: list[ColumnElement[bool]] = [search_vector_col.op("@@")(ts_query)]
     unaccented_search = func.relab_unaccent(search)
-    conditions.extend([func.relab_unaccent(field).op("%")(unaccented_search) for field in trigram_fields])
+    trigram_match = "OPERATOR(extensions.%)"
+    conditions.extend([func.relab_unaccent(field).op(trigram_match)(unaccented_search) for field in trigram_fields])
     return or_(*conditions)
 
 

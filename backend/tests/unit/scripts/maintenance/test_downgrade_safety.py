@@ -88,10 +88,10 @@ def test_unknown_target_revision_is_a_usage_error(capsys: pytest.CaptureFixture[
 
 
 def test_real_history_to_base_is_reversible(capsys: pytest.CaptureFixture[str]) -> None:
-    """The flattened history is one ROLLBACK_SAFE revision, so base is reachable."""
+    """Every revision in the flattened history is ROLLBACK_SAFE, so base is reachable."""
     # Also proves the script reads the real alembic directory.
     assert main(["base"]) == 0
-    assert "reverts 1 revision(s) with no data loss" in capsys.readouterr().out
+    assert "with no data loss" in capsys.readouterr().out
 
 
 def test_revision_files_import_without_app_settings() -> None:

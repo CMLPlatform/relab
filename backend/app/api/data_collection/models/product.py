@@ -39,13 +39,13 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
             "product_name_trgm_idx",
             func.relab_unaccent(literal_column("name")).label("name_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"name_unaccent": "extensions.gin_trgm_ops"},
         ),
         Index(
             "product_brand_trgm_idx",
             func.relab_unaccent(literal_column("brand")).label("brand_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"brand_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"brand_unaccent": "extensions.gin_trgm_ops"},
         ),
         # The model suggestion endpoint trigram-matches this column in an OR with
         # search_vector; an unindexed side seq-scans the whole OR.
@@ -53,7 +53,7 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
             "product_model_trgm_idx",
             func.relab_unaccent(literal_column("model")).label("model_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"model_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"model_unaccent": "extensions.gin_trgm_ops"},
         ),
         # Media quota checks and base-product listings filter on owner.
         Index("ix_product_owner_id", "owner_id"),

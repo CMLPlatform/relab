@@ -80,7 +80,7 @@ class Category(TimeStampMixinBare, Base):
             "category_name_trgm_idx",
             func.relab_unaccent(literal_column("name")).label("name_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"name_unaccent": "extensions.gin_trgm_ops"},
         ),
         # Subcategories load eagerly; taxonomy_id backs the per-taxonomy reads.
         Index("ix_category_supercategory_id", "supercategory_id"),
@@ -148,7 +148,7 @@ class Material(TimeStampMixinBare, Base):
             "material_name_trgm_idx",
             func.relab_unaccent(literal_column("name")).label("name_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"name_unaccent": "extensions.gin_trgm_ops"},
         ),
     )
 
@@ -207,13 +207,13 @@ class ProductType(TimeStampMixinBare, Base):
             "producttype_name_trgm_idx",
             func.relab_unaccent(literal_column("name")).label("name_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"name_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"name_unaccent": "extensions.gin_trgm_ops"},
         ),
         Index(
             "producttype_description_trgm_idx",
             func.relab_unaccent(literal_column("description")).label("description_unaccent"),
             postgresql_using="gin",
-            postgresql_ops={"description_unaccent": "gin_trgm_ops"},
+            postgresql_ops={"description_unaccent": "extensions.gin_trgm_ops"},
         ),
     )
 

@@ -33,9 +33,14 @@ class User(BaseUserDB, TimeStampMixinBare):
         CheckConstraint("upload_total_bytes >= 0", name="ck_user_upload_total_bytes_non_negative"),
         # The admin user list does an unanchored ILIKE on email OR username; both need a
         # trigram index or Postgres seq-scans the whole OR.
-        Index("user_email_trgm_idx", "email", postgresql_using="gin", postgresql_ops={"email": "gin_trgm_ops"}),
         Index(
-            "user_username_trgm_idx", "username", postgresql_using="gin", postgresql_ops={"username": "gin_trgm_ops"}
+            "user_email_trgm_idx", "email", postgresql_using="gin", postgresql_ops={"email": "extensions.gin_trgm_ops"}
+        ),
+        Index(
+            "user_username_trgm_idx",
+            "username",
+            postgresql_using="gin",
+            postgresql_ops={"username": "extensions.gin_trgm_ops"},
         ),
     )
 

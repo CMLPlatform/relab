@@ -228,3 +228,33 @@ def test_high_churn_tables_declare_autovacuum_reloptions(migration_helper: Migra
         assert declared, f"{table} declares no reloptions"
         for key, value in declared.items():
             assert f"{key}={value}" in (rows[table] or ""), (table, key, rows[table])
+
+
+@pytest.mark.migration
+def test_text_length_and_extension_placement(migration_helper: MigrationHelper) -> None:
+    """Revision 4a672549f270 moved pg_trgm, renamed the legacy constraint, and bounded two columns."""
+    schemas = dict(
+        migration_helper.execute_sql(
+            "SELECT e.extname, n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace"
+        )
+    )
+    assert schemas["pg_trgm"] == "extensions"
+
+    constraints = {
+        name
+        for (name,) in migration_helper.execute_sql(
+            "SELECT conname FROM pg_constraint WHERE conrelid = 'user'::regclass"
+        )
+    }
+    assert "user_profile_stats_not_null" in constraints
+    assert "user_stats_cache_not_null" not in constraints
+
+    lengths = dict(
+        migration_helper.execute_sql(
+            "SELECT table_name || '.' || column_name, character_maximum_length "
+            "FROM information_schema.columns "
+            "WHERE (table_name, column_name) IN (('video', 'title'), ('user', 'username'))"
+        )
+    )
+    assert lengths["video.title"] == 200
+    assert lengths["user.username"] == 50
