@@ -128,9 +128,21 @@ describe('MfaScreen challenge flow', () => {
 
     await renderMfaScreen();
 
-    expect(screen.getByText('MFA session expired. Please sign in again.')).toBeOnTheScreen();
-    expect(screen.getByText('Continue')).toBeDisabled();
+    // No challenge, no code field: a calm explanation and a way back, not
+    // six error-bordered cells before any input.
+    expect(screen.getByText(/sign-in session has ended/)).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Authentication code')).toBeNull();
+    expect(screen.queryByText('Continue')).toBeNull();
     expect(mockedCompleteMfaChallenge).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByText('Sign in again'));
+    expect(mockReplace).toHaveBeenCalledWith('/login');
+  });
+
+  it('shows no error styling before a submit fails', async () => {
+    await renderMfaScreen();
+
+    expect(screen.queryByText(/expired|Invalid/)).toBeNull();
   });
 
   it('signs in with a recovery code', async () => {

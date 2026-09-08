@@ -71,6 +71,8 @@ export function LoginBrandHero() {
 type LoginFormSectionProps = {
   control: Control<LoginFormValues>;
   emailRef: RefObject<{ focus(): void } | null>;
+  /** Focused again when the server rejects the password. */
+  passwordRef?: RefObject<{ focus(): void } | null>;
   onSubmit: () => void;
   onForgotPassword: () => void;
 };
@@ -78,6 +80,7 @@ type LoginFormSectionProps = {
 export function LoginFormSection({
   control,
   emailRef,
+  passwordRef,
   onSubmit,
   onForgotPassword,
 }: LoginFormSectionProps) {
@@ -87,6 +90,12 @@ export function LoginFormSection({
       emailRef.current = instance;
     },
     [emailRef],
+  );
+  const setPasswordRef = useCallback(
+    (instance: { focus(): void } | null) => {
+      if (passwordRef) passwordRef.current = instance;
+    },
+    [passwordRef],
   );
   const renderEmail = useCallback(
     ({
@@ -135,6 +144,7 @@ export function LoginFormSection({
         <View className="gap-1">
           <AppText variant="label">Password</AppText>
           <TextInput
+            ref={setPasswordRef}
             value={value}
             onChangeText={onChange}
             autoCapitalize="none"
@@ -151,7 +161,7 @@ export function LoginFormSection({
         </View>
       );
     },
-    [onSubmit, theme.colors.outline, theme.tokens.status.danger],
+    [onSubmit, setPasswordRef, theme.colors.outline, theme.tokens.status.danger],
   );
 
   return (

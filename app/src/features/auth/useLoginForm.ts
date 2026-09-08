@@ -12,18 +12,22 @@ import { getErrorMessage } from '@/utils/errors';
 
 type DialogApi = ReturnType<typeof useDialog>;
 
+export const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password';
+
 async function attemptPasswordLogin({
   email,
   password,
   dialog,
   completeSuccessfulLogin,
   handleMfaPending,
+  rejectPassword,
 }: {
   email: string;
   password: string;
   dialog: DialogApi;
   completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
   handleMfaPending: (pending: MfaLoginPending) => void;
+  rejectPassword: () => void;
 }) {
   try {
     const token = await login(email, password);
@@ -31,11 +35,11 @@ async function attemptPasswordLogin({
       handleMfaPending(token);
       return;
     }
+    // A wrong password is a field error, not a dialog: the user corrects it
+    // in place. Lockouts and other server refusals (429, 5xx) throw an
+    // ApiError and still land in the catch below.
     if (token.status === 'invalid_credentials') {
-      dialog.alert({
-        title: "Couldn't sign in",
-        message: 'Invalid email or password.',
-      });
+      rejectPassword();
       return;
     }
 
@@ -74,26 +78,35 @@ export function useLoginForm({
   completeSuccessfulLogin: (authenticatedUser: User) => Promise<void>;
   handleMfaPending: (pending: MfaLoginPending) => void;
 }) {
-  const { control, handleSubmit } = useForm<LoginFormValues>({
+  const { control, handleSubmit, setError } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
     defaultValues: { email: '', password: '' },
   });
   const emailRef = useRef<{ focus(): void } | null>(null);
+  const passwordRef = useRef<{ focus(): void } | null>(null);
 
-  const validatedSubmit = handleSubmit(async (data: LoginFormValues) => {
-    await attemptPasswordLogin({
-      email: data.email,
-      password: data.password,
-      dialog,
-      completeSuccessfulLogin,
-      handleMfaPending,
-    });
-  });
+  // Built at press time, not render time: the compiler's ref rule only lets
+  // an event handler read passwordRef.
+  const validatedSubmit = () =>
+    handleSubmit(async (data: LoginFormValues) => {
+      await attemptPasswordLogin({
+        email: data.email,
+        password: data.password,
+        dialog,
+        completeSuccessfulLogin,
+        handleMfaPending,
+        // Inline field error; focus stays put so the retry is one keystroke away.
+        rejectPassword: () => {
+          setError('password', { type: 'server', message: INVALID_CREDENTIALS_MESSAGE });
+          passwordRef.current?.focus();
+        },
+      });
+    })();
 
   // onSubmitEditing and the button can race (two /mfa screens, double
   // navigate). Guarded here; the compiler's ref rule forbids it inside the handler.
   const submit = useSingleFlight(validatedSubmit);
 
-  return { control, emailRef, submit };
+  return { control, emailRef, passwordRef, submit };
 }

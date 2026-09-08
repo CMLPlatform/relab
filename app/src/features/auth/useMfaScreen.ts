@@ -25,7 +25,6 @@ export function useMfaScreen() {
   const activeCode = useRecoveryCode ? recoveryCode.trim() : code;
   const canSubmit =
     Boolean(token) && (useRecoveryCode ? activeCode.length >= 6 : code.length === 6);
-  const visibleError = error ?? (pending ? null : 'MFA session expired. Please sign in again.');
   const handleCodeChange = useCallback((value: string) => setCode(normalizeTotpCode(value)), []);
   const handleRecoveryCodeChange = useCallback((value: string) => setRecoveryCode(value), []);
   const toggleRecoveryMode = useCallback(() => {
@@ -82,7 +81,9 @@ export function useMfaScreen() {
     isSubmitting,
     canSubmit,
     tokenPresent: Boolean(token),
-    visibleError,
+    // Only a failed submit is an error; a missing session is its own calm
+    // state on the screen, not red inputs before any input.
+    visibleError: error,
     handleCodeChange,
     handleRecoveryCodeChange,
     toggleRecoveryMode,

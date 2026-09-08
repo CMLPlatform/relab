@@ -28,6 +28,7 @@ export default function Login() {
           <LoginFormSection
             control={form.control}
             emailRef={form.emailRef}
+            passwordRef={form.passwordRef}
             onSubmit={handleSubmit}
             onForgotPassword={actions.goToForgotPassword}
           />

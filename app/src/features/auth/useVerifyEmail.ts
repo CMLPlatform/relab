@@ -17,13 +17,14 @@ export function useVerifyEmail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // A direct visit with no token is not a failed verification: nothing was tried.
+  const missingToken = !token;
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       if (!token) {
-        setError('No verification token provided. Please check your verification email.');
         setIsLoading(false);
         return;
       }
@@ -65,6 +66,7 @@ export function useVerifyEmail() {
 
   return {
     isLoading,
+    missingToken,
     error,
     success,
     isLoggedIn: Boolean(user),

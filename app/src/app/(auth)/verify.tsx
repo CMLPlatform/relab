@@ -12,7 +12,8 @@ import { AppText } from '@/components/base/AppText';
 import { useVerifyEmail } from '@/features/auth/useVerifyEmail';
 
 export default function VerifyEmailScreen() {
-  const { isLoading, error, success, isLoggedIn, goToLogin, goHome } = useVerifyEmail();
+  const { isLoading, missingToken, error, success, isLoggedIn, goToLogin, goHome } =
+    useVerifyEmail();
 
   return (
     <>
@@ -27,6 +28,23 @@ export default function VerifyEmailScreen() {
               <AppText variant="body">Verifying your email…</AppText>
             </View>
           ) : null}
+
+          {missingToken && !isLoading && (
+            <Animated.View entering={RESULT_FADE}>
+              <View className="gap-3 items-center">
+                <AppText variant="body" className="text-center">
+                  This page needs the link from your verification email. Open that link, or sign in
+                  to request a new one.
+                </AppText>
+                <AppButton variant="primary" onPress={goToLogin}>
+                  Sign in again
+                </AppButton>
+                <AppButton variant="ghost" onPress={goHome}>
+                  Back to home
+                </AppButton>
+              </View>
+            </Animated.View>
+          )}
 
           {error && !isLoading && (
             <Animated.View entering={RESULT_FADE}>

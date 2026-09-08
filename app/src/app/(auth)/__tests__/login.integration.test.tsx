@@ -294,7 +294,8 @@ describe('Login screen', () => {
     });
   });
 
-  it('shows sign-in failure dialog when login returns null', async () => {
+  // A wrong password is corrected in place: an inline field error, no dialog.
+  it('shows an inline password error when the credentials are rejected', async () => {
     mockedLogin.mockResolvedValue({ status: 'invalid_credentials' });
 
     await renderWithProviders(<Login />, { withDialog: true });
@@ -306,13 +307,12 @@ describe('Login screen', () => {
     });
 
     await waitFor(() => {
-      expect(mockDialogApi.alert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "Couldn't sign in",
-          message: 'Invalid email or password.',
-        }),
-      );
+      expect(screen.getByText('Invalid email or password')).toBeOnTheScreen();
     });
+    expect(screen.getByLabelText('Password').props.accessibilityDescribedBy).toBe(
+      'login-password-error',
+    );
+    expect(mockDialogApi.alert).not.toHaveBeenCalled();
   });
 
   it('shows sign-in failure dialog on login exception', async () => {

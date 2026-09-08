@@ -26,6 +26,32 @@ export default function MfaScreen() {
   } = useMfaScreen();
   const submitCurrent = useCallback(() => submit(), [submit]);
 
+  // Opened without a pending challenge (direct visit, reload, or the session
+  // ended): nothing to type into, so explain and route back instead.
+  if (!tokenPresent) {
+    return (
+      <>
+        <Head>
+          <title>Two-step verification · Relab</title>
+        </Head>
+        <AuthScreen>
+          <AuthCard
+            title="Two-step verification"
+            subtitle={
+              <AppText variant="body" style={{ opacity: 0.7 }}>
+                Your sign-in session has ended. Sign in again to get a new code.
+              </AppText>
+            }
+          >
+            <AppButton variant="primary" onPress={goToLogin}>
+              Sign in again
+            </AppButton>
+          </AuthCard>
+        </AuthScreen>
+      </>
+    );
+  }
+
   return (
     <>
       <Head>
@@ -51,7 +77,7 @@ export default function MfaScreen() {
                 autoCapitalize="characters"
                 autoCorrect={false}
                 autoComplete="off"
-                editable={!isSubmitting && tokenPresent}
+                editable={!isSubmitting}
                 placeholder="One of your saved codes"
                 accessibilityLabel="Recovery code"
                 bordered
@@ -62,7 +88,7 @@ export default function MfaScreen() {
               value={code}
               onChangeText={handleCodeChange}
               onComplete={submit}
-              disabled={isSubmitting || !tokenPresent}
+              disabled={isSubmitting}
               hasError={Boolean(visibleError)}
               autoFocus
               label="Authentication code"
@@ -80,7 +106,7 @@ export default function MfaScreen() {
             {useRecoveryCode ? 'Sign in' : 'Continue'}
           </AppButton>
 
-          <AppButton variant="ghost" onPress={toggleRecoveryMode} disabled={!tokenPresent}>
+          <AppButton variant="ghost" onPress={toggleRecoveryMode}>
             {useRecoveryCode ? 'Use your authenticator app' : 'Use a recovery code'}
           </AppButton>
 
