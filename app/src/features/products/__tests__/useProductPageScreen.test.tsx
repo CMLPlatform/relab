@@ -96,6 +96,7 @@ const baseProduct = {
 
 const baseFormReturn = {
   product: baseProduct,
+  serverProduct: baseProduct,
   editMode: false,
   isDirty: false,
   isProductComponent: false,
@@ -220,6 +221,12 @@ describe('useProductPageScreen', () => {
         parentID: 17,
         parentRole: 'component',
       },
+      serverProduct: {
+        ...baseProduct,
+        role: 'component',
+        parentID: 17,
+        parentRole: 'component',
+      },
       isProductComponent: true,
     });
     mockUseAncestorTrail.mockReturnValueOnce({ ancestors: [], isLoading: true });
@@ -245,6 +252,7 @@ describe('useProductPageScreen', () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: { ...baseProduct, id: undefined, parentID: undefined },
+      serverProduct: undefined,
       isProductComponent: false,
       isLoading: true,
     });
@@ -262,12 +270,38 @@ describe('useProductPageScreen', () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: { ...baseProduct, role: 'component', parentID: 17, parentRole: 'product' },
+      serverProduct: { ...baseProduct, role: 'component', parentID: 17, parentRole: 'product' },
       isProductComponent: true,
       isLoading: false,
     });
 
     await act(async () => {
       await rerender({});
+    });
+
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/products/[id]',
+      params: { id: '17' },
+    });
+  });
+
+  it('reads the back target from the loaded record while the form still holds the sentinel', async () => {
+    // The query resolves one commit before `useProductFormHydration` resets the
+    // form, so there is always a frame where `isLoading` is false and `product`
+    // is still the blank `newProduct()` sentinel (role 'product', no parentID).
+    // A back press captured in that frame used to replace to '/products'.
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, id: undefined, role: 'product', parentID: undefined },
+      serverProduct: { ...baseProduct, role: 'component', parentID: 17, parentRole: 'product' },
+      isProductComponent: false,
+      isLoading: false,
+    });
+
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'component' }));
+
+    await act(() => {
+      result.current.actions.goBackWithGuards();
     });
 
     expect(mockReplace).toHaveBeenCalledWith({

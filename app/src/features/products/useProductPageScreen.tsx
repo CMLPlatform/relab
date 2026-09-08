@@ -62,6 +62,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
 
   const {
     product,
+    serverProduct,
     editMode,
     isDirty,
     isProductComponent,
@@ -143,41 +144,51 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
     [product, activeStream, rpiEnabled, youtubeEnabled, isGoogleLinked, isProductComponent],
   );
 
-  // Until the query resolves, `product` is the loading sentinel (role
-  // 'product'), so a back press would send a component to the list instead of
-  // its parent. Park the press and replay it once the record arrives.
+  // Read the back target from the fetched record, not the watched form: the
+  // form holds the blank `newProduct()` sentinel (role 'product', no parentID)
+  // until hydration resets it, one commit after `isLoading` has already gone
+  // false — so a header closure captured in that frame sent a component to the
+  // products list instead of to its parent. Park the press until the record is
+  // in hand; a failed or absent fetch falls through rather than deadlocking the
+  // control.
+  const hasRecordId = Number.isFinite(Number.parseInt(id ?? '', 10));
+  const recordSettled = !hasRecordId || serverProduct !== undefined || isError;
+  // `product` is a fresh useWatch reference every render; pin the three fields
+  // the target depends on so the header effect does not re-run each render.
+  const backSource = serverProduct ?? product;
+  const backTarget = useMemo(
+    () => ({
+      role: backSource.role,
+      parentID: backSource.parentID,
+      parentRole: backSource.parentRole,
+    }),
+    [backSource.role, backSource.parentID, backSource.parentRole],
+  );
   const pendingBackRef = useRef(false);
   const navigateBack = useCallback(() => {
-    if (isLoading) {
+    if (!recordSettled) {
       pendingBackRef.current = true;
       return;
     }
-    if (isProductComponent && product.parentID) {
-      const parentRole = product.parentRole ?? directParent?.role;
+    if (backTarget.role === 'component' && backTarget.parentID) {
+      const parentRole = backTarget.parentRole ?? directParent?.role;
       const parentIsComponent = parentRole === 'component';
       router.replace({
         pathname: parentIsComponent ? '/components/[id]' : '/products/[id]',
-        params: { id: product.parentID.toString() },
+        params: { id: backTarget.parentID.toString() },
       });
     } else {
       router.replace('/products');
     }
-  }, [
-    directParent?.role,
-    isLoading,
-    isProductComponent,
-    product.parentID,
-    product.parentRole,
-    router,
-  ]);
+  }, [backTarget, directParent?.role, recordSettled, router]);
   useEffect(() => {
     navigateBackRef.current = navigateBack;
   }, [navigateBack]);
   useEffect(() => {
-    if (isLoading || !pendingBackRef.current) return;
+    if (!recordSettled || !pendingBackRef.current) return;
     pendingBackRef.current = false;
     navigateBack();
-  }, [isLoading, navigateBack]);
+  }, [recordSettled, navigateBack]);
 
   const goBackWithGuards = useCallback(() => {
     if (hasUnsavedChanges || capabilities.streamingThisProduct) {
