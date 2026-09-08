@@ -46,6 +46,14 @@ the same day it was taken.
 just timers-install prod      # render, install, enable, start (prompts for sudo; not `sudo just`)
 ```
 
+The units run as whoever runs that command. On a host with a dedicated, sudo-less deploy user,
+run it from an account that has sudo and name the deploy user; the units then run as it, own
+`/etc/relab/relab.env`, and find its per-user `uv` through the rendered `PATH`:
+
+```bash
+RELAB_UNIT_USER=relab just timers-install prod
+```
+
 | Job                             | When             | Catch-up                                                |
 | ------------------------------- | ---------------- | ------------------------------------------------------- |
 | `relab-backup@prod`             | hourly           | yes: an hour missed while the host was off runs at boot |
