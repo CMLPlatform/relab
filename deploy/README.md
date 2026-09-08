@@ -6,7 +6,6 @@ Three runbooks: which host, and whether it is a routine release or the one-time 
 |                        | **Production**                     | **Staging**                            |
 | ---------------------- | ---------------------------------- | -------------------------------------- |
 | **Routine release**    | [DEPLOY-PROD.md](DEPLOY-PROD.md)   | [DEPLOY-STAGING.md](DEPLOY-STAGING.md) |
-| **One-time migration** | [CUTOVER-PROD.md](CUTOVER-PROD.md) | done 2026-09-06, deleted               |
 
 [CMLPlatform/monitoring](https://github.com/CMLPlatform/monitoring) owns the monitoring
 architecture: its ADR 0002 records the hub-and-spoke design and `templates/README.md` how a project
@@ -15,11 +14,8 @@ onboards. Relab is one spoke; the Relab-specific parts live in the `DEPLOY-*` ru
 `DEPLOY-*` is permanent: first-time host setup, the routine release loop, and recovery. Start there
 for anything you do more than once.
 
-`CUTOVER-*` covers only the one-time move off `main`: the drift analysis, the secret and role
-migration, the data checks, the encryption pass. **Delete `CUTOVER-PROD.md` once the MVP migration
-is done on prod.** At deletion time, drop its cell from the table above and `rg CUTOVER-`: a couple
-of code comments name the migration steps (`backend/justfile`'s `backfill-upload-sizes` goes with
-them).
+The one-time cutover runbooks are gone: staging moved on 2026-09-06 and prod on 2026-09-08. The
+history is in git (`git log -- deploy/CUTOVER-PROD.md`) if a step ever needs re-reading.
 
 Rehearse on staging before prod. The two hosts share `compose.deploy.yaml`, so a step that has only
 ever run on prod has never been tested.

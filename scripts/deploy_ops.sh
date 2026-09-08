@@ -652,7 +652,16 @@ stack_command() {
             fi
             ;;
         logs)
-            run_deploy_compose "$env" logs -f
+            # Follows by default; extra arguments replace -f (remote_deploy.sh passes
+            # --since/--tail because a forced ssh command has no pty to interrupt).
+            if (($# > 0)); then
+                run_deploy_compose "$env" logs "$@"
+            else
+                run_deploy_compose "$env" logs -f
+            fi
+            ;;
+        ps)
+            run_deploy_compose "$env" ps --format 'table {{.Service}}\t{{.Status}}\t{{.Image}}'
             ;;
         rollback)
             # `just <env>-rollback YES <sha> [<revision>]`: retag the images a previous
