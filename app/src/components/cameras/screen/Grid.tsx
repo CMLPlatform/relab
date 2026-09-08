@@ -9,6 +9,7 @@ import {
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
+import { StaticBackground } from '@/components/base/StaticBackground';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import {
   type EffectiveConnectionSnapshot,
@@ -81,7 +82,8 @@ export function CamerasGrid({
         ) : null
       }
       ListEmptyComponent={
-        <View className="flex-1 items-center justify-center p-8">
+        <View className="flex-1 items-center justify-center p-8" testID="cameras-empty-state">
+          <StaticBackground scrim={theme.tokens.overlay.hero} />
           <View className="opacity-40">
             <Icon name="camera-off" size={64} color={theme.colors.onSurfaceVariant} />
           </View>
@@ -152,6 +154,8 @@ const CameraGridCell = memo(function CameraGridCell({
         onPress={handlePress}
         onLongPress={handleLongPress}
         delayLongPress={350}
+        // The name comes from CameraCard's own label inside.
+        accessibilityRole="button"
         style={cellStyle}
       >
         <CameraCard camera={camera} effectiveConnection={effectiveConnection} />

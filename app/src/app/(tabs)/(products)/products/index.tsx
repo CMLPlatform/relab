@@ -24,7 +24,7 @@ const SORT_OPTIONS = PRODUCT_SORT_OPTIONS;
 
 export default function Products() {
   const colorScheme = useEffectiveColorScheme();
-  const bgOverlay = getAppTheme(colorScheme).tokens.overlay.page;
+  const bgOverlay = getAppTheme(colorScheme).colors.background;
   const { width } = useWindowDimensions();
   const numColumns = productGridColumns(width);
 

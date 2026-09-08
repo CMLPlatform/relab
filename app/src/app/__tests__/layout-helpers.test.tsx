@@ -81,19 +81,23 @@ describe('layout helpers rendering', () => {
   // Reads the values from the tokens rather than restating them: hardcoded
   // rgba literals here just break whenever the scrim is retuned.
   it('returns the overlay for normal and auth routes', async () => {
-    const light = getAppTheme('light').tokens.overlay;
+    const light = getAppTheme('light');
     const dark = getAppTheme('dark').tokens.overlay;
     const { result, rerender } = await renderHook<BackgroundOverlay, { isDark: boolean }>(
       ({ isDark }) => useBackgroundOverlay(isDark),
       { initialProps: { isDark: false } },
     );
 
-    expect(result.current).toEqual({ color: light.page, edgeColor: null });
+    expect(result.current).toEqual({
+      color: light.colors.background,
+      edgeColor: null,
+      photo: false,
+    });
 
     mockUsePathname.mockReturnValue('/login');
     await rerender({ isDark: true });
 
     // /login is a band route: gradient, not the flat hero scrim.
-    expect(result.current).toEqual({ color: dark.heroBand, edgeColor: dark.heroEdge });
+    expect(result.current).toEqual({ color: dark.heroBand, edgeColor: dark.heroEdge, photo: true });
   });
 });

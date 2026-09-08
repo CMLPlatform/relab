@@ -19,4 +19,14 @@ describe('StaticBackground', () => {
     await render(<StaticBackground />);
     expect(screen.getByTestId('expo-image-bg', { includeHiddenElements: true })).toBeOnTheScreen();
   });
+
+  it('paints the scrim over the photo when one is given', async () => {
+    const { toJSON } = await render(<StaticBackground scrim="rgba(1,2,3,0.5)" />);
+    expect(JSON.stringify(toJSON())).toContain('rgba(1,2,3,0.5)');
+  });
+
+  it('paints no scrim by default', async () => {
+    const { toJSON } = await render(<StaticBackground />);
+    expect(JSON.stringify(toJSON())).not.toContain('backgroundColor');
+  });
 });

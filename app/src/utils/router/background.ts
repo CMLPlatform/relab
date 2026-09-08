@@ -17,17 +17,20 @@ export type BackgroundOverlay = {
   color: string;
   /** Edge colour of the band routes' horizontal gradient; `null` means a flat fill. */
   edgeColor: string | null;
+  /** Whether the teardown photo is mounted under the fill (auth routes only). */
+  photo: boolean;
 };
 
-/** The scrim drawn over the static background image for the current route. */
+/** The route's backdrop: photo + scrim on auth routes, the plain theme background elsewhere. */
 export function useBackgroundOverlay(isDark: boolean): BackgroundOverlay {
   const pathname = usePathname();
-  const { overlay } = getAppTheme(isDark ? 'dark' : 'light').tokens;
+  const { colors, tokens } = getAppTheme(isDark ? 'dark' : 'light');
+  const { overlay } = tokens;
   if (isBandPath(pathname)) {
-    return { color: overlay.heroBand, edgeColor: overlay.heroEdge };
+    return { color: overlay.heroBand, edgeColor: overlay.heroEdge, photo: true };
   }
   if (isHeroPath(pathname)) {
-    return { color: overlay.hero, edgeColor: null };
+    return { color: overlay.hero, edgeColor: null, photo: true };
   }
-  return { color: overlay.page, edgeColor: null };
+  return { color: colors.background, edgeColor: null, photo: false };
 }

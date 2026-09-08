@@ -2,7 +2,9 @@ import { ImageBackground } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 
-export function StaticBackground() {
+// Decorative teardown photo. Only the auth group and empty states mount it;
+// content screens sit on the plain theme background.
+export function StaticBackground({ scrim }: { scrim?: string } = {}) {
   const colorScheme = useEffectiveColorScheme();
 
   const image =
@@ -14,6 +16,7 @@ export function StaticBackground() {
   return (
     <View style={StyleSheet.absoluteFill} aria-hidden pointerEvents="none">
       <ImageBackground source={image} style={StyleSheet.absoluteFill} />
+      {scrim ? <View style={[StyleSheet.absoluteFill, { backgroundColor: scrim }]} /> : null}
     </View>
   );
 }
