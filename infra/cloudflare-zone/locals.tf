@@ -149,15 +149,20 @@ locals {
       # time and ships its fixture instead when the fetch is challenged. One rule for both
       # because the Free plan allows five in this phase. This zone's plan has no `matches`
       # operator, so the prefix stands in for `^/v1/products/[0-9]+(/components/tree)?$`;
-      # every GET under it is an unauthenticated read.
+      # every GET under it is an unauthenticated read. OPTIONS is the browser's CORS
+      # preflight: it carries no body, changes nothing, and a challenged preflight kills
+      # every cross-origin call the app makes (a keyed E2E run adds a custom header, which
+      # forces a preflight on each request), so it skips too.
       ref         = "relab_public_reads_skip_bot_fight_mode"
-      description = "Skip Super Bot Fight Mode for public read-only stats and product endpoints"
+      description = "Skip Super Bot Fight Mode for public read-only stats and product endpoints and CORS preflights"
       expression = join(" and ", [
         local.api_hosts_expression,
-        "http.request.method eq \"GET\"",
         "(${join(" or ", [
-          "starts_with(http.request.uri.path, \"/v1/stats/\")",
-          "starts_with(http.request.uri.path, \"/v1/products/\")",
+          "http.request.method eq \"OPTIONS\"",
+          "(http.request.method eq \"GET\" and (${join(" or ", [
+            "starts_with(http.request.uri.path, \"/v1/stats/\")",
+            "starts_with(http.request.uri.path, \"/v1/products/\")",
+          ])}))",
         ])})",
       ])
       action = "skip"

@@ -187,14 +187,28 @@ run "public_reads_skip_bot_fight_mode" {
     error_message = "public stats and product reads must skip Super Bot Fight Mode on GET."
   }
 
-  # Writes must stay behind the bot products.
+  # CORS preflights: a challenged OPTIONS blocks every cross-origin call from the app.
+  assert {
+    condition = anytrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref == "relab_public_reads_skip_bot_fight_mode" &&
+      strcontains(rule.expression, "http.request.method eq \"OPTIONS\"")
+    ])
+    error_message = "CORS preflights (OPTIONS) must skip Super Bot Fight Mode on the api hosts."
+  }
+
+  # Writes must stay behind the bot products: no POST/PUT/PATCH/DELETE in the expression.
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref != "relab_public_reads_skip_bot_fight_mode" ||
-      rule.action_parameters.phases == tolist(["http_request_sbfm"])
+      (rule.action_parameters.phases == tolist(["http_request_sbfm"]) &&
+        !strcontains(rule.expression, "\"POST\"") &&
+        !strcontains(rule.expression, "\"PATCH\"") &&
+        !strcontains(rule.expression, "\"PUT\"") &&
+      !strcontains(rule.expression, "\"DELETE\""))
     ])
-    error_message = "the public read rule must skip Super Bot Fight Mode only."
+    error_message = "the public read rule must skip Super Bot Fight Mode only, and never for writes."
   }
 }
 
