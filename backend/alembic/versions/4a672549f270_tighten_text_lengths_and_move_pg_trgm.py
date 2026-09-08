@@ -8,10 +8,16 @@
   ... SET SCHEMA``: a trusted extension's member objects belong to the bootstrap
   superuser, so that is superuser-only and the migrator role cannot run it. The
   extension is dropped and recreated instead, which the migrator may do because it
-  owns both the extension and the trigram indexes. Those eleven indexes are dropped
-  first and rebuilt against ``extensions.gin_trgm_ops`` afterwards; a plain
-  ``CREATE INDEX`` takes a write lock on each table, which is fine at the current
-  sizes. Every ``%`` operator and ``gin_trgm_ops`` reference in the app is
+  owns both the extension and the trigram indexes. All eleven are dropped first and
+  the seven search ones rebuilt against ``extensions.gin_trgm_ops`` afterwards; a
+  plain ``CREATE INDEX`` takes a write lock on each table, which is fine at the
+  current sizes.
+* The four admin-list trigram indexes are not rebuilt. On prod ``image`` holds 4452
+  rows against 18.6k writes and both of its trigram indexes (``image_filename_trgm_idx``
+  alone is 1.1 MB) have never been scanned; ``user`` holds 34 rows. An unanchored ILIKE
+  over tables that size seq-scans in well under a millisecond, while the GIN indexes
+  cost on every write. ``downgrade()`` recreates all eleven, so prod's pre-upgrade
+  schema is still reachable. Every ``%`` operator and ``gin_trgm_ops`` reference in the app is
   schema-qualified too, because the test database does not get the
   ``public, extensions, pg_catalog`` search_path provision.sh sets on deployed roles.
 * ``video.title`` widens 100 -> 200 and ``user.username`` gains the 50-character
@@ -38,9 +44,10 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 ROLLBACK_SAFE = True  # upgrade() drops indexes and the extension, and recreates every one of them
 
-# (index, table, indexed expression) for every trigram index, in the shape the flat
-# initial revision creates them. The opclass schema is the only thing that changes.
-TRIGRAM_INDEXES = (
+# (index, table, indexed expression), in the shape the flat initial revision creates
+# them. The seven search indexes are rebuilt in the new schema; the four admin-list ones
+# are dropped for good.
+SEARCH_TRIGRAM_INDEXES = (
     ("category_name_trgm_idx", "category", "relab_unaccent(name)"),
     ("material_name_trgm_idx", "material", "relab_unaccent(name)"),
     ("producttype_name_trgm_idx", "producttype", "relab_unaccent(name)"),
@@ -48,6 +55,8 @@ TRIGRAM_INDEXES = (
     ("product_name_trgm_idx", "product", "relab_unaccent(name)"),
     ("product_brand_trgm_idx", "product", "relab_unaccent(brand)"),
     ("product_model_trgm_idx", "product", "relab_unaccent(model)"),
+)
+ADMIN_LIST_TRIGRAM_INDEXES = (
     ("user_email_trgm_idx", '"user"', "email"),
     ("user_username_trgm_idx", '"user"', "username"),
     ("image_filename_trgm_idx", "image", "filename"),
@@ -55,21 +64,23 @@ TRIGRAM_INDEXES = (
 )
 
 
-def _move_pg_trgm(schema: str) -> None:
-    """Drop the trigram indexes, move pg_trgm to *schema*, then rebuild them there."""
-    for index, _table, _expression in TRIGRAM_INDEXES:
+def _move_pg_trgm(
+    schema: str, drop: tuple[tuple[str, str, str], ...], create: tuple[tuple[str, str, str], ...]
+) -> None:
+    """Drop *drop*'s indexes, move pg_trgm to *schema*, then build *create*'s indexes there."""
+    for index, _table, _expression in drop:
         op.execute(f"DROP INDEX {index}")
     # No CASCADE: the drops above are what makes the dependency visible in review.
     op.execute("DROP EXTENSION pg_trgm")
     op.execute(f"CREATE EXTENSION pg_trgm SCHEMA {schema}")
-    for index, table, expression in TRIGRAM_INDEXES:
+    for index, table, expression in create:
         op.execute(f"CREATE INDEX {index} ON {table} USING gin ({expression} {schema}.gin_trgm_ops)")
 
 
 def upgrade() -> None:
     op.execute("SET LOCAL lock_timeout = '3s'")
     op.execute('ALTER TABLE "user" RENAME CONSTRAINT user_stats_cache_not_null TO user_profile_stats_not_null')
-    _move_pg_trgm("extensions")
+    _move_pg_trgm("extensions", SEARCH_TRIGRAM_INDEXES + ADMIN_LIST_TRIGRAM_INDEXES, SEARCH_TRIGRAM_INDEXES)
     op.execute("ALTER TABLE video ALTER COLUMN title TYPE VARCHAR(200)")
     op.execute('ALTER TABLE "user" ALTER COLUMN username TYPE VARCHAR(50)')
 
@@ -78,5 +89,5 @@ def downgrade() -> None:
     op.execute("SET LOCAL lock_timeout = '3s'")
     op.execute('ALTER TABLE "user" ALTER COLUMN username TYPE VARCHAR')
     op.execute("ALTER TABLE video ALTER COLUMN title TYPE VARCHAR")
-    _move_pg_trgm("public")
+    _move_pg_trgm("public", SEARCH_TRIGRAM_INDEXES, SEARCH_TRIGRAM_INDEXES + ADMIN_LIST_TRIGRAM_INDEXES)
     op.execute('ALTER TABLE "user" RENAME CONSTRAINT user_profile_stats_not_null TO user_stats_cache_not_null')

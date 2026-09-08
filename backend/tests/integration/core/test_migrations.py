@@ -258,3 +258,23 @@ def test_text_length_and_extension_placement(migration_helper: MigrationHelper) 
     )
     assert lengths["video.title"] == 200
     assert lengths["user.username"] == 50
+
+
+@pytest.mark.migration
+def test_trigram_indexes_are_search_only_and_schema_qualified(migration_helper: MigrationHelper) -> None:
+    """The seven search trigram indexes moved schema; the four admin-list ones are gone."""
+    definitions = dict(
+        migration_helper.execute_sql("SELECT indexname, indexdef FROM pg_indexes WHERE indexname LIKE '%_trgm_idx'")
+    )
+    expected = {
+        "category_name_trgm_idx",
+        "material_name_trgm_idx",
+        "producttype_name_trgm_idx",
+        "producttype_description_trgm_idx",
+        "product_name_trgm_idx",
+        "product_brand_trgm_idx",
+        "product_model_trgm_idx",
+    }
+    assert set(definitions) == expected
+    for name, definition in definitions.items():
+        assert "extensions.gin_trgm_ops" in definition, (name, definition)

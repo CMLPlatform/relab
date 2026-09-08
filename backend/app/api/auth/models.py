@@ -31,17 +31,9 @@ class User(BaseUserDB, TimeStampMixinBare):
         CheckConstraint(f"role IN ({_ROLE_VALUES_SQL})", name=USER_ROLE_CHECK_CONSTRAINT_NAME),
         CheckConstraint("upload_file_count >= 0", name="ck_user_upload_file_count_non_negative"),
         CheckConstraint("upload_total_bytes >= 0", name="ck_user_upload_total_bytes_non_negative"),
-        # The admin user list does an unanchored ILIKE on email OR username; both need a
-        # trigram index or Postgres seq-scans the whole OR.
-        Index(
-            "user_email_trgm_idx", "email", postgresql_using="gin", postgresql_ops={"email": "extensions.gin_trgm_ops"}
-        ),
-        Index(
-            "user_username_trgm_idx",
-            "username",
-            postgresql_using="gin",
-            postgresql_ops={"username": "extensions.gin_trgm_ops"},
-        ),
+        # The admin user list does an unanchored ILIKE on email OR username and
+        # seq-scans on purpose: at a few dozen rows that is faster than a GIN probe and
+        # costs nothing on write. Add a trigram index back past ~100k rows.
     )
 
     username: Mapped[str | None] = mapped_column(String(50), index=True, unique=True, default=None)

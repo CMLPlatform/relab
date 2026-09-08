@@ -55,18 +55,8 @@ class Image(TimeStampMixinBare, Base):
         Index("ix_image_parent_type_parent_id_created_at", "parent_type", "parent_id", "created_at"),
         # Partial index for the stats series, which buckets product images by period.
         Index("ix_image_product_created_at", "created_at", postgresql_where=text("parent_type = 'PRODUCT'")),
-        Index(
-            "image_filename_trgm_idx",
-            "filename",
-            postgresql_using="gin",
-            postgresql_ops={"filename": "extensions.gin_trgm_ops"},
-        ),
-        Index(
-            "image_description_trgm_idx",
-            "description",
-            postgresql_using="gin",
-            postgresql_ops={"description": "extensions.gin_trgm_ops"},
-        ),
+        # No trigram index on filename or description: the admin media list seq-scans
+        # them, which is cheaper than GIN upkeep on every upload. Revisit past ~100k rows.
         {"postgresql_with": {"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02}},
     )
 
