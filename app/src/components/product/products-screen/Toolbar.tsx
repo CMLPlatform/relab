@@ -6,12 +6,7 @@ import { AppText } from '@/components/base/AppText';
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { Icon } from '@/components/base/Icon';
 import { Searchbar } from '@/components/base/Searchbar';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme';
-
-// Web-only hint for the "/" shortcut (useProductSearchShortcut).
-const SHORT_SEARCH_PLACEHOLDER = 'Search products';
-const WIDE_SEARCH_PLACEHOLDER = 'Search products ("/" to focus)';
 
 type ProductsSearchToolbarProps = {
   searchRef?: RefObject<TextInput | null>;
@@ -37,7 +32,6 @@ export function ProductsSearchToolbar({
   onClearSearch,
   onToggleFilters,
 }: ProductsSearchToolbarProps) {
-  const { isMd } = useBreakpoint();
   const { colors } = useAppTheme();
   const filterVariant = activeFilterCount > 0 ? 'tonal' : 'ghost';
   const filterForeground = VARIANT_FOREGROUND_COLOR[filterVariant](colors);
@@ -55,7 +49,7 @@ export function ProductsSearchToolbar({
     <View className="flex-row items-center gap-1">
       <Searchbar
         ref={searchRef}
-        placeholder={isMd ? WIDE_SEARCH_PLACEHOLDER : SHORT_SEARCH_PLACEHOLDER}
+        placeholder="Search products"
         accessibilityLabel="Search products"
         onChangeText={handleSearchChange}
         value={searchQuery}
