@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import type { useDialog } from '@/components/base/dialogContext';
+import { SUPPORT_EMAIL } from '@/constants';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { getUser, login } from '@/services/api/auth/authentication';
 import type { MfaLoginPending } from '@/services/api/auth/authMfa';
@@ -50,7 +51,7 @@ async function attemptPasswordLogin({
     if (!authenticatedUser.isActive) {
       dialog.alert({
         title: 'Account suspended',
-        message: 'Your account has been suspended. Please contact support.',
+        message: `Your account has been suspended. Email ${SUPPORT_EMAIL} if you think this is a mistake.`,
       });
       return;
     }

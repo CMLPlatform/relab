@@ -3,6 +3,7 @@ import { type MutableRefObject, useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import type { useDialog } from '@/components/base/dialogContext';
 import { API_URL } from '@/config';
+import { SUPPORT_EMAIL } from '@/constants';
 import { getUser, markWebSessionActive } from '@/services/api/auth/authentication';
 import { claimOAuthMfaHandoff, type MfaLoginPending } from '@/services/api/auth/authMfa';
 import {
@@ -10,6 +11,7 @@ import {
   fetchOAuthAuthorizationUrl,
   isAllowedOAuthRedirectUrl,
   isExpectedOAuthCallbackUrl,
+  OAUTH_BLOCKED_URL_MESSAGE,
   type OAuthCallbackResult,
   openOAuthBrowserSession,
   parseOAuthCallbackUrl,
@@ -34,7 +36,7 @@ function getOAuthErrorMessage(error?: string, platform: 'ios' | 'android' | 'web
     return 'Access was declined. Try again and allow access to sign in.';
   }
   if (error === 'invalid_scope') {
-    return 'Invalid scope requested. Please contact support.';
+    return `Invalid scope requested. Email ${SUPPORT_EMAIL} so we can fix it.`;
   }
   if (error === 'server_error' || error === 'temporarily_unavailable') {
     return 'The provider is temporarily unavailable. Please try again in a moment.';
@@ -124,7 +126,7 @@ async function finalizeOAuthSession({
   if (!authenticatedUser.isActive) {
     dialog.alert({
       title: 'Account suspended',
-      message: 'Your account has been suspended. Please contact support.',
+      message: `Your account has been suspended. Email ${SUPPORT_EMAIL} if you think this is a mistake.`,
     });
     return;
   }
@@ -164,7 +166,7 @@ async function startOAuthLogin({
     }
 
     if (!isAllowedOAuthRedirectUrl(authorization.authorizationUrl)) {
-      throw new Error('Unexpected authorization URL received. Please try again.');
+      throw new Error(OAUTH_BLOCKED_URL_MESSAGE);
     }
 
     if (Platform.OS === 'web') {
@@ -177,7 +179,7 @@ async function startOAuthLogin({
     if (result?.type !== 'success' || !result.url) return;
 
     if (!isExpectedOAuthCallbackUrl(result.url, redirectUri)) {
-      throw new Error('Unexpected OAuth callback URL received. Please try again.');
+      throw new Error(OAUTH_BLOCKED_URL_MESSAGE);
     }
 
     const callback = parseOAuthCallbackUrl(result.url);
