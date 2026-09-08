@@ -198,6 +198,36 @@ Then look for `service.name=backup` and the line `Backup run completed` in Grafa
 
 ______________________________________________________________________
 
+### 1.6 A deploy user and a restricted key
+
+The host runs prod from a checkout nobody edits, as a sudo-less account, and is only ever *reached*
+from the dev host; agents, credentials and working trees stay on the dev host.
+
+```bash
+sudo useradd --system --create-home --home-dir /var/lib/relab --shell /bin/bash --groups docker relab
+sudo git clone https://github.com/CMLPlatform/relab.git /opt/relab
+sudo chown -R relab:relab /opt/relab
+sudo -u relab sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'   # ~/.local/bin/uv; `uv self update` to move it
+sudo install -o relab -g relab -m 600 <old checkout>/.env /opt/relab/.env
+sudo install -d -o relab -g relab -m 700 /opt/relab/secrets/prod
+sudo install -o relab -g relab -m 644 <old checkout>/secrets/prod/* /opt/relab/secrets/prod/
+RELAB_UNIT_USER=relab just timers-install prod                            # from /opt/relab, as the sudo account
+```
+
+Then one key pair on the dev host, used for nothing else, and one `authorized_keys` line for the
+deploy user whose forced command is `scripts/remote_deploy.sh`. The script maps a short allow-list
+onto the `just` recipes and refuses anything else, so the key cannot open a shell or read a secret:
+
+```text
+command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... devbox-deploy
+```
+
+The environment is the host's own root `.env`; it is never an argument. `git pull` needs a
+read-only GitHub deploy key in `/var/lib/relab/.ssh` with the remote switched to ssh. The personal
+key stays on the sudo account and never on the deploy user.
+
+______________________________________________________________________
+
 ## Part 2 — Routine release
 
 Hosts set up before 2026-09-07 need a one-time `.env` edit before the next release: add
@@ -210,13 +240,17 @@ Before you start: CI green on `main`, you know whether the release contains migr
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
 (`just backup prod`).
 
-```bash
-cd /path/to/relab
-git fetch origin && git checkout main && git pull --ff-only
+From the dev host, over the restricted key (`akira-deploy` here is the ssh config alias for the
+deploy user on the prod host):
 
-just prod-build
-just prod-up YES migrations   # migrator runs, THEN the API starts
+```bash
+ssh akira-deploy pull                 # git pull --ff-only of origin/main, prints the revision
+ssh akira-deploy build
+ssh akira-deploy up migrations        # migrator runs, THEN the API starts
 ```
+
+`ssh akira-deploy` with no command prints the allow-list. On the host itself the same three steps
+are `git pull --ff-only`, `just prod-build`, `just prod-up YES migrations` as the deploy user.
 
 The `migrations` profile is the routine path: the API waits for the migrator to exit 0, so a failed
 migration leaves the old API serving. Without it you get a two-step that briefly serves against the
@@ -227,8 +261,9 @@ old schema, acceptable during a planned outage, not for a routine release.
 ### Verify
 
 ```bash
-just watchdog prod
-just prod-logs        # ^C once it looks clean
+ssh akira-deploy watchdog
+ssh akira-deploy status
+ssh akira-deploy logs 10m     # non-following; `just prod-logs` on the host follows
 ```
 
 Then exercise by hand what automation cannot: one upload, one OAuth login, one product page.

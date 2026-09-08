@@ -72,8 +72,8 @@ locals {
         local.telemetry_ingress_hosts_expression,
         # One apply lands on prod and staging at once. Renaming this header needs an
         # order: deploy both hosts first, then apply. In between, the hosts do not send
-        # the name the rule expects and exports are bot-challenged. The step order is in
-        # deploy/CUTOVER-PROD.md.
+        # the name the rule expects and exports are bot-challenged: deploy every host on
+        # the release that sends the new name, confirm telemetry arrives, then apply.
         "any(http.request.headers[\"x-telemetry-key\"][*] eq ${jsonencode(var.telemetry_edge_key)})",
       ])
       action = "skip"

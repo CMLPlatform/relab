@@ -545,5 +545,26 @@ assert_eq "a filesystem at the limit is reported" \
 assert_eq "an unreadable df is reported rather than assumed fine" \
     "1|ALERT[staging]: cannot read free space for the backup directory /srv/backups" "$(disk_alert '')"
 
+# remote_deploy.sh: the forced ssh command maps an allow-list onto recipes and refuses
+# the rest. A stub `just` in the fake deploy user's ~/.local/bin echoes what it was asked.
+remote_deploy() {
+    local tmp
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/scripts" "$tmp/.local/bin"
+    cp "$(dirname "${BASH_SOURCE[0]}")/remote_deploy.sh" "$tmp/scripts/"
+    printf 'ENVIRONMENT=prod\n' >"$tmp/.env"
+    printf '#!/bin/sh\necho "just $*"\n' >"$tmp/.local/bin/just"
+    chmod +x "$tmp/.local/bin/just"
+    SSH_ORIGINAL_COMMAND="$1" HOME="$tmp" bash "$tmp/scripts/remote_deploy.sh" 2>&1 | head -1
+    rm -rf "$tmp"
+}
+
+assert_eq "remote deploy: up forwards the migrations profile with YES" "just prod-up YES migrations" "$(remote_deploy 'up migrations')"
+assert_eq "remote deploy: migrate needs no argument" "just prod-migrate YES" "$(remote_deploy migrate)"
+assert_eq "remote deploy: rollback takes a sha" "just prod-rollback YES 2f91e3b5 " "$(remote_deploy 'rollback 2f91e3b5')"
+assert_eq "remote deploy: a shell command is refused" "remote_deploy: 'rm' is not allowed" "$(remote_deploy 'rm -rf /')"
+assert_eq "remote deploy: an unknown profile is refused" "remote_deploy: unknown profile 'scanning'" "$(remote_deploy 'up scanning')"
+assert_eq "remote deploy: rollback without a sha is refused" "remote_deploy: rollback needs an image sha" "$(remote_deploy 'rollback abc')"
+
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1
