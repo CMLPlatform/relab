@@ -240,8 +240,8 @@ deploy user on the prod host):
 
 ```bash
 ssh akira-deploy pull                 # git pull --ff-only of origin/main, prints the revision
-ssh akira-deploy build
-ssh akira-deploy up migrations        # migrator runs, THEN the API starts
+ssh akira-deploy build                # `build nocache` when only the edge or the featured product changed:
+ssh akira-deploy up migrations        # www bakes API data in at build time, and the layer cache would skip it
 ```
 
 `ssh akira-deploy` with no command prints the allow-list. On the host itself the same three steps
