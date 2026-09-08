@@ -16,7 +16,7 @@ import { ProductsWelcomeCard } from '@/components/product/products-screen/Welcom
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { productGridColumns } from '@/features/products/productGridColumns';
 import { PRODUCT_SORT_OPTIONS } from '@/features/products/queries';
-import { useProductSearchShortcut } from '@/features/products/useProductSearchShortcut';
+import { useProductsListShortcuts } from '@/features/products/useProductsListShortcuts';
 import { useProductsScreen } from '@/features/products/useProductsScreen';
 import { getAppTheme } from '@/theme';
 
@@ -30,7 +30,11 @@ export default function Products() {
 
   const { screen, search, filters, list, actions } = useProductsScreen();
   const searchRef = useRef<TextInput>(null);
-  useProductSearchShortcut(searchRef);
+  useProductsListShortcuts({
+    searchRef,
+    onNewProduct: actions.createProduct,
+    onToggleFilters: filters.toggleExpanded,
+  });
   const handleGoToLogin = async () => {
     await actions.dismissWelcomeCard();
     actions.goToLogin();
