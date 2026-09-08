@@ -17,6 +17,8 @@
 	}
 
 	header {
+		# Caddy sets this itself; strip it to avoid advertising the server software
+		-Server
 		X-Content-Type-Options "nosniff"
 		Strict-Transport-Security "max-age=63072000; includeSubDomains"
 		Referrer-Policy "no-referrer"

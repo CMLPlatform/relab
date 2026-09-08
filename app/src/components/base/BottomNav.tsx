@@ -24,7 +24,9 @@ function BottomNavTab({
     <Pressable
       accessibilityRole="tab"
       accessibilityLabel={tab.label}
-      accessibilityState={{ selected: active }}
+      // aria-*, not accessibilityState: react-native-web reads only the aria props,
+      // while RN folds them back into accessibilityState for native.
+      aria-selected={active}
       onPress={handlePress}
       style={{ minHeight: MIN_TAP_TARGET }}
       className={cn(

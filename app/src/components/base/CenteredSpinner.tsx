@@ -9,7 +9,8 @@ export function CenteredSpinner() {
       className="flex-1 items-center justify-center p-6"
       accessible
       accessibilityRole="progressbar"
-      accessibilityState={{ busy: true }}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-busy
     >
       <ActivityIndicator size="large" color={colors.primary} />
     </View>

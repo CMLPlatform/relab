@@ -42,7 +42,10 @@ function FilterChip({
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? children}
+        // react-native-web drops accessibilityState. aria-selected is invalid on
+        // role=button, so the toggle state goes out as aria-pressed.
         accessibilityState={{ selected }}
+        aria-pressed={selected}
         className="flex-row items-center gap-1.5 py-2"
         style={{ minHeight: MIN_TAP_TARGET }}
       >

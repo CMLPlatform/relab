@@ -21,6 +21,18 @@ describe('IconButton', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
+  it('marks the button busy while loading', async () => {
+    // Passed as aria-busy/aria-disabled (the only spelling react-native-web reads);
+    // RN folds them back into accessibilityState, which is what this reads.
+    await render(
+      <IconButton icon="refresh-cw" onPress={jest.fn()} accessibilityLabel="Refresh" loading />,
+    );
+    expect(screen.getByLabelText('Refresh').props.accessibilityState).toMatchObject({
+      busy: true,
+      disabled: true,
+    });
+  });
+
   it('shows a spinner instead of the icon while loading', async () => {
     await render(
       <IconButton icon="refresh-cw" onPress={jest.fn()} accessibilityLabel="Refresh" loading />,
