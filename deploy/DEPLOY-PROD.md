@@ -264,9 +264,15 @@ images), re-run it by hand against the backend container:
 repeatedly.
 
 The same step is what gives images uploaded before a new width its derivative: adding a width to
-`THUMBNAIL_WIDTHS` leaves existing rows stamped, so clear `thumbnails_generated_at` for the rows
-that should gain it before re-running. Originals narrower than the new width are skipped rather
-than upscaled, and are not counted as incomplete.
+`THUMBNAIL_WIDTHS` leaves existing rows stamped, so clear the stamp on the rows that should gain it
+before re-running.
+
+```sql
+UPDATE image SET thumbnails_generated_at = NULL WHERE width_px > 2560;
+```
+
+Originals narrower than the new width are skipped rather than upscaled and are never counted as
+incomplete, so the predicate only has to select the rows wide enough to gain it.
 
 ### Releases that need a window
 
