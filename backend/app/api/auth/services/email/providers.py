@@ -80,6 +80,7 @@ def build_smtp_config(email_settings: ResolvedEmailSettings, *, suppress_send: b
         MAIL_FROM_NAME=email_settings.sender.name if email_settings.sender else None,
         MAIL_PORT=email_settings.port,
         MAIL_SERVER=email_settings.host,
+        TIMEOUT=email_settings.timeout_seconds,
         MAIL_STARTTLS=True,
         MAIL_SSL_TLS=False,
         SUPPRESS_SEND=suppress_send,

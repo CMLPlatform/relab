@@ -18,6 +18,7 @@ from app.api.auth.services.email.service import mask_email_for_log, send_existin
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT
 from app.api.common.exceptions import APIError
 from app.api.common.rate_limiting import limiter
+from app.api.common.routers.dependencies import background_tasks_from
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ async def register(
     except UserAlreadyExists:
         # Never reveal that an email is registered: notify the address and return the
         # same accepted response as a fresh signup.
-        await send_existing_account_notification(user_create.email)
+        await send_existing_account_notification(user_create.email, background_tasks_from(request))
         logger.info("Registration attempted for existing email %s", mask_email_for_log(user_create.email))
 
     except InvalidPasswordException as e:

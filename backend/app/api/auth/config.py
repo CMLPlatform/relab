@@ -63,6 +63,7 @@ class ResolvedEmailSettings:
     port: int
     sender: NameEmail | None
     reply_to: NameEmail | None
+    timeout_seconds: int
 
     def recipient(self, email: EmailStr | str) -> NameEmail:
         """Return a parsed recipient address."""
@@ -111,6 +112,9 @@ class AuthSettings(RelabBaseSettings):
     email_provider: EmailProviderName = EmailProviderName.SMTP
     smtp_host: str = ""
     smtp_port: int = 587  # Default SMTP port for TLS
+    # fastapi-mail defaults this to 60s. A deferred send still occupies a worker task
+    # for the whole wait, and no transactional mail is worth a minute of one.
+    smtp_timeout_seconds: int = Field(default=15, ge=1, le=120)
     smtp_username: str = ""
     smtp_password: SecretStr = SecretStr("")
     email_from: str = ""
@@ -183,6 +187,7 @@ class AuthSettings(RelabBaseSettings):
             password=self.smtp_password,
             host=self.smtp_host,
             port=self.smtp_port,
+            timeout_seconds=self.smtp_timeout_seconds,
             sender=sender,
             reply_to=parse_name_email(self.email_reply_to, fallback=self.email_from or self.smtp_username) or sender,
         )

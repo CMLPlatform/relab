@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Annotated, cast
 
-from fastapi import HTTPException, Response, Security
+from fastapi import Depends, HTTPException, Response, Security
 from sqlalchemy import select
 
 from app.api.auth.dependencies import (
@@ -25,12 +25,16 @@ from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.rate_limiting import API_WRITE_RATE_LIMIT_DEPENDENCY
-from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.common.routers.dependencies import AsyncSessionDep, attach_background_tasks
 from app.api.data_collection.crud.profile_stats import compute_profile_stats
 
 ### User self-management routes ###
 
-router = PublicAPIRouter(prefix="/users", tags=["users"], dependencies=[Security(current_active_user)])
+router = PublicAPIRouter(
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Security(current_active_user), Depends(attach_background_tasks)],
+)
 
 # fastapi-users bundles superuser /{id} routes in the same router; those are dropped
 # because by-id management lives on /admin/users, where every action is audit-logged.

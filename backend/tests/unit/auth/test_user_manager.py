@@ -1,9 +1,10 @@
 """Unit tests for username/email login resolution in the UserManager service."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException, status
+from fastapi import BackgroundTasks, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_users.jwt import decode_jwt, generate_jwt
 from fastapi_users.manager import BaseUserManager
@@ -355,7 +356,8 @@ async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirma
         await manager.on_after_reset_password(user, request)
 
     mock_revoke.assert_awaited_once_with(redis, "user-id")
-    mock_send.assert_awaited_once_with("user@example.com", "user")
+    # Deferred: the confirmation is a notification, not something the caller waits on.
+    mock_send.assert_awaited_once_with("user@example.com", "user", request.state.background_tasks)
     assert user.has_usable_password is True
     mock_session.commit.assert_awaited_once()
 
@@ -536,3 +538,40 @@ async def test_on_after_register_leaves_programmatic_accounts_unaccepted() -> No
 
     assert user.terms_accepted_version is None
     assert user.terms_accepted_at is None
+
+
+async def test_verification_email_is_deferred_when_the_request_carries_background_tasks() -> None:
+    """Registration must not wait on an SMTP round trip to answer.
+
+    `POST /auth/register` already answers 202, and `attach_background_tasks` is declared
+    on the auth router precisely so this hook — which fastapi-users hands only a Request —
+    can reach the response's background tasks.
+    """
+    manager, _ = _make_manager()
+    user = MagicMock(spec=User)
+    user.email = "someone@example.org"
+    user.username = "someone"
+
+    background_tasks = BackgroundTasks()
+    request = MagicMock(spec=Request)
+    request.state = SimpleNamespace(background_tasks=background_tasks)
+
+    with patch("app.api.auth.services.user_manager.send_verification_email", new=AsyncMock()) as send:
+        await manager.on_after_request_verify(user, "token", request)
+
+    assert send.await_args is not None
+    assert send.await_args.args[-1] is background_tasks
+
+
+async def test_verification_email_sends_inline_without_a_request() -> None:
+    """A caller outside a request (CLI, seeding) still gets the mail, just inline."""
+    manager, _ = _make_manager()
+    user = MagicMock(spec=User)
+    user.email = "someone@example.org"
+    user.username = "someone"
+
+    with patch("app.api.auth.services.user_manager.send_verification_email", new=AsyncMock()) as send:
+        await manager.on_after_request_verify(user, "token", None)
+
+    assert send.await_args is not None
+    assert send.await_args.args[-1] is None

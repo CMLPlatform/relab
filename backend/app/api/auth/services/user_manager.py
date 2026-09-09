@@ -41,7 +41,7 @@ from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
-from app.api.common.routers.dependencies import get_external_http_client
+from app.api.common.routers.dependencies import background_tasks_from, get_external_http_client
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -186,6 +186,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         user_update = cast("schemas.UU", real_user_update)
 
         old_email = user.email
+        deferred = background_tasks_from(request)
 
         updated_user = await super().update(user_update, user, safe=safe, request=request)
 
@@ -194,9 +195,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
         if real_user_update.email is not None and updated_user.email != old_email:
             await self.request_verify(updated_user, request)
-            await send_email_changed_notification(old_email)
+            await send_email_changed_notification(old_email, deferred)
         if real_user_update.password is not None:
-            await send_password_changed_notification(updated_user.email, updated_user.username)
+            await send_password_changed_notification(updated_user.email, updated_user.username, deferred)
 
         return updated_user
 
@@ -218,24 +219,23 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
         if not user.oauth_accounts:
             return
-        background_tasks = getattr(getattr(request, "state", None), "background_tasks", None)
         await send_oauth_welcome_notification(
             user.email,
             user.username,
             oauth_provider=user.oauth_accounts[0].oauth_name,
-            background_tasks=background_tasks,
+            background_tasks=background_tasks_from(request),
         )
         logger.info("OAuth welcome email sent to user %s", mask_email_for_log(user.email))
 
-    async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
+    async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:
         """Send verification email after verification is requested."""
-        await send_verification_email(user.email, user.username, token)
+        await send_verification_email(user.email, user.username, token, background_tasks_from(request))
         logger.info("Verification email sent to user %s", mask_email_for_log(user.email))
 
-    async def on_after_verify(self, user: User, request: Request | None = None) -> None:  # noqa: ARG002 # Request argument is expected in the method signature
+    async def on_after_verify(self, user: User, request: Request | None = None) -> None:
         """Send welcome email after user verifies their email."""
         logger.info("User %s has been verified.", mask_email_for_log(user.email))
-        await send_post_verification_email(user.email, user.username)
+        await send_post_verification_email(user.email, user.username, background_tasks_from(request))
 
     async def on_after_forgot_password(
         self,
@@ -245,8 +245,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
     ) -> None:
         """Send password reset email."""
         logger.info("Password reset email requested for user %s", mask_email_for_log(user.email))
-        background_tasks = getattr(getattr(request, "state", None), "background_tasks", None)
-        await send_reset_password_email(user.email, user.username, token, background_tasks)
+        await send_reset_password_email(user.email, user.username, token, background_tasks_from(request))
 
     async def on_after_reset_password(self, user: User, request: Request | None = None) -> None:
         """Revoke active refresh tokens and notify the user after a password reset."""
@@ -255,7 +254,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             user.has_usable_password = True
             await self.user_db.session.commit()
         await revoke_user_refresh_tokens(user.id, request)
-        await send_password_reset_confirmation_email(user.email, user.username)
+        await send_password_reset_confirmation_email(user.email, user.username, background_tasks_from(request))
 
     async def on_after_update(self, user: User, update_dict: dict, request: Request | None = None) -> None:
         """Revoke all refresh tokens when a user is deactivated."""

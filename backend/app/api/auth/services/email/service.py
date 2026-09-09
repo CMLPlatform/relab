@@ -71,6 +71,22 @@ def _build_message(to_email: EmailStr, subject: str, html_body: str) -> EmailMes
     )
 
 
+async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_label: str, recipient: str) -> None:
+    """Send one message, logging a provider failure rather than raising past the response.
+
+    A queued send runs after its response has been returned, so raising here reaches the
+    ASGI server as an unhandled task error and tells the caller nothing. The address has
+    a verification or reset link it will not receive either way; a logged failure is what
+    makes that visible.
+    """
+    try:
+        await provider.send(message)
+    except Exception:
+        logger.exception("%s failed for %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
+        return
+    logger.info("%s sent to %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
+
+
 async def _dispatch(
     message: EmailMessage,
     to_email: EmailStr,
@@ -78,14 +94,19 @@ async def _dispatch(
     background_tasks: BackgroundTasks | None,
     provider: EmailProvider,
 ) -> None:
-    """Send or enqueue an email message and log the outcome."""
+    """Send or enqueue an email message and log the outcome.
+
+    Enqueued whenever the caller is inside a request that declared
+    ``attach_background_tasks``: transactional mail is not what a client is waiting on,
+    and an SMTP round trip is the slowest thing on several auth paths. Without one
+    (a CLI, a seed script), it sends inline so the behaviour is the same, just slower.
+    """
     recipient = mask_email_for_log(to_email)
     if background_tasks:
-        background_tasks.add_task(provider.send, message)
+        background_tasks.add_task(_send_and_log, provider, message, log_label, recipient)
         logger.info("%s queued for %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
     else:
-        await provider.send(message)
-        logger.info("%s sent to %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
+        await _send_and_log(provider, message, log_label, recipient)
 
 
 async def _notify(

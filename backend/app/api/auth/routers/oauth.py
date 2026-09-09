@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Body, status
+from fastapi import BackgroundTasks, Body, Depends, status
 
 from app.api.auth.dependencies import CurrentActiveUserDep, UserManagerDep
 from app.api.auth.schemas import OAuthStepUpRequest
@@ -12,9 +12,9 @@ from app.api.auth.services.oauth.routes import (
     include_oauth_routes,
 )
 from app.api.common.audiences import PublicAPIRouter
-from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.common.routers.dependencies import AsyncSessionDep, attach_background_tasks
 
-router = PublicAPIRouter(prefix="/oauth", tags=["oauth"])
+router = PublicAPIRouter(prefix="/oauth", tags=["oauth"], dependencies=[Depends(attach_background_tasks)])
 
 
 include_oauth_routes(router, public_callback_prefix=PUBLIC_OAUTH_CALLBACK_PREFIX)

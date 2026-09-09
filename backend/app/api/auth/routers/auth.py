@@ -1,5 +1,7 @@
 """Authentication router composition."""
 
+from fastapi import Depends
+
 from app.api.auth.routers import email_validation, login, mfa, password_reset, refresh, register
 from app.api.auth.schemas import UserRead
 from app.api.auth.services.rate_limiter import VERIFY_RATE_LIMIT
@@ -8,11 +10,15 @@ from app.api.auth.services.user_manager import (
 )
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.rate_limiting import limiter
+from app.api.common.routers.dependencies import attach_background_tasks
 
 FORGOT_PASSWORD_PATH = password_reset.FORGOT_PASSWORD_PATH
 RESET_PASSWORD_PATH = password_reset.RESET_PASSWORD_PATH
 
-router = PublicAPIRouter(prefix="/auth", tags=["auth"])
+# The verify and reset routers below are built by fastapi-users, and the UserManager
+# hooks they call receive only a Request. This is how the transactional mail those
+# hooks send reaches the response's background tasks instead of blocking it.
+router = PublicAPIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(attach_background_tasks)])
 
 router.include_router(login.router)
 

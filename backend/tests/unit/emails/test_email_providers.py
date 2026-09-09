@@ -198,6 +198,7 @@ def test_smtp_provider_builds_from_resolved_email_settings() -> None:
         password=SecretStr("smtp-password"),
         host="smtp.example.com",
         port=587,
+        timeout_seconds=15,
         sender=NameEmail(name="Relab", email="relab@example.com"),
         reply_to=NameEmail(name="Support", email="support@example.com"),
     )
@@ -205,6 +206,9 @@ def test_smtp_provider_builds_from_resolved_email_settings() -> None:
     provider = SmtpEmailProvider.from_settings(settings, suppress_send=True)
 
     assert provider.config is not None
+    # fastapi-mail would otherwise default this to 60s, which a deferred send still
+    # spends holding a worker task.
+    assert provider.config.TIMEOUT == 15
     assert provider.config.MAIL_USERNAME == "smtp-user"
     assert provider.config.MAIL_SERVER == "smtp.example.com"
     assert provider.config.MAIL_FROM == "relab@example.com"
