@@ -100,20 +100,25 @@ async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_labe
     holding no request and no DB session, but a long sleep would still outlive a deploy
     and be lost, so it retries within the window a restart is unlikely to interrupt.
     """
+    # `log_label` embeds the template filename, and CodeQL reads constants named like
+    # ACCOUNT_RECOVERY_TEMPLATE as credentials. The recipient beside it is a keyed token,
+    # not an address, so what these lines actually print is a filename and a digest.
     for attempt in range(1, _SEND_ATTEMPTS + 1):
         try:
             await provider.send(message)
         except Exception:
             if attempt == _SEND_ATTEMPTS:
-                logger.exception("%s failed for %s after %d attempts", log_label, recipient, attempt)
+                logger.exception(  # codeql[py/clear-text-logging-sensitive-data] -- template filename, not a credential
+                    "%s failed for %s after %d attempts", log_label, recipient, attempt
+                )
                 return
             delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
-            logger.warning(
+            logger.warning(  # codeql[py/clear-text-logging-sensitive-data] -- template filename, not a credential
                 "%s attempt %d failed for %s, retrying in %.1fs", log_label, attempt, recipient, delay, exc_info=True
             )
             await anyio.sleep(delay)
         else:
-            logger.info("%s sent to %s", log_label, recipient)
+            logger.info("%s sent to %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
             return
 
 
@@ -134,7 +139,7 @@ async def _dispatch(
     recipient = email_log_token(to_email)
     if background_tasks:
         background_tasks.add_task(_send_and_log, provider, message, log_label, recipient)
-        logger.info("%s queued for %s", log_label, recipient)
+        logger.info("%s queued for %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
     else:
         await _send_and_log(provider, message, log_label, recipient)
 
