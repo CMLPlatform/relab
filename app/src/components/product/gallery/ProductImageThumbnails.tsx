@@ -3,6 +3,7 @@ import { memo, useCallback } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
@@ -130,7 +131,12 @@ const ThumbnailItem = memo(function ThumbnailItem({
         // Decorative: the Pressable carries the label. expo-image drops an empty
         // alt, so hide the subtree.
         <View aria-hidden>
-          <Image source={{ uri }} style={{ width: 60, height: 60 }} />
+          <Image
+            source={{ uri }}
+            style={{ width: 60, height: 60 }}
+            transition={IMAGE_FADE_MS}
+            cachePolicy="memory-disk"
+          />
         </View>
       ) : (
         <ImagePlaceholder width={60} height={60} borderRadius={0} />
