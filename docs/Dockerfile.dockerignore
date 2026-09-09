@@ -1,0 +1,30 @@
+# BuildKit reads this in place of the root .dockerignore when building
+# docs/Dockerfile. It is an allowlist, not a denylist: nothing reaches the build
+# context unless it is named below, so a new directory at the repo root can
+# never silently bloat this build the way infra/'s .terraform providers did.
+*
+
+# The deps stage needs the workspace manifests; every other stage copies only
+# from docs/.
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!docs/**
+
+# Generated, local-only, or test output inside docs/.
+docs/node_modules
+docs/node_modules/**
+docs/dist
+docs/dist/**
+docs/.astro
+docs/.astro/**
+docs/.cache
+docs/.cache/**
+docs/coverage
+docs/coverage/**
+docs/playwright-report
+docs/playwright-report/**
+docs/test-results
+docs/test-results/**
+docs/.rumdl_cache
+docs/.rumdl_cache/**

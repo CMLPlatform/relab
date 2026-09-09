@@ -1,0 +1,16 @@
+# BuildKit reads this in place of backend/.dockerignore when building
+# Dockerfile.migrations. Allowlist, not denylist: nothing reaches the context
+# unless a COPY below names it, so a new directory in backend/ cannot drift in.
+*
+
+!.python-version
+!pyproject.toml
+!uv.lock
+!alembic/**
+!app/**
+!scripts/**
+!data/seed/**
+
+**/__pycache__
+**/__pycache__/**
+*.pyc
