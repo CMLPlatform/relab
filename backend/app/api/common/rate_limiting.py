@@ -8,8 +8,6 @@ Lives in ``common`` because every context rate-limits: auth owns only its own
 login/register/verify/reset bucket sizes (``auth.services.rate_limiter``).
 """
 
-import hashlib
-import hmac
 import logging
 from typing import TYPE_CHECKING
 
@@ -25,6 +23,7 @@ from redis.exceptions import RedisError
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.config import settings as core_settings
 from app.core.middleware.client_ip import get_client_ip
+from app.core.pseudonyms import keyed_digest
 from app.core.responses import build_problem_response
 
 if TYPE_CHECKING:
@@ -43,14 +42,7 @@ class RateLimitExceededError(Exception):
 
 def rate_limit_bucket_key(prefix: str, value: str) -> str:
     """Return a keyed digest bucket for sensitive rate-limit dimensions."""
-    normalized_value = value.strip().casefold()
-    if not normalized_value:
-        return f"{prefix}:missing"
-    secret = core_settings.cache_signing_secret.get_secret_value().encode("utf-8")
-    # The prefix is signed too, so two dimensions never share a digest for one value.
-    message = f"{prefix}:{normalized_value}".encode()
-    digest = hmac.new(secret, message, hashlib.sha256).hexdigest()
-    return f"{prefix}:{digest}"
+    return f"{prefix}:{keyed_digest(prefix, value)}"
 
 
 def request_ip_rate_limit_key(request: Request) -> str:

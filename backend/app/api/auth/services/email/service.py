@@ -6,6 +6,7 @@ from html import escape
 from typing import TYPE_CHECKING
 from urllib.parse import urlencode, urljoin
 
+import anyio
 from pydantic import AnyUrl, EmailStr
 
 from app.api.auth.config import settings as auth_settings
@@ -21,11 +22,18 @@ from app.api.auth.services.email.templates import (
     render_email_template,
 )
 from app.core.config import settings as core_settings
+from app.core.pseudonyms import LOG_TOKEN_LENGTH, keyed_digest
 
 if TYPE_CHECKING:
     from fastapi import BackgroundTasks
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+# Three attempts over ~1.5s of sleeping: enough to ride out a refused connection or a
+# greylisted first try, short enough that a detached task is unlikely to be killed
+# mid-backoff by a deploy. Failures past that need the user to restart the flow.
+_SEND_ATTEMPTS = 3
+_SEND_BACKOFF_SECONDS = 0.5
 email_settings = auth_settings.email
 
 
@@ -47,12 +55,19 @@ def generate_token_link(token: str, route: str, base_url: str | AnyUrl | None = 
     return f"{urljoin(str(base_url), route)}#{urlencode({'token': token})}"
 
 
-def mask_email_for_log(email: EmailStr, *, mask: bool = True, max_len: int = 80) -> str:
-    """Mask emails for logging."""
-    string = "".join(ch for ch in str(email) if ch.isprintable()).replace("\n", "").replace("\r", "")
-    local, sep, domain = string.partition("@")
-    masked = (f"{local[0]}***@{domain}" if len(local) > 1 else f"*@{domain}") if sep and mask else string
-    return f"{masked[: max_len - 3]}..." if len(masked) > max_len else masked
+def email_log_token(email: EmailStr) -> str:
+    """Return the opaque label an address is logged under.
+
+    Not a mask: `j***@gmail.com` still carries the domain, and with a timestamp and the
+    surrounding fields that can re-identify one person in a small research population —
+    which is why the masked form needed a CodeQL suppression at every call site. A keyed
+    digest keeps the only property operations actually needs, that two lines about the
+    same address match, and carries no address.
+
+    Diagnosing a provider-wide failure still works: the send path logs the provider's own
+    exception, whose SMTP response names the host that refused.
+    """
+    return f"eml_{keyed_digest('email:log', str(email), length=LOG_TOKEN_LENGTH)}"
 
 
 def _display_name(username: str | None, to_email: EmailStr) -> str:
@@ -72,19 +87,34 @@ def _build_message(to_email: EmailStr, subject: str, html_body: str) -> EmailMes
 
 
 async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_label: str, recipient: str) -> None:
-    """Send one message, logging a provider failure rather than raising past the response.
+    """Send one message, retrying a provider failure and logging rather than raising.
 
     A queued send runs after its response has been returned, so raising here reaches the
     ASGI server as an unhandled task error and tells the caller nothing. The address has
     a verification or reset link it will not receive either way; a logged failure is what
     makes that visible.
+
+    Most send failures are transient — a refused connection, a greylisted first attempt,
+    an SMTP timeout — and the user cannot retry a verification mail themselves without
+    starting the flow again. The backoff is short on purpose: this is a detached task
+    holding no request and no DB session, but a long sleep would still outlive a deploy
+    and be lost, so it retries within the window a restart is unlikely to interrupt.
     """
-    try:
-        await provider.send(message)
-    except Exception:
-        logger.exception("%s failed for %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
-        return
-    logger.info("%s sent to %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
+    for attempt in range(1, _SEND_ATTEMPTS + 1):
+        try:
+            await provider.send(message)
+        except Exception:
+            if attempt == _SEND_ATTEMPTS:
+                logger.exception("%s failed for %s after %d attempts", log_label, recipient, attempt)
+                return
+            delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
+            logger.warning(
+                "%s attempt %d failed for %s, retrying in %.1fs", log_label, attempt, recipient, delay, exc_info=True
+            )
+            await anyio.sleep(delay)
+        else:
+            logger.info("%s sent to %s", log_label, recipient)
+            return
 
 
 async def _dispatch(
@@ -101,10 +131,10 @@ async def _dispatch(
     and an SMTP round trip is the slowest thing on several auth paths. Without one
     (a CLI, a seed script), it sends inline so the behaviour is the same, just slower.
     """
-    recipient = mask_email_for_log(to_email)
+    recipient = email_log_token(to_email)
     if background_tasks:
         background_tasks.add_task(_send_and_log, provider, message, log_label, recipient)
-        logger.info("%s queued for %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
+        logger.info("%s queued for %s", log_label, recipient)
     else:
         await _send_and_log(provider, message, log_label, recipient)
 

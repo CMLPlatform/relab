@@ -1,11 +1,26 @@
 """Tests for the typed shared email delivery boundary."""
 
+import logging
 from unittest.mock import AsyncMock
 
 import pytest
 
+from app.api.auth.services.email import service
+from app.api.auth.services.email.providers import EmailMessage
 from app.api.auth.services.email.service import send_templated_email
 from app.api.auth.services.email.templates import REGISTRATION_TEMPLATE
+from app.api.common.rate_limiting import rate_limit_bucket_key
+
+
+def _message() -> EmailMessage:
+    """A minimal message; these tests exercise delivery, not rendering."""
+    return EmailMessage(
+        subject="Subject",
+        recipients=["user@example.com"],
+        sender="relab@example.com",
+        reply_to=[],
+        html_body="<p>body</p>",
+    )
 
 
 async def test_send_templated_email_rejects_missing_required_context() -> None:
@@ -22,3 +37,51 @@ async def test_send_templated_email_rejects_missing_required_context() -> None:
         )
 
     provider.send.assert_not_awaited()
+
+
+async def test_transient_send_failure_is_retried(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A refused first attempt must not strand the user's verification link."""
+    monkeypatch.setattr(service, "_SEND_BACKOFF_SECONDS", 0)
+    provider = AsyncMock()
+    provider.send.side_effect = [OSError("connection refused"), None]
+
+    await service._send_and_log(provider, _message(), "Email", "u***@example.com")
+
+    assert provider.send.await_count == 2
+
+
+async def test_send_gives_up_after_the_attempt_budget(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A persistent outage is logged and swallowed, never raised past the response."""
+    monkeypatch.setattr(service, "_SEND_BACKOFF_SECONDS", 0)
+    provider = AsyncMock()
+    provider.send.side_effect = OSError("smtp down")
+
+    with caplog.at_level(logging.ERROR):
+        await service._send_and_log(provider, _message(), "Email", "u***@example.com")
+
+    assert provider.send.await_count == service._SEND_ATTEMPTS
+    assert "failed for u***@example.com" in caplog.text
+
+
+def test_email_log_token_carries_no_part_of_the_address() -> None:
+    """The label must leak neither the local part nor the domain."""
+    token = service.email_log_token("Alice.Smith@Gmail.com")
+
+    assert "alice" not in token.lower()
+    assert "gmail" not in token.lower()
+    assert "@" not in token
+
+
+def test_email_log_token_is_stable_and_case_insensitive() -> None:
+    """Two lines about one address must match, or the label is useless to operations."""
+    assert service.email_log_token("user@example.com") == service.email_log_token("  User@Example.COM ")
+    assert service.email_log_token("user@example.com") != service.email_log_token("other@example.com")
+
+
+def test_email_log_token_differs_from_the_rate_limit_bucket_for_one_address() -> None:
+    """Namespacing stops a log line being correlated against a limiter bucket."""
+    assert service.email_log_token("user@example.com").removeprefix("eml_") not in rate_limit_bucket_key(
+        "auth:email", "user@example.com"
+    )

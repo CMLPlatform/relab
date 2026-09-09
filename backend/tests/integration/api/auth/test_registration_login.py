@@ -1,10 +1,11 @@
 """Registration, login, logout, and auth rate-limit tests."""
 
+import logging
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from fastapi import status
+from fastapi import BackgroundTasks, status
 from fastapi_users.exceptions import UserAlreadyExists
 from sqlalchemy import select
 
@@ -126,6 +127,10 @@ async def test_register_duplicate_email_is_not_enumerable(api_client: AsyncClien
     # The real owner is still told a signup was attempted.
     mock_notify.assert_awaited_once()
     assert mock_notify.await_args.args[0] == user_data["email"]
+    # A real BackgroundTasks, not None: the send has to be deferred past the response.
+    # Without it the notification blocks the reply and the uniform-timing property of
+    # this route depends on the SMTP round trip.
+    assert isinstance(mock_notify.await_args.args[-1], BackgroundTasks)
 
 
 async def test_register_duplicate_canonical_email_stays_uniform(api_client: AsyncClient) -> None:
@@ -616,3 +621,25 @@ async def test_logout_unauthenticated(api_client: AsyncClient, logout_route: str
     """Logging out without credentials is rejected on both bearer and session routes."""
     response = await api_client.post(logout_route)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+async def test_registration_logs_a_token_and_never_the_address(
+    api_client: AsyncClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    """No auth path may log an address, in any form.
+
+    The unit tests pin what `email_log_token` returns; this pins that every call site on
+    a real request actually uses it. A new `logger.info("... %s", user.email)` anywhere in
+    the registration path passes those and fails this.
+    """
+    email = "leak.check@example-domain-xyz.com"
+    with caplog.at_level(logging.DEBUG):
+        response = await api_client.post(
+            "/v1/auth/register",
+            json={"email": email, "password": "Str0ng!Passw0rd#2026x", "username": "leakcheck"},
+        )
+
+    assert response.status_code == status.HTTP_202_ACCEPTED, response.text
+    assert "leak.check" not in caplog.text
+    assert "example-domain-xyz" not in caplog.text
+    assert "eml_" in caplog.text, "the address should still be correlatable under its token"
