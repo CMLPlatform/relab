@@ -415,7 +415,7 @@ def test_a_second_migrator_queues_behind_the_advisory_lock(
     def upgrade() -> None:
         try:
             command.upgrade(relab_alembic_config, "head")
-        except BaseException as exc:  # noqa: BLE001 # reported on the main thread
+        except Exception as exc:  # noqa: BLE001 # reported on the main thread
             failures.append(exc)
         finally:
             finished.set()
