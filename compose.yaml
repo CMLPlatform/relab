@@ -235,8 +235,13 @@ services:
       dockerfile: app/Dockerfile
       cache_from:
         - type=gha,scope=app
+      # `mode=max` exports every intermediate layer of the Expo build, which measured
+      # 43-111s (median 57s) of the docker-smoke-app CI job — by far its largest step,
+      # against 1-6s for every other image. Pushes to main still export in full, so the
+      # base cache every PR reads stays warm; PR runs export `min`, since a PR branch's
+      # cache is only ever read back by another push to that same branch anyway.
       cache_to:
-        - type=gha,scope=app,mode=max
+        - type=gha,scope=app,mode=${BUILDKIT_APP_CACHE_MODE:-max}
     restart: unless-stopped
     networks:
       - edge
