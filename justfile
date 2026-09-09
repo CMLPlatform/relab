@@ -481,12 +481,12 @@ dev-stale:
     [ "$found" -eq 1 ] || { echo "No dev containers running."; exit 0; }
     if [ "$stale" -eq 1 ]; then
       printf '\nThose containers serve code older than your working tree.\n'
-      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just _dev-build'"
+      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just dev-build'"
       exit 1
     fi
 
 # Build (or rebuild) dev images
-_dev-build:
+dev-build:
     {{ dev_compose }} --profile migrations build
 
 # Stop and remove dev containers
