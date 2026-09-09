@@ -16,6 +16,7 @@ on:
         type: choice
         options:
           - perf-baseline
+          - bundle-budget
       git_ref:
         description: Git ref to test
         required: false
@@ -30,6 +31,38 @@ defaults:
     shell: bash
 
 jobs:
+  app-bundle-budget:
+    name: App Bundle Budget
+    if: github.event_name == 'schedule' || inputs.operation == 'bundle-budget'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout trusted workflow ref
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-node: "true"
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Checkout requested repository ref
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.git_ref || github.ref_name }}
+          path: repo
+          persist-credentials: false
+
+      - name: Install dependencies
+        working-directory: repo
+        run: just app/install
+
+      - name: Check first-load bundle budget
+        working-directory: repo
+        run: just app/bundle-budget
+
   backend-perf-baseline:
     name: Backend Perf Baseline
     if: github.event_name == 'schedule' || inputs.operation == 'perf-baseline'
@@ -41,8 +74,13 @@ jobs:
         with:
           persist-credentials: false
 
+      # Python, because the baseline derives its larger upload fixtures with Pillow
+      # before k6 starts; without it the run fails at `just perf-fixtures`.
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: backend/uv.lock
 
       - name: Checkout requested repository ref
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd

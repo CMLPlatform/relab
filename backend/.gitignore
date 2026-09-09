@@ -58,3 +58,6 @@ reports/performance/*.md
 
 !.env.test
 !.env.*.example
+
+# Derived upload fixtures; rebuilt by `just perf-fixtures` from the committed sample.
+perf/fixtures/generated/
