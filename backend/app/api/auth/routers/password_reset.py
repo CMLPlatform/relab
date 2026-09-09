@@ -5,7 +5,7 @@ import time
 from contextlib import suppress
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Body, HTTPException, Request, status
+from fastapi import APIRouter, Body, HTTPException, Request, status
 from fastapi_users import exceptions
 from fastapi_users.router.reset import RESET_PASSWORD_RESPONSES, ErrorCode
 from pydantic import EmailStr
@@ -40,14 +40,12 @@ async def _sleep_until_minimum_elapsed(started_at: float) -> None:
 )
 async def forgot_password(
     request: Request,
-    background_tasks: BackgroundTasks,
     email: Annotated[EmailStr, Body(..., embed=True)],
     user_manager: UserManagerDep,
 ) -> None:
     """Start a forgot-password request without revealing whether the account exists."""
     started_at = time.monotonic()
     await limiter.ahit_key(PASSWORD_RESET_RATE_LIMIT, _password_reset_identifier_rate_limit_key(str(email)))
-    request.state.background_tasks = background_tasks
 
     try:
         user = await user_manager.get_by_email(email)
