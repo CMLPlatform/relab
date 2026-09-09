@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, render, screen } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { KeyboardShortcutsDialog } from '@/components/base/KeyboardShortcutsDialog';
+import { PRODUCT_SHORTCUT_GROUPS } from '@/features/products/productShortcutGroups';
 import { setShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 import { closeShortcutsOverlay } from '@/hooks/useShortcutsOverlay';
 
@@ -43,7 +44,7 @@ describe('KeyboardShortcutsDialog', () => {
   });
 
   it('stays closed until "?" is pressed', async () => {
-    await render(<KeyboardShortcutsDialog />);
+    await render(<KeyboardShortcutsDialog groups={PRODUCT_SHORTCUT_GROUPS} />);
     expect(screen.queryByText('Keyboard shortcuts')).not.toBeOnTheScreen();
 
     await pressQuestionMark();
@@ -52,7 +53,7 @@ describe('KeyboardShortcutsDialog', () => {
   });
 
   it('groups each shortcut under the screen it works on', async () => {
-    await render(<KeyboardShortcutsDialog />);
+    await render(<KeyboardShortcutsDialog groups={PRODUCT_SHORTCUT_GROUPS} />);
     await pressQuestionMark();
 
     // The grouping is the point: every binding but "?" is focus-scoped.
@@ -63,7 +64,7 @@ describe('KeyboardShortcutsDialog', () => {
   });
 
   it('ignores "?" typed into a field', async () => {
-    await render(<KeyboardShortcutsDialog />);
+    await render(<KeyboardShortcutsDialog groups={PRODUCT_SHORTCUT_GROUPS} />);
 
     await pressQuestionMark({ tagName: 'INPUT' });
 
@@ -71,7 +72,7 @@ describe('KeyboardShortcutsDialog', () => {
   });
 
   it('offers the WCAG 2.1.4 off switch', async () => {
-    await render(<KeyboardShortcutsDialog />);
+    await render(<KeyboardShortcutsDialog groups={PRODUCT_SHORTCUT_GROUPS} />);
     await pressQuestionMark();
 
     expect(screen.getByLabelText('Single-key shortcuts')).toBeOnTheScreen();
@@ -79,7 +80,7 @@ describe('KeyboardShortcutsDialog', () => {
 
   it('still opens on "?" once single-key shortcuts are off', async () => {
     setShortcutsEnabled(false);
-    await render(<KeyboardShortcutsDialog />);
+    await render(<KeyboardShortcutsDialog groups={PRODUCT_SHORTCUT_GROUPS} />);
 
     await pressQuestionMark();
 
@@ -90,7 +91,7 @@ describe('KeyboardShortcutsDialog', () => {
   it('renders nothing on native', async () => {
     Object.defineProperty(Platform, 'OS', { configurable: true, value: 'ios' });
 
-    await render(<KeyboardShortcutsDialog />);
+    await render(<KeyboardShortcutsDialog groups={PRODUCT_SHORTCUT_GROUPS} />);
 
     expect(addEventListener).not.toHaveBeenCalled();
     expect(screen.queryByText('Keyboard shortcuts')).not.toBeOnTheScreen();

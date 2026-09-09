@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { getLocalItem, setLocalItem } from '@/services/storage';
+import { createModuleStore } from '@/utils/moduleStore';
 
 /**
  * WCAG 2.2 SC 2.1.4 Character Key Shortcuts (level A) requires a way to turn
@@ -13,41 +14,25 @@ import { getLocalItem, setLocalItem } from '@/services/storage';
  */
 const STORAGE_KEY = 'relab-keyboard-shortcuts';
 
-let enabled = true;
-const listeners = new Set<() => void>();
-
-function emit() {
-  for (const listener of listeners) listener();
-}
-
 // Default to on until storage answers; a stored "false" flips it on the next tick.
+const store = createModuleStore(true);
+
 getLocalItem(STORAGE_KEY)
   .then((stored) => {
     if (stored === null) return;
-    enabled = stored === 'true';
-    emit();
+    store.set(stored === 'true');
   })
   .catch(() => {
     // Unreadable storage keeps the default. Shortcuts are a convenience.
   });
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function getSnapshot() {
-  return enabled;
-}
-
 export function setShortcutsEnabled(next: boolean) {
-  enabled = next;
-  emit();
+  store.set(next);
   setLocalItem(STORAGE_KEY, String(next)).catch(() => {
     // The switch still holds for this session; only persistence was lost.
   });
 }
 
 export function useShortcutsEnabled() {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useSyncExternalStore(store.subscribe, store.get, store.get);
 }
