@@ -154,7 +154,9 @@ perf-baseline:
     k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
 
 ci_compose := "docker compose -p relab_test -f ../compose.yaml -f ../compose.ci.yaml"
-k6_docker_image := "grafana/k6:latest"
+# Pinned by digest: a moving :latest silently changes the measurement tool
+# between runs, which is the one variable a latency baseline must hold still.
+k6_docker_image := "grafana/k6:2.2.0@sha256:5221b620a4f874faff6e32ba597aa667c058391fe4898b1c6f6377f062c6cdec"
 
 # Run the k6 baseline suite against the Docker CI stack.
 # Start and seed the CI backend stack first; this recipe does not.
