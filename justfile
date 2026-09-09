@@ -1,5 +1,6 @@
-# Relab Monorepo Task Runner
-# Run `just --list` to see all available commands
+# Relab monorepo task runner
+# Run `just --list` to see the recipes in this file.
+# Each subrepo has its own: `just backend/<recipe>`, `just app/<recipe>`, and so on.
 
 # Show available recipes
 default:
@@ -15,9 +16,8 @@ subrepos := "backend docs www app"
 # Subset of subrepos that implement test-unit / test-integration.
 unit_subrepos := "backend app"
 
-# Deploy overlay operations live in scripts/deploy_ops.sh. The justfile keeps
-# stable public recipes while the script owns Compose env-file paths, profiles,
-# and validation details.
+# Deploy overlay operations live in scripts/deploy_ops.sh. This file keeps the stable
+# public recipes. The script owns Compose env-file paths, profiles, and validation.
 
 # ============================================================================
 # Setup
@@ -57,20 +57,20 @@ assets-sync:
 assets-check:
     uv run python scripts/sync_brand_assets.py --check
 
-# Bootstrap a full local development environment
+# Install every dependency and the git hooks, ready for local development
 setup: install _prek-install
 
 # ============================================================================
 # Quality Checks
 # ============================================================================
 
-# Run repository-wide policy hooks (what git runs on commit, over every file).
-# no-commit-to-branch guards commits, not file checks; on main it would fail this run.
+# Run the repository-wide policy hooks that git runs on commit, over every file.
+# no-commit-to-branch guards commits rather than files, so on main it would fail here.
 pre-commit:
     SKIP=no-commit-to-branch uv run prek run --all-files --show-diff-on-failure
 
-# Root-only quality gate: scripts/, tests/, brand assets, browser JS policy. CI runs
-# this directly; subrepo gates are `just <subrepo>/check`.
+# Root-only quality gate: scripts/, tests/, brand assets, browser JS policy.
+# CI runs this recipe directly. Each subrepo has its own `just <subrepo>/check`.
 check-root:
     uv run ruff check --config pyproject.toml .
     uv run ruff format --check --config pyproject.toml .
@@ -79,7 +79,7 @@ check-root:
     uv run python scripts/browser_js_policy.py
     just assets-check
 
-# Root and subrepo quality checks (lint + typecheck + format verification).
+# Root and subrepo quality checks: lint, typecheck, and format verification.
 # File-hygiene hooks (shellcheck, shfmt, markdown, YAML) live in `just pre-commit`.
 check: check-root
     #!/usr/bin/env bash
@@ -101,7 +101,8 @@ fix:
 # Testing
 # ============================================================================
 
-# Unit-test the root scripts (env policy, browser JS policy, deploy/watchdog decisions; no Docker)
+# Test the root scripts: env policy, browser JS policy, deploy and watchdog decisions.
+# No Docker required.
 test-scripts:
     uv run pytest tests -q
     @bash scripts/test_ops.sh
@@ -134,29 +135,27 @@ test-ci:
 
 # Run end-to-end tests across subrepos that implement them
 test-e2e:
-    @just www/build
     @just www/test-e2e
-    @just docs/build
     @just docs/test-e2e
     @just test-e2e-full-stack
 
-# Repository policy checks beyond prek: env policy, compose, deploy secrets.
-# `cloudflare-check` (OpenTofu, needs provider downloads) runs in CI and on demand.
+# Repository policy checks beyond prek: env policy, Compose, deploy secrets.
+# `cloudflare-check` needs OpenTofu provider downloads, so it runs in CI and on demand.
 policy-check: env-policy-check compose-config deploy-secrets-check
 
 # Local CI pipeline: hooks, quality checks, CI tests, policy (IaC is CI-only)
 ci: pre-commit check test-ci policy-check
 
-# Start E2E backend infrastructure (database, cache, backend) and wait for readiness
+# Start the E2E backend stack (database, cache, API) and wait for readiness
 _e2e-backend-up:
     docker compose -p relab_e2e -f compose.e2e.yaml up --build -d --wait --wait-timeout 120
 
-# Tear down E2E backend infrastructure and remove volumes
+# Stop the E2E backend stack and remove its volumes
 _e2e-backend-down:
     docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
 
-# Full-stack E2E: spin up Docker backend, build Expo web, run Playwright, tear down (requires Docker)
-# mode=cross-browser runs the full browser matrix instead of the default chromium project
+# Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down.
+# Requires Docker. Pass mode=cross-browser to run the full browser matrix, not just chromium.
 test-e2e-full-stack mode="default":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -213,11 +212,11 @@ cloudflare-check:
     @just _cloudflare-verify {{ cloudflare_dir }}
     @just _cloudflare-verify {{ cloudflare_zone_dir }}
 
-# Verify one root against a throwaway copy rather than the working directory. `init`
-# reads the selected workspace's encrypted state, which would demand
+# Verify one root against a throwaway copy rather than the working directory.
+# `init` reads the selected workspace's encrypted state, so it would demand
 # TF_VAR_state_passphrase from a credential-free gate. `tofu test` also mocks the
-# provider, which cannot service an import block, so a generated imports.tf crashes the
-# run.
+# provider, and a mocked provider cannot service an import block, so a generated
+# imports.tf crashes the run.
 _cloudflare-verify dir:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -275,10 +274,10 @@ _require-cloudflare-env env:
     esac
 
 # The telemetry skip rule is `var.telemetry_edge_key == "" ? [] : [...]`. An unset key
-# does not fail the apply: it drops the rule, and the next plan reports "No changes"
-# because config and state agree there is no rule. OTLP exports are then bot-challenged
-# at the edge while the token looks correct on both sides. Only the zone root reads this
-# variable.
+# does not fail the apply: it drops the rule. The next plan then reports "No changes",
+# because config and state agree that there is no rule. OTLP exports are bot-challenged
+# at the edge while the token looks correct on both sides. Only the zone root reads
+# this variable.
 _require-telemetry-edge-key:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -335,35 +334,16 @@ secrets-restore env file:
     @bash scripts/deploy_ops.sh secrets-restore {{ quote(env) }} {{ quote(file) }}
 
 # ============================================================================
-# Docker: Targeted Development (subset of services with hot reload)
+# Docker: Development
 # ============================================================================
+# To watch one service only, call docker compose directly with the same overlays:
+# `docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml up --watch api www`.
 
-
-# Start the development database and cache infrastructure and wait for readiness
+# Start the development database and cache, then wait for readiness
 dev-db:
     {{ dev_compose }} up -d --wait postgres redis
 
-# Start backend + its infrastructure (database, cache) with hot reload
-_dev-backend:
-    {{ dev_compose }} up --watch api
-
-# Start docs server with hot reload
-_dev-docs:
-    {{ dev_compose }} up --watch docs
-
-# Start app + backend with hot reload
-_dev-app:
-    {{ dev_compose }} up --watch api app
-
-# Start www + backend with hot reload
-_dev-www:
-    {{ dev_compose }} up --watch api www
-
-# ============================================================================
-# Docker: Development
-# ============================================================================
-
-# Start full dev stack with hot reload (syncs source changes, auto-rebuilds on lockfile changes)
+# Start the full dev stack with hot reload (syncs source, rebuilds on lockfile changes)
 dev:
     {{ dev_compose }} up --watch
 
@@ -429,28 +409,27 @@ dev-migrate:
     {{ dev_compose }} exec -T postgres bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
     {{ dev_compose }} --profile migrations up migrator
 
-# Wipe all dev volumes and containers (full clean slate; re-run dev-migrate after this)
+# Wipe all dev containers and volumes for a clean slate. Re-run dev-migrate afterwards.
 _dev-reset confirm='':
     @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" {{ quote(confirm) }}
     {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
-# Docker: Deploy stacks (prod + staging)
-# ============================================================================
-
-# ============================================================================
 # Docker: Production
 # ============================================================================
+# Both deploy stacks share compose.deploy.yaml and scripts/deploy_ops.sh. Malware
+# scanning follows MALWARE_SCAN_ENABLED in the host's root .env. Scheduled backups run
+# from the host systemd timers; see deploy/systemd/.
 
-# Start production stack (scanning follows MALWARE_SCAN_ENABLED in .env; backups run from the host systemd timer, see deploy/systemd/)
+# Start production stack (optional profiles: backups, migrations)
 prod-up *profiles:
     @bash scripts/deploy_ops.sh stack prod up {{ profiles }}
 
-# Stop production stack (optional profiles: backups, migrations; scanning follows MALWARE_SCAN_ENABLED)
+# Stop production stack (optional profiles: backups, migrations)
 prod-down *profiles:
     @bash scripts/deploy_ops.sh stack prod down {{ profiles }}
 
-# Build (or rebuild) prod images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
+# Build (or rebuild) prod images; set NO_CACHE=1 to build without the layer cache
 prod-build *profiles:
     @bash scripts/deploy_ops.sh stack prod build {{ profiles }}
 
@@ -470,15 +449,15 @@ prod-migrate confirm='':
 # Docker: Staging
 # ============================================================================
 
-# Start staging stack (scanning follows MALWARE_SCAN_ENABLED in .env; backups run from the host systemd timer, see deploy/systemd/)
+# Start staging stack (optional profiles: backups, migrations)
 staging-up *profiles:
     @bash scripts/deploy_ops.sh stack staging up {{ profiles }}
 
-# Stop staging stack (optional profiles: backups, migrations; scanning follows MALWARE_SCAN_ENABLED)
+# Stop staging stack (optional profiles: backups, migrations)
 staging-down *profiles:
     @bash scripts/deploy_ops.sh stack staging down {{ profiles }}
 
-# Build (or rebuild) staging images (set NO_CACHE=1 for no-cache build; optional profiles: backups, migrations)
+# Build (or rebuild) staging images; set NO_CACHE=1 to build without the layer cache
 staging-build *profiles:
     @bash scripts/deploy_ops.sh stack staging build {{ profiles }}
 
@@ -494,8 +473,8 @@ staging-logs:
 staging-migrate confirm='':
     @bash scripts/deploy_ops.sh stack staging migrate {{ quote(confirm) }}
 
-# Run one backup cycle now (what the systemd timer calls; see deploy/systemd/).
-# Pass `manual` before a risky operation: retention keeps `manual` snapshots
+# Run one backup cycle now. This is what the systemd timer calls; see deploy/systemd/.
+# Pass `manual` before a risky operation. Retention keeps `manual` snapshots
 # unconditionally, so the next scheduled run cannot expire your safety copy.
 backup env manual='':
     @BACKUP_MANUAL={{ if manual == "manual" { "true" } else if manual == "" { "false" } else { error("second argument must be `manual` or omitted, got `" + manual + "`") } }} bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
@@ -513,7 +492,8 @@ snapshots env count='20':
 timers-render:
     @bash scripts/install_timers.sh render
 
-# Install + enable the backup/watchdog/restore-check timers for one environment (prompts for sudo; run as the deploy user, not `sudo just`)
+# Install and enable the backup, watchdog, and restore-check timers for one environment.
+# Prompts for sudo. Run it as the deploy user, not as `sudo just`.
 timers-install env:
     @bash scripts/install_timers.sh install {{ quote(env) }}
 
@@ -525,14 +505,14 @@ watchdog env max_age_hours='3':
 # Docker: Test / CI
 # ============================================================================
 
-### Dockerfile linting ---
+# --- Dockerfile linting ---
 
 # Lint every Dockerfile with BuildKit's built-in checks, and hold the line on the
-# allowlist convention. Parses only; builds nothing.
+# allowlist convention. This recipe parses only; it builds nothing.
 #
-# Entries are `<dockerfile>:<build context>`. The context cannot be derived from
-# the path (the node images build from the repo root, the backend ones from
-# backend/), so each is named here.
+# Each entry is `<dockerfile>:<build context>`. The path does not imply the context,
+# because the node images build from the repo root and the backend ones from backend/,
+# so name both here.
 docker-lint:
     #!/usr/bin/env bash
     set -uo pipefail
@@ -546,11 +526,11 @@ docker-lint:
     )
     status=0
 
-    # A Dockerfile absent from `specs` never gets linted; one without a sibling
-    # allowlist falls back to the directory-level .dockerignore, which is the
-    # drift these allowlists exist to prevent. Neither fails visibly on its own,
-    # so check both. `git ls-files` covers the index, so a newly staged
-    # Dockerfile is caught on the commit that adds it.
+    # A Dockerfile absent from `specs` never gets linted. One without a sibling
+    # allowlist falls back to the directory-level .dockerignore, which is the drift
+    # these allowlists exist to prevent. Neither failure is visible on its own, so
+    # check both. `git ls-files` covers the index, so this catches a newly staged
+    # Dockerfile on the commit that adds it.
     for file in $(git ls-files | grep -E '(^|/)Dockerfile(\.[^/]*)?$' | grep -v '\.dockerignore$'); do
       printf '%s\n' "${specs[@]}" | grep -q "^${file}:" \
         || { printf 'error: %s is not linted by this recipe; add it with its build context\n' "$file" >&2; status=1; }
@@ -566,7 +546,7 @@ docker-lint:
     done
     exit "$status"
 
-### Smoke tests for test Docker images and orchestration ---
+# --- Shared helpers ---
 
 # Internal helper: require explicit confirmation for state-changing commands.
 # Delegates to deploy_ops.sh, which owns the one copy of the YES/FORCE rule.
@@ -581,6 +561,17 @@ _docker-smoke-up services timeout:
 _docker-smoke-down services:
     {{ ci_compose }} down -v --remove-orphans {{ services }} || true
 
+# Internal helper: assert the security headers on a live response, not on the Caddyfile
+# text. The runtime image has no curl, so use the wget its HEALTHCHECK already runs.
+_docker-smoke-headers svc:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    headers=$({{ ci_compose }} exec -T {{ svc }} wget -qS -O /dev/null http://localhost:8081/ 2>&1)
+    echo "$headers" | grep -qi 'Content-Security-Policy:'
+    echo "$headers" | grep -qi 'Strict-Transport-Security:'
+
+# --- Smoke tests: Docker images and orchestration ---
+
 # Smoke test: docs static server
 docker-smoke-docs:
     #!/usr/bin/env bash
@@ -594,11 +585,7 @@ docker-smoke-www:
     set -euo pipefail
     trap 'just _docker-smoke-down www' EXIT
     just _docker-smoke-up www 60
-    # Assert security headers on a live response, not just the Caddyfile text. The
-    # runtime image has no curl; wget -S is the tool its HEALTHCHECK already uses.
-    headers=$({{ ci_compose }} exec -T www wget -qS -O /dev/null http://localhost:8081/ 2>&1)
-    echo "$headers" | grep -qi 'Content-Security-Policy:'
-    echo "$headers" | grep -qi 'Strict-Transport-Security:'
+    just _docker-smoke-headers www
 
 # Smoke test: app static server (slow: expo export runs during build)
 docker-smoke-app:
@@ -606,17 +593,13 @@ docker-smoke-app:
     set -euo pipefail
     trap 'just _docker-smoke-down app' EXIT
     just _docker-smoke-up app 300
-    # Assert security headers on a live response, not just the Caddyfile text. The
-    # runtime image has no curl; wget -S is the tool its HEALTHCHECK already uses.
-    headers=$({{ ci_compose }} exec -T app wget -qS -O /dev/null http://localhost:8081/ 2>&1)
-    echo "$headers" | grep -qi 'Content-Security-Policy:'
-    echo "$headers" | grep -qi 'Strict-Transport-Security:'
+    just _docker-smoke-headers app
 
 # Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
 docker-smoke-backups:
     @bash scripts/backup_restic_ops.sh docker-smoke-backups
 
-# Copy the local restic repository to an optional offsite repository, such as rclone:<remote>:relab/staging/restic
+# Copy the local restic repository offsite, for example to rclone:<remote>:relab/staging/restic
 backup-offsite-copy env='staging':
     @bash scripts/backup_restic_ops.sh backup-offsite-copy {{ quote(env) }}
 
@@ -644,15 +627,11 @@ docker-smoke:
     @just docker-smoke-backups
     @just docker-orchestration-smoke
 
-### CI test helpers for backend performance regression testing ---
+# --- CI helpers: backend performance regression tests ---
 
-# Start CI services and wait for readiness
+# Internal helper: start CI services and wait for readiness
 _docker-ci-up services="postgres redis api":
     {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
-
-# Start the CI backend subset (database, cache, backend) and wait for readiness
-_docker-ci-backend-up:
-    @just _docker-ci-up "postgres redis api"
 
 # Run CI migrations and seed dummy data for repeatable backend perf tests
 _docker-ci-migrate-dummy:
@@ -664,12 +643,12 @@ docker-ci-down confirm='':
     {{ ci_compose }} --profile migrations down -v --remove-orphans
 
 # Run the backend k6 baseline against the CI Docker stack.
-# Keeps the CI stack running for maintainer follow-up if needed.
+# The stack stays up afterwards, so a maintainer can follow up on a regression.
 docker-ci-perf-baseline:
     #!/usr/bin/env bash
     set -euo pipefail
     echo "→ Starting CI backend stack..."
-    just _docker-ci-backend-up
+    just _docker-ci-up
     echo "→ Running CI database migrations and seeding dummy data..."
     just _docker-ci-migrate-dummy
     echo "→ Running backend k6 baseline against the CI stack..."
@@ -685,8 +664,3 @@ clean:
     set -euo pipefail
     for d in {{ subrepos }}; do just "$d/clean"; done
     rm -rf .ruff_cache .rumdl_cache
-
-# Print a static-output size budget for a built directory (e.g. docs/dist, www/dist)
-size dir:
-    du -sh {{ quote(dir) }}
-    find {{ quote(dir) }} -type f -print0 | sort -z | xargs -0 du -h

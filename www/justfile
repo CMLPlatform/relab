@@ -1,7 +1,8 @@
-# Frontend Web Task Runner
-# Run `just --list` to see all available commands.
+# Website task runner
+# Run `just --list` to see the recipes in this file.
+# Run from www/, or from the repo root as `just www/<recipe>`.
+# This file holds the composite recipes and everything the root justfile calls.
 # For day-to-day work, `pnpm run <script>` works too; see package.json.
-# This file holds composite recipes and anything called from the root justfile.
 
 import '../playwright.just'
 
@@ -13,14 +14,14 @@ default:
 install:
     pnpm install --frozen-lockfile
 
-# Upgrade Astro and official integrations, then apply in-range pnpm updates.
-# Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
+# Upgrade Astro and its official integrations, then apply the in-range pnpm updates.
+# This uses `pnpm up` without --latest, so majors stay intentional: opt in via Renovate.
 update:
     pnpm dlx @astrojs/upgrade
     pnpm up
     pnpm dedupe
 
-# Run lint checks
+# Lint the code
 lint:
     pnpm run lint
 
@@ -28,7 +29,7 @@ lint:
 typecheck:
     pnpm run typecheck
 
-# Start the standalone dev server using the root full-stack dev origins
+# Start the standalone dev server against the root full-stack dev origins
 dev:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -46,15 +47,16 @@ format:
 fix:
     pnpm run fix
 
-# Run lint + typecheck
+# Run the quality gate
 check: lint typecheck
 
 # Build the production site
 build:
     #!/usr/bin/env bash
     set -euo pipefail
-    # Local production-mode build. Export *_PUBLIC_URL to override the reference
-    # deployment's origins; Compose passes the host's .env values as build args instead.
+    # Local production-mode build against the reference deployment's origins.
+    # Export *_PUBLIC_URL to override one. Compose passes the host's .env values as
+    # build args instead.
     export PUBLIC_APP_URL="${APP_PUBLIC_URL:-https://app.cml-relab.org}"
     export PUBLIC_DOCS_URL="${DOCS_PUBLIC_URL:-https://docs.cml-relab.org}"
     export PUBLIC_SITE_URL="${SITE_PUBLIC_URL:-https://cml-relab.org}"
@@ -62,20 +64,20 @@ build:
     export PUBLIC_FEATURED_PRODUCT_ID="${FEATURED_PRODUCT_ID:-}"
     pnpm run build
 
-# Run unit tests
+# Run the unit tests
 test:
     pnpm run test
 
-# Run the www CI test suite
+# Run the CI test suite
 test-ci:
     pnpm run test:ci
 
-# Browser end-to-end tests against a fresh production build (a stale dist/ silently
-# tests old code). CI runs chromium only; locally all configured browsers run.
+# Run the browser E2E tests against a fresh production build, because a stale dist/
+# silently tests old code. CI runs chromium only. Locally, every configured browser runs.
 test-e2e: build _browsers
     pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
 
-# Run the full cross-browser E2E matrix (chromium + firefox + webkit)
+# Run the full cross-browser E2E matrix: chromium, firefox, and webkit
 test-e2e-cross-browser: build _browsers
     pnpm run test:e2e
 
@@ -83,9 +85,10 @@ test-e2e-cross-browser: build _browsers
 e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
 e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
 
-# Build against the running E2E backend so the hero renders a live record.
-# The committed fixture ships one URL per photograph and so cannot produce a
-# srcset; only a real API response carries the width-keyed derivative map.
+# Build against the running E2E backend, so that the hero renders a live record.
+# The committed fixture ships one URL per photograph, so it cannot produce a srcset.
+# Only a real API response carries the width-keyed derivative map.
+# The origins below match `build`, except for the API and the featured product.
 build-e2e:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -98,11 +101,11 @@ build-e2e:
     export PUBLIC_FEATURED_PRODUCT_ID="${E2E_FEATURED_PRODUCT_ID:-2}"
     pnpm run build
 
-# Run the live-data E2E lane (requires the compose.e2e.yaml stack; see root test-e2e-full-stack)
+# Run the live-data E2E lane. Needs the compose.e2e.yaml stack; see root test-e2e-full-stack.
 test-e2e-live: build-e2e _browsers
     WWW_E2E_LIVE=1 pnpm run test:e2e --project=chromium
 
-# Run the full www CI pipeline locally
+# Run the full CI pipeline locally
 ci: check test-ci
 
 # Clean caches and build artifacts

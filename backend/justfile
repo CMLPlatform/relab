@@ -1,6 +1,6 @@
-# Backend Task Runner
-# Run `just --list` to see all available commands
-# Run from root: `just backend/<recipe>` or from backend/: `just <recipe>`
+# Backend task runner
+# Run `just --list` to see the recipes in this file.
+# Run from backend/, or from the repo root as `just backend/<recipe>`.
 
 # Show available recipes
 default:
@@ -24,11 +24,11 @@ dev port="8010":
 
 pytest := "uv run pytest"
 
-# Lint backend Python code
+# Lint Python code
 lint:
     uv run ruff check
 
-# Format backend Python code
+# Format Python code
 format:
     uv run ruff format
 
@@ -37,11 +37,11 @@ fix:
     uv run ruff check --fix
     just format
 
-# Run static type checks (all groups synced so optional deps resolve)
+# Run static type checks. Sync all groups first, so optional dependencies resolve.
 typecheck:
     uv run --all-groups ty check
 
-# Run the fast backend quality gate (no database required)
+# Run the fast quality gate (no database required)
 check: lint typecheck openapi-check datamodel-check email-check
     uv run ruff format --check
 
@@ -53,37 +53,38 @@ check: lint typecheck openapi-check datamodel-check email-check
 test *args:
     {{ pytest }} {{ args }}
 
-# Run tests with coverage report (format: html for local, xml for CI)
+# Run the tests with a coverage report (format: html for local, xml for CI)
 test-cov format="html":
     mkdir -p reports/coverage
     {{ pytest }} --cov --cov-report={{ quote(format) }} --cov-report=term
 
-# Run only unit tests (fast, no Docker/database path)
+# Run the unit tests only (fast: no Docker and no database)
 test-unit *args:
     {{ pytest }} tests/unit {{ args }}
 
-# Run DB-backed persistence and schema tests
+# Run the database-backed persistence and schema tests
 test-integration-db *args:
     {{ pytest }} tests/integration/db tests/integration/core/test_database_operations.py tests/integration/core/test_migrations.py {{ args }}
 
-# Run only API tests
+# Run the API tests only
 test-api *args:
     {{ pytest }} tests/integration/api {{ args }}
 
-# Run cross-boundary flow tests
+# Run the cross-boundary flow tests
 test-flows *args:
     {{ pytest }} tests/integration/flows {{ args }}
 
-# Run all integration tests (parallel — worth it only for the full suite; use `just test <file>` for one file)
+# Run all integration tests in parallel. The workers only pay off across the whole
+# suite; for a single file, run `just test <file>` instead.
 test-integration *args:
     {{ pytest }} tests/integration -n auto --dist=loadgroup {{ args }}
 
-# Run the backend CI test suite
+# Run the CI test suite
 test-ci:
     mkdir -p reports/coverage
     {{ pytest }} tests/unit tests/integration -n auto --dist=loadgroup --durations=20 --junitxml=reports/junit.xml --cov --cov-report=xml --cov-report=term
 
-# Run the full backend CI pipeline locally
+# Run the full CI pipeline locally
 ci: check test-ci
 
 # ============================================================================
@@ -94,14 +95,9 @@ ci: check test-ci
 migrate:
     uv run alembic upgrade head
 
-# Create new migration (use: just migrate-create "description")
+# Create a migration from the current model changes: just migrate-create "description"
 migrate-create message:
     uv run alembic revision --autogenerate -m {{ quote(message) }}
-
-# Reset database (down to base, then up to head)
-migrate-reset:
-    uv run alembic downgrade base
-    uv run alembic upgrade head
 
 # ============================================================================
 # Maintenance scripts
@@ -111,7 +107,7 @@ migrate-reset:
 compile-email:
     ENVIRONMENT=testing uv run python -m scripts.generate.compile_email_templates
 
-# Check that the committed email HTML matches a fresh compile
+# Fail if the committed email HTML differs from a fresh compile
 email-check:
     ENVIRONMENT=testing uv run python -m scripts.generate.compile_email_templates --check
 
@@ -119,9 +115,9 @@ email-check:
 openapi:
     uv run python -m scripts.generate.export_openapi
 
-# Check that exported docs OpenAPI schemas are current
-# NOTE: ENVIRONMENT=testing so CI (no .env.dev) gets settings from the committed
-# .env.test; schema output is identical under dev and testing.
+# Fail if the exported docs OpenAPI schemas are stale.
+# NOTE: ENVIRONMENT=testing so that CI, which has no .env.dev, reads the committed
+# .env.test. The schema output is identical under dev and testing.
 openapi-check:
     ENVIRONMENT=testing uv run python -m scripts.generate.export_openapi --check
 
@@ -129,16 +125,18 @@ openapi-check:
 datamodel:
     ENVIRONMENT=testing uv run python -m scripts.generate.export_datamodel
 
-# Check that the generated docs data-model partials are current
+# Fail if the generated docs data-model partials are stale
 datamodel-check:
     ENVIRONMENT=testing uv run python -m scripts.generate.export_datamodel --check
 
-# Build a publishable dataset release directory (verification failures abort the build)
-# Scope is decided by contributor consent; --owner only narrows within it.
-# Usage: just release-build --software-doi 10.5281/zenodo.NNNNNNN [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
-#        exclusions: --exclude-owner USERNAME | --exclude-product ID | --exclude-name-word WORD | --no-name-filter
-# Dry run, every account, writes nothing: just release-build --inventory
-# The pseudonym salt comes from $RELAB_PSEUDONYM_SALT, else secrets/<env>/dataset_pseudonym_salt
+# Build a publishable dataset release directory. A verification failure aborts the build.
+# Contributor consent decides the scope; --owner only narrows within it.
+# The pseudonym salt comes from $RELAB_PSEUDONYM_SALT, or else from
+# secrets/<env>/dataset_pseudonym_salt.
+#
+# Usage:     just release-build --software-doi 10.5281/zenodo.NNNNNNN [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
+# Exclude:   --exclude-owner USERNAME | --exclude-product ID | --exclude-name-word WORD | --no-name-filter
+# Dry run:   just release-build --inventory   (every account, writes nothing)
 release-build *args:
     uv run python -m scripts.build_dataset_release {{ args }}
 
@@ -150,7 +148,7 @@ refresh-disposable-email-domains:
 refresh-common-passwords:
     uv run python -m scripts.maintenance.refresh_common_passwords
 
-# Run the backend k6 baseline performance suite (requires k6 installed)
+# Run the k6 baseline performance suite (requires k6 on the host)
 perf-baseline:
     mkdir -p reports/performance
     k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
@@ -158,8 +156,8 @@ perf-baseline:
 ci_compose := "docker compose -p relab_test -f ../compose.yaml -f ../compose.ci.yaml"
 k6_docker_image := "grafana/k6:latest"
 
-# Run the backend k6 baseline suite against the Docker CI stack.
-# Assumes the CI backend stack is already up and seeded with dummy data.
+# Run the k6 baseline suite against the Docker CI stack.
+# Start and seed the CI backend stack first; this recipe does not.
 _perf-ci media_url="" base_url="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -178,7 +176,7 @@ _perf-ci media_url="" base_url="http://api:8000":
         -e PERF_MEDIA_URL="$media_url" \
         {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
 
-# Write a dated CI baseline report from the latest k6 JSON summary export.
+# Write a dated CI baseline report from the latest k6 JSON summary export
 _perf-report-ci date="" base_url="http://api:8000":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -188,7 +186,7 @@ _perf-report-ci date="" base_url="http://api:8000":
     fi
     python3 -m scripts.perf.perf_ci write-report --date "$report_date" --base-url {{ quote(base_url) }}
 
-# Recalibrate p95 thresholds in perf/k6-baseline.js from the latest k6 JSON summary export.
+# Recalibrate the p95 thresholds in perf/k6-baseline.js from the latest k6 summary
 _perf-thresholds-apply headroom="1.15":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -198,7 +196,7 @@ _perf-thresholds-apply headroom="1.15":
 # Maintenance
 # ============================================================================
 
-# Update dependencies
+# Update the dependency lockfile
 update:
     uv lock --upgrade
 
@@ -211,7 +209,8 @@ clean:
 # ============================================================================
 # Security
 # ============================================================================
-# Scan Python dependencies for known CVEs (scope: default runtime or all groups)
+
+# Scan Python dependencies for known CVEs (scope: runtime or all groups)
 audit scope="runtime":
     #!/usr/bin/env bash
     set -euo pipefail
