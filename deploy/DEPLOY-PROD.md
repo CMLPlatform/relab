@@ -44,13 +44,33 @@ API refills it at startup, so existence alone proves nothing about the data insi
 `backup-init` to silence this — it fails against an existing repository.
 
 **Marker missing, and the volume already has real uploads in it:** this host was deployed before
-the marker existed. Stamp it:
+the marker existed. Rebuild first, then stamp, then take the first marked snapshot:
 
 ```bash
-just backup-stamp-volume prod
+just stack prod build            # the guard ships inside the backup image, not the checkout
+just backup-stamp-volume prod    # writes .relab-volume; safe to re-run, never overwrites
+just backup prod                 # first snapshot carrying the marker
+just timers-install prod         # re-render the units
 ```
 
-Safe to re-run — it never overwrites an existing marker.
+`just backup` runs the script baked into `relab-backup:prod-local` (`backend/Dockerfile.backups`
+copies it in), not the one in the checkout, and no backup recipe builds that image. Pull the new
+code without rebuilding and the stamp lands while every guard stays inert: the run archives, the
+snapshot carries the marker, and nothing checks it.
+
+The rebuilt image says so in its own log. A guarded run reports each tag by name:
+
+```text
+postgres size 267556 bytes (100% of previous); archiving
+user-uploads size 355234816 bytes (100% of previous); archiving
+```
+
+`Dump size ...` with no `user-uploads` line means the container is still on the old image; rebuild
+and run it again.
+
+`just backup` has to happen before the next `relab-restore-check@` fires — restore verification
+enforces the marker strictly, so a check landing between the stamp and the first marked snapshot
+fails against the pre-marker one. `systemctl list-timers relab-restore-check@prod` gives the slack.
 
 **Marker missing, and the volume is genuinely empty:** the volume lost its contents or was
 replaced. No `just` recipe restores uploads live (`restore-check` only targets a scratch directory;

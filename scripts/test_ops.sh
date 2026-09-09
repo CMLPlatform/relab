@@ -861,14 +861,18 @@ stamp_marker() {
     status=$?
     # Status, whether the message named the value actually found, and the file's
     # resulting content -- a stamp that reports success but wrote nothing is the bug.
-    printf '%s|%s|%s' "$status" "$(printf '%s' "$out" | grep -c 'says \[staging\]')" \
+    # Field 2 counts the line naming what was found or written: a mandatory cutover step
+    # that exits 0 silently leaves the operator guessing whether it did anything.
+    printf '%s|%s|%s' "$status" \
+        "$(printf '%s' "$out" | grep -Ec 'says \[staging\]|marks this volume as \[prod\]|marked the uploads volume as \[prod\]')" \
         "$(cat "$tmp/.relab-volume" 2>/dev/null | tr -d '[:space:]')"
     rm -rf "$tmp"
 }
 
-assert_eq "an unstamped volume gets the marker" "0|0|prod" "$(stamp_marker '<absent>')"
+assert_eq "an unstamped volume gets the marker, and says so" "0|1|prod" "$(stamp_marker '<absent>')"
 # Re-running recovers a half-finished cutover, so this must be a silent no-op.
-assert_eq "stamping an already-correct volume is a silent no-op" "0|0|prod" "$(stamp_marker 'prod')"
+assert_eq "stamping an already-correct volume reports the existing marker" "0|1|prod" \
+    "$(stamp_marker 'prod')"
 # Never overwritten: a cross-environment restore carries the source marker, and guessing
 # which is right could archive the wrong volume -- but exit 0 would hide that every
 # backup still refuses.
@@ -877,7 +881,7 @@ assert_eq "another environment's marker is reported, not overwritten" \
 # A zero-byte marker is an interrupted write, not a stamped volume: `test -f` would skip
 # it forever while backup runs read it as a different environment and refuse every run.
 assert_eq "a zero-byte marker from an interrupted write is completed, not skipped" \
-    "0|0|prod" "$(stamp_marker '')"
+    "0|1|prod" "$(stamp_marker '')"
 
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1
