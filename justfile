@@ -527,18 +527,38 @@ watchdog env max_age_hours='3':
 
 ### Dockerfile linting ---
 
-# Lint every Dockerfile with BuildKit's built-in checks. Parses only; builds nothing.
+# Lint every Dockerfile with BuildKit's built-in checks, and hold the line on the
+# allowlist convention. Parses only; builds nothing.
+#
+# Entries are `<dockerfile>:<build context>`. The context cannot be derived from
+# the path (the node images build from the repo root, the backend ones from
+# backend/), so each is named here.
 docker-lint:
     #!/usr/bin/env bash
     set -uo pipefail
+    specs=(
+      "app/Dockerfile:."
+      "www/Dockerfile:."
+      "docs/Dockerfile:."
+      "backend/Dockerfile:backend"
+      "backend/Dockerfile.migrations:backend"
+      "backend/Dockerfile.backups:backend"
+    )
     status=0
-    for spec in \
-      "app/Dockerfile:." \
-      "www/Dockerfile:." \
-      "docs/Dockerfile:." \
-      "backend/Dockerfile:backend" \
-      "backend/Dockerfile.migrations:backend" \
-      "backend/Dockerfile.backups:backend"; do
+
+    # A Dockerfile absent from `specs` never gets linted; one without a sibling
+    # allowlist falls back to the directory-level .dockerignore, which is the
+    # drift these allowlists exist to prevent. Neither fails visibly on its own,
+    # so check both. `git ls-files` covers the index, so a newly staged
+    # Dockerfile is caught on the commit that adds it.
+    for file in $(git ls-files | grep -E '(^|/)Dockerfile(\.[^/]*)?$' | grep -v '\.dockerignore$'); do
+      printf '%s\n' "${specs[@]}" | grep -q "^${file}:" \
+        || { printf 'error: %s is not linted by this recipe; add it with its build context\n' "$file" >&2; status=1; }
+      [ -f "${file}.dockerignore" ] \
+        || { printf 'error: %s has no sibling %s.dockerignore allowlist\n' "$file" "$file" >&2; status=1; }
+    done
+
+    for spec in "${specs[@]}"; do
       file="${spec%%:*}"
       context="${spec##*:}"
       printf '\n\033[1m== %s ==\033[0m\n' "$file"

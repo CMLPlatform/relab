@@ -109,7 +109,6 @@ repos:
         entry: just docker-lint
         language: system
         files: (^|/)Dockerfile(\.[^/]+)?$
-        exclude: \.dockerignore$
         pass_filenames: false
       - id: pnpm-lock
         name: pnpm-lock
