@@ -132,6 +132,7 @@ const ThumbnailItem = memo(function ThumbnailItem({
         // alt, so hide the subtree.
         <View aria-hidden>
           <Image
+            accessibilityIgnoresInvertColors
             source={{ uri }}
             style={{ width: 60, height: 60 }}
             transition={IMAGE_FADE_MS}

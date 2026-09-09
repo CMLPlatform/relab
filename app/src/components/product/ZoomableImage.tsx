@@ -254,6 +254,7 @@ export default function ZoomableImage({
         onLayout={handleLayout}
       >
         <Image
+          accessibilityIgnoresInvertColors
           source={{ uri }}
           contentFit="contain"
           transition={IMAGE_FADE_MS}

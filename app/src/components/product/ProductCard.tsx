@@ -127,6 +127,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 style={{ backgroundColor: theme.colors.surfaceVariant }}
               >
                 <Image
+                  accessibilityIgnoresInvertColors
                   source={{ uri: product.thumbnailUrl }}
                   style={styles.thumbnailImage}
                   contentFit="cover"

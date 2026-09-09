@@ -105,6 +105,7 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
             // empty alt, so hide the subtree (same treatment as StaticBackground).
             <View aria-hidden>
               <Image
+                accessibilityIgnoresInvertColors
                 source={{ uri: component.thumbnailUrl }}
                 style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: radius.card }}
                 contentFit="cover"

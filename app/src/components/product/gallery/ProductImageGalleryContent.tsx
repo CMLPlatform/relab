@@ -283,6 +283,7 @@ const GalleryImageItem = memo(function GalleryImageItem({
         // alt, so hide the subtree.
         <View aria-hidden>
           <Image
+            accessibilityIgnoresInvertColors
             // Empty when the API has no dimensions; `uri` is then the size
             // picked in useProductGalleryMedia.
             source={sourceSet.length > 1 ? sourceSet : { uri }}

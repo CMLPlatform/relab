@@ -37,6 +37,7 @@ export function ProductsWelcomeCard({
             className="h-11 w-11 items-center justify-center rounded-lg bg-primary/12"
           >
             <Image
+              accessibilityIgnoresInvertColors
               source={
                 theme.dark
                   ? require('@/assets/images/mark-dark.png')
