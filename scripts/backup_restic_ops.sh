@@ -182,8 +182,9 @@ verify_postgres_restore() {
     docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
     RESTORE_CONTAINER="${4:-relab_restore_smoke_$(date +%s)_$$}"
     # A deterministic name can collide with a leftover from a killed earlier run;
-    # replace it.
-    docker rm -f "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
+    # replace it. NOTE: -v drops the scratch container's anonymous PGDATA volume with
+    # it; without it every run strands ~72 MB. Named volumes are never removed by it.
+    docker rm -fv "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
 
     docker run --rm \
         -v "$repo_dir:/restic:ro" \
@@ -238,8 +239,8 @@ docker_smoke_backups() {
     host_gid="$(id -g)"
 
     cleanup() {
-        docker rm -f "$postgres_container" >/dev/null 2>&1 || true
-        docker rm -f "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
+        docker rm -fv "$postgres_container" >/dev/null 2>&1 || true
+        docker rm -fv "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
         docker network rm "$network" >/dev/null 2>&1 || true
         docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
@@ -414,7 +415,7 @@ backup_restore_smoke() {
     host_gid="$(id -g)"
 
     cleanup() {
-        docker rm -f "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
+        docker rm -fv "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
         docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
         rm -rf "$tmp_root"
