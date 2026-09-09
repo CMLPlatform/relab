@@ -1,6 +1,8 @@
 """Unit tests for image processing utilities."""
 
 import io
+import os
+import time
 from pathlib import Path
 
 import pytest
@@ -534,3 +536,56 @@ def test_eager_and_deferred_widths_partition_the_standard_set() -> None:
     # The narrow width is the one `thumbnail_url` and every list card resolve to, so
     # it is the one that cannot be deferred.
     assert (min(THUMBNAIL_WIDTHS),) == EAGER_THUMBNAIL_WIDTHS
+
+
+@pytest.fixture
+def photographic_image(tmp_path: Path) -> Path:
+    """A 2400x1800 JPEG carrying real detail rather than a flat fill.
+
+    2400 wide because that is the first size at which every standard width applies —
+    below 1600 the widest derivative is skipped and the split under test barely moves.
+    Tiled noise rather than a single colour: a flat fill resizes and encodes far faster
+    than any real image, which would flatter the ratio this test exists to police.
+    """
+    path = tmp_path / "photographic.jpg"
+    tile = PILImage.frombytes("RGB", (300, 300), os.urandom(300 * 300 * 3))
+    canvas = PILImage.new("RGB", (2400, 1800))
+    for top in range(0, 1800, 300):
+        for left in range(0, 2400, 300):
+            canvas.paste(tile, (left, top))
+    canvas.save(path, format="JPEG", quality=85)
+    return path
+
+
+@pytest.mark.slow
+def test_the_inline_thumbnail_pass_stays_a_small_fraction_of_the_full_set(photographic_image: Path) -> None:
+    """The eagerly generated widths must be the cheap ones.
+
+    Uploads generate `EAGER_THUMBNAIL_WIDTHS` inline and defer the rest, so what keeps
+    the response fast is not the split itself but which side of it the expensive widths
+    land on. `test_eager_and_deferred_widths_partition_the_standard_set` would still pass
+    if the two sets were swapped; this is what would not.
+
+    A ratio, not a millisecond ceiling: both measurements run under the same load on the
+    same machine, so the comparison survives a shared CI runner, where an absolute bound
+    would mostly measure the neighbours. Measured on a 2400x1800 original: 0.08 as things
+    stand, 0.72 with the two sets swapped, 1.00 with every width back inline. 0.35 sits
+    between, with room on both sides.
+    """
+
+    def fastest(widths: tuple[int, ...]) -> float:
+        timings = []
+        for _ in range(3):
+            start = time.perf_counter()
+            generate_thumbnails(photographic_image, widths)
+            timings.append(time.perf_counter() - start)
+            delete_thumbnails(photographic_image)
+        return min(timings)
+
+    full_set = fastest(THUMBNAIL_WIDTHS)
+    inline_only = fastest(EAGER_THUMBNAIL_WIDTHS)
+
+    assert inline_only < full_set * 0.35, (
+        f"inline pass took {inline_only * 1000:.0f}ms of the full set's {full_set * 1000:.0f}ms; "
+        f"the expensive widths belong in DEFERRED_THUMBNAIL_WIDTHS"
+    )
