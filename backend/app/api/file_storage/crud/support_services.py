@@ -195,12 +195,14 @@ async def _generate_deferred_thumbnails(image_path: Path) -> None:
         )
     except ValueError, OSError:
         logger.warning("Deferred thumbnail generation failed for %s, skipping", image_path.name, exc_info=True)
-        return
-
-    # The row can be deleted while this task runs: `delete` unlinks the derivatives that
-    # exist at that moment, which is before these were written. Clean up after ourselves
-    # rather than leaving files no row points at and no sweep ever visits.
-    await to_thread.run_sync(_discard_thumbnails_of_deleted_original, image_path)
+    finally:
+        # The row can be deleted while this task runs: `delete` unlinks the derivatives
+        # that exist at that moment, which is before these were written. Clean up after
+        # ourselves rather than leaving files no row points at and no sweep ever visits.
+        # This also runs on the failure path because a concurrent delete is one of the
+        # ways it fails: a JPEG original is re-opened per width, so the delete can land
+        # between two of them and leave the widths already written behind.
+        await to_thread.run_sync(_discard_thumbnails_of_deleted_original, image_path)
 
 
 class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](ABC):

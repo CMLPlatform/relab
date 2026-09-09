@@ -25,6 +25,7 @@ from app.core.images import (
     THUMBNAIL_WIDTHS,
     generate_thumbnails,
     thumbnail_path_for,
+    thumbnails,
 )
 
 if TYPE_CHECKING:
@@ -241,4 +242,31 @@ async def test_deferred_pass_cleans_up_when_the_image_was_deleted_meanwhile(tmp_
     with patch.object(support_services, "generate_thumbnails", generate_then_delete):
         await _generate_deferred_thumbnails(image_path)
 
+    assert not any(thumbnail_path_for(image_path, width).exists() for width in DEFERRED_THUMBNAIL_WIDTHS)
+
+
+async def test_deferred_pass_cleans_up_when_the_original_vanishes_mid_generation(tmp_path: Path) -> None:
+    """A delete landing between two widths must not orphan the width already written.
+
+    A JPEG original is re-opened once per width so ``draft`` can scale it in the DCT
+    domain, so an account erasure or an image delete can remove it after the 800px
+    thumbnail is on disk and before the 1600px open. That open raises ``FileNotFoundError``
+    — an ``OSError`` — and the widths written before it have no row pointing at them and
+    no sweep that would ever find them.
+    """
+    image_path = tmp_path / "vanishing.jpg"
+    PILImage.new("RGB", (2000, 1000), color="blue").save(image_path, format="JPEG")
+    generate_thumbnails(image_path, EAGER_THUMBNAIL_WIDTHS)
+
+    real_write = thumbnails._write_thumbnail
+
+    def write_then_delete(img: PILImage.Image, path: Path, width: int, height: int) -> Path:
+        written = real_write(img, path, width, height)
+        path.unlink(missing_ok=True)
+        return written
+
+    with patch.object(thumbnails, "_write_thumbnail", write_then_delete):
+        await _generate_deferred_thumbnails(image_path)
+
+    assert not image_path.exists()
     assert not any(thumbnail_path_for(image_path, width).exists() for width in DEFERRED_THUMBNAIL_WIDTHS)
