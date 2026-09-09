@@ -1,10 +1,25 @@
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback } from 'react';
+import {
+  ActivityIndicator,
+  type DimensionValue,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { ErrorState } from '@/components/base/ErrorState';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
+import ProductCard from '@/components/product/ProductCard';
+import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
+import { productGridColumns } from '@/features/products/productGridColumns';
+import { userProductsInfiniteQueryOptions } from '@/features/products/queries';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
@@ -35,16 +50,65 @@ function ProfileStatCard({
   );
 }
 
+// Plain grid inside the page ScrollView: the products-screen FlatList owns its
+// own scroll, pull-to-refresh, and bottom-nav insets, none of which fit here.
+function UserProducts({ username }: { username: string }) {
+  const { width } = useWindowDimensions();
+  const numColumns = productGridColumns(width);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery(
+    userProductsInfiniteQueryOptions(username),
+  );
+  const items = data?.pages.flatMap((page) => page.items) ?? [];
+  const total = data?.pages[0]?.total ?? 0;
+  const loadMore = useCallback(() => {
+    void fetchNextPage();
+  }, [fetchNextPage]);
+
+  return (
+    <View className="w-full mt-12" testID="user-products">
+      <AppText variant="eyebrow" className="mb-3" accessibilityRole="header">
+        {isLoading ? 'Products' : `Products · ${total}`}
+      </AppText>
+      {isLoading ? (
+        <ProductCardSkeleton />
+      ) : items.length === 0 ? (
+        <AppText className="text-muted-foreground">No public products yet</AppText>
+      ) : (
+        <View className="flex-row flex-wrap">
+          {items.map((product) => (
+            <View key={product.id} style={{ width: `${100 / numColumns}%` as DimensionValue }}>
+              <ProductCard product={product} />
+            </View>
+          ))}
+        </View>
+      )}
+      {hasNextPage ? (
+        <View className="items-center py-4" accessibilityLiveRegion="polite">
+          {isFetchingNextPage ? (
+            <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
+          ) : (
+            <AppButton variant="outline" onPress={loadMore} accessibilityLabel="Load more products">
+              Load more
+            </AppButton>
+          )}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function UserProfileScreen() {
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const { profile, loading, hasError, errorMessage, onRetry } = usePublicProfileScreen();
+  const title = profile?.username ?? 'Profile';
 
   return (
     <>
       <Head>
-        <title>{`${profile?.username ?? 'Profile'} · Relab`}</title>
+        <title>{`${title} · Relab`}</title>
       </Head>
+      <Stack.Screen options={{ title }} />
       <ScrollView contentContainerClassName="flex-grow py-4">
         <PageContainer>
           {loading ? (
@@ -93,12 +157,6 @@ export default function UserProfileScreen() {
                 {(
                   [
                     {
-                      icon: 'package',
-                      color: theme.colors.primary,
-                      value: profile.product_count,
-                      label: 'Products',
-                    },
-                    {
                       icon: 'weight',
                       color: theme.colors.secondary,
                       value: profile.total_weight_kg,
@@ -122,6 +180,8 @@ export default function UserProfileScreen() {
                   <ProfileStatCard key={stat.label} {...stat} />
                 ))}
               </View>
+
+              <UserProducts username={profile.username} />
             </View>
           ) : null}
         </PageContainer>

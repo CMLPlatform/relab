@@ -13992,21 +13992,21 @@
         "operationId": "get_products_v1_products_get",
         "parameters": [
           {
-            "description": "Use 'me' to list the current user's products",
+            "description": "Use 'me' for the current user's products, or a username for that user's public products",
             "in": "query",
             "name": "owner",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "const": "me",
+                  "maxLength": 50,
                   "type": "string"
                 },
                 {
                   "type": "null"
                 }
               ],
-              "description": "Use 'me' to list the current user's products",
+              "description": "Use 'me' for the current user's products, or a username for that user's public products",
               "title": "Owner"
             }
           },

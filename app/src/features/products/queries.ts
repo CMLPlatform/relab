@@ -80,6 +80,22 @@ export const productsInfiniteQueryOptions = (
       lastPageParam * PAGE_SIZE < lastPage.total ? lastPageParam + 1 : undefined,
   });
 
+/** A user's public products for /users/[username]; the server 404s hidden profiles. */
+export const userProductsInfiniteQueryOptions = (username: string) =>
+  infiniteQueryOptions({
+    queryKey: ['products', 'infinite', 'user', username] as const,
+    queryFn: ({ pageParam }) =>
+      products({
+        page: pageParam,
+        size: PAGE_SIZE,
+        orderBy: [...DEFAULT_PRODUCT_SORT],
+        owner: username,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPageParam * PAGE_SIZE < lastPage.total ? lastPageParam + 1 : undefined,
+  });
+
 export const brandsSearchQueryOptions = (search: string) =>
   queryOptions({
     queryKey: ['brands', 'search', search] as const,

@@ -50,9 +50,20 @@ export const handlers = [
   }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
   // Real endpoint returns a fastapi-pagination Page, never a bare array.
-  http.get(`${API_URL}/products`, () =>
-    HttpResponse.json({ items: [], total: 0, page: 1, size: 50, pages: 0 }),
-  ),
+  // `owner=<username>` mirrors the backend: that user's public products, attributed.
+  http.get(`${API_URL}/products`, ({ request }) => {
+    const owner = new URL(request.url).searchParams.get('owner');
+    if (owner && owner !== 'me') {
+      return HttpResponse.json({
+        items: [{ id: 1, name: 'Recycled Aluminum Laptop Stand', owner_username: owner }],
+        total: 1,
+        page: 1,
+        size: 24,
+        pages: 1,
+      });
+    }
+    return HttpResponse.json({ items: [], total: 0, page: 1, size: 50, pages: 0 });
+  }),
   http.get(`${API_URL}/stats/categories`, () =>
     HttpResponse.json({ generated_at: '', limit: 10, scope: 'all', categories: [] }),
   ),

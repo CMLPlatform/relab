@@ -9,6 +9,9 @@ from sqlalchemy import select
 from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
 from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
+from app.api.auth.models import User
+from app.api.auth.schemas import normalize_username
+from app.api.auth.services.privacy import can_view_profile
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
@@ -94,6 +97,23 @@ async def _page_base_products(
     return cast("Page[ProductRead]", page)
 
 
+async def resolve_owner_id(session: AsyncSessionDep, owner: str, viewer: User | None) -> UUID4:
+    """Map the ``owner`` query value to a user id: ``me`` or a username.
+
+    Usernames follow the public-profile rule (``can_view_profile``): a hidden or
+    unknown owner is a 404, so the list leaks nothing the profile would not.
+    """
+    if owner == CURRENT_USER_OWNER:
+        if viewer is None:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        return viewer.id
+    lookup_username = cast("str", normalize_username(owner))
+    user = (await session.execute(select(User).where(User.username == lookup_username))).unique().scalar_one_or_none()
+    if user is None or not can_view_profile(user, viewer):
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return user.id
+
+
 @user_product_router.get(
     "",
     response_model=Page[ProductRead],
@@ -130,14 +150,18 @@ async def get_products(
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    owner: Annotated[Literal["me"] | None, Query(description="Use 'me' to list the current user's products")] = None,
+    owner: Annotated[
+        str | None,
+        Query(
+            max_length=50,
+            description="Use 'me' for the current user's products, or a username for that user's public products",
+        ),
+    ] = None,
 ) -> Page[ProductRead] | Response:
     """Get all base products. Components live under ``/products/{id}/components``."""
     statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.is_(None))
-    if owner == CURRENT_USER_OWNER:
-        if current_user is None:
-            raise HTTPException(status_code=401, detail="Authentication required")
-        statement = statement.where(Product.owner_id == current_user.id)
+    if owner is not None:
+        statement = statement.where(Product.owner_id == await resolve_owner_id(session, owner, current_user))
     payload = await _page_base_products(
         session,
         statement=statement,
