@@ -11,9 +11,12 @@ from PIL import Image as PILImage
 from sqlalchemy import select, update
 
 from app.api.file_storage import upload_quota
+from app.api.file_storage.crud.support_paths import stored_file_path
 from app.api.file_storage.models import Image
 from app.core.config import settings
+from app.core.images import DEFERRED_THUMBNAIL_WIDTHS, thumbnail_path_for
 from scripts.maintenance.backfill_image_dimensions import measure_images_missing_dimensions
+from scripts.maintenance.backfill_thumbnails import thumbnail_unverified_images
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 
 if TYPE_CHECKING:
@@ -145,6 +148,10 @@ async def test_upload_image_records_its_pixel_dimensions(
     assert list(body["thumbnail_urls"]) == ["200"]
     assert body["thumbnail_urls"]["200"].endswith("_thumb_200.webp")
 
+    # NOTE: this asserts the dimensions are *written*, not that they are committed. The
+    # request runs on this very session, bound to one connection whose transaction the
+    # fixture owns, so a merely flushed UPDATE is visible here too. The commit itself is
+    # pinned by test_image_dimensions_are_committed_not_just_flushed (unit).
     stored = (await db_session.execute(select(Image).where(Image.id == UUID(body["id"])))).scalar_one()
     assert (stored.width_px, stored.height_px) == (321, 123)
 
@@ -178,6 +185,49 @@ async def test_backfill_measures_images_stored_before_dimensions_existed(
     db_session.expire_all()
     restored = (await db_session.execute(select(Image).where(Image.id == UUID(image_id)))).scalar_one()
     assert (restored.width_px, restored.height_px) == (222, 111)
+
+
+async def test_backfill_repairs_and_stamps_only_the_unverified_rows(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    setup_product_for_files: Product,
+) -> None:
+    """The backfill selects rows, not files, and stamps what it has verified.
+
+    Walking the storage directory cost one pass over every image ever uploaded on every
+    deploy. Selecting on the stamp bounds each run to rows written since the last one,
+    and a row left with only its inline narrow thumbnail by a restart is repaired.
+    """
+    buffer = BytesIO()
+    PILImage.new("RGB", (2000, 1000), color="green").save(buffer, format="PNG")
+    response = await api_client_superuser.post(
+        f"/v1/products/{setup_product_for_files.id}/images",
+        files={"file": ("wide.png", buffer.getvalue(), "image/png")},
+        data={"description": IMAGE_DESC},
+    )
+    assert response.status_code == status.HTTP_201_CREATED, response.text
+    image_id = UUID(response.json()["id"])
+
+    stored = (await db_session.execute(select(Image).where(Image.id == image_id))).scalar_one()
+    original = stored_file_path(stored)
+    assert original is not None
+
+    # The state a restart during the detached pass leaves: narrow width only, unstamped.
+    for width in DEFERRED_THUMBNAIL_WIDTHS:
+        thumbnail_path_for(original, width).unlink(missing_ok=True)
+    await db_session.execute(update(Image).where(Image.id == image_id).values(thumbnails_generated_at=None))
+    await db_session.commit()
+
+    assert await thumbnail_unverified_images(db_session) == (1, 0)
+
+    for width in DEFERRED_THUMBNAIL_WIDTHS:
+        assert thumbnail_path_for(original, width).exists()
+
+    # Stamped, so the next deploy's pass selects nothing and does no work at all.
+    db_session.expire_all()
+    verified = (await db_session.execute(select(Image).where(Image.id == image_id))).scalar_one()
+    assert verified.thumbnails_generated_at is not None
+    assert await thumbnail_unverified_images(db_session) == (0, 0)
 
 
 @pytest.mark.parametrize(
