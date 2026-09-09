@@ -86,6 +86,32 @@ assert_eq "env guard: matching environment" allowed "$(env_guard 'ENVIRONMENT=pr
 assert_eq "env guard: other environment blocks" blocked "$(env_guard 'ENVIRONMENT=staging' prod)"
 assert_eq "env guard: missing .env blocks" blocked "$(env_guard '' staging)"
 
+# ---------------------------------------------------------------------------
+# `stack ENV up` volume preflight: a mount the container cannot write must stop the
+# deploy and name the chown, because reads and stat still succeed on a wrongly-owned
+# volume and nothing later in the deploy reports the failed writes.
+# ---------------------------------------------------------------------------
+mount_alert() {
+    local out status
+    out="$(mount_writability_alert prod "$1" "$2" "$3" "$4" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "a writable mount is silent" "0|" \
+    "$(mount_alert api /opt/relab/backend/data/uploads volume:user_uploads yes)"
+assert_eq "an unwritable named volume names the volume and the chown" \
+    "1|error: the prod stack's api service cannot write /opt/relab/backend/data/uploads as uid 65532.
+Docker sets a named volume's ownership only when it first creates the volume, so
+relab_prod_user_uploads still belongs to whichever uid created it.
+Fix with: docker run --rm --user 0 -v relab_prod_user_uploads:/mnt relab-backend:prod-local chown -R 65532:65532 /mnt" \
+    "$(mount_alert api /opt/relab/backend/data/uploads volume:user_uploads no)"
+assert_eq "an unwritable bind mount asks for a host chown, not a docker one" \
+    "1|error: the prod stack's backup service cannot write /restic as uid 65532.
+Docker creates a missing bind-mount directory root-owned.
+Fix with: sudo chown -R 65532:65532 /srv/backups/restic" \
+    "$(mount_alert backup /restic host:/srv/backups/restic no)"
+
 sha_guard() {
     (require_short_sha "$1" 2>/dev/null) && echo ok || echo rejected
 }
