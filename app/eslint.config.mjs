@@ -33,10 +33,11 @@ const reactNativeA11yRules = {
   'react-native-a11y/has-valid-accessibility-descriptors': 'error',
   // `invertableComponents` is required, not optional: the rule only inspects an `Image`
   // imported from 'react-native', and every image in this app comes from 'expo-image'.
-  // Without naming it here the rule silently matches nothing at all.
+  // Without naming it here the rule silently matches nothing at all. It matches on the
+  // element name, so every wrapper that renders a photograph needs listing too.
   'react-native-a11y/has-valid-accessibility-ignores-invert-colors': [
     'error',
-    { invertableComponents: ['Image'] },
+    { invertableComponents: ['Image', 'ImageBackground'] },
   ],
 };
 
