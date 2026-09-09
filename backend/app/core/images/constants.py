@@ -5,12 +5,15 @@ from PIL.Image import Resampling
 
 __all__ = [
     "ALLOWED_IMAGE_MIME_TYPES",
+    "DEFERRED_THUMBNAIL_WIDTHS",
+    "EAGER_THUMBNAIL_WIDTHS",
     "FORMAT_JPEG",
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
     "MAX_IMAGE_PIXELS",
     "PRESERVED_EXIF_TAGS",
     "RESAMPLE_FILTER",
+    "RESIZE_REDUCING_GAP",
     "THUMBNAIL_WIDTHS",
     "WEBP_ENCODE_METHOD",
     "_EXIF_ORIENTATION_TAG",
@@ -36,9 +39,19 @@ ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
     }
 )
 THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600)
+# The width the create response publishes and every list card uses; generated inline
+# so an upload never answers without it. The wider widths are generated afterwards.
+EAGER_THUMBNAIL_WIDTHS: tuple[int, ...] = THUMBNAIL_WIDTHS[:1]
+DEFERRED_THUMBNAIL_WIDTHS: tuple[int, ...] = THUMBNAIL_WIDTHS[1:]
+# Pillow pre-reduces by an integer factor before the resample filter runs whenever the
+# source is at least this many times the target. It costs a box-filter pass and saves a
+# much larger LANCZOS one; 2.0 is Pillow's own default for `thumbnail`.
+RESIZE_REDUCING_GAP = 2.0
 # libwebp effort, 0 (fastest) to 6 (smallest). 6 costs 1.8x the encode time of 4
-# for 3% smaller thumbnails, paid on every upload.
-WEBP_ENCODE_METHOD = 4
+# for 3% smaller thumbnails, paid on every upload. Measured on a 12MP JPEG: at the
+# 1600px width, method 4 encodes in 163 ms and method 2 in 97 ms, for 0.4% more
+# bytes (1024 KB -> 1028 KB). The 66 ms is worth more than the 4 KB.
+WEBP_ENCODE_METHOD = 2
 
 # Allowlist of capture parameters kept for computer-vision research. Vendor MakerNote
 # blocks carry serial numbers and face-detection data, so anything unnamed is dropped.

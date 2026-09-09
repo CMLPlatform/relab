@@ -1,8 +1,12 @@
-"""Base class for periodic async background tasks."""
+"""Async background task helpers: a periodic base class and detached one-shots."""
 
 import asyncio
 import contextlib
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
 
 logger = logging.getLogger(__name__)
 
@@ -53,3 +57,40 @@ class PeriodicBackgroundTask:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
             self._task = None
+
+
+# Strong references to in-flight detached tasks: asyncio only holds a weak one, so a
+# task nobody awaits can be garbage-collected mid-run.
+_detached_tasks: set[asyncio.Task[None]] = set()
+
+
+def spawn_detached(coro: Coroutine[object, object, object], *, name: str) -> None:
+    """Run a coroutine outside the caller's lifetime, logging anything it raises.
+
+    For work whose result the caller does not need and whose failure must not fail
+    the caller. Deliberately not awaited anywhere, including at shutdown: the only
+    current user regenerates derivable files, so a task lost to a restart costs a
+    re-run of the backfill script, not data.
+    """
+
+    async def _guarded() -> None:
+        try:
+            await coro
+        except Exception:
+            logger.exception("Detached task %s failed:", name)
+
+    task = asyncio.create_task(_guarded(), name=name)
+    _detached_tasks.add(task)
+    task.add_done_callback(_detached_tasks.discard)
+
+
+async def drain_detached() -> None:
+    """Wait for every in-flight detached task to finish.
+
+    For a process that ends deliberately rather than serving requests — the seeder,
+    a test — where "spawned" and "done" have to be the same thing before it exits.
+    Long-running servers do not call this: a request must never wait on work the
+    previous one detached.
+    """
+    while _detached_tasks:
+        await asyncio.gather(*tuple(_detached_tasks), return_exceptions=True)

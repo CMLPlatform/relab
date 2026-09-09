@@ -8,6 +8,7 @@ from alembic.config import Config
 from anyio.to_thread import run_sync
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.core.background_tasks import drain_detached
 from app.core.database import async_engine, async_session_context, close_async_engine
 
 from .background import seed_categories, seed_materials, seed_product_types, seed_taxonomies
@@ -49,6 +50,10 @@ async def run_seed_steps(session: AsyncSession) -> None:
     product_type_map = await seed_product_types(session, category_map)
     product_id_map = await seed_products(session, product_type_map, material_map, user_map)
     await seed_images(session, product_id_map)
+    # Image creation defers its wider thumbnails to detached tasks. A server keeps
+    # running and finishes them; a seeder exits, so it has to wait, or it leaves the
+    # data it just wrote without the derivatives `srcset` needs.
+    await drain_detached()
 
 
 async def async_main(*, reset: bool = False, dry_run: bool = False) -> None:
