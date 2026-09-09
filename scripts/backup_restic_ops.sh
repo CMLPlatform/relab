@@ -121,6 +121,13 @@ build_migrator_image() {
     docker compose -p relab_test -f "$ROOT_DIR/compose.yaml" -f "$ROOT_DIR/compose.ci.yaml" build migrator
 }
 
+# A deterministic name can collide with a leftover from a killed run; replace it first.
+# -fv also drops the anonymous volume, which is what strands ~72 MB of PGDATA per run on
+# scratch Postgres (harmless for uploads, which has none); named volumes are untouched.
+reap_stale_container() {
+    docker rm -fv "$1" >/dev/null 2>&1 || true
+}
+
 # Restore the latest `postgres`-tagged snapshot from a restic repository into a
 # throwaway Postgres container and assert the dump loads.
 # Args: <repo dir> <restic password file> <scratch dir> [container name].
@@ -181,10 +188,7 @@ verify_postgres_restore() {
     # The backup image runs as uid 65532, so the restore bind mount must be writable by it.
     docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
     RESTORE_CONTAINER="${4:-relab_restore_smoke_$(date +%s)_$$}"
-    # A deterministic name can collide with a leftover from a killed earlier run;
-    # replace it. NOTE: -v drops the scratch container's anonymous PGDATA volume with
-    # it; without it every run strands ~72 MB. Named volumes are never removed by it.
-    docker rm -fv "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
+    reap_stale_container "$RESTORE_CONTAINER"
 
     docker run --rm \
         -v "$repo_dir:/restic:ro" \
@@ -418,30 +422,26 @@ backup_offsite_copy() {
 }
 
 # Restore the newest `user-uploads` snapshot into a scratch directory and assert it
-# carries real data. Snapshot age (watchdog check 2) only proves a run happened; an
-# emptied volume produces a fresh snapshot that reads healthy. This is the only thing
-# that proves the uploads half of the repository restores at all.
+# holds real data -- snapshot age (watchdog check 2) only proves a run happened; an
+# emptied volume still reads as healthy.
 # Args: <repo dir> <restic password file> <scratch dir> [expected environment] [container name].
-# The scratch dir must sit on the same filesystem as the backup repository: an uploads
-# restore is unbounded, and filling / would take Postgres and the docker graph with it.
-# The systemd path passes a deterministic container name so the unit's ExecStopPost
-# reaper can remove the container after a SIGKILL, when no trap here runs.
+# Scratch dir must share a filesystem with the backup repository: the restore is
+# unbounded and could otherwise fill / alongside Postgres and the docker graph. The
+# systemd path passes a deterministic container name so ExecStopPost can reap it after a
+# SIGKILL.
 verify_uploads_restore() {
     local repo="$1" password_file="$2" scratch="$3" expect_env="${4:-}"
     local container="${5:-relab_uploads_restore_$(date +%s)_$$}"
     local target="$scratch/uploads-restore"
 
-    # The backup image runs as uid 65532, so the restore target must be created and owned
-    # for it. Both happen in a container: on a deployed host the scratch directory lives
-    # under BACKUP_HOST_DIR, which this user does not own.
+    # Created and chowned in a container: the backup image runs as uid 65532, and on a
+    # deployed host this user doesn't own BACKUP_HOST_DIR to do it directly.
     docker run --rm -v "$scratch:/work" --entrypoint sh alpine:3.22 \
-        -c 'rm -rf /work/uploads-restore && mkdir /work/uploads-restore && chown 65532:65532 /work/uploads-restore'
-    # A deterministic name can collide with a leftover from a killed earlier run; replace it.
-    docker rm -f "$container" >/dev/null 2>&1 || true
+        -c 'rm -rf /work/uploads-restore && mkdir -m 0700 /work/uploads-restore && chown 65532:65532 /work/uploads-restore'
+    reap_stale_container "$container"
 
-    # Restore and check in one container: restic restores as uid 65532 and the host user
-    # running this cannot necessarily read the tree it just wrote. --no-lock because the
-    # repository is mounted read-only and restic cannot create locks/ on it.
+    # One container for restore and check: restic writes as uid 65532, which the host
+    # user can't necessarily read back. --no-lock: the repository is mounted read-only.
     local checks
     checks="$(docker run --rm --name "$container" \
         -v "$repo:/restic:ro" \
@@ -464,9 +464,8 @@ verify_uploads_restore() {
         echo "error: the newest user-uploads snapshot restored $file_count files; the volume was empty when it was taken" >&2
         return 1
     fi
-    # A missing marker is a failure too: every environment is stamped by
-    # `just backup-stamp-volume <env>`, so an unstamped restore means the snapshot came
-    # from somewhere other than the volume this environment backs up.
+    # A missing marker fails too: every environment is stamped by
+    # `just backup-stamp-volume <env>`, so an unstamped restore came from elsewhere.
     if [[ -n "$expect_env" && "$canary" != "$expect_env" ]]; then
         echo "error: restored uploads carry environment marker '${canary:-<none>}', expected '$expect_env'" >&2
         return 1
@@ -474,17 +473,37 @@ verify_uploads_restore() {
     echo "Restored $file_count uploaded files from the newest user-uploads snapshot"
 }
 
+# Remove the restore-check scratch tree. Called from relab-restore-check@.service's
+# ExecStopPost since a SIGKILL skips the trap and would leave a decrypted uploads copy on
+# disk; runs in a container because the tree belongs to the backup image's uid.
+# Args: <backup root>.
+remove_restore_scratch() {
+    docker run --rm -v "$1:/backups" --entrypoint rm alpine:3.22 -rf /backups/restore-check \
+        >/dev/null 2>&1 || true
+}
+
 backup_restore_smoke() {
     local env="${1:-prod}"
+
+    # One restore check at a time: the scratch path is fixed, so an overlapping run (a
+    # hand-run during the monthly timer, or a Persistent=true catch-up) rm -rf's the
+    # other's restore mid-flight -- a false "empty volume" alarm on the one check that
+    # proves uploads restore. Locks this script's own descriptor since the deploy user
+    # owns no writable path to put a lock file on.
+    exec 9<"${BASH_SOURCE[0]}"
+    if ! flock -n 9; then
+        echo "error: another restore check is already running; refusing to run two at once" >&2
+        return 1
+    fi
 
     resolve_backup_paths "$env"
 
     tmp_root="$(mktemp -d)"
-    # An uploads restore is unbounded and mktemp lands on /, which also carries Postgres
-    # and the docker graph, while the watchdog's disk check only measures BACKUP_HOST_DIR.
-    # Keep the restore on the backup filesystem so a large one cannot take the database
-    # down. That directory belongs to the backup image's uid rather than to this user, so
-    # both creating and removing the tree happen in a container.
+    # mktemp lands on / (Postgres and the docker graph live there too, and the
+    # watchdog's disk check only measures BACKUP_HOST_DIR), so restore onto the backup
+    # filesystem instead -- an unbounded uploads restore can't take the database down.
+    # Created/removed in a container since that directory belongs to the image's uid,
+    # not this user.
     backup_root="$(dirname "$DEPLOY_RESTIC_REPOSITORY")"
     uploads_root="$backup_root/restore-check"
     host_uid="$(id -u)"
@@ -495,15 +514,37 @@ backup_restore_smoke() {
         docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
         rm -rf "$tmp_root"
-        docker run --rm -v "$backup_root:/backups" --entrypoint rm alpine:3.22 -rf /backups/restore-check \
-            >/dev/null 2>&1 || true
+        remove_restore_scratch "$backup_root"
     }
     trap cleanup EXIT
+    # systemd SIGTERMs before SIGKILLing a job over TimeoutStartSec; without this trap the
+    # shell dies untrapped and leaves the decrypted uploads copy behind. `exit` runs the
+    # EXIT trap exactly once.
+    trap 'exit 143' TERM INT
 
-    docker run --rm -v "$backup_root:/backups" --entrypoint mkdir alpine:3.22 -p /backups/restore-check
+    # 0700: this is the first decrypted copy of user uploads outside the repository;
+    # default 0755 would publish it to every account on the host.
+    docker run --rm -v "$backup_root:/backups" --entrypoint mkdir alpine:3.22 -m 0700 -p /backups/restore-check
 
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     build_backup_image
+
+    # Refuse rather than fill the disk: the restore writes a full decrypted copy next to
+    # the only local repository. --no-lock: repository is mounted read-only.
+    local stats_json restore_bytes avail_kib
+    stats_json="$(docker run --rm \
+        -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \
+        -v "$tmp_root/restic_password:/run/secrets/restic_password:ro" \
+        -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
+        --entrypoint restic \
+        "$DEPLOY_BACKUP_IMAGE" \
+        stats --no-lock latest --repo /restic --tag user-uploads --json)"
+    restore_bytes="$(sed -n 's/.*"total_size":\([0-9]*\).*/\1/p' <<<"$stats_json")"
+    avail_kib="$(df --output=avail "$backup_root" | tail -n1 | tr -dc '0-9')"
+    if [[ -n "$restore_bytes" && -n "$avail_kib" ]] && ((restore_bytes / 1024 > avail_kib)); then
+        echo "error: the newest user-uploads snapshot restores $((restore_bytes / 1024 / 1024)) MiB but only $((avail_kib / 1024)) MiB is free on $backup_root; refusing to restore" >&2
+        return 1
+    fi
 
     # Deterministic container name: relab-restore-check@.service reaps it by name in
     # ExecStopPost when systemd kills this job on timeout (see verify_postgres_restore).
@@ -639,6 +680,12 @@ main() {
             ;;
         restore-check)
             backup_restore_smoke "${2:-prod}"
+            ;;
+        # Not for operators: ExecStopPost in relab-restore-check@.service calls this after
+        # a SIGKILL, since BACKUP_HOST_DIR comes from the repo's .env, not the unit itself.
+        restore-check-clean)
+            resolve_backup_paths "${2:-prod}"
+            remove_restore_scratch "$(dirname "$DEPLOY_RESTIC_REPOSITORY")"
             ;;
         restore)
             restore_postgres "${2:-}" "${3:-}" "${4:-latest}"

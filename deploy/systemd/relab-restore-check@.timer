@@ -13,8 +13,10 @@ Description=Relab backup restore verification schedule (%i)
 
 [Timer]
 # 06:00 clears relab-backup-maintenance@, which fires at 02:30 with a 2h timeout and
-# deletes pack files under `restic forget --prune`. systemd serializes a unit against
-# itself, never against another unit, so the calendar gap is the only separation.
+# deletes pack files under `restic forget --prune`. systemd only serializes a unit
+# against itself, so the calendar gap is the only separation -- except after an outage,
+# when Persistent=true fires both at boot together; relab-restore-check@.service's
+# After= on the maintenance unit covers that case.
 OnCalendar=*-*-01 06:00:00
 Persistent=true
 # Jitter here only: this restores a full snapshot and runs monthly.

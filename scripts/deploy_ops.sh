@@ -568,18 +568,25 @@ require_rollback_images() {
     [[ "$missing" -eq 0 ]] || exit 2
 }
 
-# Stamp the uploads volume with the environment it belongs to, so later backup runs can
-# tell "this volume lost its contents" from "this is a first backup". Written through
-# api, the only service that mounts user_uploads writable (the backup service mounts it
-# :ro on purpose); the path is compose.yaml's api mount point.
-# `test -s`, not `-f`: a zero-byte marker left by an interrupted write would satisfy -f
-# and be skipped here forever, while the backup run reads it as a different environment
-# and refuses every run. The temp-file-and-mv keeps a partial write from landing at all.
+# Stamp the uploads volume with its environment, so backup runs can tell "lost its
+# contents" from "first backup". Written through api, the only service mounting
+# user_uploads writable; path is compose.yaml's api mount point.
+# `test -s`, not `-f`: a zero-byte marker from an interrupted write would satisfy -f
+# forever while backups read it as a wrong environment and refuse every run --
+# temp-file-and-mv prevents the partial write.
+# A marker naming another environment is never overwritten (DEPLOY-PROD.md Part 1.1
+# covers that restore case by hand) but fails loudly instead of exiting 0.
 stamp_uploads_volume() {
     local env="$1"
     # shellcheck disable=SC2016  # $0/$1 are the inner sh's args, not this shell's
     run_deploy_compose "$env" run --rm --no-deps -T --entrypoint sh api -c \
-        'test -s "$0" || { printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0"; }' \
+        'if test -s "$0"; then
+            found=$(tr -d "[:space:]" <"$0")
+            test "$found" = "$1" && exit 0
+            echo "error: $0 says [$found] but this run is [$1]; never overwritten here, see deploy/DEPLOY-PROD.md Part 1.1 to rewrite it by hand" >&2
+            exit 1
+         fi
+         printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0"' \
         /opt/relab/backend/data/uploads/.relab-volume "$env"
 }
 
@@ -645,10 +652,9 @@ stack_command() {
             stamp_uploads_volume "$env"
             ;;
         backup-stamp-volume)
-            # Separate from backup-init on purpose. `restic init` fails against a
-            # repository that already exists, which would abort this script before the
-            # stamp ran, so an environment deployed before the marker existed could never
-            # acquire one -- and its uploads backups would refuse forever.
+            # Separate from backup-init: `restic init` fails against an existing
+            # repository, aborting before the stamp ran -- so a host deployed before the
+            # marker existed could never get one, and uploads backups would refuse forever.
             stamp_uploads_volume "$env"
             ;;
         backup-maintenance)

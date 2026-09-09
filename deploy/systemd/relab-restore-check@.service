@@ -13,6 +13,11 @@ Description=Relab backup restore verification (%i)
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
+# Ordering only, for when both are queued: after an outage, Persistent=true fires every
+# timer at boot at once, collapsing the 02:30/06:00 gap that normally keeps the
+# maintenance prune away from this job's --no-lock restore. A prune deleting pack files
+# mid-restore looks like archive corruption.
+After=relab-backup-maintenance@%i.service
 
 [Service]
 Type=oneshot
@@ -32,6 +37,10 @@ TimeoutStartSec=7200
 ExecStopPost=-/usr/bin/docker rm -f relab-restore-check-%i
 # Same for the uploads restore container, which holds a full copy of the uploads volume.
 ExecStopPost=-/usr/bin/docker rm -f relab-restore-check-%i-uploads
+# And the restored uploads tree: a full decrypted copy of user uploads that would
+# otherwise sit on the backup filesystem until next month. The path comes from the repo's
+# .env, so the script resolves it -- this subcommand only removes the scratch tree.
+ExecStopPost=-/opt/relab/scripts/backup_restic_ops.sh restore-check-clean %i
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

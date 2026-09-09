@@ -6,11 +6,9 @@
 set -euo pipefail
 
 # Reducer for check 2, in a variable so scripts/test_ops.sh can drive the real code
-# instead of a copy. Both backup paths must be fresh: a succeeding database backup
-# must not mask a failing upload one, so report every tag (tags per
-# backend/scripts/backup/backup_relab_restic.sh), oldest first. Per-tag rather than a
-# bare min(): a step whose guard refuses now leaves the other half fresh, which is a
-# routine state, and the alert has to name the half that is stale.
+# instead of a copy. Reports every tag (per backend/scripts/backup/backup_relab_restic.sh)
+# with its own age, oldest first, rather than a bare min(): a guard refusal now leaves one
+# half fresh routinely, and the alert has to name which half is stale.
 SNAPSHOT_AGE_PY='
 import datetime, json, re, sys
 
@@ -241,6 +239,29 @@ disk_usage_alerts() {
     return 0
 }
 
+# Turns check 2's reducer output ("<tag> <epoch>" per line, oldest first) into
+# "<stale_tag> <newest_epoch> <detail>": line 1 decides the alert, the rest fill in
+# per-tag detail. Fallbacks cover a failed query, which yields no lines.
+format_snapshot_alert() {
+    local ages="$1" now="$2" tag epoch newest_epoch=0 stale_tag="postgres/user-uploads" detail=""
+    while read -r tag epoch; do
+        [[ "$epoch" =~ ^[0-9]+$ ]] || continue
+        if [[ -z "$detail" ]]; then
+            newest_epoch="$epoch"
+            stale_tag="$tag"
+        else
+            detail="$detail, "
+        fi
+        if ((epoch == 0)); then
+            detail="${detail}${tag} never"
+        else
+            detail="${detail}${tag} $(((now - epoch) / 3600))h old"
+        fi
+    done <<<"$ages"
+    # No detail on a failed query, and no trailing separator for one either.
+    echo "$stale_tag $newest_epoch${detail:+ $detail}"
+}
+
 # Sourcing this script (scripts/test_ops.sh) only wants SNAPSHOT_AGE_PY; the live
 # checks below must not run.
 [[ "${BASH_SOURCE[0]}" == "$0" ]] || return 0
@@ -342,26 +363,9 @@ elif ! snapshot_ages="$(printf '%s' "$snapshots_json" | python3 -c "$SNAPSHOT_AG
     snapshot_ages=""
 fi
 
-# The reducer prints the oldest tag first, so line 1 decides the alert and the rest
-# fill in the per-tag detail. Keep the fallbacks: on a failed query there are no lines.
 now="$(date +%s)"
-newest_epoch=0
-stale_tag="postgres/user-uploads"
-snapshot_detail=""
-while read -r tag epoch; do
-    [[ "$epoch" =~ ^[0-9]+$ ]] || continue
-    if [[ -z "$snapshot_detail" ]]; then
-        newest_epoch="$epoch"
-        stale_tag="$tag"
-    else
-        snapshot_detail="$snapshot_detail, "
-    fi
-    if ((epoch == 0)); then
-        snapshot_detail="${snapshot_detail}${tag} never"
-    else
-        snapshot_detail="${snapshot_detail}${tag} $(((now - epoch) / 3600))h old"
-    fi
-done <<<"$snapshot_ages"
+read -r stale_tag newest_epoch snapshot_detail \
+    <<<"$(format_snapshot_alert "$snapshot_ages" "$now")"
 
 if ((newest_epoch == 0 || now - newest_epoch > max_age_hours * 3600)); then
     reason="newest ${stale_tag} snapshot is missing or older than ${max_age_hours}h"

@@ -230,9 +230,9 @@ the topology these steps produce.
 
 ### First backup
 
-The backup container runs as UID 65532. Create the restic directory before the first backup: the
-backup service refuses to start if it is missing (`create_host_path: false`), rather than letting
-Docker invent an empty one that a failed mount would be indistinguishable from.
+The backup container runs as UID 65532. Create the restic directory before the first backup — the
+service refuses to start if it's missing (`create_host_path: false`), rather than let Docker create
+an empty one indistinguishable from a real mount.
 
 Creating the restic repository is a separate, one-time step. Backup runs never create one — see
 "Backup repository" in `deploy/DEPLOY-PROD.md` for why, and do not run `backup-init` against a host
