@@ -42,6 +42,14 @@ echo "Backfilling image dimensions..."
 .venv/bin/python -m scripts.maintenance.backfill_image_dimensions \
     || echo "Image-dimension backfill failed; re-run scripts.maintenance.backfill_image_dimensions manually." >&2
 
+# Generate thumbnails for originals that have none. Same reasoning as above:
+# idempotent (it skips any original whose smallest thumbnail is already on disk)
+# and non-fatal. Without it, `thumbnail_url` falls back to the full-size original
+# and product lists download megabytes per 80px card.
+echo "Backfilling image thumbnails..."
+.venv/bin/python -m scripts.maintenance.backfill_thumbnails \
+    || echo "Thumbnail backfill failed; re-run scripts.maintenance.backfill_thumbnails manually." >&2
+
 # Seed dummy data if enabled and if the database is empty
 if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
     echo "Dummy data seeding is enabled."

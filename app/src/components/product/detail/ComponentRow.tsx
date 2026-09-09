@@ -9,7 +9,7 @@ import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { Badge } from '@/components/base/ui/badge';
 import { Text } from '@/components/base/ui/text';
-import { radius, WEB_FOCUS_RING } from '@/constants';
+import { IMAGE_FADE_MS, radius, WEB_FOCUS_RING } from '@/constants';
 import { componentQueryOptions } from '@/features/product-entity/queries';
 import { useAppTheme } from '@/theme';
 import { palette } from '@/theme/palette.generated';
@@ -108,6 +108,8 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
                 source={{ uri: component.thumbnailUrl }}
                 style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: radius.card }}
                 contentFit="cover"
+                transition={IMAGE_FADE_MS}
+                cachePolicy="memory-disk"
                 testID="component-thumbnail"
               />
             </View>
