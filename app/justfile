@@ -42,6 +42,7 @@ test-integration:
 
 # Run the CI test suite. Coverage quadruples the run time, so CI collects it on push
 # and on schedule only. Codecov carries the flag forward on pull requests.
+[doc('Run the CI test suite')]
 test-ci:
     pnpm run test:ci {{ if env("COVERAGE", "") != "" { "--coverage" } else { "" } }}
 
@@ -59,6 +60,7 @@ dev-clean port="8011":
 
 # Report static React Compiler coverage: which components compile, and which bail out.
 # `just check` already flags each bailout inline. This adds the summary across the app.
+[doc('Report static React Compiler coverage across the app')]
 compiler-health:
     pnpm dlx react-compiler-healthcheck
 
@@ -67,8 +69,16 @@ compiler-health:
 # components render", and record a real flow to see what re-renders.
 # For a zero-config overlay instead, run `pnpm dlx react-scan@latest <url>`.
 # For the compiler-off comparison, run `just dev`.
+[doc('Serve the production web export for profiling, React Compiler on as shipped')]
 profile: build-web
     pnpm exec expo serve
+
+# Fail when the web export's first-load JavaScript grows past its budget. Scheduled
+# rather than per-PR: the export takes minutes, and the `app` CI job is close enough
+# to the critical path that adding a build to it would set the wall-clock.
+[doc("Check the web export's first-load JS against its size budget")]
+bundle-budget: build-web
+    node scripts/check_bundle_budget.mjs
 
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
 e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
@@ -76,6 +86,7 @@ e2e_api_url := "http://localhost:" + e2e_backend_port
 
 # Build the Expo web app for E2E testing, exporting a static SPA to dist/.
 # These tests need only the API URL. The public website URL falls back in-app.
+[doc('Build the Expo web app for E2E testing, exporting a static SPA to dist/')]
 build-web:
     @printf '%s\n' {{ quote("Building Expo web for E2E with EXPO_PUBLIC_API_URL=" + e2e_api_url) }}
     EXPO_PUBLIC_API_URL={{ quote(e2e_api_url) }} pnpm run build:web
@@ -97,6 +108,7 @@ clean:
 
 # Regenerate the TypeScript API types from the committed OpenAPI schema. Runs offline.
 # `just backend/openapi` produces the schema itself, at src/types/openapi.json.
+[doc('Regenerate the TypeScript API types from the committed OpenAPI schema')]
 codegen:
     pnpm run codegen
 
