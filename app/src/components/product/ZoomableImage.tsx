@@ -107,7 +107,7 @@ export default function ZoomableImage({
     if (!active) resetZoom(false);
   }, [active, resetZoom]);
 
-  // NOTE: bounds use the container rect, not the drawn image rect — with contentFit="contain" a
+  // NOTE: bounds use the container rect, not the drawn image rect; with contentFit="contain" a
   // letterboxed image can pan its margin into view; computing true bounds needs intrinsic image
   // dimensions from onLoad, add if it bothers anyone.
   const clampTranslationToBounds = useCallback(

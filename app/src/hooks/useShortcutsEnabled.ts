@@ -9,7 +9,7 @@ import { createModuleStore } from '@/utils/moduleStore';
  *
  * Device-local, not a user preference: it belongs to the keyboard in front of
  * you, and the shortcuts work signed out, so the switch has to as well. It
- * survives sign-out for the same reason — an accessibility setting that resets
+ * survives sign-out for the same reason, an accessibility setting that resets
  * itself is not a setting.
  */
 const STORAGE_KEY = 'relab-keyboard-shortcuts';

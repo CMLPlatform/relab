@@ -58,7 +58,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
     expect(clearSpy).not.toHaveBeenCalled();
 
     // Sign-out: whatever the caller (logout, revokeAllSessions), it always
-    // ends in refetch(false) resolving to no user — see profile/actions.ts.
+    // ends in refetch(false) resolving to no user; see profile/actions.ts.
     mockedGetUser.mockResolvedValueOnce(undefined);
     await act(async () => {
       await result.current.refetch(false);

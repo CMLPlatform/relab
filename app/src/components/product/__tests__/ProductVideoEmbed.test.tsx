@@ -40,8 +40,8 @@ describe('VideoEmbed — web iframe sandbox', () => {
     expect(iframe().props.src).toBe(EMBED);
   });
 
-  // The frame runs third-party YouTube script. Widening this sandbox — in
-  // particular adding allow-popups-to-escape-sandbox or allow-top-navigation —
+  // The frame runs third-party YouTube script. Widening this sandbox (in
+  // particular adding allow-popups-to-escape-sandbox or allow-top-navigation)
   // hands that script the parent page.
   it('pins the sandbox allowlist and withholds the referrer', async () => {
     mockPlatform('web');

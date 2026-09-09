@@ -13,7 +13,7 @@ import { renderWithProviders } from '@/test-utils/index';
 const mockScreenOptions: Record<string, Record<string, unknown> | undefined> = {};
 
 jest.mock('expo-router', () => {
-  // `expo-router/react-navigation` is the lightweight compat module — unlike the
+  // `expo-router/react-navigation` is the lightweight compat module, unlike the
   // real `expo-router` entry point, it doesn't eagerly evaluate `ExpoRoot` (which
   // reads `window.location` and crashes outside a real router tree).
   const { DefaultTheme, DarkTheme, ThemeProvider } = jest.requireActual<
@@ -111,7 +111,7 @@ describe('Providers', () => {
     );
     expect(screen.getByTestId('child')).toBeOnTheScreen();
     // PersistQueryClientProvider flips `isRestoring` once the persisted cache
-    // read resolves — a macrotask later. Settle it here or it lands unwrapped.
+    // read resolves, a macrotask later. Settle it here or it lands unwrapped.
     await act(async () => new Promise((resolve) => setImmediate(resolve)));
   });
 });
@@ -122,7 +122,7 @@ describe('AppStack', () => {
   });
 
   // The root stack only holds what sits outside the tabs. Every primary
-  // destination — and its header — now belongs to a tab's own stack (see
+  // destination (and its header) now belongs to a tab's own stack (see
   // tab-layouts.test.tsx), and the (tabs) route must not add a second header
   // above them.
   it('owns no tab screens and lets the tabs render their own headers', async () => {

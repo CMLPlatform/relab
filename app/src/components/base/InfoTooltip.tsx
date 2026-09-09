@@ -1,4 +1,4 @@
-// NOTE: hand-rolled on purpose — carries 1.5s auto-dismiss and mobile-web full-screen modal variant.
+// NOTE: hand-rolled on purpose; carries 1.5s auto-dismiss and mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';

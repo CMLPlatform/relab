@@ -346,7 +346,7 @@ async def test_claim_pairing_code_restores_claimed_record_with_remaining_ttl() -
 
     Regression: the restore used a fresh PAIRING_CREDENTIAL_TTL_SECONDS instead of the
     TTL read before GETDEL, resetting the clock to a possibly-longer window than the
-    record actually had left — asymmetric with the create_camera-failure restore path.
+    record actually had left, asymmetric with the create_camera-failure restore path.
     """
     session = AsyncMock()
     current_user = UserFactory.build(

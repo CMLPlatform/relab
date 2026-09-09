@@ -74,7 +74,7 @@ describe('authMfa pending login storage', () => {
   });
 
   // The MFA token is a credential: web storage is XSS-readable, so it must never
-  // be mirrored there — a reload drops the challenge instead.
+  // be mirrored there; a reload drops the challenge instead.
   it('never writes the pending MFA token to web session storage', () => {
     const storage = globalThis.sessionStorage as unknown as StorageStub;
 

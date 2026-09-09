@@ -364,7 +364,7 @@ async def test_delete_product_with_components(
 
     Detail reads load a product's components under ``raiseload("*")``. The delete used
     to hand those stale instances to the flush, which walked ``product_type`` on them
-    and raised ``lazy='raise'`` — but only when a component made the cascade walk at all.
+    and raised ``lazy='raise'``, but only when a component made the cascade walk at all.
     """
     created = await api_client_superuser.post("/v1/products", json={"name": PRODUCT_BASE_NAME})
     assert created.status_code == status.HTTP_201_CREATED, created.text

@@ -10,7 +10,7 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
 }));
 
-// Deleting a photo removes it immediately and offers an Undo on the toast —
+// Deleting a photo removes it immediately and offers an Undo on the toast;
 // removal is draft-local until the record is saved, so nothing is confirmed.
 // `toastCalls` captures the message and its action so a test can press Undo.
 const toastCalls: { message: string; action?: { label: string; onPress: () => void } }[] = [];
@@ -28,7 +28,7 @@ jest.mock('@/hooks/useAppFeedback', () => ({
 const IMAGES = [
   { id: 'a', url: 'https://cdn.test/a.jpg', description: '' },
   // The stored file is gone, so the API returns an empty url and this image
-  // renders as a placeholder — but it is still one of the product's images.
+  // renders as a placeholder, but it is still one of the product's images.
   { id: 'missing', url: '', description: '' },
   { id: 'c', url: 'https://cdn.test/c.jpg', description: '' },
 ];
@@ -36,7 +36,7 @@ const IMAGES = [
 type GalleryImage = { id?: string; url: string; description: string };
 
 // Parameterised on the image list so a test can re-render the hook with a
-// changed array — the state the undo action reads back through.
+// changed array, the state the undo action reads back through.
 function setup(onImagesChange: (images: unknown[]) => void) {
   const viewerState = { updateCurrentIndex: jest.fn(async () => {}) };
 
@@ -135,7 +135,7 @@ describe('undo', () => {
   });
 
   // The window is long enough to import a photo in. Restoring a snapshot taken
-  // before that import would delete it — the same silent-loss bug the
+  // before that import would delete it; the same silent-loss bug the
   // url-filtering regression above guards against, one step later.
   it('undo keeps a photo added during the undo window', async () => {
     toastCalls.length = 0;

@@ -85,7 +85,7 @@ export function useTermsAcceptance() {
     isAccepting,
     accept,
     dismiss: useCallback(() => setDismissed(true), [setDismissed]),
-    /** Reopen after a dismissal — the account screen's entry point. */
+    /** Reopen after a dismissal, the account screen's entry point. */
     reopen: useCallback(() => setDismissed(false), [setDismissed]),
   };
 }

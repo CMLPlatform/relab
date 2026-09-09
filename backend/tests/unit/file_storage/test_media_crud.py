@@ -208,9 +208,9 @@ async def test_image_dimensions_are_committed_not_just_flushed(mock_session: Asy
 
     ``create()`` commits before calling ``after_create``, so the dimensions write runs in
     a fresh transaction that nothing else closes: flushing alone loses it when the request
-    session is closed. The integration suite cannot see this — it binds every request to
+    session is closed. The integration suite cannot see this: it binds every request to
     one connection whose transaction the fixture owns, so an uncommitted flush still reads
-    back — which is why the guard lives here. It is also the only test that drives the
+    back, which is why the guard lives here. It is also the only test that drives the
     real upload path, so it pins which thumbnail widths that path generates inline.
     """
     # Wider than every thumbnail width, so the inline pass is not silently narrowed by

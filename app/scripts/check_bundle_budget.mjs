@@ -1,7 +1,7 @@
 // Fail when the web export's first-load JavaScript grows past its budget.
 //
 // First load only: the scripts `index.html` itself references. Route chunks and the
-// async ones (the CPV dataset, hls.js) are excluded on purpose — they are already
+// async ones (the CPV dataset, hls.js) are excluded on purpose: they are already
 // split, and counting them would punish the splitting that keeps them off this path.
 //
 // Gzipped, because that is what crosses the wire. Brotli would be smaller again, but
@@ -20,9 +20,8 @@ const DIST = new URL('../dist/', import.meta.url).pathname;
 // 319.9 KB.
 //
 // The budget is the measurement plus roughly 5%: enough that a dependency bump does not
-// cry wolf, tight enough that a new library on the first-load path does. Raising it is a
-// decision worth making deliberately, so when it fails, either justify the new bytes in
-// the commit or split the import.
+// cry wolf, tight enough that a new library on the first-load path does. When it fails,
+// either justify the new bytes in the commit or split the import.
 const BUDGET_BYTES = 875 * 1024;
 
 const SCRIPT_TAG = /<script[^>]+src="([^"]+)"/g;

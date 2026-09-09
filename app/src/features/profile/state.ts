@@ -55,7 +55,7 @@ export function useProfileLinkedAccounts(profile: ReturnType<typeof useAuth>['us
     googleAccount,
     githubAccount,
     // Unlinking the only linked provider leaves an OAuth-only account reachable
-    // solely through an email password reset — warn before it happens.
+    // solely through an email password reset; warn before it happens.
     isLastLinkedProvider: accounts.length === 1,
   };
 }

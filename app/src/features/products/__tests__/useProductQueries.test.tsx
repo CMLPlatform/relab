@@ -237,7 +237,7 @@ describe('useProductQueries', () => {
     });
 
     // Regression: infinite scroll must APPEND the next page's items below the
-    // ones already on screen, never replace them — this is the load-bearing
+    // ones already on screen, never replace them; this is the load-bearing
     // behaviour the products catalogue's onEndReached/"Load more" wiring relies on.
     it('appends the next page below the first instead of replacing it', async () => {
       // total (30) must exceed the hardcoded page size (24) or getNextPageParam
@@ -565,13 +565,13 @@ describe('useProductQueries', () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    // 1 initial attempt + 3 retries — same total as the plain `retry: 3` option.
+    // 1 initial attempt + 3 retries, same total as the plain `retry: 3` option.
     expect(mockedSaveProduct).toHaveBeenCalledTimes(4);
   });
 
   // 409 is the idempotency store's in-flight marker: an earlier attempt under
   // this key is still committing. Giving up there strands the user on a Save
-  // that has to be pressed again — and a second press with the same key is
+  // that has to be pressed again, and a second press with the same key is
   // exactly what the retry does for free.
   it('retries a 409 in-flight conflict and succeeds on the replayed response', async () => {
     mockedSaveProduct
@@ -593,7 +593,7 @@ describe('useProductQueries', () => {
 
   it('retries a network-fail-then-succeed save with the same idempotencyKey on every attempt', async () => {
     // The key must come from the mutation variables, not be minted fresh
-    // inside the mutationFn on each retry — otherwise a retried create would
+    // inside the mutationFn on each retry; otherwise a retried create would
     // carry a different key per attempt and the server would see them as
     // unrelated requests instead of a replay.
     mockedSaveProduct

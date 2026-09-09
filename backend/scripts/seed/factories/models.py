@@ -50,7 +50,7 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
 
     # Both generators are seeded, so a run is reproducible. Unseeded, they draw fresh
     # values every run, which turns any test that depends on a generated value into a CI
-    # failure that will not reproduce locally. Faker needs seeding separately — it owns
+    # failure that will not reproduce locally. Faker needs seeding separately; it owns
     # the randomness behind most field values, so seeding __random__ alone leaves runs
     # non-deterministic. Set TEST_SEED to re-shuffle and shake out tests that only pass
     # under seed 0.

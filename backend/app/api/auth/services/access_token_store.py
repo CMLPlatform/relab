@@ -78,7 +78,7 @@ def _parse_stored_token(stored: Any) -> tuple[str | None, float | None]:  # noqa
     """Return ``(user_id, issued_at)`` for a stored token value.
 
     Tokens written before this module existed hold a bare user id with no issue time.
-    They are still honoured — refusing them would log every active user out on deploy —
+    They are still honoured (refusing them would log every active user out on deploy),
     but they cannot be epoch-checked, so a revocation does not reach them. They age out
     within one access-token lifetime, so the gap closes on its own shortly after rollout.
     """

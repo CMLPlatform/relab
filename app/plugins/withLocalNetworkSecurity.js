@@ -7,7 +7,7 @@ const { withDangerousMod } = require('expo/config-plugins');
  *
  * Release Android blocks http:// outright, but a paired camera is reached
  * directly at `USB_GADGET_DEFAULT` (192.168.7.1) or on the LAN over plain http.
- * This permits cleartext for those hosts only — never app-wide
+ * This permits cleartext for those hosts only, never app-wide
  * (`android:usesCleartextTraffic`), which would expose every request.
  *
  * NOTE: Android matches hostnames, not CIDR ranges, so a private range cannot be

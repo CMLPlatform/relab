@@ -28,7 +28,7 @@ def _joins_rows(statement: Select[object]) -> bool:
     """Return whether the statement joins, and so can repeat an entity per row.
 
     Only a join can duplicate rows here, and ``.join()`` collapses the FROM list
-    into a single ``Join`` element — so this is the whole test.
+    into a single ``Join`` element, so this is the whole test.
     """
     return any(isinstance(from_element, Join) for from_element in statement.get_final_froms())
 

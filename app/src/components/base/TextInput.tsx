@@ -1,4 +1,4 @@
-// NOTE: hand-rolled on purpose — carries error/validation state; no primitive in this app provides that + borderless default.
+// NOTE: hand-rolled on purpose; carries error/validation state; no primitive in this app provides that + borderless default.
 import type React from 'react';
 import { TextInput as NativeTextInput, type TextInputProps } from 'react-native';
 import { radius } from '@/constants';

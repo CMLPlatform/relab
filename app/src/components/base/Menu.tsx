@@ -23,7 +23,7 @@ type MenuProps = {
 /**
  * Anchored dropdown menu in RN-core Modal with a full-screen dismiss backdrop.
  *
- * NOTE: hand-rolled on purpose — uses RN-core Modal + measureInWindow anchoring for portal-free positioning.
+ * NOTE: hand-rolled on purpose; uses RN-core Modal + measureInWindow anchoring for portal-free positioning.
  *
  * NOTE: position is captured on open only; a menu does not follow an anchor
  * that scrolls away.

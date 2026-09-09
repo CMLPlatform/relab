@@ -13,7 +13,7 @@ jest.mock('@/services/api/auth/accountRecovery', () => ({
 
 jest.mock('@/utils/logging', () => ({ logError: jest.fn() }));
 
-// These tests exercise what happens *after* submit — the error branches, which had
+// These tests exercise what happens *after* submit: the error branches, which had
 // no coverage at all. The Zod resolver would otherwise block handleSubmit on the
 // hooks' empty default values and the handler would never run. The schemas
 // themselves are covered by services/api/validation/__tests__/userSchema.test.ts.

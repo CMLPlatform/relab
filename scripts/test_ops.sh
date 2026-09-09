@@ -557,7 +557,7 @@ assert_eq "a timer that fired within its limit is silent" "0|" \
     "$(staleness_alert "$((NOW - 3600))" 3)"
 assert_eq "a timer exactly at its limit is silent" "0|" \
     "$(staleness_alert "$((NOW - 3 * 3600))" 3)"
-# Scheduled, active, last run succeeded — and stopped firing anyway.
+# Scheduled, active, last run succeeded, and stopped firing anyway.
 assert_eq "a monthly timer that stopped firing is reported" \
     "1|ALERT[staging]: relab-restore-check@staging.timer last ran 1440h ago, over its 960h limit; it is scheduled but not firing" \
     "$(staleness_alert "$((NOW - 60 * 24 * 3600))" 960)"

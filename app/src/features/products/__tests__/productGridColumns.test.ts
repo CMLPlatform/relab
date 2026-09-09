@@ -9,7 +9,7 @@ test('tablet width uses two columns', () => {
 });
 
 // Boundary shift: raw 1024px used to pick 3 columns, but the post-gutter
-// content is only ~960px — which comfortably fits 2, not 3.
+// content is only ~960px, which comfortably fits 2, not 3.
 test('a 1024px window tiers on the ~960px content width → 2 columns', () => {
   expect(productGridColumns(1024)).toBe(2);
 });

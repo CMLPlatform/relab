@@ -148,7 +148,7 @@ async def delete_all_parent_media[StorageModelT: StorageModel](
     Returns the items whose bytes still need deleting; pass them to
     ``unlink_stored_media`` after the caller commits. The caller owns the commit so these
     row deletes can share one transaction with sibling deletes (e.g. the parent row),
-    keeping the whole delete atomic. Bytes are removed only after that commit is durable —
+    keeping the whole delete atomic. Bytes are removed only after that commit is durable;
     a commit that later fails then leaves the files intact rather than stranding a live row
     that points at deleted bytes.
     """

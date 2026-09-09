@@ -28,7 +28,7 @@ async def resolve_category_parents(
     """Resolve the effective ``taxonomy_id`` and supercategory row for a new category.
 
     When a supercategory is given, its taxonomy is inherited (the incoming
-    ``taxonomy_id`` is ignored — clients don't need to get it right). Root
+    ``taxonomy_id`` is ignored; clients don't need to get it right). Root
     categories must supply ``taxonomy_id`` explicitly.
     """
     supercategory_id = supercategory_id or category.supercategory_id

@@ -42,7 +42,7 @@ VALIDATION_ENV_VALUES = {
     "CLOUDFLARE_TUNNEL_TOKEN": "placeholder",
     # The telemetry overlay hard-requires the endpoint and the token, so compose-config
     # cannot render it without them. The edge key is optional to the overlay (only
-    # projects behind a WAF need it) but required here — see assert_telemetry_inputs_are_set_together.
+    # projects behind a WAF need it) but required here; see assert_telemetry_inputs_are_set_together.
     "OTEL_EXPORTER_OTLP_ENDPOINT": "https://placeholder.test",
     "OTLP_AUTH_TOKEN": "placeholder-otlp-token",
     "TELEMETRY_EDGE_KEY": "placeholder-edge-key",
@@ -446,7 +446,7 @@ def assert_telemetry_inputs_are_set_together() -> None:
     The endpoint, the bearer token and the edge key are one switch wearing three
     variables. Alloy fails loudly on a missing token or key (``:?`` guards), but the
     API's SDK sends an empty header, swallows the collector's 401, and telemetry is
-    simply absent while every config check passes — so the pairing has to be enforced
+    simply absent while every config check passes, so the pairing has to be enforced
     here, before the deploy, rather than discovered as a silent gap in Grafana.
     """
     env_file = ROOT / ".env"

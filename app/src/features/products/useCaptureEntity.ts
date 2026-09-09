@@ -67,7 +67,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
         idempotencyKeyRef.current = null;
         return { id, partial: false };
       } catch (err) {
-        // saveNewProduct() POSTs, sets draft.id, then uploads images — a rejection
+        // saveNewProduct() POSTs, sets draft.id, then uploads images; a rejection
         // with draft.id already set means only the upload failed.
         if (typeof draft.id === 'number') {
           // The record landed, so the key has done its job.

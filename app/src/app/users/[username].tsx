@@ -103,7 +103,7 @@ export default function UserProfileScreen() {
       </Head>
       {/* react-native-web renders react-navigation's header title
           (accessibilityRole "header", no aria-level) as an <h1>, which would
-          compete with the username heading in the page below — and
+          compete with the username heading in the page below, and
           useScreenEntryFocus focuses the scaffold's h1. Render the chrome title
           as plain text so the screen keeps exactly one heading, the way the
           product detail screen does with ProductNameHeader. */}

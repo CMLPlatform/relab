@@ -69,7 +69,7 @@ jest.mock('expo-linear-gradient', () => ({
   LinearGradient: 'LinearGradient',
 }));
 
-// The library's own Jest mock — its native module isn't linked under Jest, so
+// The library's own Jest mock: its native module isn't linked under Jest, so
 // any screen using AuthScreen's KeyboardAvoidingView would fail to load.
 jest.mock('react-native-keyboard-controller', () =>
   require('react-native-keyboard-controller/jest'),

@@ -36,7 +36,7 @@ jest.mock('@/features/products/pendingTypeSelection', () => ({
 }));
 
 // Every other test in this file exercises the real hook (loadCPV mocked below
-// it) end to end, so wrap — don't replace — it: jest.fn() defaults to calling
+// it) end to end, so wrap (don't replace) it: jest.fn() defaults to calling
 // straight through to the real implementation, and only the one test below
 // overrides it (mockReturnValueOnce, self-restoring) to force a searchQuery
 // vs debouncedSearchQuery mismatch that the real 300ms debounce makes
@@ -66,7 +66,7 @@ describe('CategorySelection', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // The recents store is a module-level singleton (zustand), so it outlives
-    // any single test's render — reset it here rather than letting one test's
+    // any single test's render; reset it here rather than letting one test's
     // recordRecent leak a duplicate "Petroleum products" node into the next.
     useRecentCategories.setState({ recents: [] });
     mockedLoadCPV.mockResolvedValue({

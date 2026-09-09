@@ -5,7 +5,7 @@ import type { AppColorScale, AppScheme, AppTokens } from './types';
 
 const SEMANTIC_COLORS = {
   light: {
-    live: '#8F6212', // manila — DESIGN.md assigns live indicators to the accent
+    live: '#8F6212', // manila; DESIGN.md assigns live indicators to the accent
     success: '#2E7D32',
     warning: '#A05A00',
     info: '#1565C0',
@@ -66,7 +66,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       // Scheme-aware: it sits on `inverseSurface`, which is light in dark mode.
       inverseMuted: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)',
       // Always-light content for elements placed on overlay.media (a dark scrim),
-      // regardless of app theme — the scrim is dark in both schemes.
+      // regardless of app theme; the scrim is dark in both schemes.
       onMedia: '#fff',
     },
     surface: {

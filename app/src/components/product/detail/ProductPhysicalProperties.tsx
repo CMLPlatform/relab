@@ -82,7 +82,7 @@ export default function ProductPhysicalProperties({
         />
       ) : null}
       {/* Four labelled boxes do not say which box is which, that centimetres and
-          grams are the units, or what an empty field means — and the audience
+          grams are the units, or what an empty field means, and the audience
           runs out past the lab, where none of that is assumed knowledge. The
           guide link below carries the rest. */}
       {editMode ? (

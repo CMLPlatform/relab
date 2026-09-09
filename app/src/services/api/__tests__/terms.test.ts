@@ -14,7 +14,7 @@ describe('acceptContributorTerms', () => {
     jest.clearAllMocks();
   });
 
-  // The server stamps the accepted version, so the client must not send one —
+  // The server stamps the accepted version, so the client must not send one;
   // a body here would let the client claim it accepted terms it never saw.
   it('POSTs to the accept-terms route with no body', async () => {
     fetchWithAuth.mockResolvedValueOnce({ ok: true, status: 204 });

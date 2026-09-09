@@ -1,6 +1,6 @@
 import { spacing } from '@/constants';
 
-/** Kept in sync with `Menu`'s `styles.content.minWidth` — the flip needs it. */
+/** Kept in sync with `Menu`'s `styles.content.minWidth`; the flip needs it. */
 export const MENU_MIN_WIDTH = 180;
 /** Breathing room between the menu and the viewport edge. */
 export const EDGE_MARGIN = spacing.sm;

@@ -114,8 +114,8 @@ def _pagination_key_part() -> str:
     """Return the active pagination params as a key fragment, or "" when unpaginated.
 
     fastapi-pagination reads page/size from a ContextVar rather than the endpoint's
-    parameters, so they are invisible to both ``kwargs`` and — on an endpoint that does
-    not declare a ``Request`` — the query string. Reading the ContextVar directly makes
+    parameters, so they are invisible to both ``kwargs`` and (on an endpoint that does
+    not declare a ``Request``) the query string. Reading the ContextVar directly makes
     the key fail closed: a paginated endpoint varies per page whether or not its author
     remembered to declare ``Request``.
     """

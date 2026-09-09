@@ -9,7 +9,7 @@ export type DialogButton = {
   style?: 'default' | 'cancel' | 'destructive';
 };
 
-/** Optional single action on a toast — the undo affordance for a reversible change. */
+/** Optional single action on a toast, the undo affordance for a reversible change. */
 export type ToastAction = {
   label: string;
   onPress: () => void;

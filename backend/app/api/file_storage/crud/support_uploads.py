@@ -58,7 +58,7 @@ def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str, s
     """Process an UploadFile for storing in the database.
 
     Returns the (file, file_id, original_filename, stored_filename) tuple. ``stored_filename``
-    is the prefixed name assigned to ``file.filename`` — returning it lets callers use a
+    is the prefixed name assigned to ``file.filename``; returning it lets callers use a
     narrowly-typed ``str`` instead of the ``str | None`` attribute.
     """
     if file.filename is None:

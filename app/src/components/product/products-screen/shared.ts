@@ -18,10 +18,10 @@ export const productsScreenStyles = StyleSheet.create({
     fontSize: 14,
   },
   inlineProfileText: {
-    // NOTE: see inlineButtonText above — same 14px-bold contrast dependency.
+    // NOTE: see inlineButtonText above, same 14px-bold contrast dependency.
     fontSize: 14,
   },
-  // expo-image's Image isn't a NativeWind className target — style only.
+  // expo-image's Image isn't a NativeWind className target, style only.
   welcomeBrandMark: {
     width: 30,
     height: 30,
@@ -36,7 +36,7 @@ export const productsScreenStyles = StyleSheet.create({
   listFadeWrapper: {
     flex: 1,
   },
-  // expo-image's Image isn't a NativeWind className target — style only.
+  // expo-image's Image isn't a NativeWind className target, style only.
   // Wordmark aspect (759x240), same height as the old mark.
   emptyStateMark: {
     width: 190,
@@ -50,7 +50,7 @@ export const productsScreenStyles = StyleSheet.create({
     lineHeight: 21,
     opacity: 0.92,
   },
-  // LinearGradient isn't a NativeWind className target — style only.
+  // LinearGradient isn't a NativeWind className target, style only.
   headerFade: {
     position: 'absolute',
     left: 0,

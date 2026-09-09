@@ -27,7 +27,7 @@ describe('ProductType', () => {
     mockPush.mockReset();
     mockSetParams.mockReset();
     mockedLoadCPV.mockResolvedValue({
-      // Mirror the real cpv.json root placeholder — CPVCard renders a category
+      // Mirror the real cpv.json root placeholder; CPVCard renders a category
       // whose name === 'undefined' as a red "Category undefined" error card.
       root: {
         id: 0,
@@ -75,7 +75,7 @@ describe('ProductType', () => {
   });
 
   // Regression: the root CPV entry is a placeholder ({name: "undefined"})
-  // that CPVCard renders as a red error card — a typeless product must never
+  // that CPVCard renders as a red error card; a typeless product must never
   // show that as its default first impression.
   it('shows an inviting empty state instead of the undefined category card when no type is picked', async () => {
     await renderWithProviders(<ProductType product={baseProduct} editMode={true} />);

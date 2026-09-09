@@ -116,7 +116,7 @@ export default function ProductComponents({ product, editMode }: Props) {
       )}
       {/* Shown in edit mode too. Creation routes to `?edit=1`, so hiding this
           removed the teardown's actual next step at the exact moment the user
-          has the product open in front of them — and the record is already
+          has the product open in front of them, and the record is already
           persisted by then, which is why the gate is `id`, not `editMode`. */}
       {typeof product.id === 'number' && product.ownedBy === 'me' && (
         <AppButton variant="primary" onPress={newComponent} className="mx-4 my-2">

@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # without narrowing by client, so these await-and-coerce in one place.
 
 
-async def redis_bool(coro: Any) -> bool:  # noqa: ANN401 — upstream stub gap
+async def redis_bool(coro: Any) -> bool:  # noqa: ANN401  (upstream stub gap)
     """Await a redis-py coroutine and coerce the result to ``bool``."""
     return bool(await coro)
 

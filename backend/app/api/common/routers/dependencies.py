@@ -43,7 +43,7 @@ async def attach_background_tasks(request: Request, background_tasks: Background
 def background_tasks_from(request: Request | None) -> BackgroundTasks | None:
     """Read back what ``attach_background_tasks`` published, if anything.
 
-    None whenever the caller is not inside a request that declared the dependency —
+    None whenever the caller is not inside a request that declared the dependency;
     a CLI, a seed script, a test calling a service directly. Every consumer treats
     that as "send it inline", so the fallback is a slower success, not a failure.
     """

@@ -23,7 +23,7 @@ const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),
-// not a link — see HeaderBackButton.
+// not a link; see HeaderBackButton.
 const BACK_CONTROL_NAME_PATTERN = /back/i;
 const PRODUCT_ID_LABEL = 'Product ID:';
 // The status line under the title in edit mode (SpecHeader); "Saving…" and
@@ -32,7 +32,7 @@ const SAVED_STATUS_PATTERN = /^Saved · ID \d+$/;
 const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
 // Empty optional sections collapse to a single "Add …" row in edit mode
 // (Section.tsx showAddRow); pressing it reveals the real fields. View mode is
-// unaffected — Properties in particular always renders its spec rows there.
+// unaffected: Properties in particular always renders its spec rows there.
 const ADD_DESCRIPTION_LABEL = 'Add a description';
 // Measurements and circularity notes share one Properties section, so one
 // add-row opens both blocks.
@@ -41,7 +41,7 @@ const DESCRIPTION_PLACEHOLDER = 'Add a product description';
 
 // Stage 1 of capture-first creation: fill the name on the capture screen and
 // press Create. The backend saves immediately and the app redirects to the
-// new product's detail page in edit mode (?edit=1) — granular capture-form
+// new product's detail page in edit mode (?edit=1). Granular capture-form
 // validation (short names, Create disabled/enabled) is unit-tested on
 // CaptureScreen itself; this only proves the real navigation round-trip.
 async function createProduct(page: import('@playwright/test').Page, name: string): Promise<void> {
@@ -52,7 +52,7 @@ async function createProduct(page: import('@playwright/test').Page, name: string
 }
 
 // Stage 2: detail-in-edit. The product already exists at this point, so this
-// is an ordinary existing-record edit — same "Add …" row pattern as any other
+// is an ordinary existing-record edit, same "Add …" row pattern as any other
 // empty section (see the 2a add-row coverage below). Text and number fields
 // save on blur; the status line flips back to "Saved" once the PATCH lands.
 async function fillRequiredProductFields(
@@ -118,7 +118,7 @@ test.describe('Product detail: section navigation', () => {
     // The heading settles just under the sticky chrome (top nav + product header
     // + chip bar), so the ceiling is measured from that chrome rather than a
     // magic number that drifts every time the header changes height. Pre-fix the
-    // scroll landed ~a full section short — hundreds of px below this bound.
+    // scroll landed ~a full section short, hundreds of px below this bound.
     const chipBar = await page.getByRole('button', { name: 'Properties' }).boundingBox();
     const chromeBottom = (chipBar?.y ?? 0) + (chipBar?.height ?? 0);
     // Poll: scrollTo animates, so the heading needs a moment to settle.
@@ -218,7 +218,7 @@ test.describe('Product creation', () => {
     await createProduct(page, productName);
 
     // In edit mode the header *is* the name field (a textbox), not a
-    // static heading — see productPageHelpers.tsx's useProductPageHeader.
+    // static heading; see productPageHelpers.tsx's useProductPageHeader.
     await expect(page.getByRole('textbox', { name: 'Product name' })).toHaveValue(productName, {
       timeout: 10_000,
     });
@@ -258,8 +258,8 @@ test.describe('Product creation', () => {
 
 // ─── Product detail edit mode ──────────────────────────────────────────────────
 // Carried over from 2a-T7 almost verbatim: once a product exists (whether just
-// created via capture or opened from the list) its detail-in-edit behavior —
-// collapsed "Add …" rows, the unsaved-changes guard — is identical.
+// created via capture or opened from the list) its detail-in-edit behavior
+// (collapsed "Add …" rows, the unsaved-changes guard) is identical.
 
 test.describe('Product detail: edit mode', () => {
   test('a freshly created product opens in edit mode with collapsed optional sections', async ({
@@ -363,8 +363,8 @@ test.describe('Product detail: components', () => {
     const componentName = `E2E Component ${Date.now()}`;
     await saveNewProduct(page, `E2E Parent ${Date.now()}`);
 
-    // "Add component" only renders once the save has dropped ?edit=1 — a
-    // component needs a persisted parent — so this also waits out the save.
+    // "Add component" only renders once the save has dropped ?edit=1
+    // (a component needs a persisted parent), so this also waits out the save.
     // The name is unambiguous: the Components section's info tooltip, whose
     // label used to contain this one, is edit-mode only.
     const addComponent = page.getByRole('button', { name: 'Add component' });
@@ -373,11 +373,11 @@ test.describe('Product detail: components', () => {
 
     // Wait for the capture screen before touching it. Without this a lost
     // navigation surfaces 60s later as "Create component not found", pointing at
-    // the wrong step entirely — the parent page has no such button.
+    // the wrong step entirely: the parent page has no such button.
     await expect(page).toHaveURL(NEW_COMPONENT_URL_PATTERN, { timeout: 15_000 });
 
     // The child capture screen is the same CaptureScreen as product creation,
-    // with entityRole="component" — hence "Create component" rather than
+    // with entityRole="component", hence "Create component" rather than
     // "Create product".
     await page.getByRole('textbox', { name: 'Name' }).fill(componentName);
     await page.getByRole('button', { name: 'Create component' }).click();
@@ -411,7 +411,7 @@ test.describe('Product detail: image upload', () => {
     await createProduct(page, productName);
 
     // Seeded products already put /uploads/ thumbnails in the DOM, so record
-    // them first — otherwise an assertion on "an uploaded image exists" passes
+    // them first; otherwise an assertion on "an uploaded image exists" passes
     // without this test having uploaded anything.
     const storedImages = page.locator('img[src*="/uploads/"]');
     const before = new Set(

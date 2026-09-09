@@ -568,7 +568,7 @@ async def test_upload_rejected_at_quota_then_succeeds_after_release(
 ) -> None:
     """Hitting the per-user upload-count quota rejects the next upload with 413.
 
-    Deleting the counted media item must release the ledger so a further upload succeeds —
+    Deleting the counted media item must release the ledger so a further upload succeeds;
     this exercises reserve/release against the real ledger columns, not a mocked session.
     """
     monkeypatch.setattr(settings, "max_upload_files_per_lab_user", 1)

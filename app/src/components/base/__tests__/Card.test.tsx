@@ -26,7 +26,7 @@ test('merges caller className with the base surface classes', async () => {
   expect(className).toEqual(expect.stringContaining('mx-4'));
 });
 
-// DESIGN.md "Form language — Flat & Sharp": inline surfaces are flat — a hairline
+// DESIGN.md "Form language — Flat & Sharp": inline surfaces are flat, a hairline
 // border + surface fill, no shadow. Only floating surfaces get the overlay tier.
 // (Tailwind's rounded-lg === 8px === DESIGN.md radius-card, generated from
 // assets/tokens.json into --radius-lg in brand.generated.css.)

@@ -10,7 +10,7 @@ import { dismissProductsInfoCard, loginAndGoToProfile, reachProductsPage } from 
 test.setTimeout(60_000);
 
 // The wordmark image (accessibilityLabel="Relab") is rendered by both the
-// TopNav brand pressable and the native stack header's headerTitle — never
+// TopNav brand pressable and the native stack header's headerTitle, never
 // both at once for a TopNav-covered screen. A count of 1 is the regression
 // net for hideForTopNav failing to apply.
 const WORDMARK_IMAGE_NAME = /Relab/;
@@ -84,7 +84,7 @@ test.describe('Top nav (phone)', () => {
     await reachProductsPage(page);
 
     await expect(page.getByLabel('Relab, go to products')).not.toBeVisible();
-    // The stack header still shows the wordmark and the header pill — exactly
+    // The stack header still shows the wordmark and the header pill, exactly
     // once, from the stack header alone (TopNav renders null below lg).
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
     await expect(page.getByRole('button', { name: HEADER_PILL_NAME })).toHaveCount(1);

@@ -60,7 +60,7 @@ describe('Fab', () => {
     await render(
       <Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />,
     );
-    // Resolved through the state callback — the floor lives in the style
+    // Resolved through the state callback: the floor lives in the style
     // function, never in a className (mixing the two drops the function).
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.minWidth).toBe(MIN_TAP_TARGET);

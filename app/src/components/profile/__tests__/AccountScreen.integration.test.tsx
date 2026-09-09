@@ -98,7 +98,7 @@ jest.mock('react-native-keyboard-controller', () => {
 });
 
 // The real hook's scrollTo depends on onLayout-driven position registration,
-// which jsdom never fires — that math is covered by useSectionNav.test.ts and
+// which jsdom never fires; that math is covered by useSectionNav.test.ts and
 // useAnchoredSectionNav.test.ts. Here we only prove AccountScreen wires a chip
 // press through to the nav's scrollTo handler with the right key.
 jest.mock('@/hooks/useSectionNav', () => ({
@@ -139,7 +139,7 @@ async function renderAccount() {
   return result;
 }
 
-// Walks the rendered tree collecting text nodes in document order — used to
+// Walks the rendered tree collecting text nodes in document order, used to
 // assert section order without depending on a real layout engine (mirrors
 // product-page-state.integration.test.tsx's collectText).
 function collectText(instance: ReturnType<typeof screen.getByTestId>): string[] {
@@ -187,7 +187,7 @@ describe('AccountScreen', () => {
 
   it('folds the stats row into the header (no separate Profile section)', async () => {
     const { findByText, queryByText } = await renderAccount();
-    // product_count: 3 from the getPublicProfile mock — proves stats render
+    // product_count: 3 from the getPublicProfile mock; proves stats render
     // in the header now that the standalone "profile" section is gone.
     expect(await findByText('3')).toBeTruthy();
     expect(queryByText('Profile')).toBeNull();

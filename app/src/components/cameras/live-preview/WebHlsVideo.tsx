@@ -18,7 +18,7 @@ export function WebHlsVideo({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const { state, errorMessage, retryKey, retryNow, markLive, markError } = useWebHlsPlayback(src);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey is a re-run trigger, not a value read here — bumping it tears down the player and re-attaches it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey is a re-run trigger, not a value read here; bumping it tears down the player and re-attaches it.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;

@@ -21,7 +21,7 @@ describe('isAllowedResearchFilename', () => {
   });
 
   it('reads only the final extension, so dotted research filenames pass', () => {
-    // Mirrors the backend, which takes Path(name).suffix — "sample.v2.csv" is a
+    // Mirrors the backend, which takes Path(name).suffix; "sample.v2.csv" is a
     // legitimate research filename, not a double-extension bypass attempt.
     expect(isAllowedResearchFilename('sample.v2.csv')).toBe(true);
     expect(isAllowedResearchFilename('report.csv.exe')).toBe(false);

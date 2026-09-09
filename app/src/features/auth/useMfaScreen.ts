@@ -33,7 +33,7 @@ export function useMfaScreen() {
   }, []);
 
   // OtpInput auto-submits on its sixth digit while the button stays pressable, and
-  // both a TOTP code and a recovery code are single-use — a second submit burns it.
+  // both a TOTP code and a recovery code are single-use; a second submit burns it.
   const runSubmit = useCallback(
     async (submitCode: string = activeCode) => {
       if (!token) {

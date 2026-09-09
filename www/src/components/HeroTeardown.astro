@@ -6,8 +6,8 @@
 // Two layouts, chosen by the data rather than by a flag: when the featured
 // product's components carry photographs the schedule becomes a grid of plates
 // that deal themselves out of the assembly on load; when none of them do it
-// stays the compact list it has always been. Nothing here is authored artwork —
-// every plate is a component's own `thumbnail_url` from the tree payload — so
+// stays the compact list it has always been. Nothing here is authored artwork:
+// every plate is a component's own `thumbnail_url` from the tree payload, so
 // the hero re-shoots itself whenever the featured record changes.
 import type { FeaturedTeardown } from '@/lib/landing.ts';
 import { formatCount } from '@/lib/stats.ts';

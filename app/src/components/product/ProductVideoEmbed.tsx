@@ -91,7 +91,7 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
 }
 
 const styles = StyleSheet.create({
-  // Raw web <iframe>, not a className-managed element — stays style-driven.
+  // Raw web <iframe>, not a className-managed element; stays style-driven.
   webEmbed: {
     width: '100%',
     height: '100%',

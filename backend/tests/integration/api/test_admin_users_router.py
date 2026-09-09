@@ -1,7 +1,7 @@
 """Authorization + not-found behaviour for the admin user routes.
 
 These go through the real app so the router-level ``Security(current_active_superuser)``
-gate is actually exercised — the previous unit test called the handlers as plain
+gate is actually exercised; the previous unit test called the handlers as plain
 coroutines and never touched it.
 """
 
@@ -45,7 +45,7 @@ class TestAdminUsersAuthorization:
     # these routes. Delete it and a regular user reaches the handler (200);
     # requiring a denial here fails that mutation. The fixture overrides the
     # regular-user deps but not the superuser one, so the real superuser dep
-    # denies with 401 rather than 403 — either is a denial, 200 is the bug.
+    # denies with 401 rather than 403; either is a denial, 200 is the bug.
     @pytest.mark.parametrize(
         ("method", "path_suffix"),
         [
@@ -119,7 +119,7 @@ class TestAdminUsersActions:
         with patch("app.api.auth.routers.admin_users.audit_event") as log_audit:
             response = await api_client_superuser.patch(
                 f"{ADMIN_USERS}/{db_user.id}",
-                json={"username": "renamed_by_admin"},  # no current_password supplied — safe=False must not demand one
+                json={"username": "renamed_by_admin"},  # no current_password supplied; safe=False must not demand one
             )
 
         assert response.status_code == 200
@@ -236,7 +236,7 @@ class TestAdminUserErasure:
         assert not await _row_exists(db_session, select(Camera.id).where(Camera.id == subject.camera.id))
         # Regression: product-deletion audit rows must name the acting admin, not
         # the erased user whose data is being removed. Only base products are
-        # audited individually — components are removed as part of the subtree.
+        # audited individually; components are removed as part of the subtree.
         audited_ids = {call.args[3] for call in log_audit.call_args_list}
         assert audited_ids == {subject.product.id}
         for call in log_audit.call_args_list:
@@ -271,7 +271,7 @@ class TestAdminUserErasure:
 
         assert response.status_code == 409
         assert await _row_exists(db_session, select(User.id).where(User.id == db_superuser.id))
-        # A refused erasure must have no side effects — the admin is not logged out.
+        # A refused erasure must have no side effects: the admin is not logged out.
         revoke.assert_not_called()
 
     async def test_superuser_can_be_deleted_while_another_one_is_active(

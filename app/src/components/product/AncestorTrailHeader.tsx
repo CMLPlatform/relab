@@ -14,7 +14,7 @@ export function AncestorTrailHeader({
   theme,
 }: {
   ancestors: AncestorCrumb[];
-  /** What renders at the tail of the trail — a plain label in view mode, an editable input in edit mode. */
+  /** What renders at the tail of the trail: a plain label in view mode, an editable input in edit mode. */
   currentNameSlot: ReactNode;
   theme: AppTheme;
 }) {

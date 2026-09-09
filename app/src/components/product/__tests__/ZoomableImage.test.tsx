@@ -197,7 +197,7 @@ describe('ZoomableImage', () => {
 
     await render(<ZoomableImage uri={testUri} onSwipe={onSwipe} />);
 
-    // A 100pt-wide container puts the 15% threshold at 15pt — well under the
+    // A 100pt-wide container puts the 15% threshold at 15pt, well under the
     // window-width threshold the module-level constant used to impose.
     await act(() => {
       screen.getByTestId('zoomable-image').props.onLayout({

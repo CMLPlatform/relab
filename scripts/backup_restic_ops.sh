@@ -374,7 +374,7 @@ backup_offsite_copy() {
     local tmp_root
     tmp_root="$(mktemp -d)"
     # Expand tmp_root into the trap now (double quotes): a single-quoted trap would
-    # defer expansion to EXIT, when this `local` is out of scope — under `set -u`
+    # defer expansion to EXIT, when this `local` is out of scope; under `set -u`
     # cleanup would then fail and leave the copied restic password in /tmp.
     # shellcheck disable=SC2064  # eager expansion is intentional here (see above)
     trap "rm -rf '$tmp_root'" EXIT

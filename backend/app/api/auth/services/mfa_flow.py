@@ -235,7 +235,7 @@ async def _verify_challenge_code(
 ) -> tuple[str, list[str] | None] | None:
     """Validate a challenge code as TOTP (6 digits) or a single-use recovery code.
 
-    Returns ``(factor, remaining_recovery_hashes)`` — the factor used
+    Returns ``(factor, remaining_recovery_hashes)``: the factor used
     ("totp" | "recovery") and, for a matched recovery code, the reduced hash list
     the caller must persist *after* the login challenge is consumed (None for TOTP).
     Returns None if neither matched.

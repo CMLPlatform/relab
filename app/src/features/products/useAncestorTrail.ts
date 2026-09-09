@@ -34,7 +34,7 @@ async function walkAncestors(
   while (typeof cursor === 'number' && !seen.has(cursor)) {
     if (trail.length >= MAX_DEPTH) break;
     seen.add(cursor);
-    // biome-ignore lint/performance/noAwaitInLoops: ancestor chain is inherently sequential — each step depends on the previous node's parent_id.
+    // biome-ignore lint/performance/noAwaitInLoops: ancestor chain is inherently sequential; each step depends on the previous node's parent_id.
     const node: Product = await fetchNodeByEitherRole(queryClient, cursor);
     const parentID = node.parentID;
     const nodeId = typeof node.id === 'number' ? node.id : cursor;

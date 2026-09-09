@@ -160,7 +160,7 @@ describe('useProductFiles', () => {
     );
   });
 
-  // `canManage` is presentation only — the backend enforces — but it must not
+  // `canManage` is presentation only (the backend enforces), but it must not
   // offer file management to accounts or records that cannot use it.
   it('withholds management from non-lab accounts, other owners, and unsaved drafts', async () => {
     mockUser.role = 'user';

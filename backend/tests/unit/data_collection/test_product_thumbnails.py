@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class FakeStoredImage:
-    """Typed stand-in for StorageImage — exposes only the attribute helpers read."""
+    """Typed stand-in for StorageImage; exposes only the attribute helpers read."""
 
     path: str
 

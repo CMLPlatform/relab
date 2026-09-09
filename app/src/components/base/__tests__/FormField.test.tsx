@@ -23,7 +23,7 @@ describe('FormFieldError', () => {
 
   it('keeps the alert role and fades rather than popping in', async () => {
     await renderWithProviders(<FormFieldError errorId="field-error" message="Required" />);
-    // The role has to survive the move to Animated.Text — it is what announces
+    // The role has to survive the move to Animated.Text: it is what announces
     // the error, and the fade is worthless if it costs the announcement.
     expect(screen.getByRole('alert')).toBeOnTheScreen();
     const errorText = screen.getByText('Required');
@@ -32,7 +32,7 @@ describe('FormFieldError', () => {
   });
 
   // accessibilityRole="alert" alone announces nothing on Android or the web
-  // export — the node has to be a live region. A validation error that appears
+  // export: the node has to be a live region. A validation error that appears
   // after the fact is otherwise silent for anyone not looking at the field.
   it('marks the error as a polite live region', async () => {
     await renderWithProviders(<FormFieldError errorId="field-error" message="Required" />);

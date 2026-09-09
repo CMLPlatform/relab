@@ -244,7 +244,7 @@ describe('Authentication API Service', () => {
 
       const result = await auth.getUser(true);
 
-      // Only one additional fetch (the /users/me call) — no refresh attempt
+      // Only one additional fetch (the /users/me call); no refresh attempt
       const fetchCallsAfter = fetchMock().mock.calls.length;
       expect(fetchCallsAfter - fetchCallsBefore).toBe(1);
       expect(result).toBeUndefined();
@@ -622,7 +622,7 @@ describe('Authentication API Service', () => {
         const result = await auth.login('u@e.com', 'pass');
 
         expect(result).toEqual({ status: 'authenticated' });
-        // The 204 already carries both cookies — login must not also refresh.
+        // The 204 already carries both cookies; login must not also refresh.
         expect(fetchMock()).toHaveBeenCalledTimes(2);
       });
 

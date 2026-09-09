@@ -185,7 +185,7 @@ test('uses component labels for component pages', async () => {
 });
 
 // These cases used to live in FabControls.test.tsx, rendering ProductFabControls
-// with editMode — which `isMd || editMode` routes straight to this component.
+// with editMode, which `isMd || editMode` routes straight to this component.
 test('edit mode with nothing unsaved reads Done and stays pressable even while invalid', async () => {
   const onPrimaryPress = jest.fn();
   await renderWithProviders(
@@ -251,7 +251,7 @@ test('blocks the press while a save is already in flight', async () => {
   expect(onPrimaryPress).not.toHaveBeenCalled();
 });
 
-// Queued offline drops the spinner, so the button reads as pressable — only
+// Queued offline drops the spinner, so the button reads as pressable; only
 // `disabled` stops a second press from queueing the mutation twice.
 test('blocks the press while the save sits queued offline', async () => {
   const onPrimaryPress = jest.fn();
@@ -290,7 +290,7 @@ test('uses singular phrasing for a single error', async () => {
   expect(screen.getByText('1 field needs attention')).toBeTruthy();
 });
 
-// errorCount 0 is not "no errors" — it is an invalid form whose error summary
+// errorCount 0 is not "no errors"; it is an invalid form whose error summary
 // has nothing to route to, so the press is blocked rather than redirected.
 test('blocks the press when invalid with a zero error count', async () => {
   const onPrimaryPress = jest.fn();

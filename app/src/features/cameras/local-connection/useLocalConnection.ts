@@ -68,7 +68,7 @@ function fetchLocalAccessInfoShared(cameraId: string): Promise<LocalAccessInfo |
   return request;
 }
 
-// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one cohesive connection state machine — splitting it into single-use sub-hooks hid the cancellation logic (which is how the camera-switch races crept in).
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: one cohesive connection state machine; splitting it into single-use sub-hooks hid the cancellation logic (which is how the camera-switch races crept in).
 export function useLocalConnection(
   cameraId: string,
   { isOnline = false }: UseLocalConnectionOptions = {},
@@ -84,7 +84,7 @@ export function useLocalConnection(
   // Bumped on unmount and on an in-place cameraId change; async probes for the
   // previous camera compare against it and bail.
   const generationRef = useRef(0);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cameraId is the trigger, not a read — the cleanup has to run when the camera being probed changes, not only on unmount.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cameraId is the trigger, not a read; the cleanup has to run when the camera being probed changes, not only on unmount.
   useEffect(() => {
     return () => {
       generationRef.current += 1;

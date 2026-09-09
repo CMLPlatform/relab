@@ -96,7 +96,7 @@ export default function AddCameraScreen() {
               accessibilityLabel="Pairing code"
               className="mb-1 text-center"
               // NOTE: enlarged monospace entry field for a 6-character pairing
-              // code — no ramp step targets an oversized input glyph.
+              // code: no ramp step targets an oversized input glyph.
               style={{ fontFamily: 'monospace', fontSize: 20 }}
             />
 

@@ -119,7 +119,7 @@ test.describe('Products page', () => {
   }, async ({ page }) => {
     await loginAndReachProducts(page);
     await expect(page.getByPlaceholder('Search products')).toBeVisible();
-    // The chip row is collapsed by default — a first visit is search + records.
+    // The chip row is collapsed by default: a first visit is search + records.
     await expect(page.getByText('Date', { exact: true })).not.toBeVisible();
     await openProductFilters(page);
     await expect(page.getByText('Mine', { exact: true })).toBeVisible();
@@ -143,7 +143,7 @@ test.describe('Products page', () => {
   test('a seeded product thumbnail renders as a real image', async ({ page }) => {
     // Every other test here would pass against a wall of broken images: a
     // failed load swaps the <img> for a placeholder (ProductCard's onError),
-    // and nothing asserts which one it got. This walks the whole chain — seeded
+    // and nothing asserts which one it got. This walks the whole chain: seeded
     // image row, API-built thumbnail URL, app-side URL resolution, decoded
     // bytes. The API relaxes its Cross-Origin-Resource-Policy for /uploads
     // under `testing`, so the rig's cross-port 127.0.0.1 origins load exactly

@@ -41,7 +41,7 @@ const TIMING = {
 const UNCERTAIN_DASH = '5 4';
 const UNCERTAIN_FILL_OPACITY = 0.25;
 
-/** skewY(30) — the front face never moves, so its matrix is a constant. */
+/** skewY(30): the front face never moves, so its matrix is a constant. */
 const FRONT_MATRIX: Matrix = [1, ISO, 0, 1, 0, 0];
 
 type CubeProps = {

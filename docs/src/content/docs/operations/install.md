@@ -106,9 +106,9 @@ use, or local development. For contributor workflow and tooling policy, see
 The stack runs on one host behind a Cloudflare Tunnel, so the host needs no public ports. Deploys
 are three commands on the server: pull the repo, build, start the stack. They can be run there, or
 sent from another machine over an ssh key whose forced command is `scripts/remote_deploy.sh`, which
-allows exactly those steps and nothing else (see `deploy/DEPLOY-PROD.md` Part 1.6). Every `prod-*` recipe
-takes `YES` as its first argument to confirm it acts on production; the `staging-*` recipes are the
-same commands for a staging host. [Deployment and operations](/operations/deployment/) describes
+allows exactly those steps and nothing else (see `deploy/DEPLOY-PROD.md` Part 1.6). Every command
+runs as `just stack <prod|staging> <command>`, and a state-changing command takes `YES` to confirm
+which host it acts on. [Deployment and operations](/operations/deployment/) describes
 the topology these steps produce.
 
 1. Create a Cloudflare Tunnel, one of two ways.
@@ -151,8 +151,8 @@ the topology these steps produce.
    The root `.env` is gitignored and holds every host-local value Compose interpolates. One host
    serves one environment. Every key is described in `.env.example`. The required ones:
 
-   - `ENVIRONMENT`: `prod` or `staging`. The `prod-*` and `staging-*` recipes refuse to run against
-     a host whose `.env` says otherwise.
+   - `ENVIRONMENT`: `prod` or `staging`. `just stack` refuses to run against a host whose `.env`
+     says otherwise.
    - `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, `DOCS_PUBLIC_URL`: the four public
      origins on your domain.
    - `CLOUDFLARE_TUNNEL_TOKEN`: the tunnel token from the previous step.

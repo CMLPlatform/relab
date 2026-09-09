@@ -73,7 +73,7 @@ async def add_component_to_component(
 
     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
     key returns the original response instead of creating a second component. The key is bound to
-    this user, this parent, and this request body — reusing it with a different body is a 422.
+    this user, this parent, and this request body; reusing it with a different body is a 422.
     """
     async with idempotent_request(
         redis,

@@ -7,7 +7,7 @@ pipeline that actually costs something.
 
 Larger sizes are tiled from the committed sample rather than generated or
 upscaled. Tiling repeats the source's own frequency content, so decode, resize
-and encode cost per pixel stay in the range a real photograph produces —
+and encode cost per pixel stay in the range a real photograph produces;
 a smooth synthetic gradient compresses and resamples far faster than either.
 Upscaling would invent detail that is not there and understate the same costs.
 
@@ -25,7 +25,7 @@ from PIL import Image as PILImage
 # Stdlib logging, not `app.core.logging`: importing that pulls in Settings, which
 # requires ENVIRONMENT to be set. Nothing here reads configuration, and a fixture
 # generator that cannot run without a configured environment fails in the one place
-# it is needed most — a bare CI job that only wanted to build two JPEGs.
+# it is needed most, a bare CI job that only wanted to build two JPEGs.
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 

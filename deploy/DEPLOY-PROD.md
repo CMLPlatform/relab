@@ -8,7 +8,7 @@ Staging equivalent: [DEPLOY-STAGING.md](DEPLOY-STAGING.md). Rehearse there first
 
 ______________________________________________________________________
 
-## Part 1 — First-time host setup
+## Part 1: First-time host setup
 
 Once per machine, not per release. `just watchdog prod` reports each missing piece as a distinct
 alert.
@@ -229,7 +229,7 @@ sudo account and never on the deploy user.
 
 ______________________________________________________________________
 
-## Part 2 — Routine release
+## Part 2: Routine release
 
 Before you start: CI green on `main`, you know whether the release contains migrations
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
@@ -265,19 +265,19 @@ repeatedly.
 
 ### Releases that need a window
 
-Three things stretch a release beyond the time the commands take, all learned the expensive way.
+Three things stretch a release beyond the time the commands take.
 
 **A backfill migration holds the API down for its whole duration.** The `migrations` profile gates
-the API on `service_completed_successfully`, so a release whose migrator backfills existing rows —
-regenerating derivatives, recomputing a column — keeps `api` and the tunnel in `Created` until it
-finishes, however long that is. Check for one before you start (`alembic history` above, and read
-what the migrator does, not just whether it exists), and announce the window accordingly rather
-than discovering it at 100% CPU.
+the API on `service_completed_successfully`, so a release whose migrator backfills existing rows
+(regenerating derivatives, recomputing a column) keeps `api` and the tunnel in `Created` until it
+finishes, however long that is. Check for one before you start: run `alembic history` as above, and
+read what the migrator does, not just whether it exists. Announce the window from what you find
+there, not from the first 100% CPU reading during the release.
 
 **A snapshot needs the stack up, and must precede the checkout.** `just backup <env> manual` runs
 with `--no-deps` on purpose: the timer must never start postgres as a side effect. So the safety
-snapshot cannot be taken after `down`. And any change to what the containers run as — a uid change,
-an ownership change — takes effect the moment the checkout moves, because the Compose `user:` pin
+snapshot cannot be taken after `down`. Any change to what the containers run as (a uid change, an
+ownership change) takes effect the moment the checkout moves, because the Compose `user:` pin
 overrides the image's own `USER`. Between checkout and the matching `chown`, every backup run
 fails. Docker seeds a named volume's ownership only when it first creates the volume, so a volume
 carried over from an earlier release keeps that release's uid however many times you rebuild. The
@@ -305,10 +305,10 @@ refuses to continue when one is unwritable, naming the volume and the command ab
 only uploads and backups fail.
 
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
-stopping the watchdog too, or it pages mid-window — and a stopped watchdog cannot then tell you the
+stopping the watchdog too, or it pages mid-window. A stopped watchdog cannot then tell you the
 others are still stopped. The dead man's switch is the backstop: with no ping, the external check
-fires after its grace period. Do not rely on it; `systemctl is-active` on all three is the last
-line of the runbook.
+fires after its grace period. Do not rely on it. Run `systemctl is-active` on all three before you
+close the window.
 
 ### Verify
 
@@ -322,7 +322,7 @@ Then exercise by hand what automation cannot: one upload, one OAuth login, one p
 
 ______________________________________________________________________
 
-## Part 3 — Recovery
+## Part 3: Recovery
 
 Migrations commit one revision at a time (`transaction_per_migration=True` in
 `backend/alembic/env.py`), so a failed migrate leaves `alembic_version` at the last revision that

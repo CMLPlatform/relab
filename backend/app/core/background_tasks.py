@@ -98,8 +98,8 @@ def spawn_detached(coro: Coroutine[object, object, object], *, name: str, max_in
 async def drain_detached() -> None:
     """Wait for every in-flight detached task to finish.
 
-    For a process that ends deliberately rather than serving requests — the seeder,
-    a test — where "spawned" and "done" have to be the same thing before it exits.
+    For a process that ends deliberately rather than serving requests (the seeder,
+    a test) where "spawned" and "done" have to be the same thing before it exits.
     Long-running servers do not call this: a request must never wait on work the
     previous one detached.
     """

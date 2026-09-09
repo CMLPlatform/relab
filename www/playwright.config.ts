@@ -32,7 +32,7 @@ if (!runtimeConfig.baseUrl) {
     command: 'pnpm run preview:built',
     url: localBaseUrl,
     // Never reuse: the recipes build dist/ for this run, and a preview server
-    // left over from an earlier one serves its dist instead — a stale build
+    // left over from an earlier one serves its dist instead; a stale build
     // whose live-lane image URLs point at a seed that no longer exists. Failing
     // on a busy port names the zombie; reusing it reports someone else's page.
     reuseExistingServer: false,

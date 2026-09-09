@@ -131,7 +131,7 @@ describe('Chip', () => {
       n.type === 'Text' && !!n.children?.includes('Chip Content');
 
     const iconSiblings = findContainingChildren(json, isIcon);
-    // Same children array as the icon, and it contains the value Text too —
+    // Same children array as the icon, and it contains the value Text too:
     // proves they're siblings in one flex row, not the icon nested inside
     // the Text (ProductCard's old `{children}{icon}` pattern).
     expect(iconSiblings).not.toBeNull();
@@ -145,7 +145,7 @@ describe('Chip', () => {
     const json = toJSON() as unknown as JsonNode;
 
     expect(JSON.stringify(json)).not.toContain('chip-icon');
-    // The value segment's children array holds only the Text — `false`
+    // The value segment's children array holds only the Text: `false`
     // renders nothing, so no stray empty node sits where the icon would go.
     const isValueText = (n: JsonNode) => n.type === 'Text' && !!n.children?.includes('No Icon');
     const valueSiblings = findContainingChildren(json, isValueText);

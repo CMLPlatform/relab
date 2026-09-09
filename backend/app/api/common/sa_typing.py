@@ -3,7 +3,7 @@
 SQLAlchemy 2.x annotates mapped columns with ``Mapped[T]`` but the class-level
 attributes (``Product.components``, ``Product.brand``) resolve to descriptor
 objects whose static shape doesn't match what ORM helpers like ``selectinload``
-or column operators expect. The runtime behavior is fine — these helpers just
+or column operators expect. The runtime behavior is fine; these helpers just
 localize the static cast so call sites stay readable.
 
 If ``sqlalchemy-stubs`` / newer SQLAlchemy releases tighten the descriptor

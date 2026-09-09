@@ -50,7 +50,7 @@ describe('ProductsListContent skeleton handoff', () => {
     const { getByTestId } = await renderList();
     // The skeleton branch renders a different tree entirely, so without this the
     // swap is eight grey cards replaced by eight real ones in a single frame.
-    // The fade lives on a flex-1 wrapper, not on Animated.FlatList — reanimated's
+    // The fade lives on a flex-1 wrapper, not on Animated.FlatList; reanimated's
     // web layout-animation path crashes on FlatList hosts in the web export
     // (its own source warns "wrap your component with an animated view and
     // apply the layout animation on the wrapper" for exactly this reason).
@@ -81,7 +81,7 @@ function refreshControl() {
 
 describe('ProductsListContent pull-to-refresh', () => {
   it('does not spin the pull-to-refresh control for a background refetch', async () => {
-    // isFetchingNextPage must never drive the pull-to-refresh spinner — only a
+    // isFetchingNextPage must never drive the pull-to-refresh spinner; only a
     // user-initiated pull (handled below) may.
     await renderList({ isFetchingNextPage: true });
 

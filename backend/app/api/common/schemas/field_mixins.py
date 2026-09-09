@@ -12,7 +12,7 @@ from app.api.common.validation import MultilineUserText
 class PhysicalPropertiesFields(BaseModel):
     """Shared physical property fields for read schemas.
 
-    No gt=0 constraints here — validation belongs on write schemas / model base.
+    No gt=0 constraints here; validation belongs on write schemas / model base.
     Read schemas must accept whatever the DB returns.
     """
 

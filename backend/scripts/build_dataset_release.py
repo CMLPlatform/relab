@@ -423,7 +423,7 @@ def select_records(
 
     Exclusion runs down the tree, never up: dropping a component drops its descendants, and
     dropping a base product drops the whole tree. Keeping a component whose parent is gone
-    would leave a dangling ``parent_id`` — the verification pass would catch it, but it
+    would leave a dangling ``parent_id``; the verification pass would catch it, but it
     should never get that far.
     """
     by_id = {record["id"]: record for record in records}
@@ -529,7 +529,7 @@ def check_salt_fingerprint(salt: str, pinned: str = PINNED_SALT_FINGERPRINT) -> 
 
     A missing salt already fails loudly. The dangerous case is a salt that is merely
     *present*: someone who cannot find the original generates a fresh one, the build
-    succeeds, and release 2's pseudonyms silently stop lining up with release 1's — which
+    succeeds, and release 2's pseudonyms silently stop lining up with release 1's, which
     nobody notices until a reuser's contributor-level split has been leaking across
     releases for a year.
     """
@@ -634,8 +634,8 @@ def _key(value: object) -> str:
 async def load_owners(session: AsyncSession) -> dict[Any, dict[str, Any]]:
     """Map every account id to its username and terms acceptance.
 
-    Only these three columns are read. The rest of the ``User`` row — email, auth state,
-    OAuth links, the quota ledger — is never fetched into the process.
+    Only these three columns are read. The rest of the ``User`` row (email, auth state,
+    OAuth links, the quota ledger) is never fetched into the process.
     """
     rows = (await session.execute(select(User.id, User.username, User.terms_accepted_version))).all()
     return {
@@ -1682,7 +1682,7 @@ async def _build(out: Path, rules: SelectionRules, salt: str, meta: ReleaseMetad
     violations = verify(out)
     if violations:
         for violation in violations:
-            logger.error("VERIFICATION FAILURE — %s", violation)
+            logger.error("VERIFICATION FAILURE: %s", violation)
         msg = f"{len(violations)} verification failure(s); the release is not publishable."
         raise SystemExit(msg)
 

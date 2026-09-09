@@ -4,7 +4,7 @@ import { fetchWithAuth, refreshAuthToken } from '@/services/api/auth/authRefresh
 import { authRuntime } from '@/services/api/auth/authRuntime';
 
 jest.mock('@/services/api/auth/authSession', () => ({
-  // jest.fn (not a fixed arrow) so the web branch is reachable — pinning the
+  // jest.fn (not a fixed arrow) so the web branch is reachable; pinning the
   // platform in the mock left half of refreshAuthToken untested.
   isWeb: jest.fn(() => false),
   hasWebSessionFlag: jest.fn(() => true),
@@ -46,7 +46,7 @@ describe('authRefresh', () => {
     session().hasWebSessionFlag.mockReturnValue(true);
   });
 
-  // Regression: this guard had zero coverage — deleting it left the suite green.
+  // Regression: this guard had zero coverage; deleting it left the suite green.
   it('single-flights concurrent refreshes into one request', async () => {
     const { fetchWithTimeout } = request();
     session().loadStoredRefreshToken.mockResolvedValue('rt');

@@ -4521,7 +4521,7 @@
         "type": "object"
       },
       "ProductSummary": {
-        "description": "Minimal product summary for embedding in unrelated contexts (e.g. material links).\n\nDeliberately narrower than ``ProductRead`` \u2014 no owner, physical/circularity\nproperties, or other detail-view fields since no consumer needs them here.\nExtend with more fields only when an actual caller needs them.",
+        "description": "Minimal product summary for embedding in unrelated contexts (e.g. material links).\n\nDeliberately narrower than ``ProductRead``: no owner, physical/circularity\nproperties, or other detail-view fields since no consumer needs them here.\nExtend with more fields only when an actual caller needs them.",
         "properties": {
           "created_at": {
             "title": "Created At",
@@ -4931,7 +4931,7 @@
         "type": "object"
       },
       "RegistrationResponse": {
-        "description": "Uniform registration acknowledgement.\n\nDeliberately reveals nothing about whether the email already exists \u2014 the same\nbody is returned whether a new account was created or the address was already\ntaken \u2014 so registration cannot be used to enumerate accounts.",
+        "description": "Uniform registration acknowledgement.\n\nDeliberately reveals nothing about whether the email already exists; the same\nbody is returned whether a new account was created or the address was already\ntaken, so registration cannot be used to enumerate accounts.",
         "properties": {
           "detail": {
             "default": "If the email address is available, a verification link has been sent. Please check your inbox.",
@@ -8496,7 +8496,7 @@
     },
     "/v1/components/{component_id}/components": {
       "post": {
-        "description": "Create a new component below an existing component.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component. The key is bound to\nthis user, this parent, and this request body \u2014 reusing it with a different body is a 422.",
+        "description": "Create a new component below an existing component.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component. The key is bound to\nthis user, this parent, and this request body; reusing it with a different body is a 422.",
         "operationId": "add_component_to_component_v1_components__component_id__components_post",
         "parameters": [
           {
@@ -12062,13 +12062,13 @@
             }
           },
           {
-            "description": "Include the last-known telemetry snapshot from the Redis cache. Implies ``include_status=true``. No relay round-trips \u2014 cameras without cached telemetry come back with ``telemetry: null``.",
+            "description": "Include the last-known telemetry snapshot from the Redis cache. Implies ``include_status=true``. No relay round-trips; cameras without cached telemetry come back with ``telemetry: null``.",
             "in": "query",
             "name": "include_telemetry",
             "required": false,
             "schema": {
               "default": false,
-              "description": "Include the last-known telemetry snapshot from the Redis cache. Implies ``include_status=true``. No relay round-trips \u2014 cameras without cached telemetry come back with ``telemetry: null``.",
+              "description": "Include the last-known telemetry snapshot from the Redis cache. Implies ``include_status=true``. No relay round-trips; cameras without cached telemetry come back with ``telemetry: null``.",
               "title": "Include Telemetry",
               "type": "boolean"
             }
@@ -12677,7 +12677,7 @@
     },
     "/v1/plugins/rpi-cam/cameras/{camera_id}/preview-thumbnail": {
       "get": {
-        "description": "Serve the owner's cached preview thumbnail.\n\nOwner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the\nprivate preview directory rather than the public ``/uploads/images`` mount, so\na camera id alone no longer grants a stranger a recent frame. Cached only\nprivately and revalidated \u2014 never long-lived immutable like the public mount.",
+        "description": "Serve the owner's cached preview thumbnail.\n\nOwner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the\nprivate preview directory rather than the public ``/uploads/images`` mount, so\na camera id alone no longer grants a stranger a recent frame. Cached only\nprivately and revalidated, never long-lived immutable like the public mount.",
         "operationId": "get_camera_preview_thumbnail_v1_plugins_rpi_cam_cameras__camera_id__preview_thumbnail_get",
         "parameters": [
           {
@@ -14525,7 +14525,7 @@
         ]
       },
       "post": {
-        "description": "Create a new product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second product. The key is bound to\nthis user and this request body \u2014 reusing it with a different body is a 422.",
+        "description": "Create a new product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second product. The key is bound to\nthis user and this request body; reusing it with a different body is a 422.",
         "operationId": "create_product_v1_products_post",
         "parameters": [
           {
@@ -15658,7 +15658,7 @@
         ]
       },
       "post": {
-        "description": "Create a new component under the given base product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component. The key is bound to\nthis user, this parent, and this request body \u2014 reusing it with a different body is a 422.",
+        "description": "Create a new component under the given base product.\n\nAn optional ``Idempotency-Key`` header makes a retried request safe: replaying the same\nkey returns the original response instead of creating a second component. The key is bound to\nthis user, this parent, and this request body; reusing it with a different body is a 422.",
         "operationId": "add_component_to_product_v1_products__product_id__components_post",
         "parameters": [
           {

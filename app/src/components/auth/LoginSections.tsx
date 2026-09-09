@@ -24,7 +24,7 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
     <View className="flex-1">
       {/* Carries its own ground. As a bare ghost button it sat directly on the
           backdrop photograph, where pixel sampling measured a worst case of
-          3.55:1 in dark at 1440 — the contrast varies with whatever part of the
+          3.55:1 in dark at 1440; the contrast varies with whatever part of the
           image lands under the glyphs, so it passes at some widths and fails at
           others. `overlay.page` is the near-opaque page tone in both schemes. */}
       <AppButton

@@ -346,7 +346,7 @@ describe('DialogProvider', () => {
     expect(toastText).toBeOnTheScreen();
     expect(toastText).toHaveProp('accessibilityLiveRegion', 'polite');
 
-    // A toast must not steal focus or block the rest of the screen — the
+    // A toast must not steal focus or block the rest of the screen: the
     // trigger stays pressable while the toast is showing.
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Saved')).toBeOnTheScreen();
@@ -371,7 +371,7 @@ describe('DialogProvider', () => {
     await user.press(screen.getByTestId('trigger'));
     expect(screen.getByText('Saved')).toBeOnTheScreen();
 
-    // ~3s in, fire the identical message again — the 4s timer must restart.
+    // ~3s in, fire the identical message again: the 4s timer must restart.
     await act(() => {
       jest.advanceTimersByTime(3000);
     });

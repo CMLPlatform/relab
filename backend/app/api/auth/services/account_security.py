@@ -67,7 +67,7 @@ def require_step_up_password(
     """Require the account password before changing an authentication method.
 
     Linking or unlinking a social login changes how the account can be signed into, so
-    it needs the same re-authentication as an email or password change (ASVS V7.5.1) —
+    it needs the same re-authentication as an email or password change (ASVS V7.5.1);
     an active session alone is not enough, or a stolen session can attach a provider the
     attacker controls and keep access after the victim resets their password.
 

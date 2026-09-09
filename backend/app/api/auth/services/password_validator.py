@@ -42,8 +42,8 @@ async def check_pwned_password(password: str, http_client: AsyncClient) -> int:
     """
     # Measured against the live API over a warm shared client: 55 ms median, 69 ms worst
     # of ten. That is the largest remaining inline cost on registration now that the
-    # verification mail is deferred, and it is a gate — the answer decides whether the
-    # request succeeds — so it cannot move behind the response.
+    # verification mail is deferred, and it is a gate: the answer decides whether the
+    # request succeeds, so it cannot move behind the response.
     # Have I Been Pwned's k-anonymity range API requires SHA-1; the digest only derives
     # the lookup prefix.
     sha1 = hashlib.sha1(password.encode(), usedforsecurity=False).hexdigest().upper()

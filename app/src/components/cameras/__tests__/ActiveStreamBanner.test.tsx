@@ -121,7 +121,7 @@ describe('ActiveStreamBanner', () => {
   });
 
   // The banner is mounted at the app root, outside the tab navigator, so the
-  // bar overlaps it on native exactly as it does on web — nothing shrinks the
+  // bar overlaps it on native exactly as it does on web; nothing shrinks the
   // box it positions against. Without this bump the banner would sit straight
   // through a detail screen's Fab once the bar lifts that Fab.
   it('bumps its floating offset on native too when BottomNav is visible', async () => {
@@ -157,7 +157,7 @@ describe('ActiveStreamBanner', () => {
   });
 
   // SaveBar (product/component detail, >=md web) docks fixed at right:24 and
-  // can be wide enough to sit under the banner's default right:16 — the
+  // can be wide enough to sit under the banner's default right:16; the
   // banner reserves SAVE_BAR_DOCK_RESERVE instead whenever the route+
   // breakpoint combination could render SaveBar (see ActiveStreamBanner.tsx).
   it('reserves space for SaveBar on a >=md web product detail route', async () => {
@@ -188,7 +188,7 @@ describe('ActiveStreamBanner', () => {
 
   // Regression: '/products/new' (CaptureScreen, no SaveBar) satisfies
   // '/products/:id' too, since the literal 'new' segment matches [^/]+ just
-  // like a real id would — the route predicate must exclude it explicitly.
+  // like a real id would; the route predicate must exclude it explicitly.
   it('does not reserve space on the /products/new creation route', async () => {
     mockPlatform('web');
     mockUseStreamSession.mockReturnValue({ activeStream: session });

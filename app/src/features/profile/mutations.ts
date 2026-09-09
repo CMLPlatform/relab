@@ -208,7 +208,7 @@ export async function confirmOAuthUnlink({
   }
 
   // The account is unlinked from here on. A failure below must not be reported as
-  // a failed disconnect — that would contradict the server.
+  // a failed disconnect; that would contradict the server.
   if (provider === 'google' && youtubeEnabled) {
     try {
       await setYoutubeEnabled(false);

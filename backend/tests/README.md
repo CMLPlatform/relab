@@ -41,7 +41,7 @@ camera setup -> record -> persist. Keep them sparse; they are slower than the ot
 ## Assertions
 
 - Assert what tells the paths apart, not just the outcome. Several paths often converge on one
-  response — `images.py` answers 400 for a missing, non-integer, and non-positive `product_id` — so a
+  response (`images.py` answers 400 for a missing, non-integer, and non-positive `product_id`), so a
   test checking only the status keeps passing once the guard it was written for is gone. Assert the
   `detail`, the close `reason`, or an effect: a collaborator not reached, a queue left empty.
 - Sentinels converge the same way: `read_token` returns `None` from five paths.

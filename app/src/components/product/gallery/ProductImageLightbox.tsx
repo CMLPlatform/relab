@@ -48,7 +48,7 @@ type Props = {
   startIndex: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
-  /** Product/component name — the alt-text fallback when an image has no description. */
+  /** Product/component name, the alt-text fallback when an image has no description. */
   fallbackLabel: string;
 };
 

@@ -52,7 +52,7 @@ test('renders no facts row segments for missing data', async () => {
   expect(screen.queryByText('Components')).toBeNull();
 });
 
-// In edit mode the title-size name is the control — one name field, and it
+// In edit mode the title-size name is the control: one name field, and it
 // is the biggest text on the screen. (Moved here from ProductNameHeader, which
 // used to carry a second, 16px copy in the stack header.)
 describe('SpecHeader name field in edit mode', () => {

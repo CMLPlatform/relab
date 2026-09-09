@@ -118,7 +118,7 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
     assert notify.call_args.kwargs["enabled"] is True
     # Recovery codes are handed back exactly once, at enrollment.
     assert len(result.recovery_codes) == 10
-    # Only the hashes are persisted — a DB compromise must not yield usable codes.
+    # Only the hashes are persisted: a DB compromise must not yield usable codes.
     set_codes.assert_awaited_once_with(
         user_manager, user, [mfa_service.hash_recovery_code(code) for code in result.recovery_codes]
     )
@@ -333,7 +333,7 @@ async def test_regenerate_recovery_codes_reissues_after_valid_code() -> None:
 
     notify.assert_awaited_once()
     assert len(result.recovery_codes) == 10
-    # Only the hashes are persisted — a DB compromise must not yield usable codes.
+    # Only the hashes are persisted: a DB compromise must not yield usable codes.
     set_codes.assert_awaited_once_with(
         user_manager, user, [mfa_service.hash_recovery_code(code) for code in result.recovery_codes]
     )

@@ -7,7 +7,7 @@ Staging shares `compose.deploy.yaml` with production, so this doubles as the reh
 
 ______________________________________________________________________
 
-## Part 1 — First-time host setup
+## Part 1: First-time host setup
 
 Same as [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1 with `staging` substituted for `prod`: the
 install guide's "First backup" and "Scheduling backups", then `just timers-install staging`.
@@ -30,7 +30,7 @@ staging's own folder; the backup copies to `rclone:surfdrive_staging:`.
 
 ______________________________________________________________________
 
-## Part 2 — Routine release
+## Part 2: Routine release
 
 ```bash
 cd /path/to/relab

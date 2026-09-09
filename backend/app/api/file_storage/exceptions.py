@@ -42,8 +42,8 @@ class UploadTooLargeError(PayloadTooLargeError):
 class StorageBackendError(OSError):
     """Raised when a storage backend operation fails for a reason worth surfacing.
 
-    Subclasses ``OSError`` so best-effort storage-cleanup call sites — written against
-    the filesystem backend, where a real unlink failure is already an ``OSError`` —
+    Subclasses ``OSError`` so best-effort storage-cleanup call sites (written against
+    the filesystem backend, where a real unlink failure is already an ``OSError``)
     transparently also catch S3/backend failures translated into this type, without
     needing botocore-specific imports outside file_storage.
     """

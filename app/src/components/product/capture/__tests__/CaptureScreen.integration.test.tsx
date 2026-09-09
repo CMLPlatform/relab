@@ -37,7 +37,7 @@ jest.mock('expo-router', () => ({
     canGoBack: () => mockCanGoBack,
     goBack: mockGoBack,
   }),
-  // Never invokes its callback, matching the unit-lane default — the type-row
+  // Never invokes its callback, matching the unit-lane default; the type-row
   // round-trip isn't under test here.
   useFocusEffect: jest.fn(),
   usePathname: () => '/products/new',
@@ -156,7 +156,7 @@ describe('CaptureScreen', () => {
   });
 
   // TDD for the offline-queued acknowledgment: a paused save mutation shows a
-  // short "queued" label on both Create buttons and drops the spinner —
+  // short "queued" label on both Create buttons and drops the spinner;
   // "paused" isn't "loading", there's nothing to spin for until the device
   // comes back online.
   it('shows a queued label and no spinner on both Create buttons while paused offline', async () => {
@@ -260,7 +260,7 @@ describe('CaptureScreen', () => {
 
   // Batch mode has nothing left to batch once the record exists: a partial
   // success (record POSTed, photo upload failed) routes to the detail screen
-  // for photo retry, same as a plain Create — it must not reset the form and
+  // for photo retry, same as a plain Create; it must not reset the form and
   // silently discard the local photos that failed to upload.
   it('routes to the detail screen after a partial-success Create & add another, without resetting the name', async () => {
     mockMutateAsync.mockImplementationOnce(async ({ product }) => {
