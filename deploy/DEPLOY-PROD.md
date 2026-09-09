@@ -269,16 +269,30 @@ with `--no-deps` on purpose: the timer must never start postgres as a side effec
 snapshot cannot be taken after `down`. And any change to what the containers run as — a uid change,
 an ownership change — takes effect the moment the checkout moves, because the Compose `user:` pin
 overrides the image's own `USER`. Between checkout and the matching `chown`, every backup run
-fails. The order that works:
+fails. Docker seeds a named volume's ownership only when it first creates the volume, so a volume
+carried over from an earlier release keeps that release's uid however many times you rebuild. The
+order that works:
 
 ```bash
-just stack <env> build            # safe with the stack up; the snapshot then runs on the new image
-# chown anything the containers own that is not a volume mounted by a running service
-just backup <env> manual          # tagged, so retention cannot expire your rollback
-just stack <env> down YES
-# chown the volumes that a running service would have been writing
-just stack <env> up YES migrations
+env=prod                          # or staging
+just stack "$env" build           # safe with the stack up; the snapshot then runs on the new image
+# The restic repository is a host bind, so it can be chowned with the stack still up.
+sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
+just backup "$env" manual         # tagged, so retention cannot expire your rollback
+just stack "$env" down YES
+# The named volumes a running service would have been writing. Run as uid 0 inside the
+# image so the host needs no knowledge of where Docker keeps the volume.
+for volume in user_uploads restic_cache; do
+    docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
+        "relab-backend:${env}-local" chown -R 65532:65532 /mnt
+done
+just stack "$env" up YES migrations
 ```
+
+`up` probes those three mounts as the services that write them before it starts anything, and
+refuses to continue when one is unwritable, naming the volume and the command above. Reads and
+`stat` succeed on a wrongly-owned volume, so without that probe the deploy reports success and
+only uploads and backups fail.
 
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
 stopping the watchdog too, or it pages mid-window — and a stopped watchdog cannot then tell you the

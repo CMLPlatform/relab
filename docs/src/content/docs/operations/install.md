@@ -228,6 +228,24 @@ the topology these steps produce.
    allows only when no migration in between dropped or rewrote data. `just stack prod down YES` stops
    the stack.
 
+   `up` first probes, as the services that write them, the three mounts the stack writes to: the
+   `user_uploads` and `restic_cache` volumes and the restic bind mount. It refuses to start when one
+   is not writable by UID 65532, because reads and `stat` still succeed on a wrongly-owned mount and
+   only the writes fail. Docker sets a named volume's ownership when it first creates the volume and
+   never again, so a host whose volumes were created by a release that ran as a different UID needs a
+   one-time chown, with the stack down:
+
+   ```bash
+   env=prod                        # or staging
+   just stack "$env" down YES
+   sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
+   for volume in user_uploads restic_cache; do
+       docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
+           "relab-backend:${env}-local" chown -R 65532:65532 /mnt
+   done
+   just stack "$env" up YES migrations
+   ```
+
 ### First backup
 
 The backup container runs as UID 65532. Create the restic directory before the first backup; Docker
