@@ -7,6 +7,7 @@ import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogSt
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { heading } from '@/utils/a11y';
 
 type Props = {
   cameraPickerVisible: boolean;
@@ -44,7 +45,7 @@ export function ProductImageCameraDialogs({
         onDismiss={onDismissPreview}
         triggerRef={triggerRef}
       >
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           {previewCamera?.name ?? 'Camera preview'}
         </AppText>
         <View className="items-center gap-3">

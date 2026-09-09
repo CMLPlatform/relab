@@ -4,6 +4,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
+import { heading } from '@/utils/a11y';
 
 export default function LogoutConfirm({
   visible,
@@ -18,7 +19,7 @@ export default function LogoutConfirm({
 }) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Sign out
       </AppText>
       <AppText>Are you sure you want to sign out?</AppText>

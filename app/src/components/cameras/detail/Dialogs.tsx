@@ -6,6 +6,7 @@ import { AppText } from '@/components/base/AppText';
 import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { TextInput } from '@/components/base/TextInput';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import { heading } from '@/utils/a11y';
 
 type ManualSetupDialogProps = {
   visible: boolean;
@@ -32,7 +33,7 @@ function ManualSetupDialog({
 }: ManualSetupDialogProps) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Manual direct connection
       </AppText>
       <View className="gap-3">
@@ -99,7 +100,7 @@ function CameraDeleteDialog({
 }: CameraDeleteDialogProps) {
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Delete camera?
       </AppText>
       <AppText>

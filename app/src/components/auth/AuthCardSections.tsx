@@ -3,6 +3,7 @@ import { View, type ViewStyle } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { heading } from '@/utils/a11y';
 
 /** Single-Card auth screen scaffold (forgot-password, reset-password, mfa, verify). */
 export function AuthCard({
@@ -22,7 +23,7 @@ export function AuthCard({
     <Card>
       <View className="p-4 gap-4" style={contentStyle}>
         <View className="gap-1.5">
-          <AppText variant="display" accessibilityRole="header">
+          <AppText variant="display" {...heading(1)}>
             {title}
           </AppText>
           {subtitle}

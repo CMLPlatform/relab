@@ -8,6 +8,7 @@ import { radius } from '@/constants';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { useAppTheme } from '@/theme';
 import type { User } from '@/types/User';
+import { heading } from '@/utils/a11y';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileHeroProps = {
@@ -33,6 +34,7 @@ export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }:
       >
         <AppText
           variant="display"
+          {...heading(1)}
           numberOfLines={Platform.OS === 'web' ? undefined : 1}
           adjustsFontSizeToFit
         >

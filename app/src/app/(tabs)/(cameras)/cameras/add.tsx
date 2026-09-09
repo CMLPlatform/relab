@@ -17,6 +17,7 @@ import { RPI_CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme';
+import { heading } from '@/utils/a11y';
 
 function PairingSuccessDialog({
   visible,
@@ -38,7 +39,7 @@ function PairingSuccessDialog({
         >
           <Icon name="circle-check-big" size={56} color={theme.tokens.status.success} />
         </Animated.View>
-        <AppText variant="title" accessibilityRole="header">
+        <AppText variant="title" {...heading(2)}>
           Camera paired
         </AppText>
         <MutedText className="text-center">

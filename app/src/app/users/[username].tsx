@@ -22,6 +22,7 @@ import { productGridColumns } from '@/features/products/productGridColumns';
 import { userProductsInfiniteQueryOptions } from '@/features/products/queries';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { heading } from '@/utils/a11y';
 
 // Local to this screen; unrelated to the HeroStats StatCard in components/profile.
 function ProfileStatCard({
@@ -66,7 +67,7 @@ function UserProducts({ username }: { username: string }) {
 
   return (
     <View className="w-full mt-12" testID="user-products">
-      <AppText variant="eyebrow" className="mb-3" accessibilityRole="header">
+      <AppText variant="eyebrow" className="mb-3" {...heading(2)}>
         {isLoading ? 'Products' : `Products · ${total}`}
       </AppText>
       {isLoading ? (
@@ -138,7 +139,7 @@ export default function UserProfileScreen() {
                     {profile.username.substring(0, 2).toUpperCase()}
                   </AppText>
                 </View>
-                <AppText variant="display" className="font-extrabold mb-2">
+                <AppText variant="display" className="font-extrabold mb-2" {...heading(1)}>
                   {profile.username}
                 </AppText>
                 {profile.created_at ? (
