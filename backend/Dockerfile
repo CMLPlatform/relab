@@ -41,7 +41,14 @@ COPY .python-version pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group=dev --no-install-project --no-editable
 
-COPY . .
+# Named explicitly rather than `COPY . .`: under `just dev` compose's watch
+# syncs ./backend over this anyway, so the snapshot only serves `just dev-up`.
+# An explicit list lets this build take an allowlist ignore file, which fails
+# loudly on a missing path instead of quietly absorbing whatever is in the tree.
+COPY alembic/ alembic/
+COPY app/ app/
+COPY scripts/ scripts/
+COPY data/seed/ data/seed/
 
 RUN mkdir -p logs data/uploads/files data/uploads/images \
     && chmod -R 0775 data/uploads
