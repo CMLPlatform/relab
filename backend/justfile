@@ -139,8 +139,12 @@ refresh-disposable-email-domains:
 refresh-common-passwords:
     uv run python -m scripts.maintenance.refresh_common_passwords
 
+# Generate the derived upload fixtures the baseline's size spread needs
+perf-fixtures:
+    uv run python -m scripts.perf.make_upload_fixtures
+
 # Run the k6 baseline performance suite (requires k6 on the host)
-perf-baseline:
+perf-baseline: perf-fixtures
     mkdir -p reports/performance
     k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
 
@@ -151,7 +155,7 @@ k6_docker_image := "grafana/k6:2.2.0@sha256:5221b620a4f874faff6e32ba597aa667c058
 
 # Run the k6 baseline suite against the Docker CI stack.
 # Start and seed the CI backend stack first; this recipe does not.
-_perf-ci media_url="" base_url="http://api:8000":
+_perf-ci media_url="" base_url="http://api:8000": perf-fixtures
     #!/usr/bin/env bash
     set -euo pipefail
     media_url={{ quote(media_url) }}

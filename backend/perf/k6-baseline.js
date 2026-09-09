@@ -49,6 +49,27 @@ const scenarios = {
 // single-term lookups with a multi-term query, which is the slower path.
 const searchTerms = (__ENV.PERF_SEARCH_TERMS || "steel,laptop,novatech,compact steel drill,recycled monitor").split(",");
 
+// Loaded once at init. The upload scenario needs real bytes: a decode and a
+// thumbnail write are most of what the endpoint costs. A spread of sizes, not one:
+// the committed 1200x900 sample skips the 1600px derivative altogether, so on its
+// own the scenario cannot see a regression in the part of the pipeline that costs
+// anything. The larger two are tiled from that same sample by
+// `scripts.perf.make_upload_fixtures`, which the perf recipes run first.
+const uploadImages = [
+  { size: "small", body: open("/perf/fixtures/upload-sample.jpg", "b") },
+  { size: "medium", body: open("/perf/fixtures/generated/upload-medium.jpg", "b") },
+  { size: "large", body: open("/perf/fixtures/generated/upload-large.jpg", "b") },
+];
+
+// Per size, because a percentile mixed across all three hides which one moved.
+//
+// Set against the regression they exist to catch, not merely above the measured
+// p95. Deferring the wide derivatives took ~110ms off a medium upload and ~130ms
+// off a large one, so a ceiling generous enough to absorb that is a ceiling that
+// would sit through the exact change it is guarding. Measured p95 on the CI stack
+// is 79 / 92 / 154 ms; re-blocking would put medium near 200 and large near 285.
+const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 190, large: 250 };
+
 const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
   "http_req_duration{scenario:live_probe}": ["p(95)<100"],
@@ -90,10 +111,18 @@ if (loginEmail && loginPassword) {
   thresholds["http_req_duration{scenario:product_create_write}"] = ["p(95)<300"];
 
   // Last of all: an upload decodes the image and writes derivatives, so it is
-  // both the slowest write and the one that leaves the most behind.
-  scenarios.image_upload_write = { ...stage(Number(__ENV.PERF_UPLOAD_RATE || 2), 10), exec: "imageUploadWrite" };
+  // both the slowest write and the one that leaves the most behind. Iterations
+  // rotate through `uploadImages`, and each size carries its own threshold —
+  // a mixed percentile over three sizes hides which one moved.
+  //
+  // The previous 1400 was set before anything had measured this, against a
+  // fixture that skipped the widest derivative. The figures below come from the
+  // CI stack with per-size headroom over the measured p95.
+  scenarios.image_upload_write = { ...stage(Number(__ENV.PERF_UPLOAD_RATE || 3), 10), exec: "imageUploadWrite" };
   thresholds["http_req_failed{scenario:image_upload_write}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:image_upload_write}"] = ["p(95)<1400"];
+  for (const { size } of uploadImages) {
+    thresholds[`http_req_duration{upload_size:${size}}`] = [`p(95)<${UPLOAD_THRESHOLDS_MS[size]}`];
+  }
 }
 
 export const options = {
@@ -103,10 +132,6 @@ export const options = {
   // regression, and the default stats hide it.
   summaryTrendStats: ["avg", "min", "med", "p(95)", "p(99)", "max"],
 };
-
-// Loaded once at init. The upload scenario needs real bytes: a decode and a
-// thumbnail write are most of what the endpoint costs.
-const uploadImage = open("/perf/fixtures/upload-sample.jpg", "b");
 
 export function setup() {
   // Ids are resolved once here rather than per iteration, so the scenarios
@@ -254,12 +279,13 @@ export function referenceDataRead() {
 }
 
 export function imageUploadWrite(data) {
+  const image = uploadImages[__ITER % uploadImages.length];
   const response = http.post(
     `${baseUrl}/v1/products/${data.uploadProductId}/images`,
-    { file: http.file(uploadImage, `perf-${__VU}-${__ITER}.jpg`, "image/jpeg") },
+    { file: http.file(image.body, `perf-${__VU}-${__ITER}.jpg`, "image/jpeg") },
     {
       headers: { Authorization: `Bearer ${data.token}` },
-      tags: { scenario: "image_upload_write" },
+      tags: { scenario: "image_upload_write", upload_size: image.size },
     },
   );
 

@@ -38,10 +38,28 @@ whatever the server does. The closed-model alternative (`constant-vus` plus `sle
 `dropped_iterations` is thresholded because an open-model run that cannot start iterations on time
 is a saturated server, not a fast one.
 
-**The write stages run last, uploads last of all.** `image_upload_write` posts
-`perf/fixtures/upload-sample.jpg` through the real multipart path, so it decodes an image and
-writes derivatives — the slowest endpoint in the API by a wide margin. Malware scanning is not
-exercised, since ClamAV is not in use.
+**The write stages run last, uploads last of all.** `image_upload_write` posts through the real
+multipart path, so it decodes an image and writes derivatives — the slowest endpoint in the API by
+a wide margin. Malware scanning is not exercised, since ClamAV is not in use.
+
+Iterations rotate through three photo sizes, each tagged `upload_size` and thresholded separately,
+because a percentile mixed across all three hides which one moved:
+
+| `upload_size` | dimensions  | source                                                |
+| ------------- | ----------- | ----------------------------------------------------- |
+| `small`       | 1200x900    | `perf/fixtures/upload-sample.jpg`, committed          |
+| `medium`      | 2400x1800   | tiled from the sample by `just perf-fixtures`         |
+| `large`       | 4800x3600   | tiled from the sample by `just perf-fixtures`         |
+
+One size is not enough: at 1200x900 the 1600px derivative is skipped entirely and only ~21ms of
+thumbnail work is in play, so a regression in the expensive part of the pipeline would not move the
+number. From `medium` up, every standard width applies, and the derivative work the upload defers
+is ~110-130ms rather than ~20ms.
+
+The larger two are tiled from the committed sample rather than upscaled or generated: tiling repeats
+the source's own frequency content, so decode, resize and encode cost per pixel stay in the range a
+real photograph produces. They are gitignored and rebuilt by `just perf-fixtures`, which both perf
+recipes run first — reproducible from one 87 KB source, with no multi-megabyte binaries in the repo.
 
 **The write stage runs last.** `product_create_write` inserts rows, so every read stage is measured
 against a table that is not growing underneath it. `product_search_read` rotates its query terms so
