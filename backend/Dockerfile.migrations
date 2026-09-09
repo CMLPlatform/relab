@@ -25,6 +25,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group=migrations --no-install-project --no-editable; \
     fi
 
+# PyPI wheels ship unstripped; this cuts ~40MB from the venv the runtime stage
+# copies. Only C-level crash backtraces lose detail, not Python tracebacks.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends binutils \
+    && find .venv -name '*.so' -exec strip -s {} + \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy alembic migrations, scripts, and source code
 COPY alembic/ alembic/
 COPY scripts/ scripts/

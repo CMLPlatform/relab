@@ -75,18 +75,32 @@ WORKDIR $WORKDIR/docs
 RUN pnpm run build:${ENVIRONMENT}
 
 # --- Runtime stage (default) ---
-FROM caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648 AS runtime
+# --- Caddy binary, stripped of its low-port capability ---
+# Relab serves on high ports, so cap_net_bind_service is dead weight next to
+# no-new-privileges. `setcap -r` rewrites the 48MB binary and the overlay
+# copy-up leaves a second copy in the layer, so strip in a throwaway stage and
+# copy onto plain Alpine. BuildKit preserves caps across COPY --from, so the
+# strip must precede the copy.
+FROM caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648 AS caddybin
+RUN setcap -r /usr/bin/caddy
+
+FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40 AS runtime
 
 ARG WORKDIR
 
-# Upgrade packages to get latest security patches (Caddy image is pretty minimal, so this is low-risk).
-# Relab serves Caddy on high ports, so remove the inherited low-port bind capability
-# to work with no-new-privileges and dropped runtime capabilities.
+# ca-certificates for egress TLS, mailcap for MIME types by extension. The
+# healthcheck uses busybox wget, so no curl. Upgrade keeps patches current.
 RUN apk upgrade --no-cache \
-    && apk add --no-cache libcap \
-    && setcap -r /usr/bin/caddy \
-    && apk del libcap \
+    && apk add --no-cache ca-certificates mailcap \
     && install -d -o 1001 -g 1001 /config /data
+
+COPY --link --from=caddybin /usr/bin/caddy /usr/bin/caddy
+
+# Inherited from the official Caddy image, which this stage no longer uses.
+ENV XDG_CONFIG_HOME=/config \
+    XDG_DATA_HOME=/data
+WORKDIR /srv
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
 
 COPY --link --from=build ${WORKDIR}/docs/dist /srv
 COPY --link docs/Caddyfile /etc/caddy/Caddyfile
