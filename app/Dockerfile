@@ -60,7 +60,7 @@ WORKDIR $WORKDIR
 
 ENV CI=1
 
-COPY app/app.json app/babel.config.js app/tsconfig.json app/metro.config.js app/postcss.config.mjs app/global.css app/
+COPY app/app.json app/babel.config.js app/tsconfig.json app/metro.config.js app/zod-locales-stub.js app/postcss.config.mjs app/global.css app/
 COPY app/plugins/ app/plugins/
 COPY app/public/ app/public/
 COPY app/src/ app/src/
