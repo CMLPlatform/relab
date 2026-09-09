@@ -303,6 +303,10 @@ jobs:
           # Route builds through bake, whose buildx integration honours the
           # compose cache_from/cache_to entries. CI-only: local runs are unchanged.
           COMPOSE_BAKE: "true"
+          # Only pushes to main write the full layer cache the app image's `mode=max`
+          # export costs ~57s to produce; see the comment on `app.build.cache_to` in
+          # compose.yaml.
+          BUILDKIT_APP_CACHE_MODE: ${{ github.event_name == 'pull_request' && 'min' || 'max' }}
         run: just "$RECIPE"
 
   secret-scan:

@@ -28,14 +28,22 @@ from app.api.file_storage.upload_policy import (
 )
 from app.api.file_storage.upload_quota import release_product_upload_quota_for_media, reserve_product_upload_quota
 from app.api.file_storage.upload_security import scan_upload_or_raise
+from app.core.background_tasks import spawn_detached
 from app.core.config import settings
-from app.core.images import generate_thumbnails, image_resize_limiter, process_image_for_storage
+from app.core.images import (
+    DEFERRED_THUMBNAIL_WIDTHS,
+    EAGER_THUMBNAIL_WIDTHS,
+    generate_thumbnails,
+    image_resize_limiter,
+    process_image_for_storage,
+)
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, stored_file_path
 from .support_types import StorageCreateSchema, StorageModel
 from .support_uploads import build_storage_instance, process_uploadfile_name, validate_upload_size
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from uuid import UUID
 
     from app.api.common.crud.filtering import BaseFilterSet
@@ -148,12 +156,36 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
         await image_storage_service.delete(db, db_image.id)
         raise BadRequestError(str(e)) from e
 
+    # Only the narrowest width is generated inline: it is what the create response
+    # publishes as `thumbnail_url` and what every list card renders, and it costs
+    # ~50 ms. The wider two are ~350 ms of the ~450 ms measured on a 12MP upload and
+    # nothing on the response path needs them yet, so they are generated afterwards.
+    # `build_thumbnail_urls_by_width` stat-checks each width, so until the detached
+    # task lands the response simply lists fewer widths, never a broken URL.
     try:
-        await to_thread.run_sync(generate_thumbnails, image_path, limiter=image_resize_limiter())
+        await to_thread.run_sync(
+            generate_thumbnails, image_path, EAGER_THUMBNAIL_WIDTHS, limiter=image_resize_limiter()
+        )
     except ValueError, OSError:
         logger.warning("Thumbnail generation failed for image %s, skipping", db_image.id, exc_info=True)
 
+    spawn_detached(_generate_deferred_thumbnails(image_path), name=f"thumbnails:{db_image.id}")
+
     return db_image
+
+
+async def _generate_deferred_thumbnails(image_path: Path) -> None:
+    """Generate the wider thumbnails off the upload's request path.
+
+    Failures leave the image with only its narrow thumbnail; the gallery falls back
+    to the original and ``scripts.maintenance.backfill_thumbnails`` re-tries it.
+    """
+    try:
+        await to_thread.run_sync(
+            generate_thumbnails, image_path, DEFERRED_THUMBNAIL_WIDTHS, limiter=image_resize_limiter()
+        )
+    except ValueError, OSError:
+        logger.warning("Deferred thumbnail generation failed for %s, skipping", image_path.name, exc_info=True)
 
 
 class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](ABC):

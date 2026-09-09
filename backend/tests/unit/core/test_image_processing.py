@@ -12,6 +12,8 @@ from starlette.datastructures import Headers
 
 from app.core.images import (
     ALLOWED_IMAGE_MIME_TYPES,
+    DEFERRED_THUMBNAIL_WIDTHS,
+    EAGER_THUMBNAIL_WIDTHS,
     MAX_IMAGE_DIMENSION,
     THUMBNAIL_WIDTHS,
     apply_exif_orientation,
@@ -524,3 +526,11 @@ def test_jpeg_with_exif_orientation_is_still_rotated_and_stripped(tmp_path: Path
     out = PILImage.open(path)
     assert out.size == (60, 40)
     assert 0x0112 not in out.getexif()
+
+
+def test_eager_and_deferred_widths_partition_the_standard_set() -> None:
+    """Splitting generation across two passes must not drop or duplicate a width."""
+    assert EAGER_THUMBNAIL_WIDTHS + DEFERRED_THUMBNAIL_WIDTHS == THUMBNAIL_WIDTHS
+    # The narrow width is the one `thumbnail_url` and every list card resolve to, so
+    # it is the one that cannot be deferred.
+    assert (min(THUMBNAIL_WIDTHS),) == EAGER_THUMBNAIL_WIDTHS

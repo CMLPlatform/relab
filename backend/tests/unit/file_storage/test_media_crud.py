@@ -1,17 +1,33 @@
 """Behavior-focused tests for file and image CRUD entrypoints."""
 
 from io import BytesIO
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from fastapi import UploadFile
+from PIL import Image as PILImage
 from pydantic import ValidationError
 
-from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
+from app.api.file_storage.crud.support_services import (
+    _generate_deferred_thumbnails,
+    file_storage_service,
+    image_storage_service,
+)
 from app.api.file_storage.exceptions import ModelFileNotFoundError, UploadTooLargeError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateInternal
+from app.core.images import (
+    DEFERRED_THUMBNAIL_WIDTHS,
+    EAGER_THUMBNAIL_WIDTHS,
+    THUMBNAIL_WIDTHS,
+    generate_thumbnails,
+    thumbnail_path_for,
+)
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 TEST_FILE_DESC = "Test file"
 TEST_FILENAME = "test.txt"
@@ -165,3 +181,17 @@ async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_sess
 
     mock_session.delete.assert_called_once_with(mock_db_image)
     mock_delete_image.assert_awaited_once_with(mock_db_image)
+
+
+async def test_deferred_pass_completes_the_thumbnail_set_left_by_the_upload(tmp_path: Path) -> None:
+    """Uploads generate only the narrow width inline; the detached pass fills the rest."""
+    image_path = tmp_path / "wide.png"
+    PILImage.new("RGB", (2000, 1000), color="green").save(image_path)
+
+    generate_thumbnails(image_path, EAGER_THUMBNAIL_WIDTHS)
+    assert thumbnail_path_for(image_path, min(THUMBNAIL_WIDTHS)).exists()
+    assert not any(thumbnail_path_for(image_path, width).exists() for width in DEFERRED_THUMBNAIL_WIDTHS)
+
+    await _generate_deferred_thumbnails(image_path)
+
+    assert all(thumbnail_path_for(image_path, width).exists() for width in THUMBNAIL_WIDTHS)
