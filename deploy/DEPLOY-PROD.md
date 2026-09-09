@@ -263,6 +263,11 @@ images), re-run it by hand against the backend container:
 `python -m scripts.maintenance.backfill_thumbnails`. It resumes where it stopped and is safe to run
 repeatedly.
 
+The same step is what gives images uploaded before a new width its derivative: adding a width to
+`THUMBNAIL_WIDTHS` leaves existing rows stamped, so clear `thumbnails_generated_at` for the rows
+that should gain it before re-running. Originals narrower than the new width are skipped rather
+than upscaled, and are not counted as incomplete.
+
 ### Releases that need a window
 
 Three things stretch a release beyond the time the commands take.
