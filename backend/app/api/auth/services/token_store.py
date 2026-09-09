@@ -15,7 +15,7 @@ def token_fingerprint(token: str) -> str:
     """Return a stable non-secret fingerprint for auth-token storage keys."""
     # Fingerprints high-entropy random bearer tokens (secrets.token_urlsafe), not
     # passwords; a slow KDF adds nothing here.
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()  # codeql[py/weak-sensitive-data-hashing]
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()  # lgtm[py/weak-sensitive-data-hashing]
 
 
 def token_key(key_prefix: str, token: str) -> str:

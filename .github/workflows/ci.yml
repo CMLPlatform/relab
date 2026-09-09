@@ -560,7 +560,7 @@ jobs:
 
       # Code scanning stores but does not act on the suppression data that the
       # AlertSuppression queries (see codeql-config.yml) emit for in-code
-      # `# codeql[query-id]` comments; this official action closes the loop by
+      # `# lgtm[query-id]` comments; this official action closes the loop by
       # dismissing the matching alerts. Suppressions stay reviewable in diffs.
       # Default branch only: dismissal is a global alert property, and the action reads
       # default-branch alerts only.

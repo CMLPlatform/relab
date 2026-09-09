@@ -3,8 +3,12 @@ name: "Relab CodeQL Config"
 queries:
   - uses: security-and-quality
 
-# Honor in-code `# codeql[query-id]` / `lgtm[query-id]` suppression comments for
-# verified false positives (advanced setup does not include these by default).
+# Honor in-code `# lgtm[query-id]` suppression comments for verified false positives
+# (advanced setup does not include these queries by default). Write one as a trailing
+# comment on the line holding the flagged expression, which for a multi-line call is the
+# argument line, not the line that opens the call. The `# codeql[query-id]` spelling is
+# matched only when the comment starts its own line, and then covers the line below it.
+# See the shared AlertSuppression.qll in github/codeql for both rules.
 packs:
   python:
     - codeql/python-queries:AlertSuppression.ql

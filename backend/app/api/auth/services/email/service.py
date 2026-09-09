@@ -108,17 +108,25 @@ async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_labe
             await provider.send(message)
         except Exception:
             if attempt == _SEND_ATTEMPTS:
-                logger.exception(  # codeql[py/clear-text-logging-sensitive-data] -- template filename, not a credential
-                    "%s failed for %s after %d attempts", log_label, recipient, attempt
+                logger.exception(
+                    "%s failed for %s after %d attempts",
+                    log_label,  # lgtm[py/clear-text-logging-sensitive-data]
+                    recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+                    attempt,
                 )
                 return
             delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
-            logger.warning(  # codeql[py/clear-text-logging-sensitive-data] -- template filename, not a credential
-                "%s attempt %d failed for %s, retrying in %.1fs", log_label, attempt, recipient, delay, exc_info=True
+            logger.warning(
+                "%s attempt %d failed for %s, retrying in %.1fs",
+                log_label,  # lgtm[py/clear-text-logging-sensitive-data]
+                attempt,
+                recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+                delay,
+                exc_info=True,
             )
             await anyio.sleep(delay)
         else:
-            logger.info("%s sent to %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
+            logger.info("%s sent to %s", log_label, recipient)  # lgtm[py/clear-text-logging-sensitive-data]
             return
 
 
@@ -139,7 +147,7 @@ async def _dispatch(
     recipient = email_log_token(to_email)
     if background_tasks:
         background_tasks.add_task(_send_and_log, provider, message, log_label, recipient)
-        logger.info("%s queued for %s", log_label, recipient)  # codeql[py/clear-text-logging-sensitive-data]
+        logger.info("%s queued for %s", log_label, recipient)  # lgtm[py/clear-text-logging-sensitive-data]
     else:
         await _send_and_log(provider, message, log_label, recipient)
 
