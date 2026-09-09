@@ -134,7 +134,7 @@ Supported browsers must implement HTTPS, HSTS, Content Security Policy, host-pre
 
 - PostgreSQL stores the primary application state.
 - Uploaded files and images are stored on disk and served by the backend.
-- Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_HOST_DIR`. The backup container runs as UID/GID `1001`.
+- Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_HOST_DIR`. The backup container runs as UID/GID `65532`.
 - Backups are host systemd timers, not Compose services. The hourly job takes a snapshot (`relab-backup@.timer`). The daily job runs retention, the integrity check, and the optional offsite copy (`relab-backup-maintenance@.timer`), so the repository is repacked once a day, not 24 times. Losing the host still costs up to a day of data.
 - Offsite copies use `restic copy` over restic's rclone backend, to the one remote defined in `secrets/<env>/rclone.conf`.
 - A backup refuses to archive a dump smaller than half the newest stored snapshot, because an empty dump would otherwise become the newest snapshot and age out the good copies. `RESTIC_MIN_DUMP_RATIO` tunes it; `0` disables it.

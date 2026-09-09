@@ -22,6 +22,11 @@ x-json-logging: &json-logging
     max-size: "10m"
     max-file: "3"
 
+# Above UID_MAX (60000) and below nobody, so no host useradd can hand this number
+# to a person and collide with the deploy-owned data. Matches `nonroot` in
+# distroless/Chainguard. Must stay in step with APP_UID in the Dockerfiles.
+x-app-user: &app-user "65532:65532"
+
 x-backend-public-origins: &backend-public-origins
   API_PUBLIC_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
   APP_PUBLIC_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
@@ -61,7 +66,7 @@ services:
     image: relab-backend:${ENVIRONMENT}-local
     logging: *json-logging
     read_only: true
-    user: "1001:1001"
+    user: *app-user
     # NOTE: sized against the documented ~20 GiB host budget, alongside postgres
     # 4g + clamav 4g + redis 1g. Image processing is the spiky consumer here;
     # without a cap one resize burst takes the host down instead of the API.
@@ -197,7 +202,7 @@ services:
     image: relab-backend-migrations:${ENVIRONMENT}-local
     logging: *json-logging
     read_only: true
-    user: "1001:1001"
+    user: *app-user
     secrets: *backend-runtime-secrets
     environment:
       !!merge <<: [*backend-public-origins, *backend-host-overrides]
@@ -228,7 +233,7 @@ services:
       nofile:
         soft: 8192
         hard: 8192
-    user: "1001:1001"
+    user: *app-user
     depends_on:
       postgres:
         condition: service_healthy
@@ -383,7 +388,7 @@ services:
     image: relab-docs:${ENVIRONMENT}-local
     logging: *json-logging
     read_only: true
-    user: "1001:1001"
+    user: *app-user
     build:
       args:
         ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
@@ -393,15 +398,15 @@ services:
       # Needed by Caddyfile so API reference pages can fetch live OpenAPI JSON.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
     tmpfs:
-      - /config:uid=1001,gid=1001
-      - /data:uid=1001,gid=1001
+      - /config:uid=65532,gid=65532
+      - /data:uid=65532,gid=65532
       - /tmp:mode=1777
 
   app:
     image: relab-app:${ENVIRONMENT}-local
     logging: *json-logging
     read_only: true
-    user: "1001:1001"
+    user: *app-user
     build:
       args:
         ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
@@ -412,15 +417,15 @@ services:
       # Needed by Caddyfile to determine the API origin.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
     tmpfs:
-      - /config:uid=1001,gid=1001
-      - /data:uid=1001,gid=1001
+      - /config:uid=65532,gid=65532
+      - /data:uid=65532,gid=65532
       - /tmp:mode=1777
 
   www:
     image: relab-www:${ENVIRONMENT}-local
     logging: *json-logging
     read_only: true
-    user: "1001:1001"
+    user: *app-user
     build:
       args:
         ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
@@ -434,8 +439,8 @@ services:
       # Needed by Caddyfile to allow the homepage stats fetch in the CSP.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
     tmpfs:
-      - /config:uid=1001,gid=1001
-      - /data:uid=1001,gid=1001
+      - /config:uid=65532,gid=65532
+      - /data:uid=65532,gid=65532
       - /tmp:mode=1777
 
 volumes:

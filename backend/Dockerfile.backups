@@ -5,7 +5,7 @@ FROM postgres:18@sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3
 
 ARG WORKDIR=/opt/relab/backups
 ARG APP_USER=backupuser
-ARG APP_UID=1001
+ARG APP_UID=65532
 # Debian package versions, pinned; see the install step below.
 ARG RCLONE_VERSION=1.60.1+dfsg-4
 ARG RESTIC_VERSION=0.18.0-1+b4
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # Postgres ships gosu for its own entrypoint; this image has its own and runs
     # as an unprivileged user, so drop the setuid-capable Go binary.
     && rm -f /usr/local/bin/gosu \
-    && useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
+    && groupadd --gid "$APP_UID" "$APP_USER" && useradd --create-home --uid "$APP_UID" --gid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
     && install -d -o "$APP_UID" -g "$APP_UID" -m 0755 "$WORKDIR" \
     # restic's cache lives on a named volume so it survives --rm. Create it here,
     # owned by APP_UID: Docker seeds an empty named volume from the image path, so

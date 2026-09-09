@@ -230,13 +230,13 @@ the topology these steps produce.
 
 ### First backup
 
-The backup container runs as UID 1001. Create the restic directory before the first backup; Docker
+The backup container runs as UID 65532. Create the restic directory before the first backup; Docker
 creates missing bind-mount directories root-owned, and the container then cannot initialize the
 repository:
 
 ```bash
 mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
-sudo chown -R 1001:1001 "${BACKUP_HOST_DIR:-./backups}"
+sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
 just backup prod          # initializes the repository and takes the first snapshot
 just restore-check prod   # restores that snapshot into a scratch container
 ```
