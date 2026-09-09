@@ -32,7 +32,12 @@ function ManualSetupDialog({
   triggerRef,
 }: ManualSetupDialogProps) {
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
+    <AppDialog
+      visible={visible}
+      onDismiss={onDismiss}
+      triggerRef={triggerRef}
+      accessibilityLabel="Manual direct connection"
+    >
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Manual direct connection
       </AppText>
@@ -99,7 +104,12 @@ function CameraDeleteDialog({
   triggerRef,
 }: CameraDeleteDialogProps) {
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
+    <AppDialog
+      visible={visible}
+      onDismiss={onDismiss}
+      triggerRef={triggerRef}
+      accessibilityLabel="Delete camera?"
+    >
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Delete camera?
       </AppText>

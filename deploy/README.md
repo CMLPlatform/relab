@@ -1,7 +1,6 @@
 # Deploy documentation
 
-Three runbooks: which host, and whether it is a routine release or the one-time migration off
-`main`. Staging's cutover is done, so only prod still has one.
+Two runbooks, one per host, both covering the routine release loop.
 
 |                        | **Production**                     | **Staging**                            |
 | ---------------------- | ---------------------------------- | -------------------------------------- |

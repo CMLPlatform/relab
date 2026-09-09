@@ -6,6 +6,7 @@ and must not import them back.
 
 from fastapi import APIRouter
 
+from app.api.application.routers import all_routers as application_routers
 from app.api.auth.routers import all_routers as auth_routers
 from app.api.data_collection.routers import router as data_collection_router
 from app.api.plugins.rpi_cam.routers import router as rpi_cam_router
@@ -21,6 +22,7 @@ for r in [
     reference_data_public_router,
     data_collection_router,
     *auth_routers,
+    *application_routers,
     rpi_cam_router,
     stats_router,
 ]:

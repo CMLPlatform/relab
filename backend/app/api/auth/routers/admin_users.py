@@ -2,7 +2,7 @@
 
 from typing import Annotated, cast
 
-from fastapi import Depends, HTTPException, Query, Request, Security
+from fastapi import Depends, HTTPException, Request, Security
 from fastapi_pagination import Page
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
@@ -17,8 +17,6 @@ from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
 from app.api.auth.schemas import UserRead, UserRoleUpdate, UserUpdate
 from app.api.auth.services import mfa_service
-from app.api.auth.services.account_erasure import ANONYMIZE, ErasureContent, erase_user, require_erasable_account
-from app.api.auth.services.account_security import revoke_user_refresh_tokens
 from app.api.common.audiences import AdminAPIRouter
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
@@ -93,36 +91,6 @@ async def update_user(
 
 
 ## DELETE ##
-@router.delete(
-    "/{user_id}",  # user_id is bound by the get_user_or_404 dependency
-    summary="Delete a user by ID",
-    status_code=204,
-)
-async def delete_user(
-    user: UserByIDDep,
-    actor: CurrentActiveSuperUserDep,
-    session: AsyncSessionDep,
-    request: Request,
-    content: Annotated[
-        ErasureContent,
-        Query(
-            description=(
-                "What to do with the research data this user contributed: `anonymize` "
-                "reassigns their products to the anonymous system account, `delete` "
-                "removes the products and their media. Personal data is erased either way."
-            )
-        ),
-    ] = ANONYMIZE,
-) -> None:
-    """Delete a user by ID, anonymizing or deleting the content they own."""
-    # Guard first so a refused erasure has no side effects; revoke before erasing so a
-    # Redis failure aborts rather than leaving a deleted user with live sessions.
-    await require_erasable_account(session, user)
-    await revoke_user_refresh_tokens(user.id, request)
-    await erase_user(session, user, actor_id=actor.id, content=content)
-    audit_event(actor.id, AuditAction.DELETE, User, user.id, context=AuditContext(operation=f"erase_{content}"))
-
-
 @router.post(
     "/{user_id}/mfa/reset",  # user_id is bound by the get_user_or_404 dependency
     summary="Reset a user's MFA enrollment",

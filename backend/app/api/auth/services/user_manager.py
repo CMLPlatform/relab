@@ -25,7 +25,7 @@ from app.api.auth.services.account_security import (
 )
 from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email.service import (
-    mask_email_for_log,
+    email_log_token,
     send_email_changed_notification,
     send_oauth_welcome_notification,
     send_password_changed_notification,
@@ -225,16 +225,16 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             oauth_provider=user.oauth_accounts[0].oauth_name,
             background_tasks=background_tasks_from(request),
         )
-        logger.info("OAuth welcome email sent to user %s", mask_email_for_log(user.email))
+        logger.info("OAuth welcome email sent to user %s", email_log_token(user.email))
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:
         """Send verification email after verification is requested."""
         await send_verification_email(user.email, user.username, token, background_tasks_from(request))
-        logger.info("Verification email sent to user %s", mask_email_for_log(user.email))
+        logger.info("Verification email sent to user %s", email_log_token(user.email))
 
     async def on_after_verify(self, user: User, request: Request | None = None) -> None:
         """Send welcome email after user verifies their email."""
-        logger.info("User %s has been verified.", mask_email_for_log(user.email))
+        logger.info("User %s has been verified.", email_log_token(user.email))
         await send_post_verification_email(user.email, user.username, background_tasks_from(request))
 
     async def on_after_forgot_password(
@@ -244,7 +244,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         request: Request | None = None,
     ) -> None:
         """Send password reset email."""
-        logger.info("Password reset email requested for user %s", mask_email_for_log(user.email))
+        logger.info("Password reset email requested for user %s", email_log_token(user.email))
         await send_reset_password_email(user.email, user.username, token, background_tasks_from(request))
 
     async def on_after_reset_password(self, user: User, request: Request | None = None) -> None:
@@ -281,7 +281,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         """Persist the login timestamp and log the event after successful authentication."""
         user.last_login_at = datetime.now(UTC)
         await self.user_db.session.commit()
-        logger.info("User %s logged in", mask_email_for_log(user.email))
+        logger.info("User %s logged in", email_log_token(user.email))
 
 
 async def get_auth_async_session() -> AsyncGenerator[AsyncSession]:

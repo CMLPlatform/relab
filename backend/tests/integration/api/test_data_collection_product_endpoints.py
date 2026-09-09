@@ -378,6 +378,13 @@ async def test_delete_product_with_components(
         assert component.status_code == status.HTTP_201_CREATED, component.text
         component_ids.append(component.json()["id"])
 
+    # The detail read is what makes this a regression test: it is the only route that
+    # applies raiseload("*"), leaving the components in this session's identity map as
+    # the stale instances the delete then hands to the flush. Without it the test passes
+    # against the unfixed code.
+    detail = await api_client_superuser.get(f"/v1/products/{product_id}")
+    assert detail.status_code == status.HTTP_200_OK, detail.text
+
     response = await api_client_superuser.delete(f"/v1/products/{product_id}")
 
     assert response.status_code == status.HTTP_204_NO_CONTENT, response.text

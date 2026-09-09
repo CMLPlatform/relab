@@ -26,6 +26,7 @@ erDiagram
         jsonb image_metadata
         integer parent_id
         imageparenttype parent_type "PRODUCT, PRODUCT_TYPE, MATERIAL"
+        timestamptz thumbnails_generated_at "When the full thumbnail set was last confirmed present."
         integer upload_size_bytes
         integer width_px "Pixel width of the stored image."
         timestamptz created_at

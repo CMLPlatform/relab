@@ -26,7 +26,7 @@ export function TermsAcceptanceDialog() {
   }, [accept]);
 
   return (
-    <AppDialog visible={shouldPrompt} onDismiss={dismiss}>
+    <AppDialog visible={shouldPrompt} onDismiss={dismiss} accessibilityLabel="Contributor terms">
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Contributor terms
       </AppText>

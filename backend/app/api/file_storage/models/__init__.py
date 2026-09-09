@@ -1,10 +1,11 @@
 """Database models for file storage."""
 
 import uuid
+from datetime import datetime  # noqa: TC003 # Used at runtime for ORM mapped annotations
 from enum import StrEnum
 from typing import Any  # noqa: TC003 # Used at runtime for ORM mapped annotations
 
-from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -55,6 +56,14 @@ class Image(TimeStampMixinBare, Base):
         Index("ix_image_parent_type_parent_id_created_at", "parent_type", "parent_id", "created_at"),
         # Partial index for the stats series, which buckets product images by period.
         Index("ix_image_product_created_at", "created_at", postgresql_where=text("parent_type = 'PRODUCT'")),
+        # Partial index over exactly the rows the thumbnail backfill selects. It shrinks to
+        # nothing as rows are stamped, so the per-deploy pass costs an index lookup rather
+        # than a scan of every image ever uploaded.
+        Index(
+            "ix_image_thumbnails_pending",
+            "id",
+            postgresql_where=text("thumbnails_generated_at IS NULL"),
+        ),
         # No trigram index on filename or description: the admin media list seq-scans
         # them, which is cheaper than GIN upkeep on every upload. Revisit past ~100k rows.
         {"postgresql_with": {"autovacuum_vacuum_scale_factor": 0.05, "autovacuum_analyze_scale_factor": 0.02}},
@@ -68,6 +77,15 @@ class Image(TimeStampMixinBare, Base):
     # EXIF rotation, so they describe the file as stored.
     width_px: Mapped[int | None] = mapped_column(default=None, doc="Pixel width of the stored image.")
     height_px: Mapped[int | None] = mapped_column(default=None, doc="Pixel height of the stored image.")
+    # NULL means "the thumbnail set has not been verified since this row was written".
+    # The upload generates the narrow width inline and the wider ones in a detached task,
+    # so a restart can leave a row's set incomplete with nothing on the row to say so.
+    # The backfill stamps this once it has seen every width the original is wide enough
+    # for, which is what lets it select the stragglers instead of walking the whole
+    # storage directory on every deploy.
+    thumbnails_generated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, doc="When the full thumbnail set was last confirmed present."
+    )
     description: Mapped[str | None] = mapped_column(String(500), default=None)
     image_metadata: Mapped[dict[str, Any] | None] = mapped_column(JSONB, default=None)
     parent_type: Mapped[MediaParentType] = mapped_column(

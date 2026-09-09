@@ -2124,29 +2124,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/profiles/{username}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * Get public profile of a user
-     * @description Get public profile statistics for a specified user by username.
-     *
-     *     Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
-     *     Recomputes stats on the fly when no snapshot exists yet, without persisting the result.
-     */
-    get: operations['get_public_profile_v1_profiles__username__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/v1/admin/users': {
     parameters: {
       query?: never;
@@ -2240,6 +2217,29 @@ export interface paths {
      *     commit on the common session would persist nothing.
      */
     put: operations['set_user_role_v1_admin_users__user_id__role_put'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/v1/profiles/{username}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get public profile of a user
+     * @description Get public profile statistics for a specified user by username.
+     *
+     *     Returns 404 if the user is not found or if the profile is marked as private (and you are not the user).
+     *     Recomputes stats on the fly when no snapshot exists yet, without persisting the result.
+     */
+    get: operations['get_public_profile_v1_profiles__username__get'];
+    put?: never;
     post?: never;
     delete?: never;
     options?: never;
@@ -10684,37 +10684,6 @@ export interface operations {
       };
     };
   };
-  get_public_profile_v1_profiles__username__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        username: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['PublicProfileView'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
   get_users_v1_admin_users_get: {
     parameters: {
       query?: {
@@ -10915,6 +10884,37 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['UserRead'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_public_profile_v1_profiles__username__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        username: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PublicProfileView'];
         };
       };
       /** @description Validation Error */

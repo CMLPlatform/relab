@@ -53,6 +53,23 @@ class MigrationHelper:
             row = result.first()
             return str(row[0]) if row else None
 
+    def text_column_lengths(self) -> dict[tuple[str, str], int | None]:
+        """Map every public text column to its declared max length.
+
+        A downgrade that restores the tables but not the column types leaves the schema
+        subtly different from a fresh build; comparing this before and after a round-trip
+        is what catches it.
+        """
+        with self.sync_engine.connect() as connection:
+            rows = connection.execute(
+                text(
+                    "SELECT table_name, column_name, character_maximum_length "
+                    "FROM information_schema.columns "
+                    "WHERE table_schema = 'public' AND data_type IN ('character varying', 'character')"
+                )
+            )
+            return {(str(row[0]), str(row[1])): row[2] for row in rows}
+
     def table_exists(self, table_name: str) -> bool:
         """Check if table exists in database.
 

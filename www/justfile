@@ -16,6 +16,7 @@ install:
 
 # Upgrade Astro and its official integrations, then apply the in-range pnpm updates.
 # This uses `pnpm up` without --latest, so majors stay intentional: opt in via Renovate.
+[doc('Upgrade Astro and its integrations, then apply in-range pnpm updates')]
 update:
     pnpm dlx @astrojs/upgrade
     pnpm up
@@ -64,6 +65,7 @@ test-ci:
 
 # Run the browser E2E tests against a fresh production build, because a stale dist/
 # silently tests old code. CI runs chromium only. Locally, every configured browser runs.
+[doc('Run the browser E2E tests against a fresh production build')]
 test-e2e: build _browsers
     pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
 
@@ -79,6 +81,7 @@ e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
 # The committed fixture ships one URL per photograph, so it cannot produce a srcset.
 # Only a real API response carries the width-keyed derivative map.
 # The origins below match `build`, except for the API and the featured product.
+[doc('Build against the running E2E backend, so the hero renders a live record')]
 build-e2e:
     #!/usr/bin/env bash
     set -euo pipefail

@@ -33,6 +33,7 @@ from app.core.config import settings
 from app.core.images import (
     DEFERRED_THUMBNAIL_WIDTHS,
     EAGER_THUMBNAIL_WIDTHS,
+    delete_thumbnails,
     generate_thumbnails,
     image_resize_limiter,
     process_image_for_storage,
@@ -146,10 +147,12 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
         )
         db_image.width_px = width_px
         db_image.height_px = height_px
-        # Flush, not commit: this runs inside the create flow's transaction. The refresh
-        # is required: the UPDATE expires `updated_at`, and serializing it would then
+        # Commit, not flush: `create()` already committed the row, so this runs in a new
+        # transaction that nothing else closes — a flush alone is rolled back at session
+        # teardown and the dimensions never reach the database. The refresh is required:
+        # the UPDATE leaves `updated_at` stale in memory, and serializing it would then
         # attempt lazy IO from a sync context.
-        await db.flush()
+        await db.commit()
         await db.refresh(db_image)
     except (ValueError, OSError) as e:
         logger.warning("Image processing failed for image %s, rolling back: %s", db_image.id, e)
@@ -174,6 +177,12 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
     return db_image
 
 
+def _discard_thumbnails_of_deleted_original(image_path: Path) -> None:
+    """Remove the deferred thumbnails when their original is already gone."""
+    if not image_path.exists():
+        delete_thumbnails(image_path, DEFERRED_THUMBNAIL_WIDTHS)
+
+
 async def _generate_deferred_thumbnails(image_path: Path) -> None:
     """Generate the wider thumbnails off the upload's request path.
 
@@ -186,6 +195,12 @@ async def _generate_deferred_thumbnails(image_path: Path) -> None:
         )
     except ValueError, OSError:
         logger.warning("Deferred thumbnail generation failed for %s, skipping", image_path.name, exc_info=True)
+        return
+
+    # The row can be deleted while this task runs: `delete` unlinks the derivatives that
+    # exist at that moment, which is before these were written. Clean up after ourselves
+    # rather than leaving files no row points at and no sweep ever visits.
+    await to_thread.run_sync(_discard_thumbnails_of_deleted_original, image_path)
 
 
 class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](ABC):

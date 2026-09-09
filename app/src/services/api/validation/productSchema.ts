@@ -41,22 +41,24 @@ const circularityPropertiesSchema = z.object({
   remanufacturability: z.string().max(500).nullish(),
 });
 
+// The length caps mirror the server's (VideoBase/ImageBase in the OpenAPI schema): without
+// them the form submits happily and the API answers 422 with nothing to point the user at.
 const videoSchema = z.object({
   id: z.number().optional(),
   url: z
     .string()
     .url('Invalid video URL')
     .refine(isHttpUrl, { message: 'Video URL must use http or https' }),
-  description: z.string(),
+  description: z.string().max(500),
   // The backend allows an empty video title; requiring one would block editing such products.
-  title: z.string(),
+  title: z.string().max(200),
 });
 
 const imageSchema = z.object({
   id: z.string().optional(),
   url: z.string().refine(isSafeImageUrl, { message: 'Image URL is not allowed' }),
   thumbnailUrl: z.string().optional(),
-  description: z.string(),
+  description: z.string().max(500),
 });
 
 export const productSchema = z.object({

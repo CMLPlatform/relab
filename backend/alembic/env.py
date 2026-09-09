@@ -56,6 +56,11 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
+# Arbitrary but fixed: any advisory-lock id works as long as every migrator uses the same
+# one and nothing else in the codebase reuses it.
+_MIGRATION_LOCK_ID = 8_247_301_559_002_113
+
+
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode.
 
@@ -77,6 +82,11 @@ def run_migrations_online() -> None:
         # Bounds how long a statement may hold a lock. A long backfill raises its own ceiling
         # with `op.execute("SET LOCAL statement_timeout = '15min'")`.
         connection.exec_driver_sql("SET statement_timeout = '60s'")
+        # One migrator at a time. A compose restart racing a hand-run `just migrate` would
+        # otherwise have both attempt the DDL, and the loser aborts on lock_timeout partway
+        # through the chain. Session-scoped, so it is released when the connection closes;
+        # the blocking form waits rather than failing, which is what a queued deploy wants.
+        connection.exec_driver_sql(f"SELECT pg_advisory_lock({_MIGRATION_LOCK_ID})")
         # Commit the auto-begun transaction so alembic's own is the outer one, not a
         # savepoint that gets rolled back on close.
         connection.commit()
