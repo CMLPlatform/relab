@@ -40,3 +40,8 @@ export const WEB_FOCUS_RING =
   'focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring';
 
 export const radius = designTokens.radius;
+
+// Remote images fade in on load instead of painting top-down as bytes arrive.
+// Without a `transition`, expo-image mounts the <img>/native view visible and
+// the browser reveals a progressive JPEG/WebP line by line over the empty box.
+export const IMAGE_FADE_MS = 150;

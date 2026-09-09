@@ -10,6 +10,7 @@ import { Text as UiText } from '@/components/base/ui/text';
 import { ToggleGroup, ToggleGroupItem } from '@/components/base/ui/toggle-group';
 import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
+import { heading } from '@/utils/a11y';
 
 type GoLiveDialogProps = {
   visible: boolean;
@@ -54,7 +55,7 @@ export function GoLiveDialog({
 
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Go Live on {cameraName}
       </AppText>
       <View className="gap-3">

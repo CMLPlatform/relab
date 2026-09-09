@@ -2,6 +2,7 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react
 import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme, useInverseSurface } from '@/theme';
+import { heading } from '@/utils/a11y';
 import { cn } from '@/utils/cn';
 import { AppButton } from './AppButton';
 import { AppDialog } from './AppDialog';
@@ -126,7 +127,7 @@ function DialogBody({
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={options.triggerRef}>
       {options.title ? (
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           {options.title}
         </AppText>
       ) : null}

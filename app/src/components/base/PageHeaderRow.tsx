@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
+import { heading } from '@/utils/a11y';
 import { AppText } from './AppText';
 import { HeaderBackButton } from './HeaderBackButton';
 
@@ -15,7 +16,7 @@ export function PageHeaderRow({ title, onBack }: { title: ReactNode; onBack: () 
       {typeof title === 'string' ? (
         <AppText
           variant="title"
-          accessibilityRole="header"
+          {...heading(1)}
           numberOfLines={1}
           className="font-semibold"
           style={{ flexShrink: 1 }}

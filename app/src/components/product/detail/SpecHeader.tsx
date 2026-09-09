@@ -6,7 +6,7 @@ import { TextInput } from '@/components/base/TextInput';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
-import { describedBy } from '@/utils/a11y';
+import { describedBy, heading } from '@/utils/a11y';
 import { type SpecFact, SpecFacts } from './SpecFacts';
 import { formatWeight } from './spec-utils';
 
@@ -94,7 +94,7 @@ export function SpecHeader({
         // Keyed per product so a stale draft is dropped on navigation.
         <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
       ) : (
-        <AppText variant="display" accessibilityRole="header">
+        <AppText variant="display" {...heading(1)}>
           {product.name}
         </AppText>
       )}

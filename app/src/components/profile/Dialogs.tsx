@@ -9,6 +9,7 @@ import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogSt
 import { TextInput } from '@/components/base/TextInput';
 import { SUPPORT_EMAIL } from '@/constants';
 import { useAppTheme } from '@/theme';
+import { heading } from '@/utils/a11y';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileDialogsProps = {
@@ -57,7 +58,7 @@ export function ProfileDialogs({
         onDismiss={onDismissUnlink}
         triggerRef={unlinkTriggerRef}
       >
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Unlink account
         </AppText>
         <AppText>Are you sure you want to disconnect this {providerToUnlink} account?</AppText>
@@ -106,7 +107,7 @@ export function ProfileDialogs({
         onDismiss={onDismissDeleteDialog}
         triggerRef={deleteAccountTriggerRef}
       >
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Delete account
         </AppText>
         <AppText>To delete your account and all its data, email us at:</AppText>

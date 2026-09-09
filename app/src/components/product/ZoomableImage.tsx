@@ -12,6 +12,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { IMAGE_FADE_MS } from '@/constants';
 
 // NOTE: hard clamp at both ends; rubber-band resistance if the stops ever feel abrupt.
 const MAX_SCALE = 4;
@@ -255,6 +256,7 @@ export default function ZoomableImage({
         <Image
           source={{ uri }}
           contentFit="contain"
+          transition={IMAGE_FADE_MS}
           style={styles.image}
           accessibilityLabel={accessibilityLabel}
         />

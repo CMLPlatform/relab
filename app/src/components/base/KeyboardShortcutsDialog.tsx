@@ -7,6 +7,7 @@ import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogSt
 import { Switch } from '@/components/base/ui/switch';
 import { setShortcutsEnabled, useShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 import { useAppTheme } from '@/theme';
+import { heading } from '@/utils/a11y';
 import { isPlainShortcut } from '@/utils/keyboardShortcuts';
 
 const isMac =
@@ -72,7 +73,7 @@ export function KeyboardShortcutsDialog() {
 
   return (
     <AppDialog visible={visible} onDismiss={hide}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Keyboard shortcuts
       </AppText>
       {SHORTCUT_GROUPS.map((group) => (
@@ -104,7 +105,7 @@ function ShortcutGroup({
 }) {
   return (
     <View className="mt-3" style={dimmed ? { opacity: 0.45 } : undefined}>
-      <AppText variant="caption" accessibilityRole="header">
+      <AppText variant="caption" {...heading(3)}>
         {title}
       </AppText>
       {items.map(([key, action]) => (

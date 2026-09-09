@@ -7,6 +7,7 @@ import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogSt
 import { WEBSITE_URL } from '@/config';
 import { useTermsAcceptance } from '@/features/auth/useTermsAcceptance';
 import { openExternalUrl } from '@/services/externalLinks';
+import { heading } from '@/utils/a11y';
 
 /**
  * Asks accounts created before acceptance was tracked to grant the publication
@@ -26,7 +27,7 @@ export function TermsAcceptanceDialog() {
 
   return (
     <AppDialog visible={shouldPrompt} onDismiss={dismiss}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Contributor terms
       </AppText>
       <View className="gap-3">

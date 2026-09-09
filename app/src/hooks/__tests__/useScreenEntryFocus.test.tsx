@@ -3,9 +3,15 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useScreenEntryFocus } from '@/hooks/useScreenEntryFocus';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
-type FakeElement = { tabIndex?: number; focus: jest.Mock; querySelector?: jest.Mock };
+type FakeElement = {
+  tabIndex?: number;
+  style: { outline?: string };
+  focus: jest.Mock;
+  querySelector?: jest.Mock;
+};
 
 const fakeElement = (heading?: FakeElement): FakeElement => ({
+  style: {},
   focus: jest.fn(),
   querySelector: jest.fn(() => heading ?? null),
 });
@@ -54,6 +60,9 @@ describe('useScreenEntryFocus', () => {
 
     expect(root.focus).toHaveBeenCalled();
     expect(root.tabIndex).toBe(-1);
+    // The scaffold is the whole page column: a UA focus ring around it reads
+    // as a stray selection box.
+    expect(root.style.outline).toBe('none');
   });
 
   it('does nothing when the ref was never attached', async () => {
