@@ -8,6 +8,7 @@ import Cube from '@/components/product/SVGCube';
 import { DATA_COLLECTION_DOCS_PATH } from '@/config';
 import { productSchema } from '@/services/api/validation/productSchema';
 import type { PhysicalProperties, Product } from '@/types/Product';
+import { heading } from '@/utils/a11y';
 
 interface Props {
   product: Product;
@@ -69,7 +70,7 @@ export default function ProductPhysicalProperties({
   // Render
   return (
     <View>
-      <AppText variant="heading" className="mb-2 font-semibold">
+      <AppText variant="heading" {...heading(3)} className="mb-2 font-semibold">
         Measurements
       </AppText>
       {hasDimensions ? (
