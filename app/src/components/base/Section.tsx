@@ -8,6 +8,7 @@ import { SectionNavContext } from './SectionNavContext';
 
 export type { SectionKey } from './SectionNavContext';
 
+import { heading } from '@/utils/a11y';
 import type { SectionKey } from './SectionNavContext';
 
 type SectionProps = {
@@ -82,7 +83,9 @@ export function Section({
           <View className="flex-row items-center gap-1.5 mb-2">
             {/* Section is a card, and the ramp assigns card titles `heading`;
                 `title` is for the screen. */}
-            <AppText variant="heading">{title}</AppText>
+            <AppText variant="heading" {...heading(2)}>
+              {title}
+            </AppText>
             {titleSuffix ? (
               <AppText variant="label" className="text-muted-foreground">
                 {titleSuffix}

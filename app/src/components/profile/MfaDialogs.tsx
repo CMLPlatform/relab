@@ -12,6 +12,7 @@ import { radius, spacing } from '@/constants';
 import type { MfaSetupController } from '@/features/profile/useMfaSetup';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { heading } from '@/utils/a11y';
 
 const SECRET_CHUNK_PATTERN = /.{1,4}/g;
 
@@ -60,7 +61,7 @@ export function MfaDialogs({
   return (
     <>
       <AppDialog visible={mfa.mode === 'enroll'} onDismiss={cancel} triggerRef={enrollTriggerRef}>
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Set up two-step verification
         </AppText>
         <AppText className="opacity-75 mb-4">
@@ -134,7 +135,7 @@ export function MfaDialogs({
       </AppDialog>
 
       <AppDialog visible={mfa.mode === 'disable'} onDismiss={cancel} triggerRef={disableTriggerRef}>
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Enter a current code
         </AppText>
         <AppText className="opacity-75 mb-4">
@@ -206,7 +207,7 @@ export function MfaDialogs({
         onDismiss={cancel}
         triggerRef={regenerateTriggerRef}
       >
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Generate new recovery codes
         </AppText>
         <AppText className="opacity-75 mb-4">
@@ -245,7 +246,7 @@ export function MfaDialogs({
       {/* NOTE: no triggerRef — 'codes' mode is entered internally from the enroll/regenerate
           flows (useMfaSetup.ts), not from a distinct in-screen trigger. */}
       <AppDialog visible={mfa.mode === 'codes'} onDismiss={cancel} dismissable={false}>
-        <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+        <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Save your recovery codes
         </AppText>
         <AppText className="opacity-75 mb-4">

@@ -15,6 +15,7 @@ import {
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
 import { useAppTheme } from '@/theme';
 import { palette } from '@/theme/palette.generated';
+import { heading } from '@/utils/a11y';
 
 interface CameraPickerDialogProps {
   visible: boolean;
@@ -54,7 +55,7 @@ export function CameraPickerDialog({
 
   return (
     <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
-      <AppText variant="title" accessibilityRole="header" style={dialogTitleStyle}>
+      <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         {title}
       </AppText>
       <View className="gap-2">

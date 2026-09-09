@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useAppTheme } from '@/theme';
+import { heading } from '@/utils/a11y';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
 import { Chip } from './Chip';
@@ -90,7 +91,7 @@ function FilterModalShell({
       >
         <Pressable onPress={stopPropagation} className="w-full" style={styles.dialogWrapper}>
           <OverlaySurface className="p-4" tone="surface">
-            <AppText variant="title" accessibilityRole="header" className="mb-2 font-semibold">
+            <AppText variant="title" {...heading(2)} className="mb-2 font-semibold">
               {title}
             </AppText>
             <TextInput
