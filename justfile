@@ -293,14 +293,25 @@ cloudflare-plan env:
     tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}"
 
 # Apply Cloudflare edge changes for one environment (prod or staging)
+#
+# The plan runs before the confirmation gate, so a bare `just cloudflare-apply <env>`
+# prints the diff and stops with the YES command to re-run. The apply then consumes that
+# saved plan rather than re-deciding, so what lands is exactly what was printed. The plan
+# file holds the tunnel secret; `plan { enforced = true }` in versions.tf encrypts it, and
+# it lives in a scratch directory removed on exit either way.
 [group('cloudflare')]
 cloudflare-apply env confirm='':
-    @just _require-cloudflare-env {{ quote(env) }}
-    @just _require-cloudflare-vars
-    @just _require-confirm "apply Cloudflare edge changes for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _require-cloudflare-env {{ quote(env) }}
+    just _require-cloudflare-vars
+    plan_dir="$(mktemp -d)"
+    trap 'rm -rf "$plan_dir"' EXIT
     tofu -chdir={{ cloudflare_dir }} init
     tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
-    tofu -chdir={{ cloudflare_dir }} apply -auto-approve -input=false -var="environment={{ env }}"
+    tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}" -out="$plan_dir/tfplan"
+    just _require-confirm "apply the plan printed above for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
+    tofu -chdir={{ cloudflare_dir }} apply -input=false "$plan_dir/tfplan"
 
 # Plan the zone-global Cloudflare configuration (TLS settings + the three entrypoint
 # rulesets). One root owns the whole zone, shared by prod and staging.
@@ -308,18 +319,24 @@ cloudflare-apply env confirm='':
 [doc('Plan the zone-global Cloudflare configuration (affects prod AND staging)')]
 cloudflare-zone-plan:
     @just _require-cloudflare-vars
-    @just _require-telemetry-edge-key
+    @just _require-zone-edge-keys
     tofu -chdir={{ cloudflare_zone_dir }} init
     tofu -chdir={{ cloudflare_zone_dir }} plan -input=false
 
 # Apply the zone-global Cloudflare configuration. This affects BOTH environments.
+# Plans first and gates on the printed diff; see `cloudflare-apply` above.
 [group('cloudflare')]
 cloudflare-zone-apply confirm='':
-    @just _require-cloudflare-vars
-    @just _require-telemetry-edge-key
-    @just _require-confirm "apply zone-global Cloudflare changes (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _require-cloudflare-vars
+    just _require-zone-edge-keys
+    plan_dir="$(mktemp -d)"
+    trap 'rm -rf "$plan_dir"' EXIT
     tofu -chdir={{ cloudflare_zone_dir }} init
-    tofu -chdir={{ cloudflare_zone_dir }} apply -auto-approve -input=false
+    tofu -chdir={{ cloudflare_zone_dir }} plan -input=false -out="$plan_dir/tfplan"
+    just _require-confirm "apply the zone-global plan printed above (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+    tofu -chdir={{ cloudflare_zone_dir }} apply -input=false "$plan_dir/tfplan"
 
 _require-cloudflare-env env:
     #!/usr/bin/env bash
@@ -330,21 +347,30 @@ _require-cloudflare-env env:
       *) echo "env must be 'prod' or 'staging'"; exit 1 ;;
     esac
 
-# The telemetry skip rule is `var.telemetry_edge_key == "" ? [] : [...]`. An unset key
-# does not fail the apply: it drops the rule. The next plan then reports "No changes",
-# because config and state agree that there is no rule. OTLP exports are bot-challenged
-# at the edge while the token looks correct on both sides. Only the zone root reads
-# this variable.
-_require-telemetry-edge-key:
+# Both keys gate a rule with `var.<key> == "" ? [] : [...]`. An unset key does not fail
+# the apply: it drops the rule, and the next plan then reports "No changes", because
+# config and state agree that there is no rule. The symptom is challenged traffic while
+# the credential looks correct on both sides. Only the zone root reads these variables.
+_require-zone-edge-keys:
     #!/usr/bin/env bash
     set -euo pipefail
+    fail=0
     if [ -z "${TF_VAR_telemetry_edge_key:-}" ]; then
         echo "Missing TF_VAR_telemetry_edge_key." >&2
         echo "Without it the telemetry ingress skip rule is omitted and every OTLP" >&2
         echo "export is bot-challenged at the edge. Export the same value as" >&2
         echo "TELEMETRY_EDGE_KEY in the deploy hosts' root .env." >&2
-        exit 1
+        fail=1
     fi
+    if [ -z "${TF_VAR_e2e_edge_key:-}" ]; then
+        echo "Missing TF_VAR_e2e_edge_key." >&2
+        echo "Without it the keyed staging branch of the public-reads rule is omitted" >&2
+        echo "and every Playwright run against the staging hosts is challenged by Super" >&2
+        echo "Bot Fight Mode. Export the same value as E2E_EDGE_KEY in the e2e/CI" >&2
+        echo "environment." >&2
+        fail=1
+    fi
+    exit "$fail"
 
 _require-cloudflare-vars:
     #!/usr/bin/env bash

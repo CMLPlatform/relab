@@ -114,4 +114,13 @@ resource "cloudflare_ruleset" "custom_firewall" {
   phase       = "http_request_firewall_custom"
 
   rules = local.custom_firewall_rules
+
+  # Cloudflare allows one entrypoint per (zone, phase), so a replace here is a window
+  # with no custom firewall rules at all — the WAF skips, the high-risk country block and
+  # the rate-limit floor all gone at once. The tests guard `name`, the known trigger;
+  # this guards every other route to a destroy, including `tofu destroy` and a resource
+  # rename. Removing this ruleset on purpose means deleting the block in the same commit.
+  lifecycle {
+    prevent_destroy = true
+  }
 }

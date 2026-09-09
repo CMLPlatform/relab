@@ -10,8 +10,8 @@ variables {
 run "rulesets_cover_every_environment" {
   command = plan
 
-  # Both optional rules on: the RPi rule carries the staging-only e2e branch, and its
-  # expression must still name both api hosts.
+  # Both optional rules on: the public-reads rule carries the staging-only e2e branch,
+  # and its expression must still name both api hosts.
   variables {
     telemetry_edge_key = "test-edge-key"
     e2e_edge_key       = "test-e2e-key"
