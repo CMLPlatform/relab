@@ -77,7 +77,13 @@ ENV ENVIRONMENT=${ENVIRONMENT} \
 
 WORKDIR $WORKDIR/app
 
-RUN pnpm exec expo export -p web -c
+# Expo points Metro's FileStore at $TMPDIR/metro-cache; keeping it across builds
+# saves a full re-transpile. Entries are keyed by content hash and transform
+# options, so dropping the `-c` (clear-cache) flag is safe.
+# NOTE: BuildKit cache mounts are builder-local and do not export into
+# `type=gha`, so this helps local and dev-host builds, not CI.
+RUN --mount=type=cache,target=/tmp/metro-cache \
+    pnpm exec expo export -p web
 
 # --- Runtime stage (default) ---
 FROM caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648 AS runtime
