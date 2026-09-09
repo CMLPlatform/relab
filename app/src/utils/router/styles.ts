@@ -9,7 +9,7 @@ export function getProductsHeaderStyle(theme: AppTheme) {
       color: theme.colors.onBackground,
     },
     headerStyle: {
-      backgroundColor: theme.tokens.surface.raised,
+      backgroundColor: theme.colors.card,
     },
   };
 }

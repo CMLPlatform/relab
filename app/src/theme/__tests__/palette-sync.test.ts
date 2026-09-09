@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { palette } from '@/theme/palette.generated';
-import { lightTheme } from '@/theme/themes';
+import { darkTheme, lightTheme } from '@/theme/themes';
 
 test('generated artifacts carry the canonical palette values verbatim (exact case)', () => {
   const canonical = JSON.parse(
@@ -25,4 +25,9 @@ test('brand anchors match the Cyanotype palette (DESIGN.md)', () => {
 
 test('derived MD3 outline keeps the pre-inversion literal (light input token)', () => {
   expect(lightTheme.colors.outline).toBe('rgb(116, 119, 127)');
+});
+
+test('colors.card is the palette card fill (DESIGN.md "Card", same value as bg-card)', () => {
+  expect(lightTheme.colors.card).toBe('rgb(240, 243, 250)');
+  expect(darkTheme.colors.card).toBe('rgb(26, 32, 48)');
 });

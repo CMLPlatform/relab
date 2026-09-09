@@ -13,7 +13,6 @@ export type AppColorScale = {
   onTertiaryContainer: string;
   error: string;
   onError: string;
-  errorContainer: string;
   onErrorContainer: string;
   background: string;
   onBackground: string;
@@ -26,11 +25,8 @@ export type AppColorScale = {
   scrim: string;
   inverseSurface: string;
   inverseOnSurface: string;
-  elevation: {
-    level1: string;
-    level2: string;
-    level4: string;
-  };
+  /** Card fill (DESIGN.md "Card"): inline surfaces, chrome bars. Same value as `bg-card`. */
+  card: string;
 };
 
 export type AppTokens = {
@@ -69,7 +65,6 @@ export type AppTokens = {
     onMedia: string;
   };
   surface: {
-    raised: string;
     sunken: string;
     accent: string;
     card: string;

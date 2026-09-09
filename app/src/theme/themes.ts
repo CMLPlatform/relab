@@ -25,7 +25,6 @@ function createThemeColors(isDark: boolean) {
     onTertiaryContainer: isDark ? 'rgb(255, 223, 158)' : 'rgb(42, 31, 0)',
     error: rgb(p.destructive),
     onError: rgb(p.destructiveForeground),
-    errorContainer: isDark ? 'rgb(147, 0, 10)' : 'rgb(255, 218, 214)',
     onErrorContainer: isDark ? 'rgb(255, 180, 171)' : 'rgb(65, 0, 2)',
     background: rgb(p.background),
     onBackground: rgb(p.foreground),
@@ -38,11 +37,7 @@ function createThemeColors(isDark: boolean) {
     scrim: 'rgb(0, 0, 0)',
     inverseSurface: isDark ? 'rgb(226, 230, 238)' : 'rgb(47, 48, 54)',
     inverseOnSurface: isDark ? 'rgb(47, 48, 54)' : 'rgb(240, 243, 249)',
-    elevation: {
-      level1: isDark ? 'rgb(26, 32, 48)' : 'rgb(240, 243, 250)',
-      level2: isDark ? 'rgb(30, 37, 55)' : 'rgb(234, 238, 248)',
-      level4: isDark ? 'rgb(36, 44, 66)' : 'rgb(225, 231, 244)',
-    },
+    card: rgb(p.card),
   };
 }
 
@@ -72,7 +67,7 @@ export function createNavigationThemes() {
       ...navigationLightTheme.colors,
       primary: lightTheme.colors.primary,
       background: 'transparent',
-      card: lightTheme.colors.elevation.level2,
+      card: lightTheme.colors.card,
       text: lightTheme.colors.onSurface,
       border: lightTheme.colors.outline,
       notification: lightTheme.colors.error,
@@ -84,7 +79,7 @@ export function createNavigationThemes() {
       ...navigationDarkTheme.colors,
       primary: darkTheme.colors.primary,
       background: 'transparent',
-      card: darkTheme.colors.elevation.level2,
+      card: darkTheme.colors.card,
       text: darkTheme.colors.onSurface,
       border: darkTheme.colors.outline,
       notification: darkTheme.colors.error,
