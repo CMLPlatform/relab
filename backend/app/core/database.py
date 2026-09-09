@@ -25,6 +25,11 @@ async_engine: AsyncEngine = create_async_engine(
     max_overflow=settings.db_pool_max_overflow,
     pool_pre_ping=True,
     pool_recycle=1800,
+    # A SQLAlchemy error renders its bound parameters into `str(exc)`, so any handler that
+    # logs a DB failure with a traceback writes whatever the statement carried — an address,
+    # a password hash — into the deployed JSON logs. Hiding them is the fail-closed default;
+    # development keeps them, where `echo` is already printing the same statements.
+    hide_parameters=not settings.debug,
 )
 async_sessionmaker_factory = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
 
