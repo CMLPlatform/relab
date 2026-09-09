@@ -21,14 +21,6 @@ update:
     pnpm up
     pnpm dedupe
 
-# Lint the code
-lint:
-    pnpm run lint
-
-# Run static type checks
-typecheck:
-    pnpm run typecheck
-
 # Start the standalone dev server against the root full-stack dev origins
 dev:
     #!/usr/bin/env bash
@@ -39,16 +31,14 @@ dev:
     export PUBLIC_API_URL="${PUBLIC_API_URL:-http://127.0.0.1:8010}"
     pnpm run dev
 
-# Auto-format code with Biome
-format:
-    pnpm run format
-
 # Auto-fix lint issues and format code
 fix:
     pnpm run fix
 
 # Run the quality gate
-check: lint typecheck
+check:
+    pnpm run lint
+    pnpm run typecheck
 
 # Build the production site
 build:

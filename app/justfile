@@ -19,20 +19,10 @@ update:
     pnpm dedupe
     pnpm dlx expo-doctor
 
-# Lint the code
-lint:
-    pnpm run lint
-
-# Run static type checks
-typecheck:
-    pnpm run typecheck
-
 # Run the quality gate
-check: lint typecheck codegen-check
-
-# Auto-format code
-format:
-    pnpm run format
+check: codegen-check
+    pnpm run lint
+    pnpm run typecheck
 
 # Auto-fix lint issues and format code
 fix:
@@ -68,7 +58,7 @@ dev-clean port="8011":
     pnpm exec expo start --port {{ quote(port) }} --web --clear
 
 # Report static React Compiler coverage: which components compile, and which bail out.
-# `just lint` already flags each bailout inline. This adds the summary across the app.
+# `just check` already flags each bailout inline. This adds the summary across the app.
 compiler-health:
     pnpm dlx react-compiler-healthcheck
 

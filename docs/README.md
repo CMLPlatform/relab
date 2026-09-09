@@ -18,7 +18,7 @@ The docs site runs on <http://127.0.0.1:8012>.
 just build
 just check
 just test-e2e
-just format
+just fix
 just audit
 ```
 

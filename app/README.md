@@ -163,7 +163,7 @@ just test-unit   # fast Jest unit tests
 just test-integration  # slower Jest integration tests
 just test-e2e    # Playwright browser E2E
 just test-ci     # CI-style Jest run with coverage
-just format      # format code
+just fix         # auto-fix lint issues and format code
 just build-web   # export web build for E2E
 pnpm run lint:react            # strict React hooks/compiler + Fast Refresh ESLint pass
 pnpm run profile:compiler:web  # local web profiling with production/staging compiler transforms enabled

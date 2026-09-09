@@ -41,8 +41,7 @@ In the full Docker stack, the site is served behind Caddy at <http://127.0.0.1:8
 | Build production output          | `just build`       |
 | Preview a build locally          | `pnpm run preview` |
 | Lint and type-check              | `just check`       |
-| Format files                     | `just format`      |
-| Auto-fix Biome issues            | `just fix`         |
+| Format and auto-fix Biome issues | `just fix`         |
 | Run unit tests                   | `just test`        |
 | Run browser E2E tests            | `just test-e2e`    |
 | Scan dependencies for CVEs       | `just audit`       |

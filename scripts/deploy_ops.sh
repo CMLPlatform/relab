@@ -586,7 +586,7 @@ stack_command() {
             # by a systemd timer (deploy/systemd/), not a long-running container.
             # `build` still defaults to the backups profile so the image exists.
             add_scanning_profile_from_dotenv
-            require_confirmation "start the $env stack" "just $env-up YES [profiles...]" "FORCE=1 just $env-up [profiles...]"
+            require_confirmation "start the $env stack" "just stack $env up YES [profiles...]" "FORCE=1 just stack $env up [profiles...]"
             # Provision before anything else starts. initdb only runs the script on an
             # empty volume; running it here on every start makes a populated volume
             # (prod's predates the roles) or a restored one converge without a runbook
@@ -624,7 +624,7 @@ stack_command() {
         down)
             parse_profiles "$env" "migrations backups scanning" "$@"
             add_scanning_profile_from_dotenv
-            require_confirmation "stop the $env stack" "just $env-down YES [profiles...]" "FORCE=1 just $env-down [profiles...]"
+            require_confirmation "stop the $env stack" "just stack $env down YES [profiles...]" "FORCE=1 just stack $env down [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" down --remove-orphans
             ;;
         build)
@@ -664,7 +664,7 @@ stack_command() {
             run_deploy_compose "$env" ps --format 'table {{.Service}}\t{{.Status}}\t{{.Image}}'
             ;;
         rollback)
-            # `just <env>-rollback YES <sha> [<revision>]`: retag the images a previous
+            # `just stack <env> rollback YES <sha> [<revision>]`: retag the images a previous
             # `build` tagged with its commit, optionally after `alembic downgrade`.
             local sha="${2:-}" revision="${3:-}"
             require_short_sha "$sha"
@@ -676,7 +676,7 @@ stack_command() {
                 exit 2
             }
             require_rollback_images "$env" "$sha" "${images[@]}"
-            require_confirmation_command "roll the $env stack back to $sha" "just $env-rollback YES $sha" "FORCE=1 just $env-rollback _ $sha" "${1:-}"
+            require_confirmation_command "roll the $env stack back to $sha" "just stack $env rollback YES $sha" "FORCE=1 just stack $env rollback _ $sha" "${1:-}"
             if [[ -n "$revision" ]]; then
                 # Both steps use the CURRENT migrator image: only the code being rolled
                 # back knows how to downgrade its own migrations.
@@ -697,7 +697,7 @@ stack_command() {
             if [[ "${1:-}" == "YES" ]]; then
                 DEPLOY_CONFIRMED=true
             fi
-            require_confirmation "run $env database migrations" "just $env-migrate YES" "FORCE=1 just $env-migrate"
+            require_confirmation "run $env database migrations" "just stack $env migrate YES" "FORCE=1 just stack $env migrate"
             # `up migrator` exits 0 even when the migration fails; `run --rm` propagates
             # the migrator's exit code.
             run_deploy_compose "$env" --profile migrations run --rm migrator

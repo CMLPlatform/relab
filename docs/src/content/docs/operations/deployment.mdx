@@ -153,7 +153,7 @@ Access control, not application-level encryption, protects most Relab data. Pass
 
 Backend app secrets, database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`, never in committed files or backend env files. The rendered Compose overlays declare the required files.
 
-The application, migration, and backup roles are separate PostgreSQL users; the application role does not own the schema. `just prod-up` and `just staging-up` run `deploy/postgres/initdb/provision.sh` against the live database before starting the API: it creates the roles, transfers table ownership to the migration role, and installs the superuser-only extensions. The same script runs from `/docker-entrypoint-initdb.d` on an empty volume, so an existing volume needs no rebuild.
+The application, migration, and backup roles are separate PostgreSQL users; the application role does not own the schema. `just stack prod up` and `just stack staging up` run `deploy/postgres/initdb/provision.sh` against the live database before starting the API: it creates the roles, transfers table ownership to the migration role, and installs the superuser-only extensions. The same script runs from `/docker-entrypoint-initdb.d` on an empty volume, so an existing volume needs no rebuild.
 
 Configuration ownership: `infra/cloudflare/` holds public edge configuration, `deploy/` committed
 non-secret runtime identity, the root `.env` host-local operator inputs, `secrets/` uncommitted
