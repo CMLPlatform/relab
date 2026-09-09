@@ -38,7 +38,7 @@ ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
         "image/webp",
     }
 )
-THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600)
+THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600, 2560)
 # The width the create response publishes and every list card uses; generated inline
 # so an upload never answers without it. The wider widths are generated afterwards.
 EAGER_THUMBNAIL_WIDTHS: tuple[int, ...] = THUMBNAIL_WIDTHS[:1]

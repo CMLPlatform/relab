@@ -199,7 +199,7 @@ async def test_backfill_repairs_and_stamps_only_the_unverified_rows(
     and a row left with only its inline narrow thumbnail by a restart is repaired.
     """
     buffer = BytesIO()
-    PILImage.new("RGB", (2000, 1000), color="green").save(buffer, format="PNG")
+    PILImage.new("RGB", (3200, 1600), color="green").save(buffer, format="PNG")
     response = await api_client_superuser.post(
         f"/v1/products/{setup_product_for_files.id}/images",
         files={"file": ("wide.png", buffer.getvalue(), "image/png")},
