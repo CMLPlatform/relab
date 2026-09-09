@@ -6,6 +6,7 @@ import { FormFieldError } from '@/components/base/FormField';
 import { TextInput } from '@/components/base/TextInput';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { describedBy } from '@/utils/a11y';
+import { decimalSeparatorFor } from '@/utils/locale';
 
 interface LocalizedFloatInputProps {
   value: number | undefined;
@@ -20,21 +21,8 @@ interface LocalizedFloatInputProps {
   error?: string;
 }
 
-/** The user's locale decimal separator. */
-function getDecimalSeparator(): string {
-  const localeToUse = typeof navigator !== 'undefined' ? navigator.language : undefined;
-  try {
-    const formatted = localeToUse ? (1.1).toLocaleString(localeToUse) : (1.1).toLocaleString();
-    return formatted.charAt(1); // The character between 1 and 1
-  } catch {
-    // A malformed tag (`en-US@posix` from some Linux browsers) throws a RangeError
-    // at module load, which took the whole app down rather than one input.
-    return '.';
-  }
-}
-
 // The locale is fixed for the session.
-const DECIMAL_SEPARATOR = getDecimalSeparator();
+const DECIMAL_SEPARATOR = decimalSeparatorFor();
 const DECIMAL_PATTERN = new RegExp(`^\\d*[${DECIMAL_SEPARATOR.replace('.', '\\.')}]?\\d*$`);
 
 /** Localized number string to dot-decimal. */
