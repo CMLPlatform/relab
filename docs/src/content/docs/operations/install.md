@@ -126,7 +126,8 @@ the topology these steps produce.
      export TF_VAR_cloudflare_zone_name='example.org'
      just cloudflare-check
      just cloudflare-plan prod
-     just cloudflare-apply prod YES
+     just cloudflare-apply prod       # plans and saves it; review the diff
+     just cloudflare-apply prod YES   # applies the plan you just reviewed
      ```
 
      :::danger

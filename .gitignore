@@ -91,6 +91,8 @@ backups/
 *.tfstate
 *.tfstate.*
 *.tfplan
+# Reviewed plans waiting for their confirming re-run of `just cloudflare-apply`.
+.tofu-plans/
 crash.log
 crash.*.log
 override.tf
