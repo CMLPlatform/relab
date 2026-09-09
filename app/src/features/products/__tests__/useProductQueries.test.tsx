@@ -12,6 +12,7 @@ import {
   useBaseProductQuery,
   useComponentQuery,
   useDeleteProductMutation,
+  userProductsInfiniteQueryOptions,
   useSaveProductMutation,
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
@@ -134,6 +135,20 @@ describe('useProductQueries', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(products).toHaveBeenCalledWith(expect.objectContaining({ page: 1, size: 24 }));
       expect(mockedProducts.mock.calls[0][0]).not.toHaveProperty('owner');
+    });
+
+    it('scopes to owner: <username> for a public profile', async () => {
+      mockedProducts.mockResolvedValue({ items: [], total: 0, page: 1, pages: 1, size: 24 });
+
+      const { result } = await renderHook(
+        () => useInfiniteQuery(userProductsInfiniteQueryOptions('alice')),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(products).toHaveBeenCalledWith(
+        expect.objectContaining({ owner: 'alice', page: 1, size: 24 }),
+      );
     });
 
     it('scopes to owner: "me" for the "mine" filter', async () => {

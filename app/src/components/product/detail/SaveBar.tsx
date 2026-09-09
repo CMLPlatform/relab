@@ -25,7 +25,7 @@ type SaveBarProps = {
 };
 
 /**
- * Edit / Save action bar plus an inline error summary. In normal flow below
+ * Edit / Save / Done action bar plus an inline error summary. In normal flow below
  * md, docked to the viewport above. ActiveStreamBanner reserves dock space via
  * SAVE_BAR_DOCK_ROUTE; update it if the route or `ownedByMe` condition changes.
  */
@@ -101,7 +101,14 @@ export function SaveBar({
         loading={isSaving && !isPaused}
         disabled={isSaving || blockedByValidation}
       >
-        {isQueued ? QUEUED_OFFLINE_LABEL : editMode ? `Save ${titleLabel}` : `Edit ${titleLabel}`}
+        {/* Fields save on blur, so a clean edit form only needs closing. */}
+        {isQueued
+          ? QUEUED_OFFLINE_LABEL
+          : editMode
+            ? isDirty
+              ? `Save ${titleLabel}`
+              : 'Done'
+            : `Edit ${titleLabel}`}
       </AppButton>
     </View>
   );

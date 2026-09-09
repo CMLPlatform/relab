@@ -5,18 +5,19 @@ import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 const baseProduct: Product = { ..._base, id: 42 };
-const PRODUCT_ID_PATTERN = /Product ID: 42/;
+const PRODUCT_ID_PATTERN = /Product ID:/;
 const CREATED_PATTERN = /Created:/;
 const LAST_UPDATED_PATTERN = /Last Updated:/;
 const OWNER_PATTERN = /Owner:/;
 const ANONYMOUS_PATTERN = /Anonymous/;
 const TESTUSER_PATTERN = /testuser/;
-const COMPONENT_ID_PATTERN = /Component ID: 42/;
+const COMPONENT_ID_PATTERN = /Component ID:/;
 
 describe('ProductMetaData', () => {
   it('shows the product ID', async () => {
     await renderWithProviders(<ProductMetaData product={baseProduct} />);
     expect(screen.getByText(PRODUCT_ID_PATTERN)).toBeOnTheScreen();
+    expect(screen.getByText('42')).toHaveStyle({ fontSize: 14 });
   });
 
   it('shows the component ID for components', async () => {
@@ -59,5 +60,7 @@ describe('ProductMetaData', () => {
     await renderWithProviders(<ProductMetaData product={product} />);
     expect(screen.getByText(OWNER_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText(TESTUSER_PATTERN)).toBeOnTheScreen();
+    const link = screen.getByRole('link', { name: "View testuser's profile" });
+    expect(link).toHaveStyle({ minHeight: 44 });
   });
 });

@@ -10,9 +10,9 @@ export default function CamerasTabLayout() {
   // Same-stack target, so replace is safe.
   const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
   return (
-    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
-      {/* TopNav covers the list on >=lg web; the other screens always keep their header. */}
-      <Stack.Screen name="cameras/index" options={{ title: 'My cameras', headerShown: !isLg }} />
+    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' }, headerShown: !isLg }}>
+      {/* TopNav replaces every stack header on >=lg web; add and detail render a PageHeaderRow there. */}
+      <Stack.Screen name="cameras/index" options={{ title: 'My cameras' }} />
       <Stack.Screen
         name="cameras/add"
         options={{

@@ -96,14 +96,20 @@ describe('ProductCard', () => {
     await renderWithProviders(
       <ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />,
     );
-    expect(screen.getByTestId('product-thumbnail')).toBeOnTheScreen();
+    expect(
+      screen.getByTestId('product-thumbnail', { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
   });
 
-  it('marks the thumbnail as decorative (empty alt) since the name is shown as text', async () => {
+  it('hides the decorative thumbnail from assistive tech since the name is shown as text', async () => {
     await renderWithProviders(
       <ProductCard product={{ ...baseProduct, thumbnailUrl: 'http://example.com/img.png' }} />,
     );
-    expect(screen.getByTestId('product-thumbnail').props.accessibilityLabel).toBe('');
+    // expo-image drops an empty alt, so the wrapper is aria-hidden instead.
+    expect(screen.queryByTestId('product-thumbnail')).toBeNull();
+    expect(
+      screen.getByTestId('product-thumbnail', { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
   });
 
   it('uses the placeholder thumbnail when thumbnailUrl is missing', async () => {
@@ -123,8 +129,12 @@ describe('ProductCard', () => {
       />,
     );
 
-    await fireEvent(screen.getByTestId('product-thumbnail'), 'error');
+    await fireEvent(
+      screen.getByTestId('product-thumbnail', { includeHiddenElements: true }),
+      'error',
+    );
 
+    // The placeholder is not wrapped, so it is back in the default (a11y) tree.
     expect(screen.getByTestId('product-thumbnail')).toBeOnTheScreen();
   });
 

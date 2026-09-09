@@ -1,9 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigation, useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef } from 'react';
+import {
+  type NativeStackHeaderBackProps,
+  useNavigation,
+  usePathname,
+  useRouter,
+} from 'expo-router';
+import { createElement, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDialog } from '@/components/base/dialogContext';
-import { useAuth } from '@/context/auth';
+import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { newProduct } from '@/services/api/products';
 import { type UseCaptureEntityOptions, useCaptureEntity } from './useCaptureEntity';
 
@@ -12,12 +18,9 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
   const router = useRouter();
   const navigation = useNavigation();
   const dialog = useDialog();
-  const { user } = useAuth();
 
-  // Creation needs an account.
-  useEffect(() => {
-    if (!user) router.replace({ pathname: '/login', params: { redirectTo: '/products' } });
-  }, [user, router]);
+  // Creation needs an account; come back to this capture route after login.
+  useRequireAuth(usePathname());
 
   const entity = useCaptureEntity({ role, parentID, parentRole });
   const { images, isDirty, create, createAndAddAnother } = entity;
@@ -67,6 +70,32 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
     });
   }, [navigation, dialog, isDirty]);
 
+  // Back control for both the stack header (phone) and PageHeaderRow (lg). The
+  // stack only draws its own back button when it has history, so a deep link
+  // or reload of a create route had none; without history, land on the parent
+  // the way the detail back does. The beforeRemove guard above runs either way.
+  const goBack = useCallback(() => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    if (role === 'component' && parentID) {
+      router.replace({
+        pathname: parentRole === 'component' ? '/components/[id]' : '/products/[id]',
+        params: { id: String(parentID) },
+      });
+    } else {
+      router.replace('/products');
+    }
+  }, [navigation, router, role, parentID, parentRole]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerLeft: (props: NativeStackHeaderBackProps) =>
+        createElement(HeaderBackButton, { ...props, onPress: goBack }),
+    });
+  }, [navigation, goBack]);
+
   const goToSaved = (id: number) => {
     skipNextBeforeRemoveRef.current = true;
     router.replace({
@@ -93,5 +122,5 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
     return true;
   };
 
-  return { ...entity, draftProduct, parentName, handleCreate, handleCreateAndAddAnother };
+  return { ...entity, draftProduct, parentName, goBack, handleCreate, handleCreateAndAddAnother };
 }

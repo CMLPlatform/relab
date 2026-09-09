@@ -529,6 +529,49 @@ describe('ProductPage state handling', () => {
     expect(screen.getByText('Discard changes?')).toBeOnTheScreen();
   });
 
+  // Post-create lands here in edit mode: the record exists and nothing is
+  // unsaved, so the screen says so and the button closes rather than saves.
+  it('shows the saved record status and a Done button on a clean edit form', async () => {
+    let beforeRemoveHandler:
+      | ((event: { preventDefault: () => void; data: { action: unknown } }) => void)
+      | undefined;
+    (useNavigation as jest.Mock).mockReturnValue({
+      setOptions: mockSetOptions,
+      canGoBack: jest.fn().mockReturnValue(false),
+      goBack: jest.fn(),
+      addListener: jest.fn((event: string, handler: typeof beforeRemoveHandler) => {
+        if (event === 'beforeRemove') beforeRemoveHandler = handler;
+        return jest.fn();
+      }),
+      dispatch: jest.fn(),
+    });
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, id: 42, ownedBy: 'me' },
+      editMode: true,
+      isDirty: false,
+      isPaused: false,
+    } as never);
+
+    await renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('save-status')).toHaveTextContent('Saved · ID 42');
+    });
+    expect(screen.queryByText('Save Product')).toBeNull();
+
+    // Leaving a fully saved record never prompts.
+    const preventDefault = jest.fn();
+    await act(async () => {
+      beforeRemoveHandler?.({ preventDefault, data: { action: { type: 'GO_BACK' } } });
+    });
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(screen.queryByText('Discard changes?')).toBeNull();
+
+    await fireEvent.press(screen.getByText('Done'));
+    expect(baseFormReturn.saveAndExit).toHaveBeenCalledTimes(1);
+  });
+
   it('flips ?edit=1 on the same screen when the detail FAB is pressed in view mode', async () => {
     const mockSetParams = jest.fn();
     (useRouter as jest.Mock).mockReturnValue({
@@ -653,7 +696,7 @@ describe('Section layout', () => {
     expect(indexOf('Details')).toBe(-1);
   });
 
-  it('hides an empty properties section in view mode and shows one add-row in edit mode', async () => {
+  it('keeps an empty properties section in view mode and shows one add-row in edit mode', async () => {
     const bareProduct = {
       ...baseProduct,
       physicalProperties: {
@@ -671,8 +714,12 @@ describe('Section layout', () => {
 
     const { rerender } = await renderWithProviders(<ProductPage />, { withDialog: true });
 
-    expect(screen.queryByText('Properties')).toBeNull();
-    expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
+    // Unset measurements are data, not absence: a fresh record still reads as a
+    // spec sheet with blanks rather than a page with only Components.
+    // Section heading plus the nav chip/outline entry.
+    expect(screen.getAllByText('Properties').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('ProductPhysicalProperties')).toBeOnTheScreen();
+    expect(screen.getByText('ProductCircularityProperties')).toBeOnTheScreen();
 
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,

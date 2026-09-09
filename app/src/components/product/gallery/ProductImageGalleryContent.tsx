@@ -278,18 +278,20 @@ const GalleryImageItem = memo(function GalleryImageItem({
       accessibilityLabel={`View ${altText}`}
     >
       {uri ? (
-        // Decorative: the wrapping Pressable already carries the descriptive label.
-        <Image
-          // Empty when the API has no dimensions; `uri` is then the size
-          // picked in useProductGalleryMedia.
-          source={sourceSet.length > 1 ? sourceSet : { uri }}
-          // The cached list thumbnail paints immediately under the full-width image.
-          placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
-          placeholderContentFit="cover"
-          contentFit="cover"
-          style={{ width, height: IMAGE_HEIGHT }}
-          accessibilityLabel=""
-        />
+        // Decorative: the Pressable carries the label. expo-image drops an empty
+        // alt, so hide the subtree.
+        <View aria-hidden>
+          <Image
+            // Empty when the API has no dimensions; `uri` is then the size
+            // picked in useProductGalleryMedia.
+            source={sourceSet.length > 1 ? sourceSet : { uri }}
+            // The cached list thumbnail paints immediately under the full-width image.
+            placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
+            placeholderContentFit="cover"
+            contentFit="cover"
+            style={{ width, height: IMAGE_HEIGHT }}
+          />
+        </View>
       ) : (
         <ImagePlaceholder width={width} height={IMAGE_HEIGHT} borderRadius={0} />
       )}

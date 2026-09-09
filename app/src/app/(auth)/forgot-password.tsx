@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import { AuthBackToLoginAction, AuthCard, AuthFormError } from '@/components/auth/AuthCardSections';
@@ -14,50 +15,56 @@ export default function ForgotPasswordScreen() {
   const goToLogin = useCallback(() => router.replace('/login'), [router]);
 
   return (
-    <AuthScreen>
-      <AuthCard title="Forgot password">
-        {success ? (
-          <View className="gap-3 items-center py-4">
-            <AppText variant="body" className="text-primary text-center">
-              If an account exists with this email, we&apos;ve sent it a password reset link.
-            </AppText>
-            <AppButton variant="primary" onPress={goToLogin}>
-              Back to login
-            </AppButton>
-          </View>
-        ) : (
-          <>
-            <AppText variant="body">
-              Enter your email address and we&apos;ll send you instructions to reset your password.
-            </AppText>
+    <>
+      <Head>
+        <title>Forgot password · Relab</title>
+      </Head>
+      <AuthScreen>
+        <AuthCard title="Forgot password">
+          {success ? (
+            <View className="gap-3 items-center py-4">
+              <AppText variant="body" className="text-primary text-center">
+                If an account exists with this email, we&apos;ve sent it a password reset link.
+              </AppText>
+              <AppButton variant="primary" onPress={goToLogin}>
+                Back to login
+              </AppButton>
+            </View>
+          ) : (
+            <>
+              <AppText variant="body">
+                Enter your email address and we&apos;ll send you instructions to reset your
+                password.
+              </AppText>
 
-            <ControlledTextField
-              control={control}
-              name="email"
-              label="Email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              editable={!isSubmitting}
-              placeholder="e.g. you@university.edu"
-              accessibilityLabel="Email"
-            />
+              <ControlledTextField
+                control={control}
+                name="email"
+                label="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                editable={!isSubmitting}
+                placeholder="e.g. you@university.edu"
+                accessibilityLabel="Email"
+              />
 
-            <AuthFormError message={error} />
+              <AuthFormError message={error} />
 
-            <AppButton
-              variant="primary"
-              onPress={submit}
-              loading={isSubmitting}
-              disabled={isSubmitting || !isValid}
-            >
-              Send reset link
-            </AppButton>
+              <AppButton
+                variant="primary"
+                onPress={submit}
+                loading={isSubmitting}
+                disabled={isSubmitting || !isValid}
+              >
+                Send reset link
+              </AppButton>
 
-            <AuthBackToLoginAction onPress={goToLogin} />
-          </>
-        )}
-      </AuthCard>
-    </AuthScreen>
+              <AuthBackToLoginAction onPress={goToLogin} />
+            </>
+          )}
+        </AuthCard>
+      </AuthScreen>
+    </>
   );
 }

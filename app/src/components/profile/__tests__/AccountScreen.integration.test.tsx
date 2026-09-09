@@ -182,7 +182,7 @@ describe('AccountScreen', () => {
 
   it('renders the hero username', async () => {
     const { findByText } = await renderAccount();
-    expect(await findByText('tester.')).toBeTruthy();
+    expect(await findByText('tester')).toBeTruthy();
   });
 
   it('folds the stats row into the header (no separate Profile section)', async () => {

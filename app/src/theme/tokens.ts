@@ -70,7 +70,6 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       onMedia: '#fff',
     },
     surface: {
-      raised: colors.elevation.level2,
       sunken: isDark ? '#1a1a1a' : colors.surfaceVariant,
       accent: alpha(colors.primary, 0.12),
       // Translucent panel behind auth controls: opaque enough to keep labels

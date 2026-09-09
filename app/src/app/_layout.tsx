@@ -32,6 +32,7 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { SAVE_PRODUCT_MUTATION_KEY, saveProductMutationFn } from '@/features/products/queries';
+import { registerNativeOnlineListener } from '@/services/nativeOnline';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
 import { createNavigationThemes, getAppTheme } from '@/theme';
@@ -39,7 +40,8 @@ import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 
-// Every navigator here paints its scene transparent so StaticBackground shows through.
+// Every navigator here paints its scene transparent so AppBackground shows through
+// (the flat theme background on content screens, the photo + scrim on auth routes).
 // Bottom tabs only push an inactive tab behind the active one (z-index), counting on an
 // opaque scene to cover it; on web react-native-screens is off by default, so a
 // transparent scene showed the previous tab underneath. Enabling it on web swaps in the
@@ -47,9 +49,10 @@ import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 // its own non-focused screens regardless. Must run before any navigator renders.
 if (Platform.OS === 'web') enableScreens();
 
-// TODO: wire onlineManager to NetInfo/expo-network for native. Until then it
-// stays true on native, so mutations never pause and the queued-offline UI
-// (OfflineBanner, QUEUED_OFFLINE_LABEL, isPaused) is web-only.
+// Native has no connectivity listener of its own; without this the queued-offline
+// UI never engages off-web. See src/services/nativeOnline.ts.
+registerNativeOnlineListener();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -86,7 +89,7 @@ export default function RootLayout() {
 function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
   return (
     <>
-      <StaticBackground />
+      {overlay.photo ? <StaticBackground /> : null}
       {overlay.edgeColor ? (
         // Hero routes: calm the band behind the content column, vivid at the edges.
         <LinearGradient

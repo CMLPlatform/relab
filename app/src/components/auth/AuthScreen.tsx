@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useScreenEntryFocus } from '@/hooks/useScreenEntryFocus';
 
 /**
  * Shared auth frame: a centered, width-capped island lifted clear of the keyboard.
@@ -11,6 +12,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
  * unreachable.
  */
 export function AuthScreen({ children }: { children: ReactNode }) {
+  const entryRef = useScreenEntryFocus();
   return (
     <KeyboardAvoidingView behavior="padding" style={styles.root}>
       <ScrollView
@@ -18,7 +20,9 @@ export function AuthScreen({ children }: { children: ReactNode }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View className="w-full max-w-[420px]">{children}</View>
+        <View ref={entryRef} role="main" className="w-full max-w-[420px]">
+          {children}
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -21,7 +21,8 @@ export default function TabsLayout() {
   return (
     <Tabs
       tabBar={renderTabBar}
-      // The themed scene would sit opaque over StaticBackground.
+      // The root AppBackground already paints the theme background (or the auth photo);
+      // an opaque themed scene here would only double it.
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: 'transparent' } }}
     >
       <Tabs.Screen name="(products)" />

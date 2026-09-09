@@ -20,7 +20,6 @@ function ToggleGroup({
       className={cn(
         'flex flex-row items-center rounded-md shadow-none',
         Platform.select({ web: 'w-fit' }),
-        variant === 'outline' && 'shadow-sm shadow-black/5',
         className,
       )}
       {...props}
@@ -63,7 +62,7 @@ function ToggleGroupItem({
       value={cn(
         'text-sm text-foreground font-medium',
         ToggleGroupPrimitive.utils.getIsSelected(value, props.value)
-          ? 'text-accent-foreground'
+          ? 'text-primary'
           : Platform.select({ web: 'group-hover:text-muted-foreground' }),
       )}
     >
@@ -74,7 +73,7 @@ function ToggleGroupItem({
             size: context.size || size,
           }),
           props.disabled && 'opacity-50',
-          ToggleGroupPrimitive.utils.getIsSelected(value, props.value) && 'bg-accent',
+          ToggleGroupPrimitive.utils.getIsSelected(value, props.value) && 'bg-primary/12',
           'min-w-0 shrink-0 rounded-none shadow-none',
           isFirst && 'rounded-l-md',
           isLast && 'rounded-r-md',

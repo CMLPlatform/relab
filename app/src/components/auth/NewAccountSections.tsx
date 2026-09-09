@@ -3,6 +3,7 @@ import type { Control, ControllerRenderProps, FieldErrors } from 'react-hook-for
 import { Controller } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
@@ -13,7 +14,7 @@ import {
   PASSWORD_MIN_LENGTH,
 } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
-import { useAppTheme } from '@/theme';
+import { getStatusTone, useAppTheme } from '@/theme';
 import { describedBy } from '@/utils/a11y';
 
 // Fixed-height slots so nothing moves as the error message comes and goes.
@@ -39,13 +40,15 @@ const styles = StyleSheet.create({
   step: {
     maxWidth: CARD_MAX_WIDTH,
   },
-  // NOTE: welcomeText/brandText/questionText are a bespoke three-line headline
+  // welcomeText/brandText/questionText are a bespoke three-line headline
   // stack; no single ramp step covers three custom sizes.
   welcomeText: {
+    // NOTE: hero stack line 1, between display (38) and the 64px name.
     fontSize: 40,
   },
   // Fits the card's measure; the fixed-height slot truncates a long username.
   brandText: {
+    // NOTE: hero stack line 2; the ramp tops out at display (38).
     fontSize: 64,
   },
   // Logo in place of the wordmark on the first step; sized to match brandText.
@@ -53,6 +56,7 @@ const styles = StyleSheet.create({
     width: 200,
   },
   questionText: {
+    // NOTE: hero stack line 3, between title (24) and display (38).
     fontSize: 31,
   },
   // Fixed height so all three steps are the same size.
@@ -62,9 +66,9 @@ const styles = StyleSheet.create({
     padding: CARD_PADDING,
     gap: CARD_GAP,
   },
-  // NOTE: fontSize 12 is sized to LABEL_ROW_HEIGHT (16) in the CARD_HEIGHT math.
   label: {
     height: LABEL_ROW_HEIGHT,
+    // NOTE: sized to LABEL_ROW_HEIGHT (16) in the CARD_HEIGHT math; caption's 18px line does not fit.
     fontSize: 12,
   },
   inputRow: {
@@ -73,17 +77,9 @@ const styles = StyleSheet.create({
   helperSlot: {
     height: HELPER_SLOT_HEIGHT,
   },
-  // NOTE: see label above — locked to HELPER_SLOT_HEIGHT (18), not a ramp step.
-  helperText: {
-    fontSize: 12,
-  },
   // The primary action gets its own row so "Create account" does not overflow.
   actionRow: {
     height: ACTION_ROW_HEIGHT,
-  },
-  // NOTE: sized to sit visually with the 16px chevron beside it, not a ramp step.
-  backButtonText: {
-    fontSize: 13,
   },
   scroll: {
     paddingBottom: 120,
@@ -91,13 +87,6 @@ const styles = StyleSheet.create({
   footerCard: {
     borderWidth: StyleSheet.hairlineWidth,
     maxWidth: CARD_MAX_WIDTH,
-  },
-  // NOTE: matches label/helperText's 12px, not the 13px caption step.
-  privacyText: {
-    fontSize: 12,
-  },
-  privacyLink: {
-    fontSize: 12,
   },
 });
 
@@ -127,29 +116,28 @@ export function PrivacyPolicy() {
   }, [privacyUrl]);
 
   return (
-    <Text
-      className="text-center"
-      style={[styles.privacyText, { color: theme.colors.onSurfaceVariant }]}
-    >
+    <AppText variant="caption" className="text-center text-muted-foreground">
       By creating an account, you agree to our{' '}
-      <Text
+      <AppText
+        variant="caption"
         className="underline"
-        style={[styles.privacyLink, { color: textColor }]}
+        style={{ color: textColor }}
         onPress={openTerms}
         accessibilityRole="link"
       >
         Terms
-      </Text>{' '}
+      </AppText>{' '}
       and{' '}
-      <Text
+      <AppText
+        variant="caption"
         className="underline"
-        style={[styles.privacyLink, { color: textColor }]}
+        style={{ color: textColor }}
         onPress={openPrivacy}
         accessibilityRole="link"
       >
         Privacy Policy
-      </Text>
-    </Text>
+      </AppText>
+    </AppText>
   );
 }
 
@@ -193,7 +181,8 @@ function NewAccountStep({
         className="flex-1 border px-3 py-2.5"
         style={{
           borderColor: error ? theme.tokens.status.danger : theme.colors.outline,
-          backgroundColor: error ? theme.colors.errorContainer : undefined,
+          // Danger tint, same as Chip's error state.
+          backgroundColor: error ? getStatusTone(theme.tokens.status.danger) : undefined,
         }}
       />
     ),
@@ -245,7 +234,7 @@ function NewAccountStep({
             the card. The error still stays until the field is actually fixed — it is
             not on a timer — it just no longer moves the layout when it appears. */}
         <View className="justify-center" style={styles.helperSlot}>
-          <FormFieldError errorId={errorId} message={error?.message} style={styles.helperText} />
+          <FormFieldError errorId={errorId} message={error?.message} />
         </View>
         <View className="flex-row items-center justify-between" style={styles.actionRow}>
           {/* Holds the left half of the action row even on step one, which has no back
@@ -260,9 +249,9 @@ function NewAccountStep({
                 hitSlop={12}
               >
                 <Icon name="chevron-left" size={16} color={mutedColor} />
-                <Text className="ml-1" style={[styles.backButtonText, { color: mutedColor }]}>
+                <AppText variant="caption" className="ml-1" style={{ color: mutedColor }}>
                   {back.label}
-                </Text>
+                </AppText>
               </Pressable>
             ) : null}
           </View>
@@ -301,7 +290,7 @@ export function NewAccountUsernameStep({
       brandLogo
       inputProps={{
         autoCorrect: false,
-        autoComplete: 'username-new',
+        autoComplete: 'username',
         textContentType: 'username',
         placeholder: 'e.g. awesome_user',
         returnKeyType: 'next',

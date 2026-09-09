@@ -23,7 +23,11 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
   const handleLoad = useCallback(() => setLoaded(true), []);
   if (!videoId) {
     return (
-      <TouchableOpacity onPress={handleOpenUrl}>
+      <TouchableOpacity
+        onPress={handleOpenUrl}
+        accessibilityRole="link"
+        className="min-h-11 justify-center"
+      >
         <AppText className="px-3.5 underline" style={{ color: linkColor }}>
           {url}
         </AppText>
@@ -34,12 +38,21 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
   if (!loaded) {
     return (
       <View className="flex-row gap-4 my-1">
-        <TouchableOpacity onPress={handleLoad}>
+        {/* min-h-11: the 44px tap floor (MIN_TAP_TARGET) on one-line text links. */}
+        <TouchableOpacity
+          onPress={handleLoad}
+          accessibilityRole="button"
+          className="min-h-11 justify-center"
+        >
           <AppText className="px-3.5 underline" style={{ color: linkColor }}>
             Load video
           </AppText>
         </TouchableOpacity>
-        <TouchableOpacity onPress={handleOpenUrl}>
+        <TouchableOpacity
+          onPress={handleOpenUrl}
+          accessibilityRole="link"
+          className="min-h-11 justify-center"
+        >
           <AppText className="px-3.5 underline" style={{ color: linkColor }}>
             Open video
           </AppText>

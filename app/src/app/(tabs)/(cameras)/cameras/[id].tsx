@@ -1,7 +1,10 @@
+import { useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { useCallback, useRef } from 'react';
 import type { View } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
+import { PageHeaderRow } from '@/components/base/PageHeaderRow';
 import {
   CameraConnectionCard,
   CameraPreviewSection,
@@ -14,6 +17,7 @@ import {
   CameraStreamingSection,
 } from '@/components/cameras/detail/StreamingDetails';
 import { useCameraDetailScreen } from '@/features/cameras/useCameraDetailScreen';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { getErrorMessage } from '@/utils/errors';
 
 function CameraDetailContent({
@@ -23,6 +27,10 @@ function CameraDetailContent({
   actions,
 }: ReturnType<typeof useCameraDetailScreen>) {
   const camera = screen.camera;
+  const router = useRouter();
+  const { isLg } = useBreakpoint();
+  // Same target as the stack header back in (cameras)/_layout.tsx.
+  const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
   const deleteTriggerRef = useRef<View>(null);
   const manualSetupTriggerRef = useRef<View>(null);
   const onEditName = useCallback(
@@ -37,7 +45,11 @@ function CameraDetailContent({
 
   return (
     <>
+      <Head>
+        <title>{`${camera.name || 'Camera'} · Relab`}</title>
+      </Head>
       <CameraDetailLayout>
+        {isLg ? <PageHeaderRow title={camera.name || 'Camera'} onBack={goToCameras} /> : null}
         <CameraConnectionCard
           camera={camera}
           effectiveConnection={screen.effectiveConnection}

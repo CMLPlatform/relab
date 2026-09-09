@@ -7,7 +7,7 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme } from '@/theme';
 import type { Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
@@ -36,9 +36,12 @@ function ProductCardSecondary({
   specLine: string;
   description?: string;
 }) {
+  // min-h-5 = the data step's line height: a card without a weight or a
+  // description reserves the line, so grid rows stay level.
   return (
     <MutedText
       variant={specLine ? 'data' : 'caption'}
+      className="min-h-5"
       selectable={false}
       numberOfLines={1}
       ellipsizeMode="tail"
@@ -116,7 +119,10 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
         >
           <View className="mr-4">
             {hasThumbnail ? (
+              // Decorative: the name is adjacent text. expo-image drops an empty
+              // alt, so the wrapper hides the subtree (as StaticBackground does).
               <View
+                aria-hidden
                 className="w-20 h-20 rounded-lg overflow-hidden"
                 style={{ backgroundColor: theme.colors.surfaceVariant }}
               >
@@ -126,8 +132,6 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                   contentFit="cover"
                   onError={handleImageError}
                   testID="product-thumbnail"
-                  // Decorative: the name is adjacent text; empty alt avoids a double announcement.
-                  accessibilityLabel=""
                 />
               </View>
             ) : (
@@ -183,8 +187,10 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <Pressable
                 onPress={navigateToOwner}
                 accessibilityRole="link"
-                accessibilityLabel={`View ${ownerLabel}'s profile`}
-                className="flex-row items-center gap-1 pr-2"
+                accessibilityLabel={
+                  ownerLabel === 'you' ? 'View your profile' : `View ${ownerLabel}'s profile`
+                }
+                className={`flex-row items-center gap-1 pr-2 ${WEB_FOCUS_RING}`}
                 style={styles.ownerLink}
               >
                 <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />

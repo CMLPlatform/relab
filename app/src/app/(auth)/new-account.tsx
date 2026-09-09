@@ -1,3 +1,4 @@
+import Head from 'expo-router/head';
 import {
   NewAccountEmailStep,
   NewAccountLayout,
@@ -13,41 +14,46 @@ export default function NewAccount() {
   const handleCreateAccount = async () => actions.createAccount();
 
   return (
-    <NewAccountLayout onNavigateToLogin={actions.goToLogin}>
-      {flow.section === 'username' ? (
-        <NewAccountUsernameStep
-          control={form.control}
-          errors={form.errors}
-          headlineColor={ui.headlineColor}
-          mutedColor={ui.mutedColor}
-          onAdvance={handleAdvanceFromUsername}
-        />
-      ) : null}
+    <>
+      <Head>
+        <title>Create account · Relab</title>
+      </Head>
+      <NewAccountLayout onNavigateToLogin={actions.goToLogin}>
+        {flow.section === 'username' ? (
+          <NewAccountUsernameStep
+            control={form.control}
+            errors={form.errors}
+            headlineColor={ui.headlineColor}
+            mutedColor={ui.mutedColor}
+            onAdvance={handleAdvanceFromUsername}
+          />
+        ) : null}
 
-      {flow.section === 'email' ? (
-        <NewAccountEmailStep
-          control={form.control}
-          errors={form.errors}
-          headlineColor={ui.headlineColor}
-          mutedColor={ui.mutedColor}
-          username={flow.username}
-          onAdvance={handleAdvanceFromEmail}
-          onBack={actions.goBackToUsername}
-        />
-      ) : null}
+        {flow.section === 'email' ? (
+          <NewAccountEmailStep
+            control={form.control}
+            errors={form.errors}
+            headlineColor={ui.headlineColor}
+            mutedColor={ui.mutedColor}
+            username={flow.username}
+            onAdvance={handleAdvanceFromEmail}
+            onBack={actions.goBackToUsername}
+          />
+        ) : null}
 
-      {flow.section === 'password' ? (
-        <NewAccountPasswordStep
-          control={form.control}
-          errors={form.errors}
-          headlineColor={ui.headlineColor}
-          mutedColor={ui.mutedColor}
-          username={flow.username}
-          isSubmitting={form.isSubmitting}
-          onSubmit={handleCreateAccount}
-          onBack={actions.goBackToEmail}
-        />
-      ) : null}
-    </NewAccountLayout>
+        {flow.section === 'password' ? (
+          <NewAccountPasswordStep
+            control={form.control}
+            errors={form.errors}
+            headlineColor={ui.headlineColor}
+            mutedColor={ui.mutedColor}
+            username={flow.username}
+            isSubmitting={form.isSubmitting}
+            onSubmit={handleCreateAccount}
+            onBack={actions.goBackToEmail}
+          />
+        ) : null}
+      </NewAccountLayout>
+    </>
   );
 }

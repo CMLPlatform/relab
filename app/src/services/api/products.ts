@@ -213,8 +213,8 @@ export type ProductsQuery = {
   brands?: string[];
   createdAfter?: Date;
   productTypeNames?: string[];
-  /** 'me' scopes the query to the signed-in user's own products (authenticated). */
-  owner?: 'me';
+  /** 'me' scopes to the signed-in user's own products (authenticated); a username to that user's public ones. */
+  owner?: string;
 };
 
 // Multi-valued query param separator, matching the backend's

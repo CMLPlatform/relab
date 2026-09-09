@@ -1,11 +1,14 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useGlobalSearchParams } from 'expo-router';
+import { HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
 import UserProfileScreen from '@/app/users/[username]';
+import { API_URL } from '@/config';
 import { ApiError } from '@/services/api/errors';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { getPublicProfile } from '@/services/api/profiles';
 import { renderWithProviders } from '@/test-utils/index';
+import { server } from '@/test-utils/server';
 
 jest.mock('@/services/api/profiles');
 jest.mock('expo-router', () => {
@@ -56,15 +59,37 @@ describe('UserProfileScreen', () => {
     // Avatar initials
     expect(screen.getByText('AL')).toBeOnTheScreen();
     // Stats
-    expect(screen.getByText('3')).toBeOnTheScreen();
     expect(screen.getByText('5.5')).toBeOnTheScreen();
     expect(screen.getByText('7')).toBeOnTheScreen();
     expect(screen.getByText('Electronics')).toBeOnTheScreen();
     // Labels
-    expect(screen.getByText('Products')).toBeOnTheScreen();
     expect(screen.getByText('Total kg')).toBeOnTheScreen();
     expect(screen.getByText('Photos')).toBeOnTheScreen();
     expect(screen.getByText('Top category')).toBeOnTheScreen();
+  });
+
+  it('lists the user’s public products beneath the stats', async () => {
+    mockGetPublicProfile.mockResolvedValue(profileFixture);
+    await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+
+    // The default MSW /products handler returns one product for owner=<username>.
+    await waitFor(() =>
+      expect(screen.getByText('Recycled Aluminum Laptop Stand')).toBeOnTheScreen(),
+    );
+    expect(screen.getByText('Products · 1')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Load more products')).toBeNull();
+  });
+
+  it('shows an empty state when the user has no public products', async () => {
+    mockGetPublicProfile.mockResolvedValue(profileFixture);
+    server.use(
+      http.get(`${API_URL}/products`, () =>
+        HttpResponse.json({ items: [], total: 0, page: 1, size: 24, pages: 0 }),
+      ),
+    );
+    await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+
+    await waitFor(() => expect(screen.getByText('No public products yet')).toBeOnTheScreen());
   });
 
   it('shows generic error message when fetch fails', async () => {
@@ -93,7 +118,7 @@ describe('UserProfileScreen', () => {
     // The loading state stays true since setLoading(false) is in finally of the skipped block
     // Wait a tick so useEffect fires
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
-    expect(screen.queryByText('Products')).toBeNull();
+    expect(screen.queryByText('Total kg')).toBeNull();
   });
 
   it('does not call getPublicProfile when username is an array', async () => {
@@ -102,7 +127,7 @@ describe('UserProfileScreen', () => {
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
-    expect(screen.queryByText('Products')).toBeNull();
+    expect(screen.queryByText('Total kg')).toBeNull();
   });
 
   it('re-fetches the profile when the error state’s Retry action is pressed', async () => {

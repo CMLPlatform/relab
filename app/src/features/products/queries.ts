@@ -12,6 +12,7 @@ import { searchProductBrands } from '@/services/api/productSuggestions';
 import { products } from '@/services/api/products';
 import { fetchProductTypesByName, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
+import { fetchTopCategories } from '@/services/api/stats';
 import type { Product } from '@/types/Product';
 
 export type ProductRole = 'product' | 'component';
@@ -79,6 +80,22 @@ export const productsInfiniteQueryOptions = (
       lastPageParam * PAGE_SIZE < lastPage.total ? lastPageParam + 1 : undefined,
   });
 
+/** A user's public products for /users/[username]; the server 404s hidden profiles. */
+export const userProductsInfiniteQueryOptions = (username: string) =>
+  infiniteQueryOptions({
+    queryKey: ['products', 'infinite', 'user', username] as const,
+    queryFn: ({ pageParam }) =>
+      products({
+        page: pageParam,
+        size: PAGE_SIZE,
+        orderBy: [...DEFAULT_PRODUCT_SORT],
+        owner: username,
+      }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPageParam * PAGE_SIZE < lastPage.total ? lastPageParam + 1 : undefined,
+  });
+
 export const brandsSearchQueryOptions = (search: string) =>
   queryOptions({
     queryKey: ['brands', 'search', search] as const,
@@ -93,6 +110,14 @@ export const productTypesSearchQueryOptions = (search: string) =>
     queryFn: () => searchProductTypes(search || undefined, 1, 50),
     staleTime: 2 * 60_000,
   });
+
+/** The most-used product types, for the picker's "Common types" shortcut. */
+export const topCategoriesQueryOptions = queryOptions({
+  queryKey: ['stats', 'categories', 'all'] as const,
+  queryFn: () => fetchTopCategories(10),
+  // Usage counts drift slowly; one stale hour saves a request per picker open.
+  staleTime: 60 * 60_000,
+});
 
 /** Labels for product types already selected as filters (they arrive from the URL on a cold load). */
 export const productTypeLabelsQueryOptions = (names: string[]) => {
@@ -179,8 +204,6 @@ function isRetryableSaveError(failureCount: number, error: unknown): boolean {
 }
 
 // Shown on the save/create button and in the toast when the mutation pauses.
-// NOTE: web-only in practice; onlineManager has no native connectivity
-// listener yet, so a native build never pauses. See the TODO in app/_layout.tsx.
 export const QUEUED_OFFLINE_LABEL = 'Queued — sends when online';
 
 export function useSaveProductMutation() {

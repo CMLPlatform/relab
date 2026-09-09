@@ -1,6 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDebounce } from 'use-debounce';
+import { topCategoriesQueryOptions } from '@/features/products/queries';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -18,6 +20,8 @@ export function useCategorySelection() {
   const [cpvClass, setCpvClass] = useState<CPVCategory | null>(null);
   const [history, setHistory] = useState<CPVCategory[]>([]);
   const { recents, recordRecent } = useRecentCategories();
+  // Public aggregate; a failure just hides the shortcut section.
+  const { data: topCategories } = useQuery(topCategoriesQueryOptions);
 
   useEffect(() => {
     let isMounted = true;
@@ -61,20 +65,22 @@ export function useCategorySelection() {
   const filtered = useMemo((): CPVCategory[] => {
     if (!(cpv && cpvClass)) return [];
     if (!debouncedSearchQuery) return cpvClass.directChildren.map((childId) => cpv[childId]);
-    const query = debouncedSearchQuery.toLowerCase();
-    return cpvClass.allChildren
-      .map((childId) => cpv[childId])
-      .filter(
-        (item) =>
-          item.description.toLowerCase().includes(query) || item.name.toLowerCase().includes(query),
-      );
+    return filterCategories(cpv, debouncedSearchQuery);
   }, [cpv, debouncedSearchQuery, cpvClass]);
+
+  // Stats report a type by stored name (the CPV code); resolve it to the bundled node.
+  const commonTypes = useMemo((): CPVCategory[] => {
+    if (!(cpv && topCategories?.length)) return [];
+    const byName = new Map(Object.values(cpv).map((item) => [item.name, item]));
+    return topCategories.flatMap(({ name }) => byName.get(name) ?? []);
+  }, [cpv, topCategories]);
 
   return {
     user,
     cpvClass,
     history,
     filtered,
+    commonTypes,
     recents,
     searchQuery,
     debouncedSearchQuery,
@@ -83,4 +89,14 @@ export function useCategorySelection() {
     moveUp,
     selectType,
   };
+}
+
+/** Name/description match across the whole taxonomy, whatever level is being browsed. */
+export function filterCategories(cpv: Record<string, CPVCategory>, query: string): CPVCategory[] {
+  const needle = query.toLowerCase();
+  return Object.values(cpv).filter(
+    (item) =>
+      item !== cpv.root &&
+      (item.description.toLowerCase().includes(needle) || item.name.toLowerCase().includes(needle)),
+  );
 }

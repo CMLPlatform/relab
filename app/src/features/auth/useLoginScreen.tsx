@@ -57,7 +57,7 @@ export function useLoginScreen() {
     [postLoginRedirect, router],
   );
 
-  const { control, emailRef, submit } = useLoginForm({
+  const { control, emailRef, passwordRef, submit } = useLoginForm({
     dialog,
     completeSuccessfulLogin,
     handleMfaPending: (pending) => routeToMfa(pending),
@@ -87,6 +87,7 @@ export function useLoginScreen() {
     form: {
       control,
       emailRef,
+      passwordRef,
       submit,
     },
     actions: {

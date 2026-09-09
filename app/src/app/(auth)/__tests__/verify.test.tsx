@@ -15,7 +15,7 @@ jest.mock('@/services/api/auth/authentication', () => ({
   hasWebSessionFlag: jest.fn().mockReturnValue(false),
 }));
 
-const NO_VERIFICATION_TOKEN_PATTERN = /No verification token/;
+const NO_VERIFICATION_TOKEN_PATTERN = /needs the link from your verification email/;
 const EMAIL_VERIFIED_SUCCESS_PATTERN = /Email verified!/;
 const GENERIC_VERIFY_ERROR_PATTERN = /Couldn't verify your email/;
 const mockedGetToken = jest.mocked(getToken);
@@ -39,7 +39,9 @@ beforeEach(() => {
 });
 
 describe('VerifyEmailScreen states', () => {
-  it('shows error when no token is provided', async () => {
+  // A direct visit is not a failed verification: calm copy and a way to sign
+  // in, not an error state.
+  it('explains the missing link and offers sign-in when no token is provided', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ token: undefined });
     await renderVerifyEmailScreen();
     await waitFor(
@@ -48,6 +50,7 @@ describe('VerifyEmailScreen states', () => {
       },
       { timeout: 3000 },
     );
+    expect(screen.getByText('Sign in again')).toBeOnTheScreen();
   });
 
   it('shows loading indicator on mount when token is present', async () => {

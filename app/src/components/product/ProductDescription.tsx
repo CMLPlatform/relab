@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
+import { useAppTheme } from '@/theme';
 
 import { entityLabel, type Product } from '@/types/Product';
 
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export default function ProductDescription({ product, editMode, onChangeDescription }: Props) {
+  const { tokens } = useAppTheme();
   const [draftText, setDraftText] = useState(product.description ?? '');
   const [isExpanded, setIsExpanded] = useState(false);
   const text = editMode ? draftText : (product.description ?? '');
@@ -70,8 +72,8 @@ export default function ProductDescription({ product, editMode, onChangeDescript
 
   return (
     <TextInput
-      // NOTE: 16/26 is the `body` ramp step; RN TextInput has no `variant`.
-      style={{ padding: 14, fontSize: 16, lineHeight: 26 }}
+      // RN TextInput has no `variant`; the body step comes from the tokens.
+      style={[{ padding: 14 }, tokens.type.body]}
       placeholder={`Add a ${entityLabel(product)} description`}
       value={draftText}
       onChangeText={setDraftText}
@@ -79,7 +81,6 @@ export default function ProductDescription({ product, editMode, onChangeDescript
       editable={editMode}
       multiline
       numberOfLines={undefined}
-      errorOnEmpty
     />
   );
 }

@@ -1,3 +1,4 @@
+import Head from 'expo-router/head';
 import { useCallback } from 'react';
 import {
   FlatList,
@@ -25,6 +26,7 @@ export default function CategorySelection() {
     cpvClass,
     history,
     filtered,
+    commonTypes,
     recents,
     searchQuery,
     debouncedSearchQuery,
@@ -42,16 +44,32 @@ export default function CategorySelection() {
   );
   const keyExtractor = useCallback((item: CPVCategory) => String(item.id), []);
 
-  // Recents show only at the taxonomy root with no active search.
-  const showRecents = history.length <= 1 && !searchQuery && recents.length > 0;
-  const listHeader = showRecents ? (
-    <View className="gap-3">
-      <AppText variant="eyebrow">Recent</AppText>
-      {recents.map((item) => (
-        <RecentCategoryCard key={item.id} item={item} onSelectType={selectType} />
-      ))}
-    </View>
-  ) : null;
+  // Shortcut sections show only at the taxonomy root with no active search.
+  const atRoot = history.length <= 1 && !searchQuery;
+  const showCommon = atRoot && commonTypes.length > 0;
+  const showRecents = atRoot && recents.length > 0;
+  const listHeader =
+    showCommon || showRecents ? (
+      <View className="gap-6">
+        {showCommon ? (
+          <View className="gap-3">
+            <AppText variant="eyebrow">Common types</AppText>
+            {commonTypes.map((item) => (
+              <RecentCategoryCard key={item.id} item={item} onSelectType={selectType} />
+            ))}
+          </View>
+        ) : null}
+        {showRecents ? (
+          <View className="gap-3">
+            <AppText variant="eyebrow">Recent</AppText>
+            {recents.map((item) => (
+              <RecentCategoryCard key={item.id} item={item} onSelectType={selectType} />
+            ))}
+          </View>
+        ) : null}
+        <AppText variant="eyebrow">All categories</AppText>
+      </View>
+    ) : null;
 
   // useRequireAuth fires the redirect, but a session that expires while the
   // picker is open can leave this screen visible for more than one render.
@@ -62,36 +80,47 @@ export default function CategorySelection() {
 
   return (
     // phoneFullBleed: the search bar, blurb, and list own their own px-4 spacing.
-    <PageContainer phoneFullBleed>
-      <View className="gap-3 px-4 pt-4">
-        <Searchbar placeholder="Search" onChangeText={setSearchQuery} value={searchQuery} />
-        <View className="flex-row items-start gap-1">
-          <AppText variant="caption" className="text-muted-foreground flex-1">
-            Search by name or description, or browse into a category. Tap a category to select it as
-            the product type.
-          </AppText>
-          <InfoTooltip title="Product types come from CPV, a standard list of product categories. Pick the closest match. Relab uses it for filtering and for the research statistics." />
+    <>
+      <Head>
+        <title>Select category · Relab</title>
+      </Head>
+      <PageContainer phoneFullBleed>
+        <View className="gap-3 px-4 pt-4">
+          <Searchbar
+            placeholder="Search"
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            // Search-first: the field is ready to type into the moment the picker opens.
+            autoFocus
+          />
+          <View className="flex-row items-start gap-1">
+            <AppText variant="caption" className="text-muted-foreground flex-1">
+              Type a name (e.g. laptop) to search every category, or browse below. Tap a category to
+              select it as the type.
+            </AppText>
+            <InfoTooltip title="Product types come from CPV, a standard list of product categories. Pick the closest match. Relab uses it for filtering and for the research statistics." />
+          </View>
+          {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
         </View>
-        {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
-      </View>
-      <FlatList
-        contentContainerClassName="gap-4 p-4"
-        data={filtered}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        ListHeaderComponent={listHeader}
-        ListEmptyComponent={
-          // debouncedSearchQuery is what `filtered` was computed from.
-          debouncedSearchQuery ? (
-            <View className="items-center gap-2 p-8">
-              <AppText className="text-center text-muted-foreground">
-                No categories match &ldquo;{debouncedSearchQuery}&rdquo;. Try a broader term.
-              </AppText>
-            </View>
-          ) : null
-        }
-      />
-    </PageContainer>
+        <FlatList
+          contentContainerClassName="gap-4 p-4"
+          data={filtered}
+          renderItem={renderItem}
+          keyExtractor={keyExtractor}
+          ListHeaderComponent={listHeader}
+          ListEmptyComponent={
+            // debouncedSearchQuery is what `filtered` was computed from.
+            debouncedSearchQuery ? (
+              <View className="items-center gap-2 p-8">
+                <AppText className="text-center text-muted-foreground">
+                  No categories match &ldquo;{debouncedSearchQuery}&rdquo;. Try a broader term.
+                </AppText>
+              </View>
+            ) : null
+          }
+        />
+      </PageContainer>
+    </>
   );
 }
 

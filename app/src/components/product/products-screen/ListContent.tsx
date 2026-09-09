@@ -14,6 +14,7 @@ import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { StaticBackground } from '@/components/base/StaticBackground';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
@@ -184,20 +185,23 @@ export function ProductsListContent({
         renderItem={renderProduct}
         onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
-        contentContainerStyle={{ paddingBottom: listBottomInset }}
+        contentContainerStyle={{ paddingBottom: listBottomInset, flexGrow: 1 }}
         ListFooterComponent={listFooter}
         ListEmptyComponent={
-          <View className="items-center p-5">
-            <Image
-              source={
-                theme.dark
-                  ? require('@/assets/images/mark-dark.png')
-                  : require('@/assets/images/mark.png')
-              }
-              style={styles.emptyStateMark}
-              contentFit="contain"
-              accessibilityLabel=""
-            />
+          <View className="flex-1 items-center justify-center p-5" testID="products-empty-state">
+            <StaticBackground scrim={theme.tokens.overlay.hero} />
+            {/* Decorative: expo-image drops an empty alt, so hide the subtree. */}
+            <View aria-hidden>
+              <Image
+                source={
+                  theme.dark
+                    ? require('@/assets/images/wordmark-dark.png')
+                    : require('@/assets/images/wordmark.png')
+                }
+                style={styles.emptyStateMark}
+                contentFit="contain"
+              />
+            </View>
             {searchQuery ? (
               <AppText>No products match your search.</AppText>
             ) : !isAuthenticated ? (

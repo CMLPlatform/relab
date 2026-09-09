@@ -21,6 +21,7 @@ describe('useBackgroundOverlay', () => {
     expect(await overlayFor(pathname)).toEqual({
       color: overlay.heroBand,
       edgeColor: overlay.heroEdge,
+      photo: true,
     });
   });
 
@@ -29,16 +30,29 @@ describe('useBackgroundOverlay', () => {
   it.each(['/onboarding', '/forgot-password', '/reset-password', '/mfa', '/verify'])(
     'uses the flat hero scrim on %s',
     async (pathname) => {
-      expect(await overlayFor(pathname)).toEqual({ color: overlay.hero, edgeColor: null });
+      expect(await overlayFor(pathname)).toEqual({
+        color: overlay.hero,
+        edgeColor: null,
+        photo: true,
+      });
     },
   );
 
-  // edgeColor null is what tells AppBackground to paint a flat fill rather than
-  // a gradient, so it is part of the contract, not an incidental value.
-  it.each(['/products', '/cameras', '/account'])(
-    'uses the flat near-opaque page overlay on %s',
+  // Content screens get the plain theme background and no photo: `photo: false`
+  // is what keeps StaticBackground unmounted, so it is part of the contract.
+  it.each(['/products', '/cameras', '/account', '/products/1'])(
+    'uses the plain theme background with no photo on %s',
     async (pathname) => {
-      expect(await overlayFor(pathname)).toEqual({ color: overlay.page, edgeColor: null });
+      expect(await overlayFor(pathname)).toEqual({
+        color: getAppTheme('light').colors.background,
+        edgeColor: null,
+        photo: false,
+      });
+      expect(await overlayFor(pathname, true)).toEqual({
+        color: getAppTheme('dark').colors.background,
+        edgeColor: null,
+        photo: false,
+      });
     },
   );
 
@@ -47,6 +61,7 @@ describe('useBackgroundOverlay', () => {
     expect(await overlayFor('/login', true)).toEqual({
       color: dark.heroBand,
       edgeColor: dark.heroEdge,
+      photo: true,
     });
   });
 

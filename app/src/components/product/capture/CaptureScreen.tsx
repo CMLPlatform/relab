@@ -1,4 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
+import Head from 'expo-router/head';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -7,6 +8,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { DocsLink } from '@/components/base/DocsLink';
 import { PageContainer } from '@/components/base/PageContainer';
+import { PageHeaderRow } from '@/components/base/PageHeaderRow';
 import { Input } from '@/components/base/ui/input';
 import CPVCard from '@/components/product/CPVCard';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
@@ -14,6 +16,7 @@ import { DATA_COLLECTION_DOCS_PATH } from '@/config';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { useCaptureScreen } from '@/features/products/useCaptureScreen';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -98,9 +101,11 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
     isPaused,
     draftProduct,
     parentName,
+    goBack,
     handleCreate,
     handleCreateAndAddAnother,
   } = useCaptureScreen({ role, parentID, parentRole });
+  const { isLg } = useBreakpoint();
 
   const submitOnEnter = useCallback(() => {
     if (canCreate) void handleCreate();
@@ -117,71 +122,86 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
   }, [handleCreateAndAddAnother]);
 
   return (
-    <KeyboardAwareScrollView
-      testID="capture-scroll"
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
-    >
-      <PageContainer>
-        <ProductImageGallery product={draftProduct} editMode onImagesChange={setImages} />
-        <View className="gap-4">
-          <View>
-            <AppText variant="eyebrow">Name</AppText>
-            <Input
-              ref={nameInputRef}
-              value={name}
-              onChangeText={setName}
-              autoFocus
-              maxLength={PRODUCT_NAME_MAX_LENGTH}
-              placeholder="e.g. Cordless drill"
-              accessibilityLabel="Name"
-              onSubmitEditing={submitOnEnter}
+    <>
+      <Head>
+        <title>{`${role === 'component' ? 'New component' : 'New product'} · Relab`}</title>
+      </Head>
+      <KeyboardAwareScrollView
+        testID="capture-scroll"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: 32 }}
+      >
+        <PageContainer>
+          {/* The stack header is hidden behind TopNav at lg; the title + back live in-page there. */}
+          {isLg ? (
+            <PageHeaderRow
+              title={role === 'component' ? 'New component' : 'New product'}
+              onBack={goBack}
             />
-          </View>
-
-          <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} entityRole={role} />
-
-          {/* A first-time contributor decides here what to record; the guide
-              answers that, so it is one tap away rather than in Account. */}
-          <DocsLink
-            path={DATA_COLLECTION_DOCS_PATH}
-            accessibilityLabel="Read the data collection guide"
-            className="self-start py-1"
-          >
-            What to record, and how much
-          </DocsLink>
-
-          {role === 'component' ? (
-            <>
-              {parentName ? <AppText>Component of: {parentName}</AppText> : null}
-              <AmountStepper value={amount} onChange={setAmount} label="How many of these" />
-            </>
           ) : null}
+          <ProductImageGallery product={draftProduct} editMode onImagesChange={setImages} />
+          <View className="gap-4">
+            {/* Context line first: which record this part belongs to. */}
+            {role === 'component' && parentName ? (
+              <AppText variant="caption" className="text-muted-foreground">
+                Component of: {parentName}
+              </AppText>
+            ) : null}
+            <View>
+              <AppText variant="eyebrow">Name</AppText>
+              <Input
+                ref={nameInputRef}
+                value={name}
+                onChangeText={setName}
+                autoFocus
+                maxLength={PRODUCT_NAME_MAX_LENGTH}
+                placeholder={role === 'component' ? 'e.g. Battery pack' : 'e.g. Cordless drill'}
+                accessibilityLabel="Name"
+                onSubmitEditing={submitOnEnter}
+              />
+            </View>
 
-          <View className="flex-row gap-3">
-            <AppButton
-              variant="primary"
-              disabled={!canCreate}
-              loading={isCreating && !isPaused}
-              onPress={handleCreate}
+            <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} entityRole={role} />
+
+            {/* A first-time contributor decides here what to record; the guide
+                answers that, so it is one tap away rather than in Account. */}
+            <DocsLink
+              path={DATA_COLLECTION_DOCS_PATH}
+              accessibilityLabel="Read the data collection guide"
+              className="self-start py-1"
             >
-              {isQueued
-                ? QUEUED_OFFLINE_LABEL
-                : role === 'component'
-                  ? 'Create component'
-                  : 'Create product'}
-            </AppButton>
-            <AppButton
-              variant="outline"
-              disabled={!canCreate}
-              loading={isCreating && !isPaused}
-              onPress={onCreateAndAddAnother}
-            >
-              {isQueued ? QUEUED_OFFLINE_LABEL : 'Create & add another'}
-            </AppButton>
+              What to record, and how much
+            </DocsLink>
+
+            {role === 'component' ? (
+              <AmountStepper value={amount} onChange={setAmount} label="How many of these" />
+            ) : null}
+
+            <View className="flex-row gap-3">
+              <AppButton
+                variant="primary"
+                disabled={!canCreate}
+                loading={isCreating && !isPaused}
+                onPress={handleCreate}
+              >
+                {isQueued
+                  ? QUEUED_OFFLINE_LABEL
+                  : role === 'component'
+                    ? 'Create component'
+                    : 'Create product'}
+              </AppButton>
+              <AppButton
+                variant="outline"
+                disabled={!canCreate}
+                loading={isCreating && !isPaused}
+                onPress={onCreateAndAddAnother}
+              >
+                {isQueued ? QUEUED_OFFLINE_LABEL : 'Create & add another'}
+              </AppButton>
+            </View>
           </View>
-        </View>
-      </PageContainer>
-    </KeyboardAwareScrollView>
+        </PageContainer>
+      </KeyboardAwareScrollView>
+    </>
   );
 }

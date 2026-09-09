@@ -10,37 +10,23 @@ import Svg, { G, Rect, Text as SvgText } from 'react-native-svg';
 import { alpha, useAppTheme } from '@/theme';
 import {
   cubeLayout,
-  FRAME_H,
-  FRAME_W,
+  FONT_SIZE,
   ISO,
   isMeasured,
+  LABEL_GAP,
   type Matrix,
   matrixProp,
+  VIEW_BOX,
 } from './cubeLayout';
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedText = Animated.createAnimatedComponent(SvgText);
 
-// Fixed viewBox (an animated viewBox is poorly supported); the padding leaves
-// room for the edge labels outside the shape.
-const PAD_LEFT = 48;
-const PAD_RIGHT = 40;
-const PAD_TOP = 12;
-const PAD_BOTTOM = 26;
-const VIEW_BOX = [
-  -PAD_LEFT,
-  -PAD_TOP,
-  FRAME_W + PAD_LEFT + PAD_RIGHT,
-  FRAME_H + PAD_TOP + PAD_BOTTOM,
-].join(' ');
 // NOTE: fixed, not measured from the shape; sizing to the shape would need the height animated too.
 const SVG_HEIGHT = 210;
 const COMPACT_SVG_HEIGHT = 132;
 
-const LABEL_GAP = 15;
-// NOTE: SVG-drawn label; the ramp does not reach SVG props.
-const FONT_SIZE = 12;
 /** Unit normal of an edge sloping at ISO, used to push labels clear of it. */
 const NORMAL_X = Math.sin(Math.PI / 6);
 const NORMAL_Y = Math.cos(Math.PI / 6);

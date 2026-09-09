@@ -1,57 +1,56 @@
-import {
-  ArrowDownUp,
-  ArrowLeft,
-  Calendar,
-  Camera,
-  CameraOff,
-  Check,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  CircleAlert,
-  CircleCheckBig,
-  CircleUserRound,
-  Clock,
-  Copy,
-  EthernetPort,
-  ExternalLink,
-  Eye,
-  EyeOff,
-  Globe,
-  Image,
-  ImagePlus,
-  Images,
-  Info,
-  Link,
-  Lock,
-  type LucideIcon,
-  MailCheck,
-  Minus,
-  Moon,
-  Package,
-  PackageX,
-  Pencil,
-  Plus,
-  Radio,
-  RadioTower,
-  RefreshCw,
-  Save,
-  Search,
-  Settings,
-  Shapes,
-  SlidersHorizontal,
-  Sun,
-  SunMoon,
-  Tag,
-  Trash2,
-  User,
-  Users,
-  UserX,
-  VideoOff,
-  Webcam,
-  Weight,
-  X,
-} from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+// Per-icon deep imports: the package barrel drags all ~1800 glyphs (1.3 MB) into the web bundle.
+import ArrowDownUp from 'lucide-react-native/icons/arrow-down-up';
+import ArrowLeft from 'lucide-react-native/icons/arrow-left';
+import Calendar from 'lucide-react-native/icons/calendar';
+import Camera from 'lucide-react-native/icons/camera';
+import CameraOff from 'lucide-react-native/icons/camera-off';
+import Check from 'lucide-react-native/icons/check';
+import ChevronDown from 'lucide-react-native/icons/chevron-down';
+import ChevronLeft from 'lucide-react-native/icons/chevron-left';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
+import CircleAlert from 'lucide-react-native/icons/circle-alert';
+import CircleCheckBig from 'lucide-react-native/icons/circle-check-big';
+import CircleUserRound from 'lucide-react-native/icons/circle-user-round';
+import Clock from 'lucide-react-native/icons/clock';
+import Copy from 'lucide-react-native/icons/copy';
+import EthernetPort from 'lucide-react-native/icons/ethernet-port';
+import ExternalLink from 'lucide-react-native/icons/external-link';
+import Eye from 'lucide-react-native/icons/eye';
+import EyeOff from 'lucide-react-native/icons/eye-off';
+import Globe from 'lucide-react-native/icons/globe';
+import Image from 'lucide-react-native/icons/image';
+import ImagePlus from 'lucide-react-native/icons/image-plus';
+import Images from 'lucide-react-native/icons/images';
+import Info from 'lucide-react-native/icons/info';
+import Link from 'lucide-react-native/icons/link';
+import Lock from 'lucide-react-native/icons/lock';
+import MailCheck from 'lucide-react-native/icons/mail-check';
+import Minus from 'lucide-react-native/icons/minus';
+import Moon from 'lucide-react-native/icons/moon';
+import Package from 'lucide-react-native/icons/package';
+import PackageX from 'lucide-react-native/icons/package-x';
+import Pencil from 'lucide-react-native/icons/pencil';
+import Plus from 'lucide-react-native/icons/plus';
+import Radio from 'lucide-react-native/icons/radio';
+import RadioTower from 'lucide-react-native/icons/radio-tower';
+import RefreshCw from 'lucide-react-native/icons/refresh-cw';
+import Save from 'lucide-react-native/icons/save';
+import Search from 'lucide-react-native/icons/search';
+import Settings from 'lucide-react-native/icons/settings';
+import Shapes from 'lucide-react-native/icons/shapes';
+import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
+import Sun from 'lucide-react-native/icons/sun';
+import SunMoon from 'lucide-react-native/icons/sun-moon';
+import Tag from 'lucide-react-native/icons/tag';
+import Trash2 from 'lucide-react-native/icons/trash-2';
+import User from 'lucide-react-native/icons/user';
+import UserX from 'lucide-react-native/icons/user-x';
+import Users from 'lucide-react-native/icons/users';
+import VideoOff from 'lucide-react-native/icons/video-off';
+import Webcam from 'lucide-react-native/icons/webcam';
+import Weight from 'lucide-react-native/icons/weight';
+import X from 'lucide-react-native/icons/x';
 import { Path, Svg } from 'react-native-svg';
 
 type BrandGlyphProps = { size?: number; color?: string; strokeWidth?: number };

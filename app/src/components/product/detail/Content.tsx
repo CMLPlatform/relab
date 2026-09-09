@@ -21,6 +21,8 @@ import { SpecHeader } from './SpecHeader';
 type ProductPageContentProps = {
   product: Product;
   editMode: boolean;
+  /** "Saved · ID 29" style line under the title (edit mode only). */
+  saveStatus?: string;
   isProductComponent: boolean;
   isLab: boolean;
   mediaStreamable: boolean;
@@ -45,6 +47,7 @@ type ProductPageContentProps = {
 export function ProductPageContent({
   product,
   editMode,
+  saveStatus,
   isProductComponent,
   isLab,
   mediaStreamable,
@@ -72,7 +75,7 @@ export function ProductPageContent({
     onSectionsWrapperLayout,
   } = useAnchoredSectionNav(outerNav);
 
-  const ctx: SectionContext = { mediaStreamable, hasResearchFiles };
+  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode };
   const sectionProps: SectionRenderProps = {
     product,
     editMode,
@@ -107,7 +110,12 @@ export function ProductPageContent({
       </PageContainer>
       <PageContainer onLayout={onPageContainerLayout}>
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
-          <SpecHeader product={product} editMode={editMode} onNameChange={onProductNameChange} />
+          <SpecHeader
+            product={product}
+            editMode={editMode}
+            saveStatus={saveStatus}
+            onNameChange={onProductNameChange}
+          />
           <SectionNavContext.Provider value={anchoredNav}>
             {guardedSections({ isProductComponent, isLab }).map((section) => (
               <Section

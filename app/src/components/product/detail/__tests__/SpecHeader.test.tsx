@@ -52,18 +52,18 @@ test('renders no facts row segments for missing data', async () => {
   expect(screen.queryByText('Components')).toBeNull();
 });
 
-// In edit mode the display-size name is the control — one name field, and it
+// In edit mode the title-size name is the control — one name field, and it
 // is the biggest text on the screen. (Moved here from ProductNameHeader, which
 // used to carry a second, 16px copy in the stack header.)
 describe('SpecHeader name field in edit mode', () => {
   const product = { ...baseProduct, name: 'Initial product name' };
 
-  test('renders the name as a display-scale input', async () => {
+  test('renders the name as a title-scale input', async () => {
     await render(<SpecHeader product={product} editMode />);
     const input = screen.getByLabelText('Product name');
     expect(input.props.value).toBe('Initial product name');
     expect(StyleSheet.flatten(input.props.style).fontSize).toBe(
-      getAppTheme('light').tokens.type.display.fontSize,
+      getAppTheme('light').tokens.type.title.fontSize,
     );
   });
 
@@ -94,4 +94,16 @@ describe('SpecHeader name field in edit mode', () => {
     expect(screen.queryByLabelText('Product name')).toBeNull();
     expect(screen.getByText('Initial product name')).toBeOnTheScreen();
   });
+});
+
+test('renders the record status line under the title in edit mode', async () => {
+  await render(
+    <SpecHeader product={{ ...baseProduct, id: 29 }} editMode saveStatus="Saved · ID 29" />,
+  );
+  expect(screen.getByTestId('save-status')).toHaveTextContent('Saved · ID 29');
+});
+
+test('renders no status line without one', async () => {
+  await render(<SpecHeader product={baseProduct} />);
+  expect(screen.queryByTestId('save-status')).toBeNull();
 });

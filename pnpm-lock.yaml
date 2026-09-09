@@ -241,6 +241,9 @@ importers:
       expo-linking:
         specifier: ~57.0.5
         version: 57.0.9(expo@57.0.20)(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2)
+      expo-network:
+        specifier: ~57.0.1
+        version: 57.0.1(expo@57.0.20)(react@19.2.3)
       expo-router:
         specifier: ~57.0.12
         version: 57.0.19(4d399adee929f4aac32146559086e34f)
@@ -5556,6 +5559,12 @@ packages:
     resolution: {integrity: sha512-MFwvKP0FXLkEET27KsKvOh/L7Dpu2d00UgzAlmKozJgtI23WTKSyKPxu+EOSs9peSgkHzKI0vQOhWjOseGBMkQ==}
     peerDependencies:
       react-native: '*'
+
+  expo-network@57.0.1:
+    resolution: {integrity: sha512-ndg+FbDDlz6XTpQ6aVuVgyvrYQwMkpcUAvZIXbwrGBbLTSWNzYC/gawYu1BAeDN7O6JTGY98GBVJBov/JH7LgQ==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
 
   expo-router@57.0.19:
     resolution: {integrity: sha512-JovzZ066+qhykyJLC4hSEJpM8ToVWnJqbxmTN7USzARM0HgRR/g05a75f/EIsY4S//hbPGm6wGl/ObcCVtAX+A==}
@@ -15505,6 +15514,11 @@ snapshots:
   expo-modules-jsi@57.0.8(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2)):
     dependencies:
       react-native: 0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2)
+
+  expo-network@57.0.1(expo@57.0.20)(react@19.2.3):
+    dependencies:
+      expo: 57.0.20(62be1033536defd3a3303dc4681665c5)
+      react: 19.2.3
 
   expo-router@57.0.19(4d399adee929f4aac32146559086e34f):
     dependencies:

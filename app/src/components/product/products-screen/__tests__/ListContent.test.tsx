@@ -206,3 +206,22 @@ describe('ProductsListContent chrome', () => {
     );
   });
 });
+
+describe('ProductsListContent empty state', () => {
+  it('shows the Relab wordmark over the teardown photo when the list is empty', async () => {
+    await renderList({ products: [], total: 0 });
+
+    expect(screen.getByTestId('products-empty-state')).toBeOnTheScreen();
+    // The photo is decorative (aria-hidden), so opt into hidden elements.
+    expect(screen.getByTestId('expo-image-bg', { includeHiddenElements: true })).toBeOnTheScreen();
+    // Jest maps every image asset to `1`, so assert the wordmark footprint
+    // (wide, not the old square "9" mark) rather than the source path.
+    const wordmark = screen.getByTestId('expo-image', { includeHiddenElements: true });
+    expect(wordmark.props.style.width).toBeGreaterThan(wordmark.props.style.height * 2);
+  });
+
+  it('does not mount the teardown photo behind a populated list', async () => {
+    await renderList();
+    expect(screen.queryByTestId('expo-image-bg', { includeHiddenElements: true })).toBeNull();
+  });
+});

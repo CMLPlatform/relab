@@ -9,7 +9,7 @@ import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { Badge } from '@/components/base/ui/badge';
 import { Text } from '@/components/base/ui/text';
-import { radius } from '@/constants';
+import { radius, WEB_FOCUS_RING } from '@/constants';
 import { componentQueryOptions } from '@/features/product-entity/queries';
 import { useAppTheme } from '@/theme';
 import { palette } from '@/theme/palette.generated';
@@ -70,7 +70,11 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
       );
     } else if (query.isError) {
       expandedBody = (
-        <Pressable accessibilityRole="button" onPress={retry} className="min-h-11 justify-center">
+        <Pressable
+          accessibilityRole="button"
+          onPress={retry}
+          className={`min-h-11 justify-center ${WEB_FOCUS_RING}`}
+        >
           <AppText variant="label" className="text-muted-foreground">
             Couldn't load components — tap to retry
           </AppText>
@@ -94,15 +98,19 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
           accessibilityRole="button"
           disabled={!enabled}
           onPress={navigate}
-          className="min-h-11 flex-1 flex-row items-center gap-3 py-1.5"
+          className={`min-h-11 flex-1 flex-row items-center gap-3 py-1.5 ${WEB_FOCUS_RING}`}
         >
           {component.thumbnailUrl ? (
-            <Image
-              source={{ uri: component.thumbnailUrl }}
-              style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: radius.card }}
-              contentFit="cover"
-              testID="component-thumbnail"
-            />
+            // Decorative: the row button carries the name. expo-image drops an
+            // empty alt, so hide the subtree (same treatment as StaticBackground).
+            <View aria-hidden>
+              <Image
+                source={{ uri: component.thumbnailUrl }}
+                style={{ width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: radius.card }}
+                contentFit="cover"
+                testID="component-thumbnail"
+              />
+            </View>
           ) : (
             <ImagePlaceholder
               width={THUMBNAIL_SIZE}
@@ -131,7 +139,7 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
             accessibilityRole="button"
             accessibilityLabel={`Duplicate ${displayName}`}
             onPress={onDuplicate}
-            className="h-11 w-11 items-center justify-center"
+            className={`h-11 w-11 items-center justify-center ${WEB_FOCUS_RING}`}
           >
             <Icon name="copy" size={20} color={palette[theme.scheme].mutedForeground} />
           </Pressable>
@@ -143,7 +151,7 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
             // aria-*, not accessibilityState: only the aria props reach the DOM on web.
             aria-expanded={expanded}
             onPress={toggleExpanded}
-            className="h-11 w-11 items-center justify-center"
+            className={`h-11 w-11 items-center justify-center ${WEB_FOCUS_RING}`}
           >
             <Icon
               name={expanded ? 'chevron-down' : 'chevron-right'}

@@ -8,7 +8,7 @@ import { cn } from '@/utils/cn';
 
 const toggleVariants = cva(
   cn(
-    'active:bg-muted group flex flex-row items-center justify-center gap-2 rounded-md',
+    'active:bg-muted group min-h-11 flex flex-row items-center justify-center gap-2 rounded-md',
     Platform.select({
       web: cn(
         'hover:bg-muted hover:text-muted-foreground aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive inline-flex cursor-default whitespace-nowrap outline-none transition-[color,box-shadow] disabled:pointer-events-none [&_svg]:pointer-events-none',
@@ -29,9 +29,10 @@ const toggleVariants = cva(
         ),
       },
       size: {
-        default: 'h-10 min-w-10 px-2.5 sm:h-9 sm:min-w-9 sm:px-2',
-        sm: 'h-9 min-w-9 px-2 sm:h-8 sm:min-w-8 sm:px-1.5',
-        lg: 'h-11 min-w-11 px-3 sm:h-10 sm:min-w-10 sm:px-2.5',
+        // Width and padding vary; the 44px floor (min-h-11 above) does not.
+        default: 'min-w-11 px-2.5',
+        sm: 'min-w-11 px-2',
+        lg: 'min-w-11 px-3',
       },
     },
     defaultVariants: {
@@ -52,7 +53,7 @@ function Toggle({
       value={cn(
         'text-sm text-foreground font-medium',
         props.pressed
-          ? 'text-accent-foreground'
+          ? 'text-primary'
           : Platform.select({ web: 'group-hover:text-muted-foreground' }),
         className,
       )}
@@ -61,7 +62,7 @@ function Toggle({
         className={cn(
           toggleVariants({ variant, size }),
           props.disabled && 'opacity-50',
-          props.pressed && 'bg-accent',
+          props.pressed && 'bg-primary/12',
           className,
         )}
         {...props}

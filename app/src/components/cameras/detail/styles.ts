@@ -23,9 +23,9 @@ export const cameraDetailStyles = StyleSheet.create({
     margin: 0,
   },
   // font-mono pulls a web font stack; 'monospace' keeps RN's platform font.
-  // Caption size (13/18).
   monoDetail: {
     fontFamily: 'monospace',
+    // NOTE: caption size (13/18) on a mono face; no mono-13 step exists.
     fontSize: 13,
     lineHeight: 18,
   },

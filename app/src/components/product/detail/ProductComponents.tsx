@@ -17,6 +17,10 @@ interface Props {
   editMode: boolean;
 }
 
+const VISIBLE_WHEN_COLLAPSED = 5;
+/** Lists up to this many rows in full; beyond it, the first five plus a disclosure. */
+const COLLAPSE_ABOVE = 8;
+
 export default function ProductComponents({ product, editMode }: Props) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -75,7 +79,11 @@ export default function ProductComponents({ product, editMode }: Props) {
     requestAnimationFrame(() => router.push({ pathname, params: { id } }));
   };
 
-  const visibleComponents = expanded ? components : components.slice(0, 5);
+  // Collapse only when it hides more than a couple of rows: a "Show 1 more"
+  // link costs a tap to save one row.
+  const collapsible = components.length > COLLAPSE_ABOVE;
+  const visibleComponents =
+    expanded || !collapsible ? components : components.slice(0, VISIBLE_WHEN_COLLAPSED);
   const hiddenCount = Math.max(0, components.length - visibleComponents.length);
 
   return (
@@ -95,9 +103,13 @@ export default function ProductComponents({ product, editMode }: Props) {
           }
         />
       ))}
-      {components.length > 5 && (
+      {collapsible && (
         <DisclosureRow
-          label={expanded ? 'Show fewer components' : `Show ${hiddenCount} more components`}
+          label={
+            expanded
+              ? 'Show fewer components'
+              : `Show ${hiddenCount} more ${hiddenCount === 1 ? 'component' : 'components'}`
+          }
           expanded={expanded}
           onPress={toggleExpanded}
         />

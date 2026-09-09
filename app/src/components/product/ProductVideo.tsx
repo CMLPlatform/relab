@@ -180,7 +180,12 @@ function VideoHeaderAction({
 }) {
   if (editMode) {
     return (
-      <TouchableOpacity onPress={onAdd} className="mt-1">
+      <TouchableOpacity
+        onPress={onAdd}
+        accessibilityRole="button"
+        // min-h-11: the 44px tap floor (MIN_TAP_TARGET) on a one-line text link.
+        className="mt-1 min-h-11 justify-center"
+      >
         <AppText style={{ color: linkColor }}>Add video</AppText>
       </TouchableOpacity>
     );
@@ -191,7 +196,12 @@ function VideoHeaderAction({
   }
 
   return (
-    <Pressable onPress={onToggleExpanded} className="mt-1">
+    <Pressable
+      onPress={onToggleExpanded}
+      accessibilityRole="button"
+      aria-expanded={isExpanded}
+      className="mt-1 min-h-11 justify-center"
+    >
       <AppText style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</AppText>
     </Pressable>
   );
@@ -245,6 +255,7 @@ function VideoRow({
   onVideoChange: (idx: number, field: 'url' | 'title' | 'description', value: string) => void;
   onRemove: (idx: number) => void;
 }) {
+  const { tokens } = useAppTheme();
   const handleTitleChange = useCallback(
     (value: string) => onVideoChange(idx, 'title', value),
     [onVideoChange, idx],
@@ -275,7 +286,7 @@ function VideoRow({
       <View className="flex-1">
         <TextInput
           className="px-3.5"
-          style={[styles.titleInput, { color: textColor }]}
+          style={[tokens.type.heading, styles.titleInput, { color: textColor }]}
           placeholder="Title"
           value={video.title}
           onChangeText={handleTitleChange}
@@ -288,7 +299,7 @@ function VideoRow({
           <>
             <TextInput
               className="px-3.5"
-              style={[styles.bodyInput, { color: textColor }]}
+              style={[tokens.type.body, { color: textColor }]}
               placeholder="Video URL"
               value={video.url}
               onChangeText={handleUrlChange}
@@ -305,7 +316,7 @@ function VideoRow({
         {editMode || video.description ? (
           <TextInput
             className="px-3.5"
-            style={[styles.descriptionInput, { color: textColor }]}
+            style={[tokens.type.body, { color: textColor }]}
             placeholder="Add description (optional)"
             value={video.description}
             onChangeText={handleDescriptionChange}
@@ -376,21 +387,11 @@ function EmptyVideoState() {
   return <AppText className="mb-2 text-muted-foreground">No videos yet.</AppText>;
 }
 
-// These fontSize/lineHeight combos match no text-* class. deleteButton uses
-// IconButton's `style`: a caller className would be clobbered by its own.
+// Inputs take the ramp from tokens.type (RN TextInput has no `variant`).
+// deleteButton uses IconButton's `style`: a caller className would be clobbered by its own.
 const styles = StyleSheet.create({
   titleInput: {
-    fontSize: 20,
     fontWeight: 'bold',
-    lineHeight: 16,
-  },
-  bodyInput: {
-    fontSize: 16,
-    lineHeight: 26,
-  },
-  descriptionInput: {
-    fontSize: 16,
-    lineHeight: 16,
   },
   deleteButton: {
     padding: 14,

@@ -177,7 +177,9 @@ function ThemeModeOption({
       accessibilityLabel={`${label} theme`}
     >
       <Icon name={icon} size={22} color={color} />
-      <AppText className="text-[12px] font-semibold">{label}</AppText>
+      <AppText variant="caption" className="font-semibold">
+        {label}
+      </AppText>
     </Pressable>
   );
 }

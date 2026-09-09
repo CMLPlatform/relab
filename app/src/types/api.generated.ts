@@ -7534,8 +7534,8 @@ export interface operations {
   get_products_v1_products_get: {
     parameters: {
       query?: {
-        /** @description Use 'me' to list the current user's products */
-        owner?: 'me' | null;
+        /** @description Use 'me' for the current user's products, or a username for that user's public products */
+        owner?: string | null;
         /** @description Page number */
         page?: number;
         /** @description Page size */

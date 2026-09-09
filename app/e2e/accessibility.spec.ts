@@ -52,6 +52,28 @@ test.describe('Accessibility', () => {
     expect(await seriousViolations(page)).toEqual([]);
   });
 
+  // Landmarks, page title and entry focus: the three things a screen-reader
+  // user meets first on every route change.
+  test('products list exposes landmarks, a titled document and focus in main', async ({ page }) => {
+    await reachProductsPage(page);
+    await expect(page).toHaveTitle('Products · Relab');
+    await expect(page.getByRole('main')).toBeVisible();
+    // Below lg the bottom tab bar, at lg the TopNav: either way one primary nav.
+    await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
+    // Entry focus lands inside main (its h1 when there is one), never on <body>.
+    const focusedInMain = await page.evaluate(
+      () =>
+        document.activeElement?.closest('main') !== null &&
+        document.activeElement !== document.body,
+    );
+    expect(focusedInMain).toBe(true);
+  });
+
+  test('login page is titled', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page).toHaveTitle('Sign in · Relab');
+  });
+
   test('product detail has no serious a11y violations', async ({ page }) => {
     await reachProductsPage(page);
     await openSeededProductFromProductsPage(page);

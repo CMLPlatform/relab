@@ -35,6 +35,7 @@ const NEW_COMPONENT_URL_PATTERN = /\/products\/\d+\/components\/new$/;
 const BACK_CONTROL_NAME_PATTERN = /back/i;
 const URL_QUERY_STRING_PATTERN = /\?.*$/;
 const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
+const SAVE_STATUS_TEXT_PATTERN = /^Saved · ID \d+$/;
 
 test('an ordinary member can create, populate and publish a product', async ({ page, browser }) => {
   const stamp = Date.now();
@@ -54,7 +55,12 @@ test('an ordinary member can create, populate and publish a product', async ({ p
   await page.getByRole('button', { name: 'Add properties' }).click();
   const weight = page.getByPlaceholder('e.g. 12').first();
   await weight.fill('42');
+  // Number fields save on blur; wait for that PATCH so the later Save is
+  // only the photo upload.
   await weight.blur();
+  await expect(page.getByTestId('save-status')).toHaveText(SAVE_STATUS_TEXT_PATTERN, {
+    timeout: 10_000,
+  });
 
   const storedImages = page.locator('img[src*="/uploads/"]');
   const before = new Set(
@@ -72,7 +78,8 @@ test('an ordinary member can create, populate and publish a product', async ({ p
     timeout: 20_000,
   });
 
-  // Picking stages the file; Save is what uploads it.
+  // Picking stages the file; the photo is what keeps the button on "Save
+  // Product" (text fields already saved themselves), and Save uploads it.
   const [upload] = await Promise.all([
     page.waitForResponse(
       (r) => r.request().method() === 'POST' && PRODUCT_IMAGE_UPLOAD_PATH_PATTERN.test(r.url()),

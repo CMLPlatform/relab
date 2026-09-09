@@ -14,9 +14,10 @@ export default function ProductsTabLayout() {
   const colorScheme = useEffectiveColorScheme();
   const { isLg } = useBreakpoint();
   const theme = getAppTheme(colorScheme);
-  // TopNav covers the products list on >=lg web.
+  // TopNav replaces every stack header on >=lg web; detail and capture screens
+  // render their own PageHeaderRow there.
   return (
-    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' } }}>
+    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' }, headerShown: !isLg }}>
       <Stack.Screen
         name="products/index"
         options={{
@@ -25,7 +26,6 @@ export default function ProductsTabLayout() {
           ...getProductsHeaderStyle(theme),
           headerRight: () => <HeaderRightPill />,
           headerLeft: () => null,
-          headerShown: !isLg,
         }}
       />
       <Stack.Screen name="products/new" options={{ title: 'New product' }} />

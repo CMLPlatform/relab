@@ -28,6 +28,9 @@ export type ApiPublicProfileView = components['schemas']['PublicProfileView'];
 // ─── Product Types ───────────────────────────────────────────────────────────
 export type ApiProductTypeRead = components['schemas']['ProductTypeRead'];
 
+// ─── Stats ───────────────────────────────────────────────────────────────────
+export type ApiCategoryStat = components['schemas']['CategoryStat'];
+
 // ─── Pagination ──────────────────────────────────────────────────────────────
 type ProductPageSchemaName = Extract<ApiSchemaName, 'Page_TypeVar_Customized_ProductRead_'>;
 type StringPageSchemaName = Extract<ApiSchemaName, 'Page_TypeVar_Customized_str_'>;

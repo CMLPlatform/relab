@@ -1,6 +1,6 @@
+import Head from 'expo-router/head';
 import type { useForm } from 'react-hook-form';
 import { View } from 'react-native';
-
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { LoginBrandHero, LoginCard } from '@/components/auth/LoginSections';
 import { AppButton } from '@/components/base/AppButton';
@@ -61,13 +61,18 @@ export default function Onboarding() {
   const { control, submitUsername, isValid, isSubmitting } = useOnboardingScreen();
 
   return (
-    <AuthScreen>
-      <OnboardingBody
-        control={control}
-        submitUsername={submitUsername}
-        isSubmitting={isSubmitting}
-        isValid={isValid}
-      />
-    </AuthScreen>
+    <>
+      <Head>
+        <title>Choose a username · Relab</title>
+      </Head>
+      <AuthScreen>
+        <OnboardingBody
+          control={control}
+          submitUsername={submitUsername}
+          isSubmitting={isSubmitting}
+          isValid={isValid}
+        />
+      </AuthScreen>
+    </>
   );
 }

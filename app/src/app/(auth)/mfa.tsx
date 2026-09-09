@@ -1,3 +1,4 @@
+import Head from 'expo-router/head';
 import { useCallback } from 'react';
 import { View } from 'react-native';
 import { AuthCard, AuthFormError } from '@/components/auth/AuthCardSections';
@@ -25,64 +26,95 @@ export default function MfaScreen() {
   } = useMfaScreen();
   const submitCurrent = useCallback(() => submit(), [submit]);
 
+  // Opened without a pending challenge (direct visit, reload, or the session
+  // ended): nothing to type into, so explain and route back instead.
+  if (!tokenPresent) {
+    return (
+      <>
+        <Head>
+          <title>Two-step verification · Relab</title>
+        </Head>
+        <AuthScreen>
+          <AuthCard
+            title="Two-step verification"
+            subtitle={
+              <AppText variant="body" style={{ opacity: 0.7 }}>
+                Your sign-in session has ended. Sign in again to get a new code.
+              </AppText>
+            }
+          >
+            <AppButton variant="primary" onPress={goToLogin}>
+              Sign in again
+            </AppButton>
+          </AuthCard>
+        </AuthScreen>
+      </>
+    );
+  }
+
   return (
-    <AuthScreen>
-      <AuthCard
-        title="Two-step verification"
-        subtitle={
-          <AppText variant="body" style={{ opacity: 0.7 }}>
-            {useRecoveryCode
-              ? 'Enter one of your saved recovery codes.'
-              : 'Enter the 6-digit code from your authenticator app.'}
-          </AppText>
-        }
-      >
-        {useRecoveryCode ? (
-          <View style={{ gap: 4 }}>
-            <AppText variant="label">Recovery code</AppText>
-            <TextInput
-              value={recoveryCode}
-              onChangeText={handleRecoveryCodeChange}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              autoComplete="off"
-              editable={!isSubmitting && tokenPresent}
-              placeholder="One of your saved codes"
-              accessibilityLabel="Recovery code"
-              bordered
-            />
-          </View>
-        ) : (
-          <OtpInput
-            value={code}
-            onChangeText={handleCodeChange}
-            onComplete={submit}
-            disabled={isSubmitting || !tokenPresent}
-            hasError={Boolean(visibleError)}
-            autoFocus
-            label="Authentication code"
-          />
-        )}
-
-        <AuthFormError message={visibleError} />
-
-        <AppButton
-          variant="primary"
-          onPress={submitCurrent}
-          loading={isSubmitting}
-          disabled={isSubmitting || !canSubmit}
+    <>
+      <Head>
+        <title>Two-step verification · Relab</title>
+      </Head>
+      <AuthScreen>
+        <AuthCard
+          title="Two-step verification"
+          subtitle={
+            <AppText variant="body" style={{ opacity: 0.7 }}>
+              {useRecoveryCode
+                ? 'Enter one of your saved recovery codes.'
+                : 'Enter the 6-digit code from your authenticator app.'}
+            </AppText>
+          }
         >
-          {useRecoveryCode ? 'Sign in' : 'Continue'}
-        </AppButton>
+          {useRecoveryCode ? (
+            <View style={{ gap: 4 }}>
+              <AppText variant="label">Recovery code</AppText>
+              <TextInput
+                value={recoveryCode}
+                onChangeText={handleRecoveryCodeChange}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                autoComplete="off"
+                editable={!isSubmitting}
+                placeholder="One of your saved codes"
+                accessibilityLabel="Recovery code"
+                bordered
+              />
+            </View>
+          ) : (
+            <OtpInput
+              value={code}
+              onChangeText={handleCodeChange}
+              onComplete={submit}
+              disabled={isSubmitting}
+              hasError={Boolean(visibleError)}
+              autoFocus
+              label="Authentication code"
+            />
+          )}
 
-        <AppButton variant="ghost" onPress={toggleRecoveryMode} disabled={!tokenPresent}>
-          {useRecoveryCode ? 'Use your authenticator app' : 'Use a recovery code'}
-        </AppButton>
+          <AuthFormError message={visibleError} />
 
-        <AppButton variant="ghost" onPress={goToLogin}>
-          Back to login
-        </AppButton>
-      </AuthCard>
-    </AuthScreen>
+          <AppButton
+            variant="primary"
+            onPress={submitCurrent}
+            loading={isSubmitting}
+            disabled={isSubmitting || !canSubmit}
+          >
+            {useRecoveryCode ? 'Sign in' : 'Continue'}
+          </AppButton>
+
+          <AppButton variant="ghost" onPress={toggleRecoveryMode}>
+            {useRecoveryCode ? 'Use your authenticator app' : 'Use a recovery code'}
+          </AppButton>
+
+          <AppButton variant="ghost" onPress={goToLogin}>
+            Back to login
+          </AppButton>
+        </AuthCard>
+      </AuthScreen>
+    </>
   );
 }

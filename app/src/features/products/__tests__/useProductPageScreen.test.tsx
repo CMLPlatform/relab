@@ -212,6 +212,28 @@ describe('useProductPageScreen', () => {
     expect(mockAlert).not.toHaveBeenCalled();
   });
 
+  // Fields save on blur, so leaving a clean edit form (post-create included)
+  // is not a discard.
+  it('lets a stack pop through unprompted when every field is saved', async () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, id: 29 },
+      editMode: true,
+      isDirty: false,
+    });
+
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
+    const preventDefault = jest.fn();
+
+    await act(() => {
+      beforeRemoveListener?.({ preventDefault, data: { action: { type: 'GO_BACK' } } });
+    });
+
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(mockAlert).not.toHaveBeenCalled();
+    expect(result.current.editing.saveStatus).toBe('Saved · ID 29');
+  });
+
   it('uses the component parent role when navigating back before ancestor crumbs load', async () => {
     mockUseProductForm.mockReturnValueOnce({
       ...baseFormReturn,

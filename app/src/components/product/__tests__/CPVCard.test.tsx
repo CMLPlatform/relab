@@ -27,9 +27,12 @@ describe('CPVCard', () => {
     expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
   });
 
-  it('renders CPV name as sub text', async () => {
+  it('renders the CPV name as the heading, the description as a caption', async () => {
     await renderWithProviders(<CPVCard CPV={mockCPV} />);
-    expect(screen.getByText('03000000-1')).toBeOnTheScreen();
+    expect(screen.getByText('03000000-1')).toHaveStyle({ fontSize: 19 });
+    expect(screen.getByText('Agricultural products')).toHaveStyle({ fontSize: 13 });
+    // Not interactive without onPress: no button role.
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
   it("applies the danger text color when CPV.name is 'undefined'", async () => {
@@ -47,9 +50,9 @@ describe('CPVCard', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('renders actionElement instead of subText when provided', async () => {
+  it('renders actionElement below the text when provided', async () => {
     await renderWithProviders(<CPVCard CPV={mockCPV} actionElement={<Text>Custom Action</Text>} />);
     expect(screen.getByText('Custom Action')).toBeOnTheScreen();
-    expect(screen.queryByText('03000000-1')).toBeNull();
+    expect(screen.getByText('03000000-1')).toBeOnTheScreen();
   });
 });

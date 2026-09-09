@@ -1,3 +1,4 @@
+import Head from 'expo-router/head';
 import { useCallback, useRef } from 'react';
 import type { View } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
@@ -31,6 +32,9 @@ export default function CamerasScreen() {
 
   return (
     <>
+      <Head>
+        <title>Cameras · Relab</title>
+      </Head>
       <PageContainer phoneFullBleed>
         <SelectionBar
           visible={selection.selectionMode}

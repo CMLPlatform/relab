@@ -64,7 +64,10 @@ export function TopNav() {
   if (!(Platform.OS === 'web' && isLg) || NO_CHROME_PATHS.has(pathname)) return null;
 
   return (
-    <View className="border-border bg-background flex-row items-center gap-1 border-b px-4 py-2">
+    <View
+      role="banner"
+      className="border-border bg-background flex-row items-center gap-1 border-b px-4 py-2"
+    >
       <Pressable
         onPress={goToProducts}
         accessibilityRole="button"
@@ -78,7 +81,7 @@ export function TopNav() {
       >
         <BrandHeaderTitle isDark={theme.scheme === 'dark'} />
       </Pressable>
-      <View className="flex-row gap-1 pl-4">
+      <View role="navigation" accessibilityLabel="Primary" className="flex-row gap-1 pl-4">
         {destinations.map((destination) => (
           <TopNavDestinationItem
             key={destination.key}

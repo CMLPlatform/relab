@@ -125,7 +125,7 @@ export function ActiveStreamBanner() {
 const styles = StyleSheet.create({
   // NOTE: no local shadow; `tokens.elevation.overlay` is applied inline (One Tier Rule).
   elapsed: {
-    // Caption size; the `data` variant supplies the mono family and tabular figures.
+    // NOTE: caption size on the `data` face (mono, tabular figures); no mono-13 step exists.
     fontSize: 13,
   },
 });

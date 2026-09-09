@@ -44,7 +44,12 @@ module.exports = {
   reporters: process.env.CI
     ? ['default', ['jest-junit', { outputDirectory: '<rootDir>', outputName: 'junit.xml' }]]
     : ['default'],
-  coverageProvider: 'v8',
+  // Not 'v8': its byte-range coverage does not merge across the two projects
+  // below — a file the integration lane merely imports overwrites the unit
+  // lane's real numbers with near-zero (local-connection/shared.ts read 67%
+  // merged against 97% in the lane that actually tests it). Istanbul counters
+  // union correctly, and instrumenting is cheaper than remapping v8 ranges.
+  coverageProvider: 'babel',
   coverageDirectory: 'coverage',
   coverageReporters: ['lcov', 'text'],
   collectCoverageFrom: [
@@ -64,6 +69,8 @@ module.exports = {
     // by our own in src/components/base/, which is where our behaviour is tested.
     '!src/components/base/ui/**',
     '!src/components/product/ProductCardSkeleton.tsx',
+    // Type-only module: erased at compile time, so it can only ever report 0%.
+    '!src/theme/types.ts',
   ],
   coverageThreshold: {
     global: { statements: 90, branches: 85, functions: 85 },

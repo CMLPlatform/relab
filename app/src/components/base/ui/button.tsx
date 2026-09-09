@@ -6,7 +6,7 @@ import { cn } from '@/utils/cn';
 
 const buttonVariants = cva(
   cn(
-    'group shrink-0 flex-row items-center justify-center gap-2 rounded-md shadow-none',
+    'group min-h-11 shrink-0 flex-row items-center justify-center gap-2 rounded-md shadow-none',
     Platform.select({
       web: cn(
         "cursor-pointer aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive whitespace-nowrap outline-none transition-[color,background-color,border-color,box-shadow,opacity] disabled:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
@@ -29,9 +29,9 @@ const buttonVariants = cva(
           }),
         ),
         outline: cn(
-          'border-border bg-background active:bg-primary/10 dark:bg-input/30 dark:border-input border',
+          'border-border bg-background active:bg-primary/12 dark:bg-input/30 dark:border-input border',
           Platform.select({
-            web: 'hover:bg-primary/10',
+            web: 'hover:bg-primary/12',
           }),
         ),
         secondary: cn(
@@ -43,14 +43,16 @@ const buttonVariants = cva(
           'bg-primary/12 active:bg-primary/20',
           Platform.select({ web: 'hover:bg-primary/20' }),
         ),
-        ghost: cn('active:bg-primary/10', Platform.select({ web: 'hover:bg-primary/10' })),
+        ghost: cn('active:bg-primary/12', Platform.select({ web: 'hover:bg-primary/12' })),
         link: '',
       },
       size: {
-        default: cn('h-10 px-4 py-2 sm:h-9', Platform.select({ web: 'has-[>svg]:px-3' })),
-        sm: cn('h-9 gap-1.5 rounded-md px-3 sm:h-8', Platform.select({ web: 'has-[>svg]:px-2.5' })),
-        lg: cn('h-11 rounded-md px-6 sm:h-10', Platform.select({ web: 'has-[>svg]:px-4' })),
-        icon: 'h-10 w-10 sm:h-9 sm:w-9',
+        // Sizes vary padding only: the 44px tap floor (min-h-11 above) is not
+        // negotiable at any breakpoint (DESIGN.md, MIN_TAP_TARGET).
+        default: cn('px-4 py-2', Platform.select({ web: 'has-[>svg]:px-3' })),
+        sm: cn('gap-1.5 px-3', Platform.select({ web: 'has-[>svg]:px-2.5' })),
+        lg: cn('px-6', Platform.select({ web: 'has-[>svg]:px-4' })),
+        icon: 'h-11 w-11',
       },
     },
     defaultVariants: {

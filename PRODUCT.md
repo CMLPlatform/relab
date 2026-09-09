@@ -100,7 +100,8 @@ return `queued`, meaning the frame is on the device but not yet uploaded. A YouT
 flow sits on the same device.
 
 **Connectivity is not assumed.** Save mutations pause offline and fire on reconnect. The UI shows
-"Queued — sends when online".
+"Queued — sends when online". Web uses the browser's `online`/`offline` events; native registers an
+`expo-network` listener on `onlineManager` at the app root.
 
 **Screen sizes.** Phone layout is the base. Web adapts at `md` (768) and `lg` (1024); at `lg` a
 persistent `TopNav` replaces the stack header. `useBreakpoint()` is web-only, so native always reads
@@ -148,8 +149,6 @@ Recorded so nobody assumes them into existence:
   out. Do not design upload affordances for it.
 - **Non-image file upload is lab-only**, in a "Research files" block in the Media section, edit mode
   only, base product only. No general-purpose upload affordance exists outside it.
-- **Offline queueing is web-only in practice.** `onlineManager` has no native connectivity listener
-  yet, so a native build never pauses. Tracked as a TODO in `app/src/app/_layout.tsx`.
 - **No localization.** All copy is hardcoded English. This becomes a real barrier at the repair-café
   stage and is currently unplanned.
 - **Three documented design goals are not shipped:** the value-return-to-contributors loop, taxonomy
