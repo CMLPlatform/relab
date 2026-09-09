@@ -394,6 +394,57 @@ describe('useProductQueries', () => {
     );
   });
 
+  // Regression: every save PATCHes the whole record, and blur-saves fire one per
+  // field, so two in flight at once let the slower one land last and overwrite
+  // the newer one's values. Only a mutation scope serializes them — a shared
+  // mutationKey does not.
+  it('useSaveProductMutation runs overlapping saves one at a time, in send order', async () => {
+    const started: string[] = [];
+    const finished: string[] = [];
+    const release: Array<() => void> = [];
+    mockedSaveProduct.mockImplementation((product: Product) => {
+      started.push(product.name);
+      return new Promise<number>((resolve) => {
+        release.push(() => {
+          finished.push(product.name);
+          resolve(123);
+        });
+      });
+    });
+
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
+
+    let first: Promise<number> | undefined;
+    let second: Promise<number> | undefined;
+    await act(async () => {
+      const variables = { originalImages: [], originalVideos: [] };
+      first = result.current.mutateAsync({
+        ...variables,
+        product: { ...existingProduct, name: 'first' },
+      });
+      second = result.current.mutateAsync({
+        ...variables,
+        product: { ...existingProduct, name: 'second' },
+      });
+    });
+
+    // The second save waits its turn instead of racing the first.
+    expect(started).toEqual(['first']);
+
+    await act(async () => {
+      release[0]();
+      await first;
+    });
+    await waitFor(() => expect(started).toEqual(['first', 'second']));
+
+    await act(async () => {
+      release[1]();
+      await second;
+    });
+    // Send order is apply order, so the later (most complete) record wins.
+    expect(finished).toEqual(['first', 'second']);
+  });
+
   it('useSaveProductMutation does not touch the cache when saving fails', async () => {
     // Every mutation here was happy-path only. A save that fails must leave the
     // cache alone, or the UI reports a change the server never accepted.

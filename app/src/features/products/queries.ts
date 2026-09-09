@@ -213,6 +213,12 @@ export function useSaveProductMutation() {
     // Default networkMode 'online': the mutation pauses while offline and
     // fires on reconnect. Callers read `isPaused` to show QUEUED_OFFLINE_LABEL.
     mutationKey: SAVE_PRODUCT_MUTATION_KEY,
+    // Every save PATCHes the whole record, so two in flight at once let the
+    // slower one overwrite the newer one's fields. A scope makes react-query
+    // run them FIFO, so send order is apply order and the last (most complete)
+    // snapshot wins. mutationKey alone does not serialize: the cache keys
+    // strictly on `scope.id`.
+    scope: { id: 'saveProduct' },
     mutationFn: saveProductMutationFn,
     retry: isRetryableSaveError,
 
