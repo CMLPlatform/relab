@@ -31,7 +31,11 @@ export default defineConfig({
   webServer: {
     command: 'astro preview --port 18012 --host 127.0.0.1 --strictPort',
     url: DOCS_PREVIEW_URL,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse: this serves the dist/ the recipe just built, and a server
+    // left over from an earlier run keeps serving its own. Failing on a busy
+    // port names the leftover process; reusing it tests a build nobody made
+    // for this run.
+    reuseExistingServer: false,
     stdout: 'ignore',
     stderr: 'pipe',
     // Astro auto-detects an agentic shell (via am-i-vibing) and daemonizes `astro

@@ -71,6 +71,10 @@ export default defineConfig({
     : {
         command: 'pnpm exec serve dist -l 18011 --single --no-clipboard',
         url: 'http://localhost:18011',
-        reuseExistingServer: !process.env.CI,
+        // Never reuse: this serves the dist/ the recipe just built, and a server
+        // left over from an earlier run keeps serving its own. Failing on a busy
+        // port names the leftover process; reusing it tests a build nobody made
+        // for this run.
+        reuseExistingServer: false,
       },
 });
