@@ -29,8 +29,84 @@ Skipping this loses nothing for the stack itself; the compose caps stay authorit
 
 ### 1.1 Backup repository
 
-Follow "First backup" in the install guide (`mkdir`/`chown 65532`, `just backup prod`,
-`just restore-check prod`).
+Follow "First backup" in the install guide (`mkdir`/`chown 65532`, `just backup-init prod`,
+`just backup prod`, `just restore-check prod`).
+
+**The repository is never created automatically.** Create it once, before the first backup:
+
+```bash
+just backup-init prod
+```
+
+That also stamps the uploads volume with `.relab-volume`, naming its environment. A backup then
+refuses to run if the marker is missing or wrong: a deleted volume returns silently empty and the
+API refills it at startup, so existence alone proves nothing about the data inside. Do not re-run
+`backup-init` to silence this — it fails against an existing repository.
+
+**Marker missing, and the volume already has real uploads in it:** this host was deployed before
+the marker existed. Stamp it:
+
+```bash
+just backup-stamp-volume prod
+```
+
+Safe to re-run — it never overwrites an existing marker.
+
+**Marker missing, and the volume is genuinely empty:** the volume lost its contents or was
+replaced. No `just` recipe restores uploads live (`restore-check` only targets a scratch directory;
+`just restore` is Postgres-only), so restore by hand into the compose-managed volume
+(`relab_prod_user_uploads`); restic's `--target` restores under the absolute backed-up path
+(`/data/uploads`), hence the two-step copy below.
+
+Put the scratch directory on the backup disk, not `/tmp` — a full restore there can fill the disk
+Postgres and Docker use, and the watchdog only checks `BACKUP_HOST_DIR`. It must be writable by uid
+65532 (the backup image's uid); `--no-lock` is required because the repository mounts read-only.
+
+```bash
+just stack prod down YES
+SCRATCH="${BACKUP_HOST_DIR:-./backups}/uploads-restore"
+mkdir -p "$SCRATCH"
+docker run --rm -v "$SCRATCH:/restore" --entrypoint chown alpine:3.22 -R 65532:65532 /restore
+docker run --rm \
+  -v "${BACKUP_HOST_DIR:-./backups}/restic:/restic:ro" \
+  -v "$(pwd)/secrets/prod/restic_password:/run/secrets/restic_password:ro" \
+  -v "$SCRATCH:/restore" \
+  -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
+  --entrypoint restic relab-backup:prod-local \
+  restore --no-lock latest --repo /restic --tag user-uploads --target /restore
+docker run --rm \
+  -v relab_prod_user_uploads:/data/uploads \
+  -v "$SCRATCH:/restore:ro" \
+  --entrypoint sh relab-backup:prod-local -c \
+  'rm -rf /data/uploads/* && cp -a /restore/data/uploads/. /data/uploads/'
+docker run --rm -v "$SCRATCH:/restore" --entrypoint chown alpine:3.22 -R "$(id -u):$(id -g)" /restore
+rm -rf "$SCRATCH"
+just stack prod up YES
+```
+
+The restored tree carries the marker of whichever environment it was backed up from — `just
+backup-stamp-volume prod` cannot fix that (it never overwrites), so rewrite it by hand if the source
+snapshot was another environment's:
+
+```bash
+docker run --rm -v relab_prod_user_uploads:/data/uploads --entrypoint sh relab-backup:prod-local -c \
+  'printf prod >/data/uploads/.relab-volume.tmp && mv /data/uploads/.relab-volume.tmp /data/uploads/.relab-volume'
+```
+
+**Marker present but names another environment:** the wrong volume is mounted, typically a mistyped
+`-p`/compose project. Re-point the mount; restoring here would overwrite correct data with the
+wrong environment's.
+
+A missing repository fails the backup with restic exit 10 rather than creating one — on purpose.
+An empty directory for the wrong reason (a wrong `BACKUP_HOST_DIR`, a swapped disk) looks just like
+a first run; auto-creating there would exit 0 after backing up into an empty repo on the wrong
+filesystem, leaving the real archive unreachable.
+
+**If an existing host starts reporting that the repository is not readable, do not run
+`backup-init`.** That message means a repository that was working no longer is, and initializing
+over it replaces the problem with an empty archive that reports success. Check `findmnt -T
+"$BACKUP_HOST_DIR"`, then `secrets/prod/restic_password`. `backup-init` is for a host that has never
+had a backup.
 
 `BACKUP_HOST_DIR` is one value shared by every stack on the host, so two environments on one machine
 would share a restic directory. It fails closed, but only one of them gets backups. Give each host a
@@ -123,10 +199,10 @@ just deploy-secrets-check   # reports if the remote is still undefined
 > recommendation** for it. The commonly repeated "1/12 monthly" is forum folklore, not upstream
 > guidance. Pick a cadence and write down why.
 
-**This does not give immutability.** restic must delete in order to prune, so no credential
-arrangement makes the offsite copy append-only. A compromised share token can erase prod's off-host
-backups, leaving the local repository as the only copy. Object-lock storage (B2, Wasabi, S3) or a
-restic REST server with `--append-only` is the only real defence; WebDAV is neither.
+**This does not give immutability.** restic must delete to prune, so no credential setup makes the
+offsite copy append-only: a compromised share token can erase prod's off-host backups, leaving the
+local repository the only copy. Real protection needs object-lock storage (B2, Wasabi, S3) or a
+restic REST server with `--append-only` — WebDAV offers neither.
 
 ### 1.4 What the watchdog checks
 
@@ -135,12 +211,20 @@ checks read systemd's `Result` of each unit's **last run**, so after fixing a jo
 running the unit (`sudo systemctl reset-failed relab-backup-maintenance@prod.service && sudo
 systemctl start relab-backup-maintenance@prod.service`), not the `just` recipe, which systemd never
 sees. `reset-failed` also lifts the start-rate limit that a few consecutive timer failures trip,
-which otherwise refuses a manual start too. It checks:
+which otherwise refuses a manual start too.
+
+That applies to a crash. Exit 3 differs: the unit refused to archive on purpose (an emptied uploads
+volume, a collapsed dump, a missing or mismatched marker), and `RestartPreventExitStatus=3` stops
+`relab-backup@.service` retrying. `reset-failed` clears the alert, not the cause — it refuses again
+until the guard's trigger is fixed (see 1.1). It checks:
 
 - every stack service (running, and healthy where a healthcheck exists)
 - newest snapshot age
-- free space on the filesystem holding the restic repository (alerts at 85% used;
-  `BACKUP_DISK_ALERT_PCENT` overrides)
+- free space on the filesystem holding the restic repository: alerts at 85% used
+  (`BACKUP_DISK_ALERT_PCENT`) **or** under 25 GiB free (`BACKUP_DISK_MIN_FREE_GB`, 0 disables).
+  Whichever threshold is crossed first triggers the alert — usually the percentage on a large disk;
+  the floor covers a repository sharing a small filesystem with the database or the Docker data
+  root.
 - all four scheduled-job timers (installed, enabled, active, last run not failed, last trigger not
   overdue)
 - that `PING_WATCHDOG` is filled in
@@ -366,7 +450,7 @@ on dynamic SQL it cannot read.
 Otherwise the backup is the recovery path:
 
 ```bash
-just restore-check prod    # proves the snapshot loads, into a scratch DB
+just restore-check prod    # proves the snapshot loads: DB into a scratch container, uploads into a scratch dir
 ```
 
 For a real restore, pick the snapshot and restore it into the live database:
@@ -375,6 +459,9 @@ For a real restore, pick the snapshot and restore it into the live database:
 just snapshots prod           # read-only; ids, dates, and dump sizes
 just restore prod YES <id>    # stops the api, restores, restarts it
 ```
+
+These restore Postgres only. User uploads need a separate manual restore; see "Marker missing, and
+the volume is genuinely empty" in 1.1.
 
 Look at the sizes before choosing. `latest` is the default and is usually right, but it is wrong
 when the most recent backup is the damage. `just restore` drops schema `public` and replaces it, so

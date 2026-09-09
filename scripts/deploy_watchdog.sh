@@ -6,9 +6,9 @@
 set -euo pipefail
 
 # Reducer for check 2, in a variable so scripts/test_ops.sh can drive the real code
-# instead of a copy. Both backup paths must be fresh: a succeeding database backup
-# must not mask a failing upload one, so report the older of the two tags (tags per
-# backend/scripts/backup/backup_relab_restic.sh).
+# instead of a copy. Reports every tag (per backend/scripts/backup/backup_relab_restic.sh)
+# with its own age, oldest first, rather than a bare min(): a guard refusal now leaves one
+# half fresh routinely, and the alert has to name which half is stale.
 SNAPSHOT_AGE_PY='
 import datetime, json, re, sys
 
@@ -21,7 +21,10 @@ for snapshot in json.load(sys.stdin):
     for tag in snapshot.get("tags") or []:
         newest[tag] = max(newest.get(tag, 0), taken)
 
-print(min(newest.get(tag, 0) for tag in ("postgres", "user-uploads")))
+# "<tag> <epoch>" per line, oldest first (0 = never seen); ties order by tag name so
+# the first line is always the same one for the same input.
+for taken, tag in sorted((newest.get(tag, 0), tag) for tag in ("postgres", "user-uploads")):
+    print(tag, taken)
 '
 
 # Reducer for check 5, in a function so scripts/test_ops.sh can drive the real code.
@@ -212,7 +215,7 @@ ping_url_alerts() {
 # Reducer for check 2b. `pcent` is df's used percentage for the filesystem holding
 # the restic repository, as a bare number; "" means df could not read it.
 disk_usage_alerts() {
-    local env="$1" path="$2" pcent="$3" threshold="$4"
+    local env="$1" path="$2" pcent="$3" threshold="$4" avail_gib="${5:-}" min_free_gib="${6:-0}"
     if [[ ! "$pcent" =~ ^[0-9]+$ ]]; then
         echo "ALERT[$env]: cannot read free space for the backup directory $path" >&2
         return 1
@@ -221,7 +224,42 @@ disk_usage_alerts() {
         echo "ALERT[$env]: the filesystem holding $path is ${pcent}% full (limit ${threshold}%); hourly snapshots will fill it" >&2
         return 1
     fi
+    # Second threshold, for a repository on a filesystem small enough that the percent
+    # limit leaves only a few gigabytes. Unreachable on a large disk, which is intended.
+    if ((min_free_gib > 0)); then
+        if [[ ! "$avail_gib" =~ ^[0-9]+$ ]]; then
+            echo "ALERT[$env]: cannot read free space for the backup directory $path" >&2
+            return 1
+        fi
+        if ((avail_gib < min_free_gib)); then
+            echo "ALERT[$env]: the filesystem holding $path has ${avail_gib}GiB free (minimum ${min_free_gib}GiB); hourly snapshots will fill it" >&2
+            return 1
+        fi
+    fi
     return 0
+}
+
+# Turns check 2's reducer output ("<tag> <epoch>" per line, oldest first) into
+# "<stale_tag> <newest_epoch> <detail>": line 1 decides the alert, the rest fill in
+# per-tag detail. Fallbacks cover a failed query, which yields no lines.
+format_snapshot_alert() {
+    local ages="$1" now="$2" tag epoch newest_epoch=0 stale_tag="postgres/user-uploads" detail=""
+    while read -r tag epoch; do
+        [[ "$epoch" =~ ^[0-9]+$ ]] || continue
+        if [[ -z "$detail" ]]; then
+            newest_epoch="$epoch"
+            stale_tag="$tag"
+        else
+            detail="$detail, "
+        fi
+        if ((epoch == 0)); then
+            detail="${detail}${tag} never"
+        else
+            detail="${detail}${tag} $(((now - epoch) / 3600))h old"
+        fi
+    done <<<"$ages"
+    # No detail on a failed query, and no trailing separator for one either.
+    echo "$stale_tag $newest_epoch${detail:+ $detail}"
 }
 
 # Sourcing this script (scripts/test_ops.sh) only wants SNAPSHOT_AGE_PY; the live
@@ -303,7 +341,7 @@ done
 # Compose writes progress to stderr, so keep stderr in a file rather than merging it into
 # the JSON. `timeout` bounds a hung docker or restic. compose_args is used directly
 # instead of run_deploy_compose so `timeout` can prefix the real command.
-newest_epoch=0
+snapshot_ages=""
 snapshot_error=""
 snapshot_status=0
 snapshots_json="$(
@@ -320,15 +358,20 @@ if ((snapshot_status == 124)); then
     snapshot_error="timed out after 600s (hung docker or restic)"
 elif ((snapshot_status != 0)); then
     snapshot_error="$(tr '\n' ' ' <"$stderr_file")"
-elif ! newest_epoch="$(printf '%s' "$snapshots_json" | python3 -c "$SNAPSHOT_AGE_PY" 2>"$stderr_file")"; then
+elif ! snapshot_ages="$(printf '%s' "$snapshots_json" | python3 -c "$SNAPSHOT_AGE_PY" 2>"$stderr_file")"; then
     snapshot_error="$(tr '\n' ' ' <"$stderr_file")"
-    newest_epoch=0
+    snapshot_ages=""
 fi
-[[ "$newest_epoch" =~ ^[0-9]+$ ]] || newest_epoch=0
 
 now="$(date +%s)"
+read -r stale_tag newest_epoch snapshot_detail \
+    <<<"$(format_snapshot_alert "$snapshot_ages" "$now")"
+
 if ((newest_epoch == 0 || now - newest_epoch > max_age_hours * 3600)); then
-    reason="newest postgres/user-uploads snapshot is missing or older than ${max_age_hours}h"
+    reason="newest ${stale_tag} snapshot is missing or older than ${max_age_hours}h"
+    if [[ -n "$snapshot_detail" ]]; then
+        reason="$reason ($snapshot_detail)"
+    fi
     if [[ -n "$snapshot_error" ]]; then
         reason="$reason (snapshot query failed: $snapshot_error)"
     fi
@@ -348,7 +391,9 @@ backup_host_dir="${BACKUP_HOST_DIR:-}"
     printf '%s' "${BACKUP_HOST_DIR:-./backups}"
 )"
 disk_pcent="$(timeout 30 df --output=pcent "$backup_host_dir" 2>/dev/null | tail -n1 | tr -dc '0-9' || true)"
-disk_usage_alerts "$env" "$backup_host_dir" "$disk_pcent" "${BACKUP_DISK_ALERT_PCENT:-85}" || failures=$((failures + 1))
+disk_avail_gib="$(timeout 30 df --output=avail -BG "$backup_host_dir" 2>/dev/null | tail -n1 | tr -dc '0-9' || true)"
+disk_usage_alerts "$env" "$backup_host_dir" "$disk_pcent" "${BACKUP_DISK_ALERT_PCENT:-85}" \
+    "$disk_avail_gib" "${BACKUP_DISK_MIN_FREE_GB:-25}" || failures=$((failures + 1))
 
 # Check 3: all four scheduled-job timers. Check 2 proves a recent snapshot exists, i.e.
 # that some run produced output. This proves each job is still scheduled and that its

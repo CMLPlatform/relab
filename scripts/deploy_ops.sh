@@ -568,6 +568,28 @@ require_rollback_images() {
     [[ "$missing" -eq 0 ]] || exit 2
 }
 
+# Stamp the uploads volume with its environment, so backup runs can tell "lost its
+# contents" from "first backup". Written through api, the only service mounting
+# user_uploads writable; path is compose.yaml's api mount point.
+# `test -s`, not `-f`: a zero-byte marker from an interrupted write would satisfy -f
+# forever while backups read it as a wrong environment and refuse every run --
+# temp-file-and-mv prevents the partial write.
+# A marker naming another environment is never overwritten (DEPLOY-PROD.md Part 1.1
+# covers that restore case by hand) but fails loudly instead of exiting 0.
+stamp_uploads_volume() {
+    local env="$1"
+    # shellcheck disable=SC2016  # $0/$1 are the inner sh's args, not this shell's
+    run_deploy_compose "$env" run --rm --no-deps -T --entrypoint sh api -c \
+        'if test -s "$0"; then
+            found=$(tr -d "[:space:]" <"$0")
+            test "$found" = "$1" && exit 0
+            echo "error: $0 says [$found] but this run is [$1]; never overwritten here, see deploy/DEPLOY-PROD.md Part 1.1 to rewrite it by hand" >&2
+            exit 1
+         fi
+         printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0"' \
+        /opt/relab/backend/data/uploads/.relab-volume "$env"
+}
+
 # The uid every deploy service runs as. Keep in step with x-app-user in
 # compose.deploy.yaml and APP_UID in backend/Dockerfile and backend/Dockerfile.backups.
 DEPLOY_APP_UID=65532
@@ -683,6 +705,19 @@ stack_command() {
                 -e "BACKUP_MANUAL=${BACKUP_MANUAL:-false}" \
                 -e "BACKUP_MAINTENANCE=${BACKUP_MAINTENANCE:-auto}" \
                 --name "relab-backup-$env" backup
+            ;;
+        backup-init)
+            # One-time provisioning: backup runs never initialize, so an empty directory
+            # cannot be mistaken for a first run. --no-deps: this must not start postgres.
+            run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
+                --entrypoint restic backup init
+            stamp_uploads_volume "$env"
+            ;;
+        backup-stamp-volume)
+            # Separate from backup-init: `restic init` fails against an existing
+            # repository, aborting before the stamp ran -- so a host deployed before the
+            # marker existed could never get one, and uploads backups would refuse forever.
+            stamp_uploads_volume "$env"
             ;;
         backup-maintenance)
             # Retention, integrity check and offsite copy, without taking a snapshot.

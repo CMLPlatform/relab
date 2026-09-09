@@ -584,6 +584,21 @@ stack env command *args:
 backup env manual='':
     @BACKUP_MANUAL={{ if manual == "manual" { "true" } else if manual == "" { "false" } else { error("second argument must be `manual` or omitted, got `" + manual + "`") } }} bash scripts/deploy_ops.sh stack {{ quote(env) }} backup
 
+# Create the restic repository. Once per environment, before the first backup: backup
+# runs never create one. Check the mount before running this against an existing host.
+[group('backup')]
+[doc('Create the restic repository for one environment (one-time, before the first backup)')]
+backup-init env:
+    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup-init
+
+# Write .relab-volume into the uploads volume, naming the environment it belongs to.
+# `backup-init` does this too, but it cannot run twice, so this is how a host deployed
+# before the marker existed acquires one. Safe to re-run: it never overwrites.
+[group('backup')]
+[doc('Stamp the uploads volume with the environment it belongs to (safe to re-run)')]
+backup-stamp-volume env:
+    @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup-stamp-volume
+
 # Backup upkeep only: retention, integrity check, offsite copy — no new snapshot.
 # Run daily by relab-backup-maintenance@<env>.timer; the hourly backup skips this work.
 [group('backup')]

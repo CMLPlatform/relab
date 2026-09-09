@@ -239,7 +239,15 @@ services:
         condition: service_healthy
     volumes:
       - user_uploads:/data/uploads:ro
-      - ${BACKUP_HOST_DIR:-./backups}/restic:/restic
+      # A short-syntax bind lets Docker create a missing source directory, so a backup
+      # disk that failed to mount would get an empty one invented under it and the run
+      # would back up into nothing. create_host_path: false fails the run instead, and
+      # it needs this longer syntax.
+      - type: bind
+        source: ${BACKUP_HOST_DIR:-./backups}/restic
+        target: /restic
+        bind:
+          create_host_path: false
       # restic's cache must outlive the container: this is a one-shot with --rm, so
       # a cache on the tmpfs below would be cold every run and re-download the whole
       # offsite index over WebDAV nightly.
@@ -253,6 +261,9 @@ services:
       RESTIC_PASSWORD_FILE: /run/secrets/restic_password
       RESTIC_REPOSITORY: /restic
       RESTIC_CACHE_DIR: /var/cache/restic
+      # Lets the run assert the uploads volume is this environment's, not another
+      # stack's after a mistyped -p. Compared against .relab-volume inside the volume.
+      RELAB_ENVIRONMENT: ${ENVIRONMENT:?}
       XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
       BACKUP_WORK_DIR: /tmp/relab-backups

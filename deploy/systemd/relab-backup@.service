@@ -38,6 +38,11 @@ ExecStopPost=-/usr/bin/docker rm -f relab-backup-%i
 # Short enough to land well before the next hourly trigger.
 Restart=on-failure
 RestartSec=5min
+# Exit 3 is a guard refusing to archive (emptied uploads volume, collapsed dump, missing
+# environment marker) -- permanent until a human clears it, so retries would just write
+# more snapshots and send more /fail pings for nothing. The next timer fire still tries
+# again. See EXIT_REFUSED in backend/scripts/backup/backup_relab_restic.sh.
+RestartPreventExitStatus=3
 # Low CPU and I/O priority, but not the `idle` I/O class: under `idle` a host that
 # also runs compute jobs can starve this until its timeout kills it.
 Nice=10

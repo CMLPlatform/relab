@@ -182,8 +182,9 @@ status=0
 assert_eq "unconfirmed action is refused" 1 "$status"
 
 # ---------------------------------------------------------------------------
-# Watchdog snapshot age: the reducer must report the OLDER of the two backup tags,
-# and 0 (which the caller turns into an alert) whenever a tag is missing.
+# Watchdog snapshot age: reports every tag with its own age, oldest first, 0 when a tag
+# is missing. Order is load-bearing: the caller names line 1's tag in the alert, and
+# "postgres fresh, uploads refused" is routine now that a refusal skips one step.
 # ---------------------------------------------------------------------------
 older="$(date -u -d '2026-08-01T00:00:00+00:00' +%s)"
 newer="$(date -u -d '2026-08-02T03:04:05+00:00' +%s)"
@@ -192,23 +193,25 @@ snapshot_age() {
     local out status
     out="$(printf '%s' "$1" | python3 -c "$SNAPSHOT_AGE_PY" 2>/dev/null)"
     status=$?
-    printf '%s|%s' "$status" "$out"
+    printf '%s|%s' "$status" "$(printf '%s' "$out" | paste -sd';')"
 }
 
-assert_eq "no snapshots reports 0" "0|0" "$(snapshot_age '[]')"
-assert_eq "only postgres tagged reports 0" "0|0" \
+assert_eq "no snapshots reports both tags as 0" "0|postgres 0;user-uploads 0" "$(snapshot_age '[]')"
+assert_eq "only postgres tagged puts the missing tag first" "0|user-uploads 0;postgres $newer" \
     "$(snapshot_age '[{"time":"2026-08-02T03:04:05.123456789+00:00","tags":["postgres"]}]')"
-assert_eq "both tags report the older one" "0|$older" "$(snapshot_age '[
+assert_eq "the older tag is reported first, with both ages" "0|user-uploads $older;postgres $newer" \
+    "$(snapshot_age '[
   {"time":"2026-08-02T03:04:05.123456789+00:00","tags":["postgres"]},
   {"time":"2026-08-01T00:00:00.000000001+00:00","tags":["user-uploads"]}
 ]')"
 # Out of order on purpose: each tag keeps its newest snapshot, not the last one seen.
-assert_eq "newest per tag wins before the min" "0|$newer" "$(snapshot_age '[
+assert_eq "newest per tag wins, and equal ages order by tag name" "0|postgres $newer;user-uploads $newer" \
+    "$(snapshot_age '[
   {"time":"2026-08-02T03:04:05.123456789+00:00","tags":["postgres","user-uploads"]},
   {"time":"2026-07-01T00:00:00.1+00:00","tags":["postgres"]}
 ]')"
 assert_eq "malformed JSON exits non-zero" "1|" "$(snapshot_age 'not json')"
-assert_eq "snapshot without tags exits 0 with 0" "0|0" \
+assert_eq "snapshot without tags exits 0 with both tags at 0" "0|postgres 0;user-uploads 0" \
     "$(snapshot_age '[{"time":"2026-08-02T03:04:05.1+00:00"}]')"
 
 # ---------------------------------------------------------------------------
@@ -440,14 +443,16 @@ assert_eq "offsite: no config derives nothing" "" \
 # `restic` and the dump file are stubbed; no repository and no docker are involved.
 # ---------------------------------------------------------------------------
 collapse_guard() {
-    local new_bytes="$1" prev_bytes="$2" ratio="${3:-}" restic_exit="${4:-0}" tmp out status count=1
+    local tag="$1" new_bytes="$2" prev_bytes="$3" ratio="${4:-}" restic_exit="${5:-0}" tmp out status count=1 tagged=0
     tmp="$(mktemp -d)"
     # A stub restic on PATH, answering only the `stats --json` call the guard makes,
     # in restic's real shape: an empty repository is exit 0 with snapshots_count 0
-    # plus a warning on stderr, not an error.
+    # plus a warning on stderr, not an error. It records its arguments so the caller
+    # can prove which tag was compared.
     [[ "$prev_bytes" == 0 ]] && count=0
     cat >"$tmp/restic" <<EOS
 #!/usr/bin/env bash
+printf '%s\n' "\$*" >>"$tmp/args"
 [[ "$restic_exit" == 0 ]] || { echo "Fatal: unable to open repository: repository is already locked" >&2; exit $restic_exit; }
 [[ "$count" == 0 ]] && echo 'Ignoring "latest": no snapshot matched given filter' >&2
 printf %s '{"total_size":$prev_bytes,"snapshots_count":$count}'
@@ -457,60 +462,235 @@ EOS
     out="$(
         PATH="$tmp:$PATH" RESTIC_MIN_DUMP_RATIO="$ratio" bash -c '
             set -euo pipefail
-            # Define just enough of the script to call the guard in isolation.
+            # Define just enough of the script to call the guard in isolation; constants
+            # come from the script itself so a renamed or renumbered exit code fails this
+            # harness instead of silently going stale.
             log() { printf "%s\n" "$*"; }
-            eval "$(sed -n "/^assert_dump_not_collapsed()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
-            assert_dump_not_collapsed "$1"
-        ' _ "$tmp/dump" 2>&1
+            eval "$(grep -E "^(EXIT_REFUSED|EXIT_STEP_ERROR|RESTIC_RETRY_LOCK)=" backend/scripts/backup/backup_relab_restic.sh)"
+            eval "$(sed -n "/^assert_not_collapsed()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+            assert_not_collapsed "$2" "$(stat -c %s "$1")"
+        ' _ "$tmp/dump" "$tag" 2>&1
     )"
     status=$?
+    # Field 4: the tag the guard asked restic about, and that it waited for restic's lock
+    # (without --retry-lock, the 02:30 prune's lock turns an ordinary collision into a
+    # skipped hour). Without the tag check, uploads is just postgres with smaller numbers.
+    [[ -f "$tmp/args" ]] && tagged="$(grep -c -- "stats latest --tag ${tag} --retry-lock" "$tmp/args")"
     rm -rf "$tmp"
-    printf '%s|%s|%s' "$status" "$(printf '%s' "$out" | grep -c 'refusing to archive')" \
-        "$(printf '%s' "$out" | grep -c 'restic exit')"
+    printf '%s|%s|%s|%s' "$status" "$(printf '%s' "$out" | grep -c 'refusing to archive')" \
+        "$(printf '%s' "$out" | grep -c 'restic exit')" "$tagged"
 }
 
-assert_eq "a dump collapsed to 23% of the previous snapshot is refused" "1|1|0" \
-    "$(collapse_guard 59353 259672)"
-assert_eq "a dump the same size as the previous snapshot is archived" "0|0|0" \
-    "$(collapse_guard 259672 259672)"
-assert_eq "an ordinary shrink above the ratio is archived" "0|0|0" \
-    "$(collapse_guard 200000 259672)"
-assert_eq "RESTIC_MIN_DUMP_RATIO=0 archives a collapsed dump deliberately" "0|0|0" \
-    "$(collapse_guard 59353 259672 0)"
-assert_eq "no previous snapshot means nothing to compare against" "0|0|0" \
-    "$(collapse_guard 59353 0)"
-# The guard fails closed: a restic error (lock held by maintenance, repository
-# unreadable) is not "no previous snapshot".
-assert_eq "a restic failure refuses the dump instead of failing open" "1|0|1" \
-    "$(collapse_guard 59353 259672 '' 1)"
+assert_eq "a dump collapsed to 23% of the previous snapshot is refused" "3|1|0|1" \
+    "$(collapse_guard postgres 59353 259672)"
+assert_eq "a dump the same size as the previous snapshot is archived" "0|0|0|1" \
+    "$(collapse_guard postgres 259672 259672)"
+assert_eq "an ordinary shrink above the ratio is archived" "0|0|0|1" \
+    "$(collapse_guard postgres 200000 259672)"
+# Field 4 is 0 here on purpose: the opt-out returns before restic is consulted at all.
+assert_eq "RESTIC_MIN_DUMP_RATIO=0 archives a collapsed dump deliberately" "0|0|0|0" \
+    "$(collapse_guard postgres 59353 259672 0)"
+assert_eq "no previous snapshot means nothing to compare against" "0|0|0|1" \
+    "$(collapse_guard postgres 59353 0)"
+# Fails closed: a restic error (lock held, repository unreadable) is not "no previous
+# snapshot" -- but it's not a refusal either (status 1, not 3): nothing proves the data
+# is bad, and RestartPreventExitStatus would suppress the retry that clears it.
+assert_eq "a restic failure skips the dump instead of failing open, and stays retryable" "1|0|1|1" \
+    "$(collapse_guard postgres 59353 259672 '' 1)"
 
 # ---------------------------------------------------------------------------
-# The hourly-vs-daily split in backup_relab_restic.sh: BACKUP_MAINTENANCE decides
-# which steps a run performs. Every step is stubbed to record its name; the output is
-# the ordered list of steps that ran.
+# backup_relab_restic.sh: the uploads volume has to identify itself. Docker recreates a
+# missing named volume empty and the app refills files/ and images/, so "the directory
+# exists" proves nothing about whose data is in it.
+# ---------------------------------------------------------------------------
+canary_check() {
+    # $3 is an optional chmod mode for the marker.
+    local canary_content="$1" run_env="$2" mode="${3:-}" tmp out status
+    # The marker's name comes out of the script, not out of this harness: hardcoding it
+    # here would leave all of these green after the real constant is renamed.
+    local UPLOADS_CANARY_NAME=""
+    eval "$(grep -m1 '^UPLOADS_CANARY_NAME=' backend/scripts/backup/backup_relab_restic.sh)"
+    tmp="$(mktemp -d)"
+    case "$canary_content" in
+        '<absent>') ;;
+        '<empty>') : >"$tmp/$UPLOADS_CANARY_NAME" ;;
+        *) printf '%s\n' "$canary_content" >"$tmp/$UPLOADS_CANARY_NAME" ;;
+    esac
+    [[ -z "$mode" ]] || chmod "$mode" "$tmp/$UPLOADS_CANARY_NAME"
+    out="$(
+        export UPLOADS_DIR="$tmp" UPLOADS_CANARY_NAME
+        # `<unset>` is a genuinely absent variable, not the empty string.
+        if [[ "$run_env" == "<unset>" ]]; then
+            unset RELAB_ENVIRONMENT
+        else
+            export RELAB_ENVIRONMENT="$run_env"
+        fi
+        bash -c '
+            set -euo pipefail
+            log() { printf "%s\n" "$*"; }
+            eval "$(sed -n "/^assert_uploads_volume_identity()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+            assert_uploads_volume_identity
+        ' 2>&1
+    )"
+    status=$?
+    chmod -R u+rwX "$tmp"
+    rm -rf "$tmp"
+    # The message carries a mktemp path; report which failure fired, not the path.
+    # The wrong-env reason carries the value the marker reported, because an empty
+    # marker and another environment's marker take the same branch.
+    local reason=""
+    grep -q 'is missing' <<<"$out" && reason=missing
+    grep -q 'is not readable' <<<"$out" && reason=unreadable
+    grep -q "says '" <<<"$out" && reason="wrong-env:$(sed -n "s/.*says '\([^']*\)'.*/\1/p" <<<"$out")"
+    grep -q 'skipping the uploads volume identity check' <<<"$out" && reason=skipped
+    printf '%s|%s' "$status" "$reason"
+}
+
+assert_eq "a volume marked for this environment is archived" "0|" "$(canary_check prod prod)"
+assert_eq "a volume that lost its marker is refused, not archived empty" \
+    "1|missing" "$(canary_check '<absent>' prod)"
+assert_eq "another environment's volume is refused" \
+    "1|wrong-env:staging" "$(canary_check staging prod)"
+# A truncated write leaves the marker present but empty, which is not this environment
+# either; it takes the wrong-env branch and reports an empty value.
+assert_eq "an empty marker is refused like another environment's" \
+    "1|wrong-env:" "$(canary_check '<empty>' prod)"
+# Without the explicit -r branch this aborts under `set -e` with a bare "Permission
+# denied" instead of a diagnostic -- the uploads tree has carried wrong ownership before.
+# Skipped for root, for whom -r is always true.
+if [[ "$(id -u)" != 0 ]]; then
+    assert_eq "an unreadable marker is refused with a diagnostic, not a bare read error" \
+        "1|unreadable" "$(canary_check prod prod 000)"
+fi
+# Dev and CI run without RELAB_ENVIRONMENT, so the check is off rather than failing.
+# The guard tests -n, so unset and empty both take this path.
+assert_eq "an empty environment skips the check" "0|skipped" "$(canary_check '<absent>' '')"
+assert_eq "an unset environment skips the check" "0|skipped" "$(canary_check '<absent>' '<unset>')"
+
+# The collapse guard is shared by both tags now, so uploads inherits the postgres
+# behaviour: a volume that shrank past the ratio is refused before it can be archived,
+# and field 4 pins that it was the uploads snapshot it compared against.
+assert_eq "an uploads tree collapsed against the previous snapshot is refused" "3|1|0|1" \
+    "$(collapse_guard user-uploads 4096 259672)"
+
+# uploads_size counts file bytes only, the way `restic stats` does in restore-size mode.
+# `du -sb` would add each directory's own 4096 bytes, so a tree that lost every file but
+# kept its skeleton would still measure close enough to pass the collapse guard.
+uploads_bytes() {
+    local file_bytes="$1" tmp out
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/files" "$tmp/images"
+    [[ "$file_bytes" == 0 ]] || head -c "$file_bytes" /dev/zero >"$tmp/files/a.bin"
+    out="$(
+        UPLOADS_DIR="$tmp" bash -c '
+            set -euo pipefail
+            eval "$(sed -n "/^uploads_size()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+            uploads_size
+        ' 2>&1
+    )"
+    rm -rf "$tmp"
+    printf '%s' "$out"
+}
+
+assert_eq "an emptied tree that kept its directories sizes 0" 0 "$(uploads_bytes 0)"
+assert_eq "file bytes are summed" 3000 "$(uploads_bytes 3000)"
+
+# backup_uploads end to end: restic stubbed, RELAB_ENVIRONMENT unset so identity stands
+# aside. cycle_steps stubs this out, so only here is the real call site checked -- guard
+# asked about `user-uploads`, refusal surfaces as EXIT_REFUSED without archiving.
+uploads_step() {
+    local prev_bytes="$1" tmp out status
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/uploads/files"
+    head -c 4096 /dev/zero >"$tmp/uploads/files/a.bin"
+    out="$(
+        UPLOADS_DIR="$tmp/uploads" STUB_ARGS="$tmp/args" STUB_PREV="$prev_bytes" bash -c '
+            set -euo pipefail
+            # shellcheck source=/dev/null
+            . backend/scripts/backup/backup_relab_restic.sh
+            log() { :; }
+            # Arguments go to a file, not stdout: the guard parses stdout as JSON.
+            restic() {
+                printf "%s\n" "$*" >>"$STUB_ARGS"
+                [[ "$1" != stats ]] || printf %s "{\"total_size\":${STUB_PREV},\"snapshots_count\":1}"
+            }
+            backup_uploads
+        ' 2>&1
+    )"
+    status=$?
+    printf '%s|%s|%s' "$status" \
+        "$(grep -c -- 'stats latest --tag user-uploads --retry-lock' "$tmp/args")" \
+        "$(grep -c -- 'backup .* --tag user-uploads --tag relab' "$tmp/args")"
+    rm -rf "$tmp"
+}
+
+assert_eq "the uploads step archives when the tree held its size" "0|1|1" "$(uploads_step 4096)"
+# Field 3 is 0: the refusal has to land before the write, not after it.
+assert_eq "a collapsed uploads tree refuses with EXIT_REFUSED and archives nothing" "3|1|0" \
+    "$(uploads_step 259672)"
+
+# ---------------------------------------------------------------------------
+# The hourly-vs-daily split: BACKUP_MAINTENANCE decides which steps run. Every step is
+# stubbed to record its name; output is the exit status plus the ordered step list. $4
+# names a step ("db", "uploads", "both") to refuse, or "db-error" to fail its guard check.
 # ---------------------------------------------------------------------------
 cycle_steps() {
-    bash -c '
-        set -euo pipefail
-        SKIP_DATABASE_BACKUP="${2:-false}" SKIP_UPLOAD_BACKUP="${3:-false}"
-        # shellcheck source=/dev/null
-        . backend/scripts/backup/backup_relab_restic.sh
-        log() { :; }
-        backup_database() { echo db; }
-        backup_uploads() { echo uploads; }
-        prune_repo() { echo prune; }
-        restic() { echo "restic $1"; }
-        copy_to_offsite() { echo "copy:$1"; }
-        run_cycle "$1"
-    ' _ "$@" 2>&1 | paste -sd,
+    local out status
+    out="$(
+        bash -c '
+            set -euo pipefail
+            SKIP_DATABASE_BACKUP="${2:-false}" SKIP_UPLOAD_BACKUP="${3:-false}"
+            refuses="${4:-none}"
+            # shellcheck source=/dev/null
+            . backend/scripts/backup/backup_relab_restic.sh
+            log() { :; }
+            # Signals through exit status; run_cycle tests each rather than letting
+            # `set -e` abort, so the other half still archives.
+            backup_database() {
+                echo db
+                [[ "$refuses" == db || "$refuses" == both ]] && return "$EXIT_REFUSED"
+                [[ "$refuses" == db-error || "$refuses" == mixed ]] && return "$EXIT_STEP_ERROR"
+                return 0
+            }
+            backup_uploads() {
+                echo uploads
+                [[ "$refuses" == uploads || "$refuses" == both || "$refuses" == mixed ]] && return "$EXIT_REFUSED"
+                return 0
+            }
+            prune_repo() { echo prune; }
+            restic() { echo "restic $1"; }
+            copy_to_offsite() { echo "copy:$1"; }
+            run_cycle "$1"
+        ' _ "$@" 2>&1
+    )"
+    status=$?
+    printf '%s|%s' "$status" "$(printf '%s' "$out" | paste -sd,)"
 }
 
-assert_eq "auto: snapshot then full maintenance" "db,uploads,prune,restic check,copy:true" "$(cycle_steps auto)"
-assert_eq "skip (hourly timer): snapshot only, no prune, no copy" "db,uploads" "$(cycle_steps skip)"
-assert_eq "only (daily timer): maintenance without a new snapshot" "prune,restic check,copy:true" "$(cycle_steps only)"
+assert_eq "auto: snapshot then full maintenance" "0|db,uploads,prune,restic check,copy:true" "$(cycle_steps auto)"
+assert_eq "skip (hourly timer): snapshot only, no prune, no copy" "0|db,uploads" "$(cycle_steps skip)"
+assert_eq "only (daily timer): maintenance without a new snapshot" "0|prune,restic check,copy:true" "$(cycle_steps only)"
 # A copy-only run (both backups skipped) is what an operator uses when the local repo is
 # already lost, so it must not prune the only surviving archive.
-assert_eq "auto with both backups skipped is copy-only, never prune" "copy:false" "$(cycle_steps auto true true)"
+assert_eq "auto with both backups skipped is copy-only, never prune" "0|copy:false" "$(cycle_steps auto true true)"
+# A refusal is permanent until a human clears it: the other half and the whole
+# maintenance pass still run, and EXIT_REFUSED stops RestartPreventExitStatus from
+# retrying it.
+assert_eq "a refused step still leaves maintenance running, and exits 3" \
+    "3|db,uploads,prune,restic check,copy:true" "$(cycle_steps auto false false db)"
+# Both refused means nothing was archived, so this is a copy-only run after all: pruning
+# here would expire good snapshots on behalf of a run that wrote none.
+assert_eq "both steps refusing prunes nothing and still exits 3" \
+    "3|db,uploads,copy:false" "$(cycle_steps auto false false both)"
+# A step that couldn't evaluate its guard (lock held, tree unwalkable) is not a refusal:
+# it exits 1, which RestartPreventExitStatus doesn't suppress, so systemd retries. The
+# other half still archives, keeping did_backup true and maintenance running.
+assert_eq "a step that could not run exits 1, not 3, so systemd still retries it" \
+    "1|db,uploads,prune,restic check,copy:true" "$(cycle_steps auto false false db-error)"
+# One of each: the retryable error has to win. Reporting 3 for this run would suppress
+# the retry the errored half needs, and the refused half only refuses again anyway.
+assert_eq "an error alongside a refusal exits 1, so the retry is not suppressed" \
+    "1|db,uploads,copy:false" "$(cycle_steps auto false false mixed)"
 
 # ---------------------------------------------------------------------------
 # Check 5's reducer: the two telemetry credentials fail at different layers and the
@@ -578,7 +758,7 @@ assert_eq "an unparseable last trigger is reported, not treated as never fired" 
 # ---------------------------------------------------------------------------
 disk_alert() {
     local out status
-    out="$(disk_usage_alerts staging /srv/backups "$1" 85 2>&1)"
+    out="$(disk_usage_alerts staging /srv/backups "$1" 85 "${2:-}" "${3:-0}" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$out"
 }
@@ -589,6 +769,16 @@ assert_eq "a filesystem at the limit is reported" \
     "$(disk_alert 85)"
 assert_eq "an unreadable df is reported rather than assumed fine" \
     "1|ALERT[staging]: cannot read free space for the backup directory /srv/backups" "$(disk_alert '')"
+
+# The floor binds where the percent limit leaves less than it does: a small filesystem at
+# moderate usage, not a low percentage. Each pair below is a filesystem that could exist.
+assert_eq "a roomy filesystem passes both checks" "0|" "$(disk_alert 60 200 25)"
+assert_eq "free space under the minimum is reported while the percentage still passes" \
+    "1|ALERT[staging]: the filesystem holding /srv/backups has 20GiB free (minimum 25GiB); hourly snapshots will fill it" \
+    "$(disk_alert 80 20 25)"
+assert_eq "the minimum is off when unset" "0|" "$(disk_alert 80 20 0)"
+assert_eq "an unreadable avail is reported rather than assumed fine" \
+    "1|ALERT[staging]: cannot read free space for the backup directory /srv/backups" "$(disk_alert 60 '' 25)"
 
 # remote_deploy.sh: the forced ssh command maps an allow-list onto recipes and refuses
 # the rest. A stub `just` in the fake deploy user's ~/.local/bin echoes what it was asked.
@@ -614,6 +804,80 @@ assert_eq "remote deploy: rollback without a sha is refused" "remote_deploy: rol
 assert_eq "remote deploy: rollback to base is refused" "remote_deploy: rollback revision must be a revision id or a -N step" "$(remote_deploy 'rollback 2f91e3b5 base')"
 assert_eq "remote deploy: rollback to a revision id is allowed" "just stack prod rollback YES 2f91e3b5 4a672549f270" "$(remote_deploy 'rollback 2f91e3b5 4a672549f270')"
 assert_eq "remote deploy: rollback one step is allowed" "just stack prod rollback YES 2f91e3b5 -1" "$(remote_deploy 'rollback 2f91e3b5 -1')"
+
+# ---------------------------------------------------------------------------
+# deploy_watchdog.sh check 2: reducer output becomes an operator-facing alert. Tested
+# apart from the reducer since it's the wording that names which half is stale --
+# "postgres fresh, uploads refused" is routine now that a refusal skips one half.
+# ---------------------------------------------------------------------------
+# Fixed "now" so the hour arithmetic is deterministic: 1700000000 is the reference, and
+# each case offsets back from it.
+SNAPSHOT_NOW=1700000000
+
+assert_eq "both tags fresh names the older one and reports each age" \
+    "postgres 1699978000 postgres 6h old, user-uploads 1h old" \
+    "$(format_snapshot_alert "postgres 1699978000
+user-uploads 1699996400" "$SNAPSHOT_NOW")"
+assert_eq "a tag that never snapshotted reads 'never', not a huge age" \
+    "user-uploads 0 user-uploads never, postgres 2h old" \
+    "$(format_snapshot_alert "user-uploads 0
+postgres 1699992800" "$SNAPSHOT_NOW")"
+assert_eq "a single tag composes without a separator" \
+    "postgres 1699978000 postgres 6h old" \
+    "$(format_snapshot_alert "postgres 1699978000" "$SNAPSHOT_NOW")"
+# A failed snapshot query yields no parseable lines. The alert still has to fire, so the
+# fallback names both tags rather than silently blaming one.
+assert_eq "an empty reducer result falls back to naming both tags" \
+    "postgres/user-uploads 0" \
+    "$(format_snapshot_alert "" "$SNAPSHOT_NOW")"
+assert_eq "a malformed line is skipped, not parsed as an epoch" \
+    "postgres/user-uploads 0" \
+    "$(format_snapshot_alert "garbage
+postgres notanumber" "$SNAPSHOT_NOW")"
+
+# ---------------------------------------------------------------------------
+# deploy_ops.sh: stamping the uploads volume with its environment, the marker later
+# backup runs use to tell "lost its contents" from "first backup". Run by hand on every
+# host during the cutover, so the write path is exercised, not trusted.
+# run_deploy_compose is stubbed to run the real inner `sh -c` script against a temp
+# file: the script text under test is the one that ships.
+# ---------------------------------------------------------------------------
+stamp_marker() {
+    # $1 is the marker's starting content, or "<absent>" for no file at all.
+    local start="$1" env="${2:-prod}" tmp out status
+    tmp="$(mktemp -d)"
+    [[ "$start" == "<absent>" ]] || printf '%s' "$start" >"$tmp/.relab-volume"
+    out="$(
+        STUB_MARKER="$tmp/.relab-volume" bash -c '
+            . scripts/deploy_ops.sh
+            # The real call passes: <env> run --rm --no-deps -T --entrypoint sh api \
+            #   -c <script> <marker path> <env>; swap the container path for the temp file.
+            run_deploy_compose() {
+                sh -c "${@: -3:1}" "$STUB_MARKER" "${@: -1}"
+            }
+            stamp_uploads_volume "$1"
+        ' _ "$env" 2>&1
+    )"
+    status=$?
+    # Status, whether the message named the value actually found, and the file's
+    # resulting content -- a stamp that reports success but wrote nothing is the bug.
+    printf '%s|%s|%s' "$status" "$(printf '%s' "$out" | grep -c 'says \[staging\]')" \
+        "$(cat "$tmp/.relab-volume" 2>/dev/null | tr -d '[:space:]')"
+    rm -rf "$tmp"
+}
+
+assert_eq "an unstamped volume gets the marker" "0|0|prod" "$(stamp_marker '<absent>')"
+# Re-running recovers a half-finished cutover, so this must be a silent no-op.
+assert_eq "stamping an already-correct volume is a silent no-op" "0|0|prod" "$(stamp_marker 'prod')"
+# Never overwritten: a cross-environment restore carries the source marker, and guessing
+# which is right could archive the wrong volume -- but exit 0 would hide that every
+# backup still refuses.
+assert_eq "another environment's marker is reported, not overwritten" \
+    "1|1|staging" "$(stamp_marker 'staging')"
+# A zero-byte marker is an interrupted write, not a stamped volume: `test -f` would skip
+# it forever while backup runs read it as a different environment and refuse every run.
+assert_eq "a zero-byte marker from an interrupted write is completed, not skipped" \
+    "0|0|prod" "$(stamp_marker '')"
 
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1

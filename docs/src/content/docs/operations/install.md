@@ -252,15 +252,20 @@ the topology these steps produce.
 
 ### First backup
 
-The backup container runs as UID 65532. Create the restic directory before the first backup; Docker
-creates missing bind-mount directories root-owned, and the container then cannot initialize the
-repository:
+The backup container runs as UID 65532. Create the restic directory before the first backup — the
+service refuses to start if it's missing (`create_host_path: false`), rather than let Docker create
+an empty one indistinguishable from a real mount.
+
+Creating the restic repository is a separate, one-time step. Backup runs never create one — see
+"Backup repository" in `deploy/DEPLOY-PROD.md` for why, and do not run `backup-init` against a host
+that already has backups.
 
 ```bash
 mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
 sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
-just backup prod          # initializes the repository and takes the first snapshot
-just restore-check prod   # restores that snapshot into a scratch container
+just backup-init prod     # one time only: creates the repository, marks the uploads volume
+just backup prod          # takes the first snapshot
+just restore-check prod   # restores that snapshot: DB into a scratch container, uploads into a scratch dir
 ```
 
 The repository is encrypted with `secrets/prod/restic_password`. Never rotate it: every later
