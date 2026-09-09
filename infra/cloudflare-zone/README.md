@@ -100,8 +100,8 @@ changed, so `tests/zone.tftest.hcl` asserts them:
   because only the api hostnames serve `/v1/auth/`.
 
 - **Five rules in the `http_request_firewall_custom` phase.** All five slots are taken, so a new
-  condition folds into an existing rule rather than adding one: the keyed staging E2E skip is a
-  branch of the RPi camera rule, and the product reads share the public-read rule with stats.
+  condition folds into an existing rule rather than adding one: both the keyed staging E2E skip and
+  the product reads are branches of the public-read rule, alongside stats.
   `tests/zone.tftest.hcl` asserts the count with every optional rule enabled.
 
 - **No `matches` (regex) operator.** It needs a Business or WAF Advanced plan. The affected

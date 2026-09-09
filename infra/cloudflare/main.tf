@@ -2,6 +2,14 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "relab" {
   account_id = var.cloudflare_account_id
   name       = local.tunnel_name
   config_src = "cloudflare"
+
+  # Replacing the tunnel mints a new id, which every DNS record here points at and which
+  # the host's cloudflared credentials no longer match: the environment is off the
+  # internet until the new token reaches the host. Nothing in a routine edit should
+  # destroy it, so make the accidental paths fail at plan time.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "cloudflare_dns_record" "edge" {
