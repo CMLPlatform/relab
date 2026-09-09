@@ -166,6 +166,44 @@ def test_migrations_downgrade_upgrade(relab_alembic_config: Config, migration_he
 
 
 @pytest.mark.migration
+def test_pending_thumbnail_index_is_a_revision_of_its_own(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """The concurrent index must not share a revision with the column it indexes.
+
+    ``autocommit_block()`` commits whatever the revision did before it, so a column added
+    in the same ``upgrade()`` is committed while the revision is still unstamped: a build
+    that loses its race for the lock then leaves the column applied and the revision not
+    recorded, and every later upgrade dies re-adding a column that already exists.
+    Stepping down one revision at a time is what pins the split — the index goes, the
+    column stays — and the round trip back to head covers both revisions.
+    """
+
+    def index_is_valid() -> bool | None:
+        rows = migration_helper.execute_sql(
+            "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass('ix_image_thumbnails_pending')"
+        )
+        return rows[0][0] if rows else None
+
+    # An INVALID index is never used by the planner, so the backfill would sequential-scan
+    # `image` on every deploy while every write still maintained the dead index.
+    assert index_is_valid() is True
+
+    try:
+        command.downgrade(relab_alembic_config, "b3f1c07d5e94")
+        assert index_is_valid() is None, "the index revision must own the index, and nothing else"
+        assert migration_helper.column_exists("image", "thumbnails_generated_at")
+
+        command.downgrade(relab_alembic_config, "4a672549f270")
+        assert not migration_helper.column_exists("image", "thumbnails_generated_at")
+    finally:
+        command.upgrade(relab_alembic_config, "head")
+
+    assert migration_helper.column_exists("image", "thumbnails_generated_at")
+    assert index_is_valid() is True
+
+
+@pytest.mark.migration
 def test_downgrade_lands_on_the_lengths_the_previous_revision_declares(
     relab_alembic_config: Config, migration_helper: MigrationHelper
 ) -> None:
