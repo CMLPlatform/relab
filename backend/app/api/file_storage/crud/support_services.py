@@ -148,7 +148,7 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
         db_image.width_px = width_px
         db_image.height_px = height_px
         # Commit, not flush: `create()` already committed the row, so this runs in a new
-        # transaction that nothing else closes — a flush alone is rolled back at session
+        # transaction that nothing else closes. A flush alone is rolled back at session
         # teardown and the dimensions never reach the database. The refresh is required:
         # the UPDATE leaves `updated_at` stale in memory, and serializing it would then
         # attempt lazy IO from a sync context.

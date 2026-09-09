@@ -80,7 +80,7 @@ def main(argv: list[str]) -> int:
     target = argv[0]
     if target == _BASE_TARGET:
         # Every revision's `downgrade()` drops what its `upgrade()` created, so going to
-        # base drops every table by construction. No per-revision marker can make that
+        # base drops every table. No per-revision marker can make that
         # lossless, and this gate only inspects `upgrade()`, so it would otherwise pass.
         sys.stderr.write(
             "error: refusing to check a downgrade to base: it drops every table. "

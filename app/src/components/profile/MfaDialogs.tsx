@@ -336,7 +336,7 @@ type RecoveryCodesDialogProps = {
 /**
  * Split out of MfaDialogs to keep each function readable.
  *
- * NOTE: no triggerRef — 'codes' mode is entered internally from the enroll/regenerate
+ * NOTE: no triggerRef. 'codes' mode is entered internally from the enroll/regenerate
  * flows (useMfaSetup.ts), not from a distinct in-screen trigger.
  */
 function RecoveryCodesDialog({

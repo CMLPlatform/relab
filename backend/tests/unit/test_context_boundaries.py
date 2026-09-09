@@ -16,8 +16,8 @@ from pathlib import Path
 
 CONTEXTS = {"auth", "data_collection", "reference_data", "file_storage", "plugins", "stats", "common"}
 
-# Every context may import `common`; `common` imports no context. Those are asserted
-# separately below rather than enumerated here.
+# Every context may import `common`; `common` imports no context. Those two are asserted
+# in their own tests below.
 ALLOWED_EDGES = {
     # The shared media context: products, reference data and cameras all own media.
     ("data_collection", "file_storage"),
@@ -35,8 +35,8 @@ ALLOWED_EDGES = {
     ("reference_data", "data_collection"),  # one schema import; see the leaf test below
     # Cameras attach their captures to a product.
     ("plugins", "data_collection"),
-    # Everything above points downwards. These two point back up, so each is here on
-    # purpose rather than by drift:
+    # Everything above points downwards. These two point back up, so each carries the
+    # reason it is allowed:
     #   `stats` is a read model over other contexts' tables, cross-context by definition.
     ("stats", "data_collection"),
     #   the quota ledger's columns live on `User` while the chargeable parent is a
@@ -44,8 +44,8 @@ ALLOWED_EDGES = {
     ("file_storage", "data_collection"),
 }
 
-# `reference_data` takes one schema from here. The module is a leaf by construction — it
-# imports no context at all — so the edge cannot become a cycle. That property is what
+# `reference_data` takes one schema from here. That module is a leaf: it imports no
+# context at all, so the edge cannot become a cycle. That property is what
 # makes the import safe, so it is asserted rather than assumed.
 LEAF_MODULES = ("data_collection/product_schemas.py",)
 

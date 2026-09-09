@@ -19,8 +19,10 @@ just build
 just check
 just test-e2e
 just fix
-just audit
 ```
+
+`just audit` scans dependencies for CVEs. It covers the whole workspace, so it runs from the
+repository root rather than here.
 
 ## What lives where
 

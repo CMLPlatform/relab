@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, renderHook, screen } from '@testing-library/react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { TopNav } from '@/components/base/TopNav';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { closeShortcutsOverlay, useShortcutsOverlayOpen } from '@/hooks/useShortcutsOverlay';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
 jest.mock('expo-router', () => ({
@@ -111,4 +112,24 @@ test.each([
   (usePathname as jest.Mock).mockReturnValue(path);
   await render(<TopNav />);
   expect(screen.queryByText('Products')).toBeNull();
+});
+
+test('the shortcuts button opens the overlay', async () => {
+  // Pressing "?" is the only other way in, which leaves the overlay, and the switch
+  // inside it, unreachable for anyone who does not know the convention.
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  closeShortcutsOverlay();
+  // Each render replaces the tree, so the state is read either side of the press rather
+  // than alongside it. The store is module-level, so it outlives both trees.
+  const before = await renderHook(() => useShortcutsOverlayOpen());
+  expect(before.result.current).toBe(false);
+
+  await render(<TopNav />);
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Keyboard shortcuts'));
+  });
+
+  const after = await renderHook(() => useShortcutsOverlayOpen());
+  expect(after.result.current).toBe(true);
+  closeShortcutsOverlay();
 });

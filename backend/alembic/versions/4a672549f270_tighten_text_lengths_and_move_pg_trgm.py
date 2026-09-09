@@ -133,7 +133,7 @@ def downgrade() -> None:
     # Back to the length the initial revision declares, not an unbounded VARCHAR: a
     # downgrade has to land on the schema a fresh build produces, or the next upgrade's
     # narrowing fails on whatever was written while rolled back. Fails loudly if a title
-    # longer than 100 exists — legal at head, so truncate or restore the backup first.
+    # longer than 100 exists. That is legal at head, so truncate or restore the backup.
     op.execute("ALTER TABLE video ALTER COLUMN title TYPE VARCHAR(100)")
     _move_pg_trgm("public", SEARCH_TRIGRAM_INDEXES, SEARCH_TRIGRAM_INDEXES + ADMIN_LIST_TRIGRAM_INDEXES)
     op.execute('ALTER TABLE "user" RENAME CONSTRAINT user_profile_stats_not_null TO user_stats_cache_not_null')

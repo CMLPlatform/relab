@@ -66,8 +66,8 @@ case "$action" in
         }
         # The alembic target is as dangerous as the sha and was not checked: `base`
         # downgrades through every revision, dropping every table. Only a concrete
-        # revision id or a relative step may come over the key; going to `base` is a
-        # deliberate act at the host's own console, not something a key can ask for.
+        # revision id or a relative step may come over the key. Going to `base` is done
+        # at the host's own console, never over a key.
         [[ "${args[1]:-}" =~ ^([0-9a-f]{7,40}|-[0-9]+)?$ ]] || {
             echo "remote_deploy: rollback revision must be a revision id or a -N step" >&2
             exit 2

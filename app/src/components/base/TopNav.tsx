@@ -3,12 +3,14 @@ import { useCallback } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { AUTH_HERO_PATHS, WEB_FOCUS_RING } from '@/constants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { openShortcutsOverlay } from '@/hooks/useShortcutsOverlay';
 import { type Destination, useVisibleDestinations } from '@/navigation/destinations';
 import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { BrandHeaderTitle } from './BrandHeaderTitle';
 import { HeaderRightPill } from './HeaderRightPill';
+import { Icon } from './Icon';
 
 // Routes where TopNav hides: the chrome-free splash/auth routes (AppStack's
 // headerShown: false list), plus /mfa and /category-selection, which keep
@@ -42,6 +44,32 @@ function TopNavDestinationItem({
       <AppText variant="label" className={cn(active && 'text-primary')}>
         {destination.label}
       </AppText>
+    </Pressable>
+  );
+}
+
+/**
+ * Opens the shortcuts overlay for anyone who does not already know to press "?".
+ *
+ * Lives here rather than in the dialog: a control inside the thing it opens is no
+ * control at all. TopNav is the only always-present chrome on the surface the shortcuts
+ * apply to, which is desktop web.
+ */
+function ShortcutsButton() {
+  const theme = useAppTheme();
+  return (
+    <Pressable
+      onPress={openShortcutsOverlay}
+      accessibilityRole="button"
+      accessibilityLabel="Keyboard shortcuts"
+      className={cn(
+        'min-h-11 min-w-11 items-center justify-center rounded-md',
+        Platform.select({
+          web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
+        }),
+      )}
+    >
+      <Icon name="keyboard" size="md" color={theme.colors.onSurfaceVariant} />
     </Pressable>
   );
 }
@@ -91,7 +119,8 @@ export function TopNav() {
           />
         ))}
       </View>
-      <View className="ml-auto">
+      <View className="ml-auto flex-row items-center gap-1">
+        <ShortcutsButton />
         <HeaderRightPill />
       </View>
     </View>

@@ -3,6 +3,7 @@ import { act, render, screen } from '@testing-library/react-native';
 import { Platform } from 'react-native';
 import { KeyboardShortcutsDialog } from '@/components/base/KeyboardShortcutsDialog';
 import { setShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
+import { closeShortcutsOverlay } from '@/hooks/useShortcutsOverlay';
 
 describe('KeyboardShortcutsDialog', () => {
   const originalPlatform = Platform.OS;
@@ -32,6 +33,9 @@ describe('KeyboardShortcutsDialog', () => {
       value: { querySelector },
     });
     setShortcutsEnabled(true);
+    // The overlay's open state is module-level, shared with the TopNav button, so it
+    // outlives a render the way component state did not.
+    closeShortcutsOverlay();
   });
 
   afterAll(() => {
