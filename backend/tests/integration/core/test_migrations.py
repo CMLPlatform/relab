@@ -166,6 +166,30 @@ def test_migrations_downgrade_upgrade(relab_alembic_config: Config, migration_he
 
 
 @pytest.mark.migration
+def test_downgrade_lands_on_the_lengths_the_previous_revision_declares(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """A downgrade must restore column *types*, not just drop what it added.
+
+    The round-trip test above compares head to head, so it passes even when downgrade()
+    widens a column it should have restored. That leaves the database on a schema a fresh
+    build never produces, and the next upgrade then fails on data written in between.
+    """
+    # Named explicitly, not "-1": this pins one revision's downgrade, and a revision
+    # added on top would otherwise silently retarget the assertion.
+    try:
+        command.downgrade(relab_alembic_config, "a9c2e4f60b18")
+        lengths = migration_helper.text_column_lengths()
+        # a9c2e4f60b18 declares these; 4a672549f270 narrows/widens them on the way up.
+        assert lengths[("video", "title")] == 100
+        assert lengths[("user", "username")] is None
+    finally:
+        command.upgrade(relab_alembic_config, "head")
+
+    assert migration_helper.text_column_lengths()[("video", "title")] == 200
+
+
+@pytest.mark.migration
 def test_alembic_autogenerate_is_clean(relab_alembic_config: Config) -> None:
     """Alembic autogenerate should detect no pending schema changes after head.
 
