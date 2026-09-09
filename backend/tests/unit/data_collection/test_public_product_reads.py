@@ -50,7 +50,8 @@ def test_the_guard_sees_a_router_level_security_dependency() -> None:
     router = APIRouter(dependencies=[Security(auth_dependencies.current_active_verified_user)])
 
     @router.get("/example")
-    async def _example() -> None: ...
+    async def _example() -> None:
+        pass
 
     route = next(r for r in router.routes if isinstance(r, APIRoute))
     assert _auth_dependencies(route.dependant) == {"current_active_verified_user"}
