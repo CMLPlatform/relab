@@ -19,7 +19,7 @@ from app.api.auth.services.account_erasure import ANONYMOUS_USER_EMAIL, get_or_c
 from app.api.common.audit import AuditAction, AuditContext
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.models import Camera
-from tests.factories.models import CameraFactory, UserFactory
+from scripts.seed.factories.models import CameraFactory, UserFactory
 
 if TYPE_CHECKING:
     from uuid import UUID

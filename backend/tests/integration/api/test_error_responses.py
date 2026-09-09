@@ -14,7 +14,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.api.auth.dependencies import current_active_superuser
 from app.core.http_headers import SENSITIVE_CACHE_CONTROL
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 from tests.fixtures.client import override_authenticated_user
 
 if TYPE_CHECKING:

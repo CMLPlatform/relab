@@ -8,13 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import Category, Material, ProductType, Taxonomy, TaxonomyDomain
-from tests.constants import BRAND_X, COMPONENT_NAME, PRODUCT_BASE_NAME
-from tests.factories.models import (
+from scripts.seed.factories.models import (
     CategoryFactory,
     MaterialFactory,
     ProductTypeFactory,
     TaxonomyFactory,
 )
+from tests.constants import BRAND_X, COMPONENT_NAME, PRODUCT_BASE_NAME
 
 if TYPE_CHECKING:
     from app.api.auth.models import User

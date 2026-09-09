@@ -12,7 +12,7 @@ from app.api.file_storage.services.cleanup import report_orphaned_media
 from app.api.file_storage.services.manager import FileCleanupManager
 from app.core.config import settings
 from app.core.images import thumbnail_path_for
-from tests.factories.models import ProductFactory, ProductTypeFactory
+from scripts.seed.factories.models import ProductFactory, ProductTypeFactory
 
 if TYPE_CHECKING:
     from pathlib import Path

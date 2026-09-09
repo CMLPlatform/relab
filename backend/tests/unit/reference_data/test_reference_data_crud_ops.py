@@ -14,7 +14,7 @@ from app.api.reference_data.models import (
     CategoryProductTypeLink,
     Material,
 )
-from tests.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory
+from scripts.seed.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory
 
 
 async def test_add_categorized_material_categories_returns_validated_categories(

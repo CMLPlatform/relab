@@ -8,7 +8,7 @@ from fastapi import status
 
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.auth.services.refresh_token_service import create_refresh_token
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 from .shared import INVALID_REFRESH_TOKEN, hash_test_password
 

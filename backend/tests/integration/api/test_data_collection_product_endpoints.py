@@ -7,6 +7,7 @@ from fastapi import status
 
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import Material, ProductType
+from scripts.seed.factories.models import ProductFactory, UserFactory
 from tests.constants import (
     BOM_QUANTITY,
     BOM_UNIT,
@@ -20,7 +21,6 @@ from tests.constants import (
     UPDATED_PRODUCT_NAME,
     WEIGHT_500,
 )
-from tests.factories.models import ProductFactory, UserFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient

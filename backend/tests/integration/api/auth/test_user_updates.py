@@ -13,7 +13,7 @@ from app.api.auth.schemas import UserUpdate
 from app.api.auth.services.email_identity import canonicalize_email
 from app.api.auth.services.refresh_token_service import create_refresh_token
 from app.api.common.exceptions import BadRequestError
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 from .shared import (
     NEW_USERNAME,

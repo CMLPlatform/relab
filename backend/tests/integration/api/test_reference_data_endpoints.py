@@ -8,7 +8,7 @@ from fastapi import status
 
 from app.api.data_collection.models.product import MaterialProductLink
 from app.api.reference_data.models import TaxonomyDomain
-from tests.factories.models import CategoryFactory, TaxonomyFactory
+from scripts.seed.factories.models import CategoryFactory, TaxonomyFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient

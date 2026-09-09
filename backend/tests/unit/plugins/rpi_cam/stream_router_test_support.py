@@ -7,7 +7,7 @@ from pydantic import SecretStr
 
 from app.api.auth.models import User
 from app.api.plugins.rpi_cam.services.youtube import YoutubeStreamConfigWithID
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from uuid import UUID

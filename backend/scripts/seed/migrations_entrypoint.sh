@@ -11,8 +11,9 @@ SEED_CPV_CATEGORIES="${SEED_CPV_CATEGORIES:-false}"
 SEED_CPV_PRODUCT_TYPES="${SEED_CPV_PRODUCT_TYPES:-false}"
 SEED_HS_CATEGORIES="${SEED_HS_CATEGORIES:-false}"
 SEED_DUMMY_DATA="${SEED_DUMMY_DATA:-false}"
-# Row count for the performance baseline fixtures; 0 disables them.
-PERF_SEED_PRODUCTS="${PERF_SEED_PRODUCTS:-0}"
+# Product count for the realistic bulk fixtures used by CI, E2E and the perf
+# baseline; 0 disables them.
+BULK_SEED_PRODUCTS="${BULK_SEED_PRODUCTS:-0}"
 DEBUG="${DEBUG:-false}"
 
 require_taxonomy_seed_deps() {
@@ -73,12 +74,11 @@ else
     echo "Dummy data seeding is disabled."
 fi
 
-# Top the product table up to a row count the latency baseline can measure
-# against. Runs after the dummy seed because it reuses the users and product
-# types that seed creates.
-if [ "$PERF_SEED_PRODUCTS" -gt 0 ] 2>/dev/null; then
-    echo "Perf seeding enabled; topping product table up to $PERF_SEED_PRODUCTS rows..."
-    .venv/bin/python -m scripts.seed.perf_seed --count "$PERF_SEED_PRODUCTS"
+# Scale the fixtures up to something worth measuring against. Runs after the
+# dummy seed because it reuses the taxonomy and stored images that seed creates.
+if [ "$BULK_SEED_PRODUCTS" -gt 0 ] 2>/dev/null; then
+    echo "Bulk seeding enabled; scaling fixtures to $BULK_SEED_PRODUCTS products..."
+    .venv/bin/python -m scripts.seed.bulk_seed --products "$BULK_SEED_PRODUCTS"
 fi
 
 # Seed taxonomies: run cpv once and pass the product-types flag if requested

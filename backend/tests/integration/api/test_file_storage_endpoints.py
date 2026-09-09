@@ -14,7 +14,7 @@ from app.api.file_storage import upload_quota
 from app.api.file_storage.models import Image
 from app.core.config import settings
 from scripts.maintenance.backfill_image_dimensions import measure_images_missing_dimensions
-from tests.factories.models import ProductFactory, ProductTypeFactory, UserFactory
+from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 
 if TYPE_CHECKING:
     from fastapi import FastAPI

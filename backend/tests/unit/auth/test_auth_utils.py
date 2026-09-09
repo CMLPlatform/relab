@@ -8,7 +8,7 @@ from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
 from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services.programmatic_user_crud import create_user
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

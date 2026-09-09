@@ -634,12 +634,12 @@ _docker-ci-up services="postgres redis api":
     {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
 
 # Run CI migrations and seed dummy data for repeatable backend perf tests.
-# perf_products tops the product table up so the baseline measures pagination and
-# index behaviour rather than a table with a handful of rows in it.
+# perf_products scales the fixtures so the baseline measures pagination, index
+# behaviour and media serialisation rather than a table with a few rows in it.
 _docker-ci-migrate-dummy perf_products="0":
     # --build: `compose run` reuses a stale image otherwise, which silently runs
     # last build's entrypoint and seed scripts against a freshly wiped database.
-    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e PERF_SEED_PRODUCTS={{ quote(perf_products) }} migrator
+    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e BULK_SEED_PRODUCTS={{ quote(perf_products) }} migrator
 
 # Stop the CI stack and remove volumes
 docker-ci-down confirm='':

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 from fastapi import status
 
 from app.api.auth.services.password_hashing import build_password_helper
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from httpx import AsyncClient

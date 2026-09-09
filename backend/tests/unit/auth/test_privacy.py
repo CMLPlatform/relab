@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from app.api.auth.preferences import ProfileVisibility, ThemeMode, UserPreferences, UserPreferencesUpdate
 from app.api.auth.services.privacy import can_view_profile, should_redact_owner_identity
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 
 @pytest.mark.parametrize(

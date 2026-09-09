@@ -41,6 +41,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.migrations
+      args:
+        # E2E seeds realistic fixtures, which needs faker/polyfactory.
+        INCLUDE_FIXTURE_SEED_DEPS: "true"
       cache_from:
         - type=gha,scope=migrator
       cache_to:

@@ -9,7 +9,7 @@ import pytest
 from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus
 from app.api.plugins.rpi_cam.schemas import RelayPublicKeyJWK
 from app.api.plugins.rpi_cam.services.youtube import YouTubeService
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 from tests.unit.plugins.rpi_cam.service_test_support import (
     GoogleOAuthClientStub,
     HTTPClientStub,

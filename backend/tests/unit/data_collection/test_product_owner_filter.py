@@ -6,7 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.api.data_collection.routers.product_read_routers import resolve_owner_id
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 
 def _session_returning(user: object) -> AsyncMock:

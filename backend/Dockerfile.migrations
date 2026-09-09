@@ -12,6 +12,7 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=0
 
 ARG INCLUDE_TAXONOMY_SEED_DEPS=false
+ARG INCLUDE_FIXTURE_SEED_DEPS=false
 
 # Copy dependency files
 COPY .python-version pyproject.toml uv.lock ./
@@ -19,11 +20,10 @@ COPY .python-version pyproject.toml uv.lock ./
 # Install dependencies
 # Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
 RUN --mount=type=cache,target=/root/.cache/uv \
-    if [ "$INCLUDE_TAXONOMY_SEED_DEPS" = "true" ]; then \
-    uv sync --locked --no-default-groups --group=migrations --group=seed-taxonomies --no-install-project --no-editable; \
-    else \
-    uv sync --locked --no-default-groups --group=migrations --no-install-project --no-editable; \
-    fi
+    groups="--group=migrations"; \
+    if [ "$INCLUDE_TAXONOMY_SEED_DEPS" = "true" ]; then groups="$groups --group=seed-taxonomies"; fi; \
+    if [ "$INCLUDE_FIXTURE_SEED_DEPS" = "true" ]; then groups="$groups --group=seed-fixtures"; fi; \
+    uv sync --locked --no-default-groups $groups --no-install-project --no-editable
 
 # Copy alembic migrations, scripts, and source code
 COPY alembic/ alembic/

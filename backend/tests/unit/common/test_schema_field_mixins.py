@@ -12,7 +12,7 @@ from app.api.data_collection.schemas import (
     ProductReadWithRelationshipsAndFlatComponents,
 )
 from app.api.reference_data.schemas import CategoryReadAsSubCategory, MaterialRead, ProductTypeRead, TaxonomyRead
-from tests.factories.models import ProductFactory, UserFactory
+from scripts.seed.factories.models import ProductFactory, UserFactory
 
 
 def test_read_schemas_validate_from_attribute_objects_without_orm_bases() -> None:

@@ -11,7 +11,7 @@ from app.api.reference_data.crud.categories import (
     validate_category_taxonomy_domains,
 )
 from app.api.reference_data.models import Category, Taxonomy, TaxonomyDomain
-from tests.factories.models import CategoryFactory, TaxonomyFactory
+from scripts.seed.factories.models import CategoryFactory, TaxonomyFactory
 
 
 async def test_inherits_taxonomy_from_supercategory(mock_session: AsyncMock) -> None:

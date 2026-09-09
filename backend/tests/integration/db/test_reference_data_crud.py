@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.api.reference_data.crud.categorized_resources import MATERIAL_RESOURCE, create_categorized_reference
 from app.api.reference_data.models import CategoryMaterialLink
 from app.api.reference_data.schemas import MaterialCreateWithCategories
-from tests.factories.models import CategoryFactory
+from scripts.seed.factories.models import CategoryFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

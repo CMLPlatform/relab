@@ -8,7 +8,7 @@ from app.api.common.crud.persistence import update_and_commit
 from app.api.plugins.rpi_cam.crud import create_camera
 from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraUpdate, RelayPublicKeyJWK
-from tests.factories.models import CameraFactory
+from scripts.seed.factories.models import CameraFactory
 
 if TYPE_CHECKING:
     from uuid import UUID

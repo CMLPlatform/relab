@@ -27,7 +27,7 @@ from app.api.plugins.rpi_cam.utils.device_contracts import (
     build_claimed_record,
     dump_pairing_record,
 )
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 PUBLIC_JWK = {
     "kty": "EC",

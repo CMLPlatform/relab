@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from app.api.common.idempotency import idempotent_request, validate_idempotency_key
 from app.api.data_collection.product_schemas import ProductRead
-from tests.factories.models import MaterialProductLinkFactory, ProductFactory
+from scripts.seed.factories.models import MaterialProductLinkFactory, ProductFactory
 
 ENDPOINT = "POST /products"
 

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth.models import User
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import ProductType
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 from tests.fixtures.client import override_authenticated_user
 
 if TYPE_CHECKING:

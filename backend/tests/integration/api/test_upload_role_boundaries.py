@@ -10,7 +10,7 @@ import pytest
 from fastapi import status
 
 from app.api.auth.roles import UserRole, upload_quota_bytes_for_role, upload_quota_files_for_role
-from tests.factories.models import ProductFactory, ProductTypeFactory, UserFactory
+from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 from tests.fixtures.client import override_authenticated_user
 
 from .auth.shared import TEST_PASSWORD, hash_test_password, login_bearer

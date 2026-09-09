@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.data_collection.routers.product_mutation_routers import delete_product_image, upload_product_image
-from tests.factories.models import ProductFactory, UserFactory
+from scripts.seed.factories.models import ProductFactory, UserFactory
 
 
 async def test_upload_product_image_updates_profile_stats() -> None:

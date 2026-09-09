@@ -18,7 +18,7 @@ from app.api.auth.services import mfa_service
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.services.user_manager import UserManager
 from app.api.common.exceptions import NotFoundError
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

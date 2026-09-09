@@ -16,7 +16,7 @@ from app.api.data_collection.schemas import ComponentRead, ProductReadWithRelati
 from app.api.file_storage.models import MediaParentType
 from app.core.config import settings
 from app.core.images.thumbnails import thumbnail_path_for
-from tests.factories.models import ProductFactory
+from scripts.seed.factories.models import ProductFactory
 
 if TYPE_CHECKING:
     import pytest
