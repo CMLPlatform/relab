@@ -63,11 +63,14 @@ const uploadImages = [
 
 // Per size, because a percentile mixed across all three hides which one moved.
 //
-// Set against the regression they exist to catch, not merely above the measured
-// p95. Deferring the wide derivatives took ~110ms off a medium upload and ~130ms
-// off a large one, so a ceiling generous enough to absorb that is a ceiling that
-// would sit through the exact change it is guarding. Measured p95 on the CI stack
-// is 79 / 92 / 154 ms; re-blocking would put medium near 200 and large near 285.
+// Measured p95: 31 / 33 / 59 ms on a GitHub runner, 79 / 92 / 154 ms on a busy dev
+// box. These are a coarse guard, not a tight one, and deliberately so — two runner
+// runs of the same commit put small at 69 ms and 31 ms, so run-to-run variance here
+// is over 2x. A ceiling tight enough to catch the ~40-50ms a re-blocked derivative
+// pass would add is a ceiling that flaps on that variance, and a flapping threshold
+// gets ignored, which is worse than a loose one. What these catch is a gross
+// regression; the pipeline's own cost is better guarded by measuring the resize
+// path directly, where there is no network or runner noise in the number.
 const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 190, large: 250 };
 
 const thresholds = {

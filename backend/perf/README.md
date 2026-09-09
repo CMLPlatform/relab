@@ -61,6 +61,12 @@ the source's own frequency content, so decode, resize and encode cost per pixel 
 real photograph produces. They are gitignored and rebuilt by `just perf-fixtures`, which both perf
 recipes run first — reproducible from one 87 KB source, with no multi-megabyte binaries in the repo.
 
+The per-size thresholds are a coarse guard. Two runs of the same commit on GitHub runners put
+`small` at 69 ms and 31 ms, so run-to-run variance is over 2x, and a ceiling tight enough to catch
+the ~40-50 ms that re-blocking the deferred derivatives would add would flap on that variance. They
+catch a gross regression; the resize path's own cost is better measured directly, without a network
+and a shared runner in the number.
+
 **The write stage runs last.** `product_create_write` inserts rows, so every read stage is measured
 against a table that is not growing underneath it. `product_search_read` rotates its query terms so
 the run does not measure one repeatedly cached query; it is the slowest read path, which is why it
