@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from app.api.auth.roles import UserRole
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

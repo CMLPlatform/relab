@@ -154,7 +154,9 @@ perf-baseline:
     k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
 
 ci_compose := "docker compose -p relab_test -f ../compose.yaml -f ../compose.ci.yaml"
-k6_docker_image := "grafana/k6:latest"
+# Pinned by digest: a moving :latest silently changes the measurement tool
+# between runs, which is the one variable a latency baseline must hold still.
+k6_docker_image := "grafana/k6:2.2.0@sha256:5221b620a4f874faff6e32ba597aa667c058391fe4898b1c6f6377f062c6cdec"
 
 # Run the k6 baseline suite against the Docker CI stack.
 # Start and seed the CI backend stack first; this recipe does not.
@@ -163,11 +165,19 @@ _perf-ci media_url="" base_url="http://api:8000":
     set -euo pipefail
     media_url={{ quote(media_url) }}
     if [ -z "$media_url" ]; then
-        echo "→ No media_url provided; running perf baseline without media_url_read scenario."
+        echo "→ Discovering a seeded media URL from the CI stack..."
+        media_path="$({{ ci_compose }} exec -T api python -c 'import json, urllib.request; page = json.load(urllib.request.urlopen("http://localhost:8000/v1/products?size=100")); print(next((item["thumbnail_url"] for item in page["items"] if item.get("thumbnail_url")), ""))' | tr -d '[:space:]')"
+        if [ -z "$media_path" ]; then
+            echo "✗ No seeded media found. Run 'just _docker-ci-migrate-dummy' first, or pass media_url explicitly." >&2
+            exit 1
+        fi
+        media_url="{{ base_url }}${media_path}"
     fi
+    echo "→ media_url_read target: $media_url"
     mkdir -p reports/performance
     docker run --rm \
-        --network relab_test_default \
+        --user "$(id -u):$(id -g)" \
+        --network relab_test_edge \
         -v "$PWD/perf:/perf:ro" \
         -v "$PWD/reports/performance:/reports" \
         -e BASE_URL={{ quote(base_url) }} \

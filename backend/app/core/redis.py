@@ -152,8 +152,10 @@ async def delete_redis_key(redis_client: Redis, key: str) -> bool:
     )
 
 
-def get_redis(request: Request) -> Redis:
+async def get_redis(request: Request) -> Redis:
     """FastAPI dependency returning the shared Redis client (raises if unavailable)."""
+    # Async on purpose: this only reads request state, and a sync dependency would
+    # make FastAPI hop to a threadpool for it on every request that resolves it.
     return require_redis(get_request_services(request).redis)
 
 

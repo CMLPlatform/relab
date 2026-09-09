@@ -16,7 +16,7 @@ import pytest
 
 from app.api.auth.terms import CURRENT_TERMS_VERSION
 from scripts.build_dataset_release import SelectionRules, collect_inventory
-from tests.factories.models import ProductFactory, UserFactory
+from scripts.seed.factories.models import ProductFactory, UserFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from app.api.data_collection.routers.component_core_routers import add_component_to_component
 from app.api.data_collection.routers.product_mutation_routers import add_component_to_product, create_product
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 
 class _StubRead(BaseModel):

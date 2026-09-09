@@ -11,7 +11,7 @@ import pytest
 from fastapi import status
 
 from app.api.auth.terms import CURRENT_TERMS_VERSION, MINIMUM_RELEASE_TERMS_VERSION
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 from .auth.shared import TEST_PASSWORD, hash_test_password, login_bearer
 

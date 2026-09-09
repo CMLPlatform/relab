@@ -61,7 +61,7 @@ def validate_idempotency_key(raw: str | None) -> str | None:
     return raw
 
 
-def _get_idempotency_key_header(
+async def _get_idempotency_key_header(
     idempotency_key: Annotated[str | None, Header(alias=IDEMPOTENCY_KEY_HEADER)] = None,
 ) -> str | None:
     return validate_idempotency_key(idempotency_key)

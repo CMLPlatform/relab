@@ -11,8 +11,8 @@ from fastapi import FastAPI, HTTPException, status
 from app.api.auth.dependencies import current_active_superuser, current_active_verified_user
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import ProductType
+from scripts.seed.factories.models import UserFactory
 from tests.constants import UPDATED_PRODUCT_NAME
-from tests.factories.models import UserFactory
 from tests.fixtures.client import override_authenticated_user
 
 if TYPE_CHECKING:

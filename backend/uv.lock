@@ -2019,6 +2019,10 @@ migrations = [
 s3 = [
     { name = "boto3" },
 ]
+seed-fixtures = [
+    { name = "faker" },
+    { name = "polyfactory" },
+]
 seed-taxonomies = [
     { name = "openpyxl" },
     { name = "pandas" },
@@ -2090,6 +2094,10 @@ migrations = [
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2.9" },
 ]
 s3 = [{ name = "boto3", specifier = ">=1.38.0" }]
+seed-fixtures = [
+    { name = "faker", specifier = ">=33.3.0" },
+    { name = "polyfactory", specifier = ">=2.15.0" },
+]
 seed-taxonomies = [
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=2.3.3" },

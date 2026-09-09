@@ -3,7 +3,7 @@
 from uuid import uuid4
 
 from app.api.data_collection.product_schemas import ProductRead
-from tests.factories.models import MaterialProductLinkFactory, ProductFactory
+from scripts.seed.factories.models import MaterialProductLinkFactory, ProductFactory
 
 
 def test_product_read_thumbnail_url_is_none_without_an_image() -> None:

@@ -4,7 +4,7 @@ import uuid
 
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
-from tests.factories.models import ProductFactory
+from scripts.seed.factories.models import ProductFactory
 
 
 def test_physical_properties_volume_tracks_dimension_updates() -> None:

@@ -24,7 +24,7 @@ from app.api.data_collection.schemas import (
     MaterialProductLinkCreateWithinProductAndMaterial,
     ProductCreateWithComponents,
 )
-from tests.factories.models import ProductFactory
+from scripts.seed.factories.models import ProductFactory
 
 
 async def test_delete_product_commits_db_changes_before_storage_cleanup(mock_session: AsyncMock) -> None:

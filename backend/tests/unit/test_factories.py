@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from tests.factories.models import MaterialFactory, UserFactory
+from scripts.seed.factories.models import MaterialFactory, UserFactory
 
 if TYPE_CHECKING:
     from unittest.mock import AsyncMock

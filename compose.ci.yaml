@@ -11,6 +11,9 @@ services:
     env_file: *test-env-file
 
   migrator:
+    build:
+      args:
+        INCLUDE_FIXTURE_SEED_DEPS: "true"
     env_file: *test-env-file
 
   postgres:

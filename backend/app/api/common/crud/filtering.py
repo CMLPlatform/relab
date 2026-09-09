@@ -199,7 +199,7 @@ def create_filter_dependency(
     """Create a FastAPI dependency returning a configured Relab filter set."""
     if not filter_cls.sortable_fields:
 
-        def dependency_without_sorting(
+        async def dependency_without_sorting(
             filters: BaseFilterSet = Depends(filter_cls),
             search: BoundedQueryText = Query(default=None),
         ) -> BaseFilterSet:
@@ -209,7 +209,7 @@ def create_filter_dependency(
 
     sorting_dependency = create_sorting(*filter_cls.sortable_fields, alias="order_by")
 
-    def dependency(
+    async def dependency(
         filters: BaseFilterSet = Depends(filter_cls),
         search: BoundedQueryText = Query(default=None),
         sorting: SortingValues = Depends(sorting_dependency),

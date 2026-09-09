@@ -4,9 +4,10 @@ import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Annotated, cast
 
+from anyio import to_thread
 from fastapi import Depends, params
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi_users import FastAPIUsers, UUIDIDMixin, schemas
+from fastapi_users import FastAPIUsers, UUIDIDMixin, exceptions, schemas
 from fastapi_users.manager import BaseUserManager
 from pydantic import UUID4, EmailStr, SecretStr, TypeAdapter, ValidationError
 from sqlalchemy import select
@@ -112,7 +113,38 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
         # Rate-limit on the resolved email so a username and its email share one bucket.
         await limiter.ahit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
-        return await super().authenticate(credentials)
+        return await self._authenticate_offloading_hashes(credentials)
+
+    async def _authenticate_offloading_hashes(self, credentials: OAuth2PasswordRequestForm) -> User | None:
+        """Run the upstream authenticate flow with the Argon2 work off the event loop.
+
+        Argon2id at the parameters in ``password_hashing`` costs 50-100ms of CPU,
+        and ``BaseUserManager.authenticate`` calls the hasher inline from its own
+        coroutine. On a single worker that blocks the event loop for every request
+        in flight, not just the login: a concurrent login stage measurably inflated
+        the tail of every other endpoint in the perf baseline.
+
+        Reimplemented rather than delegated because the blocking calls sit in the
+        middle of the upstream coroutine, with no seam to wrap. The behaviours that
+        reimplementation has to preserve — the timing-attack hash for an unknown
+        account, rejecting a wrong password, and the opportunistic hash upgrade —
+        are pinned by tests so an upstream change cannot drift past unnoticed.
+        """
+        try:
+            user = await self.get_by_email(credentials.username)
+        except exceptions.UserNotExists:
+            # Hash anyway, so a missing account costs the same as a wrong password.
+            await to_thread.run_sync(self.password_helper.hash, credentials.password)
+            return None
+
+        verified, updated_password_hash = await to_thread.run_sync(
+            self.password_helper.verify_and_update, credentials.password, user.hashed_password
+        )
+        if not verified:
+            return None
+        if updated_password_hash is not None:
+            await self.user_db.update(user, {"hashed_password": updated_password_hash})
+        return user
 
     async def validate_password(
         self,

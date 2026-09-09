@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.data_collection.crud.product_tree_queries import require_product_detail
 from app.api.data_collection.models.product import Product
-from tests.factories.models import ProductFactory
+from scripts.seed.factories.models import ProductFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

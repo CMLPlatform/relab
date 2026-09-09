@@ -1,4 +1,9 @@
-"""Modern test factories using polyfactory for backend test models."""
+"""Polyfactory model factories for tests and for realistic seed data.
+
+Shared deliberately: the fixtures a test asserts against and the rows a
+latency baseline measures should come out of one generator, or the two
+drift and each has to be trusted separately.
+"""
 
 import os
 from random import Random

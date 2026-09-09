@@ -633,9 +633,13 @@ docker-smoke:
 _docker-ci-up services="postgres redis api":
     {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
 
-# Run CI migrations and seed dummy data for repeatable backend perf tests
-_docker-ci-migrate-dummy:
-    {{ ci_compose }} run --rm -e SEED_DUMMY_DATA=true migrator
+# Run CI migrations and seed dummy data for repeatable backend perf tests.
+# perf_products scales the fixtures so the baseline measures pagination, index
+# behaviour and media serialisation rather than a table with a few rows in it.
+_docker-ci-migrate-dummy perf_products="0":
+    # --build: `compose run` reuses a stale image otherwise, which silently runs
+    # last build's entrypoint and seed scripts against a freshly wiped database.
+    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e BULK_SEED_PRODUCTS={{ quote(perf_products) }} migrator
 
 # Stop the CI stack and remove volumes
 docker-ci-down confirm='':
@@ -644,13 +648,13 @@ docker-ci-down confirm='':
 
 # Run the backend k6 baseline against the CI Docker stack.
 # The stack stays up afterwards, so a maintainer can follow up on a regression.
-docker-ci-perf-baseline:
+docker-ci-perf-baseline perf_products="5000":
     #!/usr/bin/env bash
     set -euo pipefail
     echo "→ Starting CI backend stack..."
     just _docker-ci-up
     echo "→ Running CI database migrations and seeding dummy data..."
-    just _docker-ci-migrate-dummy
+    just _docker-ci-migrate-dummy "{{ perf_products }}"
     echo "→ Running backend k6 baseline against the CI stack..."
     just backend/_perf-ci
 

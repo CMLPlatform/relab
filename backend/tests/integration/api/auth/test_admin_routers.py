@@ -6,7 +6,7 @@ import pytest
 from fastapi import status
 
 from app.api.auth.services.refresh_token_service import create_refresh_token
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 from .shared import assert_refresh_session_revoked
 

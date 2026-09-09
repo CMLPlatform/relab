@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.api.reference_data.models import Category, Taxonomy
-from tests.factories.models import CategoryFactory
+from scripts.seed.factories.models import CategoryFactory
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession

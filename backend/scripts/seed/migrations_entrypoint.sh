@@ -11,6 +11,9 @@ SEED_CPV_CATEGORIES="${SEED_CPV_CATEGORIES:-false}"
 SEED_CPV_PRODUCT_TYPES="${SEED_CPV_PRODUCT_TYPES:-false}"
 SEED_HS_CATEGORIES="${SEED_HS_CATEGORIES:-false}"
 SEED_DUMMY_DATA="${SEED_DUMMY_DATA:-false}"
+# Product count for the realistic bulk fixtures used by CI, E2E and the perf
+# baseline; 0 disables them.
+BULK_SEED_PRODUCTS="${BULK_SEED_PRODUCTS:-0}"
 DEBUG="${DEBUG:-false}"
 
 require_taxonomy_seed_deps() {
@@ -71,6 +74,13 @@ else
     echo "Dummy data seeding is disabled."
 fi
 
+# Scale the fixtures up to something worth measuring against. Runs after the
+# dummy seed because it reuses the taxonomy and stored images that seed creates.
+if [ "$BULK_SEED_PRODUCTS" -gt 0 ] 2>/dev/null; then
+    echo "Bulk seeding enabled; scaling fixtures to $BULK_SEED_PRODUCTS products..."
+    .venv/bin/python -m scripts.seed.bulk_seed --products "$BULK_SEED_PRODUCTS"
+fi
+
 # Seed taxonomies: run cpv once and pass the product-types flag if requested
 if [ "$(lc "$SEED_CPV_CATEGORIES")" = "true" ]; then
     require_taxonomy_seed_deps
@@ -87,6 +97,15 @@ fi
 if [ "$(lc "$SEED_HS_CATEGORIES")" = "true" ]; then
     require_taxonomy_seed_deps
     .venv/bin/python -m scripts.seed.taxonomies.harmonized_system
+fi
+
+# A taxonomy import inserts thousands of rows at once, which leaves stale planner
+# statistics and a full GIN pending list behind. Without this the first queries
+# and writes after a deploy pay for that cleanup.
+if [ "$(lc "$SEED_CPV_CATEGORIES")" = "true" ] || [ "$(lc "$SEED_HS_CATEGORIES")" = "true" ]; then
+    echo "Vacuuming and analysing taxonomy tables after the import..."
+    .venv/bin/python -m scripts.db.vacuum_analyze --tables taxonomy \
+        || echo "Taxonomy vacuum/analyse failed; re-run scripts.db.vacuum_analyze manually." >&2
 fi
 
 # Create a superuser if the required environment variables are set

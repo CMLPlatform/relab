@@ -7,7 +7,7 @@ from fastapi import FastAPI, status
 
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.password_hashing import build_password_helper
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 from tests.fixtures.client import override_authenticated_user
 
 KNOWN_PASSWORD = "correct-horse-battery-staple-v9"  # gitleaks:allow # test-only password, not a secret

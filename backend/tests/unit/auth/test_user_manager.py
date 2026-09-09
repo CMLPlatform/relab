@@ -59,7 +59,7 @@ async def test_applies_account_aware_rate_limit_before_lookup() -> None:
 
     with (
         patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter,
-        patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super,
+        patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock) as mock_super,
     ):
         mock_limiter.ahit_key = AsyncMock()
         mock_super.return_value = None
@@ -91,7 +91,7 @@ async def test_email_input_skips_db_lookup() -> None:
     manager, mock_session = _make_manager()
     credentials = _make_credentials("user@example.com")
 
-    with patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super:
+    with patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock) as mock_super:
         mock_super.return_value = None
         await manager.authenticate(credentials)
 
@@ -108,7 +108,7 @@ async def test_username_found_replaces_with_email() -> None:
     manager, mock_session = _make_manager(mock_user=mock_user)
     credentials = _make_credentials("myusername")
 
-    with patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super:
+    with patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock) as mock_super:
         mock_super.return_value = mock_user
         await manager.authenticate(credentials)
 
@@ -122,7 +122,7 @@ async def test_username_not_found_passes_original() -> None:
     manager, mock_session = _make_manager(mock_user=None)
     credentials = _make_credentials("nonexistent_user")
 
-    with patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock) as mock_super:
+    with patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock) as mock_super:
         mock_super.return_value = None
         await manager.authenticate(credentials)
 
@@ -139,7 +139,7 @@ async def test_username_and_email_login_share_rate_limit_bucket() -> None:
     username_manager, _ = _make_manager(mock_user=mock_user)
     with (
         patch("app.api.auth.services.user_manager.limiter", create=True) as username_limiter,
-        patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock),
+        patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock),
     ):
         username_limiter.ahit_key = AsyncMock()
         await username_manager.authenticate(_make_credentials("myusername"))
@@ -148,7 +148,7 @@ async def test_username_and_email_login_share_rate_limit_bucket() -> None:
     email_manager, _ = _make_manager()
     with (
         patch("app.api.auth.services.user_manager.limiter", create=True) as email_limiter,
-        patch.object(BaseUserManager, "authenticate", new_callable=AsyncMock),
+        patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock),
     ):
         email_limiter.ahit_key = AsyncMock()
         await email_manager.authenticate(_make_credentials("shared@example.com"))

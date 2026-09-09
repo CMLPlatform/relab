@@ -13,7 +13,7 @@ import pytest
 from fastapi import status
 
 from app.api.reference_data.models import CategoryMaterialLink
-from tests.factories.models import (
+from scripts.seed.factories.models import (
     CategoryFactory,
     MaterialFactory,
     ProductTypeFactory,

@@ -78,6 +78,13 @@
   # Optional taxonomy-import tooling used by one-off seeding scripts
   seed-taxonomies = ["openpyxl>=3.1.5", "pandas>=2.3.3"]
 
+  # Fixture generation shared by the test suite and the CI/E2E/perf seeders.
+  # Optional in the migrations image so a production one ships neither.
+  seed-fixtures = [
+    "faker>=33.3.0",       # Realistic test data
+    "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
+  ]
+
   # Typed-table writer for the one-off dataset release build script
   dataset-release = ["pyarrow>=21.0.0"]
 
@@ -96,9 +103,8 @@
     # HTTP and async testing
     "httpx[http2]>=0.27.0", # Modern async HTTP client
 
-    # Test data generation
-    "faker>=33.3.0",       # Realistic test data
-    "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
+    # Test data generation, shared with the CI/E2E/perf seeders
+    { include-group = "seed-fixtures" },
 
     # Database testing
     { include-group = "migrations" },  # Migrations are run to set up the testcontainers database schema
@@ -236,6 +242,14 @@
         "F401",   # Ignore unused imports, which are often required for schema changes but not directly referenced in the code
         "INP001", # The alembic scripts are not meant to be a package
         "TC003",  # Allow runtime evaluation of base classes
+      ]
+      # Fixture generators live under scripts/ so the migrations image can ship
+      # them, but they keep the relaxations that suit generated data.
+      "**/scripts/seed/factories/**/*.py" = [
+        "ANN401",  # Any-typed factory kwargs are polyfactory's interface
+        "PLR2004", # Sentinel comparisons in factory plumbing
+        "S105",    # Placeholder credentials in generated fixtures are not secrets
+        "SLF001",  # Factories reach into polyfactory internals by design
       ]
       "**/tests/**/*.py" = [
         "ANN001",   # Test fixtures/helpers are not type-annotated

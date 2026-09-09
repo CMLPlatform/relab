@@ -30,7 +30,7 @@ from app.api.auth.services.oauth.utils import (
     generate_csrf_token,
     generate_state_token,
 )
-from tests.factories.models import UserFactory
+from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

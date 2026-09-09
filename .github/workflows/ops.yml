@@ -3,6 +3,11 @@
 name: Ops
 
 on:
+  # Weekly, so the suite's own rot is caught by a failing run rather than by
+  # someone reaching for it months later: the whole harness was silently broken
+  # between the CI network split and the first run after it.
+  schedule:
+    - cron: "0 5 * * 1"
   workflow_dispatch:
     inputs:
       operation:
@@ -27,7 +32,7 @@ defaults:
 jobs:
   backend-perf-baseline:
     name: Backend Perf Baseline
-    if: inputs.operation == 'perf-baseline'
+    if: github.event_name == 'schedule' || inputs.operation == 'perf-baseline'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -42,7 +47,7 @@ jobs:
       - name: Checkout requested repository ref
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
-          ref: ${{ inputs.git_ref }}
+          ref: ${{ inputs.git_ref || github.ref_name }}
           path: repo
           persist-credentials: false
 
