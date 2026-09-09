@@ -14,8 +14,8 @@ from uuid import uuid4
 import pytest
 from sqlalchemy import Select, select
 
+from app.api.application.account_erasure import ANONYMOUS_USER_EMAIL, get_or_create_anonymous_user
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.services.account_erasure import ANONYMOUS_USER_EMAIL, get_or_create_anonymous_user
 from app.api.common.audit import AuditAction, AuditContext
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.models import Camera
@@ -100,7 +100,7 @@ class TestAdminUsersActions:
         self, api_client_superuser, db_superuser: User, db_user: User
     ) -> None:
         """Deletion returns 204 and records the actor in the audit log."""
-        with patch("app.api.auth.routers.admin_users.audit_event") as log_audit:
+        with patch("app.api.application.routers.account_erasure.audit_event") as log_audit:
             response = await api_client_superuser.delete(f"{ADMIN_USERS}/{db_user.id}")
 
         assert response.status_code == 204
@@ -225,7 +225,7 @@ class TestAdminUserErasure:
         """``content=delete`` erases the products as well as the account."""
         subject = erasure_subject
 
-        with patch("app.api.auth.services.account_erasure.audit_event") as log_audit:
+        with patch("app.api.application.account_erasure.audit_event") as log_audit:
             response = await api_client_superuser.delete(f"{ADMIN_USERS}/{subject.user.id}?content=delete")
 
         assert response.status_code == 204
@@ -266,7 +266,7 @@ class TestAdminUserErasure:
         self, api_client_superuser, db_session: AsyncSession, db_superuser: User
     ) -> None:
         """The only remaining admin keeps both their account and their sessions."""
-        with patch("app.api.auth.routers.admin_users.revoke_user_refresh_tokens") as revoke:
+        with patch("app.api.application.routers.account_erasure.revoke_user_refresh_tokens") as revoke:
             response = await api_client_superuser.delete(f"{ADMIN_USERS}/{db_superuser.id}")
 
         assert response.status_code == 409

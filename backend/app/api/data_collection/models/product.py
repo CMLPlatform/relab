@@ -21,6 +21,7 @@ from app.api.data_collection.models.base import MaterialProductLinkBase, Product
 from app.api.file_storage.models import File, Image, MediaParentType, Video
 from app.api.file_storage.parents import register_media_parent
 from app.api.reference_data.models import Material, ProductType
+from app.api.reference_data.usage import register_reference_usage
 
 if TYPE_CHECKING:
     from typing import Any
@@ -197,3 +198,8 @@ class MaterialProductLink(MaterialProductLinkBase, TimeStampMixinBare, Base):
 
 # Media parents this context owns; registered here so file_storage never imports it.
 register_media_parent(MediaParentType.PRODUCT, Product)
+
+# Deleting a reference row is refused while research data still points at it. Registered
+# here rather than imported by reference_data, so the dependency keeps pointing one way.
+register_reference_usage(ProductType, Product.product_type_id, "products")
+register_reference_usage(Material, MaterialProductLink.material_id, "bill of materials entries")
