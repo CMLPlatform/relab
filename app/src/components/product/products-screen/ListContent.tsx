@@ -193,6 +193,7 @@ export function ProductsListContent({
             {/* Decorative: expo-image drops an empty alt, so hide the subtree. */}
             <View aria-hidden>
               <Image
+                accessibilityIgnoresInvertColors
                 source={
                   theme.dark
                     ? require('@/assets/images/wordmark-dark.png')

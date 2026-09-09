@@ -9,6 +9,7 @@ export function BrandHeaderTitle({ isDark }: { isDark: boolean }) {
     : require('@/assets/images/wordmark.png');
   return (
     <Image
+      accessibilityIgnoresInvertColors
       source={source}
       style={styles.wordmark}
       contentFit="contain"

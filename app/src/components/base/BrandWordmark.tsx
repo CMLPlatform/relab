@@ -13,6 +13,7 @@ export function BrandWordmark({ style }: { style?: StyleProp<ImageStyle> }) {
   const { width, height } = Asset.fromModule(source);
   return (
     <Image
+      accessibilityIgnoresInvertColors
       source={source}
       contentFit="contain"
       accessibilityLabel="Relab"

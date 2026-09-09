@@ -73,6 +73,7 @@ function CameraCardComponent({
         {hasThumbnail ? (
           // expo-image's Image is not cssInterop-wrapped in this app; styling stays JS-side.
           <Image
+            accessibilityIgnoresInvertColors
             source={thumbnailSource}
             style={styles.thumbnail}
             contentFit="cover"
