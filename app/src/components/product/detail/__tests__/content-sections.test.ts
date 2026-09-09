@@ -18,46 +18,58 @@ const bareProduct: Product = {
 
 describe('overview section isEmpty', () => {
   it('is empty when the product has no description, brand, model, type, or amount', () => {
-    expect(overview.isEmpty(bareProduct, { mediaStreamable: false })).toBe(true);
+    expect(overview.isEmpty(bareProduct, { editMode: false, mediaStreamable: false })).toBe(true);
   });
 
   it('is not empty when only the description is set', () => {
     expect(
-      overview.isEmpty({ ...bareProduct, description: 'Some text' }, { mediaStreamable: false }),
+      overview.isEmpty(
+        { ...bareProduct, description: 'Some text' },
+        { editMode: false, mediaStreamable: false },
+      ),
     ).toBe(false);
   });
 
   it('is not empty when only the brand is set', () => {
-    expect(overview.isEmpty({ ...bareProduct, brand: 'Acme' }, { mediaStreamable: false })).toBe(
-      false,
-    );
+    expect(
+      overview.isEmpty(
+        { ...bareProduct, brand: 'Acme' },
+        { editMode: false, mediaStreamable: false },
+      ),
+    ).toBe(false);
   });
 
   it('is not empty when only the model is set', () => {
-    expect(overview.isEmpty({ ...bareProduct, model: 'X100' }, { mediaStreamable: false })).toBe(
-      false,
-    );
+    expect(
+      overview.isEmpty(
+        { ...bareProduct, model: 'X100' },
+        { editMode: false, mediaStreamable: false },
+      ),
+    ).toBe(false);
   });
 
   it('is not empty when only the product type is set', () => {
-    expect(overview.isEmpty({ ...bareProduct, productTypeID: 1 }, { mediaStreamable: false })).toBe(
-      false,
-    );
+    expect(
+      overview.isEmpty(
+        { ...bareProduct, productTypeID: 1 },
+        { editMode: false, mediaStreamable: false },
+      ),
+    ).toBe(false);
   });
 
   it('is not empty for a description-less component with amountInParent > 1', () => {
     const component: Product = { ...bareProduct, role: 'component', amountInParent: 3 };
-    expect(overview.isEmpty(component, { mediaStreamable: false })).toBe(false);
+    expect(overview.isEmpty(component, { editMode: false, mediaStreamable: false })).toBe(false);
   });
 
   it('stays empty for a description-less component with amountInParent of 1', () => {
     const component: Product = { ...bareProduct, role: 'component', amountInParent: 1 };
-    expect(overview.isEmpty(component, { mediaStreamable: false })).toBe(true);
+    expect(overview.isEmpty(component, { editMode: false, mediaStreamable: false })).toBe(true);
   });
 
   it('ignores amountInParent for a base product (not a component)', () => {
     const product: Product = { ...bareProduct, role: 'product', amountInParent: 3 };
-    expect(overview.isEmpty(product, { mediaStreamable: false })).toBe(true);
+    expect(overview.isEmpty(product, { editMode: false, mediaStreamable: false })).toBe(true);
   });
 });
 
@@ -139,12 +151,20 @@ describe('section chunking', () => {
       },
     };
 
-    it('is empty only when both measurements and circularity notes are absent', () => {
-      expect(properties.isEmpty(emptyProps, { mediaStreamable: false })).toBe(true);
+    // In view mode unset measurements are data, not absence: the section keeps
+    // rendering its spec rows with "—". Only edit mode collapses to the add-row.
+    it('is never empty in view mode, even with nothing measured or noted', () => {
+      expect(properties.isEmpty(emptyProps, { editMode: false, mediaStreamable: false })).toBe(
+        false,
+      );
+    });
+
+    it('is empty in edit mode only when both measurements and circularity notes are absent', () => {
+      expect(properties.isEmpty(emptyProps, { editMode: true, mediaStreamable: false })).toBe(true);
       expect(
         properties.isEmpty(
           { ...emptyProps, physicalProperties: { ...emptyProps.physicalProperties, weight: 12 } },
-          { mediaStreamable: false },
+          { editMode: true, mediaStreamable: false },
         ),
       ).toBe(false);
       expect(
@@ -153,7 +173,7 @@ describe('section chunking', () => {
             ...emptyProps,
             circularityProperties: { ...emptyProps.circularityProperties, recyclability: 'ok' },
           },
-          { mediaStreamable: false },
+          { editMode: true, mediaStreamable: false },
         ),
       ).toBe(false);
     });
@@ -179,12 +199,20 @@ describe('files section', () => {
   });
 
   it('is empty until a research file is attached, independent of videos', () => {
-    expect(files.isEmpty(baseProduct, { mediaStreamable: true, hasResearchFiles: false })).toBe(
-      true,
-    );
-    expect(files.isEmpty(baseProduct, { mediaStreamable: false, hasResearchFiles: true })).toBe(
-      false,
-    );
+    expect(
+      files.isEmpty(baseProduct, {
+        editMode: false,
+        mediaStreamable: true,
+        hasResearchFiles: false,
+      }),
+    ).toBe(true);
+    expect(
+      files.isEmpty(baseProduct, {
+        editMode: false,
+        mediaStreamable: false,
+        hasResearchFiles: true,
+      }),
+    ).toBe(false);
   });
 
   it('does not count towards the media section', () => {
@@ -193,7 +221,7 @@ describe('files section', () => {
     expect(
       media.isEmpty(
         { ...baseProduct, videos: [] },
-        { mediaStreamable: false, hasResearchFiles: true },
+        { editMode: false, mediaStreamable: false, hasResearchFiles: true },
       ),
     ).toBe(true);
   });

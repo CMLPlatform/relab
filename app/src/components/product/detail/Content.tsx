@@ -75,7 +75,7 @@ export function ProductPageContent({
     onSectionsWrapperLayout,
   } = useAnchoredSectionNav(outerNav);
 
-  const ctx: SectionContext = { mediaStreamable, hasResearchFiles };
+  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode };
   const sectionProps: SectionRenderProps = {
     product,
     editMode,

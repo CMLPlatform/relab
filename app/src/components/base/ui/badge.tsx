@@ -4,9 +4,11 @@ import { Platform, View } from 'react-native';
 import { TextClassContext } from '@/components/base/ui/text';
 import { cn } from '@/utils/cn';
 
+// Status-pill shape (DESIGN.md): radius.control, not `rounded-full` — the
+// True-Pill Rule keeps the full radius for avatars.
 const badgeVariants = cva(
   cn(
-    'border-border group shrink-0 flex-row items-center justify-center gap-1 overflow-hidden rounded-full border px-2 py-0.5',
+    'border-border group shrink-0 flex-row items-center justify-center gap-1 overflow-hidden rounded-md border px-2 py-0.5',
     Platform.select({
       // No focus styling: Badge is never focusable. If it becomes interactive,
       // compose WEB_FOCUS_RING, not a ring.
@@ -18,7 +20,7 @@ const badgeVariants = cva(
       variant: {
         default: cn(
           'bg-primary border-transparent',
-          Platform.select({ web: '[a&]:hover:bg-primary/90' }),
+          Platform.select({ web: '[a&]:hover:bg-primary-strong' }),
         ),
         secondary: cn(
           'bg-secondary border-transparent',

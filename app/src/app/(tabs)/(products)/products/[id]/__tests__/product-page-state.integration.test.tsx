@@ -696,7 +696,7 @@ describe('Section layout', () => {
     expect(indexOf('Details')).toBe(-1);
   });
 
-  it('hides an empty properties section in view mode and shows one add-row in edit mode', async () => {
+  it('keeps an empty properties section in view mode and shows one add-row in edit mode', async () => {
     const bareProduct = {
       ...baseProduct,
       physicalProperties: {
@@ -714,8 +714,12 @@ describe('Section layout', () => {
 
     const { rerender } = await renderWithProviders(<ProductPage />, { withDialog: true });
 
-    expect(screen.queryByText('Properties')).toBeNull();
-    expect(screen.queryByText('ProductCircularityProperties')).toBeNull();
+    // Unset measurements are data, not absence: a fresh record still reads as a
+    // spec sheet with blanks rather than a page with only Components.
+    // Section heading plus the nav chip/outline entry.
+    expect(screen.getAllByText('Properties').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('ProductPhysicalProperties')).toBeOnTheScreen();
+    expect(screen.getByText('ProductCircularityProperties')).toBeOnTheScreen();
 
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,

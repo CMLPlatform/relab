@@ -31,7 +31,8 @@ const PRODUCT_ID_LABEL = 'Product ID:';
 const SAVED_STATUS_PATTERN = /^Saved · ID \d+$/;
 const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
 // Empty optional sections collapse to a single "Add …" row in edit mode
-// (Section.tsx showAddRow); pressing it reveals the real fields.
+// (Section.tsx showAddRow); pressing it reveals the real fields. View mode is
+// unaffected — Properties in particular always renders its spec rows there.
 const ADD_DESCRIPTION_LABEL = 'Add a description';
 // Measurements and circularity notes share one Properties section, so one
 // add-row opens both blocks.
@@ -106,8 +107,8 @@ test.describe('Product detail: section navigation', () => {
     await reachProductsPage(page);
     await openSeededProductFromProductsPage(page);
 
-    // Both seeded products have physical properties set, so the section (and
-    // its nav chip/outline entry) is visible in view mode without editing.
+    // Properties always renders in view mode (unset measurements read "—"), so
+    // the section and its nav chip/outline entry are there without editing.
     await page.getByRole('button', { name: 'Properties' }).click();
 
     // The chip/outline entry and the Section heading share the same text; the

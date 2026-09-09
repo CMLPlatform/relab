@@ -37,8 +37,6 @@ export type Product = {
   amountInParent?: number;
 };
 
-// Keys stay required (not `weight?:`): ProductPhysicalProperties renders one
-// row per Object.keys() entry.
 export type PhysicalProperties = {
   weight: number | undefined;
   width: number | undefined;

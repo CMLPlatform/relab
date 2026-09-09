@@ -31,6 +31,15 @@ const nameMap = {
 
 const physicalPropertyShape = productSchema.shape.physicalProperties.shape;
 
+// Fixed row order: a record whose object is missing keys still reads as a spec
+// sheet with blanks.
+const PROPERTY_KEYS = [
+  'weight',
+  'width',
+  'height',
+  'depth',
+] as const satisfies readonly (keyof PhysicalProperties)[];
+
 /** Validation message for one dimension, read off the shared schema. In practice only fires on a literal 0. */
 function propertyError(
   propKey: keyof PhysicalProperties,
@@ -53,18 +62,24 @@ export default function ProductPhysicalProperties({
     [product.physicalProperties, onChangePhysicalProperties],
   );
 
+  const { width, height, depth } = product.physicalProperties;
+  // An empty box is not a drawing worth making.
+  const hasDimensions = Boolean(width || height || depth);
+
   // Render
   return (
     <View>
       <AppText variant="heading" className="mb-2 font-semibold">
         Measurements
       </AppText>
-      <Cube
-        width={product.physicalProperties.width}
-        height={product.physicalProperties.height}
-        depth={product.physicalProperties.depth}
-        compact={editMode}
-      />
+      {hasDimensions ? (
+        <Cube
+          width={product.physicalProperties.width}
+          height={product.physicalProperties.height}
+          depth={product.physicalProperties.depth}
+          compact={editMode}
+        />
+      ) : null}
       {/* Four labelled boxes do not say which box is which, that centimetres and
           grams are the units, or what an empty field means — and the audience
           runs out past the lab, where none of that is assumed knowledge. The
@@ -75,10 +90,10 @@ export default function ProductPhysicalProperties({
           measure it.
         </AppText>
       ) : null}
-      {Object.keys(product.physicalProperties).map((prop) => (
+      {PROPERTY_KEYS.map((prop) => (
         <PhysicalPropertyRow
           key={prop}
-          propKey={prop as keyof PhysicalProperties}
+          propKey={prop}
           product={product}
           editMode={editMode}
           onChangeProperty={onChangeProperty}

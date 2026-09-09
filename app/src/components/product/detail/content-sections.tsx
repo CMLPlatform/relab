@@ -35,6 +35,8 @@ export type SectionRenderProps = {
 // Emptiness context not derivable from `product` alone.
 export type SectionContext = {
   mediaStreamable: boolean;
+  /** Edit mode: some sections stay rendered in view mode but collapse to an add-row here. */
+  editMode: boolean;
   /** Whether the record has research files attached; only lab accounts can see them. */
   hasResearchFiles?: boolean;
 };
@@ -117,7 +119,10 @@ export const SECTIONS: SectionConfig[] = [
     key: 'properties',
     label: 'Properties',
     addLabel: 'Add properties',
-    isEmpty: (product) => {
+    // In view mode the section always renders: unset measurements are data, and
+    // the spec rows say so with "—". Only edit mode collapses to the add-row.
+    isEmpty: (product, ctx) => {
+      if (!ctx.editMode) return false;
       const { weight, width, height, depth } = product.physicalProperties;
       return !(weight || width || height || depth) && !hasCircularityNotes(product);
     },
@@ -179,7 +184,7 @@ export function guardedSections(ctx: GuardContext): SectionConfig[] {
 /** The sections actually rendered right now — reused by the nav chips/outline. */
 export function visibleSections(
   product: Product,
-  ctx: SectionContext & GuardContext & { editMode: boolean },
+  ctx: SectionContext & GuardContext,
 ): { key: SectionKey; label: string }[] {
   return guardedSections(ctx)
     .filter((section) => ctx.editMode || !section.isEmpty(product, ctx))

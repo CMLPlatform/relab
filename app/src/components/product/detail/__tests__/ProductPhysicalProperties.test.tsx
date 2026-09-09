@@ -33,19 +33,19 @@ describe('ProductPhysicalProperties', () => {
     expect(screen.getByDisplayValue('500')).toBeOnTheScreen();
   });
 
-  // The rows come from Object.keys(physicalProperties), so an unmeasured
-  // property must stay a present key holding undefined — dropping the key
-  // would silently render fewer rows, and an empty field must not read "NaN".
+  const unmeasured: Product = {
+    ..._base,
+    physicalProperties: {
+      width: undefined,
+      height: undefined,
+      depth: undefined,
+      weight: undefined,
+    },
+  };
+
+  // Rows come from a fixed key list, so a product object missing a key still
+  // renders four rows, and an empty field must not read "NaN".
   it('renders all four rows as empty for a fully unmeasured product', async () => {
-    const unmeasured: Product = {
-      ..._base,
-      physicalProperties: {
-        width: undefined,
-        height: undefined,
-        depth: undefined,
-        weight: undefined,
-      },
-    };
     await renderWithProviders(<ProductPhysicalProperties product={unmeasured} editMode={true} />);
 
     for (const label of ['Weight', 'Height', 'Width', 'Depth']) {
@@ -99,6 +99,14 @@ describe('ProductPhysicalProperties', () => {
     await renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
 
     expect(screen.getByTestId('svg-cube-full')).toBeOnTheScreen();
+  });
+
+  it('renders every measurement as an em dash and no cube when nothing is measured', async () => {
+    await renderWithProviders(<ProductPhysicalProperties product={unmeasured} editMode={false} />);
+
+    expect(screen.getAllByText('—')).toHaveLength(4);
+    expect(screen.queryByTestId('svg-cube-full')).toBeNull();
+    expect(screen.queryByTestId('svg-cube-compact')).toBeNull();
   });
 });
 
