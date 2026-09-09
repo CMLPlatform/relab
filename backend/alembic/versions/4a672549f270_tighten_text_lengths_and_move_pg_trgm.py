@@ -71,9 +71,9 @@ ADMIN_LIST_TRIGRAM_INDEXES = (
 )
 
 
-SUPERUSER_INSTRUCTION = (
-    "run as the postgres superuser first: ALTER EXTENSION pg_trgm SET SCHEMA extensions; then re-run"
-)
+# Formatted with the schema the move is heading for: _move_pg_trgm raises from both
+# directions, and naming the schema the extension is already in would advise a no-op.
+SUPERUSER_INSTRUCTION = "run as the postgres superuser first: ALTER EXTENSION pg_trgm SET SCHEMA {schema}; then re-run"
 
 
 def pg_trgm_schema(connection: sa.Connection) -> str:
@@ -112,7 +112,8 @@ def _move_pg_trgm(
                 raise
             # On hosts provisioned before the migrator role existed, pg_trgm belongs to
             # the superuser and only the superuser can move it.
-            msg = f"pg_trgm is in schema {current_schema!r} and the migrator does not own it; {SUPERUSER_INSTRUCTION}"
+            instruction = SUPERUSER_INSTRUCTION.format(schema=schema)
+            msg = f"pg_trgm is in schema {current_schema!r} and the migrator does not own it; {instruction}"
             raise RuntimeError(msg) from exc
         op.execute(f"CREATE EXTENSION pg_trgm SCHEMA {schema}")
     for index, table, expression in create:

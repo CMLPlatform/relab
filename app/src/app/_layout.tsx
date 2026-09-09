@@ -31,6 +31,7 @@ import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
+import { PRODUCT_SHORTCUT_GROUPS } from '@/features/products/productShortcutGroups';
 import { SAVE_PRODUCT_MUTATION_KEY, saveProductMutationFn } from '@/features/products/queries';
 import { registerNativeOnlineListener } from '@/services/nativeOnline';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
@@ -204,7 +205,7 @@ function AppShell() {
       <OfflineBanner />
       <AppStack />
       <ActiveStreamBanner />
-      <KeyboardShortcutsDialog />
+      <KeyboardShortcutsDialog groups={PRODUCT_SHORTCUT_GROUPS} />
     </View>
   );
 }

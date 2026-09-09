@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { createModuleStore } from '@/utils/moduleStore';
 
 /**
  * Open state for the keyboard-shortcuts overlay.
@@ -8,36 +9,16 @@ import { useSyncExternalStore } from 'react';
  * once at the app shell and the button sits in a sibling subtree, so module state costs
  * less than a provider wrapping both for one boolean.
  */
-let open = false;
-const listeners = new Set<() => void>();
-
-function emit() {
-  for (const listener of listeners) listener();
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-function getSnapshot() {
-  return open;
-}
-
-function setOpen(next: boolean) {
-  if (open === next) return;
-  open = next;
-  emit();
-}
+const store = createModuleStore(false);
 
 export function openShortcutsOverlay() {
-  setOpen(true);
+  store.set(true);
 }
 
 export function closeShortcutsOverlay() {
-  setOpen(false);
+  store.set(false);
 }
 
 export function useShortcutsOverlayOpen() {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return useSyncExternalStore(store.subscribe, store.get, store.get);
 }

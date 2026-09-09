@@ -222,7 +222,10 @@ the topology these steps produce.
    ```
 
 1. Upgrade later with the same commands: pull a known-good revision, `just stack prod build`, then
-   `just stack prod up YES migrations`. A failed migration leaves the old API serving. To return to
+   `just stack prod up YES migrations`. A failed migration leaves the old API serving. If the
+   migrator stops on an unresolvable revision, the database's `alembic_version` predates the
+   2026-09-08 flatten: bring the host to `a9c2e4f60b18` on a release from before the flatten, or
+   restore from backup, before continuing. To return to
    the previous release, `just stack prod rollback YES <sha>` retags the images that build produced;
    add the previous alembic revision to downgrade the schema too
    (revisions before `a9c2e4f60b18` were flattened away and cannot be targeted), which the recipe
@@ -313,7 +316,7 @@ Prod and staging can ship to a central monitoring stack (Grafana + Loki + Tempo 
    the backend's OpenTelemetry exporter and a Grafana Alloy agent that forwards every other
    container's stdout over the same OTLP endpoint.
 
-1. `prod-up` and `staging-up` include `compose.telemetry.yml` when the endpoint is non-empty. Hosts
+1. `just stack <env> up` includes `compose.telemetry.yml` when the endpoint is non-empty. Hosts
    without it ship nothing; `docker logs` stays the only log path.
 
 See [Deployment and operations](/operations/deployment/#telemetry) for what each variable does

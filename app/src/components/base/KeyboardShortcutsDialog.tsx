@@ -15,44 +15,25 @@ import { useAppTheme } from '@/theme';
 import { heading } from '@/utils/a11y';
 import { isPlainShortcut } from '@/utils/keyboardShortcuts';
 
-const isMac =
-  Platform.OS === 'web' &&
-  typeof navigator !== 'undefined' &&
-  /Mac|iPhone|iPad/.test(navigator.userAgent);
+export type ShortcutGroupSpec = { title: string; items: [key: string, action: string][] };
 
 /**
- * Every web shortcut in the app. Grouped by where it applies, because all of
- * them but "?" are focus-scoped to one screen — a flat list would promise
- * bindings that do nothing on the screen the reader is looking at.
+ * "?" is the only binding this dialog owns; every other one is focus-scoped to a
+ * screen, so its descriptions come from the feature that registers it.
  */
-const SHORTCUT_GROUPS: { title: string; items: [key: string, action: string][] }[] = [
-  {
-    title: 'Anywhere',
-    items: [['?', 'Show shortcuts']],
-  },
-  {
-    title: 'Products list',
-    items: [
-      ['/', 'Search products'],
-      ['n', 'New product'],
-      ['f', 'Filters'],
-    ],
-  },
-  {
-    title: 'Product page',
-    items: [
-      ['e', 'Edit'],
-      ['Esc', 'Leave edit mode'],
-      [isMac ? '⌘ S' : 'Ctrl + S', 'Save'],
-    ],
-  },
-];
+const ANYWHERE_GROUP: ShortcutGroupSpec = {
+  title: 'Anywhere',
+  items: [['?', 'Show shortcuts']],
+};
 
 /**
  * The "?" overlay. Mounted once at the app shell; keyboard-only, so it never
  * renders on native. AppDialog's Modal handles Escape and the return focus.
+ *
+ * Grouped by where each binding applies, because a flat list would promise keys
+ * that do nothing on the screen the reader is looking at.
  */
-export function KeyboardShortcutsDialog() {
+export function KeyboardShortcutsDialog({ groups }: { groups: ShortcutGroupSpec[] }) {
   const visible = useShortcutsOverlayOpen();
   const shortcutsEnabled = useShortcutsEnabled();
 
@@ -84,7 +65,7 @@ export function KeyboardShortcutsDialog() {
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Keyboard shortcuts
       </AppText>
-      {SHORTCUT_GROUPS.map((group) => (
+      {[ANYWHERE_GROUP, ...groups].map((group) => (
         <ShortcutGroup
           key={group.title}
           title={group.title}

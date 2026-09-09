@@ -112,6 +112,25 @@ Docker creates a missing bind-mount directory root-owned.
 Fix with: sudo chown -R 65532:65532 /srv/backups/restic" \
     "$(mount_alert backup /restic host:/srv/backups/restic no)"
 
+# An unreadable .env reads back as an empty ENVIRONMENT, so without its own branch the
+# guard blames the config for what is a permissions problem. env_guard above cannot see
+# the difference: both paths exit 2. This asserts the message names readability.
+unreadable_env_guard() {
+    local dir out status
+    dir="$(mktemp -d)"
+    printf 'ENVIRONMENT=prod\n' >"$dir/.env"
+    chmod 000 "$dir/.env"
+    out="$(cd "$dir" && FORCE='' stack_command prod up 2>&1)"
+    status=$?
+    chmod 600 "$dir/.env"
+    rm -rf "$dir"
+    [[ $status -eq 2 && "$out" == *"not readable"* ]] && echo blocked || echo "unexpected status $status: $out"
+}
+# NOTE: root reads a mode-000 file, so there is nothing to assert as root.
+if [[ $EUID -ne 0 ]]; then
+    assert_eq "env guard: unreadable .env names the permissions" blocked "$(unreadable_env_guard)"
+fi
+
 sha_guard() {
     (require_short_sha "$1" 2>/dev/null) && echo ok || echo rejected
 }

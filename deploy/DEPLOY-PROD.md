@@ -251,7 +251,17 @@ The `migrations` profile is the routine path: the API waits for the migrator to 
 migration leaves the old API serving. Without it you get a two-step that briefly serves against the
 old schema, acceptable during a planned outage, not for a routine release.
 
+A migrator that stops on an unresolvable revision means the database's `alembic_version` predates
+the 2026-09-08 flatten: nothing is corrupted, but the chain no longer contains that id. Bring the
+host to `a9c2e4f60b18` on a release from before the flatten, or restore from backup, then re-run.
+
 `up` adds the `scanning` profile itself unless `MALWARE_SCAN_ENABLED=false` in the root `.env`.
+
+The migrator also completes any missing image thumbnails. That step is best-effort, so if its log
+says the thumbnail backfill failed — or product lists are serving full-size originals as card
+images — re-run it by hand against the backend container:
+`python -m scripts.maintenance.backfill_thumbnails`. It resumes where it stopped and is safe to run
+repeatedly.
 
 ### Releases that need a window
 
@@ -358,8 +368,8 @@ when the most recent backup is the damage. `just restore` drops schema `public` 
 it refuses to run without `YES`, and it asserts the restored database has rows and not merely tables
 before reporting success. It then re-runs `deploy/postgres/initdb/provision.sh`, because the dump
 does not carry back the default privileges that let `relab_app` read tables future migrations
-create. (`prod-up` runs the same script on every start, so a volume that predates a change to it
-converges on the next release.)
+create. (`just stack <env> up` runs the same script on every start, so a volume that predates a
+change to it converges on the next release.)
 
 Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately
 (`infra/cloudflare/`, prod workspace adopted 2026-09-08); the tunnel's ingress rules live there,
