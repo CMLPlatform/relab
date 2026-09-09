@@ -25,6 +25,7 @@ _DESTRUCTIVE_CALLS = {"drop_column", "drop_table"}
 _SAFE_MARKER = "ROLLBACK_SAFE"
 _DOWNGRADE = "downgrade"
 _EXECUTE = "execute"
+_BASE_TARGET = "base"
 _DESTRUCTIVE_SQL = re.compile(r"\b(DELETE|TRUNCATE|UPDATE|DROP)\b", re.IGNORECASE)
 
 
@@ -77,6 +78,15 @@ def main(argv: list[str]) -> int:
         sys.stderr.write("usage: python -m scripts.maintenance.downgrade_safety <target-revision>\n")
         return 2
     target = argv[0]
+    if target == _BASE_TARGET:
+        # Every revision's `downgrade()` drops what its `upgrade()` created, so going to
+        # base drops every table by construction. No per-revision marker can make that
+        # lossless, and this gate only inspects `upgrade()`, so it would otherwise pass.
+        sys.stderr.write(
+            "error: refusing to check a downgrade to base: it drops every table. "
+            "Name the revision to stop at, or restore the backup (just restore <env> YES <snapshot>).\n"
+        )
+        return 1
     config = Config()
     config.set_main_option("script_location", str(Path(__file__).resolve().parents[2] / "alembic"))
     scripts = ScriptDirectory.from_config(config)

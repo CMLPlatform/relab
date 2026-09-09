@@ -77,9 +77,11 @@ cleartext, so the value must be dedicated: it buys nothing but the skip. It is s
 **staging hosts only**, and leaving the key unset drops the branch, so export it whenever you
 plan this root.
 
-Because the phase is capped at five rules, this is a **branch of the RPi camera rule**, not a
-rule of its own. It therefore inherits that rule's phases: a keyed staging run skips the managed
-WAF as well as Super Bot Fight Mode. Prod is unaffected either way.
+Because the phase is capped at five rules, this is a **branch of the public-reads rule**, not a
+rule of its own. It therefore inherits that rule's single phase and skips **Super Bot Fight Mode
+only**: a keyed staging run still meets the same managed WAF prod does. That matters because the
+key is just a header — anyone who reads it from the rulesets API could otherwise turn the WAF off
+for every staging path, `/v1/admin/` included. Prod is unaffected either way.
 
 The www build's fetch of `/v1/products/{id}` and its component tree is a non-browser client
 that gets challenged the same way, which makes the landing page ship its fixture. That is

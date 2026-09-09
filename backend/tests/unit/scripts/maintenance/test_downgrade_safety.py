@@ -3,7 +3,10 @@
 from pathlib import Path
 
 import pytest
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 
+from scripts.maintenance import downgrade_safety
 from scripts.maintenance.downgrade_safety import destructive_upgrade_calls, main
 
 SHAPE_ONLY = """
@@ -87,10 +90,20 @@ def test_unknown_target_revision_is_a_usage_error(capsys: pytest.CaptureFixture[
     assert "cannot resolve downgrade range" in capsys.readouterr().err
 
 
-def test_real_history_to_base_is_reversible(capsys: pytest.CaptureFixture[str]) -> None:
-    """Every revision in the flattened history is ROLLBACK_SAFE, so base is reachable."""
-    # Also proves the script reads the real alembic directory.
-    assert main(["base"]) == 0
+def test_downgrade_to_base_is_refused_however_the_revisions_are_marked(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """`base` drops every table; no ROLLBACK_SAFE marker can make that lossless."""
+    assert main(["base"]) == 1
+    assert "drops every table" in capsys.readouterr().err
+
+
+def test_real_history_head_is_reachable(capsys: pytest.CaptureFixture[str]) -> None:
+    """The gate reads the real alembic directory and clears a same-revision range."""
+    config = Config()
+    config.set_main_option("script_location", str(Path(downgrade_safety.__file__).resolve().parents[2] / "alembic"))
+    (head,) = ScriptDirectory.from_config(config).get_heads()
+    assert main([head]) == 0
     assert "with no data loss" in capsys.readouterr().out
 
 

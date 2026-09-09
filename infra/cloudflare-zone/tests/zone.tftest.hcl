@@ -149,15 +149,27 @@ run "e2e_branch_is_scoped_to_staging_and_its_credential" {
     e2e_edge_key = "test-e2e-key"
   }
 
-  # Folded into the RPi rule: the Free plan's five-rule budget for this phase is full.
+  # Folded into the public-reads rule: the Free plan's five-rule budget for this phase is
+  # full, and that rule skips only Super Bot Fight Mode.
   assert {
     condition = anytrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
-      rule.ref == "relab_rpi_cam_device_skip_managed_security" &&
+      rule.ref == "relab_public_reads_skip_bot_fight_mode" &&
       strcontains(rule.expression, "x-e2e-key") &&
       strcontains(rule.expression, "api-test.cml-relab.org")
     ])
     error_message = "the e2e branch must match the staging hosts AND the credential header."
+  }
+
+  # The key must never reach the managed WAF skip: it is a header, and anyone holding it
+  # would otherwise turn off the WAF for every staging path, /v1/admin/ included.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      !(contains(try(rule.action_parameters.phases, []), "http_request_firewall_managed")
+      && strcontains(rule.expression, "x-e2e-key"))
+    ])
+    error_message = "no rule skipping the managed WAF may match the e2e header."
   }
 
   # The header alone must never be enough: a prod host with the key must not match. The

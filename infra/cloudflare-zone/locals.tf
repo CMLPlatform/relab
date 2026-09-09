@@ -102,39 +102,28 @@ locals {
       # endpoints are authenticated at the app layer by ES256 device assertions with
       # Redis replay protection, and the skip is scoped to just those paths.
       #
-      # Keyed staging E2E rides along as a second branch of the same rule: the Free plan
-      # allows five rules in this phase and they are all spoken for, so a rule of its own
-      # would fail at apply time. Consequence of sharing: the E2E branch inherits these
-      # phases, so a keyed run also skips the managed WAF, not only Super Bot Fight Mode.
-      # Staging hosts only, and only while var.e2e_edge_key is set.
+      # This is the only rule that skips the managed WAF, so nothing but these four device
+      # paths may join it. Keyed staging E2E lives in the SBFM-only rule below instead: it
+      # is a header anyone holding the key can send, and the WAF is the control that has to
+      # keep standing behind it.
       ref         = "relab_rpi_cam_device_skip_managed_security"
-      description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic and keyed staging E2E runs"
-      expression = join(" or ", concat([
-        join(" and ", [
-          local.api_hosts_expression,
-          "(${join(" or ", [
-            "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/register\")",
-            "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/poll\")",
-            "http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\"",
-            "(${join(" and ", [
-              "http.request.method eq \"POST\"",
-              "starts_with(http.request.uri.path, \"/v1/plugins/rpi-cam/device/cameras/\")",
-              "(${join(" or ", [
-                "ends_with(http.request.uri.path, \"/image-upload\")",
-                "ends_with(http.request.uri.path, \"/preview-thumbnail-upload\")",
-              ])})",
+      description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic"
+      expression = join(" and ", [
+        local.api_hosts_expression,
+        "(${join(" or ", [
+          "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/register\")",
+          "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/poll\")",
+          "http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\"",
+          "(${join(" and ", [
+            "http.request.method eq \"POST\"",
+            "starts_with(http.request.uri.path, \"/v1/plugins/rpi-cam/device/cameras/\")",
+            "(${join(" or ", [
+              "ends_with(http.request.uri.path, \"/image-upload\")",
+              "ends_with(http.request.uri.path, \"/preview-thumbnail-upload\")",
             ])})",
           ])})",
-        ]),
-        ], var.e2e_edge_key == "" ? [] : [
-        # Cloudflare stores and serves ruleset expressions in cleartext, so this is a
-        # dedicated key with no other use; jsonencode keeps one containing `"` or `\`
-        # from producing a malformed expression.
-        join(" and ", [
-          local.staging_hosts_expression,
-          "any(http.request.headers[\"x-e2e-key\"][*] eq ${jsonencode(var.e2e_edge_key)})",
-        ]),
-      ]))
+        ])})",
+      ])
       action = "skip"
       action_parameters = {
         phases = [
@@ -153,18 +142,34 @@ locals {
       # preflight: it carries no body, changes nothing, and a challenged preflight kills
       # every cross-origin call the app makes (a keyed E2E run adds a custom header, which
       # forces a preflight on each request), so it skips too.
+      #
+      # Keyed staging E2E rides along as a second branch here, not in the managed-WAF rule
+      # above: the Free plan allows five rules in this phase and they are all spoken for,
+      # so a rule of its own would fail at apply time. This rule skips only Super Bot Fight
+      # Mode, so a keyed run still meets the same managed WAF prod does. Staging hosts
+      # only, and only while var.e2e_edge_key is set.
       ref         = "relab_public_reads_skip_bot_fight_mode"
-      description = "Skip Super Bot Fight Mode for public read-only stats and product endpoints and CORS preflights"
-      expression = join(" and ", [
-        local.api_hosts_expression,
-        "(${join(" or ", [
-          "http.request.method eq \"OPTIONS\"",
-          "(http.request.method eq \"GET\" and (${join(" or ", [
-            "starts_with(http.request.uri.path, \"/v1/stats/\")",
-            "starts_with(http.request.uri.path, \"/v1/products/\")",
-          ])}))",
-        ])})",
-      ])
+      description = "Skip Super Bot Fight Mode for public read-only endpoints, CORS preflights, and keyed staging E2E runs"
+      expression = join(" or ", concat([
+        join(" and ", [
+          local.api_hosts_expression,
+          "(${join(" or ", [
+            "http.request.method eq \"OPTIONS\"",
+            "(http.request.method eq \"GET\" and (${join(" or ", [
+              "starts_with(http.request.uri.path, \"/v1/stats/\")",
+              "starts_with(http.request.uri.path, \"/v1/products/\")",
+            ])}))",
+          ])})",
+        ]),
+        ], var.e2e_edge_key == "" ? [] : [
+        # Cloudflare stores and serves ruleset expressions in cleartext, so this is a
+        # dedicated key with no other use; jsonencode keeps one containing `"` or `\`
+        # from producing a malformed expression.
+        join(" and ", [
+          local.staging_hosts_expression,
+          "any(http.request.headers[\"x-e2e-key\"][*] eq ${jsonencode(var.e2e_edge_key)})",
+        ]),
+      ]))
       action = "skip"
       action_parameters = {
         phases = [
