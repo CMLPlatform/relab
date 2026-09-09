@@ -318,6 +318,7 @@ function VideoRow({
             className="px-3.5"
             style={[tokens.type.body, { color: textColor }]}
             placeholder="Add description (optional)"
+            accessibilityLabel="Video description"
             value={video.description}
             onChangeText={handleDescriptionChange}
             editable={editMode}
