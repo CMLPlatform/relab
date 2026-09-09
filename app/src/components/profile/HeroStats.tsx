@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { Icon } from '@/components/base/Icon';
 import { Skeleton } from '@/components/base/Skeleton';
 import { Badge } from '@/components/base/ui/badge';
 import { Text } from '@/components/base/ui/text';
@@ -20,27 +21,36 @@ type ProfileHeroProps = {
 
 /** Account page header: identity block in the same spec-sheet voice as the product SpecHeader. */
 export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }: ProfileHeroProps) {
+  const theme = useAppTheme();
   return (
     <View className="gap-2 px-4 py-3">
       {/* A greeting, not a tag value: caption, not eyebrow (DESIGN.md Eyebrow-Is-A-Datum). */}
       <AppText variant="caption" className="text-muted-foreground">
         Hi,
       </AppText>
-      <Pressable
-        ref={usernameEditTriggerRef}
-        onPress={onEditUsername}
-        accessibilityRole="button"
-        accessibilityLabel="Edit username"
-      >
+      {/* The heading sits beside the edit control, not inside it: a button's
+          content is its label, and a heading buried there leaves the screen
+          without one in the outline. */}
+      <View className="flex-row items-center gap-1">
         <AppText
           variant="display"
           {...heading(1)}
           numberOfLines={Platform.OS === 'web' ? undefined : 1}
           adjustsFontSizeToFit
+          style={{ flexShrink: 1 }}
         >
           {profile.username}
         </AppText>
-      </Pressable>
+        <Pressable
+          ref={usernameEditTriggerRef}
+          onPress={onEditUsername}
+          accessibilityRole="button"
+          accessibilityLabel="Edit username"
+          className="h-11 w-11 items-center justify-center"
+        >
+          <Icon name="pencil" size={18} color={theme.colors.onBackground} />
+        </Pressable>
+      </View>
 
       <AppText variant="body" className="text-muted-foreground">
         {profile.email}

@@ -2,6 +2,7 @@ import Head from 'expo-router/head';
 import { useCallback, useRef } from 'react';
 import { type LayoutChangeEvent, type TextInput, useWindowDimensions, View } from 'react-native';
 import { PageContainer } from '@/components/base/PageContainer';
+import { ScreenTitle } from '@/components/base/ScreenTitle';
 import {
   ProductsErrorBanner,
   ProductsFab,
@@ -62,6 +63,7 @@ export default function Products() {
         <title>Products · Relab</title>
       </Head>
       <PageContainer phoneFullBleed>
+        <ScreenTitle>Products</ScreenTitle>
         <View className="p-3" style={{ gap: 10 }} onLayout={handleLayout}>
           <ProductsWelcomeCard
             visible={screen.showWelcomeCard}

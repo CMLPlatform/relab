@@ -4,6 +4,7 @@ import type { View } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { PageContainer } from '@/components/base/PageContainer';
+import { ScreenTitle } from '@/components/base/ScreenTitle';
 import { GoLiveDialog } from '@/components/cameras/GoLiveDialog';
 import { SelectionBar } from '@/components/cameras/SelectionBar';
 import { CamerasFab } from '@/components/cameras/screen/Chrome';
@@ -36,6 +37,7 @@ export default function CamerasScreen() {
         <title>Cameras · Relab</title>
       </Head>
       <PageContainer phoneFullBleed>
+        <ScreenTitle>Cameras</ScreenTitle>
         <SelectionBar
           visible={selection.selectionMode}
           selectedCount={selection.selectedCount}

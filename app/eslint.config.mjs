@@ -39,6 +39,15 @@ const reactNativeA11yRules = {
   'react-native-a11y/no-nested-touchables': 'error',
 };
 
+// A heading role written straight onto a JSX element, which `heading(level)`
+// from `@/utils/a11y` exists to replace: react-native-web renders any header
+// role without an aria-level as an <h1>, so a bare one silently claims the
+// screen's only top-level heading — the one useScreenEntryFocus focuses.
+const headingRole = (prop, value) => ({
+  selector: `JSXAttribute[name.name="${prop}"][value.value="${value}"]`,
+  message: "Spread heading(level) from '@/utils/a11y' instead of a bare heading role.",
+});
+
 export default defineConfig([
   {
     files: ['src/**/*.{ts,tsx}'],
@@ -49,7 +58,15 @@ export default defineConfig([
       'react-hooks': reactHooks,
       'react-native-a11y': reactNativeA11y,
     },
-    rules: { ...reactHooksErrors, ...reactNativeA11yRules },
+    rules: {
+      ...reactHooksErrors,
+      ...reactNativeA11yRules,
+      'no-restricted-syntax': [
+        'error',
+        headingRole('accessibilityRole', 'header'),
+        headingRole('role', 'heading'),
+      ],
+    },
   },
   {
     files: ['src/**/*.{tsx,jsx}'],

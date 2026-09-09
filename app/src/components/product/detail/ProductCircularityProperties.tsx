@@ -7,6 +7,7 @@ import { Separator } from '@/components/base/ui/separator';
 import { DATA_COLLECTION_DOCS_PATH } from '@/config';
 import { type AppColors, useAppTheme } from '@/theme';
 import type { CircularityProperties, Product } from '@/types/Product';
+import { heading } from '@/utils/a11y';
 
 type CircularityNoteKey = keyof CircularityProperties;
 
@@ -72,7 +73,7 @@ export default function ProductCircularityProperties({
 
   return (
     <View className="mt-4">
-      <AppText variant="heading" className="mb-2 font-semibold">
+      <AppText variant="heading" {...heading(3)} className="mb-2 font-semibold">
         Circularity notes
       </AppText>
       {NOTE_FIELDS.map(({ key, label, hint, example }) => (
