@@ -139,6 +139,8 @@ function DialogBody({
           onChangeText={setInputValue}
           onSubmitEditing={handleSubmitEditing}
           placeholder={options.placeholder}
+          // The dialog asks the question; the field is the answer to it.
+          accessibilityLabel={options.title ?? options.placeholder ?? 'Value'}
           autoFocus
           className="border px-2 py-2"
           // Danger border only; the helperText caption carries the message.

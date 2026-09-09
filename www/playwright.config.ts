@@ -31,7 +31,11 @@ if (!runtimeConfig.baseUrl) {
     // The just recipes build dist/ first (test-e2e, test-e2e-live); this only serves it.
     command: 'pnpm run preview:built',
     url: localBaseUrl,
-    reuseExistingServer: !runtimeConfig.isCi,
+    // Never reuse: the recipes build dist/ for this run, and a preview server
+    // left over from an earlier one serves its dist instead — a stale build
+    // whose live-lane image URLs point at a seed that no longer exists. Failing
+    // on a busy port names the zombie; reusing it reports someone else's page.
+    reuseExistingServer: false,
     // Astro daemonizes `astro preview` when it detects an agentic shell (am-i-vibing),
     // so the process this command starts exits at once and Playwright reports
     // "exited early". Any value disables that detection and keeps it in the foreground.
