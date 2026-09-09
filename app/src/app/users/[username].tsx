@@ -109,7 +109,27 @@ export default function UserProfileScreen() {
       <Head>
         <title>{`${title} · Relab`}</title>
       </Head>
-      <Stack.Screen options={{ title }} />
+      {/* react-native-web renders react-navigation's header title
+          (accessibilityRole "header", no aria-level) as an <h1>, which would
+          compete with the username heading in the page below — and
+          useScreenEntryFocus focuses the scaffold's h1. Render the chrome title
+          as plain text so the screen keeps exactly one heading, the way the
+          product detail screen does with ProductNameHeader. */}
+      <Stack.Screen
+        options={{
+          title,
+          headerTitle: () => (
+            <AppText
+              variant="body"
+              numberOfLines={1}
+              className="font-bold"
+              style={styles.headerTitle}
+            >
+              {title}
+            </AppText>
+          ),
+        }}
+      />
       <ScrollView contentContainerClassName="flex-grow py-4">
         <PageContainer>
           {loading ? (
@@ -197,6 +217,10 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       // NOTE: avatar-initials glyph sized to fill the 120px circle; no ramp step applies.
       fontSize: 48,
       color: theme.colors.primary,
+    },
+    headerTitle: {
+      flexShrink: 1,
+      color: theme.colors.onBackground,
     },
   }),
 );
