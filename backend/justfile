@@ -116,11 +116,11 @@ openapi-check:
 
 # Export the ER diagrams and dataset codebook the docs site imports
 datamodel:
-    ENVIRONMENT=testing uv run python -m scripts.generate.export_datamodel
+    ENVIRONMENT=testing uv run --group dataset-release python -m scripts.generate.export_datamodel
 
 # Fail if the generated docs data-model partials are stale
 datamodel-check:
-    ENVIRONMENT=testing uv run python -m scripts.generate.export_datamodel --check
+    ENVIRONMENT=testing uv run --group dataset-release python -m scripts.generate.export_datamodel --check
 
 # Build a publishable dataset release directory. A verification failure aborts the build.
 # Contributor consent decides the scope; --owner only narrows within it.
