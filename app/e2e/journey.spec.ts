@@ -35,6 +35,7 @@ const NEW_COMPONENT_URL_PATTERN = /\/products\/\d+\/components\/new$/;
 const BACK_CONTROL_NAME_PATTERN = /back/i;
 const URL_QUERY_STRING_PATTERN = /\?.*$/;
 const PRODUCT_IMAGE_UPLOAD_PATH_PATTERN = /\/v1\/products\/\d+\/images$/;
+const SAVE_STATUS_TEXT_PATTERN = /^Saved · ID \d+$/;
 
 test('an ordinary member can create, populate and publish a product', async ({ page, browser }) => {
   const stamp = Date.now();
@@ -57,7 +58,7 @@ test('an ordinary member can create, populate and publish a product', async ({ p
   // Number fields save on blur; wait for that PATCH so the later Save is
   // only the photo upload.
   await weight.blur();
-  await expect(page.getByTestId('save-status')).toHaveText(/^Saved · ID \d+$/, {
+  await expect(page.getByTestId('save-status')).toHaveText(SAVE_STATUS_TEXT_PATTERN, {
     timeout: 10_000,
   });
 

@@ -7,6 +7,9 @@ import { completeMfaChallenge, setPendingMfaLogin } from '@/services/api/auth/au
 import { mockUser, renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
 
+const SESSION_ENDED_PATTERN = /sign-in session has ended/;
+const ERROR_COPY_PATTERN = /expired|Invalid/;
+
 let mockPendingMfaLogin:
   | { status: 'mfa_required'; mfaToken: string; redirectTo?: string }
   | undefined;
@@ -130,7 +133,7 @@ describe('MfaScreen challenge flow', () => {
 
     // No challenge, no code field: a calm explanation and a way back, not
     // six error-bordered cells before any input.
-    expect(screen.getByText(/sign-in session has ended/)).toBeOnTheScreen();
+    expect(screen.getByText(SESSION_ENDED_PATTERN)).toBeOnTheScreen();
     expect(screen.queryByLabelText('Authentication code')).toBeNull();
     expect(screen.queryByText('Continue')).toBeNull();
     expect(mockedCompleteMfaChallenge).not.toHaveBeenCalled();
@@ -142,7 +145,7 @@ describe('MfaScreen challenge flow', () => {
   it('shows no error styling before a submit fails', async () => {
     await renderMfaScreen();
 
-    expect(screen.queryByText(/expired|Invalid/)).toBeNull();
+    expect(screen.queryByText(ERROR_COPY_PATTERN)).toBeNull();
   });
 
   it('signs in with a recovery code', async () => {
