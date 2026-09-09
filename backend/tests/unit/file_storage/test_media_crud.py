@@ -192,7 +192,7 @@ async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_sess
 async def test_deferred_pass_completes_the_thumbnail_set_left_by_the_upload(tmp_path: Path) -> None:
     """Uploads generate only the narrow width inline; the detached pass fills the rest."""
     image_path = tmp_path / "wide.png"
-    PILImage.new("RGB", (2000, 1000), color="green").save(image_path)
+    PILImage.new("RGB", (3200, 1600), color="green").save(image_path)
 
     generate_thumbnails(image_path, EAGER_THUMBNAIL_WIDTHS)
     assert thumbnail_path_for(image_path, min(THUMBNAIL_WIDTHS)).exists()
