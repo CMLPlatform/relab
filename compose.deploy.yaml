@@ -328,6 +328,17 @@ services:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set (in root .env on the deploy host)}
     command: tunnel --no-autoupdate run
     pull_policy: always
+    # The one service neither hardening anchor in compose.yaml covers, because it is
+    # defined only here. The image already runs as 65532; a tunnel dials out over
+    # TCP/QUIC and binds nothing, so it needs no capabilities.
+    # NOTE: dropping ALL also disables cloudflared's ICMP proxy, which wants NET_RAW.
+    # That path only serves WARP-to-tunnel ping; the hostnames here are HTTP, and the
+    # daemon logs one line about it at startup rather than failing.
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
     networks:
       - edge
 

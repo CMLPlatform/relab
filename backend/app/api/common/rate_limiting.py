@@ -90,7 +90,7 @@ class Limiter:
 
         if not allowed:
             # Safe to log: sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
-            logger.info("Rate limit exceeded for bucket %s", key)
+            logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
             raise RateLimitExceededError
 
     def hit_request(self, rate_string: str, request: Request) -> None:
