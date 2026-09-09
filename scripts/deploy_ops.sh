@@ -576,17 +576,20 @@ require_rollback_images() {
 # temp-file-and-mv prevents the partial write.
 # A marker naming another environment is never overwritten (DEPLOY-PROD.md Part 1.1
 # covers that restore case by hand) but fails loudly instead of exiting 0.
+# Both outcomes say so on stdout: this is a hand-run cutover step on a data-loss guard,
+# and a silent exit 0 left the operator unable to tell "stamped it" from "already right"
+# from "the recipe did nothing".
 stamp_uploads_volume() {
     local env="$1"
     # shellcheck disable=SC2016  # $0/$1 are the inner sh's args, not this shell's
     run_deploy_compose "$env" run --rm --no-deps -T --entrypoint sh api -c \
         'if test -s "$0"; then
             found=$(tr -d "[:space:]" <"$0")
-            test "$found" = "$1" && exit 0
+            test "$found" = "$1" && { echo "$0 already marks this volume as [$1]"; exit 0; }
             echo "error: $0 says [$found] but this run is [$1]; never overwritten here, see deploy/DEPLOY-PROD.md Part 1.1 to rewrite it by hand" >&2
             exit 1
          fi
-         printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0"' \
+         printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0" && echo "marked the uploads volume as [$1]"' \
         /opt/relab/backend/data/uploads/.relab-volume "$env"
 }
 
