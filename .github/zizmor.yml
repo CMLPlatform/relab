@@ -1,5 +1,6 @@
 rules:
   self-repository:
-    # actionlint does not know the `$/` self-repository syntax yet; `./` stays
-    # until it does.
+    # actionlint does not know the `$/` self-repository syntax yet; `./` stays until it
+    # does. Removal condition: when a bumped actionlint parses `$/` without error, switch
+    # the `./` uses back, drop this block, and confirm `just pre-commit` is clean.
     disable: true

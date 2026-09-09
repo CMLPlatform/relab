@@ -32,8 +32,6 @@ ______________________________________________________________________
 
 ## Part 2 — Routine release
 
-Existing hosts need the one-time `.env` edit described in [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 2.
-
 ```bash
 cd /path/to/relab
 git fetch origin && git checkout main && git pull --ff-only

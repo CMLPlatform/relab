@@ -191,6 +191,11 @@ them current through the `repo-tooling` group.
 | pnpm             | `package.json` packageManager | Corepack locally, CI setup        |
 | Python, uv, just | `.tool-versions`             | CI setup (uv manages Python)       |
 
+Node 25 dropped bundled Corepack, and `.node-version` pins a newer one, so a fresh install has
+no `pnpm` on PATH: `corepack enable` under that Node fails too. Install pnpm standalone
+(`curl -fsSL https://get.pnpm.io/install.sh | sh -`) and it reads the pinned `packageManager`
+version from `package.json` as usual.
+
 Do not duplicate exact versions in docs unless a manifest or generated file requires it.
 
 Each configuration surface has one job:

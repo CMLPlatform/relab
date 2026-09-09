@@ -18,6 +18,7 @@ install:
 
 # Upgrade Astro and its official integrations, then apply the in-range pnpm updates.
 # This uses `pnpm up` without --latest, so majors stay intentional: opt in via Renovate.
+[doc('Upgrade Astro and its integrations, then apply in-range pnpm updates')]
 update:
     pnpm dlx @astrojs/upgrade
     pnpm up
@@ -41,6 +42,7 @@ fix:
     pnpm run fix
 
 # Run the Vitest unit tests over src/lib. `test-e2e` covers the pages and components.
+[doc('Run the Vitest unit tests over src/lib')]
 test:
     pnpm run test
 
@@ -59,6 +61,7 @@ rpi-cam-schema-check:
 
 # Run the CI test suite: build, E2E, and link check. The pnpm chain runs Playwright
 # directly, so the browser bootstrap is a dependency here too.
+[doc('Run the CI test suite: build, E2E, and link check')]
 test-ci: rpi-cam-schema-check (_browsers "chromium")
     pnpm run test:ci
 

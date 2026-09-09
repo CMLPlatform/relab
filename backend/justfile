@@ -31,6 +31,7 @@ fix:
 
 # Run the fast quality gate (no database required). `ty` syncs all groups first,
 # so optional dependencies resolve.
+[doc('Run the fast quality gate (no database required)')]
 check: openapi-check datamodel-check email-check
     uv run ruff check
     uv run --all-groups ty check
@@ -109,6 +110,7 @@ openapi:
 # Fail if the exported docs OpenAPI schemas are stale.
 # NOTE: ENVIRONMENT=testing so that CI, which has no .env.dev, reads the committed
 # .env.test. The schema output is identical under dev and testing.
+[doc('Fail if the exported docs OpenAPI schemas are stale')]
 openapi-check:
     ENVIRONMENT=testing uv run python -m scripts.generate.export_openapi --check
 
