@@ -525,6 +525,27 @@ watchdog env max_age_hours='3':
 # Docker: Test / CI
 # ============================================================================
 
+### Dockerfile linting ---
+
+# Lint every Dockerfile with BuildKit's built-in checks. Parses only; builds nothing.
+docker-lint:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    status=0
+    for spec in \
+      "app/Dockerfile:." \
+      "www/Dockerfile:." \
+      "docs/Dockerfile:." \
+      "backend/Dockerfile:backend" \
+      "backend/Dockerfile.migrations:backend" \
+      "backend/Dockerfile.backups:backend"; do
+      file="${spec%%:*}"
+      context="${spec##*:}"
+      printf '\n\033[1m== %s ==\033[0m\n' "$file"
+      docker buildx build --check -f "$file" "$context" || status=1
+    done
+    exit "$status"
+
 ### Smoke tests for test Docker images and orchestration ---
 
 # Internal helper: require explicit confirmation for state-changing commands.
