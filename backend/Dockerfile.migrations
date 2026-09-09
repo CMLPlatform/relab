@@ -34,7 +34,15 @@ RUN apt-get update \
 
 # Copy alembic migrations, scripts, and source code
 COPY alembic/ alembic/
-COPY scripts/ scripts/
+# Only the script groups this image runs: the entrypoint's seed, db and maintenance
+# steps, `users.create_superuser`, and `maintenance.downgrade_safety` for the rollback
+# path. Codegen, the perf harnesses, the fake camera and the dataset release build are
+# developer tooling run from a checkout, and do not belong in a deployed image.
+COPY scripts/__init__.py scripts/
+COPY scripts/db/ scripts/db/
+COPY scripts/maintenance/ scripts/maintenance/
+COPY scripts/seed/ scripts/seed/
+COPY scripts/users/ scripts/users/
 COPY app/ app/
 COPY data/seed/ data/seed/
 
