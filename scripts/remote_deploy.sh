@@ -9,7 +9,8 @@
 # read secrets, or run anything the release loop does not need. The environment is the
 # host's own (root .env), never an argument: one host serves one environment.
 #
-# From the dev host: ssh akira-deploy pull && ssh akira-deploy build && ssh akira-deploy up migrations
+# From the dev host, over an ssh config alias for the deploy user:
+#   ssh relab-prod pull && ssh relab-prod build && ssh relab-prod up migrations
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"

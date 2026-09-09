@@ -235,16 +235,16 @@ Before you start: CI green on `main`, you know whether the release contains migr
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
 (`just backup prod`).
 
-From the dev host, over the restricted key (`akira-deploy` here is the ssh config alias for the
+From the dev host, over the restricted key (`relab-prod` here is an ssh config alias for the
 deploy user on the prod host):
 
 ```bash
-ssh akira-deploy pull                 # git pull --ff-only of origin/main, prints the revision
-ssh akira-deploy build                # `build nocache` when only the edge or the featured product changed:
-ssh akira-deploy up migrations        # www bakes API data in at build time, and the layer cache would skip it
+ssh relab-prod pull                 # git pull --ff-only of origin/main, prints the revision
+ssh relab-prod build                # `build nocache` when only the edge or the featured product changed:
+ssh relab-prod up migrations        # www bakes API data in at build time, and the layer cache would skip it
 ```
 
-`ssh akira-deploy` with no command prints the allow-list. On the host itself the same three steps
+`ssh relab-prod` with no command prints the allow-list. On the host itself the same three steps
 are `git pull --ff-only`, `just stack prod build`, `just stack prod up YES migrations` as the deploy user.
 
 The `migrations` profile is the routine path: the API waits for the migrator to exit 0, so a failed
@@ -256,9 +256,9 @@ old schema, acceptable during a planned outage, not for a routine release.
 ### Verify
 
 ```bash
-ssh akira-deploy watchdog
-ssh akira-deploy status
-ssh akira-deploy logs 10m     # non-following; `just stack prod logs` on the host follows
+ssh relab-prod watchdog
+ssh relab-prod status
+ssh relab-prod logs 10m     # non-following; `just stack prod logs` on the host follows
 ```
 
 Then exercise by hand what automation cannot: one upload, one OAuth login, one product page.
