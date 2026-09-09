@@ -256,7 +256,7 @@ Not Obscured and 2.4.13 Focus Appearance have no axe rule and are checked by han
 | ------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
 | `www/`  | landing + privacy, contrast checked; ARIA landmark snapshots: `just www/test-e2e`                   | Biome `a11y`                                     |
 | `docs/` | homepage + getting-started `<main>`, contrast checked; snapshots: `just docs/test-e2e`              | Biome `a11y`                                     |
-| `app/`  | products list + detail on the Expo web build (`color-contrast` off): `just app/test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
+| `app/`  | products list + detail on the Expo web build (`color-contrast` off): `just test-e2e-full-stack` | Biome `a11y` + `eslint-plugin-react-native-a11y` |
 
 The `www/` and `docs/` axe scans gate every PR that touches `www/`, `docs/`, or shared files. The
 `app/` scan needs the full Docker backend, so it runs post-merge or on demand; per PR, the app relies

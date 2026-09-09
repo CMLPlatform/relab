@@ -32,7 +32,7 @@ def upgrade() -> None:
 
     # CONCURRENTLY cannot run inside a transaction, and the whole revision is one
     # transaction, so this needs its own autocommit block. Every existing row matches the
-    # predicate at first — that is intended: the first backfill verifies and stamps them,
+    # predicate at first. That is intended: the first backfill verifies and stamps them,
     # and the index shrinks to the stragglers from then on.
     with op.get_context().autocommit_block():
         op.create_index(
