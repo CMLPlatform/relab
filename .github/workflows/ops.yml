@@ -41,8 +41,13 @@ jobs:
         with:
           persist-credentials: false
 
+      # Python, because the baseline derives its larger upload fixtures with Pillow
+      # before k6 starts; without it the run fails at `just perf-fixtures`.
       - name: Set up runtime
         uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: backend/uv.lock
 
       - name: Checkout requested repository ref
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
