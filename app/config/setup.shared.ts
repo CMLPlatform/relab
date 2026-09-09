@@ -37,6 +37,14 @@ afterAll(() => {
   server.close();
 });
 
+// The native connectivity listener the app root registers on onlineManager.
+// The automock returns a subscription without `remove`, which throws when
+// TanStack tears the listener down; tests that care drive the callback
+// themselves (see src/services/__tests__/nativeOnline.test.ts).
+jest.mock('expo-network', () => ({
+  addNetworkStateListener: jest.fn(() => ({ remove: jest.fn() })),
+}));
+
 // Mock expo-secure-store (replaces AsyncStorage for token persistence on native)
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),

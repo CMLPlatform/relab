@@ -204,8 +204,6 @@ function isRetryableSaveError(failureCount: number, error: unknown): boolean {
 }
 
 // Shown on the save/create button and in the toast when the mutation pauses.
-// NOTE: web-only in practice; onlineManager has no native connectivity
-// listener yet, so a native build never pauses. See the TODO in app/_layout.tsx.
 export const QUEUED_OFFLINE_LABEL = 'Queued — sends when online';
 
 export function useSaveProductMutation() {

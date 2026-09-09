@@ -57,6 +57,7 @@
     "expo-image-picker": "~57.0.9",
     "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.5",
+    "expo-network": "~57.0.1",
     "expo-router": "~57.0.12",
     "expo-secure-store": "~57.0.1",
     "expo-splash-screen": "~57.0.6",

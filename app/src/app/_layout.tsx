@@ -32,6 +32,7 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { SAVE_PRODUCT_MUTATION_KEY, saveProductMutationFn } from '@/features/products/queries';
+import { registerNativeOnlineListener } from '@/services/nativeOnline';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
 import { createNavigationThemes, getAppTheme } from '@/theme';
@@ -48,9 +49,10 @@ import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 // its own non-focused screens regardless. Must run before any navigator renders.
 if (Platform.OS === 'web') enableScreens();
 
-// TODO: wire onlineManager to NetInfo/expo-network for native. Until then it
-// stays true on native, so mutations never pause and the queued-offline UI
-// (OfflineBanner, QUEUED_OFFLINE_LABEL, isPaused) is web-only.
+// Native has no connectivity listener of its own; without this the queued-offline
+// UI never engages off-web. See src/services/nativeOnline.ts.
+registerNativeOnlineListener();
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
