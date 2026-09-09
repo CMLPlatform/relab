@@ -5,15 +5,9 @@ export type AppScheme = 'light' | 'dark';
 export type AppColorScale = {
   primary: string;
   onPrimary: string;
-  primaryContainer: string;
-  onPrimaryContainer: string;
   secondary: string;
-  secondaryContainer: string;
-  onSecondaryContainer: string;
-  onTertiaryContainer: string;
   error: string;
   onError: string;
-  onErrorContainer: string;
   background: string;
   onBackground: string;
   surface: string;

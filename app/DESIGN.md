@@ -359,7 +359,7 @@ pattern.
 
 ## Do's and Don'ts
 
-### Do:
+### Do
 
 - **Do** use `tokens.surface.accent` (or `bg-primary/12`) for every selected or tinted fill.
 - **Do** use the `data` variant for every measurement, ID, count, and code.
@@ -369,7 +369,7 @@ pattern.
 - **Do** keep entrance motion in the 150–300ms band, with exits shorter.
 - **Do** comment any departure from a token, naming what it departs from.
 
-### Don't:
+### Don't
 
 - **Don't** paint manila on anything large: no bars, no big figures, no glows, no banners.
 - **Don't** use manila or any accent for hover, pressed, focus, or selection. Interaction is
@@ -377,8 +377,9 @@ pattern.
 - **Don't** add a second shadow tier, a coloured glow, or a shadow on an inline surface.
 - **Don't** use `rounded-full` on anything that isn't an avatar or a true pill.
 - **Don't** introduce an inline `fontSize:` without a comment explaining why no ramp step fits.
-- **Don't** use MD3 `*Container` roles (`errorContainer`, `primaryContainer`, …) or the tonal
-  `elevation.level*` surfaces. They are Paper-era residue.
+- **Don't** reintroduce MD3 `*Container` roles (`errorContainer`, `primaryContainer`, …) or the
+  tonal `elevation.level*` surfaces. They were Paper-era residue and are gone from the theme;
+  `tokens.surface.accent` is the tinted fill.
 - **Don't** pair `inverseOnSurface` or `inverseMuted` with anything except `inverseSurface`;
   take all three from `useInverseSurface()`.
 - **Don't** render an empty or unconfirmed field as an error, a warning, a red state, or a

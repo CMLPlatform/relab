@@ -64,6 +64,8 @@ module.exports = {
     // by our own in src/components/base/, which is where our behaviour is tested.
     '!src/components/base/ui/**',
     '!src/components/product/ProductCardSkeleton.tsx',
+    // Type-only module: v8 counts its 95 declaration lines as uncovered statements.
+    '!src/theme/types.ts',
   ],
   coverageThreshold: {
     global: { statements: 90, branches: 85, functions: 85 },
