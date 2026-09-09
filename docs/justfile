@@ -1,6 +1,6 @@
-# Docs Task Runner
-# Run `just --list` to see all available commands
-# Run from root: `just docs/<recipe>` or from docs/: `just <recipe>`
+# Docs task runner
+# Run `just --list` to see the recipes in this file.
+# Run from docs/, or from the repo root as `just docs/<recipe>`.
 
 # Source of truth for the RPi camera plugin's OpenAPI schema (sister repo).
 rpi_cam_schema_url := "https://raw.githubusercontent.com/CMLPlatform/relab-rpi-cam-plugin/main/openapi.rpi-cam.json"
@@ -16,18 +16,18 @@ default:
 install:
     pnpm install --frozen-lockfile
 
-# Update dependencies (Astro upgrade + in-range pnpm updates + dedupe the tree)
-# Uses `pnpm up` without --latest so majors stay intentional (opt in via Renovate PRs).
+# Upgrade Astro and its official integrations, then apply the in-range pnpm updates.
+# This uses `pnpm up` without --latest, so majors stay intentional: opt in via Renovate.
 update:
     pnpm dlx @astrojs/upgrade
     pnpm up
     pnpm dedupe
 
-# Start development server with live reload
+# Start the dev server with live reload
 dev:
     pnpm run dev
 
-# Run lint checks
+# Lint the code
 lint:
     pnpm run lint
 
@@ -39,10 +39,10 @@ typecheck:
 build:
     pnpm run build
 
-# Run lint + typecheck (the build itself is exercised by `test-ci`)
+# Run the quality gate. `test-ci` exercises the build itself.
 check: lint typecheck
 
-# Auto-format docs code and markdown
+# Auto-format the code and the markdown
 format:
     pnpm run format
 
@@ -50,11 +50,11 @@ format:
 fix:
     pnpm run fix
 
-# Run Vitest unit tests (src/lib logic; pages/components are covered by `test-e2e`)
+# Run the Vitest unit tests over src/lib. `test-e2e` covers the pages and components.
 test:
     pnpm run test
 
-# Browser end-to-end tests against a fresh build: smoke + a11y + visual + theme
+# Run the browser E2E tests against a fresh build: smoke, a11y, visual, and theme
 test-e2e: build (_browsers "chromium")
     pnpm run test:e2e
 
@@ -67,14 +67,14 @@ rpi-cam-schema-check:
     @curl -fsSL {{ rpi_cam_schema_url }} | diff -u {{ rpi_cam_schema_path }} - \
         || { echo "❌ {{ rpi_cam_schema_path }} is stale — run 'just docs/rpi-cam-schema'"; exit 1; }
 
-# Run the docs CI test suite (build + e2e + link check). The pnpm chain runs
-# Playwright directly, so the browser bootstrap is a dependency here too.
+# Run the CI test suite: build, E2E, and link check. The pnpm chain runs Playwright
+# directly, so the browser bootstrap is a dependency here too.
 test-ci: rpi-cam-schema-check (_browsers "chromium")
     pnpm run test:ci
 
-# Run the full docs CI pipeline locally
+# Run the full CI pipeline locally
 ci: check test-ci
 
-# Clean caches and generated site output
+# Clean caches and build artifacts
 clean:
     rm -rf .astro dist node_modules playwright-report test-results
