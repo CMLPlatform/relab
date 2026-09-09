@@ -174,6 +174,20 @@ function invalidateAfterSave(queryClient: QueryClient, product: Product, savedId
   }
 }
 
+// An upload answers as soon as its narrow thumbnail exists; the API generates
+// the wider derivatives just afterwards. Long enough to clear that, short
+// enough that a reviewer scrolling straight into the full-screen viewer has
+// them.
+const DERIVATIVE_REFETCH_DELAY_MS = 2_000;
+
+/** Whether this save uploaded an image, so wider derivatives are still being generated. */
+function savedANewImage(product: Product, originalImages: Product['images']): boolean {
+  const before = originalImages ?? [];
+  return (product.images ?? []).some(
+    (image) => !before.some((original) => original.id === image.id),
+  );
+}
+
 export type SaveProductVariables = {
   product: Product;
   originalImages: Product['images'];
@@ -222,7 +236,20 @@ export function useSaveProductMutation() {
     mutationFn: saveProductMutationFn,
     retry: isRetryableSaveError,
 
-    onSuccess: (savedId, { product }) => invalidateAfterSave(queryClient, product, savedId),
+    onSuccess: (savedId, { product, originalImages }) => {
+      invalidateAfterSave(queryClient, product, savedId);
+      // The refetch above runs while the wider derivatives are still being
+      // generated, so it brings back the narrow width alone and the full-screen
+      // viewer stretches it. One late re-ask picks the rest up.
+      // NOTE: a single re-ask, not a poll; if generation ever outruns the delay,
+      // refetch until the expected widths are present instead.
+      if (savedANewImage(product, originalImages)) {
+        setTimeout(
+          () => invalidateAfterSave(queryClient, product, savedId),
+          DERIVATIVE_REFETCH_DELAY_MS,
+        );
+      }
+    },
 
     onError: (error, { product }) => {
       // A media-sync failure still wrote the entity, so the caches are stale.

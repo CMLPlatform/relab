@@ -445,6 +445,60 @@ describe('useProductQueries', () => {
     expect(finished).toEqual(['first', 'second']);
   });
 
+  // Regression: an upload answers as soon as its narrow thumbnail exists, so the
+  // refetch fired on success brought back that width alone and the full-screen
+  // viewer stretched a 200px derivative until something else refetched.
+  it('useSaveProductMutation re-asks for a product whose save uploaded an image', async () => {
+    mockedSaveProduct.mockResolvedValue(123);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    // Capture the delayed re-ask rather than waiting it out.
+    const timers: Array<{ run: () => void; delay: number }> = [];
+    const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout').mockImplementation(((
+      callback: () => void,
+      delay?: number,
+    ) => {
+      timers.push({ run: callback, delay: delay ?? 0 });
+      return 0;
+    }) as unknown as typeof setTimeout);
+    // react-query keeps its own timers here — retry backoff below a second and
+    // garbage collection minutes out. The re-ask is the one in between.
+    const lateRefetches = () => timers.filter(({ delay }) => delay >= 1_000 && delay <= 60_000);
+
+    try {
+      const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          product: { ...existingProduct, images: [{ id: 'new', url: 'u', description: '' }] },
+          originalImages: [],
+          originalVideos: [],
+        });
+      });
+
+      expect(lateRefetches()).toHaveLength(1);
+      invalidateSpy.mockClear();
+      await act(async () => {
+        lateRefetches()[0].run();
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['baseProduct', 123] }),
+      );
+
+      // A save that uploaded nothing must not pay for a second round trip.
+      timers.length = 0;
+      await act(async () => {
+        await result.current.mutateAsync({
+          product: existingProduct,
+          originalImages: [],
+          originalVideos: [],
+        });
+      });
+      expect(lateRefetches()).toHaveLength(0);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
   it('useSaveProductMutation does not touch the cache when saving fails', async () => {
     // Every mutation here was happy-path only. A save that fails must leave the
     // cache alone, or the UI reports a change the server never accepted.
