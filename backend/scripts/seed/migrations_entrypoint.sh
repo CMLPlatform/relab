@@ -99,6 +99,15 @@ if [ "$(lc "$SEED_HS_CATEGORIES")" = "true" ]; then
     .venv/bin/python -m scripts.seed.taxonomies.harmonized_system
 fi
 
+# A taxonomy import inserts thousands of rows at once, which leaves stale planner
+# statistics and a full GIN pending list behind. Without this the first queries
+# and writes after a deploy pay for that cleanup.
+if [ "$(lc "$SEED_CPV_CATEGORIES")" = "true" ] || [ "$(lc "$SEED_HS_CATEGORIES")" = "true" ]; then
+    echo "Vacuuming and analysing taxonomy tables after the import..."
+    .venv/bin/python -m scripts.db.vacuum_analyze --tables taxonomy \
+        || echo "Taxonomy vacuum/analyse failed; re-run scripts.db.vacuum_analyze manually." >&2
+fi
+
 # Create a superuser if the required environment variables are set
 echo "Creating a superuser..."
 .venv/bin/python -m scripts.users.create_superuser

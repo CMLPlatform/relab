@@ -33,14 +33,14 @@ import random
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import func, select, text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func, select
 
 from app.api.auth.models import User
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.reference_data.models import Category, Material, ProductType
-from app.core.database import async_engine, async_session_context, close_async_engine
+from app.core.database import async_session_context, close_async_engine
+from scripts.db.vacuum_analyze import BULK_LOADED_TABLES, vacuum_analyze
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -157,7 +157,7 @@ async def _seed(products: int) -> None:
         await session.commit()
         logger.info("Bulk seeding complete; %s products created.", to_create)
 
-    await _settle_after_bulk_load()
+    await vacuum_analyze(BULK_LOADED_TABLES)
 
 
 def _prepare(product: Product, rng: random.Random, owner_ids: list, type_ids: list, now: datetime) -> None:
@@ -274,27 +274,6 @@ async def _top_up_categories(session: AsyncSession, factory: type[BaseModelFacto
     session.add_all(rows)
     await session.flush()
     logger.info("Seeded %s categories (table now holds %s).", target - existing, target)
-
-
-async def _settle_after_bulk_load() -> None:
-    """Vacuum and analyse the bulk-loaded tables.
-
-    Without this the fixture measures the database recovering from its own load
-    rather than steady state: planner statistics still describe an almost empty
-    table, and the four GIN indexes on ``product`` carry a full pending list,
-    whose cleanup showed up as multi-second stalls in write latency.
-
-    Hygiene rather than correctness, so a user without VACUUM rights on a table
-    logs a warning instead of failing the seed.
-    """
-    for table in ("product", "image", "category", "material", "producttype", '"user"'):
-        try:
-            async with async_engine.connect() as connection:
-                await connection.execution_options(isolation_level="AUTOCOMMIT")
-                await connection.execute(text(f"VACUUM ANALYZE {table}"))  # fixed table list
-        except SQLAlchemyError as exc:
-            logger.warning("Could not vacuum/analyse %s: %s", table, exc)
-    logger.info("Vacuumed and analysed the bulk-loaded tables.")
 
 
 def main() -> None:

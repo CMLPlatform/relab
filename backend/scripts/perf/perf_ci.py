@@ -14,9 +14,13 @@ SCENARIOS = (
     "live_probe",
     "product_list_read",
     "product_search_read",
+    "product_detail_read",
+    "product_components_read",
+    "reference_data_read",
     "bearer_login",
     "media_url_read",
     "product_create_write",
+    "image_upload_write",
 )
 
 
@@ -54,6 +58,10 @@ def apply_thresholds(headroom: float) -> None:
         "live_probe": r'(http_req_duration\{scenario:live_probe\}": \["p\(95\)<)(\d+)("\])',
         "product_list_read": r'(http_req_duration\{scenario:product_list_read\}": \["p\(95\)<)(\d+)("\])',
         "product_search_read": r'(http_req_duration\{scenario:product_search_read\}": \["p\(95\)<)(\d+)("\])',
+        "product_detail_read": r'(http_req_duration\{scenario:product_detail_read\}": \["p\(95\)<)(\d+)("\])',
+        "product_components_read": r'(http_req_duration\{scenario:product_components_read\}": \["p\(95\)<)(\d+)("\])',
+        "reference_data_read": r'(http_req_duration\{scenario:reference_data_read\}": \["p\(95\)<)(\d+)("\])',
+        "image_upload_write": r'(http_req_duration\{scenario:image_upload_write\}"] = \["p\(95\)<)(\d+)("\])',
         "product_create_write": r'(http_req_duration\{scenario:product_create_write\}"] = \["p\(95\)<)(\d+)("\])',
         "bearer_login": r'(http_req_duration\{scenario:bearer_login\}"] = \["p\(95\)<)(\d+)("\])',
         "media_url_read": r'(http_req_duration\{scenario:media_url_read\}"] = \["p\(95\)<)(\d+)("\])',

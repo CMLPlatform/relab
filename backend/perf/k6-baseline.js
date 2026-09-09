@@ -39,6 +39,9 @@ const scenarios = {
   live_probe: { ...stage(Number(__ENV.PERF_LIVE_RATE || 20), 10), exec: "liveProbe" },
   product_list_read: { ...stage(Number(__ENV.PERF_PRODUCT_LIST_RATE || 10), 20), exec: "productListRead" },
   product_search_read: { ...stage(Number(__ENV.PERF_SEARCH_RATE || 10), 20), exec: "productSearchRead" },
+  product_detail_read: { ...stage(Number(__ENV.PERF_DETAIL_RATE || 10), 20), exec: "productDetailRead" },
+  product_components_read: { ...stage(Number(__ENV.PERF_COMPONENTS_RATE || 10), 20), exec: "productComponentsRead" },
+  reference_data_read: { ...stage(Number(__ENV.PERF_REFERENCE_RATE || 10), 20), exec: "referenceDataRead" },
 };
 
 // Rotated per iteration so the run does not measure one repeatedly cached query.
@@ -50,9 +53,15 @@ const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
   "http_req_duration{scenario:live_probe}": ["p(95)<100"],
   "http_req_failed{scenario:product_list_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_list_read}": ["p(95)<200"],
+  "http_req_duration{scenario:product_list_read}": ["p(95)<300"],
   "http_req_failed{scenario:product_search_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_search_read}": ["p(95)<1000"],
+  "http_req_duration{scenario:product_search_read}": ["p(95)<400"],
+  "http_req_failed{scenario:product_detail_read}": ["rate<0.01"],
+  "http_req_duration{scenario:product_detail_read}": ["p(95)<200"],
+  "http_req_failed{scenario:product_components_read}": ["rate<0.01"],
+  "http_req_duration{scenario:product_components_read}": ["p(95)<200"],
+  "http_req_failed{scenario:reference_data_read}": ["rate<0.01"],
+  "http_req_duration{scenario:reference_data_read}": ["p(95)<100"],
   // An open-model run that cannot start its iterations on time is a saturated
   // server, not a fast one; without this the suite would report the shortfall
   // as healthy latency.
@@ -79,6 +88,12 @@ if (loginEmail && loginPassword) {
   scenarios.product_create_write = { ...stage(Number(__ENV.PERF_CREATE_RATE || 5), 10), exec: "productCreateWrite" };
   thresholds["http_req_failed{scenario:product_create_write}"] = ["rate<0.01"];
   thresholds["http_req_duration{scenario:product_create_write}"] = ["p(95)<300"];
+
+  // Last of all: an upload decodes the image and writes derivatives, so it is
+  // both the slowest write and the one that leaves the most behind.
+  scenarios.image_upload_write = { ...stage(Number(__ENV.PERF_UPLOAD_RATE || 2), 10), exec: "imageUploadWrite" };
+  thresholds["http_req_failed{scenario:image_upload_write}"] = ["rate<0.01"];
+  thresholds["http_req_duration{scenario:image_upload_write}"] = ["p(95)<1400"];
 }
 
 export const options = {
@@ -89,15 +104,34 @@ export const options = {
   summaryTrendStats: ["avg", "min", "med", "p(95)", "p(99)", "max"],
 };
 
+// Loaded once at init. The upload scenario needs real bytes: a decode and a
+// thumbnail write are most of what the endpoint costs.
+const uploadImage = open("/perf/fixtures/upload-sample.jpg", "b");
+
 export function setup() {
+  // Ids are resolved once here rather than per iteration, so the scenarios
+  // measure the endpoint under test and not the lookup that found their input.
+  const listing = http.get(`${baseUrl}/v1/products?size=100`);
+  const items = listing.json("items") || [];
+  const detailProductId = items.length > 0 ? items[0].id : null;
+
   if (!loginEmail || !loginPassword) {
-    return {};
+    return { detailProductId };
   }
-  const response = http.post(`${baseUrl}/v1/auth/bearer/login`, {
+  const login = http.post(`${baseUrl}/v1/auth/bearer/login`, {
     username: loginEmail,
     password: loginPassword,
   });
-  return { token: response.json("access_token") };
+  const token = login.json("access_token");
+
+  // A product owned by the authenticated user, to upload into.
+  const created = http.post(
+    `${baseUrl}/v1/products`,
+    JSON.stringify({ name: "perf baseline upload target" }),
+    { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } },
+  );
+
+  return { token, detailProductId, uploadProductId: created.json("id") };
 }
 
 export function liveProbe() {
@@ -183,5 +217,53 @@ export function productCreateWrite(data) {
   check(response, {
     "product create returned 201": (res) => res.status === 201,
     "product create returned an id": (res) => Boolean(res.json("id")),
+  });
+}
+
+
+export function productDetailRead(data) {
+  const response = http.get(`${baseUrl}/v1/products/${data.detailProductId}`, {
+    tags: { scenario: "product_detail_read" },
+  });
+
+  check(response, {
+    "product detail returned 200": (res) => res.status === 200,
+    "product detail returned the product": (res) => Boolean(res.json("id")),
+  });
+}
+
+export function productComponentsRead(data) {
+  const response = http.get(`${baseUrl}/v1/products/${data.detailProductId}/components`, {
+    tags: { scenario: "product_components_read" },
+  });
+
+  check(response, {
+    "components returned 200": (res) => res.status === 200,
+  });
+}
+
+export function referenceDataRead() {
+  const response = http.get(`${baseUrl}/v1/materials?size=20`, {
+    tags: { scenario: "reference_data_read" },
+  });
+
+  check(response, {
+    "materials returned 200": (res) => res.status === 200,
+    "materials returned items": (res) => Array.isArray(res.json("items")),
+  });
+}
+
+export function imageUploadWrite(data) {
+  const response = http.post(
+    `${baseUrl}/v1/products/${data.uploadProductId}/images`,
+    { file: http.file(uploadImage, `perf-${__VU}-${__ITER}.jpg`, "image/jpeg") },
+    {
+      headers: { Authorization: `Bearer ${data.token}` },
+      tags: { scenario: "image_upload_write" },
+    },
+  );
+
+  check(response, {
+    "image upload returned 201": (res) => res.status === 201,
   });
 }
