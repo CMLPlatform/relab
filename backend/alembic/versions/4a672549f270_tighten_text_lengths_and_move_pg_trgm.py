@@ -12,9 +12,10 @@
   the seven search ones rebuilt against ``extensions.gin_trgm_ops`` afterwards; a
   plain ``CREATE INDEX`` takes a write lock on each table, which is fine at the
   current sizes. Hosts provisioned before the migrator role existed have a
-  superuser-owned ``pg_trgm``; there the revision stops before touching anything
-  and names the one superuser statement to run (``ALTER EXTENSION pg_trgm SET
-  SCHEMA extensions``), after which a re-run only rebuilds the indexes.
+  superuser-owned ``pg_trgm``; there the ``DROP EXTENSION`` fails, the transaction
+  rolls back untouched, and the error names the one superuser statement to run
+  (``ALTER EXTENSION pg_trgm SET SCHEMA extensions``), after which a re-run only
+  rebuilds the indexes.
 * The four admin-list trigram indexes are not rebuilt. On prod ``image`` holds 4452
   rows against 18.6k writes and both of its trigram indexes (``image_filename_trgm_idx``
   alone is 1.1 MB) have never been scanned; ``user`` holds 34 rows. An unanchored ILIKE
@@ -41,6 +42,8 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from psycopg.errors import InsufficientPrivilege
+from sqlalchemy.exc import ProgrammingError
 
 revision: str = "4a672549f270"
 down_revision: str | None = "a9c2e4f60b18"
@@ -68,36 +71,49 @@ ADMIN_LIST_TRIGRAM_INDEXES = (
 )
 
 
-def pg_trgm_state(connection: sa.Connection) -> tuple[str, bool]:
-    """Return (schema pg_trgm lives in, whether the current role owns it)."""
-    row = connection.execute(
-        sa.text(
-            "SELECT n.nspname, pg_has_role(current_user, e.extowner, 'USAGE') "
-            "FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace "
-            "WHERE e.extname = 'pg_trgm'"
-        )
-    ).one()
-    return str(row[0]), bool(row[1])
+SUPERUSER_INSTRUCTION = (
+    "run as the postgres superuser first: ALTER EXTENSION pg_trgm SET SCHEMA extensions; then re-run"
+)
+
+
+def pg_trgm_schema(connection: sa.Connection) -> str:
+    """Return the schema pg_trgm currently lives in."""
+    return str(
+        connection.execute(
+            sa.text(
+                "SELECT n.nspname FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace "
+                "WHERE e.extname = 'pg_trgm'"
+            )
+        ).scalar_one()
+    )
 
 
 def _move_pg_trgm(
     schema: str, drop: tuple[tuple[str, str, str], ...], create: tuple[tuple[str, str, str], ...]
 ) -> None:
     """Drop *drop*'s indexes, move pg_trgm to *schema*, then build *create*'s indexes there."""
-    current_schema, owned = pg_trgm_state(op.get_bind())
-    if current_schema != schema and not owned:
-        # On hosts provisioned before the migrator role existed, pg_trgm belongs to the
-        # superuser and only the superuser can move it. Fail before touching anything.
-        msg = (
-            f"pg_trgm is in schema {current_schema!r} and not owned by the migrator; run as the "
-            f"postgres superuser first: ALTER EXTENSION pg_trgm SET SCHEMA {schema}; then re-run"
-        )
-        raise RuntimeError(msg)
+    current_schema = pg_trgm_schema(op.get_bind())
     for index, _table, _expression in drop:
         op.execute(f"DROP INDEX {index}")
     if current_schema != schema:
         # No CASCADE: the drops above are what makes the dependency visible in review.
-        op.execute("DROP EXTENSION pg_trgm")
+        #
+        # Attempted rather than predicted. A `pg_has_role(current_user, extowner, 'USAGE')`
+        # pre-check passes on membership, which is not what Postgres enforces here: DROP
+        # EXTENSION wants the current role to *be* the owner, so a migrator that merely
+        # belongs to the owning role sails past the check and fails on the DDL with a bare
+        # InsufficientPrivilege. Running the statement asks the only question that matches
+        # what the server checks, and the whole revision is one transaction, so a failure
+        # here rolls the index drops above back with it.
+        try:
+            op.execute("DROP EXTENSION pg_trgm")
+        except ProgrammingError as exc:
+            if not isinstance(exc.orig, InsufficientPrivilege):
+                raise
+            # On hosts provisioned before the migrator role existed, pg_trgm belongs to
+            # the superuser and only the superuser can move it.
+            msg = f"pg_trgm is in schema {current_schema!r} and the migrator does not own it; {SUPERUSER_INSTRUCTION}"
+            raise RuntimeError(msg) from exc
         op.execute(f"CREATE EXTENSION pg_trgm SCHEMA {schema}")
     for index, table, expression in create:
         op.execute(f"CREATE INDEX {index} ON {table} USING gin ({expression} {schema}.gin_trgm_ops)")

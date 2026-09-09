@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 from alembic import command
+from psycopg.errors import InsufficientPrivilege
 from sqlalchemy import inspect, text
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.schema import CreateIndex
 
 from app.api.common.models.base import Base
@@ -283,11 +285,17 @@ def test_trigram_indexes_are_search_only_and_schema_qualified(migration_helper: 
 
 
 @pytest.mark.migration
-def test_pg_trgm_move_refuses_when_extension_is_not_owned(migration_helper: MigrationHelper) -> None:
-    """A superuser-owned pg_trgm must stop the revision before it drops anything.
+def test_dropping_pg_trgm_unowned_raises_what_the_revision_translates(migration_helper: MigrationHelper) -> None:
+    """A non-owner's DROP EXTENSION must raise the error `_move_pg_trgm` turns into advice.
 
-    The suite runs as the superuser, which owns everything; a throwaway role stands in
-    for a migrator on a host provisioned before that role existed.
+    The revision no longer predicts ownership from `pg_has_role`, which passes on mere
+    role membership and let a migrator reach a DDL Postgres then refused. It attempts the
+    drop and translates the refusal, so what this pins is the refusal's shape: if psycopg
+    ever stopped raising InsufficientPrivilege here, the revision would re-raise a bare
+    ProgrammingError instead of naming the superuser statement an operator has to run.
+
+    The suite runs as the superuser, which owns everything; a throwaway role stands in for
+    a migrator on a host provisioned before that role existed.
     """
     versions = Path(__file__).resolve().parents[3] / "alembic" / "versions"
     spec = importlib.util.spec_from_file_location(
@@ -301,11 +309,18 @@ def test_pg_trgm_move_refuses_when_extension_is_not_owned(migration_helper: Migr
     migration_helper.execute_sql("CREATE ROLE trgm_probe")
     try:
         with migration_helper.sync_engine.connect() as connection:
-            assert module.pg_trgm_state(connection) == ("extensions", True)
+            assert module.pg_trgm_schema(connection) == "extensions"
             connection.execute(text("SET ROLE trgm_probe"))
             try:
-                assert module.pg_trgm_state(connection) == ("extensions", False)
+                # The refused statement changes nothing, so the extension outlives the
+                # probe even on this autocommit connection.
+                with pytest.raises(ProgrammingError) as excinfo:
+                    connection.execute(text("DROP EXTENSION pg_trgm"))
+                assert isinstance(excinfo.value.orig, InsufficientPrivilege)
             finally:
                 connection.execute(text("RESET ROLE"))  # the autocommit engine pools this connection
+            assert module.pg_trgm_schema(connection) == "extensions"
     finally:
         migration_helper.execute_sql("DROP ROLE trgm_probe")
+
+    assert "ALTER EXTENSION pg_trgm SET SCHEMA extensions" in module.SUPERUSER_INSTRUCTION
