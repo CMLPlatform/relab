@@ -22,6 +22,7 @@ import { getAppTheme } from '@/theme';
 
 const SORT_OPTIONS = PRODUCT_SORT_OPTIONS;
 
+// biome-ignore lint/complexity/noExcessiveLinesPerFunction: the filter bar's props are one flat list by design; grouping them to save lines would only add a pass-through.
 export default function Products() {
   const colorScheme = useEffectiveColorScheme();
   const bgOverlay = getAppTheme(colorScheme).tokens.overlay.page;
