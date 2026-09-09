@@ -65,19 +65,23 @@ def _missing_widths(path: Path) -> list[int] | None:
 async def thumbnail_unverified_images(session: AsyncSession) -> tuple[int, int]:
     """Complete and stamp every image row not yet verified. Returns (generated, skipped).
 
-    Works through the rows ``BATCH_SIZE`` at a time, committing after each batch. Rows
-    that cannot be read or resized stay unstamped and are excluded from later batches of
-    this run by id, so one bad file cannot loop the scan or abort the batch's commit.
+    Works through the rows ``BATCH_SIZE`` at a time, committing after each batch. Pages
+    forward by id rather than excluding the rows it could not read: an unreadable file
+    then cannot loop the scan forever, and a broadly unreachable store does not grow the
+    query by one bind parameter per row. A row that cannot be read or resized stays
+    unstamped, so one bad file cannot abort the batch's commit either.
     """
     generated = 0
-    skipped: set[object] = set()
+    skipped = 0
+    last_seen_id: object | None = None
     while True:
-        stmt = select(Image).where(Image.thumbnails_generated_at.is_(None)).limit(BATCH_SIZE)
-        if skipped:
-            stmt = stmt.where(Image.id.notin_(skipped))
+        stmt = select(Image).where(Image.thumbnails_generated_at.is_(None)).order_by(Image.id).limit(BATCH_SIZE)
+        if last_seen_id is not None:
+            stmt = stmt.where(Image.id > last_seen_id)
         rows = (await session.execute(stmt)).scalars().all()
         if not rows:
             break
+        last_seen_id = rows[-1].id
         for row in rows:
             path = stored_file_path(row)
             missing = _missing_widths(path) if path is not None else None
@@ -85,24 +89,26 @@ async def thumbnail_unverified_images(session: AsyncSession) -> tuple[int, int]:
                 # A missing, remote or corrupt file must not abort the run; the row stays
                 # unstamped and its thumbnail_url falls back to the original.
                 logger.warning("Could not thumbnail image %s; leaving it unverified", row.id)
-                skipped.add(row.id)
+                skipped += 1
                 continue
             if missing:
                 try:
-                    generate_thumbnails(path)
+                    # Only the widths that are absent: regenerating the whole set would
+                    # rewrite files the API is already serving.
+                    generate_thumbnails(path, tuple(missing))
                 # `_missing_widths` only parses the header; a file whose pixel data is
                 # truncated, or a destination that cannot be written, fails here instead.
                 # Letting it escape rolls back the whole batch's stamps, so every later
                 # run re-selects the same rows and stalls on the same file.
                 except OSError, ValueError, PILImage.DecompressionBombError:
                     logger.warning("Could not thumbnail image %s; leaving it unverified", row.id, exc_info=True)
-                    skipped.add(row.id)
+                    skipped += 1
                     continue
                 generated += 1
             row.thumbnails_generated_at = datetime.now(UTC)
         await session.commit()
 
-    return generated, len(skipped)
+    return generated, skipped
 
 
 async def _run() -> None:

@@ -2,6 +2,7 @@
 
 import importlib.util
 import logging
+import re
 import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -386,13 +387,12 @@ def test_dropping_pg_trgm_unowned_raises_what_the_revision_translates(migration_
     finally:
         migration_helper.execute_sql("DROP ROLE trgm_probe")
 
-    assert "ALTER EXTENSION pg_trgm SET SCHEMA extensions" in module.SUPERUSER_INSTRUCTION
+    # The instruction names the schema the move is heading for, not a hardcoded one:
+    # the downgrade direction moves pg_trgm back to `public`.
+    assert "ALTER EXTENSION pg_trgm SET SCHEMA extensions" in module.SUPERUSER_INSTRUCTION.format(schema="extensions")
+    assert "ALTER EXTENSION pg_trgm SET SCHEMA public" in module.SUPERUSER_INSTRUCTION.format(schema="public")
 
 
-# Must match `_MIGRATION_LOCK_ID` in alembic/env.py. A drift makes the migrator below
-# take a different lock and finish immediately, which fails this test rather than
-# passing it silently.
-_MIGRATION_LOCK_ID = 8_247_301_559_002_113
 # Longer than the 5s `lock_timeout` env.py sets once it holds the lock: a migrator that
 # aborts instead of queueing gives up at 5s, so a shorter wait here would not tell the
 # two apart.
@@ -408,12 +408,24 @@ def test_a_second_migrator_queues_behind_the_advisory_lock(
     ``lock_timeout`` applies to ``pg_advisory_lock`` as well as to table locks, so
     setting it before taking the lock made a queued deploy an aborted one: a container
     started while a migration was already running died instead of running after it.
+
+    Nothing else in the suite runs two migrators at once, so without this the lock could
+    be removed and every other migration test would still pass.
     """
+    # Read out of env.py rather than repeated here: a drift would make this take a
+    # different lock, finish immediately, and pass silently.
+    env_source = (Path(__file__).resolve().parents[3] / "alembic" / "env.py").read_text()
+    match = re.search(r"^_MIGRATION_LOCK_ID = ([\d_]+)$", env_source, re.MULTILINE)
+    assert match is not None, "env.py no longer defines _MIGRATION_LOCK_ID"
+    lock_id = int(match.group(1).replace("_", ""))
+
     finished = threading.Event()
     failures: list[BaseException] = []
 
     def upgrade() -> None:
         try:
+            # The database is already at head, so this applies no revision; what it
+            # exercises is env.py's connection setup, which takes the lock first.
             command.upgrade(relab_alembic_config, "head")
         except Exception as exc:  # noqa: BLE001 # reported on the main thread
             failures.append(exc)
@@ -421,14 +433,15 @@ def test_a_second_migrator_queues_behind_the_advisory_lock(
             finished.set()
 
     with migration_helper.sync_engine.connect() as holder:
-        holder.execute(text(f"SELECT pg_advisory_lock({_MIGRATION_LOCK_ID})"))
+        holder.execute(text("SELECT pg_advisory_lock(:lock_id)"), {"lock_id": lock_id})
         queued = threading.Thread(target=upgrade, name="queued-migrator", daemon=True)
         queued.start()
         try:
             assert not finished.wait(_LOCK_WAIT_SECONDS), "the queued migrator did not wait for the lock"
         finally:
-            holder.execute(text(f"SELECT pg_advisory_unlock({_MIGRATION_LOCK_ID})"))
+            holder.execute(text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": lock_id})
 
     assert finished.wait(60), "the queued migrator did not run once the lock was released"
     queued.join(timeout=60)
     assert not failures, failures
+    assert migration_helper.current_revision() is not None

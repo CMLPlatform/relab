@@ -243,14 +243,15 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
     async def after_create(self, db: AsyncSession, item: StorageModelT) -> StorageModelT:
         """Hook for post-create processing.
 
-        Runs inside the create flow's transaction, so an implementation that
-        writes to *item* flushes rather than commits — committing detaches the
-        row that is about to be serialized into the response.
+        Runs *after* ``create()`` has committed and refreshed *item*, so an
+        implementation that writes to *item* is in a fresh transaction that
+        nothing else closes and must commit it itself. A flush alone is rolled
+        back at session teardown and the write never reaches the database.
 
-        A flush that UPDATEs the row fires the server-side ``onupdate`` on
-        ``updated_at``, which expires that attribute. Serializing the response
-        then reads it from a sync context and raises ``MissingGreenlet``, so
-        follow any such write with ``await db.refresh(item)``.
+        The UPDATE fires the server-side ``onupdate`` on ``updated_at``, which
+        expires that attribute. Serializing the response then reads it from a
+        sync context and raises ``MissingGreenlet``, so follow the commit with
+        ``await db.refresh(item)``.
         """
         del db
         return item

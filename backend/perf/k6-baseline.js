@@ -55,10 +55,12 @@ const searchTerms = (__ENV.PERF_SEARCH_TERMS || "steel,laptop,novatech,compact s
 // own the scenario cannot see a regression in the part of the pipeline that costs
 // anything. The larger two are tiled from that same sample by
 // `scripts.perf.make_upload_fixtures`, which the perf recipes run first.
+// Paths are relative to this script, so they resolve both on the host
+// (`just perf-baseline`) and under the CI container's `/perf` mount.
 const uploadImages = [
-  { size: "small", body: open("/perf/fixtures/upload-sample.jpg", "b") },
-  { size: "medium", body: open("/perf/fixtures/generated/upload-medium.jpg", "b") },
-  { size: "large", body: open("/perf/fixtures/generated/upload-large.jpg", "b") },
+  { size: "small", body: open("./fixtures/upload-sample.jpg", "b") },
+  { size: "medium", body: open("./fixtures/generated/upload-medium.jpg", "b") },
+  { size: "large", body: open("./fixtures/generated/upload-large.jpg", "b") },
 ];
 
 // Per size, because a percentile mixed across all three hides which one moved.
@@ -282,7 +284,9 @@ export function referenceDataRead() {
 }
 
 export function imageUploadWrite(data) {
-  const image = uploadImages[__ITER % uploadImages.length];
+  // Scenario-wide counter, not __ITER: every pre-allocated VU restarts __ITER at 0,
+  // so a VU-derived index oversamples the first size and skews the per-size p95s.
+  const image = uploadImages[exec.scenario.iterationInTest % uploadImages.length];
   const response = http.post(
     `${baseUrl}/v1/products/${data.uploadProductId}/images`,
     { file: http.file(image.body, `perf-${__VU}-${__ITER}.jpg`, "image/jpeg") },
