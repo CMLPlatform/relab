@@ -12,10 +12,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# The filename infix that marks a generated thumbnail, so a scan over the storage
+# directory can tell derivatives from the originals they were made from.
+THUMBNAIL_INFIX = "_thumb_"
+
 
 def thumbnail_path_for(image_path: Path, width: int) -> Path:
     """Return the expected filesystem path for a pre-computed thumbnail."""
-    return image_path.parent / f"{image_path.stem}_thumb_{width}.webp"
+    return image_path.parent / f"{image_path.stem}{THUMBNAIL_INFIX}{width}.webp"
 
 
 def generate_thumbnails(image_path: Path, widths: tuple[int, ...] = THUMBNAIL_WIDTHS) -> list[Path]:

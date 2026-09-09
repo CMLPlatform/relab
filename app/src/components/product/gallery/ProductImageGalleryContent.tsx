@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, type StyleProp, View, type ViewStyle } fr
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme';
 import {
   GalleryFlatList,
@@ -289,6 +290,7 @@ const GalleryImageItem = memo(function GalleryImageItem({
             placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
             placeholderContentFit="cover"
             contentFit="cover"
+            transition={IMAGE_FADE_MS}
             style={{ width, height: IMAGE_HEIGHT }}
           />
         </View>
