@@ -78,11 +78,24 @@ ENV ENVIRONMENT=${ENVIRONMENT} \
 WORKDIR $WORKDIR/app
 
 # Expo points Metro's FileStore at $TMPDIR/metro-cache; keeping it across builds
-# saves a full re-transpile. Entries are keyed by content hash and transform
-# options, so dropping the `-c` (clear-cache) flag is safe.
+# saves a full re-transpile.
 # NOTE: BuildKit cache mounts are builder-local and do not export into
 # `type=gha`, so this helps local and dev-host builds, not CI.
-RUN --mount=type=cache,target=/tmp/metro-cache \
+#
+# The `id` must name every EXPO_PUBLIC_* value the transform bakes in.
+# babel-preset-expo's inline-env-vars plugin REPLACES each `process.env.EXPO_PUBLIC_*`
+# read with a literal in a production web export, but Metro's transform cache key is a
+# hash of the metro version, cacheVersion, the transformer, globalPrefix and the file's
+# own contents — nothing env-valued, and @expo/metro-config sets no cacheVersion. So a
+# cache warmed by an earlier build returns modules carrying that build's URLs, silently
+# and with exit 0. Without an explicit id BuildKit derives one from the target and shares
+# it across every build on the daemon, which is what makes an origin change in the host's
+# `.env` rebuild into a bundle still pointing at the previous API.
+#
+# Keyed on the URLs and not on ENVIRONMENT: the environment does not change when a prod
+# origin does, which is exactly the case that has to miss the cache. The cost is one cache
+# per set of origins, which is one per host in practice.
+RUN --mount=type=cache,target=/tmp/metro-cache,id=metro-${EXPO_PUBLIC_API_URL}-${EXPO_PUBLIC_WEBSITE_URL}-${EXPO_PUBLIC_DOCS_URL} \
     pnpm exec expo export -p web
 
 # --- Runtime stage (default) ---
