@@ -70,10 +70,23 @@ def email_log_token(email: EmailStr) -> str:
     digest keeps the only property operations actually needs, that two lines about the
     same address match, and carries no address.
 
-    Diagnosing a provider-wide failure still works: the send path logs the provider's own
-    exception, whose SMTP response names the host that refused.
+    Diagnosing a provider-wide failure still works: the send path logs the failure's class
+    and SMTP response code, which separate an outage from a refusal without naming anyone.
     """
     return f"eml_{keyed_digest('email:log', str(email), length=LOG_TOKEN_LENGTH)}"
+
+
+def _send_failure_detail(exc: BaseException) -> str:
+    """Describe a send failure without repeating what the exception carries.
+
+    Provider exceptions name the address they were refused for: aiosmtplib puts it in
+    `SMTPRecipientRefused.args` and the whole refused list in `SMTPRecipientsRefused.args`,
+    so the exception text and its traceback would print the address that the surrounding
+    lines deliberately log only as an opaque token. The class and, where the provider gave
+    one, the SMTP response code are what diagnosis actually needs.
+    """
+    code = getattr(exc, "code", None)
+    return f"{type(exc).__name__}({code})" if isinstance(code, int) else type(exc).__name__
 
 
 def _display_name(username: str | None, to_email: EmailStr) -> str:
@@ -115,23 +128,25 @@ async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_labe
         for attempt in range(1, _SEND_ATTEMPTS + 1):
             try:
                 await provider.send(message)
-            except Exception:
+            except Exception as exc:  # noqa: BLE001 - every provider failure is retried then logged, never raised
+                detail = _send_failure_detail(exc)
                 if attempt == _SEND_ATTEMPTS:
-                    logger.exception(
-                        "%s failed for %s after %d attempts",
+                    logger.error(  # noqa: TRY400 - the traceback would carry the refused address
+                        "%s failed for %s after %d attempts: %s",
                         log_label,  # lgtm[py/clear-text-logging-sensitive-data]
                         recipient,  # lgtm[py/clear-text-logging-sensitive-data]
                         attempt,
+                        detail,
                     )
                     return
                 delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
                 logger.warning(
-                    "%s attempt %d failed for %s, retrying in %.1fs",
+                    "%s attempt %d failed for %s (%s), retrying in %.1fs",
                     log_label,  # lgtm[py/clear-text-logging-sensitive-data]
                     attempt,
                     recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+                    detail,
                     delay,
-                    exc_info=True,
                 )
                 await anyio.sleep(delay)
             else:

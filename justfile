@@ -10,6 +10,11 @@ dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compos
 ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
 cloudflare_dir := "infra/cloudflare"
 cloudflare_zone_dir := "infra/cloudflare-zone"
+# Where an apply's reviewed plan waits for its confirming re-run. Gitignored, created
+# private, and emptied by the apply; the age cap bounds how long an unapplied plan can sit
+# there and how far the zone can drift from the diff a person actually read.
+cloudflare_plan_dir := ".tofu-plans"
+cloudflare_plan_max_age_minutes := "20"
 
 # Subrepos that mirror the root quality / test / audit / clean recipes.
 subrepos := "backend docs www app"
@@ -294,24 +299,32 @@ cloudflare-plan env:
 
 # Apply Cloudflare edge changes for one environment (prod or staging)
 #
-# The plan runs before the confirmation gate, so a bare `just cloudflare-apply <env>`
-# prints the diff and stops with the YES command to re-run. The apply then consumes that
-# saved plan rather than re-deciding, so what lands is exactly what was printed. The plan
-# file holds the tunnel secret; `plan { enforced = true }` in versions.tf encrypts it, and
-# it lives in a scratch directory removed on exit either way.
+# A bare `just cloudflare-apply <env>` plans, prints the diff, saves the plan and stops
+# with the YES command to re-run. That second run applies the saved file itself, so what
+# lands is the diff a person read, not a fresh decision taken minutes later. A missing or
+# aged-out plan fails there rather than being replaced by an unreviewed one, and
+# `tofu apply <planfile>` refuses a plan whose state has moved on since.
+#
+# FORCE=1 is the scripted path: no one reads a diff, so it plans and applies in one run.
+#
+# The plan file holds the tunnel secret. `plan { enforced = true }` in versions.tf
+# encrypts it, `*.tfplan` is gitignored, the directory is created private, and the apply
+# removes the file whether or not it succeeded.
 [group('cloudflare')]
 cloudflare-apply env confirm='':
     #!/usr/bin/env bash
     set -euo pipefail
     just _require-cloudflare-env {{ quote(env) }}
     just _require-cloudflare-vars
-    plan_dir="$(mktemp -d)"
-    trap 'rm -rf "$plan_dir"' EXIT
+    plan="{{ cloudflare_plan_dir }}/cloudflare-{{ env }}.tfplan"
     tofu -chdir={{ cloudflare_dir }} init
     tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
-    tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}" -out="$plan_dir/tfplan"
-    just _require-confirm "apply the plan printed above for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
-    tofu -chdir={{ cloudflare_dir }} apply -input=false "$plan_dir/tfplan"
+    if [ {{ quote(confirm) }} != "YES" ]; then
+        mkdir -p {{ cloudflare_plan_dir }} && chmod 700 {{ cloudflare_plan_dir }}
+        tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}" -out="$plan"
+        just _require-confirm "apply the plan printed above for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
+    fi
+    just _cloudflare-apply-saved-plan {{ cloudflare_dir }} "$plan"
 
 # Plan the zone-global Cloudflare configuration (TLS settings + the three entrypoint
 # rulesets). One root owns the whole zone, shared by prod and staging.
@@ -331,12 +344,38 @@ cloudflare-zone-apply confirm='':
     set -euo pipefail
     just _require-cloudflare-vars
     just _require-zone-edge-keys
-    plan_dir="$(mktemp -d)"
-    trap 'rm -rf "$plan_dir"' EXIT
+    plan="{{ cloudflare_plan_dir }}/cloudflare-zone.tfplan"
     tofu -chdir={{ cloudflare_zone_dir }} init
-    tofu -chdir={{ cloudflare_zone_dir }} plan -input=false -out="$plan_dir/tfplan"
-    just _require-confirm "apply the zone-global plan printed above (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
-    tofu -chdir={{ cloudflare_zone_dir }} apply -input=false "$plan_dir/tfplan"
+    if [ {{ quote(confirm) }} != "YES" ]; then
+        mkdir -p {{ cloudflare_plan_dir }} && chmod 700 {{ cloudflare_plan_dir }}
+        tofu -chdir={{ cloudflare_zone_dir }} plan -input=false -out="$plan"
+        just _require-confirm "apply the zone-global plan printed above (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+    fi
+    just _cloudflare-apply-saved-plan {{ cloudflare_zone_dir }} "$plan"
+
+# Internal helper: apply the plan a person reviewed, never a freshly computed one.
+#
+# The artifact binds the review to the apply, so a missing file (no bare run first) or one
+# older than the review window is an error, not a cue to plan again. `tofu apply` adds the
+# other half: it refuses a plan whose state has changed since it was made. The file holds
+# the tunnel secret, so it goes whatever the outcome.
+_cloudflare-apply-saved-plan dir plan:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    plan={{ quote(plan) }}
+    if [ ! -f "$plan" ]; then
+        echo "No saved plan at $plan." >&2
+        echo "Run the same recipe without YES first: it plans, prints the diff and saves it." >&2
+        exit 1
+    fi
+    if [ -n "$(find "$plan" -mmin +{{ cloudflare_plan_max_age_minutes }} -print -quit)" ]; then
+        rm -f "$plan"
+        echo "The saved plan at $plan was older than {{ cloudflare_plan_max_age_minutes }} minutes and has been discarded." >&2
+        echo "Re-run without YES to plan again and review the current diff." >&2
+        exit 1
+    fi
+    trap 'rm -f "$plan"' EXIT
+    tofu -chdir={{ dir }} apply -input=false "$plan"
 
 _require-cloudflare-env env:
     #!/usr/bin/env bash

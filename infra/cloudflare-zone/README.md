@@ -116,6 +116,7 @@ From the repository root:
 ```bash
 just cloudflare-check       # covers this root and ../cloudflare
 just cloudflare-zone-plan
+just cloudflare-zone-apply   # plans, prints the diff, saves it, stops
 just cloudflare-zone-apply YES
 ```
 

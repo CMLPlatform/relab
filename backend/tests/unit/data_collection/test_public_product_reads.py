@@ -9,21 +9,52 @@ The authenticated per-user listing deliberately lives under `/users/{user_id}/pr
 outside the prefix the rule matches.
 """
 
-import inspect
-from typing import get_args, get_origin
+from fastapi import APIRouter, Security
+from fastapi.dependencies.models import Dependant
+from fastapi.routing import APIRoute
 
-from app.api.auth.dependencies import current_active_user
+from app.api.auth import dependencies as auth_dependencies
 from app.api.data_collection.routers.product_read_routers import product_read_router
 
+# Every `current_*` callable in the auth module gates a route on an authenticated user;
+# `optional_current_active_user` is named apart because it only enriches an anonymous read.
+# Deriving the set rather than listing it means a dependency added later is covered here
+# the day it exists.
+REQUIRED_AUTH_DEPENDENCIES = {
+    value: name for name, value in vars(auth_dependencies).items() if name.startswith("current_") and callable(value)
+}
 
-def _required_auth_dependencies(endpoint: object) -> list[str]:
-    """Names of parameters on this endpoint that require an authenticated user."""
-    return [
-        name
-        for name, parameter in inspect.signature(endpoint).parameters.items()
-        if get_origin(parameter.annotation) is not None
-        and any(getattr(meta, "dependency", None) is current_active_user for meta in get_args(parameter.annotation)[1:])
-    ]
+
+def _auth_dependencies(dependant: Dependant) -> set[str]:
+    """Names of the authenticating callables this route resolves, at any depth.
+
+    Reads FastAPI's own resolved dependency tree rather than the endpoint signature:
+    the tree already carries route-level and router-level ``dependencies=[Security(...)]``,
+    which a signature never shows, and it reaches the nested deps that `current_lab_user`
+    and `current_mfa_user` are built from.
+    """
+    found: set[str] = set()
+    for sub in dependant.dependencies:
+        if sub.call in REQUIRED_AUTH_DEPENDENCIES:
+            found.add(REQUIRED_AUTH_DEPENDENCIES[sub.call])
+        found |= _auth_dependencies(sub)
+    return found
+
+
+def test_the_guard_sees_a_router_level_security_dependency() -> None:
+    """The guard is worthless if it only inspects endpoint parameters.
+
+    A route can be gated by `dependencies=[Security(...)]` on the route or on its router,
+    neither of which appears in `inspect.signature(endpoint)`.
+    """
+    router = APIRouter(dependencies=[Security(auth_dependencies.current_active_verified_user)])
+
+    @router.get("/example")
+    async def _example() -> None:
+        pass
+
+    route = next(r for r in router.routes if isinstance(r, APIRoute))
+    assert _auth_dependencies(route.dependant) == {"current_active_verified_user"}
 
 
 def test_no_route_under_the_products_prefix_requires_authentication() -> None:
@@ -35,7 +66,7 @@ def test_no_route_under_the_products_prefix_requires_authentication() -> None:
     offenders = {
         route.path: names
         for route in product_read_router.routes
-        if (names := _required_auth_dependencies(route.endpoint))
+        if isinstance(route, APIRoute) and (names := _auth_dependencies(route.dependant))
     }
     assert not offenders, (
         f"authenticated routes under the /products prefix: {offenders}. "

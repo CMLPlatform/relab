@@ -5,12 +5,14 @@ from unittest.mock import AsyncMock
 
 import anyio
 import pytest
+from aiosmtplib.errors import SMTPRecipientRefused, SMTPRecipientsRefused
 
 from app.api.auth.services.email import service
 from app.api.auth.services.email.providers import EmailMessage
 from app.api.auth.services.email.service import send_templated_email
 from app.api.auth.services.email.templates import REGISTRATION_TEMPLATE
 from app.api.common.rate_limiting import rate_limit_bucket_key
+from app.core.logging import build_json_formatter
 
 
 def _message() -> EmailMessage:
@@ -117,3 +119,30 @@ def test_the_send_window_fits_inside_the_container_stop_grace_period() -> None:
     # outlasts it is SIGKILLed rather than logged.
     api_stop_grace_seconds = 60
     assert api_stop_grace_seconds > service._SEND_WINDOW_SECONDS
+
+
+async def test_send_failure_logs_no_recipient_address(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A refused recipient must not reach the logs through the exception it raises.
+
+    aiosmtplib puts the address in the exception's ``args``, so ``exc_info`` would have
+    printed it in the JSON logs that production emits. Formatting each record the way the
+    production formatter does is the only assertion that catches that: the message alone
+    never contained the address.
+    """
+    monkeypatch.setattr(service, "_SEND_BACKOFF_SECONDS", 0)
+    refused = SMTPRecipientsRefused([SMTPRecipientRefused(550, "No such mailbox", "victim@example.org")])
+    provider = AsyncMock()
+    provider.send.side_effect = refused
+
+    with caplog.at_level(logging.WARNING):
+        await service._send_and_log(provider, _message(), "Email", "eml_deadbeef")
+
+    formatter = build_json_formatter()
+    emitted = "\n".join(formatter.format(record) for record in caplog.records)
+
+    assert "victim@example.org" not in emitted
+    assert "example.org" not in emitted
+    assert "eml_deadbeef" in emitted
+    assert "SMTPRecipientsRefused" in emitted
