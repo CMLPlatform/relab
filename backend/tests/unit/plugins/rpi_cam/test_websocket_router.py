@@ -463,7 +463,7 @@ async def test_rejects_invalid_signature() -> None:
     camera = _make_camera(key_id, jwk)
     redis = AsyncMock()
 
-    # Sign with a completely different private key — won't match the stored public jwk
+    # Sign with a completely different private key; won't match the stored public jwk
     wrong_key, _ = _make_key()
     assertion = _make_assertion(wrong_key, str(camera.id), key_id)
     with pytest.raises(jwt.InvalidTokenError):

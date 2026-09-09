@@ -112,7 +112,7 @@ describe('StreamingContent', () => {
     await fireEvent.press(screen.getByText('Stop stream'));
 
     expect(mockSetActiveStream).toHaveBeenCalledWith(null);
-    // The stream's product is invalidated by the mutation hook, not here — the
+    // The stream's product is invalidated by the mutation hook, not here; the
     // component only has to name the product it was streaming.
     expect(mockUseStopYouTubeStreamMutation).toHaveBeenCalledWith('cam-1', 42);
     expect(onStop).toHaveBeenCalled();

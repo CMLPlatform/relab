@@ -143,7 +143,7 @@ describe('ProductTags', () => {
       withDialog: true,
     });
     // Chip's icon prop is `editMode && <Icon .../>`, i.e. `false` when not
-    // editing — regression check that Chip renders nothing for it (no crash,
+    // editing: regression check that Chip renders nothing for it (no crash,
     // no stray icon) rather than the string "false" or an empty slot.
     expect(queryAllHostsByType('RNSVGSvgView')).toHaveLength(0);
   });
@@ -167,7 +167,7 @@ describe('ProductTags', () => {
         withDialog: true,
       },
     );
-    // isComponent relaxes brand/model from required (styling only — Chip has
+    // isComponent relaxes brand/model from required (styling only; Chip has
     // no testable error signal) to optional; the fallback label still shows,
     // and the Amount chip (isComponent-only) renders alongside it.
     expect(screen.getAllByText('Not recorded').length).toBe(2);
@@ -398,9 +398,9 @@ describe('AmountChip (isComponent=true)', () => {
 });
 
 // Fix round 1 (item 1, Important): AmountChip's uncommitted draft used to be
-// silently dropped by Save, because nothing in the save path flushed it —
+// silently dropped by Save, because nothing in the save path flushed it;
 // blur-before-press ordering is convention, not a contract, in RN. These
-// exercise the flush contract directly (the channel saveAndExit uses — see
+// exercise the flush contract directly (the channel saveAndExit uses; see
 // useProductForm.test.tsx for the saveAndExit side of the same fix) by
 // invoking the registered flush WITHOUT ever firing a blur/submitEditing
 // event on the input, simulating Save being pressed first.
@@ -422,7 +422,7 @@ describe('AmountChip draft flush (Save without blur)', () => {
       { withDialog: true },
     );
     await fireEvent.changeText(screen.getByDisplayValue('3'), '50');
-    // No blur/submitEditing fired on the input — Save reaches the flush ref first.
+    // No blur/submitEditing fired on the input; Save reaches the flush ref first.
     expect(onAmountChange).not.toHaveBeenCalled();
 
     let flushed: number | undefined;
@@ -486,7 +486,7 @@ it('never marks a missing brand or model as required', async () => {
   // PRODUCT.md: an empty or unconfirmed field must never render as an error, a
   // warning, or a completeness penalty. Chip composes ", required" into its
   // accessible name when `error` is set, so the absence of that string is the
-  // assertion — it checks the state a screen reader would announce rather than
+  // assertion: it checks the state a screen reader would announce rather than
   // the colour a sighted user would see.
   await renderWithProviders(
     <ProductTags product={{ ...baseProduct, brand: undefined, model: undefined }} editMode />,

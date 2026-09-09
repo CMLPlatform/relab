@@ -1,6 +1,6 @@
 """API composition root: assembles every bounded context's routers.
 
-Lives outside ``common`` on purpose — ``common`` is imported by every context
+Lives outside ``common`` on purpose: ``common`` is imported by every context
 and must not import them back.
 """
 

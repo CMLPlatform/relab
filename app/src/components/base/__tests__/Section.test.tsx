@@ -82,7 +82,7 @@ test('unregisters from the nav registry when it collapses to empty in view mode'
   expect(unregisterSection).not.toHaveBeenCalled();
 
   // Context identity churns on every scroll-spy tick (activeKey). A section
-  // that stays visible must NOT be unregistered by that churn — onLayout never
+  // that stays visible must NOT be unregistered by that churn: onLayout never
   // re-fires, so an unregister here would permanently orphan the section.
   await rerender(
     <SectionNavContext.Provider value={{ ...nav, activeKey: 'physical' as const }}>

@@ -446,7 +446,7 @@ def test_production_rejects_missing_redis_secret_file(tmp_path: Path) -> None:
 
     kwargs = _production_core_settings_kwargs()
     kwargs["database"] = db
-    # redis deliberately omitted — empty password triggers the error
+    # redis deliberately omitted: empty password triggers the error
 
     with pytest.raises(ValidationError, match="REDIS_PASSWORD must not be empty"):
         CoreSettings(**{**kwargs, "redis": RedisSettings()})

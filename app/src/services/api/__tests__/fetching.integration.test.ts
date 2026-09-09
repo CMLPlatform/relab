@@ -212,7 +212,7 @@ describe('Fetching API Service logic', () => {
         amountInParent: 2,
       });
       // The nested child is a bare ComponentRead (no `components` key of its
-      // own) — undefined means "not loaded", distinct from `[]` ("loaded and
+      // own); undefined means "not loaded", distinct from `[]` ("loaded and
       // childless"); ComponentRow relies on this to decide whether to fetch.
       expect(p.components?.[0].components).toBeUndefined();
       expect(p.images?.[0]?.description).toBe('Main image');

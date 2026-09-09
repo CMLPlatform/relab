@@ -80,13 +80,13 @@ plan this root.
 Because the phase is capped at five rules, this is a **branch of the public-reads rule**, not a
 rule of its own. It therefore inherits that rule's single phase and skips **Super Bot Fight Mode
 only**: a keyed staging run still meets the same managed WAF prod does. That matters because the
-key is just a header — anyone who reads it from the rulesets API could otherwise turn the WAF off
+key is just a header: anyone who reads it from the rulesets API could otherwise turn the WAF off
 for every staging path, `/v1/admin/` included. Prod is unaffected either way.
 
 The www build's fetch of `/v1/products/{id}` and its component tree is a non-browser client
 that gets challenged the same way, which makes the landing page ship its fixture. That is
 covered by `relab_public_reads_skip_bot_fight_mode` instead, which is the former stats rule
-widened to GETs under `/v1/products/` as well — public read-only data, the same reasoning. No
+widened to GETs under `/v1/products/` as well, public read-only data, the same reasoning. No
 build argument carries a key, which would leak into image history.
 
 ## What this zone's Cloudflare plan allows
@@ -100,8 +100,8 @@ changed, so `tests/zone.tftest.hcl` asserts them:
   because only the api hostnames serve `/v1/auth/`.
 
 - **Five rules in the `http_request_firewall_custom` phase.** All five slots are taken, so a new
-  condition folds into an existing rule rather than adding one: the keyed staging E2E skip is a
-  branch of the RPi camera rule, and the product reads share the public-read rule with stats.
+  condition folds into an existing rule rather than adding one: both the keyed staging E2E skip and
+  the product reads are branches of the public-read rule, alongside stats.
   `tests/zone.tftest.hcl` asserts the count with every optional rule enabled.
 
 - **No `matches` (regex) operator.** It needs a Business or WAF Advanced plan. The affected
@@ -116,6 +116,7 @@ From the repository root:
 ```bash
 just cloudflare-check       # covers this root and ../cloudflare
 just cloudflare-zone-plan
+just cloudflare-zone-apply   # plans, prints the diff, saves it, stops
 just cloudflare-zone-apply YES
 ```
 

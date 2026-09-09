@@ -155,7 +155,7 @@ async def test_verify_refresh_token_reuse_revokes_session_family(
     """Reuse detection must fire on the real refresh path, which verifies before rotating.
 
     Regression: ``session_flow.refresh_tokens_for_active_user`` calls ``verify_refresh_token``
-    first, and verify rejected a blacklisted token outright — so the stolen-token family
+    first, and verify rejected a blacklisted token outright, so the stolen-token family
     revocation in ``rotate_refresh_token`` was unreachable in production.
     """
     now = 1_700_000_000

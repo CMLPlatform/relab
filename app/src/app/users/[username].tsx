@@ -1,7 +1,5 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
-import { useCallback } from 'react';
 import {
   ActivityIndicator,
   type DimensionValue,
@@ -19,8 +17,8 @@ import { PageContainer } from '@/components/base/PageContainer';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import { productGridColumns } from '@/features/products/productGridColumns';
-import { userProductsInfiniteQueryOptions } from '@/features/products/queries';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
+import { useUserProducts } from '@/features/profile/useUserProducts';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 import { heading } from '@/utils/a11y';
 
@@ -56,14 +54,8 @@ function ProfileStatCard({
 function UserProducts({ username }: { username: string }) {
   const { width } = useWindowDimensions();
   const numColumns = productGridColumns(width);
-  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } = useInfiniteQuery(
-    userProductsInfiniteQueryOptions(username),
-  );
-  const items = data?.pages.flatMap((page) => page.items) ?? [];
-  const total = data?.pages[0]?.total ?? 0;
-  const loadMore = useCallback(() => {
-    void fetchNextPage();
-  }, [fetchNextPage]);
+  const { items, total, isLoading, isFetchingNextPage, hasNextPage, loadMore } =
+    useUserProducts(username);
 
   return (
     <View className="w-full mt-12" testID="user-products">
@@ -111,7 +103,7 @@ export default function UserProfileScreen() {
       </Head>
       {/* react-native-web renders react-navigation's header title
           (accessibilityRole "header", no aria-level) as an <h1>, which would
-          compete with the username heading in the page below — and
+          compete with the username heading in the page below, and
           useScreenEntryFocus focuses the scaffold's h1. Render the chrome title
           as plain text so the screen keeps exactly one heading, the way the
           product detail screen does with ProductNameHeader. */}

@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent } from 'react';
 import { Platform } from 'react-native';
+import { isDialogOpen } from '@/utils/keyboardShortcuts';
 
 const TEXT_ENTRY_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
 
@@ -26,6 +27,8 @@ export function useGalleryKeyboardNavigation({
   const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
     // Arrow keys move the caret inside a text field; don't also move the gallery.
     if (isTextEntryTarget(event.target)) return;
+    // An open dialog owns the keyboard; the gallery behind the scrim stays put.
+    if (isDialogOpen()) return;
 
     if (event.key === 'ArrowLeft' && selectedIndex > 0) {
       onPrevious();

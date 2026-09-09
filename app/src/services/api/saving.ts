@@ -184,7 +184,7 @@ async function updateProductImages(product: Product, originalImages: Product['im
   );
 
   for (const img of imagesToAdd) {
-    // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose — parallel large uploads overwhelm the server.
+    // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose; parallel large uploads overwhelm the server.
     await addImage(product, img);
   }
 }
@@ -335,7 +335,7 @@ async function updateProductVideos(product: Product, originalVideos: Product['vi
   ]);
 
   for (const vid of videosToAdd) {
-    // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose — mirrors image uploads.
+    // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose; mirrors image uploads.
     const response = await fetchWithAuth(new URL(`${baseUrl}/products/${product.id}/videos`), {
       method: 'POST',
       headers: JSON_HEADERS,

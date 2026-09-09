@@ -364,7 +364,7 @@ describe('CamerasScreen', () => {
 
     await renderWithProviders(<CamerasScreen />, { withDialog: true });
 
-    // Long-press the offline camera directly — shows snackbar without entering selection mode
+    // Long-press the offline camera directly: shows snackbar without entering selection mode
     await fireEvent(screen.getByLabelText('Camera: Offline Cam'), 'longPress');
 
     await waitFor(() =>
@@ -392,7 +392,7 @@ describe('CamerasScreen', () => {
     await fireEvent(screen.getByLabelText('Camera: Cam A'), 'longPress');
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
 
-    // Press "Select all (2)" — 2 online cameras
+    // Press "Select all (2)": 2 online cameras
     await fireEvent.press(screen.getByLabelText('Select all online cameras'));
 
     expect(screen.getByText('2 selected')).toBeOnTheScreen();

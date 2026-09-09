@@ -3,8 +3,8 @@ import { describe, expect, it, jest } from '@jest/globals';
 // react-native-svg's animated faces are driven through Reanimated's
 // animated-prop path, which writes prop keys verbatim and skips the JS
 // transform→matrix conversion. The native views only read `matrix`; the web
-// renderer only reads `transform`. Nothing in a rendered tree shows this —
-// jest's Reanimated mock never applies animatedProps — so the key choice is
+// renderer only reads `transform`. Nothing in a rendered tree shows this:
+// jest's Reanimated mock never applies animatedProps, so the key choice is
 // asserted directly.
 //
 // NOTE: on-device verification of the native path is still pending.

@@ -3,7 +3,7 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 from fastapi.routing import APIRoute
 from fastapi_users import exceptions
 from fastapi_users.router.reset import ErrorCode
@@ -74,7 +74,6 @@ async def test_forgot_password_applies_account_rate_limit_to_all_requests() -> N
         await forgot_password(
             request=_request(),
             email=" User@Example.COM ",
-            background_tasks=MagicMock(spec=BackgroundTasks),
             user_manager=user_manager,
         )
 
@@ -113,36 +112,10 @@ async def test_forgot_password_returns_same_response_for_missing_and_inactive_us
         result = await forgot_password(
             request=_request(),
             email="user@example.com",
-            background_tasks=MagicMock(spec=BackgroundTasks),
             user_manager=user_manager,
         )
 
     assert result is None
-
-
-async def test_forgot_password_existing_user_passes_background_tasks_through_request_state() -> None:
-    """Existing-user forgot-password requests should queue reset email work in background tasks."""
-    user = MagicMock()
-    user_manager = MagicMock()
-    user_manager.get_by_email = AsyncMock(return_value=user)
-    user_manager.forgot_password = AsyncMock()
-    background_tasks = MagicMock(spec=BackgroundTasks)
-
-    with (
-        patch("app.api.auth.routers.password_reset.limiter") as reset_limiter,
-        patch("app.api.auth.routers.password_reset._sleep_until_minimum_elapsed", new_callable=AsyncMock),
-    ):
-        reset_limiter.ahit_key = AsyncMock()
-        await forgot_password(
-            request=_request(),
-            email="user@example.com",
-            background_tasks=background_tasks,
-            user_manager=user_manager,
-        )
-
-    assert user_manager.forgot_password.await_args is not None
-    request = user_manager.forgot_password.await_args.args[1]
-    assert request.state.background_tasks is background_tasks
 
 
 async def test_reset_password_preserves_fastapi_users_bad_token_error_shape() -> None:

@@ -73,7 +73,7 @@ class TestResearchFileUploadRequiresLab:
     async def test_contributor_is_refused_on_their_own_product(
         self, api_client_user: AsyncClient, db_session: AsyncSession, db_user: User
     ) -> None:
-        """Owning the product is not enough — the tier gates the capability."""
+        """Owning the product is not enough; the tier gates the capability."""
         product = await _product_owned_by(db_session, db_user)
 
         response = await api_client_user.post(f"/v1/products/{product.id}/files", files=RESEARCH_FILE)
@@ -209,7 +209,7 @@ class TestRoleAssignment:
         """`PATCH /users/me` must not be a path to the lab tier.
 
         The schema forbids extras, so this is a 422 rather than a silently ignored
-        field — and the stored role is checked too, in case that ever changes.
+        field, and the stored role is checked too, in case that ever changes.
         Authenticates for real: the self-service router is fastapi-users' own.
         """
         user = await UserFactory.create_async(

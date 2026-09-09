@@ -148,7 +148,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
   // Read the back target from the fetched record, not the watched form: the
   // form holds the blank `newProduct()` sentinel (role 'product', no parentID)
   // until hydration resets it, one commit after `isLoading` has already gone
-  // false — so a header closure captured in that frame sent a component to the
+  // false, so a header closure captured in that frame sent a component to the
   // products list instead of to its parent. Park the press until the record is
   // in hand; a failed or absent fetch falls through rather than deadlocking the
   // control.

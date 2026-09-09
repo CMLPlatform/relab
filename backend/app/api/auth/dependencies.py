@@ -35,7 +35,7 @@ async def current_mfa_user(user: Annotated[User, Security(current_active_user)])
     """Require an active account that has TOTP MFA *enrolled*.
 
     NOTE: this checks enrolment, not that the current session passed an MFA
-    challenge. It is not a step-up gate — do not use it to guard a sensitive
+    challenge. It is not a step-up gate; do not use it to guard a sensitive
     operation on the assumption the session was MFA-verified.
     """
     if not user.mfa_enabled:

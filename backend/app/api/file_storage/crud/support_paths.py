@@ -25,7 +25,7 @@ def stored_file_path(item: File | Image) -> Path | None:
     """Return the local filesystem path for a stored model, or None.
 
     Returns None for the S3 backend, whose ``get_path`` yields a URL rather than a local
-    path — every caller here (processing, thumbnailing, local deletion) is a filesystem
+    path: every caller here (processing, thumbnailing, local deletion) is a filesystem
     operation that must be skipped for a remote object.
     """
     path = _raw_storage_path(item)
@@ -53,8 +53,8 @@ async def delete_file_from_storage(item: File) -> None:
     """Delete a file's stored bytes via its storage backend.
 
     Routes through ``BaseStorage.delete`` (filesystem or S3) rather than a raw
-    ``Path.unlink`` so S3-backed objects — for which ``stored_file_path`` has no
-    local path to unlink — are actually removed.
+    ``Path.unlink`` so S3-backed objects (for which ``stored_file_path`` has no
+    local path to unlink) are actually removed.
     """
     await _get_file_storage().delete(item.file.name)
 

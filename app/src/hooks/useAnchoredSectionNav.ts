@@ -56,7 +56,7 @@ export function useAnchoredSectionNav(nav: SectionNavApi | null): {
   );
 
   // Re-anchor every already-known section once the composed offset settles
-  // (or changes, e.g. on resize) — heals any section that registered early.
+  // (or changes, e.g. on resize); heals any section that registered early.
   useEffect(() => {
     for (const [key, y] of rawPositionsRef.current) {
       nav?.registerSection(key, baseOffset + y);

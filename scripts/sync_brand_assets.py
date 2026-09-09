@@ -29,7 +29,7 @@ OG_DARK_SOURCE = ROOT / "assets/r9lab-og-dark.svg"
 WORDMARK_SOURCE = ROOT / "assets/r9lab-wordmark.svg"  # horizontal lockup (light mode)
 WORDMARK_DARK_SOURCE = ROOT / "assets/r9lab-wordmark-dark.svg"  # cyan variant for dark headers
 
-# Vendored monochrome brand marks (Simple Icons, CC0-1.0) — see assets/icons/brand/.
+# Vendored monochrome brand marks (Simple Icons, CC0-1.0); see assets/icons/brand/.
 BRAND_ICON_NAMES = ("github", "google", "youtube", "linkedin")
 
 
@@ -88,7 +88,7 @@ COPY_ASSETS = (
         root_path("assets/images/bg-dark.jpg"),
         (root_path("app/src/assets/images/bg-dark.jpg"),),
     ),
-    # NOTE: docs has no logo target — its header renders the wordmark via a custom
+    # NOTE: docs has no logo target; its header renders the wordmark via a custom
     # SiteTitle override, so a synced logo.svg would just be a dead file in public/.
     (
         LOGO_SOURCE,
@@ -202,7 +202,7 @@ GENERATED_ASSETS = (
 )
 
 
-# (source, target, ImageMagick args) — derived from a raster source, not the logo.
+# (source, target, ImageMagick args); derived from a raster source, not the logo.
 #
 # NOTE: empty on purpose. The bg-*.jpg pair are backdrop images, and neither www
 # nor docs paints a backdrop any more: both page grounds are flat tokens
@@ -308,7 +308,7 @@ def render_rn_shadow(css_shadow: str, elevation: int) -> dict:
     """Translate a CSS box-shadow string into React Native ViewStyle fields.
 
     React Native cannot consume a CSS shadow string, so app/src/theme/tokens.ts
-    used to re-declare the same offsets and rgba parts by hand — the fifth
+    used to re-declare the same offsets and rgba parts by hand; the fifth
     instance in this repo of a generated token a consumer could not read being
     hand-copied downstream. Deriving the RN shape here lets tokens.ts consume it
     the way it already consumes designTokens.type, so it computes and never
@@ -430,7 +430,7 @@ def load_project_identity() -> dict:
     metadata GitHub and Zenodo already read stays the single source. project.json
     only carries what CFF's strict schema rejects.
     """
-    import yaml  # noqa: PLC0415 — deferred so image-only syncs need no YAML parser
+    import yaml  # noqa: PLC0415  (deferred so image-only syncs need no YAML parser)
 
     citation = yaml.safe_load(CITATION_SOURCE.read_text())
     project = json.loads(PROJECT_SOURCE.read_text())
@@ -542,7 +542,7 @@ def sync_project_identity(*, check: bool) -> list[str]:
 
 BRAND_PARITY = (
     # (--relab-brand-* name, palette.json token, schemes-to-check). Text checks
-    # LIGHT only: dark text intentionally diverges (web #e9eff8 vs app #e2e6ee —
+    # LIGHT only: dark text intentionally diverges (web #e9eff8 vs app #e2e6ee,
     # documented in DESIGN.md).
     ("--relab-brand-primary", "primary", ("light", "dark")),
     ("--relab-brand-primary-strong", "primaryStrong", ("light", "dark")),

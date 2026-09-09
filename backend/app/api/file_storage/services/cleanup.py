@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _path_as_str(path: AnyIOPath) -> str:
-    """Typed sort key for AnyIOPath — ``str`` itself is overloaded and confuses the checker."""
+    """Typed sort key for AnyIOPath; ``str`` itself is overloaded and confuses the checker."""
     return str(path)
 
 

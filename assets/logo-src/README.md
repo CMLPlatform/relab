@@ -1,4 +1,4 @@
-# r9lab logo — source & generators
+# r9lab logo: source & generators
 
 The mark is a **font-derived 9, vertically squished** so it reads as a loop and as a mirrored "e"
 (the wordmark reads "Relab"). The R/l/a/b letters come from IBM Plex. Output SVGs are
@@ -37,10 +37,10 @@ Each `candidates/<name>/` holds light + `-dark` SVGs for five variants:
 
 | File            | What                                                |
 | --------------- | --------------------------------------------------- |
-| `mark.svg`      | the squished 9 alone — favicons, app icons          |
+| `mark.svg`      | the squished 9 alone: favicons, app icons          |
 | `mark-ring.svg` | the 9 in a plain ring (loop emblem)                 |
 | `wordmark.svg`  | pure-text `R9lab` lockup                            |
-| `logo.svg`      | ringed wordmark — `(R9) lab`, the primary wide logo |
+| `logo.svg`      | ringed wordmark: `(R9) lab`, the primary wide logo |
 | `og.svg`        | 1200×630 social card (wordmark + tagline)           |
 
 Promoting only copies SVGs. `scripts/sync_brand_assets.py` (run by `just assets-sync`) renders every

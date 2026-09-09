@@ -22,7 +22,7 @@ export function OverlaySurface({
   // overlay tokens, so their color has to stay inline.
   return (
     <View
-      // Floating chrome (tooltips, toasts, dialog surfaces) — overlay radius.
+      // Floating chrome (tooltips, toasts, dialog surfaces): overlay radius.
       className={cn('rounded-xl', tone === 'surface' && 'bg-background', className)}
       style={[tone !== 'surface' && { backgroundColor: theme.tokens.overlay[tone] }, style]}
     >

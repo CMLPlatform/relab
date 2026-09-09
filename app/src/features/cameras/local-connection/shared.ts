@@ -12,7 +12,7 @@ import { isPrivateLocalHost } from '@/utils/urlSafety';
 import { normalizeLocalConnectionUrl } from './reducer';
 
 // Web has no platform-secure storage; keep the API key in memory so XSS can't
-// exfiltrate it from localStorage. Lost on reload — user re-enters per session.
+// exfiltrate it from localStorage. Lost on reload; user re-enters per session.
 const webApiKeys = new Map<string, string>();
 
 export const USB_GADGET_DEFAULT = 'http://192.168.7.1:8018';

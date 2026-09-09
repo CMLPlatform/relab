@@ -23,7 +23,7 @@ const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 const PROFILE_URL_PATTERN = /account/;
 const EMAIL_UPDATES_STATUS_PATTERN = /Currently (enabled|disabled)\./;
 // Matches AccountSections.tsx's ProfileLinkedAccountsSection titles exactly
-// (lowercase "account" in the not-yet-linked case — see its own unit test).
+// (lowercase "account" in the not-yet-linked case; see its own unit test).
 const GOOGLE_LINK_PATTERN = /^(Link Google account|Unlink Google)$/;
 const GITHUB_LINK_PATTERN = /^(Link GitHub account|Unlink GitHub)$/;
 const PRODUCTS_URL_PATTERN = /products/;
@@ -60,7 +60,7 @@ test.describe('Profile: content', () => {
   }, async ({ page }) => {
     await loginAndGoToProfile(page);
     await expect(page.getByText(EMAIL)).toBeVisible();
-    // exact: true — "Active" as a substring also matches "End all active sessions…".
+    // exact: true; "Active" as a substring also matches "End all active sessions…".
     await expect(page.getByText('Active', { exact: true })).toBeVisible();
     // The e2e superuser is created with is_verified=True
     await expect(page.getByText('Verified')).toBeVisible();
@@ -70,8 +70,8 @@ test.describe('Profile: content', () => {
 
   test('shows all expected profile sections', async ({ page }) => {
     await loginAndGoToProfile(page);
-    // Section headers are the four ACCOUNT_SECTIONS titles (accountSections.tsx)
-    // — the account screen's grouped-section restructure retired the old
+    // Section headers are the four ACCOUNT_SECTIONS titles (accountSections.tsx):
+    // the account screen's grouped-section restructure retired the old
     // standalone "Account"/"Email updates"/"Linked accounts" headings, and the
     // stats row folded into the hero header rather than its own "Profile"
     // section. Each title doubles as the section-nav chip/outline label, so

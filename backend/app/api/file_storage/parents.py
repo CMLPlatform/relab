@@ -3,7 +3,7 @@
 Media rows carry ``(parent_type, parent_id)`` with no FK, so file_storage needs
 the owning model to resolve or validate a parent. Owning contexts register
 themselves at model-import time (bottom of their models module) rather than
-file_storage importing them — that keeps the dependency pointing one way.
+file_storage importing them; that keeps the dependency pointing one way.
 ``app.core.model_registry.load_models`` guarantees those modules are imported.
 """
 

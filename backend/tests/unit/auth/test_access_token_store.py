@@ -82,7 +82,7 @@ async def test_tokens_written_before_this_change_still_authenticate(redis_client
     """A token stored in the pre-existing bare-user-id format is still honoured.
 
     Refusing them would sign every active user out the moment this deploys. They carry no
-    issue time, so a revocation cannot reach them — they age out within one access-token
+    issue time, so a revocation cannot reach them; they age out within one access-token
     lifetime, which closes the gap shortly after rollout.
     """
     user_id = uuid.uuid4()

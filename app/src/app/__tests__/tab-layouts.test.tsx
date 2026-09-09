@@ -8,7 +8,7 @@ import ProductsTabLayout from '@/app/(tabs)/(products)/_layout';
 import { tabRouteName } from '@/components/base/useBottomNav';
 
 // Populated by the Tabs.Screen mock below with every screen `name` it saw, in
-// declaration order — the order fixes tab order (and therefore the initial tab).
+// declaration order: the order fixes tab order (and therefore the initial tab).
 const mockTabScreenNames: string[] = [];
 
 jest.mock('expo-router/js-tabs', () => {
@@ -115,7 +115,7 @@ describe('tab stack layouts', () => {
   });
 
   // The cameras back arrow targets its own stack, so a replace stays inside
-  // the tab — no other trail is touched.
+  // the tab; no other trail is touched.
   it('keeps the cameras back arrow a same-stack replace', async () => {
     await render(<CamerasTabLayout />);
     const headerLeft = mockScreenOptions['cameras/add']?.headerLeft as (props: object) => {
@@ -128,7 +128,7 @@ describe('tab stack layouts', () => {
   });
 
   // Each Tabs.Screen name is a group segment, and BottomNav resolves the
-  // active tab by comparing `tabRouteName(key)` against the current route —
+  // active tab by comparing `tabRouteName(key)` against the current route:
   // a typo here would silently break tab-active-state matching.
   it('names each tab group after tabRouteName(key)', async () => {
     await render(<TabsLayout />);

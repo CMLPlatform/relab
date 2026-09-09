@@ -1,6 +1,6 @@
 """Router contract tests for the system-wide stats endpoints.
 
-Query functions are mocked — this tests HTTP shape, status codes, and
+Query functions are mocked; this tests HTTP shape, status codes, and
 parameter handling, not the SQL queries themselves.
 """
 
@@ -33,12 +33,12 @@ _FAKE_SERIES = [
 @pytest.fixture
 async def client() -> AsyncGenerator[httpx.AsyncClient]:
     """Minimal FastAPI app with only the stats router, cache backed by in-memory."""
-    # NOTE: init_cache(None) uses mem:// — no Redis needed, no network.
+    # NOTE: init_cache(None) uses mem://, no Redis needed, no network.
     # Reset state so init_cache runs fresh each time (idempotent guard otherwise skips it).
     _cache_state["initialized"] = False
     init_cache(None)
     app = FastAPI()
-    # Override the DB session dep — queries are mocked so the session is never used
+    # Override the DB session dep; queries are mocked so the session is never used
     app.dependency_overrides[get_async_session] = lambda: None
     app.include_router(router, prefix="/v1")
     async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as client:

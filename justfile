@@ -10,6 +10,11 @@ dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compos
 ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
 cloudflare_dir := "infra/cloudflare"
 cloudflare_zone_dir := "infra/cloudflare-zone"
+# Where an apply's reviewed plan waits for its confirming re-run. Gitignored, created
+# private, and emptied by the apply; the age cap bounds how long an unapplied plan can sit
+# there and how far the zone can drift from the diff a person actually read.
+cloudflare_plan_dir := ".tofu-plans"
+cloudflare_plan_max_age_minutes := "20"
 
 # Subrepos that mirror the root quality / test / audit / clean recipes.
 subrepos := "backend docs www app"
@@ -293,14 +298,34 @@ cloudflare-plan env:
     tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}"
 
 # Apply Cloudflare edge changes for one environment (prod or staging)
+#
+# A bare `just cloudflare-apply <env>` plans, prints the diff, saves the plan and stops
+# with the YES command to re-run. That second run applies the saved file itself, so what
+# lands is the diff a person read, not a fresh decision taken minutes later. A missing or
+# aged-out plan fails there rather than being replaced by an unreviewed one, and
+# `tofu apply <planfile>` refuses a plan whose state has moved on since.
+#
+# FORCE=1 is the scripted path: no one reads a diff, so it plans and applies in one run.
+#
+# The plan file holds the tunnel secret. `plan { enforced = true }` in versions.tf
+# encrypts it, `*.tfplan` is gitignored, the directory is created private, and the apply
+# removes the file whether or not it succeeded.
 [group('cloudflare')]
+[doc('Apply Cloudflare edge changes for one environment (prod or staging)')]
 cloudflare-apply env confirm='':
-    @just _require-cloudflare-env {{ quote(env) }}
-    @just _require-cloudflare-vars
-    @just _require-confirm "apply Cloudflare edge changes for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _require-cloudflare-env {{ quote(env) }}
+    just _require-cloudflare-vars
+    plan="{{ cloudflare_plan_dir }}/cloudflare-{{ env }}.tfplan"
     tofu -chdir={{ cloudflare_dir }} init
     tofu -chdir={{ cloudflare_dir }} workspace select {{ quote(env) }} || tofu -chdir={{ cloudflare_dir }} workspace new {{ quote(env) }}
-    tofu -chdir={{ cloudflare_dir }} apply -auto-approve -input=false -var="environment={{ env }}"
+    if [ {{ quote(confirm) }} != "YES" ]; then
+        mkdir -p {{ cloudflare_plan_dir }} && chmod 700 {{ cloudflare_plan_dir }}
+        tofu -chdir={{ cloudflare_dir }} plan -input=false -var="environment={{ env }}" -out="$plan"
+        just _require-confirm "apply the plan printed above for {{ env }}" "just cloudflare-apply {{ env }} YES" "FORCE=1 just cloudflare-apply {{ env }}" {{ quote(confirm) }}
+    fi
+    just _cloudflare-apply-saved-plan {{ cloudflare_dir }} "$plan"
 
 # Plan the zone-global Cloudflare configuration (TLS settings + the three entrypoint
 # rulesets). One root owns the whole zone, shared by prod and staging.
@@ -308,18 +333,51 @@ cloudflare-apply env confirm='':
 [doc('Plan the zone-global Cloudflare configuration (affects prod AND staging)')]
 cloudflare-zone-plan:
     @just _require-cloudflare-vars
-    @just _require-telemetry-edge-key
+    @just _require-zone-edge-keys
     tofu -chdir={{ cloudflare_zone_dir }} init
     tofu -chdir={{ cloudflare_zone_dir }} plan -input=false
 
 # Apply the zone-global Cloudflare configuration. This affects BOTH environments.
+# Plans first and gates on the printed diff; see `cloudflare-apply` above.
 [group('cloudflare')]
+[doc('Apply the zone-global Cloudflare configuration. This affects BOTH environments.')]
 cloudflare-zone-apply confirm='':
-    @just _require-cloudflare-vars
-    @just _require-telemetry-edge-key
-    @just _require-confirm "apply zone-global Cloudflare changes (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _require-cloudflare-vars
+    just _require-zone-edge-keys
+    plan="{{ cloudflare_plan_dir }}/cloudflare-zone.tfplan"
     tofu -chdir={{ cloudflare_zone_dir }} init
-    tofu -chdir={{ cloudflare_zone_dir }} apply -auto-approve -input=false
+    if [ {{ quote(confirm) }} != "YES" ]; then
+        mkdir -p {{ cloudflare_plan_dir }} && chmod 700 {{ cloudflare_plan_dir }}
+        tofu -chdir={{ cloudflare_zone_dir }} plan -input=false -out="$plan"
+        just _require-confirm "apply the zone-global plan printed above (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+    fi
+    just _cloudflare-apply-saved-plan {{ cloudflare_zone_dir }} "$plan"
+
+# Internal helper: apply the plan a person reviewed, never a freshly computed one.
+#
+# The artifact binds the review to the apply, so a missing file (no bare run first) or one
+# older than the review window is an error, not a cue to plan again. `tofu apply` adds the
+# other half: it refuses a plan whose state has changed since it was made. The file holds
+# the tunnel secret, so it goes whatever the outcome.
+_cloudflare-apply-saved-plan dir plan:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    plan={{ quote(plan) }}
+    if [ ! -f "$plan" ]; then
+        echo "No saved plan at $plan." >&2
+        echo "Run the same recipe without YES first: it plans, prints the diff and saves it." >&2
+        exit 1
+    fi
+    if [ -n "$(find "$plan" -mmin +{{ cloudflare_plan_max_age_minutes }} -print -quit)" ]; then
+        rm -f "$plan"
+        echo "The saved plan at $plan was older than {{ cloudflare_plan_max_age_minutes }} minutes and has been discarded." >&2
+        echo "Re-run without YES to plan again and review the current diff." >&2
+        exit 1
+    fi
+    trap 'rm -f "$plan"' EXIT
+    tofu -chdir={{ dir }} apply -input=false "$plan"
 
 _require-cloudflare-env env:
     #!/usr/bin/env bash
@@ -330,21 +388,30 @@ _require-cloudflare-env env:
       *) echo "env must be 'prod' or 'staging'"; exit 1 ;;
     esac
 
-# The telemetry skip rule is `var.telemetry_edge_key == "" ? [] : [...]`. An unset key
-# does not fail the apply: it drops the rule. The next plan then reports "No changes",
-# because config and state agree that there is no rule. OTLP exports are bot-challenged
-# at the edge while the token looks correct on both sides. Only the zone root reads
-# this variable.
-_require-telemetry-edge-key:
+# Both keys gate a rule with `var.<key> == "" ? [] : [...]`. An unset key does not fail
+# the apply: it drops the rule, and the next plan then reports "No changes", because
+# config and state agree that there is no rule. The symptom is challenged traffic while
+# the credential looks correct on both sides. Only the zone root reads these variables.
+_require-zone-edge-keys:
     #!/usr/bin/env bash
     set -euo pipefail
+    fail=0
     if [ -z "${TF_VAR_telemetry_edge_key:-}" ]; then
         echo "Missing TF_VAR_telemetry_edge_key." >&2
         echo "Without it the telemetry ingress skip rule is omitted and every OTLP" >&2
         echo "export is bot-challenged at the edge. Export the same value as" >&2
         echo "TELEMETRY_EDGE_KEY in the deploy hosts' root .env." >&2
-        exit 1
+        fail=1
     fi
+    if [ -z "${TF_VAR_e2e_edge_key:-}" ]; then
+        echo "Missing TF_VAR_e2e_edge_key." >&2
+        echo "Without it the keyed staging branch of the public-reads rule is omitted" >&2
+        echo "and every Playwright run against the staging hosts is challenged by Super" >&2
+        echo "Bot Fight Mode. Export the same value as E2E_EDGE_KEY in the e2e/CI" >&2
+        echo "environment." >&2
+        fail=1
+    fi
+    exit "$fail"
 
 _require-cloudflare-vars:
     #!/usr/bin/env bash
@@ -455,12 +522,12 @@ dev-stale:
     [ "$found" -eq 1 ] || { echo "No dev containers running."; exit 0; }
     if [ "$stale" -eq 1 ]; then
       printf '\nThose containers serve code older than your working tree.\n'
-      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just _dev-build'"
+      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just dev-build'"
       exit 1
     fi
 
 # Build (or rebuild) dev images
-_dev-build:
+dev-build:
     {{ dev_compose }} --profile migrations build
 
 # Stop and remove dev containers

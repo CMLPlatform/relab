@@ -10,7 +10,7 @@ import type { Product } from '@/types/Product';
 let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 
 jest.mock('react-native', () => {
-  // Mutate in place rather than spreading the module namespace — spreading
+  // Mutate in place rather than spreading the module namespace: spreading
   // forces eager evaluation of unrelated lazy native-module getters that throw
   // outside the real native runtime (same reason as AppButton.test.tsx).
   const actual = jest.requireActual<typeof import('react-native')>('react-native');

@@ -130,7 +130,7 @@ async def test_sorting_by_joined_column_does_not_error(
     added there explicitly.
 
     Materials' `category_name` is filterable but not sortable (it's a many-to-many
-    relationship — see test_material_category_name_sort_is_rejected below), so it's
+    relationship; see test_material_category_name_sort_is_rejected below), so it's
     excluded here.
     """
     await MaterialFactory.create_async(session=db_session, name="JoinedSortMaterial")
@@ -171,7 +171,7 @@ async def test_material_category_name_sort_is_rejected(api_client_light: AsyncCl
     """category_name is a many-to-many field; it must stay out of sortable_fields.
 
     Sorting on it via the add-columns+DISTINCT mechanism would duplicate rows across
-    pages (once per category), breaking pagination — so the API must reject it rather
+    pages (once per category), breaking pagination, so the API must reject it rather
     than silently mis-paginate.
     """
     response = await api_client_light.get("/v1/materials?order_by=category_name")

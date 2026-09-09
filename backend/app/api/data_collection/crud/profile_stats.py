@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 async def compute_profile_stats(session: AsyncSession, user_id: UUID4) -> ProfileStatsData:
     """Compute a user's profile stats from source tables. Read-only: writes nothing.
 
-    Safe to call on a read path (or a read replica) — the caller decides whether to
+    Safe to call on a read path (or a read replica); the caller decides whether to
     persist the result.
     """
     stmt = select(

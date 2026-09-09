@@ -54,7 +54,7 @@ Compose profiles enable the backup services. `OTEL_EXPORTER_OTLP_ENDPOINT` enabl
 - Docker Compose is the runtime for staging and production.
 - `compose.yaml` is the shared base topology.
 - `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
-- Prod and staging share `compose.deploy.yaml`; the `prod-*` and `staging-*` recipes select which. The root `.env` supplies everything host-local: the public origins, the tunnel token, OAuth client IDs, email sender metadata, the initial superuser identity, telemetry endpoints, and backup paths. One host serves one environment; the deploy recipes refuse a mismatch. Manual shell helpers read exported environment variables, not `.env`.
+- Prod and staging share `compose.deploy.yaml`; the `just stack <env>` argument selects which. The root `.env` supplies everything host-local: the public origins, the tunnel token, OAuth client IDs, email sender metadata, the initial superuser identity, telemetry endpoints, and backup paths. One host serves one environment; the deploy recipes refuse a mismatch. Manual shell helpers read exported environment variables, not `.env`.
 - GitHub Actions validate changes, run security checks, and maintain release automation. Deploys run from the server checkout.
 - Cloudflare DNS and Tunnel hostnames live in `infra/cloudflare/`. OpenTofu owns only the public edge; Compose owns the runtime services.
 

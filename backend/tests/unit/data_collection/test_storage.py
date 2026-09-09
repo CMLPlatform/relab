@@ -18,8 +18,8 @@ async def test_cleanup_product_media_storage_survives_storage_backend_error(
 ) -> None:
     """A translated S3/backend failure (not a plain OSError) must not raise past cleanup.
 
-    ``StorageBackendError`` subclasses ``OSError`` precisely so this best-effort cleanup —
-    written against the filesystem backend, where a real unlink failure is an ``OSError`` —
+    ``StorageBackendError`` subclasses ``OSError`` precisely so this best-effort cleanup
+    (written against the filesystem backend, where a real unlink failure is an ``OSError``)
     also tolerates a botocore-shaped backend failure translated by ``S3Storage.delete``,
     rather than turning post-commit cleanup into a request-failing 500.
     """

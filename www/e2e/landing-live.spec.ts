@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // This lane exists for what the committed fixture structurally cannot cover: a
 // build that fetched a real record. The fixture ships one URL per photograph,
-// so it can never produce a `srcset` — the responsive path is only exercised
+// so it can never produce a `srcset`; the responsive path is only exercised
 // against an API that serves the width-keyed `thumbnail_urls` map.
 //
 // Run it via `just test-e2e-live` with the compose.e2e.yaml stack up. Outside
@@ -11,7 +11,7 @@ import { expect, test } from '@playwright/test';
 const LIVE_LANE = Boolean(process.env.WWW_E2E_LIVE?.trim());
 const LIVE_PROVENANCE_PATTERN = /^Teardown №\d+ · live record$/;
 // Widths the API pre-computes (THUMBNAIL_WIDTHS), minus any at or above the
-// original's — the seeded photographs are wide enough to clear 800.
+// original's; the seeded photographs are wide enough to clear 800.
 const EXPECTED_CANDIDATE_WIDTHS = ['200w', '800w'];
 
 /** The URL of the widest candidate in a `srcset`, which is the one a 2x plate takes. */

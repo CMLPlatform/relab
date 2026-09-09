@@ -11,7 +11,7 @@
 
 /* NOTE: the vendored RNR/shadcn primitives use `accent` as their NEUTRAL
  * hover/pressed state-layer, but the brand `--accent` is manila, which
- * assets/DESIGN.md reserves for text — never a fill or an interaction state.
+ * assets/DESIGN.md reserves for text, never a fill or an interaction state.
  * The palette now emits a neutral `--state` pair for that role; map the class
  * names the primitives use onto it. Values come from the generator only. */
 @theme inline {
@@ -24,7 +24,7 @@
 /* Painted-Focus Rule (DESIGN.md): one indicator for every keyboard-focusable
  * control, including raw Pressables that carry a function `style` and so
  * cannot take WEB_FOCUS_RING as a class. Same outline the utility paints;
- * the attribute selectors outrank a utility's `outline-none`. Web only —
+ * the attribute selectors outrank a utility's `outline-none`. Web only;
  * Uniwind ignores non-class selectors on native. */
 [role="button"]:focus-visible,
 [role="link"]:focus-visible,

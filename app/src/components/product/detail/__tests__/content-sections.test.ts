@@ -107,8 +107,8 @@ describe('components section tooltip', () => {
   it('says nothing in view mode', () => {
     // The "Add component" button is present and working in view mode, so the
     // hint contradicted the UI. Its accessible name also contained the
-    // button's, which made anything searching for "Add component" — a screen
-    // reader or a test — land on the tooltip instead.
+    // button's, which made anything searching for "Add component" (a screen
+    // reader or a test) land on the tooltip instead.
     expect(components.tooltip?.(bareProduct, false)).toBeUndefined();
   });
 });

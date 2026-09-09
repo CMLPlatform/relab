@@ -64,7 +64,7 @@ function fabButton() {
   return screen.getByRole('button');
 }
 
-// Detail screens live inside a tab now, so BottomNav renders over them too —
+// Detail screens live inside a tab now, so BottomNav renders over them too;
 // and on web it is viewport-fixed, escaping the container these controls are
 // laid out in. Both docked controls have to lift themselves clear of it.
 describe.each([
@@ -102,8 +102,8 @@ describe.each([
   });
 });
 
-// The FAB only ever renders below md in view mode — `isMd || editMode` sends every
-// edit-mode render to SaveBar — so it has no save or validation state of its own.
+// The FAB only ever renders below md in view mode: `isMd || editMode` sends every
+// edit-mode render to SaveBar, so it has no save or validation state of its own.
 // It used to carry a whole blocked-save tooltip that no render could reach.
 describe('ProductFabControls — view-mode FAB', () => {
   it('labels and announces the FAB by entity role', async () => {

@@ -8,7 +8,7 @@ import { Platform } from 'react-native';
  * Its built-in listener is browser-only (window online/offline), so without this
  * a native build stays online forever: save mutations never pause and the
  * queued-offline UI (OfflineBanner, QUEUED_OFFLINE_LABEL, isPaused) is dead code.
- * Only an explicit `false` counts as offline — unknown (null) reachability fails
+ * Only an explicit `false` counts as offline; unknown (null) reachability fails
  * open, so a probe that cannot answer never blocks a save. Called once from the
  * app root; on web it is a no-op and TanStack keeps its own listener.
  */

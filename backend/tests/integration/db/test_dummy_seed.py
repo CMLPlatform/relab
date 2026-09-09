@@ -82,7 +82,7 @@ async def test_seeding_builds_a_photographed_component_tree_with_responsive_deri
 
     # Seed images must be wide enough to generate a choice of derivatives.
     # ``generate_thumbnails`` skips any width at or above the original's, so an
-    # 800px seed photograph would yield the 200px derivative alone — a one-entry
+    # 800px seed photograph would yield the 200px derivative alone, a one-entry
     # map, which www renders without a ``srcset`` at all. That would leave the
     # responsive path untested precisely where it is meant to be exercised.
     image = (

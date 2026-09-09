@@ -53,7 +53,7 @@ describe('cubeLayout', () => {
   });
 
   it('floors a wafer-thin axis so its face stays visible', () => {
-    // 0.4 of 40 is 1% — below the floor, so height is drawn at MIN_RATIO.
+    // 0.4 of 40 is 1%, below the floor, so height is drawn at MIN_RATIO.
     const { w, h } = cubeLayout(40, 0.4, 30);
     expect(h / w).toBeCloseTo(0.06);
   });

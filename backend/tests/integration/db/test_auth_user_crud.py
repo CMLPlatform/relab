@@ -141,7 +141,7 @@ async def test_clear_totp_wipes_mfa_enrolment_on_a_real_row(db_session: AsyncSes
     """clear_totp must persist the reset, not just mutate the in-memory instance.
 
     Every call site (admin reset, self-service disable) mocks this function out in its own
-    tests, so its actual body — the commit that makes the reset stick — is otherwise never
+    tests, so its actual body (the commit that makes the reset stick) is otherwise never
     exercised against a real row.
     """
     user = await UserFactory.create_async(

@@ -31,8 +31,8 @@ const base = {
   },
 };
 
-// Coverage and maxWorkers are global (root-only) concerns in multi-project mode —
-// Jest ignores these keys if set per project — so they live here, not in `base`.
+// Coverage and maxWorkers are global (root-only) concerns in multi-project mode
+// (Jest ignores these keys if set per project), so they live here, not in `base`.
 // Run a single lane with `jest --selectProjects unit` (or integration).
 module.exports = {
   rootDir: __dirname,
@@ -45,7 +45,7 @@ module.exports = {
     ? ['default', ['jest-junit', { outputDirectory: '<rootDir>', outputName: 'junit.xml' }]]
     : ['default'],
   // Not 'v8': its byte-range coverage does not merge across the two projects
-  // below — a file the integration lane merely imports overwrites the unit
+  // below: a file the integration lane merely imports overwrites the unit
   // lane's real numbers with near-zero (local-connection/shared.ts read 67%
   // merged against 97% in the lane that actually tests it). Istanbul counters
   // union correctly, and instrumenting is cheaper than remapping v8 ranges.
@@ -65,7 +65,7 @@ module.exports = {
     // native file), so it can only ever read as 0%.
     '!src/services/cpv.web.ts',
     '!src/components/base/SVGCube.tsx',
-    // Vendored react-native-reusables primitives — upstream's components, wrapped
+    // Vendored react-native-reusables primitives, upstream's components, wrapped
     // by our own in src/components/base/, which is where our behaviour is tested.
     '!src/components/base/ui/**',
     '!src/components/product/ProductCardSkeleton.tsx',

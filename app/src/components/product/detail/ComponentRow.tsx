@@ -40,7 +40,7 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
   });
   const children = component.components ?? query.data?.components;
   const childCount = children?.length ?? 0;
-  // A fetch we triggered resolved to zero children — distinct from a payload
+  // A fetch we triggered resolved to zero children, distinct from a payload
   // that already told us the count was zero (which never shows a chevron).
   const fetchedEmpty = wasUnknown && query.isSuccess && childCount === 0;
   // Chevron when children exist, are not loaded yet, or the row is

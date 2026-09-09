@@ -30,10 +30,16 @@ if TYPE_CHECKING:
 logger: logging.Logger = logging.getLogger(__name__)
 
 # Three attempts over ~1.5s of sleeping: enough to ride out a refused connection or a
-# greylisted first try, short enough that a detached task is unlikely to be killed
-# mid-backoff by a deploy. Failures past that need the user to restart the flow.
+# greylisted first try. Failures past that need the user to restart the flow.
 _SEND_ATTEMPTS = 3
 _SEND_BACKOFF_SECONDS = 0.5
+# Hard ceiling on one queued send, retries and provider timeouts included. The attempts
+# alone do not bound it: an SMTP timeout is configurable and the Graph provider makes two
+# HTTP calls per attempt, so three attempts can outlast any shutdown grace period. This
+# has to stay below `stop_grace_period` on the api service (compose.yaml); past that a
+# deploy kills the worker mid-send and the notification is lost with neither a "sent" nor
+# a "failed" line to account for it.
+_SEND_WINDOW_SECONDS = 45
 email_settings = auth_settings.email
 
 
@@ -42,7 +48,7 @@ def get_default_email_provider() -> EmailProvider:
     """Build the configured email provider on first use.
 
     Deferred so that importing the app in non-serving contexts (migrations,
-    seeding, CLIs) does not require valid email config it never uses — building
+    seeding, CLIs) does not require valid email config it never uses; building
     the provider validates the sender address.
     """
     return build_email_provider(settings=auth_settings)
@@ -59,15 +65,28 @@ def email_log_token(email: EmailStr) -> str:
     """Return the opaque label an address is logged under.
 
     Not a mask: `j***@gmail.com` still carries the domain, and with a timestamp and the
-    surrounding fields that can re-identify one person in a small research population —
+    surrounding fields that can re-identify one person in a small research population;
     which is why the masked form needed a CodeQL suppression at every call site. A keyed
     digest keeps the only property operations actually needs, that two lines about the
     same address match, and carries no address.
 
-    Diagnosing a provider-wide failure still works: the send path logs the provider's own
-    exception, whose SMTP response names the host that refused.
+    Diagnosing a provider-wide failure still works: the send path logs the failure's class
+    and SMTP response code, which separate an outage from a refusal without naming anyone.
     """
     return f"eml_{keyed_digest('email:log', str(email), length=LOG_TOKEN_LENGTH)}"
+
+
+def _send_failure_detail(exc: BaseException) -> str:
+    """Describe a send failure without repeating what the exception carries.
+
+    Provider exceptions name the address they were refused for: aiosmtplib puts it in
+    `SMTPRecipientRefused.args` and the whole refused list in `SMTPRecipientsRefused.args`,
+    so the exception text and its traceback would print the address that the surrounding
+    lines deliberately log only as an opaque token. The class and, where the provider gave
+    one, the SMTP response code are what diagnosis actually needs.
+    """
+    code = getattr(exc, "code", None)
+    return f"{type(exc).__name__}({code})" if isinstance(code, int) else type(exc).__name__
 
 
 def _display_name(username: str | None, to_email: EmailStr) -> str:
@@ -94,40 +113,53 @@ async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_labe
     a verification or reset link it will not receive either way; a logged failure is what
     makes that visible.
 
-    Most send failures are transient — a refused connection, a greylisted first attempt,
-    an SMTP timeout — and the user cannot retry a verification mail themselves without
-    starting the flow again. The backoff is short on purpose: this is a detached task
-    holding no request and no DB session, but a long sleep would still outlive a deploy
-    and be lost, so it retries within the window a restart is unlikely to interrupt.
+    Most send failures are transient (a refused connection, a greylisted first attempt,
+    an SMTP timeout), and the user cannot retry a verification mail themselves without
+    starting the flow again. The retries are bounded by ``_SEND_WINDOW_SECONDS`` rather
+    than by the attempt count alone: this task holds no request and no DB session, but a
+    send still in flight when the container stops is killed with it, so the window is
+    kept below the shutdown grace period and a send that overruns it is logged as given
+    up rather than disappearing.
     """
     # `log_label` embeds the template filename, and CodeQL reads constants named like
     # ACCOUNT_RECOVERY_TEMPLATE as credentials. The recipient beside it is a keyed token,
     # not an address, so what these lines actually print is a filename and a digest.
-    for attempt in range(1, _SEND_ATTEMPTS + 1):
-        try:
-            await provider.send(message)
-        except Exception:
-            if attempt == _SEND_ATTEMPTS:
-                logger.exception(
-                    "%s failed for %s after %d attempts",
+    with anyio.move_on_after(_SEND_WINDOW_SECONDS) as window:
+        for attempt in range(1, _SEND_ATTEMPTS + 1):
+            try:
+                await provider.send(message)
+            except Exception as exc:  # noqa: BLE001 - every provider failure is retried then logged, never raised
+                detail = _send_failure_detail(exc)
+                if attempt == _SEND_ATTEMPTS:
+                    logger.error(  # noqa: TRY400 - the traceback would carry the refused address
+                        "%s failed for %s after %d attempts: %s",
+                        log_label,  # lgtm[py/clear-text-logging-sensitive-data]
+                        recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+                        attempt,
+                        detail,
+                    )
+                    return
+                delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
+                logger.warning(
+                    "%s attempt %d failed for %s (%s), retrying in %.1fs",
                     log_label,  # lgtm[py/clear-text-logging-sensitive-data]
-                    recipient,  # lgtm[py/clear-text-logging-sensitive-data]
                     attempt,
+                    recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+                    detail,
+                    delay,
                 )
+                await anyio.sleep(delay)
+            else:
+                logger.info("%s sent to %s", log_label, recipient)  # lgtm[py/clear-text-logging-sensitive-data]
                 return
-            delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
-            logger.warning(
-                "%s attempt %d failed for %s, retrying in %.1fs",
-                log_label,  # lgtm[py/clear-text-logging-sensitive-data]
-                attempt,
-                recipient,  # lgtm[py/clear-text-logging-sensitive-data]
-                delay,
-                exc_info=True,
-            )
-            await anyio.sleep(delay)
-        else:
-            logger.info("%s sent to %s", log_label, recipient)  # lgtm[py/clear-text-logging-sensitive-data]
-            return
+
+    if window.cancelled_caught:
+        logger.error(
+            "%s gave up for %s after %ds",
+            log_label,  # lgtm[py/clear-text-logging-sensitive-data]
+            recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+            _SEND_WINDOW_SECONDS,
+        )
 
 
 async def _dispatch(

@@ -3,7 +3,7 @@
 The relay serialises relay commands between Uvicorn workers via Redis lists.
 These tests exercise the serialization, deadline, timeout, and binary-payload
 contract without standing up a real Redis (a mock Redis is sufficient to
-validate the module's own logic — the Redis driver itself is not under test).
+validate the module's own logic; the Redis driver itself is not under test).
 """
 
 import asyncio
@@ -216,7 +216,7 @@ async def test_error_field_propagates() -> None:
 async def test_explicit_4xx_status_raises_rejected_error() -> None:
     """An ``error`` response with an explicit 4xx status must raise ``RelayCommandRejectedError``.
 
-    Not a generic ``RuntimeError`` — so the requesting side can surface the real
+    Not a generic ``RuntimeError``, so the requesting side can surface the real
     status instead of a blanket 503.
     """
     redis = _mock_redis()
@@ -459,7 +459,7 @@ async def test_dispatches_valid_command() -> None:
 async def test_redis_error_backs_off_and_keeps_listening(monkeypatch: pytest.MonkeyPatch) -> None:
     """A transient Redis failure during BLPOP must not kill the listener task.
 
-    It should log, back off briefly, and keep polling — the next command that
+    It should log, back off briefly, and keep polling; the next command that
     arrives once Redis recovers must still be processed.
     """
     redis = _mock_redis()

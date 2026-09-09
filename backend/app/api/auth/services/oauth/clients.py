@@ -29,7 +29,7 @@ class _RelabGoogleOAuth2(GoogleOAuth2):
         Defense-in-depth: ``associate_by_email=True`` trusts this address to link
         existing accounts, so refuse an unverified primary rather than trust the
         provider blindly. Google only exposes owned addresses as primary today, so
-        this never rejects a real login — it just removes the standing assumption.
+        this never rejects a real login; it just removes the standing assumption.
         """
         try:
             profile = await self.get_profile(token)

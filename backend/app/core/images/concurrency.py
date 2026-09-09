@@ -19,3 +19,18 @@ def image_resize_limiter() -> anyio.CapacityLimiter:
     override is actually needed.
     """
     return anyio.CapacityLimiter(settings.image_resize_workers)
+
+
+@lru_cache(maxsize=1)
+def deferred_thumbnail_limiter() -> anyio.CapacityLimiter:
+    """Return the cap on the off-request thumbnail workers.
+
+    Separate from ``image_resize_limiter`` on purpose. anyio's limiter is FIFO, so a
+    shared one makes an upload's inline resize queue behind every deferred job already
+    waiting; the deferral would then add to the response time it exists to remove.
+
+    Sized at half the request-path cap, and never below one: deferred work is by
+    definition the work nothing is waiting for, so it yields thread-pool room to the
+    uploads arriving alongside it.
+    """
+    return anyio.CapacityLimiter(max(1, settings.image_resize_workers // 2))

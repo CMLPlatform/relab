@@ -237,7 +237,7 @@ describe('useProductQueries', () => {
     });
 
     // Regression: infinite scroll must APPEND the next page's items below the
-    // ones already on screen, never replace them — this is the load-bearing
+    // ones already on screen, never replace them; this is the load-bearing
     // behaviour the products catalogue's onEndReached/"Load more" wiring relies on.
     it('appends the next page below the first instead of replacing it', async () => {
       // total (30) must exceed the hardcoded page size (24) or getNextPageParam
@@ -394,6 +394,111 @@ describe('useProductQueries', () => {
     );
   });
 
+  // Regression: every save PATCHes the whole record, and blur-saves fire one per
+  // field, so two in flight at once let the slower one land last and overwrite
+  // the newer one's values. Only a mutation scope serializes them; a shared
+  // mutationKey does not.
+  it('useSaveProductMutation runs overlapping saves one at a time, in send order', async () => {
+    const started: string[] = [];
+    const finished: string[] = [];
+    const release: Array<() => void> = [];
+    mockedSaveProduct.mockImplementation((product: Product) => {
+      started.push(product.name);
+      return new Promise<number>((resolve) => {
+        release.push(() => {
+          finished.push(product.name);
+          resolve(123);
+        });
+      });
+    });
+
+    const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
+
+    let first: Promise<number> | undefined;
+    let second: Promise<number> | undefined;
+    await act(async () => {
+      const variables = { originalImages: [], originalVideos: [] };
+      first = result.current.mutateAsync({
+        ...variables,
+        product: { ...existingProduct, name: 'first' },
+      });
+      second = result.current.mutateAsync({
+        ...variables,
+        product: { ...existingProduct, name: 'second' },
+      });
+    });
+
+    // The second save waits its turn instead of racing the first.
+    expect(started).toEqual(['first']);
+
+    await act(async () => {
+      release[0]();
+      await first;
+    });
+    await waitFor(() => expect(started).toEqual(['first', 'second']));
+
+    await act(async () => {
+      release[1]();
+      await second;
+    });
+    // Send order is apply order, so the later (most complete) record wins.
+    expect(finished).toEqual(['first', 'second']);
+  });
+
+  // Regression: an upload answers as soon as its narrow thumbnail exists, so the
+  // refetch fired on success brought back that width alone and the full-screen
+  // viewer stretched a 200px derivative until something else refetched.
+  it('useSaveProductMutation re-asks for a product whose save uploaded an image', async () => {
+    mockedSaveProduct.mockResolvedValue(123);
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    // Capture the delayed re-ask rather than waiting it out.
+    const timers: Array<{ run: () => void; delay: number }> = [];
+    const setTimeoutSpy = jest.spyOn(globalThis, 'setTimeout').mockImplementation(((
+      callback: () => void,
+      delay?: number,
+    ) => {
+      timers.push({ run: callback, delay: delay ?? 0 });
+      return 0;
+    }) as unknown as typeof setTimeout);
+    // react-query keeps its own timers here; retry backoff below a second and
+    // garbage collection minutes out. The re-ask is the one in between.
+    const lateRefetches = () => timers.filter(({ delay }) => delay >= 1_000 && delay <= 60_000);
+
+    try {
+      const { result } = await renderHook(() => useSaveProductMutation(), { wrapper });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          product: { ...existingProduct, images: [{ id: 'new', url: 'u', description: '' }] },
+          originalImages: [],
+          originalVideos: [],
+        });
+      });
+
+      expect(lateRefetches()).toHaveLength(1);
+      invalidateSpy.mockClear();
+      await act(async () => {
+        lateRefetches()[0].run();
+      });
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['baseProduct', 123] }),
+      );
+
+      // A save that uploaded nothing must not pay for a second round trip.
+      timers.length = 0;
+      await act(async () => {
+        await result.current.mutateAsync({
+          product: existingProduct,
+          originalImages: [],
+          originalVideos: [],
+        });
+      });
+      expect(lateRefetches()).toHaveLength(0);
+    } finally {
+      setTimeoutSpy.mockRestore();
+    }
+  });
+
   it('useSaveProductMutation does not touch the cache when saving fails', async () => {
     // Every mutation here was happy-path only. A save that fails must leave the
     // cache alone, or the UI reports a change the server never accepted.
@@ -460,13 +565,13 @@ describe('useProductQueries', () => {
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
-    // 1 initial attempt + 3 retries — same total as the plain `retry: 3` option.
+    // 1 initial attempt + 3 retries, same total as the plain `retry: 3` option.
     expect(mockedSaveProduct).toHaveBeenCalledTimes(4);
   });
 
   // 409 is the idempotency store's in-flight marker: an earlier attempt under
   // this key is still committing. Giving up there strands the user on a Save
-  // that has to be pressed again — and a second press with the same key is
+  // that has to be pressed again, and a second press with the same key is
   // exactly what the retry does for free.
   it('retries a 409 in-flight conflict and succeeds on the replayed response', async () => {
     mockedSaveProduct
@@ -488,7 +593,7 @@ describe('useProductQueries', () => {
 
   it('retries a network-fail-then-succeed save with the same idempotencyKey on every attempt', async () => {
     // The key must come from the mutation variables, not be minted fresh
-    // inside the mutationFn on each retry — otherwise a retried create would
+    // inside the mutationFn on each retry; otherwise a retried create would
     // carry a different key per attempt and the server would see them as
     // unrelated requests instead of a replay.
     mockedSaveProduct

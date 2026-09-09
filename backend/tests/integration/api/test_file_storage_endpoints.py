@@ -199,7 +199,7 @@ async def test_backfill_repairs_and_stamps_only_the_unverified_rows(
     and a row left with only its inline narrow thumbnail by a restart is repaired.
     """
     buffer = BytesIO()
-    PILImage.new("RGB", (2000, 1000), color="green").save(buffer, format="PNG")
+    PILImage.new("RGB", (3200, 1600), color="green").save(buffer, format="PNG")
     response = await api_client_superuser.post(
         f"/v1/products/{setup_product_for_files.id}/images",
         files={"file": ("wide.png", buffer.getvalue(), "image/png")},
@@ -568,7 +568,7 @@ async def test_upload_rejected_at_quota_then_succeeds_after_release(
 ) -> None:
     """Hitting the per-user upload-count quota rejects the next upload with 413.
 
-    Deleting the counted media item must release the ledger so a further upload succeeds —
+    Deleting the counted media item must release the ledger so a further upload succeeds;
     this exercises reserve/release against the real ledger columns, not a mocked session.
     """
     monkeypatch.setattr(settings, "max_upload_files_per_lab_user", 1)

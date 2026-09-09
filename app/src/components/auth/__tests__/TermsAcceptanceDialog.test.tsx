@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
-// biome-ignore lint/performance/noNamespaceImport: the namespace object is the thing under test control — setWebsiteUrl redefines a property on it.
+// biome-ignore lint/performance/noNamespaceImport: the namespace object is the thing under test control: setWebsiteUrl redefines a property on it.
 import * as config from '@/config';
 import { useTermsPromptDismissed } from '@/features/auth/useTermsAcceptance';
 import { mockUser } from '@/test-utils/api-mocks';

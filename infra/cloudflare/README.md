@@ -61,7 +61,8 @@ tofu state rm 'cloudflare_ruleset.rate_limiting[0]' \
 
 ./generate-imports.sh zone > ../cloudflare-zone/imports.tf
 just cloudflare-zone-plan            # 0 to add; the TLS floor may show 1.0 -> 1.2
-just cloudflare-zone-apply YES
+just cloudflare-zone-apply           # plans, prints the diff, saves it, stops
+just cloudflare-zone-apply YES       # applies that saved plan
 rm ../cloudflare-zone/imports.tf
 ```
 
@@ -96,9 +97,11 @@ Run from the repository root:
 just cloudflare-check              # both roots; no credentials, no network, no state
 
 just cloudflare-plan staging       # per-environment root
-just cloudflare-apply staging YES
+just cloudflare-apply staging      # plans, prints the diff, saves it, stops
+just cloudflare-apply staging YES  # applies that saved plan
 
 just cloudflare-zone-plan          # zone-global root — affects BOTH environments
+just cloudflare-zone-apply
 just cloudflare-zone-apply YES
 ```
 
@@ -109,7 +112,13 @@ catch-all. The zone tests assert that every ruleset rule matches both environmen
 that the cache rules stay disjoint.
 
 `cloudflare-check` is local apart from provider downloads. `plan` and `apply` require Cloudflare
-credentials and IDs. `apply` is guarded by `YES` or `FORCE=1`.
+credentials and IDs.
+
+`apply` takes two runs. The first plans, prints the diff and saves the plan under `.tofu-plans/`;
+the `YES` run applies that file, so what lands is the diff you read. A missing plan, one older than
+twenty minutes, or one whose state has moved on is an error rather than a fresh plan applied
+unseen. `FORCE=1` is the scripted path and does both in one run, with no diff for anyone to read.
+The saved plan holds the tunnel secret: it is encrypted, gitignored, and deleted by the apply.
 
 Required environment variables:
 

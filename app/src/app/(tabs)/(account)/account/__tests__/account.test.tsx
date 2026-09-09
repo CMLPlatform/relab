@@ -96,7 +96,7 @@ jest.mock('@/services/api/client', () => ({
   }),
 }));
 
-// The real KeyboardAwareScrollView needs native modules unavailable in jest —
+// The real KeyboardAwareScrollView needs native modules unavailable in jest;
 // mirrors the detail/capture screens' own integration test mocks.
 jest.mock('react-native-keyboard-controller', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');

@@ -76,17 +76,22 @@ def run_migrations_online() -> None:
     logger.info("Running migrations online on database: %s", make_url(url).render_as_string(hide_password=True))
 
     with connectable.connect() as connection:
+        # One migrator at a time. A compose restart racing a hand-run `just migrate` would
+        # otherwise have both attempt the DDL, and the loser aborts partway through the
+        # chain. Session-scoped, so it is released when the connection closes.
+        #
+        # Acquired before the timeouts below on purpose: `lock_timeout` and
+        # `statement_timeout` both apply to this wait, so setting them first would make a
+        # migrator that arrives behind a running one abort rather than queue, which under
+        # the `migrations` profile is a failed deploy instead of a wait. The wait here is
+        # deliberately unbounded; the timeouts start once this session owns the lock.
+        connection.exec_driver_sql(f"SELECT pg_advisory_lock({_MIGRATION_LOCK_ID})")
         # NOTE: an ACCESS EXCLUSIVE lock that cannot be acquired promptly must abort, not
         # queue behind readers and block every other query on prod.
         connection.exec_driver_sql("SET lock_timeout = '5s'")
         # Bounds how long a statement may hold a lock. A long backfill raises its own ceiling
         # with `op.execute("SET LOCAL statement_timeout = '15min'")`.
         connection.exec_driver_sql("SET statement_timeout = '60s'")
-        # One migrator at a time. A compose restart racing a hand-run `just migrate` would
-        # otherwise have both attempt the DDL, and the loser aborts on lock_timeout partway
-        # through the chain. Session-scoped, so it is released when the connection closes;
-        # the blocking form waits rather than failing, which is what a queued deploy wants.
-        connection.exec_driver_sql(f"SELECT pg_advisory_lock({_MIGRATION_LOCK_ID})")
         # Commit the auto-begun transaction so alembic's own is the outer one, not a
         # savepoint that gets rolled back on close.
         connection.commit()

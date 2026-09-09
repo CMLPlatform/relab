@@ -13,7 +13,7 @@
  * token is a stateless JWT that never leaves the API process, and `is_verified`
  * is intentionally not settable through the admin API (`NoPublicAccountControls`
  * on `UserUpdate`). So there is no way to verify a fresh account from a browser
- * test today — `auth.spec.ts` covers registration up to the verify-email prompt,
+ * test today: `auth.spec.ts` covers registration up to the verify-email prompt,
  * and this picks up from an already-verified account.
  */
 
@@ -93,8 +93,8 @@ test('an ordinary member can create, populate and publish a product', async ({ p
   await expect(page).toHaveURL(SAVED_PRODUCT_URL_PATTERN, { timeout: 15_000 });
   await page.getByRole('button', { name: 'Add component' }).click();
   // Wait for the capture screen rather than assuming it. The press is
-  // occasionally swallowed at the navigation layer under parallel load — see
-  // product-detail.spec.ts — and without this the failure surfaces much later
+  // occasionally swallowed at the navigation layer under parallel load (see
+  // product-detail.spec.ts), and without this the failure surfaces much later
   // against a button that only exists on the screen we never reached.
   await expect(page).toHaveURL(NEW_COMPONENT_URL_PATTERN, { timeout: 15_000 });
   await page.getByRole('textbox', { name: 'Name' }).fill(componentName);

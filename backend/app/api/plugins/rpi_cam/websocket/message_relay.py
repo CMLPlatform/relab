@@ -50,7 +50,7 @@ async def _attempt_cross_worker_relay(
     """Dispatch a relay command across worker processes.
 
     Fast-fails with ``HTTPException(503)`` when the camera's heartbeat-maintained
-    online key is absent — no worker holds its socket, so waiting out the BLPOP
+    online key is absent: no worker holds its socket, so waiting out the BLPOP
     timeout would be pointless. A Redis outage also fast-fails: the bridge itself
     runs on Redis, so the relay attempt could not succeed anyway.
     """
@@ -132,7 +132,7 @@ async def relay_via_websocket(
 
     If the camera's WebSocket is registered in this worker the command is sent
     directly (fast path).  When it lives in a different worker process,
-    ``redis`` is used to bridge the request via ``cross_worker_relay`` — the
+    ``redis`` is used to bridge the request via ``cross_worker_relay``; the
     owning worker picks up the command, forwards it to the Pi, and posts the
     response back.
     """

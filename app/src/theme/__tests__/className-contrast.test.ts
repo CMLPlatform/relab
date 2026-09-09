@@ -14,7 +14,7 @@ function contrast(a: string, b: string): number {
 
 // Regression for the `text-accent` remap in global.css: the vendored primitives
 // hijack `--color-accent` for a neutral state layer, so brand-manila text must
-// go through `text-manila` (--color-manila) instead — never `text-accent`.
+// go through `text-manila` (--color-manila) instead, never `text-accent`.
 // Widened to Record<...>: palette.light and palette.dark are `as const`
 // literals with different per-key string values, so `typeof palette.light`
 // alone rejects the `dark` row here.

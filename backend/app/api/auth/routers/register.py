@@ -32,9 +32,9 @@ _REGISTRATION_ACCEPTED_DETAIL = (
 class RegistrationResponse(BaseModel):
     """Uniform registration acknowledgement.
 
-    Deliberately reveals nothing about whether the email already exists — the same
+    Deliberately reveals nothing about whether the email already exists; the same
     body is returned whether a new account was created or the address was already
-    taken — so registration cannot be used to enumerate accounts.
+    taken, so registration cannot be used to enumerate accounts.
     """
 
     detail: str = Field(default=_REGISTRATION_ACCEPTED_DETAIL)

@@ -442,9 +442,12 @@ For code style, test commands, migration workflow, and email templates, see
 [backend/README.md](../backend/README.md).
 
 The chain was flattened once, on 2026-09-08, into the single revision `a9c2e4f60b18`.
-Write new revisions on top of it as usual. A future flatten repeats the recipe in
-`docs/superpowers/specs/2026-09-08-alembic-flatten-design.md`: keep the head id, prove the
-schema with a `pg_dump --schema-only` diff, drop data migrations.
+Write new revisions on top of it as usual. A future flatten repeats the same recipe: keep the
+current head's revision id so deployed databases stay at a revision that still resolves, replace
+the chain below it with one revision that builds the schema from scratch, prove the result with a
+`pg_dump --schema-only` diff between a database built from the old chain and one built from the
+new revision, and drop the data migrations rather than folding them in: a fresh build has no rows
+for them to touch.
 
 ## Frontend Development
 

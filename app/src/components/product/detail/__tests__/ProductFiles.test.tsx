@@ -46,7 +46,7 @@ describe('ProductFiles', () => {
     expect(screen.queryByText('Research files')).toBeNull();
     // Asserts the payload, not only the heading. The emptiness guard below the
     // role check would hide the heading on its own, so a heading-only assertion
-    // stays green even with the role gate deleted — it passed for the wrong
+    // stays green even with the role gate deleted; it passed for the wrong
     // reason until this line was added.
     expect(screen.queryByText('cube.h5')).toBeNull();
     expect(screen.queryByText('Add research file')).toBeNull();

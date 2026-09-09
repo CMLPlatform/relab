@@ -1,7 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, type Page, test } from '@playwright/test';
 
-// Aligned across www/docs/app: WCAG 2.0-2.2, level A + AA — the stated target.
+// Aligned across www/docs/app: WCAG 2.0-2.2, level A + AA, the stated target.
 // target-size (2.5.8) is the only 2.2-only rule axe-core ships; 2.4.11 and
 // 2.4.13 have no axe coverage and are verified by hand.
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
@@ -19,7 +19,7 @@ async function analyzePage(page: Page, options: { exclude?: string[] } = {}) {
     `,
   });
 
-  // Full page (header/nav/footer included), not just <main> — the repo-authored
+  // Full page (header/nav/footer included), not just <main>; the repo-authored
   // chrome is fair game for a11y bugs too.
   let builder = new AxeBuilder({ page }).withTags(WCAG_TAGS);
   for (const selector of options.exclude ?? []) {

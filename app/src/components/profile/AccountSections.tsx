@@ -53,7 +53,7 @@ type ProfileLinkedAccountsSectionProps = {
   githubAccount?: OAuthAccount | null;
   onLinkOAuth: (provider: 'google' | 'github') => void;
   onRequestUnlink: (provider: 'google' | 'github') => void;
-  /** Both "Unlink X" buttons open the same dialog — this tracks whichever was pressed last. */
+  /** Both "Unlink X" buttons open the same dialog; this tracks whichever was pressed last. */
   unlinkTriggerRef?: RefObject<View | null>;
 };
 

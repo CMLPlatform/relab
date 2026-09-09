@@ -22,7 +22,7 @@ afterEach(() => {
 
 describe('useMfaScreen guards', () => {
   // Regression: the guard read `isSubmitting` from state, so two submits in the
-  // same tick both saw the stale `false`. A TOTP code is single-use — the second
+  // same tick both saw the stale `false`. A TOTP code is single-use; the second
   // request burns it and the user sees "Invalid MFA code" after a real success.
   it('ignores a second submit while the first is in flight', async () => {
     mockPending.mockReturnValue({ status: 'mfa_required', mfaToken: 'tok' });

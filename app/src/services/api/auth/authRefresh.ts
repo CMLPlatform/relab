@@ -149,7 +149,7 @@ export async function fetchWithAuth(
       response = await makeRequest();
       // refreshAuthToken mutates explicitlyLoggedOut as a side effect.
     } else if (authRuntime.explicitlyLoggedOut) {
-      // Refresh was rejected (or there was no session) — drop stored state.
+      // Refresh was rejected (or there was no session); drop stored state.
       // A transient refresh failure leaves tokens intact for the next attempt.
       await clearCachedAuthState();
     }

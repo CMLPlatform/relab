@@ -27,7 +27,7 @@ describe('ProductComponents', () => {
   });
 
   // The "Components (n)" heading is now rendered by the wrapping Section
-  // (title + titleSuffix, see content-sections.test.ts) — this component no
+  // (title + titleSuffix, see content-sections.test.ts); this component no
   // longer owns a heading of its own.
   it("shows 'no subcomponents' message when empty", async () => {
     await renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
@@ -112,7 +112,7 @@ describe('ProductComponents', () => {
     const expandedToggle = screen.getByRole('button', { name: 'Show fewer components' });
     expect(expandedToggle.props.accessibilityState).toMatchObject({ expanded: true });
 
-    // Collapsing again must actually hide the extra rows — an assertion that
+    // Collapsing again must actually hide the extra rows; an assertion that
     // fails if the toggle stops toggling.
     await fireEvent.press(expandedToggle);
     expect(screen.queryByText('Component 6')).toBeNull();
@@ -168,7 +168,7 @@ describe('ProductComponents', () => {
     await fireEvent.press(await screen.findByText('Add component'));
 
     // The push is deferred one frame so it cannot race the
-    // `setParams({ edit: undefined })` that leaving edit mode dispatches — see
+    // `setParams({ edit: undefined })` that leaving edit mode dispatches; see
     // ProductComponents.newComponent. waitFor is therefore part of the contract,
     // not test flakiness padding.
     await waitFor(() =>
@@ -194,7 +194,7 @@ describe('ProductComponents', () => {
     await fireEvent.press(await screen.findByText('Add component'));
 
     // The push is deferred one frame so it cannot race the
-    // `setParams({ edit: undefined })` that leaving edit mode dispatches — see
+    // `setParams({ edit: undefined })` that leaving edit mode dispatches; see
     // ProductComponents.newComponent. waitFor is therefore part of the contract,
     // not test flakiness padding.
     await waitFor(() =>

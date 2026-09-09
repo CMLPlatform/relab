@@ -302,7 +302,7 @@ describe('Saving API Service', () => {
         images: [], // no images in new version
       };
       mockFetchOk({ id: 42 }); // PATCH product
-      mockFetchError(404, { detail: 'Not found' }); // DELETE image/10 — already gone
+      mockFetchError(404, { detail: 'Not found' }); // DELETE image/10, already gone
 
       await expect(saveProduct(productWithExistingImage, originalImages)).resolves.toBe(42);
     });
@@ -512,7 +512,7 @@ describe('Saving API Service', () => {
     });
 
     it('names the uploaded file to match the image MIME type', async () => {
-      // A JPEG data URI — filename must be .jpg, not .png, or the backend
+      // A JPEG data URI; filename must be .jpg, not .png, or the backend
       // rejects the MIME/extension mismatch. Byte content is irrelevant here;
       // only the declared MIME type drives the filename.
       const dataUri = 'data:image/jpeg;base64,AAAA';

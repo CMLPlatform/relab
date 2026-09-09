@@ -542,7 +542,7 @@ def test_eager_and_deferred_widths_partition_the_standard_set() -> None:
 def photographic_image(tmp_path: Path) -> Path:
     """A 2400x1800 JPEG carrying real detail rather than a flat fill.
 
-    2400 wide because that is the first size at which every standard width applies —
+    2400 wide because that is the first size at which every standard width applies;
     below 1600 the widest derivative is skipped and the split under test barely moves.
     Tiled noise rather than a single colour: a flat fill resizes and encodes far faster
     than any real image, which would flatter the ratio this test exists to police.

@@ -306,8 +306,8 @@ deploy_secrets_template() {
             else
                 # External identity credentials template empty (see deploy_secret_template_value):
                 # a 0-byte file reads as "not configured" everywhere, so re-templating on every
-                # run recreates it empty again rather than "keeping" it — expected, not a bug.
-                echo "created $path (empty — fill in when using this provider)"
+                # run recreates it empty again rather than "keeping" it; expected, not a bug.
+                echo "created $path (empty; fill in when using this provider)"
             fi
         else
             # Existing operator files keep their mode; deploy-secrets-check reports
@@ -337,7 +337,7 @@ deploy_secrets_export() {
         exit 1
     }
 
-    echo "# relab $env secrets — exported $(date -I)"
+    echo "# relab $env secrets, exported $(date -I)"
     echo "# Restore with: just secrets-restore $env <file>"
     echo "# This recreates secrets/$env/ (dir mode 700, files mode 644) from this block."
     echo "# Treat this note as a live credential; store it only in the password manager."
@@ -590,6 +590,63 @@ stamp_uploads_volume() {
         /opt/relab/backend/data/uploads/.relab-volume "$env"
 }
 
+# The uid every deploy service runs as. Keep in step with x-app-user in
+# compose.deploy.yaml and APP_UID in backend/Dockerfile and backend/Dockerfile.backups.
+DEPLOY_APP_UID=65532
+
+# Turn one mount probe into the operator's next step. Split from the probe below so the
+# wording and the remedy are covered by scripts/test_ops.sh, which starts no containers.
+mount_writability_alert() {
+    local env="$1" service="$2" path="$3" target="$4" writable="$5"
+
+    [[ "$writable" == "yes" ]] && return 0
+
+    echo "error: the $env stack's $service service cannot write $path as uid $DEPLOY_APP_UID." >&2
+    case "$target" in
+        volume:*)
+            echo "Docker sets a named volume's ownership only when it first creates the volume, so" >&2
+            echo "relab_${env}_${target#volume:} still belongs to whichever uid created it." >&2
+            echo "Fix with: docker run --rm --user 0 -v relab_${env}_${target#volume:}:/mnt" \
+                "relab-backend:$env-local chown -R $DEPLOY_APP_UID:$DEPLOY_APP_UID /mnt" >&2
+            ;;
+        host:*)
+            echo "Docker creates a missing bind-mount directory root-owned." >&2
+            echo "Fix with: sudo chown -R $DEPLOY_APP_UID:$DEPLOY_APP_UID ${target#host:}" >&2
+            ;;
+    esac
+    return 1
+}
+
+# Every mount the stack writes to, probed as the service that writes it, before anything
+# starts. A container gets no supplementary groups, so an ownership mismatch is not a
+# degraded mode: `stat` and reads keep succeeding and every write fails EACCES. Nothing
+# downstream would report it (`/live` never touches uploads and the migrator's backfills
+# are wrapped in `|| echo`), so the deploy would report success and uploads would fail one
+# at a time afterwards.
+assert_deploy_mounts_writable() {
+    local env="$1" backup_dir failed=0 entry service path target writable
+    backup_dir="$(dotenv_value BACKUP_HOST_DIR)"
+    local -a mounts=(
+        "api /opt/relab/backend/data/uploads volume:user_uploads"
+        "backup /var/cache/restic volume:restic_cache"
+        "backup /restic host:${backup_dir:-./backups}/restic"
+    )
+
+    for entry in "${mounts[@]}"; do
+        read -r service path target <<<"$entry"
+        # shellcheck disable=SC2016 # $1 is the probe shell's own argument, not this shell's
+        if run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
+            --entrypoint sh "$service" -c 'test -w "$1"' _ "$path" >/dev/null; then
+            writable=yes
+        else
+            writable=no
+        fi
+        mount_writability_alert "$env" "$service" "$path" "$target" "$writable" || failed=1
+    done
+
+    [[ "$failed" -eq 0 ]] || exit 2
+}
+
 stack_command() {
     local env="$1"
     local action="$2"
@@ -618,6 +675,11 @@ stack_command() {
             # `build` still defaults to the backups profile so the image exists.
             add_scanning_profile_from_dotenv
             require_confirmation "start the $env stack" "just stack $env up YES [profiles...]" "FORCE=1 just stack $env up [profiles...]"
+            # Before the API starts, so a mount the containers cannot write stops the
+            # deploy here rather than surfacing later as uploads and backups that fail
+            # silently. On a host that has never run the stack this also creates the named
+            # volumes, seeded from the images, which is what makes them writable.
+            assert_deploy_mounts_writable "$env"
             # Provision before anything else starts. initdb only runs the script on an
             # empty volume; running it here on every start makes a populated volume
             # (prod's predates the roles) or a restored one converge without a runbook

@@ -133,7 +133,7 @@ export function ProductPageContent({
             ))}
           </SectionNavContext.Provider>
           {/* Record metadata (dates, owner, id) is a footer, not a chunk of
-              the record — keeping it out of the nav is what lets the chips
+              the record; keeping it out of the nav is what lets the chips
               fit one row on a phone. */}
           <ProductMetaData product={product} />
           <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />

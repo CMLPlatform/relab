@@ -85,7 +85,7 @@ const google = createBrandGlyph(GOOGLE_PATH);
 const youtube = createBrandGlyph(YOUTUBE_PATH);
 
 // Curated Lucide glyph set. Brand marks (google, github, youtube) render
-// vendored paths from assets/icons/brand/ via createBrandGlyph() — filled,
+// vendored paths from assets/icons/brand/ via createBrandGlyph(), filled,
 // not stroked, unlike the Lucide glyphs (see assets/DESIGN.md).
 const iconMap = {
   'arrow-down-up': ArrowDownUp,

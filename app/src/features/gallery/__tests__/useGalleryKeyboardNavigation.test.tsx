@@ -21,6 +21,10 @@ describe('useGalleryKeyboardNavigation', () => {
         removeEventListener,
       },
     });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector: () => null },
+    });
   });
 
   afterAll(() => {
@@ -205,6 +209,10 @@ describe('useGalleryKeyboardNavigation guards', () => {
       configurable: true,
       value: { addEventListener, removeEventListener },
     });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector: () => null },
+    });
   });
 
   afterAll(() => {
@@ -252,6 +260,28 @@ describe('useGalleryKeyboardNavigation guards', () => {
     );
 
     await act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: true }));
+
+    expect(onNext).not.toHaveBeenCalled();
+  });
+
+  // An open dialog owns the keyboard, so the gallery behind the scrim stays put.
+  it('ignores arrow keys while a dialog is open', async () => {
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector: () => ({}) },
+    });
+    const onNext = jest.fn();
+    await renderHook(() =>
+      useGalleryKeyboardNavigation({
+        enabled: true,
+        imageCount: 3,
+        selectedIndex: 0,
+        onPrevious: jest.fn(),
+        onNext,
+      }),
+    );
+
+    await act(() => press('ArrowRight', { tagName: 'DIV', isContentEditable: false }));
 
     expect(onNext).not.toHaveBeenCalled();
   });

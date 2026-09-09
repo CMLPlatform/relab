@@ -1,7 +1,7 @@
 """Pins the router wiring that keeps transactional email off the response path.
 
 The email tests inject ``request.state.background_tasks`` by hand, so every one of them
-still passes if the router-level dependency that publishes it is dropped — and the send
+still passes if the router-level dependency that publishes it is dropped, and the send
 silently goes back to blocking the response. These assert the wiring itself.
 """
 

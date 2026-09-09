@@ -2,6 +2,8 @@
 
 import importlib.util
 import logging
+import re
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -163,6 +165,44 @@ def test_migrations_downgrade_upgrade(relab_alembic_config: Config, migration_he
 
     command.upgrade(relab_alembic_config, "+1")
     assert migration_helper.current_revision() == head, "upgrade did not restore head"
+
+
+@pytest.mark.migration
+def test_pending_thumbnail_index_is_a_revision_of_its_own(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """The concurrent index must not share a revision with the column it indexes.
+
+    ``autocommit_block()`` commits whatever the revision did before it, so a column added
+    in the same ``upgrade()`` is committed while the revision is still unstamped: a build
+    that loses its race for the lock then leaves the column applied and the revision not
+    recorded, and every later upgrade dies re-adding a column that already exists.
+    Stepping down one revision at a time is what pins the split (the index goes, the
+    column stays), and the round trip back to head covers both revisions.
+    """
+
+    def index_is_valid() -> bool | None:
+        rows = migration_helper.execute_sql(
+            "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass('ix_image_thumbnails_pending')"
+        )
+        return rows[0][0] if rows else None
+
+    # An INVALID index is never used by the planner, so the backfill would sequential-scan
+    # `image` on every deploy while every write still maintained the dead index.
+    assert index_is_valid() is True
+
+    try:
+        command.downgrade(relab_alembic_config, "b3f1c07d5e94")
+        assert index_is_valid() is None, "the index revision must own the index, and nothing else"
+        assert migration_helper.column_exists("image", "thumbnails_generated_at")
+
+        command.downgrade(relab_alembic_config, "4a672549f270")
+        assert not migration_helper.column_exists("image", "thumbnails_generated_at")
+    finally:
+        command.upgrade(relab_alembic_config, "head")
+
+    assert migration_helper.column_exists("image", "thumbnails_generated_at")
+    assert index_is_valid() is True
 
 
 @pytest.mark.migration
@@ -347,4 +387,61 @@ def test_dropping_pg_trgm_unowned_raises_what_the_revision_translates(migration_
     finally:
         migration_helper.execute_sql("DROP ROLE trgm_probe")
 
-    assert "ALTER EXTENSION pg_trgm SET SCHEMA extensions" in module.SUPERUSER_INSTRUCTION
+    # The instruction names the schema the move is heading for, not a hardcoded one:
+    # the downgrade direction moves pg_trgm back to `public`.
+    assert "ALTER EXTENSION pg_trgm SET SCHEMA extensions" in module.SUPERUSER_INSTRUCTION.format(schema="extensions")
+    assert "ALTER EXTENSION pg_trgm SET SCHEMA public" in module.SUPERUSER_INSTRUCTION.format(schema="public")
+
+
+# Longer than the 5s `lock_timeout` env.py sets once it holds the lock: a migrator that
+# aborts instead of queueing gives up at 5s, so a shorter wait here would not tell the
+# two apart.
+_LOCK_WAIT_SECONDS = 8
+
+
+@pytest.mark.migration
+def test_a_second_migrator_queues_behind_the_advisory_lock(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """A migrator started while another holds the lock must wait, not fail.
+
+    ``lock_timeout`` applies to ``pg_advisory_lock`` as well as to table locks, so
+    setting it before taking the lock made a queued deploy an aborted one: a container
+    started while a migration was already running died instead of running after it.
+
+    Nothing else in the suite runs two migrators at once, so without this the lock could
+    be removed and every other migration test would still pass.
+    """
+    # Read out of env.py rather than repeated here: a drift would make this take a
+    # different lock, finish immediately, and pass silently.
+    env_source = (Path(__file__).resolve().parents[3] / "alembic" / "env.py").read_text()
+    match = re.search(r"^_MIGRATION_LOCK_ID = ([\d_]+)$", env_source, re.MULTILINE)
+    assert match is not None, "env.py no longer defines _MIGRATION_LOCK_ID"
+    lock_id = int(match.group(1).replace("_", ""))
+
+    finished = threading.Event()
+    failures: list[BaseException] = []
+
+    def upgrade() -> None:
+        try:
+            # The database is already at head, so this applies no revision; what it
+            # exercises is env.py's connection setup, which takes the lock first.
+            command.upgrade(relab_alembic_config, "head")
+        except Exception as exc:  # noqa: BLE001 # reported on the main thread
+            failures.append(exc)
+        finally:
+            finished.set()
+
+    with migration_helper.sync_engine.connect() as holder:
+        holder.execute(text("SELECT pg_advisory_lock(:lock_id)"), {"lock_id": lock_id})
+        queued = threading.Thread(target=upgrade, name="queued-migrator", daemon=True)
+        queued.start()
+        try:
+            assert not finished.wait(_LOCK_WAIT_SECONDS), "the queued migrator did not wait for the lock"
+        finally:
+            holder.execute(text("SELECT pg_advisory_unlock(:lock_id)"), {"lock_id": lock_id})
+
+    assert finished.wait(60), "the queued migrator did not run once the lock was released"
+    queued.join(timeout=60)
+    assert not failures, failures
+    assert migration_helper.current_revision() is not None

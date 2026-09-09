@@ -50,7 +50,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         prefix: Router prefix, e.g. ``"/materials"``.
         tag: OpenAPI tag, e.g. ``"materials"``.
         label: Human label used in summaries/docstrings, e.g. ``"material"``.
-        id_param: Public path-parameter name, e.g. ``"material_id"`` — kept
+        id_param: Public path-parameter name, e.g. ``"material_id"``, kept
             stable via ``Path(alias=...)`` so generated clients don't change.
         spec: The resource's categorized-reference spec.
         create_schema: Request schema for create.

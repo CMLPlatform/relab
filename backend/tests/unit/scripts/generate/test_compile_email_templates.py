@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class _MJMLResult:
-    """Typed stand-in for ``mjml.mjml_to_html`` — matches the ``.html`` attribute callers read."""
+    """Typed stand-in for ``mjml.mjml_to_html``; matches the ``.html`` attribute callers read."""
 
     html: str
 

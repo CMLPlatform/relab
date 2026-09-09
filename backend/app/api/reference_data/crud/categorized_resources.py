@@ -23,7 +23,7 @@ from app.api.reference_data.models import (
     ProductType,
     TaxonomyDomain,
 )
-from app.api.reference_data.usage import usage_guard_for
+from app.api.reference_data.usage import usage_guards_for
 
 from .persistence import create_reference_model
 
@@ -91,6 +91,13 @@ PRODUCT_TYPE_RESOURCE = CategorizedReferenceSpec(
 )
 
 
+# Fail closed at import, not at the first admin delete: a categorized reference type
+# whose blocking column was never registered would drop a row research data still points
+# at, and the NO ACTION foreign key would answer 500 instead of a conflict naming it.
+for _spec in (MATERIAL_RESOURCE, PRODUCT_TYPE_RESOURCE):
+    usage_guards_for(_spec.model)
+
+
 async def create_categorized_reference[ResourceT: CategorizedReference, LinkT: CategoryLink](
     db: AsyncSession,
     spec: CategorizedReferenceSpec[ResourceT, LinkT],
@@ -124,17 +131,12 @@ async def _require_not_in_use[ResourceT: CategorizedReference, LinkT: CategoryLi
     The referencing FKs are NO ACTION, so without this the delete surfaces as a raw
     IntegrityError (500) instead of telling the admin what is holding the row.
     """
-    guard = usage_guard_for(spec.model)
-    if guard is None:
-        return
-
-    referenced = await db.execute(select(guard.column).where(guard.column == parent_id).limit(1))
-    if referenced.first() is None:
-        return
-
-    label = get_model_label(spec.model).lower()
-    msg = f"This {label} is still referenced by {guard.label} and cannot be deleted."
-    raise ConflictError(msg)
+    for guard in usage_guards_for(spec.model):
+        referenced = await db.execute(select(guard.column).where(guard.column == parent_id).limit(1))
+        if referenced.first() is not None:
+            label = get_model_label(spec.model).lower()
+            msg = f"This {label} is still referenced by {guard.label} and cannot be deleted."
+            raise ConflictError(msg)
 
 
 async def delete_categorized_reference[ResourceT: CategorizedReference, LinkT: CategoryLink](
@@ -147,7 +149,7 @@ async def delete_categorized_reference[ResourceT: CategorizedReference, LinkT: C
     Media rows and the parent row drop in a single transaction under the row lock, so a
     concurrent delete is serialized and a mid-delete failure can't leave the parent behind
     with its media already gone (media reference their parent generically, with no FK
-    cascade). The stored bytes are unlinked only after that commit is durable — a commit
+    cascade). The stored bytes are unlinked only after that commit is durable; a commit
     that fails leaves the files intact rather than orphaning live rows that point at them.
 
     Raises:

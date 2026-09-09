@@ -64,14 +64,24 @@ class PeriodicBackgroundTask:
 _detached_tasks: set[asyncio.Task[None]] = set()
 
 
-def spawn_detached(coro: Coroutine[object, object, object], *, name: str) -> None:
+def spawn_detached(coro: Coroutine[object, object, object], *, name: str, max_in_flight: int | None = None) -> bool:
     """Run a coroutine outside the caller's lifetime, logging anything it raises.
 
     For work whose result the caller does not need and whose failure must not fail
     the caller. Deliberately not awaited anywhere, including at shutdown: the only
     current user regenerates derivable files, so a task lost to a restart costs a
     re-run of the backfill script, not data.
+
+    Returns whether the coroutine was scheduled. With *max_in_flight* set, a caller
+    arriving while that many detached tasks are already running is declined rather
+    than queued: nothing awaits this work, so an arrival rate above the rate it
+    completes at would otherwise grow the set without bound. The ceiling counts every
+    detached task, not per name: one caller's backlog is the whole process's backlog.
     """
+    if max_in_flight is not None and len(_detached_tasks) >= max_in_flight:
+        logger.warning("Detached task %s declined: %d already in flight", name, len(_detached_tasks))
+        coro.close()
+        return False
 
     async def _guarded() -> None:
         try:
@@ -82,13 +92,14 @@ def spawn_detached(coro: Coroutine[object, object, object], *, name: str) -> Non
     task = asyncio.create_task(_guarded(), name=name)
     _detached_tasks.add(task)
     task.add_done_callback(_detached_tasks.discard)
+    return True
 
 
 async def drain_detached() -> None:
     """Wait for every in-flight detached task to finish.
 
-    For a process that ends deliberately rather than serving requests — the seeder,
-    a test — where "spawned" and "done" have to be the same thing before it exits.
+    For a process that ends deliberately rather than serving requests (the seeder,
+    a test) where "spawned" and "done" have to be the same thing before it exits.
     Long-running servers do not call this: a request must never wait on work the
     previous one detached.
     """

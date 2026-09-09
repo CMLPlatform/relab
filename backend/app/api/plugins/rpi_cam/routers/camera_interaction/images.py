@@ -121,7 +121,7 @@ async def capture_image(
         "Called by the Pi after a successful capture. Authenticated with a short-lived ES256 "
         "device assertion (same credential used by the WebSocket relay). The Pi provides the "
         "JPEG body plus two JSON blobs: `capture_metadata` (libcamera metadata) and "
-        "`upload_metadata` (opaque dict forwarded by whichever caller triggered the capture — "
+        "`upload_metadata` (opaque dict forwarded by whichever caller triggered the capture, "
         "typically `{product_id, description}`). The backend stores the image via the normal "
         "image storage service and returns a tiny ack envelope the Pi consumes."
     ),
@@ -129,7 +129,7 @@ async def capture_image(
     dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def receive_camera_upload(
-    camera_id: UUID4,  # noqa: ARG001 — consumed by AuthenticatedCameraDep
+    camera_id: UUID4,  # noqa: ARG001  (consumed by AuthenticatedCameraDep)
     camera: AuthenticatedCameraDep,
     session: AsyncSessionDep,
     file: Annotated[UploadFile, File(description="Captured JPEG")],
@@ -201,7 +201,7 @@ async def receive_camera_upload(
     dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def receive_preview_thumbnail_upload(
-    camera_id: UUID4,  # noqa: ARG001 — consumed by AuthenticatedCameraDep
+    camera_id: UUID4,  # noqa: ARG001  (consumed by AuthenticatedCameraDep)
     camera: AuthenticatedCameraDep,
     file: Annotated[UploadFile, File(description="Cached preview JPEG thumbnail")],
 ) -> DevicePreviewThumbnailAck:

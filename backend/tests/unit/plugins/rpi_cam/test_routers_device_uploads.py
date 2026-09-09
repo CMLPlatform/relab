@@ -246,7 +246,7 @@ async def test_preview_thumbnail_upload_fails_closed_when_scanner_unavailable(
     """Device thumbnails must be malware-scanned like every other upload path.
 
     With scanning enabled but no scanner reachable, the upload must be rejected
-    (503) rather than silently stored — guarding the scan bypass this route had.
+    (503) rather than silently stored, guarding the scan bypass this route had.
     """
     monkeypatch.setattr(settings, "image_storage_path", tmp_path / "images")
     monkeypatch.setattr("app.api.file_storage.upload_security.settings.malware_scan_enabled", True)

@@ -11,7 +11,7 @@ const NEW_PRODUCT_URL_PATTERN = /\/products\/new$/;
 const SEEDED_PRODUCT_NAME = 'Dell XPS 13';
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 // The gallery trigger is labelled `View ${altText}` (ProductImageGalleryContent),
-// where altText is the image's description or the product name — never the
+// where altText is the image's description or the product name, never the
 // literal "image N" this used to match, so the lightbox tests could not find it.
 const VIEW_IMAGE_LABEL_PATTERN = /^View .+/;
 // ProductsWelcomeCard's dismiss affordance: "Maybe later" for guests, "Got it"
@@ -83,7 +83,7 @@ export async function suppressTermsPrompt(page: Page) {
 
 export async function dismissTermsPrompt(page: Page) {
   // Seeded accounts are created programmatically, and programmatic creation
-  // deliberately records no terms acceptance — stamping one would fabricate
+  // deliberately records no terms acceptance: stamping one would fabricate
   // evidence of a licence grant nobody made. So every authenticated run meets the
   // contributor-terms prompt.
   //
@@ -139,7 +139,7 @@ export async function finishOnboardingIfVisible(page: Page) {
 
 /**
  * A seeded, verified, NON-superuser account (see backend dummy_data.json).
- * Use it where the point is that an ordinary contributor can do something —
+ * Use it where the point is that an ordinary contributor can do something;
  * `e2e-admin` is a superuser and so proves less.
  */
 export const SEEDED_MEMBER = { login: 'alice@example.com', password: 'fake_password_1' };
@@ -189,7 +189,7 @@ export async function openNewProductPage(page: Page) {
 /**
  * Click a menu anchor and wait for items to mount. Retries on failure: under
  * parallel-worker CPU load the Modal's open can briefly attach items before the
- * anchor-position measurement settles — a second click re-opens and typically
+ * anchor-position measurement settles; a second click re-opens and typically
  * succeeds.
  */
 export async function openMenu(page: Page, anchor: Locator) {
@@ -201,7 +201,7 @@ export async function openMenu(page: Page, anchor: Locator) {
     // synthetic DOM click via element.click(). The anchor's IconButton
     // occasionally drops the first pointer event under parallel-worker CPU
     // load; a direct element.click() bypasses any pointer-events quirks.
-    // biome-ignore lint/performance/noAwaitInLoops: sequential retry — each attempt must observe the previous one's outcome.
+    // biome-ignore lint/performance/noAwaitInLoops: sequential retry: each attempt must observe the previous one's outcome.
     await (attempt % 2 === 0
       ? anchor.click({ force: true })
       : anchor.evaluate((el) => (el as HTMLElement).click()));
@@ -269,8 +269,8 @@ export async function selectMenuItem(page: Page, anchor: Locator, label: string)
 /**
  * Narrow the products list to one name before picking a row.
  *
- * Nothing clears the database between tests in a run — only teardown does
- * (`down -v`) — so every test that creates a product leaves it behind. Reading a
+ * Nothing clears the database between tests in a run; only teardown does
+ * (`down -v`), so every test that creates a product leaves it behind. Reading a
  * row straight off the rendered list therefore works until enough products
  * accumulate to push the target off the first page, at which point unrelated
  * tests start failing. Searching keeps the lookup independent of how much ran

@@ -31,7 +31,7 @@ function stopPropagation(e: { stopPropagation: () => void }) {
 /**
  * Shared dialog chrome: a centered surface over a scrim.
  *
- * NOTE: hand-rolled on purpose — uses RN-core Modal for native focus trap and Escape→onRequestClose.
+ * NOTE: hand-rolled on purpose; uses RN-core Modal for native focus trap and Escape→onRequestClose.
  */
 export function AppDialog({
   visible,

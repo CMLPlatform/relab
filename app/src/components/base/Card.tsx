@@ -7,7 +7,7 @@ interface Props extends Omit<ViewProps, 'children'> {
   className?: string;
 }
 
-/** Plain card surface — border + rounded corners on the theme's card background. */
+/** Plain card surface: border + rounded corners on the theme's card background. */
 export function Card({ children, className, ...props }: Props) {
   return (
     <View className={cn('bg-card border border-border rounded-lg', className)} {...props}>

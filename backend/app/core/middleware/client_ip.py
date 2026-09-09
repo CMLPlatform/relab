@@ -52,10 +52,10 @@ def extract_client_ip(
     """Return the real client IP from proxy-forwarded headers.
 
     Checks headers in priority order:
-    1. ``CF-Connecting-IP`` — set by Cloudflare (most reliable behind cloudflared)
-    2. ``X-Real-IP`` — set by nginx and other reverse proxies
+    1. ``CF-Connecting-IP``, set by Cloudflare (most reliable behind cloudflared)
+    2. ``X-Real-IP``, set by nginx and other reverse proxies
     3. Last (proxy-attached) entry of ``X-Forwarded-For``
-    4. ``fallback`` — the raw transport address
+    4. ``fallback``, the raw transport address
     """
     trusted_cidrs = settings.trusted_proxy_cidrs if trusted_proxy_cidrs is None else trusted_proxy_cidrs
     if not _is_trusted_proxy(fallback, trusted_cidrs):

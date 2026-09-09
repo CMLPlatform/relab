@@ -754,7 +754,7 @@ def test_owner_is_optional_because_consent_decides_scope() -> None:
 
 
 def test_inventory_writes_no_archive(tmp_path, monkeypatch) -> None:
-    """--inventory must produce a report and nothing else — no records, no images."""
+    """--inventory must produce a report and nothing else: no records, no images."""
     out = tmp_path / "release"
     destination = tmp_path / "inventory.csv"
     monkeypatch.setattr(
@@ -860,7 +860,7 @@ def test_release_scope_never_reads_the_platforms_current_terms_version() -> None
     A source-level check on purpose: the two constants are equal today, so no behavioural
     test can tell them apart. The damage only appears the day the terms are revised, when a
     threshold tied to the current version would drop every record whose owner had not yet
-    re-accepted — an empty release that looks like a working one.
+    re-accepted, an empty release that looks like a working one.
 
     The threshold now lives in ``app.api.auth.terms`` because the in-app acceptance
     prompt keys on it too, so this also pins that it is imported rather than

@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 
 // Split from SVGCube.tsx (react-refresh/only-export-components).
 
-/** tan(30°) — the single source of truth for the projection angle. */
+/** tan(30°): the single source of truth for the projection angle. */
 export const ISO = Math.tan(Math.PI / 6);
 
 /** The frame the projection is fitted into, in viewBox units. */

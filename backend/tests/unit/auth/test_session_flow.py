@@ -114,7 +114,7 @@ async def test_logout_session_clears_cookies_storage_and_audits() -> None:
         )
 
     strategy.destroy_token.assert_awaited_once_with("auth-token", user)
-    # The refresh token — not the access token — is what must be blacklisted on logout.
+    # The refresh token (not the access token) is what must be blacklisted on logout.
     blacklist.assert_awaited_once_with(redis, "refresh-token")
     assert response.headers["Clear-Site-Data"] == session_flow.SESSION_LOGOUT_CLEAR_SITE_DATA
     assert any(header.startswith(f"{AUTH_COOKIE_NAME}=") for header in response.headers.getlist("set-cookie"))

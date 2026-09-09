@@ -1,5 +1,5 @@
 /**
- * ProductImageGallery — RPi capture flow + gallery/AsyncStorage surface.
+ * ProductImageGallery: RPi capture flow + gallery/AsyncStorage surface.
  *
  * Lightbox / zoom gestures are intentionally NOT covered here; see the
  * existing ProductImageGalleryLightbox-test.tsx which covers that surface.
@@ -163,7 +163,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
       },
     );
 
-    // Two thumbnail strip items — undescribed images fall back to the product
+    // Two thumbnail strip items; undescribed images fall back to the product
     // name plus a 1-based position so they stay distinguishable.
     expect(screen.getByLabelText('Select Recycled Aluminum Laptop Stand 1')).toBeOnTheScreen();
     expect(screen.getByLabelText('Select Recycled Aluminum Laptop Stand 2')).toBeOnTheScreen();
@@ -287,7 +287,7 @@ describe('ProductImageGallery — RPi capture + gallery / AsyncStorage', () => {
     ).not.toBeNull();
   });
 
-  // ── RPi button — saved product, ≥1 online camera ──────────────────────────
+  // ── RPi button: saved product, ≥1 online camera ──────────────────────────
 
   it('opens the camera picker dialog when ≥1 camera is available', async () => {
     mockUseRpiIntegration.mockReturnValue({ enabled: true, loading: false, setEnabled: jest.fn() });

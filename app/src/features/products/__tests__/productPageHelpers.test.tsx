@@ -19,7 +19,7 @@ function fabIcon(args: Omit<Parameters<typeof getPrimaryFabIcon>[0], 'theme'>) {
 
 describe('getPrimaryFabIcon', () => {
   // Regression: a paused (offline, queued) save used to render the same
-  // spinner as an actively in-flight save — an eternal spin with no end
+  // spinner as an actively in-flight save: an eternal spin with no end
   // state, since a paused mutation never resolves until connectivity returns.
   it('renders a clock, not a spinner, while saving is paused offline', () => {
     const element = fabIcon({

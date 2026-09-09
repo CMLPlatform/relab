@@ -58,7 +58,7 @@ async def test_product_detail_load_stops_below_the_first_component_level(
     Components render as the flat ComponentRead, so anything below that level
     would be fetched and thrown away. Product's relationships are eager at class
     level, so what keeps the read bounded is the raiseload("*") that
-    apply_loader_profile puts on the statement — it propagates to sub-loaders.
+    apply_loader_profile puts on the statement; it propagates to sub-loaders.
     This pins that behaviour: drop the wildcard and a detail read starts walking
     the subtree again.
     """

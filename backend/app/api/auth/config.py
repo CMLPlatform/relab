@@ -114,7 +114,7 @@ class AuthSettings(RelabBaseSettings):
     smtp_port: int = 587  # Default SMTP port for TLS
     # fastapi-mail defaults this to 60s. A deferred send still occupies a worker task
     # for the whole wait, and no transactional mail is worth a minute of one.
-    smtp_timeout_seconds: int = Field(default=15, ge=1, le=120)
+    smtp_timeout_seconds: int = Field(default=15, ge=1, le=30)
     smtp_username: str = ""
     smtp_password: SecretStr = SecretStr("")
     email_from: str = ""

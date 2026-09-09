@@ -62,7 +62,7 @@ def test_cache_key_varies_by_page_without_a_request_parameter() -> None:
 def test_cache_key_outside_a_pagination_context_omits_the_page_part() -> None:
     """An unpaginated endpoint keys without a page fragment instead of raising.
 
-    ``set_params`` is used as a context manager so the ContextVar is reset on exit —
+    ``set_params`` is used as a context manager so the ContextVar is reset on exit;
     otherwise a page set by an earlier test leaks in and this passes vacuously.
     """
     unpaginated = _cache_key_excluding_dependencies(_example_endpoint)

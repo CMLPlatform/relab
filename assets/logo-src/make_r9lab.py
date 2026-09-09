@@ -2,7 +2,7 @@
 
 The 9 comes from a candidate font, non-uniformly scaled so it reads as a loop
 (a mirrored "e"); the R/l/a/b letters come from IBM Plex. Everything is baked
-into self-contained SVG paths — no font needed to render.
+into self-contained SVG paths; no font needed to render.
 
 Run from this directory:
 
@@ -259,7 +259,7 @@ def og_svg(spec: dict, colors: dict) -> str:
 
 
 # candidate file -> canonical asset name. All rasterization (PNG/ico) is owned
-# by scripts/sync_brand_assets.py, which renders from these canonical SVGs —
+# by scripts/sync_brand_assets.py, which renders from these canonical SVGs;
 # run `just assets-sync` after promoting.
 PROMOTION = {
     "mark.svg": "r9lab-mark.svg",

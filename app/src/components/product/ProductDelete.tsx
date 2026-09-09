@@ -37,7 +37,7 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
     <AppButton variant="destructive" onPress={onPressDelete} className={styles.button}>
       {/* Icon needs an explicit color (no CSS-var bridging for RN SVG icons), so it
           reads the destructive variant's own foreground instead of a hand-picked
-          token — same source AppButton's loading spinner uses for this variant. */}
+          token, same source AppButton's loading spinner uses for this variant. */}
       <Icon name="trash-2" size={18} color={VARIANT_FOREGROUND_COLOR.destructive(colors)} />
       <Text>Delete {label}</Text>
     </AppButton>

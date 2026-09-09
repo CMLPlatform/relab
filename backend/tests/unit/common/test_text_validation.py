@@ -69,7 +69,7 @@ def test_bounded_query_text_list_splits_and_trims_csv() -> None:
     """Separator-joined filter values arrive as a trimmed list.
 
     fastapi-filters hands list-typed filters through as a single-element list,
-    so the separator has to be split out of that form too — otherwise a
+    so the separator has to be split out of that form too; otherwise a
     two-value filter is queried as one literal string and matches nothing.
     """
     assert _query_list.validate_python(f"steel{FILTER_CSV_SEPARATOR} copper") == ["steel", "copper"]

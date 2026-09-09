@@ -61,3 +61,26 @@ async def test_finished_tasks_are_discarded_from_the_registry() -> None:
     await drain_detached()
 
     assert len(_detached_tasks) == before
+
+
+async def test_deferred_work_is_declined_once_the_ceiling_is_reached() -> None:
+    """Nothing awaits detached work, so its arrival rate must not grow the set forever."""
+    release = asyncio.Event()
+    declined_ran = False
+
+    async def blocked() -> None:
+        await release.wait()
+
+    async def declined() -> None:  # pragma: no cover - must never run
+        nonlocal declined_ran
+        declined_ran = True
+
+    before = len(_detached_tasks)
+    assert spawn_detached(blocked(), name="test:accepted", max_in_flight=before + 1)
+    assert not spawn_detached(declined(), name="test:declined", max_in_flight=before + 1)
+
+    release.set()
+    await drain_detached()
+
+    # A declined coroutine is closed, not left un-awaited for the GC to complain about.
+    assert not declined_ran

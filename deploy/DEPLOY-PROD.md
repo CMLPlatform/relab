@@ -8,7 +8,7 @@ Staging equivalent: [DEPLOY-STAGING.md](DEPLOY-STAGING.md). Rehearse there first
 
 ______________________________________________________________________
 
-## Part 1 — First-time host setup
+## Part 1: First-time host setup
 
 Once per machine, not per release. `just watchdog prod` reports each missing piece as a distinct
 alert.
@@ -313,7 +313,7 @@ sudo account and never on the deploy user.
 
 ______________________________________________________________________
 
-## Part 2 — Routine release
+## Part 2: Routine release
 
 Before you start: CI green on `main`, you know whether the release contains migrations
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
@@ -335,40 +335,77 @@ The `migrations` profile is the routine path: the API waits for the migrator to 
 migration leaves the old API serving. Without it you get a two-step that briefly serves against the
 old schema, acceptable during a planned outage, not for a routine release.
 
+A migrator that stops on an unresolvable revision means the database's `alembic_version` predates
+the 2026-09-08 flatten: nothing is corrupted, but the chain no longer contains that id. Bring the
+host to `a9c2e4f60b18` on a release from before the flatten, or restore from backup, then re-run.
+
 `up` adds the `scanning` profile itself unless `MALWARE_SCAN_ENABLED=false` in the root `.env`.
+
+The migrator also completes any missing image thumbnails. That step is best-effort, so if its log
+says the thumbnail backfill failed (or product lists are serving full-size originals as card
+images), run the migrations profile again: `just stack <env> up YES migrations`. It resumes where
+it stopped and is safe to run repeatedly. The maintenance scripts ship in the migrations image, not
+the API one, so there is no `scripts/` to reach in a running `api` container.
+
+The same step is what gives images uploaded before a new width its derivative: adding a width to
+`THUMBNAIL_WIDTHS` leaves existing rows stamped, so clear the stamp on the rows that should gain it
+before re-running.
+
+```sql
+UPDATE image SET thumbnails_generated_at = NULL WHERE width_px > 2560 OR width_px IS NULL;
+```
+
+`width_px` is nullable and `NULL > 2560` is not true, so without the second clause a row whose
+width was never recorded is skipped without a word. Including rows that turn out to be narrower
+costs nothing: the backfill selects on the stamp alone and re-reads each original's width from the
+file, then stamps a row that needs no new derivative.
 
 ### Releases that need a window
 
-Three things stretch a release beyond the time the commands take, all learned the expensive way.
+Three things stretch a release beyond the time the commands take.
 
 **A backfill migration holds the API down for its whole duration.** The `migrations` profile gates
-the API on `service_completed_successfully`, so a release whose migrator backfills existing rows —
-regenerating derivatives, recomputing a column — keeps `api` and the tunnel in `Created` until it
-finishes, however long that is. Check for one before you start (`alembic history` above, and read
-what the migrator does, not just whether it exists), and announce the window accordingly rather
-than discovering it at 100% CPU.
+the API on `service_completed_successfully`, so a release whose migrator backfills existing rows
+(regenerating derivatives, recomputing a column) keeps `api` and the tunnel in `Created` until it
+finishes, however long that is. Check for one before you start: run `alembic history` as above, and
+read what the migrator does, not just whether it exists. Announce the window from what you find
+there, not from the first 100% CPU reading during the release.
 
 **A snapshot needs the stack up, and must precede the checkout.** `just backup <env> manual` runs
 with `--no-deps` on purpose: the timer must never start postgres as a side effect. So the safety
-snapshot cannot be taken after `down`. And any change to what the containers run as — a uid change,
-an ownership change — takes effect the moment the checkout moves, because the Compose `user:` pin
+snapshot cannot be taken after `down`. Any change to what the containers run as (a uid change, an
+ownership change) takes effect the moment the checkout moves, because the Compose `user:` pin
 overrides the image's own `USER`. Between checkout and the matching `chown`, every backup run
-fails. The order that works:
+fails. Docker seeds a named volume's ownership only when it first creates the volume, so a volume
+carried over from an earlier release keeps that release's uid however many times you rebuild. The
+order that works:
 
 ```bash
-just stack <env> build            # safe with the stack up; the snapshot then runs on the new image
-# chown anything the containers own that is not a volume mounted by a running service
-just backup <env> manual          # tagged, so retention cannot expire your rollback
-just stack <env> down YES
-# chown the volumes that a running service would have been writing
-just stack <env> up YES migrations
+env=prod                          # or staging
+just stack "$env" build           # safe with the stack up; the snapshot then runs on the new image
+# The restic repository is a host bind, so it can be chowned with the stack still up.
+sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
+just backup "$env" manual         # tagged, so retention cannot expire your rollback
+just stack "$env" down YES
+# The named volumes a running service would have been writing. Run as uid 0 inside the
+# image so the host needs no knowledge of where Docker keeps the volume.
+for volume in user_uploads restic_cache; do
+    docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
+        "relab-backend:${env}-local" chown -R 65532:65532 /mnt
+done
+just stack "$env" up YES migrations
 ```
 
+`up` probes those three mounts as the services that write them before it starts anything, and
+refuses to continue when one is unwritable, naming the volume and the command above. Reads and
+`stat` succeed on a wrongly-owned volume, so without that probe the deploy reports success and
+only uploads and backups fail.
+
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
-stopping the watchdog too, or it pages mid-window — and a stopped watchdog cannot then tell you the
+stopping the watchdog too, or it pages mid-window. A stopped watchdog cannot then tell you the
 others are still stopped. The dead man's switch is the backstop: with no ping, the external check
-fires after its grace period. Do not rely on it; `systemctl is-active` on all three is the last
-line of the runbook.
+fires after its grace period. Do not rely on it. Run `systemctl is-active` on all three before you
+close the window.
 
 ### Verify
 
@@ -382,7 +419,7 @@ Then exercise by hand what automation cannot: one upload, one OAuth login, one p
 
 ______________________________________________________________________
 
-## Part 3 — Recovery
+## Part 3: Recovery
 
 Migrations commit one revision at a time (`transaction_per_migration=True` in
 `backend/alembic/env.py`), so a failed migrate leaves `alembic_version` at the last revision that
@@ -431,8 +468,8 @@ when the most recent backup is the damage. `just restore` drops schema `public` 
 it refuses to run without `YES`, and it asserts the restored database has rows and not merely tables
 before reporting success. It then re-runs `deploy/postgres/initdb/provision.sh`, because the dump
 does not carry back the default privileges that let `relab_app` read tables future migrations
-create. (`prod-up` runs the same script on every start, so a volume that predates a change to it
-converges on the next release.)
+create. (`just stack <env> up` runs the same script on every start, so a volume that predates a
+change to it converges on the next release.)
 
 Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately
 (`infra/cloudflare/`, prod workspace adopted 2026-09-08); the tunnel's ingress rules live there,
