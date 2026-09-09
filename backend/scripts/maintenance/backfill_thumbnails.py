@@ -8,9 +8,9 @@ original, so a list of 80px cards downloads multi-megabyte images.
 Selects rows rather than walking the storage directory: the walk cost grew with every
 image ever uploaded and ran on every deploy. ``thumbnails_generated_at`` records that a
 row's set has been verified, so each run only looks at rows written since the last one.
-Rows whose file is missing, unreadable, or on S3 stay unstamped and are logged, so they
-are re-tried and re-warned on the next run. Commits per batch, so an interrupted run
-resumes where it stopped.
+Rows whose file is missing, unreadable, on S3, or that fail while being resized stay
+unstamped and are logged, so they are re-tried and re-warned on the next run. Commits
+per batch, so an interrupted run resumes where it stopped.
 
 Run with: python -m scripts.maintenance.backfill_thumbnails
 """
@@ -66,8 +66,8 @@ async def thumbnail_unverified_images(session: AsyncSession) -> tuple[int, int]:
     """Complete and stamp every image row not yet verified. Returns (generated, skipped).
 
     Works through the rows ``BATCH_SIZE`` at a time, committing after each batch. Rows
-    that cannot be read stay unstamped and are excluded from later batches of this run by
-    id, so an unreadable file cannot loop the scan forever.
+    that cannot be read or resized stay unstamped and are excluded from later batches of
+    this run by id, so one bad file cannot loop the scan or abort the batch's commit.
     """
     generated = 0
     skipped: set[object] = set()
@@ -88,7 +88,16 @@ async def thumbnail_unverified_images(session: AsyncSession) -> tuple[int, int]:
                 skipped.add(row.id)
                 continue
             if missing:
-                generate_thumbnails(path)
+                try:
+                    generate_thumbnails(path)
+                # `_missing_widths` only parses the header; a file whose pixel data is
+                # truncated, or a destination that cannot be written, fails here instead.
+                # Letting it escape rolls back the whole batch's stamps, so every later
+                # run re-selects the same rows and stalls on the same file.
+                except OSError, ValueError, PILImage.DecompressionBombError:
+                    logger.warning("Could not thumbnail image %s; leaving it unverified", row.id, exc_info=True)
+                    skipped.add(row.id)
+                    continue
                 generated += 1
             row.thumbnails_generated_at = datetime.now(UTC)
         await session.commit()

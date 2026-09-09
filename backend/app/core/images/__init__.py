@@ -1,6 +1,6 @@
 """Image processing utilities using Pillow."""
 
-from .concurrency import image_resize_limiter
+from .concurrency import deferred_thumbnail_limiter, image_resize_limiter
 from .constants import (
     ALLOWED_IMAGE_MIME_TYPES,
     DEFERRED_THUMBNAIL_WIDTHS,
@@ -27,6 +27,7 @@ __all__ = [
     "THUMBNAIL_INFIX",
     "THUMBNAIL_WIDTHS",
     "apply_exif_orientation",
+    "deferred_thumbnail_limiter",
     "delete_thumbnails",
     "filter_exif",
     "generate_thumbnails",

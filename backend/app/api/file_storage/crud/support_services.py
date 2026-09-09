@@ -33,6 +33,7 @@ from app.core.config import settings
 from app.core.images import (
     DEFERRED_THUMBNAIL_WIDTHS,
     EAGER_THUMBNAIL_WIDTHS,
+    deferred_thumbnail_limiter,
     delete_thumbnails,
     generate_thumbnails,
     image_resize_limiter,
@@ -50,6 +51,13 @@ if TYPE_CHECKING:
     from app.api.common.crud.filtering import BaseFilterSet
 
 logger = logging.getLogger(__name__)
+
+# How many deferred thumbnail passes may be pending at once. Nothing awaits them, so
+# without a ceiling a burst of uploads queues tasks faster than the limiter retires
+# them. Past it the wider widths are simply left for
+# `scripts.maintenance.backfill_thumbnails`, which is the same state a restart
+# mid-pass already leaves behind.
+MAX_DEFERRED_THUMBNAIL_TASKS = 50
 
 
 async def ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, parent_id: int) -> None:
@@ -172,7 +180,11 @@ async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
     except ValueError, OSError:
         logger.warning("Thumbnail generation failed for image %s, skipping", db_image.id, exc_info=True)
 
-    spawn_detached(_generate_deferred_thumbnails(image_path), name=f"thumbnails:{db_image.id}")
+    spawn_detached(
+        _generate_deferred_thumbnails(image_path),
+        name=f"thumbnails:{db_image.id}",
+        max_in_flight=MAX_DEFERRED_THUMBNAIL_TASKS,
+    )
 
     return db_image
 
@@ -186,21 +198,27 @@ def _discard_thumbnails_of_deleted_original(image_path: Path) -> None:
 async def _generate_deferred_thumbnails(image_path: Path) -> None:
     """Generate the wider thumbnails off the upload's request path.
 
+    Runs under its own limiter rather than the request path's: sharing one would put
+    an upload's inline resize behind every deferred job already queued, which is the
+    delay deferring them is meant to avoid.
+
     Failures leave the image with only its narrow thumbnail; the gallery falls back
     to the original and ``scripts.maintenance.backfill_thumbnails`` re-tries it.
     """
     try:
         await to_thread.run_sync(
-            generate_thumbnails, image_path, DEFERRED_THUMBNAIL_WIDTHS, limiter=image_resize_limiter()
+            generate_thumbnails, image_path, DEFERRED_THUMBNAIL_WIDTHS, limiter=deferred_thumbnail_limiter()
         )
     except ValueError, OSError:
         logger.warning("Deferred thumbnail generation failed for %s, skipping", image_path.name, exc_info=True)
-        return
-
-    # The row can be deleted while this task runs: `delete` unlinks the derivatives that
-    # exist at that moment, which is before these were written. Clean up after ourselves
-    # rather than leaving files no row points at and no sweep ever visits.
-    await to_thread.run_sync(_discard_thumbnails_of_deleted_original, image_path)
+    finally:
+        # The row can be deleted while this task runs: `delete` unlinks the derivatives
+        # that exist at that moment, which is before these were written. Clean up after
+        # ourselves rather than leaving files no row points at and no sweep ever visits.
+        # This also runs on the failure path because a concurrent delete is one of the
+        # ways it fails: a JPEG original is re-opened per width, so the delete can land
+        # between two of them and leave the widths already written behind.
+        await to_thread.run_sync(_discard_thumbnails_of_deleted_original, image_path)
 
 
 class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](ABC):

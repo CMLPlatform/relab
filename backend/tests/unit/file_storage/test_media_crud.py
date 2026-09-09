@@ -1,11 +1,13 @@
 """Behavior-focused tests for file and image CRUD entrypoints."""
 
 from io import BytesIO
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
+from anyio import to_thread
 from fastapi import UploadFile
 from PIL import Image as PILImage
 from pydantic import ValidationError
@@ -23,8 +25,11 @@ from app.core.images import (
     DEFERRED_THUMBNAIL_WIDTHS,
     EAGER_THUMBNAIL_WIDTHS,
     THUMBNAIL_WIDTHS,
+    deferred_thumbnail_limiter,
     generate_thumbnails,
+    image_resize_limiter,
     thumbnail_path_for,
+    thumbnails,
 )
 
 if TYPE_CHECKING:
@@ -242,3 +247,55 @@ async def test_deferred_pass_cleans_up_when_the_image_was_deleted_meanwhile(tmp_
         await _generate_deferred_thumbnails(image_path)
 
     assert not any(thumbnail_path_for(image_path, width).exists() for width in DEFERRED_THUMBNAIL_WIDTHS)
+
+
+async def test_deferred_pass_cleans_up_when_the_original_vanishes_mid_generation(tmp_path: Path) -> None:
+    """A delete landing between two widths must not orphan the width already written.
+
+    A JPEG original is re-opened once per width so ``draft`` can scale it in the DCT
+    domain, so an account erasure or an image delete can remove it after the 800px
+    thumbnail is on disk and before the 1600px open. That open raises ``FileNotFoundError``
+    — an ``OSError`` — and the widths written before it have no row pointing at them and
+    no sweep that would ever find them.
+    """
+    image_path = tmp_path / "vanishing.jpg"
+    PILImage.new("RGB", (2000, 1000), color="blue").save(image_path, format="JPEG")
+    generate_thumbnails(image_path, EAGER_THUMBNAIL_WIDTHS)
+
+    real_write = thumbnails._write_thumbnail
+
+    def write_then_delete(img: PILImage.Image, path: Path, width: int, height: int) -> Path:
+        written = real_write(img, path, width, height)
+        path.unlink(missing_ok=True)
+        return written
+
+    with patch.object(thumbnails, "_write_thumbnail", write_then_delete):
+        await _generate_deferred_thumbnails(image_path)
+
+    assert not image_path.exists()
+    assert not any(thumbnail_path_for(image_path, width).exists() for width in DEFERRED_THUMBNAIL_WIDTHS)
+
+
+async def test_the_deferred_pass_runs_under_its_own_limiter(tmp_path: Path) -> None:
+    """Deferred resizes must not share the queue an upload's inline resize waits in.
+
+    anyio's capacity limiter is FIFO, so one limiter for both means upload N+1 waits
+    behind every deferred job already queued — the deferral would then add to the
+    response time it exists to remove.
+    """
+    image_path = tmp_path / "wide.png"
+    PILImage.new("RGB", (2000, 1000), color="green").save(image_path)
+    limiters: list[object] = []
+
+    real_run_sync = to_thread.run_sync
+
+    async def record_limiter(func: object, *args: object, limiter: object = None, **kwargs: object) -> object:
+        limiters.append(limiter)
+        return await real_run_sync(func, *args, limiter=limiter, **kwargs)
+
+    with patch.object(support_services, "to_thread", SimpleNamespace(run_sync=record_limiter)):
+        await _generate_deferred_thumbnails(image_path)
+
+    assert limiters[0] is deferred_thumbnail_limiter()
+    assert limiters[0] is not image_resize_limiter()
+    assert deferred_thumbnail_limiter().total_tokens <= image_resize_limiter().total_tokens
