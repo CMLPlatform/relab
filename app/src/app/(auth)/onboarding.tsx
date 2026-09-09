@@ -24,7 +24,7 @@ function OnboardingBody({
     // Sizing and centering come from AuthScreen; this only sets inner rhythm.
     <View className="gap-3">
       <LoginBrandHero />
-      {/* The hero scrim is deliberately light — the card is what carries control
+      {/* The hero scrim is deliberately light: the card is what carries control
           legibility over the photo backdrop, so the copy and field live on it. */}
       <LoginCard>
         <AppText variant="title" className="font-bold text-center text-foreground">

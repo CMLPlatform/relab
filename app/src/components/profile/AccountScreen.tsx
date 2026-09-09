@@ -53,7 +53,7 @@ function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: Us
                 sectionKey={section.key}
                 title={section.title}
                 // Section must stay a direct child of this wrapper (not nested
-                // in a per-item View) — see its className prop doc.
+                // in a per-item View); see its className prop doc.
                 className={
                   section.key === DANGER_ZONE_KEY ? 'mt-6 border-t border-border pt-6' : undefined
                 }

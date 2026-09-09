@@ -208,9 +208,9 @@ async def test_image_dimensions_are_committed_not_just_flushed(mock_session: Asy
 
     ``create()`` commits before calling ``after_create``, so the dimensions write runs in
     a fresh transaction that nothing else closes: flushing alone loses it when the request
-    session is closed. The integration suite cannot see this — it binds every request to
+    session is closed. The integration suite cannot see this: it binds every request to
     one connection whose transaction the fixture owns, so an uncommitted flush still reads
-    back — which is why the guard lives here. It is also the only test that drives the
+    back, which is why the guard lives here. It is also the only test that drives the
     real upload path, so it pins which thumbnail widths that path generates inline.
     """
     # Wider than every thumbnail width, so the inline pass is not silently narrowed by
@@ -262,7 +262,7 @@ async def test_deferred_pass_cleans_up_when_the_original_vanishes_mid_generation
     A JPEG original is re-opened once per width so ``draft`` can scale it in the DCT
     domain, so an account erasure or an image delete can remove it after the 800px
     thumbnail is on disk and before the 1600px open. That open raises ``FileNotFoundError``
-    — an ``OSError`` — and the widths written before it have no row pointing at them and
+    (an ``OSError``), and the widths written before it have no row pointing at them and
     no sweep that would ever find them.
     """
     image_path = tmp_path / "vanishing.jpg"
@@ -287,7 +287,7 @@ async def test_the_deferred_pass_runs_under_its_own_limiter(tmp_path: Path) -> N
     """Deferred resizes must not share the queue an upload's inline resize waits in.
 
     anyio's capacity limiter is FIFO, so one limiter for both means upload N+1 waits
-    behind every deferred job already queued — the deferral would then add to the
+    behind every deferred job already queued; the deferral would then add to the
     response time it exists to remove.
     """
     image_path = tmp_path / "wide.png"

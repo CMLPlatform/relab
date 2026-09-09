@@ -66,11 +66,11 @@ const uploadImages = [
 // Per size, because a percentile mixed across all three hides which one moved.
 //
 // Measured p95: 31 / 33 / 59 ms on a GitHub runner, 79 / 92 / 154 ms on a busy dev
-// box. These are a coarse guard, not a tight one, and deliberately so — two runner
-// runs of the same commit put small at 69 ms and 31 ms, so run-to-run variance here
-// is over 2x. A ceiling tight enough to catch the ~40-50ms a re-blocked derivative
-// pass would add is a ceiling that flaps on that variance, and a flapping threshold
-// gets ignored, which is worse than a loose one. What these catch is a gross
+// box. These are a coarse guard, not a tight one: two runs of the same commit put
+// small at 69 ms and 31 ms, so run-to-run variance here is over 2x. A ceiling tight
+// enough to catch the ~40-50ms a re-blocked derivative pass would add is a ceiling
+// that flaps on that variance, and a flapping threshold gets ignored, which is worse
+// than a loose one. What these catch is a gross
 // regression; the pipeline's own cost is better guarded by measuring the resize
 // path directly, where there is no network or runner noise in the number.
 const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 190, large: 250 };
@@ -117,7 +117,7 @@ if (loginEmail && loginPassword) {
 
   // Last of all: an upload decodes the image and writes derivatives, so it is
   // both the slowest write and the one that leaves the most behind. Iterations
-  // rotate through `uploadImages`, and each size carries its own threshold —
+  // rotate through `uploadImages`, and each size carries its own threshold;
   // a mixed percentile over three sizes hides which one moved.
   //
   // The previous 1400 was set before anything had measured this, against a

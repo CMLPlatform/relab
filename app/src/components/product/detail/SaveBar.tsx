@@ -14,7 +14,7 @@ type SaveBarProps = {
   editMode: boolean;
   isDirty: boolean;
   isSaving: boolean;
-  /** Mutation is paused offline (TanStack's `isPaused`) — swaps the label, drops the spinner. */
+  /** Mutation is paused offline (TanStack's `isPaused`): swaps the label, drops the spinner. */
   isPaused: boolean;
   validationValid: boolean;
   validationError?: string;
@@ -73,7 +73,7 @@ export function SaveBar({
     >
       {/* NOTE: hand-rolled English plural. Swap it for
           Intl.PluralRules('en') behind a shared helper when the app gains a
-          second locale — there is nothing to share until then. */}
+          second locale; there is nothing to share until then. */}
       {needsAttention ? (
         <Animated.View
           entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}

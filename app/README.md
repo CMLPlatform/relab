@@ -133,7 +133,7 @@ covers the need, or the widest there is.
 
 | Surface                                          | Layout      | Source                                                                 |
 | ------------------------------------------------ | ----------- | ---------------------------------------------------------------------- |
-| `ComponentRow`, gallery filmstrip, `ProductCard` | 44–80pt     | `thumbnail_url` (200px) — already right at 3x                          |
+| `ComponentRow`, gallery filmstrip, `ProductCard` | 44–80pt     | `thumbnail_url` (200px), already right at 3x                          |
 | Gallery pager                                    | full width  | picked in `useProductGalleryMedia`, ~1600px on a modern phone          |
 | Lightbox                                         | full screen | picked the same way, swapping to the original past `ORIGINAL_AT_SCALE` |
 

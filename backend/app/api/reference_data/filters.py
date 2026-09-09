@@ -90,7 +90,7 @@ class MaterialFilter(BaseFilterSet):
 class MaterialFilterWithRelationships(MaterialFilter):
     """Material filters with explicit relationship-backed fields.
 
-    NOTE: category_name is filterable but deliberately not sortable — it's a many-to-many
+    NOTE: category_name is filterable but deliberately not sortable; it's a many-to-many
     relationship, and sorting on it via the add-columns+DISTINCT mechanism breaks
     pagination (each material can sort/paginate once per category). No client uses
     order_by=category_name; add a correlated-subquery ORDER BY if that's ever needed.
@@ -135,7 +135,7 @@ class ProductTypeFilter(BaseFilterSet):
 class ProductTypeFilterWithRelationships(ProductTypeFilter):
     """ProductType filters with explicit relationship-backed fields.
 
-    NOTE: category_name is filterable but deliberately not sortable — see the same note
+    NOTE: category_name is filterable but deliberately not sortable; see the same note
     on MaterialFilterWithRelationships.
     """
 

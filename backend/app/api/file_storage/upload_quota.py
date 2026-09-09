@@ -50,7 +50,7 @@ async def reserve_product_upload_quota(
     """Atomically reserve one product-owned upload against the owner's quota ledger.
 
     Charges the product's ``owner_id`` (not the requesting user), so it stays
-    consistent with release/recompute — a superuser uploading to another user's
+    consistent with release/recompute; a superuser uploading to another user's
     product charges that product's owner, not themselves. The limits follow that
     same owner's role, for the same reason.
     """

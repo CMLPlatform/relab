@@ -25,7 +25,7 @@ def keyed_digest(namespace: str, value: str, *, length: int | None = None) -> st
     """Return a stable keyed digest of ``value``, scoped to ``namespace``.
 
     The namespace is signed too, so the same value under two namespaces never produces
-    one digest — a rate-limit bucket cannot be correlated against a log token.
+    one digest; a rate-limit bucket cannot be correlated against a log token.
     """
     normalized = value.strip().casefold()
     if not normalized:

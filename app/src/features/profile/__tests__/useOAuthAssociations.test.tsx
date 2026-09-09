@@ -185,7 +185,7 @@ describe('useOAuthAssociations', () => {
   });
 
   // Regression: the step-up retry runs detached from the dialog's onPress, so a wrong
-  // password rejected unhandled — the dialog closed and the user was told nothing.
+  // password rejected unhandled: the dialog closed and the user was told nothing.
   it('reports a wrong password entered at the step-up prompt', async () => {
     jest
       .mocked(fetchOAuthAuthorizationUrl)

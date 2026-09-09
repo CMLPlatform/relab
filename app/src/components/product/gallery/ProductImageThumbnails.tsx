@@ -20,7 +20,7 @@ type Props = {
   thumbsRef: React.RefObject<ScrollableListHandle | null>;
   onSelectIndex: (index: number) => void;
   onScrollToIndex: (index: number) => void;
-  /** Product/component name — the alt-text fallback when an image has no description. */
+  /** Product/component name, the alt-text fallback when an image has no description. */
   fallbackLabel: string;
 };
 

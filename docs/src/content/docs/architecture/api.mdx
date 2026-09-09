@@ -11,18 +11,18 @@ Three surfaces: the public app API is the contract for the frontend and external
 
 ### Authentication and user management
 
-- `/v1/auth/*` — login, logout, refresh, registration, verification, password reset, and TOTP MFA setup/challenge flows
-- `/v1/oauth/*` — Google, GitHub, and YouTube account authorization, callbacks, token exchange, and account linking
-- `/v1/users/*` — authenticated user self-management
-- `/v1/profiles/{username}` — username-addressed public profile reads
-- `/v1/admin/users/*` — superuser user administration
+- `/v1/auth/*`: login, logout, refresh, registration, verification, password reset, and TOTP MFA setup/challenge flows
+- `/v1/oauth/*`: Google, GitHub, and YouTube account authorization, callbacks, token exchange, and account linking
+- `/v1/users/*`: authenticated user self-management
+- `/v1/profiles/{username}`: username-addressed public profile reads
+- `/v1/admin/users/*`: superuser user administration
 
 ### Data collection
 
-- `/v1/products/*` — base-product creation, reads, updates, search, owner filters, base-product media, videos, bill-of-materials, and parent-scoped component lists
-- `/v1/products/facets` and `/v1/products/suggestions/*` — filter facets and brand/model autocomplete suggestions for product search
-- `/v1/components/*` — stable component reads, updates, component-scoped media, and component bill-of-materials
-- `/v1/products?owner=me` and `/v1/users/{user_id}/products/*` — user-scoped product access
+- `/v1/products/*`: base-product creation, reads, updates, search, owner filters, base-product media, videos, bill-of-materials, and parent-scoped component lists
+- `/v1/products/facets` and `/v1/products/suggestions/*`: filter facets and brand/model autocomplete suggestions for product search
+- `/v1/components/*`: stable component reads, updates, component-scoped media, and component bill-of-materials
+- `/v1/products?owner=me` and `/v1/users/{user_id}/products/*`: user-scoped product access
 
 ### Reference data
 
@@ -31,7 +31,7 @@ Three surfaces: the public app API is the contract for the frontend and external
 
 ### Statistics
 
-- `/v1/stats/totals`, `/v1/stats/series`, and `/v1/stats/categories` — aggregate public totals, time series, and category breakdowns for dashboards and reporting
+- `/v1/stats/totals`, `/v1/stats/series`, and `/v1/stats/categories`: aggregate public totals, time series, and category breakdowns for dashboards and reporting
 
 ### Media
 
@@ -67,7 +67,7 @@ Owner attribution is viewer-aware. Public profiles show product owner names to e
 
 ### Hardware integration
 
-- `/v1/plugins/rpi-cam/*` — camera registration, status, capture, streaming, and remote interactions
+- `/v1/plugins/rpi-cam/*`: camera registration, status, capture, streaming, and remote interactions
 
 The app-facing camera routes appear in the [public API reference](/api/public/). Pairing and Pi-originated callbacks appear in the [device API reference](/api/device/). The separate local camera API served by the plugin appears in the [RPi camera API reference](/api/rpi-cam/).
 

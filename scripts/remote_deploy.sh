@@ -29,7 +29,7 @@ env_name="$(sed -n 's/^ENVIRONMENT=\([a-z]*\).*/\1/p' .env | head -1)"
     exit 2
 }
 
-# ponytail: a case statement, not a table; add a line when the release loop grows a step.
+# NOTE: a case statement, not a table; add a line when the release loop grows a step.
 case "$action" in
     pull)
         git fetch --quiet origin && git pull --ff-only && git log --oneline -1

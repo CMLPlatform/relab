@@ -44,7 +44,7 @@ BATCH_SIZE = 500
 def _missing_widths(path: Path) -> list[int] | None:
     """Return the thumbnail widths this original should have but does not.
 
-    None when the file cannot be read at all. An empty list means the set is complete —
+    None when the file cannot be read at all. An empty list means the set is complete;
     including the case of an original narrower than every width, which correctly gets no
     thumbnails because it is already list-sized.
     """

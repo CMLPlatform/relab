@@ -6,7 +6,7 @@ import { palette } from './palette.generated';
 import { createTokens } from './tokens';
 import type { AppScheme, AppTheme } from './types';
 
-/** '#1F4C96' -> 'rgb(31, 76, 150)' — matches the previous MD3-derived string format exactly. */
+/** '#1F4C96' -> 'rgb(31, 76, 150)'; matches the previous MD3-derived string format exactly. */
 function rgb(hex: string): string {
   const n = Number.parseInt(hex.slice(1), 16);
   return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;

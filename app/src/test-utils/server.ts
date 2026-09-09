@@ -118,7 +118,7 @@ export const handlers = [
   // src/features/cameras/local-connection/shared.ts). Wildcard origin so any
   // server-supplied candidate URL a test discovers is covered too, not just the
   // USB gadget default. Answers as "no camera" (network error, matching what an
-  // unroutable LAN address does in real life) rather than "camera present" —
+  // unroutable LAN address does in real life) rather than "camera present";
   // that's the behaviour every existing test already sees today from the probe
   // escaping to a real, unreachable address, so this keeps their semantics
   // unchanged while making it deterministic instead of a live network wait.

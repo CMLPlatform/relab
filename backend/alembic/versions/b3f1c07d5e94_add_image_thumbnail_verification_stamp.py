@@ -29,7 +29,7 @@ def upgrade() -> None:
     #
     # The partial index over this column is a revision of its own (e2a7c4d1b930), not the
     # tail of this one. CREATE INDEX CONCURRENTLY needs an autocommit block, and Alembic
-    # commits the surrounding transaction on entering one — which would commit this column
+    # commits the surrounding transaction on entering one, which would commit this column
     # while the revision is still unstamped. A concurrent build that then loses its race
     # for the lock leaves the column applied and the revision not recorded, and every later
     # `alembic upgrade head` dies re-adding a column that is already there.

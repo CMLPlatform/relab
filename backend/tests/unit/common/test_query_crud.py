@@ -104,7 +104,7 @@ def test_relationship_filter_uses_explicit_join_metadata() -> None:
 def test_relationship_sort_uses_explicit_join_metadata() -> None:
     """Relationship-backed sort fields should also join their allowlisted relationship.
 
-    This field is sort-only here (not filtered), so the join must be outer — see
+    This field is sort-only here (not filtered), so the join must be outer; see
     test_sort_only_relationship_join_is_outer for the row-preservation regression test.
     """
     filters = MaterialFilterWithRelationships().with_sorting([("category_name", "asc", None)])
@@ -133,7 +133,7 @@ def test_sort_only_relationship_join_is_outer() -> None:
 
 
 def test_filtered_and_sorted_relationship_join_stays_inner() -> None:
-    """A field that is both filtered and sorted keeps an inner join — filter semantics dominate."""
+    """A field that is both filtered and sorted keeps an inner join; filter semantics dominate."""
     filters = ProductFilterWithRelationships.from_ops(
         ProductFilterWithRelationships.product_type_name.ilike("plastic")
     ).with_sorting([("product_type_name", "asc", None)])

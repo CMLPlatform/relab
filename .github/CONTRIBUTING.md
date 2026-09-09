@@ -446,7 +446,7 @@ Write new revisions on top of it as usual. A future flatten repeats the same rec
 current head's revision id so deployed databases stay at a revision that still resolves, replace
 the chain below it with one revision that builds the schema from scratch, prove the result with a
 `pg_dump --schema-only` diff between a database built from the old chain and one built from the
-new revision, and drop the data migrations rather than folding them in — a fresh build has no rows
+new revision, and drop the data migrations rather than folding them in: a fresh build has no rows
 for them to touch.
 
 ## Frontend Development

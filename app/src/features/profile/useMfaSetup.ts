@@ -108,7 +108,7 @@ export function useMfaSetup(onChange: () => unknown): MfaSetupController {
       if (!beginRequest()) return;
       try {
         const codes = await confirmTotpSetup(setup.setupToken, submitCode, password);
-        // MFA is now enabled server-side and these codes are shown only once — surface
+        // MFA is now enabled server-side and these codes are shown only once; surface
         // them before refetching so a failed refetch can't discard the sole copy.
         setRecoveryCodes(codes);
         setCode('');

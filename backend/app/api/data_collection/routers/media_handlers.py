@@ -178,7 +178,7 @@ async def handle_upload_image(
     """Attach a new image to the given parent and refresh the product owner's stats.
 
     Components denormalize their base's owner_id, so this resolves correctly for either
-    role — and matches ``handle_delete_image``, which also recomputes for the owner
+    role, and matches ``handle_delete_image``, which also recomputes for the owner
     rather than the acting user (who may be a superuser uploading on someone else's
     behalf).
     """

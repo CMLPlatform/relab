@@ -231,14 +231,14 @@ function NewAccountStep({
           <Controller control={control} name={field} render={renderInput} />
         </View>
         {/* Reserved, never conditional: the message fills this slot instead of growing
-            the card. The error still stays until the field is actually fixed — it is
-            not on a timer — it just no longer moves the layout when it appears. */}
+            the card. The error still stays until the field is actually fixed; it is
+            not on a timer. It just no longer moves the layout when it appears. */}
         <View className="justify-center" style={styles.helperSlot}>
           <FormFieldError errorId={errorId} message={error?.message} />
         </View>
         <View className="flex-row items-center justify-between" style={styles.actionRow}>
           {/* Holds the left half of the action row even on step one, which has no back
-              action — otherwise the primary button would slide across between steps. */}
+              action; otherwise the primary button would slide across between steps. */}
           <View className="flex-1 justify-center">
             {back ? (
               <Pressable

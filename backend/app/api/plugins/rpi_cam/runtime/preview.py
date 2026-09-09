@@ -21,7 +21,7 @@ def get_preview_thumbnail_path(camera_id: UUID4) -> Path:
 
     Stored in a private sibling of the public image mount (not under
     ``image_storage_path``) so preview frames are never reachable through the
-    unauthenticated ``/uploads/images`` static mount — they are a live view of a
+    unauthenticated ``/uploads/images`` static mount; they are a live view of a
     private workspace and must go through the owner-checked preview route.
     """
     return settings.image_storage_path.parent / PREVIEW_THUMBNAIL_SUBDIR / f"{camera_id}.jpg"

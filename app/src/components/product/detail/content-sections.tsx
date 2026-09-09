@@ -181,7 +181,7 @@ export function guardedSections(ctx: GuardContext): SectionConfig[] {
   return SECTIONS.filter((section) => passesGuard(section, ctx));
 }
 
-/** The sections actually rendered right now — reused by the nav chips/outline. */
+/** The sections actually rendered right now, reused by the nav chips/outline. */
 export function visibleSections(
   product: Product,
   ctx: SectionContext & GuardContext,

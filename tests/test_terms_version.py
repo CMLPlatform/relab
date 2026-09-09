@@ -4,7 +4,7 @@ Accounts record which terms version they accepted (``terms_accepted_version``), 
 integer they record comes from the backend. The words those users actually agreed to live
 in the website copy. Nothing but this test ties the two together, so a wording change that
 bumps one side and not the other would leave accounts claiming to have accepted a version
-that never existed — or, worse, silently claiming to have accepted revised terms they were
+that never existed, or, worse, silently claiming to have accepted revised terms they were
 never shown.
 
 Regex rather than a parser: one is a Python module and the other a TypeScript object, and

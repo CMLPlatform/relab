@@ -92,7 +92,7 @@ async def test_guard_releases_marker_when_create_raises() -> None:
 
 
 async def test_failure_after_the_block_keeps_the_marker() -> None:
-    """A post-commit failure must not release the marker — the row is already durable.
+    """A post-commit failure must not release the marker; the row is already durable.
 
     Regression guard: the routers used to commit *inside* the guard, so a refresh/serialize
     error released the key and the client's retry created a duplicate row.
@@ -127,7 +127,7 @@ async def test_replay_returns_stored_response_without_reprocessing() -> None:
 
     async with idempotent_request(redis, user_id=user_id, endpoint=ENDPOINT, key=key, body=_Body()) as retry:
         replay = retry.replay
-        if replay is None:  # pragma: no cover — the assertion below reports it
+        if replay is None:  # pragma: no cover, the assertion below reports it
             calls += 1
 
     assert isinstance(replay, JSONResponse)
@@ -266,7 +266,7 @@ async def test_well_formed_key_passes_validation() -> None:
 
 
 async def test_none_passes_validation() -> None:
-    """No header at all is valid — it just means idempotency is opted out of."""
+    """No header at all is valid; it just means idempotency is opted out of."""
     assert validate_idempotency_key(None) is None
 
 
@@ -276,7 +276,7 @@ async def test_stored_body_matches_fastapis_own_response_encoding() -> None:
     Routes call ``result.model_dump(mode="json")`` and round-trip it through ``json.dumps``/
     ``json.loads`` before handing it to ``JSONResponse``; FastAPI's own response path instead
     runs the model through ``jsonable_encoder``. This test pins the assumption that the two
-    encoders agree — it would catch a future field (e.g. a new alias or computed property)
+    encoders agree; it would catch a future field (e.g. a new alias or computed property)
     that one encodes differently than the other.
     """
     product = ProductFactory.build(id=1, owner_id=uuid4(), bill_of_materials=[MaterialProductLinkFactory.build()])

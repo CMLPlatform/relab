@@ -42,7 +42,7 @@ jest.mock('@/components/cameras/YouTubeStreamCard', () => ({
   },
 }));
 
-// LivePreview pulls in expo-video / hls.js — both noisy under jest-expo's
+// LivePreview pulls in expo-video / hls.js, both noisy under jest-expo's
 // transform pipeline. Stub the component out to a marker text so the screen
 // renders without spinning up a real HLS player.
 jest.mock('@/components/cameras/LivePreview', () => ({
@@ -280,7 +280,7 @@ describe('Camera detail screen', () => {
     await renderWithProviders(<CameraDetailScreen />, { withDialog: true });
 
     // error is null (not an Error), so getErrorMessage falls back to
-    // 'Camera not found.' — confirm the error view branch (isError || !camera)
+    // 'Camera not found.': confirm the error view branch (isError || !camera)
     // is entered via Retry.
     expect(screen.getByText('Camera not found.')).toBeOnTheScreen();
     expect(screen.getByText('Retry')).toBeOnTheScreen();

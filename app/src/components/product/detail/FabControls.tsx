@@ -21,7 +21,7 @@ type ProductFabControlsProps = {
   errorCount?: number;
   onErrorSummaryPress?: () => void;
   isSaving: boolean;
-  /** Mutation is paused offline (TanStack's `isPaused`) — swaps the label, drops the spinner. */
+  /** Mutation is paused offline (TanStack's `isPaused`): swaps the label, drops the spinner. */
   isPaused: boolean;
   isDirty: boolean;
   onPrimaryFabPress: () => void;

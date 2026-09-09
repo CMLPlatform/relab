@@ -4,7 +4,7 @@ import { Platform, View } from 'react-native';
 import { TextClassContext } from '@/components/base/ui/text';
 import { cn } from '@/utils/cn';
 
-// Status-pill shape (DESIGN.md): radius.control, not `rounded-full` — the
+// Status-pill shape (DESIGN.md): radius.control, not `rounded-full`; the
 // True-Pill Rule keeps the full radius for avatars.
 const badgeVariants = cva(
   cn(

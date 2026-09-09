@@ -9,7 +9,7 @@ import {
 } from '@/features/products/queries';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 
-// A minimal stand-in for a successful query — shouldDehydrateQuery only reads
+// A minimal stand-in for a successful query; shouldDehydrateQuery only reads
 // `queryKey` and (via defaultShouldDehydrateQuery) `state.status`.
 function successfulQuery(queryKey: unknown[]): Query {
   return { queryKey, state: { status: 'success' } } as unknown as Query;
@@ -38,7 +38,7 @@ describe('shouldDehydrateQuery (persisted-cache allowlist)', () => {
   // The allowlist repeats prefixes the feature query-key factories own, because
   // services/ importing features/ would invert the dependency direction. This
   // is what keeps the copy honest: rename a factory's first key segment and the
-  // query silently stops persisting — here it fails instead.
+  // query silently stops persisting; here it fails instead.
   it('allowlist prefixes still match the factories they were copied from', () => {
     const queryKeys = [
       productsInfiniteQueryOptions('all', '').queryKey,
@@ -89,7 +89,7 @@ describe('paused mutations survive the query allowlist', () => {
 
     expect(dehydrated.mutations).toHaveLength(1);
     expect(dehydrated.mutations[0]?.mutationKey).toEqual(['saveProduct']);
-    // The key must survive dehydration in the variables themselves — a
+    // The key must survive dehydration in the variables themselves; a
     // rehydrated mutation re-attaches its mutationFn by mutationKey (functions
     // aren't serializable) but replays these same variables, so a key minted
     // inside the mutationFn instead of carried here would rotate on rehydrate.

@@ -26,7 +26,7 @@ class CameraDisconnectedDuringCommandError(RuntimeError):
     """A pending command's future was failed because its camera disconnected.
 
     Distinct from the plain ``RuntimeError`` ``send_command`` raises for "not
-    connected in this worker" — that case should fall through to the
+    connected in this worker"; that case should fall through to the
     cross-worker relay, this one should not (the socket that owned the
     command died, so there is nothing another worker can bridge to).
     """
@@ -61,7 +61,7 @@ class CameraConnectionManager:
     def unregister(self, camera_id: UUID4, ws: WebSocket) -> bool:
         """Remove a camera's connection and fail its pending futures so callers 503 fast.
 
-        Only acts if ``ws`` is still the registered connection — a stale connection's
+        Only acts if ``ws`` is still the registered connection; a stale connection's
         cleanup must not evict a freshly reconnected camera. Returns True if the
         camera was actually unregistered.
         """

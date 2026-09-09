@@ -99,7 +99,7 @@ def release_camera() -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# HTTP mode — local FastAPI server the backend proxies to
+# HTTP mode: local FastAPI server the backend proxies to
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -157,7 +157,7 @@ def run_http(port: int, host: str = "127.0.0.1") -> None:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# WebSocket mode — connects outbound to the backend relay
+# WebSocket mode: connects outbound to the backend relay
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -308,10 +308,10 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 examples:
-  # HTTP mode — backend proxies to this server
+  # HTTP mode: backend proxies to this server
   python scripts/webcam_fake_camera.py
 
-  # WebSocket mode — connects to the backend relay
+  # WebSocket mode: connects to the backend relay
   python scripts/webcam_fake_camera.py ws \\
       --backend-url ws://localhost:8000/v1/plugins/rpi-cam/ws/connect \\
       --camera-id 550e8400-e29b-41d4-a716-446655440000 \\

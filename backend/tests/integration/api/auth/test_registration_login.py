@@ -75,7 +75,7 @@ async def test_register_success(api_client: AsyncClient) -> None:
 
     assert response.status_code == status.HTTP_202_ACCEPTED
     data = response.json()
-    # The response never echoes account data — it is identical whether or not the email existed.
+    # The response never echoes account data; it is identical whether or not the email existed.
     assert "detail" in data
     assert "username" not in data
     assert "email" not in data
@@ -121,7 +121,7 @@ async def test_register_duplicate_email_is_not_enumerable(api_client: AsyncClien
             mock_get_manager.return_value = get_manager()
             duplicate = await api_client.post("/v1/auth/register", json=user_data)
 
-    # Identical status and body to the fresh registration — no way to tell the email was taken.
+    # Identical status and body to the fresh registration; no way to tell the email was taken.
     assert duplicate.status_code == fresh.status_code == status.HTTP_202_ACCEPTED
     assert duplicate.json() == fresh.json()
     # The real owner is still told a signup was attempted.

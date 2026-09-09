@@ -306,8 +306,8 @@ deploy_secrets_template() {
             else
                 # External identity credentials template empty (see deploy_secret_template_value):
                 # a 0-byte file reads as "not configured" everywhere, so re-templating on every
-                # run recreates it empty again rather than "keeping" it — expected, not a bug.
-                echo "created $path (empty — fill in when using this provider)"
+                # run recreates it empty again rather than "keeping" it; expected, not a bug.
+                echo "created $path (empty; fill in when using this provider)"
             fi
         else
             # Existing operator files keep their mode; deploy-secrets-check reports
@@ -337,7 +337,7 @@ deploy_secrets_export() {
         exit 1
     }
 
-    echo "# relab $env secrets — exported $(date -I)"
+    echo "# relab $env secrets, exported $(date -I)"
     echo "# Restore with: just secrets-restore $env <file>"
     echo "# This recreates secrets/$env/ (dir mode 700, files mode 644) from this block."
     echo "# Treat this note as a live credential; store it only in the password manager."
@@ -598,8 +598,8 @@ mount_writability_alert() {
 # Every mount the stack writes to, probed as the service that writes it, before anything
 # starts. A container gets no supplementary groups, so an ownership mismatch is not a
 # degraded mode: `stat` and reads keep succeeding and every write fails EACCES. Nothing
-# downstream would report it — `/live` never touches uploads and the migrator's backfills
-# are wrapped in `|| echo` — so the deploy would report success and uploads would fail one
+# downstream would report it (`/live` never touches uploads and the migrator's backfills
+# are wrapped in `|| echo`), so the deploy would report success and uploads would fail one
 # at a time afterwards.
 assert_deploy_mounts_writable() {
     local env="$1" backup_dir failed=0 entry service path target writable

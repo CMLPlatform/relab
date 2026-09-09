@@ -85,7 +85,7 @@ async def add_materials_to_product(
     db.add_all(db_material_product_links)
     await db.commit()
 
-    # MaterialProductLink has a composite (material_id, product_id) PK — no single id.
+    # MaterialProductLink has a composite (material_id, product_id) PK, no single id.
     result = await db.execute(
         select(MaterialProductLink)
         .where(MaterialProductLink.product_id == product_id)

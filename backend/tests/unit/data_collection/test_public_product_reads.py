@@ -61,7 +61,7 @@ def test_no_route_under_the_products_prefix_requires_authentication() -> None:
     """Every GET under /v1/products/ must stay an unauthenticated read.
 
     If this fails, either move the route out of the prefix or narrow the Cloudflare rule
-    before merging — otherwise the new route is served with bot protection disabled.
+    before merging; otherwise the new route is served with bot protection disabled.
     """
     offenders = {
         route.path: names

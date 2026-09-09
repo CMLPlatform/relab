@@ -99,7 +99,7 @@ function DialogBody({
     [inputValue],
   );
 
-  // Every action — on-screen press, keyboard return — routes through here, so the
+  // Every action (on-screen press, keyboard return) routes through here, so the
   // disabled gate lives here rather than at each entry point.
   const handleClose = useCallback(
     (btn?: DialogButton) => {
@@ -249,7 +249,7 @@ function Toast({
       className="absolute bottom-6 left-0 right-0 items-center"
       style={styles.toastContainer}
       pointerEvents="box-none"
-      // NOTE: exiting Animated.View must outlive this non-animated wrapper — without
+      // NOTE: exiting Animated.View must outlive this non-animated wrapper; without
       // collapsable={false} view flattening can drop the wrapper before the exit plays.
       collapsable={false}
     >

@@ -34,7 +34,7 @@ describe('useReturnFocus', () => {
 
   it('does not steal focus while the overlay is opening or open', async () => {
     // Focusing the trigger on open would pull the screen reader out of the
-    // overlay it just opened — the opposite of what this is for.
+    // overlay it just opened, the opposite of what this is for.
     const { rerender } = await renderHook(
       ({ visible }: { visible: boolean }) => useReturnFocus(visible),
       {

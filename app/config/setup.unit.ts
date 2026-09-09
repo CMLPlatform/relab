@@ -7,7 +7,7 @@ jest.mock('expo-router', () => {
   const React = require('react');
   // Theme values/provider live on expo-router itself since SDK 57. Pull them from
   // the lightweight `expo-router/react-navigation` compat module rather than the
-  // real `expo-router` entry point — that entry eagerly evaluates `ExpoRoot`,
+  // real `expo-router` entry point: that entry eagerly evaluates `ExpoRoot`,
   // which reads `window.location` and crashes outside a real router tree.
   const { DefaultTheme, DarkTheme, ThemeProvider } = jest.requireActual<
     typeof import('expo-router/react-navigation')

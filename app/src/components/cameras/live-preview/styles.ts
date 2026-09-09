@@ -13,7 +13,7 @@ export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {
       borderRadius: radius.card,
       backgroundColor: theme.colors.scrim,
     },
-    // tokens.overlay.scrim has no CSS var — JS-only.
+    // tokens.overlay.scrim has no CSS var, JS-only.
     overlay: {
       backgroundColor: theme.tokens.overlay.scrim,
     },

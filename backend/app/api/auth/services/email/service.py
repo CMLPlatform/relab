@@ -36,7 +36,7 @@ _SEND_BACKOFF_SECONDS = 0.5
 # Hard ceiling on one queued send, retries and provider timeouts included. The attempts
 # alone do not bound it: an SMTP timeout is configurable and the Graph provider makes two
 # HTTP calls per attempt, so three attempts can outlast any shutdown grace period. This
-# has to stay below `stop_grace_period` on the api service (compose.yaml) — past that a
+# has to stay below `stop_grace_period` on the api service (compose.yaml); past that a
 # deploy kills the worker mid-send and the notification is lost with neither a "sent" nor
 # a "failed" line to account for it.
 _SEND_WINDOW_SECONDS = 45
@@ -48,7 +48,7 @@ def get_default_email_provider() -> EmailProvider:
     """Build the configured email provider on first use.
 
     Deferred so that importing the app in non-serving contexts (migrations,
-    seeding, CLIs) does not require valid email config it never uses — building
+    seeding, CLIs) does not require valid email config it never uses; building
     the provider validates the sender address.
     """
     return build_email_provider(settings=auth_settings)
@@ -65,7 +65,7 @@ def email_log_token(email: EmailStr) -> str:
     """Return the opaque label an address is logged under.
 
     Not a mask: `j***@gmail.com` still carries the domain, and with a timestamp and the
-    surrounding fields that can re-identify one person in a small research population —
+    surrounding fields that can re-identify one person in a small research population;
     which is why the masked form needed a CodeQL suppression at every call site. A keyed
     digest keeps the only property operations actually needs, that two lines about the
     same address match, and carries no address.
@@ -113,8 +113,8 @@ async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_labe
     a verification or reset link it will not receive either way; a logged failure is what
     makes that visible.
 
-    Most send failures are transient — a refused connection, a greylisted first attempt,
-    an SMTP timeout — and the user cannot retry a verification mail themselves without
+    Most send failures are transient (a refused connection, a greylisted first attempt,
+    an SMTP timeout), and the user cannot retry a verification mail themselves without
     starting the flow again. The retries are bounded by ``_SEND_WINDOW_SECONDS`` rather
     than by the attempt count alone: this task holds no request and no DB session, but a
     send still in flight when the container stops is killed with it, so the window is

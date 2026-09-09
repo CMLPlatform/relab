@@ -850,7 +850,7 @@ export interface paths {
      *
      *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
      *     key returns the original response instead of creating a second product. The key is bound to
-     *     this user and this request body — reusing it with a different body is a 422.
+     *     this user and this request body; reusing it with a different body is a 422.
      */
     post: operations['create_product_v1_products_post'];
     delete?: never;
@@ -946,7 +946,7 @@ export interface paths {
      *
      *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
      *     key returns the original response instead of creating a second component. The key is bound to
-     *     this user, this parent, and this request body — reusing it with a different body is a 422.
+     *     this user, this parent, and this request body; reusing it with a different body is a 422.
      */
     post: operations['add_component_to_product_v1_products__product_id__components_post'];
     delete?: never;
@@ -1137,7 +1137,7 @@ export interface paths {
      *
      *     An optional ``Idempotency-Key`` header makes a retried request safe: replaying the same
      *     key returns the original response instead of creating a second component. The key is bound to
-     *     this user, this parent, and this request body — reusing it with a different body is a 422.
+     *     this user, this parent, and this request body; reusing it with a different body is a 422.
      */
     post: operations['add_component_to_component_v1_components__component_id__components_post'];
     delete?: never;
@@ -2317,7 +2317,7 @@ export interface paths {
      *     Owner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the
      *     private preview directory rather than the public ``/uploads/images`` mount, so
      *     a camera id alone no longer grants a stranger a recent frame. Cached only
-     *     privately and revalidated — never long-lived immutable like the public mount.
+     *     privately and revalidated, never long-lived immutable like the public mount.
      */
     get: operations['get_camera_preview_thumbnail_v1_plugins_rpi_cam_cameras__camera_id__preview_thumbnail_get'];
     put?: never;
@@ -2507,7 +2507,7 @@ export interface paths {
     put?: never;
     /**
      * Internal: receive an image pushed directly from a paired Raspberry Pi
-     * @description Called by the Pi after a successful capture. Authenticated with a short-lived ES256 device assertion (same credential used by the WebSocket relay). The Pi provides the JPEG body plus two JSON blobs: `capture_metadata` (libcamera metadata) and `upload_metadata` (opaque dict forwarded by whichever caller triggered the capture — typically `{product_id, description}`). The backend stores the image via the normal image storage service and returns a tiny ack envelope the Pi consumes.
+     * @description Called by the Pi after a successful capture. Authenticated with a short-lived ES256 device assertion (same credential used by the WebSocket relay). The Pi provides the JPEG body plus two JSON blobs: `capture_metadata` (libcamera metadata) and `upload_metadata` (opaque dict forwarded by whichever caller triggered the capture, typically `{product_id, description}`). The backend stores the image via the normal image storage service and returns a tiny ack envelope the Pi consumes.
      */
     post: operations['receive_camera_upload_v1_plugins_rpi_cam_device_cameras__camera_id__image_upload_post'];
     delete?: never;
@@ -4848,7 +4848,7 @@ export interface components {
      * ProductSummary
      * @description Minimal product summary for embedding in unrelated contexts (e.g. material links).
      *
-     *     Deliberately narrower than ``ProductRead`` — no owner, physical/circularity
+     *     Deliberately narrower than ``ProductRead``: no owner, physical/circularity
      *     properties, or other detail-view fields since no consumer needs them here.
      *     Extend with more fields only when an actual caller needs them.
      */
@@ -5057,9 +5057,9 @@ export interface components {
      * RegistrationResponse
      * @description Uniform registration acknowledgement.
      *
-     *     Deliberately reveals nothing about whether the email already exists — the same
+     *     Deliberately reveals nothing about whether the email already exists; the same
      *     body is returned whether a new account was created or the address was already
-     *     taken — so registration cannot be used to enumerate accounts.
+     *     taken, so registration cannot be used to enumerate accounts.
      */
     RegistrationResponse: {
       /**
@@ -10933,7 +10933,7 @@ export interface operations {
       query?: {
         /** @description Include camera online status */
         include_status?: boolean;
-        /** @description Include the last-known telemetry snapshot from the Redis cache. Implies ``include_status=true``. No relay round-trips — cameras without cached telemetry come back with ``telemetry: null``. */
+        /** @description Include the last-known telemetry snapshot from the Redis cache. Implies ``include_status=true``. No relay round-trips; cameras without cached telemetry come back with ``telemetry: null``. */
         include_telemetry?: boolean;
         search?: string | null;
         name?: string | null;

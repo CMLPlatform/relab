@@ -3,7 +3,7 @@
  *
  * The account screen (src/components/profile/AccountScreen.tsx) reuses the
  * same anchored-scroll document pattern as the product detail screen
- * (SectionNavLayout + useAnchoredSectionNav) — see e2e/product-detail.spec.ts
+ * (SectionNavLayout + useAnchoredSectionNav); see e2e/product-detail.spec.ts
  * for the origin of the chip-click regression net this file mirrors.
  */
 
@@ -44,7 +44,7 @@ test.describe('Account: section navigation', () => {
 // The edit-username dialog (src/components/profile/Dialogs.tsx) is built on
 // React Native's core Modal, which react-native-web backs with its own focus
 // trap and Escape → onRequestClose (no react-native-paper involved here
-// anymore — see DialogProvider.tsx for the rationale). Verify both against
+// anymore; see DialogProvider.tsx for the rationale). Verify both against
 // the account screen's edit-username dialog.
 test.describe('Account: dialog keyboard a11y', () => {
   test('focus stays trapped inside the edit-username dialog and Escape closes it', async ({
@@ -61,10 +61,10 @@ test.describe('Account: dialog keyboard a11y', () => {
 
     // react-native-web's core Modal marks its root role="dialog" while active.
     // Tab well past the dialog's three focusables (username input, Cancel,
-    // Save) — every stop must stay inside the dialog's DOM subtree.
+    // Save): every stop must stay inside the dialog's DOM subtree.
     const dialogRoot = page.getByRole('dialog');
     for (let i = 0; i < 6; i++) {
-      // biome-ignore lint/performance/noAwaitInLoops: sequential — each Tab must land before the next is pressed.
+      // biome-ignore lint/performance/noAwaitInLoops: sequential: each Tab must land before the next is pressed.
       await page.keyboard.press('Tab');
       const insideDialog = await dialogRoot.evaluate((root) =>
         Boolean(document.activeElement && root.contains(document.activeElement)),

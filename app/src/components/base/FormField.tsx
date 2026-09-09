@@ -3,7 +3,7 @@ import { AccessibilityInfo, Platform, StyleSheet, type TextStyle, View } from 'r
 import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/theme';
 
-// One caption line at fontSize 12 — matches NewAccountSections' HELPER_SLOT_HEIGHT.
+// One caption line at fontSize 12, matches NewAccountSections' HELPER_SLOT_HEIGHT.
 // minHeight, not height: large OS text-scale settings may still grow the line.
 const HELPER_SLOT_MIN_HEIGHT = 18;
 

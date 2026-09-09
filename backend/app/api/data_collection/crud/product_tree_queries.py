@@ -36,7 +36,7 @@ def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tu
     """Apply relationship loaders required by product detail responses.
 
     ``Product``'s components, parent and images are all eagerly loaded at class
-    level, so this looks like it should walk a whole subtree — it does not. The
+    level, so this looks like it should walk a whole subtree; it does not. The
     ``raiseload("*")`` that ``apply_loader_profile`` puts on the statement
     propagates to sub-loaders, which stops the loaded components from firing
     their own defaults. Measured on a five-deep tree: eight queries, and a

@@ -87,7 +87,7 @@ describe('useLocalConnection', () => {
     await settleConnectionHook();
 
     // No key yet, so there is nothing to gain from probing the shared USB gadget
-    // address — and nothing that may be bound to this camera.
+    // address, and nothing that may be bound to this camera.
     expect(probeLocalUrl).not.toHaveBeenCalled();
     expect(result.current.mode).toBe('relay');
     expect(result.current.localBaseUrl).toBeNull();
@@ -106,7 +106,7 @@ describe('useLocalConnection', () => {
 
     await settleConnectionHook();
 
-    // Not 'probing' — a successful probe means the direct link is usable now,
+    // Not 'probing': a successful probe means the direct link is usable now,
     // rather than 30s later when the re-probe interval next fires.
     expect(probeLocalUrl).toHaveBeenCalledWith(USB_GADGET_DEFAULT);
     expect(result.current.mode).toBe('local');
@@ -229,7 +229,7 @@ describe('useLocalConnection', () => {
 
   it('does not let the relay bootstrap undo an explicit disconnect', async () => {
     // Regression: `clear` sets mode to 'relay', which is a dep of the bootstrap
-    // effect — it used to immediately rediscover and re-persist the connection.
+    // effect: it used to immediately rediscover and re-persist the connection.
     jest.mocked(fetchLocalAccessInfo).mockImplementation(async () => ({
       local_api_key: 'relay-key',
       candidate_urls: ['http://10.0.0.8:8018'],

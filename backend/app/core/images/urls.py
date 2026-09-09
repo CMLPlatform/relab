@@ -75,7 +75,7 @@ def build_storage_url(path: str | PathLike[str] | None, storage_root: Path, url_
 def build_image_urls(file_path: str | None, storage_root: Path) -> tuple[str | None, str | None]:
     """Build generated image and thumbnail URLs with filesystem existence checks.
 
-    Returns (image_url, thumbnail_url) — both None if the original file does not exist.
+    Returns (image_url, thumbnail_url); both None if the original file does not exist.
     """
     if file_path is None:
         return None, None

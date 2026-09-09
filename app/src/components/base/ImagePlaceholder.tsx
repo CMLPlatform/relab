@@ -33,7 +33,7 @@ export default function ImagePlaceholder({
         justifyContent: 'center',
       }}
     >
-      {/* Decorative — hidden from the accessibility tree, matching StaticBackground's aria-hidden treatment. */}
+      {/* Decorative, hidden from the accessibility tree, matching StaticBackground's aria-hidden treatment. */}
       <View aria-hidden>
         <Icon name="image" size={iconSize} color={theme.colors.outline} />
       </View>

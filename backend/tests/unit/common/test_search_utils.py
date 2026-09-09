@@ -69,7 +69,7 @@ def test_trigram_compares_the_bare_column() -> None:
     """Trigram comparisons must not wrap the column in a function.
 
     The gin_trgm_ops indexes are built on the column itself, so lower(column)
-    is an expression the planner cannot match to one — it would silently
+    is an expression the planner cannot match to one; it would silently
     downgrade every fuzzy search to a sequential scan. pg_trgm already folds
     case when it extracts trigrams, so there is nothing to normalise.
     """

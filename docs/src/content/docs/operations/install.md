@@ -106,9 +106,9 @@ use, or local development. For contributor workflow and tooling policy, see
 The stack runs on one host behind a Cloudflare Tunnel, so the host needs no public ports. Deploys
 are three commands on the server: pull the repo, build, start the stack. They can be run there, or
 sent from another machine over an ssh key whose forced command is `scripts/remote_deploy.sh`, which
-allows exactly those steps and nothing else (see `deploy/DEPLOY-PROD.md` Part 1.6). Every `prod-*` recipe
-takes `YES` as its first argument to confirm it acts on production; the `staging-*` recipes are the
-same commands for a staging host. [Deployment and operations](/operations/deployment/) describes
+allows exactly those steps and nothing else (see `deploy/DEPLOY-PROD.md` Part 1.6). Every command
+runs as `just stack <prod|staging> <command>`, and a state-changing command takes `YES` to confirm
+which host it acts on. [Deployment and operations](/operations/deployment/) describes
 the topology these steps produce.
 
 1. Create a Cloudflare Tunnel, one of two ways.
@@ -151,8 +151,8 @@ the topology these steps produce.
    The root `.env` is gitignored and holds every host-local value Compose interpolates. One host
    serves one environment. Every key is described in `.env.example`. The required ones:
 
-   - `ENVIRONMENT`: `prod` or `staging`. The `prod-*` and `staging-*` recipes refuse to run against
-     a host whose `.env` says otherwise.
+   - `ENVIRONMENT`: `prod` or `staging`. `just stack` refuses to run against a host whose `.env`
+     says otherwise.
    - `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, `DOCS_PUBLIC_URL`: the four public
      origins on your domain.
    - `CLOUDFLARE_TUNNEL_TOKEN`: the tunnel token from the previous step.
@@ -232,10 +232,10 @@ the topology these steps produce.
    allows only when no migration in between dropped or rewrote data. `just stack prod down YES` stops
    the stack.
 
-   `up` first probes, as the services that write them, the three mounts the stack writes to: the
-   `user_uploads` and `restic_cache` volumes and the restic bind mount. It refuses to start when one
-   is not writable by UID 65532, because reads and `stat` still succeed on a wrongly-owned mount and
-   only the writes fail. Docker sets a named volume's ownership when it first creates the volume and
+   Before starting anything, `up` probes the three mounts the stack writes to, each as the service
+   that writes it: the `user_uploads` and `restic_cache` volumes, and the restic bind mount. It
+   refuses to start when one is not writable by UID 65532, because reads and `stat` still succeed on
+   a wrongly-owned mount and only the writes fail. Docker sets a named volume's ownership when it first creates the volume and
    never again, so a host whose volumes were created by a release that ran as a different UID needs a
    one-time chown, with the stack down:
 

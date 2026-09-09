@@ -138,7 +138,7 @@ describe('sendVerificationEmail', () => {
     expect(feedback.error).not.toHaveBeenCalled();
   });
 
-  // A falsy return is a refusal, not a success — reporting it as sent leaves the
+  // A falsy return is a refusal, not a success; reporting it as sent leaves the
   // user waiting for an email that never arrives.
   it('reports failure when the endpoint refuses without throwing', async () => {
     mockVerify.mockResolvedValue(false);

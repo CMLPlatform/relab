@@ -61,7 +61,7 @@ async def get_user_cameras(
         default=False,
         description=(
             "Include the last-known telemetry snapshot from the Redis cache. Implies "
-            "``include_status=true``. No relay round-trips — cameras without cached telemetry "
+            "``include_status=true``. No relay round-trips; cameras without cached telemetry "
             "come back with ``telemetry: null``."
         ),
     ),
@@ -134,7 +134,7 @@ async def get_camera_preview_thumbnail(camera: UserOwnedCameraDep) -> FileRespon
     Owner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the
     private preview directory rather than the public ``/uploads/images`` mount, so
     a camera id alone no longer grants a stranger a recent frame. Cached only
-    privately and revalidated — never long-lived immutable like the public mount.
+    privately and revalidated, never long-lived immutable like the public mount.
     """
     path = get_preview_thumbnail_path(camera.id)
     if not path.is_file():
@@ -252,7 +252,7 @@ async def get_camera_local_access(
 async def _notify_camera_unpair(camera_id: UUID4, redis: Redis) -> None:
     """Best-effort relay of DELETE /pairing to the camera.
 
-    Logs a warning and continues if the camera is offline or unresponsive —
+    Logs a warning and continues if the camera is offline or unresponsive;
     deletion should never be blocked by camera connectivity.
     """
     status = await fetch_camera_status(redis, camera_id)

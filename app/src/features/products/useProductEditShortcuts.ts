@@ -26,7 +26,7 @@ export function useProductEditShortcuts({
   editMode: boolean;
   /** Mirrors the Edit FAB's own `visible={ownedByMe}`: no shortcut into an editor the user cannot open. */
   canEdit: boolean;
-  /** Save is gated the same way the FAB gates it — invalid forms don't save. */
+  /** Save is gated the same way the FAB gates it; invalid forms don't save. */
   canSave: boolean;
   onEdit: () => void;
   onSave: () => void;

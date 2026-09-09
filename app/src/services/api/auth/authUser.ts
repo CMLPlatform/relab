@@ -39,7 +39,7 @@ export async function getUser(
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          // Definitive rejection — the session is gone.
+          // Definitive rejection: the session is gone.
           setWebSessionFlag(false);
         } else {
           // Transient server error; keep the session flag so later

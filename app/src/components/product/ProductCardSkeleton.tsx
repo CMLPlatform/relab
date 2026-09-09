@@ -12,7 +12,7 @@ export default function ProductCardSkeleton() {
     <Card className="mx-2.5 my-1.5">
       {/* Mirrors ProductCard's structure, including the metadata row below the
           press target. When the card grew that row and this did not, every
-          products-list load reflowed ~44px per card — several hundred pixels
+          products-list load reflowed ~44px per card, several hundred pixels
           across a screenful, on the app's home surface. Keep the two in step. */}
       <View className="p-3">
         <View className="flex-row items-center">

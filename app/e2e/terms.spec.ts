@@ -1,8 +1,8 @@
 /**
  * Contributor-terms prompt, against the real backend.
  *
- * Accounts created programmatically — which is every seeded account, and every
- * account that predates acceptance tracking in production — record no terms
+ * Accounts created programmatically (which is every seeded account, and every
+ * account that predates acceptance tracking in production) record no terms
  * acceptance, because stamping one would fabricate evidence of a licence grant
  * nobody made. This is the flow that lets those accounts grant it.
  *
@@ -15,7 +15,7 @@
  * that un-accepts, since retracting evidence of a licence grant is not something
  * an API should offer. `just test-e2e-full-stack` recreates the volumes on every
  * run, so this only bites when re-running `just test-e2e` by hand against a stack
- * left up — reset it with `just _e2e-backend-down` first.
+ * left up; reset it with `just _e2e-backend-down` first.
  */
 
 import { expect, test } from '@playwright/test';
@@ -47,7 +47,7 @@ test.describe('Contributor terms prompt', () => {
     await expect(accept).toBeHidden({ timeout: 15_000 });
 
     // The grant is server-side, so it has to survive a reload rather than living
-    // in the dismissal store — that is the whole difference between accepting
+    // in the dismissal store: that is the whole difference between accepting
     // and pressing "Not now".
     await page.reload();
     await expect(page.getByRole('button', { name: 'Accept' })).toBeHidden({ timeout: 30_000 });

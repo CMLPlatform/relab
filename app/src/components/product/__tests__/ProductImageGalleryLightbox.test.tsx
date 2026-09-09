@@ -40,7 +40,7 @@ type ZoomableImageMockProps = {
 const mockFlatListCalls: Array<Record<string, unknown> & FlatListCallProps> = [];
 const mockZoomableImageCalls: ZoomableImageMockProps[] = [];
 const SLASH_SEPARATOR_PATTERN = /\/ /;
-// Undescribed images fall back to "Select <product name> <position>" — match
+// Undescribed images fall back to "Select <product name> <position>"; match
 // on the "Select " prefix rather than the exact fallback text.
 const THUMBNAIL_LABEL_PATTERN = /^Select /;
 let keydownHandler: ((event: { key: string }) => void) | null = null;

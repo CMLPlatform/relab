@@ -100,7 +100,7 @@ def pytest_configure(config: pytest.Config) -> None:
     elif _xdist_active(config):
         # Controller under xdist: start one shared container eagerly so its
         # coordinates can be handed to every worker via pytest_configure_node.
-        # (Non-xdist runs stay lazy — see _ensure_testcontainers_postgres — so
+        # (Non-xdist runs stay lazy, see _ensure_testcontainers_postgres, so
         # unit-only runs never pay the Docker startup cost.)
         _ensure_testcontainers_postgres()
 

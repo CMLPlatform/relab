@@ -17,13 +17,13 @@ A small `k6` suite that catches latency regressions in common backend paths.
 | `product_create_write` | `POST /v1/products` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
 | `image_upload_write` | `POST /v1/products/{id}/images` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
 
-`just docker-ci-perf-baseline` supplies all four: it reads the first seeded product's
-`thumbnail_url` from the running stack to fill `PERF_MEDIA_URL`, and fails rather than silently
+`just docker-ci-perf-baseline` fills the gated inputs itself. It reads the first seeded product's
+`thumbnail_url` from the running stack into `PERF_MEDIA_URL`, and fails rather than silently
 skipping media coverage when the database holds no seeded images.
 
 ## How the Suite Is Shaped
 
-Three decisions matter more than the numbers, because each one changes what is being measured.
+Four decisions change what the numbers measure.
 
 **Scenarios run one at a time, not together.** Each stage starts after the previous one finishes
 (`PERF_STAGE_SECONDS`, then a `PERF_STAGE_GAP_SECONDS` gap). Overlapping them makes every result a
@@ -38,9 +38,11 @@ whatever the server does. The closed-model alternative (`constant-vus` plus `sle
 `dropped_iterations` is thresholded because an open-model run that cannot start iterations on time
 is a saturated server, not a fast one.
 
-**The write stages run last, uploads last of all.** `image_upload_write` posts through the real
-multipart path, so it decodes an image and writes derivatives — the slowest endpoint in the API by
-a wide margin. Malware scanning is not exercised, since ClamAV is not in use.
+**The write stages run last, uploads last of all.** `product_create_write` inserts rows, so every
+read stage is measured against a table that is not growing underneath it. `image_upload_write`
+posts through the real multipart path, so it decodes an image and writes derivatives. That is the
+slowest endpoint in the API by a wide margin. Malware scanning is not exercised, since ClamAV is
+not in use.
 
 Iterations rotate through three photo sizes, each tagged `upload_size` and thresholded separately,
 because a percentile mixed across all three hides which one moved:
@@ -59,30 +61,31 @@ is ~110-130ms rather than ~20ms.
 The larger two are tiled from the committed sample rather than upscaled or generated: tiling repeats
 the source's own frequency content, so decode, resize and encode cost per pixel stay in the range a
 real photograph produces. They are gitignored and rebuilt by `just perf-fixtures`, which both perf
-recipes run first — reproducible from one 87 KB source, with no multi-megabyte binaries in the repo.
+recipes run first. The whole set is reproducible from one 87 KB source, and no multi-megabyte
+binaries enter the repo.
 
 The per-size thresholds are a coarse guard. Two runs of the same commit on GitHub runners put
-`small` at 69 ms and 31 ms, so run-to-run variance is over 2x, and a ceiling tight enough to catch
-the ~40-50 ms that re-blocking the deferred derivatives would add would flap on that variance. They
+`small` at 69 ms and 31 ms, so run-to-run variance is over 2x. A ceiling tight enough to catch the
+~40-50 ms that re-blocking the deferred derivatives would add would flap on that variance. They
 catch a gross regression; the resize path's own cost is better measured directly, without a network
 and a shared runner in the number.
 
-**The write stage runs last.** `product_create_write` inserts rows, so every read stage is measured
-against a table that is not growing underneath it. `product_search_read` rotates its query terms so
-the run does not measure one repeatedly cached query; it is the slowest read path, which is why it
-was worth covering.
+`product_search_read` rotates its query terms so the run does not measure one repeatedly cached
+query. It is the slowest read path.
 
 **The database is not empty, and neither is any other table.** `BULK_SEED_PRODUCTS` scales the
-fixtures (5000 products by default in CI) via `scripts/seed/bulk_seed.py`, which also scales users,
-product types, materials and categories with it, gives a fifth of products an image and a tenth a
-component subtree. Rows come from `scripts/seed/factories` — the same polyfactory/faker factories
-the test suite uses, so a row a baseline measures and a fixture a test asserts against cannot drift
-apart. Generating the full set costs about 12 seconds and the seeder is idempotent, which is why
-there is no pre-built fixture dump to keep in sync with the schema. Against the handful of rows the dummy seed creates, the
-suite cannot detect the regressions that actually hurt: a missing index, a linear `COUNT(*)`, an
-eager load that degrades with row count. The generator spreads `created_at` over two years and draws
+fixtures (5000 products by default in CI) via `scripts/seed/bulk_seed.py`. That script scales users,
+product types, materials and categories with the product count, gives a fifth of products an image,
+and gives a tenth a component subtree. Against the handful of rows the dummy seed creates, the suite
+cannot detect the regressions that actually hurt: a missing index, a linear `COUNT(*)`, an eager
+load that degrades with row count.
+
+Rows come from `scripts/seed/factories`, the same polyfactory/faker factories the test suite uses,
+so a row a baseline measures and a fixture a test asserts against cannot drift apart. Generating the
+full set costs about 12 seconds and the seeder is idempotent, so there is no pre-built fixture dump
+to keep in sync with the schema. The generator spreads `created_at` over two years and draws
 high-cardinality names, brands and models, because those columns are trigram-indexed and feed
-`search_vector` — a short word list would make those indexes far more selective than production.
+`search_vector`. A short word list would make those indexes far more selective than production.
 
 It also runs `VACUUM ANALYZE` afterwards. Skipping it measures the database recovering from the
 fixture load rather than steady state: planner statistics still describe an almost empty table, and
@@ -150,12 +153,12 @@ just perf-baseline
 - `PERF_USER_EMAIL`
 - `PERF_USER_PASSWORD`
 - `PERF_MEDIA_URL`
-- `PERF_STAGE_SECONDS` — duration of each scenario stage (default `20`)
-- `PERF_STAGE_GAP_SECONDS` — idle gap between stages (default `5`)
-- `PERF_SEARCH_TERMS` — comma-separated query terms the search scenario rotates through
+- `PERF_STAGE_SECONDS`: duration of each scenario stage (default `20`)
+- `PERF_STAGE_GAP_SECONDS`: idle gap between stages (default `5`)
+- `PERF_SEARCH_TERMS`: comma-separated query terms the search scenario rotates through
 - `PERF_DETAIL_RATE`, `PERF_COMPONENTS_RATE`, `PERF_REFERENCE_RATE`, `PERF_UPLOAD_RATE`
 - `PERF_PRODUCT_LIST_RATE`, `PERF_LIVE_RATE`, `PERF_LOGIN_RATE`, `PERF_MEDIA_RATE`,
-  `PERF_SEARCH_RATE`, `PERF_CREATE_RATE` — requests per second per scenario
+  `PERF_SEARCH_RATE`, `PERF_CREATE_RATE`: requests per second per scenario
 
 ## Recommended Baseline Inputs
 

@@ -12,7 +12,7 @@ import {
 } from '@/features/cameras/local-connection/shared';
 
 // Stand-ins for the two storage tiers so a test can assert which one a value
-// landed in — the whole point of the web/native split below.
+// landed in, which is what the web/native split below decides.
 const mockLocalStore = new Map<string, string>();
 const mockSecureStore = new Map<string, string>();
 
@@ -108,8 +108,8 @@ describe('local connection storage security', () => {
       'http://192.168.1.50:8018',
       'http://10.0.0.5:8018',
       'http://camera.local:8018',
-      'http://8.8.8.8:8018', // public IP — must be dropped
-      'http://evil.example.com:8018', // public host — must be dropped
+      'http://8.8.8.8:8018', // public IP, must be dropped
+      'http://evil.example.com:8018', // public host, must be dropped
     ]);
     expect(candidates).toContain('http://192.168.1.50:8018');
     expect(candidates).toContain('http://10.0.0.5:8018');

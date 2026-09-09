@@ -83,7 +83,7 @@ async def erase_user(
 ) -> None:
     """Erase a user account, applying the chosen policy to the content they own.
 
-    ``actor_id`` is the admin performing the erasure, not the erased user — it is
+    ``actor_id`` is the admin performing the erasure, not the erased user; it is
     the audit subject for the product deletions this triggers.
 
     Raises:

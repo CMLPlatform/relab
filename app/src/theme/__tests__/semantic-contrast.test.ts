@@ -3,8 +3,8 @@ import { palette } from '@/theme/palette.generated';
 import { darkTheme, lightTheme } from '@/theme/themes';
 import type { AppTheme } from '@/theme/types';
 
-// `danger` resolves to theme.colors.error, which — unlike the other status
-// tones (hardcoded hex in SEMANTIC_COLORS) — comes out of themes.ts's rgb()
+// `danger` resolves to theme.colors.error, which, unlike the other status
+// tones (hardcoded hex in SEMANTIC_COLORS), comes out of themes.ts's rgb()
 // helper as an "rgb(r, g, b)" string; accept both formats.
 const RGB_PATTERN = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/;
 function toRgbTriple(color: string): [number, number, number] {

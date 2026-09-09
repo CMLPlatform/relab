@@ -7,8 +7,8 @@ type HostElement = ReturnType<typeof screen.getByTestId>;
  *
  * v14 renders host elements only, so the `UNSAFE_*ByType` / `UNSAFE_*ByProps`
  * queries that could return composite components are gone. Where a test asserts
- * on something with no accessible handle — an icon's stroke width, a list's
- * paging threshold — these query the rendered tree by host name instead. React
+ * on something with no accessible handle (an icon's stroke width, a list's
+ * paging threshold), these query the rendered tree by host name instead. React
  * Native's host names are not the component names: a `FlatList` is
  * `RCTScrollView`, an `Svg` is `RNSVGSvgView`, a `View` and a `TextInput` keep
  * theirs.

@@ -11,7 +11,7 @@ const reactHooksErrors = Object.fromEntries(
   ]),
 );
 
-// High-signal RN accessibility rules — catch malformed accessibility props on
+// High-signal RN accessibility rules: catch malformed accessibility props on
 // native primitives that Biome's DOM-oriented a11y rules can't see. This runs
 // in the existing lint lane (every PR), covering the app's a11y gap that the
 // axe-on-web e2e only reaches post-merge. The codebase already passes these,
@@ -44,7 +44,7 @@ const reactNativeA11yRules = {
 // A heading role written straight onto a JSX element, which `heading(level)`
 // from `@/utils/a11y` exists to replace: react-native-web renders any header
 // role without an aria-level as an <h1>, so a bare one silently claims the
-// screen's only top-level heading — the one useScreenEntryFocus focuses.
+// screen's only top-level heading, the one useScreenEntryFocus focuses.
 const headingRole = (prop, value) => ({
   selector: `JSXAttribute[name.name="${prop}"][value.value="${value}"]`,
   message: "Spread heading(level) from '@/utils/a11y' instead of a bare heading role.",

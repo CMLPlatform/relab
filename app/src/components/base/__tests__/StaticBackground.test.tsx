@@ -6,7 +6,7 @@ import { mockPlatform, restorePlatform } from '@/test-utils/index';
 describe('StaticBackground', () => {
   afterEach(restorePlatform);
 
-  // The background is wrapped in an aria-hidden View (decorative — hidden from
+  // The background is wrapped in an aria-hidden View (decorative, hidden from
   // screen readers and axe), so queries must opt into hidden elements.
   it('renders the background image on native platforms', async () => {
     mockPlatform('ios');

@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class FakeStoredFile:
-    """Typed stand-in for StorageFile/StorageImage — exposes only what helpers read."""
+    """Typed stand-in for StorageFile/StorageImage; exposes only what helpers read."""
 
     path: str
 

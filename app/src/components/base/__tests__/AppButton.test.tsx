@@ -5,11 +5,11 @@ import { Text } from '@/components/base/ui/text';
 // react-native's own Platform.select (Platform.ios.js) hardcodes 'ios'/'native'
 // key checks and ignores Platform.OS, and the vendored ui/button.tsx computes
 // its Platform.select({ web: ... }) classes once at module-import time (inside
-// cva()) — so a runtime mockPlatform('web') call in a test body is too late to
+// cva()), so a runtime mockPlatform('web') call in a test body is too late to
 // affect it. Mock the whole module up front so the web branch is baked in when
 // AppButton (and ui/button) are first imported below.
 jest.mock('react-native', () => {
-  // Mutate in place rather than spreading the module namespace — spreading
+  // Mutate in place rather than spreading the module namespace: spreading
   // forces eager evaluation of unrelated lazy native-module getters (e.g.
   // DevMenu) that throw outside the real native runtime.
   const actual = jest.requireActual<typeof import('react-native')>('react-native');
@@ -77,7 +77,7 @@ test.each(['primary', 'tonal', 'outline', 'ghost', 'destructive'] as const)(
 // DESIGN.md: "the manila accent is a text colour only — never a button fill or a
 // hover/pressed state; interaction states use a subtler shade of the primary."
 // `accent` is the brand manila (brand.generated.css: --accent: #8F6212), so no
-// button variant or state may reference it — pressed/hover are primary-derived.
+// button variant or state may reference it; pressed/hover are primary-derived.
 test.each(['primary', 'tonal', 'outline', 'ghost', 'destructive'] as const)(
   '%s variant never uses the accent for a fill or state',
   async (variant) => {

@@ -36,7 +36,7 @@ beforeEach(() => {
 });
 
 // This is the only mutation in the app with real optimistic-update and rollback
-// wiring, and every consumer test mocks the hook away — so the wiring itself had
+// wiring, and every consumer test mocks the hook away, so the wiring itself had
 // never run. These drive it directly.
 describe('useStopYouTubeStreamMutation', () => {
   it('clears the stream status optimistically before the request resolves', async () => {
@@ -87,7 +87,7 @@ describe('useStopYouTubeStreamMutation', () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     // Without the rollback the card would claim the stream is stopped while it is
-    // still broadcasting — the one state a viewer must never be shown.
+    // still broadcasting, the one state a viewer must never be shown.
     expect(queryClient.getQueryData(STREAM_STATUS_KEY)).toEqual(LIVE_STREAM);
   });
 });

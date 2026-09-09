@@ -202,7 +202,7 @@ def test_init_telemetry_exports_app_metrics(monkeypatch: pytest.MonkeyPatch) -> 
 
     ADR 0002 moved RED off Tempo's span-metrics generator onto the app's own OTLP
     metrics. Without a meter provider the instrumentors record into the API's no-op
-    default meter: no error, no warning, and no metric ever leaves the process — which
+    default meter: no error, no warning, and no metric ever leaves the process, which
     is exactly how this went unnoticed until Prometheus had traces but no app metrics.
     """
     app = FastAPI()
@@ -229,7 +229,7 @@ def test_init_telemetry_exports_app_metrics(monkeypatch: pytest.MonkeyPatch) -> 
     # central stack cannot line app metrics up with the traces they describe.
     assert meter_provider.resource == _telemetry_state.tracer_provider.resource
 
-    # A periodic reader actually pushing over OTLP — not a provider with no readers,
+    # A periodic reader actually pushing over OTLP, not a provider with no readers,
     # which would collect happily and export nothing.
     assert meter_provider.metric_readers == [("metric-reader", ("otlp-metric", {}))]
 

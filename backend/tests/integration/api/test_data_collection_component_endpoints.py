@@ -50,8 +50,8 @@ async def test_component_routes_reject_a_base_product_id(
 ) -> None:
     """A base product must not resolve on the public component reads.
 
-    Two separate guards produce near-identical 404s here — one for the owner-checked
-    routes, one for the public bill-of-materials reads — so this targets the public
+    Two separate guards produce near-identical 404s here: one for the owner-checked
+    routes, one for the public bill-of-materials reads, so this targets the public
     route specifically. Aiming at `/components/{id}` instead only re-covers the other.
     """
     response = await api_client.get(f"/v1/components/{setup_product_graph.product.id}/materials")

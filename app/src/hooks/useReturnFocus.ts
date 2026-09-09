@@ -29,7 +29,7 @@ export function useReturnFocus(visible: boolean, externalRef?: RefObject<View | 
     if (!justClosed) return;
 
     if (isWeb) {
-      // Not cleared afterwards — the next open overwrites it.
+      // Not cleared afterwards; the next open overwrites it.
       if (webTrigger?.isConnected) webTrigger.focus();
       return;
     }

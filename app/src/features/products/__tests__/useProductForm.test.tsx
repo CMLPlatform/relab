@@ -143,14 +143,14 @@ describe('useProductForm', () => {
     expect(mockMutate).toHaveBeenCalledWith(
       expect.objectContaining({
         product: expect.objectContaining({ name: 'Edited Name' }),
-        // Updates PATCH — naturally idempotent, no key needed.
+        // Updates PATCH: naturally idempotent, no key needed.
         idempotencyKey: undefined,
       }),
     );
   });
 
   // The key must be generated where the user initiates the save (here), not
-  // inside saveProductMutationFn — that function also drives resumed,
+  // inside saveProductMutationFn; that function also drives resumed,
   // rehydrated mutations, where minting a fresh key would rotate it and defeat
   // dedup against the request the app already sent before it was interrupted.
   it('generates an idempotencyKey for a new (id-less) product create', async () => {
@@ -178,7 +178,7 @@ describe('useProductForm', () => {
 
   // A create whose response never arrives (client timeout mid-commit) leaves
   // the user pressing Save a second time. The key must be the DRAFT's, not the
-  // attempt's — a fresh one per press makes the server treat the retry as an
+  // attempt's; a fresh one per press makes the server treat the retry as an
   // unrelated create and write a duplicate record.
   it('reuses the same idempotencyKey when a failed create is retried by hand', async () => {
     const mockMutate = jest
@@ -215,11 +215,11 @@ describe('useProductForm', () => {
   });
 
   // Fix round 1 (item 1, Important): AmountChip's typed-but-unblurred amount
-  // used to be silently dropped by Save — nothing in the save path flushed
+  // used to be silently dropped by Save; nothing in the save path flushed
   // it, and blur-before-press ordering is convention, not a contract, in RN.
   // amountFlushRef is the channel: AmountChip registers a flush there (see
   // ProductTags.test.tsx's "AmountChip draft flush" tests for that side),
-  // and saveAndExit must read it before serializing — even though isDirty is
+  // and saveAndExit must read it before serializing, even though isDirty is
   // still a stale react-hook-form snapshot from before the flush happened.
   it('flushes a pending amount draft before serializing, even though isDirty is still stale', async () => {
     const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
@@ -232,7 +232,7 @@ describe('useProductForm', () => {
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
     // Simulate AmountChip having a pending, unblurred draft registered when
-    // Save is pressed — no other field was touched, so isDirty is false.
+    // Save is pressed; no other field was touched, so isDirty is false.
     result.current.amountFlushRef.current = () => 7;
     expect(result.current.isDirty).toBe(false);
 
@@ -257,7 +257,7 @@ describe('useProductForm', () => {
     });
     await waitFor(() => expect(result.current.product.id).toBe(123));
 
-    // amountFlushRef.current is null (nothing registered/pending) — same as
+    // amountFlushRef.current is null (nothing registered/pending), same as
     // every screen without a mounted AmountChip.
     await act(async () => {
       result.current.saveAndExit();
@@ -386,7 +386,7 @@ describe('useProductForm', () => {
   });
 
   // saveNewProduct() mutates `product.id` in place after the create response,
-  // so react-query's automatic retry safely re-enters as a PATCH — it reuses
+  // so react-query's automatic retry safely re-enters as a PATCH; it reuses
   // that same mutated object. A manual second Save instead rebuilds its
   // payload from the live form snapshot, so if the created id never reaches
   // that snapshot the retry looks like a fresh create and duplicates the
@@ -434,7 +434,7 @@ describe('useProductForm', () => {
   });
 
   // TDD for the offline-queued acknowledgment: a paused mutation must not
-  // just spin forever — the screen surfaces it (a toast, fired once) and
+  // just spin forever; the screen surfaces it (a toast, fired once) and
   // exposes isPaused so the save button can swap its label.
   it('toasts once when the save mutation pauses (offline) and exposes isPaused', async () => {
     const mockToast = jest.fn();
@@ -556,7 +556,7 @@ describe('useProductForm', () => {
   it('reports errorCount and firstErrorSection from the current validation errors', async () => {
     // Start from a fully valid product (unlike mockProduct, whose zeroed-out
     // physicalProperties already fail validation on mount) so the two fields
-    // we invalidate below are the only — and orderly — error sources.
+    // we invalidate below are the only (and orderly) error sources.
     const validProduct = {
       ...mockProduct,
       physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
@@ -594,7 +594,7 @@ describe('useProductForm', () => {
   });
 
   // Regression: firstErrorSection used to read react-hook-form's first error
-  // key, whose order follows when each field failed — invalidating a lower
+  // key, whose order follows when each field failed; invalidating a lower
   // section first scrolled past the invalid field above it.
   it('reports the visually first error section regardless of which field failed first', async () => {
     const validProduct = {
@@ -614,7 +614,7 @@ describe('useProductForm', () => {
     await waitFor(() => expect(result.current.validationResult.isValid).toBe(true));
 
     // Invalidate the lower section (physical) first, then the higher one
-    // (overview) — the reverse of the test above.
+    // (overview), the reverse of the test above.
     await act(async () => {
       result.current.onChangePhysicalProperties({
         ...result.current.product.physicalProperties,
@@ -634,7 +634,7 @@ describe('useProductForm', () => {
   });
 
   // Regression: delete had no onError handler, so a failed delete was swallowed
-  // by react-query — the entity stayed on screen with no feedback.
+  // by react-query; the entity stayed on screen with no feedback.
   it('surfaces a dialog when the delete mutation fails', async () => {
     const mockAlert = jest.fn();
     jest

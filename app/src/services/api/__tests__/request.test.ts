@@ -154,7 +154,7 @@ describe('fetchWithTimeout header normalization', () => {
   }
 
   // Regression: headers were built with an object spread, which yields {} for a
-  // Headers instance and {0:[...]} for a tuple array — silently dropping
+  // Headers instance and {0:[...]} for a tuple array; silently dropping
   // Authorization and Content-Type, both legal RequestInit values.
   it('preserves a Headers instance', async () => {
     const read = captureHeaders();

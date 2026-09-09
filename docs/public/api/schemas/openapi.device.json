@@ -385,7 +385,7 @@
   "paths": {
     "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload": {
       "post": {
-        "description": "Called by the Pi after a successful capture. Authenticated with a short-lived ES256 device assertion (same credential used by the WebSocket relay). The Pi provides the JPEG body plus two JSON blobs: `capture_metadata` (libcamera metadata) and `upload_metadata` (opaque dict forwarded by whichever caller triggered the capture \u2014 typically `{product_id, description}`). The backend stores the image via the normal image storage service and returns a tiny ack envelope the Pi consumes.",
+        "description": "Called by the Pi after a successful capture. Authenticated with a short-lived ES256 device assertion (same credential used by the WebSocket relay). The Pi provides the JPEG body plus two JSON blobs: `capture_metadata` (libcamera metadata) and `upload_metadata` (opaque dict forwarded by whichever caller triggered the capture, typically `{product_id, description}`). The backend stores the image via the normal image storage service and returns a tiny ack envelope the Pi consumes.",
         "operationId": "receive_camera_upload_v1_plugins_rpi_cam_device_cameras__camera_id__image_upload_post",
         "parameters": [
           {

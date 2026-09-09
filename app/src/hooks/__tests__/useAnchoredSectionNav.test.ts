@@ -34,7 +34,7 @@ test('heals a section that registers before the ancestor offsets are known', asy
   await act(() => result.current.value?.registerSection('physical', 40));
   expect(nav.registerSection).toHaveBeenLastCalledWith('physical', 40);
 
-  // Ancestor offsets land afterwards — the raw position is re-pushed corrected.
+  // Ancestor offsets land afterwards; the raw position is re-pushed corrected.
   await act(() => result.current.onPageContainerLayout(layoutEvent(300)));
   await act(() => result.current.onSectionsWrapperLayout(layoutEvent(20)));
 

@@ -22,7 +22,7 @@ def test_rank_increases_with_declaration_order() -> None:
     """Rank must follow the declared tier order, not the enum's alphabetical comparison.
 
     The two agree today only by coincidence, so this asserts the declared order
-    directly — a tier whose name sorts against its privilege must still rank right.
+    directly: a tier whose name sorts against its privilege must still rank right.
     """
     ranks = [role_rank(role) for role in UserRole]
     assert ranks == sorted(ranks)

@@ -50,7 +50,7 @@ ALLOWED_EDGES = {
 }
 
 # `reference_data` takes one schema from here. That module is a leaf: it imports no
-# context at all, so the edge into it becomes a cycle the moment it imports one — its own
+# context at all, so the edge into it becomes a cycle the moment it imports one; its own
 # context included, because `data_collection/schemas.py` already imports
 # `reference_data.schemas`. That property is what makes the import safe, so it is
 # asserted rather than assumed.
@@ -68,7 +68,7 @@ _API_ROOT = _APP_ROOT / "api"
 def _package_of(module: Path) -> str:
     """Return the dotted package a module's relative imports resolve against."""
     # Dropping the last part gives the package for a plain module, and for a package's
-    # own `__init__` — whose level-1 imports resolve against the package itself.
+    # own `__init__`, whose level-1 imports resolve against the package itself.
     return ".".join(module.relative_to(_APP_ROOT.parent).with_suffix("").parts[:-1])
 
 
@@ -173,7 +173,7 @@ def test_leaf_modules_import_no_context() -> None:
 
     `reference_data` needs `ProductSummary` for the product links it embeds in a material.
     That is safe only while `product_schemas` stays a leaf: the moment it imports a
-    context — its own included, since that context already imports `reference_data` — the
+    context (its own included, since that context already imports `reference_data`), the
     edge into it becomes a real cycle.
     """
     offenders = []

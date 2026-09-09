@@ -126,8 +126,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
 
         Reimplemented rather than delegated because the blocking calls sit in the
         middle of the upstream coroutine, with no seam to wrap. The behaviours that
-        reimplementation has to preserve — the timing-attack hash for an unknown
-        account, rejecting a wrong password, and the opportunistic hash upgrade —
+        reimplementation has to preserve (the timing-attack hash for an unknown
+        account, rejecting a wrong password, and the opportunistic hash upgrade)
         are pinned by tests so an upstream change cannot drift past unnoticed.
         """
         try:

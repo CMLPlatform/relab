@@ -4,7 +4,7 @@ Deleting a material or product type is refused while research data still points 
 The referencing columns live in `data_collection`, so reference_data used to import them
 and depend on the context that depends on it. The owning context registers them instead,
 at model-import time (bottom of its models module), the same way media parents register
-with `file_storage.parents` — which keeps the dependency pointing one way.
+with `file_storage.parents`, which keeps the dependency pointing one way.
 
 `app.core.model_registry.load_models` guarantees those modules are imported.
 """

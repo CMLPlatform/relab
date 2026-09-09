@@ -90,7 +90,7 @@ describe('Onboarding screen behavior', () => {
   it('Continue button is disabled when username is empty', async () => {
     await renderOnboardingScreen();
 
-    // No text entered — form is invalid, button should be disabled
+    // No text entered: form is invalid, button should be disabled
     const button = screen.getByText('Continue');
     expect(button).toBeOnTheScreen();
     // The button's parent Pressable is disabled when isValid=false

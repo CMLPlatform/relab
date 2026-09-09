@@ -80,13 +80,13 @@ plan this root.
 Because the phase is capped at five rules, this is a **branch of the public-reads rule**, not a
 rule of its own. It therefore inherits that rule's single phase and skips **Super Bot Fight Mode
 only**: a keyed staging run still meets the same managed WAF prod does. That matters because the
-key is just a header — anyone who reads it from the rulesets API could otherwise turn the WAF off
+key is just a header: anyone who reads it from the rulesets API could otherwise turn the WAF off
 for every staging path, `/v1/admin/` included. Prod is unaffected either way.
 
 The www build's fetch of `/v1/products/{id}` and its component tree is a non-browser client
 that gets challenged the same way, which makes the landing page ship its fixture. That is
 covered by `relab_public_reads_skip_bot_fight_mode` instead, which is the former stats rule
-widened to GETs under `/v1/products/` as well — public read-only data, the same reasoning. No
+widened to GETs under `/v1/products/` as well, public read-only data, the same reasoning. No
 build argument carries a key, which would leak into image history.
 
 ## What this zone's Cloudflare plan allows

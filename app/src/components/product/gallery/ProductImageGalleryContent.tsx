@@ -40,7 +40,7 @@ type Props = {
   onPickImage: () => void;
   onRpiCapture: () => void;
   onDeleteImage: () => void;
-  /** Product/component name — the alt-text fallback when an image has no description. */
+  /** Product/component name, the alt-text fallback when an image has no description. */
   fallbackLabel: string;
   rpiTriggerRef?: RefObject<View | null>;
 };

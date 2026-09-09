@@ -69,7 +69,7 @@ export function OtpInput({
               ]}
             >
               {/* NOTE: OTP digit cells are enlarged past the `data` step's 14px
-                  for at-a-glance legibility of a single character — no ramp
+                  for at-a-glance legibility of a single character; no ramp
                   step targets an oversized single-digit cell. */}
               <AppText variant="data" className="font-semibold" style={{ fontSize: 24 }}>
                 {value[index] ?? ''}

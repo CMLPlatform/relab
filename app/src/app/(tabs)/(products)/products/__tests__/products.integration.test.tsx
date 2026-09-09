@@ -24,7 +24,7 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(),
   useRouter: jest.fn(),
   // ProductsFab reads useBottomNavVisible() (BOTTOM_NAV_CLEARANCE on web),
-  // which calls useSegments() — default it to segments outside the tab group
+  // which calls useSegments(); default it to segments outside the tab group
   // so the fab's bottom offset stays at its base value unless a test opts in.
   useSegments: jest.fn().mockReturnValue([]),
   // useProductSearchShortcut scopes itself to this screen via useFocusEffect;
@@ -240,7 +240,7 @@ beforeEach(async () => {
 /**
  * MSW handler returning a fixed 3-page catalogue, 2 items/page. `total` (50)
  * must exceed the hook's hardcoded page size (24) twice over so
- * getNextPageParam actually reports a next page after page 1 and page 2 —
+ * getNextPageParam actually reports a next page after page 1 and page 2;
  * the real fetched item counts per page don't matter to that check.
  */
 function threePageProductsHandler() {
@@ -532,7 +532,7 @@ describe('Infinite scroll', () => {
     await fireEvent.press(screen.getByLabelText('Load more products'));
 
     await waitFor(() => expect(screen.getByText('Product C')).toBeOnTheScreen());
-    // Page-1 items are still there — the new page was appended, not swapped in.
+    // Page-1 items are still there: the new page was appended, not swapped in.
     expect(screen.getByText('Product A')).toBeOnTheScreen();
     expect(screen.getByText('Product B')).toBeOnTheScreen();
     expect(screen.getByText('Product D')).toBeOnTheScreen();

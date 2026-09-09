@@ -3,7 +3,7 @@
 Core owns generic infrastructure (logging, database, Redis, cache, HTTP client,
 telemetry, static mounts). Domain modules contribute their own startup/shutdown
 via ``DomainLifecycle`` hooks, wired together in the composition root (main.py),
-and park their own services in ``AppServices.extras`` — core never imports
+and park their own services in ``AppServices.extras``; core never imports
 domain code.
 """
 

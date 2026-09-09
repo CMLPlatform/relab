@@ -50,7 +50,7 @@ describe('LocalizedFloatInput', () => {
     const onChange = jest.fn();
     await render(<LocalizedFloatInput value={10} onChange={onChange} min={5} />);
     const input = screen.getByDisplayValue('10');
-    // Use fireEvent.changeText for atomic replacement — userEvent.type
+    // Use fireEvent.changeText for atomic replacement; userEvent.type
     // fires intermediate onChange calls that trigger the revert logic
     await fireEvent.changeText(input, '3');
     await fireEvent(input, 'blur');

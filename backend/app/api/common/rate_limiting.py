@@ -102,7 +102,7 @@ class Limiter:
 
         The ``limits`` Redis backend is synchronous (its async backend would pull in a
         second Redis client, coredis), so a direct call from an async handler blocks the
-        event loop on every login/reset/pairing attempt — a cheap DoS lever under load.
+        event loop on every login/reset/pairing attempt, a cheap DoS lever under load.
         Offloading to a worker thread keeps the loop free, exactly as FastAPI already does
         for the sync ``dependency`` path. Sync callers (that path) must not use this.
         """

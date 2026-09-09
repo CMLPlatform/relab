@@ -31,7 +31,7 @@ class AppServices:
 
     Core owns only the infrastructure services it creates itself. Domain-owned
     services live in ``extras`` under a domain-namespaced key, with typed
-    accessors provided by the owning domain — core stays free of domain imports.
+    accessors provided by the owning domain; core stays free of domain imports.
     """
 
     redis: Redis | None = None

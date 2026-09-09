@@ -150,7 +150,7 @@ test('tabs carry a web focus-visible ring', async () => {
   expect(className).toEqual(expect.stringContaining('focus-visible:outline-ring'));
   // The style utility is the one that was missing and made the indicator
   // invisible while width and colour computed correctly. A class-string test
-  // cannot prove it paints — see the e2e focus test for that — but it can stop
+  // cannot prove it paints (see the e2e focus test for that), but it can stop
   // this specific utility being dropped again.
   expect(className).toEqual(expect.stringContaining('focus-visible:outline-solid'));
   restorePlatform();

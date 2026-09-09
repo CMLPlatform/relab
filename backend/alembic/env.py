@@ -82,7 +82,7 @@ def run_migrations_online() -> None:
         #
         # Acquired before the timeouts below on purpose: `lock_timeout` and
         # `statement_timeout` both apply to this wait, so setting them first would make a
-        # migrator that arrives behind a running one abort rather than queue — which under
+        # migrator that arrives behind a running one abort rather than queue, which under
         # the `migrations` profile is a failed deploy instead of a wait. The wait here is
         # deliberately unbounded; the timeouts start once this session owns the lock.
         connection.exec_driver_sql(f"SELECT pg_advisory_lock({_MIGRATION_LOCK_ID})")

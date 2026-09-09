@@ -2,7 +2,7 @@
  * Factories for the `jest.mock` module stubs that more than one suite needs.
  *
  * These run inside hoisted `jest.mock` factories, so they may only reach for
- * `jest.requireActual` — never a top-level import of `react` or `react-native`.
+ * `jest.requireActual`, never a top-level import of `react` or `react-native`.
  * Call them from the factory body:
  *
  *     jest.mock('react-native-gesture-handler', () => mockGestureHandler());
@@ -23,8 +23,8 @@ type FlatListMockProps = {
  * `onRender`, when given, receives the props of every FlatList render so a suite
  * can assert on layout metrics it cannot observe through the rendered output. It
  * is a callback rather than an array because the factory runs before the suite's
- * own top-level consts initialise — only the render is late enough to see them.
- * `gestures` adds the `Gesture`/`GestureDetector` surface — the gesture builders
+ * own top-level consts initialise; only the render is late enough to see them.
+ * `gestures` adds the `Gesture`/`GestureDetector` surface; the gesture builders
  * return their callbacks unwrapped so tests can invoke them directly.
  */
 export function mockGestureHandler({

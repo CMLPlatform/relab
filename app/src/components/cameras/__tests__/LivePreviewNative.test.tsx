@@ -83,7 +83,7 @@ const PREVIEW_ERROR = /Couldn't load the preview/;
 /**
  * Render and settle the async media-token read behind `useAuthedMediaSource`
  * inside act(), so its state update lands here rather than unwrapped after the
- * test — and so assertions see the credentialed source.
+ * test, and so assertions see the credentialed source.
  */
 async function renderPreview(ui: Parameters<typeof renderWithProviders>[0]) {
   const utils = await renderWithProviders(ui);
@@ -206,7 +206,7 @@ describe('LivePreview', () => {
     await fireEvent.press(screen.getByText('Tap to retry'));
     expect(mockVideoPlayerInstance.replaceAsync).toHaveBeenCalled();
     // The setup callback also calls play() on each (re)render, so counts are
-    // racy — the retry contract is that a play() FOLLOWS the replaceAsync.
+    // racy: the retry contract is that a play() FOLLOWS the replaceAsync.
     await waitFor(() => {
       const replaceOrder = mockVideoPlayerInstance.replaceAsync.mock.invocationCallOrder[0];
       const playOrders = mockVideoPlayerInstance.play.mock.invocationCallOrder;

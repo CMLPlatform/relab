@@ -178,7 +178,7 @@ describe('useCaptureEntity', () => {
   });
 
   // saveProduct's real saveNewProduct() POSTs, assigns the returned id onto
-  // the same draft object, then uploads images — so a rejection with an id
+  // the same draft object, then uploads images, so a rejection with an id
   // already assigned means the record was created and only the upload
   // failed. Re-pressing Create must not re-POST (would duplicate the record).
   it('on a rejected image upload after a successful POST, keeps the created id and reports a partial failure', async () => {
@@ -228,7 +228,7 @@ describe('useCaptureEntity', () => {
   });
 
   // newProduct() derives role from parentID, which is undefined for a
-  // malformed /components/new parent param — the draft must still carry the
+  // malformed /components/new parent param; the draft must still carry the
   // role the screen was opened for so the component create URL throws
   // honestly instead of silently POSTing a top-level product.
   it('pins draft.role to the requested role even when parentID is missing', async () => {
@@ -323,7 +323,7 @@ describe('useCaptureEntity', () => {
   });
 
   // TDD for the offline-queued acknowledgment: a paused mutation must not
-  // just leave the Create button spinning — the screen surfaces it (a toast,
+  // just leave the Create button spinning; the screen surfaces it (a toast,
   // fired once) and exposes isPaused so the button can swap its label.
   it('exposes isPaused and toasts once when the save mutation pauses offline', async () => {
     mockIsPaused = true;

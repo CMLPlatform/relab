@@ -132,7 +132,7 @@ describe('UserProfileScreen', () => {
 
   it('re-fetches the profile when the error state’s Retry action is pressed', async () => {
     // A prior test in this suite leaves useGlobalSearchParams mocked to an array
-    // username (jest.clearAllMocks() doesn't undo mockReturnValue) — restore the
+    // username (jest.clearAllMocks() doesn't undo mockReturnValue); restore the
     // normal single-username case explicitly instead of relying on file order.
     (useGlobalSearchParams as jest.Mock).mockReturnValue({ username: 'alice' });
     mockGetPublicProfile

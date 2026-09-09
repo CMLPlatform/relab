@@ -3,7 +3,7 @@
 from datetime import UTC, date, datetime, timedelta
 
 # Default lookback window per granularity, expressed as timedelta.
-# Approximate for month/year — exact enough given SQL date_trunc rounding.
+# Approximate for month/year; exact enough given SQL date_trunc rounding.
 _DEFAULT_DELTAS: dict[str, timedelta] = {
     "day": timedelta(days=90),
     "week": timedelta(weeks=52),

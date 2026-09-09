@@ -59,7 +59,7 @@ beforeEach(() => {
 
 describe('MfaScreen challenge flow', () => {
   // Every auth field carries a visible label, not just the recovery-code
-  // fallback — getByLabelText below only sees the accessible name, so the
+  // fallback: getByLabelText below only sees the accessible name, so the
   // rendered label needs its own assertion.
   it('labels the code field visibly', async () => {
     await renderMfaScreen();

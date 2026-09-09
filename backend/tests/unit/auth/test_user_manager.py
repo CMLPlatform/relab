@@ -544,7 +544,7 @@ async def test_verification_email_is_deferred_when_the_request_carries_backgroun
     """Registration must not wait on an SMTP round trip to answer.
 
     `POST /auth/register` already answers 202, and `attach_background_tasks` is declared
-    on the auth router precisely so this hook — which fastapi-users hands only a Request —
+    on the auth router precisely so this hook (which fastapi-users hands only a Request)
     can reach the response's background tasks.
     """
     manager, _ = _make_manager()

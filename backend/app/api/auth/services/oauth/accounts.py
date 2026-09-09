@@ -30,7 +30,7 @@ async def remove_oauth_association(
 
     Unlinking a social login is a sensitive auth-method change, so an account with a
     usable password must re-enter it (step-up), matching email/password changes. An
-    OAuth-only account has no password to verify — the notification email below is the
+    OAuth-only account has no password to verify; the notification email below is the
     compensating control.
     """
     if provider not in SUPPORTED_UNLINK_PROVIDERS:

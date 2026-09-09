@@ -267,7 +267,7 @@ describe('useProductPageScreen', () => {
 
   it('defers back navigation until the record loads, instead of reading the loading sentinel', async () => {
     // useProductForm seeds a blank `newProduct()` while the query is in flight,
-    // and that sentinel's role is 'product' with no parentID — indistinguishable
+    // and that sentinel's role is 'product' with no parentID, indistinguishable
     // from a real top-level product. Pressing back in that window used to
     // replace to '/products', stranding a component's user on the list instead
     // of its parent.

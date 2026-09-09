@@ -97,7 +97,7 @@ function mockCreateSectionStub(label: string) {
   };
 }
 
-// Walks the rendered tree collecting text nodes in document order — used to
+// Walks the rendered tree collecting text nodes in document order, used to
 // assert section order without depending on a real layout engine.
 function collectText(instance: ReturnType<typeof screen.getByTestId>): string[] {
   const out: string[] = [];

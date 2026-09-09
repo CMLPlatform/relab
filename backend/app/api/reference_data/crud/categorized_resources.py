@@ -149,7 +149,7 @@ async def delete_categorized_reference[ResourceT: CategorizedReference, LinkT: C
     Media rows and the parent row drop in a single transaction under the row lock, so a
     concurrent delete is serialized and a mid-delete failure can't leave the parent behind
     with its media already gone (media reference their parent generically, with no FK
-    cascade). The stored bytes are unlinked only after that commit is durable — a commit
+    cascade). The stored bytes are unlinked only after that commit is durable; a commit
     that fails leaves the files intact rather than orphaning live rows that point at them.
 
     Raises:
