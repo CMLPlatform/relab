@@ -311,6 +311,7 @@ cloudflare-plan env:
 # encrypts it, `*.tfplan` is gitignored, the directory is created private, and the apply
 # removes the file whether or not it succeeded.
 [group('cloudflare')]
+[doc('Apply Cloudflare edge changes for one environment (prod or staging)')]
 cloudflare-apply env confirm='':
     #!/usr/bin/env bash
     set -euo pipefail
@@ -339,6 +340,7 @@ cloudflare-zone-plan:
 # Apply the zone-global Cloudflare configuration. This affects BOTH environments.
 # Plans first and gates on the printed diff; see `cloudflare-apply` above.
 [group('cloudflare')]
+[doc('Apply the zone-global Cloudflare configuration. This affects BOTH environments.')]
 cloudflare-zone-apply confirm='':
     #!/usr/bin/env bash
     set -euo pipefail
