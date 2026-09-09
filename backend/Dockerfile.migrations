@@ -43,9 +43,9 @@ FROM python:3.14-slim-trixie@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aa
 
 ARG WORKDIR=/opt/relab/backend-migrations
 ARG APP_USER=appuser
-ARG APP_UID=1001
+ARG APP_UID=65532
 
-RUN useradd --create-home --uid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
+RUN groupadd --gid "$APP_UID" "$APP_USER" && useradd --create-home --uid "$APP_UID" --gid "$APP_UID" --shell /usr/sbin/nologin "$APP_USER" \
     # This stage runs only the uv-built venv copied in below, so the base image's
     # own pip is dead weight: unused at runtime, and its vendored dependencies
     # keep surfacing in image scans. Drop it.

@@ -103,7 +103,7 @@ ARG WORKDIR
 # healthcheck uses busybox wget, so no curl. Upgrade keeps patches current.
 RUN apk upgrade --no-cache \
     && apk add --no-cache ca-certificates mailcap \
-    && install -d -o 1001 -g 1001 /config /data
+    && install -d -o 65532 -g 65532 /config /data
 
 COPY --link --from=caddybin /usr/bin/caddy /usr/bin/caddy
 
@@ -116,7 +116,7 @@ CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile
 COPY --link --from=build ${WORKDIR}/app/dist /srv
 COPY --link app/Caddyfile /etc/caddy/Caddyfile
 
-USER 1001:1001
+USER 65532:65532
 
 EXPOSE 8081
 

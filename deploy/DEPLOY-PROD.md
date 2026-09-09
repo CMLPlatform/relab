@@ -29,7 +29,7 @@ Skipping this loses nothing for the stack itself; the compose caps stay authorit
 
 ### 1.1 Backup repository
 
-Follow "First backup" in the install guide (`mkdir`/`chown 1001`, `just backup prod`,
+Follow "First backup" in the install guide (`mkdir`/`chown 65532`, `just backup prod`,
 `just restore-check prod`).
 
 `BACKUP_HOST_DIR` is one value shared by every stack on the host, so two environments on one machine

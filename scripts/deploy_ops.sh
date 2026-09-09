@@ -164,7 +164,7 @@ validate_deploy_secret_paths() {
 
 # Privacy lives on the directory (0700), readability on the files (0644).
 # Compose file-secrets are plain bind mounts that keep host permissions — the
-# uid/gid/mode attributes are ignored — and deploy services run as uid 1001, so
+# uid/gid/mode attributes are ignored — and deploy services run as uid 65532, so
 # an operator-owned 0600 file is unreadable inside the container. A 0644 file in
 # a 0700 directory is still unreachable to other host users.
 # Only the names Compose actually mounts are checked, so operator notes kept
@@ -194,7 +194,7 @@ assert_secret_file_modes() {
             echo "Fix with: chmod 644 $path" >&2
             failed=true
         elif ((8#$mode & 8#004 == 0)); then
-            echo "error: $path is mode $mode — containers run as uid 1001 and cannot read it;" >&2
+            echo "error: $path is mode $mode — containers run as uid 65532 and cannot read it;" >&2
             echo "run: chmod 700 $dir && chmod 644 $dir/*" >&2
             failed=true
         fi
@@ -284,7 +284,7 @@ deploy_secrets_template() {
 
     # Privacy is the directory's job (0700); the files themselves stay 0644 in
     # every env because containers read them as a non-owner uid (deploy services
-    # run as 1001, dev's api/migrator as root-without-CAP_DAC_OVERRIDE/appuser)
+    # run as 65532, dev's api/migrator as root-without-CAP_DAC_OVERRIDE/appuser)
     # and Compose file-secrets are bind mounts that keep host permissions.
     mkdir -p "secrets/$env"
     chmod 700 "secrets/$env"

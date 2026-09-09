@@ -178,8 +178,8 @@ verify_postgres_restore() {
     local work_dir="$3"
 
     mkdir -p "$work_dir/restore"
-    # The backup image runs as uid 1001, so the restore bind mount must be writable by it.
-    docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
+    # The backup image runs as uid 65532, so the restore bind mount must be writable by it.
+    docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
     RESTORE_CONTAINER="${4:-relab_restore_smoke_$(date +%s)_$$}"
     # A deterministic name can collide with a leftover from a killed earlier run;
     # replace it. NOTE: -v drops the scratch container's anonymous PGDATA volume with
@@ -254,8 +254,8 @@ docker_smoke_backups() {
     printf '[offsite]\ntype = local\n' >"$tmp_root/rclone/rclone.conf"
 
     build_backup_image
-    docker run --rm -v "$tmp_root/restic:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
-    docker run --rm -v "$tmp_root/offsite:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
+    docker run --rm -v "$tmp_root/restic:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
+    docker run --rm -v "$tmp_root/offsite:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
     docker network create "$network" >/dev/null
     docker run -d --name "$postgres_container" --network "$network" \
         -e POSTGRES_PASSWORD=postgres-password \
@@ -477,8 +477,8 @@ restore_postgres() {
 
     build_backup_image
     mkdir -p "$tmp_root/restore"
-    # The backup image runs as uid 1001, so the restore bind mount must be writable by it.
-    docker run --rm -v "$tmp_root/restore:/work" --entrypoint chown alpine:3.22 -R 1001:1001 /work
+    # The backup image runs as uid 65532, so the restore bind mount must be writable by it.
+    docker run --rm -v "$tmp_root/restore:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
 
     docker run --rm \
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \
