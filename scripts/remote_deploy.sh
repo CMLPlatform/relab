@@ -37,8 +37,8 @@ case "$action" in
         # `build nocache`: www bakes the landing page's API data in at build time, so a
         # changed edge rule or featured product needs a rebuild the layer cache would skip.
         case "${args[0]:-}" in
-            "") exec just "${env_name}-build" ;;
-            nocache) NO_CACHE=1 exec just "${env_name}-build" ;;
+            "") exec just stack "$env_name" build ;;
+            nocache) NO_CACHE=1 exec just stack "$env_name" build ;;
             *)
                 echo "remote_deploy: build takes 'nocache' or nothing" >&2
                 exit 2
@@ -53,17 +53,17 @@ case "$action" in
                 exit 2
             }
         done
-        exec just "${env_name}-up" YES "${args[@]}"
+        exec just stack "$env_name" up YES "${args[@]}"
         ;;
     migrate)
-        exec just "${env_name}-migrate" YES
+        exec just stack "$env_name" migrate YES
         ;;
     rollback)
         [[ "${args[0]:-}" =~ ^[0-9a-f]{7,40}$ ]] || {
             echo "remote_deploy: rollback needs an image sha" >&2
             exit 2
         }
-        exec just "${env_name}-rollback" YES "${args[0]}" "${args[1]:-}"
+        exec just stack "$env_name" rollback YES "${args[0]}" "${args[1]:-}"
         ;;
     backup)
         exec just backup "$env_name" manual

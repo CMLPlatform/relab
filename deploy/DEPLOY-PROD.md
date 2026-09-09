@@ -245,7 +245,7 @@ ssh akira-deploy up migrations        # www bakes API data in at build time, and
 ```
 
 `ssh akira-deploy` with no command prints the allow-list. On the host itself the same three steps
-are `git pull --ff-only`, `just prod-build`, `just prod-up YES migrations` as the deploy user.
+are `git pull --ff-only`, `just stack prod build`, `just stack prod up YES migrations` as the deploy user.
 
 The `migrations` profile is the routine path: the API waits for the migrator to exit 0, so a failed
 migration leaves the old API serving. Without it you get a two-step that briefly serves against the
@@ -258,7 +258,7 @@ old schema, acceptable during a planned outage, not for a routine release.
 ```bash
 ssh akira-deploy watchdog
 ssh akira-deploy status
-ssh akira-deploy logs 10m     # non-following; `just prod-logs` on the host follows
+ssh akira-deploy logs 10m     # non-following; `just stack prod logs` on the host follows
 ```
 
 Then exercise by hand what automation cannot: one upload, one OAuth login, one product page.
@@ -271,14 +271,14 @@ Migrations commit one revision at a time (`transaction_per_migration=True` in
 `backend/alembic/env.py`), so a failed migrate leaves `alembic_version` at the last revision that
 succeeded, and a re-run resumes from there. Fix forward where possible.
 
-Every `just prod-build` tags its images with the commit sha of the checkout it built (unrelated to
+Every `just stack prod build` tags its images with the commit sha of the checkout it built (unrelated to
 the alembic revision, which names the schema), so a release can be rolled back without a rebuild.
 The newest five sha tags per image are kept; `KEEP_SHA_TAGS=<n>` on the build changes that.
 
 ```bash
 docker images 'relab-backend' --format '{{.Tag}}' | grep prod-   # the shas available
-just prod-rollback YES <sha>                    # code only: the new schema still suits the old code
-just prod-rollback YES <sha> <alembic-revision> # also downgrade the schema to that revision
+just stack prod rollback YES <sha>                    # code only: the new schema still suits the old code
+just stack prod rollback YES <sha> <alembic-revision> # also downgrade the schema to that revision
 ```
 
 With a revision, the recipe first checks that no migration in the range dropped or rewrote data

@@ -559,10 +559,10 @@ remote_deploy() {
     rm -rf "$tmp"
 }
 
-assert_eq "remote deploy: up forwards the migrations profile with YES" "just prod-up YES migrations" "$(remote_deploy 'up migrations')"
-assert_eq "remote deploy: build nocache sets NO_CACHE" "just prod-build" "$(remote_deploy 'build nocache')"
-assert_eq "remote deploy: migrate needs no argument" "just prod-migrate YES" "$(remote_deploy migrate)"
-assert_eq "remote deploy: rollback takes a sha" "just prod-rollback YES 2f91e3b5 " "$(remote_deploy 'rollback 2f91e3b5')"
+assert_eq "remote deploy: up forwards the migrations profile with YES" "just stack prod up YES migrations" "$(remote_deploy 'up migrations')"
+assert_eq "remote deploy: build nocache sets NO_CACHE" "just stack prod build" "$(remote_deploy 'build nocache')"
+assert_eq "remote deploy: migrate needs no argument" "just stack prod migrate YES" "$(remote_deploy migrate)"
+assert_eq "remote deploy: rollback takes a sha" "just stack prod rollback YES 2f91e3b5 " "$(remote_deploy 'rollback 2f91e3b5')"
 assert_eq "remote deploy: a shell command is refused" "remote_deploy: 'rm' is not allowed" "$(remote_deploy 'rm -rf /')"
 assert_eq "remote deploy: an unknown profile is refused" "remote_deploy: unknown profile 'scanning'" "$(remote_deploy 'up scanning')"
 assert_eq "remote deploy: rollback without a sha is refused" "remote_deploy: rollback needs an image sha" "$(remote_deploy 'rollback abc')"

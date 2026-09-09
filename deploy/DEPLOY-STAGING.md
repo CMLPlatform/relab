@@ -38,8 +38,8 @@ Existing hosts need the one-time `.env` edit described in [DEPLOY-PROD.md](DEPLO
 cd /path/to/relab
 git fetch origin && git checkout main && git pull --ff-only
 
-just staging-build
-just staging-up YES migrations
+just stack staging build
+just stack staging up YES migrations
 ```
 
 ClamAV starts unless `MALWARE_SCAN_ENABLED=false` in the root `.env`. It needs 3–4 GiB; staging can
@@ -51,14 +51,14 @@ Backups are not started by `up`; they run from `relab-backup@staging.timer`.
 
 ```bash
 just watchdog staging
-just staging-logs
+just stack staging logs
 ```
 
 ______________________________________________________________________
 
 ## How staging differs from prod
 
-- **`just staging-migrate` seeds dummy data.** `prod-migrate` does not. Never point a staging
+- **`just stack staging migrate` seeds dummy data.** `just stack prod migrate` does not. Never point a staging
   recipe at prod.
 - **No outage discipline.** Staging can be torn down and rebuilt at will.
 - **The data is disposable, the procedure is not.**
@@ -73,9 +73,9 @@ The test of whether the deploy path works on a clean machine. It also rehearses 
 
 ```bash
 just backup staging manual                     # tagged, so retention cannot expire it
-just staging-down YES
+just stack staging down YES
 docker volume rm relab_staging_database_data   # destroys staging data — intended
-just staging-up YES migrations
+just stack staging up YES migrations
 ```
 
 If that needs an undocumented manual step, prod needs it too: write it into

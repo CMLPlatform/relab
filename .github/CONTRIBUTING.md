@@ -227,8 +227,19 @@ Run the relevant subrepo checks before opening a pull request:
 - www: Vitest, Astro checks, and Playwright where browser behavior changes
 - docs: Biome, Astro checks, and `just test-ci` (build + browser + link checks) when content changes
 
-For cross-repo or policy changes, also run `just ci` from the root. GitHub Actions covers dependency
-review, container scanning, repository hygiene, and release artifact checks on every push.
+For cross-repo or policy changes, also run `just ci` from the root. The root recipes form one
+ladder, cheapest first, each rung including the ones above it:
+
+| Recipe         | What it runs                                                                |
+| -------------- | --------------------------------------------------------------------------- |
+| `just fix`     | auto-fix lint, formatting, and markdown across root and subrepos            |
+| `just check`   | static analysis only: lint, types, format verification                      |
+| `just test`    | every test suite except the browser and Docker ones                         |
+| `just ci`      | the pull-request gate: `pre-commit` hooks, `check`, `test-ci`, `policy-check` |
+| `just ci-full` | everything GitHub Actions runs: `ci` plus `audit`, `cloudflare-check`, `docker-smoke`, `test-e2e` |
+
+`just ci-full` takes tens of minutes and needs Docker. Only CodeQL, Trivy, Scorecard, and dependency
+review stay GitHub-only; they scan built images or the repository itself and run on every push.
 
 ### Accessibility
 
@@ -482,7 +493,7 @@ To apply formatting:
 
 ```bash
 cd docs
-just format
+just fix
 ```
 
 ## License

@@ -199,7 +199,7 @@ the topology these steps produce.
    empty volume takes several minutes to download it.
 
    ```bash
-   just prod-up YES migrations
+   just stack prod up YES migrations
    ```
 
    To run without scanning, set `MALWARE_SCAN_ENABLED=false`. Uploads are then stored unscanned;
@@ -208,7 +208,7 @@ the topology these steps produce.
    To also seed the CPV or HS taxonomies, run the migrator once by itself:
 
    ```bash
-   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true just prod-migrate YES
+   BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true just stack prod migrate YES
    ```
 
 1. Verify.
@@ -217,15 +217,15 @@ the topology these steps produce.
    and Redis. Then log in as the bootstrap superuser and try one upload.
 
    ```bash
-   just prod-logs
+   just stack prod logs
    ```
 
-1. Upgrade later with the same commands: pull a known-good revision, `just prod-build`, then
-   `just prod-up YES migrations`. A failed migration leaves the old API serving. To return to
-   the previous release, `just prod-rollback YES <sha>` retags the images that build produced;
+1. Upgrade later with the same commands: pull a known-good revision, `just stack prod build`, then
+   `just stack prod up YES migrations`. A failed migration leaves the old API serving. To return to
+   the previous release, `just stack prod rollback YES <sha>` retags the images that build produced;
    add the previous alembic revision to downgrade the schema too
    (revisions before `a9c2e4f60b18` were flattened away and cannot be targeted), which the recipe
-   allows only when no migration in between dropped or rewrote data. `just prod-down YES` stops
+   allows only when no migration in between dropped or rewrote data. `just stack prod down YES` stops
    the stack.
 
 ### First backup

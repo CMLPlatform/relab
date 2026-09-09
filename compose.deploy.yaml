@@ -149,7 +149,7 @@ services:
         # migrator sits behind that profile (compose.yaml), and without this the
         # default profile-less `up` would refuse to start at all.
         #
-        # This does NOT cover `just prod-migrate`, which runs the migrator on its
+        # This does NOT cover `just stack prod migrate`, which runs the migrator on its
         # own against an already-serving API — see deploy/DEPLOY-PROD.md for when each
         # is appropriate.
         condition: service_completed_successfully

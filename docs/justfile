@@ -27,24 +27,14 @@ update:
 dev:
     pnpm run dev
 
-# Lint the code
-lint:
-    pnpm run lint
-
-# Run static type checks
-typecheck:
-    pnpm run typecheck
-
 # Build the static docs site
 build:
     pnpm run build
 
 # Run the quality gate. `test-ci` exercises the build itself.
-check: lint typecheck
-
-# Auto-format the code and the markdown
-format:
-    pnpm run format
+check:
+    pnpm run lint
+    pnpm run typecheck
 
 # Auto-fix lint issues and format code
 fix:

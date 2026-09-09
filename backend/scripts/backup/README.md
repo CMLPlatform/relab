@@ -13,8 +13,8 @@ The restic repository is encrypted with `RESTIC_PASSWORD` / `RESTIC_PASSWORD_FIL
 The deploy overlay exposes the `relab-backup` service behind the `backups` profile:
 
 ```bash
-just prod-up YES backups
-just staging-up YES backups
+just stack prod up YES backups
+just stack staging up YES backups
 ```
 
 Backups are stored under:
