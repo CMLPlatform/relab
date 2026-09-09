@@ -268,11 +268,13 @@ The same step is what gives images uploaded before a new width its derivative: a
 before re-running.
 
 ```sql
-UPDATE image SET thumbnails_generated_at = NULL WHERE width_px > 2560;
+UPDATE image SET thumbnails_generated_at = NULL WHERE width_px > 2560 OR width_px IS NULL;
 ```
 
-Originals narrower than the new width are skipped rather than upscaled and are never counted as
-incomplete, so the predicate only has to select the rows wide enough to gain it.
+`width_px` is nullable and `NULL > 2560` is not true, so without the second clause a row whose
+width was never recorded is skipped without a word. Including rows that turn out to be narrower
+costs nothing: the backfill selects on the stamp alone and re-reads each original's width from the
+file, then stamps a row that needs no new derivative.
 
 ### Releases that need a window
 
