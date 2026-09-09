@@ -514,6 +514,15 @@ add_scanning_profile_from_dotenv() {
 # offsite repository for exactly one stack, so a recipe for the other one must not run.
 require_dotenv_environment() {
     local env="$1" host_env
+    # dotenv_value cannot tell "no such key" from "cannot read the file": its grep
+    # discards both the error and the exit status, so an unreadable .env reports an
+    # empty ENVIRONMENT and the mismatch below blames the config instead of the
+    # permissions. Deploy .env files are readable only by the deploy user, so this is
+    # what a recipe run under the wrong account hits first.
+    if [[ -e .env && ! -r .env ]]; then
+        echo "error: .env exists but is not readable by $(id -un); run this as the user that owns the deploy checkout." >&2
+        exit 2
+    fi
     host_env="$(dotenv_value ENVIRONMENT)"
     if [[ "$host_env" != "$env" ]]; then
         echo "error: this host's .env sets ENVIRONMENT='${host_env}', but the recipe targets '$env'." >&2
