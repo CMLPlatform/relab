@@ -30,6 +30,8 @@ TimeoutStartSec=7200
 # restored copy of production data. backup_restic_ops.sh passes the deterministic name
 # relab-restore-check-<env> so this can reap it.
 ExecStopPost=-/usr/bin/docker rm -f relab-restore-check-%i
+# Same for the uploads restore container, which holds a full copy of the uploads volume.
+ExecStopPost=-/usr/bin/docker rm -f relab-restore-check-%i-uploads
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7

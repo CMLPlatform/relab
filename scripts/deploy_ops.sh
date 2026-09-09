@@ -568,6 +568,21 @@ require_rollback_images() {
     [[ "$missing" -eq 0 ]] || exit 2
 }
 
+# Stamp the uploads volume with the environment it belongs to, so later backup runs can
+# tell "this volume lost its contents" from "this is a first backup". Written through
+# api, the only service that mounts user_uploads writable (the backup service mounts it
+# :ro on purpose); the path is compose.yaml's api mount point.
+# `test -s`, not `-f`: a zero-byte marker left by an interrupted write would satisfy -f
+# and be skipped here forever, while the backup run reads it as a different environment
+# and refuses every run. The temp-file-and-mv keeps a partial write from landing at all.
+stamp_uploads_volume() {
+    local env="$1"
+    # shellcheck disable=SC2016  # $0/$1 are the inner sh's args, not this shell's
+    run_deploy_compose "$env" run --rm --no-deps -T --entrypoint sh api -c \
+        'test -s "$0" || { printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0"; }' \
+        /opt/relab/backend/data/uploads/.relab-volume "$env"
+}
+
 stack_command() {
     local env="$1"
     local action="$2"
@@ -621,6 +636,20 @@ stack_command() {
                 -e "BACKUP_MANUAL=${BACKUP_MANUAL:-false}" \
                 -e "BACKUP_MAINTENANCE=${BACKUP_MAINTENANCE:-auto}" \
                 --name "relab-backup-$env" backup
+            ;;
+        backup-init)
+            # One-time provisioning: backup runs never initialize, so an empty directory
+            # cannot be mistaken for a first run. --no-deps: this must not start postgres.
+            run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
+                --entrypoint restic backup init
+            stamp_uploads_volume "$env"
+            ;;
+        backup-stamp-volume)
+            # Separate from backup-init on purpose. `restic init` fails against a
+            # repository that already exists, which would abort this script before the
+            # stamp ran, so an environment deployed before the marker existed could never
+            # acquire one -- and its uploads backups would refuse forever.
+            stamp_uploads_volume "$env"
             ;;
         backup-maintenance)
             # Retention, integrity check and offsite copy, without taking a snapshot.

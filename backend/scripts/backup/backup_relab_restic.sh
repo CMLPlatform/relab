@@ -22,6 +22,21 @@ fi
 # immediately.
 RESTIC_RETRY_LOCK="${RESTIC_RETRY_LOCK:-30m}"
 
+# A guard refusing to archive is a permanent state a human has to clear, not a transient
+# failure, so it is kept apart from a crash in two ways. It does not abort the run: the
+# other half's snapshot, the retention pass, the integrity check and the offsite copy all
+# still happen, and only the refused step is skipped. And it exits EXIT_REFUSED, which
+# relab-backup@.service lists in RestartPreventExitStatus -- retrying it three times an
+# hour only writes three more snapshots and sends three more alerts for the same
+# unchanged problem.
+EXIT_REFUSED=3
+STEP_REFUSED=false
+BACKUP_REFUSED=false
+refuse() {
+    STEP_REFUSED=true
+    BACKUP_REFUSED=true
+}
+
 read_secret() {
     local name="$1"
     local file_name="${name}_FILE"
@@ -52,21 +67,13 @@ ensure_restic_repository() {
     if [[ "$status" -eq 0 ]]; then
         return 0
     fi
-    # Auto-init ONLY when the repo genuinely does not exist:
-    #  - restic exit 10 = "repository does not exist" (restic >= 0.17), or
-    #  - a local filesystem repo with no config object yet (older restic / first run).
-    # A present-but-unreadable repo (wrong RESTIC_PASSWORD, corruption, wrong path)
-    # must fail loudly: re-initializing would start an empty repo that backs up nothing
-    # while the real history is unreachable, and the run would still exit 0.
-    # NOTE: an unmounted local volume that presents as an empty dir is indistinguishable
-    # from a first run here; Docker named volumes avoid that, but a bind mount could hit it.
-    local repo="${RESTIC_REPOSITORY%/}"
-    if [[ "$status" -eq 10 || ("$repo" != *:* && ! -e "${repo}/config") ]]; then
-        log "Initializing restic repository at ${RESTIC_REPOSITORY}"
-        restic init
-        return 0
-    fi
-    log "ERROR: restic repository at ${RESTIC_REPOSITORY} is present but unreadable (restic exit ${status}); refusing to re-initialize. Check the volume mount and RESTIC_PASSWORD."
+    # Never initializes. restic reports exit 10 both for a genuine first run and for a
+    # directory that is empty for the wrong reason (wrong BACKUP_HOST_DIR, swapped disk),
+    # so auto-init would quietly start a fresh empty archive that exits 0. Wrong password
+    # and corruption fail here for the same reason. `just backup-init <env>` creates it.
+    # The message omits that command on purpose: it also fires when a working repository
+    # goes unreadable, which is when running init does the most damage.
+    log "ERROR: restic repository at ${RESTIC_REPOSITORY} is not readable (restic exit ${status}); refusing to initialize. Check the volume mount, the backup disk, and RESTIC_PASSWORD. First run on a new host? See deploy/DEPLOY-PROD.md Part 1.1."
     exit 1
 }
 
@@ -86,61 +93,125 @@ backup_database() {
         --schema="${POSTGRES_SCHEMA:-public}" \
         --file="$dump_file"
 
-    assert_dump_not_collapsed "$dump_file"
+    if ! assert_not_collapsed postgres "$(stat -c %s "$dump_file")"; then
+        rm -f "$dump_file"
+        refuse
+        return 0
+    fi
 
     log "Backing up PostgreSQL dump to restic"
     restic backup "$dump_file" --retry-lock "$RESTIC_RETRY_LOCK" --tag postgres --tag relab "${BACKUP_TAG_ARGS[@]}"
     rm -f "$dump_file"
 }
 
-# Refuse to archive a dump that has collapsed against the newest stored one. An empty or
-# truncated database dumps and uploads without error, and once it is the newest snapshot
-# the retention policy starts ageing out the good copies behind it.
-# Set RESTIC_MIN_DUMP_RATIO=0 to archive anyway (a deliberate mass deletion).
-assert_dump_not_collapsed() {
-    local dump_file="$1" ratio="${RESTIC_MIN_DUMP_RATIO:-50}" new_size prev_size pct
+# Refuse to archive data that has collapsed against the newest stored snapshot of the
+# same tag. A truncated database and an emptied uploads volume both archive without
+# error, and once that is the newest snapshot the retention policy starts ageing out the
+# good copies behind it. Set RESTIC_MIN_DUMP_RATIO=0 for a deliberate mass deletion.
+# Returns 1 rather than exiting: the caller owns whatever it has to clean up.
+assert_not_collapsed() {
+    local tag="$1" new_size="$2" ratio="${RESTIC_MIN_DUMP_RATIO:-50}"
+    local stats_json prev_size status=0 pct
     [[ "$ratio" == 0 ]] && return 0
 
-    new_size="$(stat -c %s "$dump_file")"
-    # `restic stats --json` on the newest postgres snapshot, in the default restore-size
-    # mode: that is the dump's own byte count, directly comparable to the new file.
-    # (raw-data reports the packed size, a fraction of the file.)
-    # Capture restic's exit separately from the sed: a failure here (lock held,
-    # repository unreadable) must not read as "no previous snapshot" and fail open.
-    local stats_json status=0
-    stats_json="$(restic stats latest --tag postgres --json 2>&1)" || status=$?
+    # `restic stats --json` in the default restore-size mode: the data's own byte count,
+    # directly comparable to a local file or tree. (raw-data reports the packed size, a
+    # fraction of that.) Capture restic's exit separately from the parse below: a failure
+    # here (lock held, repository unreadable) must not read as "no previous snapshot"
+    # and fail open.
+    stats_json="$(restic stats latest --tag "$tag" --json 2>&1)" || status=$?
     if [[ "$status" -ne 0 ]]; then
-        log "ERROR: could not read the previous PostgreSQL snapshot size (restic exit ${status}): ${stats_json}"
-        rm -f "$dump_file"
-        exit 1
+        log "ERROR: could not read the previous ${tag} snapshot size (restic exit ${status}): ${stats_json}"
+        return 1
     fi
     # An empty repository is exit 0 with "snapshots_count":0, not an error.
     if grep -q '"snapshots_count":0[,}]' <<<"$stats_json"; then
-        log "No previous PostgreSQL snapshot to compare against; archiving ${new_size} bytes"
+        log "No previous ${tag} snapshot to compare against; archiving ${new_size} bytes"
         return 0
     fi
     prev_size="$(sed -n 's/.*"total_size":\([0-9]*\).*/\1/p' <<<"$stats_json")"
     if [[ -z "$prev_size" || "$prev_size" == 0 ]]; then
-        log "ERROR: previous PostgreSQL snapshot reports no size; refusing to guess. Output: ${stats_json}"
-        rm -f "$dump_file"
-        exit 1
+        log "ERROR: previous ${tag} snapshot reports no size; refusing to guess. Output: ${stats_json}"
+        return 1
     fi
 
     pct=$((new_size * 100 / prev_size))
     if ((pct < ratio)); then
-        log "ERROR: new dump is ${pct}% of the previous snapshot (${new_size} vs ${prev_size} bytes)."
-        log "ERROR: refusing to archive it -- a collapsed dump would age out the good snapshots."
+        log "ERROR: new ${tag} data is ${pct}% of the previous snapshot (${new_size} vs ${prev_size} bytes)."
+        log "ERROR: refusing to archive it -- a collapsed snapshot would age out the good ones."
         log "ERROR: if this shrink is real, re-run with RESTIC_MIN_DUMP_RATIO=0."
-        rm -f "$dump_file"
-        exit 1
+        return 1
     fi
-    log "Dump size ${new_size} bytes (${pct}% of previous); archiving"
+    log "${tag} size ${new_size} bytes (${pct}% of previous); archiving"
+}
+
+# The uploads volume identifies itself, so that "populated" and "the right data" are not
+# the same question. Docker recreates a missing named volume silently and empty, and the
+# app then recreates files/ and images/ inside it at startup, so a directory check alone
+# passes on a volume that has lost everything -- or on the wrong environment's volume
+# after a mistyped `-p`. A size check cannot see that second case at all.
+# Written once by `just backup-init <env>`. Unset RELAB_ENVIRONMENT (dev, CI) skips it.
+UPLOADS_CANARY_NAME=".relab-volume"
+
+assert_uploads_volume_identity() {
+    local canary="${UPLOADS_DIR}/${UPLOADS_CANARY_NAME}" found
+    # NOTE: unset means off, so any run of this image that does not go through
+    # compose.deploy.yaml (a hand-rolled `docker run` against a prod volume, say) has no
+    # identity check at all. Deliberate -- dev, CI and the image smoke all run that way.
+    if [[ -z "${RELAB_ENVIRONMENT:-}" ]]; then
+        log "RELAB_ENVIRONMENT is unset; skipping the uploads volume identity check"
+        return 0
+    fi
+
+    if [[ ! -f "$canary" ]]; then
+        log "ERROR: ${canary} is missing, so this is not the ${RELAB_ENVIRONMENT} uploads volume or it has been emptied."
+        log "ERROR: refusing to archive it -- an empty snapshot would age out the good ones. See deploy/DEPLOY-PROD.md Part 1.1 before running backup-stamp-volume."
+        return 1
+    fi
+    # Checked separately: an unreadable marker would otherwise abort the redirection
+    # below under `set -e` and the operator would get a bare "Permission denied" instead
+    # of any of this function's diagnostics. Live risk here -- the uploads tree has
+    # carried the wrong ownership before.
+    if [[ ! -r "$canary" ]]; then
+        log "ERROR: ${canary} is not readable by this run (uid $(id -u)); fix its ownership before archiving."
+        return 1
+    fi
+    found="$(tr -d '[:space:]' <"$canary")"
+    if [[ "$found" != "$RELAB_ENVIRONMENT" ]]; then
+        log "ERROR: ${canary} says '${found}' but this run is '${RELAB_ENVIRONMENT}'; refusing to archive another environment's uploads."
+        return 1
+    fi
+}
+
+# File-node bytes only, which is what `restic stats` reports in restore-size mode: it
+# counts files, and directories are size 0. `du -sb` would add each directory's own 4096
+# bytes on top, so a tree that lost every file but kept a large directory skeleton would
+# still measure close enough to the previous snapshot to pass the collapse guard.
+# Prints nothing and returns 1 when the tree cannot be walked; the caller logs that.
+uploads_size() {
+    local sizes
+    sizes="$(find "$UPLOADS_DIR" -type f -printf '%s\n')" || return 1
+    awk '{s+=$1} END {print s+0}' <<<"$sizes"
 }
 
 backup_uploads() {
+    local new_size
     if [[ ! -d "$UPLOADS_DIR" ]]; then
         log "ERROR: UPLOADS_DIR does not exist or is not a directory: ${UPLOADS_DIR}"
         exit 1
+    fi
+    if ! assert_uploads_volume_identity; then
+        refuse
+        return 0
+    fi
+    if ! new_size="$(uploads_size)"; then
+        log "ERROR: could not size the uploads tree at ${UPLOADS_DIR}; refusing to archive a total that may be short."
+        refuse
+        return 0
+    fi
+    if ! assert_not_collapsed user-uploads "$new_size"; then
+        refuse
+        return 0
     fi
 
     log "Backing up user uploads to restic: ${UPLOADS_DIR}"
@@ -201,6 +272,8 @@ ensure_offsite_repository() {
     # Only restic exit 10 means "repository does not exist". An expired credential, a
     # renamed remote, a typo'd path or a 5xx would otherwise init a fresh repository,
     # copy one day into it, and exit 0 while the real archive is orphaned.
+    # Exit 10 is actionable here, unlike the local repository above: a remote path cannot
+    # be an empty directory left by a failed mount, so auto-init is safe. Differs on purpose.
     if [[ "$status" -ne 10 ]]; then
         log "ERROR: offsite repository ${RESTIC_OFFSITE_REPOSITORY} is unreachable or unreadable (restic exit ${status}); refusing to initialize over it. Check the rclone remote, the path, and RESTIC_PASSWORD."
         return 1
@@ -280,14 +353,20 @@ main() {
 # with the steps stubbed. Args: <auto|skip|only>.
 run_cycle() {
     local maintenance="$1" did_backup=false
+    BACKUP_REFUSED=false
     if [[ "$maintenance" != "only" ]]; then
+        # STEP_REFUSED is reset per step: a step that refused took no snapshot, so it
+        # must not make did_backup true and pull the prune forward on a run that
+        # archived nothing.
         if [[ "${SKIP_DATABASE_BACKUP:-false}" != "true" ]]; then
+            STEP_REFUSED=false
             backup_database
-            did_backup=true
+            [[ "$STEP_REFUSED" == true ]] || did_backup=true
         fi
         if [[ "${SKIP_UPLOAD_BACKUP:-false}" != "true" ]]; then
+            STEP_REFUSED=false
             backup_uploads
-            did_backup=true
+            [[ "$STEP_REFUSED" == true ]] || did_backup=true
         fi
     fi
 
@@ -304,6 +383,11 @@ run_cycle() {
         copy_to_offsite "$did_backup"
     else
         log "Maintenance skipped (BACKUP_MAINTENANCE=skip); prune, check and offsite copy run on the daily maintenance timer"
+    fi
+
+    if [[ "$BACKUP_REFUSED" == true ]]; then
+        log "ERROR: a backup step refused to archive (see above). Maintenance still ran, but this run did not archive everything it should have."
+        return "$EXIT_REFUSED"
     fi
 }
 

@@ -299,6 +299,15 @@ docker_smoke_backups() {
         -c "INSERT INTO category (name, taxonomy_id) SELECT 'Café', id FROM taxonomy;" \
         -c "INSERT INTO product (name, owner_id) SELECT 'Café', id FROM \"user\";"
 
+    # ensure_restic_repository never initializes, so the smoke runs the same provisioning
+    # step an operator does. Also the only coverage of the first-run path.
+    docker run --rm \
+        -v "$tmp_root/restic:/restic" \
+        -e RESTIC_PASSWORD=smoke-password \
+        --entrypoint restic \
+        "$DEPLOY_BACKUP_IMAGE" \
+        init --repo /restic
+
     docker run --rm \
         --network "$network" \
         -v "$tmp_root/uploads:/data/uploads:ro" \
@@ -339,6 +348,9 @@ docker_smoke_backups() {
     printf 'smoke-password\n' >"$tmp_root/restic_password"
     chmod 0444 "$tmp_root/restic_password"
     verify_postgres_restore "$tmp_root/restic" "$tmp_root/restic_password" "$tmp_root"
+    # No environment marker here: the smoke runs without RELAB_ENVIRONMENT, the same way
+    # dev does, so this asserts the file count only.
+    verify_uploads_restore "$tmp_root/restic" "$tmp_root/restic_password" "$tmp_root"
 
     # Present is not the same as functional: exercise the unaccented trigram path and
     # assert the restore landed on the same revision the checkout migrates to.
@@ -405,12 +417,76 @@ backup_offsite_copy() {
     docker run "${docker_args[@]}" "$DEPLOY_BACKUP_IMAGE"
 }
 
+# Restore the newest `user-uploads` snapshot into a scratch directory and assert it
+# carries real data. Snapshot age (watchdog check 2) only proves a run happened; an
+# emptied volume produces a fresh snapshot that reads healthy. This is the only thing
+# that proves the uploads half of the repository restores at all.
+# Args: <repo dir> <restic password file> <scratch dir> [expected environment] [container name].
+# The scratch dir must sit on the same filesystem as the backup repository: an uploads
+# restore is unbounded, and filling / would take Postgres and the docker graph with it.
+# The systemd path passes a deterministic container name so the unit's ExecStopPost
+# reaper can remove the container after a SIGKILL, when no trap here runs.
+verify_uploads_restore() {
+    local repo="$1" password_file="$2" scratch="$3" expect_env="${4:-}"
+    local container="${5:-relab_uploads_restore_$(date +%s)_$$}"
+    local target="$scratch/uploads-restore"
+
+    # The backup image runs as uid 65532, so the restore target must be created and owned
+    # for it. Both happen in a container: on a deployed host the scratch directory lives
+    # under BACKUP_HOST_DIR, which this user does not own.
+    docker run --rm -v "$scratch:/work" --entrypoint sh alpine:3.22 \
+        -c 'rm -rf /work/uploads-restore && mkdir /work/uploads-restore && chown 65532:65532 /work/uploads-restore'
+    # A deterministic name can collide with a leftover from a killed earlier run; replace it.
+    docker rm -f "$container" >/dev/null 2>&1 || true
+
+    # Restore and check in one container: restic restores as uid 65532 and the host user
+    # running this cannot necessarily read the tree it just wrote. --no-lock because the
+    # repository is mounted read-only and restic cannot create locks/ on it.
+    local checks
+    checks="$(docker run --rm --name "$container" \
+        -v "$repo:/restic:ro" \
+        -v "$password_file:/run/secrets/restic_password:ro" \
+        -v "$target:/restore" \
+        -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
+        --entrypoint sh \
+        "$DEPLOY_BACKUP_IMAGE" -c '
+            set -e
+            restic restore --no-lock latest --repo /restic --tag user-uploads --target /restore >&2
+            marker=$(find /restore -type f -name .relab-volume | head -n1)
+            printf "%s %s\n" \
+                "$(find /restore -type f ! -name .relab-volume | wc -l)" \
+                "${marker:+$(tr -d "[:space:]" <"$marker")}"
+        ')"
+    local file_count canary
+    read -r file_count canary <<<"$checks"
+
+    if [[ "$file_count" -lt 1 ]]; then
+        echo "error: the newest user-uploads snapshot restored $file_count files; the volume was empty when it was taken" >&2
+        return 1
+    fi
+    # A missing marker is a failure too: every environment is stamped by
+    # `just backup-stamp-volume <env>`, so an unstamped restore means the snapshot came
+    # from somewhere other than the volume this environment backs up.
+    if [[ -n "$expect_env" && "$canary" != "$expect_env" ]]; then
+        echo "error: restored uploads carry environment marker '${canary:-<none>}', expected '$expect_env'" >&2
+        return 1
+    fi
+    echo "Restored $file_count uploaded files from the newest user-uploads snapshot"
+}
+
 backup_restore_smoke() {
     local env="${1:-prod}"
 
     resolve_backup_paths "$env"
 
     tmp_root="$(mktemp -d)"
+    # An uploads restore is unbounded and mktemp lands on /, which also carries Postgres
+    # and the docker graph, while the watchdog's disk check only measures BACKUP_HOST_DIR.
+    # Keep the restore on the backup filesystem so a large one cannot take the database
+    # down. That directory belongs to the backup image's uid rather than to this user, so
+    # both creating and removing the tree happen in a container.
+    backup_root="$(dirname "$DEPLOY_RESTIC_REPOSITORY")"
+    uploads_root="$backup_root/restore-check"
     host_uid="$(id -u)"
     host_gid="$(id -g)"
 
@@ -419,8 +495,12 @@ backup_restore_smoke() {
         docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
         rm -rf "$tmp_root"
+        docker run --rm -v "$backup_root:/backups" --entrypoint rm alpine:3.22 -rf /backups/restore-check \
+            >/dev/null 2>&1 || true
     }
     trap cleanup EXIT
+
+    docker run --rm -v "$backup_root:/backups" --entrypoint mkdir alpine:3.22 -p /backups/restore-check
 
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     build_backup_image
@@ -429,6 +509,8 @@ backup_restore_smoke() {
     # ExecStopPost when systemd kills this job on timeout (see verify_postgres_restore).
     verify_postgres_restore "$DEPLOY_RESTIC_REPOSITORY" "$tmp_root/restic_password" "$tmp_root" \
         "relab-restore-check-$env"
+    verify_uploads_restore "$DEPLOY_RESTIC_REPOSITORY" "$tmp_root/restic_password" "$uploads_root" "$env" \
+        "relab-restore-check-$env-uploads"
 
     echo "✅ Backup restore smoke test passed"
 }

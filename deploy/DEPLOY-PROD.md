@@ -32,6 +32,86 @@ Skipping this loses nothing for the stack itself; the compose caps stay authorit
 Follow "First backup" in the install guide (`mkdir`/`chown 65532`, `just backup prod`,
 `just restore-check prod`).
 
+**The repository is never created automatically.** Create it once, before the first backup:
+
+```bash
+just backup-init prod
+```
+
+That also stamps the uploads volume with `.relab-volume`, naming the environment it belongs to.
+Backup runs refuse to archive an uploads volume whose marker is missing or names another
+environment: Docker recreates a deleted named volume silently and empty, and the API refills
+`files/` and `images/` at startup, so "the directory exists" proves nothing about whose data is in
+it. Do not re-run `backup-init` to quiet either alert — it fails against an existing repository.
+
+**Marker missing, and the volume already has real uploads in it:** this host was deployed before
+the marker existed. Stamp it:
+
+```bash
+just backup-stamp-volume prod
+```
+
+Safe to re-run — it never overwrites an existing marker.
+
+**Marker missing, and the volume is genuinely empty:** the volume lost its contents or was
+replaced. There is no `just` recipe for a live restore of uploads — `restore-check` only restores
+into a scratch directory to verify a snapshot, and `just restore` is Postgres-only. Restore by hand
+against the compose-managed volume (`relab_prod_user_uploads`), restic's `--target` restores under
+the absolute path it backed up (`/data/uploads`), so a two-step copy is required.
+
+The scratch directory goes on the backup disk, not in `/tmp`: a full uploads tree restored onto
+the root filesystem can fill the disk Postgres and the Docker graph live on, and the watchdog's
+disk check only watches `BACKUP_HOST_DIR`. It has to be writable by uid 65532, the uid the backup
+image runs as. `--no-lock` is required because the repository is mounted read-only, so restic
+cannot write a lock file.
+
+```bash
+just stack prod down YES
+SCRATCH="${BACKUP_HOST_DIR:-./backups}/uploads-restore"
+mkdir -p "$SCRATCH"
+docker run --rm -v "$SCRATCH:/restore" --entrypoint chown alpine:3.22 -R 65532:65532 /restore
+docker run --rm \
+  -v "${BACKUP_HOST_DIR:-./backups}/restic:/restic:ro" \
+  -v "$(pwd)/secrets/prod/restic_password:/run/secrets/restic_password:ro" \
+  -v "$SCRATCH:/restore" \
+  -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
+  --entrypoint restic relab-backup:prod-local \
+  restore --no-lock latest --repo /restic --tag user-uploads --target /restore
+docker run --rm \
+  -v relab_prod_user_uploads:/data/uploads \
+  -v "$SCRATCH:/restore:ro" \
+  --entrypoint sh relab-backup:prod-local -c \
+  'rm -rf /data/uploads/* && cp -a /restore/data/uploads/. /data/uploads/'
+docker run --rm -v "$SCRATCH:/restore" --entrypoint chown alpine:3.22 -R "$(id -u):$(id -g)" /restore
+rm -rf "$SCRATCH"
+just stack prod up YES
+```
+
+The restored tree carries the marker of whichever environment it was backed up from — `just
+backup-stamp-volume prod` cannot fix that (it never overwrites), so rewrite it by hand if the source
+snapshot was another environment's:
+
+```bash
+docker run --rm -v relab_prod_user_uploads:/data/uploads --entrypoint sh relab-backup:prod-local -c \
+  'printf prod >/data/uploads/.relab-volume.tmp && mv /data/uploads/.relab-volume.tmp /data/uploads/.relab-volume'
+```
+
+**Marker present but names another environment:** the wrong volume is mounted, typically a mistyped
+`-p`/compose project. Re-point the mount; do not restore — that would overwrite the right data with
+a substitution.
+
+A backup run against a missing repository fails with restic exit 10 instead of creating one. That
+is deliberate. A directory that is empty for the wrong reason — a wrong `BACKUP_HOST_DIR`, a disk
+swapped out from under the mount — looks exactly like a first run, so a run that initialized on its
+own would create an empty repository on the wrong filesystem, back up into it, and exit 0 while the
+real archive stays unreachable.
+
+**If an existing host starts reporting that the repository is not readable, do not run
+`backup-init`.** That message means a repository that was working no longer is, and initializing
+over it replaces the problem with an empty archive that reports success. Check `findmnt -T
+"$BACKUP_HOST_DIR"`, then `secrets/prod/restic_password`. `backup-init` is for a host that has never
+had a backup.
+
 `BACKUP_HOST_DIR` is one value shared by every stack on the host, so two environments on one machine
 would share a restic directory. It fails closed, but only one of them gets backups. Give each host a
 single environment.
@@ -139,8 +219,11 @@ which otherwise refuses a manual start too. It checks:
 
 - every stack service (running, and healthy where a healthcheck exists)
 - newest snapshot age
-- free space on the filesystem holding the restic repository (alerts at 85% used;
-  `BACKUP_DISK_ALERT_PCENT` overrides)
+- free space on the filesystem holding the restic repository: alerts at 85% used
+  (`BACKUP_DISK_ALERT_PCENT`) **or** under 25 GiB free (`BACKUP_DISK_MIN_FREE_GB`, 0 disables).
+  The first threshold to bind is the one that alerts. On a large disk that is always the percentage;
+  the floor is there for a repository that shares a small filesystem with the database or the
+  Docker data root.
 - all four scheduled-job timers (installed, enabled, active, last run not failed, last trigger not
   overdue)
 - that `PING_WATCHDOG` is filled in
@@ -329,7 +412,7 @@ on dynamic SQL it cannot read.
 Otherwise the backup is the recovery path:
 
 ```bash
-just restore-check prod    # proves the snapshot loads, into a scratch DB
+just restore-check prod    # proves the snapshot loads: DB into a scratch container, uploads into a scratch dir
 ```
 
 For a real restore, pick the snapshot and restore it into the live database:
