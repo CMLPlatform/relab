@@ -75,6 +75,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
       // RN TextInput has no `variant`; the body step comes from the tokens.
       style={[{ padding: 14 }, tokens.type.body]}
       placeholder={`Add a ${entityLabel(product)} description`}
+      accessibilityLabel="Description"
       value={draftText}
       onChangeText={setDraftText}
       onBlur={handleBlur}

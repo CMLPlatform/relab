@@ -47,12 +47,22 @@ export function AppDialog({
       animationType="fade"
       onRequestClose={handleDismiss ?? NOOP}
     >
+      {/* Tap-outside-to-dismiss, and the wrapper that stops a tap on the card
+          from reaching it. Neither is a control: assistive tech dismisses the
+          dialog with its own buttons or the system back gesture, and a
+          full-screen unlabelled button would swallow the card it contains. */}
       <Pressable
+        accessible={false}
         className="flex-1 items-center justify-center p-4"
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={handleDismiss}
       >
-        <Pressable onPress={stopPropagation} className="w-full" style={styles.dialogWrapper}>
+        <Pressable
+          accessible={false}
+          onPress={stopPropagation}
+          className="w-full"
+          style={styles.dialogWrapper}
+        >
           <Animated.View
             entering={FadeInUp.duration(200)
               .easing(Easing.out(Easing.quad))

@@ -84,12 +84,19 @@ function FilterModalShell({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+      {/* Scrim and card wrapper, neither of them a control: see AppDialog. */}
       <Pressable
+        accessible={false}
         className="flex-1 items-center justify-center p-4"
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={onDismiss}
       >
-        <Pressable onPress={stopPropagation} className="w-full" style={styles.dialogWrapper}>
+        <Pressable
+          accessible={false}
+          onPress={stopPropagation}
+          className="w-full"
+          style={styles.dialogWrapper}
+        >
           <OverlaySurface className="p-4" tone="surface">
             <AppText variant="title" {...heading(2)} className="mb-2 font-semibold">
               {title}
