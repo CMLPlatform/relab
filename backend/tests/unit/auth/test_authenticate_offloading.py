@@ -7,6 +7,7 @@ that matter for security are pinned here: an unknown account still costs a hash,
 a wrong password is refused, and a stale hash is upgraded.
 """
 
+import threading
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -24,7 +25,7 @@ def _manager(*, get_by_email: AsyncMock, verified: bool = True, updated_hash: st
     manager.user_db = MagicMock()
     manager.user_db.update = AsyncMock()
     # Bind the real coroutine to the mock so only its collaborators are doubled.
-    manager._authenticate_offloading_hashes = UserManager._authenticate_offloading_hashes.__get__(manager)  # noqa: SLF001
+    manager._authenticate_offloading_hashes = UserManager._authenticate_offloading_hashes.__get__(manager)
     return manager
 
 
@@ -39,7 +40,7 @@ async def test_unknown_account_still_pays_for_a_hash() -> None:
     """Skipping the hash for a missing account leaks account existence through timing."""
     manager = _manager(get_by_email=AsyncMock(side_effect=exceptions.UserNotExists()))
 
-    assert await manager._authenticate_offloading_hashes(_credentials()) is None  # noqa: SLF001
+    assert await manager._authenticate_offloading_hashes(_credentials()) is None
     manager.password_helper.hash.assert_called_once()
 
 
@@ -48,7 +49,7 @@ async def test_wrong_password_is_refused() -> None:
     user = MagicMock(hashed_password="stored-hash")
     manager = _manager(get_by_email=AsyncMock(return_value=user), verified=False)
 
-    assert await manager._authenticate_offloading_hashes(_credentials()) is None  # noqa: SLF001
+    assert await manager._authenticate_offloading_hashes(_credentials()) is None
     manager.user_db.update.assert_not_awaited()
 
 
@@ -57,7 +58,7 @@ async def test_correct_password_returns_the_user_without_rewriting_the_hash() ->
     user = MagicMock(hashed_password="stored-hash")
     manager = _manager(get_by_email=AsyncMock(return_value=user))
 
-    assert await manager._authenticate_offloading_hashes(_credentials()) is user  # noqa: SLF001
+    assert await manager._authenticate_offloading_hashes(_credentials()) is user
     manager.user_db.update.assert_not_awaited()
 
 
@@ -66,15 +67,13 @@ async def test_outdated_hash_is_upgraded_on_successful_login() -> None:
     user = MagicMock(hashed_password="old-hash")
     manager = _manager(get_by_email=AsyncMock(return_value=user), updated_hash="stronger-hash")
 
-    assert await manager._authenticate_offloading_hashes(_credentials()) is user  # noqa: SLF001
+    assert await manager._authenticate_offloading_hashes(_credentials()) is user
     manager.user_db.update.assert_awaited_once_with(user, {"hashed_password": "stronger-hash"})
 
 
 @pytest.mark.parametrize("method", ["hash", "verify_and_update"])
 async def test_hashing_runs_off_the_event_loop(method: str) -> None:
     """The whole point: neither hashing call may execute on the calling thread."""
-    import threading
-
     calling_thread = threading.get_ident()
     seen: list[int] = []
 
@@ -89,7 +88,7 @@ async def test_hashing_runs_off_the_event_loop(method: str) -> None:
         manager = _manager(get_by_email=AsyncMock(return_value=MagicMock(hashed_password="h")))
         manager.password_helper.verify_and_update = MagicMock(side_effect=record)
 
-    await manager._authenticate_offloading_hashes(_credentials())  # noqa: SLF001
+    await manager._authenticate_offloading_hashes(_credentials())
 
     assert seen, "the hashing call was never made"
     assert seen[0] != calling_thread
