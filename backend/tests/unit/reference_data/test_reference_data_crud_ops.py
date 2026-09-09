@@ -192,7 +192,7 @@ async def test_a_reference_type_without_a_registered_column_refuses_to_delete(mo
 
     Reading a missing registration as "nothing references this" lets the delete through
     onto a NO ACTION foreign key, which answers 500 instead of naming the blocking
-    relation — the exact outcome the guard exists to prevent.
+    relation, the exact outcome the guard exists to prevent.
     """
     with pytest.raises(LookupError, match="Category"):
         await _require_not_in_use(mock_session, MagicMock(model=Category), 1)

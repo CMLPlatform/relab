@@ -396,7 +396,7 @@ describe('useProductQueries', () => {
 
   // Regression: every save PATCHes the whole record, and blur-saves fire one per
   // field, so two in flight at once let the slower one land last and overwrite
-  // the newer one's values. Only a mutation scope serializes them — a shared
+  // the newer one's values. Only a mutation scope serializes them; a shared
   // mutationKey does not.
   it('useSaveProductMutation runs overlapping saves one at a time, in send order', async () => {
     const started: string[] = [];
@@ -460,7 +460,7 @@ describe('useProductQueries', () => {
       timers.push({ run: callback, delay: delay ?? 0 });
       return 0;
     }) as unknown as typeof setTimeout);
-    // react-query keeps its own timers here — retry backoff below a second and
+    // react-query keeps its own timers here; retry backoff below a second and
     // garbage collection minutes out. The re-ask is the one in between.
     const lateRefetches = () => timers.filter(({ delay }) => delay >= 1_000 && delay <= 60_000);
 

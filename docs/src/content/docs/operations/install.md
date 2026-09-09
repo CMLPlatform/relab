@@ -232,10 +232,10 @@ the topology these steps produce.
    allows only when no migration in between dropped or rewrote data. `just stack prod down YES` stops
    the stack.
 
-   `up` first probes, as the services that write them, the three mounts the stack writes to: the
-   `user_uploads` and `restic_cache` volumes and the restic bind mount. It refuses to start when one
-   is not writable by UID 65532, because reads and `stat` still succeed on a wrongly-owned mount and
-   only the writes fail. Docker sets a named volume's ownership when it first creates the volume and
+   Before starting anything, `up` probes the three mounts the stack writes to, each as the service
+   that writes it: the `user_uploads` and `restic_cache` volumes, and the restic bind mount. It
+   refuses to start when one is not writable by UID 65532, because reads and `stat` still succeed on
+   a wrongly-owned mount and only the writes fail. Docker sets a named volume's ownership when it first creates the volume and
    never again, so a host whose volumes were created by a release that ran as a different UID needs a
    one-time chown, with the stack down:
 

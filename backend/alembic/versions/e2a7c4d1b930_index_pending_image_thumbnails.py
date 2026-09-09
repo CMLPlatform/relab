@@ -27,7 +27,7 @@ def upgrade() -> None:
     """Build the partial index the thumbnail backfill selects through."""
     # This revision contains nothing but the index on purpose. CONCURRENTLY cannot run
     # inside a transaction, and entering an autocommit block commits whatever the revision
-    # did before it — so any other statement here would be committed under a revision that
+    # did before it, so any other statement here would be committed under a revision that
     # a failed build then leaves unstamped. Alone, a failure re-runs from a consistent,
     # stamped state.
     #

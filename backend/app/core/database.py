@@ -26,8 +26,8 @@ async_engine: AsyncEngine = create_async_engine(
     pool_pre_ping=True,
     pool_recycle=1800,
     # A SQLAlchemy error renders its bound parameters into `str(exc)`, so any handler that
-    # logs a DB failure with a traceback writes whatever the statement carried — an address,
-    # a password hash — into the deployed JSON logs. Hiding them is the fail-closed default;
+    # logs a DB failure with a traceback writes whatever the statement carried (an address,
+    # a password hash) into the deployed JSON logs. Hiding them is the fail-closed default;
     # development keeps them, where `echo` is already printing the same statements.
     hide_parameters=not settings.debug,
 )

@@ -76,7 +76,7 @@ def spawn_detached(coro: Coroutine[object, object, object], *, name: str, max_in
     arriving while that many detached tasks are already running is declined rather
     than queued: nothing awaits this work, so an arrival rate above the rate it
     completes at would otherwise grow the set without bound. The ceiling counts every
-    detached task, not per name — one caller's backlog is the whole process's backlog.
+    detached task, not per name: one caller's backlog is the whole process's backlog.
     """
     if max_in_flight is not None and len(_detached_tasks) >= max_in_flight:
         logger.warning("Detached task %s declined: %d already in flight", name, len(_detached_tasks))

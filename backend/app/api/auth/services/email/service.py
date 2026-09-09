@@ -36,7 +36,7 @@ _SEND_BACKOFF_SECONDS = 0.5
 # Hard ceiling on one queued send, retries and provider timeouts included. The attempts
 # alone do not bound it: an SMTP timeout is configurable and the Graph provider makes two
 # HTTP calls per attempt, so three attempts can outlast any shutdown grace period. This
-# has to stay below `stop_grace_period` on the api service (compose.yaml) — past that a
+# has to stay below `stop_grace_period` on the api service (compose.yaml); past that a
 # deploy kills the worker mid-send and the notification is lost with neither a "sent" nor
 # a "failed" line to account for it.
 _SEND_WINDOW_SECONDS = 45

@@ -27,7 +27,7 @@ def deferred_thumbnail_limiter() -> anyio.CapacityLimiter:
 
     Separate from ``image_resize_limiter`` on purpose. anyio's limiter is FIFO, so a
     shared one makes an upload's inline resize queue behind every deferred job already
-    waiting — the deferral would then add to the response time it exists to remove.
+    waiting; the deferral would then add to the response time it exists to remove.
 
     Sized at half the request-path cap, and never below one: deferred work is by
     definition the work nothing is waiting for, so it yields thread-pool room to the

@@ -258,8 +258,8 @@ host to `a9c2e4f60b18` on a release from before the flatten, or restore from bac
 `up` adds the `scanning` profile itself unless `MALWARE_SCAN_ENABLED=false` in the root `.env`.
 
 The migrator also completes any missing image thumbnails. That step is best-effort, so if its log
-says the thumbnail backfill failed — or product lists are serving full-size originals as card
-images — re-run it by hand against the backend container:
+says the thumbnail backfill failed (or product lists are serving full-size originals as card
+images), re-run it by hand against the backend container:
 `python -m scripts.maintenance.backfill_thumbnails`. It resumes where it stopped and is safe to run
 repeatedly.
 

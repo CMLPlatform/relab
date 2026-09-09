@@ -106,7 +106,7 @@ async def test_a_file_that_fails_mid_resize_is_skipped_and_the_batch_still_commi
     """One unreadable pixel stream must not roll back the stamps of the rows around it.
 
     The batch is committed once per pass, so a raise from the resize would discard every
-    ``thumbnails_generated_at`` written before it — leaving the next run to re-select the
+    ``thumbnails_generated_at`` written before it, leaving the next run to re-select the
     same rows and stall on the same file forever.
     """
     truncated = tmp_path / "truncated.jpg"

@@ -177,8 +177,8 @@ def test_pending_thumbnail_index_is_a_revision_of_its_own(
     in the same ``upgrade()`` is committed while the revision is still unstamped: a build
     that loses its race for the lock then leaves the column applied and the revision not
     recorded, and every later upgrade dies re-adding a column that already exists.
-    Stepping down one revision at a time is what pins the split — the index goes, the
-    column stays — and the round trip back to head covers both revisions.
+    Stepping down one revision at a time is what pins the split (the index goes, the
+    column stays), and the round trip back to head covers both revisions.
     """
 
     def index_is_valid() -> bool | None:

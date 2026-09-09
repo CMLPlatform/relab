@@ -8,8 +8,8 @@ const isMac =
 
 /**
  * What the "?" overlay advertises for the products screens. It lives beside the
- * hooks that register these bindings — `useProductsListShortcuts` and
- * `useProductEditShortcuts` — so a changed key and its description move together.
+ * hooks that register these bindings (`useProductsListShortcuts` and
+ * `useProductEditShortcuts`), so a changed key and its description move together.
  */
 export const PRODUCT_SHORTCUT_GROUPS: ShortcutGroupSpec[] = [
   {

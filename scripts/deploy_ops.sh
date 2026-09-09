@@ -598,8 +598,8 @@ mount_writability_alert() {
 # Every mount the stack writes to, probed as the service that writes it, before anything
 # starts. A container gets no supplementary groups, so an ownership mismatch is not a
 # degraded mode: `stat` and reads keep succeeding and every write fails EACCES. Nothing
-# downstream would report it — `/live` never touches uploads and the migrator's backfills
-# are wrapped in `|| echo` — so the deploy would report success and uploads would fail one
+# downstream would report it (`/live` never touches uploads and the migrator's backfills
+# are wrapped in `|| echo`), so the deploy would report success and uploads would fail one
 # at a time afterwards.
 assert_deploy_mounts_writable() {
     local env="$1" backup_dir failed=0 entry service path target writable
