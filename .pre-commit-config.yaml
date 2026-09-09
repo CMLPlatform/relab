@@ -103,6 +103,14 @@ repos:
         files: \.mdx?$
         # Explicit file args bypass [tool.rumdl].exclude; mirror it here.
         exclude: (^|/)(CHANGELOG|DESIGN)\.md$
+      - id: docker-lint
+        name: docker-lint
+        # BuildKit's built-in checks. Parses only; builds no image.
+        entry: just docker-lint
+        language: system
+        files: (^|/)Dockerfile(\.[^/]+)?$
+        exclude: \.dockerignore$
+        pass_filenames: false
       - id: pnpm-lock
         name: pnpm-lock
         entry: pnpm install --lockfile-only --ignore-scripts
