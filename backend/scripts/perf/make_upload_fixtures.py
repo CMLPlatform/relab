@@ -22,9 +22,11 @@ from pathlib import Path
 
 from PIL import Image as PILImage
 
-from app.core.logging import setup_logging
-
-setup_logging()
+# Stdlib logging, not `app.core.logging`: importing that pulls in Settings, which
+# requires ENVIRONMENT to be set. Nothing here reads configuration, and a fixture
+# generator that cannot run without a configured environment fails in the one place
+# it is needed most — a bare CI job that only wanted to build two JPEGs.
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
 PERF_DIR = Path(__file__).resolve().parents[2] / "perf"
