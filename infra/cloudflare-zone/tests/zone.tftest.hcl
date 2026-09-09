@@ -199,14 +199,25 @@ run "public_reads_skip_bot_fight_mode" {
     error_message = "public stats and product reads must skip Super Bot Fight Mode on GET."
   }
 
-  # CORS preflights: a challenged OPTIONS blocks every cross-origin call from the app.
+  # CORS preflights: a challenged OPTIONS blocks every cross-origin call a keyed E2E run
+  # makes, and a preflight cannot carry the key. Staging only — a preflight is answered
+  # before routing, so an exemption on prod is unmetered traffic no rate limiter sees.
   assert {
     condition = anytrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref == "relab_public_reads_skip_bot_fight_mode" &&
-      strcontains(rule.expression, "http.request.method eq \"OPTIONS\"")
+      strcontains(rule.expression, "${local.staging_hosts_expression} and http.request.method eq \"OPTIONS\"")
     ])
-    error_message = "CORS preflights (OPTIONS) must skip Super Bot Fight Mode on the api hosts."
+    error_message = "the OPTIONS branch must be conjoined with the staging host set, never stand alone."
+  }
+
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      !strcontains(rule.expression, "http.request.method eq \"OPTIONS\"") ||
+      !strcontains(rule.expression, "${local.api_hosts_expression} and http.request.method eq \"OPTIONS\"")
+    ])
+    error_message = "no rule may exempt OPTIONS across the api hosts: that covers production on every path."
   }
 
   # Writes must stay behind the bot products: no POST/PUT/PATCH/DELETE in the expression.

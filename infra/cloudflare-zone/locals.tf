@@ -138,28 +138,32 @@ locals {
       # time and ships its fixture instead when the fetch is challenged. One rule for both
       # because the Free plan allows five in this phase. This zone's plan has no `matches`
       # operator, so the prefix stands in for `^/v1/products/[0-9]+(/components/tree)?$`;
-      # every GET under it is an unauthenticated read. OPTIONS is the browser's CORS
-      # preflight: it carries no body, changes nothing, and a challenged preflight kills
-      # every cross-origin call the app makes (a keyed E2E run adds a custom header, which
-      # forces a preflight on each request), so it skips too.
+      # every GET under it is an unauthenticated read.
       #
-      # Keyed staging E2E rides along as a second branch here, not in the managed-WAF rule
+      # Staging E2E rides along as the other two branches, not in the managed-WAF rule
       # above: the Free plan allows five rules in this phase and they are all spoken for,
       # so a rule of its own would fail at apply time. This rule skips only Super Bot Fight
-      # Mode, so a keyed run still meets the same managed WAF prod does. Staging hosts
-      # only, and only while var.e2e_edge_key is set.
+      # Mode, so a keyed run still meets the same managed WAF prod does.
+      #
+      # The OPTIONS branch is one of those: a keyed run adds a custom header, so the
+      # browser sends a CORS preflight before every request, and a preflight cannot carry
+      # the key — the browser strips it. It is joined to the staging hosts, because a
+      # preflight is a request the origin answers before routing and therefore before any
+      # per-route limiter, and prod has no E2E run needing it.
       ref         = "relab_public_reads_skip_bot_fight_mode"
-      description = "Skip Super Bot Fight Mode for public read-only endpoints, CORS preflights, and keyed staging E2E runs"
+      description = "Skip Super Bot Fight Mode for public read-only endpoints and staging E2E runs"
       expression = join(" or ", concat([
         join(" and ", [
           local.api_hosts_expression,
+          "http.request.method eq \"GET\"",
           "(${join(" or ", [
-            "http.request.method eq \"OPTIONS\"",
-            "(http.request.method eq \"GET\" and (${join(" or ", [
-              "starts_with(http.request.uri.path, \"/v1/stats/\")",
-              "starts_with(http.request.uri.path, \"/v1/products/\")",
-            ])}))",
+            "starts_with(http.request.uri.path, \"/v1/stats/\")",
+            "starts_with(http.request.uri.path, \"/v1/products/\")",
           ])})",
+        ]),
+        join(" and ", [
+          local.staging_hosts_expression,
+          "http.request.method eq \"OPTIONS\"",
         ]),
         ], var.e2e_edge_key == "" ? [] : [
         # Cloudflare stores and serves ruleset expressions in cleartext, so this is a
