@@ -11,6 +11,10 @@ A small `k6` suite that catches latency regressions in common backend paths.
 | `bearer_login`      | auth login     | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
 | `media_url_read`    | media URL      | `PERF_MEDIA_URL` set                           |
 
+`just docker-ci-perf-baseline` sets `PERF_MEDIA_URL` for you: it reads the first seeded product's
+`thumbnail_url` from the running stack, so all four scenarios run. It fails rather than silently
+skipping media coverage when the database holds no seeded images.
+
 ## Thresholds
 
 Regression tripwires, not capacity targets.
@@ -92,8 +96,8 @@ just perf-baseline
 ## Recommended Baseline Inputs
 
 - Use `just docker-ci-perf-baseline` so the database is seeded with stable sample products first.
-- `live_probe` and `product_list_read` must stay runnable; the baseline must also pass with no media
-  URL.
+- `live_probe` and `product_list_read` must stay runnable; the script must also pass with no media
+  URL, so `PERF_MEDIA_URL` stays optional even though the CI recipe always supplies one.
 - Use `/v1/products?size=20` as the product-read baseline.
 - Use the CI superuser from `backend/.env.test` for login measurements.
 
