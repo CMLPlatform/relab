@@ -253,6 +253,39 @@ old schema, acceptable during a planned outage, not for a routine release.
 
 `up` adds the `scanning` profile itself unless `MALWARE_SCAN_ENABLED=false` in the root `.env`.
 
+### Releases that need a window
+
+Three things stretch a release beyond the time the commands take, all learned the expensive way.
+
+**A backfill migration holds the API down for its whole duration.** The `migrations` profile gates
+the API on `service_completed_successfully`, so a release whose migrator backfills existing rows —
+regenerating derivatives, recomputing a column — keeps `api` and the tunnel in `Created` until it
+finishes, however long that is. Check for one before you start (`alembic history` above, and read
+what the migrator does, not just whether it exists), and announce the window accordingly rather
+than discovering it at 100% CPU.
+
+**A snapshot needs the stack up, and must precede the checkout.** `just backup <env> manual` runs
+with `--no-deps` on purpose: the timer must never start postgres as a side effect. So the safety
+snapshot cannot be taken after `down`. And any change to what the containers run as — a uid change,
+an ownership change — takes effect the moment the checkout moves, because the Compose `user:` pin
+overrides the image's own `USER`. Between checkout and the matching `chown`, every backup run
+fails. The order that works:
+
+```bash
+just stack <env> build            # safe with the stack up; the snapshot then runs on the new image
+# chown anything the containers own that is not a volume mounted by a running service
+just backup <env> manual          # tagged, so retention cannot expire your rollback
+just stack <env> down YES
+# chown the volumes that a running service would have been writing
+just stack <env> up YES migrations
+```
+
+**Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
+stopping the watchdog too, or it pages mid-window — and a stopped watchdog cannot then tell you the
+others are still stopped. The dead man's switch is the backstop: with no ping, the external check
+fires after its grace period. Do not rely on it; `systemctl is-active` on all three is the last
+line of the runbook.
+
 ### Verify
 
 ```bash
