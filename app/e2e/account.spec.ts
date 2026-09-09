@@ -52,9 +52,11 @@ test.describe('Account: dialog keyboard a11y', () => {
   }) => {
     await loginAndGoToProfile(page);
 
-    const hiText = page.getByText('Hi,');
-    await expect(hiText).toBeVisible();
-    await hiText.locator('xpath=following-sibling::*[1]').click();
+    await expect(page.getByText('Hi,')).toBeVisible();
+    // By accessible name, not DOM position: the heading sits beside the edit
+    // control rather than inside it, so the control is no longer the greeting's
+    // next sibling (see ProfileHero in components/profile/HeroStats.tsx).
+    await page.getByRole('button', { name: 'Edit username' }).click();
     await expect(page.getByText('Edit username')).toBeVisible({ timeout: 3_000 });
 
     // react-native-web's core Modal marks its root role="dialog" while active.

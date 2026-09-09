@@ -149,14 +149,16 @@ test.describe('Product detail: phone chunking', () => {
     }
   });
 
-  test('edit mode has exactly one name control, at display scale', async ({ page }) => {
+  test('edit mode has exactly one name control, at title scale', async ({ page }) => {
     await loginAndReachProducts(page);
     await createProduct(page, `E2E Name ${Date.now()}`);
     const nameInputs = page.getByRole('textbox', { name: 'Product name' });
     await expect(nameInputs).toHaveCount(1);
     const fontSize = await nameInputs.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-    // The display step is the largest text on the screen (DESIGN.md §Hierarchy).
-    expect(fontSize).toBeGreaterThanOrEqual(30);
+    // The `title` step (24), not `display` (38): display cut long names off
+    // mid-word at phone width, so edit mode steps down one rung while view mode
+    // keeps the display heading (see SpecHeader). Still well above body (16).
+    expect(fontSize).toBeGreaterThanOrEqual(24);
   });
 
   test('compact empty gallery keeps the product name in the first viewport', async ({ page }) => {

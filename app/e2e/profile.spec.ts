@@ -99,13 +99,15 @@ test.describe('Profile: content', () => {
 });
 
 test.describe('Profile: username dialog', () => {
-  test('tapping the username heading opens the edit-username dialog', async ({ page }) => {
+  test('the edit control beside the username opens the edit-username dialog', async ({ page }) => {
     await loginAndGoToProfile(page);
     // The "Hi," Text and the username Pressable are siblings in the hero section.
     // Clicking the sibling immediately after "Hi," triggers setEditUsernameVisible.
-    const hiText = page.getByText('Hi,');
-    await expect(hiText).toBeVisible();
-    await hiText.locator('xpath=following-sibling::*[1]').click();
+    await expect(page.getByText('Hi,')).toBeVisible();
+    // The heading is no longer the trigger: ProfileHero renders it beside a
+    // pencil button so the screen keeps a heading in its outline. Target the
+    // button by accessible name rather than by position.
+    await page.getByRole('button', { name: 'Edit username' }).click();
     await expect(page.getByText('Edit username')).toBeVisible({
       timeout: 3_000,
     });
