@@ -26,6 +26,13 @@ COPY app/ app/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-editable --no-default-groups
 
+# PyPI wheels ship unstripped; this cuts ~40MB from the venv the runtime stage
+# copies. Only C-level crash backtraces lose detail, not Python tracebacks.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends binutils \
+    && find .venv -name '*.so' -exec strip -s {} + \
+    && rm -rf /var/lib/apt/lists/*
+
 # --- Dev stage (all groups, hot reload) ---
 FROM ghcr.io/astral-sh/uv:0.12-python3.14-trixie-slim@sha256:d5ddd498c5a28ec77ff1c70276f8f3c4a116a303c8b5583a018ea43c2e89e366 AS dev
 
