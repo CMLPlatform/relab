@@ -621,12 +621,12 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write("✅ Environment variable policy checks passed\n")
         elif args.command == "inventory":
             # Both suppressed writes below emit secret file NAMES from committed config, never values.
-            sys.stdout.write(format_inventory(load_secret_inventory()))  # codeql[py/clear-text-logging-sensitive-data]
+            sys.stdout.write(format_inventory(load_secret_inventory()))  # lgtm[py/clear-text-logging-sensitive-data]
         elif args.command == "validation-env":
             write_validation_env_file(args.path)
         elif args.command == "secrets-list":
             for name in compose_secret_names(load_json(args.config)):
-                sys.stdout.write(f"{name}\n")  # codeql[py/clear-text-logging-sensitive-data]
+                sys.stdout.write(f"{name}\n")  # lgtm[py/clear-text-logging-sensitive-data]
         elif args.command == "secrets-check":
             run_secrets_check(args.configs)
         elif args.command == "secrets-placeholder-check":
