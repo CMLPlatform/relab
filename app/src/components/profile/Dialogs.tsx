@@ -57,6 +57,7 @@ export function ProfileDialogs({
         visible={unlinkDialogVisible}
         onDismiss={onDismissUnlink}
         triggerRef={unlinkTriggerRef}
+        accessibilityLabel="Unlink account"
       >
         <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Unlink account
@@ -106,6 +107,7 @@ export function ProfileDialogs({
         visible={deleteDialogVisible}
         onDismiss={onDismissDeleteDialog}
         triggerRef={deleteAccountTriggerRef}
+        accessibilityLabel="Delete account"
       >
         <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Delete account

@@ -54,7 +54,12 @@ export function CameraPickerDialog({
   );
 
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
+    <AppDialog
+      visible={visible}
+      onDismiss={onDismiss}
+      triggerRef={triggerRef}
+      accessibilityLabel={title}
+    >
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         {title}
       </AppText>

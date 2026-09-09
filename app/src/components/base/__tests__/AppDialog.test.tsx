@@ -26,19 +26,31 @@ afterEach(() => {
 });
 
 describe('AppDialog', () => {
+  it('names the dialog for assistive tech', async () => {
+    mockPlatform('web');
+    // Without this the Modal renders role="dialog" + aria-modal with no accessible name,
+    // and every dialog in the app announces as just "dialog".
+    await renderWithProviders(
+      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Sign out">
+        <Text>Body</Text>
+      </AppDialog>,
+    );
+    expect(screen.getByLabelText('Sign out')).toBeOnTheScreen();
+  });
+
   it('returns focus to the element that opened it', async () => {
     mockPlatform('web');
     const trigger = { focus: jest.fn(), isConnected: true };
     stubDocument(trigger);
 
     const { rerender } = await renderWithProviders(
-      <AppDialog visible={false} onDismiss={jest.fn()}>
+      <AppDialog visible={false} onDismiss={jest.fn()} accessibilityLabel="Test dialog">
         <Text>Body</Text>
       </AppDialog>,
     );
 
     await rerender(
-      <AppDialog visible onDismiss={jest.fn()}>
+      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Test dialog">
         <Text>Body</Text>
       </AppDialog>,
     );
@@ -46,7 +58,7 @@ describe('AppDialog', () => {
     expect(screen.getByText('Body')).toBeOnTheScreen();
 
     await rerender(
-      <AppDialog visible={false} onDismiss={jest.fn()}>
+      <AppDialog visible={false} onDismiss={jest.fn()} accessibilityLabel="Test dialog">
         <Text>Body</Text>
       </AppDialog>,
     );
@@ -60,17 +72,17 @@ describe('AppDialog', () => {
     stubDocument(trigger);
 
     const { rerender } = await renderWithProviders(
-      <AppDialog visible={false} onDismiss={jest.fn()}>
+      <AppDialog visible={false} onDismiss={jest.fn()} accessibilityLabel="Test dialog">
         <Text>Body</Text>
       </AppDialog>,
     );
     await rerender(
-      <AppDialog visible onDismiss={jest.fn()}>
+      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Test dialog">
         <Text>Body</Text>
       </AppDialog>,
     );
     await rerender(
-      <AppDialog visible={false} onDismiss={jest.fn()}>
+      <AppDialog visible={false} onDismiss={jest.fn()} accessibilityLabel="Test dialog">
         <Text>Body</Text>
       </AppDialog>,
     );
@@ -93,7 +105,12 @@ describe('AppDialog', () => {
     const { rerender } = await renderWithProviders(
       <>
         <View ref={triggerRef} />
-        <AppDialog visible={false} onDismiss={jest.fn()} triggerRef={triggerRef}>
+        <AppDialog
+          visible={false}
+          onDismiss={jest.fn()}
+          triggerRef={triggerRef}
+          accessibilityLabel="Test dialog"
+        >
           <Text>Body</Text>
         </AppDialog>
       </>,
@@ -102,7 +119,12 @@ describe('AppDialog', () => {
     await rerender(
       <>
         <View ref={triggerRef} />
-        <AppDialog visible onDismiss={jest.fn()} triggerRef={triggerRef}>
+        <AppDialog
+          visible
+          onDismiss={jest.fn()}
+          triggerRef={triggerRef}
+          accessibilityLabel="Test dialog"
+        >
           <Text>Body</Text>
         </AppDialog>
       </>,
@@ -110,7 +132,12 @@ describe('AppDialog', () => {
     await rerender(
       <>
         <View ref={triggerRef} />
-        <AppDialog visible={false} onDismiss={jest.fn()} triggerRef={triggerRef}>
+        <AppDialog
+          visible={false}
+          onDismiss={jest.fn()}
+          triggerRef={triggerRef}
+          accessibilityLabel="Test dialog"
+        >
           <Text>Body</Text>
         </AppDialog>
       </>,

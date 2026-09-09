@@ -44,6 +44,7 @@ export function ProductImageCameraDialogs({
         visible={previewCamera !== null}
         onDismiss={onDismissPreview}
         triggerRef={triggerRef}
+        accessibilityLabel={previewCamera?.name ?? 'Camera preview'}
       >
         <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           {previewCamera?.name ?? 'Camera preview'}

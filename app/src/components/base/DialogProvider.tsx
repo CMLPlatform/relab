@@ -125,7 +125,14 @@ function DialogBody({
   }, [handleClose, submitButton]);
 
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={options.triggerRef}>
+    <AppDialog
+      visible={visible}
+      onDismiss={onDismiss}
+      triggerRef={options.triggerRef}
+      // Title first; a titleless confirm still has to announce as something, and its
+      // message is the only text it carries.
+      accessibilityLabel={options.title ?? options.message ?? 'Dialog'}
+    >
       {options.title ? (
         <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           {options.title}

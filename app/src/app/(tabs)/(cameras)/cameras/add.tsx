@@ -30,7 +30,12 @@ function PairingSuccessDialog({
 }) {
   const theme = useAppTheme();
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
+    <AppDialog
+      visible={visible}
+      onDismiss={onDismiss}
+      triggerRef={triggerRef}
+      accessibilityLabel="Camera paired"
+    >
       <View className="items-center gap-3 pt-6">
         <Animated.View
           entering={ZoomIn.duration(250)

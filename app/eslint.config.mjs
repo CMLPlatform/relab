@@ -31,7 +31,13 @@ const reactNativeA11yRules = {
   'react-native-a11y/has-valid-important-for-accessibility': 'error',
   'react-native-a11y/no-nested-touchables': 'error',
   'react-native-a11y/has-valid-accessibility-descriptors': 'error',
-  'react-native-a11y/has-valid-accessibility-ignores-invert-colors': 'error',
+  // `invertableComponents` is required, not optional: the rule only inspects an `Image`
+  // imported from 'react-native', and every image in this app comes from 'expo-image'.
+  // Without naming it here the rule silently matches nothing at all.
+  'react-native-a11y/has-valid-accessibility-ignores-invert-colors': [
+    'error',
+    { invertableComponents: ['Image'] },
+  ],
 };
 
 // A heading role written straight onto a JSX element, which `heading(level)`

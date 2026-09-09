@@ -54,7 +54,12 @@ export function GoLiveDialog({
   );
 
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
+    <AppDialog
+      visible={visible}
+      onDismiss={onDismiss}
+      triggerRef={triggerRef}
+      accessibilityLabel={`Go Live on ${cameraName}`}
+    >
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Go Live on {cameraName}
       </AppText>

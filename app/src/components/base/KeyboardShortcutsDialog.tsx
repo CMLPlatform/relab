@@ -72,7 +72,7 @@ export function KeyboardShortcutsDialog() {
   if (Platform.OS !== 'web') return null;
 
   return (
-    <AppDialog visible={visible} onDismiss={hide}>
+    <AppDialog visible={visible} onDismiss={hide} accessibilityLabel="Keyboard shortcuts">
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Keyboard shortcuts
       </AppText>

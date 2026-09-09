@@ -8,6 +8,12 @@ import { OverlaySurface } from './OverlaySurface';
 type AppDialogProps = {
   visible: boolean;
   onDismiss: () => void;
+  /**
+   * Names the dialog for assistive tech. Required: react-native-web renders the Modal
+   * with role="dialog" and aria-modal, and without a name a screen reader announces only
+   * "dialog", so the user cannot tell which one opened. Pass the visible title's text.
+   */
+  accessibilityLabel: string;
   /** When false, tapping the backdrop or pressing Escape/back does not dismiss. Defaults to true. */
   dismissable?: boolean;
   /** The element that opened this dialog, so native screen readers can return focus to it on close. */
@@ -30,6 +36,7 @@ function stopPropagation(e: { stopPropagation: () => void }) {
 export function AppDialog({
   visible,
   onDismiss,
+  accessibilityLabel,
   dismissable = true,
   triggerRef,
   children,
@@ -46,6 +53,9 @@ export function AppDialog({
       transparent
       animationType="fade"
       onRequestClose={handleDismiss ?? NOOP}
+      // Lands on the element react-native-web gives role="dialog": Modal spreads its
+      // remaining props onto it. RN core treats aria-label the same on native.
+      aria-label={accessibilityLabel}
     >
       {/* Tap-outside-to-dismiss, and the wrapper that stops a tap on the card
           from reaching it. Neither is a control: assistive tech dismisses the

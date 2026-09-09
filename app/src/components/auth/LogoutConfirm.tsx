@@ -18,7 +18,12 @@ export default function LogoutConfirm({
   triggerRef?: RefObject<View | null>;
 }) {
   return (
-    <AppDialog visible={visible} onDismiss={onDismiss} triggerRef={triggerRef}>
+    <AppDialog
+      visible={visible}
+      onDismiss={onDismiss}
+      triggerRef={triggerRef}
+      accessibilityLabel="Sign out"
+    >
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Sign out
       </AppText>
