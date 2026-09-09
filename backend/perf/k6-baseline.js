@@ -37,13 +37,21 @@ function stage(rate, preAllocatedVUs) {
 const scenarios = {
   live_probe: { ...stage(Number(__ENV.PERF_LIVE_RATE || 20), 10), exec: "liveProbe" },
   product_list_read: { ...stage(Number(__ENV.PERF_PRODUCT_LIST_RATE || 10), 20), exec: "productListRead" },
+  product_search_read: { ...stage(Number(__ENV.PERF_SEARCH_RATE || 10), 20), exec: "productSearchRead" },
 };
+
+// Rotated per iteration so the run does not measure one repeatedly cached query.
+// The terms match what scripts/seed/perf_seed.py generates, and deliberately mix
+// single-term lookups with a multi-term query, which is the slower path.
+const searchTerms = (__ENV.PERF_SEARCH_TERMS || "steel,laptop,novatech,compact steel drill,recycled monitor").split(",");
 
 const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
   "http_req_duration{scenario:live_probe}": ["p(95)<100"],
   "http_req_failed{scenario:product_list_read}": ["rate<0.01"],
   "http_req_duration{scenario:product_list_read}": ["p(95)<300"],
+  "http_req_failed{scenario:product_search_read}": ["rate<0.01"],
+  "http_req_duration{scenario:product_search_read}": ["p(95)<1000"],
   // An open-model run that cannot start its iterations on time is a saturated
   // server, not a fast one; without this the suite would report the shortfall
   // as healthy latency.
@@ -63,6 +71,15 @@ if (mediaUrl) {
   thresholds["http_req_duration{scenario:media_url_read}"] = ["p(95)<100"];
 }
 
+// Registered after every read stage on purpose: this one inserts rows, and the
+// read baselines above are only comparable against a table that is not growing
+// underneath them.
+if (loginEmail && loginPassword) {
+  scenarios.product_create_write = { ...stage(Number(__ENV.PERF_CREATE_RATE || 5), 10), exec: "productCreateWrite" };
+  thresholds["http_req_failed{scenario:product_create_write}"] = ["rate<0.01"];
+  thresholds["http_req_duration{scenario:product_create_write}"] = ["p(95)<300"];
+}
+
 export const options = {
   scenarios,
   thresholds,
@@ -70,6 +87,17 @@ export const options = {
   // regression, and the default stats hide it.
   summaryTrendStats: ["avg", "min", "med", "p(95)", "p(99)", "max"],
 };
+
+export function setup() {
+  if (!loginEmail || !loginPassword) {
+    return {};
+  }
+  const response = http.post(`${baseUrl}/v1/auth/bearer/login`, {
+    username: loginEmail,
+    password: loginPassword,
+  });
+  return { token: response.json("access_token") };
+}
 
 export function liveProbe() {
   const response = http.get(`${baseUrl}${livePath}`, {
@@ -120,5 +148,36 @@ export function mediaUrlRead() {
   check(response, {
     "media URL returned 200": (res) => res.status === 200,
     "media URL has body": (res) => res.body && res.body.length > 0,
+  });
+}
+
+export function productSearchRead() {
+  const term = searchTerms[(__VU + __ITER) % searchTerms.length];
+  const response = http.get(`${baseUrl}/v1/products?size=20&search=${encodeURIComponent(term.trim())}`, {
+    tags: { scenario: "product_search_read" },
+  });
+
+  check(response, {
+    "product search returned 200": (res) => res.status === 200,
+    "product search returned items": (res) => Array.isArray(res.json("items")),
+  });
+}
+
+export function productCreateWrite(data) {
+  const response = http.post(
+    `${baseUrl}/v1/products`,
+    JSON.stringify({ name: `perf baseline product ${__VU}-${__ITER}` }),
+    {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${data.token}`,
+      },
+      tags: { scenario: "product_create_write" },
+    },
+  );
+
+  check(response, {
+    "product create returned 201": (res) => res.status === 201,
+    "product create returned an id": (res) => Boolean(res.json("id")),
   });
 }

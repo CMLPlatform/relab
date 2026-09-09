@@ -10,7 +10,14 @@ from typing import Any, cast
 
 SUMMARY_PATH = Path("reports/performance/latest-k6-summary.json")
 TARGET_JS = Path("perf/k6-baseline.js")
-SCENARIOS = ("live_probe", "product_list_read", "bearer_login", "media_url_read")
+SCENARIOS = (
+    "live_probe",
+    "product_list_read",
+    "product_search_read",
+    "bearer_login",
+    "media_url_read",
+    "product_create_write",
+)
 
 
 def _load_metrics() -> dict[str, Any]:
@@ -46,6 +53,8 @@ def apply_thresholds(headroom: float) -> None:
     patterns = {
         "live_probe": r'(http_req_duration\{scenario:live_probe\}": \["p\(95\)<)(\d+)("\])',
         "product_list_read": r'(http_req_duration\{scenario:product_list_read\}": \["p\(95\)<)(\d+)("\])',
+        "product_search_read": r'(http_req_duration\{scenario:product_search_read\}": \["p\(95\)<)(\d+)("\])',
+        "product_create_write": r'(http_req_duration\{scenario:product_create_write\}"] = \["p\(95\)<)(\d+)("\])',
         "bearer_login": r'(http_req_duration\{scenario:bearer_login\}"] = \["p\(95\)<)(\d+)("\])',
         "media_url_read": r'(http_req_duration\{scenario:media_url_read\}"] = \["p\(95\)<)(\d+)("\])',
     }

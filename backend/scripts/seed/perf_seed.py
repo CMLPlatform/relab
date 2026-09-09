@@ -33,12 +33,13 @@ import logging
 import random
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.auth.models import User
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import ProductType
-from app.core.database import async_session_context, close_async_engine
+from app.core.database import async_engine, async_session_context, close_async_engine
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,28 @@ async def _seed(count: int, rng: random.Random) -> None:
 
         await session.commit()
         logger.info("Perf seeding complete; product table now holds %s rows.", count)
+
+    await _settle_after_bulk_load()
+
+
+async def _settle_after_bulk_load() -> None:
+    """Vacuum and analyse the product table after the bulk insert.
+
+    Without this the baseline measures recovery from its own fixture load rather
+    than steady state: planner statistics still describe an almost empty table,
+    and the four GIN indexes on ``product`` carry a full pending list, whose
+    cleanup showed up as multi-second stalls in the write scenario's tail.
+
+    Hygiene rather than correctness, so a database user without VACUUM rights on
+    the table logs a warning instead of failing the seed.
+    """
+    try:
+        async with async_engine.connect() as connection:
+            await connection.execution_options(isolation_level="AUTOCOMMIT")
+            await connection.execute(text("VACUUM ANALYZE product"))
+        logger.info("Vacuumed and analysed the product table.")
+    except SQLAlchemyError as exc:
+        logger.warning("Could not vacuum/analyse the product table: %s", exc)
 
 
 def main() -> None:

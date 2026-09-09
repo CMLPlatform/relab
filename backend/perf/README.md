@@ -8,8 +8,10 @@ A small `k6` suite that catches latency regressions in common backend paths.
 | ------------------- | -------------- | ---------------------------------------------- |
 | `live_probe`        | `/live`        | always                                         |
 | `product_list_read` | `/v1/products` | always                                         |
+| `product_search_read` | `/v1/products?search=` | always                                     |
 | `bearer_login`      | auth login     | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
 | `media_url_read`    | media URL      | `PERF_MEDIA_URL` set                           |
+| `product_create_write` | `POST /v1/products` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
 
 `just docker-ci-perf-baseline` supplies all four: it reads the first seeded product's
 `thumbnail_url` from the running stack to fill `PERF_MEDIA_URL`, and fails rather than silently
@@ -32,12 +34,22 @@ whatever the server does. The closed-model alternative (`constant-vus` plus `sle
 `dropped_iterations` is thresholded because an open-model run that cannot start iterations on time
 is a saturated server, not a fast one.
 
+**The write stage runs last.** `product_create_write` inserts rows, so every read stage is measured
+against a table that is not growing underneath it. `product_search_read` rotates its query terms so
+the run does not measure one repeatedly cached query; it is the slowest read path, which is why it
+was worth covering.
+
 **The database is not empty.** `PERF_SEED_PRODUCTS` tops the product table up (5000 rows by default
 in CI) via `scripts/seed/perf_seed.py`. Against the handful of rows the dummy seed creates, the
 suite cannot detect the regressions that actually hurt: a missing index, a linear `COUNT(*)`, an
 eager load that degrades with row count. The generator spreads `created_at` over two years and draws
 high-cardinality names, brands and models, because those columns are trigram-indexed and feed
 `search_vector` — a short word list would make those indexes far more selective than production.
+
+It also runs `VACUUM ANALYZE` afterwards. Skipping it measures the database recovering from the
+fixture load rather than steady state: planner statistics still describe an almost empty table, and
+the four GIN indexes on `product` carry a full pending list. That cleanup showed up as a 6.5s p95 in
+the write scenario, against a 55ms median.
 
 ## Thresholds
 
@@ -102,8 +114,9 @@ just perf-baseline
 - `PERF_MEDIA_URL`
 - `PERF_STAGE_SECONDS` — duration of each scenario stage (default `20`)
 - `PERF_STAGE_GAP_SECONDS` — idle gap between stages (default `5`)
-- `PERF_PRODUCT_LIST_RATE`, `PERF_LIVE_RATE`, `PERF_LOGIN_RATE`, `PERF_MEDIA_RATE` — requests per
-  second per scenario
+- `PERF_SEARCH_TERMS` — comma-separated query terms the search scenario rotates through
+- `PERF_PRODUCT_LIST_RATE`, `PERF_LIVE_RATE`, `PERF_LOGIN_RATE`, `PERF_MEDIA_RATE`,
+  `PERF_SEARCH_RATE`, `PERF_CREATE_RATE` — requests per second per scenario
 
 ## Recommended Baseline Inputs
 
