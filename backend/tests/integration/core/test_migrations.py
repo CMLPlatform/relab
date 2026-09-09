@@ -2,6 +2,7 @@
 
 import importlib.util
 import logging
+import threading
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -386,3 +387,48 @@ def test_dropping_pg_trgm_unowned_raises_what_the_revision_translates(migration_
         migration_helper.execute_sql("DROP ROLE trgm_probe")
 
     assert "ALTER EXTENSION pg_trgm SET SCHEMA extensions" in module.SUPERUSER_INSTRUCTION
+
+
+# Must match `_MIGRATION_LOCK_ID` in alembic/env.py. A drift makes the migrator below
+# take a different lock and finish immediately, which fails this test rather than
+# passing it silently.
+_MIGRATION_LOCK_ID = 8_247_301_559_002_113
+# Longer than the 5s `lock_timeout` env.py sets once it holds the lock: a migrator that
+# aborts instead of queueing gives up at 5s, so a shorter wait here would not tell the
+# two apart.
+_LOCK_WAIT_SECONDS = 8
+
+
+@pytest.mark.migration
+def test_a_second_migrator_queues_behind_the_advisory_lock(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """A migrator started while another holds the lock must wait, not fail.
+
+    ``lock_timeout`` applies to ``pg_advisory_lock`` as well as to table locks, so
+    setting it before taking the lock made a queued deploy an aborted one: a container
+    started while a migration was already running died instead of running after it.
+    """
+    finished = threading.Event()
+    failures: list[BaseException] = []
+
+    def upgrade() -> None:
+        try:
+            command.upgrade(relab_alembic_config, "head")
+        except BaseException as exc:  # noqa: BLE001 # reported on the main thread
+            failures.append(exc)
+        finally:
+            finished.set()
+
+    with migration_helper.sync_engine.connect() as holder:
+        holder.execute(text(f"SELECT pg_advisory_lock({_MIGRATION_LOCK_ID})"))
+        queued = threading.Thread(target=upgrade, name="queued-migrator", daemon=True)
+        queued.start()
+        try:
+            assert not finished.wait(_LOCK_WAIT_SECONDS), "the queued migrator did not wait for the lock"
+        finally:
+            holder.execute(text(f"SELECT pg_advisory_unlock({_MIGRATION_LOCK_ID})"))
+
+    assert finished.wait(60), "the queued migrator did not run once the lock was released"
+    queued.join(timeout=60)
+    assert not failures, failures
