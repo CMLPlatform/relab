@@ -138,11 +138,18 @@ function useProductFieldHandlers({
     return (value: FieldPathValue<ProductFormValues, K>) => void commit(field, value);
   };
 
+  // The grouped fields take a patch, not a whole object: `getValues` is current
+  // the instant a field blurs, while the rendered `product` a section closes
+  // over is only as fresh as its last render. Two blurs before that render
+  // would otherwise both build from the same pre-edit object and the second
+  // would revert the first.
   return {
     onProductNameChange: (newName: string) => void commit('name', newName.trim()),
     onChangeDescription: updateField('description'),
-    onChangePhysicalProperties: updateField('physicalProperties'),
-    onChangeCircularityProperties: updateField('circularityProperties'),
+    onChangePhysicalProperties: (patch: Partial<ProductFormValues['physicalProperties']>) =>
+      void commit('physicalProperties', { ...getValues('physicalProperties'), ...patch }),
+    onChangeCircularityProperties: (patch: Partial<ProductFormValues['circularityProperties']>) =>
+      void commit('circularityProperties', { ...getValues('circularityProperties'), ...patch }),
     onBrandChange: updateField('brand'),
     onModelChange: updateField('model'),
     onTypeChange: updateField('productTypeID'),

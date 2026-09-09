@@ -42,7 +42,8 @@ const NOTE_FIELDS: readonly {
 interface Props {
   product: Product;
   editMode: boolean;
-  onChangeCircularityProperties?: (newProperties: CircularityProperties) => void;
+  /** Takes one changed note; the form owner merges it into the live value. */
+  onChangeCircularityProperties?: (patch: Partial<CircularityProperties>) => void;
 }
 
 function hasContent(value: string | null | undefined): boolean {
@@ -63,12 +64,9 @@ export default function ProductCircularityProperties({
 
   const updateNote = useCallback(
     (key: CircularityNoteKey, value: string) => {
-      onChangeCircularityProperties?.({
-        ...circularityProperties,
-        [key]: value,
-      });
+      onChangeCircularityProperties?.({ [key]: value });
     },
-    [circularityProperties, onChangeCircularityProperties],
+    [onChangeCircularityProperties],
   );
 
   return (

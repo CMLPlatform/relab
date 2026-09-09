@@ -521,6 +521,38 @@ describe('useProductForm', () => {
     expect(mockReplace).not.toHaveBeenCalledWith('/products');
   });
 
+  // Regression: the sections used to send a whole properties object rebuilt
+  // from their last render, so two blurs in one tick both built from the
+  // pre-edit values and the second reverted the first. They send a patch now,
+  // and the merge happens here against the live form value.
+  it('merges a property patch into the value that is current, not the last rendered one', async () => {
+    const validProduct = {
+      ...mockProduct,
+      physicalProperties: { weight: 850, width: 30, height: 12, depth: 25 },
+    };
+    const mockMutate = jest.fn(async (_vars: SaveProductVariables) => 123);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: validProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+
+    const { result } = await renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    // Both patches leave in the same tick, so neither sees the other's render.
+    await act(async () => {
+      result.current.onChangePhysicalProperties({ width: 31 });
+      result.current.onChangePhysicalProperties({ height: 13 });
+    });
+
+    const expected = { weight: 850, width: 31, height: 13, depth: 25 };
+    await waitFor(() => expect(result.current.product.physicalProperties).toEqual(expected));
+    // And the record that goes on the wire carries both, not just the later one.
+    const lastCall = mockMutate.mock.calls.at(-1)?.[0] as SaveProductVariables;
+    expect(lastCall.product.physicalProperties).toEqual(expected);
+  });
+
   it('reports errorCount and firstErrorSection from the current validation errors', async () => {
     // Start from a fully valid product (unlike mockProduct, whose zeroed-out
     // physicalProperties already fail validation on mount) so the two fields
