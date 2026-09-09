@@ -2,18 +2,25 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from app.api.common.exceptions import ConflictError
+from app.api.data_collection.models.product import MaterialProductLink
 from app.api.reference_data.crud.categorized_resources import (
     MATERIAL_RESOURCE,
     PRODUCT_TYPE_RESOURCE,
+    _require_not_in_use,
     add_categorized_reference_categories,
     delete_categorized_reference,
     remove_categorized_reference_categories,
 )
 from app.api.reference_data.models import (
+    Category,
     CategoryMaterialLink,
     CategoryProductTypeLink,
     Material,
 )
+from app.api.reference_data.usage import _USAGE_GUARDS, register_reference_usage
 from scripts.seed.factories.models import CategoryFactory, MaterialFactory, ProductTypeFactory
 
 
@@ -178,3 +185,32 @@ def _scalar_result(items: list[object]) -> MagicMock:
     scalars.all.return_value = items
     result.scalars.return_value = scalars
     return result
+
+
+async def test_a_reference_type_without_a_registered_column_refuses_to_delete(mock_session: AsyncMock) -> None:
+    """A spec whose blocking column was never registered must fail closed, not delete.
+
+    Reading a missing registration as "nothing references this" lets the delete through
+    onto a NO ACTION foreign key, which answers 500 instead of naming the blocking
+    relation — the exact outcome the guard exists to prevent.
+    """
+    with pytest.raises(LookupError, match="Category"):
+        await _require_not_in_use(mock_session, MagicMock(model=Category), 1)
+
+
+async def test_a_second_referencing_column_also_blocks_the_delete(mock_session: AsyncMock) -> None:
+    """Registering a second referencing column adds a guard instead of replacing the first.
+
+    Research data references each reference model from one column today, so only a test
+    can hold the registry to more than one.
+    """
+    unreferenced, referenced = MagicMock(), MagicMock()
+    unreferenced.first.return_value = None
+    referenced.first.return_value = (1,)
+    mock_session.execute = AsyncMock(side_effect=[unreferenced, referenced])
+
+    with patch.dict(_USAGE_GUARDS, {Material: list(_USAGE_GUARDS[Material])}):
+        register_reference_usage(Material, MaterialProductLink.material_id, "a second relation")
+
+        with pytest.raises(ConflictError, match="a second relation"):
+            await _require_not_in_use(mock_session, MATERIAL_RESOURCE, 1)

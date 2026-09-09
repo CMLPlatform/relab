@@ -8,9 +8,14 @@ every context, rather than inside whichever one owns its entry point.
 Adding an edge is not forbidden; it is a decision. Update ALLOWED_EDGES in the same
 commit, and say why in the message. Removing one is always fine: the assertion is
 one-directional so paying down debt never fails the build.
+
+The scan parses each module with `ast` rather than matching import lines, because a
+relative import is the house style inside these packages: `from ..auth.models import
+User` crosses a context boundary just as `from app.api.auth.models import User` does, and
+so does `from app.api import auth`. Both forms resolve to the same target here.
 """
 
-import re
+import ast
 from collections import Counter
 from pathlib import Path
 
@@ -45,8 +50,10 @@ ALLOWED_EDGES = {
 }
 
 # `reference_data` takes one schema from here. That module is a leaf: it imports no
-# context at all, so the edge cannot become a cycle. That property is what
-# makes the import safe, so it is asserted rather than assumed.
+# context at all, so the edge into it becomes a cycle the moment it imports one — its own
+# context included, because `data_collection/schemas.py` already imports
+# `reference_data.schemas`. That property is what makes the import safe, so it is
+# asserted rather than assumed.
 LEAF_MODULES = ("data_collection/product_schemas.py",)
 
 # The application layer sits above every context, so it may import any of them, and no
@@ -54,22 +61,62 @@ LEAF_MODULES = ("data_collection/product_schemas.py",)
 # rendering a public profile) from inverting the direction of the context it starts in.
 APPLICATION = "application"
 
+_APP_ROOT = Path(__file__).resolve().parents[2] / "app"
+_API_ROOT = _APP_ROOT / "api"
+
+
+def _package_of(module: Path) -> str:
+    """Return the dotted package a module's relative imports resolve against."""
+    # Dropping the last part gives the package for a plain module, and for a package's
+    # own `__init__` — whose level-1 imports resolve against the package itself.
+    return ".".join(module.relative_to(_APP_ROOT.parent).with_suffix("").parts[:-1])
+
+
+def _imported_modules(module: Path) -> list[tuple[int, str]]:
+    """Return every dotted module name *module* imports, with the line it sits on.
+
+    ``from X import Y`` yields both ``X`` and ``X.Y``: only the second distinguishes
+    ``from app.api import auth`` from ``from app.api import router``. Relative levels are
+    resolved against the importing module's own package.
+    """
+    package = _package_of(module)
+    imports: list[tuple[int, str]] = []
+    for node in ast.walk(ast.parse(module.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Import):
+            imports += [(node.lineno, alias.name) for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                ancestor = package.split(".")[: len(package.split(".")) - (node.level - 1)]
+                base = ".".join([*ancestor, node.module] if node.module else ancestor)
+            else:
+                base = node.module or ""
+            imports.append((node.lineno, base))
+            imports += [(node.lineno, f"{base}.{alias.name}") for alias in node.names]
+    return imports
+
+
+def _target_context(dotted: str) -> str | None:
+    """Return the bounded context a dotted `app.api.*` module belongs to, if any."""
+    parts = dotted.split(".")
+    if parts[:2] != ["app", "api"] or len(parts) < 3 or parts[2] not in CONTEXTS:
+        return None
+    return parts[2]
+
 
 def _cross_context_edges() -> Counter[tuple[str, str]]:
-    """Count import lines from one bounded context to another."""
+    """Count imports from one bounded context to another."""
     edges: Counter[tuple[str, str]] = Counter()
-    api_root = Path(__file__).resolve().parents[2] / "app" / "api"
-    for module in api_root.rglob("*.py"):
-        source_context = module.relative_to(api_root).parts[0]
+    for module in _API_ROOT.rglob("*.py"):
+        source_context = module.relative_to(_API_ROOT).parts[0]
         if source_context not in CONTEXTS:
             continue
-        for line in module.read_text(encoding="utf-8").splitlines():
-            match = re.match(r"\s*(?:from|import)\s+app\.api\.([a-z_]+)", line)
-            if not match:
+        seen: set[tuple[int, str]] = set()
+        for lineno, dotted in _imported_modules(module):
+            target = _target_context(dotted)
+            if target is None or target == source_context or (lineno, target) in seen:
                 continue
-            target = match.group(1)
-            if target in CONTEXTS and target != source_context:
-                edges[(source_context, target)] += 1
+            seen.add((lineno, target))
+            edges[(source_context, target)] += 1
     return edges
 
 
@@ -91,30 +138,32 @@ def test_common_imports_no_context() -> None:
 
 def test_core_imports_no_api_code() -> None:
     """`core` is infrastructure beneath `common`; the model registry is the one exception."""
-    core_root = Path(__file__).resolve().parents[2] / "app" / "core"
     offenders = []
-    for module in core_root.rglob("*.py"):
+    for module in (_APP_ROOT / "core").rglob("*.py"):
         if module.name == "model_registry.py":
             # Imports model modules inside a function purely to populate the SQLAlchemy registry.
             continue
-        for number, line in enumerate(module.read_text(encoding="utf-8").splitlines(), 1):
-            if re.match(r"\s*(?:from|import)\s+app\.api\.", line):
-                offenders.append(f"{module.name}:{number}")
+        offenders += [
+            f"{module.name}:{lineno}"
+            for lineno, dotted in _imported_modules(module)
+            if dotted == "app.api" or dotted.startswith("app.api.")
+        ]
     assert not offenders, f"`core` must not import `app.api`: {offenders}"
 
 
 def test_no_context_imports_the_application_layer() -> None:
     """Contexts sit below the use cases that compose them, never the other way round."""
-    api_root = Path(__file__).resolve().parents[2] / "app" / "api"
     offenders = []
-    for module in api_root.rglob("*.py"):
-        if module.relative_to(api_root).parts[0] not in CONTEXTS:
+    for module in _API_ROOT.rglob("*.py"):
+        if module.relative_to(_API_ROOT).parts[0] not in CONTEXTS:
             continue
-        for number, line in enumerate(module.read_text(encoding="utf-8").splitlines(), 1):
-            if re.match(rf"\s*(?:from|import)\s+app\.api\.{APPLICATION}\b", line):
-                offenders.append(f"{module.relative_to(api_root)}:{number}")
+        offenders += [
+            f"{module.relative_to(_API_ROOT)}:{lineno}"
+            for lineno, dotted in _imported_modules(module)
+            if dotted == f"app.api.{APPLICATION}" or dotted.startswith(f"app.api.{APPLICATION}.")
+        ]
     assert not offenders, (
-        f"contexts importing `{APPLICATION}`: {offenders}. "
+        f"contexts importing `{APPLICATION}`: {sorted(set(offenders))}. "
         "Move the shared code down into the context that owns it, or the caller up into the layer."
     )
 
@@ -124,16 +173,16 @@ def test_leaf_modules_import_no_context() -> None:
 
     `reference_data` needs `ProductSummary` for the product links it embeds in a material.
     That is safe only while `product_schemas` stays a leaf: the moment it imports a
-    context, the edge into it becomes a real cycle.
+    context — its own included, since that context already imports `reference_data` — the
+    edge into it becomes a real cycle.
     """
-    api_root = Path(__file__).resolve().parents[2] / "app" / "api"
     offenders = []
     for relative in LEAF_MODULES:
-        module = api_root / relative
+        module = _API_ROOT / relative
         assert module.exists(), f"{relative} moved; update LEAF_MODULES"
-        own_context = Path(relative).parts[0]
-        for number, line in enumerate(module.read_text(encoding="utf-8").splitlines(), 1):
-            match = re.match(r"\s*(?:from|import)\s+app\.api\.([a-z_]+)", line)
-            if match and match.group(1) not in (own_context, "common"):
-                offenders.append(f"{relative}:{number} -> {match.group(1)}")
-    assert not offenders, f"leaf modules must import no context: {offenders}"
+        offenders += [
+            f"{relative}:{lineno} -> {target}"
+            for lineno, dotted in _imported_modules(module)
+            if (target := _target_context(dotted)) is not None and target != "common"
+        ]
+    assert not offenders, f"leaf modules must import no context: {sorted(set(offenders))}"

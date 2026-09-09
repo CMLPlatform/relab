@@ -15,7 +15,12 @@ export function StaticBackground({ scrim }: { scrim?: string } = {}) {
   // Decorative. expo-image drops an empty alt="", so hide the subtree instead.
   return (
     <View style={StyleSheet.absoluteFill} aria-hidden pointerEvents="none">
-      <ImageBackground source={image} style={StyleSheet.absoluteFill} />
+      <ImageBackground
+        source={image}
+        style={StyleSheet.absoluteFill}
+        // A photograph, not an icon: iOS Smart Invert would render it as a colour negative.
+        accessibilityIgnoresInvertColors
+      />
       {scrim ? <View style={[StyleSheet.absoluteFill, { backgroundColor: scrim }]} /> : null}
     </View>
   );
