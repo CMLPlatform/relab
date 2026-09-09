@@ -637,7 +637,9 @@ _docker-ci-up services="postgres redis api":
 # perf_products tops the product table up so the baseline measures pagination and
 # index behaviour rather than a table with a handful of rows in it.
 _docker-ci-migrate-dummy perf_products="0":
-    {{ ci_compose }} run --rm -e SEED_DUMMY_DATA=true -e PERF_SEED_PRODUCTS={{ quote(perf_products) }} migrator
+    # --build: `compose run` reuses a stale image otherwise, which silently runs
+    # last build's entrypoint and seed scripts against a freshly wiped database.
+    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e PERF_SEED_PRODUCTS={{ quote(perf_products) }} migrator
 
 # Stop the CI stack and remove volumes
 docker-ci-down confirm='':

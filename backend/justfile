@@ -166,7 +166,7 @@ _perf-ci media_url="" base_url="http://api:8000":
     media_url={{ quote(media_url) }}
     if [ -z "$media_url" ]; then
         echo "→ Discovering a seeded media URL from the CI stack..."
-        media_path="$({{ ci_compose }} exec -T api python -c 'import json, urllib.request; page = json.load(urllib.request.urlopen("http://localhost:8000/v1/products?size=1")); print(page["items"][0]["thumbnail_url"] or "")' | tr -d '[:space:]')"
+        media_path="$({{ ci_compose }} exec -T api python -c 'import json, urllib.request; page = json.load(urllib.request.urlopen("http://localhost:8000/v1/products?size=100")); print(next((item["thumbnail_url"] for item in page["items"] if item.get("thumbnail_url")), ""))' | tr -d '[:space:]')"
         if [ -z "$media_path" ]; then
             echo "✗ No seeded media found. Run 'just _docker-ci-migrate-dummy' first, or pass media_url explicitly." >&2
             exit 1

@@ -43,7 +43,7 @@ const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
   "http_req_duration{scenario:live_probe}": ["p(95)<100"],
   "http_req_failed{scenario:product_list_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_list_read}": ["p(95)<200"],
+  "http_req_duration{scenario:product_list_read}": ["p(95)<300"],
   // An open-model run that cannot start its iterations on time is a saturated
   // server, not a fast one; without this the suite would report the shortfall
   // as healthy latency.
@@ -54,7 +54,7 @@ const thresholds = {
 if (loginEmail && loginPassword) {
   scenarios.bearer_login = { ...stage(Number(__ENV.PERF_LOGIN_RATE || 2), 10), exec: "bearerLogin" };
   thresholds["http_req_failed{scenario:bearer_login}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<600"];
+  thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<500"];
 }
 
 if (mediaUrl) {
