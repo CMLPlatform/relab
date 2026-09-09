@@ -1,17 +1,17 @@
 # Repository-wide policy hooks: secret guard, staged-file fixers, file hygiene,
 # lockfile sync, commit message. Everything that verifies code lives in the
 # `just check*` / `just test*` recipes, which CI runs directly.
-default_install_hook_types: [ commit-msg, pre-commit ]
+default_install_hook_types: [commit-msg, pre-commit]
 
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # v8.30.1
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e # v8.30.1
     hooks:
       - id: gitleaks
-        args: [ "--config", ".github/gitleaks.toml" ]
+        args: ["--config", ".github/gitleaks.toml"]
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # v6.0.0
     hooks:
       - id: check-added-large-files
         exclude: ^backend/app/api/auth/resources/disposable_email_domains\.txt$
@@ -28,50 +28,50 @@ repos:
       - id: mixed-line-ending
       - id: no-commit-to-branch
       - id: trailing-whitespace
-        args: [ "--markdown-linebreak-ext", "md" ]
+        args: ["--markdown-linebreak-ext", "md"]
         exclude: ^.*/build/.*\.html$
 
   - repo: https://github.com/rhysd/actionlint
-    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca  # v1.7.12
+    rev: 914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
     hooks:
       - id: actionlint
         files: ^\.github/workflows/.*\.ya?ml$
 
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: cef8b8350da46d8114c7e6b7272aebdccdf193ce  # frozen: v1.30.0
+    rev: cef8b8350da46d8114c7e6b7272aebdccdf193ce # frozen: v1.30.0
     hooks:
       - id: zizmor
-        args: [ "--min-confidence=high" ]
+        args: ["--min-confidence=high"]
         files: ^\.github/(?:workflows|actions)/.*\.ya?ml$
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: a6564f5d57444e123433a5c9af733e3975c77229  # frozen: v0.11.0.1-1
+    rev: a6564f5d57444e123433a5c9af733e3975c77229 # frozen: v0.11.0.1-1
     hooks:
       - id: shellcheck
-        args: [ "--external-sources", "--source-path=SCRIPTDIR:." ]
+        args: ["--external-sources", "--source-path=SCRIPTDIR:."]
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/scop/pre-commit-shfmt
-    rev: 05c1426671b9237fb5e1444dd63aa5731bec0dfb  # v3.13.1-1
+    rev: 05c1426671b9237fb5e1444dd63aa5731bec0dfb # v3.13.1-1
     hooks:
       - id: shfmt
-        args: [ "-w", "-i", "4", "-ci", "-bn" ]
+        args: ["-w", "-i", "4", "-ci", "-bn"]
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: d910b66e2686a3ef6c3f438dec0f63ba3cf8d7ee  # frozen: v4.18.0
+    rev: d910b66e2686a3ef6c3f438dec0f63ba3cf8d7ee # frozen: v4.18.0
     hooks:
       - id: commitizen
-        stages: [ commit-msg ]
+        stages: [commit-msg]
 
   - repo: https://github.com/simonvanlierde/check-json5
-    rev: c70883b5be6d9fb87deac8d75395031372d54e83  # v1.2.0
+    rev: c70883b5be6d9fb87deac8d75395031372d54e83 # v1.2.0
     hooks:
       - id: check-json5
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 7720020191168f707a43279c65b6bf9cdf7ed04e  # frozen: 0.12.10
+    rev: 7720020191168f707a43279c65b6bf9cdf7ed04e # frozen: 0.12.10
     hooks:
       - id: uv-lock
         name: uv-lock-root
@@ -84,18 +84,31 @@ repos:
 
   - repo: local
     hooks:
+      # This repository is public. The terms themselves live untracked in
+      # .git/info/private-terms, so a checkout without that file skips both hooks;
+      # see the header of scripts/check_private_terms.sh.
+      - id: private-terms
+        name: private terms (staged files)
+        entry: scripts/check_private_terms.sh
+        language: system
+        exclude: ^scripts/check_private_terms\.sh$
+      - id: private-terms-msg
+        name: private terms (commit message)
+        entry: scripts/check_private_terms.sh
+        language: system
+        stages: [commit-msg]
       # Root scope only (pyproject.toml force-excludes the subrepos); `uv run`
       # pins the hook to the locked ruff/rumdl so `just check-root` agrees.
       - id: ruff-check
         name: ruff-check
         entry: uv run ruff check --fix --config pyproject.toml
         language: system
-        types_or: [ python, pyi ]
+        types_or: [python, pyi]
       - id: ruff-format
         name: ruff-format
         entry: uv run ruff format --config pyproject.toml
         language: system
-        types_or: [ python, pyi ]
+        types_or: [python, pyi]
       - id: rumdl
         name: rumdl
         entry: uv run rumdl check --fix
