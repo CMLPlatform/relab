@@ -17,9 +17,6 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH
 
-COPY package.json pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
-COPY app/package.json app/package.json
 # node:26 no longer bundles corepack. A checksummed tarball, not `npm install -g`:
 # the npm path cannot pin by hash.
 ADD --checksum=sha256:f62535fc7be1f77e4b12cd1e420b8542b8e895cbb14178926963a41a9232a4fe \
@@ -29,6 +26,10 @@ RUN mkdir -p /usr/local/lib/node_modules/corepack \
     && ln -s ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack \
     && rm /tmp/corepack.tgz \
     && corepack enable
+
+COPY package.json pnpm-lock.yaml ./
+COPY pnpm-workspace.yaml ./
+COPY app/package.json app/package.json
 RUN --mount=type=cache,target=/pnpm/store \
     pnpm install --frozen-lockfile --filter ./app... --prefer-offline
 

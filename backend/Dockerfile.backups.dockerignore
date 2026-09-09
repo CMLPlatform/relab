@@ -1,0 +1,7 @@
+# BuildKit reads this in place of backend/.dockerignore when building
+# Dockerfile.backups. This image is postgres:18 plus two shell scripts; an
+# allowlist keeps the whole backend tree out of its context.
+*
+
+!scripts/backup/backup_relab_restic.sh
+!scripts/backup/backup_relab_restic_entrypoint.sh

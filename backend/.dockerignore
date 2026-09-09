@@ -20,7 +20,15 @@ tests/
 
 # Dev tooling
 .vscode/
+.claude/
 .ruff_cache/
+.pytest_cache/
+.rumdl_cache/
+.ty/
+htmlcov/
+*.egg-info/
+# k6 baselines run from the host or the k6 image, never from these images.
+perf/
 justfile
 README.md
 local_setup.*

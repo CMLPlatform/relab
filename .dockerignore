@@ -52,3 +52,11 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 pnpm-debug.*
+
+# app/, www/ and docs/ each have a Dockerfile.dockerignore allowlist that
+# replaces this file, so these lines only guard a root-context build that has no
+# sibling allowlist of its own. infra/ carries ~900 MB of .terraform providers.
+infra/
+backend/
+assets/
+deploy/
