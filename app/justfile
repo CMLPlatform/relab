@@ -1,4 +1,6 @@
-# Frontend App Tasks
+# App task runner
+# Run `just --list` to see the recipes in this file.
+# Run from app/, or from the repo root as `just app/<recipe>`.
 
 import '../playwright.just'
 
@@ -10,14 +12,14 @@ default:
 install:
     pnpm install --frozen-lockfile
 
-# Update Expo-managed dependencies to versions compatible with the current SDK
+# Update the Expo-managed dependencies to versions the current SDK supports
 update:
     pnpm exec expo install --fix
     pnpm update -D
     pnpm dedupe
     pnpm dlx expo-doctor
 
-# Run lint checks
+# Lint the code
 lint:
     pnpm run lint
 
@@ -25,7 +27,7 @@ lint:
 typecheck:
     pnpm run typecheck
 
-# Run the app quality gate
+# Run the quality gate
 check: lint typecheck codegen-check
 
 # Auto-format code
@@ -36,45 +38,45 @@ format:
 fix:
     pnpm run fix
 
-# Run tests (unit + integration)
+# Run the tests (unit + integration)
 test:
     pnpm run test
 
-# Run the fast unit test suite
+# Run the fast unit test suite only
 test-unit:
     pnpm run test:unit
 
-# Run the slower app-level Jest integration test suite
+# Run the slower app-level Jest integration suite only
 test-integration:
     pnpm run test:integration
 
-# Run the app CI test suite. Coverage quadruples the run, so CI collects it on
-# push and schedule only; Codecov carries the flag forward on pull requests.
+# Run the CI test suite. Coverage quadruples the run time, so CI collects it on push
+# and on schedule only. Codecov carries the flag forward on pull requests.
 test-ci:
     pnpm run test:ci {{ if env("COVERAGE", "") != "" { "--coverage" } else { "" } }}
 
-# Run the full app CI pipeline locally
+# Run the full CI pipeline locally
 ci: check test-ci
 
-# Start dev server
+# Start the dev server
 dev port="8011":
     pnpm exec expo start --port {{ quote(port) }} --web
 
-# Start dev server with a cleared Metro cache — fixes stale-bundle errors
-# (an edited module still serving its old code after a reload).
+# Start the dev server with a cleared Metro cache. This fixes stale-bundle errors,
+# where an edited module still serves its old code after a reload.
 dev-clean port="8011":
     pnpm exec expo start --port {{ quote(port) }} --web --clear
 
-# Static React Compiler coverage report — which components compile vs bail out.
-# `just lint` already flags bailouts inline; this gives the coverage summary.
+# Report static React Compiler coverage: which components compile, and which bail out.
+# `just lint` already flags each bailout inline. This adds the summary across the app.
 compiler-health:
     pnpm dlx react-compiler-healthcheck
 
-# Serve the production web export (React Compiler ON, as shipped) for profiling.
-# Open the served URL with the React DevTools Profiler ("Highlight updates when
-# components render" + record) to see which components re-render on real flows.
-# Prefer a zero-config overlay? `pnpm dlx react-scan@latest <url>` against it.
-# Compare against dev (compiler OFF) via `just dev`.
+# Serve the production web export for profiling, with the React Compiler on as shipped.
+# Open the served URL with the React DevTools Profiler, enable "Highlight updates when
+# components render", and record a real flow to see what re-renders.
+# For a zero-config overlay instead, run `pnpm dlx react-scan@latest <url>`.
+# For the compiler-off comparison, run `just dev`.
 profile: build-web
     pnpm exec expo serve
 
@@ -82,16 +84,16 @@ profile: build-web
 e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
 e2e_api_url := "http://localhost:" + e2e_backend_port
 
-# Build Expo web app for E2E testing (exports static SPA to dist/)
-# Only the API URL is required for these tests; the public website URL falls back in-app.
+# Build the Expo web app for E2E testing, exporting a static SPA to dist/.
+# These tests need only the API URL. The public website URL falls back in-app.
 build-web:
     @printf '%s\n' {{ quote("Building Expo web for E2E with EXPO_PUBLIC_API_URL=" + e2e_api_url) }}
     EXPO_PUBLIC_API_URL={{ quote(e2e_api_url) }} pnpm run build:web
 
-# The suite runs against the static export in dist/, so build-web is a dependency:
-# a stale build silently tests old code.
+# The suite runs against the static export in dist/, so build-web is a dependency here.
+# A stale build silently tests old code.
 #
-# Run full-stack E2E tests (rebuilds dist/; requires compose.e2e.yaml running)
+# Run the full-stack E2E tests (rebuilds dist/; needs the compose.e2e.yaml stack up)
 test-e2e: build-web _browsers
     pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
 
@@ -103,12 +105,12 @@ test-e2e-cross-browser: build-web _browsers
 clean:
     rm -rf .expo .expo-shared coverage dist web-build playwright-report test-results
 
-# Regenerate TypeScript API types from the committed OpenAPI schema (offline).
-# The schema itself is produced by `just backend/openapi` (src/types/openapi.json).
+# Regenerate the TypeScript API types from the committed OpenAPI schema. Runs offline.
+# `just backend/openapi` produces the schema itself, at src/types/openapi.json.
 codegen:
     pnpm run codegen
 
-# Fail if committed API types are stale vs the committed OpenAPI schema (runs in `check`)
+# Fail if the committed API types are stale against the committed OpenAPI schema
 codegen-check:
     pnpm run codegen
     git diff --exit-code src/types/api.generated.ts
