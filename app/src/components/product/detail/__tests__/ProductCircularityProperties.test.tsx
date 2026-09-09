@@ -66,11 +66,11 @@ describe('ProductCircularityProperties', () => {
     expect(onChange).not.toHaveBeenCalled();
     await fireEvent(inputs[1], 'blur');
 
+    // Only the changed note: the form owner merges it into the value that is
+    // current at blur time, so two quick blurs cannot each build from the same
+    // rendered snapshot and revert one another.
     await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith({
-        ...emptyCircularity,
-        disassemblability: 'Fasteners are accessible',
-      });
+      expect(onChange).toHaveBeenCalledWith({ disassemblability: 'Fasteners are accessible' });
     });
   });
 

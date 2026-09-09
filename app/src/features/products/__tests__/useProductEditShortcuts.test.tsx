@@ -119,6 +119,25 @@ describe('useProductEditShortcuts', () => {
     expect(onExit).toHaveBeenCalled();
   });
 
+  // Regression: only the "e" branch consulted isDialogOpen, so Escape behind an
+  // open dialog closed it AND exited the page, and Cmd/Ctrl+S saved and
+  // navigated from under the scrim.
+  it('leaves Escape and Cmd/Ctrl+S to an open dialog', async () => {
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector: () => ({}) },
+    });
+    await render();
+
+    await act(() => {
+      press({ key: 'Escape' });
+      press({ key: 's', metaKey: true });
+    });
+
+    expect(onExit).not.toHaveBeenCalled();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it('leaves Escape to a text field the user has typed into', async () => {
     await render();
 

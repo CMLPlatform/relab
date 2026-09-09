@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import ProductPhysicalProperties from '@/components/product/detail/ProductPhysicalProperties';
 import { baseProduct as _base, renderWithProviders } from '@/test-utils/index';
-import type { Product } from '@/types/Product';
+import type { PhysicalProperties, Product } from '@/types/Product';
 
 // Mock SVGCube to avoid react-native-svg in tests
 jest.mock('@/components/product/SVGCube', () => {
@@ -67,15 +67,39 @@ describe('ProductPhysicalProperties', () => {
     const weightInput = screen.getByDisplayValue('500');
     await fireEvent.changeText(weightInput, '750');
     await fireEvent(weightInput, 'blur');
-    // Assert the whole object, not objectContaining: dropping the `...spread` in
-    // the change handler would wipe the other three dimensions, and
-    // objectContaining({ weight: 750 }) would happily pass.
-    expect(onChangePhysicalProperties).toHaveBeenCalledWith({
-      width: 10,
-      height: 5,
-      depth: 3,
-      weight: 750,
+    // Only the changed dimension: merging it into the rest is the form owner's
+    // job, because only the owner has a value that is current mid-blur. Sending
+    // the whole rendered object from here is what let a second blur revert the
+    // first (see useProductForm's "two rapid property blurs" test).
+    expect(onChangePhysicalProperties).toHaveBeenCalledWith({ weight: 750 });
+  });
+
+  // Regression: the row built a whole object from the rendered product, so a
+  // second blur arriving before the parent re-rendered rebuilt from the
+  // pre-edit values and reverted the first field.
+  it('does not revert an earlier edit when a second field commits before a re-render', async () => {
+    let merged: PhysicalProperties = { ...baseProduct.physicalProperties };
+    const onChangePhysicalProperties = jest.fn((patch: Partial<PhysicalProperties>) => {
+      merged = { ...merged, ...patch };
     });
+    // `product` stays at its pre-edit value for both blurs, exactly as it does
+    // between two blurs in the same tick.
+    await renderWithProviders(
+      <ProductPhysicalProperties
+        product={baseProduct}
+        editMode={true}
+        onChangePhysicalProperties={onChangePhysicalProperties}
+      />,
+    );
+
+    const widthInput = screen.getByDisplayValue('10');
+    await fireEvent.changeText(widthInput, '11');
+    await fireEvent(widthInput, 'blur');
+    const heightInput = screen.getByDisplayValue('5');
+    await fireEvent.changeText(heightInput, '6');
+    await fireEvent(heightInput, 'blur');
+
+    expect(merged).toEqual({ weight: 500, width: 11, height: 6, depth: 3 });
   });
 
   it('renders measurements as spec rows, not disabled inputs, when editMode is false', async () => {

@@ -13,7 +13,8 @@ import { heading } from '@/utils/a11y';
 interface Props {
   product: Product;
   editMode: boolean;
-  onChangePhysicalProperties?: (newProperties: PhysicalProperties) => void;
+  /** Takes one changed dimension; the form owner merges it into the live value. */
+  onChangePhysicalProperties?: (patch: Partial<PhysicalProperties>) => void;
 }
 
 const unitMap = {
@@ -56,11 +57,10 @@ export default function ProductPhysicalProperties({
 }: Props) {
   // Callbacks
   const onChangeProperty = useCallback(
-    (key: string, value: number | undefined) => {
-      const newProperties = { ...product.physicalProperties, [key]: value };
-      onChangePhysicalProperties?.(newProperties);
+    (key: keyof PhysicalProperties, value: number | undefined) => {
+      onChangePhysicalProperties?.({ [key]: value });
     },
-    [product.physicalProperties, onChangePhysicalProperties],
+    [onChangePhysicalProperties],
   );
 
   const { width, height, depth } = product.physicalProperties;
@@ -124,7 +124,7 @@ function PhysicalPropertyRow({
   propKey: keyof PhysicalProperties;
   product: Product;
   editMode: boolean;
-  onChangeProperty: (key: string, value: number | undefined) => void;
+  onChangeProperty: (key: keyof PhysicalProperties, value: number | undefined) => void;
 }) {
   const handleChange = useCallback(
     (value: number | undefined) => onChangeProperty(propKey, value),

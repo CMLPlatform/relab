@@ -2,7 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Platform } from 'react-native';
 import { useShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
-import { isPlainShortcut, isTypingTarget } from '@/utils/keyboardShortcuts';
+import { isDialogOpen, isPlainShortcut, isTypingTarget } from '@/utils/keyboardShortcuts';
 
 /** A field the keypress belongs to: Escape there clears/undoes the typing. */
 function isTextFieldWithText(target: HTMLElement | null): boolean {
@@ -40,6 +40,11 @@ export function useProductEditShortcuts({
     useCallback(() => {
       if (Platform.OS !== 'web') return;
       const onKey = (event: KeyboardEvent) => {
+        // An open dialog owns the keyboard: Escape must close it, not also exit
+        // the page behind it, and Cmd/Ctrl+S must not save-and-navigate from
+        // under the scrim. isPlainShortcut checks this for "e"; Escape and
+        // Cmd/Ctrl+S are not plain shortcuts, so they need it here.
+        if (isDialogOpen()) return;
         if (!editMode) {
           if (shortcutsEnabled && canEdit && isPlainShortcut(event, 'e')) {
             event.preventDefault();
