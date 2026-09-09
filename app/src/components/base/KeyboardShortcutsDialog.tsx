@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -6,6 +6,11 @@ import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Switch } from '@/components/base/ui/switch';
 import { setShortcutsEnabled, useShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
+import {
+  closeShortcutsOverlay,
+  openShortcutsOverlay,
+  useShortcutsOverlayOpen,
+} from '@/hooks/useShortcutsOverlay';
 import { useAppTheme } from '@/theme';
 import { heading } from '@/utils/a11y';
 import { isPlainShortcut } from '@/utils/keyboardShortcuts';
@@ -48,22 +53,21 @@ const SHORTCUT_GROUPS: { title: string; items: [key: string, action: string][] }
  * renders on native. AppDialog's Modal handles Escape and the return focus.
  */
 export function KeyboardShortcutsDialog() {
-  const [visible, setVisible] = useState(false);
+  const visible = useShortcutsOverlayOpen();
   const shortcutsEnabled = useShortcutsEnabled();
-  const hide = useCallback(() => setVisible(false), []);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const onKey = (event: KeyboardEvent) => {
-      // NOTE: "?" deliberately ignores the single-key switch below. It is the
-      // only route back to that switch, and it opens a dialog rather than
-      // acting, so a stray press costs an Escape. Give the overlay a visible
-      // control (a TopNav button) and this can answer to the switch too.
-      // isPlainShortcut already ignores the press while a dialog is open, so
-      // this opens but never toggles; Escape closes it.
+      // NOTE: "?" still ignores the single-key switch below. The TopNav button is
+      // the visible way in, but it only renders at >=lg, so on a narrower web
+      // window "?" remains the only route back to the switch that turned the
+      // shortcuts off. It opens a dialog rather than acting, so a stray press
+      // costs an Escape. isPlainShortcut already ignores the press while a
+      // dialog is open, so this opens but never toggles; Escape closes it.
       if (!isPlainShortcut(event, '?')) return;
       event.preventDefault();
-      setVisible(true);
+      openShortcutsOverlay();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -72,7 +76,11 @@ export function KeyboardShortcutsDialog() {
   if (Platform.OS !== 'web') return null;
 
   return (
-    <AppDialog visible={visible} onDismiss={hide} accessibilityLabel="Keyboard shortcuts">
+    <AppDialog
+      visible={visible}
+      onDismiss={closeShortcutsOverlay}
+      accessibilityLabel="Keyboard shortcuts"
+    >
       <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
         Keyboard shortcuts
       </AppText>
@@ -86,7 +94,7 @@ export function KeyboardShortcutsDialog() {
       ))}
       <ShortcutsSwitch enabled={shortcutsEnabled} />
       <View style={dialogActionsStyle}>
-        <AppButton variant="ghost" onPress={hide}>
+        <AppButton variant="ghost" onPress={closeShortcutsOverlay}>
           Close
         </AppButton>
       </View>

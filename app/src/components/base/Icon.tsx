@@ -23,6 +23,7 @@ import Image from 'lucide-react-native/icons/image';
 import ImagePlus from 'lucide-react-native/icons/image-plus';
 import Images from 'lucide-react-native/icons/images';
 import Info from 'lucide-react-native/icons/info';
+import Keyboard from 'lucide-react-native/icons/keyboard';
 import Link from 'lucide-react-native/icons/link';
 import Lock from 'lucide-react-native/icons/lock';
 import MailCheck from 'lucide-react-native/icons/mail-check';
@@ -112,6 +113,7 @@ const iconMap = {
   'image-plus': ImagePlus,
   images: Images,
   info: Info,
+  keyboard: Keyboard,
   link: Link,
   lock: Lock,
   'mail-check': MailCheck,
