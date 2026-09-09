@@ -22,6 +22,9 @@ export function useScreenEntryFocus() {
       if (!root) return;
       const target = root.querySelector<HTMLElement>('h1') ?? root;
       target.tabIndex = -1;
+      // Programmatic-only focus: the target is not tabbable, so the UA ring
+      // would just outline a whole heading or page column for no one.
+      target.style.outline = 'none';
       target.focus();
     });
     return () => cancelAnimationFrame(frame);
