@@ -259,9 +259,9 @@ host to `a9c2e4f60b18` on a release from before the flatten, or restore from bac
 
 The migrator also completes any missing image thumbnails. That step is best-effort, so if its log
 says the thumbnail backfill failed (or product lists are serving full-size originals as card
-images), re-run it by hand against the backend container:
-`python -m scripts.maintenance.backfill_thumbnails`. It resumes where it stopped and is safe to run
-repeatedly.
+images), run the migrations profile again: `just stack <env> up YES migrations`. It resumes where
+it stopped and is safe to run repeatedly. The maintenance scripts ship in the migrations image, not
+the API one, so there is no `scripts/` to reach in a running `api` container.
 
 The same step is what gives images uploaded before a new width its derivative: adding a width to
 `THUMBNAIL_WIDTHS` leaves existing rows stamped, so clear the stamp on the rows that should gain it
