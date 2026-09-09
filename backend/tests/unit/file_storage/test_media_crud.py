@@ -210,22 +210,29 @@ async def test_image_dimensions_are_committed_not_just_flushed(mock_session: Asy
     a fresh transaction that nothing else closes: flushing alone loses it when the request
     session is closed. The integration suite cannot see this — it binds every request to
     one connection whose transaction the fixture owns, so an uncommitted flush still reads
-    back — which is why the guard lives here.
+    back — which is why the guard lives here. It is also the only test that drives the
+    real upload path, so it pins which thumbnail widths that path generates inline.
     """
+    # Wider than every thumbnail width, so the inline pass is not silently narrowed by
+    # the upscale skip and the recorded call names the widths the upload really ran.
     image_path = tmp_path / "shot.png"
-    PILImage.new("RGB", (321, 123), color="red").save(image_path)
+    PILImage.new("RGB", (2001, 1234), color="red").save(image_path)
     db_image = Image(id=uuid4(), width_px=None, height_px=None)
 
     with (
         patch.object(support_services, "stored_file_path", return_value=image_path),
         patch.object(support_services, "require_model", AsyncMock(return_value=db_image)),
+        patch.object(support_services, "generate_thumbnails") as mock_generate,
         # Close the coroutine instead of scheduling it: this test is about the DB write.
         patch.object(support_services, "spawn_detached", lambda coro, **_: coro.close()),
     ):
         await support_services._process_created_image(mock_session, db_image)
 
-    assert (db_image.width_px, db_image.height_px) == (321, 123)
+    assert (db_image.width_px, db_image.height_px) == (2001, 1234)
     mock_session.commit.assert_awaited()
+    # The upload path generates the narrow width and nothing else: the wider two cost
+    # most of the request's processing time and are the detached task's job.
+    mock_generate.assert_called_once_with(image_path, EAGER_THUMBNAIL_WIDTHS)
 
 
 async def test_deferred_pass_cleans_up_when_the_image_was_deleted_meanwhile(tmp_path: Path) -> None:
