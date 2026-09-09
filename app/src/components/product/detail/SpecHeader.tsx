@@ -22,7 +22,7 @@ function buildFacts(product: Product): SpecFact[] {
   return facts;
 }
 
-/** Edit-mode name field at display scale. Local draft so hydration cannot clobber typing; commits trimmed on blur. */
+/** Edit-mode name field at title scale. Local draft so hydration cannot clobber typing; commits trimmed on blur. */
 function NameField({
   name,
   onNameChange,
@@ -55,10 +55,11 @@ function NameField({
         placeholder="Product name"
         maxLength={PRODUCT_NAME_MAX_LENGTH}
         bordered
-        // NOTE: the `display` ramp step, applied as a style because RN's
-        // TextInput has no `variant` prop.
+        // NOTE: the `title` ramp step, applied as a style because RN's
+        // TextInput has no `variant` prop. Display (38px) cut long names off
+        // mid-word at phone width; view mode keeps the display heading.
         style={[
-          tokens.type.display,
+          tokens.type.title,
           { paddingHorizontal: 8 },
           isInvalid && { borderColor: tokens.status.danger },
         ]}
