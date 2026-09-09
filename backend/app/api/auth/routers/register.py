@@ -53,7 +53,7 @@ async def register(
 ) -> RegistrationResponse:
     """Register a new user, returning the same response whether or not the email is taken."""
     try:
-        email_checker = get_email_checker(request)
+        email_checker = await get_email_checker(request)
 
         # Username collisions still 409: usernames are public.
         user_create = await validate_user_create(user_manager.user_db, user_create, email_checker)

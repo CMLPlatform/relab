@@ -1,5 +1,6 @@
 import http from "k6/http";
 import { check } from "k6";
+import exec from "k6/execution";
 
 const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:8010";
 const productListPath = __ENV.PERF_PRODUCT_LIST_PATH || "/v1/products?size=20";
@@ -49,7 +50,7 @@ const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
   "http_req_duration{scenario:live_probe}": ["p(95)<100"],
   "http_req_failed{scenario:product_list_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_list_read}": ["p(95)<300"],
+  "http_req_duration{scenario:product_list_read}": ["p(95)<200"],
   "http_req_failed{scenario:product_search_read}": ["rate<0.01"],
   "http_req_duration{scenario:product_search_read}": ["p(95)<1000"],
   // An open-model run that cannot start its iterations on time is a saturated
@@ -152,7 +153,10 @@ export function mediaUrlRead() {
 }
 
 export function productSearchRead() {
-  const term = searchTerms[(__VU + __ITER) % searchTerms.length];
+  // Keyed on the scenario-wide iteration counter, not __VU/__ITER: VU assignment
+  // shifts between runs, so a VU-derived index makes each run measure a different
+  // mix of cheap and expensive queries. That alone moved p95 by ~2x run to run.
+  const term = searchTerms[exec.scenario.iterationInTest % searchTerms.length];
   const response = http.get(`${baseUrl}/v1/products?size=20&search=${encodeURIComponent(term.trim())}`, {
     tags: { scenario: "product_search_read" },
   });

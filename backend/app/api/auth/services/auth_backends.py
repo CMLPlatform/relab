@@ -83,7 +83,7 @@ def clear_auth_cookies(response: Response) -> None:
 bearer_transport = BearerTransport(tokenUrl="/v1/auth/bearer/login")
 
 
-def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:
+async def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:
     """Return an authentication token strategy."""
     # RevocableRedisStrategy stamps each token's issue time so a global revocation can
     # refuse older tokens (see access_token_store); upstream RedisStrategy cannot.

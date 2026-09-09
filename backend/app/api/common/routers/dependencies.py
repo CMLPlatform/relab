@@ -14,8 +14,10 @@ from app.core.runtime import get_request_services
 AsyncSessionDep = Annotated[AsyncSession, Depends(get_async_session)]
 
 
-def get_external_http_client(request: Request) -> AsyncClient:
+async def get_external_http_client(request: Request) -> AsyncClient:
     """Return the shared outbound HTTP client from application state."""
+    # Async on purpose: this only reads request state, and a sync dependency would
+    # make FastAPI hop to a threadpool for it on every request that resolves it.
     http_client = get_request_services(request).http_client
     if http_client is None:
         msg = "Outbound HTTP client is not available."

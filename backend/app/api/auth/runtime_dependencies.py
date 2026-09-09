@@ -40,11 +40,11 @@ def common_password_checker_from(services: AppServices) -> CommonPasswordChecker
     return cast("CommonPasswordChecker | None", services.extras.get(COMMON_PASSWORD_CHECKER_KEY))
 
 
-def get_email_checker(request: Request) -> EmailChecker | None:
+async def get_email_checker(request: Request) -> EmailChecker | None:
     """Return the shared disposable-email checker from app state."""
     return email_checker_from(get_request_services(request))
 
 
-def get_common_password_checker(request: Request) -> CommonPasswordChecker | None:
+async def get_common_password_checker(request: Request) -> CommonPasswordChecker | None:
     """Return the shared common-password checker from app state."""
     return common_password_checker_from(get_request_services(request))

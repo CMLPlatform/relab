@@ -12,40 +12,44 @@ from app.api.auth.roles import UserRole
 from app.api.common.exceptions import ForbiddenError
 
 
-def test_current_mfa_user_returns_mfa_enabled_user() -> None:
+@pytest.mark.asyncio
+async def test_current_mfa_user_returns_mfa_enabled_user() -> None:
     """MFA dependency should pass through users with confirmed MFA enabled."""
     user = MagicMock()
     user.mfa_enabled = True
 
-    assert current_mfa_user(user) is user
+    assert await current_mfa_user(user) is user
 
 
-def test_current_mfa_user_rejects_user_without_mfa() -> None:
+@pytest.mark.asyncio
+async def test_current_mfa_user_rejects_user_without_mfa() -> None:
     """MFA dependency should reject active users who have not enabled MFA."""
     user = MagicMock()
     user.mfa_enabled = False
 
     with pytest.raises(ForbiddenError) as exc_info:
-        current_mfa_user(user)
+        await current_mfa_user(user)
 
     assert exc_info.value.http_status_code == status.HTTP_403_FORBIDDEN
 
 
-def test_current_lab_user_returns_lab_account() -> None:
+@pytest.mark.asyncio
+async def test_current_lab_user_returns_lab_account() -> None:
     """The lab dependency should pass a lab-tier account through untouched."""
     user = MagicMock()
     user.role = UserRole.LAB
 
-    assert current_lab_user(user) is user
+    assert await current_lab_user(user) is user
 
 
-def test_current_lab_user_rejects_contributor() -> None:
+@pytest.mark.asyncio
+async def test_current_lab_user_rejects_contributor() -> None:
     """A contributor must be refused, since the tier is what gates research files."""
     user = MagicMock()
     user.role = UserRole.CONTRIBUTOR
 
     with pytest.raises(ForbiddenError) as exc_info:
-        current_lab_user(user)
+        await current_lab_user(user)
 
     assert exc_info.value.http_status_code == status.HTTP_403_FORBIDDEN
 

@@ -19,7 +19,7 @@ current_active_superuser = fastapi_user_manager.current_user(active=True, superu
 optional_current_active_user = fastapi_user_manager.current_user(optional=True, active=True)
 
 
-def current_lab_user(user: Annotated[User, Security(current_active_verified_user)]) -> User:
+async def current_lab_user(user: Annotated[User, Security(current_active_verified_user)]) -> User:
     """Require an active, verified account at the ``lab`` tier or above.
 
     Built on the verified dep rather than beside it, so a lab-gated route keeps
@@ -31,7 +31,7 @@ def current_lab_user(user: Annotated[User, Security(current_active_verified_user
     return user
 
 
-def current_mfa_user(user: Annotated[User, Security(current_active_user)]) -> User:
+async def current_mfa_user(user: Annotated[User, Security(current_active_user)]) -> User:
     """Require an active account that has TOTP MFA *enrolled*.
 
     NOTE: this checks enrolment, not that the current session passed an MFA
