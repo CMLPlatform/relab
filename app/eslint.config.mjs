@@ -22,13 +22,8 @@ const reactHooksErrors = Object.fromEntries(
 //    never fire on modern code.
 //  - has-accessibility-hint / has-accessibility-props: prescriptive, flood
 //    without catching real defects.
-//  - has-valid-accessibility-descriptors: currently flags 38 interactive
-//    elements missing a role/label. Real a11y debt worth a dedicated pass —
-//    enabling it here would either block the gate or force an unreviewed
-//    mass-edit. NOTE: turn on once those elements are labelled.
 //  - has-valid-accessibility-ignores-invert-colors: 5 images; minor iOS
-//    Smart-Invert nicety, low priority for this app. NOTE: revisit with the
-//    descriptors pass above.
+//    Smart-Invert nicety, low priority for this app.
 const reactNativeA11yRules = {
   'react-native-a11y/has-valid-accessibility-role': 'error',
   'react-native-a11y/has-valid-accessibility-state': 'error',
@@ -37,6 +32,7 @@ const reactNativeA11yRules = {
   'react-native-a11y/has-valid-accessibility-live-region': 'error',
   'react-native-a11y/has-valid-important-for-accessibility': 'error',
   'react-native-a11y/no-nested-touchables': 'error',
+  'react-native-a11y/has-valid-accessibility-descriptors': 'error',
 };
 
 // A heading role written straight onto a JSX element, which `heading(level)`
