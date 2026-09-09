@@ -30,10 +30,16 @@ if TYPE_CHECKING:
 logger: logging.Logger = logging.getLogger(__name__)
 
 # Three attempts over ~1.5s of sleeping: enough to ride out a refused connection or a
-# greylisted first try, short enough that a detached task is unlikely to be killed
-# mid-backoff by a deploy. Failures past that need the user to restart the flow.
+# greylisted first try. Failures past that need the user to restart the flow.
 _SEND_ATTEMPTS = 3
 _SEND_BACKOFF_SECONDS = 0.5
+# Hard ceiling on one queued send, retries and provider timeouts included. The attempts
+# alone do not bound it: an SMTP timeout is configurable and the Graph provider makes two
+# HTTP calls per attempt, so three attempts can outlast any shutdown grace period. This
+# has to stay below `stop_grace_period` on the api service (compose.yaml) — past that a
+# deploy kills the worker mid-send and the notification is lost with neither a "sent" nor
+# a "failed" line to account for it.
+_SEND_WINDOW_SECONDS = 45
 email_settings = auth_settings.email
 
 
@@ -96,38 +102,49 @@ async def _send_and_log(provider: EmailProvider, message: EmailMessage, log_labe
 
     Most send failures are transient — a refused connection, a greylisted first attempt,
     an SMTP timeout — and the user cannot retry a verification mail themselves without
-    starting the flow again. The backoff is short on purpose: this is a detached task
-    holding no request and no DB session, but a long sleep would still outlive a deploy
-    and be lost, so it retries within the window a restart is unlikely to interrupt.
+    starting the flow again. The retries are bounded by ``_SEND_WINDOW_SECONDS`` rather
+    than by the attempt count alone: this task holds no request and no DB session, but a
+    send still in flight when the container stops is killed with it, so the window is
+    kept below the shutdown grace period and a send that overruns it is logged as given
+    up rather than disappearing.
     """
     # `log_label` embeds the template filename, and CodeQL reads constants named like
     # ACCOUNT_RECOVERY_TEMPLATE as credentials. The recipient beside it is a keyed token,
     # not an address, so what these lines actually print is a filename and a digest.
-    for attempt in range(1, _SEND_ATTEMPTS + 1):
-        try:
-            await provider.send(message)
-        except Exception:
-            if attempt == _SEND_ATTEMPTS:
-                logger.exception(
-                    "%s failed for %s after %d attempts",
+    with anyio.move_on_after(_SEND_WINDOW_SECONDS) as window:
+        for attempt in range(1, _SEND_ATTEMPTS + 1):
+            try:
+                await provider.send(message)
+            except Exception:
+                if attempt == _SEND_ATTEMPTS:
+                    logger.exception(
+                        "%s failed for %s after %d attempts",
+                        log_label,  # lgtm[py/clear-text-logging-sensitive-data]
+                        recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+                        attempt,
+                    )
+                    return
+                delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
+                logger.warning(
+                    "%s attempt %d failed for %s, retrying in %.1fs",
                     log_label,  # lgtm[py/clear-text-logging-sensitive-data]
-                    recipient,  # lgtm[py/clear-text-logging-sensitive-data]
                     attempt,
+                    recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+                    delay,
+                    exc_info=True,
                 )
+                await anyio.sleep(delay)
+            else:
+                logger.info("%s sent to %s", log_label, recipient)  # lgtm[py/clear-text-logging-sensitive-data]
                 return
-            delay = _SEND_BACKOFF_SECONDS * 2 ** (attempt - 1)
-            logger.warning(
-                "%s attempt %d failed for %s, retrying in %.1fs",
-                log_label,  # lgtm[py/clear-text-logging-sensitive-data]
-                attempt,
-                recipient,  # lgtm[py/clear-text-logging-sensitive-data]
-                delay,
-                exc_info=True,
-            )
-            await anyio.sleep(delay)
-        else:
-            logger.info("%s sent to %s", log_label, recipient)  # lgtm[py/clear-text-logging-sensitive-data]
-            return
+
+    if window.cancelled_caught:
+        logger.error(
+            "%s gave up for %s after %ds",
+            log_label,  # lgtm[py/clear-text-logging-sensitive-data]
+            recipient,  # lgtm[py/clear-text-logging-sensitive-data]
+            _SEND_WINDOW_SECONDS,
+        )
 
 
 async def _dispatch(

@@ -64,6 +64,12 @@ services:
       cache_to:
         - type=gha,scope=api,mode=max
     restart: unless-stopped
+    # Docker's 10s default is shorter than the work a stop has to drain: a queued
+    # transactional email is bounded by `_SEND_WINDOW_SECONDS`
+    # (backend/app/api/auth/services/email/service.py), and a security notification
+    # killed mid-send is lost with no log line either way. Keep this above that window.
+    # The container still exits as soon as the server drains, so a quiet stop is unaffected.
+    stop_grace_period: 60s
     depends_on:
       postgres:
         condition: service_healthy

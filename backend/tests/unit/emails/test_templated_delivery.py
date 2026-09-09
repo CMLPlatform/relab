@@ -3,6 +3,7 @@
 import logging
 from unittest.mock import AsyncMock
 
+import anyio
 import pytest
 
 from app.api.auth.services.email import service
@@ -85,3 +86,34 @@ def test_email_log_token_differs_from_the_rate_limit_bucket_for_one_address() ->
     assert service.email_log_token("user@example.com").removeprefix("eml_") not in rate_limit_bucket_key(
         "auth:email", "user@example.com"
     )
+
+
+async def test_a_hanging_provider_gives_up_inside_the_send_window(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A send that outlasts its window must end with a log line, not with the container.
+
+    Neither the attempt count nor the provider timeouts bound the total wait on their
+    own, and a queued send still in flight when the API stops is killed with it: the
+    "queued" line would then be the last thing written about a security notification.
+    """
+
+    async def hang(_message: EmailMessage) -> None:
+        await anyio.sleep(30)
+
+    monkeypatch.setattr(service, "_SEND_WINDOW_SECONDS", 0.05)
+    provider = AsyncMock()
+    provider.send.side_effect = hang
+
+    with caplog.at_level(logging.ERROR):
+        await service._send_and_log(provider, _message(), "Password-reset confirmation", "eml_abc123")
+
+    assert "gave up" in caplog.text
+
+
+def test_the_send_window_fits_inside_the_container_stop_grace_period() -> None:
+    """The bound only means anything while it stays under the grace period."""
+    # Mirrors `stop_grace_period` on the api service in compose.yaml; a send that
+    # outlasts it is SIGKILLed rather than logged.
+    api_stop_grace_seconds = 60
+    assert api_stop_grace_seconds > service._SEND_WINDOW_SECONDS
