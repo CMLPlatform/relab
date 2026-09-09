@@ -17,6 +17,11 @@ jest.mock('@/services/api/request', () => ({
   fetchWithTimeout: jest.fn(),
 }));
 
+jest.mock('@/services/api/auth/authRefresh', () => ({
+  persistAccessToken: jest.fn(async () => undefined),
+  persistRefreshToken: jest.fn(async () => undefined),
+}));
+
 type StorageStub = {
   getItem: jest.Mock<(key: string) => string | null>;
   setItem: jest.Mock<(key: string, value: string) => void>;
@@ -286,5 +291,89 @@ describe('TOTP enrolment', () => {
     } as never);
 
     await expect(disableTotp('000000')).rejects.toThrow('Invalid code.');
+  });
+});
+
+describe('MFA challenge token persistence', () => {
+  const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+    fetchWithTimeout: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+  };
+  const { persistAccessToken, persistRefreshToken } = jest.requireMock(
+    '@/services/api/auth/authRefresh',
+  ) as {
+    persistAccessToken: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+    persistRefreshToken: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPlatform('ios');
+  });
+
+  afterEach(() => {
+    restorePlatform();
+  });
+
+  it('persists both tokens issued to a native client', async () => {
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'access', refresh_token: 'refresh' }),
+    });
+
+    await expect(completeMfaChallenge('mfa-token', '123456')).resolves.toBeUndefined();
+
+    expect(persistAccessToken).toHaveBeenCalledWith('access');
+    expect(persistRefreshToken).toHaveBeenCalledWith('refresh');
+  });
+
+  it('persists the access token alone when no refresh token is issued', async () => {
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ access_token: 'access' }),
+    });
+
+    await completeMfaChallenge('mfa-token', '123456');
+
+    expect(persistAccessToken).toHaveBeenCalledWith('access');
+    expect(persistRefreshToken).not.toHaveBeenCalled();
+  });
+
+  // A 200 that carries no token would otherwise read as a completed sign-in
+  // while the client still holds nothing to authenticate with.
+  it.each([{ token_type: 'bearer' }, { access_token: 42 }, null])(
+    'rejects the tokenless 200 body %p without persisting anything',
+    async (body) => {
+      fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 200, json: async () => body });
+
+      await expect(completeMfaChallenge('mfa-token', '123456')).rejects.toThrow(
+        'Invalid MFA login response.',
+      );
+      expect(persistAccessToken).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a 200 whose body is not JSON at all', async () => {
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new Error('not json');
+      },
+    });
+
+    await expect(completeMfaChallenge('mfa-token', '123456')).rejects.toThrow(
+      'Invalid MFA login response.',
+    );
+    expect(persistAccessToken).not.toHaveBeenCalled();
+  });
+
+  it('rejects an OAuth handoff whose response is not an MFA challenge', async () => {
+    fetchWithTimeout.mockResolvedValueOnce({ ok: true, json: async () => ({ status: 'ok' }) });
+
+    await expect(claimOAuthMfaHandoff('handoff-token')).rejects.toThrow(
+      'Invalid MFA handoff response.',
+    );
   });
 });
