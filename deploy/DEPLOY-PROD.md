@@ -226,7 +226,8 @@ restic REST server with `--append-only` — WebDAV offers neither.
 
 ### 1.4 What the watchdog checks
 
-`just watchdog prod` runs hourly from the timer above; run it by hand after any change. Its timer
+`sudo -u relab just watchdog prod` runs hourly from the timer above; run it by hand after any
+change, as the deploy user (1.6) so it sees the checkout the way the timer does. Its timer
 checks read systemd's `Result` of each unit's **last run**, so after fixing a job, clear the alert by
 running the unit (`sudo systemctl reset-failed relab-backup-maintenance@prod.service && sudo
 systemctl start relab-backup-maintenance@prod.service`), not the `just` recipe, which systemd never
@@ -306,6 +307,13 @@ ______________________________________________________________________
 
 The host runs prod from a checkout nobody edits, as a sudo-less account, and is only ever *reached*
 from the dev host; agents, credentials and working trees stay on the dev host.
+
+**Run recipes as that account: `sudo -u relab just <recipe> prod`.** Plain `sudo just` runs as root,
+which git refuses against a checkout `relab` owns — the watchdog's drift check then reports the
+directory as not a checkout at all. `just timers-install` is the one exception and inverts the rule:
+it refuses to run as root and calls `sudo` itself, so run it from your own sudo-capable account as
+`RELAB_UNIT_USER=relab just timers-install prod`. `sudo -u relab` fails there, because `relab` is a
+system account with no password to answer that inner prompt.
 
 ```bash
 sudo useradd --system --create-home --home-dir /var/lib/relab --shell /bin/bash --groups docker relab
