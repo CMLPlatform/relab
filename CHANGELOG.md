@@ -1,5 +1,118 @@
 # Changelog
 
+## v0.3.2 - 2026-09
+
+### Description
+
+A consolidation release after the production cutover. It repairs the interface and
+deployment faults that the first weeks of real use surfaced, cuts upload and page-load
+latency, and makes the release and backup paths fail loudly instead of quietly.
+
+### Features
+
+- A "?" overlay lists the app's keyboard shortcuts ([#219])
+- The lightbox serves a 2560px tier, and product lists serve real thumbnails rather than
+  full-size originals ([#268], [#222])
+- A theme-adaptive favicon on web ([#208])
+- Deploys run as a dedicated user over a restricted key, with a no-cache rebuild
+  available when one is needed ([#201], [#203], [#204], [#210])
+
+### Fixes
+
+- Two concurrent edits to the same product no longer lose one of the saves ([#264])
+- Deleting a product that has components succeeds ([#217])
+- Product detail returns to the list it was opened from ([#209])
+- Registration failure, search, support-contact, and accessibility copy say what is
+  actually true ([#207], [#218])
+- One `h1` per page, labels on the last unlabelled controls, and a focus ring that no
+  longer outlines the whole page column, each held in place by a lint rule ([#223],
+  [#225], [#226], [#233])
+- Photographs stay out of Smart Invert ([#230])
+- Web layout regressions found after the cutover ([#200], [#221], [#247])
+- The migration that moves `pg_trgm` stops cleanly when a superuser owns the extension
+  ([#215])
+- Background work after an upload runs on the paths it was meant to ([#261])
+- Backups guard the uploads volume against silent data loss and rebuild before stamping
+  ([#269], [#271])
+- Deploy and release failures are loud: an unreadable `.env`, timers rendered as root,
+  and compose run by hand under the wrong stack identity ([#199], [#238], [#246],
+  [#249], [#260])
+- The backup watchdog parses restic's Z-suffixed timestamps on the system Python, and
+  says why a git probe failed instead of only that it did ([#272])
+
+### Security
+
+- Addresses stay out of the logs, and the edge exemption for automated runs is narrowed
+  to the hosts and routes that need it ([#262])
+- The tunnel container drops its capabilities ([#254])
+- The app serves a Content-Security-Policy header ([#202])
+- Cloudflare applies are gated on the plan they apply ([#257])
+
+### Performance
+
+- Uploads answer before the wide thumbnails are derived, and transactional email no
+  longer blocks the response ([#239])
+- The web export has a first-load JavaScript budget, checked on every run ([#243])
+- Smaller runtime images and build contexts, with Metro cached across builds ([#224],
+  [#228], [#236])
+- A k6 baseline and an upload benchmark across a spread of photo sizes ([#237], [#241])
+
+### Maintenance
+
+- CORS preflights carry the staging edge key and pass the edge's bot protections
+  ([#206], [#214], [#216])
+- E2E runs never reuse a leftover preview server ([#227], [#229])
+- CodeQL suppressions use the comment form it honors ([#251])
+
+[#199]: https://github.com/CMLPlatform/relab/pull/199
+[#200]: https://github.com/CMLPlatform/relab/pull/200
+[#201]: https://github.com/CMLPlatform/relab/pull/201
+[#202]: https://github.com/CMLPlatform/relab/pull/202
+[#203]: https://github.com/CMLPlatform/relab/pull/203
+[#204]: https://github.com/CMLPlatform/relab/pull/204
+[#206]: https://github.com/CMLPlatform/relab/pull/206
+[#207]: https://github.com/CMLPlatform/relab/pull/207
+[#208]: https://github.com/CMLPlatform/relab/pull/208
+[#209]: https://github.com/CMLPlatform/relab/pull/209
+[#210]: https://github.com/CMLPlatform/relab/pull/210
+[#214]: https://github.com/CMLPlatform/relab/pull/214
+[#215]: https://github.com/CMLPlatform/relab/pull/215
+[#216]: https://github.com/CMLPlatform/relab/pull/216
+[#217]: https://github.com/CMLPlatform/relab/pull/217
+[#218]: https://github.com/CMLPlatform/relab/pull/218
+[#219]: https://github.com/CMLPlatform/relab/pull/219
+[#221]: https://github.com/CMLPlatform/relab/pull/221
+[#222]: https://github.com/CMLPlatform/relab/pull/222
+[#223]: https://github.com/CMLPlatform/relab/pull/223
+[#224]: https://github.com/CMLPlatform/relab/pull/224
+[#225]: https://github.com/CMLPlatform/relab/pull/225
+[#226]: https://github.com/CMLPlatform/relab/pull/226
+[#227]: https://github.com/CMLPlatform/relab/pull/227
+[#228]: https://github.com/CMLPlatform/relab/pull/228
+[#229]: https://github.com/CMLPlatform/relab/pull/229
+[#230]: https://github.com/CMLPlatform/relab/pull/230
+[#233]: https://github.com/CMLPlatform/relab/pull/233
+[#236]: https://github.com/CMLPlatform/relab/pull/236
+[#237]: https://github.com/CMLPlatform/relab/pull/237
+[#238]: https://github.com/CMLPlatform/relab/pull/238
+[#239]: https://github.com/CMLPlatform/relab/pull/239
+[#241]: https://github.com/CMLPlatform/relab/pull/241
+[#243]: https://github.com/CMLPlatform/relab/pull/243
+[#246]: https://github.com/CMLPlatform/relab/pull/246
+[#247]: https://github.com/CMLPlatform/relab/pull/247
+[#249]: https://github.com/CMLPlatform/relab/pull/249
+[#251]: https://github.com/CMLPlatform/relab/pull/251
+[#254]: https://github.com/CMLPlatform/relab/pull/254
+[#257]: https://github.com/CMLPlatform/relab/pull/257
+[#260]: https://github.com/CMLPlatform/relab/pull/260
+[#261]: https://github.com/CMLPlatform/relab/pull/261
+[#262]: https://github.com/CMLPlatform/relab/pull/262
+[#264]: https://github.com/CMLPlatform/relab/pull/264
+[#268]: https://github.com/CMLPlatform/relab/pull/268
+[#269]: https://github.com/CMLPlatform/relab/pull/269
+[#271]: https://github.com/CMLPlatform/relab/pull/271
+[#272]: https://github.com/CMLPlatform/relab/pull/272
+
 ## v0.3.1 - 2026-09
 
 ### Description
