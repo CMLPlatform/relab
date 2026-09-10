@@ -650,20 +650,31 @@ assert_deploy_mounts_writable() {
     [[ "$failed" -eq 0 ]] || exit 2
 }
 
-# `compose up -d` exits 0 when a service is skipped because a dependency it waits on did
-# not complete. A failed migrator therefore leaves `api` and everything behind it in
-# `created`, the stack reads as started, and the only trace is one "Skipped" line in the
-# middle of the output. The reported symptom is then "the containers are missing", which
-# says nothing about the migration that actually failed.
+# `compose up -d` exits 0 when the migrator fails, in both of the shapes that takes. A
+# migrator that never starts leaves `api` and everything behind it in `created`, and the
+# reported symptom becomes "the containers are missing", which says nothing about the
+# migration. A migrator that runs and exits non-zero is only a warning under
+# `required: false`, so the stack starts anyway, on a schema the migration did not
+# finish. Either way the only trace is one "Skipped" line in the middle of the output.
 #
 # Reducer split out so scripts/test_ops.sh can drive it without a stack.
 stack_gate_alerts() {
-    local env="$1" migrator_exit="$2" stalled="$3"
+    local env="$1" migrator_exit="$2" stalled="$3" migrator_failed=no
 
-    [[ -n "$stalled" ]] || return 0
+    [[ -n "$migrator_exit" && "$migrator_exit" != 0 ]] && migrator_failed=yes
+    [[ "$migrator_failed" == yes || -n "$stalled" ]] || return 0
 
-    if [[ -n "$migrator_exit" && "$migrator_exit" != 0 ]]; then
-        echo "error: the $env migrator did not complete (exit $migrator_exit), so ${stalled//,/, } never started" >&2
+    if [[ "$migrator_failed" == yes ]]; then
+        if [[ -n "$stalled" ]]; then
+            echo "error: the $env migrator did not complete (exit $migrator_exit), so ${stalled//,/, } never started" >&2
+        else
+            # Whether a failed migrator strands its dependents turns out to depend on how
+            # it failed: one that never starts leaves them `created`, while one that runs
+            # and exits non-zero is only a warning under `required: false`, so the stack
+            # comes up on a half-migrated schema and the deploy reads as clean. Report the
+            # migration failure either way.
+            echo "error: the $env migrator did not complete (exit $migrator_exit); the stack is serving a schema it did not finish migrating" >&2
+        fi
         echo "       read the migration error with: docker logs relab_${env}-migrator-1" >&2
     else
         echo "error: the $env stack left ${stalled//,/, } created but not running" >&2

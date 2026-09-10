@@ -65,9 +65,9 @@ def upgrade() -> None:
     # build finished and committed, and the process died before the revision was stamped.
     # The index is then VALID and correct, and every re-run still fails on the name. The
     # recovery differs -- dropping and re-running re-derives the state, `alembic stamp`
-    # asserts it -- so DEPLOY-PROD.md Part 3 carries both. Until the stamp lands the
-    # migrator exits non-zero and the API never starts, so this is an outage, not a
-    # nuisance.
+    # asserts it -- so DEPLOY-PROD.md Part 3 carries both. Until the stamp lands every
+    # migrate exits non-zero, and the stack keeps serving the older schema rather than
+    # stopping, which is what makes this quiet enough to sit unnoticed.
     #
     # Every existing row matches the predicate at first. That is intended: the first
     # backfill verifies and stamps them, and the index shrinks to the stragglers from then

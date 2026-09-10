@@ -213,10 +213,10 @@ def test_pending_thumbnail_index_survives_a_lost_revision_stamp(
 
     ``CREATE INDEX CONCURRENTLY`` commits inside ``autocommit_block()``, before the
     revision is stamped. A process that dies in that window leaves the index VALID and
-    the revision unrecorded, which took the API down on two hosts: the migrator failed
-    with ``relation ... already exists`` on every re-run, and the services gated on it
-    never started. ``stamp`` reproduces exactly that state -- the index is left alone,
-    only the version moves.
+    the revision unrecorded, which happened on both deploy hosts: the migrator then failed
+    with ``relation ... already exists`` on every re-run, leaving the stack on the older
+    schema. ``stamp`` reproduces exactly that state -- the index is left alone, only the
+    version moves.
 
     The INVALID case must keep raising, so this asserts adoption only for a valid index.
     """
