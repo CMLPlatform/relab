@@ -239,6 +239,25 @@ disk_usage_alerts() {
     return 0
 }
 
+# Why `git rev-parse` failed, as the operator's next step. Three causes land here needing
+# three different remedies, and discarding git's stderr reported all of them as the one
+# that is usually wrong: a checkout another user owns is refused for its ownership, not
+# for being absent.
+git_checkout_alert() {
+    local env="$1" git_error="$2"
+    case "$git_error" in
+        *"dubious ownership"*)
+            echo "ALERT[$env]: the deploy directory is a checkout owned by another user, so this run cannot read it; run it as the account relab-watchdog@${env}.service runs as, not as root" >&2
+            ;;
+        *"command not found"* | *"No such file or directory"*)
+            echo "ALERT[$env]: git is not on PATH, so deployment drift cannot be measured: ${git_error}" >&2
+            ;;
+        *)
+            echo "ALERT[$env]: deploy directory is not a git checkout: ${git_error:-git failed without output}" >&2
+            ;;
+    esac
+}
+
 # Turns check 2's reducer output ("<tag> <epoch>" per line, oldest first) into
 # "<stale_tag> <newest_epoch> <detail>": line 1 decides the alert, the rest fill in
 # per-tag detail. Fallbacks cover a failed query, which yields no lines.
@@ -470,8 +489,9 @@ fi
 # Check 4: deployment drift. Everything above proves the stack is running, not that it
 # runs the expected code. A deploy host sitting months behind origin is otherwise only
 # found by hand.
-if ! git rev-parse --git-dir >/dev/null 2>&1; then
-    echo "ALERT[$env]: deploy directory is not a git checkout" >&2
+git_probe=""
+if ! git_probe="$(git rev-parse --git-dir 2>&1 >/dev/null)"; then
+    git_checkout_alert "$env" "$git_probe"
     failures=$((failures + 1))
 else
     # Remote-tracking refs go stale without this, and a stale ref reports "no drift"

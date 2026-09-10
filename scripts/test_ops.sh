@@ -806,6 +806,33 @@ assert_eq "remote deploy: rollback to a revision id is allowed" "just stack prod
 assert_eq "remote deploy: rollback one step is allowed" "just stack prod rollback YES 2f91e3b5 -1" "$(remote_deploy 'rollback 2f91e3b5 -1')"
 
 # ---------------------------------------------------------------------------
+# deploy_watchdog.sh check 4: why the git probe failed. Running as root against a
+# checkout the deploy user owns is refused for ownership, not for being absent, and the
+# old wording sent the operator looking for a missing .git.
+# ---------------------------------------------------------------------------
+git_alert() {
+    local out status
+    out="$(git_checkout_alert prod "$1" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "dubious ownership names the wrong-user cause, not a missing checkout" \
+    "0|ALERT[prod]: the deploy directory is a checkout owned by another user, so this run cannot read it; run it as the account relab-watchdog@prod.service runs as, not as root" \
+    "$(git_alert "fatal: detected dubious ownership in repository at '/opt/relab'")"
+assert_eq "a missing git binary is reported as such" \
+    "0|ALERT[prod]: git is not on PATH, so deployment drift cannot be measured: bash: line 1: git: command not found" \
+    "$(git_alert 'bash: line 1: git: command not found')"
+# The original wording survives for the cause it was actually written for, now carrying
+# git's own message instead of discarding it.
+assert_eq "a genuinely absent checkout keeps the original wording, plus git's reason" \
+    "0|ALERT[prod]: deploy directory is not a git checkout: fatal: not a git repository (or any of the parent directories): .git" \
+    "$(git_alert 'fatal: not a git repository (or any of the parent directories): .git')"
+assert_eq "a silent git failure still says something" \
+    "0|ALERT[prod]: deploy directory is not a git checkout: git failed without output" \
+    "$(git_alert '')"
+
+# ---------------------------------------------------------------------------
 # deploy_watchdog.sh check 2: reducer output becomes an operator-facing alert. Tested
 # apart from the reducer since it's the wording that names which half is stale --
 # "postgres fresh, uploads refused" is routine now that a refusal skips one half.
