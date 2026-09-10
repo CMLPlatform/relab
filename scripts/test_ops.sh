@@ -336,7 +336,13 @@ gate() {
     printf '%s|%s' "$status" "$out"
 }
 
-assert_eq "nothing stalled is silent, whatever the migrator did" "0|" "$(gate 0 '')"
+assert_eq "a migrator that succeeded with nothing stalled is silent" "0|" "$(gate 0 '')"
+# Observed on staging: compose warns and starts the dependents anyway when the migrator
+# runs and fails, so nothing is stalled and the deploy otherwise reads as clean.
+assert_eq "a failed migrator is reported even when nothing was stalled" \
+    "1|error: the staging migrator did not complete (exit 255); the stack is serving a schema it did not finish migrating
+       read the migration error with: docker logs relab_staging-migrator-1" \
+    "$(gate 255 '')"
 # A one-shot service that succeeded exits 0 and is `exited`, never `created`.
 assert_eq "a successful migrator with nothing stalled is silent" "0|" "$(gate '' '')"
 assert_eq "a failed migrator names the services it gated" \

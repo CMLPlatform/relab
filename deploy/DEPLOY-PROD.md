@@ -510,7 +510,10 @@ That resume guarantee has one exception. `CREATE INDEX CONCURRENTLY` cannot run 
 transaction, so a revision that builds one commits the index on its own, in an
 `autocommit_block()`, *before* the revision is stamped. A run that dies in that window leaves the
 index built and the revision unstamped. Every re-run then fails with `relation "..." already
-exists`, the migrator exits non-zero, and `api` never starts.
+exists` and the migrator exits non-zero. What that does to the stack depends on how it failed: a
+migrator that runs and exits non-zero is only a warning under `required: false`, so the stack starts
+anyway on the older schema, while one that never starts at all leaves `api` and everything behind it
+in `created`. The first is the quieter and more dangerous of the two.
 
 Two states are possible and they need opposite responses. Tell them apart by asking whether the
 index is valid:
