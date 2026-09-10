@@ -650,6 +650,51 @@ assert_deploy_mounts_writable() {
     [[ "$failed" -eq 0 ]] || exit 2
 }
 
+# `compose up -d` exits 0 when a service is skipped because a dependency it waits on did
+# not complete. A failed migrator therefore leaves `api` and everything behind it in
+# `created`, the stack reads as started, and the only trace is one "Skipped" line in the
+# middle of the output. The reported symptom is then "the containers are missing", which
+# says nothing about the migration that actually failed.
+#
+# Reducer split out so scripts/test_ops.sh can drive it without a stack.
+stack_gate_alerts() {
+    local env="$1" migrator_exit="$2" stalled="$3"
+
+    [[ -n "$stalled" ]] || return 0
+
+    if [[ -n "$migrator_exit" && "$migrator_exit" != 0 ]]; then
+        echo "error: the $env migrator did not complete (exit $migrator_exit), so ${stalled//,/, } never started" >&2
+        echo "       read the migration error with: docker logs relab_${env}-migrator-1" >&2
+    else
+        echo "error: the $env stack left ${stalled//,/, } created but not running" >&2
+        echo "       inspect with: just stack $env ps" >&2
+    fi
+
+    return 1
+}
+
+# Read back what `up` actually left behind. `created` is the state compose parks a
+# skipped service in, so it is the one state that distinguishes "never started" from
+# "started and then exited", which is what a one-shot service does on success.
+assert_stack_started() {
+    local env="$1" stalled="" service state exit_code migrator_exit=""
+
+    while read -r service state exit_code; do
+        # The migrator is reported on its own; listing it among the services it gated
+        # would read as though it were waiting on itself.
+        if [[ "$service" == migrator ]]; then
+            migrator_exit="$exit_code"
+            continue
+        fi
+        case "$state" in
+            created) stalled="${stalled:+$stalled,}$service" ;;
+        esac
+    done < <(run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" ps -a \
+        --format '{{.Service}} {{.State}} {{.ExitCode}}' 2>/dev/null || true)
+
+    stack_gate_alerts "$env" "$migrator_exit" "$stalled" || exit 1
+}
+
 stack_command() {
     local env="$1"
     local action="$2"
@@ -690,6 +735,8 @@ stack_command() {
             run_deploy_compose "$env" up -d --wait postgres
             run_deploy_compose "$env" exec -T postgres bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
+            # `up -d` returning 0 is not proof the stack started; see stack_gate_alerts.
+            assert_stack_started "$env"
             ;;
         backup)
             # One backup cycle, foreground, for the systemd timer. --no-deps: the
@@ -800,6 +847,8 @@ stack_command() {
             done
             add_scanning_profile_from_dotenv
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
+            # `up -d` returning 0 is not proof the stack started; see stack_gate_alerts.
+            assert_stack_started "$env"
             ;;
         migrate)
             DEPLOY_CONFIRMED=false

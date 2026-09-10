@@ -290,6 +290,71 @@ assert_eq "unknown Result still reports the failure" \
     "$(timer enabled active yes '')"
 
 # ---------------------------------------------------------------------------
+# deploy_watchdog.sh check 6: schema drift. The state that took prod down was a valid
+# index with the revision that builds it left unstamped, so "behind" and "invalid index"
+# are independent signals and both have to survive on their own.
+# ---------------------------------------------------------------------------
+schema() {
+    local out status
+    out="$(schema_drift_alerts prod "$1" "$2" "$3" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "matching revisions are silent" "0|" "$(schema e2a7c4d1b930 e2a7c4d1b930 '')"
+assert_eq "a behind database is reported" \
+    "1|ALERT[prod]: database is at revision b3f1c07d5e94 but the deployed code expects e2a7c4d1b930" \
+    "$(schema b3f1c07d5e94 e2a7c4d1b930 '')"
+assert_eq "an invalid index is reported on its own" \
+    "1|ALERT[prod]: invalid index left by a failed concurrent build: ix_image_thumbnails_pending" \
+    "$(schema e2a7c4d1b930 e2a7c4d1b930 ix_image_thumbnails_pending)"
+# The two are independent problems; both are reported, as with dirty-and-behind above.
+assert_eq "a behind database and an invalid index both count" \
+    "2|ALERT[prod]: invalid index left by a failed concurrent build: ix_a, ix_b
+ALERT[prod]: database is at revision b3f1c07d5e94 but the deployed code expects e2a7c4d1b930" \
+    "$(schema b3f1c07d5e94 e2a7c4d1b930 'ix_a,ix_b')"
+# An unreadable revision must not pass as agreement, and must still report the index.
+assert_eq "an unreadable database revision is itself an alert" \
+    "1|ALERT[prod]: cannot read the schema revision; drift cannot be detected" \
+    "$(schema '' e2a7c4d1b930 '')"
+assert_eq "an unreadable head is an alert too" \
+    "1|ALERT[prod]: cannot read the schema revision; drift cannot be detected" \
+    "$(schema e2a7c4d1b930 '' '')"
+assert_eq "an unreadable revision still reports the invalid index" \
+    "2|ALERT[prod]: invalid index left by a failed concurrent build: ix_a
+ALERT[prod]: cannot read the schema revision; drift cannot be detected" \
+    "$(schema '' '' ix_a)"
+
+# ---------------------------------------------------------------------------
+# deploy_ops.sh: a migration that fails leaves the services behind it in `created`, and
+# `compose up -d` still exits 0. The stack then reads as started.
+# ---------------------------------------------------------------------------
+gate() {
+    local out status
+    out="$(stack_gate_alerts staging "$1" "$2" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "nothing stalled is silent, whatever the migrator did" "0|" "$(gate 0 '')"
+# A one-shot service that succeeded exits 0 and is `exited`, never `created`.
+assert_eq "a successful migrator with nothing stalled is silent" "0|" "$(gate '' '')"
+assert_eq "a failed migrator names the services it gated" \
+    "1|error: the staging migrator did not complete (exit 1), so api, cloudflared never started
+       read the migration error with: docker logs relab_staging-migrator-1" \
+    "$(gate 1 'api,cloudflared')"
+# Stalled services without a failed migrator is a different fault and must not be
+# reported as a migration failure.
+assert_eq "a stalled service with no migrator failure points at the stack" \
+    "1|error: the staging stack left api created but not running
+       inspect with: just stack staging ps" \
+    "$(gate 0 api)"
+assert_eq "a stalled service with no migrator at all points at the stack" \
+    "1|error: the staging stack left www created but not running
+       inspect with: just stack staging ps" \
+    "$(gate '' www)"
+
+# ---------------------------------------------------------------------------
 # deploy_watchdog.sh check 1: container state classification
 # ---------------------------------------------------------------------------
 state() {
