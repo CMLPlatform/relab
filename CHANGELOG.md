@@ -1,68 +1,117 @@
 # Changelog
 
-## [0.3.2](https://github.com/CMLPlatform/relab/compare/v0.3.1...v0.3.2) (2026-09-10)
+## v0.3.2 - 2026-09
 
+### Description
+
+A consolidation release after the production cutover. It repairs the interface and
+deployment faults that the first weeks of real use surfaced, cuts upload and page-load
+latency, and makes the release and backup paths fail loudly instead of quietly.
 
 ### Features
 
-* **app:** Add a "?" keyboard shortcuts overlay ([#219](https://github.com/CMLPlatform/relab/issues/219)) ([8e7ccb7](https://github.com/CMLPlatform/relab/commit/8e7ccb76b2354069649c422bd38b3f92b9aab1e1))
-* **app:** Serve the theme-adaptive favicon on web ([#208](https://github.com/CMLPlatform/relab/issues/208)) ([eaded5e](https://github.com/CMLPlatform/relab/commit/eaded5e314a665451a96c0b3b654adea3ccbe37d))
-* **deploy:** Allow 'build nocache' over the deploy key ([#210](https://github.com/CMLPlatform/relab/issues/210)) ([7b8c27b](https://github.com/CMLPlatform/relab/commit/7b8c27b6beb3edb8e483ebfca1363c4a48447772))
-* **deploy:** Drop capabilities on the tunnel ([#254](https://github.com/CMLPlatform/relab/issues/254)) ([1999923](https://github.com/CMLPlatform/relab/commit/1999923cffc90dd80ce31c9037c6681d5395d1fd))
-* **deploy:** Let timers run as a dedicated deploy user ([#201](https://github.com/CMLPlatform/relab/issues/201)) ([d8d46ca](https://github.com/CMLPlatform/relab/commit/d8d46ca327b5445d76d419e92d43cb51e2ffadf1))
-* **deploy:** Restricted remote deploys and the deploy-user host setup ([#203](https://github.com/CMLPlatform/relab/issues/203)) ([9556bcd](https://github.com/CMLPlatform/relab/commit/9556bcd8ea018bc76f20f7465096f7cf0ec3cef2))
-* **edge:** Skip bot fight mode for keyed e2e runs and public product reads ([#206](https://github.com/CMLPlatform/relab/issues/206)) ([1cb4479](https://github.com/CMLPlatform/relab/commit/1cb4479040cacdaaf3b19ab22fcc7cdc58ac8c60))
-* **images:** Add a 2560px thumbnail tier for the lightbox ([#268](https://github.com/CMLPlatform/relab/issues/268)) ([ad9af5d](https://github.com/CMLPlatform/relab/commit/ad9af5d63b7c573bea4733b0ae303f6fa9967918))
+- A "?" overlay lists the app's keyboard shortcuts ([#219])
+- The lightbox serves a 2560px tier, and product lists serve real thumbnails rather than
+  full-size originals ([#268], [#222])
+- A theme-adaptive favicon on web ([#208])
+- Deploys run as a dedicated user over a restricted key, with a no-cache rebuild
+  available when one is needed ([#201], [#203], [#204], [#210])
 
+### Fixes
 
-### Bug Fixes
+- Two concurrent edits to the same product no longer lose one of the saves ([#264])
+- Deleting a product that has components succeeds ([#217])
+- Product detail returns to the list it was opened from ([#209])
+- Registration failure, search, support-contact, and accessibility copy say what is
+  actually true ([#207], [#218])
+- One `h1` per page, labels on the last unlabelled controls, and a focus ring that no
+  longer outlines the whole page column, each held in place by a lint rule ([#223],
+  [#225], [#226], [#233])
+- Photographs stay out of Smart Invert ([#230])
+- Web layout regressions found after the cutover ([#200], [#221], [#247])
+- The migration that moves `pg_trgm` stops cleanly when a superuser owns the extension
+  ([#215])
+- Background work after an upload runs on the paths it was meant to ([#261])
+- Backups guard the uploads volume against silent data loss and rebuild before stamping
+  ([#269], [#271])
+- Deploy and release failures are loud: an unreadable `.env`, timers rendered as root,
+  and compose run by hand under the wrong stack identity ([#199], [#238], [#246],
+  [#249], [#260])
+- The backup watchdog parses restic's Z-suffixed timestamps on the system Python, and
+  says why a git probe failed instead of only that it did ([#272])
 
-* Acceptance-run fixes for the app CSP header and e2e lanes ([#202](https://github.com/CMLPlatform/relab/issues/202)) ([279ca0e](https://github.com/CMLPlatform/relab/commit/279ca0e0333f138396553006ace83d3f8928547c))
-* Act on the v0.3.0..HEAD codebase review ([#247](https://github.com/CMLPlatform/relab/issues/247)) ([edba860](https://github.com/CMLPlatform/relab/commit/edba86027d9b102eeb109e5533c7b68bc1385f47))
-* **api:** Allow the staging edge key header in CORS preflights ([#216](https://github.com/CMLPlatform/relab/issues/216)) ([1c70913](https://github.com/CMLPlatform/relab/commit/1c7091385a1dde0d456733c66e9e1da3d20292c5))
-* **app,docs:** Never reuse a leftover preview server in E2E ([#229](https://github.com/CMLPlatform/relab/issues/229)) ([487017c](https://github.com/CMLPlatform/relab/commit/487017c944c6a0cee6608fd8bbc8ca413269d793))
-* **app:** Clearer user-facing copy for search and support contact ([#218](https://github.com/CMLPlatform/relab/issues/218)) ([9def3fb](https://github.com/CMLPlatform/relab/commit/9def3fbfb19403536c04b01ac99a8e5d82854320))
-* **app:** Finish the heading pass and guard it with lint ([#225](https://github.com/CMLPlatform/relab/issues/225)) ([6134d39](https://github.com/CMLPlatform/relab/commit/6134d394e7289bc66ec667a660f53efaf0b32f55))
-* **app:** Give the public profile one h1 and refresh three stale E2E specs ([#233](https://github.com/CMLPlatform/relab/issues/233)) ([e2e1501](https://github.com/CMLPlatform/relab/commit/e2e150184ddceda8ca0336e275c865b8aa0d74fe))
-* **app:** Keep photographs out of Smart Invert and gate the rule ([#230](https://github.com/CMLPlatform/relab/issues/230)) ([9300c84](https://github.com/CMLPlatform/relab/commit/9300c849d5857aa6b9b889563ff10992c594d2e5))
-* **app:** Label the last unlabelled controls and gate the rule ([#226](https://github.com/CMLPlatform/relab/issues/226)) ([b07000f](https://github.com/CMLPlatform/relab/commit/b07000fec34a4574b8dba5ab4d942d8263477b38))
-* **app:** Read the detail back target from the fetched record ([#209](https://github.com/CMLPlatform/relab/issues/209)) ([6aa003e](https://github.com/CMLPlatform/relab/commit/6aa003e873c2ad201fcfb249c98a0ba12616dd17))
-* **app:** Stop a concurrent product save losing an edit ([#264](https://github.com/CMLPlatform/relab/issues/264)) ([ef04261](https://github.com/CMLPlatform/relab/commit/ef04261d897e23de2c49527a0c39ba6805f01185))
-* **app:** Stop the entry-focus ring outlining the page column ([#223](https://github.com/CMLPlatform/relab/issues/223)) ([59583f8](https://github.com/CMLPlatform/relab/commit/59583f869358cce37dc8ad526c93a4d1b9ede830))
-* **app:** V0.3 UI critique and QA follow-ups ([#221](https://github.com/CMLPlatform/relab/issues/221)) ([341a24f](https://github.com/CMLPlatform/relab/commit/341a24f92effbf9617bb07241db399c09d03e747))
-* **app:** Web layout regressions found after the prod cutover ([#200](https://github.com/CMLPlatform/relab/issues/200)) ([39021c2](https://github.com/CMLPlatform/relab/commit/39021c2f00ed90cce70f4ce48e10e8f5af4a8471))
-* **backend:** Correct the background-work paths behind the upload split ([#261](https://github.com/CMLPlatform/relab/issues/261)) ([162d2da](https://github.com/CMLPlatform/relab/commit/162d2da0b8395cab954f6939db8dfc75df73db63))
-* **backend:** Delete products with components without tripping raiseload ([#217](https://github.com/CMLPlatform/relab/issues/217)) ([10e5703](https://github.com/CMLPlatform/relab/commit/10e5703fe353b72a3563edb9345dc33d602ba172))
-* **backend:** Stop the pg_trgm move cleanly when the superuser owns the extension ([#215](https://github.com/CMLPlatform/relab/issues/215)) ([0e84db8](https://github.com/CMLPlatform/relab/commit/0e84db8f6893a5d7c364ab4f1032f688f01270cf))
-* **backup:** Guard the uploads volume against silent data loss ([#269](https://github.com/CMLPlatform/relab/issues/269)) ([5e648ea](https://github.com/CMLPlatform/relab/commit/5e648eac2cf341a0e48a799308f39d31d08c41dc))
-* **backup:** Rebuild before stamping, and say what the stamp did ([#271](https://github.com/CMLPlatform/relab/issues/271)) ([9a8fee1](https://github.com/CMLPlatform/relab/commit/9a8fee1c851316951e63f9c910e3dd43cd3b78d7))
-* **ci:** Use the suppression comment form CodeQL honors ([#251](https://github.com/CMLPlatform/relab/issues/251)) ([bb0c003](https://github.com/CMLPlatform/relab/commit/bb0c0034b76eb02b46a8f9130ca22eb608c5e4ba))
-* **deploy:** Fail clearly when .env exists but is unreadable ([#249](https://github.com/CMLPlatform/relab/issues/249)) ([2771aec](https://github.com/CMLPlatform/relab/commit/2771aecbb2b22ed55bad01d2559212cdc5b7100e))
-* **deploy:** Give hand-run compose the stack's real identity ([#238](https://github.com/CMLPlatform/relab/issues/238)) ([6e0ba3a](https://github.com/CMLPlatform/relab/commit/6e0ba3ada7368402d30f1b62e5cbb090213baf8d))
-* **deploy:** Include /snap/bin in the deploy user's PATH ([#204](https://github.com/CMLPlatform/relab/issues/204)) ([f4457df](https://github.com/CMLPlatform/relab/commit/f4457dfe66a4c31d98f9156caf28579c4b323db4))
-* **deploy:** Make three release-path failures loud ([#260](https://github.com/CMLPlatform/relab/issues/260)) ([8e07f02](https://github.com/CMLPlatform/relab/commit/8e07f0287558af158bbfef4b5cec9ed3fa51ffe3))
-* **deploy:** Refuse to render systemd timers as root ([#199](https://github.com/CMLPlatform/relab/issues/199)) ([0861c52](https://github.com/CMLPlatform/relab/commit/0861c52fa6560a7240451078066e7ce2f7de7c3d))
-* **deploy:** Remove the scratch container's anonymous volume ([#246](https://github.com/CMLPlatform/relab/issues/246)) ([764d277](https://github.com/CMLPlatform/relab/commit/764d277fb292cda38dee9d98f9459d7167be0525))
-* **edge:** Let CORS preflights past bot fight mode on the api hosts ([#214](https://github.com/CMLPlatform/relab/issues/214)) ([47400bd](https://github.com/CMLPlatform/relab/commit/47400bd7a344719e20acc7cca01b522b2d2905ce))
-* **images:** Serve real thumbnails in product lists ([#222](https://github.com/CMLPlatform/relab/issues/222)) ([aa91535](https://github.com/CMLPlatform/relab/commit/aa915355607528fe50ae8416ef0a55335e5e0dde))
-* **infra:** Gate cloudflare applies on the plan they apply ([#257](https://github.com/CMLPlatform/relab/issues/257)) ([e86e064](https://github.com/CMLPlatform/relab/commit/e86e064741fee3a23104235923b4489aec6dc310))
-* Point registration failure and accessibility copy at what's actually true ([#207](https://github.com/CMLPlatform/relab/issues/207)) ([84440bd](https://github.com/CMLPlatform/relab/commit/84440bdd99e34caf98221a0d297290cf05aa8a9a))
-* **security:** Keep addresses out of logs, narrow the edge exemption ([#262](https://github.com/CMLPlatform/relab/issues/262)) ([a747df7](https://github.com/CMLPlatform/relab/commit/a747df72969d74665236b9d67caaf55afcddd12c))
-* **watchdog:** Parse restic's Z-suffixed timestamps on the system python ([3d3fab2](https://github.com/CMLPlatform/relab/commit/3d3fab23ffb6de9465559ff155e04af0d3ed2f48))
-* **watchdog:** Say why the git probe failed ([#272](https://github.com/CMLPlatform/relab/issues/272)) ([38367a0](https://github.com/CMLPlatform/relab/commit/38367a0c1277a1902bb187d40b33109f4c3f4b09))
-* **www:** Never reuse a leftover preview server in E2E ([#227](https://github.com/CMLPlatform/relab/issues/227)) ([c01084b](https://github.com/CMLPlatform/relab/commit/c01084be1af3194e9774fb30ba0f64295c25c7d8))
+### Security
 
+- Addresses stay out of the logs, and the edge exemption for automated runs is narrowed
+  to the hosts and routes that need it ([#262])
+- The tunnel container drops its capabilities ([#254])
+- The app serves a Content-Security-Policy header ([#202])
+- Cloudflare applies are gated on the plan they apply ([#257])
 
-### Performance Improvements
+### Performance
 
-* **app:** Budget the web export's first-load JavaScript ([#243](https://github.com/CMLPlatform/relab/issues/243)) ([d47c4df](https://github.com/CMLPlatform/relab/commit/d47c4df2bb9d730301b559fbe7d75353b40ccdd9))
-* **auth:** Stop transactional email from blocking the response ([318eb2c](https://github.com/CMLPlatform/relab/commit/318eb2c87bc86132633335de67532c845d5b4b90))
-* **backend:** Benchmark uploads across a spread of photo sizes ([#241](https://github.com/CMLPlatform/relab/issues/241)) ([ecb4000](https://github.com/CMLPlatform/relab/commit/ecb4000beec36f6b688f34c173e62aab49d4b61d))
-* **backend:** Make the k6 baseline measure something, and fix what it found ([#237](https://github.com/CMLPlatform/relab/issues/237)) ([c157b78](https://github.com/CMLPlatform/relab/commit/c157b7872b25ce22fad92817514183dc6d172bf2))
-* **docker:** Allowlist the backend context and cache Metro across builds ([#228](https://github.com/CMLPlatform/relab/issues/228)) ([e3f33d8](https://github.com/CMLPlatform/relab/commit/e3f33d88e2a4aad2b8156841e3589b6d7366600f))
-* **docker:** Shrink build contexts and drop a dead migrations layer ([#224](https://github.com/CMLPlatform/relab/issues/224)) ([72a39c2](https://github.com/CMLPlatform/relab/commit/72a39c222024b3e3f95ac763cbf53e5686b10368))
-* **docker:** Shrink the runtime images ([#236](https://github.com/CMLPlatform/relab/issues/236)) ([133016f](https://github.com/CMLPlatform/relab/commit/133016f3db740896e7bffac0a902e9d47ca42f29))
-* **images:** Take the wide thumbnails off the upload response path ([#239](https://github.com/CMLPlatform/relab/issues/239)) ([ecb0174](https://github.com/CMLPlatform/relab/commit/ecb017497e461c9a921292017f2497eb9325aebb))
+- Uploads answer before the wide thumbnails are derived, and transactional email no
+  longer blocks the response ([#239])
+- The web export has a first-load JavaScript budget, checked on every run ([#243])
+- Smaller runtime images and build contexts, with Metro cached across builds ([#224],
+  [#228], [#236])
+- A k6 baseline and an upload benchmark across a spread of photo sizes ([#237], [#241])
+
+### Maintenance
+
+- CORS preflights carry the staging edge key and pass the edge's bot protections
+  ([#206], [#214], [#216])
+- E2E runs never reuse a leftover preview server ([#227], [#229])
+- CodeQL suppressions use the comment form it honors ([#251])
+
+[#199]: https://github.com/CMLPlatform/relab/pull/199
+[#200]: https://github.com/CMLPlatform/relab/pull/200
+[#201]: https://github.com/CMLPlatform/relab/pull/201
+[#202]: https://github.com/CMLPlatform/relab/pull/202
+[#203]: https://github.com/CMLPlatform/relab/pull/203
+[#204]: https://github.com/CMLPlatform/relab/pull/204
+[#206]: https://github.com/CMLPlatform/relab/pull/206
+[#207]: https://github.com/CMLPlatform/relab/pull/207
+[#208]: https://github.com/CMLPlatform/relab/pull/208
+[#209]: https://github.com/CMLPlatform/relab/pull/209
+[#210]: https://github.com/CMLPlatform/relab/pull/210
+[#214]: https://github.com/CMLPlatform/relab/pull/214
+[#215]: https://github.com/CMLPlatform/relab/pull/215
+[#216]: https://github.com/CMLPlatform/relab/pull/216
+[#217]: https://github.com/CMLPlatform/relab/pull/217
+[#218]: https://github.com/CMLPlatform/relab/pull/218
+[#219]: https://github.com/CMLPlatform/relab/pull/219
+[#221]: https://github.com/CMLPlatform/relab/pull/221
+[#222]: https://github.com/CMLPlatform/relab/pull/222
+[#223]: https://github.com/CMLPlatform/relab/pull/223
+[#224]: https://github.com/CMLPlatform/relab/pull/224
+[#225]: https://github.com/CMLPlatform/relab/pull/225
+[#226]: https://github.com/CMLPlatform/relab/pull/226
+[#227]: https://github.com/CMLPlatform/relab/pull/227
+[#228]: https://github.com/CMLPlatform/relab/pull/228
+[#229]: https://github.com/CMLPlatform/relab/pull/229
+[#230]: https://github.com/CMLPlatform/relab/pull/230
+[#233]: https://github.com/CMLPlatform/relab/pull/233
+[#236]: https://github.com/CMLPlatform/relab/pull/236
+[#237]: https://github.com/CMLPlatform/relab/pull/237
+[#238]: https://github.com/CMLPlatform/relab/pull/238
+[#239]: https://github.com/CMLPlatform/relab/pull/239
+[#241]: https://github.com/CMLPlatform/relab/pull/241
+[#243]: https://github.com/CMLPlatform/relab/pull/243
+[#246]: https://github.com/CMLPlatform/relab/pull/246
+[#247]: https://github.com/CMLPlatform/relab/pull/247
+[#249]: https://github.com/CMLPlatform/relab/pull/249
+[#251]: https://github.com/CMLPlatform/relab/pull/251
+[#254]: https://github.com/CMLPlatform/relab/pull/254
+[#257]: https://github.com/CMLPlatform/relab/pull/257
+[#260]: https://github.com/CMLPlatform/relab/pull/260
+[#261]: https://github.com/CMLPlatform/relab/pull/261
+[#262]: https://github.com/CMLPlatform/relab/pull/262
+[#264]: https://github.com/CMLPlatform/relab/pull/264
+[#268]: https://github.com/CMLPlatform/relab/pull/268
+[#269]: https://github.com/CMLPlatform/relab/pull/269
+[#271]: https://github.com/CMLPlatform/relab/pull/271
+[#272]: https://github.com/CMLPlatform/relab/pull/272
 
 ## v0.3.1 - 2026-09
 
