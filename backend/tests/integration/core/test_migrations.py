@@ -206,6 +206,41 @@ def test_pending_thumbnail_index_is_a_revision_of_its_own(
 
 
 @pytest.mark.migration
+def test_pending_thumbnail_index_survives_a_lost_revision_stamp(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """A built index with the revision unstamped must re-run, not fail forever.
+
+    ``CREATE INDEX CONCURRENTLY`` commits inside ``autocommit_block()``, before the
+    revision is stamped. A process that dies in that window leaves the index VALID and
+    the revision unrecorded, which took the API down on two hosts: the migrator failed
+    with ``relation ... already exists`` on every re-run, and the services gated on it
+    never started. ``stamp`` reproduces exactly that state -- the index is left alone,
+    only the version moves.
+
+    The INVALID case must keep raising, so this asserts adoption only for a valid index.
+    """
+
+    def index_is_valid() -> bool | None:
+        rows = migration_helper.execute_sql(
+            "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass('ix_image_thumbnails_pending')"
+        )
+        return rows[0][0] if rows else None
+
+    assert index_is_valid() is True, "precondition: head builds a valid index"
+
+    command.stamp(relab_alembic_config, "b3f1c07d5e94")
+    assert migration_helper.current_revision() == "b3f1c07d5e94"
+
+    command.upgrade(relab_alembic_config, "head")
+
+    assert migration_helper.current_revision() == "e2a7c4d1b930", (
+        "the revision must stamp over an index it had already built"
+    )
+    assert index_is_valid() is True, "the adopted index must be left intact"
+
+
+@pytest.mark.migration
 def test_downgrade_lands_on_the_lengths_the_previous_revision_declares(
     relab_alembic_config: Config, migration_helper: MigrationHelper
 ) -> None:

@@ -281,6 +281,39 @@ format_snapshot_alert() {
     echo "$stale_tag $newest_epoch${detail:+ $detail}"
 }
 
+# Reducer for check 6, in a function so scripts/test_ops.sh can drive the real code
+# without a database. Prints one ALERT line per problem and returns how many it printed.
+#
+# An index that is not `indisvalid` is the residue of a CREATE INDEX CONCURRENTLY that
+# died: the planner never uses it while every write still maintains it, so it costs
+# without paying, and it blocks the revision that builds it from ever re-running.
+#
+# A revision behind the deployed code is drift for the same reason check 4 treats a
+# behind-origin checkout as drift: between `pull` and `migrate` it is expected and
+# brief, and an hour later it means the migration step was skipped or failed.
+schema_drift_alerts() {
+    local env="$1" db_revision="$2" head_revision="$3" invalid_indexes="$4"
+    local found=0
+
+    if [[ -n "$invalid_indexes" ]]; then
+        echo "ALERT[$env]: invalid index left by a failed concurrent build: ${invalid_indexes//,/, }" >&2
+        found=$((found + 1))
+    fi
+
+    if [[ -z "$db_revision" || -z "$head_revision" ]]; then
+        # Unknown is not "no drift": say so rather than passing the check silently.
+        echo "ALERT[$env]: cannot read the schema revision; drift cannot be detected" >&2
+        return $((found + 1))
+    fi
+
+    if [[ "$db_revision" != "$head_revision" ]]; then
+        echo "ALERT[$env]: database is at revision $db_revision but the deployed code expects $head_revision" >&2
+        found=$((found + 1))
+    fi
+
+    return "$found"
+}
+
 # Sourcing this script (scripts/test_ops.sh) only wants SNAPSHOT_AGE_PY; the live
 # checks below must not run.
 [[ "${BASH_SOURCE[0]}" == "$0" ]] || return 0
@@ -562,5 +595,39 @@ PY
     telemetry_ingress_alerts "$env" "${telemetry_status:-000}" "$telemetry_mitigated" \
         || failures=$((failures + $?))
 fi
+
+# Check 6: schema drift. Check 4 proves the checkout is current; nothing above proves the
+# database matches it. The failure this catches is silent by construction: the stack
+# keeps serving on the old schema, and the next deploy is what surfaces it, by which
+# point the migrator is failing and the API will not start.
+#
+# Read as the container's own superuser: the role differs per host and only the container
+# knows which it is. The SQL arrives as arguments rather than spliced into the probe
+# shell, the same way assert_deploy_mounts_writable passes a path. Both queries are
+# read-only. A NULL revision prints as an empty line, which the reducer reports as
+# unreadable rather than as agreement.
+schema_revision_sql='SELECT max(version_num) FROM alembic_version'
+schema_invalid_sql="SELECT coalesce(string_agg(indexrelid::regclass::text, ', ' ORDER BY 1), '')
+                    FROM pg_index WHERE NOT indisvalid"
+# shellcheck disable=SC2016 # $1/$2 are the probe shell's own arguments, not this shell's
+schema_probe="$(
+    timeout 60 "${compose_command[@]}" exec -T postgres sh -c '
+        psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "$1"
+        psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "$2"
+    ' _ "$schema_revision_sql" "$schema_invalid_sql" 2>/dev/null </dev/null || true
+)"
+schema_db_revision="$(sed -n 1p <<<"$schema_probe")"
+schema_invalid_indexes="$(sed -n 2p <<<"$schema_probe")"
+
+# `alembic heads` reads the revision files the deployed migrator image ships, which is the
+# only authority on what this code expects. It imports every revision file, which is why
+# revisions must not import `app.*`; a backend unit test enforces that.
+schema_head_revision="$(
+    timeout 300 "${compose_command[@]}" --profile migrations run --rm --no-deps -T \
+        --entrypoint alembic migrator heads 2>/dev/null </dev/null | awk 'NR == 1 {print $1}'
+)"
+
+schema_drift_alerts "$env" "$schema_db_revision" "$schema_head_revision" "$schema_invalid_indexes" \
+    || failures=$((failures + $?))
 
 exit "$failures"

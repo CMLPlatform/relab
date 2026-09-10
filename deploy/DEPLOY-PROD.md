@@ -251,6 +251,10 @@ until the guard's trigger is fixed (see 1.1). It checks:
 - that `PING_WATCHDOG` is filled in
 - deployment drift (uncommitted changes, or commits that exist nowhere else)
 - that telemetry exports reach the collector
+- schema drift: the database's alembic revision against the one the deployed migrator image
+  expects, and any index left `indisvalid = f` by a concurrent build that died (Part 3). Between
+  `pull` and `migrate` a revision behind is expected and brief; an hour later it means the migrate
+  step was skipped or failed.
 
 It exits non-zero with one `ALERT[...]` line per problem. The hourly dead-man's switch reports that
 exit code, so a failing check surfaces as a missed or failed ping.
@@ -451,7 +455,8 @@ ______________________________________________________________________
 
 Migrations commit one revision at a time (`transaction_per_migration=True` in
 `backend/alembic/env.py`), so a failed migrate leaves `alembic_version` at the last revision that
-succeeded, and a re-run resumes from there. Fix forward where possible.
+succeeded, and a re-run resumes from there. Fix forward where possible. One kind of revision
+escapes that guarantee: see "A revision that builds an index concurrently" at the end of this part.
 
 Every `just stack prod build` tags its images with the commit sha of the checkout it built (unrelated to
 the alembic revision, which names the schema), so a release can be rolled back without a rebuild.
@@ -498,6 +503,42 @@ before reporting success. It then re-runs `deploy/postgres/initdb/provision.sh`,
 does not carry back the default privileges that let `relab_app` read tables future migrations
 create. (`just stack <env> up` runs the same script on every start, so a volume that predates a
 change to it converges on the next release.)
+
+### A revision that builds an index concurrently
+
+That resume guarantee has one exception. `CREATE INDEX CONCURRENTLY` cannot run inside a
+transaction, so a revision that builds one commits the index on its own, in an
+`autocommit_block()`, *before* the revision is stamped. A run that dies in that window leaves the
+index built and the revision unstamped. Every re-run then fails with `relation "..." already
+exists`, the migrator exits non-zero, and `api` never starts.
+
+Two states are possible and they need opposite responses. Tell them apart by asking whether the
+index is valid:
+
+```bash
+docker compose -p relab_prod exec -T postgres sh -c \
+    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT indexrelid::regclass FROM pg_index WHERE NOT indisvalid"'
+```
+
+- **The index is listed — the build died partway.** It is a corpse: the planner never uses it, every
+  write still maintains it, and it holds the name the revision needs. Drop it and re-run.
+- **Nothing is listed, but the migrate still fails on that name — the build finished and only the
+  stamp was lost.** The schema is already what the revision wants. Dropping and re-running is still
+  the safer of the two fixes, because it re-derives the state instead of asserting it; prefer it
+  whenever the table is small enough to rebuild. Where a rebuild is not acceptable,
+  `alembic stamp <revision>` records what is already true.
+
+Either way, the drop must be concurrent too, and the re-run is the ordinary migrate:
+
+```bash
+just backup prod manual
+docker compose -p relab_prod exec -T postgres sh -c \
+    'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP INDEX CONCURRENTLY <index-name>"'
+just stack prod migrate YES
+```
+
+The watchdog's schema-drift check (1.4) reports both states, so neither should reach a deploy
+unnoticed again.
 
 Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately
 (`infra/cloudflare/`, prod workspace adopted 2026-09-08); the tunnel's ingress rules live there,
