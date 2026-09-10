@@ -58,6 +58,9 @@ vulnerabilities:
   - id: CVE-2026-84304
     expired_at: 2026-11-01
     statement: gRPC-Go HTTP/2 DATA-frame memory exhaustion; caddy runs no gRPC server in this image.
+  - id: CVE-2026-84445
+    expired_at: 2026-11-01
+    statement: gRPC-Go xDS server crash DoS; caddy serves no gRPC and loads no xDS config.
 
 misconfigurations: []
 secrets: []
