@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.3](https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.3.3) (2026-09-10)
+
+
+### Bug Fixes
+
+* **deploy:** Report a migration that failed without stranding the stack ([#276](https://github.com/CMLPlatform/relab/issues/276)) ([e77cc09](https://github.com/CMLPlatform/relab/commit/e77cc097e31de9e0c38c24139a67e73e59460a26))
+* **deploy:** Surface a migration that gates the stack ([#274](https://github.com/CMLPlatform/relab/issues/274)) ([71e457d](https://github.com/CMLPlatform/relab/commit/71e457d1ca921d09435efc931817a9cd01315061))
+
 ## v0.3.2 - 2026-09
 
 ### Description
