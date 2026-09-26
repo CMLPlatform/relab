@@ -148,7 +148,7 @@ App-owned services run with dropped Linux capabilities, `no-new-privileges`, PID
 
 Access control, not application-level encryption, protects most Relab data. Passwords are hashed. Public research records, uploaded media, public RPi camera keys, request IDs, and cache keys are not application-encrypted.
 
-`deploy/env/variables.toml` is the source-controlled runtime secret inventory: the secret files Compose renders under `secrets/<env>/`, plus the future Infisical path template. Run `just env-inventory` from the repo root when onboarding a host or reviewing secret-file changes.
+`deploy/env/variables.toml` is the source-controlled runtime secret inventory: the secret files Compose renders under `secrets/<env>/`. Run `just env-inventory` from the repo root when onboarding a host or reviewing secret-file changes.
 
 `DATA_ENCRYPTION_KEY` encrypts only values the backend must recover later, such as OAuth provider tokens and active YouTube broadcast keys. `CACHE_SIGNING_SECRET` signs cache payloads and `OAUTH_STATE_SECRET` signs OAuth state; each key has one purpose.
 
