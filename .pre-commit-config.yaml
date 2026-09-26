@@ -59,7 +59,7 @@ repos:
         exclude: (^|/)(node_modules|\.venv)/
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: db073f6e2776db0e634dc8d6c20d4123a1cab086  # frozen: v4.18.1
+    rev: 3f5ccc87b27966d9ed21cf5ea8ec2fba38ca65ce  # frozen: v4.19.0
     hooks:
       - id: commitizen
         stages: [ commit-msg ]
@@ -71,7 +71,7 @@ repos:
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 17a6b18b8006d390e476d419631aae885cadfa40  # frozen: 0.12.17
+    rev: 9b16a472943852b803af3785c45041dcf10b9f12  # frozen: 0.12.18
     hooks:
       - id: uv-lock
         name: uv-lock-root
