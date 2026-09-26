@@ -24,8 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE = ROOT / "pnpm-workspace.yaml"
 LOCKFILE = ROOT / "pnpm-lock.yaml"
 
-_OVERRIDE_LINE = re.compile(r'^  "?(?P<key>[^":]+?)"?:\s.*#\s*GHSA-')
-_IGNORE_LIST = re.compile(r"^(  ignoreGhsas:)\n(?:    - .*\n)+", re.MULTILINE)
+_OVERRIDE_LINE = re.compile(r"""^  ["']?(?P<key>[^"':]+?)["']?:\s.*#\s*GHSA-""")
+_IGNORE_LIST = re.compile(r"^(  ignoreGhsas:)\n(?:    (?:- |#).*\n)+", re.MULTILINE)
 
 
 def security_overrides(workspace_text: str) -> list[tuple[str, str]]:
@@ -81,12 +81,16 @@ def main() -> int:
         for line, package in security_overrides(workspace):
             WORKSPACE.write_text(unignored.replace(line, "", 1))
             LOCKFILE.write_text(lockfile)
-            subprocess.run(
+            relock = subprocess.run(
                 ["pnpm", "install", "--lockfile-only", "--ignore-scripts"],  # noqa: S607  # fixed argv
                 cwd=ROOT,
-                check=True,
                 capture_output=True,
+                text=True,
+                check=False,
             )
+            if relock.returncode:
+                message = f"pnpm install failed without {line.strip()}:\n{relock.stderr or relock.stdout}"
+                raise SystemExit(message)
             if package not in flagged_packages():
                 stale.append(line.strip())
     finally:
