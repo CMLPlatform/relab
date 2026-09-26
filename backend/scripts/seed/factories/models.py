@@ -135,12 +135,16 @@ class UserFactory(BaseModelFactory[User]):
     @classmethod
     def email(cls) -> str:
         """Provide the default `email` value for generated instances."""
-        return cls.__faker__.email()
+        return cls.__faker__.unique.email()
 
     @classmethod
     def username(cls) -> str:
-        """Provide the default `username` value for generated instances."""
-        return cls.__faker__.user_name()
+        """Provide the default `username` value for generated instances.
+
+        Drawn through Faker's unique proxy: the plain user_name pool is small enough that
+        two users created in one test can collide on the unique column.
+        """
+        return cls.__faker__.unique.user_name()
 
     @classmethod
     def products(cls) -> list:
