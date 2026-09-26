@@ -4,18 +4,18 @@ import { AppText } from '@/components/base/AppText';
 import { FormFieldError } from '@/components/base/FormField';
 import { TextInput } from '@/components/base/TextInput';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { describedBy, heading } from '@/utils/a11y';
 import { type SpecFact, SpecFacts } from './SpecFacts';
-import { formatWeight } from './spec-utils';
 
 function buildFacts(product: Product): SpecFact[] {
   const facts: SpecFact[] = [];
   const componentCount = product.components?.length ?? 0;
   if (componentCount > 0) facts.push({ label: 'Components', value: String(componentCount) });
   const { weight, width, height, depth } = product.physicalProperties ?? {};
-  if (weight) facts.push({ label: 'Weight', value: formatWeight(weight) });
+  // Grams, always: one unit per screen, matching Physical properties.
+  if (weight) facts.push({ label: 'Weight', value: `${weight} g` });
   if (width && height && depth) {
     facts.push({ label: 'Size', value: `${width}×${height}×${depth} cm` });
   }

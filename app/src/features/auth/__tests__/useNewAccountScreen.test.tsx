@@ -41,7 +41,7 @@ jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: () => 'light',
 }));
 
-jest.mock('@/theme', () => ({
+jest.mock('@/theme/appThemeContext', () => ({
   useAppTheme: () => ({
     scheme: 'light',
     colors: {

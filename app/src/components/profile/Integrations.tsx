@@ -5,7 +5,7 @@ import { Icon } from '@/components/base/Icon';
 import { Switch } from '@/components/base/ui/switch';
 import { DOCS_URL } from '@/config';
 import { openExternalUrl } from '@/services/externalLinks';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { ProfileAction } from './shared';
 import { createProfileSectionStyles } from './styles';
 

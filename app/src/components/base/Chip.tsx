@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 import { MIN_TAP_TARGET, radius } from '@/constants';
-import { getStatusTone, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { getStatusTone } from '@/theme/color';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 

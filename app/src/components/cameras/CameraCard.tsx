@@ -9,7 +9,7 @@ import { STATUS_LABEL } from '@/components/cameras/detail/styles';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import { useAuthedMediaSource } from '@/services/api/authedMedia';
 import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { TelemetryBadge } from './TelemetryBadge';
 
@@ -22,19 +22,19 @@ const CONNECTION_TONE: Record<CameraConnectionStatus, StatusTone> = {
   error: 'danger',
 };
 
-/** ISO-8601 timestamp to a compact relative string: ``42s ago``, ``3m ago``, ``5h ago``, ``2d ago``. */
+// undefined locale defers to the device's own locale instead of hard-coding en-US.
+const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
+/** ISO-8601 timestamp to a relative string: ``30 seconds ago``, ``5 hours ago``, ``yesterday``. */
 function formatLastSeen(lastSeenAt: string | null | undefined): string {
   if (!lastSeenAt) return 'never seen';
   const lastSeen = new Date(lastSeenAt).getTime();
   if (!Number.isFinite(lastSeen)) return 'never seen';
-  const diffSeconds = Math.max(0, Math.round((Date.now() - lastSeen) / 1000));
-  if (diffSeconds < 60) return `${diffSeconds}s ago`;
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d ago`;
+  const seconds = Math.max(0, Math.round((Date.now() - lastSeen) / 1000));
+  if (seconds < 60) return rtf.format(-seconds, 'second');
+  if (seconds < 3600) return rtf.format(-Math.floor(seconds / 60), 'minute');
+  if (seconds < 86_400) return rtf.format(-Math.floor(seconds / 3600), 'hour');
+  return rtf.format(-Math.floor(seconds / 86_400), 'day');
 }
 
 function CameraCardComponent({

@@ -6,7 +6,7 @@ import { AppText } from '@/components/base/AppText';
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { Icon } from '@/components/base/Icon';
 import { Searchbar } from '@/components/base/Searchbar';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 type ProductsSearchToolbarProps = {
   searchRef?: RefObject<TextInput | null>;

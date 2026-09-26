@@ -74,12 +74,9 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   useAppFeedback: () => mockFeedback,
 }));
 
-jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
-  useRpiIntegration: () => mockRpiIntegrationState,
-}));
-
-jest.mock('@/features/cameras/youtube/useYouTubeIntegration', () => ({
-  useYouTubeIntegration: () => mockYoutubeIntegrationState,
+jest.mock('@/features/cameras/serverPreferenceToggle', () => ({
+  useServerPreferenceToggle: (key: string) =>
+    key === 'rpi_camera_enabled' ? mockRpiIntegrationState : mockYoutubeIntegrationState,
 }));
 
 jest.mock('@/features/cameras/rpi/hooks', () => ({

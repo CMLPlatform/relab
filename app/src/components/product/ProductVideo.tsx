@@ -10,7 +10,7 @@ import { IconButton } from '@/components/base/IconButton';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
 import { useProductVideo } from '@/features/products/useProductVideo';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { describedBy } from '@/utils/a11y';
 import { isHttpUrl } from '@/utils/urlSafety';

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 import { AppText } from './AppText';
 
 type OtpInputProps = {

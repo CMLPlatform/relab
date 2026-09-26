@@ -9,7 +9,7 @@ import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { MIN_TAP_TARGET } from '@/constants';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
 import { useSearchBrandsQuery } from '@/features/products/queries';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 
 interface Props {

@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, renderHook } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook as rntlRenderHook } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 import { useProductImageGallery } from '@/features/products/useProductImageGallery';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { baseProduct as _base } from '@/test-utils/index';
@@ -35,8 +37,8 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   }),
 }));
 
-jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
-  useRpiIntegration: () => mockUseRpiIntegration(),
+jest.mock('@/features/cameras/serverPreferenceToggle', () => ({
+  useServerPreferenceToggle: () => mockUseRpiIntegration(),
 }));
 
 jest.mock('@/features/cameras/rpi/hooks', () => ({
@@ -62,6 +64,15 @@ const baseProduct: Product = {
   name: 'Radio',
   images: [{ id: '1', url: 'https://example.com/image.jpg', description: '' }],
 };
+
+// The local-connection discovery behind the capture flow needs a query client.
+function renderHook<Result>(hook: () => Result) {
+  const queryClient = new QueryClient();
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  );
+  return rntlRenderHook(hook, { wrapper });
+}
 
 describe('useProductImageGallery', () => {
   beforeEach(() => {

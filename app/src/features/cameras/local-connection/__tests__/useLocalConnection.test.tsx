@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, renderHook } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook as rntlRenderHook } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import {
   clearStoredLocalConnection,
@@ -42,6 +44,14 @@ jest.mock('@/hooks/useScreenFocused', () => ({
   useScreenFocusedSafe: () => mockScreenFocused(),
 }));
 
+let queryClient: QueryClient;
+function wrapper({ children }: { children: ReactNode }) {
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+function renderHook<Result>(hook: () => Result) {
+  return rntlRenderHook(hook, { wrapper });
+}
+
 describe('useLocalConnection', () => {
   async function settleConnectionHook() {
     await act(async () => {
@@ -53,6 +63,7 @@ describe('useLocalConnection', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    queryClient = new QueryClient();
     mockScreenFocused.mockReturnValue(true);
     jest.mocked(loadLocalConnection).mockImplementation(async () => ({ url: null, apiKey: null }));
     jest.mocked(probeLocalUrl).mockImplementation(async () => false);
@@ -152,6 +163,19 @@ describe('useLocalConnection', () => {
     expect(storeLocalConnection).toHaveBeenCalledWith('cam-1', 'http://10.0.0.8:8018', 'relay-key');
     expect(result.current.localBaseUrl).toBe('http://10.0.0.8:8018');
     expect(result.current.localApiKey).toBe('relay-key');
+
+    await unmount();
+  });
+
+  it('shares one access-info request between concurrent instances of a camera', async () => {
+    const { unmount } = await renderHook(() => [
+      useLocalConnection('cam-shared', { isOnline: true }),
+      useLocalConnection('cam-shared', { isOnline: true }),
+    ]);
+
+    await settleConnectionHook();
+
+    expect(fetchLocalAccessInfo).toHaveBeenCalledTimes(1);
 
     await unmount();
   });

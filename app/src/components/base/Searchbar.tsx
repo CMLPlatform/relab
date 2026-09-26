@@ -9,7 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Input } from '@/components/base/ui/input';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { Icon } from './Icon';
 
 type SearchbarProps = Omit<

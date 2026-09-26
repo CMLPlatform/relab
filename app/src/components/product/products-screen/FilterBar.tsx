@@ -6,7 +6,7 @@ import { Icon, type IconName } from '@/components/base/Icon';
 import { Menu } from '@/components/base/Menu';
 import { MIN_TAP_TARGET } from '@/constants';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { PRODUCTS_DATE_PRESETS } from './shared';
 
 type FilterChipIcon = IconName;

@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { Fab } from '@/components/base/Fab';
 import { MIN_TAP_TARGET, radius } from '@/constants';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 
 describe('Fab', () => {
   it('renders the label when extended', async () => {

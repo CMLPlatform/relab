@@ -6,7 +6,7 @@ import {
 } from '@/components/base/appButtonVariants';
 import { Button } from '@/components/base/ui/button';
 import { Text } from '@/components/base/ui/text';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 
 type AppButtonProps = Omit<ComponentProps<typeof Button>, 'variant'> & {

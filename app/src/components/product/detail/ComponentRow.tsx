@@ -11,7 +11,7 @@ import { Badge } from '@/components/base/ui/badge';
 import { Text } from '@/components/base/ui/text';
 import { IMAGE_FADE_MS, radius, WEB_FOCUS_RING } from '@/constants';
 import { componentQueryOptions } from '@/features/product-entity/queries';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import type { Product } from '@/types/Product';
 

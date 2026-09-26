@@ -6,7 +6,9 @@ import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamView } from '@/services/api/rpiCamera/shared';
-import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 
 const createThemedStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({

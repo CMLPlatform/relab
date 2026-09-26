@@ -4,7 +4,7 @@ import { TextInput } from '@/components/base/TextInput';
 import { radius } from '@/constants';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { renderWithProviders } from '@/test-utils/index';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 
 jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),

@@ -1,13 +1,13 @@
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
 import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/features/cameras/rpi/hooks';
+import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { openExternalUrl } from '@/services/externalLinks';
-import { useYouTubeIntegration } from './useYouTubeIntegration';
 
 export function useYouTubeStreamCard(cameraId: string, isOnline: boolean) {
-  const { enabled: youtubeEnabled } = useYouTubeIntegration();
+  const { enabled: youtubeEnabled } = useServerPreferenceToggle('youtube_streaming_enabled');
   const { setActiveStream } = useStreamSession();
   const feedback = useAppFeedback();
   const { data: streamStatus, isLoading: statusLoading } = useStreamStatusQuery(cameraId, {

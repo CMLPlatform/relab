@@ -2,7 +2,8 @@
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
-import { useAppTheme, useInverseSurface } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { useInverseSurface } from '@/theme/inverseSurface';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { OverlaySurface } from './OverlaySurface';

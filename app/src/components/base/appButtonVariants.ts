@@ -1,4 +1,4 @@
-import type { AppColors } from '@/theme';
+import type { AppColors } from '@/theme/types';
 
 export type AppButtonVariant = 'primary' | 'tonal' | 'outline' | 'ghost' | 'destructive';
 

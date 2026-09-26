@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { Text } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 
 type Variant = 'display' | 'title' | 'heading' | 'body' | 'label' | 'caption' | 'data' | 'eyebrow';

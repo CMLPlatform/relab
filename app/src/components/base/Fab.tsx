@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { MIN_TAP_TARGET, radius } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { Icon, type IconName } from './Icon';
 
 // onPress/disabled/accessibilityState stay controlled here so the blocked

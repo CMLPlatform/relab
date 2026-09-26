@@ -1,16 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { SpecHeader } from '@/components/product/detail/SpecHeader';
-import { formatWeight } from '@/components/product/detail/spec-utils';
 import { baseProduct } from '@/test-utils/fixtures';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 
 const IDENTITY_PATTERN = /Vitra · T2/;
-
-test('formatWeight keeps grams, the unit the field is entered and shown in', () => {
-  expect(formatWeight(250)).toBe('250 g');
-  expect(formatWeight(1200)).toBe('1200 g');
-});
 
 test('renders name, identity line, and facts that exist', async () => {
   await render(

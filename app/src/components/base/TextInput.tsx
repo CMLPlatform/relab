@@ -2,7 +2,7 @@
 import type React from 'react';
 import { TextInput as NativeTextInput, type TextInputProps } from 'react-native';
 import { radius } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 interface Props extends TextInputProps {
   errorOnEmpty?: boolean;

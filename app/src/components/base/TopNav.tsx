@@ -5,7 +5,7 @@ import { AUTH_HERO_PATHS, WEB_FOCUS_RING } from '@/constants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { openShortcutsOverlay } from '@/hooks/useShortcutsOverlay';
 import { type Destination, useVisibleDestinations } from '@/navigation/destinations';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { BrandHeaderTitle } from './BrandHeaderTitle';

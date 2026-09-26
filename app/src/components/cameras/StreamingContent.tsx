@@ -11,7 +11,7 @@ import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { openExternalUrl } from '@/services/externalLinks';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { LivePreview } from './LivePreview';
 import { showStreamStopFailed } from './streamingFeedback';
 

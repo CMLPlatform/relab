@@ -7,7 +7,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { G, Rect, Text as SvgText } from 'react-native-svg';
-import { alpha, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { alpha } from '@/theme/color';
 import {
   cubeLayout,
   FONT_SIZE,

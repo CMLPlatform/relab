@@ -5,8 +5,7 @@ import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { useThemeMode } from '@/context/themeMode';
 import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
-import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
-import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
+import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { ThemeMode } from '@/types/User';
@@ -27,12 +26,14 @@ export function useProfileScreen() {
     enabled: rpiEnabled,
     loading: rpiLoading,
     setEnabled: setRpiEnabled,
-  } = useRpiIntegration();
+  } = useServerPreferenceToggle('rpi_camera_enabled');
+  // NOTE: this flag, not the OAuth link, decides YouTube Live: base and YouTube-scoped Google OAuth
+  // share one oauth_name = "google" row.
   const {
     enabled: youtubeEnabled,
     loading: youtubeLoading,
     setEnabled: setYoutubeEnabled,
-  } = useYouTubeIntegration();
+  } = useServerPreferenceToggle('youtube_streaming_enabled');
   const { themeMode, setThemeMode } = useThemeMode();
   const { activeStream, setActiveStream } = useStreamSession();
   const stopStreamMutation = useStopYouTubeStreamMutation(activeStream?.cameraId ?? '');

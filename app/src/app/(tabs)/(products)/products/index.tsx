@@ -19,7 +19,7 @@ import { productGridColumns } from '@/features/products/productGridColumns';
 import { PRODUCT_SORT_OPTIONS } from '@/features/products/queries';
 import { useProductsListShortcuts } from '@/features/products/useProductsListShortcuts';
 import { useProductsScreen } from '@/features/products/useProductsScreen';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 
 const SORT_OPTIONS = PRODUCT_SORT_OPTIONS;
 
