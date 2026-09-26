@@ -44,7 +44,7 @@ import SlidersHorizontal from 'lucide-react-native/icons/sliders-horizontal';
 import Sun from 'lucide-react-native/icons/sun';
 import SunMoon from 'lucide-react-native/icons/sun-moon';
 import Tag from 'lucide-react-native/icons/tag';
-import Trash2 from 'lucide-react-native/icons/trash-2';
+import Trash2 from 'lucide-react-native/icons/trash';
 import User from 'lucide-react-native/icons/user';
 import UserX from 'lucide-react-native/icons/user-x';
 import Users from 'lucide-react-native/icons/users';
