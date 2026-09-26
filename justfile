@@ -239,6 +239,12 @@ audit:
     just backend/audit all
     pnpm audit --prod --audit-level moderate
 
+# Security overrides in pnpm-workspace.yaml that no longer change the audit result
+[group('security')]
+[doc('Flag pnpm security overrides that are no longer needed')]
+overrides-check:
+    uv run python scripts/stale_overrides.py
+
 # Canonical security target: secret scanning plus dependency audits
 [group('security')]
 security:
