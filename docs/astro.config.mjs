@@ -101,7 +101,6 @@ const STARLIGHT_OPTIONS = {
   lastUpdated: true,
   pagefind: true,
   social: [
-    { icon: 'external', label: 'Open Relab app', href: 'https://app.cml-relab.org' },
     { icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' },
   ],
   editLink: {
