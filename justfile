@@ -484,10 +484,6 @@ dev:
 dev-up:
     {{ dev_compose }} up --build
 
-# Build (or rebuild) dev images
-dev-build:
-    {{ dev_compose }} --profile migrations build
-
 # Stop and remove dev containers
 [group('dev')]
 dev-down:

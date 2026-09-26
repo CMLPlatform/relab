@@ -24,7 +24,6 @@ def inventory(required: set[str], optional: set[str]) -> dict[str, Any]:
     return {
         "runtime_secret_files": required | optional,
         "optional_secret_files": optional,
-        "infisical_path_template": "/relab/{env}/{name}",
     }
 
 
@@ -78,7 +77,6 @@ optional_secret_files = ["smtp_password"]
     loaded = env_policy.load_secret_inventory(path)
     assert loaded["runtime_secret_files"] == {"auth_token_secret", "smtp_password"}
     assert loaded["optional_secret_files"] == {"smtp_password"}
-    assert loaded["infisical_path_template"] == "/relab/{env}/{name}"
 
 
 @pytest.mark.parametrize(
@@ -191,10 +189,6 @@ def test_parse_labeled_paths() -> None:
     assert env_policy.parse_labeled_paths(["prod=/srv/prod.json"]) == {"prod": Path("/srv/prod.json")}
     with pytest.raises(SystemExit, match="Expected LABEL=PATH"):
         env_policy.parse_labeled_paths(["/srv/prod.json"])
-
-
-def test_secret_env_name_is_the_uppercased_file_name() -> None:
-    assert env_policy.secret_env_name("auth_token_secret") == "AUTH_TOKEN_SECRET"
 
 
 def test_deploy_labels_scopes_to_one_stack_or_reports_on_all(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
