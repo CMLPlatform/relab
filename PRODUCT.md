@@ -224,9 +224,8 @@ Enforced today:
 No manual keyboard or assistive-technology pass has been run on any surface. Automated coverage is a
 floor.
 
-The public statement lives at `www/src/pages/accessibility.astro` (copy in
-`src/copy/accessibility-content.ts`), linked from the site footer. It claims partial conformance and
-names what is untested, as the Web Accessibility Directive asks.
+The public statement lives at `www/src/pages/accessibility.md`, linked from the site footer. It
+claims partial conformance and names what is untested, as the Web Accessibility Directive asks.
 
 That page is the user-facing half only. The compliant artifact under the Dutch implementation
 (Tijdelijk besluit digitale toegankelijkheid overheid) is a register entry per domain, filed through
