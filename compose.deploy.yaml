@@ -170,7 +170,7 @@ services:
     # MALWARE_SCAN_ENABLED=false, and treat that as an accepted risk.
     profiles:
       - scanning
-    image: clamav/clamav:1.5.4_base-debian@sha256:2bc2f9c5c1fd5120a334490d005c694430f0589d085a7aca400bbd93458fe1f0
+    image: clamav/clamav:1.5.4_base-debian@sha256:391b6fa181c22836793b4fca3007848bc3df5cceb5904d70b78f76f8f664926d
     logging: *json-logging
     entrypoint: /init-unprivileged
     user: clamav
