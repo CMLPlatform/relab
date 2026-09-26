@@ -46,7 +46,3 @@ export function useDialog() {
   if (!ctx) throw new Error('useDialog must be used within DialogProvider');
   return ctx;
 }
-
-export function useOptionalDialog() {
-  return useContext(DialogContext);
-}

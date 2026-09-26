@@ -21,14 +21,9 @@ describe('AddCameraScreen', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();
   const claimMutate = jest.fn();
-  const alertSpy = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.defineProperty(global, 'alert', {
-      configurable: true,
-      value: alertSpy,
-    });
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
       replace: mockReplace,
@@ -47,7 +42,7 @@ describe('AddCameraScreen', () => {
   });
 
   it('submits the pairing flow with sanitized uppercase codes', async () => {
-    await renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
     const cameraNameInput = screen.getByLabelText('Camera name, required');
@@ -74,7 +69,7 @@ describe('AddCameraScreen', () => {
   });
 
   it('alerts on pairing error', async () => {
-    await renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
     const cameraNameInput = screen.getByLabelText('Camera name, required');
@@ -86,12 +81,14 @@ describe('AddCameraScreen', () => {
     const pairOnError = (
       claimMutate.mock.calls[0]?.[1] as { onError?: (err: unknown) => void } | undefined
     )?.onError;
-    pairOnError?.(new Error('pairing failed'));
-    expect(alertSpy).toHaveBeenCalledWith('pairing failed');
+    await act(async () => {
+      pairOnError?.(new Error('pairing failed'));
+    });
+    expect(await screen.findByText('pairing failed')).toBeOnTheScreen();
   });
 
   it('dismisses the pairing success dialog and navigates to the camera list', async () => {
-    await renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
     const cameraNameInput = screen.getByLabelText('Camera name, required');
@@ -116,7 +113,7 @@ describe('AddCameraScreen', () => {
   it('redirects unauthenticated users to login', async () => {
     mockUseAuth.mockReturnValue({ user: undefined });
 
-    await renderWithProviders(<AddCameraScreen />);
+    await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     await waitFor(() => {
       expect(mockReplace).toHaveBeenCalledWith({
