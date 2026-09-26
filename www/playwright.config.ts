@@ -29,7 +29,9 @@ let webServer: PlaywrightTestConfig['webServer'];
 if (!runtimeConfig.baseUrl) {
   webServer = {
     // The just recipes build dist/ first (test-e2e, test-e2e-live); this only serves it.
-    command: 'pnpm run preview:built',
+    // Call astro directly, not through `pnpm run`: pnpm 12.6 starts scripts in their own
+    // process group, so teardown leaves the server running and Playwright never exits.
+    command: 'node_modules/.bin/astro preview --port 18013 --host 127.0.0.1 --strictPort',
     url: localBaseUrl,
     // Never reuse: the recipes build dist/ for this run, and a preview server
     // left over from an earlier one serves its dist instead; a stale build

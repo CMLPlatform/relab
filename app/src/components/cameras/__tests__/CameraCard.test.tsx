@@ -146,44 +146,44 @@ describe('CameraCard', () => {
     expect(screen.getByText('Last seen never seen')).toBeOnTheScreen();
   });
 
-  it('formats 30 seconds ago as "30 seconds ago"', async () => {
+  it('formats 30s ago as "30s ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(30), details: null },
     });
 
     await renderWithProviders(<CameraCard camera={camera} />);
 
-    expect(screen.getByText('Last seen 30 seconds ago')).toBeOnTheScreen();
+    expect(screen.getByText('Last seen 30s ago')).toBeOnTheScreen();
   });
 
-  it('formats 59 seconds ago as "59 seconds ago"', async () => {
+  it('formats 59s ago as "59s ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(59), details: null },
     });
 
     await renderWithProviders(<CameraCard camera={camera} />);
 
-    expect(screen.getByText('Last seen 59 seconds ago')).toBeOnTheScreen();
+    expect(screen.getByText('Last seen 59s ago')).toBeOnTheScreen();
   });
 
-  it('formats 60s ago as "1 minute ago"', async () => {
+  it('formats 60s ago as "1m ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(60), details: null },
     });
 
     await renderWithProviders(<CameraCard camera={camera} />);
 
-    expect(screen.getByText('Last seen 1 minute ago')).toBeOnTheScreen();
+    expect(screen.getByText('Last seen 1m ago')).toBeOnTheScreen();
   });
 
-  it('formats 3600s ago as "1 hour ago"', async () => {
+  it('formats 3600s ago as "1h ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(3600), details: null },
     });
 
     await renderWithProviders(<CameraCard camera={camera} />);
 
-    expect(screen.getByText('Last seen 1 hour ago')).toBeOnTheScreen();
+    expect(screen.getByText('Last seen 1h ago')).toBeOnTheScreen();
   });
 
   it('formats 86400s ago as "yesterday"', async () => {
@@ -196,14 +196,14 @@ describe('CameraCard', () => {
     expect(screen.getByText('Last seen yesterday')).toBeOnTheScreen();
   });
 
-  it('formats 7 days ago as "7 days ago"', async () => {
+  it('formats 7d ago as "7d ago"', async () => {
     const camera = makeCamera({
       status: { connection: 'offline', last_seen_at: secsAgo(7 * 86400), details: null },
     });
 
     await renderWithProviders(<CameraCard camera={camera} />);
 
-    expect(screen.getByText('Last seen 7 days ago')).toBeOnTheScreen();
+    expect(screen.getByText('Last seen 7d ago')).toBeOnTheScreen();
   });
 
   // ── Accessibility ──────────────────────────────────────────────────────────
