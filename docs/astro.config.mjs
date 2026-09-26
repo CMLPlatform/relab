@@ -1,5 +1,4 @@
 import process from 'node:process';
-import mdx from '@astrojs/mdx';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
@@ -91,11 +90,6 @@ const SIDEBAR = [
 const STARLIGHT_OPTIONS = {
   title: 'Relab docs',
   description: 'Technical documentation for the Relab research platform.',
-  logo: {
-    src: './public/images/wordmark.svg',
-    alt: 'Relab',
-    replacesTitle: true,
-  },
   favicon: '/images/favicon.svg',
   titleDelimiter: '·',
   lastUpdated: true,
@@ -142,5 +136,5 @@ export default defineConfig({
       chunkSizeWarningLimit: 3000,
     },
   },
-  integrations: [starlight(STARLIGHT_OPTIONS), mdx()],
+  integrations: [starlight(STARLIGHT_OPTIONS)],
 });

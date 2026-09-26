@@ -53,7 +53,6 @@ catalog:
   astro: 7.3.3
   "@playwright/test": ^1.62.1
   "@types/node": ^26.2.0
-  playwright: ^1.62.1
   tailwindcss: 4.3.3
   # 7.0 is the native compiler and drops the programmatic API `astro check`
   # loads, breaking typecheck in docs/ and www/. Renovate blocks 7.0.x only, so
