@@ -1,64 +1,50 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react-native';
-import { AccessibilityInfo, findNodeHandle } from 'react-native';
+import type { RefObject } from 'react';
+import { AccessibilityInfo, type View } from 'react-native';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 
-jest.mock('react-native/Libraries/ReactNative/RendererProxy', () => ({
-  findNodeHandle: jest.fn(() => 42),
-}));
-
-const mockedFindNodeHandle = jest.mocked(findNodeHandle);
-let setFocus: jest.SpiedFunction<typeof AccessibilityInfo.setAccessibilityFocus>;
+const trigger = {} as View;
+let sendEvent: jest.SpiedFunction<typeof AccessibilityInfo.sendAccessibilityEvent>;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockedFindNodeHandle.mockReturnValue(42);
-  setFocus = jest.spyOn(AccessibilityInfo, 'setAccessibilityFocus').mockImplementation(() => {});
+  sendEvent = jest.spyOn(AccessibilityInfo, 'sendAccessibilityEvent').mockImplementation(() => {});
 });
+
+function renderReturnFocus(initialVisible: boolean, ref: RefObject<View | null>) {
+  return renderHook(({ visible }: { visible: boolean }) => useReturnFocus(visible, ref), {
+    initialProps: { visible: initialVisible },
+  });
+}
 
 describe('useReturnFocus', () => {
   it('focuses the trigger once the overlay closes', async () => {
-    const { rerender } = await renderHook(
-      ({ visible }: { visible: boolean }) => useReturnFocus(visible),
-      {
-        initialProps: { visible: true },
-      },
-    );
+    const { rerender } = await renderReturnFocus(true, { current: trigger });
 
-    expect(setFocus).not.toHaveBeenCalled();
+    expect(sendEvent).not.toHaveBeenCalled();
 
     await rerender({ visible: false });
 
-    expect(setFocus).toHaveBeenCalledWith(42);
+    expect(sendEvent).toHaveBeenCalledWith(trigger, 'focus');
   });
 
   it('does not steal focus while the overlay is opening or open', async () => {
     // Focusing the trigger on open would pull the screen reader out of the
     // overlay it just opened, the opposite of what this is for.
-    const { rerender } = await renderHook(
-      ({ visible }: { visible: boolean }) => useReturnFocus(visible),
-      {
-        initialProps: { visible: false },
-      },
-    );
+    const { rerender } = await renderReturnFocus(false, { current: trigger });
 
     await rerender({ visible: true });
     await rerender({ visible: true });
 
-    expect(setFocus).not.toHaveBeenCalled();
+    expect(sendEvent).not.toHaveBeenCalled();
   });
 
   it('stays quiet when the trigger has already unmounted', async () => {
-    mockedFindNodeHandle.mockReturnValue(null);
-    const { rerender } = await renderHook(
-      ({ visible }: { visible: boolean }) => useReturnFocus(visible),
-      {
-        initialProps: { visible: true },
-      },
-    );
+    const { rerender } = await renderReturnFocus(true, { current: null });
 
     await rerender({ visible: false });
 
-    expect(setFocus).not.toHaveBeenCalled();
+    expect(sendEvent).not.toHaveBeenCalled();
   });
 });

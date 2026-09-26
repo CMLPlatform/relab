@@ -1,5 +1,4 @@
 import process from 'node:process';
-import mdx from '@astrojs/mdx';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
 
@@ -142,5 +141,5 @@ export default defineConfig({
       chunkSizeWarningLimit: 3000,
     },
   },
-  integrations: [starlight(STARLIGHT_OPTIONS), mdx()],
+  integrations: [starlight(STARLIGHT_OPTIONS)],
 });

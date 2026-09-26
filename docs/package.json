@@ -24,7 +24,6 @@
     "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl' --skip 'doi.org'"
   },
   "dependencies": {
-    "@astrojs/mdx": "7.0.8",
     "@astrojs/starlight": "0.42.2",
     "@mermaid-js/layout-elk": "^0.2.2",
     "@scalar/api-reference": "^1.64.1",

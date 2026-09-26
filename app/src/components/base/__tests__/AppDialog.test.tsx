@@ -1,15 +1,9 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { createRef } from 'react';
-import { AccessibilityInfo, findNodeHandle, Text, View } from 'react-native';
+import { AccessibilityInfo, Text, View } from 'react-native';
 import { AppDialog } from '@/components/base/AppDialog';
 import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
-
-jest.mock('react-native/Libraries/ReactNative/RendererProxy', () => ({
-  findNodeHandle: jest.fn(() => 7),
-}));
-
-const mockedFindNodeHandle = jest.mocked(findNodeHandle);
 
 // The web branch of useReturnFocus reads document.activeElement; the RN test
 // environment has no DOM, so stub the one property it touches.
@@ -93,14 +87,9 @@ describe('AppDialog', () => {
   it('restores native screen-reader focus to a passed-in triggerRef', async () => {
     mockPlatform('ios');
     const setFocus = jest
-      .spyOn(AccessibilityInfo, 'setAccessibilityFocus')
+      .spyOn(AccessibilityInfo, 'sendAccessibilityEvent')
       .mockImplementation(() => {});
     const triggerRef = createRef<View>();
-    // Only resolves a handle for the externally-supplied ref, so a stray
-    // internal (unattached) ref can't make this pass by accident.
-    mockedFindNodeHandle.mockImplementation((component) =>
-      component === triggerRef.current ? 7 : null,
-    );
 
     const { rerender } = await renderWithProviders(
       <>
@@ -143,6 +132,7 @@ describe('AppDialog', () => {
       </>,
     );
 
-    expect(setFocus).toHaveBeenCalledWith(7);
+    // A stray internal (unattached) ref would be null and never reach the event.
+    expect(setFocus).toHaveBeenCalledWith(triggerRef.current as View, 'focus');
   });
 });
