@@ -85,8 +85,12 @@
     [tool.ruff.lint.pydocstyle]
       convention = "google"
 
+[tool.ty.environment]
+  # The tests import the scripts as top-level modules, as pytest's pythonpath does.
+  extra-paths = ["scripts"]
+
 [tool.ty.src]
-  include = ["scripts"]
+  include = ["scripts", "tests"]
 
 [tool.uv]
   # Mitigate supply chain issues
