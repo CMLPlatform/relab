@@ -1,4 +1,3 @@
-import { Slot } from '@rn-primitives/slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { Platform, View } from 'react-native';
 import { TextClassContext } from '@/components/base/ui/text';
@@ -18,23 +17,15 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        default: cn(
-          'bg-primary border-transparent',
-          Platform.select({ web: '[a&]:hover:bg-primary-strong' }),
-        ),
         secondary: cn(
           'bg-secondary border-transparent',
           Platform.select({ web: '[a&]:hover:bg-secondary/90' }),
-        ),
-        destructive: cn(
-          'bg-destructive border-transparent',
-          Platform.select({ web: '[a&]:hover:bg-destructive/90' }),
         ),
         outline: Platform.select({ web: '[a&]:hover:bg-accent [a&]:hover:text-accent-foreground' }),
       },
     },
     defaultVariants: {
-      variant: 'default',
+      variant: 'outline',
     },
   },
 );
@@ -42,30 +33,23 @@ const badgeVariants = cva(
 const badgeTextVariants = cva('text-xs font-medium', {
   variants: {
     variant: {
-      default: 'text-primary-foreground',
       secondary: 'text-secondary-foreground',
-      destructive: 'text-white',
       outline: 'text-foreground',
     },
   },
   defaultVariants: {
-    variant: 'default',
+    variant: 'outline',
   },
 });
 
 type BadgeProps = React.ComponentProps<typeof View> &
-  React.RefAttributes<View> & {
-    asChild?: boolean;
-  } & VariantProps<typeof badgeVariants>;
+  React.RefAttributes<View> &
+  VariantProps<typeof badgeVariants>;
 
-function Badge({ className, variant, asChild, ...props }: BadgeProps) {
-  const Component = asChild ? Slot : View;
+export function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <TextClassContext.Provider value={badgeTextVariants({ variant })}>
-      <Component className={cn(badgeVariants({ variant }), className)} {...props} />
+      <View className={cn(badgeVariants({ variant }), className)} {...props} />
     </TextClassContext.Provider>
   );
 }
-
-export type { BadgeProps };
-export { Badge, badgeTextVariants, badgeVariants };

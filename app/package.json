@@ -34,7 +34,6 @@
     "@hookform/resolvers": "^5.2.2",
     "@react-native-async-storage/async-storage": "3.1.1",
     "@rn-primitives/separator": "^1.5.2",
-    "@rn-primitives/slot": "^1.5.2",
     "@rn-primitives/switch": "^1.5.2",
     "@rn-primitives/toggle-group": "^1.5.2",
     "@tanstack/query-async-storage-persister": "^5.101.4",
