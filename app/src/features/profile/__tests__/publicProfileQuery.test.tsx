@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { useOwnProfileStats } from '@/features/profile/useOwnProfileStats';
+import { usePublicProfileQuery } from '@/features/profile/publicProfileQuery';
 
 const mockGetPublicProfile = jest.fn();
 
@@ -34,45 +34,45 @@ const OTHER_STATS = {
   top_category: 'Tools',
 };
 
-describe('useOwnProfileStats', () => {
+describe('usePublicProfileQuery', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetPublicProfile.mockImplementation(async () => TESTER_STATS);
   });
 
-  it('returns grouped state', async () => {
-    const { result } = await renderHook(() => useOwnProfileStats('tester'), {
+  it('returns the profile once loaded', async () => {
+    const { result } = await renderHook(() => usePublicProfileQuery('tester'), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.state.loading).toBe(false));
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
-    expect(result.current.state.stats?.product_count).toBe(3);
-    expect(result.current.state.error).toBeNull();
+    expect(result.current.profile?.product_count).toBe(3);
+    expect(result.current.error).toBeNull();
   });
 
   it('does not fetch and reports no stats without a username', async () => {
-    const { result } = await renderHook(() => useOwnProfileStats(undefined), {
+    const { result } = await renderHook(() => usePublicProfileQuery(undefined), {
       wrapper: createWrapper(),
     });
 
-    expect(result.current.state.stats).toBeNull();
-    expect(result.current.state.loading).toBe(false);
+    expect(result.current.profile).toBeNull();
+    expect(result.current.loading).toBe(false);
     expect(mockGetPublicProfile).not.toHaveBeenCalled();
   });
 
   it('refetches stats when the username changes', async () => {
     const wrapper = createWrapper();
     const { result, rerender } = await renderHook(
-      ({ username }: { username: string }) => useOwnProfileStats(username),
+      ({ username }: { username: string }) => usePublicProfileQuery(username),
       { initialProps: { username: 'tester' }, wrapper },
     );
-    await waitFor(() => expect(result.current.state.loading).toBe(false));
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     mockGetPublicProfile.mockImplementation(async () => OTHER_STATS);
     await rerender({ username: 'other' });
 
-    await waitFor(() => expect(result.current.state.stats?.product_count).toBe(99));
+    await waitFor(() => expect(result.current.profile?.product_count).toBe(99));
     expect(mockGetPublicProfile).toHaveBeenCalledWith('tester');
     expect(mockGetPublicProfile).toHaveBeenCalledWith('other');
   });
@@ -83,10 +83,10 @@ describe('useOwnProfileStats', () => {
   it('never surfaces the previous username’s stats after a change', async () => {
     const wrapper = createWrapper();
     const { result, rerender } = await renderHook(
-      ({ username }: { username: string }) => useOwnProfileStats(username),
+      ({ username }: { username: string }) => usePublicProfileQuery(username),
       { initialProps: { username: 'tester' }, wrapper },
     );
-    await waitFor(() => expect(result.current.state.stats?.product_count).toBe(3));
+    await waitFor(() => expect(result.current.profile?.product_count).toBe(3));
 
     let release: (value: unknown) => void = () => {};
     mockGetPublicProfile.mockImplementation(
@@ -98,11 +98,11 @@ describe('useOwnProfileStats', () => {
     await rerender({ username: 'other' });
 
     // While 'other' is in flight, 'tester' stats must not be shown.
-    expect(result.current.state.stats).toBeNull();
-    expect(result.current.state.loading).toBe(true);
+    expect(result.current.profile).toBeNull();
+    expect(result.current.loading).toBe(true);
 
     release(OTHER_STATS);
-    await waitFor(() => expect(result.current.state.stats?.product_count).toBe(99));
+    await waitFor(() => expect(result.current.profile?.product_count).toBe(99));
   });
 
   // Regression: a failed fetch was logged and swallowed, leaving stale stats on
@@ -112,11 +112,11 @@ describe('useOwnProfileStats', () => {
       throw new Error('boom');
     });
 
-    const { result } = await renderHook(() => useOwnProfileStats('tester'), {
+    const { result } = await renderHook(() => usePublicProfileQuery('tester'), {
       wrapper: createWrapper(),
     });
 
-    await waitFor(() => expect(result.current.state.error).not.toBeNull());
-    expect(result.current.state.stats).toBeNull();
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.profile).toBeNull();
   });
 });
