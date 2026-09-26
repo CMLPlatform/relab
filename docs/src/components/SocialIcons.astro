@@ -1,38 +1,13 @@
 ---
-// Header right side: GitHub as an icon, and the "Open app" link as a primary
-// CTA button. Reads the same `social` config as the default component.
-import config from 'virtual:starlight/user-config';
-import GithubIcon from '@/assets/icons/brand/github.svg';
-
-const links = config.social ?? [];
-const cta = links.find((link) => link.icon === 'external');
-const icons = links.filter((link) => link.icon !== 'external');
+// Header right side: Starlight's own `social` icons, plus the "Open app" link as
+// a primary CTA button, which the built-in component can only draw as an icon.
+import Default from '@astrojs/starlight/components/SocialIcons.astro';
 ---
 
-{
-  icons.map((link) => (
-    <a href={link.href} rel="me" class="sl-flex social-icon" aria-label={link.label}>
-      <GithubIcon width="16" height="16" aria-hidden="true" />
-    </a>
-  ))
-}
-{
-  cta && (
-    <a href={cta.href} class="app-cta" rel="noopener noreferrer">
-      Open app
-    </a>
-  )
-}
+<Default />
+<a href="https://app.cml-relab.org" class="app-cta" rel="noopener noreferrer">Open app</a>
 
 <style>
-  .social-icon {
-    color: var(--sl-color-text-accent);
-    padding: 0.5em;
-    margin: -0.5em;
-  }
-  .social-icon:hover {
-    color: var(--sl-color-white);
-  }
   .app-cta {
     display: inline-flex;
     align-items: center;

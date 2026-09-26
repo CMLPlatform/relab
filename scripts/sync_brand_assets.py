@@ -133,10 +133,7 @@ COPY_ASSETS = (
     *(
         (
             root_path(f"assets/icons/brand/{icon_name}.svg"),
-            (
-                root_path(f"docs/src/assets/icons/brand/{icon_name}.svg"),
-                root_path(f"www/src/assets/icons/brand/{icon_name}.svg"),
-            ),
+            (root_path(f"www/src/assets/icons/brand/{icon_name}.svg"),),
         )
         for icon_name in BRAND_ICON_NAMES
     ),

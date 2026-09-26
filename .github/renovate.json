@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices", ":approveMajorUpdates", "schedule:weekly"],
+  "extends": ["config:best-practices", ":approveMajorUpdates", "schedule:daily"],
   "timezone": "Europe/Amsterdam",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
@@ -8,7 +8,7 @@
   "pre-commit": {
     "enabled": true
   },
-  "minimumReleaseAge": "7 days",
+  "minimumReleaseAge": "3 days",
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
   "vulnerabilityAlerts": {
@@ -86,11 +86,6 @@
       "description": "Batch container image updates into one PR",
       "matchManagers": ["dockerfile", "docker-compose"],
       "groupName": "container-images"
-    },
-    {
-      "description": "7 days everywhere; config:best-practices only waits 3 days on npm (npm's 72h unpublish window, not a security floor)",
-      "matchDatasources": ["npm"],
-      "minimumReleaseAge": "7 days"
     },
     {
       "description": "TypeScript 7.0 is the native compiler and does not expose the programmatic API that `astro check` loads, so it breaks typecheck in docs/ and www/. The TS team calls this point-in-time but has named no version; 7.1 is a probe, and docs/www typecheck in CI is the test. Widen the block if 7.1 also fails. https://github.com/withastro/roadmap/discussions/1321",
