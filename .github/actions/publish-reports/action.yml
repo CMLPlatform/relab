@@ -30,7 +30,7 @@ runs:
   steps:
     - name: Upload coverage to Codecov
       if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         files: ${{ inputs.coverage-file }}
         flags: ${{ inputs.flags }}
@@ -44,7 +44,7 @@ runs:
     - name: Upload test results to Codecov
       # Runs even when tests fail so Codecov can track flaky/failing tests.
       if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
       with:
         report_type: test_results
         files: ${{ inputs.junit-file }}
