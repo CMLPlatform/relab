@@ -3,8 +3,10 @@
 name: Renovate
 
 on:
+  # 00:17 UTC falls inside the before-4am Amsterdam window that `schedule:daily`
+  # allows for new branches; the other runs rebase and maintain open PRs.
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17 */6 * * *"
   workflow_dispatch:
   # Ticking a box on the Dependency Dashboard starts a run straight away.
   issues:
