@@ -5,7 +5,8 @@ import unicodedata
 
 from email_validator import EmailNotValidError, validate_email
 
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 
 DELIVERABILITY_DNS_TIMEOUT_SECONDS = 5
 

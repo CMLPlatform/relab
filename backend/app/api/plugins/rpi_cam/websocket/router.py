@@ -22,7 +22,7 @@ from app.api.plugins.rpi_cam.runtime.status import mark_camera_offline, mark_cam
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
 from app.api.plugins.rpi_cam.websocket.cross_worker_relay import run_relay_listener
 from app.api.plugins.rpi_cam.websocket.runtime_state import get_connection_manager
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.database import async_session_context
 from app.core.logging import sanitize_log_value
 from app.core.middleware.client_ip import extract_client_ip

@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.http_headers import request_has_auth_material
 from app.core.logging import sanitize_log_value
 

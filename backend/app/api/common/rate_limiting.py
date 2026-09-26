@@ -21,7 +21,7 @@ from limits.strategies import STRATEGIES
 from redis.exceptions import RedisError
 
 from app.api.common.audit import AuditAction, AuditContext, audit_event
-from app.core.config import settings as core_settings
+from app.core.config.core import settings as core_settings
 from app.core.middleware.client_ip import get_client_ip
 from app.core.pseudonyms import keyed_digest
 from app.core.responses import build_problem_response

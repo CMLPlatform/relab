@@ -10,7 +10,7 @@ from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import FileResponse
 from starlette.staticfiles import NotModifiedResponse
 
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.http_headers import UPLOADS_PATH_PREFIX
 
 if TYPE_CHECKING:

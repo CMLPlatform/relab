@@ -13,7 +13,7 @@ from sqlalchemy import select, update
 from app.api.file_storage import upload_quota
 from app.api.file_storage.crud.support_paths import stored_file_path
 from app.api.file_storage.models import Image
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images import DEFERRED_THUMBNAIL_WIDTHS, thumbnail_path_for
 from scripts.maintenance.backfill_image_dimensions import measure_images_missing_dimensions
 from scripts.maintenance.backfill_thumbnails import thumbnail_unverified_images

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Protocol
 import anyio
 
 from app.api.common.exceptions import BadRequestError, ServiceUnavailableError
-from app.core.config import settings
+from app.core.config.core import settings
 
 if TYPE_CHECKING:
     from typing import BinaryIO

@@ -40,7 +40,7 @@ from app.api.plugins.rpi_cam.utils.device_contracts import (
     dump_pairing_record,
     parse_pairing_record,
 )
-from app.core.config import settings as core_settings
+from app.core.config.core import settings as core_settings
 from app.core.logging import sanitize_log_value
 from app.core.middleware.content_negotiation import API_PATH_PREFIX
 from app.core.redis import (

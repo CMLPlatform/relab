@@ -8,7 +8,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.api.common.audiences import AdminAPIRouter, DeviceAPIRouter, PublicAPIRouter
 from app.api.common.routers.openapi import _build_admin_openapi, build_device_openapi, init_openapi_docs
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.config.models import Environment
 from app.main import create_app
 

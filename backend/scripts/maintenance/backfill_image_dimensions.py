@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.file_storage.crud.support_paths import stored_file_path
 from app.api.file_storage.models import Image
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.config.models import StorageBackend
 from app.core.database import async_session_context, close_async_engine
 from app.core.logging import setup_logging

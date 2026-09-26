@@ -10,7 +10,7 @@ from pydantic import NameEmail
 
 from app.api.auth.config import AuthSettings, EmailProviderName, GraphEmailSettings, ResolvedEmailSettings
 from app.core.clients.http import create_http_client
-from app.core.config import settings as core_settings
+from app.core.config.core import settings as core_settings
 
 
 @dataclass(frozen=True, slots=True)

@@ -16,7 +16,7 @@ from app.api.plugins.rpi_cam.routers.camera_interaction.images import (
     receive_preview_thumbnail_upload,
 )
 from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path
-from app.core.config import settings
+from app.core.config.core import settings
 
 if TYPE_CHECKING:
     from pathlib import Path

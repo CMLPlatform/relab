@@ -11,7 +11,7 @@ from pydantic import UUID4, BaseModel, Field, PositiveInt, model_validator
 
 from app.api.common.schemas.base import IntIdReadSchemaWithTimeStamp
 from app.api.common.schemas.field_mixins import PhysicalPropertiesFields, ProductCircularityPropertiesFields
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images.urls import build_thumbnail_url, build_thumbnail_urls_for
 
 

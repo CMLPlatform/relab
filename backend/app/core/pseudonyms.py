@@ -13,7 +13,7 @@ person in a small research population.
 import hashlib
 import hmac
 
-from app.core.config import settings
+from app.core.config.core import settings
 
 # Long enough that a collision is not a practical concern for correlating log lines or
 # bucketing a limiter, short enough to read. Truncation costs nothing here: the digest is

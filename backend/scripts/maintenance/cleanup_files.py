@@ -10,7 +10,8 @@ from functools import partial
 from anyio import run
 
 from app.api.file_storage.services.cleanup import cleanup_unreferenced_files, report_orphaned_media
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 from app.core.database import async_session_context, close_async_engine
 from app.core.logging import setup_logging
 

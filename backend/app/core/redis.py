@@ -8,7 +8,7 @@ from fastapi import Depends, Request
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.logging import sanitize_log_value
 from app.core.runtime import get_request_services, require_redis
 

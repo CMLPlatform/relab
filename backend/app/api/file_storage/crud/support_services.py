@@ -29,7 +29,7 @@ from app.api.file_storage.upload_policy import (
 from app.api.file_storage.upload_quota import release_product_upload_quota_for_media, reserve_product_upload_quota
 from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.core.background_tasks import spawn_detached
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images import (
     DEFERRED_THUMBNAIL_WIDTHS,
     EAGER_THUMBNAIL_WIDTHS,

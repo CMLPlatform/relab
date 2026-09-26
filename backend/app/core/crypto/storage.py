@@ -8,7 +8,7 @@ from functools import cache
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from app.core.config import settings
+from app.core.config.core import settings
 
 ENCRYPTED_TEXT_PREFIX = "relab:v2:aesgcm:"
 AESGCM_NONCE_BYTES = 12

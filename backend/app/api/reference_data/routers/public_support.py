@@ -18,7 +18,8 @@ from app.api.reference_data.schemas import (
     CategoryReadWithRecursiveSubCategories,
 )
 from app.core.cache import cache
-from app.core.config import CacheNamespace, settings
+from app.core.config.core import settings
+from app.core.config.models import CacheNamespace
 
 if TYPE_CHECKING:
     from collections.abc import Callable

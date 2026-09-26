@@ -15,7 +15,7 @@ import logging
 import sys
 
 from app.core.cache import clear_cache_namespace, init_cache
-from app.core.config import CacheNamespace
+from app.core.config.models import CacheNamespace
 from app.core.logging import setup_logging
 from app.core.redis import close_redis, init_redis
 
