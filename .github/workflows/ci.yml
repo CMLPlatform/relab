@@ -384,6 +384,11 @@ jobs:
       - name: Run dependency audits
         run: just audit
 
+      # Weekly only: relocks once per override, so it needs the registry.
+      - name: Flag stale security overrides
+        if: github.event_name == 'schedule'
+        run: just overrides-check
+
   container-security:
     name: Container Security (${{ matrix.service }})
     # Post-merge, weekly, and on demand. Docker smoke already proves the same
