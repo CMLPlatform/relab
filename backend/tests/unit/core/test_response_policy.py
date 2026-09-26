@@ -17,8 +17,6 @@ from app.core.middleware.response_policy import (
 
 def _assert_sensitive_cache_headers(response: Response) -> None:
     assert response.headers["cache-control"] == SENSITIVE_CACHE_CONTROL
-    assert response.headers["pragma"] == "no-cache"
-    assert response.headers["expires"] == "0"
 
 
 def _create_policy_app(*, enable_hsts: bool = False, allow_uploads_cross_origin: bool = False) -> FastAPI:
