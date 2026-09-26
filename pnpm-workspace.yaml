@@ -12,11 +12,12 @@ auditConfig:
   ignoreGhsas:
     - GHSA-vcc3-ghjq-m6fr # decode-uri-component (query-string@7 pins ^0.2.2)
 
-# Wait 3 days before accepting newly published packages. A manual `pnpm up` that
-# needs a younger release appends it to minimumReleaseAgeExclude below; drop
-# such entries before committing rather than widening the exclusions.
+# Wait 3 days before accepting newly published packages, transitive ones
+# included. Strict by default: resolution fails rather than fall back to a
+# younger release, which also covers Renovate's lockfile maintenance. Approving
+# a younger pick interactively appends it to minimumReleaseAgeExclude below;
+# drop such entries before committing rather than widening the exclusions.
 minimumReleaseAge: 4320
-minimumReleaseAgeStrict: false
 # Some registry metadata omits publish times; warn and continue in that case.
 minimumReleaseAgeIgnoreMissingTime: true
 
