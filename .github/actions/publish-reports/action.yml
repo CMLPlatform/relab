@@ -44,8 +44,9 @@ runs:
     - name: Upload test results to Codecov
       # Runs even when tests fail so Codecov can track flaky/failing tests.
       if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-      uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3
+      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
       with:
+        report_type: test_results
         files: ${{ inputs.junit-file }}
         flags: ${{ inputs.flags }}
         token: ${{ inputs.token }}
