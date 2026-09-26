@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.3](https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.3.3) (2026-09-26)
+
+
+### Bug Fixes
+
+* **backend:** Draw unique usernames and emails in the user factory ([#305](https://github.com/CMLPlatform/relab/issues/305)) ([43ce559](https://github.com/CMLPlatform/relab/commit/43ce55924196d98cbbf60f855e30c4cbbd5f229c))
+* **deploy:** Report a migration that failed without stranding the stack ([#276](https://github.com/CMLPlatform/relab/issues/276)) ([e77cc09](https://github.com/CMLPlatform/relab/commit/e77cc097e31de9e0c38c24139a67e73e59460a26))
+* **deploy:** Surface a migration that gates the stack ([#274](https://github.com/CMLPlatform/relab/issues/274)) ([71e457d](https://github.com/CMLPlatform/relab/commit/71e457d1ca921d09435efc931817a9cd01315061))
+* **deps:** Patch transitive advisories and keep overrides from piling up ([#294](https://github.com/CMLPlatform/relab/issues/294)) ([1771643](https://github.com/CMLPlatform/relab/commit/1771643812d7c2978007ac005ef24793e37bd3b1))
+* **deps:** Update repo-tooling ([#277](https://github.com/CMLPlatform/relab/issues/277)) ([c8501a9](https://github.com/CMLPlatform/relab/commit/c8501a9b97d600602d9179cba7d5a6b38f2f5df6))
+* **docker:** Refresh python, uv, and postgres base image digests ([#283](https://github.com/CMLPlatform/relab/issues/283)) ([285f109](https://github.com/CMLPlatform/relab/commit/285f109a6ab049450bae55305568ec06139a4bf2))
+* **renovate:** Stop holding lock file maintenance on release age ([#299](https://github.com/CMLPlatform/relab/issues/299)) ([587e289](https://github.com/CMLPlatform/relab/commit/587e2894dba13ed3546fcb7dd6a548a520e009fd))
+
 ## v0.3.2 - 2026-09
 
 ### Description
