@@ -11,7 +11,6 @@
     "dev": "astro dev --port 8013 --host 127.0.0.1 --strictPort",
     "build": "astro build",
     "preview": "astro preview --port 8013 --host 127.0.0.1 --strictPort",
-    "preview:built": "astro preview --port 18013 --host 127.0.0.1 --strictPort",
     "fix": "biome check --write .",
     "lint": "biome check --error-on-warnings .",
     "typecheck": "astro check",
