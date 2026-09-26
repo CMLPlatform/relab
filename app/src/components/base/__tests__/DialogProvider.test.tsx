@@ -1,15 +1,9 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { createRef } from 'react';
-import { AccessibilityInfo, findNodeHandle, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
 import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
-
-jest.mock('react-native/Libraries/ReactNative/RendererProxy', () => ({
-  findNodeHandle: jest.fn(() => 7),
-}));
-
-const mockedFindNodeHandle = jest.mocked(findNodeHandle);
 
 function renderAlertTrigger(onPress: () => void) {
   return (
@@ -125,14 +119,9 @@ describe('DialogProvider', () => {
   it('threads options.triggerRef through to AppDialog for native focus restore', async () => {
     mockPlatform('ios');
     const setFocus = jest
-      .spyOn(AccessibilityInfo, 'setAccessibilityFocus')
+      .spyOn(AccessibilityInfo, 'sendAccessibilityEvent')
       .mockImplementation(() => {});
     const triggerRef = createRef<View>();
-    // Only resolves a handle for the externally-supplied ref, so a stray internal
-    // (unattached) ref inside AppDialog can't make this pass by accident.
-    mockedFindNodeHandle.mockImplementation((component) =>
-      component === triggerRef.current ? 7 : null,
-    );
 
     function TriggerRefTest() {
       const dialog = useDialog();
@@ -158,7 +147,8 @@ describe('DialogProvider', () => {
 
     await user.press(screen.getByText('Cancel'));
 
-    expect(setFocus).toHaveBeenCalledWith(7);
+    // A stray internal (unattached) ref would be null and never reach the event.
+    expect(setFocus).toHaveBeenCalledWith(triggerRef.current as View, 'focus');
   });
 
   it('dialog button onPress callback is called with value for alert', async () => {

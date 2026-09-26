@@ -1,5 +1,5 @@
 import { type RefObject, useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, findNodeHandle, Platform, type View } from 'react-native';
+import { AccessibilityInfo, Platform, type View } from 'react-native';
 
 /**
  * Returns focus to the control that opened an overlay once it closes (WCAG 2.4.3).
@@ -34,8 +34,8 @@ export function useReturnFocus(visible: boolean, externalRef?: RefObject<View | 
       return;
     }
 
-    const handle = findNodeHandle(triggerRef.current);
-    if (handle !== null) AccessibilityInfo.setAccessibilityFocus(handle);
+    const trigger = triggerRef.current;
+    if (trigger) AccessibilityInfo.sendAccessibilityEvent(trigger, 'focus');
     // triggerRef, not triggerRef.current (render-time ref access).
   }, [visible, isWeb, webTrigger, triggerRef]);
 
