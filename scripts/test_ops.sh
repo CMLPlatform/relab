@@ -59,6 +59,11 @@ assert_eq "scanning: missing .env fails closed" on "$(scan_setting '')"
 assert_eq "scanning: last assignment wins" on \
     "$(scan_setting 'MALWARE_SCAN_ENABLED=false
 MALWARE_SCAN_ENABLED=true')"
+assert_eq "scanning: export prefix is accepted like a sourced .env" off \
+    "$(scan_setting 'export MALWARE_SCAN_ENABLED=false')"
+assert_eq "scanning: export prefix still honors last-assignment-wins" on \
+    "$(scan_setting 'export MALWARE_SCAN_ENABLED=false
+MALWARE_SCAN_ENABLED=true')"
 
 derived_profiles() {
     DEPLOY_PROFILE_FLAGS=("${@:2}")
