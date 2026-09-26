@@ -11,7 +11,7 @@ from app.api.common.crud.query import require_locked_model, require_model
 from app.api.common.crud.utils import validate_linked_items_exist, validate_no_duplicate_linked_items
 from app.api.common.exceptions import ConflictError
 from app.api.common.models.base import get_model_label
-from app.api.file_storage.crud.parent_media import ParentMediaCrud, unlink_stored_media
+from app.api.file_storage.crud.parent_media import ParentMedia, delete_all_parent_media, unlink_stored_media
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.reference_data.crud.categories import validate_category_taxonomy_domains
@@ -48,8 +48,8 @@ class CategorizedReferenceSpec[ResourceT: CategorizedReference, LinkT: CategoryL
     expected_domains: set[TaxonomyDomain]
     category_link_model: type[LinkT]
     category_link_parent_id: InstrumentedAttribute[int]
-    files: ParentMediaCrud[File, FileCreate]
-    images: ParentMediaCrud[Image, ImageCreateFromForm]
+    files: ParentMedia[File, FileCreate]
+    images: ParentMedia[Image, ImageCreateFromForm]
 
 
 MATERIAL_RESOURCE = CategorizedReferenceSpec(
@@ -57,13 +57,13 @@ MATERIAL_RESOURCE = CategorizedReferenceSpec(
     expected_domains={TaxonomyDomain.MATERIALS},
     category_link_model=CategoryMaterialLink,
     category_link_parent_id=CategoryMaterialLink.material_id,
-    files=ParentMediaCrud(
+    files=ParentMedia(
         parent_model=Material,
         parent_type=MediaParentType.MATERIAL,
         storage_model=File,
         storage_service=file_storage_service,
     ),
-    images=ParentMediaCrud(
+    images=ParentMedia(
         parent_model=Material,
         parent_type=MediaParentType.MATERIAL,
         storage_model=Image,
@@ -76,13 +76,13 @@ PRODUCT_TYPE_RESOURCE = CategorizedReferenceSpec(
     expected_domains={TaxonomyDomain.PRODUCTS},
     category_link_model=CategoryProductTypeLink,
     category_link_parent_id=CategoryProductTypeLink.product_type_id,
-    files=ParentMediaCrud(
+    files=ParentMedia(
         parent_model=ProductType,
         parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=File,
         storage_service=file_storage_service,
     ),
-    images=ParentMediaCrud(
+    images=ParentMedia(
         parent_model=ProductType,
         parent_type=MediaParentType.PRODUCT_TYPE,
         storage_model=Image,
@@ -157,8 +157,12 @@ async def delete_categorized_reference[ResourceT: CategorizedReference, LinkT: C
     """
     db_parent = await require_locked_model(db, spec.model, parent_id)
     await _require_not_in_use(db, spec, parent_id)
-    pending_files = await spec.files.delete_all(db, parent_id)
-    pending_images = await spec.images.delete_all(db, parent_id)
+    pending_files = await delete_all_parent_media(
+        db, parent_type=spec.files.parent_type, storage_model=spec.files.storage_model, parent_id=parent_id
+    )
+    pending_images = await delete_all_parent_media(
+        db, parent_type=spec.images.parent_type, storage_model=spec.images.storage_model, parent_id=parent_id
+    )
     await db.delete(db_parent)
     await db.commit()
     await unlink_stored_media(pending_files)
