@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+
+name: Renovate
+
+on:
+  # 00:17 UTC falls inside the before-4am Amsterdam window that `schedule:daily`
+  # allows for new branches; the other runs rebase and maintain open PRs.
+  schedule:
+    - cron: "17 */6 * * *"
+  # A merge to main often leaves the other open PRs conflicting on the shared
+  # lockfile; rebase them now rather than at the next scheduled run.
+  push:
+    branches: [main]
+  workflow_dispatch:
+  # Ticking a box on the Dependency Dashboard starts a run straight away.
+  issues:
+    types: [edited]
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  renovate:
+    name: Renovate
+    # Renovate rewrites the dashboard on every run; skip its own edits so a run
+    # never triggers the next one.
+    if: >-
+      github.event_name != 'issues' ||
+      (github.event.issue.title == 'Dependency Dashboard' && github.event.sender.type != 'Bot')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Create app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+        with:
+          client-id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          # Mirror the app's permissions so the token grants nothing more.
+          permission-administration: read
+          permission-checks: write
+          permission-contents: write
+          permission-vulnerability-alerts: read
+          permission-issues: write
+          permission-pull-requests: write
+          permission-statuses: write
+          permission-workflows: write
+
+      - name: Run Renovate
+        uses: renovatebot/github-action@f3a31a786096ba6b40d0f0ffe11a494ef73bfa7c
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+        env:
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          RENOVATE_ONBOARDING: "false"
+          # Commit through the API so commits are signed as the app.
+          RENOVATE_PLATFORM_COMMIT: "enabled"
