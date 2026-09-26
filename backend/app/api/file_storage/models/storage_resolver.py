@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 def _build_s3_storage(
     prefix: str,
     bucket: str,
-    region: str | None,
+    region: str,
     access_key_id: str | None,
     secret_access_key: str | None,
     endpoint_url: str | None,

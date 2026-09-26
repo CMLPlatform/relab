@@ -6,6 +6,7 @@ import re
 import secrets
 import time
 from types import SimpleNamespace
+from typing import TypedDict
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -415,6 +416,16 @@ def device_assertion() -> tuple[ec.EllipticCurvePrivateKey, MagicMock, AsyncMock
     return private_key, _make_camera("key-1", jwk), AsyncMock()
 
 
+class _ClaimOverrides(TypedDict, total=False):
+    """The subset of ``_make_assertion``'s keyword claims a test case can override."""
+
+    aud: str
+    exp_offset: int
+    iss: str
+    sub: str
+    omit_claims: set[str]
+
+
 @pytest.mark.parametrize(
     ("kid", "claims", "match"),
     [
@@ -445,7 +456,7 @@ def device_assertion() -> tuple[ec.EllipticCurvePrivateKey, MagicMock, AsyncMock
 async def test_rejects_assertion_with_bad_claim(
     device_assertion: tuple[ec.EllipticCurvePrivateKey, MagicMock, AsyncMock],
     kid: str,
-    claims: dict[str, object],
+    claims: _ClaimOverrides,
     match: str,
 ) -> None:
     """Each malformed or mis-scoped claim should be rejected, naming its own reason."""

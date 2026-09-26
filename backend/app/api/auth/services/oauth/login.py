@@ -43,6 +43,8 @@ if TYPE_CHECKING:
     from fastapi_users.jwt import SecretType
     from redis.asyncio import Redis
 
+    from app.api.auth.services.mfa_service import MfaTransport
+
 
 def build_oauth_login_router(
     oauth_client: BaseOAuth2,
@@ -216,7 +218,7 @@ async def _complete_oauth_login(
 async def _respond_with_mfa_challenge(
     redis: Redis,
     user: User,
-    transport: str,
+    transport: MfaTransport,
     frontend_redirect: str | None,
 ) -> Response:
     """Return the pending-MFA response for an OAuth login."""

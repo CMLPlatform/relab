@@ -6,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from app.api.data_collection.routers.component_core_routers import add_component_to_component
@@ -23,7 +24,12 @@ class _StubRead(BaseModel):
 
 
 class _StubBody(BaseModel):
-    """Minimal create-payload stand-in; the routes only hash it and pass it to the CRUD call."""
+    """Minimal create-payload stand-in; the routes only hash it and pass it to the CRUD call.
+
+    Building a real ``ProductCreateWithComponents``/``ComponentCreateWithComponents`` would
+    need a full bill-of-materials or nested components to pass validation, none of which this
+    idempotency-wiring test exercises.
+    """
 
     name: str = "widget"
 
@@ -44,11 +50,12 @@ async def test_create_product_replay_returns_stored_body_without_second_create(r
             return_value=_StubRead(id=1),
         ),
     ):
-        first = await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)
-        second = await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)
+        first = await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)  # ty: ignore[invalid-argument-type]
+        second = await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)  # ty: ignore[invalid-argument-type]
 
     assert isinstance(first, _StubRead)
     assert create_record.await_count == 1
+    assert isinstance(second, JSONResponse)
     assert second.status_code == 201
     assert second.body == b'{"id":1}'
 
@@ -68,8 +75,8 @@ async def test_create_product_no_header_never_touches_redis(redis_client: Redis)
             return_value=_StubRead(id=1),
         ),
     ):
-        await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=None)
-        await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=None)
+        await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=None)  # ty: ignore[invalid-argument-type]
+        await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=None)  # ty: ignore[invalid-argument-type]
 
     assert create_record.await_count == 2
     assert await redis_client.dbsize() == 0
@@ -92,11 +99,12 @@ async def test_add_component_to_product_replay_avoids_second_create(redis_client
             return_value=_StubRead(id=2),
         ),
     ):
-        first = await add_component_to_product(db_product, _StubBody(), session, current_user, redis_client, key)
-        second = await add_component_to_product(db_product, _StubBody(), session, current_user, redis_client, key)
+        first = await add_component_to_product(db_product, _StubBody(), session, current_user, redis_client, key)  # ty: ignore[invalid-argument-type]
+        second = await add_component_to_product(db_product, _StubBody(), session, current_user, redis_client, key)  # ty: ignore[invalid-argument-type]
 
     assert isinstance(first, _StubRead)
     assert create_record.await_count == 1
+    assert isinstance(second, JSONResponse)
     assert second.status_code == 201
     assert second.body == b'{"id":2}'
 
@@ -118,11 +126,12 @@ async def test_add_component_to_component_replay_avoids_second_create(redis_clie
             return_value=_StubRead(id=3),
         ),
     ):
-        first = await add_component_to_component(db_component, _StubBody(), session, current_user, redis_client, key)
-        second = await add_component_to_component(db_component, _StubBody(), session, current_user, redis_client, key)
+        first = await add_component_to_component(db_component, _StubBody(), session, current_user, redis_client, key)  # ty: ignore[invalid-argument-type]
+        second = await add_component_to_component(db_component, _StubBody(), session, current_user, redis_client, key)  # ty: ignore[invalid-argument-type]
 
     assert isinstance(first, _StubRead)
     assert create_record.await_count == 1
+    assert isinstance(second, JSONResponse)
     assert second.status_code == 201
     assert second.body == b'{"id":3}'
 
@@ -144,8 +153,8 @@ async def test_different_users_same_key_both_create(redis_client: Redis) -> None
             return_value=_StubRead(id=1),
         ),
     ):
-        await create_product(_StubBody(), user_a, session, redis_client, idempotency_key=key)
-        await create_product(_StubBody(), user_b, session, redis_client, idempotency_key=key)
+        await create_product(_StubBody(), user_a, session, redis_client, idempotency_key=key)  # ty: ignore[invalid-argument-type]
+        await create_product(_StubBody(), user_b, session, redis_client, idempotency_key=key)  # ty: ignore[invalid-argument-type]
 
     assert create_record.await_count == 2
 
@@ -172,9 +181,9 @@ async def test_failure_after_the_commit_does_not_make_the_key_retryable(redis_cl
         ),
     ):
         with pytest.raises(RuntimeError, match="refresh blew up"):
-            await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)
+            await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)  # ty: ignore[invalid-argument-type]
         with pytest.raises(HTTPException) as exc_info:
-            await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)
+            await create_product(_StubBody(), current_user, session, redis_client, idempotency_key=key)  # ty: ignore[invalid-argument-type]
 
     assert exc_info.value.status_code == 409
     assert create_record.await_count == 1

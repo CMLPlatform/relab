@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
@@ -67,9 +67,10 @@ class RelabBaseSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=get_env_file(BACKEND_DIR), extra="ignore", secrets_dir=get_secrets_dir())
 
     @classmethod
+    @override
     def settings_customise_sources(
         cls,
-        _settings_cls: type[BaseSettings],
+        settings_cls: type[BaseSettings],
         init_settings: PydanticBaseSettingsSource,
         env_settings: PydanticBaseSettingsSource,
         dotenv_settings: PydanticBaseSettingsSource,

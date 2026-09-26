@@ -51,9 +51,8 @@ async def test_seeding_builds_a_photographed_component_tree_with_responsive_deri
     await run_seed_steps(db_session)
 
     laptop = (await db_session.execute(select(Product).where(Product.name == "Dell XPS 13"))).scalar_one()
-    parts = dict(
-        (await db_session.execute(select(Product.name, Product.id).where(Product.parent_id == laptop.id))).all()
-    )
+    part_rows = (await db_session.execute(select(Product.name, Product.id).where(Product.parent_id == laptop.id))).all()
+    parts = {name: product_id for name, product_id in part_rows}  # noqa: C416 -- dict() rejects Row's tuple-like overload
     assert set(parts) == SEEDED_PARTS
 
     # One nested level too: the display's panel and lid are the disclosure the

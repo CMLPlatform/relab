@@ -22,7 +22,7 @@ def _route(router: APIRouter, path: str, method: str) -> APIRoute:
     return next(
         route
         for route in router.routes
-        if isinstance(route, APIRoute) and route.path == path and method in route.methods
+        if isinstance(route, APIRoute) and route.path == path and method in (route.methods or set())
     )
 
 

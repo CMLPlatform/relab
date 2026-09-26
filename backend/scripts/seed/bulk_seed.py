@@ -162,7 +162,8 @@ async def _seed(products: int) -> None:
 
 def _prepare(product: Product, rng: random.Random, owner_ids: list, type_ids: list, now: datetime) -> None:
     """Fill the columns the factory leaves empty because they are nullable."""
-    product.id = None
+    # Mapped[int] cannot express a primary key left unset for the database to assign.
+    product.id = None  # ty: ignore[invalid-assignment]
     product.owner_id = rng.choice(owner_ids)
     product.product_type_id = rng.choice(type_ids)
     product.weight_g = round(rng.uniform(50, 5000), 2)

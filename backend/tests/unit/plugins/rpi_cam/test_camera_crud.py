@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 from fastapi import BackgroundTasks, HTTPException
+from redis.asyncio import Redis
 
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
 from app.api.plugins.rpi_cam.routers.camera_crud import (
@@ -13,23 +14,33 @@ from app.api.plugins.rpi_cam.routers.camera_crud import (
 )
 
 
+def _fake_redis() -> Redis:
+    """A Redis stand-in for routes that only forward the connection, never call it.
+
+    Every collaborator that would use it is mocked out, so nothing but identity
+    (did the same object make it through unchanged?) needs to hold.
+    """
+    return MagicMock(spec=Redis)
+
+
 async def test_delete_user_camera_schedules_unpair_notification(mock_camera: Camera) -> None:
     """Deleting a camera should commit first and queue the unpair notification in the background."""
     session = AsyncMock()
     background_tasks = MagicMock(spec=BackgroundTasks)
+    redis = _fake_redis()
 
     with patch("app.api.plugins.rpi_cam.routers.camera_crud._notify_camera_unpair") as mock_notify:
         await delete_user_camera(
             background_tasks=background_tasks,
             db=session,
             camera=mock_camera,
-            redis=None,
+            redis=redis,
         )
 
     session.delete.assert_awaited_once_with(mock_camera)
     session.commit.assert_awaited_once()
     assert background_tasks.add_task.call_args_list[0].args[0] is mock_notify
-    assert background_tasks.add_task.call_args_list[0].args[1:] == (mock_camera.id, None)
+    assert background_tasks.add_task.call_args_list[0].args[1:] == (mock_camera.id, redis)
     mock_notify.assert_not_called()
 
 
@@ -44,7 +55,7 @@ async def test_notify_camera_unpair_skips_relay_when_camera_is_offline() -> None
         ),
         patch("app.api.plugins.rpi_cam.routers.camera_crud.relay_via_websocket", new=AsyncMock()) as relay_mock,
     ):
-        await _notify_camera_unpair(camera_id, None)
+        await _notify_camera_unpair(camera_id, _fake_redis())
 
     relay_mock.assert_not_awaited()
 
@@ -60,9 +71,10 @@ async def test_notify_camera_unpair_relays_when_camera_is_online() -> None:
         ),
         patch("app.api.plugins.rpi_cam.routers.camera_crud.relay_via_websocket", new=AsyncMock()) as relay_mock,
     ):
-        await _notify_camera_unpair(camera_id, None)
+        redis = _fake_redis()
+        await _notify_camera_unpair(camera_id, redis)
 
-    relay_mock.assert_awaited_once_with(camera_id, "DELETE", "/pairing", redis=None)
+    relay_mock.assert_awaited_once_with(camera_id, "DELETE", "/pairing", redis=redis)
 
 
 async def test_notify_camera_unpair_continues_when_the_relay_fails() -> None:
@@ -82,7 +94,7 @@ async def test_notify_camera_unpair_continues_when_the_relay_fails() -> None:
             new=AsyncMock(side_effect=HTTPException(status_code=503)),
         ),
     ):
-        await _notify_camera_unpair(uuid4(), None)
+        await _notify_camera_unpair(uuid4(), _fake_redis())
 
 
 async def test_self_unpair_removes_the_cached_frame(mock_camera: Camera) -> None:

@@ -3,7 +3,7 @@
 import logging
 import sys
 from types import SimpleNamespace
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 from fastapi import FastAPI
@@ -12,6 +12,8 @@ from app.core.logging import RequestContextFilter
 from app.core.telemetry import _telemetry_state, init_telemetry, shutdown_telemetry
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, MutableMapping
+
     import pytest
 
 
@@ -227,7 +229,9 @@ def test_init_telemetry_exports_app_metrics(monkeypatch: pytest.MonkeyPatch) -> 
 
     # Same resource as the tracer: identity labels must match across signals or the
     # central stack cannot line app metrics up with the traces they describe.
-    assert meter_provider.resource == _telemetry_state.tracer_provider.resource
+    tracer_provider = _telemetry_state.tracer_provider
+    assert tracer_provider is not None
+    assert meter_provider.resource == tracer_provider.resource
 
     # A periodic reader actually pushing over OTLP, not a provider with no readers,
     # which would collect happily and export nothing.
@@ -257,8 +261,16 @@ def test_init_telemetry_rebuilds_the_middleware_stack(monkeypatch: pytest.Monkey
     monkeypatch.setattr("app.core.telemetry.settings.otel_exporter_otlp_endpoint", "http://otel:4318/v1/traces")
     monkeypatch.setattr("app.core.telemetry.settings.environment", "testing")
 
-    # Stand in for the stack Starlette already built before the lifespan ran.
-    stale_stack = object()
+    # Stand in for the stack Starlette already built before the lifespan ran: a
+    # matching ASGI callable, never invoked, whose only job is to prove identity.
+    async def stale_stack(
+        _scope: MutableMapping[str, Any],
+        _receive: Callable[[], Awaitable[MutableMapping[str, Any]]],
+        _send: Callable[[MutableMapping[str, Any]], Awaitable[None]],
+    ) -> None:
+        msg = "the stale middleware stack must never be invoked"
+        raise AssertionError(msg)
+
     app.middleware_stack = stale_stack
 
     fake_modules = _build_fake_otel_modules(MagicMock(), MagicMock(), MagicMock())

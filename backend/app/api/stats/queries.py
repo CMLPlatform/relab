@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy import ColumnElement
     from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.orm import InstrumentedAttribute
 
 
 async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
@@ -32,7 +33,7 @@ async def compute_totals(session: AsyncSession) -> tuple[Totals, datetime]:
     image_stmt = select(func.count(Image.id)).where(Image.parent_type == MediaParentType.PRODUCT)
     user_stmt = select(func.count(User.id))
 
-    product_row = (await session.execute(product_stmt)).fetchone()
+    product_row = (await session.execute(product_stmt)).one()
     image_count = int((await session.execute(image_stmt)).scalar_one())
     user_count = int((await session.execute(user_stmt)).scalar_one())
 
@@ -72,7 +73,7 @@ async def compute_categories(
     stmt = product_category_counts_stmt(*where, limit=limit)
 
     rows = (await session.execute(stmt)).all()
-    categories = [CategoryStat(name=row.name, count=int(row.count)) for row in rows]
+    categories = [CategoryStat(name=name, count=int(count)) for name, count in rows]
     return categories, datetime.now(UTC)
 
 
@@ -88,7 +89,7 @@ async def compute_series(
 
     # One expression object for both SELECT and GROUP BY: built twice, the two bind
     # parameters read as different expressions and Postgres rejects the GROUP BY.
-    def trunc(col: ColumnElement) -> ColumnElement:
+    def trunc(col: InstrumentedAttribute[datetime | None]) -> ColumnElement:
         return func.date_trunc(granularity, col)
 
     product_period = trunc(Product.created_at)

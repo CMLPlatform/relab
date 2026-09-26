@@ -398,7 +398,8 @@ async def test_revoke_all_user_tokens_catches_a_token_created_mid_revocation(red
     calls = {"n": 0}
 
     async def smembers_then_race(key: str):
-        members = await real_smembers(key)
+        # redis-py's command stubs return `Awaitable[set] | set` regardless of client mode.
+        members = await real_smembers(key)  # ty: ignore[invalid-await]
         calls["n"] += 1
         if calls["n"] == 1:
             # Simulate a refresh completing after this pass read the set.

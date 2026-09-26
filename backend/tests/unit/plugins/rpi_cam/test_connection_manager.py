@@ -78,6 +78,7 @@ async def test_resolve_json_ignores_response_from_other_camera() -> None:
     command_task = asyncio.create_task(manager.send_command(camera_id, "GET", "/camera"))
     try:
         await asyncio.wait_for(command_sent.wait(), timeout=1)
+        assert websocket.send_text.await_args is not None
         payload = json.loads(websocket.send_text.await_args.args[0])
 
         # Wrong owner: ignored, command stays pending.

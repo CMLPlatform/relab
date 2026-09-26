@@ -106,7 +106,7 @@ async def test_bearer_callback_issues_a_refresh_token(redis_client: Redis) -> No
         is_verified_by_default=True,
     )
 
-    payload = json.loads(response.body)
+    payload = json.loads(bytes(response.body))
     assert payload["access_token"] == "access-token"
     assert payload["token_type"] == "bearer"
     # The refresh token has to be real: it must verify back to the same user.
@@ -238,7 +238,7 @@ async def test_callback_rejects_state_from_different_provider_flow() -> None:
         )
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-    config.oauth_client.get_id_email.assert_not_awaited()
+    cast("MagicMock", config.oauth_client).get_id_email.assert_not_awaited()
 
 
 async def test_associate_callback_links_provider_for_current_user() -> None:
@@ -341,4 +341,4 @@ async def test_associate_callback_rejects_standard_google_state_for_youtube_flow
         )
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
-    config.oauth_client.get_id_email.assert_not_awaited()
+    cast("MagicMock", config.oauth_client).get_id_email.assert_not_awaited()

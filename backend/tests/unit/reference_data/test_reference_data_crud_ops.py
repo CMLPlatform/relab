@@ -135,7 +135,7 @@ async def test_delete_categorized_reference_is_atomic_and_unlinks_bytes_after_co
     pending_images = [(object(), "image-path")]
     calls: list[object] = []
 
-    async def _delete_all(*_a: object, storage_model: type, **_kw: object) -> list[object]:
+    async def _delete_all(*_a: object, storage_model: type, **_kw: object) -> list[tuple[object, str]]:
         if storage_model is File:
             calls.append("files-rows")
             return pending_files

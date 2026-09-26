@@ -1,8 +1,10 @@
 """Centralized OpenAPI examples for auth schemas and routers."""
 
+from pydantic import JsonValue
+
 from app.api.common.openapi_examples import openapi_example, openapi_examples
 
-USER_CREATE_EXAMPLES = [
+USER_CREATE_EXAMPLES: list[JsonValue] = [
     {
         "email": "user@example.com",
         "password": "fake_password",
@@ -10,7 +12,7 @@ USER_CREATE_EXAMPLES = [
     }
 ]
 
-USER_READ_EXAMPLES = [
+USER_READ_EXAMPLES: list[JsonValue] = [
     {
         "id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
         "email": "user@example.com",
@@ -21,7 +23,7 @@ USER_READ_EXAMPLES = [
     }
 ]
 
-USER_UPDATE_EXAMPLES = [
+USER_UPDATE_EXAMPLES: list[JsonValue] = [
     {
         "password": "newpassword",
         "email": "user@example.com",
@@ -29,13 +31,13 @@ USER_UPDATE_EXAMPLES = [
     }
 ]
 
-REFRESH_TOKEN_REQUEST_EXAMPLES = [
+REFRESH_TOKEN_REQUEST_EXAMPLES: list[JsonValue] = [
     {
         "refresh_token": "refresh-token-from-login",
     }
 ]
 
-REFRESH_TOKEN_RESPONSE_EXAMPLES = [
+REFRESH_TOKEN_RESPONSE_EXAMPLES: list[JsonValue] = [
     {
         "access_token": "new-jwt-access-token",
         "refresh_token": "rotated-refresh-token",

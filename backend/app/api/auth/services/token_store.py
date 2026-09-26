@@ -6,7 +6,7 @@ import secrets
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
 
     from redis.asyncio import Redis
 
@@ -28,7 +28,7 @@ def new_token(token_bytes: int) -> str:
     return secrets.token_urlsafe(token_bytes)
 
 
-def encode_token_metadata(payload: dict[str, object]) -> str:
+def encode_token_metadata(payload: Mapping[str, object]) -> str:
     """Encode token metadata as compact JSON."""
     return json.dumps(payload, separators=(",", ":"))
 
@@ -55,7 +55,7 @@ async def store_token_metadata(
     *,
     key_prefix: str,
     token: str,
-    payload: dict[str, object],
+    payload: Mapping[str, object],
     ttl_seconds: int,
 ) -> None:
     """Store metadata for an existing token."""
@@ -67,7 +67,7 @@ async def store_new_token(
     redis: Redis,
     *,
     key_prefix: str,
-    payload: dict[str, object],
+    payload: Mapping[str, object],
     ttl_seconds: int,
     token_bytes: int,
 ) -> str:

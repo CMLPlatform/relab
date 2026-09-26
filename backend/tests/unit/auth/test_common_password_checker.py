@@ -47,7 +47,8 @@ async def test_common_password_checker_seeds_and_checks_redis(redis_client: Redi
 
     await checker.initialize()
 
-    assert await redis_client.scard(REDIS_COMMON_PASSWORDS_KEY) >= COMMON_PASSWORDS_TARGET_COUNT
+    # redis-py's command stubs return `Awaitable[int] | int` regardless of client mode.
+    assert await redis_client.scard(REDIS_COMMON_PASSWORDS_KEY) >= COMMON_PASSWORDS_TARGET_COUNT  # ty: ignore[invalid-await]
     assert await checker.matches("PASSWORD12345")
     assert await checker.matches("pass-word-12345")
 

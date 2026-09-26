@@ -35,7 +35,7 @@ def _auth_dependencies(dependant: Dependant) -> set[str]:
     """
     found: set[str] = set()
     for sub in dependant.dependencies:
-        if sub.call in REQUIRED_AUTH_DEPENDENCIES:
+        if sub.call is not None and sub.call in REQUIRED_AUTH_DEPENDENCIES:
             found.add(REQUIRED_AUTH_DEPENDENCIES[sub.call])
         found |= _auth_dependencies(sub)
     return found

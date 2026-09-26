@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Literal
 from uuid import UUID
 
 import pyotp
+import pyotp.utils
 from pydantic import UUID4
 
 from app.api.auth.exceptions import MfaChallengeInvalidError

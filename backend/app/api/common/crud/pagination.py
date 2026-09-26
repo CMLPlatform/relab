@@ -1,6 +1,6 @@
 """Pagination helpers for SQLAlchemy select statements."""
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from fastapi_pagination import create_page
 from fastapi_pagination.api import resolve_params
@@ -24,7 +24,7 @@ def _primary_key_column(model: type[Base]) -> ColumnElement[object] | None:
     return cast("ColumnElement[object]", primary_keys[0]) if len(primary_keys) == 1 else None
 
 
-def _joins_rows(statement: Select[object]) -> bool:
+def _joins_rows(statement: Select[Any]) -> bool:
     """Return whether the statement joins, and so can repeat an entity per row.
 
     Only a join can duplicate rows here, and ``.join()`` collapses the FROM list
