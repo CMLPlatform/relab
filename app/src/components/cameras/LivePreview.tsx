@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
 import { Component } from 'react';
 import { View } from 'react-native';
-import { PreviewPlayer } from '@/components/cameras/live-preview/PreviewPlayer';
+import { NativeHlsVideo } from '@/components/cameras/live-preview/NativeHlsVideo';
 import {
   PreviewErrorOverlay,
   PreviewShell,
 } from '@/components/cameras/live-preview/previewOverlays';
+import { WebHlsVideo } from '@/components/cameras/live-preview/WebHlsVideo';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
 import type { CameraRead } from '@/services/api/rpiCamera/shared';
+import { isWeb } from '@/services/storage';
 
 /**
  * LL-HLS live preview for one camera. Web uses a ``<video>`` element with
@@ -38,7 +40,12 @@ export function LivePreview({
   return (
     <PreviewShell caption={caption}>
       <PreviewErrorBoundary>
-        <PreviewPlayer src={hlsUrl} isLocalStream={isLocalStream} />
+        {isWeb() ? (
+          <WebHlsVideo src={hlsUrl} withCredentials={!isLocalStream} />
+        ) : (
+          // Relayed streams need the bearer token; a local stream must not be sent backend credentials.
+          <NativeHlsVideo src={hlsUrl} authenticated={!isLocalStream} />
+        )}
       </PreviewErrorBoundary>
     </PreviewShell>
   );
