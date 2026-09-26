@@ -23,6 +23,11 @@
       "automerge": true
     },
     {
+      "description": "Renovate has no release timestamp to age a lock file refresh against, so the 3-day minimumReleaseAge above would hold these PRs pending forever. The package managers enforce the age during the relock instead: pnpm's strict minimumReleaseAge and uv's exclude-newer.",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null
+    },
+    {
       "description": "Expo owns these: the SDK pins them and Renovate cannot read bundledNativeModules.json. Matched by name only, because matchFileNames also matches the shared pnpm lockfile and a later group rule then wins. Upgrade with `just app/update` (expo install --fix + expo-doctor) at SDK upgrade time. Vulnerability alerts still raise PRs.",
       "matchPackageNames": [
         "expo",
