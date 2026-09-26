@@ -1,17 +1,15 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
+import { buildLocalHlsUrl, fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
 import {
-  buildLocalHlsUrl,
-  captureImageFromCamera,
-  captureImageLocally,
-  claimPairingCode,
   deleteCamera,
   fetchCamera,
   fetchCameras,
   fetchCameraTelemetry,
-  fetchLocalAccessInfo,
   updateCamera,
-} from '@/services/api/rpiCamera';
+} from '@/services/api/rpiCamera/cameras';
+import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera/capture';
+import { claimPairingCode } from '@/services/api/rpiCamera/pairing';
 
 jest.mock('@/services/api/auth/authRefresh', () => ({
   fetchWithAuth: jest.fn(),

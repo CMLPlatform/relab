@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, screen, waitFor } from '@testing-library/react-native';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import { resolveEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { renderWithProviders } from '@/test-utils/index';
 
 const LAST_SEEN_PATTERN = /Last seen/;

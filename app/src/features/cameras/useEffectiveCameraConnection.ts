@@ -4,7 +4,7 @@ import {
   type UseLocalConnectionResult,
   useLocalConnection,
 } from '@/features/cameras/local-connection/useLocalConnection';
-import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 
 export type EffectiveCameraTransport = 'direct' | 'relay' | 'unreachable';
 

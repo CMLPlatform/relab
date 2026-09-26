@@ -8,7 +8,7 @@ import { StatusPill, type StatusTone } from '@/components/base/StatusPill';
 import { STATUS_LABEL } from '@/components/cameras/detail/styles';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import { useAuthedMediaSource } from '@/services/api/authedMedia';
-import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraConnectionStatus, CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 import { TelemetryBadge } from './TelemetryBadge';

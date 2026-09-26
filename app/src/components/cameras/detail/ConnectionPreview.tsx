@@ -7,7 +7,7 @@ import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
 import { LivePreview } from '@/components/cameras/LivePreview';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { getStatusColor, useAppTheme } from '@/theme';
 import { type EffectiveConnection, STATUS_LABEL, cameraDetailStyles as styles } from './styles';
 

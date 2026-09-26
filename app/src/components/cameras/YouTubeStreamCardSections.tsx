@@ -5,7 +5,7 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { StatusPill } from '@/components/base/StatusPill';
-import type { StreamView } from '@/services/api/rpiCamera';
+import type { StreamView } from '@/services/api/rpiCamera/shared';
 import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
 
 const createThemedStyles = memoizeByTheme((theme: AppTheme) => {

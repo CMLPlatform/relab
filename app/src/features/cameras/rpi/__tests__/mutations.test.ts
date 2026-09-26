@@ -7,9 +7,9 @@ import {
   resolveCaptureImageRequest,
   restoreOptimisticStreamStatus,
 } from '@/features/cameras/rpi/mutations';
-import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera';
+import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera/capture';
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/capture', () => ({
   __esModule: true,
   captureImageFromCamera: jest.fn(async (cameraId: string, productId: number) => ({
     id: `${cameraId}-${productId}`,

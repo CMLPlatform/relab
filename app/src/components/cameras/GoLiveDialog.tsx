@@ -8,7 +8,7 @@ import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import { Text as UiText } from '@/components/base/ui/text';
 import { ToggleGroup, ToggleGroupItem } from '@/components/base/ui/toggle-group';
-import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
+import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera/shared';
 import { useAppTheme } from '@/theme';
 import { heading } from '@/utils/a11y';
 

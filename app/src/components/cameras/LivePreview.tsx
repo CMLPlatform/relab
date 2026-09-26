@@ -8,7 +8,7 @@ import {
 } from '@/components/cameras/live-preview/previewOverlays';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
-import type { CameraRead } from '@/services/api/rpiCamera';
+import type { CameraRead } from '@/services/api/rpiCamera/shared';
 
 /**
  * LL-HLS live preview for one camera. Web uses a ``<video>`` element with
