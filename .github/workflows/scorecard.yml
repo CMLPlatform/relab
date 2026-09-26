@@ -3,11 +3,11 @@
 # Scorecard lives outside ci.yml on purpose: publishing to the OpenSSF webapp
 # rejects workflows with top-level `defaults` or another job holding
 # `id-token: write`, both of which CI needs. Feeds the README badge.
+# No push trigger: a run seconds after a merge can miss the newest PR's checks
+# and report SAST and CI-Tests as partial; the weekly run sees settled data.
 name: Scorecard
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: "0 3 * * 1"
