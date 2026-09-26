@@ -1,6 +1,6 @@
 """Shared helpers for reference-data CRUD operations."""
 
-from typing import TYPE_CHECKING, Any, cast  # lgtm[py/unused-import]
+from typing import TYPE_CHECKING, Any, cast
 
 from app.api.common.crud.persistence import SupportsModelDump, delete_and_commit, update_and_commit
 from app.api.common.crud.query import require_locked_model, require_model
