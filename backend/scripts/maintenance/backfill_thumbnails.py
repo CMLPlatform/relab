@@ -85,7 +85,7 @@ async def thumbnail_unverified_images(session: AsyncSession) -> tuple[int, int]:
         for row in rows:
             path = stored_file_path(row)
             missing = _missing_widths(path) if path is not None else None
-            if missing is None:
+            if path is None or missing is None:
                 # A missing, remote or corrupt file must not abort the run; the row stays
                 # unstamped and its thumbnail_url falls back to the original.
                 logger.warning("Could not thumbnail image %s; leaving it unverified", row.id)

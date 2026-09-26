@@ -5,7 +5,7 @@ import sys
 import time
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING
 
 from pythonjsonlogger.json import JsonFormatter
 
@@ -70,7 +70,7 @@ class RequestContextFilter(logging.Filter):
 class UTCFormatter(logging.Formatter):
     """Human-readable logging formatter using UTC timestamps."""
 
-    converter: ClassVar = staticmethod(time.gmtime)
+    converter = staticmethod(time.gmtime)
 
 
 def build_json_formatter() -> JsonFormatter:

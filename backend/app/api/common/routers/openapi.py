@@ -120,7 +120,7 @@ def _add_schema_metadata(schema: dict[str, Any], *, tag_groups: list[dict[str, s
 def _filter_openapi_routes(
     routes: Sequence[BaseRoute],
     *,
-    include_route: Callable[[RouteContext], bool],
+    include_route: Callable[[APIRoute], bool],
 ) -> list[RouteContext]:
     """Return route contexts for FastAPI's OpenAPI generator, filtering only API routes.
 
@@ -130,22 +130,22 @@ def _filter_openapi_routes(
     accepts those contexts back directly.
     """
     contexts = list(iter_route_contexts(routes))
-    return [ctx for ctx in contexts if not isinstance(ctx.route, APIRoute) or include_route(ctx)]
+    return [ctx for ctx in contexts if not isinstance(ctx.route, APIRoute) or include_route(ctx.route)]
 
 
-def _is_public_route(ctx: RouteContext) -> bool:
-    audiences = set(route_audiences(ctx.route))
+def _is_public_route(route: APIRoute) -> bool:
+    audiences = set(route_audiences(route))
     return RouteAudience.PUBLIC.value in audiences or RouteAudience.APP.value in audiences
 
 
-def _is_admin_route(ctx: RouteContext) -> bool:
+def _is_admin_route(route: APIRoute) -> bool:
     # Explicit opt-in via AdminAPIRouter only; no tag or path fallback.
-    return RouteAudience.ADMIN.value in set(route_audiences(ctx.route))
+    return RouteAudience.ADMIN.value in set(route_audiences(route))
 
 
-def _is_device_route(ctx: RouteContext) -> bool:
+def _is_device_route(route: APIRoute) -> bool:
     # Explicit opt-in via DeviceAPIRouter only; no path fallback.
-    return RouteAudience.DEVICE.value in set(route_audiences(ctx.route))
+    return RouteAudience.DEVICE.value in set(route_audiences(route))
 
 
 def _register_internal_docs(router: APIRouter, app: FastAPI) -> None:

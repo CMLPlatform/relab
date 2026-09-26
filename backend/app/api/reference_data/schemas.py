@@ -134,7 +134,7 @@ CategoryCreate.model_rebuild()
 class CategoryReadAsSubCategory(IntIdReadSchema, CategoryFields):
     """Schema for reading subcategory information."""
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES})
+    model_config = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES})
 
 
 class CategoryRead(CategoryReadAsSubCategory):
@@ -143,7 +143,7 @@ class CategoryRead(CategoryReadAsSubCategory):
     taxonomy_id: PositiveInt = Field(description="ID of the taxonomy")
     supercategory_id: PositiveInt | None = None
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_EXAMPLES})
+    model_config = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_EXAMPLES})
 
 
 class CategoryReadWithRelationships(CategoryRead):
@@ -168,7 +168,7 @@ class CategoryReadAsSubCategoryWithRecursiveSubCategories(CategoryReadAsSubCateg
         default_factory=list, description="List of subcategories"
     )
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_RECURSIVE_EXAMPLES})
+    model_config = ConfigDict(json_schema_extra={"examples": CATEGORY_READ_RECURSIVE_EXAMPLES})
 
 
 # Rebuild schema to allow for nested subcategories
@@ -201,7 +201,7 @@ class CategoryUpdate(BaseUpdateSchema):
         default=None, max_length=500, description="Description of the category"
     )
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": CATEGORY_UPDATE_EXAMPLES})
+    model_config = ConfigDict(json_schema_extra={"examples": CATEGORY_UPDATE_EXAMPLES})
 
 
 ### Taxonomy Schemas ###
@@ -216,7 +216,7 @@ class TaxonomyCreateWithCategories(BaseCreateSchema, TaxonomyBase):
 class TaxonomyRead(IntIdReadSchemaWithTimeStamp, TaxonomyFields):
     """Schema for reading minimal taxonomy information."""
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_EXAMPLES})
+    model_config = ConfigDict(json_schema_extra={"examples": TAXONOMY_READ_EXAMPLES})
 
 
 class TaxonomyUpdate(BaseUpdateSchema):

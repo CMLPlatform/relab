@@ -13,6 +13,7 @@ from app.api.reference_data.schemas import CategoryRead
 
 if TYPE_CHECKING:
     from fastapi_pagination import Page
+    from pydantic import BaseModel
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 
@@ -28,7 +29,7 @@ async def require_categorized_reference[ResourceT: Material | ProductType](
     parent_model: type[ResourceT],
     parent_id: int,
     *,
-    read_schema: type[object],
+    read_schema: type[BaseModel],
 ) -> ResourceT:
     """Load a categorized reference resource with standard public relationships."""
     return await require_model(
@@ -48,7 +49,7 @@ async def page_categorized_references[ResourceT: Material | ProductType](
     parent_model: type[ResourceT],
     *,
     parent_filter: BaseFilterSet,
-    read_schema: type[object],
+    read_schema: type[BaseModel],
 ) -> Page[ResourceT]:
     """Page categorized reference resources with standard public relationships."""
     statement = select(parent_model)

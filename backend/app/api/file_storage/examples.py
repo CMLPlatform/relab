@@ -1,6 +1,8 @@
 """Centralized OpenAPI examples for file-storage schemas and routers."""
 
-FILE_READ_WITHIN_PARENT_EXAMPLES = [
+from pydantic import JsonValue
+
+FILE_READ_WITHIN_PARENT_EXAMPLES: list[JsonValue] = [
     {
         "id": "12345678-cc4e-405c-8553-7806424de2a1",
         "description": "Assembly manual PDF",
@@ -9,7 +11,7 @@ FILE_READ_WITHIN_PARENT_EXAMPLES = [
     }
 ]
 
-IMAGE_READ_WITHIN_PARENT_EXAMPLES = [
+IMAGE_READ_WITHIN_PARENT_EXAMPLES: list[JsonValue] = [
     {
         "id": "12345678-cc4e-405c-8553-7806424de2a1",
         "description": "Front view of the product",
@@ -20,7 +22,7 @@ IMAGE_READ_WITHIN_PARENT_EXAMPLES = [
     }
 ]
 
-VIDEO_CREATE_WITHIN_PRODUCT_EXAMPLES = [
+VIDEO_CREATE_WITHIN_PRODUCT_EXAMPLES: list[JsonValue] = [
     {
         "url": "https://www.youtube.com/watch?v=abcdefghijk",
         "title": "Full disassembly",
@@ -29,7 +31,7 @@ VIDEO_CREATE_WITHIN_PRODUCT_EXAMPLES = [
     }
 ]
 
-VIDEO_READ_WITHIN_PRODUCT_EXAMPLES = [
+VIDEO_READ_WITHIN_PRODUCT_EXAMPLES: list[JsonValue] = [
     {
         "id": 1,
         "url": "https://www.youtube.com/watch?v=abcdefghijk",
@@ -39,7 +41,7 @@ VIDEO_READ_WITHIN_PRODUCT_EXAMPLES = [
     }
 ]
 
-VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES = [
+VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES: list[JsonValue] = [
     {
         "title": "Updated disassembly title",
         "description": "Shortened version for publication",

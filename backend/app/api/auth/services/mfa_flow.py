@@ -142,7 +142,7 @@ async def regenerate_recovery_codes(
 ) -> MfaRecoveryCodesResponse:
     """Reissue recovery codes after confirming a current TOTP code."""
     user = await _load_enrolled_mfa_user(user_manager, current_user)
-    if not await mfa_service.verify_totp_code_once(
+    if not user.mfa_totp_secret or not await mfa_service.verify_totp_code_once(
         redis,
         user_id=user.id,
         secret=user.mfa_totp_secret,
