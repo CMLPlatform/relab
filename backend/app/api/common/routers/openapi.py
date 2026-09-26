@@ -10,7 +10,6 @@ from fastapi.responses import Response
 from fastapi.routing import APIRoute, RouteContext, iter_route_contexts
 
 from app.api.common.audiences import RouteAudience, route_audiences
-from app.api.common.config import settings as api_settings
 from app.core.responses import conditional_json_response
 
 if TYPE_CHECKING:
@@ -28,18 +27,39 @@ __all__ = [
 API_CONTRACT_VERSION = "1.0.0"
 API_MAJOR = "v1"
 
+API_TITLE = "Relab - Data Collection API"
+API_DESCRIPTION = (
+    "Data collection app for the Relab project at CML.\n\n"
+    "**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write "
+    "clients, importers, or integrations against it without inheriting the platform's "
+    "copyleft. The Relab platform software itself remains AGPL-3.0-or-later, and curated "
+    "dataset releases are licensed CC BY 4.0."
+)
+# Licence of the specification, not the software. Full text ships at LICENSE-APACHE-2.0
+# in the repository root, as Apache-2.0 section 4(a) requires. Apache-2.0 rather than
+# CC0 because the artifacts include generated client types and it carries a patent grant.
+LICENSE_INFO = {"name": "Apache-2.0", "identifier": "Apache-2.0"}
+ADMIN_TAG_GROUP: dict[str, str | list[str]] = {"name": "Admin", "tags": ["admin"]}
+PUBLIC_TAG_GROUPS: list[dict[str, str | list[str]]] = [
+    {"name": "Auth", "tags": ["auth", "users"]},
+    {"name": "Reference Data", "tags": ["categories", "taxonomies", "materials", "product-types"]},
+    {"name": "Data Collection", "tags": ["products"]},
+    {"name": "Plugins", "tags": ["rpi-cam-management", "rpi-cam-interaction"]},
+]
+FULL_TAG_GROUPS = [*PUBLIC_TAG_GROUPS, ADMIN_TAG_GROUP]
+
 
 ### OpenAPI schema generation ###
 def _build_canonical_openapi(app: FastAPI) -> dict[str, Any]:
     """Generate the complete canonical OpenAPI schema."""
     schema: dict[str, Any] = get_openapi(
-        title=api_settings.full_docs.title,
+        title=API_TITLE,
         version=API_CONTRACT_VERSION,
-        description=api_settings.full_docs.description,
+        description=API_DESCRIPTION,
         routes=app.routes,
-        license_info=api_settings.full_docs.license_info,
+        license_info=LICENSE_INFO,
     )
-    _add_schema_metadata(schema, tag_groups=api_settings.full_docs.x_tag_groups)
+    _add_schema_metadata(schema, tag_groups=FULL_TAG_GROUPS)
     return schema
 
 
@@ -51,11 +71,11 @@ def _build_filtered_openapi(
 ) -> dict[str, Any]:
     """Generate an OpenAPI schema with routes filtered before schema generation."""
     schema: dict[str, Any] = get_openapi(
-        title=api_settings.public_docs.title,
+        title=API_TITLE,
         version=API_CONTRACT_VERSION,
-        description=api_settings.public_docs.description,
+        description=API_DESCRIPTION,
         routes=_filter_openapi_routes(app.routes, include_route=include_route),
-        license_info=api_settings.public_docs.license_info,
+        license_info=LICENSE_INFO,
     )
     _add_schema_metadata(schema, tag_groups=tag_groups)
     return schema
@@ -66,7 +86,7 @@ def build_public_openapi(app: FastAPI) -> dict[str, Any]:
     return _build_filtered_openapi(
         app,
         include_route=_is_public_route,
-        tag_groups=api_settings.public_docs.x_tag_groups,
+        tag_groups=PUBLIC_TAG_GROUPS,
     )
 
 
@@ -75,7 +95,7 @@ def _build_admin_openapi(app: FastAPI) -> dict[str, Any]:
     return _build_filtered_openapi(
         app,
         include_route=_is_admin_route,
-        tag_groups=[{"name": "Admin", "tags": ["admin"]}],
+        tag_groups=[ADMIN_TAG_GROUP],
     )
 
 

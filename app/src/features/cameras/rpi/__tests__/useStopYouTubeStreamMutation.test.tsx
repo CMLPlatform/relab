@@ -3,9 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
-import { stopYouTubeStream } from '@/services/api/rpiCamera';
+import { stopYouTubeStream } from '@/services/api/rpiCamera/streams';
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/streams', () => ({
   stopYouTubeStream: jest.fn(),
   buildCameraHlsUrl: (id: string) => `/api/rpi-cameras/${id}/hls/cam-preview/index.m3u8`,
 }));

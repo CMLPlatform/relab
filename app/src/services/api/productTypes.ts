@@ -30,6 +30,10 @@ export async function searchProductTypes(
   return fetchPaginatedItems<ProductTypeOption>(`${API_URL}/product-types`, search, page, size);
 }
 
+export async function searchProductBrands(search?: string, page = 1, size = 50): Promise<string[]> {
+  return fetchPaginatedItems<string>(`${API_URL}/products/suggestions/brands`, search, page, size);
+}
+
 /** Mirrors the backend's MAX_QUERY_LIST_ITEMS for `[in]` filters. */
 const MAX_NAME_LOOKUP = 50;
 

@@ -4,9 +4,6 @@ import { fetchWithAuth, refreshAuthToken } from '@/services/api/auth/authRefresh
 import { authRuntime } from '@/services/api/auth/authRuntime';
 
 jest.mock('@/services/api/auth/authSession', () => ({
-  // jest.fn (not a fixed arrow) so the web branch is reachable; pinning the
-  // platform in the mock left half of refreshAuthToken untested.
-  isWeb: jest.fn(() => false),
   hasWebSessionFlag: jest.fn(() => true),
   setWebSessionFlag: jest.fn(),
   loadStoredAccessToken: jest.fn(),
@@ -17,6 +14,13 @@ jest.mock('@/services/api/auth/authSession', () => ({
   clearStoredRefreshToken: jest.fn(),
 }));
 
+// jest.fn (not a fixed arrow) so the web branch is reachable; pinning the
+// platform in the mock left half of refreshAuthToken untested.
+jest.mock('@/services/storage', () => ({
+  ...jest.requireActual<typeof import('@/services/storage')>('@/services/storage'),
+  isWeb: jest.fn(() => false),
+}));
+
 jest.mock('@/services/api/request', () => ({
   createRequestId: () => 'req-123',
   fetchWithTimeout: jest.fn(),
@@ -24,12 +28,13 @@ jest.mock('@/services/api/request', () => ({
 
 const session = () =>
   jest.requireMock('@/services/api/auth/authSession') as {
-    isWeb: jest.Mock;
     hasWebSessionFlag: jest.Mock;
     setWebSessionFlag: jest.Mock;
     loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
     persistStoredAccessToken: jest.Mock;
   };
+
+const storage = () => jest.requireMock('@/services/storage') as { isWeb: jest.Mock };
 
 const request = () => jest.requireMock('@/services/api/request') as { fetchWithTimeout: jest.Mock };
 
@@ -42,7 +47,7 @@ describe('authRefresh', () => {
     authRuntime.explicitlyLoggedOut = false;
     authRuntime.authGeneration = 0;
     jest.clearAllMocks();
-    session().isWeb.mockReturnValue(false);
+    storage().isWeb.mockReturnValue(false);
     session().hasWebSessionFlag.mockReturnValue(true);
   });
 
@@ -59,8 +64,8 @@ describe('authRefresh', () => {
         }),
     );
 
-    const first = refreshAuthToken('http://127.0.0.1:18010');
-    const second = refreshAuthToken('http://127.0.0.1:18010');
+    const first = refreshAuthToken();
+    const second = refreshAuthToken();
 
     // Both calls suspend on loadStoredRefreshToken before reaching fetch.
     await waitFor(() => expect(fetchWithTimeout).toHaveBeenCalled());
@@ -85,17 +90,17 @@ describe('authRefresh', () => {
       },
     } as never);
 
-    await expect(refreshAuthToken('http://127.0.0.1:18010')).resolves.toBe(false);
+    await expect(refreshAuthToken()).resolves.toBe(false);
     expect(authRuntime.token).toBeUndefined();
     expect(session().persistStoredAccessToken).not.toHaveBeenCalled();
   });
 
   it('on web marks the session live without persisting any token', async () => {
     const { fetchWithTimeout } = request();
-    session().isWeb.mockReturnValue(true);
+    storage().isWeb.mockReturnValue(true);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 200 } as never);
 
-    await expect(refreshAuthToken('http://127.0.0.1:18010')).resolves.toBe(true);
+    await expect(refreshAuthToken()).resolves.toBe(true);
     expect(session().setWebSessionFlag).toHaveBeenCalledWith(true);
     expect(session().persistStoredAccessToken).not.toHaveBeenCalled();
     expect(authRuntime.explicitlyLoggedOut).toBe(false);
@@ -103,10 +108,10 @@ describe('authRefresh', () => {
 
   it('on web skips the refresh entirely when no session flag is set', async () => {
     const { fetchWithTimeout } = request();
-    session().isWeb.mockReturnValue(true);
+    storage().isWeb.mockReturnValue(true);
     session().hasWebSessionFlag.mockReturnValue(false);
 
-    await expect(refreshAuthToken('http://127.0.0.1:18010')).resolves.toBe(false);
+    await expect(refreshAuthToken()).resolves.toBe(false);
     expect(fetchWithTimeout).not.toHaveBeenCalled();
   });
 
@@ -128,7 +133,7 @@ describe('authRefresh', () => {
       json: async () => ({ access_token: 'fresh-token', refresh_token: 'fresh-refresh-token' }),
     } as never);
 
-    await expect(refreshAuthToken('http://127.0.0.1:18010')).resolves.toBe(true);
+    await expect(refreshAuthToken()).resolves.toBe(true);
     expect(authRuntime.token).toBe('fresh-token');
     expect(fetchWithTimeout).toHaveBeenCalledWith(
       expect.objectContaining({ href: expect.stringContaining('/auth/bearer/refresh') }),
@@ -160,7 +165,7 @@ describe('authRefresh', () => {
       } as never)
       .mockResolvedValueOnce({ status: 200, ok: true } as never);
 
-    const response = await fetchWithAuth('http://127.0.0.1:18010', 'http://example.test', {
+    const response = await fetchWithAuth('http://example.test', {
       method: 'GET',
       headers: { Accept: 'application/json' },
     });
@@ -186,7 +191,7 @@ describe('authRefresh', () => {
       .mockResolvedValueOnce({ status: 401, ok: false } as never) // original request
       .mockResolvedValueOnce({ status: 503, ok: false } as never); // refresh during deploy
 
-    const response = await fetchWithAuth('http://127.0.0.1:18010', 'http://example.test');
+    const response = await fetchWithAuth('http://example.test');
 
     expect(response.status).toBe(401);
     expect(authRuntime.explicitlyLoggedOut).toBe(false);
@@ -210,7 +215,7 @@ describe('authRefresh', () => {
       .mockResolvedValueOnce({ status: 401, ok: false } as never) // original request
       .mockRejectedValueOnce(new Error('network down') as never); // refresh times out
 
-    const response = await fetchWithAuth('http://127.0.0.1:18010', 'http://example.test');
+    const response = await fetchWithAuth('http://example.test');
 
     expect(response.status).toBe(401);
     expect(authRuntime.explicitlyLoggedOut).toBe(false);
@@ -234,7 +239,7 @@ describe('authRefresh', () => {
       .mockResolvedValueOnce({ status: 401, ok: false } as never) // original request
       .mockResolvedValueOnce({ status: 401, ok: false } as never); // refresh rejected
 
-    await fetchWithAuth('http://127.0.0.1:18010', 'http://example.test');
+    await fetchWithAuth('http://example.test');
 
     expect(authRuntime.explicitlyLoggedOut).toBe(true);
     expect(clearStoredRefreshToken).toHaveBeenCalled();

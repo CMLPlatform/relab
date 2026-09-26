@@ -480,12 +480,13 @@ require_confirmation_command() {
     require_confirmation "$1" "$2" "$3"
 }
 
-# Read one KEY=value from the root .env the way Compose does: last assignment wins,
-# an inline ` # comment`, surrounding whitespace and one matching pair of quotes are
-# dropped. An unbalanced quote yields the raw text, which no caller treats as valid.
+# Read one KEY=value from the root .env the way a plain `source .env` does: last
+# assignment wins, an optional leading `export ` is accepted, an inline ` # comment`,
+# surrounding whitespace and one matching pair of quotes are dropped. An unbalanced
+# quote yields the raw text, which no caller treats as valid. No `${VAR}` expansion.
 dotenv_value() {
     local value
-    value="$(grep -E "^$1=" .env 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
+    value="$(grep -E "^[[:space:]]*(export[[:space:]]+)?$1=" .env 2>/dev/null | tail -n1 | cut -d= -f2- || true)"
     value="${value%%[[:space:]]#*}"
     value="${value#"${value%%[![:space:]]*}"}"
     value="${value%"${value##*[![:space:]]}"}"

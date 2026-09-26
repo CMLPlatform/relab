@@ -1,6 +1,6 @@
 """Integration tests for auth user CRUD functions.
 
-Tests validate_user_create and get_user_by_username directly against a real
+Tests validate_user_create directly against a real
 database session so we exercise the actual SQL queries, not mocked DB calls.
 """
 
@@ -10,14 +10,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from app.api.auth.crud import get_user_by_username, validate_user_create
+from app.api.auth.crud import validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import UserCreate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.services.user_manager import UserManager
-from app.api.common.exceptions import NotFoundError
 from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -119,22 +118,6 @@ async def test_get_by_email_returns_none_for_malformed_email(db_session: AsyncSe
     user_db = _make_user_db(db_session)
 
     assert await user_db.get_by_email("not-an-email") is None
-
-
-async def test_returns_user_when_found(db_session: AsyncSession) -> None:
-    """Existing username → returns the matching User instance."""
-    user = await UserFactory.create_async(db_session, email="user@example.com", username="find_me")
-
-    result = await get_user_by_username(db_session, "find_me")
-
-    assert result.id == user.id
-    assert result.username == "find_me"
-
-
-async def test_raises_when_username_not_found(db_session: AsyncSession) -> None:
-    """Non-existent username → raises NotFoundError with descriptive message."""
-    with pytest.raises(NotFoundError, match="not found"):
-        await get_user_by_username(db_session, "ghost_user")
 
 
 async def test_clear_totp_wipes_mfa_enrolment_on_a_real_row(db_session: AsyncSession) -> None:

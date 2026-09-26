@@ -1,8 +1,9 @@
 """Version of the contributor terms of service that accounts accept at signup.
 
 Bump ``CURRENT_TERMS_VERSION`` whenever the terms text changes materially. The text
-itself lives in ``www/src/copy/terms-content.ts``; the two are kept in step by hand,
-so a revision there is only half the change until this number moves with it.
+itself lives in the ``version``/``meta`` frontmatter of ``www/src/pages/terms.md``;
+the two are kept in step by hand, so a revision there is only half the change until
+this number moves with it. ``tests/test_terms_version.py`` guards the sync.
 
 Monotonically increasing, because that is the question the release tooling asks:
 "which records belong to owners who accepted version >= N".

@@ -7,7 +7,7 @@ from email_validator import EmailUndeliverableError
 
 from app.api.auth.services import email_identity
 from app.api.auth.services.email_identity import canonicalize_email
-from app.core.config import Environment
+from app.core.config.models import Environment
 
 
 @pytest.mark.parametrize(

@@ -1,10 +1,13 @@
 """Auth/user fixtures shared across integration test tiers."""
 
+import time
 from typing import TYPE_CHECKING
 
+import pyotp
 import pytest
 
 from app.api.auth.roles import UserRole
+from app.api.auth.services.mfa_service import TOTP_DIGITS, TOTP_PERIOD_SECONDS
 from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
@@ -52,3 +55,9 @@ async def db_lab_user(db_session: AsyncSession) -> User:
         role=UserRole.LAB,
         refresh_instance=True,
     )
+
+
+def totp_code(secret: str, *, for_time: int | None = None) -> str:
+    """Generate the TOTP code an authenticator app would show at the given time."""
+    timestamp = int(time.time()) if for_time is None else for_time
+    return pyotp.TOTP(secret, digits=TOTP_DIGITS, interval=TOTP_PERIOD_SECONDS).at(timestamp)

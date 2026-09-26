@@ -69,10 +69,6 @@ test-ci:
 test-e2e: build _browsers
     pnpm run test:e2e {{ if env("CI", "") != "" { "--project=chromium" } else { "" } }}
 
-# Run the full cross-browser E2E matrix: chromium, firefox, and webkit
-test-e2e-cross-browser: build _browsers
-    pnpm run test:e2e
-
 # Port the E2E backend is mapped to on the host (must match compose.e2e.yaml / E2E_BACKEND_PORT)
 e2e_backend_port := env("E2E_BACKEND_PORT", "18010")
 e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
@@ -80,26 +76,15 @@ e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
 # Build against the running E2E backend, so that the hero renders a live record.
 # The committed fixture ships one URL per photograph, so it cannot produce a srcset.
 # Only a real API response carries the width-keyed derivative map.
-# The origins below match `build`, except for the API and the featured product.
+# The seeded Dell XPS 13 is the one product whose components carry photographs;
+# seeding runs against an empty database, so its id is stable.
 [doc('Build against the running E2E backend, so the hero renders a live record')]
 build-e2e:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    export PUBLIC_APP_URL="${APP_PUBLIC_URL:-https://app.cml-relab.org}"
-    export PUBLIC_DOCS_URL="${DOCS_PUBLIC_URL:-https://docs.cml-relab.org}"
-    export PUBLIC_SITE_URL="${SITE_PUBLIC_URL:-https://cml-relab.org}"
-    export PUBLIC_API_URL="{{ e2e_api_url }}"
-    # The seeded Dell XPS 13: the one product whose components carry photographs.
-    # Seeding runs against an empty database, so its id is stable.
-    export PUBLIC_FEATURED_PRODUCT_ID="${E2E_FEATURED_PRODUCT_ID:-2}"
-    pnpm run build
+    API_PUBLIC_URL={{ quote(e2e_api_url) }} FEATURED_PRODUCT_ID="${E2E_FEATURED_PRODUCT_ID:-2}" just build
 
 # Run the live-data E2E lane. Needs the compose.e2e.yaml stack; see root test-e2e-full-stack.
 test-e2e-live: build-e2e _browsers
     WWW_E2E_LIVE=1 pnpm run test:e2e --project=chromium
-
-# Run the full CI pipeline locally
-ci: check test-ci
 
 # Clean caches and build artifacts
 clean:

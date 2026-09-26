@@ -1,7 +1,7 @@
 """Service classes and query helpers for file-backed media CRUD."""
 
 import logging
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from anyio import to_thread
@@ -29,7 +29,7 @@ from app.api.file_storage.upload_policy import (
 from app.api.file_storage.upload_quota import release_product_upload_quota_for_media, reserve_product_upload_quota
 from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.core.background_tasks import spawn_detached
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images import (
     DEFERRED_THUMBNAIL_WIDTHS,
     EAGER_THUMBNAIL_WIDTHS,
@@ -45,10 +45,12 @@ from .support_types import StorageCreateSchema, StorageModel
 from .support_uploads import build_storage_instance, process_uploadfile_name, validate_upload_size
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
     from pathlib import Path
     from uuid import UUID
 
     from app.api.common.crud.filtering import BaseFilterSet
+    from app.api.file_storage.models.storage_core import BaseStorage
 
 logger = logging.getLogger(__name__)
 
@@ -221,46 +223,24 @@ async def _generate_deferred_thumbnails(image_path: Path) -> None:
         await to_thread.run_sync(_discard_thumbnails_of_deleted_original, image_path)
 
 
-class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](ABC):
-    """Explicit service for create/delete operations on stored media."""
+@dataclass
+class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
+    """Create/delete operations on one kind of stored media.
 
-    def __init__(
-        self,
-        *,
-        model: type[StorageModelT],
-    ) -> None:
-        self.model = model
+    ``after_create`` runs *after* ``create()`` has committed and refreshed the item, so
+    a hook that writes to it is in a fresh transaction that nothing else closes and must
+    commit it itself. A flush alone is rolled back at session teardown. The UPDATE fires
+    the server-side ``onupdate`` on ``updated_at``, which expires that attribute, so
+    follow the commit with ``await db.refresh(item)`` or serializing the response raises
+    ``MissingGreenlet``.
+    """
 
-    @property
-    @abstractmethod
-    def max_size_mb(self) -> int:
-        """Return the upload size limit for this media type."""
-
-    @abstractmethod
-    async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
-        """Persist an uploaded file to storage."""
-
-    async def after_create(self, db: AsyncSession, item: StorageModelT) -> StorageModelT:
-        """Hook for post-create processing.
-
-        Runs *after* ``create()`` has committed and refreshed *item*, so an
-        implementation that writes to *item* is in a fresh transaction that
-        nothing else closes and must commit it itself. A flush alone is rolled
-        back at session teardown and the write never reaches the database.
-
-        The UPDATE fires the server-side ``onupdate`` on ``updated_at``, which
-        expires that attribute. Serializing the response then reads it from a
-        sync context and raises ``MissingGreenlet``, so follow the commit with
-        ``await db.refresh(item)``.
-        """
-        del db
-        return item
-
-    def validate_upload_metadata(self, upload_file: UploadFile) -> None:  # noqa: B027 # deliberate no-op default hook
-        """Validate upload metadata before storing bytes."""
-
-    def validate_upload_content(self, upload_file: UploadFile) -> None:  # noqa: B027 # deliberate no-op default hook
-        """Validate upload content before storing bytes."""
+    model: type[StorageModelT]
+    max_size_mb: Callable[[], int]
+    get_storage: Callable[[], BaseStorage]
+    validate_upload_metadata: Callable[[UploadFile], None]
+    validate_upload_content: Callable[[UploadFile], None]
+    after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] | None = None
 
     async def create(
         self,
@@ -275,7 +255,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             raise BadRequestError(msg)
 
         self.validate_upload_metadata(payload.file)
-        upload_size_bytes = await validate_upload_size(payload.file, self.max_size_mb)
+        upload_size_bytes = await validate_upload_size(payload.file, self.max_size_mb())
         await to_thread.run_sync(self.validate_upload_content, payload.file)
         await scan_upload_or_raise(payload.file)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
@@ -285,7 +265,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             # media only); the charge itself always targets the parent's owner.
             await reserve_product_upload_quota(db, parent_id=payload.parent_id, upload_size_bytes=upload_size_bytes)
 
-        stored_name = await self.write_upload(payload.file, stored_filename)
+        stored_name = await self.get_storage().write_upload(payload.file, stored_filename)
         db_item = build_storage_instance(
             model=self.model,
             file_id=file_id,
@@ -298,6 +278,8 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         db.add(db_item)
         await db.commit()
         await db.refresh(db_item)
+        if self.after_create is None:
+            return db_item
         return await self.after_create(db, db_item)
 
     async def delete(self, db: AsyncSession, item_id: UUID4) -> None:
@@ -325,57 +307,18 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             await delete_file_from_storage(db_item)
 
 
-class FileStorageService(StoredMediaService[File, FileCreate]):
-    """Service for generic file storage."""
-
-    def __init__(self) -> None:
-        super().__init__(model=File)
-
-    @property
-    def max_size_mb(self) -> int:
-        """Return the configured generic file upload limit."""
-        return settings.max_file_upload_size_mb
-
-    async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
-        """Persist a generic file upload."""
-        return await _get_file_storage().write_upload(upload_file, filename)
-
-    def validate_upload_metadata(self, upload_file: UploadFile) -> None:
-        """Validate generic file upload metadata."""
-        validate_generic_file_upload_metadata(upload_file)
-
-    def validate_upload_content(self, upload_file: UploadFile) -> None:
-        """Validate generic file upload content."""
-        validate_generic_file_upload_content(upload_file)
-
-
-class ImageStorageService(StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal]):
-    """Service for image storage and post-processing."""
-
-    def __init__(self) -> None:
-        super().__init__(model=Image)
-
-    @property
-    def max_size_mb(self) -> int:
-        """Return the configured image upload limit."""
-        return settings.max_image_upload_size_mb
-
-    async def write_upload(self, upload_file: UploadFile, filename: str) -> str:
-        """Persist an image upload."""
-        return await _get_image_storage().write_upload(upload_file, filename)
-
-    def validate_upload_metadata(self, upload_file: UploadFile) -> None:
-        """Validate image upload metadata."""
-        validate_image_upload_metadata(upload_file)
-
-    def validate_upload_content(self, upload_file: UploadFile) -> None:
-        """Validate image upload content."""
-        validate_image_upload_content(upload_file)
-
-    async def after_create(self, db: AsyncSession, item: Image) -> Image:
-        """Process the saved image after it has been persisted."""
-        return await _process_created_image(db, item)
-
-
-file_storage_service = FileStorageService()
-image_storage_service = ImageStorageService()
+file_storage_service: StoredMediaService[File, FileCreate] = StoredMediaService(
+    model=File,
+    max_size_mb=lambda: settings.max_file_upload_size_mb,
+    get_storage=_get_file_storage,
+    validate_upload_metadata=validate_generic_file_upload_metadata,
+    validate_upload_content=validate_generic_file_upload_content,
+)
+image_storage_service: StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal] = StoredMediaService(
+    model=Image,
+    max_size_mb=lambda: settings.max_image_upload_size_mb,
+    get_storage=_get_image_storage,
+    validate_upload_metadata=validate_image_upload_metadata,
+    validate_upload_content=validate_image_upload_content,
+    after_create=_process_created_image,
+)

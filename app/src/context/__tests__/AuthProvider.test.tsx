@@ -5,13 +5,19 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth';
-import { getToken, getUser, hasWebSessionFlag } from '@/services/api/auth/authentication';
+import { getToken } from '@/services/api/auth/authRefresh';
+import { hasWebSessionFlag } from '@/services/api/auth/authSession';
+import { getUser } from '@/services/api/auth/authUser';
 import type { User } from '@/types/User';
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   getToken: jest.fn(),
-  getUser: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authSession', () => ({
   hasWebSessionFlag: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authUser', () => ({
+  getUser: jest.fn(),
 }));
 
 const mockedGetToken = jest.mocked(getToken);

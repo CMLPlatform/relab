@@ -123,12 +123,6 @@ def _totp(secret: str) -> pyotp.TOTP:
     return pyotp.TOTP(secret, digits=TOTP_DIGITS, interval=TOTP_PERIOD_SECONDS)
 
 
-def generate_totp_code(secret: str, *, for_time: int | None = None) -> str:
-    """Generate a TOTP code for the given server-side time."""
-    timestamp = int(time.time()) if for_time is None else int(for_time)
-    return _totp(secret).at(timestamp)
-
-
 def _matching_totp_counter(secret: str, code: str, *, for_time: int | None = None) -> int | None:
     if not code.isdecimal() or len(code) != TOTP_DIGITS:
         return None

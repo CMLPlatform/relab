@@ -15,7 +15,8 @@ from app.api.auth.services.blocklist_store import (
 from app.api.auth.services.email_identity import canonical_email_domain
 from app.core.background_tasks import PeriodicBackgroundTask
 from app.core.clients.http import create_http_client
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 from app.core.env import BACKEND_DIR
 
 if TYPE_CHECKING:

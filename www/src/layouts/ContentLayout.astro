@@ -1,0 +1,53 @@
+---
+import { getPublicSiteConfig } from '@/config/public.ts';
+// Shared chrome for the site's prose pages (terms, privacy, accessibility): a
+// title/meta/intro header above the page's own Markdown body. Astro passes a
+// Markdown page's frontmatter here as a single `frontmatter` prop.
+import Layout from '@/layouts/Layout.astro';
+
+interface Feedback {
+  title: string;
+  lead: string;
+  trail: string;
+}
+
+interface Frontmatter {
+  title: string;
+  description: string;
+  meta?: string;
+  intro?: string;
+  /** Only the accessibility statement uses this: a feedback section whose
+   * address comes from deployment config, not from page copy. */
+  feedback?: Feedback;
+}
+
+interface Props {
+  frontmatter: Frontmatter;
+}
+
+const { title, description, meta, intro, feedback } = Astro.props.frontmatter;
+const { contactEmail } = getPublicSiteConfig();
+---
+
+<Layout title={title} description={description}>
+  <div class="content-page">
+    <section class="page-intro">
+      <h1>{title}</h1>
+      {meta && <p class="page-meta">{meta}</p>}
+      {intro && <p>{intro}</p>}
+    </section>
+    <slot />
+    {
+      feedback && (
+        <>
+          <h2>{feedback.title}</h2>
+          <p>
+            {feedback.lead}{' '}
+            <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.{' '}
+            {feedback.trail}
+          </p>
+        </>
+      )
+    }
+  </div>
+</Layout>

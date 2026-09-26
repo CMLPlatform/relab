@@ -9,7 +9,7 @@ from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
 from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services.programmatic_user_crud import create_user
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.database import async_session_context, close_async_engine
 
 # Set up logging

@@ -91,22 +91,6 @@
       }
     },
     {
-      // Generated mermaid flowcharts (see method-flow.mmd). `role="group"` on
-      // <svg> is correct: it labels the diagram and lets it hold the
-      // interactive step nodes. But Biome's useSemanticElements suggests
-      // <fieldset>, which is invalid inside SVG. noImportantStyles and
-      // noDescendingSpecificity fire on mermaid's own stylesheet. None of it
-      // is actionable in generated output.
-      "includes": ["src/assets/*.svg"],
-      "linter": {
-        "rules": {
-          "a11y": { "useSemanticElements": "off" },
-          "complexity": { "noImportantStyles": "off" },
-          "style": { "noDescendingSpecificity": "off" }
-        }
-      }
-    },
-    {
       // Decorative brand glyphs consumed as Astro SVG components: the
       // accessible name lives on the consuming link's aria-label, so an
       // embedded <title> here would just duplicate (or conflict with) it.

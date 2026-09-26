@@ -14,7 +14,7 @@ config = context.config
 # Tests and scripted callers can inject a database URL; CLI migrations fall back to app settings.
 database_url = config.get_alembic_option("sqlalchemy.url")
 if not database_url:
-    from app.core.config import settings
+    from app.core.config.core import settings
     from app.core.logging import setup_logging
 
     setup_logging()

@@ -46,7 +46,7 @@ export function useCategorySelection() {
   const moveUp = () => {
     setHistory((h) => {
       const next = h.slice(0, -1);
-      setCpvClass(next[next.length - 1]);
+      setCpvClass(next.at(-1) ?? null);
       return next;
     });
   };

@@ -7,7 +7,7 @@ from pydantic import SecretStr
 from pydantic_core import ValidationError
 
 from app.api.auth.config import AuthSettings
-from app.core.config import Environment
+from app.core.config.models import Environment
 
 if TYPE_CHECKING:
     from pathlib import Path

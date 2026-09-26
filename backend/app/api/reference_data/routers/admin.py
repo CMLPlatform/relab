@@ -11,7 +11,7 @@ from app.api.reference_data.routers.admin_materials import router as material_ro
 from app.api.reference_data.routers.admin_product_types import router as product_type_router
 from app.api.reference_data.routers.admin_taxonomies import router as taxonomy_router
 from app.core.cache import clear_cache_namespace
-from app.core.config import CacheNamespace
+from app.core.config.models import CacheNamespace
 
 router = AdminAPIRouter(
     prefix="/admin",

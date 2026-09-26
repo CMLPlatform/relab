@@ -16,9 +16,11 @@ jest.mock('@/services/api/oauthFlow', () => ({
   openOAuthBrowserSession: () => mockOpenBrowserSession(),
   parseOAuthCallbackUrl: () => mockParseCallbackUrl(),
 }));
-jest.mock('@/services/api/auth/authentication', () => ({
-  getUser: () => mockGetUser(),
+jest.mock('@/services/api/auth/authSession', () => ({
   markWebSessionActive: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authUser', () => ({
+  getUser: () => mockGetUser(),
 }));
 jest.mock('@/services/api/auth/authMfa', () => ({
   claimOAuthMfaHandoff: () => mockClaimOAuthMfaHandoff(),

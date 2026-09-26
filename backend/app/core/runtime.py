@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
@@ -51,11 +51,6 @@ def get_app_services(app: FastAPI) -> AppServices:
         services = AppServices()
         app.state.services = services
     return services
-
-
-def get_request_services(request: Request) -> AppServices:
-    """Return the typed runtime services container from a request."""
-    return get_connection_services(request)
 
 
 def require_redis(redis_client: Redis | None) -> Redis:

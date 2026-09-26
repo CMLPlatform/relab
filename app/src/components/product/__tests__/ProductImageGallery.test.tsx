@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { baseProduct, mockPlatform, renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 

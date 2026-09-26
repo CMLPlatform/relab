@@ -59,6 +59,11 @@ assert_eq "scanning: missing .env fails closed" on "$(scan_setting '')"
 assert_eq "scanning: last assignment wins" on \
     "$(scan_setting 'MALWARE_SCAN_ENABLED=false
 MALWARE_SCAN_ENABLED=true')"
+assert_eq "scanning: export prefix is accepted like a sourced .env" off \
+    "$(scan_setting 'export MALWARE_SCAN_ENABLED=false')"
+assert_eq "scanning: export prefix still honors last-assignment-wins" on \
+    "$(scan_setting 'export MALWARE_SCAN_ENABLED=false
+MALWARE_SCAN_ENABLED=true')"
 
 derived_profiles() {
     DEPLOY_PROFILE_FLAGS=("${@:2}")
@@ -857,7 +862,7 @@ remote_deploy() {
     local tmp
     tmp="$(mktemp -d)"
     mkdir -p "$tmp/scripts" "$tmp/.local/bin"
-    cp "$(dirname "${BASH_SOURCE[0]}")/remote_deploy.sh" "$tmp/scripts/"
+    cp "$(dirname "${BASH_SOURCE[0]}")"/{remote_deploy,deploy_ops}.sh "$tmp/scripts/"
     printf 'ENVIRONMENT=prod\n' >"$tmp/.env"
     printf '#!/bin/sh\necho "just $*"\n' >"$tmp/.local/bin/just"
     chmod +x "$tmp/.local/bin/just"
@@ -963,7 +968,7 @@ stamp_marker() {
     # that exits 0 silently leaves the operator guessing whether it did anything.
     printf '%s|%s|%s' "$status" \
         "$(printf '%s' "$out" | grep -Ec 'says \[staging\]|marks this volume as \[prod\]|marked the uploads volume as \[prod\]')" \
-        "$(cat "$tmp/.relab-volume" 2>/dev/null | tr -d '[:space:]')"
+        "$(tr -d '[:space:]' 2>/dev/null <"$tmp/.relab-volume")"
     rm -rf "$tmp"
 }
 

@@ -76,11 +76,6 @@ class DatabaseSettings(RelabBaseSettings):
         return self.build_database_url(DATABASE_DRIVER_ASYNCPG, self.postgres_db)
 
     @cached_property
-    def sync_url(self) -> str:
-        """Sync (psycopg) database URL for the application role."""
-        return self.build_database_url(DATABASE_DRIVER_PSYCOPG, self.postgres_db)
-
-    @cached_property
     def sync_migration_url(self) -> str:
         """Sync database URL for the migration role."""
         return self.build_database_url(
@@ -88,16 +83,6 @@ class DatabaseSettings(RelabBaseSettings):
             self.postgres_db,
             username=self.migration_user,
             password=self.migration_password,
-        )
-
-    @cached_property
-    def sync_backup_url(self) -> str:
-        """Sync database URL for the backup role."""
-        return self.build_database_url(
-            DATABASE_DRIVER_PSYCOPG,
-            self.postgres_db,
-            username=self.backup_user,
-            password=self.backup_password,
         )
 
     @cached_property

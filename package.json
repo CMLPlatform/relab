@@ -9,9 +9,7 @@
     "pnpm": "12.x"
   },
   "scripts": {
-    "biome": "biome",
     "lint": "biome check --error-on-warnings",
-    "format": "biome format --write",
     "fix": "biome check --write"
   },
   "devDependencies": {

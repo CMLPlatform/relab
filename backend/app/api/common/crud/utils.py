@@ -36,46 +36,6 @@ def ensure_model_exists[MT: Base](db_result: MT | None, model_type: type[MT], mo
     return cast("MT", db_result)
 
 
-def _validate_linked_items(
-    item_ids: set[int] | set[UUID],
-    existing_items: Sequence[Any] | None,
-    model_name_plural: str,
-    *,
-    id_attr: str = "id",
-    check_duplicates: bool = True,
-    check_existence: bool = True,
-) -> None:
-    """Validate linked items for both duplicates and existence.
-
-    Args:
-        item_ids: Set of IDs to validate
-        existing_items: Sequence of existing items to check against
-        model_name_plural: Name of the item model for error messages
-        id_attr: Attribute name to read the ID from each item (default ``"id"``)
-        check_duplicates: Whether to check if items are already assigned
-        check_existence: Whether to check if items exist in the list
-
-    Raises:
-        NoLinkedItemsError: If no items exist
-        LinkedItemsAlreadyAssignedError: If items are duplicates
-        LinkedItemsMissingError: If items don't exist
-    """
-    if not existing_items:
-        raise NoLinkedItemsError(model_name_plural)
-
-    existing_ids = {getattr(item, id_attr) for item in existing_items}
-
-    if check_duplicates:
-        duplicates = item_ids & existing_ids
-        if duplicates:
-            raise LinkedItemsAlreadyAssignedError(model_name_plural, duplicates)
-
-    if check_existence:
-        missing = item_ids - existing_ids
-        if missing:
-            raise LinkedItemsMissingError(model_name_plural, missing)
-
-
 def format_id_set(id_set: set[Any]) -> str:
     """Format a set of IDs as a comma-separated string."""
     return ", ".join(map(str, sorted(id_set)))
@@ -94,14 +54,10 @@ def validate_no_duplicate_linked_items(
     id_attr: str = "id",
 ) -> None:
     """Validate that new items are not already in the existing items list."""
-    _validate_linked_items(
-        new_ids,
-        existing_items,
-        model_name_plural,
-        id_attr=id_attr,
-        check_duplicates=True,
-        check_existence=False,
-    )
+    if not existing_items:
+        raise NoLinkedItemsError(model_name_plural)
+    if duplicates := new_ids & {getattr(item, id_attr) for item in existing_items}:
+        raise LinkedItemsAlreadyAssignedError(model_name_plural, duplicates)
 
 
 def validate_linked_items_exist(
@@ -112,11 +68,7 @@ def validate_linked_items_exist(
     id_attr: str = "id",
 ) -> None:
     """Validate that all item_ids are present in existing_items."""
-    _validate_linked_items(
-        item_ids,
-        existing_items,
-        model_name_plural,
-        id_attr=id_attr,
-        check_duplicates=False,
-        check_existence=True,
-    )
+    if not existing_items:
+        raise NoLinkedItemsError(model_name_plural)
+    if missing := item_ids - {getattr(item, id_attr) for item in existing_items}:
+        raise LinkedItemsMissingError(model_name_plural, missing)

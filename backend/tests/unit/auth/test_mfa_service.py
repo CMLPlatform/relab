@@ -12,6 +12,7 @@ from app.api.auth.exceptions import MfaChallengeInvalidError
 from app.api.auth.services import mfa_service
 from app.api.auth.services.token_store import token_key
 from app.api.common.rate_limiting import RateLimitExceededError, rate_limit_bucket_key
+from tests.fixtures.auth import totp_code
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -22,7 +23,7 @@ def test_totp_code_uses_server_time_and_expected_rfc_vector() -> None:
     """TOTP generation should match the RFC 6238 SHA-1 test vector."""
     secret = base64.b32encode(b"12345678901234567890").decode("ascii").rstrip("=")
 
-    code = mfa_service.generate_totp_code(secret, for_time=59)
+    code = totp_code(secret, for_time=59)
 
     assert code == "287082"
 
@@ -32,7 +33,7 @@ async def test_verify_totp_code_once_accepts_current_server_window(redis_client:
     secret = mfa_service.generate_totp_secret()
     user_id = uuid4()
     now = int(time.time())
-    code = mfa_service.generate_totp_code(secret, for_time=now)
+    code = totp_code(secret, for_time=now)
 
     assert await mfa_service.verify_totp_code_once(
         redis_client,

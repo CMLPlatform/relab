@@ -8,9 +8,12 @@ import {
 } from '@tanstack/react-query';
 import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import { ApiError } from '@/services/api/errors';
-import { searchProductBrands } from '@/services/api/productSuggestions';
 import { products } from '@/services/api/products';
-import { fetchProductTypesByName, searchProductTypes } from '@/services/api/productTypes';
+import {
+  fetchProductTypesByName,
+  searchProductBrands,
+  searchProductTypes,
+} from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import { fetchTopCategories } from '@/services/api/stats';
 import type { Product } from '@/types/Product';

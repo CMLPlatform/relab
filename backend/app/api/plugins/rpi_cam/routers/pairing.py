@@ -12,11 +12,13 @@ import logging
 
 from fastapi import HTTPException, status
 from relab_rpi_cam_models import (
+    PairingClaimedBootstrap,
     PairingClaimedRecord,
     PairingPendingRecord,
     PairingPollResponse,
     PairingRegisterRequest,
     PairingRegisterResponse,
+    RelayAuthScheme,
 )
 
 from app.api.auth.dependencies import CurrentActiveUserDep
@@ -34,13 +36,8 @@ from app.api.plugins.rpi_cam.exceptions import (
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.schemas import CameraCreate, CameraRead
 from app.api.plugins.rpi_cam.schemas.pairing import FINGERPRINT_PATTERN, PairingClaimRequest, PairingPollRequest
-from app.api.plugins.rpi_cam.utils.device_contracts import (
-    build_claimed_bootstrap,
-    build_claimed_record,
-    dump_pairing_record,
-    parse_pairing_record,
-)
-from app.core.config import settings as core_settings
+from app.api.plugins.rpi_cam.utils.device_contracts import parse_pairing_record
+from app.core.config.core import settings as core_settings
 from app.core.logging import sanitize_log_value
 from app.core.middleware.content_negotiation import API_PATH_PREFIX
 from app.core.redis import (
@@ -107,13 +104,11 @@ async def register_pairing_code(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid fingerprint format.")
 
     key = _pairing_key(body.code)
-    payload = dump_pairing_record(
-        PairingPendingRecord(
-            rpi_fingerprint=body.rpi_fingerprint,
-            public_key_jwk=body.public_key_jwk,
-            key_id=body.key_id,
-        )
-    )
+    payload = PairingPendingRecord(
+        rpi_fingerprint=body.rpi_fingerprint,
+        public_key_jwk=body.public_key_jwk,
+        key_id=body.key_id,
+    ).model_dump_json(exclude_none=True)
     stored = await set_redis_value_nx(redis, key, payload, ex=PAIRING_TTL_SECONDS)
     if not stored:
         raise PairingCodeCollisionError
@@ -182,16 +177,15 @@ async def claim_pairing_code(
                 _pairing_log_id(body.code),
             )
         raise
-    paired_payload = dump_pairing_record(
-        build_claimed_record(
-            build_claimed_bootstrap(
-                camera_id=str(db_camera.id),
-                ws_url=_build_ws_url(),
-                key_id=db_camera.relay_key_id,
-            ),
-            rpi_fingerprint=record.rpi_fingerprint,
-        )
-    )
+    # The pending record's fingerprint moves onto the claimed record so the device poll
+    # can re-verify identity before it receives the bootstrap payload.
+    paired_payload = PairingClaimedRecord(
+        camera_id=str(db_camera.id),
+        ws_url=_build_ws_url(),
+        key_id=db_camera.relay_key_id,
+        auth_scheme=RelayAuthScheme.DEVICE_ASSERTION,
+        rpi_fingerprint=record.rpi_fingerprint,
+    ).model_dump_json(exclude_none=True)
     await set_redis_value(redis, key, paired_payload, ex=PAIRING_CREDENTIAL_TTL_SECONDS)
 
     logger.info(
@@ -236,10 +230,11 @@ async def poll_pairing_status(
         await delete_redis_key(redis, key)
         logger.info("Pairing credentials retrieved for code %s.", _pairing_log_id(body.code))
         return PairingPollResponse.from_claimed_bootstrap(
-            build_claimed_bootstrap(
+            PairingClaimedBootstrap(
                 camera_id=record.camera_id,
                 ws_url=record.ws_url,
                 key_id=record.key_id,
+                auth_scheme=RelayAuthScheme.DEVICE_ASSERTION,
             )
         )
 

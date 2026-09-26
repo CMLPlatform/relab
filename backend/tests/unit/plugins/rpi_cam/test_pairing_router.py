@@ -8,7 +8,7 @@ import pytest
 from fakeredis.aioredis import FakeRedis
 from fastapi import HTTPException
 from pydantic import ValidationError
-from relab_rpi_cam_models import PairingRegisterRequest
+from relab_rpi_cam_models import PairingClaimedRecord, PairingRegisterRequest, RelayAuthScheme
 
 from app.api.common.rate_limiting import rate_limit_bucket_key
 from app.api.plugins.rpi_cam.exceptions import PairingCodeAlreadyClaimedError, PairingCodeNotFoundError
@@ -22,11 +22,6 @@ from app.api.plugins.rpi_cam.routers.pairing import (
     register_pairing_code,
 )
 from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingPollRequest
-from app.api.plugins.rpi_cam.utils.device_contracts import (
-    build_claimed_bootstrap,
-    build_claimed_record,
-    dump_pairing_record,
-)
 from scripts.seed.factories.models import UserFactory
 
 PUBLIC_JWK = {
@@ -359,16 +354,13 @@ async def test_claim_pairing_code_restores_claimed_record_with_remaining_ttl() -
     )
     body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
     redis_client = await _make_fake_redis()
-    claimed_payload = dump_pairing_record(
-        build_claimed_record(
-            build_claimed_bootstrap(
-                camera_id=str(uuid4()),
-                ws_url="ws://testserver/v1/plugins/rpi-cam/ws/connect",
-                key_id=KEY_ID,
-            ),
-            rpi_fingerprint="fingerprint",
-        )
-    )
+    claimed_payload = PairingClaimedRecord(
+        camera_id=str(uuid4()),
+        ws_url="ws://testserver/v1/plugins/rpi-cam/ws/connect",
+        key_id=KEY_ID,
+        auth_scheme=RelayAuthScheme.DEVICE_ASSERTION,
+        rpi_fingerprint="fingerprint",
+    ).model_dump_json(exclude_none=True)
     short_ttl = 30
     await redis_client.set(f"rpi_cam:pairing:{PAIRING_CODE}", claimed_payload, ex=short_ttl)
 
@@ -400,16 +392,13 @@ async def test_poll_pairing_status_reads_body_and_logs_digest() -> None:
     redis_client = await _make_fake_redis()
     await redis_client.set(
         f"rpi_cam:pairing:{PAIRING_CODE}",
-        dump_pairing_record(
-            build_claimed_record(
-                build_claimed_bootstrap(
-                    camera_id=str(uuid4()),
-                    ws_url="ws://testserver/v1/plugins/rpi-cam/ws/connect",
-                    key_id=KEY_ID,
-                ),
-                rpi_fingerprint="fingerprint",
-            )
-        ),
+        PairingClaimedRecord(
+            camera_id=str(uuid4()),
+            ws_url="ws://testserver/v1/plugins/rpi-cam/ws/connect",
+            key_id=KEY_ID,
+            auth_scheme=RelayAuthScheme.DEVICE_ASSERTION,
+            rpi_fingerprint="fingerprint",
+        ).model_dump_json(exclude_none=True),
     )
 
     with patch("app.api.plugins.rpi_cam.routers.pairing.logger") as mock_logger:

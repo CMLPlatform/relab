@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 from pythonjsonlogger.json import JsonFormatter
 
-from app.core.config import Environment
+from app.core.config.models import Environment
 from app.core.logging import configure_logging_handlers
 
 if TYPE_CHECKING:

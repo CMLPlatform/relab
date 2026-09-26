@@ -1,6 +1,6 @@
 """Tests for the shared async engine's logging posture."""
 
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.database import async_engine
 
 

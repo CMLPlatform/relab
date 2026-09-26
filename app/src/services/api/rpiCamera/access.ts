@@ -1,4 +1,4 @@
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { stripTrailingSlash } from '@/utils/urlSafety';
 import type { LocalAccessInfo } from './shared';
 import { CAMERA_BASE, isLocalAccessInfo } from './shared';

@@ -4,13 +4,13 @@ import { act, renderHook } from '@testing-library/react-native';
 import type React from 'react';
 import type { CaptureAllResult } from '@/features/cameras/rpi/hooks';
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/capture', () => ({
   captureImageFromCamera: jest.fn(),
 }));
 
 import { useCaptureAllMutation } from '@/features/cameras/rpi/hooks';
 // Imports that depend on the mock above MUST come after the jest.mock call.
-import { captureImageFromCamera } from '@/services/api/rpiCamera';
+import { captureImageFromCamera } from '@/services/api/rpiCamera/capture';
 
 const mockedCapture = jest.mocked(captureImageFromCamera);
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getToken } from '@/services/api/auth/authentication';
+import { getToken } from '@/services/api/auth/authRefresh';
 import { isWeb } from '@/services/storage';
 
 /**

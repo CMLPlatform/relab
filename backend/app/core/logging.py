@@ -9,7 +9,8 @@ from typing import TYPE_CHECKING, ClassVar
 
 from pythonjsonlogger.json import JsonFormatter
 
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

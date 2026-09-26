@@ -8,7 +8,8 @@ from sqlalchemy.dialects import postgresql
 
 from app.api.auth.models import OAuthAccount
 from app.api.plugins.rpi_cam.models import RecordingSession
-from app.core.config import CoreSettings, Environment
+from app.core.config.core import CoreSettings
+from app.core.config.models import Environment
 from app.core.crypto import storage
 from app.core.crypto.keys import decode_data_encryption_key
 from app.core.crypto.sqlalchemy import EncryptedString

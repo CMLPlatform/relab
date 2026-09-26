@@ -90,11 +90,6 @@ const SIDEBAR = [
 const STARLIGHT_OPTIONS = {
   title: 'Relab docs',
   description: 'Technical documentation for the Relab research platform.',
-  logo: {
-    src: './public/images/wordmark.svg',
-    alt: 'Relab',
-    replacesTitle: true,
-  },
   favicon: '/images/favicon.svg',
   titleDelimiter: '·',
   lastUpdated: true,

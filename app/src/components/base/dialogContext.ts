@@ -36,7 +36,7 @@ export type DialogContextType = {
 
 /** The button Enter submits: the last non-destructive, non-cancel one, else undefined. */
 export function pickSubmitButton(buttons: DialogButton[]): DialogButton | undefined {
-  return [...buttons].reverse().find((b) => b.style !== 'destructive' && b.style !== 'cancel');
+  return buttons.findLast((b) => b.style !== 'destructive' && b.style !== 'cancel');
 }
 
 export const DialogContext = createContext<DialogContextType | undefined>(undefined);
@@ -45,8 +45,4 @@ export function useDialog() {
   const ctx = useContext(DialogContext);
   if (!ctx) throw new Error('useDialog must be used within DialogProvider');
   return ctx;
-}
-
-export function useOptionalDialog() {
-  return useContext(DialogContext);
 }

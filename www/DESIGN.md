@@ -321,7 +321,7 @@ viewport, not per step.
   every page `h1`. Capped at the brand's 38/44 display step and floored at 2rem for phones. Uses
   `text-wrap: balance`, not a `ch` measure: a serif's "0" is a poor proxy for mixed-case width.
 - **Headline** (Serif 600, `clamp(1.6rem, 2.4vw, 2.2rem)`, 1.1): every section `h2`. Drops to
-  `clamp(1.35rem, 8vw, 1.95rem)` under 760px.
+  `clamp(1.35rem, 8vw, 2rem)` under 760px.
 - **Record Title** (Serif 600, `title` token = 1.5rem, 1.1): the featured record's name in the
   teardown panel, and the stat tile values.
 - **Subhead** (Serif 600, `heading` token = 1.1875rem, 1.1): section `h3`.

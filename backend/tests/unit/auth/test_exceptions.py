@@ -3,9 +3,6 @@
 Tests validate exception hierarchy, HTTP status codes, and message formatting.
 """
 
-from unittest.mock import Mock
-from uuid import uuid4
-
 import pytest
 from fastapi import status
 from fastapi_users.router.common import ErrorCode
@@ -30,7 +27,6 @@ from app.api.auth.exceptions import (
     RegistrationInvalidPasswordHTTPError,
     RegistrationUnexpectedHTTPError,
     UserNameAlreadyExistsError,
-    UserOwnershipError,
 )
 from app.api.common.exceptions import APIError
 
@@ -38,12 +34,6 @@ from app.api.common.exceptions import APIError
 def test_auth_crud_error_is_not_api_error() -> None:
     """Verify AuthCRUDError stays a marker mixin, while subclasses inherit APIError via concrete families."""
     assert not issubclass(AuthCRUDError, APIError)
-
-
-def test_user_ownership_error_is_api_error_not_auth_crud() -> None:
-    """Verify UserOwnershipError inherits from APIError directly, not AuthCRUDError."""
-    assert issubclass(UserOwnershipError, APIError)
-    assert not issubclass(UserOwnershipError, AuthCRUDError)
 
 
 @pytest.mark.parametrize(
@@ -96,22 +86,6 @@ def test_api_error_status_and_message(
     assert error.http_status_code == expected_status
     for fragment in expected_fragments:
         assert fragment in error.message, f"Expected '{fragment}' in '{error.message}'"
-
-
-def test_user_ownership_error_message() -> None:
-    """UserOwnershipError includes model name, user_id, and model_id."""
-    mock_model = Mock()
-    mock_model.model_label = "Product"
-
-    user_id = uuid4()
-    model_id = uuid4()
-    error = UserOwnershipError(model_type=mock_model, model_id=model_id, user_id=user_id)
-
-    assert error.http_status_code == status.HTTP_403_FORBIDDEN
-    assert "Product" in error.message
-    assert str(user_id) in error.message
-    assert str(model_id) in error.message
-    assert "does not own" in error.message.lower()
 
 
 @pytest.mark.parametrize(

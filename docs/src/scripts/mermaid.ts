@@ -2,7 +2,6 @@ import elkLayouts from '@mermaid-js/layout-elk';
 
 let mermaidRenderPromise: Promise<void> | undefined;
 let activeMermaidTheme = '';
-let themeObserver: MutationObserver | undefined;
 let mermaidModulePromise: Promise<typeof import('mermaid')> | undefined;
 let mermaidLayoutsRegistered = false;
 const BOM_PATTERN = /^\uFEFF/;
@@ -125,16 +124,10 @@ const normalizeMermaidSource = (source: string) => {
 };
 
 const readMermaidSource = (sourceElement: Element) => {
-  if (sourceElement.matches('pre[data-language="mermaid"]')) {
-    const lines = Array.from(sourceElement.querySelectorAll('.ec-line')).map(
-      (line) => line.querySelector('.code')?.textContent ?? '',
-    );
-    if (lines.length > 0) {
-      return lines.join('\n');
-    }
-  }
-
-  return sourceElement.textContent ?? '';
+  const lines = Array.from(sourceElement.querySelectorAll('.ec-line')).map(
+    (line) => line.querySelector('.code')?.textContent ?? '',
+  );
+  return lines.length > 0 ? lines.join('\n') : (sourceElement.textContent ?? '');
 };
 
 const getCurrentTheme = () =>
@@ -151,19 +144,9 @@ const loadMermaid = async () => {
 };
 
 const ensureMermaidContainers = () => {
-  const codeBlocks = document.querySelectorAll(
-    '.expressive-code pre[data-language="mermaid"], pre > code.language-mermaid',
-  );
+  const codeBlocks = document.querySelectorAll('.expressive-code pre[data-language="mermaid"]');
 
-  for (const codeBlock of codeBlocks) {
-    const sourceElement =
-      codeBlock instanceof HTMLElement && codeBlock.matches('pre[data-language="mermaid"]')
-        ? codeBlock
-        : codeBlock.parentElement;
-    if (!sourceElement) {
-      continue;
-    }
-
+  for (const sourceElement of codeBlocks) {
     const currentContainer =
       sourceElement.closest('.expressive-code') ?? sourceElement.closest('pre') ?? sourceElement;
     if (!(currentContainer instanceof HTMLElement)) {
@@ -246,11 +229,7 @@ const bindThemeObserver = () => {
     return;
   }
 
-  if (themeObserver) {
-    return;
-  }
-
-  themeObserver = new MutationObserver((mutations) => {
+  const themeObserver = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
         renderMermaid(true).catch(reportMermaidError);
@@ -264,11 +243,5 @@ const bindThemeObserver = () => {
   });
 };
 
-const initMermaidChrome = () => {
-  bindThemeObserver();
-  renderMermaid().catch(reportMermaidError);
-};
-
-document.addEventListener('astro:page-load', initMermaidChrome);
-document.addEventListener('astro:after-swap', initMermaidChrome);
-initMermaidChrome();
+bindThemeObserver();
+renderMermaid().catch(reportMermaidError);

@@ -45,10 +45,14 @@ jest.mock('@hookform/resolvers/zod', () => ({
   zodResolver: () => jest.fn(),
 }));
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authLogin', () => ({
   login: jest.fn(),
-  getUser: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authSession', () => ({
   markWebSessionActive: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authUser', () => ({
+  getUser: jest.fn(),
 }));
 
 jest.mock('@/services/api/oauthFlow', () => ({

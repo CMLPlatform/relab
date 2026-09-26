@@ -14,7 +14,8 @@ from httpx import CloseError
 from app.api.auth.runtime_dependencies import common_password_checker_from, email_checker_from
 from app.api.plugins.rpi_cam.websocket import runtime_state
 from app.core import lifecycle
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 from app.core.database import async_engine
 from app.core.runtime import AppServices
 from app.main import DOMAIN_LIFECYCLES

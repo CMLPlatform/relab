@@ -39,7 +39,7 @@ def _assert_rate_limited(route: APIRoute, dependency_name: str) -> None:
 async def test_rate_limit_dependency_returns_429() -> None:
     """The FastAPI dependency helper should enforce limits without endpoint wrappers."""
     app = FastAPI()
-    limiter = Limiter(key_func=lambda _: "dependency-key", storage_uri="memory://")
+    limiter = Limiter(storage_uri="memory://")
     app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
 
     @app.get("/limited", dependencies=[limiter.dependency("1/minute")])

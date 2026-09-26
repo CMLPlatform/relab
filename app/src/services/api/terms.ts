@@ -1,5 +1,5 @@
 import { API_URL } from '@/config';
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { throwFromResponse } from './errors';
 
 /** Record that this account accepts the contributor terms. No body: the server stamps the version. */

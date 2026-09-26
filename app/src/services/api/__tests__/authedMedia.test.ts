@@ -5,7 +5,7 @@ import { useAuthedMediaSource } from '@/services/api/authedMedia';
 const mockGetToken = jest.fn<() => Promise<string | undefined>>();
 const mockIsWeb = jest.fn<() => boolean>();
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   getToken: () => mockGetToken(),
 }));
 jest.mock('@/services/storage', () => ({
