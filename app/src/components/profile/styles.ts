@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
-import type { AppTheme } from '@/theme';
-import { memoizeByTheme } from '@/theme';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 
 // Theme-dependent color with no CSS var (tokens.*, surfaceVariant) stays in `style`.
 export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {

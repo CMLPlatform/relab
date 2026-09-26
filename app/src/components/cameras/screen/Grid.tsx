@@ -16,7 +16,7 @@ import {
   useEffectiveCameraConnection,
 } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { createCameraScreenStyles } from './styles';
 
 type CamerasGridProps = {

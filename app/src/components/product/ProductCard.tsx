@@ -8,7 +8,7 @@ import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
 import { IMAGE_FADE_MS, MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
 

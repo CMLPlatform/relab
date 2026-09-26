@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card } from '@/components/base/Card';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 /** Loading placeholder mirroring the detail layout (Content.tsx). */
 export default function ProductDetailsSkeleton() {

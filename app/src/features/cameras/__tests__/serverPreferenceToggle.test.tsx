@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useAuth } from '@/context/auth';
-import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
+import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { updateUser } from '@/services/api/auth/authentication';
 import type { User } from '@/types/User';
 
@@ -16,7 +16,7 @@ jest.mock('@/services/api/auth/authentication', () => ({
 const mockedUseAuth = jest.mocked(useAuth);
 const mockedUpdateUser = jest.mocked(updateUser);
 
-describe('useYouTubeIntegration', () => {
+describe('useServerPreferenceToggle', () => {
   const refetch = jest.fn();
 
   beforeEach(() => {
@@ -34,7 +34,9 @@ describe('useYouTubeIntegration', () => {
       isLoading: false,
     });
 
-    const { result } = await renderHook(() => useYouTubeIntegration());
+    const { result } = await renderHook(() =>
+      useServerPreferenceToggle('youtube_streaming_enabled'),
+    );
 
     expect(result.current.enabled).toBe(true);
     expect(result.current.loading).toBe(false);
@@ -47,7 +49,9 @@ describe('useYouTubeIntegration', () => {
       isLoading: true,
     });
 
-    const { result } = await renderHook(() => useYouTubeIntegration());
+    const { result } = await renderHook(() =>
+      useServerPreferenceToggle('youtube_streaming_enabled'),
+    );
 
     expect(result.current.enabled).toBe(false);
     expect(result.current.loading).toBe(true);
@@ -62,33 +66,36 @@ describe('useYouTubeIntegration', () => {
       isLoading: false,
     });
 
-    const { result } = await renderHook(() => useYouTubeIntegration());
+    const { result } = await renderHook(() =>
+      useServerPreferenceToggle('youtube_streaming_enabled'),
+    );
 
     expect(result.current.enabled).toBe(false);
     expect(result.current.loading).toBe(false);
   });
 
-  it('updates the server preference and refreshes auth state', async () => {
-    mockedUseAuth.mockReturnValue({
-      user: {
-        id: 'user-2',
-        username: 'tester',
-        preferences: { youtube_streaming_enabled: false },
-      } as unknown as User,
-      refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
-      isLoading: false,
-    });
-    mockedUpdateUser.mockResolvedValue(undefined);
+  it.each(['rpi_camera_enabled', 'youtube_streaming_enabled'] as const)(
+    'updates the %s server preference and refreshes auth state',
+    async (key) => {
+      mockedUseAuth.mockReturnValue({
+        user: {
+          id: 'user-2',
+          username: 'tester',
+          preferences: { [key]: false },
+        } as unknown as User,
+        refetch: refetch as (forceRefresh?: boolean) => Promise<undefined>,
+        isLoading: false,
+      });
+      mockedUpdateUser.mockResolvedValue(undefined);
 
-    const { result } = await renderHook(() => useYouTubeIntegration());
+      const { result } = await renderHook(() => useServerPreferenceToggle(key));
 
-    await act(async () => {
-      await result.current.setEnabled(true);
-    });
+      await act(async () => {
+        await result.current.setEnabled(true);
+      });
 
-    expect(mockedUpdateUser).toHaveBeenCalledWith({
-      preferences: { youtube_streaming_enabled: true },
-    });
-    expect(refetch).toHaveBeenCalledWith(false);
-  });
+      expect(mockedUpdateUser).toHaveBeenCalledWith({ preferences: { [key]: true } });
+      expect(refetch).toHaveBeenCalledWith(false);
+    },
+  );
 });

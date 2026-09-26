@@ -3,7 +3,7 @@ import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { useDialog } from '@/components/base/dialogContext';
 import { Icon } from '@/components/base/Icon';
 import { Text } from '@/components/base/ui/text';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
 
 interface Props {

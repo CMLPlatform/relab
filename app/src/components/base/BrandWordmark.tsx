@@ -1,7 +1,7 @@
 import { Asset } from 'expo-asset';
 import { Image } from 'expo-image';
 import type { ImageStyle, StyleProp } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 const LOGO_LIGHT = require('@/assets/images/logo.png');
 const LOGO_DARK = require('@/assets/images/logo-dark.png');

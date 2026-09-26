@@ -13,7 +13,7 @@ import pytest
 from app.api.auth.crud import validate_user_create
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.schemas import UserCreate
+from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.services.user_manager import UserManager
@@ -32,13 +32,13 @@ def _make_user_db(db_session: AsyncSession) -> UserDatabaseAsync:
 
 
 async def test_returns_user_create_unchanged_when_valid(db_session: AsyncSession) -> None:
-    """No conflicts or checks → returns the same UserCreate unchanged."""
+    """No conflicts or checks → returns the same create schema unchanged."""
     user_db = _make_user_db(db_session)
-    user_create = UserCreate(email="fresh@example.com", password=VALID_TEST_PASSWORD)
+    user_create = TrustedUserCreate(email="fresh@example.com", password=VALID_TEST_PASSWORD)
 
     result = await validate_user_create(user_db, user_create)
 
-    assert isinstance(result, UserCreate)
+    assert isinstance(result, TrustedUserCreate)
     assert result.email == user_create.email
 
 
@@ -46,7 +46,7 @@ async def test_raises_when_username_already_taken(db_session: AsyncSession) -> N
     """Duplicate username must raise UserNameAlreadyExistsError."""
     await UserFactory.create_async(db_session, email="first@example.com", username="taken_name")
     user_db = _make_user_db(db_session)
-    user_create = UserCreate(
+    user_create = TrustedUserCreate(
         email="second@example.com",
         password=VALID_TEST_PASSWORD,
         username="taken_name",
@@ -59,7 +59,7 @@ async def test_raises_when_username_already_taken(db_session: AsyncSession) -> N
 async def test_allows_omitted_username_for_internal_creation(db_session: AsyncSession) -> None:
     """Internal/OAuth creation may omit username for onboarding completion later."""
     user_db = _make_user_db(db_session)
-    user_create = UserCreate(email="anon@example.com", password=VALID_TEST_PASSWORD, username=None)
+    user_create = TrustedUserCreate(email="anon@example.com", password=VALID_TEST_PASSWORD, username=None)
 
     result = await validate_user_create(user_db, user_create)
 
@@ -69,7 +69,7 @@ async def test_allows_omitted_username_for_internal_creation(db_session: AsyncSe
 async def test_raises_for_disposable_email(db_session: AsyncSession) -> None:
     """A disposable email flagged by the checker must raise DisposableEmailError."""
     user_db = _make_user_db(db_session)
-    user_create = UserCreate(email="burner@disposable.com", password=VALID_TEST_PASSWORD)
+    user_create = TrustedUserCreate(email="burner@disposable.com", password=VALID_TEST_PASSWORD)
 
     mock_checker = AsyncMock()
     mock_checker.is_disposable.return_value = True
@@ -81,7 +81,7 @@ async def test_raises_for_disposable_email(db_session: AsyncSession) -> None:
 async def test_skips_disposable_check_when_checker_is_none(db_session: AsyncSession) -> None:
     """No email_checker → disposable check is skipped, validation passes."""
     user_db = _make_user_db(db_session)
-    user_create = UserCreate(email="burner@disposable.com", password=VALID_TEST_PASSWORD)
+    user_create = TrustedUserCreate(email="burner@disposable.com", password=VALID_TEST_PASSWORD)
 
     result = await validate_user_create(user_db, user_create, email_checker=None)
 
@@ -91,7 +91,7 @@ async def test_skips_disposable_check_when_checker_is_none(db_session: AsyncSess
 def test_rejects_removed_organization_fields() -> None:
     """User creation no longer accepts organization fields."""
     with pytest.raises(ValueError, match="organization"):
-        UserCreate(
+        TrustedUserCreate(
             email="orgfounder@example.com",
             password=VALID_TEST_PASSWORD,
             organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6",

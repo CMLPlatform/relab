@@ -1,5 +1,5 @@
 import { radius } from '@/constants';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 import { designTokens } from '@/theme/tokens.generated';
 
 const RGBA_COLOR_PATTERN = /^rgba\(\s*\d{1,3},\s*\d{1,3},\s*\d{1,3},\s*[0-9.]+\)$/;

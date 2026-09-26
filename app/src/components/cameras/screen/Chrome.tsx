@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { Fab } from '@/components/base/Fab';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { createCameraScreenStyles } from './styles';
 
 type CamerasFabProps = {

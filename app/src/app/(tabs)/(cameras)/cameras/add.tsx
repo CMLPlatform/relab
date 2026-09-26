@@ -16,7 +16,7 @@ import { Separator } from '@/components/base/ui/separator';
 import { RPI_CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
 
 function PairingSuccessDialog({

@@ -36,9 +36,18 @@ jest.mock('@/context/auth', () => ({
   useAuth: jest.fn(),
 }));
 
-jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
-  useRpiIntegration: () => mockUseRpiIntegration(),
-}));
+jest.mock('@/features/cameras/serverPreferenceToggle', () => {
+  const actual = jest.requireActual<typeof import('@/features/cameras/serverPreferenceToggle')>(
+    '@/features/cameras/serverPreferenceToggle',
+  );
+  return {
+    // Only the RPi toggle is under test; YouTube keeps the real hook.
+    useServerPreferenceToggle: (key: Parameters<typeof actual.useServerPreferenceToggle>[0]) => {
+      const real = actual.useServerPreferenceToggle(key);
+      return key === 'rpi_camera_enabled' ? mockUseRpiIntegration() : real;
+    },
+  };
+});
 
 jest.mock('@/features/cameras/rpi/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({

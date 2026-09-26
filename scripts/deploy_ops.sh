@@ -2,10 +2,6 @@
 # Root deploy/Compose operations behind the public justfile recipes.
 set -euo pipefail
 
-write_validation_env_file() {
-    uv run python scripts/env_policy.py validation-env "$1"
-}
-
 telemetry_overlay_args() {
     local root_env_file="${1:-.env}"
     # Gated on the same variable that turns on the API's own exporter, so container
@@ -79,17 +75,17 @@ compose_args() {
     host_overlay_args
 }
 
+# run_deploy_compose ENV [--env-file FILE] COMPOSE_ARGS...
+# The optional --env-file right after ENV swaps the host .env for another one (the
+# placeholder validation env); it must come first so it is never read as a compose arg.
 run_deploy_compose() {
     local env="$1"
+    local root_env_file=.env
     shift
-    mapfile -t compose_command < <(compose_args "$env")
-    "${compose_command[@]}" "$@"
-}
-
-run_validation_deploy_compose() {
-    local env="$1"
-    local root_env_file="$2"
-    shift 2
+    if [[ "${1:-}" == --env-file ]]; then
+        root_env_file="$2"
+        shift 2
+    fi
     mapfile -t compose_command < <(compose_args "$env" "$root_env_file")
     "${compose_command[@]}" "$@"
 }
@@ -106,7 +102,7 @@ render_compose_json() {
         profile_flags+=(--profile "$profile")
     done
 
-    run_validation_deploy_compose "$env" "$root_env_file" "${profile_flags[@]}" config --format json >"$output_path"
+    run_deploy_compose "$env" --env-file "$root_env_file" "${profile_flags[@]}" config --format json >"$output_path"
 }
 
 compose_config() {
@@ -116,14 +112,14 @@ compose_config() {
     }
     trap cleanup EXIT
     local validation_env="$tmp_root/validation.env"
-    write_validation_env_file "$validation_env"
+    uv run python scripts/env_policy.py validation-env "$validation_env"
 
     local env
     COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml config >/dev/null
     docker compose -p relab_test -f compose.yaml -f compose.ci.yaml config >/dev/null
     for env in staging prod; do
-        run_validation_deploy_compose "$env" "$validation_env" config >/dev/null
-        run_validation_deploy_compose "$env" "$validation_env" --profile backups --profile migrations config >/dev/null
+        run_deploy_compose "$env" --env-file "$validation_env" config >/dev/null
+        run_deploy_compose "$env" --env-file "$validation_env" --profile backups --profile migrations config >/dev/null
         # compose_args already emits the telemetry overlay here: the validation env sets
         # OTEL_EXPORTER_OTLP_ENDPOINT, and naming the file a second time makes compose
         # reject the render (duplicate list items in the merged service). Only the GPU
@@ -148,7 +144,7 @@ validate_deploy_secret_paths() {
     trap cleanup EXIT
 
     local validation_env="$tmp_root/validation.env"
-    write_validation_env_file "$validation_env"
+    uv run python scripts/env_policy.py validation-env "$validation_env"
     COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
     render_compose_json prod "$validation_env" "$tmp_root/prod.json" backups migrations
     render_compose_json staging "$validation_env" "$tmp_root/staging.json" backups migrations
@@ -274,7 +270,7 @@ deploy_secrets_template() {
     trap cleanup EXIT
 
     local validation_env="$tmp_root/validation.env"
-    write_validation_env_file "$validation_env"
+    uv run python scripts/env_policy.py validation-env "$validation_env"
 
     if [[ "$env" == "dev" ]]; then
         COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/$env.json"

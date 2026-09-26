@@ -5,7 +5,7 @@ import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
 import { PageContainer } from '@/components/base/PageContainer';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cameraDetailStyles } from './styles';
 
 type CameraDetailLayoutProps = {

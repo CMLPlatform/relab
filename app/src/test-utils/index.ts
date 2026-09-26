@@ -9,7 +9,6 @@ export {
   getHostByType,
   queryAllHostsByProps,
   queryAllHostsByType,
-  queryHostByProps,
 } from './host';
 export { mockPlatform, restorePlatform } from './platform';
 export { renderWithProviders } from './render';

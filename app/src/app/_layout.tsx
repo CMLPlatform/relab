@@ -35,8 +35,8 @@ import { SAVE_PRODUCT_MUTATION_KEY, saveProductMutationFn } from '@/features/pro
 import { registerNativeOnlineListener } from '@/services/nativeOnline';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
-import { createNavigationThemes, getAppTheme } from '@/theme';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
+import { createNavigationThemes, getAppTheme } from '@/theme/themes';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 

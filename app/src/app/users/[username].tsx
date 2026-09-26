@@ -19,7 +19,9 @@ import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import { productGridColumns } from '@/features/products/productGridColumns';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { useUserProducts } from '@/features/profile/useUserProducts';
-import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 import { heading } from '@/utils/a11y';
 
 // Local to this screen; unrelated to the HeroStats StatCard in components/profile.

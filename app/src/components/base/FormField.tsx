@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, type TextStyle, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 // One caption line at fontSize 12, matches NewAccountSections' HELPER_SLOT_HEIGHT.
 // minHeight, not height: large OS text-scale settings may still grow the line.

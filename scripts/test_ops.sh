@@ -173,6 +173,13 @@ assert_eq "generated secrets carry no placeholder marker" ok \
 assert_eq "compose args select the recipe's environment" "ENVIRONMENT=staging" \
     "$(compose_args staging /dev/null | grep -x 'ENVIRONMENT=.*')"
 assert_eq "compose args read one env file" "1" "$(compose_args prod /dev/null | grep -c -- '--env-file')"
+fake_bin="$(mktemp -d)"
+printf '#!/bin/sh\nprintf "%%s\\n" "$@"\n' >"$fake_bin/docker"
+chmod +x "$fake_bin/docker"
+compose_out="$(PATH="$fake_bin:$PATH" run_deploy_compose prod --env-file /dev/null config)"
+assert_eq "a leading --env-file replaces the host .env, once" "1 /dev/null config" \
+    "$(grep -cx -- '--env-file' <<<"$compose_out") $(grep -A1 -x -- '--env-file' <<<"$compose_out" | tail -1) $(tail -1 <<<"$compose_out")"
+rm -rf "$fake_bin"
 # These exit rather than return, so run them in a subshell and read its status.
 status=0
 (parse_profiles prod "migrations backups" bogus) >/dev/null 2>&1 || status=$?

@@ -3,7 +3,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 /** Sticky top bar for multi-select mode: capture selected, select all online, clear. */
 export function SelectionBar({

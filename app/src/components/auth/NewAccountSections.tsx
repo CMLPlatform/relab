@@ -14,7 +14,8 @@ import {
   PASSWORD_MIN_LENGTH,
 } from '@/services/api/validation/userSchema';
 import { openExternalUrl } from '@/services/externalLinks';
-import { getStatusTone, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { getStatusTone } from '@/theme/color';
 import { describedBy } from '@/utils/a11y';
 
 // Fixed-height slots so nothing moves as the error message comes and goes.

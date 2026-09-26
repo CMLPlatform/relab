@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
-import type { AppTheme } from '@/theme';
-import { alpha, memoizeByTheme } from '@/theme';
+import { alpha } from '@/theme/color';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 
 // Theme-dependent color with no CSS var (tokens.* / alpha()) stays in `style`.
 export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {

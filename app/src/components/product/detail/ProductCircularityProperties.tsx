@@ -5,7 +5,8 @@ import { DocsLink } from '@/components/base/DocsLink';
 import { TextInput } from '@/components/base/TextInput';
 import { Separator } from '@/components/base/ui/separator';
 import { DATA_COLLECTION_DOCS_PATH } from '@/config';
-import { type AppColors, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import type { AppColors } from '@/theme/types';
 import type { CircularityProperties, Product } from '@/types/Product';
 import { heading } from '@/utils/a11y';
 

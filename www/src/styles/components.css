@@ -470,6 +470,34 @@
   fill: currentColor;
 }
 
+/* Theme-swapped logo pair (SiteHeader, BrandHero). The component styles size
+   the images but leave `display` to these rules. */
+.brand-light {
+  display: block;
+}
+
+.brand-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand-light {
+    display: none;
+  }
+
+  :root:not([data-theme="light"]) .brand-dark {
+    display: block;
+  }
+}
+
+:root[data-theme="dark"] .brand-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .brand-dark {
+  display: block;
+}
+
 @media (max-width: 760px) {
   .section {
     padding-block: 2rem;

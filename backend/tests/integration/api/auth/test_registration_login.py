@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from app.api.auth.exceptions import DisposableEmailError, UserNameAlreadyExistsError
 from app.api.auth.models import User
-from app.api.auth.schemas import UserCreate
+from app.api.auth.schemas import UserRegister
 from app.api.auth.services import mfa_service
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.common.audit import AuditAction, AuditContext
@@ -100,7 +100,7 @@ async def test_register_duplicate_email_is_not_enumerable(api_client: AsyncClien
     fresh = await api_client.post("/v1/auth/register", json=user_data)
 
     with patch("app.api.auth.routers.register.validate_user_create") as mock_create_override:
-        mock_create_override.return_value = UserCreate(
+        mock_create_override.return_value = UserRegister(
             email=user_data["email"],
             password=user_data["password"],
             username=user_data["username"],

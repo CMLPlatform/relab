@@ -19,8 +19,8 @@ jest.mock('@/context/auth', () => ({
 }));
 
 const mockUseRpiIntegration = jest.fn();
-jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
-  useRpiIntegration: () => mockUseRpiIntegration(),
+jest.mock('@/features/cameras/serverPreferenceToggle', () => ({
+  useServerPreferenceToggle: () => mockUseRpiIntegration(),
 }));
 
 const push = jest.fn();

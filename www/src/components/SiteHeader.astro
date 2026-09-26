@@ -75,7 +75,6 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
   }
 
   .site-header-brand img {
-    display: block;
     height: 38px;
     width: auto;
   }
@@ -111,29 +110,6 @@ const { appUrl, docsUrl, heroBrand = false } = Astro.props;
   .site-header-nav a:focus-visible {
     color: var(--color-primary);
     text-decoration: underline;
-  }
-
-  /* Theme-swapped logo. The parent class is required: `.site-header-brand img`
-     above outweighs a bare `.brand-dark`. */
-  .site-header-brand .brand-dark {
-    display: none;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :global(:root:not([data-theme='light'])) .brand-light {
-      display: none;
-    }
-    :global(:root:not([data-theme='light'])) .brand-dark {
-      display: block;
-    }
-  }
-
-  :global(:root[data-theme='dark']) .brand-light {
-    display: none;
-  }
-
-  :global(:root[data-theme='dark']) .brand-dark {
-    display: block;
   }
 
   /* The other half of the handoff (BrandHero): this mark arrives as the hero's

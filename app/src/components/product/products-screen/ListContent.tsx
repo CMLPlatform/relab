@@ -19,7 +19,7 @@ import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/use
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { NewProductPill } from './InlinePills';
 import { PRODUCTS_LIST_FAB_CLEARANCE, productsScreenStyles as styles } from './shared';

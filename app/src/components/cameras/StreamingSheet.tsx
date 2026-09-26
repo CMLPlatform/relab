@@ -4,7 +4,7 @@ import { AppText } from '@/components/base/AppText';
 import { IconButton } from '@/components/base/IconButton';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
 import type { StreamSession } from '@/context/streamSession';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingContent } from './StreamingContent';
 

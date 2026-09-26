@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { useMfaSetup } from '@/features/profile/useMfaSetup';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { MfaDialogs } from './MfaDialogs';
 import { ProfileAction } from './shared';
 import { createProfileSectionStyles } from './styles';

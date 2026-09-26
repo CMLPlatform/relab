@@ -11,7 +11,7 @@ import { Icon } from '@/components/base/Icon';
 import { useResetPassword } from '@/features/auth/usePasswordReset';
 import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 import { PASSWORD_MIN_LENGTH } from '@/services/api/validation/userSchema';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 export default function ResetPasswordScreen() {
   const theme = useAppTheme();

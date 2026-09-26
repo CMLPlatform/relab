@@ -118,9 +118,3 @@ class CameraUpdate(BaseUpdateSchema):
     relay_public_key_jwk: RelayPublicKeyJWK | None = None
     relay_key_id: str | None = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
     relay_credential_status: CameraCredentialStatus | None = None
-
-    def credential_updates(self) -> dict[str, Any]:
-        """Return credential fields included in this partial update."""
-        return self.model_dump(
-            include={"relay_public_key_jwk", "relay_key_id", "relay_credential_status"}, exclude_unset=True
-        )

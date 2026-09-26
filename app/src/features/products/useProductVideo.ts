@@ -1,8 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
-import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
-import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
+import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import type { Product } from '@/types/Product';
 import { getStreamingState } from './productPageHelpers';
 
@@ -10,8 +9,8 @@ import { getStreamingState } from './productPageHelpers';
 export function useProductVideo(product: Product) {
   const router = useRouter();
   const { user } = useAuth();
-  const { enabled: rpiEnabled } = useRpiIntegration();
-  const { enabled: youtubeEnabled } = useYouTubeIntegration();
+  const { enabled: rpiEnabled } = useServerPreferenceToggle('rpi_camera_enabled');
+  const { enabled: youtubeEnabled } = useServerPreferenceToggle('youtube_streaming_enabled');
   const { activeStream } = useStreamSession();
 
   return {

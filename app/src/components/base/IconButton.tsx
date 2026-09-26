@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { MIN_TAP_TARGET, radius } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { Icon, type IconName } from './Icon';
 
 // `onPress`/`disabled`/`accessibilityState` stay controlled here so the loading

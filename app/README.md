@@ -212,7 +212,7 @@ Styling uses Uniwind; colors, type scale, and semantic tokens come from `AppThem
 `src/theme/brand.generated.css` as `@variant light`/`@variant dark` blocks; `Uniwind.setTheme()` in
 `src/app/_layout.tsx` switches between them.
 
-- Import theme values from `@/theme`, not from `src/assets/themes/*`
+- Import theme values from their owning module under `@/theme/` (for example `@/theme/appThemeContext`), not from `src/assets/themes/*`
 
 - Use `useAppTheme()` as the default hook for theme access
 

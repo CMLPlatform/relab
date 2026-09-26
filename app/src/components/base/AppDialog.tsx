@@ -2,7 +2,7 @@ import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, StyleSheet, type View } from 'react-native';
 import Animated, { Easing, FadeInUp, ReduceMotion } from 'react-native-reanimated';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { OverlaySurface } from './OverlaySurface';
 
 type AppDialogProps = {

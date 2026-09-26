@@ -11,7 +11,9 @@ import { TextInput } from '@/components/base/TextInput';
 import { radius, spacing } from '@/constants';
 import type { MfaSetupController } from '@/features/profile/useMfaSetup';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 import { heading } from '@/utils/a11y';
 
 const SECRET_CHUNK_PATTERN = /.{1,4}/g;

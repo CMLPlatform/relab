@@ -63,8 +63,8 @@ const mockUseCamerasQuery = jest.fn();
 const mockCaptureMutate = jest.fn();
 const mockUseCaptureImageMutation = jest.fn();
 
-jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
-  useRpiIntegration: () => mockUseRpiIntegration(),
+jest.mock('@/features/cameras/serverPreferenceToggle', () => ({
+  useServerPreferenceToggle: () => mockUseRpiIntegration(),
 }));
 
 jest.mock('@/features/cameras/rpi/hooks', () => ({

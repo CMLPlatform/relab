@@ -1,6 +1,6 @@
 import { type RefObject, useCallback, useRef } from 'react';
 import { View } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { type OAuthAccount, ProfileAction } from './shared';
 import { createProfileSectionStyles } from './styles';
 

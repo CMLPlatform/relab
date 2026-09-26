@@ -11,7 +11,7 @@ import {
   openShortcutsOverlay,
   useShortcutsOverlayOpen,
 } from '@/hooks/useShortcutsOverlay';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
 import { isPlainShortcut } from '@/utils/keyboardShortcuts';
 

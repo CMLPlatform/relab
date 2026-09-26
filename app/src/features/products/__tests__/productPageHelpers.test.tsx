@@ -4,7 +4,7 @@ import { ActivityIndicator } from 'react-native';
 import { Icon } from '@/components/base/Icon';
 import { getPrimaryFabIcon, getSaveStatus } from '@/features/products/productPageHelpers';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 
 const theme = getAppTheme('light');
 

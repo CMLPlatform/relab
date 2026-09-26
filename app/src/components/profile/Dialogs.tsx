@@ -8,7 +8,7 @@ import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { TextInput } from '@/components/base/TextInput';
 import { SUPPORT_EMAIL } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
 import { createProfileSectionStyles } from './styles';
 

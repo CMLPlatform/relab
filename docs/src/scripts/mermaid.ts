@@ -8,9 +8,7 @@ const BOM_PATTERN = /^\uFEFF/;
 const TRAILING_WHITESPACE_PATTERN = /[ \t]+$/g;
 
 const reportMermaidError = (error: unknown) => {
-  if (typeof reportError === 'function') {
-    reportError(error instanceof Error ? error : new Error(String(error)));
-  }
+  reportError(error instanceof Error ? error : new Error(String(error)));
 };
 
 /**
@@ -45,22 +43,24 @@ function pinDiagramToIntrinsicWidth(diagram: HTMLElement): void {
  * scrolls its overflow, so re-pinning the SVG never resizes the frame and
  * cannot loop the observer.
  */
-const diagramFrameObserver =
-  typeof ResizeObserver === 'undefined'
-    ? undefined
-    : new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          pinDiagramToIntrinsicWidth(entry.target as HTMLElement);
-        }
-      });
+const diagramFrameObserver = new ResizeObserver((entries) => {
+  for (const entry of entries) {
+    pinDiagramToIntrinsicWidth(entry.target as HTMLElement);
+  }
+});
 
-/* NOTE: hand-tuned surfaces; if brand.css primary changes, retune these (no machine link). */
+/*
+ * NOTE: literal colors because mermaid's parser (khroma) cannot read CSS custom
+ * properties or `light-dark()`. Border and text mirror brand.css
+ * --relab-brand-primary / --relab-brand-text; the surfaces are hand-tuned. If brand.css
+ * changes, retune these (no machine link).
+ */
 const mermaidThemeVariables = {
   light: {
     background: '#f7fbff',
     primaryColor: '#d9f4fb',
-    primaryBorderColor: 'var(--relab-brand-primary)',
-    primaryTextColor: 'var(--relab-brand-text)',
+    primaryBorderColor: '#1f4c96',
+    primaryTextColor: '#16202e',
     lineColor: '#24415b',
     tertiaryColor: '#eef5fb',
     // Without this, mermaid's `base` theme derives a pale yellow-green edge-label
@@ -70,47 +70,14 @@ const mermaidThemeVariables = {
   dark: {
     background: '#0c1724',
     primaryColor: '#13364d',
-    primaryBorderColor: 'var(--relab-brand-primary)',
-    primaryTextColor: 'var(--relab-brand-text)',
+    primaryBorderColor: '#8fb8ff',
+    primaryTextColor: '#e9eff8',
     lineColor: '#b9dcf6',
     tertiaryColor: '#102131',
     // Dark-mode derivation was rgba(54,77,19,.5). Same fix.
     edgeLabelBackground: '#102131',
   },
 } as const;
-
-// Mermaid's color parser (khroma) throws on CSS `light-dark()`; resolve it to
-// the concrete color for the current theme. Splits on the top-level comma so
-// nested rgba(...) values survive.
-const resolveLightDark = (value: string, theme: keyof typeof mermaidThemeVariables) => {
-  const match = /^light-dark\((.*)\)$/is.exec(value.trim());
-  if (!match) return value;
-  const inner = match[1];
-  let depth = 0;
-  for (let i = 0; i < inner.length; i++) {
-    const char = inner[i];
-    if (char === '(') depth += 1;
-    else if (char === ')') depth -= 1;
-    else if (char === ',' && depth === 0) {
-      const light = inner.slice(0, i).trim();
-      const dark = inner.slice(i + 1).trim();
-      return theme === 'dark' ? dark : light;
-    }
-  }
-  return value;
-};
-
-const resolveThemeVariables = (theme: keyof typeof mermaidThemeVariables) => {
-  const styles = getComputedStyle(document.documentElement);
-  return Object.fromEntries(
-    Object.entries(mermaidThemeVariables[theme]).map(([key, value]) => [
-      key,
-      value.startsWith('var(')
-        ? resolveLightDark(styles.getPropertyValue(value.slice(4, -1)).trim(), theme) || value
-        : value,
-    ]),
-  );
-};
 
 const normalizeMermaidSource = (source: string) => {
   return source
@@ -191,7 +158,7 @@ const renderMermaid = async (force = false): Promise<void> => {
         startOnLoad: false,
         securityLevel: 'strict',
         theme: 'base',
-        themeVariables: resolveThemeVariables(theme),
+        themeVariables: mermaidThemeVariables[theme],
       });
       activeMermaidTheme = theme;
       for (const diagram of diagrams) {
@@ -212,7 +179,7 @@ const renderMermaid = async (force = false): Promise<void> => {
         diagram.style.minHeight = '';
         pinDiagramToIntrinsicWidth(diagram);
         // Idempotent per element; re-renders (theme swaps) do not stack observers.
-        diagramFrameObserver?.observe(diagram);
+        diagramFrameObserver.observe(diagram);
       }
     }
   })();

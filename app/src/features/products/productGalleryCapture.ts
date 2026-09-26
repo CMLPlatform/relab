@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { clampIndex } from '@/components/product/gallery/shared';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
-import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
+import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import type { useProductGalleryMedia, useProductGalleryViewer } from './productGalleryViewer';
@@ -27,7 +27,7 @@ export function useProductGalleryCaptureState({
   const showCameraOption =
     Platform.OS !== 'web' ||
     (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
-  const { enabled: rpiEnabled } = useRpiIntegration();
+  const { enabled: rpiEnabled } = useServerPreferenceToggle('rpi_camera_enabled');
   const { data: rpiCameras, isLoading: rpiCamerasLoading } = useCamerasQuery(true, {
     enabled: rpiEnabled && editMode,
   });

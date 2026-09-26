@@ -1,5 +1,5 @@
 import { View } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 

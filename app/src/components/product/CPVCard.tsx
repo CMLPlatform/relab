@@ -1,7 +1,8 @@
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { WEB_FOCUS_RING } from '@/constants';
-import { getStatusTone, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { getStatusTone } from '@/theme/color';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 interface Props {

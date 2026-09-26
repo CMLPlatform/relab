@@ -3,7 +3,7 @@ import { fireEvent, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { StreamingSheet } from '@/components/cameras/StreamingSheet';
 import { renderWithProviders } from '@/test-utils/index';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 
 const mockStreamingContent = jest.fn();
 

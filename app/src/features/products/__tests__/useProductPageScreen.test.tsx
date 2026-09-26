@@ -66,12 +66,9 @@ jest.mock('@/context/streamSession', () => ({
   }),
 }));
 
-jest.mock('@/features/cameras/rpi/useRpiIntegration', () => ({
-  useRpiIntegration: () => ({ enabled: true }),
-}));
-
-jest.mock('@/features/cameras/youtube/useYouTubeIntegration', () => ({
-  useYouTubeIntegration: () => ({ enabled: true }),
+jest.mock('@/features/cameras/serverPreferenceToggle', () => ({
+  useServerPreferenceToggle: (key: string) =>
+    key === 'rpi_camera_enabled' ? { enabled: true } : { enabled: true },
 }));
 
 jest.mock('@/features/products/useProductForm', () => ({

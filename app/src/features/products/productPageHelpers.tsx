@@ -6,7 +6,7 @@ import { Icon } from '@/components/base/Icon';
 import { AncestorTrailHeader } from '@/components/product/AncestorTrailHeader';
 import { ProductNameHeader } from '@/components/product/ProductNameHeader';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
-import type { AppTheme } from '@/theme';
+import type { AppTheme } from '@/theme/types';
 import type { Product } from '@/types/Product';
 import { truncateHeaderLabel } from './truncateHeaderLabel';
 import type { AncestorCrumb } from './useAncestorTrail';

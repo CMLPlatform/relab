@@ -1,6 +1,6 @@
 import { usePathname } from 'expo-router';
 import { AUTH_HERO_PATHS, HERO_BAND_PATHS } from '@/constants';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 
 // Hero screens keep the background photo visible, so they get a light scrim
 // instead of the near-opaque page overlay other screens use.

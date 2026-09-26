@@ -25,7 +25,9 @@ import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import ZoomableImage, { type ZoomableImageHandle } from '@/components/product/ZoomableImage';
-import { type AppTheme, memoizeByTheme, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 import { cn } from '@/utils/cn';
 import {
   clampIndex as clampIndexIn,
