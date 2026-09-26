@@ -223,11 +223,6 @@ async def _generate_deferred_thumbnails(image_path: Path) -> None:
         await to_thread.run_sync(_discard_thumbnails_of_deleted_original, image_path)
 
 
-async def _return_created[StorageModelT: StorageModel](db: AsyncSession, item: StorageModelT) -> StorageModelT:
-    del db
-    return item
-
-
 @dataclass
 class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
     """Create/delete operations on one kind of stored media.
@@ -245,7 +240,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
     get_storage: Callable[[], BaseStorage]
     validate_upload_metadata: Callable[[UploadFile], None]
     validate_upload_content: Callable[[UploadFile], None]
-    after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] = _return_created
+    after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] | None = None
 
     async def create(
         self,
@@ -283,6 +278,8 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         db.add(db_item)
         await db.commit()
         await db.refresh(db_item)
+        if self.after_create is None:
+            return db_item
         return await self.after_create(db, db_item)
 
     async def delete(self, db: AsyncSession, item_id: UUID4) -> None:
