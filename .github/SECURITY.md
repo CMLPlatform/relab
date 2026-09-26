@@ -88,7 +88,10 @@ New and backfilled accounts start at `contributor`, so the tier fails closed.
 
 Supply-chain and code-security checks:
 
-- Dependencies: GitHub Dependency Review / Dependency Graph and Renovate.
+- Dependencies: GitHub Dependency Review / Dependency Graph and Renovate. Renovate runs from
+  `.github/workflows/renovate.yml` as a GitHub App installed on this repository only. The
+  workflow scopes each run's token to the permissions it lists, and the app's private key is an
+  Actions secret: rotate it whenever the key, or a workflow that can read it, may have leaked.
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
 - Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu
   validates Cloudflare edge config, plus Relab Compose render and deploy secret path checks.
