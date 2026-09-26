@@ -243,6 +243,7 @@ async def test_password_update_accepts_valid_current_password(
 
     assert response.status_code == status.HTTP_200_OK
     assert mock_email_sending.await_count == 1
+    assert mock_email_sending.await_args is not None
     message = mock_email_sending.await_args.args[0]
     assert message.recipients[0].email == "reauth-valid@example.com"
     assert "password was changed" in message.subject.lower()

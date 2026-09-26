@@ -34,7 +34,7 @@ class _NoNetworkTransport(httpx.AsyncBaseTransport):
     - Any other callers that fail open on non-OK responses are also fine.
     """
 
-    async def handle_async_request(self, _request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:  # noqa: ARG002 -- name must match the base signature for ty's LSP check
         return httpx.Response(200, content=b"")
 
 

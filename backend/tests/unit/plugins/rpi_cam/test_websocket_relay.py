@@ -14,7 +14,12 @@ from app.api.plugins.rpi_cam.websocket.connection_manager import CameraDisconnec
 
 
 class _FakeRedis:
-    """Dict-backed stand-in for the online-status key reads the relay makes."""
+    """Dict-backed stand-in for the online-status key reads the relay makes.
+
+    Deliberately duck-typed: it implements only ``get``, the one call this path makes,
+    rather than the full ``Redis`` surface, so its use is ``ty: ignore[invalid-argument-type]``
+    at each call site.
+    """
 
     def __init__(self) -> None:
         self.store: dict[str, str] = {}
@@ -42,7 +47,7 @@ async def test_relay_via_websocket_returns_retry_after_when_camera_is_disconnect
         ),
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)  # ty: ignore[invalid-argument-type]
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
@@ -133,7 +138,7 @@ async def test_mid_command_disconnect_skips_cross_worker_bridge() -> None:
         ) as relay_cross_worker,
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)  # ty: ignore[invalid-argument-type]
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
@@ -155,7 +160,7 @@ async def test_cross_worker_relay_fast_fails_when_camera_not_marked_online() -> 
         ) as relay_cross_worker,
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)  # ty: ignore[invalid-argument-type]
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
@@ -180,7 +185,7 @@ async def test_cross_worker_allowlist_rejection_surfaces_as_403() -> None:
         ),
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)  # ty: ignore[invalid-argument-type]
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.detail == RELAY_COMMAND_FORBIDDEN_DETAIL
@@ -202,7 +207,7 @@ async def test_cross_worker_generic_error_still_surfaces_as_503() -> None:
         ),
         pytest.raises(HTTPException) as exc_info,
     ):
-        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)  # ty: ignore[invalid-argument-type]
 
     assert exc_info.value.status_code == 503
     assert exc_info.value.detail == "Camera is not connected via WebSocket."
@@ -227,7 +232,7 @@ async def test_cross_worker_relay_forwards_trace_headers() -> None:
             AsyncMock(return_value=({"status": 200, "data": {"ok": True}}, None)),
         ) as relay_cross_worker,
     ):
-        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)
+        response = await relay_mod.relay_via_websocket(camera_id, "GET", "/camera", redis=redis)  # ty: ignore[invalid-argument-type]
 
     assert response.status_code == 200
     relay_cross_worker.assert_awaited_once_with(

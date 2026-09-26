@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock
 import anyio
 import pytest
 from aiosmtplib.errors import SMTPRecipientRefused, SMTPRecipientsRefused
+from pydantic import NameEmail
 
 from app.api.auth.services.email import service
 from app.api.auth.services.email.providers import EmailMessage
@@ -19,8 +20,8 @@ def _message() -> EmailMessage:
     """A minimal message; these tests exercise delivery, not rendering."""
     return EmailMessage(
         subject="Subject",
-        recipients=["user@example.com"],
-        sender="relab@example.com",
+        recipients=[NameEmail("", "user@example.com")],
+        sender=NameEmail("", "relab@example.com"),
         reply_to=[],
         html_body="<p>body</p>",
     )

@@ -49,7 +49,7 @@ def _from_in(filter_cls: type[BaseFilterSet], field: str, values: list[str]) -> 
         pytest.param(CategoryFilter, "category", id="category"),
     ],
 )
-def test_search_vector_col_references_model(filter_cls: type, table_name: str) -> None:
+def test_search_vector_col_references_model(filter_cls: type[BaseFilterSet], table_name: str) -> None:
     """The compiled search-vector column SQL must reference the model's table."""
     sql = _sql(filter_cls.search_vector_column())
     assert table_name in sql.lower()
@@ -63,7 +63,7 @@ def test_search_vector_col_references_model(filter_cls: type, table_name: str) -
         pytest.param(CategoryFilter, "category", id="category"),
     ],
 )
-def test_trigram_cols_contains_name(filter_cls: type, table_name: str) -> None:
+def test_trigram_cols_contains_name(filter_cls: type[BaseFilterSet], table_name: str) -> None:
     """The trigram columns must include a 'name' field."""
     cols = filter_cls.trigram_columns()
     assert len(cols) >= 1
@@ -80,7 +80,7 @@ def test_trigram_cols_contains_name(filter_cls: type, table_name: str) -> None:
         pytest.param(CategoryFilter, "category", id="category"),
     ],
 )
-def test_search_is_handled_by_relab_adapter(filter_cls: type, table_name: str) -> None:
+def test_search_is_handled_by_relab_adapter(filter_cls: type[BaseFilterSet], table_name: str) -> None:
     """Search should remain PostgreSQL tsvector/trigram logic owned by Relab."""
     statement = apply_filter(
         select(filter_cls.filter_model),
@@ -135,7 +135,7 @@ def test_search_is_trimmed() -> None:
         pytest.param(CategoryFilter, "external_id", id="category-external-id"),
     ],
 )
-def test_ilike_fields_reject_overlong_values(filter_cls: type, field: str) -> None:
+def test_ilike_fields_reject_overlong_values(filter_cls: type[BaseFilterSet], field: str) -> None:
     """Search-like query strings should have a practical upper bound."""
     with pytest.raises(ValidationError):
         _from_ilike(filter_cls, field, "a" * 101)

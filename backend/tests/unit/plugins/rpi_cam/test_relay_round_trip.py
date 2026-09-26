@@ -13,7 +13,7 @@ import asyncio
 import json
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
@@ -68,7 +68,7 @@ def _fake_pi(session: _RelayWebSocketSession, payload: dict | None = None) -> As
     return websocket
 
 
-def _session(camera_id: object, manager: CameraConnectionManager) -> _RelayWebSocketSession:
+def _session(camera_id: UUID, manager: CameraConnectionManager) -> _RelayWebSocketSession:
     return _RelayWebSocketSession(camera_id=camera_id, manager=manager, redis=AsyncMock())
 
 
@@ -151,7 +151,7 @@ async def test_a_camera_dropping_mid_command_fails_the_caller_immediately(
             await asyncio.gather(command, return_exceptions=True)
 
     assert excinfo.value.status_code == 503
-    assert "Retry-After" in excinfo.value.headers
+    assert "Retry-After" in (excinfo.value.headers or {})
     # Must be the disconnect response, not the deadline expiring on a still-pending command.
     assert excinfo.value.detail == "Camera is not connected via WebSocket."
 
@@ -215,4 +215,5 @@ async def test_a_camera_no_worker_holds_fails_without_waiting_on_the_bridge(
     # The status alone cannot tell this apart from the deadline expiring, and an
     # expired deadline would mean a worker sat on it. An unqueued command proves
     # the bridge was skipped rather than attempted and abandoned.
-    assert await redis_client.llen(_cmd_key(camera_id)) == 0
+    # redis-py's command stubs return `Awaitable[int] | int` regardless of client mode.
+    assert await redis_client.llen(_cmd_key(camera_id)) == 0  # ty: ignore[invalid-await]
