@@ -247,7 +247,10 @@ ladder, cheapest first, each rung including the ones above it:
 | `just ci-full` | everything GitHub Actions runs: `ci` plus `audit`, `cloudflare-check`, `docker-smoke`, `test-e2e` |
 
 Pull requests also run `cloudflare-check`, the www E2E suite, and `docker-smoke`, so a green
-`just ci` can still leave a red PR check; `just ci-full` covers them. It takes tens of minutes and
+`just ci` can still leave a red PR check; `just ci-full` covers them. On a pull request, the subrepo
+jobs, their Docker smoke legs, and CodeQL languages run only for the subrepos the diff touches
+(`scripts/ci_changed_areas.py`); a change outside the four subrepos runs everything, as do pushes to
+`main`. It takes tens of minutes and
 needs Docker. Only CodeQL, Trivy, Scorecard, and dependency
 review stay GitHub-only; they scan built images or the repository itself and run on every push.
 
@@ -282,9 +285,10 @@ changes. See [SECURITY.md](SECURITY.md) for the reviewer checklist.
 Use `just security` for local diagnosis.
 
 CI runs CodeQL once a pull request leaves draft and dependency review on every pull request. The
-container image scans (Trivy, blocking) run after merge and on the weekly schedule, not per pull
-request: Docker smoke already proves the images build, and base-image advisories move faster than
-images rebuild. Run `just security` before marking a pull request ready to get that signal early.
+container image scans (Trivy) run after merge and on the weekly schedule, not per pull request:
+Docker smoke already proves the images build, and base-image advisories move faster than images
+rebuild. After a merge a finding is reported without failing the run; the weekly and manual runs
+fail on it. Run `just security` before marking a pull request ready to get that signal early.
 
 ## Backend Setup
 
