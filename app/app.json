@@ -28,8 +28,6 @@
       "allowBackup": false
     },
     "web": {
-      "bundler": "metro",
-      "output": "single",
       "favicon": "./src/assets/images/favicon.png"
     },
     "plugins": [

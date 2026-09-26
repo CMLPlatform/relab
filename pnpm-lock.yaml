@@ -202,9 +202,6 @@ importers:
 
   .:
     devDependencies:
-      '@babel/runtime':
-        specifier: 7.29.7
-        version: 7.29.7
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
