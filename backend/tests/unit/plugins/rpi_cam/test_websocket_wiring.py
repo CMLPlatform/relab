@@ -7,7 +7,7 @@ would leave those tests green and take every camera in the field offline, so thi
 module drives a real ASGI websocket scope through the app instead.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -15,6 +15,7 @@ from app.api.plugins.rpi_cam.routers.pairing import _build_ws_url
 from app.main import app
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
     from uuid import UUID
 
 # Deliberate literals, not imports: a paired camera persists the absolute URL it was
@@ -25,14 +26,14 @@ CAMERA_ID_QUERY_PARAM = "camera_id"
 _WS_POLICY_VIOLATION = 1008
 
 
-async def _drive_handshake(path: str, query: str) -> list[dict]:
+async def _drive_handshake(path: str, query: str) -> list[MutableMapping[str, Any]]:
     """Open a websocket scope against the real app and return what it sent back."""
-    sent: list[dict] = []
+    sent: list[MutableMapping[str, Any]] = []
 
-    async def receive() -> dict:
+    async def receive() -> MutableMapping[str, Any]:
         return {"type": "websocket.connect"}
 
-    async def send(message: dict) -> None:
+    async def send(message: MutableMapping[str, Any]) -> None:
         sent.append(message)
 
     scope = {

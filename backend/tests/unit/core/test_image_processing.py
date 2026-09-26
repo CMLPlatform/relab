@@ -432,7 +432,9 @@ def test_multiframe_gif_without_exif_is_left_untouched(tmp_path: Path) -> None:
 
     assert path.read_bytes() == before, "GIF was re-encoded despite needing no processing"
     with PILImage.open(path) as reopened:
-        assert reopened.n_frames == 3
+        # n_frames is added by GifImagePlugin at runtime; Pillow's stub only types the
+        # base ImageFile.
+        assert reopened.n_frames == 3  # ty: ignore[unresolved-attribute]
 
 
 def test_multiframe_gif_with_exif_is_left_untouched(tmp_path: Path) -> None:
@@ -453,7 +455,9 @@ def test_multiframe_gif_with_exif_is_left_untouched(tmp_path: Path) -> None:
 
     assert path.read_bytes() == before, "animated original was re-encoded despite carrying EXIF"
     with PILImage.open(path) as reopened:
-        assert reopened.n_frames == 3
+        # n_frames is added by GifImagePlugin at runtime; Pillow's stub only types the
+        # base ImageFile.
+        assert reopened.n_frames == 3  # ty: ignore[unresolved-attribute]
 
 
 def test_lossless_webp_without_exif_is_left_untouched(tmp_path: Path) -> None:

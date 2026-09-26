@@ -41,6 +41,7 @@ async def test_require_locked_model_applies_for_update() -> None:
     found = await require_locked_model(session, Material, 1)
 
     assert found is material
+    assert session.execute.await_args is not None
     statement = session.execute.await_args.args[0]
     assert str(statement.compile()).endswith("FOR UPDATE")
 

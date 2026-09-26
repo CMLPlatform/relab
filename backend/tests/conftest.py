@@ -21,7 +21,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 # Ensure settings modules load from .env.test before any app imports happen.
@@ -37,6 +37,9 @@ from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from testcontainers.community.postgres import PostgresContainer
+from xdist.workermanage import (
+    WorkerController,  # noqa: TC002 -- needed at runtime, pytest inspects hook signatures eagerly
+)
 
 from app.core.logging import setup_logging
 
@@ -70,6 +73,11 @@ def _is_xdist_worker(config: pytest.Config) -> bool:
     return hasattr(config, "workerinput")
 
 
+def _worker_input(config: pytest.Config) -> dict[str, Any]:
+    """Return the xdist-supplied `workerinput` dict, present only on worker configs."""
+    return config.workerinput  # ty: ignore[unresolved-attribute]  # xdist attaches this dynamically
+
+
 def _xdist_active(config: pytest.Config) -> bool:
     return bool(getattr(config.option, "numprocesses", None))
 
@@ -77,7 +85,7 @@ def _xdist_active(config: pytest.Config) -> bool:
 def _absorb_shared_container_coords(config: pytest.Config) -> None:
     """Reuse the controller's shared Postgres container on an xdist worker."""
     global _external_container
-    workerinput = config.workerinput  # type: ignore[attr-defined]  # present on xdist workers
+    workerinput = _worker_input(config)
     os.environ["DATABASE_HOST"] = workerinput["relab_db_host"]
     os.environ["DATABASE_PORT"] = workerinput["relab_db_port"]
     os.environ["POSTGRES_USER"] = "postgres"
@@ -105,10 +113,10 @@ def pytest_configure(config: pytest.Config) -> None:
         _ensure_testcontainers_postgres()
 
 
-def pytest_configure_node(node: object) -> None:
+def pytest_configure_node(node: WorkerController) -> None:
     """Hand the shared container's coordinates to each xdist worker (controller-side hook)."""
-    node.workerinput["relab_db_host"] = os.environ["DATABASE_HOST"]  # type: ignore[attr-defined]
-    node.workerinput["relab_db_port"] = os.environ["DATABASE_PORT"]  # type: ignore[attr-defined]
+    node.workerinput["relab_db_host"] = os.environ["DATABASE_HOST"]
+    node.workerinput["relab_db_port"] = os.environ["DATABASE_PORT"]
 
 
 def _ensure_testcontainers_postgres() -> None:

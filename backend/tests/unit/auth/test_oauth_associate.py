@@ -170,6 +170,7 @@ async def test_same_user_reassociate_updates_token_in_place() -> None:
 
     um.user_db.update_oauth_account.assert_awaited_once()
     args = um.user_db.update_oauth_account.await_args
+    assert args is not None
     assert args.args[1] is existing_account
     assert args.args[2] == {
         "access_token": "new-access",

@@ -10,6 +10,7 @@ from fastapi_users.jwt import decode_jwt, generate_jwt
 from fastapi_users.manager import BaseUserManager
 from jwt import InvalidAudienceError
 from pydantic import SecretStr
+from redis.asyncio import Redis
 
 from app.api.auth.models import User
 from app.api.auth.schemas import UserUpdate
@@ -279,7 +280,9 @@ async def test_on_after_login_does_not_store_or_log_ip_address(caplog: pytest.Lo
     request = MagicMock()
     request.client.host = "203.0.113.10"
 
-    await manager.on_after_login(user, request, None)
+    # LoginUser is deliberately duck-typed: the test asserts an attribute stays absent,
+    # which a real User instance can never demonstrate.
+    await manager.on_after_login(user, request, None)  # ty: ignore[invalid-argument-type]
 
     assert user.last_login_at is not None
     assert not hasattr(user, "last_login_ip")
@@ -340,7 +343,7 @@ async def test_on_after_reset_password_revokes_refresh_tokens_and_sends_confirma
     # An OAuth-only account resetting its password gains a usable one.
     user.has_usable_password = False
     request = MagicMock()
-    redis = object()
+    redis = MagicMock(spec=Redis)
     request.app.state.services = AppServices(redis=redis)
 
     with (
@@ -368,7 +371,7 @@ async def test_on_after_update_logs_deactivation_with_enum_action() -> None:
     user = MagicMock()
     user.id = "user-id"
     request = MagicMock()
-    redis = object()
+    redis = MagicMock(spec=Redis)
     request.app.state.services = AppServices(redis=redis)
 
     with (
@@ -391,7 +394,7 @@ async def test_on_after_update_keeps_sessions_when_not_deactivating() -> None:
     user = MagicMock()
     user.id = "user-id"
     request = MagicMock()
-    request.app.state.services = AppServices(redis=object())
+    request.app.state.services = AppServices(redis=MagicMock(spec=Redis))
 
     with (
         patch(
@@ -412,7 +415,7 @@ async def test_delete_revokes_refresh_tokens_before_removing_the_row() -> None:
     user = MagicMock()
     user.id = "user-id"
     request = MagicMock()
-    redis = object()
+    redis = MagicMock(spec=Redis)
     request.app.state.services = AppServices(redis=redis)
 
     call_order: list[str] = []
@@ -446,7 +449,7 @@ async def test_delete_aborts_without_removing_the_row_when_revocation_fails() ->
     user = MagicMock()
     user.id = "user-id"
     request = MagicMock()
-    request.app.state.services = AppServices(redis=object())
+    request.app.state.services = AppServices(redis=MagicMock(spec=Redis))
     manager.user_db.delete = AsyncMock()
 
     with (
@@ -478,6 +481,7 @@ async def test_on_after_register_welcomes_oauth_signup_and_marks_password_unusab
         await manager.on_after_register(user, request=None)
 
     welcome.assert_awaited_once()
+    assert welcome.await_args is not None
     assert welcome.await_args.kwargs["oauth_provider"] == "google"
     # OAuth-created accounts get a random password they can never use.
     assert user.has_usable_password is False

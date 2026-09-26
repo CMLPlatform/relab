@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from anyio import to_thread
+from anyio import CapacityLimiter, to_thread
 from fastapi import UploadFile
 from PIL import Image as PILImage
 from pydantic import ValidationError
@@ -33,6 +33,7 @@ from app.core.images import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
 TEST_FILE_DESC = "Test file"
@@ -51,12 +52,14 @@ def test_file_create_rejects_quota_user_fields() -> None:
     mock_file.filename = TEST_FILENAME
 
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        # quota_user_id was deliberately removed from the schema; this pins that
+        # pydantic rejects it at runtime as an unknown field.
         FileCreate(
             file=mock_file,
             description=TEST_FILE_DESC,
             parent_id=1,
             parent_type=MediaParentType.PRODUCT,
-            quota_user_id=uuid4(),
+            quota_user_id=uuid4(),  # ty: ignore[unknown-argument]
         )
 
 
@@ -121,12 +124,14 @@ def test_image_create_rejects_quota_user_fields() -> None:
     mock_file.filename = IMAGE_FILENAME
 
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        # quota_user_id was deliberately removed from the schema; this pins that
+        # pydantic rejects it at runtime as an unknown field.
         ImageCreateInternal(
             file=mock_file,
             description=TEST_IMAGE_DESC,
             parent_id=1,
             parent_type=MediaParentType.PRODUCT,
-            quota_user_id=uuid4(),
+            quota_user_id=uuid4(),  # ty: ignore[unknown-argument]
         )
 
 
@@ -296,9 +301,11 @@ async def test_the_deferred_pass_runs_under_its_own_limiter(tmp_path: Path) -> N
 
     real_run_sync = to_thread.run_sync
 
-    async def record_limiter(func: object, *args: object, limiter: object = None, **kwargs: object) -> object:
+    async def record_limiter(
+        func: Callable[..., object], *args: object, limiter: CapacityLimiter | None = None
+    ) -> object:
         limiters.append(limiter)
-        return await real_run_sync(func, *args, limiter=limiter, **kwargs)
+        return await real_run_sync(func, *args, limiter=limiter)
 
     with patch.object(support_services, "to_thread", SimpleNamespace(run_sync=record_limiter)):
         await _generate_deferred_thumbnails(image_path)

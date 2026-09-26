@@ -3,6 +3,7 @@
 import logging
 from io import BytesIO
 from tempfile import SpooledTemporaryFile
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import anyio
@@ -18,6 +19,9 @@ from app.api.file_storage.upload_security import (
     scan_upload_or_raise,
     validate_malware_scanner_configuration,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def _upload(content: bytes = b"clean") -> UploadFile:
@@ -127,10 +131,10 @@ async def test_clamav_scanner_reads_large_spooled_upload_off_the_event_loop(
     read_calls: list[object] = []
     real_run_sync = anyio.to_thread.run_sync
 
-    async def _tracking_run_sync(func: object, *args: object, **kwargs: object) -> object:
+    async def _tracking_run_sync(func: Callable[..., object], *args: object) -> object:
         if func == spooled.read:
             read_calls.append(func)
-        return await real_run_sync(func, *args, **kwargs)  # type: ignore[arg-type]
+        return await real_run_sync(func, *args)
 
     async def _connect_tcp(host: str, port: int) -> _ClamAVResponseStream:
         assert host == "clamav"
@@ -143,10 +147,12 @@ async def test_clamav_scanner_reads_large_spooled_upload_off_the_event_loop(
     with SpooledTemporaryFile(max_size=1024 * 1024) as spooled:
         spooled.write(payload)
         spooled.rollover()  # force to disk, mirroring a real large upload's spool behavior
-        assert spooled._rolled  # sanity: this file is actually disk-backed, not in-memory
+        # `_rolled` is SpooledTemporaryFile's private disk-vs-memory flag, absent from
+        # typeshed's public stub; and the same stub is narrower than `BinaryIO`.
+        assert spooled._rolled  # ty: ignore[unresolved-attribute]  # sanity: this file is actually disk-backed
 
         scanner = ClamAVScanner(host="clamav", port=3310, timeout_seconds=5)
-        await scanner.scan(spooled)
+        await scanner.scan(spooled)  # ty: ignore[invalid-argument-type]
 
     assert read_calls, "expected fileobj.read to be offloaded via anyio.to_thread.run_sync"
 
