@@ -14,9 +14,6 @@ exclude-newer-span = "P3D"
 [options.exclude-newer-package]
 relab-rpi-cam-models = "3000-01-01T00:00:00Z"
 
-[manifest]
-overrides = [{ name = "cryptography", specifier = ">=50.0.0" }]
-
 [[package]]
 name = "aiosmtplib"
 version = "5.1.3"

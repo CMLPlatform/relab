@@ -29,16 +29,16 @@ fix:
     pnpm run fix
 
 # Run the tests (unit + integration)
-test:
-    pnpm run test
+test *args:
+    pnpm run test -- {{ args }}
 
 # Run the fast unit test suite only
-test-unit:
-    pnpm run test:unit
+test-unit *args:
+    pnpm run test:unit -- {{ args }}
 
 # Run the slower app-level Jest integration suite only
-test-integration:
-    pnpm run test:integration
+test-integration *args:
+    pnpm run test:integration -- {{ args }}
 
 # Run the CI test suite. Coverage quadruples the run time, so CI collects it on push
 # and on schedule only. Codecov carries the flag forward on pull requests.

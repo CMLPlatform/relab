@@ -30,7 +30,7 @@ defaults:
 jobs:
   automation:
     name: Root, IaC, and Compose Policy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -61,7 +61,7 @@ jobs:
         run: uv sync --frozen && pnpm install --frozen-lockfile
 
       - name: Set up OpenTofu
-        uses: opentofu/setup-opentofu@9d84900f3238fab8cd84ce47d658d25dd008be2f
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4
         with:
           tofu_wrapper: false
 
@@ -85,7 +85,7 @@ jobs:
 
   backend:
     name: Backend
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -128,7 +128,7 @@ jobs:
 
   web:
     name: ${{ matrix.subrepo }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -169,7 +169,7 @@ jobs:
 
   e2e-www:
     name: www E2E
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - name: Checkout
@@ -200,7 +200,7 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -229,7 +229,7 @@ jobs:
     # Needs the full Docker backend, so it runs post-merge, weekly, or on demand
     # rather than on every PR (see CONTRIBUTING.md).
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 35
     steps:
       - name: Checkout
@@ -263,7 +263,7 @@ jobs:
 
   docker-smoke:
     name: Docker Smoke (${{ matrix.recipe }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -309,7 +309,7 @@ jobs:
 
   secret-scan:
     name: Secret Scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -328,7 +328,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -337,7 +337,7 @@ jobs:
           persist-credentials: false
 
       - name: Review dependency changes
-        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
         with:
           fail-on-severity: moderate
           # Every entry here needs a reachable-but-unfixable justification and a
@@ -362,7 +362,7 @@ jobs:
     # Known-unfixable advisories are allow-listed in pnpm-workspace.yaml
     # (ignoreGhsas), mirroring dependency-review's allow-ghsas.
     if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -403,7 +403,7 @@ jobs:
 
   trivy-iac:
     name: Trivy IaC
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -439,7 +439,7 @@ jobs:
     name: CodeQL (${{ matrix.language }})
     # Skipped on drafts; `ready_for_review` fills it in.
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
       security-events: write
@@ -505,7 +505,7 @@ jobs:
       - container-security
       - trivy-iac
       - codeql
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     env:
       RESULTS: ${{ toJSON(needs) }}

@@ -56,8 +56,8 @@ build:
     pnpm run build
 
 # Run the unit tests
-test:
-    pnpm run test
+test *args:
+    pnpm run test {{ args }}
 
 # Run the CI test suite
 test-ci:

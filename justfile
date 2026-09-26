@@ -183,9 +183,10 @@ test-e2e:
 [doc('Repository policy checks beyond prek: env policy, Compose, deploy secrets')]
 policy-check: env-policy-check compose-config deploy-secrets-check
 
-# Local CI pipeline: hooks, quality checks, CI tests, policy (IaC is CI-only)
+# Local CI pipeline: hooks, quality checks, CI tests, policy. Pull requests also run
+# `cloudflare-check`, the www E2E suite, and `docker-smoke`; `ci-full` covers those.
 [group('verify')]
-[doc('Ladder rung 4 — the pull-request gate: hooks, checks, CI tests, policy')]
+[doc('Ladder rung 4 — the everyday local gate: hooks, checks, CI tests, policy')]
 ci: pre-commit check test-ci policy-check
 
 # Everything GitHub Actions runs, in one command: the `ci` gate plus the jobs it

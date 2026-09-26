@@ -30,7 +30,7 @@ jobs:
     if: >-
       github.event_name != 'issues' ||
       (github.event.issue.title == 'Dependency Dashboard' && github.event.sender.type != 'Bot')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:
       - name: Create app token

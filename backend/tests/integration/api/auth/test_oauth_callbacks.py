@@ -29,7 +29,7 @@ from ._oauth_support import (
 from .shared import USER1_EMAIL, USER2_EMAIL
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping  # lgtm[py/unused-import]
+    from collections.abc import Mapping
 
     from redis.asyncio import Redis
 

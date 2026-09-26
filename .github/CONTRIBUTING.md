@@ -232,6 +232,9 @@ Run the relevant subrepo checks before opening a pull request:
 - www: Vitest, Astro checks, and Playwright where browser behavior changes
 - docs: Biome, Astro checks, and `just test-ci` (build + browser + link checks) when content changes
 
+To run one test file or pattern, pass it through: `just backend/test tests/unit/core -k cache`,
+`just app/test src/hooks`, or `just www/test src/lib`.
+
 For cross-repo or policy changes, also run `just ci` from the root. The root recipes form one
 ladder, cheapest first, each rung including the ones above it:
 
@@ -240,10 +243,12 @@ ladder, cheapest first, each rung including the ones above it:
 | `just fix`     | auto-fix lint, formatting, and markdown across root and subrepos            |
 | `just check`   | static analysis only: lint, types, format verification                      |
 | `just test`    | every test suite except the browser and Docker ones                         |
-| `just ci`      | the pull-request gate: `pre-commit` hooks, `check`, `test-ci`, `policy-check` |
+| `just ci`      | the everyday local gate: `pre-commit` hooks, `check`, `test-ci`, `policy-check` |
 | `just ci-full` | everything GitHub Actions runs: `ci` plus `audit`, `cloudflare-check`, `docker-smoke`, `test-e2e` |
 
-`just ci-full` takes tens of minutes and needs Docker. Only CodeQL, Trivy, Scorecard, and dependency
+Pull requests also run `cloudflare-check`, the www E2E suite, and `docker-smoke`, so a green
+`just ci` can still leave a red PR check; `just ci-full` covers them. It takes tens of minutes and
+needs Docker. Only CodeQL, Trivy, Scorecard, and dependency
 review stay GitHub-only; they scan built images or the repository itself and run on every push.
 
 ### Accessibility

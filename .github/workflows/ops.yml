@@ -34,7 +34,7 @@ jobs:
   app-bundle-budget:
     name: App Bundle Budget
     if: github.event_name == 'schedule' || inputs.operation == 'bundle-budget'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Checkout trusted workflow ref
@@ -65,7 +65,7 @@ jobs:
   backend-perf-baseline:
     name: Backend Perf Baseline
     if: github.event_name == 'schedule' || inputs.operation == 'perf-baseline'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:
       - name: Checkout trusted workflow ref
