@@ -454,7 +454,12 @@ jobs:
         uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
         with:
           args: >-
-            config . --format sarif --output trivy-iac.sarif --exit-code 1 --severity HIGH,CRITICAL --ignorefile .github/trivyignore.yaml --skip-dirs .venv,backend/.venv,node_modules,app/node_modules,docs/node_modules,www/node_modules #magic___^_^___line
+            config .
+            --format sarif --output trivy-iac.sarif
+            --exit-code 1 --severity HIGH,CRITICAL
+            --ignorefile .github/trivyignore.yaml
+            --skip-dirs .venv,backend/.venv,node_modules,app/node_modules,docs/node_modules,www/node_modules
+
       - name: Upload Trivy IaC SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
