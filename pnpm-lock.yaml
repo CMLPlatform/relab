@@ -235,9 +235,6 @@ importers:
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
       expo:
         specifier: ~57.0.12
         version: 57.0.20(c20337611ae09bde7005daa0dfa9c8a3)
