@@ -5,7 +5,7 @@ import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import * as config from '@/config';
 import { useTermsPromptDismissed } from '@/features/auth/useTermsAcceptance';
 import { mockUser } from '@/test-utils/api-mocks';
-import { renderWithProviders } from '@/test-utils/index';
+import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
 
 const mockUseAuth = jest.fn();
 jest.mock('@/context/auth', () => ({
@@ -143,11 +143,16 @@ describe('TermsAcceptanceDialog', () => {
     // re-opened the modal. That is nagging rather than asking, and it blocked
     // every authenticated e2e spec that navigates with a full page load.
     signedInWith(true);
+    mockPlatform('web');
 
-    await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
-    await fireEvent.press(screen.getByText('Not now'));
+    try {
+      await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
+      await fireEvent.press(screen.getByText('Not now'));
 
-    expect(globalThis.sessionStorage.getItem('terms_prompt_dismissed')).toBe('true');
+      expect(globalThis.sessionStorage.getItem('terms_prompt_dismissed')).toBe('true');
+    } finally {
+      restorePlatform();
+    }
   });
 
   it('keeps the prompt due after a dismissal, so the next login asks again', async () => {
