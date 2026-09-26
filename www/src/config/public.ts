@@ -1,4 +1,11 @@
-import { type EnvSource, getOptional } from './env.ts';
+// Reads `import.meta.env` (Vite/Astro `PUBLIC_*`) at build time. astro.config.ts
+// also routes Node `process.env` through readSiteUrl below.
+type EnvSource = Record<string, string | undefined>;
+
+function getOptional(env: EnvSource, key: string): string | undefined {
+  const value = env[key]?.trim();
+  return value || undefined;
+}
 
 interface PublicSiteConfig {
   appUrl: string;
