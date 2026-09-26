@@ -30,7 +30,7 @@ runs:
   steps:
     - name: Upload coverage to Codecov
       if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
+      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
       with:
         files: ${{ inputs.coverage-file }}
         flags: ${{ inputs.flags }}
@@ -44,7 +44,7 @@ runs:
     - name: Upload test results to Codecov
       # Runs even when tests fail so Codecov can track flaky/failing tests.
       if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
-      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
+      uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
       with:
         report_type: test_results
         files: ${{ inputs.junit-file }}
@@ -59,7 +59,7 @@ runs:
       # Like the Codecov uploads above, a failed upload loses a convenience copy,
       # not a test result, so it must not fail the job.
       continue-on-error: true
-      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ci-${{ inputs.flags }}-coverage
         path: ${{ inputs.artifact-path }}
