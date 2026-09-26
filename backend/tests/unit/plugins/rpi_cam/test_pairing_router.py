@@ -1,11 +1,11 @@
 """Unit tests for the RPi camera pairing router."""
 
 import json
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
-from fakeredis.aioredis import FakeRedis
 from fastapi import HTTPException
 from pydantic import ValidationError
 from relab_rpi_cam_models import PairingClaimedRecord, PairingRegisterRequest, RelayAuthScheme
@@ -23,6 +23,9 @@ from app.api.plugins.rpi_cam.routers.pairing import (
 )
 from app.api.plugins.rpi_cam.schemas.pairing import PairingClaimRequest, PairingPollRequest
 from scripts.seed.factories.models import UserFactory
+
+if TYPE_CHECKING:
+    from redis.asyncio import Redis
 
 PUBLIC_JWK = {
     "kty": "EC",
@@ -52,7 +55,7 @@ def build_camera() -> Camera:
     )
 
 
-async def test_register_pairing_code_logs_digest_not_raw_code() -> None:
+async def test_register_pairing_code_logs_digest_not_raw_code(redis_client: Redis) -> None:
     """Register logging must record a non-reversible digest, never the raw claim code."""
     body = PairingRegisterRequest(
         code=PAIRING_CODE,
@@ -60,7 +63,6 @@ async def test_register_pairing_code_logs_digest_not_raw_code() -> None:
         public_key_jwk=PUBLIC_JWK,
         key_id=KEY_ID,
     )
-    redis_client = await _make_fake_redis()
 
     with patch("app.api.plugins.rpi_cam.routers.pairing.logger") as mock_logger:
         response = await register_pairing_code(
@@ -78,7 +80,7 @@ async def test_register_pairing_code_logs_digest_not_raw_code() -> None:
     assert payload["key_id"] == KEY_ID
 
 
-async def test_register_pairing_code_rejects_fingerprint_outside_charset() -> None:
+async def test_register_pairing_code_rejects_fingerprint_outside_charset(redis_client: Redis) -> None:
     """A register-time fingerprint outside the poll-side charset must 422 up front.
 
     PairingRegisterRequest is an external model that only enforces length, so a
@@ -91,7 +93,6 @@ async def test_register_pairing_code_rejects_fingerprint_outside_charset() -> No
         public_key_jwk=PUBLIC_JWK,
         key_id=KEY_ID,
     )
-    redis_client = await _make_fake_redis()
 
     with pytest.raises(HTTPException) as exc_info:
         await register_pairing_code(body=body, redis=redis_client)
@@ -100,7 +101,7 @@ async def test_register_pairing_code_rejects_fingerprint_outside_charset() -> No
     assert await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}") is None
 
 
-async def test_claim_pairing_code_logs_digest_not_raw_code() -> None:
+async def test_claim_pairing_code_logs_digest_not_raw_code(redis_client: Redis) -> None:
     """Claim logging must record a non-reversible digest, never the raw claim code."""
     session = AsyncMock()
     current_user = UserFactory.build(
@@ -113,7 +114,6 @@ async def test_claim_pairing_code_logs_digest_not_raw_code() -> None:
     )
     camera = build_camera()
     body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description="Description")
-    redis_client = await _make_fake_redis()
     await redis_client.set(
         f"rpi_cam:pairing:{PAIRING_CODE}",
         json.dumps(
@@ -149,7 +149,7 @@ async def test_claim_pairing_code_logs_digest_not_raw_code() -> None:
     assert "api_key" not in payload
 
 
-async def test_claim_pairing_code_rate_limits_code_before_redis_lookup() -> None:
+async def test_claim_pairing_code_rate_limits_code_before_redis_lookup(redis_client: Redis) -> None:
     """Code-specific throttling should run before revealing whether a code exists."""
     session = AsyncMock()
     current_user = UserFactory.build(
@@ -161,7 +161,6 @@ async def test_claim_pairing_code_rate_limits_code_before_redis_lookup() -> None
         is_verified=True,
     )
     body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
-    redis_client = await _make_fake_redis()
 
     with (
         patch("app.api.plugins.rpi_cam.routers.pairing.limiter.ahit_key", new_callable=AsyncMock) as hit_key,
@@ -180,7 +179,7 @@ async def test_claim_pairing_code_rate_limits_code_before_redis_lookup() -> None
     )
 
 
-async def test_claim_pairing_code_concurrent_race_creates_exactly_one_camera() -> None:
+async def test_claim_pairing_code_concurrent_race_creates_exactly_one_camera(redis_client: Redis) -> None:
     """Two concurrent claims of the same code must not both succeed (GETDEL race).
 
     Simulates the interleaving deterministically: the second claim attempt runs
@@ -198,7 +197,6 @@ async def test_claim_pairing_code_concurrent_race_creates_exactly_one_camera() -
         is_verified=True,
     )
     body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
-    redis_client = await _make_fake_redis()
     await redis_client.set(
         f"rpi_cam:pairing:{PAIRING_CODE}",
         json.dumps(
@@ -241,7 +239,7 @@ async def test_claim_pairing_code_concurrent_race_creates_exactly_one_camera() -
     assert isinstance(loser_result.get("error"), PairingCodeNotFoundError)
 
 
-async def test_claim_pairing_code_restores_pending_record_on_create_camera_failure() -> None:
+async def test_claim_pairing_code_restores_pending_record_on_create_camera_failure(redis_client: Redis) -> None:
     """A DB failure after GETDEL must restore the pending record, not strand the code.
 
     Without the restore, GETDEL has already consumed the only copy of the pending
@@ -258,7 +256,6 @@ async def test_claim_pairing_code_restores_pending_record_on_create_camera_failu
         is_verified=True,
     )
     body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
-    redis_client = await _make_fake_redis()
     pending_payload = json.dumps(
         {
             "status": "waiting",
@@ -290,7 +287,7 @@ async def test_claim_pairing_code_restores_pending_record_on_create_camera_failu
     assert 0 < ttl <= PAIRING_TTL_SECONDS
 
 
-async def test_claim_pairing_code_logs_warning_when_restore_itself_fails() -> None:
+async def test_claim_pairing_code_logs_warning_when_restore_itself_fails(redis_client: Redis) -> None:
     """If the compensating restore write also fails, that must be logged, not silent."""
     session = AsyncMock()
     current_user = UserFactory.build(
@@ -302,7 +299,6 @@ async def test_claim_pairing_code_logs_warning_when_restore_itself_fails() -> No
         is_verified=True,
     )
     body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
-    redis_client = await _make_fake_redis()
     await redis_client.set(
         f"rpi_cam:pairing:{PAIRING_CODE}",
         json.dumps(
@@ -336,7 +332,7 @@ async def test_claim_pairing_code_logs_warning_when_restore_itself_fails() -> No
     assert "restore" in mock_logger.warning.call_args.args[0].lower()
 
 
-async def test_claim_pairing_code_restores_claimed_record_with_remaining_ttl() -> None:
+async def test_claim_pairing_code_restores_claimed_record_with_remaining_ttl(redis_client: Redis) -> None:
     """A re-claim attempt on an already-claimed code restores it with its actual remaining TTL.
 
     Regression: the restore used a fresh PAIRING_CREDENTIAL_TTL_SECONDS instead of the
@@ -353,7 +349,6 @@ async def test_claim_pairing_code_restores_claimed_record_with_remaining_ttl() -
         is_verified=True,
     )
     body = PairingClaimRequest(code=PAIRING_CODE, camera_name="Camera", description=None)
-    redis_client = await _make_fake_redis()
     claimed_payload = PairingClaimedRecord(
         camera_id=str(uuid4()),
         ws_url="ws://testserver/v1/plugins/rpi-cam/ws/connect",
@@ -387,9 +382,8 @@ def test_poll_request_rejects_non_ascii_fingerprint() -> None:
         PairingPollRequest(code=PAIRING_CODE, fingerprint="ünïcodeee")
 
 
-async def test_poll_pairing_status_reads_body_and_logs_digest() -> None:
+async def test_poll_pairing_status_reads_body_and_logs_digest(redis_client: Redis) -> None:
     """Polling takes a POST body (not query params) and logs only a code digest."""
-    redis_client = await _make_fake_redis()
     await redis_client.set(
         f"rpi_cam:pairing:{PAIRING_CODE}",
         PairingClaimedRecord(
@@ -413,8 +407,3 @@ async def test_poll_pairing_status_reads_body_and_logs_digest() -> None:
     mock_logger.info.assert_called_once_with("Pairing credentials retrieved for code %s.", PAIRING_LOG_ID)
     assert PAIRING_CODE not in mock_logger.info.call_args.args[1]
     assert await redis_client.get(f"rpi_cam:pairing:{PAIRING_CODE}") is None
-
-
-async def _make_fake_redis() -> FakeRedis:
-    """Build a fake Redis client for unit tests."""
-    return FakeRedis(decode_responses=True, version=7)

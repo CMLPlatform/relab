@@ -46,30 +46,9 @@ async def get_model[MT: Base](
     loaders: frozenset[str] | set[str] | None = None,
     read_schema: type[BaseModel] | None = None,
     raiseload_nested: bool = False,
+    for_update: bool = False,
 ) -> MT | None:
-    """Return a model by primary key, or None when missing."""
-    return await _get_model(
-        db,
-        model,
-        model_id,
-        loaders=loaders,
-        read_schema=read_schema,
-        raiseload_nested=raiseload_nested,
-        for_update=False,
-    )
-
-
-async def _get_model[MT: Base](
-    db: AsyncSession,
-    model: type[MT],
-    model_id: int | UUID,
-    *,
-    loaders: frozenset[str] | set[str] | None,
-    read_schema: type[BaseModel] | None,
-    for_update: bool,
-    raiseload_nested: bool = False,
-) -> MT | None:
-    """Return a model by primary key, optionally with a row-level write lock."""
+    """Return a model by primary key (or None when missing), optionally with a row-level write lock."""
     if not hasattr(model, "id"):
         err_msg = f"Model {model} does not have an id field."
         raise CRUDConfigurationError(err_msg)
@@ -112,7 +91,7 @@ async def require_locked_model[MT: Base](
 ) -> MT:
     """Return a model by primary key with a row-level write lock."""
     return ensure_model_exists(
-        await _get_model(db, model, model_id, loaders=loaders, read_schema=read_schema, for_update=True),
+        await get_model(db, model, model_id, loaders=loaders, read_schema=read_schema, for_update=True),
         model,
         model_id,
     )
@@ -135,8 +114,3 @@ async def require_models[MT: Base](
         missing_ids = cast("set[int | UUID]", model_ids) - found_ids
         raise ModelsNotFoundError(model, missing_ids)
     return found_models
-
-
-async def exists(db: AsyncSession, model: type[Base], model_id: int | UUID) -> bool:
-    """Return whether a model exists."""
-    return await get_model(db, model, model_id) is not None

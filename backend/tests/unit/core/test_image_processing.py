@@ -30,24 +30,6 @@ from app.core.images import (
 )
 
 
-@pytest.fixture
-def sample_image(tmp_path: Path) -> Path:
-    """Create a sample image for testing."""
-    image_path = tmp_path / "test_image.png"
-    img = PILImage.new("RGB", (400, 200), color="red")
-    img.save(image_path)
-    return image_path
-
-
-@pytest.fixture
-def jpeg_image(tmp_path: Path) -> Path:
-    """Create a sample JPEG image for testing."""
-    image_path = tmp_path / "test_image.jpg"
-    img = PILImage.new("RGB", (400, 200), color="blue")
-    img.save(image_path, format="JPEG")
-    return image_path
-
-
 def _make_jpeg_with_exif(
     path: Path, width: int, height: int, orientation: int | None = None, *, camera_make: bool = False
 ) -> Path:

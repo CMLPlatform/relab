@@ -103,7 +103,9 @@ async def test_stale_unregister_does_not_evict_reconnected_camera() -> None:
     await manager.register(camera_id, new_ws)  # reconnect closes old_ws
 
     assert manager.unregister(camera_id, old_ws) is False
-    assert manager.is_connected(camera_id)
+    await manager.handle_ping(camera_id)
+    new_ws.send_text.assert_awaited_once()
 
     assert manager.unregister(camera_id, new_ws) is True
-    assert not manager.is_connected(camera_id)
+    await manager.handle_ping(camera_id)
+    new_ws.send_text.assert_awaited_once()

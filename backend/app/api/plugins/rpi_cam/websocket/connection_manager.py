@@ -77,10 +77,6 @@ class CameraConnectionManager:
         logger.info("Camera %s disconnected from WebSocket", sanitize_log_value(camera_id))
         return True
 
-    def is_connected(self, camera_id: UUID4) -> bool:
-        """Return True if the camera has an active WebSocket connection."""
-        return camera_id in self._connections
-
     # ── Command dispatch ──────────────────────────────────────────────────────
 
     async def send_command(

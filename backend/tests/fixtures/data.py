@@ -100,9 +100,3 @@ async def setup_product_graph(
     db_session.add_all([product, component])
     await db_session.flush()
     return ProductGraph(product_type=db_product_type, product=product, component=component)
-
-
-@pytest.fixture
-async def setup_component(setup_product_graph: ProductGraph) -> Product:
-    """Create a child component below ``setup_product``."""
-    return setup_product_graph.component

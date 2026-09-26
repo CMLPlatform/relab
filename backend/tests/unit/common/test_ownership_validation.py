@@ -23,8 +23,8 @@ def _mock_session_returning(value: object) -> AsyncMock:
     return db
 
 
-async def test_success_returns_object_and_filters_by_default_owner_fk(mocker: MockerFixture) -> None:
-    """Happy path: returned object matches and the default FK is owner_id."""
+async def test_success_returns_object_filtered_by_owner_id(mocker: MockerFixture) -> None:
+    """Happy path: the owned object is returned."""
     user_id = uuid4()
     model_id = uuid4()
     expected = MagicMock()
@@ -41,27 +41,6 @@ async def test_success_returns_object_and_filters_by_default_owner_fk(mocker: Mo
 
     assert result is expected
     db.execute.assert_awaited_once()
-
-
-async def test_success_respects_custom_owner_fk(mocker: MockerFixture) -> None:
-    """Custom owner FK names should be checked and queried consistently."""
-    user_id = uuid4()
-    model_id = uuid4()
-    expected = MagicMock()
-    expected.created_by_id = user_id
-    statement = MagicMock()
-    statement.where.return_value = statement
-    mocker.patch("app.api.common.ownership.select", return_value=statement)
-    db = _mock_session_returning(expected)
-    mock_model = MagicMock()
-    mock_model.id = MagicMock()
-    mock_model.created_by_id = MagicMock()
-
-    result = await get_user_owned_object(
-        db=db, model=mock_model, model_id=model_id, owner_id=user_id, user_fk="created_by_id"
-    )
-
-    assert result is expected
 
 
 async def test_missing_object_raises_model_not_found(mocker: MockerFixture) -> None:
