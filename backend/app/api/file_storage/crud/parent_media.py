@@ -1,6 +1,7 @@
 """Parent-scoped CRUD operations for stored media."""
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
@@ -183,74 +184,11 @@ async def unlink_stored_media[StorageModelT: StorageModel](pending: list[Storage
             logger.warning("Storage cleanup failed for an already-deleted %s row.", type(item).__name__, exc_info=True)
 
 
-class ParentMediaCrud[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
-    """Parent-scoped operations for stored media."""
+@dataclass(frozen=True)
+class ParentMedia[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
+    """Which parent and storage kind a set of parent-scoped media operations targets."""
 
-    def __init__(
-        self,
-        *,
-        parent_model: type[Base],
-        parent_type: MediaParentType,
-        storage_model: type[StorageModelT],
-        storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
-    ) -> None:
-        self.parent_model = parent_model
-        self.storage_model = storage_model
-        self.parent_type = parent_type
-        self.storage_service = storage_service
-
-    async def get_all(
-        self,
-        db: AsyncSession,
-        parent_id: int,
-        *,
-        filter_params: BaseFilterSet | None = None,
-    ) -> list[StorageModelT]:
-        """Get all storage items for a parent, excluding items with missing files."""
-        return await list_parent_media(
-            db,
-            parent_model=self.parent_model,
-            parent_type=self.parent_type,
-            storage_model=self.storage_model,
-            parent_id=parent_id,
-            filter_params=filter_params,
-        )
-
-    async def create(
-        self,
-        db: AsyncSession,
-        parent_id: int,
-        item_data: CreateSchemaT,
-        *,
-        quota_user_id: UUID | None = None,
-    ) -> StorageModelT:
-        """Create a new storage item for a parent."""
-        return await create_parent_media(
-            db,
-            parent_id=parent_id,
-            parent_type=self.parent_type,
-            storage_service=self.storage_service,
-            item_data=item_data,
-            quota_user_id=quota_user_id,
-        )
-
-    async def delete(self, db: AsyncSession, parent_id: int, item_id: UUID4) -> None:
-        """Delete a storage item from a parent."""
-        await delete_parent_media(
-            db,
-            parent_model=self.parent_model,
-            parent_type=self.parent_type,
-            storage_model=self.storage_model,
-            parent_id=parent_id,
-            item_id=item_id,
-            storage_service=self.storage_service,
-        )
-
-    async def delete_all(self, db: AsyncSession, parent_id: int) -> list[StorageModelT]:
-        """Delete all of a parent's storage rows without committing; return items to unlink."""
-        return await delete_all_parent_media(
-            db,
-            parent_type=self.parent_type,
-            storage_model=self.storage_model,
-            parent_id=parent_id,
-        )
+    parent_model: type[Base]
+    parent_type: MediaParentType
+    storage_model: type[StorageModelT]
+    storage_service: StoredMediaService[StorageModelT, CreateSchemaT]

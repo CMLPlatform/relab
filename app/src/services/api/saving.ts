@@ -1,5 +1,5 @@
 import { API_URL } from '@/config';
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import type { Product } from '@/types/Product';
 import { throwFromResponse } from './errors';
 import { resolveApiMediaUrl } from './media';

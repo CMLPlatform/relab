@@ -53,24 +53,14 @@ const appBase = appUrl.replace(/\/$/, '');
     </a>
   </div>
   {
-    /* One figure, baked at build time and refreshed after load
-       (landing-refresh.ts). Always rendered: the refresh keys off this node's
-       presence, so a build-time stats failure must not remove it. Hidden until
-       a real number exists. */
+    /* One figure, baked at build time. Hidden until a real number exists;
+       StatsPanel below is where a live count lives. */
     <p class="brand-hero-metrics" data-metrics hidden={!stats}>
       {stats ? `${formatCount(stats.totals.parts)} parts documented` : ''}
     </p>
   }
   <p class="brand-hero-affiliation">{research.affiliation}</p>
 </section>
-
-<script>
-  import { refreshLanding } from '@/scripts/landing-refresh.ts';
-
-  refreshLanding().catch(() => {
-    // Best-effort refresh: any failure leaves the baked metrics as-is.
-  });
-</script>
 
 <style>
   /* Left-aligned and ragged right. */
@@ -184,17 +174,4 @@ const appBase = appUrl.replace(/\/$/, '');
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }
-
-  /* Fade while landing-refresh.ts replaces the baked totals, so the change does
-     not read as a glitch. Opacity only: no layout shift. */
-  @media (prefers-reduced-motion: no-preference) {
-    .brand-hero-metrics {
-      transition: opacity 180ms var(--ease-out);
-    }
-
-    .brand-hero-metrics.is-refreshing {
-      opacity: 0.35;
-    }
-  }
-
 </style>

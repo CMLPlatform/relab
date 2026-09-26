@@ -1,0 +1,149 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Container Images
+
+# Builds every runtime image once per matrix entry. ci.yml calls it with
+# `mode: scan` (blocking Trivy scan plus a working-copy SBOM); release.yml calls it
+# with `mode: release` (SBOM attested and attached to the GitHub release).
+# Permissions come from the calling job, so each caller grants only what its mode
+# needs.
+on:
+  workflow_call:
+    inputs:
+      mode:
+        description: "`scan` or `release`."
+        required: true
+        type: string
+      tag_name:
+        description: Release tag to attach the SBOMs to (release mode only).
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  image:
+    name: ${{ matrix.service }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+            image: relab-backend
+          - service: migrator
+            context: ./backend
+            dockerfile: ./backend/Dockerfile.migrations
+            image: relab-backend-migrations
+          - service: relab-backup
+            context: ./backend
+            dockerfile: ./backend/Dockerfile.backups
+            image: relab-backup
+          - service: docs
+            context: .
+            dockerfile: ./docs/Dockerfile
+            image: relab-docs
+          - service: app
+            context: .
+            dockerfile: ./app/Dockerfile
+            image: relab-app
+          - service: www
+            context: .
+            dockerfile: ./www/Dockerfile
+            image: relab-www
+    steps:
+      - name: Check mode
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          [[ "$MODE" == scan || "$MODE" == release ]] || {
+            echo "mode must be scan or release, got '$MODE'" >&2
+            exit 1
+          }
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          load: true
+          # Fresh base images so the scan sees current CVEs.
+          pull: true
+          tags: ${{ matrix.image }}:${{ github.sha }}
+          # `scan-` prefix: the placeholder build-args make these layers distinct from
+          # the docker-smoke builds, which write the compose `scope=<service>` caches.
+          # One shared scope thrashes both. Only scan runs write it, so a release
+          # build starts warm without spending cache writes on an image nothing deploys.
+          cache-from: type=gha,scope=scan-${{ matrix.service }}
+          cache-to: ${{ inputs.mode == 'scan' && format('type=gha,scope=scan-{0},mode=max', matrix.service) || '' }}
+          # The www/app builds require their public URLs. These images are only
+          # scanned or described by an SBOM, never deployed, so placeholders are
+          # fine; unused args on the other services are ignored.
+          build-args: |
+            PUBLIC_APP_URL=https://app.example.invalid
+            PUBLIC_DOCS_URL=https://docs.example.invalid
+            PUBLIC_SITE_URL=https://example.invalid
+            PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_API_URL=https://api.example.invalid
+            EXPO_PUBLIC_WEBSITE_URL=https://example.invalid
+            EXPO_PUBLIC_DOCS_URL=https://docs.example.invalid
+
+      # Suppressions live in .github/trivyignore.yaml, each with an expiry and a
+      # reachability note.
+      - name: Scan image with Trivy
+        if: inputs.mode == 'scan'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          trivyignores: .github/trivyignore.yaml
+
+      - name: Generate SPDX SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ matrix.image }}:${{ github.sha }}
+          format: spdx-json
+          output: sbom-${{ matrix.service }}.spdx.json
+          skip-setup-trivy: ${{ inputs.mode == 'scan' }}
+
+      # Working copies only; the durable SBOMs are attached to GitHub releases.
+      - name: Archive container security artifacts
+        if: inputs.mode == 'scan'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-${{ matrix.service }}-artifacts
+          path: sbom-${{ matrix.service }}.spdx.json
+          retention-days: 7
+
+      - name: Attest SBOM asset provenance
+        if: inputs.mode == 'release'
+        id: attest
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
+        with:
+          subject-path: sbom-${{ matrix.service }}.spdx.json
+
+      # The Sigstore bundle is also uploaded as a release asset: the attestation
+      # store holds it already, but Scorecard's Signed-Releases check only reads
+      # release assets and recognises the `.sigstore.json` suffix.
+      - name: Upload SBOM and signature bundle to GitHub release
+        if: inputs.mode == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+          SBOM: sbom-${{ matrix.service }}.spdx.json
+        run: |-
+          cp "$BUNDLE_PATH" "$SBOM.sigstore.json"
+          gh release upload "$TAG_NAME" "$SBOM" "$SBOM.sigstore.json" --clobber

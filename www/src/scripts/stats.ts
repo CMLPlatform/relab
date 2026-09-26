@@ -98,28 +98,6 @@ function barPath(x: number, y: number, w: number, h: number): string {
   );
 }
 
-function statTile(label: string, value: string, unit = ''): HTMLDivElement {
-  const tile = document.createElement('div');
-  tile.className = 'stats-tile';
-
-  const valueEl = document.createElement('span');
-  valueEl.className = 'stats-tile-value';
-  valueEl.textContent = value;
-  if (unit) {
-    const unitEl = document.createElement('span');
-    unitEl.className = 'stats-unit';
-    unitEl.textContent = unit;
-    valueEl.appendChild(unitEl);
-  }
-
-  const labelEl = document.createElement('span');
-  labelEl.className = 'stats-label';
-  labelEl.textContent = label;
-
-  tile.append(valueEl, labelEl);
-  return tile;
-}
-
 /** Visually-hidden twin of the chart, so no value is reachable only by hover. */
 function buildTable(
   series: SeriesPoint[],
@@ -417,13 +395,17 @@ function renderPanel(panel: HTMLElement, stats: HomeStats): void {
     hero.textContent = formatCount(totals.parts);
   }
 
-  const tiles = panel.querySelector('[data-stat="tiles"]');
   const mass = formatMass(totals.mass_kg);
-  tiles?.replaceChildren(
-    statTile('teardowns', formatCount(totals.teardowns)),
-    statTile('mass logged', mass.value, mass.unit),
-    statTile('photos', formatCount(totals.images)),
-  );
+  const setStat = (key: string, text: string) => {
+    const el = panel.querySelector(`[data-stat="${key}"]`);
+    if (el) {
+      el.textContent = text;
+    }
+  };
+  setStat('tile-teardowns', formatCount(totals.teardowns));
+  setStat('tile-mass-value', mass.value);
+  setStat('tile-mass-unit', mass.unit);
+  setStat('tile-photos', formatCount(totals.images));
 
   mountActivity(panel, series);
 

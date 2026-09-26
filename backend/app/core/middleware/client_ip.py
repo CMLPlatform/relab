@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import Request
 
-from app.core.config import settings
+from app.core.config.core import settings
 
 if TYPE_CHECKING:
     from starlette.datastructures import Headers

@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { create } from 'zustand';
 
 export interface StreamSession {
   cameraId: string;
@@ -9,15 +9,13 @@ export interface StreamSession {
   youtubeUrl: string;
 }
 
-interface StreamSessionContextValue {
+export type StreamSessionState = {
   activeStream: StreamSession | null;
   setActiveStream: (session: StreamSession | null) => void;
-}
+};
 
-export const StreamSessionContext = createContext<StreamSessionContextValue | null>(null);
-
-export function useStreamSession() {
-  const ctx = useContext(StreamSessionContext);
-  if (!ctx) throw new Error('useStreamSession must be used within StreamSessionProvider');
-  return ctx;
-}
+/** The live stream this app session started, shared by the banner, camera and product screens. */
+export const useStreamSession = create<StreamSessionState>()((set) => ({
+  activeStream: null,
+  setActiveStream: (activeStream) => set({ activeStream }),
+}));

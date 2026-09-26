@@ -12,9 +12,9 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { ThemeMode } from '@/types/User';
 import { useProfileActions } from './actions';
 import { useProfilePreferences } from './mutations';
+import { usePublicProfileQuery } from './publicProfileQuery';
 import { useProfileDialogs, useProfileLinkedAccounts } from './state';
 import { useOAuthAssociations } from './useOAuthAssociations';
-import { useOwnProfileStats } from './useOwnProfileStats';
 
 export function useProfileScreen() {
   const router = useRouter();
@@ -52,7 +52,7 @@ export function useProfileScreen() {
     setYoutubeEnabled,
   });
 
-  const ownProfileStats = useOwnProfileStats(profile?.username ?? undefined);
+  const { profile: ownStats, loading: statsLoading } = usePublicProfileQuery(profile?.username);
   const oauthAssociations = useOAuthAssociations({
     feedback,
     refetch,
@@ -70,8 +70,8 @@ export function useProfileScreen() {
       profile,
       themeMode,
       setThemeMode: setThemeMode as (mode: ThemeMode) => Promise<void>,
-      ownStats: ownProfileStats.state.stats,
-      statsLoading: ownProfileStats.state.loading,
+      ownStats,
+      statsLoading,
       emailUpdatesEnabled: profile?.preferences?.email_updates_enabled === true,
       emailUpdatesSaving,
       visibilitySaving,

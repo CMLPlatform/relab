@@ -15,10 +15,6 @@ inputs:
     description: Newline-delimited dependency files for uv cache keys.
     required: false
     default: ""
-  cache-dependency-path:
-    description: Lockfile path(s) used for pnpm cache keys.
-    required: false
-    default: pnpm-lock.yaml
   setup-playwright:
     description: Cache the Playwright browser binaries (~/.cache/ms-playwright). Callers still run `playwright install`; on a cache hit it skips the download.
     required: false
@@ -59,7 +55,7 @@ runs:
       with:
         runtime: node@${{ steps.versions.outputs.node }}
         cache: true
-        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+        cache-dependency-path: pnpm-lock.yaml
         install: false
 
     - name: Cache Playwright browsers

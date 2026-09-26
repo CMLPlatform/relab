@@ -14,7 +14,7 @@ from uuid import uuid4
 from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.schemas import ComponentRead, ProductReadWithRelationships
 from app.api.file_storage.models import MediaParentType
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images.thumbnails import thumbnail_path_for
 from scripts.seed.factories.models import ProductFactory
 

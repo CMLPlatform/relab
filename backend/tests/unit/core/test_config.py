@@ -11,7 +11,9 @@ from pydantic import HttpUrl, RedisDsn, SecretStr
 from pydantic_core import ValidationError
 from sqlalchemy.engine import make_url
 
-from app.core.config import DEFAULT_CORS_ORIGIN_REGEX, CoreSettings, DatabaseSettings, Environment, RedisSettings
+from app.core.config.connection import DatabaseSettings, RedisSettings
+from app.core.config.core import CoreSettings
+from app.core.config.models import DEFAULT_CORS_ORIGIN_REGEX, Environment
 from app.core.env import get_env_file, get_secrets_dir
 
 if TYPE_CHECKING:

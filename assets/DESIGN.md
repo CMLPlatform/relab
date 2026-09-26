@@ -8,9 +8,7 @@ palette through its MD3 theme in `app/src/theme/`. Edit here, then run
 Direction: **Cyanotype & Manila** — the colour of engineering documentation.
 Before a product can re-enter the loop, someone has to document how it was
 made; cyanotype blue is the colour of that record, manila the tag tied to the
-part. An alternative direction (Verdigris & Copper) is preserved
-[below](#alternative-direction--verdigris--copper); open
-[design-compare.html](design-compare.html) for a side-by-side view of both.
+part.
 
 ## Typography — IBM Plex superfamily
 
@@ -77,9 +75,9 @@ sit near the primary; blue-primary apps read links as primary actions.
 
 Categorical ramp for mermaid diagrams (`docs/src/content/docs/architecture/`),
 the www stats chart, and future app charts. Blue and manila come straight from
-the brand; verdigris and copper are borrowed from the alternative direction
-below; violet, rose, and slate round out the seven roles the diagrams need.
-The same category always wears the same hue across diagrams.
+the brand; violet, rose, slate, verdigris, and copper round out the seven
+roles the diagrams need. The same category always wears the same hue across
+diagrams.
 
 | Hue             | Fill      | Stroke    | Text      |
 | --------------- | --------- | --------- | --------- |
@@ -189,14 +187,11 @@ targets a destructive or cancel action.
 ## Logo
 
 The mark is a **font-derived 9, vertically squished** so it reads as a loop
-and as a mirrored "e" (the wordmark reads "Relab"). Letters are IBM Plex; the
-ringed lockup uses a plain ring. Three candidate fonts for the 9 are generated
-side by side; **Titillium** is the promoted canonical mark, with Petrona and
-Varela kept as alternates in `logo-src/candidates/` (see
-[logo-src/](logo-src/README.md)). Promote another via
-`make_r9lab.py --promote <name>` + `just assets-sync`. Colours follow the
-palette above; og-images and all PNG derivatives regenerate from the same
-pipeline.
+and as a mirrored "e" (the wordmark reads "Relab"). The 9 is Titillium Web
+600; the letters are IBM Plex Sans 600; the ringed lockup uses a plain ring
+(see [logo-src/](logo-src/README.md)). Regenerate via `make_r9lab.py` +
+`just assets-sync`. Colours follow the palette above; og-images and all PNG
+derivatives regenerate from the same pipeline.
 
 ## Voice
 
@@ -208,36 +203,3 @@ wordmark artwork. Never "R-nine-lab".
 
 Circularity framing, lab vernacular (products, components, materials,
 samples); never "reverse engineering" in new copy.
-
-## Alternative direction — Verdigris & Copper
-
-Runner-up palette, kept as a fallback pending supervisor review; typography is identical.
-Story: copper is the most recovered material in the industrial stream, and
-verdigris is what it wears when it comes back. The green-teal primary is a
-half-step from the original teal (`#006783`). All pairings meet WCAG 4.5:1 in
-both schemes.
-
-| Token          | Light     | Dark      | Role                                 |
-| -------------- | --------- | --------- | ------------------------------------ |
-| primary        | `#0E6B5E` | `#5FD4BE` | Brand anchor, actions                |
-| primary-strong | `#0A4F45` | `#9CE8D8` | Hover/pressed, emphasis              |
-| accent         | `#A8542F` | `#E89C77` | Copper — highlights, live indicators |
-| text           | `#14231E` | `#E8F2EC` | Body text                            |
-| muted          | `#5C6B65` | `#8FA39A` | Secondary text                       |
-| background     | `#F6F9F7` | `#0D1613` | Page ground                          |
-| surface        | `#FFFFFF` | `#15211C` | Cards, panels                        |
-| border         | `#D8E2DC` | `#263831` | Hairlines, dividers                  |
-
-Drop-in `brand.css` block if this direction is adopted:
-
-```css
-:root {
-  --relab-brand-primary: light-dark(#0e6b5e, #5fd4be);
-  --relab-brand-primary-strong: light-dark(#0a4f45, #9ce8d8);
-  --relab-brand-primary-soft: light-dark(rgba(14, 107, 94, 0.08), rgba(95, 212, 190, 0.14));
-  --relab-brand-accent: light-dark(#a8542f, #e89c77);
-  --relab-brand-text: light-dark(#14231e, #e8f2ec);
-  --relab-brand-surface-wash: light-dark(rgba(246, 249, 247, 0.8), rgba(13, 22, 19, 0.74));
-  --relab-brand-theme-color: light-dark(#eef4f1, #0a110e);
-}
-```

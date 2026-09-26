@@ -2,10 +2,10 @@ import type { useRouter } from 'expo-router';
 import { useCallback, useRef } from 'react';
 import type { View } from 'react-native';
 import type { useAuth } from '@/context/auth';
-import type { useStreamSession } from '@/context/streamSession';
+import type { StreamSessionState } from '@/context/streamSession';
 import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
-import { logout, revokeAllSessions } from '@/services/api/auth/authentication';
+import { logout, revokeAllSessions } from '@/services/api/auth/authLogin';
 import { confirmOAuthUnlink, promptUsernameEdit, sendVerificationEmail } from './mutations';
 import type { useProfileDialogs } from './state';
 
@@ -25,10 +25,10 @@ export function useProfileActions({
   profile: ReturnType<typeof useAuth>['user'];
   feedback: ReturnType<typeof useAppFeedback>;
   dialogs: ReturnType<typeof useProfileDialogs>;
-  activeStream: ReturnType<typeof useStreamSession>['activeStream'];
+  activeStream: StreamSessionState['activeStream'];
   stopStreamMutation: ReturnType<typeof useStopYouTubeStreamMutation>;
   setIsLoggingOut: (value: boolean) => void;
-  setActiveStream: ReturnType<typeof useStreamSession>['setActiveStream'];
+  setActiveStream: StreamSessionState['setActiveStream'];
   refetch: ReturnType<typeof useAuth>['refetch'];
   router: ReturnType<typeof useRouter>;
   youtubeEnabled: boolean;

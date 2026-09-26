@@ -53,8 +53,10 @@ jest.mock('@/theme', () => ({
   }),
 }));
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authLogin', () => ({
   login: (...args: unknown[]) => mockLogin(...args),
+}));
+jest.mock('@/services/api/auth/authentication', () => ({
   register: (...args: unknown[]) => mockRegister(...args),
 }));
 

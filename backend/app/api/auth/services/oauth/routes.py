@@ -11,7 +11,7 @@ from app.api.auth.schemas import UserRead
 from app.api.auth.services.oauth.associate import build_oauth_associate_router
 from app.api.auth.services.oauth.login import build_oauth_login_router
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend, fastapi_user_manager
-from app.core.config import settings as core_settings
+from app.core.config.core import settings as core_settings
 
 from .clients import github_oauth_client, google_oauth_client, google_youtube_oauth_client
 

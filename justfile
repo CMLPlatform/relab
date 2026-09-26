@@ -205,18 +205,12 @@ _e2e-backend-down:
     docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
 
 # Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down.
-# Requires Docker. Pass mode=cross-browser to run the full browser matrix, not just chromium.
+# Requires Docker.
 [group('verify')]
 [doc('Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down')]
-test-e2e-full-stack mode="default":
+test-e2e-full-stack:
     #!/usr/bin/env bash
     set -euo pipefail
-    mode={{ quote(mode) }}
-    case "$mode" in
-      default)       e2e_recipe="test-e2e" ;;
-      cross-browser) e2e_recipe="test-e2e-cross-browser" ;;
-      *) echo "mode must be 'default' or 'cross-browser'"; exit 1 ;;
-    esac
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
@@ -224,8 +218,8 @@ test-e2e-full-stack mode="default":
     # lane in `just www/test-e2e` cannot cover a live record's srcset.
     echo "→ Running www live-data E2E tests..."
     just www/test-e2e-live
-    echo "→ Running Playwright E2E tests ($mode)..."
-    just "app/$e2e_recipe"
+    echo "→ Running Playwright E2E tests..."
+    just app/test-e2e
 
 # ============================================================================
 # Security
@@ -485,51 +479,10 @@ dev-db:
 dev:
     {{ dev_compose }} up --watch
 
-# The snapshot never updates: a container left running here serves the code as it was
-# when the image was built. Check with `just dev-stale` before trusting a measurement.
-#
-# Start full dev stack WITHOUT hot reload (serves the snapshot baked into the image)
+# Start full dev stack WITHOUT hot reload (rebuilds, then serves the image snapshot)
 [group('dev')]
 dev-up:
-    @printf '\n\033[33m%s\033[0m\n' "dev-up: source is NOT synced. Containers serve the snapshot baked into the image."
-    @printf '\033[33m%s\033[0m\n\n' "Run 'just dev' for hot reload, or 'just dev-stale' to check whether this snapshot is behind."
-    {{ dev_compose }} up
-
-# A 200 from a dev port proves something answered, not that it is current. This compares
-# each dev image's build time against the newest source mtime.
-#
-# Check whether running dev containers serve code older than the working tree
-[group('dev')]
-dev-stale:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    stale=0
-    found=0
-    for svc in app www docs api; do
-      cid=$({{ dev_compose }} ps -q "$svc" 2>/dev/null || true)
-      [ -n "$cid" ] || continue
-      found=1
-      img=$(docker inspect "$cid" | jq -r '.[0].Image')
-      built=$(docker inspect "$img" | jq -r '.[0].Created')
-      built_ts=$(date -d "$built" +%s)
-      case "$svc" in
-        app) src=app/src ;; www) src=www/src ;; docs) src=docs/src ;; api) src=backend/app ;;
-      esac
-      newest=$(find "$src" -type f -not -path '*/.*' -newermt "@$built_ts" -print -quit 2>/dev/null || true)
-      if [ -n "$newest" ]; then
-        printf '\033[31mSTALE\033[0m  %-4s image built %s — %s has newer files (e.g. %s)\n' \
-          "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')" "$src" "$newest"
-        stale=1
-      else
-        printf '\033[32mfresh\033[0m  %-4s image built %s\n' "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')"
-      fi
-    done
-    [ "$found" -eq 1 ] || { echo "No dev containers running."; exit 0; }
-    if [ "$stale" -eq 1 ]; then
-      printf '\nThose containers serve code older than your working tree.\n'
-      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just dev-build'"
-      exit 1
-    fi
+    {{ dev_compose }} up --build
 
 # Build (or rebuild) dev images
 dev-build:
@@ -551,11 +504,6 @@ dev-migrate:
     {{ dev_compose }} up -d --wait postgres
     {{ dev_compose }} exec -T postgres bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
     {{ dev_compose }} --profile migrations up migrator
-
-# Wipe all dev containers and volumes for a clean slate. Re-run dev-migrate afterwards.
-_dev-reset confirm='':
-    @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" {{ quote(confirm) }}
-    {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
 # Docker: Production and Staging
@@ -695,42 +643,28 @@ _docker-smoke-up services timeout:
 _docker-smoke-down services:
     {{ ci_compose }} down -v --remove-orphans {{ services }} || true
 
-# Internal helper: assert the security headers on a live response, not on the Caddyfile
-# text. The runtime image has no curl, so use the wget its HEALTHCHECK already runs.
-_docker-smoke-headers svc:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    headers=$({{ ci_compose }} exec -T {{ svc }} wget -qS -O /dev/null http://localhost:8081/ 2>&1)
-    echo "$headers" | grep -qi 'Content-Security-Policy:'
-    echo "$headers" | grep -qi 'Strict-Transport-Security:'
-
 # --- Smoke tests: Docker images and orchestration ---
 
-# Smoke test: docs static server
+# Smoke test one static-site image: docs, www, or app (slow: expo export runs during
+# build). www and app also assert their security headers on a live response, not on the
+# Caddyfile text; the runtime image has no curl, so use the wget its HEALTHCHECK runs.
 [group('verify')]
-docker-smoke-docs:
+[doc('Smoke test one static-site image: docs, www, or app')]
+docker-smoke-static svc:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down docs' EXIT
-    just _docker-smoke-up docs 60
-
-# Smoke test: www static server
-[group('verify')]
-docker-smoke-www:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    trap 'just _docker-smoke-down www' EXIT
-    just _docker-smoke-up www 60
-    just _docker-smoke-headers www
-
-# Smoke test: app static server (slow: expo export runs during build)
-[group('verify')]
-docker-smoke-app:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    trap 'just _docker-smoke-down app' EXIT
-    just _docker-smoke-up app 300
-    just _docker-smoke-headers app
+    svc={{ quote(svc) }}
+    case "$svc" in
+      docs | www) timeout=60 ;;
+      app) timeout=300 ;;
+      *) echo "svc must be docs, www or app" >&2; exit 2 ;;
+    esac
+    trap 'just _docker-smoke-down "$svc"' EXIT
+    just _docker-smoke-up "$svc" "$timeout"
+    [ "$svc" = docs ] && exit 0
+    headers=$({{ ci_compose }} exec -T "$svc" wget -qS -O /dev/null http://localhost:8081/ 2>&1)
+    echo "$headers" | grep -qi 'Content-Security-Policy:'
+    echo "$headers" | grep -qi 'Strict-Transport-Security:'
 
 # Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
 [group('verify')]
@@ -764,25 +698,13 @@ docker-orchestration-smoke:
 # Run all Docker smoke tests sequentially (CI runs them in parallel per-service)
 [group('verify')]
 docker-smoke:
-    @just docker-smoke-docs
-    @just docker-smoke-www
-    @just docker-smoke-app
+    @just docker-smoke-static docs
+    @just docker-smoke-static www
+    @just docker-smoke-static app
     @just docker-smoke-backups
     @just docker-orchestration-smoke
 
 # --- CI helpers: backend performance regression tests ---
-
-# Internal helper: start CI services and wait for readiness
-_docker-ci-up services="postgres redis api":
-    {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
-
-# Run CI migrations and seed dummy data for repeatable backend perf tests.
-# perf_products scales the fixtures so the baseline measures pagination, index
-# behaviour and media serialisation rather than a table with a few rows in it.
-_docker-ci-migrate-dummy perf_products="0":
-    # --build: `compose run` reuses a stale image otherwise, which silently runs
-    # last build's entrypoint and seed scripts against a freshly wiped database.
-    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e BULK_SEED_PRODUCTS={{ quote(perf_products) }} migrator
 
 # Stop the CI stack and remove volumes
 [group('dev')]
@@ -792,15 +714,19 @@ docker-ci-down confirm='':
 
 # Run the backend k6 baseline against the CI Docker stack.
 # The stack stays up afterwards, so a maintainer can follow up on a regression.
+# perf_products scales the seeded fixtures so the baseline measures pagination, index
+# behaviour and media serialisation rather than a table with a few rows in it.
 [group('dev')]
 [doc('Run the backend k6 baseline against the CI Docker stack')]
 docker-ci-perf-baseline perf_products="5000":
     #!/usr/bin/env bash
     set -euo pipefail
     echo "→ Starting CI backend stack..."
-    just _docker-ci-up
+    {{ ci_compose }} up --build -d --wait --wait-timeout 120 postgres redis api
     echo "→ Running CI database migrations and seeding dummy data..."
-    just _docker-ci-migrate-dummy "{{ perf_products }}"
+    # --build: `compose run` reuses a stale image otherwise, which silently runs
+    # last build's entrypoint and seed scripts against a freshly wiped database.
+    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e BULK_SEED_PRODUCTS={{ quote(perf_products) }} migrator
     echo "→ Running backend k6 baseline against the CI stack..."
     just backend/_perf-ci
 

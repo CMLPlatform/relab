@@ -1,6 +1,6 @@
-import { useSyncExternalStore } from 'react';
+import { create } from 'zustand';
+import { type PersistStorage, persist } from 'zustand/middleware';
 import { getLocalItem, setLocalItem } from '@/services/storage';
-import { createModuleStore } from '@/utils/moduleStore';
 
 /**
  * WCAG 2.2 SC 2.1.4 Character Key Shortcuts (level A) requires a way to turn
@@ -14,25 +14,30 @@ import { createModuleStore } from '@/utils/moduleStore';
  */
 const STORAGE_KEY = 'relab-keyboard-shortcuts';
 
-// Default to on until storage answers; a stored "false" flips it on the next tick.
-const store = createModuleStore(true);
+type ShortcutsState = { enabled: boolean };
 
-getLocalItem(STORAGE_KEY)
-  .then((stored) => {
-    if (stored === null) return;
-    store.set(stored === 'true');
-  })
-  .catch(() => {
-    // Unreadable storage keeps the default. Shortcuts are a convenience.
-  });
+// Keeps the stored value a bare "true"/"false" string, the format earlier builds wrote.
+const storage: PersistStorage<ShortcutsState> = {
+  getItem: async (name) => {
+    const stored = await getLocalItem(name);
+    return stored === null ? null : { state: { enabled: stored === 'true' } };
+  },
+  setItem: (name, value) =>
+    setLocalItem(name, String(value.state.enabled)).catch(() => {
+      // The switch still holds for this session; only persistence was lost.
+    }),
+  removeItem: () => {},
+};
+
+// Defaults to on until storage answers; unreadable storage keeps the default.
+const useShortcutsStore = create<ShortcutsState>()(
+  persist((): ShortcutsState => ({ enabled: true }), { name: STORAGE_KEY, storage }),
+);
 
 export function setShortcutsEnabled(next: boolean) {
-  store.set(next);
-  setLocalItem(STORAGE_KEY, String(next)).catch(() => {
-    // The switch still holds for this session; only persistence was lost.
-  });
+  useShortcutsStore.setState({ enabled: next });
 }
 
 export function useShortcutsEnabled() {
-  return useSyncExternalStore(store.subscribe, store.get, store.get);
+  return useShortcutsStore((state) => state.enabled);
 }

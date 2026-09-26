@@ -1,72 +1,11 @@
 import { API_URL } from '@/config';
 import { ApiError, throwFromResponse } from '@/services/api/errors';
-import { fetchWithTimeout, type TimedRequestInit } from '@/services/api/request';
+import { fetchWithTimeout } from '@/services/api/request';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
-import {
-  type LoginResult,
-  login as loginFlow,
-  logout as logoutFlow,
-  revokeAllSessions as revokeAllSessionsFlow,
-} from './authLogin';
-import {
-  clearCachedAuthState,
-  fetchWithAuth as fetchWithAuthFlow,
-  getToken as getTokenFlow,
-  persistAccessToken,
-  persistRefreshToken,
-  refreshAuthToken as refreshAuthTokenFlow,
-} from './authRefresh';
+import { fetchWithAuth } from './authRefresh';
 import { authRuntime } from './authRuntime';
-import { markWebSessionActive, hasWebSessionFlag as readWebSessionFlag } from './authSession';
-import { getUser as getUserFlow } from './authUser';
-
-const apiURL = API_URL;
-
-// ─────────────────────────────────────────────
-// Core auth helpers
-// ─────────────────────────────────────────────
-
-export { markWebSessionActive };
-
-export function hasWebSessionFlag() {
-  return readWebSessionFlag();
-}
-
-export async function getToken(): Promise<string | undefined> {
-  return getTokenFlow();
-}
-
-export async function refreshAuthToken(): Promise<boolean> {
-  return refreshAuthTokenFlow(apiURL);
-}
-
-export async function fetchWithAuth(
-  url: URL | string,
-  options: TimedRequestInit = {},
-): Promise<Response> {
-  return fetchWithAuthFlow(apiURL, url, options);
-}
-
-export async function login(username: string, password: string): Promise<LoginResult> {
-  return loginFlow(apiURL, username, password, {
-    persistAccessToken,
-    persistRefreshToken,
-    getUser: (forceRefresh = false) => getUser(forceRefresh),
-  });
-}
-
-export async function logout(): Promise<void> {
-  await logoutFlow(apiURL, clearCachedAuthState);
-}
-
-export async function revokeAllSessions(): Promise<void> {
-  await revokeAllSessionsFlow(apiURL, clearCachedAuthState);
-}
-
-export async function getUser(forceRefresh = false): Promise<User | undefined> {
-  return getUserFlow(apiURL, fetchWithAuthFlow, forceRefresh);
-}
+import { getUser } from './authUser';
 
 // Return the locally-cached user without making a network request.
 export function getCachedUser(): User | undefined {
@@ -78,7 +17,7 @@ export async function register(
   email: string,
   password: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const url = new URL(`${apiURL}/auth/register`);
+  const url = new URL(`${API_URL}/auth/register`);
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   const body = { username, email, password };
 
@@ -101,7 +40,7 @@ export async function register(
 }
 
 export async function verify(email: string): Promise<boolean> {
-  const url = new URL(`${apiURL}/auth/request-verify-token`);
+  const url = new URL(`${API_URL}/auth/request-verify-token`);
   const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
   const response = await fetchWithTimeout(url, {
     method: 'POST',
@@ -112,7 +51,7 @@ export async function verify(email: string): Promise<boolean> {
 }
 
 export async function updateUser(updates: Partial<User>): Promise<User | undefined> {
-  const url = new URL(`${apiURL}/users/me`);
+  const url = new URL(`${API_URL}/users/me`);
 
   try {
     const response = await fetchWithAuth(url, {
@@ -133,7 +72,7 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
 }
 
 export async function unlinkOAuth(provider: string, currentPassword?: string): Promise<boolean> {
-  const url = new URL(`${apiURL}/oauth/${provider}/associate`);
+  const url = new URL(`${API_URL}/oauth/${provider}/associate`);
 
   try {
     // Accounts with a usable password must re-authenticate (step-up); OAuth-only

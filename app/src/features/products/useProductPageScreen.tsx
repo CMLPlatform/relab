@@ -92,7 +92,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
 
   const parentProductId = product.role === 'component' ? product.parentID : undefined;
   const { ancestors } = useAncestorTrail(parentProductId);
-  const directParent = ancestors.length > 0 ? ancestors[ancestors.length - 1] : undefined;
+  const directParent = ancestors.at(-1);
 
   const slowLoading = useSlowLoading(isLoading);
   const showSavedIcon = useSavedIndicator(justSaved);

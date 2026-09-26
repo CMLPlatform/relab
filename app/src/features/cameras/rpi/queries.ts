@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
-import { fetchCamera, fetchCameras, getStreamStatus } from '@/services/api/rpiCamera';
+import { fetchCamera, fetchCameras } from '@/services/api/rpiCamera/cameras';
+import { getStreamStatus } from '@/services/api/rpiCamera/streams';
 
 export const cameraListStaleTime = (includeStatus: boolean, includeTelemetry: boolean) => {
   if (includeTelemetry) {

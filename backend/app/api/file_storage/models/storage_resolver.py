@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 from app.api.file_storage.models.storage_core import BaseStorage
 from app.api.file_storage.models.storage_filesystem import FileSystemStorage
 from app.api.file_storage.models.storage_s3 import S3Storage
-from app.core.config import StorageBackend, settings
+from app.core.config.core import settings
+from app.core.config.models import StorageBackend
 
 if TYPE_CHECKING:
     from pathlib import Path

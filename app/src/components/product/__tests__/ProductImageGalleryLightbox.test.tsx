@@ -60,13 +60,14 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(),
 }));
 
+const mockDialog = { alert: jest.fn(), toast: jest.fn(), input: jest.fn() };
 jest.mock('@/components/base/dialogContext', () => {
   const actual = jest.requireActual<typeof import('@/components/base/dialogContext')>(
     '@/components/base/dialogContext',
   );
   return {
     ...actual,
-    useOptionalDialog: jest.fn(() => null),
+    useDialog: () => mockDialog,
   };
 });
 

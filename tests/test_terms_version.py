@@ -7,8 +7,8 @@ bumps one side and not the other would leave accounts claiming to have accepted 
 that never existed, or, worse, silently claiming to have accepted revised terms they were
 never shown.
 
-Regex rather than a parser: one is a Python module and the other a TypeScript object, and
-neither is worth importing a toolchain for.
+Regex rather than a parser: one is a Python module and the other a Markdown page's
+frontmatter, and neither is worth importing a toolchain for.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND_TERMS = ROOT / "backend/app/api/auth/terms.py"
-WWW_TERMS = ROOT / "www/src/copy/terms-content.ts"
+WWW_TERMS = ROOT / "www/src/pages/terms.md"
 
 
 def backend_version() -> int:
@@ -29,9 +29,9 @@ def backend_version() -> int:
 
 
 def website_version() -> int:
-    """Return the version declared by the published terms copy."""
-    match = re.search(r"^\s*version:\s*(\d+),", WWW_TERMS.read_text(), re.MULTILINE)
-    assert match, f"{WWW_TERMS.relative_to(ROOT)}: no version field found on termsContent"
+    """Return the version declared by the published terms page's frontmatter."""
+    match = re.search(r"^version:\s*(\d+)\s*$", WWW_TERMS.read_text(), re.MULTILINE)
+    assert match, f"{WWW_TERMS.relative_to(ROOT)}: no version field found in frontmatter"
     return int(match.group(1))
 
 
@@ -47,6 +47,6 @@ def test_the_rendered_page_shows_the_version_it_records() -> None:
     """A user must be able to see which version they are accepting, not just its date."""
     version = website_version()
     assert f"Version {version}" in WWW_TERMS.read_text(), (
-        "termsContent.lastUpdated must name the version, so the page a user accepts is "
-        "self-describing rather than identifiable only by date."
+        "The terms page's `meta` frontmatter must name the version, so the page a user "
+        "accepts is self-describing rather than identifiable only by date."
     )

@@ -1,5 +1,5 @@
 import { useCallback, useReducer, useState } from 'react';
-import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera';
+import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera/shared';
 
 export type StreamDialogState = {
   cameraId: string | null;

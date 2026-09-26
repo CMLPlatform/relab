@@ -3,6 +3,7 @@
 import logging
 from io import BytesIO
 from tempfile import SpooledTemporaryFile
+from unittest.mock import AsyncMock, MagicMock
 
 import anyio
 import pytest
@@ -32,23 +33,15 @@ async def test_optional_scanner_none_accepts_uploads() -> None:
     assert upload.file.tell() == 0
 
 
-class _InfectedScanner:
-    async def scan(self, fileobj) -> None:
-        del fileobj
-        signature = "EICAR-Test-File"
-        raise MalwareDetectedError(signature)
-
-
-class _CleanScanner:
-    async def scan(self, fileobj) -> None:
-        fileobj.seek(0, 2)
+def _fake_scanner(scan: object) -> ClamAVScanner:
+    return MagicMock(spec=ClamAVScanner, scan=AsyncMock(side_effect=scan))
 
 
 async def test_scan_upload_accepts_clean_scanner_results() -> None:
     """Clean scanner results should leave uploads readable from the start."""
     upload = _upload()
 
-    await scan_upload_or_raise(upload, scanner=_CleanScanner())
+    await scan_upload_or_raise(upload, scanner=_fake_scanner(lambda fileobj: fileobj.seek(0, 2)))
 
     assert upload.file.tell() == 0
 
@@ -56,7 +49,7 @@ async def test_scan_upload_accepts_clean_scanner_results() -> None:
 async def test_scan_upload_rejects_infected_files() -> None:
     """Scanner detections must reject uploads before storage."""
     with pytest.raises(MalwareDetectedError, match="malicious"):
-        await scan_upload_or_raise(_upload(), scanner=_InfectedScanner())
+        await scan_upload_or_raise(_upload(), scanner=_fake_scanner(MalwareDetectedError("EICAR-Test-File")))
 
 
 async def test_scan_upload_fails_closed_when_enabled_scanner_is_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -18,21 +18,16 @@ import {
   useSearchProductTypesQuery,
 } from '@/features/products/queries';
 import { ApiError } from '@/services/api/errors';
-import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
   getBaseProduct,
   getComponent,
   ProductNotFoundError,
   products,
 } from '@/services/api/products';
-import { searchProductTypes } from '@/services/api/productTypes';
+import { searchProductBrands, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import { baseProduct } from '@/test-utils/fixtures';
 import type { Product } from '@/types/Product';
-
-jest.mock('@/services/api/productSuggestions', () => ({
-  searchProductBrands: jest.fn(),
-}));
 
 type ProductsModule = typeof import('@/services/api/products');
 
@@ -47,6 +42,7 @@ jest.mock('@/services/api/products', () => {
 });
 
 jest.mock('@/services/api/productTypes', () => ({
+  searchProductBrands: jest.fn(),
   searchProductTypes: jest.fn(),
 }));
 

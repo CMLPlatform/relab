@@ -1,11 +1,14 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { resolveCameraLivePreview } from '@/features/cameras/rpi/previews';
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/streams', () => ({
   __esModule: true,
   buildCameraHlsUrl: jest.fn(
     (cameraId: string) => `/api/rpi-cameras/${cameraId}/hls/cam-preview/index.m3u8`,
   ),
+}));
+jest.mock('@/services/api/rpiCamera/access', () => ({
+  __esModule: true,
   buildLocalHlsUrl: jest.fn(
     (baseUrl: string) => `${baseUrl.replace(':8018', ':8888')}/cam-preview/index.m3u8`,
   ),

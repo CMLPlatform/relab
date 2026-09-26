@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
-import { fetchLocalAccessInfo } from '@/services/api/rpiCamera';
+import { fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
 import type { LocalAccessInfo } from '@/services/api/rpiCamera/shared';
 import {
   createInitialLocalConnectionState,

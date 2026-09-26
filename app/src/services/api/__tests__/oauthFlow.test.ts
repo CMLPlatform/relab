@@ -8,7 +8,7 @@ import {
   parseOAuthCallbackUrl,
 } from '@/services/api/oauthFlow';
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   fetchWithAuth: jest.fn(),
 }));
 
@@ -16,7 +16,7 @@ jest.mock('expo-web-browser', () => ({
   openAuthSessionAsync: jest.fn(),
 }));
 
-const { fetchWithAuth } = jest.requireMock('@/services/api/auth/authentication') as {
+const { fetchWithAuth } = jest.requireMock('@/services/api/auth/authRefresh') as {
   fetchWithAuth: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
 };
 const TIMED_OUT_PATTERN = /timed out/;

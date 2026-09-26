@@ -1,6 +1,6 @@
 import type { ApiUserRead } from './api';
 
-/** Frontend user model (camelCase); converted from ApiUserRead in authentication.ts. */
+/** Frontend user model (camelCase); converted from ApiUserRead in auth/authHelpers.ts. */
 export type ThemeMode = 'light' | 'dark' | 'auto';
 export type ProfileVisibility = 'public' | 'community' | 'private';
 

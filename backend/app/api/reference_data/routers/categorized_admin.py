@@ -18,6 +18,7 @@ from app.api.auth.dependencies import current_active_superuser
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.file_storage.crud.parent_media import create_parent_media, delete_parent_media
 from app.api.file_storage.schemas import FileCreate, FileReadWithinParent, ImageReadWithinParent, empty_str_to_none
 from app.api.reference_data.crud.categorized_resources import (
     CategorizedReferenceSpec,
@@ -112,10 +113,12 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
         description: Annotated[str | None, Form()] = None,
     ) -> FileReadWithinParent:
-        item = await spec.files.create(
+        item = await create_parent_media(
             session,
-            item_id,
-            FileCreate(
+            parent_id=item_id,
+            parent_type=spec.files.parent_type,
+            storage_service=spec.files.storage_service,
+            item_data=FileCreate(
                 file=file,
                 description=description,
                 parent_id=item_id,
@@ -129,7 +132,15 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         file_id: Annotated[UUID4, Path(description="ID of the file")],
         session: AsyncSessionDep,
     ) -> None:
-        await spec.files.delete(session, item_id, file_id)
+        await delete_parent_media(
+            session,
+            parent_model=spec.files.parent_model,
+            parent_type=spec.files.parent_type,
+            storage_model=spec.files.storage_model,
+            parent_id=item_id,
+            item_id=file_id,
+            storage_service=spec.files.storage_service,
+        )
 
     async def upload_image(
         item_id: media_id_path,  # ty: ignore[invalid-type-form]
@@ -145,10 +156,12 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
             BeforeValidator(empty_str_to_none),
         ] = None,
     ) -> ImageReadWithinParent:
-        item = await spec.images.create(
+        item = await create_parent_media(
             session,
-            item_id,
-            reference_image_create(
+            parent_id=item_id,
+            parent_type=spec.images.parent_type,
+            storage_service=spec.images.storage_service,
+            item_data=reference_image_create(
                 item_id,
                 parent_type=spec.images.parent_type,
                 file=file,
@@ -163,7 +176,15 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         image_id: Annotated[UUID4, Path(description="ID of the image")],
         session: AsyncSessionDep,
     ) -> None:
-        await spec.images.delete(session, item_id, image_id)
+        await delete_parent_media(
+            session,
+            parent_model=spec.images.parent_model,
+            parent_type=spec.images.parent_type,
+            storage_model=spec.images.storage_model,
+            parent_id=item_id,
+            item_id=image_id,
+            storage_service=spec.images.storage_service,
+        )
 
     # Register with per-resource names/docstrings so operation ids (and thus
     # generated client method names) match the previous hand-written routers.

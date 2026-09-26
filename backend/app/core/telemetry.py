@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.logging import RequestContextFilter
 
 if TYPE_CHECKING:

@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 from app.core.http_headers import REQUEST_ID_HEADER
 from app.core.middleware import register_middleware
 from app.core.middleware.method_policy import ALLOW_HEADER_VALUE, CORS_HTTP_METHODS

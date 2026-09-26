@@ -5,8 +5,10 @@ import { useLoginForm } from '@/features/auth/useLoginForm';
 const mockLogin = jest.fn();
 const mockGetUser = jest.fn();
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authLogin', () => ({
   login: (...args: unknown[]) => mockLogin(...args),
+}));
+jest.mock('@/services/api/auth/authUser', () => ({
   getUser: (...args: unknown[]) => mockGetUser(...args),
 }));
 

@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
-import { fetchWithAuth, getCachedUser, getUser } from '@/services/api/auth/authentication';
+import { getCachedUser } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
+import { getUser } from '@/services/api/auth/authUser';
 import type {
   ApiBaseProductDetail,
   ApiBaseProductPageItem,

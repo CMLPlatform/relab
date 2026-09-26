@@ -76,9 +76,6 @@ test-ci:
     mkdir -p reports/coverage
     {{ pytest }} tests/unit tests/integration -n auto --dist=loadgroup --durations=20 --junitxml=reports/junit.xml --cov --cov-report=xml --cov-report=term
 
-# Run the full CI pipeline locally
-ci: check test-ci
-
 # ============================================================================
 # Database & Migrations
 # ============================================================================
@@ -165,7 +162,7 @@ _perf-ci media_url="" base_url="http://api:8000": perf-fixtures
         echo "→ Discovering a seeded media URL from the CI stack..."
         media_path="$({{ ci_compose }} exec -T api python -c 'import json, urllib.request; page = json.load(urllib.request.urlopen("http://localhost:8000/v1/products?size=100")); print(next((item["thumbnail_url"] for item in page["items"] if item.get("thumbnail_url")), ""))' | tr -d '[:space:]')"
         if [ -z "$media_path" ]; then
-            echo "✗ No seeded media found. Run 'just _docker-ci-migrate-dummy' first, or pass media_url explicitly." >&2
+            echo "✗ No seeded media found. Run 'just docker-ci-perf-baseline' from the repo root, which seeds the CI stack, or pass media_url explicitly." >&2
             exit 1
         fi
         media_url="{{ base_url }}${media_path}"

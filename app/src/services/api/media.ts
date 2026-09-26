@@ -50,9 +50,6 @@ export function pickThumbnailUrl(
   const widths = Object.keys(urls)
     .map(Number)
     .sort((a, b) => a - b);
-  if (widths.length === 0) {
-    return;
-  }
-  const fit = widths.find((width) => width >= neededPx) ?? widths[widths.length - 1];
-  return urls[fit];
+  const fit = widths.find((width) => width >= neededPx) ?? widths.at(-1);
+  return fit === undefined ? undefined : urls[fit];
 }

@@ -27,7 +27,6 @@ import { TopNav } from '@/components/base/TopNav';
 import { ActiveStreamBanner } from '@/components/cameras/ActiveStreamBanner';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth';
-import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
@@ -228,9 +227,7 @@ export function Providers({ children }: { children: ReactNode }) {
     >
       <AuthProvider>
         <ThemeModeProvider>
-          <StreamSessionProvider>
-            <ThemedProviders>{children}</ThemedProviders>
-          </StreamSessionProvider>
+          <ThemedProviders>{children}</ThemedProviders>
         </ThemeModeProvider>
       </AuthProvider>
     </PersistQueryClientProvider>

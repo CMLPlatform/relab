@@ -4,8 +4,9 @@ import { Platform } from 'react-native';
 import type { useDialog } from '@/components/base/dialogContext';
 import { API_URL } from '@/config';
 import { SUPPORT_EMAIL } from '@/constants';
-import { getUser, markWebSessionActive } from '@/services/api/auth/authentication';
 import { claimOAuthMfaHandoff, type MfaLoginPending } from '@/services/api/auth/authMfa';
+import { markWebSessionActive } from '@/services/api/auth/authSession';
+import { getUser } from '@/services/api/auth/authUser';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,

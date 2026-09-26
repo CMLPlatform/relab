@@ -1,24 +1,14 @@
 """Custom exceptions for authentication and user operations."""
 
-from typing import TYPE_CHECKING
-
 from fastapi import HTTPException, status
 from fastapi_users.router.common import ErrorCode
-from pydantic import UUID4
 
 from app.api.common.exceptions import (
     BadRequestError,
     ConflictError,
-    ForbiddenError,
     NotFoundError,
     UnauthorizedError,
 )
-from app.api.common.models.base import get_model_label
-
-if TYPE_CHECKING:
-    from uuid import UUID
-
-    from app.api.common.models.base import Base
 
 # Shared by the registration error and the pre-registration /validate-email hint, so the
 # form shows the same wording before and after submit.
@@ -35,19 +25,6 @@ class UserNameAlreadyExistsError(ConflictError, AuthCRUDError):
     def __init__(self, username: str):
         msg = f"Username '{username}' is already taken."
         super().__init__(msg)
-
-
-class UserOwnershipError(ForbiddenError):
-    """Exception raised when a user does not own the specified model."""
-
-    def __init__(
-        self,
-        model_type: type[Base],
-        model_id: int | UUID,
-        user_id: UUID4,
-    ) -> None:
-        model_name = get_model_label(model_type)
-        super().__init__(message=(f"User {user_id} does not own {model_name} with ID {model_id}."))
 
 
 class DisposableEmailError(BadRequestError, AuthCRUDError):

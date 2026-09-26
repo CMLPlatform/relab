@@ -1,4 +1,3 @@
-import { Slot } from '@rn-primitives/slot';
 import * as React from 'react';
 import { Platform, Text as RNText } from 'react-native';
 import { cn } from '@/utils/cn';
@@ -19,17 +18,12 @@ const TextClassContext = React.createContext<string | undefined>(undefined);
  */
 function Text({
   className,
-  asChild = false,
   maxFontSizeMultiplier = 2,
   ...props
-}: React.ComponentProps<typeof RNText> &
-  React.RefAttributes<typeof RNText> & {
-    asChild?: boolean;
-  }) {
+}: React.ComponentProps<typeof RNText> & React.RefAttributes<RNText>) {
   const textClass = React.useContext(TextClassContext);
-  const Component = asChild ? Slot : RNText;
   return (
-    <Component
+    <RNText
       className={cn(TEXT_CLASS_NAME, textClass, className)}
       maxFontSizeMultiplier={maxFontSizeMultiplier}
       {...props}

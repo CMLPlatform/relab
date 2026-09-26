@@ -1,0 +1,43 @@
+---
+layout: ../layouts/ContentLayout.astro
+title: Accessibility statement
+description: What we check, what we have not checked, and how to tell us about a barrier.
+meta: "Last updated: September 8, 2026"
+intro: This statement covers the Relab website, the documentation site, and the web app.
+feedback:
+  title: Tell us what does not work
+  lead: If you cannot use something, email
+  trail: Tell us the page you were on and what went wrong.
+---
+
+<!-- The public accessibility statement, required of Leiden University public sites by the
+EU Web Accessibility Directive (EN 301 549). It claims partial conformance and names
+what is untested. Every fact must stay checkable in the repository (axe tags in
+e2e/helpers.ts, the contrast unit tests, the target-size rules). When a gap closes,
+move its line from "What we have not checked" to "What we check". -->
+
+## How accessible Relab is
+
+Relab aims to meet WCAG 2.2, level AA. It is partially conformant: some of it meets that standard and some has not been assessed.
+
+We target 2.2 because Leiden University’s public sites fall under the EU Web Accessibility Directive through EN 301 549.
+
+This is a self-evaluation by the people who build Relab. There has been no external audit.
+
+## What we check
+
+Every release scans the website and documentation site fully with axe, an accessibility testing tool, against the level A and AA rules for WCAG 2.0, 2.1, and 2.2. The web app is scanned the same way on its public screens and its account screen; colour contrast is excluded from that automated check.
+
+- Every text colour clears 4.5:1 against its background, in both the light and dark themes.
+- Buttons, links, and icon controls are at least 24 by 24 CSS pixels, or have equivalent spacing, per WCAG 2.2 success criterion 2.5.8.
+- Animations follow your operating system’s “reduce motion” setting.
+
+## What we have not checked
+
+These are the gaps we know about.
+
+- Nobody has worked through Relab by keyboard alone, or with a screen reader.
+- Two criteria have no automated test available: 2.4.11 Focus Not Obscured and 2.4.13 Focus Appearance. We check those by hand.
+- The app is tested in a browser, so VoiceOver and TalkBack are untested.
+- Relab is in English only.
+- Videos are embedded from YouTube. Captions are up to whoever published them.

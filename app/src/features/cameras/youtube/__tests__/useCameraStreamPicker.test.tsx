@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { useCameraStreamPicker } from '@/features/cameras/youtube/useCameraStreamPicker';
 import { ApiError } from '@/services/api/errors';
 import { addProductVideo } from '@/services/api/products';
-import { startYouTubeStream } from '@/services/api/rpiCamera';
+import { startYouTubeStream } from '@/services/api/rpiCamera/streams';
 
 const mockSetActiveStream = jest.fn();
 const mockAlert = jest.fn();
@@ -42,7 +42,7 @@ jest.mock('@/services/api/products', () => ({
   addProductVideo: jest.fn(),
 }));
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/streams', () => ({
   startYouTubeStream: jest.fn(),
 }));
 

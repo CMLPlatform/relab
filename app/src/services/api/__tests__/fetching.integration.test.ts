@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { HttpResponse, http } from 'msw';
 import { API_ORIGIN_URL, API_URL } from '@/config';
-import { fetchWithAuth, getUser } from '@/services/api/auth/authentication';
-import { searchProductBrands } from '@/services/api/productSuggestions';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
+import { getUser } from '@/services/api/auth/authUser';
 import {
   getBaseProduct,
   getComponent,
@@ -11,19 +11,17 @@ import {
   ProductNotFoundError,
   products,
 } from '@/services/api/products';
-import { searchProductTypes } from '@/services/api/productTypes';
+import { searchProductBrands, searchProductTypes } from '@/services/api/productTypes';
 import { mockUser, server } from '@/test-utils/index';
 
-jest.mock('@/services/api/auth/authentication', () => {
-  const actual = jest.requireActual<typeof import('@/services/api/auth/authentication')>(
-    '@/services/api/auth/authentication',
-  );
-  return {
-    ...actual,
-    fetchWithAuth: jest.fn(),
-    getUser: jest.fn(),
-  };
-});
+jest.mock('@/services/api/auth/authRefresh', () => ({
+  ...jest.requireActual<typeof import('@/services/api/auth/authRefresh')>(
+    '@/services/api/auth/authRefresh',
+  ),
+  fetchWithAuth: jest.fn(),
+}));
+
+jest.mock('@/services/api/auth/authUser', () => ({ getUser: jest.fn() }));
 
 function makePage<T>(
   items: T[],

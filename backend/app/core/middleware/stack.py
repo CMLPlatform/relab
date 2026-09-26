@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 from app.core.http_headers import IDEMPOTENCY_KEY_HEADER, REQUEST_ID_HEADER
 from app.core.middleware.content_negotiation import register_content_negotiation_middleware
 from app.core.middleware.method_policy import CORS_HTTP_METHODS, register_method_policy_middleware

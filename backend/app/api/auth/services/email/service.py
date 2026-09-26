@@ -21,7 +21,7 @@ from app.api.auth.services.email.templates import (
     EmailTemplateName,
     render_email_template,
 )
-from app.core.config import settings as core_settings
+from app.core.config.core import settings as core_settings
 from app.core.pseudonyms import LOG_TOKEN_LENGTH, keyed_digest
 
 if TYPE_CHECKING:

@@ -34,18 +34,18 @@ In the full Docker stack, the site is served behind Caddy at <http://127.0.0.1:8
 `just build` uses the reference deployment's public URLs unless `*_PUBLIC_URL` are exported; see
 [Environment variables](#environment-variables) for how staging and production get theirs.
 
-| Task                             | Command            |
-| -------------------------------- | ------------------ |
-| Install dependencies             | `just install`     |
-| Start local dev server           | `pnpm run dev`     |
-| Build production output          | `just build`       |
-| Preview a build locally          | `pnpm run preview` |
-| Lint and type-check              | `just check`       |
-| Format and auto-fix Biome issues | `just fix`         |
-| Run unit tests                   | `just test`        |
-| Run browser E2E tests            | `just test-e2e`    |
-| Scan dependencies for CVEs       | `just audit` (root) |
-| Run the full CI pipeline locally | `just ci`          |
+| Task                             | Command                          |
+| -------------------------------- | -------------------------------- |
+| Install dependencies             | `just install`                   |
+| Start local dev server           | `pnpm run dev`                   |
+| Build production output          | `just build`                     |
+| Preview a build locally          | `pnpm run preview`               |
+| Lint and type-check              | `just check`                     |
+| Format and auto-fix Biome issues | `just fix`                       |
+| Run unit tests                   | `just test`                      |
+| Run browser E2E tests            | `just test-e2e`                  |
+| Scan dependencies for CVEs       | `just audit` (root)              |
+| Run the full CI pipeline locally | `just check` then `just test-ci` |
 
 ## Development notes
 
@@ -142,7 +142,7 @@ pnpm vitest
 ```
 
 CI runs `just test-ci` (Vitest with coverage, gated at 80% statements); plain `just test` skips
-that gate. `just ci` runs checks plus `test-ci`.
+that gate. Run `just check` then `just test-ci` to cover both.
 
 E2E tests live in `e2e/`. Without `BASE_URL`, Playwright builds the site and starts a preview
 server. To run against the Docker stack instead:

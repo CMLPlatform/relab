@@ -5,7 +5,7 @@ import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { TextInput } from '@/components/base/TextInput';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { heading } from '@/utils/a11y';
 
 type ManualSetupDialogProps = {

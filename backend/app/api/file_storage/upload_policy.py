@@ -10,7 +10,7 @@ from PIL import Image as PILImage
 from PIL import UnidentifiedImageError
 
 from app.api.common.exceptions import BadRequestError
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images.validation import validate_image_dimensions
 
 if TYPE_CHECKING:

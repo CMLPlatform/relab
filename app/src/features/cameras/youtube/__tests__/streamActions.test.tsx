@@ -33,7 +33,7 @@ jest.mock('@/services/api/products', () => ({
   addProductVideo: (...args: unknown[]) => mockAddProductVideo(...args),
 }));
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/streams', () => ({
   startYouTubeStream: (...args: unknown[]) => mockStartYouTubeStream(...args),
 }));
 
