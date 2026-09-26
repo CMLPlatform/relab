@@ -16,7 +16,7 @@ _browsers *browsers:
     args=(install)
     if [[ "${INSTALL:-}" == force ]]; then args+=(--with-deps); fi
     # CI runs chromium only, and without --with-deps. Every library chromium needs is
-    # already in the ubuntu-latest image: the last run that passed --with-deps reported
+    # already in the Ubuntu runner image: the last run that passed --with-deps reported
     # each one "already the newest version" and installed nothing but nine font packages,
     # for scripts these suites never render. What it did cost was an `apt-get update` on
     # every E2E job, which against a slow mirror once took 14 minutes for a step that

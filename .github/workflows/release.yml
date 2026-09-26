@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: write
@@ -40,7 +40,7 @@ jobs:
     name: Release SBOM (${{ matrix.service }})
     needs: [release-please]
     if: needs.release-please.outputs.release_created == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       attestations: write
