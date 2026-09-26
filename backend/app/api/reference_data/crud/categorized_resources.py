@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-    from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm
+    from app.api.file_storage.schemas import FileCreate, ImageCreateFromForm, ImageCreateInternal
 
 
 type CategorizedReference = Material | ProductType
@@ -48,9 +48,11 @@ class CategorizedReferenceSpec[ResourceT: CategorizedReference, LinkT: CategoryL
     model: type[ResourceT]
     expected_domains: set[TaxonomyDomain]
     category_link_model: type[LinkT]
+    # NOTE: ty applies the descriptor protocol to a dataclass field typed as a SQLAlchemy
+    # attribute and reads it as ``int``; at runtime the instance holds the attribute itself.
     category_link_parent_id: InstrumentedAttribute[int]
     files: ParentMedia[File, FileCreate]
-    images: ParentMedia[Image, ImageCreateFromForm]
+    images: ParentMedia[Image, ImageCreateFromForm | ImageCreateInternal]
 
 
 MATERIAL_RESOURCE = CategorizedReferenceSpec(
@@ -113,7 +115,7 @@ async def create_categorized_reference[ResourceT: CategorizedReference, LinkT: C
         await add_links(
             db,
             id1=db_parent.id,
-            id1_attr=spec.category_link_parent_id,
+            id1_attr=spec.category_link_parent_id,  # ty: ignore[invalid-argument-type]  # see NOTE on the spec
             id2_set=category_ids,
             id2_attr=spec.category_link_model.category_id,
             link_model=spec.category_link_model,
@@ -133,7 +135,9 @@ async def _require_not_in_use[ResourceT: CategorizedReference, LinkT: CategoryLi
     IntegrityError (500) instead of telling the admin what is holding the row.
     """
     for guard in usage_guards_for(spec.model):
-        referenced = await db.execute(select(guard.column).where(guard.column == parent_id).limit(1))
+        # Same descriptor-field read as the NOTE on CategorizedReferenceSpec (UsageGuard is a dataclass).
+        statement = select(guard.column).where(guard.column == parent_id)  # ty: ignore[no-matching-overload]
+        referenced = await db.execute(statement.limit(1))
         if referenced.first() is not None:
             label = get_model_label(spec.model).lower()
             msg = f"This {label} is still referenced by {guard.label} and cannot be deleted."
@@ -186,7 +190,7 @@ async def add_categorized_reference_categories[ResourceT: CategorizedReference, 
     await add_links(
         db,
         id1=parent_id,
-        id1_attr=spec.category_link_parent_id,
+        id1_attr=spec.category_link_parent_id,  # ty: ignore[invalid-argument-type]  # see NOTE on the spec
         id2_set=category_ids,
         id2_attr=spec.category_link_model.category_id,
         link_model=spec.category_link_model,
@@ -207,7 +211,7 @@ async def remove_categorized_reference_categories[ResourceT: CategorizedReferenc
 
     statement = (
         select(spec.category_link_model)
-        .where(spec.category_link_parent_id == parent_id)
+        .where(spec.category_link_parent_id == parent_id)  # ty: ignore[invalid-argument-type]  # see NOTE on the spec
         .where(spec.category_link_model.category_id.in_(category_ids))
     )
     results = await db.execute(statement)

@@ -91,10 +91,12 @@ async def test_skips_disposable_check_when_checker_is_none(db_session: AsyncSess
 def test_rejects_removed_organization_fields() -> None:
     """User creation no longer accepts organization fields."""
     with pytest.raises(ValueError, match="organization"):
-        TrustedUserCreate(
-            email="orgfounder@example.com",
-            password=VALID_TEST_PASSWORD,
-            organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6",
+        TrustedUserCreate.model_validate(
+            {
+                "email": "orgfounder@example.com",
+                "password": VALID_TEST_PASSWORD,
+                "organization_id": "1fa85f64-5717-4562-b3fc-2c963f66afa6",
+            }
         )
 
 

@@ -3,7 +3,7 @@
 import json
 import zlib
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 from zipfile import BadZipFile, ZipFile, ZipInfo
 
 from PIL import Image as PILImage
@@ -201,14 +201,14 @@ def _validate_compressed_member_path(name: str) -> None:
         raise BadRequestError(msg)
 
 
-def _decompressed_size_capped(member: object, limit: int) -> int:
+def _decompressed_size_capped(member: IO[bytes], limit: int) -> int:
     """Return the member's decompressed size, reading at most ``limit`` bytes.
 
     Stops as soon as the running total passes ``limit`` so a bomb never fully
     inflates; memory stays bounded to one chunk.
     """
     total = 0
-    read = member.read  # type: ignore[attr-defined]
+    read = member.read
     while True:
         chunk = read(ZIP_MEMBER_READ_CHUNK)
         if not chunk:

@@ -2,13 +2,15 @@
 
 from typing import TYPE_CHECKING
 
+from pydantic import JsonValue
+
 from app.api.common.openapi_examples import openapi_example, openapi_examples
 
 if TYPE_CHECKING:
     from fastapi.openapi.models import Example
 
 
-CAMERA_CREATE_EXAMPLES = [
+CAMERA_CREATE_EXAMPLES: list[JsonValue] = [
     {
         "name": "Workbench Camera",
         "description": "Ceiling-mounted camera above the teardown bench",
@@ -23,7 +25,7 @@ CAMERA_CREATE_EXAMPLES = [
     }
 ]
 
-CAMERA_READ_EXAMPLES = [
+CAMERA_READ_EXAMPLES: list[JsonValue] = [
     {
         "id": "12345678-cc4e-405c-8553-7806424de2a1",
         "name": "Workbench Camera",
@@ -36,7 +38,7 @@ CAMERA_READ_EXAMPLES = [
     }
 ]
 
-CAMERA_UPDATE_EXAMPLES = [
+CAMERA_UPDATE_EXAMPLES: list[JsonValue] = [
     {
         "description": "Camera assigned to the repairability bench",
     }

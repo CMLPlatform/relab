@@ -238,8 +238,8 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
     model: type[StorageModelT]
     max_size_mb: Callable[[], int]
     get_storage: Callable[[], BaseStorage]
-    validate_upload_metadata: Callable[[UploadFile], None]
-    validate_upload_content: Callable[[UploadFile], None]
+    validate_upload_metadata: Callable[[UploadFile], object]
+    validate_upload_content: Callable[[UploadFile], object]
     after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] | None = None
 
     async def create(
@@ -301,7 +301,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         await db.commit()
 
         # Backend deletes are idempotent for a missing object, so no path gating (None on S3).
-        if self.model is Image:
+        if isinstance(db_item, Image):
             await delete_image_from_storage(db_item)
         else:
             await delete_file_from_storage(db_item)

@@ -2,13 +2,15 @@
 
 from typing import TYPE_CHECKING
 
+from pydantic import JsonValue
+
 from app.api.common.openapi_examples import openapi_example, openapi_examples
 
 if TYPE_CHECKING:
     from fastapi.openapi.models import Example
 
 
-CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES = [
+CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES: list[JsonValue] = [
     {
         "id": 2,
         "name": "Ferrous metals",
@@ -16,7 +18,7 @@ CATEGORY_READ_AS_SUBCATEGORY_EXAMPLES = [
     }
 ]
 
-CATEGORY_READ_EXAMPLES = [
+CATEGORY_READ_EXAMPLES: list[JsonValue] = [
     {
         "id": 2,
         "name": "Ferrous metals",
@@ -26,7 +28,7 @@ CATEGORY_READ_EXAMPLES = [
     }
 ]
 
-CATEGORY_READ_RECURSIVE_EXAMPLES = [
+CATEGORY_READ_RECURSIVE_EXAMPLES: list[JsonValue] = [
     {
         "id": 1,
         "name": "Metals",
@@ -48,14 +50,14 @@ CATEGORY_READ_RECURSIVE_EXAMPLES = [
     }
 ]
 
-CATEGORY_UPDATE_EXAMPLES = [
+CATEGORY_UPDATE_EXAMPLES: list[JsonValue] = [
     {
         "name": "Metals",
         "description": "All kinds of metals",
     }
 ]
 
-TAXONOMY_READ_EXAMPLES = [
+TAXONOMY_READ_EXAMPLES: list[JsonValue] = [
     {
         "name": "Materials Taxonomy",
         "description": "Taxonomy for materials",

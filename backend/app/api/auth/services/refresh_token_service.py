@@ -98,7 +98,7 @@ class RefreshTokenMetadata:
         try:
             return cls(
                 user_id=UUID(str(payload["user_id"])),
-                absolute_expires_at=int(payload["absolute_expires_at"]),
+                absolute_expires_at=int(str(payload["absolute_expires_at"])),
             )
         except (KeyError, TypeError, ValueError) as err:
             raise RefreshTokenInvalidError from err

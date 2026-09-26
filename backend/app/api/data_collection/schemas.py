@@ -126,7 +126,7 @@ class ProductCreateWithRelationships(BaseCreateSchema, ProductBase):
 class ProductCreateBaseProduct(ProductCreateWithRelationships):
     """Schema for creating a base product."""
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": PRODUCT_CREATE_EXAMPLES})
+    model_config = ConfigDict(json_schema_extra={"examples": PRODUCT_CREATE_EXAMPLES})
     videos: list[VideoCreateWithinProduct] = Field(
         default_factory=list,
         max_length=MAX_VIDEOS_PER_PRODUCT,

@@ -2,7 +2,7 @@
 
 import logging
 from inspect import Parameter, signature
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol, cast
 from uuid import uuid4
 
 from app.api.common.audit import AuditAction, AuditContext, audit_event
@@ -12,6 +12,26 @@ if TYPE_CHECKING:
     import pytest
 
 
+class _AuditLogRecord(Protocol):
+    """The extra fields ``audit_event`` attaches to a stdlib ``LogRecord``.
+
+    ``logging.LogRecord`` has no static knowledge of ``extra=`` fields, so
+    assertions on them need this narrow view of the record.
+    """
+
+    action: str
+    resource_type: str
+    resource_id: str
+    actor_id: str
+    outcome: str
+    reason: str
+    transport: str
+    flow: str
+    operation: str
+    status_code: int
+    error_code: str
+
+
 def test_audit_event_records_action_as_string_value(caplog: pytest.LogCaptureFixture) -> None:
     """Audit log records should expose action as a plain string for JSON logging."""
     actor_id = uuid4()
@@ -19,7 +39,7 @@ def test_audit_event_records_action_as_string_value(caplog: pytest.LogCaptureFix
     with caplog.at_level(logging.INFO, logger="audit"):
         audit_event(actor_id, AuditAction.DELETE, Material, uuid4())
 
-    record = caplog.records[0]
+    record = cast("_AuditLogRecord", caplog.records[0])
     assert record.action == "delete"
     assert type(record.action) is str
 
@@ -29,7 +49,7 @@ def test_audit_event_records_model_class_as_resource_type(caplog: pytest.LogCapt
     with caplog.at_level(logging.INFO, logger="audit"):
         audit_event("actor", AuditAction.DELETE, Material, 1)
 
-    assert caplog.records[0].resource_type == "Material"
+    assert cast("_AuditLogRecord", caplog.records[0]).resource_type == "Material"
 
 
 def test_audit_event_sanitizes_structured_string_fields(caplog: pytest.LogCaptureFixture) -> None:
@@ -43,7 +63,7 @@ def test_audit_event_sanitizes_structured_string_fields(caplog: pytest.LogCaptur
             context=AuditContext(outcome="denied\nnow", reason="bad\npassword"),
         )
 
-    record = caplog.records[0]
+    record = cast("_AuditLogRecord", caplog.records[0])
     assert record.actor_id == "actor id"
     assert record.action == "login_failure"
     assert record.resource_type == "auth flow"
@@ -79,7 +99,7 @@ def test_audit_event_sanitizes_context_fields(caplog: pytest.LogCaptureFixture) 
             ),
         )
 
-    record = caplog.records[0]
+    record = cast("_AuditLogRecord", caplog.records[0])
     assert record.reason == "bad credentials"
     assert record.transport == "bearer client"
     assert record.flow == "login challenge"

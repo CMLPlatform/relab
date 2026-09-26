@@ -19,6 +19,13 @@ type ProductMediaStorageDelete = Callable[[File | Image], Awaitable[None]]
 type ProductMediaStorageCleanup = tuple[File | Image, ProductMediaStorageDelete]
 
 
+async def _delete_media_from_storage(item: File | Image) -> None:
+    if isinstance(item, Image):
+        await delete_image_from_storage(item)
+    else:
+        await delete_file_from_storage(item)
+
+
 async def delete_product_media(db: AsyncSession, product_id: int) -> list[ProductMediaStorageCleanup]:
     """Stage product media rows for deletion and return post-commit storage cleanup targets.
 
@@ -29,10 +36,7 @@ async def delete_product_media(db: AsyncSession, product_id: int) -> list[Produc
     subtree = subtree.union_all(select(Product.id).where(Product.parent_id == subtree.c.id))
 
     cleanups: list[ProductMediaStorageCleanup] = []
-    for storage_model, delete_from_storage in (
-        (File, delete_file_from_storage),
-        (Image, delete_image_from_storage),
-    ):
+    for storage_model in (File, Image):
         result = await db.execute(
             select(storage_model).where(
                 storage_model.parent_id.in_(select(subtree.c.id)),
@@ -40,7 +44,7 @@ async def delete_product_media(db: AsyncSession, product_id: int) -> list[Produc
             )
         )
         for item in result.scalars().all():
-            cleanups.append((item, delete_from_storage))
+            cleanups.append((item, _delete_media_from_storage))
             await db.delete(item)
     return cleanups
 

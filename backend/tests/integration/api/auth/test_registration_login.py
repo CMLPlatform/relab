@@ -127,6 +127,7 @@ async def test_register_duplicate_email_is_not_enumerable(api_client: AsyncClien
     assert duplicate.json() == fresh.json()
     # The real owner is still told a signup was attempted.
     mock_notify.assert_awaited_once()
+    assert mock_notify.await_args is not None
     assert mock_notify.await_args.args[0] == user_data["email"]
     # A real BackgroundTasks, not None: the send has to be deferred past the response.
     # Without it the notification blocks the reply and the uniform-timing property of

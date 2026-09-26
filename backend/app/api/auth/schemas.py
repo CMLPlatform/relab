@@ -106,19 +106,19 @@ class UserRegister(NoPublicAccountControls, UserCreateBase):
 
     username: UsernameValue
 
-    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
 class TrustedUserCreate(UserCreateBase):
     """Trusted internal user creation schema for scripts and system workflows."""
 
-    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
 
 
 class OAuthAccountRead(BaseModel):
     """Read schema for OAuth accounts."""
 
-    model_config: ConfigDict = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
 
     oauth_name: str
     account_id: str
@@ -205,13 +205,13 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
     upload_file_count: int = Field(default=0, description="Files and images this account currently has stored.")
     upload_total_bytes: int = Field(default=0, description="Total bytes this account currently has stored.")
 
-    model_config: ConfigDict = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
+    model_config = ConfigDict(json_schema_extra={"examples": USER_READ_EXAMPLES})
 
 
 class UserRoleUpdate(BaseModel):
     """Administrator request to set one account's contributor tier."""
 
-    model_config: ConfigDict = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid")
 
     role: UserRole = Field(description="The contributor tier to assign.")
 
@@ -250,7 +250,7 @@ class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUs
         default=None,
         description="User preferences (partial merge).",
     )
-    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_UPDATE_EXAMPLES})
 
     def create_update_dict(self) -> dict:
         """Return FastAPI-Users update data without reauthentication-only fields."""

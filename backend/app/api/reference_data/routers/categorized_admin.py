@@ -63,8 +63,9 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
     name = id_param.removesuffix("_id")
     item_path = f"/{{{id_param}}}"
 
-    # Local aliases used as endpoint annotations: FastAPI resolves them at
-    # runtime via PEP 649 lazy annotations; type checkers can't, hence ignores.
+    # Local aliases and schema parameters used as endpoint annotations: FastAPI
+    # resolves them at runtime via PEP 649 lazy annotations. Type checkers accept
+    # the Annotated aliases but not a runtime schema class, hence those ignores.
     id_path = Annotated[PositiveInt, Path(alias=id_param, description=f"{title} ID")]
     media_id_path = Annotated[PositiveInt, Path(alias=id_param, description=f"ID of the {title}")]
 
@@ -72,17 +73,17 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         return await create_categorized_reference(session, spec, payload)
 
     async def update_item(
-        item_id: id_path,  # ty: ignore[invalid-type-form]
+        item_id: id_path,
         session: AsyncSessionDep,
         payload: update_schema,  # ty: ignore[invalid-type-form]
     ) -> object:
         return await update_reference_model(session, spec.model, item_id, payload)
 
-    async def delete_item(item_id: id_path, session: AsyncSessionDep) -> None:  # ty: ignore[invalid-type-form]
+    async def delete_item(item_id: id_path, session: AsyncSessionDep) -> None:
         await delete_categorized_reference(session, spec, item_id)
 
     async def add_categories(
-        item_id: id_path,  # ty: ignore[invalid-type-form]
+        item_id: id_path,
         session: AsyncSessionDep,
         category_ids: Annotated[
             set[int],
@@ -95,7 +96,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         return list(await add_categorized_reference_categories(session, spec, item_id, set(category_ids)))
 
     async def remove_categories(
-        item_id: id_path,  # ty: ignore[invalid-type-form]
+        item_id: id_path,
         session: AsyncSessionDep,
         category_ids: Annotated[
             set[int],
@@ -108,7 +109,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         await remove_categorized_reference_categories(session, spec, item_id, set(category_ids))
 
     async def upload_file(
-        item_id: media_id_path,  # ty: ignore[invalid-type-form]
+        item_id: media_id_path,
         session: AsyncSessionDep,
         file: Annotated[UploadFile, FastAPIFile(description="A file to upload")],
         description: Annotated[str | None, Form()] = None,
@@ -128,7 +129,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         return FileReadWithinParent.model_validate(item)
 
     async def delete_file(
-        item_id: media_id_path,  # ty: ignore[invalid-type-form]
+        item_id: media_id_path,
         file_id: Annotated[UUID4, Path(description="ID of the file")],
         session: AsyncSessionDep,
     ) -> None:
@@ -143,7 +144,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         )
 
     async def upload_image(
-        item_id: media_id_path,  # ty: ignore[invalid-type-form]
+        item_id: media_id_path,
         session: AsyncSessionDep,
         file: Annotated[UploadFile, FastAPIFile(description="An image to upload")],
         description: Annotated[str | None, Form()] = None,
@@ -172,7 +173,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         return ImageReadWithinParent.model_validate(item)
 
     async def delete_image(
-        item_id: media_id_path,  # ty: ignore[invalid-type-form]
+        item_id: media_id_path,
         image_id: Annotated[UUID4, Path(description="ID of the image")],
         session: AsyncSessionDep,
     ) -> None:

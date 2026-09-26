@@ -2,13 +2,15 @@
 
 from typing import TYPE_CHECKING
 
+from pydantic import JsonValue
+
 from app.api.common.openapi_examples import openapi_example, openapi_examples
 
 if TYPE_CHECKING:
     from fastapi.openapi.models import Example
 
 
-PRODUCT_CREATE_BASE_EXAMPLE = {
+PRODUCT_CREATE_BASE_EXAMPLE: dict[str, JsonValue] = {
     "name": "Office Chair",
     "description": "Complete chair assembly",
     "brand": "Brand 1",
@@ -63,7 +65,7 @@ PRODUCT_CREATE_WITH_COMPONENTS_EXAMPLE = {
     ],
 }
 
-PRODUCT_CREATE_EXAMPLES = [PRODUCT_CREATE_BASE_EXAMPLE]
+PRODUCT_CREATE_EXAMPLES: list[JsonValue] = [PRODUCT_CREATE_BASE_EXAMPLE]
 
 PRODUCT_CREATE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
     basic=openapi_example(PRODUCT_CREATE_BASE_EXAMPLE, summary="Basic product without components"),

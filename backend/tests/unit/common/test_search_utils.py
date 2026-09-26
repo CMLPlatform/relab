@@ -8,6 +8,7 @@ from sqlalchemy.dialects import postgresql
 from app.api.common.search_utils import apply_ts_rank_ordering, build_contains_clause, build_text_search_clause
 
 if TYPE_CHECKING:
+    from sqlalchemy.sql.compiler import Compiled
     from sqlalchemy.sql.elements import ClauseElement
 
 
@@ -16,7 +17,7 @@ def _sql(clause: ClauseElement) -> str:
     return str(clause.compile(dialect=postgresql.dialect()))
 
 
-def _compiled(clause: ClauseElement) -> object:
+def _compiled(clause: ClauseElement) -> Compiled:
     """Compile a clause for assertions on SQL text and bound parameters."""
     return clause.compile(dialect=postgresql.dialect())
 

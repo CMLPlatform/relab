@@ -16,7 +16,7 @@ from fastapi_users import exceptions
 from app.api.auth.services.user_manager import UserManager
 
 
-def _manager(*, get_by_email: AsyncMock, verified: bool = True, updated_hash: str | None = None) -> UserManager:
+def _manager(*, get_by_email: AsyncMock, verified: bool = True, updated_hash: str | None = None) -> MagicMock:
     manager = MagicMock(spec=UserManager)
     manager.get_by_email = get_by_email
     manager.password_helper = MagicMock()

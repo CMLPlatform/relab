@@ -16,7 +16,9 @@ from app.api.common.search_utils import apply_ts_rank_ordering, build_contains_c
 from app.api.common.validation import FILTER_CSV_SEPARATOR, BoundedQueryText, BoundedQueryTextList
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Awaitable, Callable, Sequence
+
+    from fastapi_filters.types import AbstractFilterOperator
 
     from app.api.common.models.base import Base
 
@@ -28,13 +30,13 @@ csv_separator_config.set(FILTER_CSV_SEPARATOR)
 _QUERY_TEXT_ADAPTER = TypeAdapter(BoundedQueryText)
 
 
-def filter_field(operators: list[FilterOperator]) -> FilterField[Any]:
+def filter_field(operators: Sequence[AbstractFilterOperator]) -> FilterField[Any]:
     """FilterField defaulting its operator to the first listed.
 
     fastapi-filters requires ``default_op`` to be a member of ``operators``; without this
     a text field limited to ``ilike`` would fall back to ``eq`` and raise at import time.
     """
-    return FilterField(operators=operators, default_op=operators[0])
+    return FilterField(operators=list(operators), default_op=operators[0])
 
 
 @dataclass(frozen=True)
@@ -59,7 +61,9 @@ class BaseFilterSet(FilterSet):
     _sorting: SortingValues | None = None
 
     @classmethod
-    def __filter_field_adapt_type__(cls, _field: object, tp: type[Any], op: FilterOperator) -> object | None:
+    def __filter_field_adapt_type__(
+        cls, field: FilterField[Any], tp: type[Any], op: AbstractFilterOperator
+    ) -> object | None:
         """Apply shared query bounds to generated FastAPI filter parameters."""
         if tp is str:
             if op in {FilterOperator.in_, FilterOperator.not_in}:
@@ -119,7 +123,9 @@ def _relationship_join_lookup(model_filter: BaseFilterSet) -> dict[str, Relation
     return {join.field: join for join in model_filter.relationship_joins}
 
 
-def _relationship_columns(model_filter: BaseFilterSet) -> dict[str, ColumnElement[Any] | InstrumentedAttribute[Any]]:
+def _relationship_columns(
+    model_filter: BaseFilterSet,
+) -> dict[str | FilterField[Any], ColumnElement[Any] | InstrumentedAttribute[Any]]:
     return {join.field: join.column for join in model_filter.relationship_joins}
 
 
@@ -159,13 +165,10 @@ def apply_filter[MT: Base](
         return statement
 
     statement = _apply_relationship_joins(statement, model_filter)
-    statement = cast(
-        "Select[tuple[MT]]",
-        apply_fastapi_filters(
-            statement,
-            model_filter,
-            additional=_relationship_columns(model_filter),
-        ),
+    statement = apply_fastapi_filters(
+        statement,
+        model_filter,
+        additional=_relationship_columns(model_filter),
     )
 
     search_clause = model_filter.build_search_clause()
@@ -195,7 +198,7 @@ def apply_filter[MT: Base](
 
 def create_filter_dependency(
     filter_cls: type[BaseFilterSet],
-) -> Callable[..., BaseFilterSet]:
+) -> Callable[..., Awaitable[BaseFilterSet]]:
     """Create a FastAPI dependency returning a configured Relab filter set."""
     if not filter_cls.sortable_fields:
 
