@@ -29,8 +29,8 @@ consumer copies.
 | `r9lab-og.svg`            | 1200×630 social card (wordmark + tagline)           |
 
 Each has a `-dark` counterpart. `scripts/sync_brand_assets.py` (run by `just assets-sync`) renders
-every PNG/ico derivative from these SVGs: consumer copies, the canonical `../r9lab-*.png`
-companions the root README embeds, and the og cards.
+every PNG/ico derivative from these SVGs: consumer copies, the `../r9lab-wordmark.png` the root
+README embeds, and the og cards.
 
 The Titillium Web and IBM Plex Sans font subsets (latin) are checked in under `fonts/candidates/`
 with their OFL licence texts (`OFL-*.txt`). Earlier candidate fonts (Petrona, Varela) and their

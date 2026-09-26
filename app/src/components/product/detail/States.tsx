@@ -3,7 +3,7 @@ import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { ErrorState } from '@/components/base/ErrorState';
 import ProductDetailsSkeleton from '@/components/product/ProductDetailsSkeleton';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { entityLabel, entityLabelTitle } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
 

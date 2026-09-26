@@ -3,7 +3,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 import { useAuthedMediaSource } from '@/services/api/authedMedia';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { PreviewErrorOverlay, PreviewLoadingOverlay } from './previewOverlays';
 import { createLivePreviewStyles } from './styles';
 

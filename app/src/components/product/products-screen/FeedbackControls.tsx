@@ -4,7 +4,7 @@ import { AppText } from '@/components/base/AppText';
 import { Fab } from '@/components/base/Fab';
 import { Icon } from '@/components/base/Icon';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { getErrorMessage } from '@/utils/errors';
 import { PRODUCTS_FAB_EDGE_GAP, productsScreenStyles as styles } from './shared';
 

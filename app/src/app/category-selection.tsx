@@ -17,7 +17,7 @@ import { SignedOutState } from '@/components/base/SignedOutState';
 import CPVCard from '@/components/product/CPVCard';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useCategorySelection } from '@/features/products/useCategorySelection';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 export default function CategorySelection() {

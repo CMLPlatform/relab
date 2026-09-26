@@ -4,9 +4,8 @@ import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
-import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
-import { useYouTubeIntegration } from '@/features/cameras/youtube/useYouTubeIntegration';
-import { useAppTheme } from '@/theme';
+import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
+import { useAppTheme } from '@/theme/appThemeContext';
 import {
   getPrimaryFabIcon,
   getProductCapabilities,
@@ -31,8 +30,8 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
   const dialog = useDialog();
   const theme = useAppTheme();
   const { user: profile } = useAuth();
-  const { enabled: rpiEnabled } = useRpiIntegration();
-  const { enabled: youtubeEnabled } = useYouTubeIntegration();
+  const { enabled: rpiEnabled } = useServerPreferenceToggle('rpi_camera_enabled');
+  const { enabled: youtubeEnabled } = useServerPreferenceToggle('youtube_streaming_enabled');
   const { activeStream } = useStreamSession();
   const isGoogleLinked =
     profile?.oauth_accounts?.some((account) => account.oauth_name === 'google') ?? false;

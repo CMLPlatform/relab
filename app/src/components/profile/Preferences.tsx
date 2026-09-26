@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { Switch } from '@/components/base/ui/switch';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import type { ThemeMode, User } from '@/types/User';
 import { createProfileSectionStyles } from './styles';

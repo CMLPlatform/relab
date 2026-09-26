@@ -29,8 +29,9 @@ Current shared assets:
 - `brand.css`
 - `images/bg-light.jpg`
 - `images/bg-dark.jpg`
-- `r9lab-*.svg` / `r9lab-*.png`: mark, logo, wordmark, and og-image variants, light and dark (see
-  [logo-src/](logo-src/README.md))
+- `r9lab-*.svg`: mark, logo, wordmark, and og-image variants, light and dark (see
+  [logo-src/](logo-src/README.md)); `r9lab-wordmark.png` is the one PNG kept here, for the root
+  README
 - `fonts/ibm-plex-*.woff2`
 - `icons/brand/{github,google,youtube,linkedin}.svg`: monochrome brand marks (Simple Icons,
   CC0-1.0); `just assets-sync` copies them to `docs/src/assets/icons/brand/` and

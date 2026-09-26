@@ -35,16 +35,6 @@ export function getHostByType(type: string): HostElement {
   return found[0] as HostElement;
 }
 
-/** The first host element carrying every one of `props`, or null. */
-export function queryHostByProps(props: Record<string, unknown>): HostElement | null {
-  const match = hosts().find((el) =>
-    Object.entries(props).every(
-      ([key, value]) => (el.props as Record<string, unknown>)[key] === value,
-    ),
-  );
-  return match ?? null;
-}
-
 /** Every host element carrying all of `props`. */
 export function queryAllHostsByProps(props: Record<string, unknown>): HostElement[] {
   return hosts().filter((el) =>

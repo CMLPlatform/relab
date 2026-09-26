@@ -12,7 +12,7 @@ from fastapi import status
 from sqlalchemy import select
 
 from app.api.auth.models import User
-from app.api.auth.schemas import UserCreate
+from app.api.auth.schemas import UserRegister
 from app.api.auth.services.token_store import token_key
 from tests.integration.api.auth.shared import login_bearer
 
@@ -41,7 +41,7 @@ async def register_user(api_client: AsyncClient, *, email: str, password: str, u
     register_data = {"email": email, "password": password, "username": username}
 
     with patch("app.api.auth.routers.register.validate_user_create") as mock_override:
-        mock_override.return_value = UserCreate(email=email, password=password, username=username)
+        mock_override.return_value = UserRegister(email=email, password=password, username=username)
         register_response = await api_client.post("/v1/auth/register", json=register_data)
 
     assert register_response.status_code == status.HTTP_202_ACCEPTED, "Registration failed"

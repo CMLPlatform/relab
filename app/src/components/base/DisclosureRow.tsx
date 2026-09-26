@@ -1,5 +1,5 @@
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { AppButton } from './AppButton';
 import { Icon } from './Icon';

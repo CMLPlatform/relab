@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { TextInput } from '@/components/base/TextInput';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 import { entityLabel, type Product } from '@/types/Product';
 

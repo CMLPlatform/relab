@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { radius } from '@/constants';
-import type { AppTheme } from '@/theme';
-import { memoizeByTheme } from '@/theme';
+import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import type { AppTheme } from '@/theme/types';
 
 // Only what has no className equivalent stays here.
 export const createLivePreviewStyles = memoizeByTheme((theme: AppTheme) => {

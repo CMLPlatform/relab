@@ -1,7 +1,4 @@
 # Relab runtime secret inventory.
-#
-# This provider-neutral contract leaves a clean path for a later external
-# manager such as Infisical to sync runtime secrets into host files.
 
 # The full runtime secret inventory is required ∪ optional; every secret belongs to
 # exactly one list. Required secrets must be non-empty in prod/staging.
@@ -33,5 +30,3 @@ optional_secret_files = [
   "github_oauth_client_secret",
   "rclone.conf",
 ]
-
-infisical_path_template = "/relab/{env}/{name}"

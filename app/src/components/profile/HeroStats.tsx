@@ -7,7 +7,7 @@ import { Badge } from '@/components/base/ui/badge';
 import { Text } from '@/components/base/ui/text';
 import { radius } from '@/constants';
 import type { PublicProfileView } from '@/services/api/profiles';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { User } from '@/types/User';
 import { heading } from '@/utils/a11y';
 import { createProfileSectionStyles } from './styles';

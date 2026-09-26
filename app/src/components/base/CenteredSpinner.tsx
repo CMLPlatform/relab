@@ -1,5 +1,5 @@
 import { ActivityIndicator, View } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 /** Full-height centered loading spinner for screen-level pending states. */
 export function CenteredSpinner() {

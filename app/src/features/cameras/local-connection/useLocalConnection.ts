@@ -11,11 +11,11 @@
  * back to a stored URL/key or the USB gadget default; `configure()` is manual.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
 import { fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
-import type { LocalAccessInfo } from '@/services/api/rpiCamera/shared';
 import {
   createInitialLocalConnectionState,
   type LocalConnectionMode,
@@ -51,22 +51,9 @@ interface UseLocalConnectionOptions {
   isOnline?: boolean;
 }
 
-// The card grid and the detail screen request the same camera concurrently.
-const inFlightAccessInfo = new Map<string, Promise<LocalAccessInfo | null>>();
-
 // Module-level so a disconnect in one hook instance (grid cell) is not undone by
 // the bootstrap of another (detail screen). Reset by `configure` and by a reload.
 const disconnectedCameras = new Set<string>();
-
-function fetchLocalAccessInfoShared(cameraId: string): Promise<LocalAccessInfo | null> {
-  const existing = inFlightAccessInfo.get(cameraId);
-  if (existing) return existing;
-  const request = fetchLocalAccessInfo(cameraId).finally(() => {
-    inFlightAccessInfo.delete(cameraId);
-  });
-  inFlightAccessInfo.set(cameraId, request);
-  return request;
-}
 
 // biome-ignore lint/complexity/noExcessiveLinesPerFunction: one cohesive connection state machine; splitting it into single-use sub-hooks hid the cancellation logic (which is how the camera-switch races crept in).
 export function useLocalConnection(
@@ -79,6 +66,7 @@ export function useLocalConnection(
     createInitialLocalConnectionState,
   );
   const { mode, localBaseUrl, localApiKey, isInitializing } = state;
+  const queryClient = useQueryClient();
 
   const consecutiveFailuresRef = useRef(0);
   // Bumped on unmount and on an in-place cameraId change; async probes for the
@@ -172,7 +160,16 @@ export function useLocalConnection(
     let cancelled = false;
 
     async function bootstrapFromRelay() {
-      const info = await fetchLocalAccessInfoShared(cameraId);
+      // The card grid and the detail screen request the same camera concurrently;
+      // fetchQuery shares the in-flight request. gcTime 0 drops the device key
+      // from the cache once it resolves.
+      const info = await queryClient.fetchQuery({
+        queryKey: ['rpiCameraLocalAccess', cameraId],
+        queryFn: () => fetchLocalAccessInfo(cameraId),
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+      });
       if (cancelled || !info?.local_api_key) return;
 
       const candidates = buildLocalProbeCandidates(info.candidate_urls);
@@ -208,7 +205,7 @@ export function useLocalConnection(
     return () => {
       cancelled = true;
     };
-  }, [cameraId, isOnline]);
+  }, [cameraId, isOnline, queryClient]);
 
   // ── Periodic re-probe while a local URL is configured ──
   // Keeps running after a relay fallback: a later successful probe promotes the

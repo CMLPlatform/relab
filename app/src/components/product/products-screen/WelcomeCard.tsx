@@ -4,7 +4,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { NewProductPill, ProfilePill } from './InlinePills';
 import { productsScreenStyles as styles } from './shared';
 

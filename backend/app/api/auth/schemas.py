@@ -101,12 +101,6 @@ class NoPublicAccountControls:
     is_verified: ClassVar[None] = None
 
 
-class UserCreate(NoPublicAccountControls, UserCreateBase):
-    """Create schema for users."""
-
-    model_config: ConfigDict = ConfigDict(extra="forbid", json_schema_extra={"examples": USER_CREATE_EXAMPLES})
-
-
 class UserRegister(NoPublicAccountControls, UserCreateBase):
     """Registration schema for password sign-up."""
 

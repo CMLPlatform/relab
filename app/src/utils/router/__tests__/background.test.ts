@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 import { usePathname } from 'expo-router';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 import { useBackgroundOverlay } from '@/utils/router/background';
 
 jest.mock('expo-router', () => ({ usePathname: jest.fn() }));

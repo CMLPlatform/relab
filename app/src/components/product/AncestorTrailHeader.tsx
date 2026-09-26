@@ -6,7 +6,7 @@ import { Icon } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
 import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import type { AncestorCrumb } from '@/features/products/useAncestorTrail';
-import type { AppTheme } from '@/theme';
+import type { AppTheme } from '@/theme/types';
 
 export function AncestorTrailHeader({
   ancestors,

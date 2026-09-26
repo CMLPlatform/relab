@@ -1,7 +1,7 @@
 import type { NativeStackHeaderBackProps } from 'expo-router';
 import { Pressable } from 'react-native';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { Icon } from './Icon';
 
 // SDK 57 dropped `@react-navigation/elements` HeaderBackButton. Callers override

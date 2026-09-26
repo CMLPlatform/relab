@@ -13,7 +13,7 @@ import {
   useEffectiveCameraConnection,
 } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import { heading } from '@/utils/a11y';
 

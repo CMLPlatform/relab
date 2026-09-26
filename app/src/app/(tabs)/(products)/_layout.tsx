@@ -3,7 +3,7 @@ import { BrandHeaderTitle } from '@/components/base/BrandHeaderTitle';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 import { getProductsHeaderStyle } from '@/utils/router/styles';
 
 /**

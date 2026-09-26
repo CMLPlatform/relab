@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import CPVCard from '@/components/product/CPVCard';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 jest.mock('@/context/themeMode', () => ({

@@ -19,11 +19,11 @@ async def get_user_owned_object[MT: Base](
     model: type[MT],
     model_id: int | UUID,
     owner_id: UUID4,
-    user_fk: str = "owner_id",
 ) -> MT:
     """Load a model instance only from the current user's owned scope."""
     model_id_column = inspect(model).primary_key[0]
-    owner_id_column = getattr(model, user_fk)
+    # NOTE: getattr because the generic MT bound (Base) does not declare owner_id.
+    owner_id_column = getattr(model, "owner_id")  # noqa: B009
     statement = select(model).where(model_id_column == model_id, owner_id_column == owner_id)
     db_model = (await db.execute(statement)).scalars().unique().one_or_none()
     if db_model is None:

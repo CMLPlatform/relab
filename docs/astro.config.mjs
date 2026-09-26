@@ -19,14 +19,6 @@ const HEAD_LINKS = [
   {
     tag: 'link',
     attrs: {
-      rel: 'icon',
-      href: '/images/favicon.svg',
-      type: 'image/svg+xml',
-    },
-  },
-  {
-    tag: 'link',
-    attrs: {
       rel: 'apple-touch-icon',
       href: '/images/apple-touch-icon.png',
       sizes: '180x180',

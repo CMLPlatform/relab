@@ -5,7 +5,7 @@ import Animated, { Easing, FadeInDown, ReduceMotion } from 'react-native-reanima
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
 
 // Swallow presses so tapping an item does not fall through to the backdrop.

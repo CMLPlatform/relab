@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';

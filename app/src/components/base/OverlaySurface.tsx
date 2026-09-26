@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 
 type OverlaySurfaceProps = {

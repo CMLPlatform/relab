@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { Pressable } from 'react-native';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAuth } from '@/context/auth';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
 import { AppText } from './AppText';
 import { Icon } from './Icon';

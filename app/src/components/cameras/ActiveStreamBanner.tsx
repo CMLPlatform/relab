@@ -9,7 +9,8 @@ import { useStreamSession } from '@/context/streamSession';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
-import { useAppTheme, useInverseSurface } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { useInverseSurface } from '@/theme/inverseSurface';
 import { getFloatingPosition } from '@/utils/platformLayout';
 import { StreamingSheet } from './StreamingSheet';
 

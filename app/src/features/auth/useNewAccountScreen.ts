@@ -7,7 +7,7 @@ import { useAuth } from '@/context/auth';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { register } from '@/services/api/auth/authentication';
 import { type NewAccountFormValues, newAccountSchema } from '@/services/api/validation/userSchema';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 
 export type NewAccountSection = 'username' | 'email' | 'password';

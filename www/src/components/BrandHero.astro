@@ -72,31 +72,8 @@ const appBase = appUrl.replace(/\/$/, '');
   }
 
   .brand-hero-logo img {
-    display: block;
     height: clamp(60px, 6vw, 84px);
     width: auto;
-  }
-
-  /* Theme-swapped mark, mirroring SiteHeader/SiteFooter. */
-  .brand-hero-logo .brand-dark {
-    display: none;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :global(:root:not([data-theme='light'])) .brand-hero-logo .brand-light {
-      display: none;
-    }
-    :global(:root:not([data-theme='light'])) .brand-hero-logo .brand-dark {
-      display: block;
-    }
-  }
-
-  :global(:root[data-theme='dark']) .brand-hero-logo .brand-light {
-    display: none;
-  }
-
-  :global(:root[data-theme='dark']) .brand-hero-logo .brand-dark {
-    display: block;
   }
 
   /* The handoff: on scroll this mark dissolves upward while the header's fades

@@ -10,7 +10,7 @@ import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { describedBy } from '@/utils/a11y';
 
 type LoginLayoutProps = {

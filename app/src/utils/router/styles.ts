@@ -1,4 +1,4 @@
-import type { AppTheme } from '@/theme';
+import type { AppTheme } from '@/theme/types';
 
 export function getProductsHeaderStyle(theme: AppTheme) {
   return {

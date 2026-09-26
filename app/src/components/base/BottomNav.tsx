@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';

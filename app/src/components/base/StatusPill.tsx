@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { getStatusTone, useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
+import { getStatusTone } from '@/theme/color';
 import type { AppTokens } from '@/theme/types';
 
 // onStatus is the fill's foreground text color, not a selectable tone.

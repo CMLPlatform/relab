@@ -6,7 +6,8 @@ import { MIN_TAP_TARGET } from '@/constants';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { queryAllHostsByType, setupUser } from '@/test-utils/index';
 import { renderWithProviders } from '@/test-utils/render';
-import { getAppTheme, getStatusTone } from '@/theme';
+import { getStatusTone } from '@/theme/color';
+import { getAppTheme } from '@/theme/themes';
 
 jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: jest.fn(() => 'light'),

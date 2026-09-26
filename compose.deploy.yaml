@@ -450,7 +450,6 @@ services:
     user: *app-user
     build:
       args:
-        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
         PUBLIC_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
         PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
         PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { renderHook, screen } from '@testing-library/react-native';
 import { HeaderRightPill } from '@/components/base/HeaderRightPill';
 import { renderWithProviders } from '@/test-utils/index';
-import { getAppTheme } from '@/theme';
+import { getAppTheme } from '@/theme/themes';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 import { getProductsHeaderStyle } from '@/utils/router/styles';

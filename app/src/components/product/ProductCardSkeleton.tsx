@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Card } from '@/components/base/Card';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius } from '@/constants';
-import { useAppTheme } from '@/theme';
+import { useAppTheme } from '@/theme/appThemeContext';
 
 export default function ProductCardSkeleton() {
   const theme = useAppTheme();

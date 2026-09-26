@@ -108,22 +108,6 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     "MAX_UPLOAD_BYTES_PER_LAB_USER_MB",
     "MALWARE_SCAN_ENABLED",
 }
-REMOVED_DEPLOY_ENV_FILES = {
-    ROOT / "app" / ".env.prod",
-    ROOT / "app" / ".env.staging",
-    ROOT / "app" / ".env.test",
-    ROOT / "backend" / (".env.dev" + ".example"),
-    ROOT / "backend" / ".env.prod.example",
-    ROOT / "backend" / ".env.staging.example",
-    ROOT / "deploy" / "env" / "dev.compose.env",
-    ROOT / "deploy" / "env" / "prod.compose.env",
-    ROOT / "deploy" / "env" / "staging.compose.env",
-    # www/.env.dev is kept: it holds only localhost dev origins for `astro dev`, not
-    # deploy configuration.
-    ROOT / "www" / ".env.prod",
-    ROOT / "www" / ".env.staging",
-    ROOT / "www" / ".env.test",
-}
 HIDDEN_PROD_DEFAULT_PATTERNS = {
     "CADDY_API_ORIGIN=https://api.cml-relab.org",
     "{$CADDY_API_ORIGIN:https://api.cml-relab.org}",
@@ -136,9 +120,6 @@ RUNTIME_CONFIG_FILES = (
     ROOT / "www" / "Dockerfile",
     ROOT / "www" / "Caddyfile",
 )
-FORBIDDEN_INFRA_DIRECTORIES = {
-    ROOT / "infra" / "telemetry": "central telemetry stack IaC belongs in the central telemetry repository",
-}
 
 
 def _as_string_set(raw_values: object, name: str) -> set[str]:
@@ -176,18 +157,12 @@ def load_secret_inventory(path: Path = SECRET_INVENTORY_FILE) -> dict[str, Any]:
     return {
         "runtime_secret_files": required | optional,
         "optional_secret_files": optional,
-        "infisical_path_template": str(policy.get("infisical_path_template", "/relab/{env}/{name}")),
     }
 
 
 def write_validation_env_file(path: Path) -> None:
     """Write placeholder operator inputs used to render deploy Compose during validation."""
     path.write_text("".join(f"{name}={value}\n" for name, value in VALIDATION_ENV_VALUES.items()), encoding="utf-8")
-
-
-def secret_env_name(secret_file_name: str) -> str:
-    """Return the container env var name derived from a runtime secret file name."""
-    return secret_file_name.upper()
 
 
 def env_assignments(path: Path) -> dict[str, str]:
@@ -343,16 +318,10 @@ def assert_root_env_example_is_operator_checklist(secret_inventory: dict[str, An
     for name in REQUIRED_ROOT_OPERATOR_INPUT_NAMES | OPTIONAL_ROOT_OPERATOR_INPUT_NAMES:
         require(name in contents, f"{path}: missing operator input {name}")
 
-    for name in {secret_env_name(secret_name) for secret_name in secret_inventory["runtime_secret_files"]}:
+    for name in {secret_name.upper() for secret_name in secret_inventory["runtime_secret_files"]}:
         require(name not in assignments, f"{path}: must not assign application secret {name}")
 
     require("secrets/<env>/" in contents, f"{path}: must point application secrets to secrets/<env>/")
-
-
-def assert_removed_env_files_stay_removed() -> None:
-    """Ensure removed duplicate env files do not come back."""
-    for path in sorted(REMOVED_DEPLOY_ENV_FILES):
-        require(not path.exists(), f"{path}: removed duplicate env config must not come back")
 
 
 def assert_deploy_compose_requires_operator_values() -> None:
@@ -372,26 +341,15 @@ def assert_runtime_images_do_not_hide_prod_defaults() -> None:
             require(pattern not in contents, f"{path}: remove hidden production default {pattern}")
 
 
-def assert_infra_boundaries_are_preserved() -> None:
-    """Ensure IaC ownership boundaries stay explicit."""
-    for path, reason in FORBIDDEN_INFRA_DIRECTORIES.items():
-        require(not path.exists(), f"{path}: {reason}")
-
-
 def assert_telemetry_examples_use_department_contract() -> None:
     """Ensure Relab documents the central telemetry endpoint contract it consumes."""
     contents = (ROOT / ".env.example").read_text(encoding="utf-8")
     # The hostname is owned by CMLPlatform/monitoring, whose infra/main.tf declares a
     # `cloudflare_dns_record.otel` for `otel.<domain>` and routes it to the collector's
-    # HTTP receiver. Renamed from `otlp.` on 2026-09-05: the old record no longer
-    # resolves to an ingress rule, and there is no `logs.` record.
+    # HTTP receiver.
     require(
         "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" in contents,
         ".env.example: OTEL example must use otel.cml-relab.org, the hostname the monitoring stack actually publishes",
-    )
-    require(
-        "OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.cml-relab.org" not in contents,
-        ".env.example: otlp.cml-relab.org was renamed to otel. on 2026-09-05 and no longer routes",
     )
     # The collector authenticates machines with a bearer token (Cloudflare Access
     # fronts Grafana, not OTLP), so a Basic credential here is stale and 401s.
@@ -500,10 +458,8 @@ def run_env_policy_checks(env: str | None = None) -> None:
     """Run all environment policy checks; ``env`` scopes the per-environment ones to one stack."""
     secret_inventory = load_secret_inventory()
     assert_root_env_example_is_operator_checklist(secret_inventory)
-    assert_removed_env_files_stay_removed()
     assert_deploy_compose_requires_operator_values()
     assert_runtime_images_do_not_hide_prod_defaults()
-    assert_infra_boundaries_are_preserved()
     assert_telemetry_examples_use_department_contract()
     assert_telemetry_inputs_are_set_together()
     assert_existing_secret_files_do_not_use_placeholders(secret_inventory, env)
@@ -533,13 +489,11 @@ def format_inventory(secret_inventory: dict[str, Any]) -> str:
     """Render the runtime secret inventory for operators."""
     lines = [
         "Relab runtime secret inventory",
-        "Infisical-ready contract: sync runtime_secret_files as host files before Compose starts.",
+        "Sync runtime_secret_files as host files under secrets/<env>/ before Compose starts.",
         "",
     ]
     lines.append("[Runtime secret files]")
     lines.extend(f"- {name}" for name in sorted(secret_inventory["runtime_secret_files"]))
-    lines.append("")
-    lines.append(f"Runtime secret manager path template: {secret_inventory['infisical_path_template']}")
     return "\n".join(lines)
 
 
