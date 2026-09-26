@@ -5,6 +5,8 @@ A security override is an `overrides:` line in pnpm-workspace.yaml that carries
 a `# GHSA-` comment. For each one, drop it, relock, and audit: when the audit no
 longer flags that package, a lockfile refresh or an upstream bump has made the
 override dead weight and it can go. Exits 1 when any override is stale.
+auditConfig.ignoreGhsas is cleared during the check, so an override whose
+advisory is also on that list still counts as needed.
 
 Run from the repo root (`just overrides-check`); it rewrites pnpm-workspace.yaml
 and pnpm-lock.yaml while it runs and restores both before it exits.
@@ -23,6 +25,7 @@ WORKSPACE = ROOT / "pnpm-workspace.yaml"
 LOCKFILE = ROOT / "pnpm-lock.yaml"
 
 _OVERRIDE_LINE = re.compile(r'^  "?(?P<key>[^":]+?)"?:\s.*#\s*GHSA-')
+_IGNORED_GHSA_LINE = re.compile(r"^    - GHSA-.*\n", re.MULTILINE)
 
 
 def security_overrides(workspace_text: str) -> list[tuple[str, str]]:
@@ -43,7 +46,7 @@ def security_overrides(workspace_text: str) -> list[tuple[str, str]]:
 
 
 def flagged_packages() -> set[str]:
-    """Return the package names the workspace audit flags, ignored GHSAs excluded."""
+    """Return the package names the workspace audit flags."""
     # pnpm audit exits non-zero when it finds anything, so the exit code carries no signal here.
     result = subprocess.run(
         ["pnpm", "audit", "--json"],  # noqa: S607  # fixed argv
@@ -52,16 +55,26 @@ def flagged_packages() -> set[str]:
         text=True,
         check=False,
     )
-    return {advisory["module_name"] for advisory in json.loads(result.stdout).get("advisories", {}).values()}
+    try:
+        report = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        report = {}
+    # An errored audit (registry down, rate limit) has no metadata; treating it as
+    # "nothing flagged" would report every override as stale.
+    if "metadata" not in report:
+        message = f"pnpm audit failed: {result.stderr.strip() or result.stdout.strip()}"
+        raise SystemExit(message)
+    return {advisory["module_name"] for advisory in report.get("advisories", {}).values()}
 
 
 def main() -> int:
     """Drop each security override in turn and report the ones the audit no longer needs."""
     workspace, lockfile = WORKSPACE.read_text(), LOCKFILE.read_text()
+    unignored = _IGNORED_GHSA_LINE.sub("", workspace)
     stale = []
     try:
         for line, package in security_overrides(workspace):
-            WORKSPACE.write_text(workspace.replace(line, "", 1))
+            WORKSPACE.write_text(unignored.replace(line, "", 1))
             LOCKFILE.write_text(lockfile)
             subprocess.run(
                 ["pnpm", "install", "--lockfile-only", "--ignore-scripts"],  # noqa: S607  # fixed argv

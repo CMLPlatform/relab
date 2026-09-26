@@ -79,8 +79,9 @@
       ]
     },
     {
-      "description": "Overrides are security pins with hand-picked ranges; Renovate reads them as dependencies and proposes major bumps across the pinned range. Vulnerability alerts still apply. Retire overrides with `just overrides-check`.",
+      "description": "Overrides are security pins with hand-picked ranges; Renovate reads them as dependencies and proposes major bumps across the pinned range. Vulnerability alerts still apply. Retire overrides with `just overrides-check`. lightningcss is a deduplication pin, not a security pin, so Renovate keeps bumping it.",
       "matchDepTypes": ["pnpm-workspace.overrides"],
+      "matchPackageNames": ["!lightningcss"],
       "enabled": false
     },
     {
