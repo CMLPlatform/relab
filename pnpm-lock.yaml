@@ -193,15 +193,9 @@ catalogs:
       version: 6.0.3
 
 overrides:
-  monaco-editor@0.55.1>dompurify: 3.4.15
-  shell-quote@<1.8.4: '>=1.8.4'
-  ws@>=7.0.0 <7.5.11: '>=7.5.11 <9'
   uuid@<11.1.1: '>=11.1.1'
-  yaml@<2.8.1: '>=2.8.1'
-  postcss@<8.5.18: '>=8.5.18'
-  brace-expansion@<1.1.17: '>=1.1.17 <6'
-  brace-expansion@>=4.0.0 <5.0.8: '>=5.0.8'
-  js-yaml@>=4.0.0 <4.3.1: '>=4.3.1 <6'
+  undici@>=7.0.0 <7.29.0: '>=7.29.0 <8'
+  '@ai-sdk/provider-utils@>=4.0.0-beta.10 <4.0.33': '>=4.0.33 <5'
   lightningcss: 1.33.0
 
 importers:
@@ -568,11 +562,15 @@ packages:
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
 
-  '@ai-sdk/provider-utils@4.0.5':
-    resolution: {integrity: sha512-Ow/X/SEkeExTTc1x+nYLB9ZHK2WUId8+9TlkamAx7Tl9vxU+cKzWx2dwjgMHeCN6twrgwkLrrtqckQeO4mxgVA==}
-    engines: {node: '>=18'}
+  '@ai-sdk/provider-utils@4.0.52':
+    resolution: {integrity: sha512-cUimyIz1jjwYoF9n6HO7sU+UBW7Nu3T4lW7562yRvEhM9/8JqlW4cecxSpkiafjRzAphZG2NfJ3/Ch5cHoCIhg==}
+    engines: {node: '>=18.17'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
+
+  '@ai-sdk/provider@3.0.16':
+    resolution: {integrity: sha512-9Av6kg0t/IN/dcYAAmEJ4B9OPhcEJqwSR+GfHEA8olRkindXpUHadc3p3cyvgFUQFTVm1G5thtsmgZ9yVb2w3A==}
+    engines: {node: '>=18'}
 
   '@ai-sdk/provider@3.0.2':
     resolution: {integrity: sha512-HrEmNt/BH/hkQ7zpi2o6N3k1ZR1QTb7z85WYhYygiTxOQuaml4CMtHCWRbric5WPU+RNsYI7r1EpyVQMKO1pYw==}
@@ -2940,8 +2938,8 @@ packages:
   '@redocly/config@0.22.0':
     resolution: {integrity: sha512-gAy93Ddo01Z3bHuVdPWfCwzgfaYgMdaZPcfL7JZ7hWJoK9V0lXDbigTWkhiPFAaLWzbOJ+kbUQG1+XwIm0KRGQ==}
 
-  '@redocly/openapi-core@1.34.19':
-    resolution: {integrity: sha512-o/0VgsBXgwcY1lyeqcVtSGdTQAPnVggo0fbFVPlxl5XVDKUcVH0OLRqt3CbkwByT5FU305E0iE0O7MzThjDblw==}
+  '@redocly/openapi-core@1.34.20':
+    resolution: {integrity: sha512-ypeBZ/6BKXR9+7/TtbKhbl4UgD7raHhPS12oknlKno2A8+lnFkxIwiE/Aklu6L2cd/ioH+fCWuMxi9/p3EyAPw==}
     engines: {node: '>=18.17.0', npm: '>=9.5.0'}
 
   '@replit/codemirror-css-color-picker@6.3.0':
@@ -6588,10 +6586,6 @@ packages:
     resolution: {integrity: sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==}
     hasBin: true
 
-  js-yaml@4.3.1:
-    resolution: {integrity: sha512-CY6crGq313MX8GkwvB7tzgp99vjQxY1++5y10/BKN/GUfHqWaOGQMNZkBvqSzsZKWk/ijwHlWzzkLulsGHhjWQ==}
-    hasBin: true
-
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
@@ -7633,7 +7627,7 @@ packages:
     resolution: {integrity: sha512-HQbt28KulC5AJzG+cZtj9kvKB93CFCdLvog1WFLf1D+xmMvPGlBstkpTEZfK5+AN9hfJocyBFCNiqyS48bpgzQ==}
     engines: {node: '>=12.0'}
     peerDependencies:
-      postcss: '>=8.5.18'
+      postcss: ^8.2.14
 
   postcss-selector-parser@6.1.4:
     resolution: {integrity: sha512-bIoJLOmjCO1S9XdY/DcnR5hJxvrDir1PbGChrzXG3vw0/FOliy/fA3dmdhQ441kah4gKv+TwckGzex6wNS5cnQ==}
@@ -8737,8 +8731,12 @@ packages:
   undici-types@8.9.0:
     resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
-  undici@7.24.4:
-    resolution: {integrity: sha512-BM/JzwwaRXxrLdElV2Uo6cTLEjhSb3WXboncJamZ15NgUURmvlXvxa6xkwIOILIjPNo9i8ku136ZvWV0Uly8+w==}
+  undici@6.28.1:
+    resolution: {integrity: sha512-zWpdTVD54H48CIybL0rWQ3ukpb9d23wM7eH5RtfdmeP70cWHNjtfo7P4vZX+5CoDcO53J4Pu5uXp7lNfjc6DRA==}
+    engines: {node: '>=18.17'}
+
+  undici@7.29.1:
+    resolution: {integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==}
     engines: {node: '>=20.18.1'}
 
   undici@8.10.1:
@@ -9004,7 +9002,7 @@ packages:
       sugarss: ^5.0.0
       terser: ^5.16.0
       tsx: ^4.8.1
-      yaml: '>=2.8.1'
+      yaml: ^2.4.2
     peerDependenciesMeta:
       '@types/node':
         optional: true
@@ -9481,16 +9479,21 @@ snapshots:
   '@ai-sdk/gateway@3.0.13(zod@4.6.5)':
     dependencies:
       '@ai-sdk/provider': 3.0.2
-      '@ai-sdk/provider-utils': 4.0.5(zod@4.6.5)
+      '@ai-sdk/provider-utils': 4.0.52(zod@4.6.5)
       '@vercel/oidc': 3.1.0
       zod: 4.6.5
 
-  '@ai-sdk/provider-utils@4.0.5(zod@4.6.5)':
+  '@ai-sdk/provider-utils@4.0.52(zod@4.6.5)':
     dependencies:
-      '@ai-sdk/provider': 3.0.2
+      '@ai-sdk/provider': 3.0.16
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
+      undici: 6.28.1
       zod: 4.6.5
+
+  '@ai-sdk/provider@3.0.16':
+    dependencies:
+      json-schema: 0.4.0
 
   '@ai-sdk/provider@3.0.2':
     dependencies:
@@ -9498,7 +9501,7 @@ snapshots:
 
   '@ai-sdk/vue@3.0.33(vue@3.5.42(typescript@6.0.3))(zod@4.6.5)':
     dependencies:
-      '@ai-sdk/provider-utils': 4.0.5(zod@4.6.5)
+      '@ai-sdk/provider-utils': 4.0.52(zod@4.6.5)
       ai: 6.0.33(zod@4.6.5)
       swrv: 1.2.0(vue@3.5.42(typescript@6.0.3))
       vue: 3.5.42(typescript@6.0.3)
@@ -12313,14 +12316,14 @@ snapshots:
 
   '@redocly/config@0.22.0': {}
 
-  '@redocly/openapi-core@1.34.19(supports-color@10.2.2)':
+  '@redocly/openapi-core@1.34.20(supports-color@10.2.2)':
     dependencies:
       '@redocly/ajv': 8.11.2
       '@redocly/config': 0.22.0
       colorette: 1.4.0
       https-proxy-agent: 7.0.6(supports-color@10.2.2)
       js-levenshtein: 1.1.6
-      js-yaml: 4.3.1
+      js-yaml: 4.3.2
       minimatch: 5.1.9
       pluralize: 8.0.0
       yaml-ast-parser: 0.0.43
@@ -12668,7 +12671,7 @@ snapshots:
     dependencies:
       '@scalar/helpers': 0.12.0
       pathe: 2.0.3
-      undici: 7.24.4
+      undici: 7.29.1
       yaml: 2.9.0
 
   '@scalar/localization@0.2.0(typescript@6.0.3)':
@@ -13639,7 +13642,7 @@ snapshots:
     dependencies:
       '@ai-sdk/gateway': 3.0.13(zod@4.6.5)
       '@ai-sdk/provider': 3.0.2
-      '@ai-sdk/provider-utils': 4.0.5(zod@4.6.5)
+      '@ai-sdk/provider-utils': 4.0.52(zod@4.6.5)
       '@opentelemetry/api': 1.9.0
       zod: 4.6.5
 
@@ -16934,10 +16937,6 @@ snapshots:
       argparse: 1.0.10
       esprima: 4.0.1
 
-  js-yaml@4.3.1:
-    dependencies:
-      argparse: 2.0.1
-
   js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
@@ -17700,7 +17699,7 @@ snapshots:
       serialize-error: 2.1.0
       source-map: 0.5.7
       throat: 5.0.0
-      ws: 8.21.3
+      ws: 7.5.13
       yargs: 17.7.3
     transitivePeerDependencies:
       - bufferutil
@@ -17745,7 +17744,7 @@ snapshots:
       serialize-error: 2.1.0
       source-map: 0.5.7
       throat: 5.0.0
-      ws: 8.21.3
+      ws: 7.5.13
       yargs: 17.7.3
     transitivePeerDependencies:
       - bufferutil
@@ -18258,7 +18257,7 @@ snapshots:
 
   openapi-typescript@7.13.0(typescript@6.0.3):
     dependencies:
-      '@redocly/openapi-core': 1.34.19(supports-color@10.2.2)
+      '@redocly/openapi-core': 1.34.20(supports-color@10.2.2)
       ansi-colors: 4.1.3
       change-case: 5.4.4
       parse-json: 8.3.0
@@ -19781,7 +19780,9 @@ snapshots:
 
   undici-types@8.9.0: {}
 
-  undici@7.24.4: {}
+  undici@6.28.1: {}
+
+  undici@7.29.1: {}
 
   undici@8.10.1: {}
 
