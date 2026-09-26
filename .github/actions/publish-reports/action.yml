@@ -55,6 +55,9 @@ runs:
 
     - name: Archive coverage report
       if: always()
+      # Like the Codecov uploads above, a failed upload loses a convenience copy,
+      # not a test result, so it must not fail the job.
+      continue-on-error: true
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
         name: ci-${{ inputs.flags }}-coverage
