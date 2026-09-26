@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import quote
 
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
@@ -11,6 +11,9 @@ from pydantic import NameEmail
 from app.api.auth.config import AuthSettings, EmailProviderName, GraphEmailSettings, ResolvedEmailSettings
 from app.core.clients.http import create_http_client
 from app.core.config.core import settings as core_settings
+
+if TYPE_CHECKING:
+    from httpx import AsyncClient
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,32 +42,6 @@ class EmailProvider(Protocol):
 
     async def send(self, message: EmailMessage) -> None:
         """Deliver one rendered email message."""
-
-
-class GraphHttpResponse(Protocol):
-    """Small subset of httpx.Response used by the Graph provider."""
-
-    text: str
-
-    def json(self) -> dict[str, object]:
-        """Return a JSON response body."""
-
-    def raise_for_status(self) -> object:
-        """Raise when the HTTP request failed."""
-
-
-class GraphHttpClient(Protocol):
-    """Small subset of httpx.AsyncClient used by the Graph provider."""
-
-    async def post(
-        self,
-        url: str,
-        *,
-        data: dict[str, str] | None = None,
-        headers: dict[str, str] | None = None,
-        json: object | None = None,
-    ) -> GraphHttpResponse:
-        """Send one HTTP POST request."""
 
 
 def _name_email_payload(value: NameEmail) -> dict[str, dict[str, str]]:
@@ -115,7 +92,7 @@ class SmtpEmailProvider:
 class MicrosoftGraphEmailProvider:
     """Adapter that sends rendered emails through Microsoft Graph."""
 
-    def __init__(self, settings: GraphEmailSettings, client: GraphHttpClient | None = None) -> None:
+    def __init__(self, settings: GraphEmailSettings, client: AsyncClient | None = None) -> None:
         self._settings = settings
         self._client = client
         self._token: str | None = None
@@ -127,7 +104,7 @@ class MicrosoftGraphEmailProvider:
         margin = timedelta(seconds=MICROSOFT_GRAPH_TOKEN_REFRESH_MARGIN_SECONDS)
         return datetime.now(UTC) + margin < self._token_expires_at
 
-    async def _get_access_token(self, client: GraphHttpClient) -> str:
+    async def _get_access_token(self, client: AsyncClient) -> str:
         if self._has_valid_token():
             return self._token or ""
 
@@ -158,7 +135,7 @@ class MicrosoftGraphEmailProvider:
         self._token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_seconds)
         return token
 
-    async def _send_with_client(self, message: EmailMessage, client: GraphHttpClient) -> None:
+    async def _send_with_client(self, message: EmailMessage, client: AsyncClient) -> None:
         """Send one rendered HTML message through Microsoft Graph."""
         token = await self._get_access_token(client)
         send_url = MICROSOFT_GRAPH_SEND_MAIL_URL_TEMPLATE.format(sender=quote(self._settings.sender_user, safe=""))
@@ -199,12 +176,11 @@ class MicrosoftGraphEmailProvider:
 def build_email_provider(
     *,
     settings: AuthSettings,
-    http_client: GraphHttpClient | None = None,
     suppress_send: bool | None = None,
 ) -> EmailProvider:
     """Build the configured email provider."""
     if settings.email_provider is EmailProviderName.MICROSOFT_GRAPH:
-        return MicrosoftGraphEmailProvider(settings=settings.microsoft_graph_email, client=http_client)
+        return MicrosoftGraphEmailProvider(settings=settings.microsoft_graph_email)
     return SmtpEmailProvider.from_settings(
         settings.email,
         suppress_send=core_settings.mock_emails if suppress_send is None else suppress_send,
