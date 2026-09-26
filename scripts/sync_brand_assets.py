@@ -24,8 +24,7 @@ MARK_DARK_SOURCE = ROOT / "assets/r9lab-mark-dark.svg"
 # rasterized derivatives keep using the plain light/dark marks.
 MARK_ADAPTIVE_SOURCE = ROOT / "assets/r9lab-mark-adaptive.svg"
 LOGO_DARK_SOURCE = ROOT / "assets/r9lab-logo-dark.svg"  # ringed wordmark for dark backgrounds
-OG_SOURCE = ROOT / "assets/r9lab-og.svg"  # 1200x630 social card (light)
-OG_DARK_SOURCE = ROOT / "assets/r9lab-og-dark.svg"
+OG_DARK_SOURCE = ROOT / "assets/r9lab-og-dark.svg"  # 1200x630 social card; crawlers don't theme-switch
 WORDMARK_SOURCE = ROOT / "assets/r9lab-wordmark.svg"  # horizontal lockup (light mode)
 WORDMARK_DARK_SOURCE = ROOT / "assets/r9lab-wordmark-dark.svg"  # cyan variant for dark headers
 
@@ -194,20 +193,7 @@ GENERATED_ASSETS = (
     (OG_DARK_SOURCE, root_path("assets/r9lab-og.png"), PNG_OG, DENSITY_OG),
     (OG_DARK_SOURCE, root_path("www/public/images/og.png"), PNG_OG, DENSITY_OG),
     (OG_DARK_SOURCE, root_path("docs/public/images/og.png"), PNG_OG, DENSITY_OG),
-    (OG_SOURCE, root_path("assets/r9lab-og-light.png"), PNG_OG, DENSITY_OG),
-    (OG_SOURCE, root_path("docs/public/images/og-light.png"), PNG_OG, DENSITY_OG),
 )
-
-
-# (source, target, ImageMagick args); derived from a raster source, not the logo.
-#
-# NOTE: empty on purpose. The bg-*.jpg pair are backdrop images, and neither www
-# nor docs paints a backdrop any more: both page grounds are flat tokens
-# (www/src/styles/tokens.css, docs/src/styles/base.css). Syncing the JPEGs back
-# in would resurrect the wallpaper on the next run, so the entries are gone
-# rather than merely unreferenced. They still sync to app (see COPY_ASSETS),
-# which renders them full-resolution as real backgrounds.
-PROCESSED_ASSETS: tuple[tuple[Path, Path, tuple[str, ...], int], ...] = ()
 
 
 PALETTE_SOURCE = root_path("assets/palette.json")
@@ -742,7 +728,7 @@ def main() -> int:
         with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
             futures = [
                 pool.submit(render_asset, source, target, convert_args, density, check=args.check)
-                for source, target, convert_args, density in (*GENERATED_ASSETS, *PROCESSED_ASSETS)
+                for source, target, convert_args, density in GENERATED_ASSETS
             ]
             for future in futures:
                 out_of_sync.extend(future.result())

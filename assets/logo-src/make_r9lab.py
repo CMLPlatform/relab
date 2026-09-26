@@ -1,25 +1,21 @@
 """Generate the R9lab logo family: a font-derived, vertically squished 9.
 
-The 9 comes from a candidate font, non-uniformly scaled so it reads as a loop
-(a mirrored "e"); the R/l/a/b letters come from IBM Plex. Everything is baked
-into self-contained SVG paths; no font needed to render.
+The 9 is Titillium Web, non-uniformly scaled so it reads as a loop (a mirrored
+"e"); the R/l/a/b letters come from IBM Plex Sans. Everything is baked into
+self-contained SVG paths; no font needed to render.
 
 Run from this directory:
 
-    uv run --with fonttools --with brotli python3 make_r9lab.py            # all candidates
-    uv run --with fonttools --with brotli python3 make_r9lab.py --promote varela
+    uv run --with fonttools --with brotli python3 make_r9lab.py
 
-The first form writes every candidate's set to candidates/<name>/. --promote
-additionally copies that candidate's files onto the canonical ../r9lab-*.svg
-names; scripts/sync_brand_assets.py owns every PNG/ico derivative rendered
-from them (`just assets-sync`).
+This writes the canonical ../r9lab-*.svg files directly;
+scripts/sync_brand_assets.py owns every PNG/ico derivative rendered from them
+(`just assets-sync`).
 """
 
 from __future__ import annotations
 
-import argparse
 import math
-import shutil
 import sys
 from functools import cache
 from pathlib import Path
@@ -36,30 +32,12 @@ ASSETS = HERE.parent
 LIGHT = {"nine": "#1f4c96", "letters": "#16202e", "muted": "#5a6675", "bg": "#f5f7fa"}
 DARK = {"nine": "#8fb8ff", "letters": "#e9eff8", "muted": "#8c99ad", "bg": "#0c1220"}
 
-# Tuned per candidate (Simon, 2026-07-13). `embolden` strokes the outline to
-# fake a missing bold cut (Varela ships 400 only); units are per-1000 upm.
-CANDIDATES = {
-    "varela": {
-        "nine_font": "varela-400.woff2",
-        "letter_font": "ibm-plex-sans-500.woff2",
-        "sx": 1.0,
-        "sy": 0.80,
-        "embolden": 8,
-    },
-    "petrona": {
-        "nine_font": "petrona-600.woff2",
-        "letter_font": "ibm-plex-serif-600.woff2",
-        "sx": 1.05,
-        "sy": 0.80,
-        "embolden": 0,
-    },
-    "titillium": {
-        "nine_font": "titillium-web-600.woff2",
-        "letter_font": "ibm-plex-sans-600.woff2",
-        "sx": 1.05,
-        "sy": 0.80,
-        "embolden": 0,
-    },
+# Tuned (Simon, 2026-07-13).
+SPEC = {
+    "nine_font": "titillium-web-600.woff2",
+    "letter_font": "ibm-plex-sans-600.woff2",
+    "sx": 1.05,
+    "sy": 0.80,
 }
 
 RING_STROKE = 75  # per-1000 upm, matches a 600-weight stem
@@ -112,7 +90,6 @@ class Composer:
         color: str,
         *,
         squish: tuple[float, float] | None = None,
-        embolden: float = 0,
     ) -> tuple[float, float, float, float]:
         """Place one glyph at the pen position; returns its placed bbox."""
         g = font["glyphs"][ch]
@@ -122,15 +99,7 @@ class Composer:
             return (self.x, 0, self.x, 0)
         x0, y0, x1, y1 = (v * r for v in g["bbox"])
         adv = g["adv"] * r
-        stroke = ""
-        if embolden:
-            sw = embolden * self.base / 1000
-            stroke = f' stroke="{color}" stroke-width="{sw / r:.1f}" stroke-linejoin="round"'
-            x0 -= sw / 2
-            y0 -= sw / 2
-            x1 += sw / 2
-            y1 += sw / 2
-        path = f'<path d="{g["d"]}" transform="scale(1,-1)" fill="{color}"{stroke}/>'
+        path = f'<path d="{g["d"]}" transform="scale(1,-1)" fill="{color}"/>'
         if squish:
             sx, sy = squish
             # anchor: glyph bbox centre horizontally, baseline vertically
@@ -181,23 +150,17 @@ def merge(
 
 
 def build_set(spec: dict, colors: dict) -> dict[str, str]:
-    """Build the four SVG variants (mark, mark-ring, wordmark, logo) for one candidate."""
+    """Build the SVG variants (mark, wordmark, logo) for the spec."""
     nine = load_glyphs(FONTS / spec["nine_font"])
     letters = load_glyphs(FONTS / spec["letter_font"])
     base = letters["upm"]
-    squish = (spec["sx"], spec["sy"])
-    nine_kw = {"squish": squish, "embolden": spec["embolden"]}
+    nine_kw = {"squish": (spec["sx"], spec["sy"])}
 
     out = {}
 
     c = Composer(base)
     c.glyph(nine, "9", colors["nine"], **nine_kw)
     out["mark"] = c.svg("Relab mark")
-
-    c = Composer(base)
-    span = c.glyph(nine, "9", colors["nine"], **nine_kw)
-    c.ring(span, colors["nine"])
-    out["mark-ring"] = c.svg("Relab mark in ring")
 
     c = Composer(base)
     c.glyph(letters, "R", colors["letters"])
@@ -232,7 +195,7 @@ def og_svg(spec: dict, colors: dict) -> str:
     nine = load_glyphs(FONTS / spec["nine_font"])
     letters = load_glyphs(FONTS / spec["letter_font"], "R9lab" + TAGLINE)
     base = letters["upm"]
-    nine_kw = {"squish": (spec["sx"], spec["sy"]), "embolden": spec["embolden"]}
+    nine_kw = {"squish": (spec["sx"], spec["sy"])}
 
     wm = Composer(base)
     wm.glyph(letters, "R", colors["letters"])
@@ -258,46 +221,21 @@ def og_svg(spec: dict, colors: dict) -> str:
     )
 
 
-# candidate file -> canonical asset name. All rasterization (PNG/ico) is owned
-# by scripts/sync_brand_assets.py, which renders from these canonical SVGs;
-# run `just assets-sync` after promoting.
-PROMOTION = {
-    "mark.svg": "r9lab-mark.svg",
-    "mark-dark.svg": "r9lab-mark-dark.svg",
-    "mark-adaptive.svg": "r9lab-mark-adaptive.svg",
-    "wordmark.svg": "r9lab-wordmark.svg",
-    "wordmark-dark.svg": "r9lab-wordmark-dark.svg",
-    "logo.svg": "r9lab-logo.svg",
-    "logo-dark.svg": "r9lab-logo-dark.svg",
-    "og.svg": "r9lab-og.svg",
-    "og-dark.svg": "r9lab-og-dark.svg",
-}
-
-
 def main() -> None:
-    """Generate all candidate sets; optionally promote one to canonical names."""
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--promote", choices=sorted(CANDIDATES), help="copy this candidate onto the canonical asset names"
-    )
-    args = parser.parse_args()
+    """Generate the r9lab logo family, writing it straight to the canonical asset names.
 
-    for name, spec in CANDIDATES.items():
-        outdir = HERE / "candidates" / name
-        outdir.mkdir(parents=True, exist_ok=True)
-        for suffix, colors in (("", LIGHT), ("-dark", DARK)):
-            for variant, svg in build_set(spec, colors).items():
-                (outdir / f"{variant}{suffix}.svg").write_text(svg)
-            (outdir / f"og{suffix}.svg").write_text(og_svg(spec, colors))
-        (outdir / "mark-adaptive.svg").write_text(adaptive((outdir / "mark.svg").read_text()))
-        sys.stdout.write(f"generated candidates/{name}/\n")
-
-    if args.promote:
-        srcdir = HERE / "candidates" / args.promote
-        for src, target in PROMOTION.items():
-            shutil.copyfile(srcdir / src, ASSETS / target)
-            sys.stdout.write(f"promoted {src} -> assets/{target}\n")
-        sys.stdout.write("run `just assets-sync` to regenerate PNG/ico derivatives\n")
+    Rasterization (PNG/ico) is owned by scripts/sync_brand_assets.py, which
+    renders from these canonical SVGs; run `just assets-sync` afterwards.
+    """
+    mark_light = None
+    for suffix, colors in (("", LIGHT), ("-dark", DARK)):
+        for variant, svg in build_set(SPEC, colors).items():
+            (ASSETS / f"r9lab-{variant}{suffix}.svg").write_text(svg)
+            if variant == "mark" and not suffix:
+                mark_light = svg
+        (ASSETS / f"r9lab-og{suffix}.svg").write_text(og_svg(SPEC, colors))
+    (ASSETS / "r9lab-mark-adaptive.svg").write_text(adaptive(mark_light))
+    sys.stdout.write("generated assets/r9lab-*.svg\n")
 
 
 if __name__ == "__main__":
