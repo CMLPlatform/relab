@@ -10,7 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.database import check_database_connection
 from app.core.redis import ping_redis
-from app.core.runtime import get_request_services
+from app.core.runtime import get_connection_services
 
 if TYPE_CHECKING:
     from typing import Any
@@ -48,7 +48,7 @@ async def check_database() -> dict[str, Any]:
 
 async def check_redis(request: Request) -> dict[str, Any]:
     """Check Redis cache connectivity."""
-    redis_client = get_request_services(request).redis
+    redis_client = get_connection_services(request).redis
 
     if redis_client is None:
         return unhealthy_check("redis", "Redis client not initialized")

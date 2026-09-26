@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, cast
 
 from starlette.requests import Request  # noqa: TC002 - FastAPI needs the runtime type for OpenAPI generation.
 
-from app.core.runtime import get_request_services
+from app.core.runtime import get_connection_services
 
 if TYPE_CHECKING:
     from app.api.auth.services.common_password_checker import CommonPasswordChecker
@@ -42,9 +42,9 @@ def common_password_checker_from(services: AppServices) -> CommonPasswordChecker
 
 async def get_email_checker(request: Request) -> EmailChecker | None:
     """Return the shared disposable-email checker from app state."""
-    return email_checker_from(get_request_services(request))
+    return email_checker_from(get_connection_services(request))
 
 
 async def get_common_password_checker(request: Request) -> CommonPasswordChecker | None:
     """Return the shared common-password checker from app state."""
-    return common_password_checker_from(get_request_services(request))
+    return common_password_checker_from(get_connection_services(request))

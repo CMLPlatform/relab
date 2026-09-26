@@ -10,7 +10,7 @@ from redis.exceptions import RedisError
 
 from app.core.config.core import settings
 from app.core.logging import sanitize_log_value
-from app.core.runtime import get_request_services, require_redis
+from app.core.runtime import get_connection_services, require_redis
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -156,7 +156,7 @@ async def get_redis(request: Request) -> Redis:
     """FastAPI dependency returning the shared Redis client (raises if unavailable)."""
     # Async on purpose: this only reads request state, and a sync dependency would
     # make FastAPI hop to a threadpool for it on every request that resolves it.
-    return require_redis(get_request_services(request).redis)
+    return require_redis(get_connection_services(request).redis)
 
 
 RedisDep = Annotated[Redis, Depends(get_redis)]
