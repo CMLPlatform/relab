@@ -60,6 +60,7 @@ from app.api.auth.models import User
 from app.api.auth.terms import MINIMUM_RELEASE_TERMS_VERSION
 from app.api.common.models.enums import Unit
 from app.api.data_collection.models.product import MaterialProductLink, Product
+from app.api.file_storage.crud.support_paths import stored_file_path
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.reference_data.models import (
     Category,
@@ -738,9 +739,12 @@ async def export_images(session: AsyncSession, record_ids: set[int], images_dir:
     )
     manifest: list[dict[str, Any]] = []
     for image in (await session.execute(statement)).scalars().all():
+        path = stored_file_path(image)
+        if path is None:
+            logger.warning("Image %s is not on local storage; skipping", image.id)
+            continue
         try:
-            with image.file.open() as handle:
-                payload = handle.read()
+            payload = path.read_bytes()
         except OSError:
             logger.exception("Could not read image %s; skipping", image.id)
             continue

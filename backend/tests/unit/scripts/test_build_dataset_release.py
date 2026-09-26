@@ -6,7 +6,9 @@ import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
+from unittest.mock import AsyncMock, MagicMock
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -1072,3 +1074,23 @@ def test_inventory_counts_match_the_selection() -> None:
     assert row["in_scope"] == 1
     assert row["excluded"] == 1
     assert row["consenting"] == "yes"
+
+
+def test_export_images_copies_local_files_and_skips_remote_ones(tmp_path, monkeypatch) -> None:
+    """Images are read from their local storage path; one with no local path is skipped."""
+    source = tmp_path / "stored.png"
+    PILImage.new("RGB", (4, 3)).save(source)
+    local = SimpleNamespace(id=1, filename="photo.PNG", parent_id=7)
+    remote = SimpleNamespace(id=2, filename="remote.png", parent_id=7)
+    monkeypatch.setattr(release, "stored_file_path", lambda image: source if image is local else None)
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = [local, remote]
+    session = MagicMock()
+    session.execute = AsyncMock(return_value=result)
+
+    manifest = asyncio.run(release.export_images(session, {7}, tmp_path / "images"))
+
+    assert len(manifest) == 1
+    assert manifest[0]["record_id"] == 7
+    assert (manifest[0]["width"], manifest[0]["height"]) == (4, 3)
+    assert (tmp_path / manifest[0]["file"]).read_bytes() == source.read_bytes()
