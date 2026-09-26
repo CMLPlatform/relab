@@ -17,6 +17,10 @@ RESTORE_TMP_ROOT=""
 RESTORE_HOST_UID=""
 RESTORE_HOST_GID=""
 
+# Only for dotenv_value; deploy_ops.sh dispatches nothing when sourced.
+# shellcheck source=scripts/deploy_ops.sh
+. "$ROOT_DIR/scripts/deploy_ops.sh"
+
 restore_cleanup() {
     if [[ "$RESTORE_API_WAS_RUNNING" == true ]]; then
         docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
@@ -78,27 +82,12 @@ require_file() {
     realpath "$path"
 }
 
-# Read a single var from the root .env in a subshell, without letting it
-# overwrite any other exported value in this process.
-# NOTE: Compose loads .env itself; this script must mirror that for the few
-# values it also needs — but a shell-exported value still wins over the
-# file, matching Compose's own precedence.
-read_dotenv_var() {
-    local var_name="$1"
-    [[ -f "$ROOT_DIR/.env" ]] || return 0
-    (
-        set -a
-        # shellcheck source=/dev/null
-        . "$ROOT_DIR/.env" >/dev/null 2>&1
-        printf '%s' "${!var_name:-}"
-    )
-}
-
 resolve_backup_paths() {
     local env="$1"
 
     local backup_dir="${BACKUP_HOST_DIR:-}"
-    [[ -z "$backup_dir" ]] && backup_dir="$(read_dotenv_var BACKUP_HOST_DIR)"
+    # A shell-exported value wins over the .env file, matching Compose's precedence.
+    [[ -z "$backup_dir" ]] && backup_dir="$(cd "$ROOT_DIR" && dotenv_value BACKUP_HOST_DIR)"
     backup_dir="${backup_dir:-./backups}"
     # Paths are anchored to the repo root so the script works from any CWD.
     [[ "$backup_dir" == /* ]] || backup_dir="$ROOT_DIR/$backup_dir"

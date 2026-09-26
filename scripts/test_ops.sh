@@ -857,7 +857,7 @@ remote_deploy() {
     local tmp
     tmp="$(mktemp -d)"
     mkdir -p "$tmp/scripts" "$tmp/.local/bin"
-    cp "$(dirname "${BASH_SOURCE[0]}")/remote_deploy.sh" "$tmp/scripts/"
+    cp "$(dirname "${BASH_SOURCE[0]}")"/{remote_deploy,deploy_ops}.sh "$tmp/scripts/"
     printf 'ENVIRONMENT=prod\n' >"$tmp/.env"
     printf '#!/bin/sh\necho "just $*"\n' >"$tmp/.local/bin/just"
     chmod +x "$tmp/.local/bin/just"
@@ -963,7 +963,7 @@ stamp_marker() {
     # that exits 0 silently leaves the operator guessing whether it did anything.
     printf '%s|%s|%s' "$status" \
         "$(printf '%s' "$out" | grep -Ec 'says \[staging\]|marks this volume as \[prod\]|marked the uploads volume as \[prod\]')" \
-        "$(cat "$tmp/.relab-volume" 2>/dev/null | tr -d '[:space:]')"
+        "$(tr -d '[:space:]' 2>/dev/null <"$tmp/.relab-volume")"
     rm -rf "$tmp"
 }
 
