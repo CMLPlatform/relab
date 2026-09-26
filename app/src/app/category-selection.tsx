@@ -182,7 +182,7 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
         className="shrink"
         style={{ color: colors.primary }}
       >
-        {history[history.length - 1].description}
+        {history.at(-1)?.description}
       </AppText>
     </Pressable>
   );
