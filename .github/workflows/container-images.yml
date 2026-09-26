@@ -101,22 +101,19 @@ jobs:
       # reachability note.
       - name: Scan image with Trivy
         if: inputs.mode == 'scan'
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
         with:
-          image-ref: ${{ matrix.image }}:${{ github.sha }}
-          format: table
-          exit-code: "1"
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-          trivyignores: .github/trivyignore.yaml
+          args: >-
+            image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL
+            --ignorefile .github/trivyignore.yaml
+            ${{ matrix.image }}:${{ github.sha }}
 
       - name: Generate SPDX SBOM
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
         with:
-          image-ref: ${{ matrix.image }}:${{ github.sha }}
-          format: spdx-json
-          output: sbom-${{ matrix.service }}.spdx.json
-          skip-setup-trivy: ${{ inputs.mode == 'scan' }}
+          args: >-
+            image --format spdx-json --output sbom-${{ matrix.service }}.spdx.json
+            ${{ matrix.image }}:${{ github.sha }}
 
       # Working copies only; the durable SBOMs are attached to GitHub releases.
       - name: Archive container security artifacts
