@@ -28,6 +28,34 @@ defaults:
     shell: bash
 
 jobs:
+  changes:
+    name: Changed Areas
+    # Pull requests run only the subrepo jobs their diff reaches; push, schedule,
+    # and manual runs run everything. See scripts/ci_changed_areas.py.
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.areas.outputs.backend }}
+      www: ${{ steps.areas.outputs.www }}
+      docs: ${{ steps.areas.outputs.docs }}
+      web: ${{ steps.areas.outputs.web }}
+      smoke: ${{ steps.areas.outputs.smoke }}
+      codeql: ${{ steps.areas.outputs.codeql }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # The PR merge commit and its first parent (the base) are enough to diff.
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Classify changed paths
+        id: areas
+        env:
+          EVENT: ${{ github.event_name }}
+        # An empty diff runs everything; a failed one fails this job and CI Result.
+        run: git diff --name-only HEAD^1 HEAD | python3 scripts/ci_changed_areas.py "$EVENT" | tee -a "$GITHUB_OUTPUT"
+
   automation:
     name: Root, IaC, and Compose Policy
     runs-on: ubuntu-26.04
@@ -85,6 +113,8 @@ jobs:
 
   backend:
     name: Backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
@@ -128,12 +158,14 @@ jobs:
 
   web:
     name: ${{ matrix.subrepo }}
+    needs: changes
+    if: needs.changes.outputs.web != '[]'
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        subrepo: [www, app]
+        subrepo: ${{ fromJSON(needs.changes.outputs.web) }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -169,6 +201,8 @@ jobs:
 
   e2e-www:
     name: www E2E
+    needs: changes
+    if: needs.changes.outputs.www == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
@@ -200,6 +234,8 @@ jobs:
 
   docs:
     name: Docs
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
@@ -263,17 +299,14 @@ jobs:
 
   docker-smoke:
     name: Docker Smoke (${{ matrix.recipe }})
+    needs: changes
+    if: needs.changes.outputs.smoke != '[]'
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        recipe:
-          - docker-orchestration-smoke
-          - docker-smoke-static www
-          - docker-smoke-static app
-          - docker-smoke-static docs
-          - docker-smoke-backups
+        recipe: ${{ fromJSON(needs.changes.outputs.smoke) }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -392,14 +425,17 @@ jobs:
     name: Container Security
     # Post-merge, weekly, and on demand. Docker smoke already proves the same
     # Dockerfiles build on every PR, and dependency-review gates new vulnerable
-    # packages there; advisories against base images land faster than images
-    # rebuild, so the blocking scan belongs after merge.
+    # packages there. Advisories against base images land faster than upstream
+    # rebuilds them, so a finding after a merge is upstream news, not a fault in
+    # that commit: push runs report it without failing, and the weekly and manual
+    # runs fail on it.
     if: github.event_name != 'pull_request'
     permissions:
       contents: read
     uses: ./.github/workflows/container-images.yml
     with:
       mode: scan
+      blocking: ${{ github.event_name != 'push' }}
 
   trivy-iac:
     name: Trivy IaC
@@ -433,7 +469,9 @@ jobs:
   codeql:
     name: CodeQL (${{ matrix.language }})
     # Skipped on drafts; `ready_for_review` fills it in.
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: changes
+    if: >-
+      needs.changes.outputs.codeql != '[]' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
@@ -445,7 +483,7 @@ jobs:
       fail-fast: false
       matrix:
         # `actions` complements actionlint + zizmor with dataflow-based workflow queries.
-        language: [actions, python, javascript-typescript]
+        language: ${{ fromJSON(needs.changes.outputs.codeql) }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -485,8 +523,10 @@ jobs:
     name: CI Result
     # Single branch-protection context: the `needs:` list is the one home of the
     # blocking job set. Skipped jobs are accepted; failed/cancelled ones fail.
+    # `changes` is listed so a failed classification cannot pass as all-skipped.
     if: always()
     needs:
+      - changes
       - automation
       - backend
       - web

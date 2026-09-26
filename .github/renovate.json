@@ -5,6 +5,7 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "prConcurrentLimit": 4,
+  "rebaseWhen": "conflicted",
   "pre-commit": {
     "enabled": true
   },
