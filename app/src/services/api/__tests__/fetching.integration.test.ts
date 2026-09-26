@@ -3,7 +3,6 @@ import { HttpResponse, http } from 'msw';
 import { API_ORIGIN_URL, API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { getUser } from '@/services/api/auth/authUser';
-import { searchProductBrands } from '@/services/api/productSuggestions';
 import {
   getBaseProduct,
   getComponent,
@@ -12,7 +11,7 @@ import {
   ProductNotFoundError,
   products,
 } from '@/services/api/products';
-import { searchProductTypes } from '@/services/api/productTypes';
+import { searchProductBrands, searchProductTypes } from '@/services/api/productTypes';
 import { mockUser, server } from '@/test-utils/index';
 
 jest.mock('@/services/api/auth/authRefresh', () => ({
