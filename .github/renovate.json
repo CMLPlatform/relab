@@ -4,7 +4,7 @@
   "timezone": "Europe/Amsterdam",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
-  "prConcurrentLimit": 8,
+  "prConcurrentLimit": 4,
   "pre-commit": {
     "enabled": true
   },
@@ -18,9 +18,14 @@
   },
   "packageRules": [
     {
-      "description": "Non-breaking updates merge themselves once CI is green",
-      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "description": "Non-breaking updates merge themselves once CI is green. Lockfile maintenance is how patched transitive versions arrive, so it merges itself too.",
+      "matchUpdateTypes": ["minor", "patch", "digest", "lockFileMaintenance"],
       "automerge": true
+    },
+    {
+      "description": "Renovate has no release timestamp to age a lock file refresh against, so the 3-day minimumReleaseAge above would hold these PRs pending forever. The package managers enforce the age during the relock instead: pnpm's strict minimumReleaseAge and uv's exclude-newer.",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null
     },
     {
       "description": "Expo owns these: the SDK pins them and Renovate cannot read bundledNativeModules.json. Matched by name only, because matchFileNames also matches the shared pnpm lockfile and a later group rule then wins. Upgrade with `just app/update` (expo install --fix + expo-doctor) at SDK upgrade time. Vulnerability alerts still raise PRs.",
@@ -65,6 +70,7 @@
       "matchFileNames": ["docs/**"]
     },
     {
+      "description": "Root files only. The shared pnpm-lock.yaml is left out: matchFileNames also matches lockfiles, so listing it pulled every app, www and docs dependency into this group.",
       "groupName": "repo-tooling",
       "matchFileNames": [
         ".tool-versions",
@@ -72,10 +78,16 @@
         ".pre-commit-config.yaml",
         ".devcontainer/**",
         "package.json",
-        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
         "pyproject.toml",
         "uv.lock"
       ]
+    },
+    {
+      "description": "Overrides are security pins with hand-picked ranges; Renovate reads them as dependencies and proposes major bumps across the pinned range. Renovate cannot look up advisories for a range value, so `just audit` is what catches a new one. Retire overrides with `just overrides-check`. lightningcss is a deduplication pin, not a security pin, so Renovate keeps bumping it.",
+      "matchDepTypes": ["pnpm-workspace.overrides"],
+      "matchPackageNames": ["!lightningcss"],
+      "enabled": false
     },
     {
       "description": "Batch GitHub Actions updates into one PR",

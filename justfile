@@ -217,8 +217,6 @@ test-e2e-full-stack:
     # lane in `just www/test-e2e` cannot cover a live record's srcset.
     echo "→ Running www live-data E2E tests..."
     just www/test-e2e-live
-    echo "→ Building Expo web app..."
-    just app/build-web
     echo "→ Running Playwright E2E tests..."
     just app/test-e2e
 
@@ -234,6 +232,12 @@ audit:
     uv audit --preview-features audit --frozen
     just backend/audit all
     pnpm audit --prod --audit-level moderate
+
+# Security overrides in pnpm-workspace.yaml that no longer change the audit result
+[group('security')]
+[doc('Flag pnpm security overrides that are no longer needed')]
+overrides-check:
+    uv run python scripts/stale_overrides.py
 
 # Canonical security target: secret scanning plus dependency audits
 [group('security')]

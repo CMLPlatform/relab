@@ -382,6 +382,12 @@ jobs:
       - name: Run dependency audits
         run: just audit
 
+      # Weekly only: a stale override is upstream news, not a fault in the
+      # commit being pushed, so it should not fail push runs.
+      - name: Flag stale security overrides
+        if: github.event_name == 'schedule'
+        run: just overrides-check
+
   container-security:
     name: Container Security
     # Post-merge, weekly, and on demand. Docker smoke already proves the same
