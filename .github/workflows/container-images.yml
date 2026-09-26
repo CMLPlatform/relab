@@ -2,8 +2,9 @@
 name: Container Images
 
 # Builds every runtime image once per matrix entry. ci.yml calls it with
-# `mode: scan` (blocking Trivy scan plus a working-copy SBOM); release.yml calls it
-# with `mode: release` (SBOM attested and attached to the GitHub release).
+# `mode: scan` (Trivy scan, blocking unless `blocking: false`, plus a working-copy
+# SBOM); release.yml calls it with `mode: release` (SBOM attested and attached to
+# the GitHub release).
 # Permissions come from the calling job, so each caller grants only what its mode
 # needs.
 on:
@@ -13,6 +14,11 @@ on:
         description: "`scan` or `release`."
         required: true
         type: string
+      blocking:
+        description: Fail the job on a HIGH or CRITICAL finding (scan mode only).
+        required: false
+        type: boolean
+        default: true
       tag_name:
         description: Release tag to attach the SBOMs to (release mode only).
         required: false
@@ -101,6 +107,8 @@ jobs:
       # reachability note.
       - name: Scan image with Trivy
         if: inputs.mode == 'scan'
+        # A non-blocking scan still marks this step failed in the run view.
+        continue-on-error: ${{ !inputs.blocking }}
         uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
         with:
           args: >-
