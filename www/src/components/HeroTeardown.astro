@@ -41,14 +41,6 @@ const formatMassG = (weightG: number | null): string | null => {
   return `${grams} g`;
 };
 
-/** Inner markup for a `.blueprint-part-mass` cell: the formatted mass, or a
- * dash with a spoken equivalent. Used by three cells (a plain part, a group's
- * parent row, and its children). */
-const massCellHtml = (weightG: number | null): string =>
-  formatMassG(weightG) ??
-  // biome-ignore lint/security/noSecrets: markup, not a secret; flagged as high-entropy text.
-  '<span aria-hidden="true">—</span><span class="visually-hidden">mass not recorded</span>';
-
 /**
  * Parts shown: two rows of plates at the hero's width, level with the pitch
  * beside it. Parts arrive ranked by mass; the count below the grid says what
@@ -174,7 +166,14 @@ const assembly = teardown?.photos[0] ?? null;
                     <summary class="blueprint-part">
                       {figure}
                       <span class="blueprint-part-name">{part.name}</span>
-                      <span class="blueprint-part-mass" set:html={massCellHtml(part.weightG)} />
+                      <span class="blueprint-part-mass">
+                        {formatMassG(part.weightG) ?? (
+                          <>
+                            <span aria-hidden="true">—</span>
+                            <span class="visually-hidden">mass not recorded</span>
+                          </>
+                        )}
+                      </span>
                       {part.share !== null && (
                         <span
                           class="blueprint-part-bar"
@@ -187,10 +186,14 @@ const assembly = teardown?.photos[0] ?? null;
                       {part.children.map((child) => (
                         <li class="blueprint-subpart">
                           <span class="blueprint-subpart-name">{child.name}</span>
-                          <span
-                            class="blueprint-part-mass"
-                            set:html={massCellHtml(child.weightG)}
-                          />
+                          <span class="blueprint-part-mass">
+                        {formatMassG(child.weightG) ?? (
+                          <>
+                            <span aria-hidden="true">—</span>
+                            <span class="visually-hidden">mass not recorded</span>
+                          </>
+                        )}
+                      </span>
                         </li>
                       ))}
                     </ul>
@@ -200,7 +203,14 @@ const assembly = teardown?.photos[0] ?? null;
                 <li class="blueprint-part" style={seat}>
                   {figure}
                   <span class="blueprint-part-name">{part.name}</span>
-                  <span class="blueprint-part-mass" set:html={massCellHtml(part.weightG)} />
+                  <span class="blueprint-part-mass">
+                        {formatMassG(part.weightG) ?? (
+                          <>
+                            <span aria-hidden="true">—</span>
+                            <span class="visually-hidden">mass not recorded</span>
+                          </>
+                        )}
+                      </span>
                   {part.share !== null && (
                     <span
                       class="blueprint-part-bar"
