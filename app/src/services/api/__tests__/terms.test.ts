@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { acceptContributorTerms } from '@/services/api/terms';
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   fetchWithAuth: jest.fn(),
 }));
 
-const { fetchWithAuth } = jest.requireMock('@/services/api/auth/authentication') as {
+const { fetchWithAuth } = jest.requireMock('@/services/api/auth/authRefresh') as {
   fetchWithAuth: jest.Mock<(...args: unknown[]) => Promise<unknown>>;
 };
 

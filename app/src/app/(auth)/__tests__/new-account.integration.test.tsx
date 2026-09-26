@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
 import NewAccount from '@/app/(auth)/new-account';
-import { login, register } from '@/services/api/auth/authentication';
+import { register } from '@/services/api/auth/authentication';
+import { login } from '@/services/api/auth/authLogin';
 import { renderWithProviders } from '@/test-utils/index';
 import type { User } from '@/types/User';
 
@@ -17,8 +18,10 @@ jest.mock('expo-router', () => ({
   useRouter: jest.fn(),
 }));
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authLogin', () => ({
   login: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authentication', () => ({
   register: jest.fn(),
 }));
 

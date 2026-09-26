@@ -1,6 +1,6 @@
 import { openAuthSessionAsync } from 'expo-web-browser';
 import { SUPPORT_EMAIL } from '@/constants';
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { parseApiErrorDetail } from '@/services/api/errors';
 
 const OAUTH_BROWSER_TIMEOUT_MS = 5 * 60 * 1000;

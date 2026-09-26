@@ -16,7 +16,7 @@ jest.mock('expo-image', () =>
 
 // Preview thumbnails are owner-checked: on native the source carries a bearer
 // token, so the token has to resolve before the <Image> renders.
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   getToken: () => Promise.resolve('test-token'),
 }));
 

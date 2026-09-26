@@ -1,4 +1,4 @@
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { ApiError, throwFromResponse } from '@/services/api/errors';
 import type { StartYouTubeStreamParams, StreamView } from './shared';
 import { CAMERA_BASE } from './shared';

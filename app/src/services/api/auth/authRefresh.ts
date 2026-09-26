@@ -1,4 +1,6 @@
+import { API_URL } from '@/config';
 import { createRequestId, fetchWithTimeout, type TimedRequestInit } from '@/services/api/request';
+import { isWeb } from '@/services/storage';
 import { logError } from '@/utils/logging';
 import { getAuthRefreshPath } from './authHelpers';
 import { authRuntime } from './authRuntime';
@@ -6,7 +8,6 @@ import {
   clearStoredAccessToken,
   clearStoredRefreshToken,
   hasWebSessionFlag,
-  isWeb,
   loadStoredAccessToken,
   loadStoredRefreshToken,
   persistStoredAccessToken,
@@ -51,13 +52,13 @@ export async function getToken(): Promise<string | undefined> {
   return;
 }
 
-export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
+export async function refreshAuthToken(): Promise<boolean> {
   if (authRuntime.refreshPromise) return authRuntime.refreshPromise;
   const web = isWeb();
   if (web && !hasWebSessionFlag()) return false;
 
   const authPath = getAuthRefreshPath(web);
-  const url = new URL(apiUrl + authPath);
+  const url = new URL(API_URL + authPath);
 
   authRuntime.refreshPromise = (async () => {
     const capturedGeneration = authRuntime.authGeneration;
@@ -122,7 +123,6 @@ export async function refreshAuthToken(apiUrl: string): Promise<boolean> {
 }
 
 export async function fetchWithAuth(
-  apiUrl: string,
   url: URL | string,
   options: TimedRequestInit = {},
 ): Promise<Response> {
@@ -142,7 +142,7 @@ export async function fetchWithAuth(
   let response = await makeRequest();
 
   if (response.status === 401 && !authRuntime.explicitlyLoggedOut) {
-    const refreshed = await refreshAuthToken(apiUrl);
+    const refreshed = await refreshAuthToken();
     if (refreshed) {
       const newToken = await getToken();
       if (newToken) headers.Authorization = `Bearer ${newToken}`;

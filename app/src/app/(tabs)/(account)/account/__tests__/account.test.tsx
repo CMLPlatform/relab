@@ -71,9 +71,13 @@ jest.mock('@/services/api/profiles', () => ({
 // Each export forwards through an arrow rather than being the mock fn itself:
 // the factory runs at import time, before the `mock*` consts initialise, so a
 // direct reference would throw on TDZ and force every import here to be lazy.
-jest.mock('@/services/api/auth/authentication', () => ({
-  getToken: jest.fn().mockResolvedValue('mock-token'),
+jest.mock('@/services/api/auth/authLogin', () => ({
   logout: (...args: unknown[]) => mockLogout(...args),
+}));
+jest.mock('@/services/api/auth/authRefresh', () => ({
+  getToken: jest.fn().mockResolvedValue('mock-token'),
+}));
+jest.mock('@/services/api/auth/authentication', () => ({
   unlinkOAuth: jest.fn().mockResolvedValue(undefined),
   updateUser: (...args: unknown[]) => mockUpdateUser(...args),
   verify: (...args: unknown[]) => mockVerify(...args),

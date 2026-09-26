@@ -1,16 +1,14 @@
+import { API_URL } from '@/config';
 import { ApiError, throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout, TimeoutError } from '@/services/api/request';
-import type { User } from '@/types/User';
+import { isWeb } from '@/services/storage';
 import { logError } from '@/utils/logging';
 import { getAuthLoginPath } from './authHelpers';
 import { type MfaLoginPending, parseMfaPendingPayload } from './authMfa';
+import { clearCachedAuthState, persistAccessToken, persistRefreshToken } from './authRefresh';
 import { authRuntime } from './authRuntime';
-import {
-  isWeb,
-  loadStoredAccessToken,
-  loadStoredRefreshToken,
-  markWebSessionActive,
-} from './authSession';
+import { loadStoredAccessToken, loadStoredRefreshToken, markWebSessionActive } from './authSession';
+import { getUser } from './authUser';
 
 const UNREACHABLE_SERVER_MESSAGE = 'Unable to reach server. Please try again later.';
 
@@ -19,19 +17,10 @@ export type LoginResult =
   | MfaLoginPending
   | { status: 'invalid_credentials' };
 
-export async function login(
-  apiUrl: string,
-  username: string,
-  password: string,
-  deps: {
-    persistAccessToken: (token: string) => Promise<void>;
-    persistRefreshToken: (token: string) => Promise<void>;
-    getUser: (forceRefresh?: boolean) => Promise<User | undefined>;
-  },
-): Promise<LoginResult> {
+export async function login(username: string, password: string): Promise<LoginResult> {
   const web = isWeb();
   const authPath = getAuthLoginPath(web);
-  const url = new URL(apiUrl + authPath);
+  const url = new URL(API_URL + authPath);
   const headers = {
     'Content-Type': 'application/x-www-form-urlencoded',
     Accept: 'application/json',
@@ -51,7 +40,7 @@ export async function login(
         // The 204 already set both cookies. Prewarm the user cache;
         // AuthProvider re-fetches anyway.
         markWebSessionActive();
-        await deps.getUser(true).catch(() => {
+        await getUser(true).catch(() => {
           /* the session is valid; AuthProvider will fetch the user again */
         });
       }
@@ -81,9 +70,9 @@ export async function login(
       throw new Error('Invalid login response.');
     }
 
-    await deps.persistAccessToken(data.access_token);
+    await persistAccessToken(data.access_token);
     if (typeof data.refresh_token === 'string') {
-      await deps.persistRefreshToken(data.refresh_token);
+      await persistRefreshToken(data.refresh_token);
     }
     return { status: 'authenticated' };
   } catch (err) {
@@ -99,10 +88,7 @@ export async function login(
   }
 }
 
-export async function logout(
-  apiUrl: string,
-  clearCachedAuthState: () => Promise<void>,
-): Promise<void> {
+export async function logout(): Promise<void> {
   const web = isWeb();
   const refreshToken = web ? undefined : await loadStoredRefreshToken();
   const logoutPath = web ? '/auth/session/logout' : '/auth/bearer/logout';
@@ -115,7 +101,7 @@ export async function logout(
   // Revoke server-side first, else a failed request leaves the refresh token
   // valid. The local clear runs regardless; the log is the only failure signal.
   try {
-    const response = await fetchWithTimeout(new URL(`${apiUrl}${logoutPath}`), {
+    const response = await fetchWithTimeout(new URL(`${API_URL}${logoutPath}`), {
       method: 'POST',
       headers,
       body,
@@ -129,15 +115,12 @@ export async function logout(
   }
 }
 
-export async function revokeAllSessions(
-  apiUrl: string,
-  clearCachedAuthState: () => Promise<void>,
-): Promise<void> {
+export async function revokeAllSessions(): Promise<void> {
   const headers = await getNativeAuthorizationHeaders();
 
   // Same ordering as logout(): revoke while the credentials are still cached.
   try {
-    const response = await fetchWithTimeout(new URL(`${apiUrl}/auth/sessions/revoke-all`), {
+    const response = await fetchWithTimeout(new URL(`${API_URL}/auth/sessions/revoke-all`), {
       method: 'POST',
       headers,
       credentials: 'include',

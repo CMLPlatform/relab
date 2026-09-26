@@ -1,4 +1,4 @@
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { throwFromResponse } from '@/services/api/errors';
 import type { CameraRead, CameraReadWithStatus, CameraTelemetry, CameraUpdate } from './shared';
 import { CAMERA_BASE, normalizeCameraReadWithStatus } from './shared';

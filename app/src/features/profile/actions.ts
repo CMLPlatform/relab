@@ -5,7 +5,7 @@ import type { useAuth } from '@/context/auth';
 import type { useStreamSession } from '@/context/streamSession';
 import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
-import { logout, revokeAllSessions } from '@/services/api/auth/authentication';
+import { logout, revokeAllSessions } from '@/services/api/auth/authLogin';
 import { confirmOAuthUnlink, promptUsernameEdit, sendVerificationEmail } from './mutations';
 import type { useProfileDialogs } from './state';
 
