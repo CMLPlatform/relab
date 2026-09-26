@@ -42,7 +42,6 @@
     "pydantic>=2.12",
     "pydantic-settings>=2.10.1",
     "python-json-logger>=4.1.0",
-    "python-dotenv>=1.1.1",
     # Media and image processing
     "pillow>=11.2.1",
     # Observability
