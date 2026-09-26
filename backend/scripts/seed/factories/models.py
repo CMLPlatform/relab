@@ -102,7 +102,9 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         """Create a new instance, optionally using a provided session."""
         if session:
             instance = cls.build(**kwargs)
-            if "id" not in kwargs and getattr(instance, "id", None) == 0:
+            # Let the database assign integer keys. A generated one depends on how many values
+            # the shared seeded generator has drawn, so two rows on one worker can collide.
+            if "id" not in kwargs and isinstance(getattr(instance, "id", None), int):
                 object.__setattr__(instance, "id", None)
             session.add(instance)
             await session.flush()
