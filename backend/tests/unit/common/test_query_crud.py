@@ -1,6 +1,6 @@
 """Unit tests for common query/loading/scoped CRUD helpers."""
 
-from typing import Any, cast  # lgtm[py/unused-import]
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
