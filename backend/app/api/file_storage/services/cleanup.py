@@ -103,7 +103,7 @@ async def report_orphaned_media(session: AsyncSession) -> dict[str, int]:
         for parent_type, parent_model in registered_media_parents().items():
             orphan_stmt = select(func.count()).where(
                 media_model.parent_type == parent_type,
-                ~select(1).where(parent_model.id == media_model.parent_id).exists(),
+                ~select(1).where(parent_model.__table__.c.id == media_model.parent_id).exists(),
             )
             count = (await session.execute(orphan_stmt)).scalar_one()
             if count:

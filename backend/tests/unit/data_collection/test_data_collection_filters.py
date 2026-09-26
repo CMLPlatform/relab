@@ -4,6 +4,8 @@ import typing
 from typing import TYPE_CHECKING, Literal, cast, get_args, get_origin
 
 if TYPE_CHECKING:
+    from fastapi_filters import SortingValues
+    from sqlalchemy.sql.compiler import Compiled
     from sqlalchemy.sql.elements import ClauseElement
 
 import pytest
@@ -35,7 +37,7 @@ def _sql(clause: ClauseElement) -> str:
     return str(clause.compile(dialect=postgresql.dialect()))
 
 
-def _compiled(clause: ClauseElement) -> object:
+def _compiled(clause: ClauseElement) -> Compiled:
     """Compile a clause for assertions on SQL text and bound parameters."""
     return clause.compile(dialect=postgresql.dialect())
 
@@ -165,7 +167,7 @@ def test_facet_statement_rejects_non_allowlisted_field() -> None:
         get_product_facet_statement(unsafe)
 
 
-def _filter_sql(search: str | None, order_by: list[tuple[str, str, None]] | None) -> str:
+def _filter_sql(search: str | None, order_by: SortingValues | None) -> str:
     product_filter = ProductFilter().with_search(search)
     stmt = apply_filter(select(Product), product_filter.with_sorting(order_by or []))
     return _sql(stmt)
@@ -186,7 +188,8 @@ def test_rank_ordering_not_applied_when_explicit_field_given() -> None:
 
 def test_search_where_clause_always_present() -> None:
     """The tsvector WHERE clause is always added when search is set, regardless of sort."""
-    for order in (None, [("created_at", "desc", None)], [("name", "asc", None)]):
+    order_by_cases: list[SortingValues | None] = [None, [("created_at", "desc", None)], [("name", "asc", None)]]
+    for order in order_by_cases:
         sql = _filter_sql("test", order)
         assert "websearch_to_tsquery" in sql, f"Missing WHERE clause for order_by={order}"
 

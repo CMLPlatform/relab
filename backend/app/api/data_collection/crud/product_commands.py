@@ -55,8 +55,9 @@ def create_product_videos(
     """Attach any videos from the create payload to the product."""
     if not isinstance(product_data, ProductCreateWithComponents) or not product_data.videos:
         return
-    db_product.videos = [Video(**v.model_dump()) for v in product_data.videos]
-    db.add_all(db_product.videos)
+    videos = [Video(**v.model_dump()) for v in product_data.videos]
+    db_product.videos = videos
+    db.add_all(videos)
 
 
 async def create_product_bill_of_materials(

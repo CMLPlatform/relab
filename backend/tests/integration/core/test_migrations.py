@@ -295,6 +295,7 @@ def test_partial_index_predicates_match_the_models(migration_helper: MigrationHe
 
     probes = {}
     for index in partial_indexes:
+        assert index.name is not None, "index must be named to build its probe copy"
         ddl = str(CreateIndex(index).compile(dialect=postgresql.dialect())).strip()
         probes[index.name] = f"{index.name}_predicate_probe"
         migration_helper.execute_sql(ddl.replace(index.name, probes[index.name], 1))

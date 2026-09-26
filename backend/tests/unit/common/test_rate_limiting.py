@@ -114,6 +114,7 @@ def limiter() -> Limiter:
 def test_dependency_allows_requests_under_limit(limiter: Limiter) -> None:
     """Requests within the defined limit should be allowed to proceed."""
     check = limiter.dependency("5/minute").dependency
+    assert check is not None
     req = _make_request()
     for _ in range(5):
         check(req)
@@ -122,6 +123,7 @@ def test_dependency_allows_requests_under_limit(limiter: Limiter) -> None:
 def test_dependency_raises_when_limit_exceeded(limiter: Limiter) -> None:
     """Requests beyond the defined limit should raise RateLimitExceededError."""
     check = limiter.dependency("2/minute").dependency
+    assert check is not None
     req = _make_request()
     check(req)
     check(req)
@@ -133,6 +135,7 @@ def test_dependency_raises_when_limit_exceeded(limiter: Limiter) -> None:
 def test_disabled_limiter_skips_check() -> None:
     """When the limiter is not enabled it should not enforce any limits and should allow all requests."""
     check = Limiter(storage_uri="memory://", enabled=False).dependency("1/minute").dependency
+    assert check is not None
     req = _make_request()
 
     for _ in range(10):
@@ -142,6 +145,7 @@ def test_disabled_limiter_skips_check() -> None:
 def test_different_client_ips_have_separate_limits(limiter: Limiter) -> None:
     """Requests from different client IPs should be rate limited separately."""
     check = limiter.dependency("1/minute").dependency
+    assert check is not None
 
     check(_make_request("203.0.113.1"))
     check(_make_request("203.0.113.2"))
@@ -180,7 +184,8 @@ def test_hit_key_fails_open_on_redis_error(limiter: Limiter, caplog: pytest.LogC
             msg = "redis unreachable"
             raise RedisConnectionError(msg)
 
-    limiter._limiter = _RaisingStrategy()
+    # A minimal stand-in for the real strategy: only the failure path matters here.
+    limiter._limiter = _RaisingStrategy()  # ty: ignore[invalid-assignment]
 
     caplog.set_level(logging.WARNING, logger="app.api.common.rate_limiting")
     limiter.hit_key("1/minute", "auth:login:account:one")  # must not raise
@@ -197,7 +202,8 @@ def test_ahit_key_fails_open_on_redis_error(limiter: Limiter) -> None:
             msg = "redis timed out"
             raise RedisTimeoutError(msg)
 
-    limiter._limiter = _RaisingStrategy()
+    # A minimal stand-in for the real strategy: only the failure path matters here.
+    limiter._limiter = _RaisingStrategy()  # ty: ignore[invalid-assignment]
 
     anyio.run(limiter.ahit_key, "1/minute", "auth:login:account:two")  # must not raise
 
@@ -205,8 +211,10 @@ def test_ahit_key_fails_open_on_redis_error(limiter: Limiter) -> None:
 def test_dependency_limits_request_buckets(limiter: Limiter) -> None:
     """FastAPI route dependencies should enforce request-scoped limits without wrapping endpoints."""
     dependency = limiter.dependency("1/minute")
+    check = dependency.dependency
+    assert check is not None
     req = _make_request()
 
-    dependency.dependency(req)
+    check(req)
     with pytest.raises(RateLimitExceededError):
-        dependency.dependency(req)
+        check(req)

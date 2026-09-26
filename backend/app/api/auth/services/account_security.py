@@ -9,7 +9,7 @@ from app.api.auth.services import refresh_token_service
 from app.core.runtime import require_connection_redis
 
 if TYPE_CHECKING:
-    from fastapi_users.password import PasswordHelper, PasswordHelperProtocol
+    from fastapi_users.password import PasswordHelperProtocol
     from pydantic import UUID4
     from starlette.requests import Request
 
@@ -35,7 +35,7 @@ def verify_current_password(*, password_helper: PasswordHelperProtocol, password
 
 def require_current_password_for_sensitive_update(
     *,
-    password_helper: PasswordHelper,
+    password_helper: PasswordHelperProtocol,
     user_update: UserUpdate,
     user: User,
     sensitive_fields: set[str],
@@ -59,7 +59,7 @@ def require_current_password_for_sensitive_update(
 
 def require_step_up_password(
     *,
-    password_helper: PasswordHelper,
+    password_helper: PasswordHelperProtocol,
     user: User,
     current_password: str | None,
     action: str,

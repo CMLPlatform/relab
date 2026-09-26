@@ -42,7 +42,9 @@ def test_user_create_rejects_removed_organization_fields(field_name: str) -> Non
 def test_user_update_rejects_removed_organization_id() -> None:
     """User updates can no longer change organization membership."""
     with pytest.raises(ValidationError, match="organization_id"):
-        UserUpdate(organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6")
+        # organization_id was deliberately removed from the schema; the test pins that
+        # pydantic rejects it at runtime as an unknown field.
+        UserUpdate(organization_id="1fa85f64-5717-4562-b3fc-2c963f66afa6")  # ty: ignore[unknown-argument]
 
 
 type PublicUserSchema = type[UserRegister | UserUpdate]

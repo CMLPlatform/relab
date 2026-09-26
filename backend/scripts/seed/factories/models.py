@@ -33,6 +33,7 @@ from app.api.reference_data.models import (
 
 if TYPE_CHECKING:
     from polyfactory.field_meta import FieldMeta
+    from sqlalchemy.types import TypeEngine
 
 T = TypeVar("T")
 
@@ -77,7 +78,7 @@ class BaseModelFactory[T](SQLAlchemyFactory[T]):
         return sqlalchemy_types
 
     @classmethod
-    def _get_type_from_type_engine(cls, type_engine: object) -> type:
+    def _get_type_from_type_engine(cls, type_engine: TypeEngine[Any]) -> type:
         """Normalize unsupported SQLAlchemy column types to a buildable Python type."""
         if isinstance(type_engine, TSVECTOR):
             return str

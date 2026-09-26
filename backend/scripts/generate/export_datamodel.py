@@ -57,6 +57,9 @@ def _module_tables() -> dict[Module, list[sa.Table]]:
     grouped: dict[Module, list[sa.Table]] = {module: [] for module in MODULES}
     for mapper in Base.registry.mappers:
         table = mapper.local_table
+        if not isinstance(table, sa.Table):
+            msg = f"{mapper.class_.__name__} is not mapped to a table"
+            raise TypeError(msg)
         owners = [module for module in MODULES if mapper.class_.__module__.startswith(f"{module.package}.")]
         if len(owners) != 1:
             msg = f"{table.name} is declared in {mapper.class_.__module__}, which matches {len(owners)} modules"

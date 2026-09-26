@@ -97,8 +97,6 @@ def test_production_requires_data_encryption_key() -> None:
             api_public_url=HttpUrl("https://api.cml-relab.org/"),
             site_public_url=HttpUrl("https://cml-relab.org/"),
             app_public_url=HttpUrl("https://app.cml-relab.org/"),
-            postgres_password=SecretStr("test-password"),
-            redis_password=SecretStr("test-password"),
             bootstrap_superuser_password=SecretStr("test-password"),
             bootstrap_superuser_email="admin@example.com",
             data_encryption_key=SecretStr(""),

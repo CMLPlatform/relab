@@ -448,10 +448,10 @@ def test_production_rejects_missing_redis_secret_file(tmp_path: Path) -> None:
 
     kwargs = _production_core_settings_kwargs()
     kwargs["database"] = db
-    # redis deliberately omitted: empty password triggers the error
+    kwargs["redis"] = RedisSettings()  # empty password triggers the error
 
     with pytest.raises(ValidationError, match="REDIS_PASSWORD must not be empty"):
-        CoreSettings(**{**kwargs, "redis": RedisSettings()})
+        CoreSettings(**kwargs)
 
 
 def test_sync_database_url_disables_tls_by_default() -> None:
@@ -566,7 +566,9 @@ def test_production_requires_https_origins(field: str, url: str, message: str) -
 def test_production_rejects_unsafe_database_role_settings(field: str, value: str | SecretStr, message: str) -> None:
     """Production should fail fast when role credentials break least privilege."""
     base_db = _database_role_kwargs()["database"]
-    overridden = DatabaseSettings(**{**base_db.model_dump(), field: value})
+    overrides = base_db.model_dump()
+    overrides[field] = value
+    overridden = DatabaseSettings(**overrides)
     with pytest.raises(ValidationError, match=message):
         CoreSettings(**_production_core_settings_kwargs(database=overridden))
 
@@ -574,7 +576,9 @@ def test_production_rejects_unsafe_database_role_settings(field: str, value: str
 def test_production_rejects_duplicate_database_runtime_roles() -> None:
     """Production database runtime, migration, and backup roles must be distinct."""
     base_db = _database_role_kwargs()["database"]
-    dup_db = DatabaseSettings(**{**base_db.model_dump(), "migration_user": "relab_app"})
+    dup_overrides = base_db.model_dump()
+    dup_overrides["migration_user"] = "relab_app"
+    dup_db = DatabaseSettings(**dup_overrides)
     with pytest.raises(ValidationError, match="Database app, migration, and backup users must be distinct"):
         CoreSettings(**_production_core_settings_kwargs(database=dup_db))
 

@@ -32,6 +32,7 @@ from redis.exceptions import RedisError
 from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, relay_command_is_allowed
 
 from app.core.logging import sanitize_log_value
+from app.core.redis import redis_bool, redis_int
 
 if TYPE_CHECKING:
     from pydantic import UUID4
@@ -66,7 +67,9 @@ def _resp_ttl_seconds(timeout_s: float) -> int:
 
 async def _blpop_once(redis: Redis, key: str) -> tuple[str, str] | None:
     """Run one finite BLPOP poll so relay waits outlive the shared client's socket timeout."""
-    return cast("tuple[str, str] | None", await redis.blpop(key, timeout=_BLPOP_POLL_SECONDS))
+    # redis-py types every command as ``Awaitable[T] | T`` for sync and async clients alike.
+    result = await redis.blpop(key, timeout=_BLPOP_POLL_SECONDS)  # ty: ignore[invalid-await]
+    return cast("tuple[str, str] | None", result)
 
 
 # ── Codec ─────────────────────────────────────────────────────────────────────
@@ -174,8 +177,8 @@ async def relay_cross_worker(
     resp_key = _resp_key(msg_id)
 
     cmd_key = _cmd_key(camera_id)
-    await redis.rpush(cmd_key, command_payload)
-    await redis.ltrim(cmd_key, -_CMD_QUEUE_MAX_LEN, -1)
+    await redis_int(redis.rpush(cmd_key, command_payload))
+    await redis_bool(redis.ltrim(cmd_key, -_CMD_QUEUE_MAX_LEN, -1))
 
     remaining = deadline - time.monotonic()
     if remaining <= 0:
@@ -308,7 +311,7 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": RELAY_COMMAND_FORBIDDEN_DETAIL, "status": 403})
         with contextlib.suppress(Exception):
-            await redis.rpush(resp_key, error_payload)
+            await redis_int(redis.rpush(resp_key, error_payload))
             await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
         return
 
@@ -334,7 +337,7 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": "Camera did not respond in time."})
         with contextlib.suppress(Exception):
-            await redis.rpush(resp_key, error_payload)
+            await redis_int(redis.rpush(resp_key, error_payload))
             await redis.expire(resp_key, _resp_ttl_seconds(timeout_s))
         return
     except RuntimeError as exc:
@@ -347,7 +350,7 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": str(exc)})
         with contextlib.suppress(Exception):
-            await redis.rpush(resp_key, error_payload)
+            await redis_int(redis.rpush(resp_key, error_payload))
             await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
         return
     except Exception as exc:
@@ -358,12 +361,12 @@ async def _execute_and_respond(
         )
         error_payload = json.dumps({"error": f"Internal relay error: {exc}"})
         with contextlib.suppress(Exception):
-            await redis.rpush(resp_key, error_payload)
+            await redis_int(redis.rpush(resp_key, error_payload))
             await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
         return
 
     try:
-        await redis.rpush(resp_key, _encode_response(json_resp, binary))
+        await redis_int(redis.rpush(resp_key, _encode_response(json_resp, binary)))
         await redis.expire(resp_key, _resp_ttl_seconds(cmd.get("timeout_s", 0)))
     except Exception:
         logger.exception(
