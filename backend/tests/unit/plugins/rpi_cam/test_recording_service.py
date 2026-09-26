@@ -8,7 +8,6 @@ import pytest
 from fastapi import HTTPException
 from httpx import Response
 
-from app.api.auth.exceptions import UserOwnershipError
 from app.api.auth.models import OAuthAccount
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import APIError, ServiceUnavailableError
@@ -153,14 +152,14 @@ async def test_start_youtube_recording_rejects_product_not_owned_by_camera_owner
     user_mock = build_user()
     foreign_product_id = 1
     mock_get_cam.return_value = mock_camera
-    mock_get_owned_product.side_effect = UserOwnershipError(Product, foreign_product_id, require_uuid(user_mock.id))
+    mock_get_owned_product.side_effect = ModelNotFoundError(Product, foreign_product_id)
 
     session_mock = AsyncMock()
     session_mock.get.return_value = None
     redis_mock = AsyncMock()
     redis_mock.get.return_value = None
 
-    with pytest.raises(UserOwnershipError):
+    with pytest.raises(ModelNotFoundError):
         await start_youtube_recording(
             camera_id=require_uuid(mock_camera.id),
             session=session_mock,

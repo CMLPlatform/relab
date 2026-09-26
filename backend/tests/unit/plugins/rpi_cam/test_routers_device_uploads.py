@@ -9,7 +9,7 @@ from fastapi import HTTPException, UploadFile
 from PIL import Image as PILImage
 from starlette.datastructures import Headers
 
-from app.api.auth.exceptions import UserOwnershipError
+from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.routers.camera_interaction.images import (
     receive_camera_upload,
@@ -128,14 +128,14 @@ async def test_rejects_upload_for_product_not_owned_by_camera_owner(mock_camera:
         patch(
             "app.api.plugins.rpi_cam.routers.camera_interaction.images.get_user_owned_object",
             new=AsyncMock(
-                side_effect=UserOwnershipError(Product, foreign_product_id, mock_camera.owner_id),
+                side_effect=ModelNotFoundError(Product, foreign_product_id),
             ),
         ),
         patch(
             "app.api.plugins.rpi_cam.routers.camera_interaction.images.image_storage_service",
             mock_storage,
         ),
-        pytest.raises(UserOwnershipError),
+        pytest.raises(ModelNotFoundError),
     ):
         await receive_camera_upload(
             camera_id=mock_camera.id,
