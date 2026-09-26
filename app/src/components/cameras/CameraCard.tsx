@@ -23,9 +23,9 @@ const CONNECTION_TONE: Record<CameraConnectionStatus, StatusTone> = {
 };
 
 // undefined locale defers to the device's own locale instead of hard-coding en-US.
-const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto', style: 'narrow' });
 
-/** ISO-8601 timestamp to a relative string: ``30 seconds ago``, ``5 hours ago``, ``yesterday``. */
+/** ISO-8601 timestamp to a compact relative string: ``30s ago``, ``5h ago``, ``yesterday``. */
 function formatLastSeen(lastSeenAt: string | null | undefined): string {
   if (!lastSeenAt) return 'never seen';
   const lastSeen = new Date(lastSeenAt).getTime();
