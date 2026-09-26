@@ -63,7 +63,6 @@ COPY www/tsconfig.json www/astro.config.ts www/
 COPY www/public/ www/public/
 COPY www/src/ www/src/
 
-ARG ENVIRONMENT=prod
 ARG PUBLIC_APP_URL
 ARG PUBLIC_DOCS_URL
 ARG PUBLIC_SITE_URL
@@ -82,7 +81,7 @@ ENV PUBLIC_APP_URL=${PUBLIC_APP_URL} \
 
 WORKDIR $WORKDIR/www
 
-RUN pnpm run build:${ENVIRONMENT}
+RUN pnpm run build
 
 # --- Caddy binary, stripped of its low-port capability ---
 # Relab serves on high ports, so cap_net_bind_service is dead weight next to
