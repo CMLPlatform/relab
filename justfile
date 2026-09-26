@@ -224,8 +224,6 @@ test-e2e-full-stack mode="default":
     # lane in `just www/test-e2e` cannot cover a live record's srcset.
     echo "→ Running www live-data E2E tests..."
     just www/test-e2e-live
-    echo "→ Building Expo web app..."
-    just app/build-web
     echo "→ Running Playwright E2E tests ($mode)..."
     just "app/$e2e_recipe"
 
