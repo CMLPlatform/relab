@@ -177,6 +177,10 @@
 [tool.coverage.xml]
   output = "reports/coverage/coverage.xml"
 
+# Its own section keeps ty from adopting the repo-root pyproject.toml as the project,
+# which checks only the root scripts and tests.
+[tool.ty]
+
 [tool.ruff]
   fix            = true
   line-length    = 120
