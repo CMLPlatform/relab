@@ -4,7 +4,7 @@
   "timezone": "Europe/Amsterdam",
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
-  "prConcurrentLimit": 8,
+  "prConcurrentLimit": 4,
   "pre-commit": {
     "enabled": true
   },
