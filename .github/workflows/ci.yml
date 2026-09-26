@@ -144,7 +144,6 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: just ${{ matrix.subrepo }}/install
@@ -182,7 +181,6 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: pnpm-lock.yaml
           setup-playwright: "true"
 
       - name: Install dependencies
@@ -214,7 +212,6 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: pnpm-lock.yaml
           setup-playwright: "true"
 
       - name: Install dependencies
@@ -247,7 +244,6 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
-          cache-dependency-path: pnpm-lock.yaml
           setup-playwright: "true"
 
       - name: Install app dependencies
@@ -274,9 +270,9 @@ jobs:
       matrix:
         recipe:
           - docker-orchestration-smoke
-          - docker-smoke-www
-          - docker-smoke-app
-          - docker-smoke-docs
+          - docker-smoke-static www
+          - docker-smoke-static app
+          - docker-smoke-static docs
           - docker-smoke-backups
     steps:
       - name: Checkout
@@ -307,7 +303,9 @@ jobs:
           # export costs ~57s to produce; see the comment on `app.build.cache_to` in
           # compose.yaml.
           BUILDKIT_APP_CACHE_MODE: ${{ github.event_name == 'pull_request' && 'min' || 'max' }}
-        run: just "$RECIPE"
+        run: |-
+          read -ra recipe <<<"$RECIPE"
+          just "${recipe[@]}"
 
   secret-scan:
     name: Secret Scan

@@ -204,18 +204,12 @@ _e2e-backend-down:
     docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
 
 # Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down.
-# Requires Docker. Pass mode=cross-browser to run the full browser matrix, not just chromium.
+# Requires Docker.
 [group('verify')]
 [doc('Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down')]
-test-e2e-full-stack mode="default":
+test-e2e-full-stack:
     #!/usr/bin/env bash
     set -euo pipefail
-    mode={{ quote(mode) }}
-    case "$mode" in
-      default)       e2e_recipe="test-e2e" ;;
-      cross-browser) e2e_recipe="test-e2e-cross-browser" ;;
-      *) echo "mode must be 'default' or 'cross-browser'"; exit 1 ;;
-    esac
     trap 'just _e2e-backend-down || true' EXIT
     echo "→ Starting backend infrastructure..."
     just _e2e-backend-up
@@ -225,8 +219,8 @@ test-e2e-full-stack mode="default":
     just www/test-e2e-live
     echo "→ Building Expo web app..."
     just app/build-web
-    echo "→ Running Playwright E2E tests ($mode)..."
-    just "app/$e2e_recipe"
+    echo "→ Running Playwright E2E tests..."
+    just app/test-e2e
 
 # ============================================================================
 # Security
@@ -644,42 +638,28 @@ _docker-smoke-up services timeout:
 _docker-smoke-down services:
     {{ ci_compose }} down -v --remove-orphans {{ services }} || true
 
-# Internal helper: assert the security headers on a live response, not on the Caddyfile
-# text. The runtime image has no curl, so use the wget its HEALTHCHECK already runs.
-_docker-smoke-headers svc:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    headers=$({{ ci_compose }} exec -T {{ svc }} wget -qS -O /dev/null http://localhost:8081/ 2>&1)
-    echo "$headers" | grep -qi 'Content-Security-Policy:'
-    echo "$headers" | grep -qi 'Strict-Transport-Security:'
-
 # --- Smoke tests: Docker images and orchestration ---
 
-# Smoke test: docs static server
+# Smoke test one static-site image: docs, www, or app (slow: expo export runs during
+# build). www and app also assert their security headers on a live response, not on the
+# Caddyfile text; the runtime image has no curl, so use the wget its HEALTHCHECK runs.
 [group('verify')]
-docker-smoke-docs:
+[doc('Smoke test one static-site image: docs, www, or app')]
+docker-smoke-static svc:
     #!/usr/bin/env bash
     set -euo pipefail
-    trap 'just _docker-smoke-down docs' EXIT
-    just _docker-smoke-up docs 60
-
-# Smoke test: www static server
-[group('verify')]
-docker-smoke-www:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    trap 'just _docker-smoke-down www' EXIT
-    just _docker-smoke-up www 60
-    just _docker-smoke-headers www
-
-# Smoke test: app static server (slow: expo export runs during build)
-[group('verify')]
-docker-smoke-app:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    trap 'just _docker-smoke-down app' EXIT
-    just _docker-smoke-up app 300
-    just _docker-smoke-headers app
+    svc={{ quote(svc) }}
+    case "$svc" in
+      docs | www) timeout=60 ;;
+      app) timeout=300 ;;
+      *) echo "svc must be docs, www or app" >&2; exit 2 ;;
+    esac
+    trap 'just _docker-smoke-down "$svc"' EXIT
+    just _docker-smoke-up "$svc" "$timeout"
+    [ "$svc" = docs ] && exit 0
+    headers=$({{ ci_compose }} exec -T "$svc" wget -qS -O /dev/null http://localhost:8081/ 2>&1)
+    echo "$headers" | grep -qi 'Content-Security-Policy:'
+    echo "$headers" | grep -qi 'Strict-Transport-Security:'
 
 # Smoke test: restic backup image can create encrypted DB, uploads, and offsite-copy snapshots
 [group('verify')]
@@ -713,25 +693,13 @@ docker-orchestration-smoke:
 # Run all Docker smoke tests sequentially (CI runs them in parallel per-service)
 [group('verify')]
 docker-smoke:
-    @just docker-smoke-docs
-    @just docker-smoke-www
-    @just docker-smoke-app
+    @just docker-smoke-static docs
+    @just docker-smoke-static www
+    @just docker-smoke-static app
     @just docker-smoke-backups
     @just docker-orchestration-smoke
 
 # --- CI helpers: backend performance regression tests ---
-
-# Internal helper: start CI services and wait for readiness
-_docker-ci-up services="postgres redis api":
-    {{ ci_compose }} up --build -d --wait --wait-timeout 120 {{ services }}
-
-# Run CI migrations and seed dummy data for repeatable backend perf tests.
-# perf_products scales the fixtures so the baseline measures pagination, index
-# behaviour and media serialisation rather than a table with a few rows in it.
-_docker-ci-migrate-dummy perf_products="0":
-    # --build: `compose run` reuses a stale image otherwise, which silently runs
-    # last build's entrypoint and seed scripts against a freshly wiped database.
-    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e BULK_SEED_PRODUCTS={{ quote(perf_products) }} migrator
 
 # Stop the CI stack and remove volumes
 [group('dev')]
@@ -741,15 +709,19 @@ docker-ci-down confirm='':
 
 # Run the backend k6 baseline against the CI Docker stack.
 # The stack stays up afterwards, so a maintainer can follow up on a regression.
+# perf_products scales the seeded fixtures so the baseline measures pagination, index
+# behaviour and media serialisation rather than a table with a few rows in it.
 [group('dev')]
 [doc('Run the backend k6 baseline against the CI Docker stack')]
 docker-ci-perf-baseline perf_products="5000":
     #!/usr/bin/env bash
     set -euo pipefail
     echo "→ Starting CI backend stack..."
-    just _docker-ci-up
+    {{ ci_compose }} up --build -d --wait --wait-timeout 120 postgres redis api
     echo "→ Running CI database migrations and seeding dummy data..."
-    just _docker-ci-migrate-dummy "{{ perf_products }}"
+    # --build: `compose run` reuses a stale image otherwise, which silently runs
+    # last build's entrypoint and seed scripts against a freshly wiped database.
+    {{ ci_compose }} run --rm --build -e SEED_DUMMY_DATA=true -e BULK_SEED_PRODUCTS={{ quote(perf_products) }} migrator
     echo "→ Running backend k6 baseline against the CI stack..."
     just backend/_perf-ci
 

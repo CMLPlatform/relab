@@ -1,6 +1,6 @@
 # compose.ci.yaml (CI environment for backend unit/integration tests)
 # Provides credentials via .env.test so services can start without real secrets.
-name: relab_test
+# Every caller passes `-p relab_test`, so the project name lives there.
 
 x-test-env-file: &test-env-file ./backend/.env.test
 
