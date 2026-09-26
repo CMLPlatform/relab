@@ -8,7 +8,7 @@ capability breaks the ordering.
 
 from enum import StrEnum
 
-from app.core.config import settings
+from app.core.config.core import settings
 
 
 class UserRole(StrEnum):

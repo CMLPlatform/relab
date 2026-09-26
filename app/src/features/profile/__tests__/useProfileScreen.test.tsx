@@ -89,10 +89,14 @@ jest.mock('@/features/cameras/rpi/hooks', () => ({
   }),
 }));
 
-jest.mock('@/services/api/auth/authentication', () => ({
-  getToken: jest.fn(),
+jest.mock('@/services/api/auth/authLogin', () => ({
   logout: (...args: unknown[]) => mockLogout(...args),
   revokeAllSessions: (...args: unknown[]) => mockRevokeAllSessions(...args),
+}));
+jest.mock('@/services/api/auth/authRefresh', () => ({
+  getToken: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authentication', () => ({
   unlinkOAuth: jest.fn(),
   updateUser: (...args: unknown[]) => mockUpdateUser(...args),
   verify: (...args: unknown[]) => mockVerify(...args),

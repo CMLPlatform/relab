@@ -9,9 +9,9 @@ from pydantic import SecretStr
 
 from app.core.cache import (
     _backend,
+    _backend_get,
     _cache_key_excluding_dependencies,
     _cache_state,
-    cache_get,
     clear_cache_namespace,
     init_cache,
 )
@@ -110,11 +110,11 @@ def test_init_caching_disabled_uses_in_memory() -> None:
         mock_setup.assert_called_once_with("mem://", secret="cache-signing-secret", digestmod="sha256")
 
 
-async def test_cache_get_returns_default_for_tampered_payloads() -> None:
+async def test_backend_get_returns_default_for_tampered_payloads() -> None:
     """Tampered cache data should behave like a miss."""
     default = object()
     with patch.object(_backend, "get", AsyncMock(side_effect=UnSecureDataError("bad signature"))):
-        decoded = await cache_get("test-cache:key", default=default)
+        decoded = await _backend_get("test-cache:key", default=default)
 
     assert decoded is default
 

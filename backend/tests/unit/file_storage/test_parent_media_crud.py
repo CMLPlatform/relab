@@ -9,7 +9,12 @@ from fastapi import UploadFile
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import BadRequestError
 from app.api.data_collection.models.product import Product
-from app.api.file_storage.crud.parent_media import ParentMediaCrud, get_parent_media, unlink_stored_media
+from app.api.file_storage.crud.parent_media import (
+    create_parent_media,
+    delete_parent_media,
+    get_parent_media,
+    unlink_stored_media,
+)
 from app.api.file_storage.exceptions import StorageBackendError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
@@ -22,13 +27,6 @@ CONTENT_TYPE_PNG = "image/png"
 
 async def test_create_rejects_parent_scope_mismatch(mock_session: AsyncMock) -> None:
     """Test that creating an item with a parent ID that doesn't match the expected parent scope raises an error."""
-    operations = ParentMediaCrud(
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=Image,
-        storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
-    )
-
     image_create = ImageCreateInternal(
         file=MagicMock(spec=UploadFile, filename=TEST_FILENAME, size=1024, content_type=CONTENT_TYPE_PNG),
         description=TEST_FILE_DESC,
@@ -37,20 +35,19 @@ async def test_create_rejects_parent_scope_mismatch(mock_session: AsyncMock) -> 
     )
 
     with pytest.raises(BadRequestError, match="Parent ID mismatch"):
-        await operations.create(mock_session, 1, image_create)
+        await create_parent_media(
+            mock_session,
+            parent_id=1,
+            parent_type=MediaParentType.PRODUCT,
+            storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
+            item_data=image_create,
+        )
 
 
 async def test_delete_removes_db_record_when_storage_file_is_missing(mock_session: AsyncMock) -> None:
     """Test that deleting an item removes the database record even if the storage file is missing."""
     storage_service = MagicMock()
     storage_service.delete = AsyncMock()
-    operations = ParentMediaCrud(
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=Image,
-        storage_service=storage_service,
-    )
-
     item_id = uuid4()
     db_item = MagicMock(spec=Image)
     db_item.parent_id = 1
@@ -59,20 +56,21 @@ async def test_delete_removes_db_record_when_storage_file_is_missing(mock_sessio
         "app.api.file_storage.crud.parent_media.get_parent_owned_storage_item",
         new=AsyncMock(return_value=db_item),
     ):
-        await operations.delete(mock_session, 1, item_id)
+        await delete_parent_media(
+            mock_session,
+            parent_model=Product,
+            parent_type=MediaParentType.PRODUCT,
+            storage_model=Image,
+            parent_id=1,
+            item_id=item_id,
+            storage_service=storage_service,
+        )
 
     storage_service.delete.assert_awaited_once_with(mock_session, item_id)
 
 
 async def test_get_by_id_raises_not_found_for_wrong_parent(mock_session: AsyncMock) -> None:
     """Test a not found error is raised if the item exists but is not owned by the specified parent."""
-    operations = ParentMediaCrud(
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=Image,
-        storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
-    )
-
     item_id = uuid4()
 
     # An item owned by a different parent simply does not match the scoped query, so
@@ -89,22 +87,16 @@ async def test_get_by_id_raises_not_found_for_wrong_parent(mock_session: AsyncMo
     ):
         await get_parent_media(
             mock_session,
-            parent_model=operations.parent_model,
-            parent_type=operations.parent_type,
-            storage_model=operations.storage_model,
+            parent_model=Product,
+            parent_type=MediaParentType.PRODUCT,
+            storage_model=Image,
             parent_id=1,
             item_id=item_id,
         )
 
 
 async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) -> None:
-    """Parent-scoped lookup should use the CRUD object's parent type."""
-    operations = ParentMediaCrud(
-        parent_model=Material,
-        parent_type=MediaParentType.MATERIAL,
-        storage_model=Image,
-        storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
-    )
+    """Parent-scoped lookup should use the given parent type."""
     item_id = uuid4()
     db_item = MagicMock(spec=Image)
 
@@ -117,9 +109,9 @@ async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) ->
     ):
         await get_parent_media(
             mock_session,
-            parent_model=operations.parent_model,
-            parent_type=operations.parent_type,
-            storage_model=operations.storage_model,
+            parent_model=Material,
+            parent_type=MediaParentType.MATERIAL,
+            storage_model=Image,
             parent_id=1,
             item_id=item_id,
         )

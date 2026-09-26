@@ -10,7 +10,7 @@ import {
 import { useGalleryIndexPersistence } from '@/features/gallery/useGalleryIndexPersistence';
 import { useGalleryKeyboardNavigation } from '@/features/gallery/useGalleryKeyboardNavigation';
 import { pickThumbnailUrl } from '@/services/api/media';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import type { Product } from '@/types/Product';
 
 export function useProductGalleryMedia(product: Product) {

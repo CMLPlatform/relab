@@ -9,24 +9,13 @@ import { Text } from '@/components/base/ui/text';
 import { useAppTheme } from '@/theme';
 import { cn } from '@/utils/cn';
 
-type RnrVariant = ComponentProps<typeof Button>['variant'];
-
-const VARIANT_MAP: Record<AppButtonVariant, RnrVariant> = {
-  primary: 'default',
-  tonal: 'tonal',
-  outline: 'outline',
-  ghost: 'ghost',
-  destructive: 'destructive',
-};
-
-// 'variant' is remapped via VARIANT_MAP; everything else passes through.
 type AppButtonProps = Omit<ComponentProps<typeof Button>, 'variant'> & {
   variant?: AppButtonVariant;
   loading?: boolean;
   children: ReactNode;
 };
 
-/** App button over the vendored RNR button; maps app variants and a loading state. */
+/** App button over the vendored RNR button; adds a loading state. */
 export function AppButton({
   variant = 'primary',
   loading = false,
@@ -49,7 +38,7 @@ export function AppButton({
     );
   return (
     <Button
-      variant={VARIANT_MAP[variant]}
+      variant={variant}
       disabled={disabled || loading}
       // aria-*, not accessibilityState: only the aria props reach the DOM on web
       // (RN folds aria-disabled back into accessibilityState for native).

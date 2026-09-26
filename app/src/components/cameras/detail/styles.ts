@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraConnectionStatus } from '@/services/api/rpiCamera';
+import type { CameraConnectionStatus } from '@/services/api/rpiCamera/shared';
 
 export const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
   online: 'Online',

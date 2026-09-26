@@ -23,7 +23,9 @@ read -ra words <<<"${SSH_ORIGINAL_COMMAND:-${*:-}}"
 action="${words[0]:-}"
 args=("${words[@]:1}")
 
-env_name="$(sed -n 's/^ENVIRONMENT=\([a-z]*\).*/\1/p' .env | head -1)"
+# shellcheck source=scripts/deploy_ops.sh
+. scripts/deploy_ops.sh
+env_name="$(dotenv_value ENVIRONMENT)"
 [[ "$env_name" == prod || "$env_name" == staging ]] || {
     echo "remote_deploy: root .env names no deployable ENVIRONMENT" >&2
     exit 2

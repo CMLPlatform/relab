@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.file_storage.models import File, Image
 from app.api.file_storage.parents import registered_media_parents
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images import THUMBNAIL_WIDTHS, thumbnail_path_for
 
 logger = logging.getLogger(__name__)

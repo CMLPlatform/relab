@@ -29,7 +29,7 @@ function buildPanel() {
   document.body.innerHTML = `
     <section id="stats-panel" hidden>
       <span data-stat="hero">—</span>
-      <div data-stat="tiles"></div>
+      <div data-stat="tiles"><div class="stats-tile"><span class="stats-tile-value" data-stat="tile-teardowns">—</span><span class="stats-label">teardowns</span></div><div class="stats-tile"><span class="stats-tile-value"><span data-stat="tile-mass-value"></span><span class="stats-unit" data-stat="tile-mass-unit"></span></span><span class="stats-label">mass logged</span></div><div class="stats-tile"><span class="stats-tile-value" data-stat="tile-photos">—</span><span class="stats-label">photos</span></div></div>
       <div class="stats-activity">
         <h3 data-stat="chart-heading"></h3>
         <div data-stat="controls"></div>

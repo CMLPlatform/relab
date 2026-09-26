@@ -15,6 +15,7 @@ from app.api.auth.schemas import UserCreate
 from app.api.auth.services import mfa_service
 from app.api.auth.services.auth_backends import AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.common.audit import AuditAction, AuditContext
+from tests.fixtures.auth import totp_code
 
 from .shared import (
     COOKIE_EMAIL,
@@ -255,7 +256,7 @@ async def test_authenticated_totp_setup_enables_mfa(
     await login_bearer_and_authorize(api_client, email=user.email)
 
     setup_data = await start_totp_setup(api_client)
-    code = mfa_service.generate_totp_code(setup_data["secret"])
+    code = totp_code(setup_data["secret"])
 
     confirm_response = await api_client.post(
         "/v1/auth/mfa/totp/confirm",
@@ -284,7 +285,7 @@ async def test_totp_setup_confirm_requires_authentication(
         "/v1/auth/mfa/totp/confirm",
         json={
             "setup_token": setup_token,
-            "code": mfa_service.generate_totp_code(setup.secret),
+            "code": totp_code(setup.secret),
         },
     )
 
@@ -308,7 +309,7 @@ async def test_totp_setup_confirm_rejects_another_users_setup_token(
         "/v1/auth/mfa/totp/confirm",
         json={
             "setup_token": first_setup["setup_token"],
-            "code": mfa_service.generate_totp_code(first_setup["secret"]),
+            "code": totp_code(first_setup["secret"]),
             "password": TEST_PASSWORD,
         },
     )
@@ -324,7 +325,7 @@ async def test_totp_setup_retry_allows_valid_code_after_invalid_code(
     user = await create_password_user(db_session, email="totp-retry@example.com", username="totp_retry_user")
     await login_bearer_and_authorize(api_client, email=user.email)
     setup_data = await start_totp_setup(api_client)
-    valid_code = mfa_service.generate_totp_code(setup_data["secret"])
+    valid_code = totp_code(setup_data["secret"])
     invalid_code = "000000" if valid_code != "000000" else "000001"
 
     invalid_response = await api_client.post(
@@ -374,7 +375,7 @@ async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
         "/v1/auth/mfa/totp/confirm",
         json={
             "setup_token": second_setup["setup_token"],
-            "code": mfa_service.generate_totp_code(second_setup["secret"]),
+            "code": totp_code(second_setup["secret"]),
             "password": TEST_PASSWORD,
         },
     )
@@ -383,7 +384,7 @@ async def test_stale_setup_token_cannot_overwrite_confirmed_totp(
         "/v1/auth/mfa/totp/confirm",
         json={
             "setup_token": first_setup["setup_token"],
-            "code": mfa_service.generate_totp_code(first_setup["secret"]),
+            "code": totp_code(first_setup["secret"]),
             "password": TEST_PASSWORD,
         },
     )
@@ -415,7 +416,7 @@ async def test_bearer_login_with_enabled_totp_requires_challenge(
     data = response.json()
     assert data["mfa_required"] is True
     assert "setup_required" not in data
-    code = mfa_service.generate_totp_code(secret)
+    code = totp_code(secret)
 
     challenge_response = await api_client.post(
         "/v1/auth/mfa/challenge",
@@ -447,7 +448,7 @@ async def test_mfa_challenge_emits_failure_and_success_events(
         data={"username": user.email, "password": TEST_PASSWORD},
     )
     mfa_token = login_response.json()["mfa_token"]
-    valid_code = mfa_service.generate_totp_code(secret)
+    valid_code = totp_code(secret)
     invalid_code = "000000" if valid_code != "000000" else "000001"
 
     with patch("app.api.auth.services.mfa_flow.audit_event") as log_event:
@@ -485,7 +486,7 @@ async def test_invalid_totp_challenge_does_not_consume_login_token(
         data={"username": user.email, "password": TEST_PASSWORD},
     )
     mfa_token = login_response.json()["mfa_token"]
-    valid_code = mfa_service.generate_totp_code(secret)
+    valid_code = totp_code(secret)
     invalid_code = "000000" if valid_code != "000000" else "000001"
 
     invalid_response = await api_client.post(

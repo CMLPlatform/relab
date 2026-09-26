@@ -46,9 +46,6 @@ test-integration *args:
 test-ci:
     pnpm run test:ci {{ if env("COVERAGE", "") != "" { "--coverage" } else { "" } }}
 
-# Run the full CI pipeline locally
-ci: check test-ci
-
 # Start the dev server
 dev port="8011":
     pnpm exec expo start --port {{ quote(port) }} --web

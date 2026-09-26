@@ -19,9 +19,12 @@ from app.api.common.rate_limiting import (
 )
 
 
-def _make_request() -> MagicMock:
-    """Return a ``MagicMock`` that passes ``isinstance(…, Request)`` checks."""
-    return MagicMock(spec=Request)
+def _make_request(client_ip: str = "203.0.113.10") -> MagicMock:
+    """Return a ``MagicMock`` request that passes ``isinstance(…, Request)`` checks."""
+    request = MagicMock(spec=Request)
+    request.headers = {}
+    request.client.host = client_ip
+    return request
 
 
 def test_default_detail() -> None:
@@ -89,9 +92,7 @@ def test_account_identifier_key_does_not_expose_submitted_identifier() -> None:
 
 def test_request_ip_key_does_not_expose_client_ip() -> None:
     """Request-scoped per-IP limits should use a safe client-IP bucket."""
-    request = _make_request()
-    request.headers = {"CF-Connecting-IP": "203.0.113.10"}
-    request.client = None
+    request = _make_request("203.0.113.10")
 
     key = request_ip_rate_limit_key(request)
 
@@ -107,59 +108,43 @@ def test_request_ip_key_does_not_expose_client_ip() -> None:
 @pytest.fixture
 def limiter() -> Limiter:
     """Limiter backed by an in-memory storage (no Redis needed)."""
-    return Limiter(
-        key_func=lambda _: "test-key",
-        storage_uri="memory://",
-        strategy="fixed-window",
-        enabled=True,
-    )
+    return Limiter(storage_uri="memory://")
 
 
-def test_hit_request_allows_requests_under_limit(limiter: Limiter) -> None:
+def test_dependency_allows_requests_under_limit(limiter: Limiter) -> None:
     """Requests within the defined limit should be allowed to proceed."""
+    check = limiter.dependency("5/minute").dependency
     req = _make_request()
     for _ in range(5):
-        limiter.hit_request("5/minute", req)
+        check(req)
 
 
-def test_hit_request_raises_when_limit_exceeded(limiter: Limiter) -> None:
+def test_dependency_raises_when_limit_exceeded(limiter: Limiter) -> None:
     """Requests beyond the defined limit should raise RateLimitExceededError."""
+    check = limiter.dependency("2/minute").dependency
     req = _make_request()
-    limiter.hit_request("2/minute", req)
-    limiter.hit_request("2/minute", req)
+    check(req)
+    check(req)
 
     with pytest.raises(RateLimitExceededError):
-        limiter.hit_request("2/minute", req)
+        check(req)
 
 
 def test_disabled_limiter_skips_check() -> None:
     """When the limiter is not enabled it should not enforce any limits and should allow all requests."""
-    disabled = Limiter(
-        key_func=lambda _: "key",
-        storage_uri="memory://",
-        enabled=False,
-    )
+    check = Limiter(storage_uri="memory://", enabled=False).dependency("1/minute").dependency
     req = _make_request()
 
     for _ in range(10):
-        disabled.hit_request("1/minute", req)
+        check(req)
 
 
-def test_different_keys_have_separate_limits() -> None:
-    """When different keys are used, they should be rate limited separately."""
+def test_different_client_ips_have_separate_limits(limiter: Limiter) -> None:
+    """Requests from different client IPs should be rate limited separately."""
+    check = limiter.dependency("1/minute").dependency
 
-    def key_func(request: Request) -> str:
-        return request.headers.get("X-Client-ID", "default")
-
-    lim = Limiter(key_func=key_func, storage_uri="memory://", enabled=True)
-    req_a = _make_request()
-    req_a.headers.get.return_value = "client-a"
-
-    req_b = _make_request()
-    req_b.headers.get.return_value = "client-b"
-
-    lim.hit_request("1/minute", req_a)
-    lim.hit_request("1/minute", req_b)
+    check(_make_request("203.0.113.1"))
+    check(_make_request("203.0.113.2"))
 
 
 def test_hit_key_limits_explicit_non_request_buckets(limiter: Limiter) -> None:

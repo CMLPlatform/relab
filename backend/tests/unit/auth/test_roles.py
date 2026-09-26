@@ -58,7 +58,7 @@ def test_lab_quota_exceeds_the_contributor_quota() -> None:
 
 def test_quota_bytes_are_megabyte_settings_converted() -> None:
     """Byte quotas must be converted from the MB settings, not returned raw."""
-    from app.core.config import settings  # noqa: PLC0415 -- read after test env settings are loaded
+    from app.core.config.core import settings  # noqa: PLC0415 -- read after test env settings are loaded
 
     assert upload_quota_bytes_for_role(UserRole.CONTRIBUTOR) == settings.max_upload_bytes_per_user_mb * 1024 * 1024
     assert upload_quota_bytes_for_role(UserRole.LAB) == settings.max_upload_bytes_per_lab_user_mb * 1024 * 1024

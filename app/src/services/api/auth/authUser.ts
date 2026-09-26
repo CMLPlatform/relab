@@ -1,15 +1,14 @@
+import { API_URL } from '@/config';
+import { isWeb } from '@/services/storage';
 import type { ApiUserRead } from '@/types/api';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
 import { mapApiUserToUser, shouldSkipUserFetch } from './authHelpers';
+import { fetchWithAuth } from './authRefresh';
 import { authRuntime } from './authRuntime';
-import { hasWebSessionFlag, isWeb, setWebSessionFlag } from './authSession';
+import { hasWebSessionFlag, setWebSessionFlag } from './authSession';
 
-export async function getUser(
-  apiUrl: string,
-  fetchWithAuth: (apiUrl: string, url: URL | string, options?: RequestInit) => Promise<Response>,
-  forceRefresh = false,
-): Promise<User | undefined> {
+export async function getUser(forceRefresh = false): Promise<User | undefined> {
   try {
     if (authRuntime.user && !forceRefresh) return authRuntime.user;
 
@@ -31,8 +30,8 @@ export async function getUser(
     const sequence = ++authRuntime.getUserSequence;
     const promise = (async (): Promise<User | undefined> => {
       const capturedGeneration = authRuntime.authGeneration;
-      const url = new URL(`${apiUrl}/users/me`);
-      const response = await fetchWithAuth(apiUrl, url, {
+      const url = new URL(`${API_URL}/users/me`);
+      const response = await fetchWithAuth(url, {
         method: 'GET',
         headers: { Accept: 'application/json' },
       });

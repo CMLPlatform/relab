@@ -1,11 +1,12 @@
 """CRUD-operation tests for categorized reference data."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, call, patch
 
 import pytest
 
 from app.api.common.exceptions import ConflictError
 from app.api.data_collection.models.product import MaterialProductLink
+from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.reference_data.crud.categorized_resources import (
     MATERIAL_RESOURCE,
     PRODUCT_TYPE_RESOURCE,
@@ -134,11 +135,10 @@ async def test_delete_categorized_reference_is_atomic_and_unlinks_bytes_after_co
     pending_images = [(object(), "image-path")]
     calls: list[object] = []
 
-    async def _delete_files(*_a: object) -> list[object]:
-        calls.append("files-rows")
-        return pending_files
-
-    async def _delete_images(*_a: object) -> list[object]:
+    async def _delete_all(*_a: object, storage_model: type, **_kw: object) -> list[object]:
+        if storage_model is File:
+            calls.append("files-rows")
+            return pending_files
         calls.append("images-rows")
         return pending_images
 
@@ -150,10 +150,10 @@ async def test_delete_categorized_reference_is_atomic_and_unlinks_bytes_after_co
             "app.api.reference_data.crud.categorized_resources.require_locked_model",
             return_value=db_material,
         ) as require_resource,
-        patch.object(MATERIAL_RESOURCE.files, "delete_all", new=AsyncMock(side_effect=_delete_files)) as delete_files,
-        patch.object(
-            MATERIAL_RESOURCE.images, "delete_all", new=AsyncMock(side_effect=_delete_images)
-        ) as delete_images,
+        patch(
+            "app.api.reference_data.crud.categorized_resources.delete_all_parent_media",
+            new=AsyncMock(side_effect=_delete_all),
+        ) as delete_all,
         patch(
             "app.api.reference_data.crud.categorized_resources.unlink_stored_media",
             new=AsyncMock(side_effect=_unlink),
@@ -166,8 +166,10 @@ async def test_delete_categorized_reference_is_atomic_and_unlinks_bytes_after_co
         await delete_categorized_reference(session, MATERIAL_RESOURCE, 1)
 
     require_resource.assert_awaited_once_with(session, Material, 1)
-    delete_files.assert_awaited_once_with(session, 1)
-    delete_images.assert_awaited_once_with(session, 1)
+    assert delete_all.await_args_list == [
+        call(session, parent_type=MediaParentType.MATERIAL, storage_model=File, parent_id=1),
+        call(session, parent_type=MediaParentType.MATERIAL, storage_model=Image, parent_id=1),
+    ]
     session.delete.assert_called_once_with(db_material)
     assert calls == [
         "files-rows",

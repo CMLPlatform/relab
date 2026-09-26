@@ -4,17 +4,41 @@ import { authRuntime } from '@/services/api/auth/authRuntime';
 import { TimeoutError } from '@/services/api/request';
 
 jest.mock('@/services/api/auth/authSession', () => ({
-  isWeb: jest.fn(() => false),
   loadStoredAccessToken: jest.fn(),
   loadStoredRefreshToken: jest.fn(),
   markWebSessionActive: jest.fn(),
 }));
+
+jest.mock('@/services/storage', () => ({
+  ...jest.requireActual<typeof import('@/services/storage')>('@/services/storage'),
+  isWeb: jest.fn(() => false),
+}));
+
+jest.mock('@/services/api/auth/authRefresh', () => ({
+  clearCachedAuthState: jest.fn(),
+  persistAccessToken: jest.fn(),
+  persistRefreshToken: jest.fn(),
+}));
+
+jest.mock('@/services/api/auth/authUser', () => ({ getUser: jest.fn() }));
 
 jest.mock('@/services/api/request', () => ({
   // Keep the real TimeoutError class so `instanceof` still discriminates.
   ...jest.requireActual<typeof import('@/services/api/request')>('@/services/api/request'),
   fetchWithTimeout: jest.fn(),
 }));
+
+const { isWeb } = jest.requireMock('@/services/storage') as { isWeb: jest.Mock };
+const { clearCachedAuthState, persistAccessToken, persistRefreshToken } = jest.requireMock(
+  '@/services/api/auth/authRefresh',
+) as {
+  clearCachedAuthState: jest.MockedFunction<() => Promise<void>>;
+  persistAccessToken: jest.MockedFunction<(token: string) => Promise<void>>;
+  persistRefreshToken: jest.MockedFunction<(token: string) => Promise<void>>;
+};
+const { getUser } = jest.requireMock('@/services/api/auth/authUser') as {
+  getUser: jest.MockedFunction<(forceRefresh?: boolean) => Promise<undefined>>;
+};
 
 describe('authLogin', () => {
   beforeEach(() => {
@@ -25,14 +49,17 @@ describe('authLogin', () => {
     authRuntime.explicitlyLoggedOut = false;
     authRuntime.authGeneration = 0;
     jest.clearAllMocks();
-    const { isWeb, loadStoredAccessToken, loadStoredRefreshToken } = jest.requireMock(
+    const { loadStoredAccessToken, loadStoredRefreshToken } = jest.requireMock(
       '@/services/api/auth/authSession',
     ) as {
-      isWeb: jest.Mock;
       loadStoredAccessToken: jest.MockedFunction<() => Promise<string | undefined>>;
       loadStoredRefreshToken: jest.MockedFunction<() => Promise<string | undefined>>;
     };
     isWeb.mockReturnValue(false);
+    clearCachedAuthState.mockResolvedValue(undefined);
+    persistAccessToken.mockResolvedValue(undefined);
+    persistRefreshToken.mockResolvedValue(undefined);
+    getUser.mockResolvedValue(undefined);
     loadStoredAccessToken.mockResolvedValue(undefined);
     loadStoredRefreshToken.mockResolvedValue(undefined);
   });
@@ -48,23 +75,7 @@ describe('authLogin', () => {
       json: async () => ({ access_token: 'native-token', refresh_token: 'native-refresh-token' }),
     } as never);
 
-    const persistAccessToken = jest
-      .fn<(token: string) => Promise<void>>()
-      .mockResolvedValue(undefined);
-    const persistRefreshToken = jest
-      .fn<(token: string) => Promise<void>>()
-      .mockResolvedValue(undefined);
-    const getUser = jest
-      .fn<(forceRefresh?: boolean) => Promise<undefined>>()
-      .mockResolvedValue(undefined);
-
-    await expect(
-      login('http://127.0.0.1:18010', 'user', 'pass', {
-        persistAccessToken,
-        persistRefreshToken,
-        getUser,
-      }),
-    ).resolves.toEqual({ status: 'authenticated' });
+    await expect(login('user', 'pass')).resolves.toEqual({ status: 'authenticated' });
 
     expect(persistAccessToken).toHaveBeenCalledWith('native-token');
     expect(persistRefreshToken).toHaveBeenCalledWith('native-refresh-token');
@@ -74,31 +85,14 @@ describe('authLogin', () => {
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { isWeb, markWebSessionActive } = jest.requireMock('@/services/api/auth/authSession') as {
-      isWeb: jest.Mock;
+    const { markWebSessionActive } = jest.requireMock('@/services/api/auth/authSession') as {
       markWebSessionActive: jest.Mock;
     };
 
     isWeb.mockReturnValue(true);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    const persistAccessToken = jest
-      .fn<(token: string) => Promise<void>>()
-      .mockResolvedValue(undefined);
-    const persistRefreshToken = jest
-      .fn<(token: string) => Promise<void>>()
-      .mockResolvedValue(undefined);
-    const getUser = jest
-      .fn<(forceRefresh?: boolean) => Promise<undefined>>()
-      .mockResolvedValue(undefined);
-
-    await expect(
-      login('http://127.0.0.1:18010', 'user', 'pass', {
-        persistAccessToken,
-        persistRefreshToken,
-        getUser,
-      }),
-    ).resolves.toEqual({ status: 'authenticated' });
+    await expect(login('user', 'pass')).resolves.toEqual({ status: 'authenticated' });
 
     expect(markWebSessionActive).toHaveBeenCalled();
     expect(getUser).toHaveBeenCalledWith(true);
@@ -112,19 +106,12 @@ describe('authLogin', () => {
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const { isWeb } = jest.requireMock('@/services/api/auth/authSession') as { isWeb: jest.Mock };
 
     isWeb.mockReturnValue(true);
     authRuntime.explicitlyLoggedOut = true;
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    await login('http://127.0.0.1:18010', 'user', 'pass', {
-      persistAccessToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
-      persistRefreshToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
-      getUser: jest
-        .fn<(forceRefresh?: boolean) => Promise<undefined>>()
-        .mockResolvedValue(undefined),
-    });
+    await login('user', 'pass');
 
     // markWebSessionActive is mocked here, so assert on the one thing login owns:
     // it must not perform a second (refresh) round-trip that can latch the flag.
@@ -144,21 +131,7 @@ describe('authLogin', () => {
       json: async () => ({ token_type: 'bearer' }),
     } as never);
 
-    const persistAccessToken = jest
-      .fn<(token: string) => Promise<void>>()
-      .mockResolvedValue(undefined);
-
-    await expect(
-      login('http://127.0.0.1:18010', 'user', 'pass', {
-        persistAccessToken,
-        persistRefreshToken: jest
-          .fn<(token: string) => Promise<void>>()
-          .mockResolvedValue(undefined),
-        getUser: jest
-          .fn<(forceRefresh?: boolean) => Promise<undefined>>()
-          .mockResolvedValue(undefined),
-      }),
-    ).rejects.toThrow('Invalid login response.');
+    await expect(login('user', 'pass')).rejects.toThrow('Invalid login response.');
 
     expect(persistAccessToken).not.toHaveBeenCalled();
   });
@@ -174,19 +147,9 @@ describe('authLogin', () => {
 
     fetchWithTimeout.mockRejectedValueOnce(thrown as never);
 
-    await expect(
-      login('http://127.0.0.1:18010', 'user', 'pass', {
-        persistAccessToken: jest
-          .fn<(token: string) => Promise<void>>()
-          .mockResolvedValue(undefined),
-        persistRefreshToken: jest
-          .fn<(token: string) => Promise<void>>()
-          .mockResolvedValue(undefined),
-        getUser: jest
-          .fn<(forceRefresh?: boolean) => Promise<undefined>>()
-          .mockResolvedValue(undefined),
-      }),
-    ).rejects.toThrow('Unable to reach server. Please try again later.');
+    await expect(login('user', 'pass')).rejects.toThrow(
+      'Unable to reach server. Please try again later.',
+    );
   });
 
   it('returns a discriminated MFA pending result from 202 responses', async () => {
@@ -203,13 +166,7 @@ describe('authLogin', () => {
       }),
     } as never);
 
-    const result = await login('http://127.0.0.1:18010', 'user', 'pass', {
-      persistAccessToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
-      persistRefreshToken: jest.fn<(token: string) => Promise<void>>().mockResolvedValue(undefined),
-      getUser: jest
-        .fn<(forceRefresh?: boolean) => Promise<undefined>>()
-        .mockResolvedValue(undefined),
-    });
+    const result = await login('user', 'pass');
 
     expect(result).toEqual({
       status: 'mfa_required',
@@ -228,19 +185,7 @@ describe('authLogin', () => {
       json: async () => ({ detail: 'Too many login attempts.' }),
     } as never);
 
-    await expect(
-      login('http://127.0.0.1:18010', 'user', 'pass', {
-        persistAccessToken: jest
-          .fn<(token: string) => Promise<void>>()
-          .mockResolvedValue(undefined),
-        persistRefreshToken: jest
-          .fn<(token: string) => Promise<void>>()
-          .mockResolvedValue(undefined),
-        getUser: jest
-          .fn<(forceRefresh?: boolean) => Promise<undefined>>()
-          .mockResolvedValue(undefined),
-      }),
-    ).rejects.toThrow('Too many login attempts.');
+    await expect(login('user', 'pass')).rejects.toThrow('Too many login attempts.');
   });
 
   it('revokes the session server-side before clearing cached auth state', async () => {
@@ -248,7 +193,7 @@ describe('authLogin', () => {
       fetchWithTimeout: jest.Mock;
     };
     const order: string[] = [];
-    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockImplementation(async () => {
+    clearCachedAuthState.mockImplementationOnce(async () => {
       order.push('clear');
     });
     fetchWithTimeout.mockImplementationOnce(async () => {
@@ -256,7 +201,7 @@ describe('authLogin', () => {
       return { ok: true, status: 200 } as never;
     });
 
-    await logout('http://127.0.0.1:18010', clearCachedAuthState);
+    await logout();
 
     expect(order).toEqual(['revoke', 'clear']);
     expect(fetchWithTimeout).toHaveBeenCalledWith(
@@ -269,10 +214,9 @@ describe('authLogin', () => {
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;
     };
-    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     fetchWithTimeout.mockRejectedValueOnce(new TimeoutError(15_000) as never);
 
-    await expect(logout('http://127.0.0.1:18010', clearCachedAuthState)).resolves.toBeUndefined();
+    await expect(logout()).resolves.toBeUndefined();
     expect(clearCachedAuthState).toHaveBeenCalled();
   });
 
@@ -288,10 +232,9 @@ describe('authLogin', () => {
     };
     loadStoredAccessToken.mockResolvedValueOnce('stored-access-token');
     loadStoredRefreshToken.mockResolvedValueOnce('stored-refresh-token');
-    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    await logout('http://127.0.0.1:18010', clearCachedAuthState);
+    await logout();
 
     expect(fetchWithTimeout).toHaveBeenCalledWith(
       expect.objectContaining({ href: expect.stringContaining('/auth/bearer/logout') }),
@@ -310,10 +253,9 @@ describe('authLogin', () => {
       loadStoredAccessToken: jest.MockedFunction<() => Promise<string | undefined>>;
     };
     loadStoredAccessToken.mockResolvedValueOnce('stored-access-token');
-    const clearCachedAuthState = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
     fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
 
-    await revokeAllSessions('http://127.0.0.1:18010', clearCachedAuthState);
+    await revokeAllSessions();
 
     expect(clearCachedAuthState).toHaveBeenCalled();
     expect(fetchWithTimeout).toHaveBeenCalledWith(

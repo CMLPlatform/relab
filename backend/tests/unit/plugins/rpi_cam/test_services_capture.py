@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.api.auth.exceptions import UserOwnershipError
+from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.exceptions import InvalidCameraResponseError
 from app.api.plugins.rpi_cam.runtime.capture import capture_and_store_image
@@ -143,10 +143,10 @@ async def test_capture_rejects_product_not_owned_by_camera_owner(mock_session: A
     foreign_product_id = 1
 
     with patch("app.api.plugins.rpi_cam.runtime.capture.get_user_owned_object") as mock_get_owned:
-        mock_get_owned.side_effect = UserOwnershipError(Product, foreign_product_id, owner_id)
+        mock_get_owned.side_effect = ModelNotFoundError(Product, foreign_product_id)
         mock_camera_request = AsyncMock()
 
-        with pytest.raises(UserOwnershipError):
+        with pytest.raises(ModelNotFoundError):
             await capture_and_store_image(
                 session=mock_session,
                 camera_request=mock_camera_request,

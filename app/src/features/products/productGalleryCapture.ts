@@ -10,7 +10,7 @@ import { clampIndex } from '@/components/product/gallery/shared';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import { useRpiIntegration } from '@/features/cameras/rpi/useRpiIntegration';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import type { useProductGalleryMedia, useProductGalleryViewer } from './productGalleryViewer';
 import { buildImportedImages, hasRpiCamerasConfigured } from './productImageGalleryHelpers';
 

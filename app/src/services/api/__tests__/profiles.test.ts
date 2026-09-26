@@ -1,7 +1,7 @@
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { getPublicProfile } from '@/services/api/profiles';
 
-jest.mock('@/services/api/auth/authentication');
+jest.mock('@/services/api/auth/authRefresh');
 
 const mockedFetchWithAuth = jest.mocked(fetchWithAuth);
 

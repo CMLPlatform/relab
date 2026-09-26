@@ -9,13 +9,11 @@ from app.api.auth.models import User
 from app.api.auth.preferences import merge_user_preferences
 from app.api.auth.schemas import UserCreateBase, UserUpdate
 from app.api.auth.services.email_identity import has_deliverable_domain
-from app.api.common.exceptions import BadRequestError, NotFoundError
+from app.api.common.exceptions import BadRequestError
 
 USERNAME_FIELD = "username"
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
-
     from app.api.auth.services.email_checker import EmailChecker
     from app.api.auth.services.user_database import UserDatabaseAsync
 
@@ -42,17 +40,6 @@ async def validate_user_create[UserCreateT: UserCreateBase](
             raise UserNameAlreadyExistsError(user_create.username)
 
     return user_create
-
-
-## Read User ##
-async def get_user_by_username(session: AsyncSession, username: str) -> User:
-    """Get a user by their username."""
-    statement = select(User).where(User.username == username)
-
-    if not (user := (await session.execute(statement)).scalars().unique().one_or_none()):
-        err_msg = f"User not found with username: {username}"
-        raise NotFoundError(err_msg)
-    return user
 
 
 ## Update User ##

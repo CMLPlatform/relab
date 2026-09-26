@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useProductImageGallery } from '@/features/products/useProductImageGallery';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { baseProduct as _base } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 

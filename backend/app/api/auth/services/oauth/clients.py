@@ -10,7 +10,7 @@ from httpx_oauth.clients.google import GoogleOAuth2
 from httpx_oauth.exceptions import GetIdEmailError, GetProfileError
 
 from app.api.auth.config import settings
-from app.core.clients import create_http_client
+from app.core.clients.http import create_http_client
 
 if TYPE_CHECKING:
     from httpx import AsyncClient

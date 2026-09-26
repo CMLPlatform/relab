@@ -1,8 +1,9 @@
 import { API_URL } from '@/config';
 import { throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
+import { isWeb } from '@/services/storage';
 import { persistAccessToken, persistRefreshToken } from './authRefresh';
-import { isWeb, markWebSessionActive } from './authSession';
+import { markWebSessionActive } from './authSession';
 
 export type TotpSetup = {
   setupToken: string;

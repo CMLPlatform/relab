@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, screen, waitFor } from '@testing-library/react-native';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import { resolveEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { renderWithProviders } from '@/test-utils/index';
 
 const LAST_SEEN_PATTERN = /Last seen/;
@@ -16,7 +16,7 @@ jest.mock('expo-image', () =>
 
 // Preview thumbnails are owner-checked: on native the source carries a bearer
 // token, so the token has to resolve before the <Image> renders.
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   getToken: () => Promise.resolve('test-token'),
 }));
 

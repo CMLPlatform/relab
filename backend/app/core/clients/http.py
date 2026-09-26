@@ -2,7 +2,7 @@
 
 from httpx import AsyncBaseTransport, AsyncClient, Limits, Request, RequestError, Timeout
 
-from app.core.config import settings
+from app.core.config.core import settings
 
 
 def _normalized_policy_url(request: Request) -> str:

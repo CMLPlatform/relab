@@ -4,8 +4,11 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { openAuthSessionAsync, WebBrowserResultType } from 'expo-web-browser';
 import Login from '@/app/(auth)/login';
-import { getToken, getUser, login, markWebSessionActive } from '@/services/api/auth/authentication';
+import { login } from '@/services/api/auth/authLogin';
 import { claimOAuthMfaHandoff, setPendingMfaLogin } from '@/services/api/auth/authMfa';
+import { getToken } from '@/services/api/auth/authRefresh';
+import { markWebSessionActive } from '@/services/api/auth/authSession';
+import { getUser } from '@/services/api/auth/authUser';
 import {
   buildOAuthAuthorizeUrl,
   fetchOAuthAuthorizationUrl,
@@ -33,12 +36,18 @@ jest.mock('@/context/themeMode', () => ({
   useEffectiveColorScheme: () => 'light',
 }));
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authLogin', () => ({
   login: jest.fn(),
-  getUser: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authRefresh', () => ({
   getToken: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authSession', () => ({
   hasWebSessionFlag: jest.fn().mockReturnValue(false),
   markWebSessionActive: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authUser', () => ({
+  getUser: jest.fn(),
 }));
 
 jest.mock('@/services/api/oauthFlow', () => ({

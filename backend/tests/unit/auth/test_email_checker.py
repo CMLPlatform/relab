@@ -10,7 +10,8 @@ from app.api.auth.services.email_checker import (
     init_email_checker,
     load_local_disposable_domains,
 )
-from app.core.config import Environment, settings
+from app.core.config.core import settings
+from app.core.config.models import Environment
 
 if TYPE_CHECKING:
     from pathlib import Path

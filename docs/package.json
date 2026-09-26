@@ -37,7 +37,6 @@
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
     "linkinator": "8.1.0",
-    "playwright": "catalog:",
     "typescript": "catalog:",
     "vitest": "4.1.11"
   }

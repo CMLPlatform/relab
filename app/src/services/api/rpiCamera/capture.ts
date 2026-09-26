@@ -1,4 +1,4 @@
-import { fetchWithAuth } from '@/services/api/auth/authentication';
+import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { throwFromResponse } from '@/services/api/errors';
 import { createRequestId, fetchWithTimeout } from '@/services/api/request';
 import { isSafeImageUrl, stripTrailingSlash } from '@/utils/urlSafety';

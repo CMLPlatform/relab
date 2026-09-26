@@ -18,8 +18,9 @@ from fastapi import FastAPI
 from httpx import CloseError
 
 from app.core.cache import close_cache, init_cache
-from app.core.clients import create_http_client
-from app.core.config import Environment, settings
+from app.core.clients.http import create_http_client
+from app.core.config.core import settings
+from app.core.config.models import Environment
 from app.core.database import async_engine, check_database_connection, close_async_engine
 from app.core.logging import cleanup_logging, setup_logging
 from app.core.redis import close_redis, init_redis

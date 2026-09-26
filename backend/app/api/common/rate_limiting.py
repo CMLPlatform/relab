@@ -9,7 +9,6 @@ login/register/verify/reset bucket sizes (``auth.services.rate_limiter``).
 """
 
 import logging
-from typing import TYPE_CHECKING
 
 import anyio.to_thread
 from fastapi import Depends, Request
@@ -17,17 +16,14 @@ from fastapi.params import Depends as DependsParam
 from fastapi.responses import JSONResponse
 from limits import parse
 from limits.storage import storage_from_string
-from limits.strategies import STRATEGIES
+from limits.strategies import FixedWindowRateLimiter
 from redis.exceptions import RedisError
 
 from app.api.common.audit import AuditAction, AuditContext, audit_event
-from app.core.config import settings as core_settings
+from app.core.config.core import settings as core_settings
 from app.core.middleware.client_ip import get_client_ip
 from app.core.pseudonyms import keyed_digest
 from app.core.responses import build_problem_response
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -51,24 +47,11 @@ def request_ip_rate_limit_key(request: Request) -> str:
 
 
 class Limiter:
-    """Minimal rate limiter for FastAPI dependencies and explicit service buckets."""
+    """Fixed-window rate limiter for per-IP FastAPI dependencies and explicit service buckets."""
 
-    def __init__(
-        self,
-        *,
-        key_func: Callable[[Request], str],
-        storage_uri: str,
-        strategy: str = "fixed-window",
-        enabled: bool = True,
-    ) -> None:
-        self._key_func = key_func
+    def __init__(self, *, storage_uri: str, enabled: bool = True) -> None:
         self.enabled = enabled
-        if enabled:
-            self._storage = storage_from_string(storage_uri)
-            self._limiter = STRATEGIES[strategy](self._storage)
-        else:
-            self._storage = None
-            self._limiter = None
+        self._limiter = FixedWindowRateLimiter(storage_from_string(storage_uri)) if enabled else None
 
     def hit_key(self, rate_string: str, key: str) -> None:
         """Enforce *rate_string* for an explicit bucket key.
@@ -93,10 +76,6 @@ class Limiter:
             logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
             raise RateLimitExceededError
 
-    def hit_request(self, rate_string: str, request: Request) -> None:
-        """Enforce *rate_string* for a FastAPI request."""
-        self.hit_key(rate_string, self._key_func(request))
-
     async def ahit_key(self, rate_string: str, key: str) -> None:
         """Async ``hit_key`` for callers already on the event loop.
 
@@ -109,10 +88,10 @@ class Limiter:
         await anyio.to_thread.run_sync(self.hit_key, rate_string, key)
 
     def dependency(self, rate_string: str, *, name: str = "rate_limit") -> DependsParam:
-        """Return a FastAPI dependency that enforces *rate_string* for a request."""
+        """Return a FastAPI dependency that enforces *rate_string* per client IP."""
 
         def dependency(request: Request) -> None:
-            self.hit_request(rate_string, request)
+            self.hit_key(rate_string, request_ip_rate_limit_key(request))
 
         dependency.__name__ = name
         return Depends(dependency)
@@ -139,12 +118,7 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
 
 # Singleton limiter instance and rate-limit strings
 
-limiter = Limiter(
-    key_func=request_ip_rate_limit_key,
-    storage_uri=core_settings.redis.cache_url,
-    strategy="fixed-window",
-    enabled=core_settings.enable_rate_limit,
-)
+limiter = Limiter(storage_uri=core_settings.redis.cache_url, enabled=core_settings.enable_rate_limit)
 
 API_READ_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_read_rate_limit, name="api_read_rate_limit")
 API_WRITE_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_write_rate_limit, name="api_write_rate_limit")

@@ -108,7 +108,7 @@ services:
         INCLUDE_TAXONOMY_SEED_DEPS: ${BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS:-false}
         # Realistic fixture generation pulls in faker/polyfactory. CI and E2E turn
         # it on; production never does.
-        INCLUDE_FIXTURE_SEED_DEPS: ${BACKEND_MIGRATIONS_INCLUDE_FIXTURE_SEED_DEPS:-false}
+        INCLUDE_FIXTURE_SEED_DEPS: "false"
       cache_from:
         - type=gha,scope=migrator
       cache_to:

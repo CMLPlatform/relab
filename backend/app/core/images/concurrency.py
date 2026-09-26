@@ -4,7 +4,7 @@ from functools import lru_cache
 
 import anyio
 
-from app.core.config import settings
+from app.core.config.core import settings
 
 
 @lru_cache(maxsize=1)

@@ -16,7 +16,7 @@ import { LivePreview, PreviewErrorBoundary } from '@/components/cameras/LivePrev
 import { mockPlatform, renderWithProviders } from '@/test-utils/index';
 
 // The relayed LL-HLS route is owner-checked; native sends a bearer token.
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   getToken: () => Promise.resolve('test-token'),
 }));
 

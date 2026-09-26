@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useStreamSession } from '@/context/streamSession';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus, YouTubePrivacyStatus } from '@/services/api/rpiCamera/shared';
 import { startYouTubeStreamFlow } from './streamFlow';
 
 type CameraStreamPickerParams = {

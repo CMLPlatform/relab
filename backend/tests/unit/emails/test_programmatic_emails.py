@@ -20,7 +20,7 @@ from app.api.auth.services.email.service import (
     send_reset_password_email,
     send_verification_email,
 )
-from app.core.config import settings as core_settings
+from app.core.config.core import settings as core_settings
 
 if TYPE_CHECKING:
     from collections.abc import Callable

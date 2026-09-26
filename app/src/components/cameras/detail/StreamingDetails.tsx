@@ -4,7 +4,7 @@ import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Separator } from '@/components/base/ui/separator';
 import { YouTubeStreamCard } from '@/components/cameras/YouTubeStreamCard';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { ActionRow, DetailRow } from './detailRows';
 import { cameraDetailStyles as styles } from './styles';
 

@@ -11,7 +11,8 @@ from app.api.stats.helpers import resolve_date_range
 from app.api.stats.queries import compute_categories, compute_series, compute_totals
 from app.api.stats.schemas import CategoriesResponse, CategoryScope, SeriesResponse, TotalsResponse
 from app.core.cache import cache
-from app.core.config import CacheNamespace, settings
+from app.core.config.core import settings
+from app.core.config.models import CacheNamespace
 
 router = PublicAPIRouter(prefix="/stats", tags=["stats"])
 

@@ -435,13 +435,8 @@ fi
 # dumps deduplicate poorly and retention is applied once a day, so the repository grows
 # in steps. It shares the host disk with postgres, so a full disk takes the database down
 # with the backups.
-backup_host_dir="${BACKUP_HOST_DIR:-}"
-[[ -n "$backup_host_dir" ]] || backup_host_dir="$(
-    set -a
-    # shellcheck source=/dev/null
-    [[ -f .env ]] && . ./.env >/dev/null 2>&1
-    printf '%s' "${BACKUP_HOST_DIR:-./backups}"
-)"
+backup_host_dir="${BACKUP_HOST_DIR:-$(dotenv_value BACKUP_HOST_DIR)}"
+backup_host_dir="${backup_host_dir:-./backups}"
 disk_pcent="$(timeout 30 df --output=pcent "$backup_host_dir" 2>/dev/null | tail -n1 | tr -dc '0-9' || true)"
 disk_avail_gib="$(timeout 30 df --output=avail -BG "$backup_host_dir" 2>/dev/null | tail -n1 | tr -dc '0-9' || true)"
 disk_usage_alerts "$env" "$backup_host_dir" "$disk_pcent" "${BACKUP_DISK_ALERT_PCENT:-85}" \

@@ -12,7 +12,7 @@ import { baseProductQueryOptions } from '@/features/product-entity/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera';
+import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { setCamerasHeaderOptions, useCameraScreenData } from './helpers';
 import { useCameraRouteModes } from './routeModes';
 import { useCameraSelectionController, useCameraStreamingController } from './state';

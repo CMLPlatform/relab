@@ -14,21 +14,27 @@ import {
   useUpdateCameraMutation,
 } from '@/features/cameras/rpi/hooks';
 import {
-  captureImageFromCamera,
-  claimPairingCode,
   deleteCamera,
   fetchCamera,
   fetchCameras,
   updateCamera,
-} from '@/services/api/rpiCamera';
+} from '@/services/api/rpiCamera/cameras';
+import { captureImageFromCamera } from '@/services/api/rpiCamera/capture';
+import { claimPairingCode } from '@/services/api/rpiCamera/pairing';
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/cameras', () => ({
   fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
   updateCamera: jest.fn(),
   deleteCamera: jest.fn(),
-  claimPairingCode: jest.fn(),
+}));
+jest.mock('@/services/api/rpiCamera/capture', () => ({
   captureImageFromCamera: jest.fn(),
+}));
+jest.mock('@/services/api/rpiCamera/pairing', () => ({
+  claimPairingCode: jest.fn(),
+}));
+jest.mock('@/services/api/rpiCamera/streams', () => ({
   buildCameraHlsUrl: (id: string) => `/api/rpi-cameras/${id}/hls/cam-preview/index.m3u8`,
 }));
 

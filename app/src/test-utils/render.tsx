@@ -5,7 +5,6 @@ import type React from 'react';
 import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { AuthProvider } from '@/context/AuthProvider';
-import { StreamSessionProvider } from '@/context/StreamSessionProvider';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
@@ -54,10 +53,7 @@ export async function renderWithProviders(
 
   function Wrapper({ children }: { children: React.ReactNode }) {
     const colorScheme = useEffectiveColorScheme();
-    // StreamSessionProvider is always mounted in the app's Providers stack and is
-    // dependency-free, so include it unconditionally rather than behind a flag.
     let content = withDialog ? <DialogProvider>{children}</DialogProvider> : children;
-    content = <StreamSessionProvider>{content}</StreamSessionProvider>;
     if (withThemeMode) content = <ThemeModeProvider>{content}</ThemeModeProvider>;
     const withAppTheme = <AppThemeProvider scheme={colorScheme}>{content}</AppThemeProvider>;
     const withSafeArea = (

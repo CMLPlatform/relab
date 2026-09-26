@@ -11,7 +11,7 @@ from sqlalchemy import select
 
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import Image, MediaParentType
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images import THUMBNAIL_WIDTHS
 from app.core.images.urls import build_thumbnail_urls_by_width
 from scripts.seed.dummy_seed.runner import run_seed_steps

@@ -5,14 +5,19 @@ import { HttpResponse, http } from 'msw';
 import { Platform } from 'react-native';
 import VerifyEmailScreen from '@/app/(auth)/verify';
 import { API_URL } from '@/config';
-import { getToken, getUser } from '@/services/api/auth/authentication';
+import { getToken } from '@/services/api/auth/authRefresh';
+import { getUser } from '@/services/api/auth/authUser';
 import { renderWithProviders } from '@/test-utils/index';
 import { server } from '@/test-utils/server';
 
-jest.mock('@/services/api/auth/authentication', () => ({
+jest.mock('@/services/api/auth/authRefresh', () => ({
   getToken: jest.fn(),
-  getUser: jest.fn(),
+}));
+jest.mock('@/services/api/auth/authSession', () => ({
   hasWebSessionFlag: jest.fn().mockReturnValue(false),
+}));
+jest.mock('@/services/api/auth/authUser', () => ({
+  getUser: jest.fn(),
 }));
 
 const NO_VERIFICATION_TOKEN_PATTERN = /needs the link from your verification email/;

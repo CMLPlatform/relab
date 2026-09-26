@@ -21,7 +21,7 @@ from app.api.file_storage.examples import (
     VIDEO_UPDATE_WITHIN_PRODUCT_EXAMPLES,
 )
 from app.api.file_storage.models import MediaParentType
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.images.urls import build_image_urls, build_storage_url, build_thumbnail_urls_by_width
 
 PARENT_TYPE_DESCRIPTION = f"Type of the parent object, e.g. {', '.join(parent.value for parent in MediaParentType)}"

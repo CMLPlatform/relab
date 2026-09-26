@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING, ClassVar
 from pydantic import SecretStr
 
 from app.core import redis as redis_module
-from app.core.config import CoreSettings, Environment, RedisSettings
+from app.core.config.connection import RedisSettings
+from app.core.config.core import CoreSettings
+from app.core.config.models import Environment
 
 if TYPE_CHECKING:
     from pathlib import Path

@@ -56,9 +56,13 @@ jest.mock('@/services/api/profiles', () => ({
   getPublicProfile: jest.fn(),
 }));
 
-jest.mock('@/services/api/auth/authentication', () => ({
-  getToken: jest.fn().mockResolvedValue('mock-token'),
+jest.mock('@/services/api/auth/authLogin', () => ({
   logout: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/services/api/auth/authRefresh', () => ({
+  getToken: jest.fn().mockResolvedValue('mock-token'),
+}));
+jest.mock('@/services/api/auth/authentication', () => ({
   unlinkOAuth: jest.fn().mockResolvedValue(undefined),
   updateUser: jest.fn().mockResolvedValue({}),
   verify: jest.fn().mockResolvedValue(true),

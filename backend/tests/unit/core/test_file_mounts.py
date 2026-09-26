@@ -7,7 +7,7 @@ import httpx
 from fastapi import FastAPI
 from httpx import ASGITransport
 
-from app.core.config import settings
+from app.core.config.core import settings
 from app.core.static import mount_static_directories
 
 if TYPE_CHECKING:

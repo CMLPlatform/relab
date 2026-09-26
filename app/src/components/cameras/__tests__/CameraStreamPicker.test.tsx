@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
 import { ApiError } from '@/services/api/errors';
 import { addProductVideo } from '@/services/api/products';
-import { startYouTubeStream } from '@/services/api/rpiCamera';
+import { startYouTubeStream } from '@/services/api/rpiCamera/streams';
 import { fireEvent, renderWithProviders, screen, waitFor } from '@/test-utils/index';
 
 const mockSetActiveStream = jest.fn();
@@ -45,7 +45,7 @@ jest.mock('@/services/api/products', () => ({
   addProductVideo: jest.fn(),
 }));
 
-jest.mock('@/services/api/rpiCamera', () => ({
+jest.mock('@/services/api/rpiCamera/streams', () => ({
   startYouTubeStream: jest.fn(),
 }));
 

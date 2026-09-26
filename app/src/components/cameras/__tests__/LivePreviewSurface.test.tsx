@@ -15,12 +15,18 @@ jest.mock('@/components/cameras/live-preview/previewOverlays', () => ({
     );
   },
 }));
-jest.mock('@/components/cameras/live-preview/PreviewPlayer', () => ({
-  PreviewPlayer: ({ src }: { src: string }) => {
+function mockPlayer(kind: string) {
+  return ({ src }: { src: string }) => {
     const React = jest.requireActual<typeof import('react')>('react');
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return React.createElement(Text, { testID: 'preview-player' }, `player:${src}`);
-  },
+    return React.createElement(Text, { testID: 'preview-player' }, `${kind}:${src}`);
+  };
+}
+jest.mock('@/components/cameras/live-preview/WebHlsVideo', () => ({
+  WebHlsVideo: mockPlayer('web'),
+}));
+jest.mock('@/components/cameras/live-preview/NativeHlsVideo', () => ({
+  NativeHlsVideo: mockPlayer('native'),
 }));
 
 const mockUseCameraLivePreview = jest.mocked(useCameraLivePreview);
@@ -63,9 +69,7 @@ describe('LivePreview', () => {
 
     it('renders the preview player with the HLS URL', async () => {
       const { getByTestId } = await render(<LivePreview camera={{ id: '1' }} />);
-      expect(getByTestId('preview-player').props.children).toBe(
-        'player:http://example/stream.m3u8',
-      );
+      expect(getByTestId('preview-player').props.children).toBe('web:http://example/stream.m3u8');
     });
 
     it('passes enabled=false to useCameraLivePreview', async () => {
@@ -87,7 +91,9 @@ describe('LivePreview', () => {
 
     it('renders the preview player and caption', async () => {
       const { getByTestId, getByText } = await render(<LivePreview camera={{ id: '1' }} />);
-      expect(getByTestId('preview-player')).toBeTruthy();
+      expect(getByTestId('preview-player').props.children).toBe(
+        'native:http://example/stream.m3u8',
+      );
       expect(getByText('Live preview · LL-HLS')).toBeTruthy();
     });
   });

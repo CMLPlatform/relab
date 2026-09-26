@@ -75,11 +75,6 @@ jest.mock('react-native-keyboard-controller', () =>
   require('react-native-keyboard-controller/jest'),
 );
 
-// Mock Expo Auth Session Google hook to avoid browser-session side effects in Jest.
-jest.mock('expo-auth-session/providers/google', () => ({
-  useAuthRequest: jest.fn(() => [null, null, jest.fn()]),
-}));
-
 function mockCreateAnimatedStyleHook() {
   return (fn: () => Record<string, unknown>) => {
     try {
