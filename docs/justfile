@@ -65,9 +65,6 @@ rpi-cam-schema-check:
 test-ci: rpi-cam-schema-check (_browsers "chromium")
     pnpm run test:ci
 
-# Run the full CI pipeline locally
-ci: check test-ci
-
 # Clean caches and build artifacts
 clean:
     rm -rf .astro dist node_modules playwright-report test-results

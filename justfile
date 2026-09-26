@@ -480,51 +480,10 @@ dev-db:
 dev:
     {{ dev_compose }} up --watch
 
-# The snapshot never updates: a container left running here serves the code as it was
-# when the image was built. Check with `just dev-stale` before trusting a measurement.
-#
-# Start full dev stack WITHOUT hot reload (serves the snapshot baked into the image)
+# Start full dev stack WITHOUT hot reload (rebuilds, then serves the image snapshot)
 [group('dev')]
 dev-up:
-    @printf '\n\033[33m%s\033[0m\n' "dev-up: source is NOT synced. Containers serve the snapshot baked into the image."
-    @printf '\033[33m%s\033[0m\n\n' "Run 'just dev' for hot reload, or 'just dev-stale' to check whether this snapshot is behind."
-    {{ dev_compose }} up
-
-# A 200 from a dev port proves something answered, not that it is current. This compares
-# each dev image's build time against the newest source mtime.
-#
-# Check whether running dev containers serve code older than the working tree
-[group('dev')]
-dev-stale:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    stale=0
-    found=0
-    for svc in app www docs api; do
-      cid=$({{ dev_compose }} ps -q "$svc" 2>/dev/null || true)
-      [ -n "$cid" ] || continue
-      found=1
-      img=$(docker inspect "$cid" | jq -r '.[0].Image')
-      built=$(docker inspect "$img" | jq -r '.[0].Created')
-      built_ts=$(date -d "$built" +%s)
-      case "$svc" in
-        app) src=app/src ;; www) src=www/src ;; docs) src=docs/src ;; api) src=backend/app ;;
-      esac
-      newest=$(find "$src" -type f -not -path '*/.*' -newermt "@$built_ts" -print -quit 2>/dev/null || true)
-      if [ -n "$newest" ]; then
-        printf '\033[31mSTALE\033[0m  %-4s image built %s — %s has newer files (e.g. %s)\n' \
-          "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')" "$src" "$newest"
-        stale=1
-      else
-        printf '\033[32mfresh\033[0m  %-4s image built %s\n' "$svc" "$(date -d "$built" '+%Y-%m-%d %H:%M')"
-      fi
-    done
-    [ "$found" -eq 1 ] || { echo "No dev containers running."; exit 0; }
-    if [ "$stale" -eq 1 ]; then
-      printf '\nThose containers serve code older than your working tree.\n'
-      printf 'Restart with %s (hot reload) or rebuild with %s.\n' "'just dev'" "'just dev-build'"
-      exit 1
-    fi
+    {{ dev_compose }} up --build
 
 # Build (or rebuild) dev images
 dev-build:
@@ -546,11 +505,6 @@ dev-migrate:
     {{ dev_compose }} up -d --wait postgres
     {{ dev_compose }} exec -T postgres bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
     {{ dev_compose }} --profile migrations up migrator
-
-# Wipe all dev containers and volumes for a clean slate. Re-run dev-migrate afterwards.
-_dev-reset confirm='':
-    @just _require-confirm "wipe the development Docker environment" "just _dev-reset YES" "FORCE=1 just _dev-reset" {{ quote(confirm) }}
-    {{ dev_compose }} --profile migrations down -v
 
 # ============================================================================
 # Docker: Production and Staging
