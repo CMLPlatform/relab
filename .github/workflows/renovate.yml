@@ -7,6 +7,10 @@ on:
   # allows for new branches; the other runs rebase and maintain open PRs.
   schedule:
     - cron: "17 */6 * * *"
+  # A merge to main often leaves the other open PRs conflicting on the shared
+  # lockfile; rebase them now rather than at the next scheduled run.
+  push:
+    branches: [main]
   workflow_dispatch:
   # Ticking a box on the Dependency Dashboard starts a run straight away.
   issues:

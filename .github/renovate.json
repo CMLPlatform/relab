@@ -5,10 +5,6 @@
   "semanticCommitType": "chore",
   "semanticCommitScope": "deps",
   "prConcurrentLimit": 8,
-  "toolSettings": {
-    "description": "Hosted runs have a 3 GB memory cap; bounding the Node heap keeps pnpm relocks of the shared workspace lockfile under it.",
-    "nodeMaxMemory": 1536
-  },
   "pre-commit": {
     "enabled": true
   },
