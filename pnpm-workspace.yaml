@@ -50,7 +50,7 @@ catalog:
   "@astrojs/check": ^0.9.10
   "@axe-core/playwright": ^4.12.1
   "@biomejs/biome": ^2.5.8
-  astro: 7.3.3
+  astro: 7.3.4
   "@playwright/test": ^1.62.1
   "@types/node": ^26.2.0
   tailwindcss: 4.3.3
