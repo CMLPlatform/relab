@@ -22,6 +22,3 @@ class RelayResponse:
     def content(self) -> bytes:
         """Return raw response bytes."""
         return self._content
-
-    def raise_for_status(self) -> None:
-        """No-op; relay errors are raised before returning this object."""

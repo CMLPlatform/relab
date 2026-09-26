@@ -265,11 +265,6 @@ class CoreSettings(RelabBaseSettings):
         return self.environment in (Environment.DEV, Environment.TESTING)
 
     @property
-    def secure_cookies(self) -> bool:
-        """Require HTTPS-only cookies in production and staging."""
-        return self.environment in (Environment.PROD, Environment.STAGING)
-
-    @property
     def mock_emails(self) -> bool:
         """Skip real email delivery in development and testing."""
         return self.environment in (Environment.DEV, Environment.TESTING)

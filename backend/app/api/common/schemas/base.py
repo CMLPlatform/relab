@@ -73,10 +73,6 @@ class TimestampReadSchemaMixin(BaseModel):
         return serialize_datetime_with_z(dt)
 
 
-class BaseReadSchemaWithTimeStamp(BaseReadSchema, TimestampReadSchemaMixin):
-    """Base schema for all read operations, including timestamps."""
-
-
 class IntIdReadSchemaWithTimeStamp(IntIdReadSchema, TimestampReadSchemaMixin):
     """Read schema for integer-PK models with timestamps."""
 
