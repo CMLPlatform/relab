@@ -1,20 +1,7 @@
 """Shared persistence helpers for CRUD operations."""
 
-from typing import Protocol
-
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-
-
-class SupportsModelDump(Protocol):
-    """Schema protocol for update payloads."""
-
-    def model_dump(
-        self,
-        *,
-        exclude_unset: bool = False,
-        exclude: set[str] | None = None,
-    ) -> dict[str, object]:
-        """Return payload values for persistence."""
 
 
 async def commit_and_refresh[ModelT](
@@ -34,7 +21,7 @@ async def commit_and_refresh[ModelT](
 async def update_and_commit[ModelT](
     db: AsyncSession,
     db_model: ModelT,
-    payload: SupportsModelDump,
+    payload: BaseModel,
 ) -> ModelT:
     """Apply a partial update and persist the result."""
     for key, value in payload.model_dump(exclude_unset=True).items():

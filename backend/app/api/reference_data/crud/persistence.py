@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any, cast  # lgtm[py/unused-import]
 
-from app.api.common.crud.persistence import SupportsModelDump, delete_and_commit, update_and_commit
+from app.api.common.crud.persistence import delete_and_commit, update_and_commit
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.reference_data.models import (
     Category,
@@ -12,13 +12,14 @@ from app.api.reference_data.models import (
 )
 
 if TYPE_CHECKING:
+    from pydantic import BaseModel
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def create_reference_model[ModelT: Taxonomy | Material | ProductType](
     db: AsyncSession,
     model: type[ModelT],
-    payload: SupportsModelDump,
+    payload: BaseModel,
     *,
     exclude_fields: set[str],
 ) -> ModelT:
@@ -34,7 +35,7 @@ async def update_reference_model[ModelT: Taxonomy | Material | ProductType | Cat
     db: AsyncSession,
     model: type[ModelT],
     model_id: int,
-    payload: SupportsModelDump,
+    payload: BaseModel,
 ) -> ModelT:
     """Apply a partial update and persist the model."""
     db_model: ModelT = await require_model(db, model, model_id)

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, cast
 from sqlalchemy import select
 
 from app.api.common.crud.associations import add_links
-from app.api.common.crud.persistence import SupportsModelDump, commit_and_refresh
+from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.common.crud.utils import validate_linked_items_exist, validate_no_duplicate_linked_items
 from app.api.common.exceptions import ConflictError
@@ -30,6 +30,7 @@ from .persistence import create_reference_model
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from pydantic import BaseModel
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy.orm.attributes import InstrumentedAttribute
 
@@ -101,7 +102,7 @@ for _spec in (MATERIAL_RESOURCE, PRODUCT_TYPE_RESOURCE):
 async def create_categorized_reference[ResourceT: CategorizedReference, LinkT: CategoryLink](
     db: AsyncSession,
     spec: CategorizedReferenceSpec[ResourceT, LinkT],
-    payload: SupportsModelDump,
+    payload: BaseModel,
 ) -> ResourceT:
     """Create a categorized reference-data resource and optional category links."""
     db_parent = await create_reference_model(db, spec.model, payload, exclude_fields={"category_ids"})

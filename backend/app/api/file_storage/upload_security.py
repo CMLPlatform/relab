@@ -2,7 +2,7 @@
 
 import logging
 import struct
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 import anyio
 
@@ -29,13 +29,6 @@ CLAMAV_UNAVAILABLE_EXCEPTIONS = (
     anyio.EndOfStream,
 )
 MALWARE_SCANNING_UNAVAILABLE_MESSAGE = "Malware scanning is unavailable."
-
-
-class UploadScanner(Protocol):
-    """Minimal async scanner contract for untrusted uploads."""
-
-    async def scan(self, fileobj: BinaryIO) -> None:
-        """Raise when the supplied file is malicious or cannot be scanned."""
 
 
 class MalwareDetectedError(BadRequestError):
@@ -87,7 +80,7 @@ class ClamAVScanner:
             raise MalwareScanUnavailableError(details=response.strip() or None)
 
 
-def get_upload_scanner() -> UploadScanner | None:
+def get_upload_scanner() -> ClamAVScanner | None:
     """Build the configured malware scanner, or None when unavailable."""
     if not settings.malware_scan_enabled:
         return None
@@ -135,7 +128,7 @@ async def probe_malware_scanner() -> None:
 async def scan_upload_or_raise(
     upload_file: UploadFile,
     *,
-    scanner: UploadScanner | None = None,
+    scanner: ClamAVScanner | None = None,
 ) -> None:
     """Scan an upload before storage, failing closed when scanning is required."""
     scanner = scanner if scanner is not None else get_upload_scanner()
