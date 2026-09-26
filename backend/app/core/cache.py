@@ -77,37 +77,12 @@ def cache_namespace(namespace: str = "") -> str:
     return f"{settings.cache.prefix}:{namespace}" if namespace else settings.cache.prefix
 
 
-def make_key(namespace: str, *parts: object) -> str:
-    """Build an exact cache key rooted under ``namespace``."""
-    return ":".join([cache_namespace(namespace), *(str(part) for part in parts)])
-
-
 async def _backend_get[T](key: str, *, default: T) -> T:
     """Read one cache value, treating failed signature checks as misses."""
     try:
         return await _backend.get(key, default=default)
     except UnSecureDataError:
         return default
-
-
-async def cache_get[T](key: str, *, default: T | None = None) -> T | None:
-    """Return an exact cache entry, or ``default`` when missing."""
-    return await _backend_get(key, default=default)
-
-
-async def cache_set[T](key: str, value: T, *, expire: int) -> None:
-    """Store an exact cache entry."""
-    await _backend.set(key, value, expire=expire)
-
-
-async def cache_delete(key: str) -> None:
-    """Delete an exact cache entry."""
-    await _backend.delete(key)
-
-
-async def cache_delete_pattern(pattern: str) -> None:
-    """Delete cache entries matching a fully-qualified backend pattern."""
-    await _backend.delete_match(pattern)
 
 
 def _pagination_key_part() -> str:
@@ -220,7 +195,7 @@ def cache[**P, T](
 
             result = await func(*args, **kwargs)
             if _cacheable_result(result, has_auth_material=has_auth_material):
-                await cache_set(key, result, expire=expire)
+                await _backend.set(key, result, expire=expire)
             return result
 
         return wrapper
@@ -264,5 +239,5 @@ async def close_cache() -> None:
 
 async def clear_cache_namespace(namespace: str) -> None:
     """Clear all cache entries for a specific namespace."""
-    await cache_delete_pattern(f"{cache_namespace(namespace)}:*")
+    await _backend.delete_match(f"{cache_namespace(namespace)}:*")
     logger.info("Cleared cache namespace: %s", sanitize_log_value(namespace))
