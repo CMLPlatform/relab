@@ -34,9 +34,9 @@
     "@biomejs/biome": "catalog:",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "5.0.1",
     "happy-dom": "20.14.5",
     "typescript": "catalog:",
-    "vitest": "4.1.11"
+    "vitest": "5.0.1"
   }
 }
