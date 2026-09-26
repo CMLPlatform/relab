@@ -28,6 +28,30 @@ def test_selects_only_ghsa_tagged_override_lines() -> None:
     assert packages == ["uuid", "@ai-sdk/provider-utils", "dompurify"]
 
 
+def test_clears_only_the_audit_ignore_list() -> None:
+    workspace = """\
+notes:
+  kept:
+    - GHSA-keep-me
+auditConfig:
+  ignoreGhsas:
+    - GHSA-drop-me # why
+    - GHSA-drop-too
+overrides:
+  lightningcss: 1.33.0
+"""
+    expected = """\
+notes:
+  kept:
+    - GHSA-keep-me
+auditConfig:
+  ignoreGhsas: []
+overrides:
+  lightningcss: 1.33.0
+"""
+    assert stale_overrides.clear_audit_ignores(workspace) == expected
+
+
 def _run_check(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, audit_stdout: str) -> tuple[int, list[str]]:
     """Run main() against temp files with pnpm stubbed; return exit code and workspaces audited."""
     workspace = tmp_path / "pnpm-workspace.yaml"

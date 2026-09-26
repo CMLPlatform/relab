@@ -25,7 +25,7 @@ WORKSPACE = ROOT / "pnpm-workspace.yaml"
 LOCKFILE = ROOT / "pnpm-lock.yaml"
 
 _OVERRIDE_LINE = re.compile(r'^  "?(?P<key>[^":]+?)"?:\s.*#\s*GHSA-')
-_IGNORED_GHSA_LINE = re.compile(r"^    - GHSA-.*\n", re.MULTILINE)
+_IGNORE_LIST = re.compile(r"^(  ignoreGhsas:)\n(?:    - .*\n)+", re.MULTILINE)
 
 
 def security_overrides(workspace_text: str) -> list[tuple[str, str]]:
@@ -43,6 +43,11 @@ def security_overrides(workspace_text: str) -> list[tuple[str, str]]:
             target = re.split(r"(?<=[\w.])>(?=[@\w])", match["key"])[-1]
             found.append((line, re.sub(r"(?<=.)@.*", "", target)))
     return found
+
+
+def clear_audit_ignores(workspace_text: str) -> str:
+    """Empty auditConfig.ignoreGhsas, leaving any other GHSA-looking list alone."""
+    return _IGNORE_LIST.sub(r"\1 []\n", workspace_text)
 
 
 def flagged_packages() -> set[str]:
@@ -70,7 +75,7 @@ def flagged_packages() -> set[str]:
 def main() -> int:
     """Drop each security override in turn and report the ones the audit no longer needs."""
     workspace, lockfile = WORKSPACE.read_text(), LOCKFILE.read_text()
-    unignored = _IGNORED_GHSA_LINE.sub("", workspace)
+    unignored = clear_audit_ignores(workspace)
     stale = []
     try:
         for line, package in security_overrides(workspace):
