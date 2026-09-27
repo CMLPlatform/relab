@@ -74,6 +74,11 @@ async def test_validate_password_rejects_short() -> None:
     assert "12 characters" in exc.value.reason
 
 
+async def test_validate_password_accepts_exact_minimum_length() -> None:
+    """A password of exactly 12 characters meets the length rule."""
+    await validate_password("kx7-qv9-mz2w", email="a@b.c", skip_breach_check=True)
+
+
 async def test_validate_password_rejects_email_in_password() -> None:
     """The password must not contain the e-mail address as a substring."""
     with pytest.raises(InvalidPasswordException) as exc:
@@ -120,6 +125,13 @@ async def test_validate_password_rejects_username_case_insensitively() -> None:
     assert "username" in exc.value.reason
 
 
+async def test_validate_password_rejects_three_character_username() -> None:
+    """Account values of the minimum context length are still checked."""
+    with pytest.raises(InvalidPasswordException) as exc:
+        await validate_password("prefix-bob-suffix", email="a@b.c", username="bob", skip_breach_check=True)
+    assert "username" in exc.value.reason
+
+
 def test_common_password_resource_has_asvs_sized_policy_matching_set() -> None:
     """ASVS 6.2.4 requires at least 3000 common passwords matching the password policy."""
     blocklist = load_local_common_passwords()
@@ -153,15 +165,16 @@ async def test_validate_password_rejects_weak_password_with_clear_reason() -> No
     assert "too common" in exc.value.reason
 
 
-async def test_validate_password_rejects_breached() -> None:
-    """When HIBP reports the password as breached the call must raise."""
+@pytest.mark.parametrize("count", [1, 9999])
+async def test_validate_password_rejects_breached(count: int) -> None:
+    """When HIBP reports the password as breached, even once, the call must raise."""
     http_client = AsyncMock()
     response = Mock()
     # Craft a response that echoes back the test password's SHA-1 suffix so the
     # range-match path fires.
     pwd = "correct-horse-battery-staple-pwnd-42"
     sha1 = hashlib.sha1(pwd.encode(), usedforsecurity=False).hexdigest().upper()
-    response.text = f"{sha1[5:]}:9999"
+    response.text = f"{sha1[5:]}:{count}"
     response.raise_for_status = Mock()
     http_client.get.return_value = response
 

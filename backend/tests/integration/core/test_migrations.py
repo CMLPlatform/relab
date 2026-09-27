@@ -167,33 +167,42 @@ def test_migrations_downgrade_upgrade(relab_alembic_config: Config, migration_he
     assert migration_helper.current_revision() == head, "upgrade did not restore head"
 
 
+def _pending_thumbnail_index_is_valid(migration_helper: MigrationHelper) -> bool | None:
+    rows = migration_helper.execute_sql(
+        "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass('ix_image_thumbnails_pending')"
+    )
+    return rows[0][0] if rows else None
+
+
 @pytest.mark.migration
-def test_pending_thumbnail_index_is_a_revision_of_its_own(
+def test_thumbnail_stamp_and_index_each_live_in_a_revision_of_their_own(
     relab_alembic_config: Config, migration_helper: MigrationHelper
 ) -> None:
     """The concurrent index must not share a revision with the column it indexes.
 
     ``autocommit_block()`` commits whatever the revision did before it, so a column added
-    in the same ``upgrade()`` is committed while the revision is still unstamped: a build
-    that loses its race for the lock then leaves the column applied and the revision not
-    recorded, and every later upgrade dies re-adding a column that already exists.
-    Stepping down one revision at a time is what pins the split (the index goes, the
-    column stays), and the round trip back to head covers both revisions.
+    or dropped in the same function is committed while the revision is still unstamped: a
+    concurrent build or drop that loses its race for the lock then leaves the column
+    change applied and the revision not recorded, and every later run dies repeating it.
+    Stepping down one revision at a time pins the split in both directions, and the round
+    trip back to head covers every revision involved.
     """
-
-    def index_is_valid() -> bool | None:
-        rows = migration_helper.execute_sql(
-            "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass('ix_image_thumbnails_pending')"
-        )
-        return rows[0][0] if rows else None
-
-    # An INVALID index is never used by the planner, so the backfill would sequential-scan
-    # `image` on every deploy while every write still maintained the dead index.
-    assert index_is_valid() is True
+    assert not migration_helper.column_exists("image", "thumbnails_generated_at")
+    assert _pending_thumbnail_index_is_valid(migration_helper) is None
 
     try:
+        command.downgrade(relab_alembic_config, "5bdd691b0cca")
+        assert migration_helper.column_exists("image", "thumbnails_generated_at")
+        assert _pending_thumbnail_index_is_valid(migration_helper) is None
+
+        command.downgrade(relab_alembic_config, "e2a7c4d1b930")
+        # An INVALID index is never used by the planner while every write maintains it.
+        assert _pending_thumbnail_index_is_valid(migration_helper) is True
+
         command.downgrade(relab_alembic_config, "b3f1c07d5e94")
-        assert index_is_valid() is None, "the index revision must own the index, and nothing else"
+        assert _pending_thumbnail_index_is_valid(migration_helper) is None, (
+            "the index revision must own the index, and nothing else"
+        )
         assert migration_helper.column_exists("image", "thumbnails_generated_at")
 
         command.downgrade(relab_alembic_config, "4a672549f270")
@@ -201,8 +210,8 @@ def test_pending_thumbnail_index_is_a_revision_of_its_own(
     finally:
         command.upgrade(relab_alembic_config, "head")
 
-    assert migration_helper.column_exists("image", "thumbnails_generated_at")
-    assert index_is_valid() is True
+    assert not migration_helper.column_exists("image", "thumbnails_generated_at")
+    assert _pending_thumbnail_index_is_valid(migration_helper) is None
 
 
 @pytest.mark.migration
@@ -213,31 +222,25 @@ def test_pending_thumbnail_index_survives_a_lost_revision_stamp(
 
     ``CREATE INDEX CONCURRENTLY`` commits inside ``autocommit_block()``, before the
     revision is stamped. A process that dies in that window leaves the index VALID and
-    the revision unrecorded, which happened on both deploy hosts: the migrator then failed
-    with ``relation ... already exists`` on every re-run, leaving the stack on the older
-    schema. ``stamp`` reproduces exactly that state -- the index is left alone, only the
-    version moves.
+    the revision unrecorded: the migrator then fails with ``relation ... already exists``
+    on every re-run, leaving the stack on the older schema. ``stamp`` reproduces exactly
+    that state -- the index is left alone, only the version moves.
 
     The INVALID case must keep raising, so this asserts adoption only for a valid index.
     """
+    try:
+        command.downgrade(relab_alembic_config, "e2a7c4d1b930")
+        assert _pending_thumbnail_index_is_valid(migration_helper) is True, "precondition: a valid index"
 
-    def index_is_valid() -> bool | None:
-        rows = migration_helper.execute_sql(
-            "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass('ix_image_thumbnails_pending')"
+        command.stamp(relab_alembic_config, "b3f1c07d5e94")
+        command.upgrade(relab_alembic_config, "e2a7c4d1b930")
+
+        assert migration_helper.current_revision() == "e2a7c4d1b930", (
+            "the revision must stamp over an index it had already built"
         )
-        return rows[0][0] if rows else None
-
-    assert index_is_valid() is True, "precondition: head builds a valid index"
-
-    command.stamp(relab_alembic_config, "b3f1c07d5e94")
-    assert migration_helper.current_revision() == "b3f1c07d5e94"
-
-    command.upgrade(relab_alembic_config, "head")
-
-    assert migration_helper.current_revision() == "e2a7c4d1b930", (
-        "the revision must stamp over an index it had already built"
-    )
-    assert index_is_valid() is True, "the adopted index must be left intact"
+        assert _pending_thumbnail_index_is_valid(migration_helper) is True, "the adopted index must be left intact"
+    finally:
+        command.upgrade(relab_alembic_config, "head")
 
 
 @pytest.mark.migration

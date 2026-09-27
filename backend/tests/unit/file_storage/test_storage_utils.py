@@ -390,6 +390,29 @@ def test_ooxml_upload_rejects_excessive_uncompressed_size(monkeypatch: pytest.Mo
     assert upload.file.tell() == 0
 
 
+@pytest.mark.parametrize(("extra_bytes", "accepted"), [(0, True), (1, False)])
+def test_ooxml_upload_limits_are_inclusive(
+    monkeypatch: pytest.MonkeyPatch, extra_bytes: int, *, accepted: bool
+) -> None:
+    """An archive exactly at the member-count and MiB-based unpacked-size caps is accepted; one byte over is not."""
+    monkeypatch.setattr("app.api.file_storage.upload_policy.MAX_COMPRESSED_FILE_COUNT", 2)
+    monkeypatch.setattr("app.api.file_storage.upload_policy.settings.max_file_upload_size_mb", 1)
+    # One member of exactly 1 MiB lands the running total on the cap at a read-chunk
+    # boundary, so the extra byte is only seen if reading continues past the cap.
+    document = b"x" * (1024 * 1024 + extra_bytes)
+    upload = _upload(
+        "report.docx",
+        DOCX_CONTENT_TYPE,
+        _zip_bytes_with_info([(ZipInfo("[Content_Types].xml"), b""), (ZipInfo("word/document.xml"), document)]),
+    )
+
+    if accepted:
+        validate_generic_file_upload_content(upload)
+    else:
+        with pytest.raises(BadRequestError, match="uncompressed size"):
+            validate_generic_file_upload_content(upload)
+
+
 def test_ooxml_upload_rejects_symlink_members() -> None:
     """Compressed uploads must reject symlink entries."""
     symlink = ZipInfo("word/link.xml")

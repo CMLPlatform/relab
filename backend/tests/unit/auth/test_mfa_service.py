@@ -15,6 +15,8 @@ from app.api.common.rate_limiting import RateLimitExceededError, rate_limit_buck
 from tests.fixtures.auth import totp_code
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from pytest_mock import MockerFixture
     from redis.asyncio import Redis
 
@@ -42,6 +44,40 @@ async def test_verify_totp_code_once_accepts_current_server_window(redis_client:
         code=code,
         for_time=now,
     )
+
+
+async def test_verify_totp_code_once_rejects_replayed_code(redis_client: Redis) -> None:
+    """A code accepted once must not verify again within its time-step."""
+    secret = mfa_service.generate_totp_secret()
+    user_id = uuid4()
+    now = int(time.time())
+    code = totp_code(secret, for_time=now)
+
+    assert await mfa_service.verify_totp_code_once(
+        redis_client, user_id=user_id, secret=secret, code=code, for_time=now
+    )
+    assert not await mfa_service.verify_totp_code_once(
+        redis_client, user_id=user_id, secret=secret, code=code, for_time=now
+    )
+
+
+@pytest.mark.parametrize(
+    ("step_offset", "accepted"),
+    [(-2, False), (-1, True), (1, True), (2, False)],
+)
+async def test_verify_totp_code_once_allows_one_step_of_clock_drift(
+    redis_client: Redis, step_offset: int, *, accepted: bool
+) -> None:
+    """Codes one time-step off are accepted for clock drift; codes further off are not."""
+    secret = mfa_service.generate_totp_secret()
+    now = int(time.time())
+    code = totp_code(secret, for_time=now + step_offset * mfa_service.TOTP_PERIOD_SECONDS)
+
+    result = await mfa_service.verify_totp_code_once(
+        redis_client, user_id=uuid4(), secret=secret, code=code, for_time=now
+    )
+
+    assert result is accepted
 
 
 async def test_mfa_challenge_token_is_one_time(redis_client: Redis) -> None:
@@ -109,6 +145,18 @@ async def test_mfa_setup_token_is_consumed_after_successful_confirmation(redis_c
     assert first.secret == secret
     with pytest.raises(MfaChallengeInvalidError):
         await mfa_service.consume_totp_setup(redis_client, token, user_id=user_id)
+
+
+@pytest.mark.parametrize("read", [mfa_service.get_totp_setup, mfa_service.consume_totp_setup])
+async def test_mfa_setup_token_is_bound_to_its_user(
+    redis_client: Redis, read: Callable[..., Awaitable[object]]
+) -> None:
+    """Another user must not be able to read or confirm a pending TOTP setup."""
+    secret = mfa_service.generate_totp_secret()
+    token = await mfa_service.create_totp_setup(redis_client, user_id=uuid4(), secret=secret)
+
+    with pytest.raises(MfaChallengeInvalidError):
+        await read(redis_client, token, user_id=uuid4())
 
 
 async def test_mfa_token_rate_limit_uses_keyed_token_fingerprint(mocker: MockerFixture) -> None:

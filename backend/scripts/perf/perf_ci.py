@@ -21,7 +21,14 @@ SCENARIOS = (
     "media_url_read",
     "product_create_write",
     "image_upload_write",
+    "rpi_cam_ws_connect",
+    "rpi_cam_telemetry_relay",
+    "rpi_cam_hls_relay",
+    "rpi_cam_capture",
+    "rpi_cam_preview_upload",
 )
+# The latency metric each scenario is thresholded on, when it is not http_req_duration.
+SCENARIO_METRICS = {"rpi_cam_ws_connect": "ws_connecting"}
 
 
 def _load_metrics() -> dict[str, Any]:
@@ -32,15 +39,25 @@ def _load_metrics() -> dict[str, Any]:
     return cast("dict[str, Any]", data["metrics"])
 
 
+def _latency_metric(scenario: str) -> str:
+    return SCENARIO_METRICS.get(scenario, "http_req_duration")
+
+
 def _has_scenario(metrics: dict[str, Any], scenario: str) -> bool:
-    return f"http_req_duration{{scenario:{scenario}}}" in metrics
+    return f"{_latency_metric(scenario)}{{scenario:{scenario}}}" in metrics
+
+
+def _threshold_pattern(scenario: str) -> str:
+    # Matches both styles the script uses: `"metric{...}": ["p(95)<N"]` in the
+    # literal and `thresholds["metric{...}"] = ["p(95)<N"]` for gated scenarios.
+    return rf'({_latency_metric(scenario)}\{{scenario:{scenario}\}}"(?:\]? =|:) \["p\(95\)<)(\d+)("\])'
 
 
 # --- threshold refresh ------------------------------------------------------
 
 
 def _scenario_limit(metrics: dict[str, Any], scenario: str, headroom: float) -> int:
-    duration = cast("dict[str, Any]", metrics[f"http_req_duration{{scenario:{scenario}}}"])
+    duration = cast("dict[str, Any]", metrics[f"{_latency_metric(scenario)}{{scenario:{scenario}}}"])
     return math.ceil(float(duration["p(95)"]) * headroom / 100) * 100
 
 
@@ -54,22 +71,10 @@ def apply_thresholds(headroom: float) -> None:
         for scenario in SCENARIOS
         if _has_scenario(metrics, scenario)
     }
-    patterns = {
-        "live_probe": r'(http_req_duration\{scenario:live_probe\}": \["p\(95\)<)(\d+)("\])',
-        "product_list_read": r'(http_req_duration\{scenario:product_list_read\}": \["p\(95\)<)(\d+)("\])',
-        "product_search_read": r'(http_req_duration\{scenario:product_search_read\}": \["p\(95\)<)(\d+)("\])',
-        "product_detail_read": r'(http_req_duration\{scenario:product_detail_read\}": \["p\(95\)<)(\d+)("\])',
-        "product_components_read": r'(http_req_duration\{scenario:product_components_read\}": \["p\(95\)<)(\d+)("\])',
-        "reference_data_read": r'(http_req_duration\{scenario:reference_data_read\}": \["p\(95\)<)(\d+)("\])',
-        "image_upload_write": r'(http_req_duration\{scenario:image_upload_write\}"] = \["p\(95\)<)(\d+)("\])',
-        "product_create_write": r'(http_req_duration\{scenario:product_create_write\}"] = \["p\(95\)<)(\d+)("\])',
-        "bearer_login": r'(http_req_duration\{scenario:bearer_login\}"] = \["p\(95\)<)(\d+)("\])',
-        "media_url_read": r'(http_req_duration\{scenario:media_url_read\}"] = \["p\(95\)<)(\d+)("\])',
-    }
 
     updated = target_text
     for scenario, limit in scenario_limits.items():
-        updated = re.sub(patterns[scenario], rf"\g<1>{limit}\g<3>", updated)
+        updated = re.sub(_threshold_pattern(scenario), rf"\g<1>{limit}\g<3>", updated)
     TARGET_JS.write_text(updated)
 
     for scenario, limit in scenario_limits.items():
