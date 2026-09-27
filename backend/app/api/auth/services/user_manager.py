@@ -117,7 +117,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         # it uses. NOTE: check-then-hit is not atomic, so a burst of concurrent guesses can
         # overshoot by the number in flight; the per-IP login limit bounds that per source.
         account_key = _login_identifier_rate_limit_key(credentials.username)
-        await limiter.acheck_key(LOGIN_RATE_LIMIT, account_key)
+        await limiter.ahit_key(LOGIN_RATE_LIMIT, account_key, consume=False)
         user = await self._authenticate_offloading_hashes(credentials)
         if user is None:
             await limiter.ahit_key(LOGIN_RATE_LIMIT, account_key)

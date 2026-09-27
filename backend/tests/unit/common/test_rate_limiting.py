@@ -20,7 +20,6 @@ from app.api.common.rate_limiting import (
     rate_limit_bucket_key,
     rate_limit_exceeded_handler,
     request_ip_rate_limit_key,
-    request_rate_limit_key,
 )
 from app.core.http_headers import AUTH_COOKIE_NAME
 from app.core.runtime import AppServices
@@ -232,14 +231,14 @@ async def test_dependency_limits_request_buckets(limiter: Limiter) -> None:
         await check(req)
 
 
-def test_check_key_does_not_consume(limiter: Limiter) -> None:
-    """check_key reports an exhausted bucket but never spends from it."""
+def test_hit_key_without_consume_only_checks(limiter: Limiter) -> None:
+    """consume=False reports an exhausted bucket but never spends from it."""
     for _ in range(5):
-        limiter.check_key("1/minute", "auth:login:account:one")
+        limiter.hit_key("1/minute", "auth:login:account:one", consume=False)
     limiter.hit_key("1/minute", "auth:login:account:one")
 
     with pytest.raises(RateLimitExceededError):
-        limiter.check_key("1/minute", "auth:login:account:one")
+        limiter.hit_key("1/minute", "auth:login:account:one", consume=False)
 
 
 # ---------------------------------------------------------------------------
@@ -318,14 +317,9 @@ async def test_unknown_tokens_fall_back_to_the_ip_bucket(keyed_client: httpx.Asy
     assert statuses == [200, 200, 429]
 
 
-async def test_redis_error_during_lookup_falls_back_to_ip(redis_client: Redis) -> None:
+async def test_redis_error_during_lookup_falls_back_to_ip(keyed_client: httpx.AsyncClient, redis_client: Redis) -> None:
     """A token lookup failure keys the request per IP rather than failing it."""
-    request = _make_request(_ROOM_IP)
-    request.headers = {"authorization": "Bearer anything"}
-    request.cookies = {}
-    request.app.state.services = AppServices(redis=redis_client)
+    bearer = {"Authorization": f"Bearer {await _issue_token(redis_client, 'user-a')}"}
 
     with patch.object(redis_client, "get", side_effect=RedisConnectionError("down")):
-        key, is_user = await request_rate_limit_key(request, request_access_token_owner_id)
-
-    assert (key, is_user) == (request_ip_rate_limit_key(request), False)
+        assert await _statuses(keyed_client, 3, bearer) == [200, 200, 429]

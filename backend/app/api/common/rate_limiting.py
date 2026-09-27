@@ -8,6 +8,7 @@ Lives in ``common`` because every context rate-limits. Auth owns its own bucket 
 and, because it owns identity, the per-user API limits (``auth.services.rate_limiter``).
 """
 
+import functools
 import logging
 from collections.abc import Awaitable, Callable
 
@@ -51,22 +52,6 @@ type RequestUserId = Callable[[Request], Awaitable[str | None]]
 """Resolve the signed-in user id of a request, or None. Supplied by auth, which owns identity."""
 
 
-async def request_rate_limit_key(request: Request, user_id_of: RequestUserId) -> tuple[str, bool]:
-    """Return ``(bucket, is_user)``: the user's bucket for a signed-in request, else the client IP's.
-
-    The one place that decides request keying. No user id, or a Redis error while
-    resolving one, falls back to the IP bucket, so rotating junk tokens never buys a
-    fresh bucket. The id only picks a bucket; the route's own auth still decides access.
-    """
-    try:
-        user_id = await user_id_of(request)
-    except RedisError, ConnectionError, TimeoutError, OSError:
-        user_id = None
-    if user_id is None:
-        return request_ip_rate_limit_key(request), False
-    return rate_limit_bucket_key("client:user", user_id), True
-
-
 class Limiter:
     """Fixed-window rate limiter for per-IP or per-user FastAPI dependencies and explicit buckets."""
 
@@ -74,8 +59,11 @@ class Limiter:
         self.enabled = enabled
         self._limiter = FixedWindowRateLimiter(storage_from_string(storage_uri)) if enabled else None
 
-    def hit_key(self, rate_string: str, key: str) -> None:
+    def hit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
         """Enforce *rate_string* for an explicit bucket key.
+
+        ``consume=False`` only checks the bucket, for budgets that count some outcomes,
+        such as failed logins: check before the work, hit only when the outcome counts.
 
         Fails open on a Redis backend outage: an unreachable rate limiter must not
         turn into a hard outage for login/register/pairing. The narrower risk (a
@@ -87,7 +75,7 @@ class Limiter:
 
         parsed = parse(rate_string)
         try:
-            allowed = self._limiter.hit(parsed, key)
+            allowed = (self._limiter.hit if consume else self._limiter.test)(parsed, key)
         except RedisError, ConnectionError, TimeoutError, OSError:
             logger.warning("Rate limiter backend unavailable; failing open for bucket %s", key)
             return
@@ -97,29 +85,7 @@ class Limiter:
             logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
             raise RateLimitExceededError
 
-    def check_key(self, rate_string: str, key: str) -> None:
-        """Raise if *key*'s bucket is already exhausted, without consuming from it.
-
-        Pairs with ``hit_key`` for budgets that only count some outcomes, such as failed
-        logins: check before the work, hit only when the outcome counts. Fails open like
-        ``hit_key``.
-        """
-        if not self.enabled or self._limiter is None:
-            return
-        try:
-            allowed = self._limiter.test(parse(rate_string), key)
-        except RedisError, ConnectionError, TimeoutError, OSError:
-            logger.warning("Rate limiter backend unavailable; failing open for bucket %s", key)
-            return
-        if not allowed:
-            logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
-            raise RateLimitExceededError
-
-    async def acheck_key(self, rate_string: str, key: str) -> None:
-        """Async ``check_key``, offloaded to a worker thread for the same reason as ``ahit_key``."""
-        await anyio.to_thread.run_sync(self.check_key, rate_string, key)
-
-    async def ahit_key(self, rate_string: str, key: str) -> None:
+    async def ahit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
         """Async ``hit_key`` for callers already on the event loop.
 
         The ``limits`` Redis backend is synchronous (its async backend would pull in a
@@ -128,7 +94,7 @@ class Limiter:
         Offloading to a worker thread keeps the loop free; route dependencies use it too.
         Sync callers must use ``hit_key`` instead.
         """
-        await anyio.to_thread.run_sync(self.hit_key, rate_string, key)
+        await anyio.to_thread.run_sync(functools.partial(self.hit_key, rate_string, key, consume=consume))
 
     def dependency(
         self,
@@ -152,8 +118,16 @@ class Limiter:
                 await self.ahit_key(rate_string, request_ip_rate_limit_key(request))
                 return
             user_rate_string, user_id_of = per_user
-            key, is_user = await request_rate_limit_key(request, user_id_of)
-            await self.ahit_key(user_rate_string if is_user else rate_string, key)
+            # No user id, or a Redis error resolving one, keeps the IP bucket, so rotating junk
+            # tokens never buys a fresh budget. The id only picks a bucket, never grants access.
+            try:
+                user_id = await user_id_of(request)
+            except RedisError, ConnectionError, TimeoutError, OSError:
+                user_id = None
+            if user_id is None:
+                await self.ahit_key(rate_string, request_ip_rate_limit_key(request))
+            else:
+                await self.ahit_key(user_rate_string, rate_limit_bucket_key("client:user", user_id))
 
         dependency.__name__ = name
         return Depends(dependency)
