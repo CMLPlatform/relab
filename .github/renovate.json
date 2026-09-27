@@ -1,10 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices", ":approveMajorUpdates", "schedule:daily"],
+  "extends": ["config:best-practices", "schedule:weekly"],
   "timezone": "Europe/Amsterdam",
-  "semanticCommitType": "chore",
-  "semanticCommitScope": "deps",
-  "prConcurrentLimit": 4,
   "rebaseWhen": "conflicted",
   "pre-commit": {
     "enabled": true
@@ -19,13 +16,16 @@
   },
   "packageRules": [
     {
-      "description": "Non-breaking updates merge themselves once CI is green. Lockfile maintenance is how patched transitive versions arrive, so it merges itself too.",
-      "matchUpdateTypes": ["minor", "patch", "digest", "lockFileMaintenance"],
+      "description": "Once a week, every non-major update lands in one PR that merges itself on green CI; one PR also means no rebasing between PRs that share pnpm-lock.yaml. Majors get a PR each, the same day, merged by hand. Security fixes skip the weekly schedule and the release age: Renovate's vulnerabilityAlerts defaults open them straight away.",
+      "groupName": "all non-major",
+      "groupSlug": "all-non-major",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin", "pinDigest"],
       "automerge": true
     },
     {
-      "description": "Renovate has no release timestamp to age a lock file refresh against, so the 3-day minimumReleaseAge above would hold these PRs pending forever. The package managers enforce the age during the relock instead: pnpm's strict minimumReleaseAge and uv's exclude-newer.",
+      "description": "The weekly lock refresh from config:best-practices is how patched transitive versions arrive, so it merges itself too. Renovate cannot mix it into a group with other update types, so it stays its own PR. It has no release timestamp to age a lock refresh against, so the 3-day minimumReleaseAge above would hold it pending forever; pnpm's strict minimumReleaseAge and uv's exclude-newer enforce the age during the relock instead.",
       "matchUpdateTypes": ["lockFileMaintenance"],
+      "automerge": true,
       "minimumReleaseAge": null
     },
     {
@@ -54,51 +54,22 @@
       "enabled": false
     },
     {
-      "description": "One PR per subrepo instead of one per package",
-      "groupName": "backend",
-      "matchFileNames": ["backend/**"]
-    },
-    {
-      "groupName": "app",
-      "matchFileNames": ["app/**"]
-    },
-    {
-      "groupName": "www",
-      "matchFileNames": ["www/**"]
-    },
-    {
-      "groupName": "docs",
-      "matchFileNames": ["docs/**"]
-    },
-    {
-      "description": "Root files only. The shared pnpm-lock.yaml is left out: matchFileNames also matches lockfiles, so listing it pulled every app, www and docs dependency into this group.",
-      "groupName": "repo-tooling",
-      "matchFileNames": [
-        ".tool-versions",
-        ".node-version",
-        ".pre-commit-config.yaml",
-        ".devcontainer/**",
-        "package.json",
-        "pnpm-workspace.yaml",
-        "pyproject.toml",
-        "uv.lock"
-      ]
+      "description": "Stable and maintained, just slow to release. The longer threshold keeps them off the dashboard's abandoned list unless they go much quieter.",
+      "matchPackageNames": [
+        "class-variance-authority",
+        "eslint-plugin-react-native-a11y",
+        "email-validator",
+        "pytest-mock",
+        "pytest-xdist",
+        "pyyaml"
+      ],
+      "abandonmentThreshold": "3 years"
     },
     {
       "description": "Overrides are security pins with hand-picked ranges; Renovate reads them as dependencies and proposes major bumps across the pinned range. Renovate cannot look up advisories for a range value, so `just audit` is what catches a new one. Retire overrides with `just overrides-check`. lightningcss is a deduplication pin, not a security pin, so Renovate keeps bumping it.",
       "matchDepTypes": ["pnpm-workspace.overrides"],
       "matchPackageNames": ["!lightningcss"],
       "enabled": false
-    },
-    {
-      "description": "Batch GitHub Actions updates into one PR",
-      "matchManagers": ["github-actions"],
-      "groupName": "github-actions"
-    },
-    {
-      "description": "Batch container image updates into one PR",
-      "matchManagers": ["dockerfile", "docker-compose"],
-      "groupName": "container-images"
     },
     {
       "description": "TypeScript 7.0 is the native compiler and does not expose the programmatic API that `astro check` loads, so it breaks typecheck in docs/ and www/. The TS team calls this point-in-time but has named no version; 7.1 is a probe, and docs/www typecheck in CI is the test. Widen the block if 7.1 also fails. https://github.com/withastro/roadmap/discussions/1321",

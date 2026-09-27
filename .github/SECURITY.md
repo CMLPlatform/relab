@@ -92,9 +92,10 @@ Supply-chain and code-security checks:
   `.github/workflows/renovate.yml` as a GitHub App installed on this repository only. The
   workflow scopes each run's token to the permissions it lists, and the app's private key is an
   Actions secret: rotate it whenever the key, or a workflow that can read it, may have leaked.
-  The app may skip code review when merging a pull request, so it can land what
-  `.github/renovate.json` marks automerge. It cannot skip the required `CI Result` check,
-  which sits in a separate ruleset, so a leaked key can merge only a pull request that passes CI.
+  Changes to `main` go through a pull request and must pass the required `CI Result` check;
+  no approving review is required, so the app can land what `.github/renovate.json` marks
+  automerge. It cannot skip that check, so a leaked key can merge only a pull request that
+  passes CI.
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
 - Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu
   validates Cloudflare edge config, plus Relab Compose render and deploy secret path checks.
