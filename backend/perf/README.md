@@ -222,23 +222,20 @@ shape and the first thing to saturate carry over to other hosts.
   roughly 1500-3000 people working at once. Latency starts queueing from 150-200/s.
 - **The connection pool saturates first, not the CPU.** At 400/s, all 52 pool connections sat
   `idle in transaction` while API CPU fell back to about two cores, and the p99 of 30 s is the
-  SQLAlchemy pool timeout. Postgres itself peaked at about 1.5 cores. An authenticated route that
-  also takes `AsyncSessionDep` holds two connections: `get_auth_async_session` opens its own
-  session instead of sharing the request session. Under pool pressure, requests holding one
-  connection wait for their second until the timeout, so past the knee throughput collapses rather
-  than degrading.
+  SQLAlchemy pool timeout. Postgres itself peaked at about 1.5 cores. The auth dependencies then
+  opened a session of their own, so an authenticated route that also took `AsyncSessionDep` held
+  two connections. Under pool pressure, requests holding one connection waited for their second
+  until the timeout, so past the knee throughput collapsed rather than degrading. The auth
+  dependencies now share the request session.
 - **Logins: about 300/s before queueing turns into errors.** The Argon2 threadpool (40 tokens
   per worker) was never the limit. The two limits were CPU, with the API at about 16 cores at
   400/s, and the per-worker concurrency limit of 100, which returned the 503s. Each login also holds
   a pool connection during the hash. On a host with fewer cores, expect roughly 25-30 logins/s per
   free core.
 
-Before a workshop, in order:
+Before a workshop:
 
-1. Share one session per request between the auth dependencies and `AsyncSessionDep`, so that an
-   authenticated write holds one connection. That turns the cliff past the knee into gradual
-   queueing and raises the effective pool size for writes.
-2. Check the per-IP rate limits against the room. The limiter keys on client IP, and a room on one
+1. Check the per-IP rate limits against the room. The limiter keys on client IP, and a room on one
    network usually shares one public address. Then 3 logins/min, 5 registrations/hour and 300
    reads/min apply to everyone in it together. Neither this test nor the CI stack exercises the
    limits, which are off in `testing`.
