@@ -165,7 +165,7 @@ function AmountChip({
   return (
     <View
       className="rounded-md flex-row items-center"
-      style={{ backgroundColor: tokens.surface.accent }}
+      style={{ backgroundColor: tokens.surface.accent, minHeight: MIN_TAP_TARGET }}
     >
       <View className="flex-row items-center">
         <AppText
@@ -206,13 +206,16 @@ function AmountChip({
           />
         </View>
       ) : (
-        <AppText
-          variant="data"
-          className="bg-primary text-primary-foreground rounded-md py-2 px-3"
-          style={amountStyles.valueText}
-        >
-          {String(amount)}
-        </AppText>
+        // Full chip height, like Brand and Model's value segment beside it.
+        <View className="bg-primary self-stretch justify-center rounded-md px-3">
+          <AppText
+            variant="data"
+            className="text-primary-foreground"
+            style={amountStyles.valueText}
+          >
+            {String(amount)}
+          </AppText>
+        </View>
       )}
     </View>
   );

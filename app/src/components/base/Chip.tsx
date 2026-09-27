@@ -64,7 +64,7 @@ export const Chip = ({
       {title ? (
         <AppText
           variant="label"
-          className="px-3 py-2 text-center font-medium"
+          className="self-center px-3 py-2 text-center font-medium"
           style={{ color: theme.colors.primary }}
         >
           {title}
