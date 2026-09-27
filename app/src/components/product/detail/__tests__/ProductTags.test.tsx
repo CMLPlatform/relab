@@ -62,6 +62,23 @@ describe('ProductTags', () => {
     expect(screen.getByText('Select brand')).toBeOnTheScreen();
   });
 
+  it('renders brand and model as read-only values outside editMode, not buttons', async () => {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
+    expect(screen.queryByRole('button', { name: 'Brand: CircularTech' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Model: X100' })).toBeNull();
+    expect(screen.getByText(BRAND_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('keeps brand and model as buttons in editMode', async () => {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={true} />, {
+      withDialog: true,
+    });
+    expect(screen.getByRole('button', { name: 'Brand: CircularTech' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Model: X100' })).toBeOnTheScreen();
+  });
+
   it('does not open brand modal when not in editMode', async () => {
     await renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
       withDialog: true,

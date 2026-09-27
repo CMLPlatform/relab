@@ -73,6 +73,7 @@ export default function ProductTags({
     <View className="my-3 px-4 gap-2.5 flex-row flex-wrap">
       <Chip
         title={'Brand'}
+        readOnly={!editMode}
         onPress={onEditBrand}
         icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
       >
@@ -80,6 +81,7 @@ export default function ProductTags({
       </Chip>
       <Chip
         title={'Model'}
+        readOnly={!editMode}
         onPress={onEditModel}
         icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
       >
