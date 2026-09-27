@@ -40,49 +40,20 @@ describe('productImageGalleryHelpers', () => {
     ]);
   });
 
-  it('builds imported images from processed picker assets', async () => {
+  it('builds imported images, keeping the original file when processing fails', async () => {
     mockProcessImage.mockImplementationOnce(async () => 'processed://image-1');
     mockProcessImage.mockImplementationOnce(async () => null);
+    const limits = { maxBytes: 10 * 1024 * 1024, maxPixels: 30_000_000, maxSidePx: 10_000 };
 
     const assets = [
       { uri: 'file://one.jpg' },
       { uri: 'file://two.jpg' },
     ] as ImagePicker.ImagePickerAsset[];
 
-    await expect(buildImportedImages(assets)).resolves.toEqual([
+    await expect(buildImportedImages(assets, limits)).resolves.toEqual([
       { url: 'processed://image-1', description: '' },
       { url: 'file://two.jpg', description: '' },
     ]);
-  });
-
-  it('passes lab originals through untouched, with no client size cap', async () => {
-    const onReject = jest.fn();
-    const assets = [
-      { uri: 'file://48mp.jpg', width: 8000, height: 6000, fileSize: 24 * 1024 * 1024 },
-    ] as ImagePicker.ImagePickerAsset[];
-
-    await expect(buildImportedImages(assets, onReject, true)).resolves.toEqual([
-      { url: 'file://48mp.jpg', description: '' },
-    ]);
-    expect(mockProcessImage).not.toHaveBeenCalled();
-    expect(onReject).not.toHaveBeenCalled();
-  });
-
-  // Keeping the raw asset after a size rejection only defers the failure to
-  // save time, where the server answers with an opaque 413.
-  it('drops an oversized pick and reports it instead of falling back to the raw asset', async () => {
-    mockProcessImage.mockImplementation(async (_asset: unknown, options: unknown) => {
-      (options as { onError: (e: unknown) => void }).onError({
-        type: 'size',
-        message: 'Max size is 10 MB. Selected image size: 24.00 MB.',
-      });
-      return null;
-    });
-    const onReject = jest.fn();
-
-    const assets = [{ uri: 'file://huge.jpg' }] as ImagePicker.ImagePickerAsset[];
-
-    await expect(buildImportedImages(assets, onReject)).resolves.toEqual([]);
-    expect(onReject).toHaveBeenCalledWith('Max size is 10 MB. Selected image size: 24.00 MB.');
+    expect(mockProcessImage).toHaveBeenCalledWith(assets[0], limits);
   });
 });

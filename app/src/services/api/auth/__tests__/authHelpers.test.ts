@@ -1,5 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 import {
+  DEFAULT_IMAGE_LIMITS,
   getAuthLoginPath,
   getAuthRefreshPath,
   mapApiUserToUser,
@@ -70,9 +71,25 @@ describe('authHelpers', () => {
       role: 'contributor',
       termsAcceptanceRequired: false,
       uploadQuota: { files: 0, bytes: 0, usedFiles: 0, usedBytes: 0 },
+      // Unreported image caps fall back to the contributor tier, never to 0 (which would
+      // shrink every photo to nothing) or to no cap at all.
+      imageLimits: DEFAULT_IMAGE_LIMITS,
       oauth_accounts: [],
       preferences: {},
     });
+  });
+
+  it("maps the image caps the server reports for the account's role", () => {
+    expect(
+      mapApiUserToUser({
+        id: 9,
+        email: 'lab@example.com',
+        role: 'lab',
+        image_upload_max_bytes: 40 * 1024 * 1024,
+        image_upload_max_pixels: 50_000_000,
+        image_upload_max_side_px: 10_000,
+      } as never).imageLimits,
+    ).toEqual({ maxBytes: 40 * 1024 * 1024, maxPixels: 50_000_000, maxSidePx: 10_000 });
   });
 
   it('preserves null usernames for incomplete OAuth onboarding', () => {

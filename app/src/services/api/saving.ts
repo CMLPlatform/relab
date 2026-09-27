@@ -229,7 +229,7 @@ async function addImage(
   const body = new FormData();
 
   // No size check here: the server's limit is the one that applies, and its 413 names it.
-  // Contributor photos are capped at pick time by processImage; lab originals are not.
+  // processImage fits photos to the account's caps at pick time.
   if (image.url.startsWith('data:')) {
     const fileBlob = dataURItoBlob(image.url);
     body.append('file', fileBlob, imageFilename(fileBlob.type));

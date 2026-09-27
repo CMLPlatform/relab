@@ -76,7 +76,8 @@ escalation:
 - `is_verified` gates whether an account may create records at all.
 - `is_superuser` grants the `/admin` routes. It does **not** imply trust with research data.
 - `role` (`contributor` by default, `lab`) is the contributor tier. It gates non-image
-  research-file upload and selects the upload quota tier. A superuser who is not `lab` is refused
+  research-file upload and selects the upload quota tier and the per-image size and pixel caps,
+  which follow the product owner's role like the quota. A superuser who is not `lab` is refused
   a research-file upload exactly like any other contributor.
 
 Only a superuser assigns roles, through `PUT /v1/admin/users/{user_id}/role`, which records an

@@ -1,6 +1,6 @@
 import type * as ImagePicker from 'expo-image-picker';
 import { resolveApiMediaUrl } from '@/services/api/media';
-import { processImage } from '@/services/imageProcessing';
+import { type ImageLimits, processImage } from '@/services/imageProcessing';
 
 export function appendCapturedImage(
   images: { url: string; description: string; id?: string }[],
@@ -25,30 +25,19 @@ export function appendCapturedImage(
 }
 
 /**
- * Processes picked assets into image entries, dropping any rejected for size (else a 413 at save).
- * With `keepOriginals` (lab accounts) the picked file is uploaded as picked: no resize and
- * no client size cap, so the server's own limit is the one that applies.
+ * Turns picked assets into image entries, each fitted to the account's upload caps. A photo that
+ * cannot be processed keeps its original file; the server's check at save names any cap it breaks.
  */
-export async function buildImportedImages(
+export function buildImportedImages(
   assets: readonly ImagePicker.ImagePickerAsset[],
-  onReject?: (message: string) => void,
-  keepOriginals = false,
+  limits: ImageLimits,
 ) {
-  if (keepOriginals) return assets.map((asset) => ({ url: asset.uri, description: '' }));
-  const results = await Promise.all(
-    assets.map(async (asset) => {
-      let tooLarge = false;
-      const processedUri = await processImage(asset, {
-        onError: (error) => {
-          if (error.type !== 'size') return;
-          tooLarge = true;
-          onReject?.(error.message);
-        },
-      });
-      return tooLarge ? [] : [{ url: processedUri ?? asset.uri, description: '' }];
-    }),
+  return Promise.all(
+    assets.map(async (asset) => ({
+      url: (await processImage(asset, limits)) ?? asset.uri,
+      description: '',
+    })),
   );
-  return results.flat();
 }
 
 export function hasRpiCamerasConfigured(cameraCount: number | undefined) {

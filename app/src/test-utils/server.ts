@@ -46,6 +46,9 @@ export const handlers = [
       upload_quota_bytes: user.uploadQuota.bytes,
       upload_file_count: user.uploadQuota.usedFiles,
       upload_total_bytes: user.uploadQuota.usedBytes,
+      image_upload_max_bytes: user.imageLimits.maxBytes,
+      image_upload_max_pixels: user.imageLimits.maxPixels,
+      image_upload_max_side_px: user.imageLimits.maxSidePx,
     });
   }),
   http.post(`${API_URL}/auth/register`, () => HttpResponse.json({}, { status: 201 })),
@@ -98,6 +101,9 @@ export const handlers = [
       upload_quota_bytes: user.uploadQuota.bytes,
       upload_file_count: user.uploadQuota.usedFiles,
       upload_total_bytes: user.uploadQuota.usedBytes,
+      image_upload_max_bytes: user.imageLimits.maxBytes,
+      image_upload_max_pixels: user.imageLimits.maxPixels,
+      image_upload_max_side_px: user.imageLimits.maxSidePx,
       ...body,
     });
   }),

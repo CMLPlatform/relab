@@ -1,18 +1,16 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-type SaveAsync = () => Promise<{ uri: string }>;
+type SaveAsync = (options: { compress: number }) => Promise<{ uri: string }>;
 type RenderAsync = () => Promise<{ saveAsync: jest.MockedFunction<SaveAsync> }>;
-type ResizeResult = {
+type Manipulator = {
   renderAsync: jest.MockedFunction<RenderAsync>;
-  resize: (args: { width?: number; height?: number }) => ResizeResult;
+  resize: (args: { width: number; height: number }) => Manipulator;
 };
-type ResizeFn = (args: { width?: number; height?: number }) => ResizeResult;
-type ManipulateFn = (uri: string) => ResizeResult;
 
-const mockSaveAsync = jest.fn<() => Promise<{ uri: string }>>();
-const mockRenderAsync = jest.fn<() => Promise<{ saveAsync: typeof mockSaveAsync }>>();
-const mockResize = jest.fn<ResizeFn>();
-const mockManipulate = jest.fn<ManipulateFn>();
+const mockSaveAsync = jest.fn<SaveAsync>();
+const mockRenderAsync = jest.fn<RenderAsync>();
+const mockResize = jest.fn<Manipulator['resize']>();
+const mockManipulate = jest.fn<(uri: string) => Manipulator>();
 
 jest.mock('expo-image-manipulator', () => ({
   ImageManipulator: {
@@ -23,66 +21,70 @@ jest.mock('expo-image-manipulator', () => ({
 const { processImage } =
   require('@/services/imageProcessing') as typeof import('@/services/imageProcessing');
 
+const MB = 1024 * 1024;
+const CONTRIBUTOR = { maxBytes: 10 * MB, maxPixels: 30_000_000, maxSidePx: 10_000 };
+const LAB = { maxBytes: 40 * MB, maxPixels: 50_000_000, maxSidePx: 10_000 };
+
 describe('processImage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    const manipulator: Manipulator = { renderAsync: mockRenderAsync, resize: mockResize };
     mockSaveAsync.mockResolvedValue({ uri: 'file://processed.jpg' });
     mockRenderAsync.mockResolvedValue({ saveAsync: mockSaveAsync });
-    mockResize.mockReturnValue({ renderAsync: mockRenderAsync, resize: mockResize });
-    mockManipulate.mockReturnValue({ resize: mockResize, renderAsync: mockRenderAsync });
+    mockResize.mockReturnValue(manipulator);
+    mockManipulate.mockReturnValue(manipulator);
   });
 
-  it('returns processed URI for a normal image', async () => {
-    const asset = { uri: 'file://photo.jpg', width: 100, height: 100 };
-    const result = await processImage(asset);
-    expect(result).toBe('file://processed.jpg');
-    expect(mockManipulate).toHaveBeenCalledWith('file://photo.jpg');
+  it('returns a photo within the caps untouched, at full resolution', async () => {
+    const asset = { uri: 'file://12mp.jpg', width: 4000, height: 3000, fileSize: 5 * MB };
+
+    await expect(processImage(asset, CONTRIBUTOR)).resolves.toBe('file://12mp.jpg');
+    expect(mockManipulate).not.toHaveBeenCalled();
   });
 
-  it("calls onError with 'size' and returns null when file exceeds max size", async () => {
-    const onError = jest.fn();
-    const asset = {
-      uri: 'file://large.jpg',
-      width: 100,
-      height: 100,
-      fileSize: 15 * 1024 * 1024, // 15 MB > 10 MB limit
-    };
-    const result = await processImage(asset, { onError });
-    expect(result).toBeNull();
-    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ type: 'size' }));
+  it('keeps a 48 MP original untouched for a lab account', async () => {
+    const asset = { uri: 'file://48mp.jpg', width: 8000, height: 6000, fileSize: 24 * MB };
+
+    await expect(processImage(asset, LAB)).resolves.toBe('file://48mp.jpg');
+    expect(mockManipulate).not.toHaveBeenCalled();
   });
 
-  it('does not call resize when image is within dimensions', async () => {
-    const asset = { uri: 'file://small.jpg', width: 800, height: 600 };
-    await processImage(asset);
+  it('scales a photo over the pixel cap down just enough to fit it', async () => {
+    const asset = { uri: 'file://48mp.jpg', width: 8000, height: 6000, fileSize: 24 * MB };
+
+    await expect(processImage(asset, CONTRIBUTOR)).resolves.toBe('file://processed.jpg');
+    const [{ width, height }] = mockResize.mock.calls[0];
+    expect(width * height).toBeLessThanOrEqual(CONTRIBUTOR.maxPixels);
+    expect(width * height).toBeGreaterThan(CONTRIBUTOR.maxPixels * 0.999);
+    expect(width / height).toBeCloseTo(8000 / 6000, 3);
+  });
+
+  it('scales a panorama over the per-side cap down to that side', async () => {
+    const asset = { uri: 'file://pano.jpg', width: 16_000, height: 1_000 };
+
+    await processImage(asset, CONTRIBUTOR);
+    expect(mockResize).toHaveBeenCalledWith({ width: 10_000, height: 625 });
+  });
+
+  it('re-encodes without resizing a photo only over the byte cap', async () => {
+    const asset = { uri: 'file://heavy.jpg', width: 4000, height: 3000, fileSize: 15 * MB };
+
+    await expect(processImage(asset, CONTRIBUTOR)).resolves.toBe('file://processed.jpg');
     expect(mockResize).not.toHaveBeenCalled();
+    expect(mockSaveAsync).toHaveBeenCalledWith({ compress: 0.9 });
   });
 
-  it('resizes by width when image is wider than tall and exceeds maxWidth', async () => {
-    const asset = { uri: 'file://wide.jpg', width: 3000, height: 1000 };
-    await processImage(asset, { maxWidth: 1920, maxHeight: 1920 });
-    expect(mockResize).toHaveBeenCalledWith({ width: 1920 });
+  it('leaves a photo with unknown dimensions and size to the server check', async () => {
+    await expect(processImage({ uri: 'file://unknown.jpg' }, CONTRIBUTOR)).resolves.toBe(
+      'file://unknown.jpg',
+    );
+    expect(mockManipulate).not.toHaveBeenCalled();
   });
 
-  it('resizes by height when image is taller than wide and exceeds maxHeight', async () => {
-    const asset = { uri: 'file://tall.jpg', width: 1000, height: 3000 };
-    await processImage(asset, { maxWidth: 1920, maxHeight: 1920 });
-    expect(mockResize).toHaveBeenCalledWith({ height: 1920 });
-  });
-
-  it("calls onError with 'processing' and returns null when manipulator throws", async () => {
-    const onError = jest.fn();
+  it('returns null when the manipulator fails', async () => {
     mockRenderAsync.mockRejectedValueOnce(new Error('Manipulator failed'));
-    const asset = { uri: 'file://bad.jpg', width: 100, height: 100 };
-    const result = await processImage(asset, { onError });
-    expect(result).toBeNull();
-    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ type: 'processing' }));
-  });
+    const asset = { uri: 'file://bad.jpg', width: 8000, height: 6000 };
 
-  it('processes image with no dimensions provided', async () => {
-    const asset = { uri: 'file://no_dim.jpg' };
-    const result = await processImage(asset);
-    expect(result).toBe('file://processed.jpg');
-    expect(mockResize).not.toHaveBeenCalled();
+    await expect(processImage(asset, CONTRIBUTOR)).resolves.toBeNull();
   });
 });

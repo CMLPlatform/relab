@@ -25,6 +25,13 @@ export function shouldSkipUserFetch({
   return false;
 }
 
+/** The contributor tier's server defaults, for a server that does not report its caps. */
+export const DEFAULT_IMAGE_LIMITS: User['imageLimits'] = {
+  maxBytes: 10 * 1024 * 1024,
+  maxPixels: 30_000_000,
+  maxSidePx: 10_000,
+};
+
 export function mapApiUserToUser(data: ApiUserRead): User {
   return {
     id: data.id,
@@ -43,6 +50,11 @@ export function mapApiUserToUser(data: ApiUserRead): User {
       bytes: data.upload_quota_bytes ?? 0,
       usedFiles: data.upload_file_count ?? 0,
       usedBytes: data.upload_total_bytes ?? 0,
+    },
+    imageLimits: {
+      maxBytes: data.image_upload_max_bytes || DEFAULT_IMAGE_LIMITS.maxBytes,
+      maxPixels: data.image_upload_max_pixels || DEFAULT_IMAGE_LIMITS.maxPixels,
+      maxSidePx: data.image_upload_max_side_px || DEFAULT_IMAGE_LIMITS.maxSidePx,
     },
     oauth_accounts: data.oauth_accounts ?? [],
     preferences: data.preferences ?? {},

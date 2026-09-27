@@ -194,7 +194,10 @@ def test_dos_hardening_defaults_are_conservative() -> None:
 
     assert settings.request_body_limit_bytes == 1024 * 1024
     assert settings.max_file_upload_size_mb == 50
-    assert settings.max_image_upload_size_mb == 40
+    assert settings.max_image_upload_size_mb == 10
+    assert settings.max_image_upload_size_lab_mb == 40
+    assert settings.max_image_upload_pixels == 30_000_000
+    assert settings.max_image_upload_pixels_lab == 50_000_000
     assert settings.api_read_rate_limit == "300/minute"
     assert settings.api_write_rate_limit == "120/minute"
     assert settings.api_upload_rate_limit == "30/minute"

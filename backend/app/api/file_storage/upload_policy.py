@@ -11,6 +11,7 @@ from PIL import UnidentifiedImageError
 
 from app.api.common.exceptions import BadRequestError
 from app.core.config.core import settings
+from app.core.images.constants import MAX_IMAGE_PIXELS
 from app.core.images.validation import validate_image_dimensions
 
 if TYPE_CHECKING:
@@ -278,8 +279,8 @@ def validate_image_upload_metadata(upload_file: UploadFile) -> UploadFile:
     return upload_file
 
 
-def validate_image_upload_content(upload_file: UploadFile) -> UploadFile:
-    """Validate that image content matches its declared upload metadata."""
+def validate_image_upload_content(upload_file: UploadFile, *, max_pixels: int = MAX_IMAGE_PIXELS) -> UploadFile:
+    """Validate that image content matches its declared upload metadata and fits ``max_pixels``."""
     validate_image_upload_metadata(upload_file)
     name = _safe_upload_name(upload_file)
     expected_format = IMAGE_EXTENSION_TO_FORMAT[_final_extension(name)]
@@ -288,7 +289,7 @@ def validate_image_upload_content(upload_file: UploadFile) -> UploadFile:
     try:
         with PILImage.open(upload_file.file) as image:
             detected_format = image.format
-            validate_image_dimensions(image)
+            validate_image_dimensions(image, max_pixels=max_pixels)
             image.verify()
     except ValueError as exc:
         raise BadRequestError(str(exc)) from exc

@@ -187,10 +187,17 @@ class CoreSettings(RelabBaseSettings):
     # ── Request, upload, and DoS limits ──────────────────────────────────────────
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
-    # Sized for untouched 48 MP phone and 45 MP camera JPEGs (roughly 12-30 MB). Keep it at
-    # or under max_file_upload_size_mb: the request-size middleware caps every multipart
-    # body at that value.
-    max_image_upload_size_mb: int = Field(default=40, ge=1, le=100)
+    # Image caps are tiered by role like the quotas below; the plain names are the
+    # contributor tier. The app fits photos to these (via /users/me) before upload.
+    # Keep the size caps at or under max_file_upload_size_mb: the request-size middleware
+    # caps every multipart body at that value. The lab tier is sized for full-resolution
+    # 48 MP phone and 45 MP camera JPEGs (roughly 12-30 MB).
+    max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
+    max_image_upload_size_lab_mb: int = Field(default=40, ge=1, le=100)
+    # Bounded by Pillow's decompression-bomb guard (MAX_IMAGE_PIXELS in app.core.images),
+    # which is the absolute ceiling for every tier.
+    max_image_upload_pixels: int = Field(default=30_000_000, ge=1_000_000, le=50_000_000)
+    max_image_upload_pixels_lab: int = Field(default=50_000_000, ge=1_000_000, le=50_000_000)
     # Upload quotas are tiered by role (app.api.auth.roles): per_user is the contributor tier.
     max_upload_files_per_user: int = Field(default=1000, ge=1, le=100_000)
     max_upload_bytes_per_user_mb: int = Field(default=1024, ge=1, le=1_000_000)

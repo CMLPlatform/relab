@@ -12,9 +12,9 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
 }));
 
-let mockRole: 'contributor' | 'lab' = 'contributor';
+const MOCK_IMAGE_LIMITS = { maxBytes: 40 * 1024 * 1024, maxPixels: 50_000_000, maxSidePx: 10_000 };
 jest.mock('@/context/auth', () => ({
-  useAuth: () => ({ user: { role: mockRole } }),
+  useAuth: () => ({ user: { imageLimits: MOCK_IMAGE_LIMITS } }),
 }));
 
 jest.mock('@/services/imageProcessing', () => ({
@@ -180,41 +180,26 @@ describe('importing photos', () => {
     jest.mocked(launchCameraAsync).mockResolvedValue(picked as never);
   });
 
-  it('resizes and re-encodes a contributor photo, as before', async () => {
-    mockRole = 'contributor';
-    const onImagesChange = jest.fn();
-    const { result } = await setup(onImagesChange);
-
-    await act(async () => {
-      await result.current.handlePickImage();
-    });
-
-    expect(launchImageLibraryAsync).toHaveBeenCalledWith(expect.objectContaining({ quality: 0.8 }));
-    expect(processImage).toHaveBeenCalledTimes(1);
-    expect(onImagesChange).toHaveBeenCalledWith([
-      ...IMAGES,
-      { url: 'file://processed.jpg', description: '' },
-    ]);
-  });
-
   it.each([
     ['library', 'handlePickImage', launchImageLibraryAsync],
     ['camera', 'handleTakePhoto', launchCameraAsync],
-  ] as const)('uploads a lab %s photo untouched', async (_source, handler, picker) => {
-    mockRole = 'lab';
-    const onImagesChange = jest.fn();
-    const { result } = await setup(onImagesChange);
+  ] as const)(
+    "fits a %s photo to the account's own caps, from the untouched file",
+    async (_source, handler, picker) => {
+      const onImagesChange = jest.fn();
+      const { result } = await setup(onImagesChange);
 
-    await act(async () => {
-      await result.current[handler]();
-    });
+      await act(async () => {
+        await result.current[handler]();
+      });
 
-    // Quality 1 makes the picker hand over the file as-is instead of re-compressing it.
-    expect(picker).toHaveBeenCalledWith(expect.objectContaining({ quality: 1 }));
-    expect(processImage).not.toHaveBeenCalled();
-    expect(onImagesChange).toHaveBeenCalledWith([
-      ...IMAGES,
-      { url: 'file://original.jpg', description: '' },
-    ]);
-  });
+      // Quality 1 makes the picker hand over the file as-is; only the caps decide a resize.
+      expect(picker).toHaveBeenCalledWith(expect.objectContaining({ quality: 1 }));
+      expect(processImage).toHaveBeenCalledWith(picked.assets[0], MOCK_IMAGE_LIMITS);
+      expect(onImagesChange).toHaveBeenCalledWith([
+        ...IMAGES,
+        { url: 'file://processed.jpg', description: '' },
+      ]);
+    },
+  );
 });

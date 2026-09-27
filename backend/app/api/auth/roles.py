@@ -1,4 +1,4 @@
-"""User roles and the upload quota tiers they carry.
+"""User roles and the upload quota and image-size tiers they carry.
 
 ``is_verified`` gates creating anything and ``is_superuser`` grants ``/admin``; roles
 say whether the person is trusted with lab-grade storage. Tiers are strictly ordered,
@@ -49,3 +49,17 @@ def upload_quota_bytes_for_role(role: UserRole) -> int:
     if role is UserRole.LAB:
         return settings.max_upload_bytes_per_lab_user_mb * 1024 * 1024
     return settings.max_upload_bytes_per_user_mb * 1024 * 1024
+
+
+def image_upload_max_mb_for_role(role: UserRole) -> int:
+    """Return the per-image upload size cap, in MB, for ``role``."""
+    if role is UserRole.LAB:
+        return settings.max_image_upload_size_lab_mb
+    return settings.max_image_upload_size_mb
+
+
+def image_upload_max_pixels_for_role(role: UserRole) -> int:
+    """Return the per-image total-pixel cap for ``role``."""
+    if role is UserRole.LAB:
+        return settings.max_image_upload_pixels_lab
+    return settings.max_image_upload_pixels

@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Case, and_, case, func, select, union_all, update
 
 from app.api.auth.models import User
-from app.api.auth.roles import UserRole, upload_quota_bytes_for_role, upload_quota_files_for_role
+from app.api.auth.roles import DEFAULT_USER_ROLE, UserRole, upload_quota_bytes_for_role, upload_quota_files_for_role
 from app.api.common.exceptions import PayloadTooLargeError
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.models import File, Image, MediaParentType
@@ -39,6 +39,22 @@ def _quota_by_role(quota_for_role: Callable[[UserRole], int]) -> Case[int]:
         *((User.role == role.value, quota_for_role(role)) for role in UserRole),
         else_=quota_for_role(UserRole.CONTRIBUTOR),
     )
+
+
+async def upload_limits_role(session: AsyncSession, *, parent_type: MediaParentType, parent_id: int) -> UserRole:
+    """Return the role whose per-upload caps apply to media attached to this parent.
+
+    Product media follows the product owner's role, like the quota it is charged to.
+    A missing product falls back to the lowest tier; the parent check then rejects it.
+    Other parents are reference data only superusers can attach to, so they get the
+    top tier.
+    """
+    if parent_type != MediaParentType.PRODUCT:
+        return UserRole.LAB
+    role = await session.scalar(
+        select(User.role).join(Product, Product.owner_id == User.id).where(Product.id == parent_id)
+    )
+    return UserRole(role) if role is not None else DEFAULT_USER_ROLE
 
 
 async def reserve_product_upload_quota(

@@ -5502,6 +5502,24 @@ export interface components {
        */
       upload_quota_bytes: number;
       /**
+       * Image Upload Max Bytes
+       * @description Largest single image this account's role may upload.
+       * @default 0
+       */
+      image_upload_max_bytes: number;
+      /**
+       * Image Upload Max Pixels
+       * @description Most pixels (width x height) in a single image this account's role may upload.
+       * @default 0
+       */
+      image_upload_max_pixels: number;
+      /**
+       * Image Upload Max Side Px
+       * @description Longest side, in pixels, any uploaded image may have.
+       * @default 0
+       */
+      image_upload_max_side_px: number;
+      /**
        * Upload File Count
        * @description Files and images this account currently has stored.
        * @default 0

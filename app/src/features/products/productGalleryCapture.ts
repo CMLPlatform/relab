@@ -11,6 +11,7 @@ import { useAuth } from '@/context/auth';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
+import { DEFAULT_IMAGE_LIMITS } from '@/services/api/auth/authHelpers';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import type { useProductGalleryMedia, useProductGalleryViewer } from './productGalleryViewer';
 import { buildImportedImages, hasRpiCamerasConfigured } from './productImageGalleryHelpers';
@@ -122,39 +123,33 @@ export function useProductGalleryImageActions({
 }) {
   const feedback = useAppFeedback();
   const { user } = useAuth();
-  // Lab accounts upload the original file. At quality 1 the picker hands the file over
-  // as-is instead of re-compressing it, and the import then skips the resize.
-  const keepOriginals = user?.role === 'lab';
-  const quality = keepOriginals ? 1 : 0.8;
+  const imageLimits = user?.imageLimits ?? DEFAULT_IMAGE_LIMITS;
 
   const handlePickImage = useCallback(async () => {
     const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      quality,
+      // Quality 1 hands the file over as-is; the import alone decides whether it must shrink.
+      quality: 1,
     });
 
     if (!result.canceled) {
-      const newImages = await buildImportedImages(result.assets, feedback.error, keepOriginals);
+      const newImages = await buildImportedImages(result.assets, imageLimits);
       if (newImages.length > 0) onImagesChange?.([...media.images, ...newImages]);
     }
-  }, [feedback.error, keepOriginals, media.images, onImagesChange, quality]);
+  }, [imageLimits, media.images, onImagesChange]);
 
   const handleTakePhoto = useCallback(async () => {
     if (Platform.OS !== 'web') {
       const permission = await requestCameraPermissionsAsync();
       if (permission.status !== 'granted') return;
     }
-    const result = await launchCameraAsync({ quality });
+    const result = await launchCameraAsync({ quality: 1 });
     if (!result.canceled) {
-      const [newImage] = await buildImportedImages(
-        [result.assets[0]],
-        feedback.error,
-        keepOriginals,
-      );
+      const [newImage] = await buildImportedImages([result.assets[0]], imageLimits);
       if (newImage) onImagesChange?.([...media.images, newImage]);
     }
-  }, [feedback.error, keepOriginals, media.images, onImagesChange, quality]);
+  }, [imageLimits, media.images, onImagesChange]);
 
   // Undo, not confirm: removal is draft-local until save. Read through a ref,
   // not the closed-over array: a photo imported during the undo window would

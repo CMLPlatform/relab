@@ -96,7 +96,7 @@ For the camera integration, see [RPi camera integration](../rpi-cam/).
 
 Accepted types and size limits:
 
-- Images (up to 40 MiB and 50 megapixels): `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp`
+- Images (size caps by role, below): `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp`
 - Research files (up to 50 MiB): `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`,
   `.xlsx`
 - Scientific data (up to 50 MiB): `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`,
@@ -105,9 +105,18 @@ Accepted types and size limits:
 Relab validates type, size, and content before storing a file, and unpacks and inspects office
 files. If malware scanning is enabled, flagged files are rejected.
 
-Contributor accounts resize photos in the app to at most 4096 px and 10 MiB before upload. Lab
-accounts upload photos at full resolution. Either way the server turns the photo upright and
-removes identifying metadata (GPS position, serial numbers, author) before storing it.
+Each image has a size cap set by the role of the product's owner. Every image is also at most
+10 000 px on its longest side:
+
+| Role          | Per image | Pixels |
+| ------------- | --------- | ------ |
+| `contributor` | 10 MiB    | 30 MP  |
+| `lab`         | 40 MiB    | 50 MP  |
+
+The app uploads a photo within your caps at full resolution. A photo over them is scaled down just
+enough to fit, then uploaded. The server applies the same caps to every upload. It also turns each
+photo upright and removes identifying metadata (GPS position, serial numbers, author) before storing
+it.
 
 Each account also has a cap on total file count and storage, set by its role:
 
@@ -118,7 +127,9 @@ Each account also has a cap on total file count and storage, set by its role:
 
 Operators tune both tiers through `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`
 for contributors, and `MAX_UPLOAD_FILES_PER_LAB_USER` and `MAX_UPLOAD_BYTES_PER_LAB_USER_MB` for
-lab accounts. An upload over either cap is rejected; deleting media releases its quota.
+lab accounts. An upload over either cap is rejected; deleting media releases its quota. The image
+caps are `MAX_IMAGE_UPLOAD_SIZE_MB` and `MAX_IMAGE_UPLOAD_PIXELS`, with `_LAB` variants
+(`MAX_IMAGE_UPLOAD_SIZE_LAB_MB`, `MAX_IMAGE_UPLOAD_PIXELS_LAB`); no pixel cap can exceed 50 MP.
 
 ## Final check
 

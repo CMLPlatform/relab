@@ -35,6 +35,7 @@ const signedInUser: User = {
   role: 'contributor' as const,
   termsAcceptanceRequired: false,
   uploadQuota: { files: 1000, bytes: 1024 * 1024 * 1024, usedFiles: 0, usedBytes: 0 },
+  imageLimits: { maxBytes: 10 * 1024 * 1024, maxPixels: 30_000_000, maxSidePx: 10_000 },
   username: 'tester',
   oauth_accounts: [],
   preferences: {},

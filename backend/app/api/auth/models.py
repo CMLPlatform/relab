@@ -11,6 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.api.auth.roles import (
     DEFAULT_USER_ROLE,
     UserRole,
+    image_upload_max_mb_for_role,
+    image_upload_max_pixels_for_role,
     upload_quota_bytes_for_role,
     upload_quota_files_for_role,
 )
@@ -18,6 +20,7 @@ from app.api.auth.services.user_database import BaseOAuthAccountDB, BaseUserDB
 from app.api.auth.terms import terms_acceptance_required
 from app.api.common.models.base import TimeStampMixinBare
 from app.core.crypto.sqlalchemy import EncryptedString
+from app.core.images.constants import MAX_IMAGE_DIMENSION
 
 USER_ROLE_CHECK_CONSTRAINT_NAME = "ck_user_role_valid"
 _ROLE_VALUES_SQL = ", ".join(f"'{role.value}'" for role in UserRole)
@@ -87,6 +90,21 @@ class User(BaseUserDB, TimeStampMixinBare):
     def upload_quota_bytes(self) -> int:
         """Return the byte quota this account's role grants."""
         return upload_quota_bytes_for_role(self.role)
+
+    @property
+    def image_upload_max_bytes(self) -> int:
+        """Return the per-image size cap this account's role grants."""
+        return image_upload_max_mb_for_role(self.role) * 1024 * 1024
+
+    @property
+    def image_upload_max_pixels(self) -> int:
+        """Return the per-image total-pixel cap this account's role grants."""
+        return image_upload_max_pixels_for_role(self.role)
+
+    @property
+    def image_upload_max_side_px(self) -> int:
+        """Return the per-side pixel cap, the same for every role."""
+        return MAX_IMAGE_DIMENSION
 
     oauth_accounts: Mapped[list[OAuthAccount]] = relationship(
         back_populates="user",

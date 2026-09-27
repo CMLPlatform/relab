@@ -37,6 +37,12 @@ export type User = {
     usedFiles: number;
     usedBytes: number;
   };
+  /** Per-image upload caps the account's role grants; the app fits photos to these. */
+  imageLimits: {
+    maxBytes: number;
+    maxPixels: number;
+    maxSidePx: number;
+  };
   oauth_accounts: NonNullable<ApiUserRead['oauth_accounts']>;
   preferences: UserPreferences;
 };

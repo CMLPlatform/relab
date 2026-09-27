@@ -124,7 +124,7 @@ dataset.
 enough to contribute usefully. The Pi rig only pays off for repeatable imagery across many products.
 No surface may present it as a prerequisite.
 
-**Uploads.** Images only in-app: jpeg, png, webp, gif, bmp. Contributor photos are resized to 4096 px and capped at 10 MB in the app; lab accounts upload at full resolution, up to the server cap (40 MB, 50 MP). The backend rejects
+**Uploads.** Images only in-app: jpeg, png, webp, gif, bmp. Per-image size and pixel caps are tiered by the product owner's role and enforced on the server; the app reads them from `/users/me` and uploads a photo at full resolution unless it has to shrink to fit. The backend rejects
 an upload unless extension, declared MIME type, and sniffed content agree. Uploads are sequential. Quotas are tiered by role (contributor 1,000 files / 1 GB; lab 20,000 files / 20 GB) and
 `/users/me` reports limits and usage. There is no per-product limit.
 

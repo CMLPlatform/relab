@@ -202,6 +202,13 @@ class UserRead(UserBase, fastapi_users_schemas.BaseUser[uuid.UUID]):
         default=0, description="Maximum number of files and images this account's role allows."
     )
     upload_quota_bytes: int = Field(default=0, description="Maximum total upload size this account's role allows.")
+    image_upload_max_bytes: int = Field(default=0, description="Largest single image this account's role may upload.")
+    image_upload_max_pixels: int = Field(
+        default=0, description="Most pixels (width x height) in a single image this account's role may upload."
+    )
+    image_upload_max_side_px: int = Field(
+        default=0, description="Longest side, in pixels, any uploaded image may have."
+    )
     upload_file_count: int = Field(default=0, description="Files and images this account currently has stored.")
     upload_total_bytes: int = Field(default=0, description="Total bytes this account currently has stored.")
 

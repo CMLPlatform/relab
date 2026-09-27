@@ -4,12 +4,22 @@ These go through the real app so the route dependency is exercised. Client-side
 hiding of a file picker is not a control; this file is where the control lives.
 """
 
+from io import BytesIO
 from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
+from PIL import Image as PILImage
 
-from app.api.auth.roles import UserRole, upload_quota_bytes_for_role, upload_quota_files_for_role
+from app.api.auth.roles import (
+    UserRole,
+    image_upload_max_mb_for_role,
+    image_upload_max_pixels_for_role,
+    upload_quota_bytes_for_role,
+    upload_quota_files_for_role,
+)
+from app.core.config.core import settings
+from app.core.images.constants import MAX_IMAGE_DIMENSION
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 from tests.fixtures.client import override_authenticated_user
 
@@ -31,6 +41,12 @@ GIF_BYTES = (
 )
 RESEARCH_FILE = {"file": ("cube.h5", b"\x89HDF\r\n\x1a\n", "application/x-hdf5")}
 IMAGE_FILE = {"file": ("image.gif", GIF_BYTES, "image/gif")}
+
+
+def _png_file(width: int, height: int) -> dict[str, tuple[str, bytes, str]]:
+    buffer = BytesIO()
+    PILImage.new("L", (width, height)).save(buffer, format="PNG")
+    return {"file": ("image.png", buffer.getvalue(), "image/png")}
 
 
 async def _product_owned_by(db_session: AsyncSession, owner: User) -> Product:
@@ -135,6 +151,50 @@ class TestImageUploadIsUnchanged:
         assert response.status_code == status.HTTP_201_CREATED, response.text
 
 
+class TestImageCapsFollowTheOwnerRole:
+    """Per-image caps are tiered by the product owner's role, enforced on the server.
+
+    The app fits photos to the caps /users/me reports, but that is a convenience; a
+    direct API call must meet the same limit. The contributor pixel cap is lowered
+    so a small PNG crosses it.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _small_contributor_pixel_cap(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(settings, "max_image_upload_pixels", 1_000)
+
+    async def test_contributor_is_held_to_the_contributor_cap(
+        self, api_client_user: AsyncClient, db_session: AsyncSession, db_user: User
+    ) -> None:
+        """An image over the contributor pixel cap is refused before it is stored."""
+        product = await _product_owned_by(db_session, db_user)
+
+        response = await api_client_user.post(f"/v1/products/{product.id}/images", files=_png_file(40, 40))
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+        assert "1000" in response.text
+
+    async def test_lab_user_gets_the_lab_cap(
+        self, api_client_lab_user: AsyncClient, db_session: AsyncSession, db_lab_user: User
+    ) -> None:
+        """The same image is within the lab tier."""
+        product = await _product_owned_by(db_session, db_lab_user)
+
+        response = await api_client_lab_user.post(f"/v1/products/{product.id}/images", files=_png_file(40, 40))
+
+        assert response.status_code == status.HTTP_201_CREATED, response.text
+
+    async def test_cap_follows_the_owner_not_the_uploader(
+        self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_user: User
+    ) -> None:
+        """A lab superuser uploading to a contributor's product meets the contributor cap, like the quota."""
+        product = await _product_owned_by(db_session, db_user)
+
+        response = await api_client_superuser.post(f"/v1/products/{product.id}/images", files=_png_file(40, 40))
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+
+
 class TestQuotaFollowsTheRole:
     """The reported quota is the role's tier, and the tiers actually differ."""
 
@@ -172,6 +232,11 @@ class TestQuotaFollowsTheRole:
         assert lab_body["upload_quota_bytes"] == upload_quota_bytes_for_role(UserRole.LAB)
 
         assert lab_body["upload_quota_bytes"] > contributor_body["upload_quota_bytes"]
+
+        for body, role in ((contributor_body, UserRole.CONTRIBUTOR), (lab_body, UserRole.LAB)):
+            assert body["image_upload_max_bytes"] == image_upload_max_mb_for_role(role) * 1024 * 1024
+            assert body["image_upload_max_pixels"] == image_upload_max_pixels_for_role(role)
+            assert body["image_upload_max_side_px"] == MAX_IMAGE_DIMENSION
 
     async def test_usage_is_reported_alongside_the_limit(
         self, api_client: AsyncClient, db_session: AsyncSession
