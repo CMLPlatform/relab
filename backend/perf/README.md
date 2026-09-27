@@ -55,8 +55,8 @@ because a percentile mixed across all three hides which one moved:
 
 One size is not enough: at 1200x900 the 1600px derivative is skipped entirely and only ~21ms of
 thumbnail work is in play, so a regression in the expensive part of the pipeline would not move the
-number. From `medium` up, every standard width applies, and the derivative work the upload defers
-is ~110-130ms rather than ~20ms.
+number. From `medium` up, every standard width applies, and the derivative work is ~110-130ms
+rather than ~20ms.
 
 The larger two are tiled from the committed sample rather than upscaled or generated: tiling repeats
 the source's own frequency content, so decode, resize and encode cost per pixel stay in the range a
@@ -66,7 +66,7 @@ binaries enter the repo.
 
 The per-size thresholds are a coarse guard. Two runs of the same commit on GitHub runners put
 `small` at 69 ms and 31 ms, so run-to-run variance is over 2x. A ceiling tight enough to catch the
-~40-50 ms that re-blocking the deferred derivatives would add would flap on that variance. They
+~40-50 ms regression in the derivative work would flap on that variance. They
 catch a gross regression; the resize path's own cost is better measured directly, without a network
 and a shared runner in the number.
 

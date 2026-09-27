@@ -66,14 +66,15 @@ const uploadImages = [
 // Per size, because a percentile mixed across all three hides which one moved.
 //
 // Measured p95: 31 / 33 / 59 ms on a GitHub runner, 79 / 92 / 154 ms on a busy dev
-// box. These are a coarse guard, not a tight one: two runs of the same commit put
-// small at 69 ms and 31 ms, so run-to-run variance here is over 2x. A ceiling tight
-// enough to catch the ~40-50ms a re-blocked derivative pass would add is a ceiling
-// that flaps on that variance, and a flapping threshold gets ignored, which is worse
-// than a loose one. What these catch is a gross
-// regression; the pipeline's own cost is better guarded by measuring the resize
-// path directly, where there is no network or runner noise in the number.
-const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 190, large: 250 };
+// box, back when only the 200px width was generated in the request. Every width is
+// now generated inline, which adds ~110-130 ms of derivative work from `medium` up,
+// so those two ceilings carry that on top. These are a coarse guard, not a tight one:
+// two runs of the same commit put small at 69 ms and 31 ms, so run-to-run variance
+// here is over 2x, and a threshold tight enough to catch a ~40-50ms regression would
+// flap on it. A flapping threshold gets ignored, which is worse than a loose one.
+// What these catch is a gross regression; the pipeline's own cost is better guarded
+// by measuring the resize path directly, where there is no network or runner noise.
+const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 320, large: 400 };
 
 const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
