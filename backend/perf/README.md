@@ -232,8 +232,9 @@ instead of hitting the 30 s pool timeout.
 | 300            | 401    | 791    | 1103   | 0%     |
 | 400            | 1124   | 2190   | 3083   | 21%    |
 
-- **Mixed knee: about 300 requests/s.** At one request every 5-10 s per active person, that is
-  roughly 1500-3000 people working at once. Latency starts queueing from 150-200/s.
+- **Mixed knee: about 400-450 requests/s** (about 300 before the shared auth session). At one
+  request every 5-10 s per active person, that is roughly 2000-4500 people working at once.
+  Latency starts queueing from about 200/s.
 - **The connection pool saturates first, not the CPU.** At 400/s, all 52 pool connections sat
   `idle in transaction` while API CPU fell back to about two cores, and the p99 of 30 s is the
   SQLAlchemy pool timeout. Postgres itself peaked at about 1.5 cores. The auth dependencies then
@@ -247,12 +248,10 @@ instead of hitting the 30 s pool timeout.
   a pool connection during the hash. On a host with fewer cores, expect roughly 25-30 logins/s per
   free core.
 
-Before a workshop:
-
-1. Check the per-IP rate limits against the room. The limiter keys on client IP, and a room on one
-   network usually shares one public address. Then 3 logins/min, 5 registrations/hour and 300
-   reads/min apply to everyone in it together. Neither this test nor the CI stack exercises the
-   limits, which are off in `testing`.
+Before a workshop, check the per-IP rate limits against the room. The limiter keys on client IP,
+and a room on one network usually shares one public address. Then 3 logins/min, 5
+registrations/hour and 300 reads/min apply to everyone in it together. Neither this test nor the CI
+stack exercises the limits, which are off in `testing`.
 
 Not covered: malware scanning (the deploy scans uploads with ClamAV), Cloudflare and the tunnel in
 front of the API, the telemetry exporter, and hosts with fewer cores than the four workers need.

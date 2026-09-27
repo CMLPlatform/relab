@@ -90,7 +90,7 @@ export const options = {
       timeUnit: "1s",
       stages,
       preAllocatedVUs: 100,
-      maxVUs: Number(__ENV.PERF_CAPACITY_MAX_VUS || 1500),
+      maxVUs: 1500,
     },
   },
   thresholds,
@@ -135,6 +135,6 @@ export function handleSummary(data) {
   });
   return {
     stdout: `\n${lines.join("\n")}\n`,
-    [__ENV.PERF_CAPACITY_SUMMARY || `capacity-${mode}.json`]: JSON.stringify(data, null, 2),
+    [`/reports/capacity-${mode}.json`]: JSON.stringify(data, null, 2),
   };
 }

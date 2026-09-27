@@ -192,7 +192,6 @@ _perf-capacity network mode="mixed":
         -v "$PWD/reports/performance:/reports" \
         -e BASE_URL=http://api:8000 \
         -e PERF_CAPACITY_MODE={{ quote(mode) }} \
-        -e PERF_CAPACITY_SUMMARY=/reports/capacity-{{ mode }}.json \
         -e PERF_CAPACITY_USERS -e PERF_CAPACITY_PASSWORD \
         -e PERF_CAPACITY_RATES -e PERF_CAPACITY_HOLD_SECONDS \
         {{ k6_docker_image }} run --quiet /perf/k6-capacity.js
