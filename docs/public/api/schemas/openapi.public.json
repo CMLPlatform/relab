@@ -1,6 +1,28 @@
 {
   "components": {
     "schemas": {
+      "AccountDeletionRequest": {
+        "additionalProperties": false,
+        "description": "Step-up body for deleting your own account.",
+        "properties": {
+          "current_password": {
+            "anyOf": [
+              {
+                "format": "password",
+                "type": "string",
+                "writeOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current account password, to reauthenticate the deletion. Required unless the account has no usable password (OAuth-only).",
+            "title": "Current Password"
+          }
+        },
+        "title": "AccountDeletionRequest",
+        "type": "object"
+      },
       "Body_auth_bearer_login_v1_auth_bearer_login_post": {
         "properties": {
           "client_id": {
@@ -19097,6 +19119,58 @@
       }
     },
     "/v1/users/me": {
+      "delete": {
+        "description": "Delete the signed-in account, keeping its products under the anonymous system account.\n\nPersonal data is erased; contributed products and media stay on the platform without\nthe owner's name. Requires the current password, the same step-up as an email or\npassword change.",
+        "operationId": "delete_own_account_v1_users_me_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AccountDeletionRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Delete your own account",
+        "tags": [
+          "users"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      },
       "get": {
         "operationId": "users_current_user_v1_users_me_get",
         "responses": {

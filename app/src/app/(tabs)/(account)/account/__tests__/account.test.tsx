@@ -16,10 +16,14 @@ const mockRouterNavigate = jest.fn();
 const mockLogout = jest.fn();
 const mockUpdateUser = jest.fn();
 const mockVerify = jest.fn();
+const mockDeleteAccount = jest.fn();
 const mockStopStreamMutate = jest.fn();
 const mockUseRpiIntegration = jest.fn();
 const PRIVATE_VISIBILITY_PATTERN = /private/i;
 const COMMUNITY_VISIBILITY_PATTERN = /community/i;
+const CONTENT_STAYS_PATTERN = /stay on the platform, without your name/;
+const REMOVE_UPLOADS_PATTERN = /To have your uploads removed as well/;
+const INVALID_PASSWORD_PATTERN = /Current password is invalid/;
 
 jest.mock('expo-router', () => {
   const React = require('react');
@@ -90,6 +94,7 @@ jest.mock('@/services/api/auth/authentication', () => ({
   unlinkOAuth: jest.fn().mockResolvedValue(undefined),
   updateUser: (...args: unknown[]) => mockUpdateUser(...args),
   verify: (...args: unknown[]) => mockVerify(...args),
+  deleteAccount: (...args: unknown[]) => mockDeleteAccount(...args),
 }));
 
 jest.mock('expo-web-browser', () => ({
@@ -162,6 +167,7 @@ describe('ProfileTab', () => {
     mockUpdateUser.mockResolvedValue({});
     mockVerify.mockResolvedValue(true);
     mockLogout.mockResolvedValue(undefined);
+    mockDeleteAccount.mockResolvedValue(undefined);
     mockStopStreamMutate.mockImplementation((...args: unknown[]) => {
       const options = args[1] as { onSuccess?: () => void } | undefined;
       options?.onSuccess?.();
@@ -323,10 +329,69 @@ describe('ProfileTab', () => {
   });
 
   describe('delete account dialog', () => {
-    it('opens when Delete account? is pressed', async () => {
+    function withPasswordUser() {
+      const { useAuth } = require('@/context/auth.ts');
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...defaultUser, hasUsablePassword: true },
+        refetch: mockRefetch,
+      });
+    }
+
+    async function pressConfirm(findAllByText: (text: string) => Promise<unknown[]>) {
+      // The dialog title and the confirm button share the text; the button renders last.
+      const matches = await findAllByText('Delete account');
+      await act(async () => {
+        await fireEvent.press(matches[matches.length - 1] as never);
+      });
+    }
+
+    it('explains that contributions stay, anonymized', async () => {
       const { findByLabelText, findByText } = await renderProfile();
       await fireEvent.press(await findByLabelText('Delete account?'));
-      expect(await findByText('Delete account')).toBeTruthy();
+      expect(await findByText(CONTENT_STAYS_PATTERN)).toBeTruthy();
+      expect(await findByText(REMOVE_UPLOADS_PATTERN)).toBeTruthy();
+    });
+
+    it('deletes with the current password, then leaves the screen like logout', async () => {
+      withPasswordUser();
+      const { findByLabelText, findAllByText } = await renderProfile();
+      await fireEvent.press(await findByLabelText('Delete account?'));
+      await fireEvent.changeText(await findByLabelText('Current password'), 'my-password');
+      await pressConfirm(findAllByText);
+
+      await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/products'));
+      expect(mockDeleteAccount).toHaveBeenCalledWith('my-password');
+      expect(mockRefetch).toHaveBeenCalledWith(false);
+    });
+
+    it('does not call the server until a password is entered', async () => {
+      withPasswordUser();
+      const { findByLabelText, findAllByText } = await renderProfile();
+      await fireEvent.press(await findByLabelText('Delete account?'));
+      await pressConfirm(findAllByText);
+
+      expect(mockDeleteAccount).not.toHaveBeenCalled();
+    });
+
+    it('keeps the user signed in and shows the error when deletion fails', async () => {
+      withPasswordUser();
+      mockDeleteAccount.mockRejectedValueOnce(new Error('Current password is invalid.'));
+      const { findByLabelText, findAllByText, findByText } = await renderProfile();
+      await fireEvent.press(await findByLabelText('Delete account?'));
+      await fireEvent.changeText(await findByLabelText('Current password'), 'wrong');
+      await pressConfirm(findAllByText);
+
+      expect(await findByText(INVALID_PASSWORD_PATTERN)).toBeTruthy();
+      expect(mockRouterReplace).not.toHaveBeenCalled();
+    });
+
+    it('asks an account without a password for no password', async () => {
+      const { findByLabelText, findAllByText, queryByLabelText } = await renderProfile();
+      await fireEvent.press(await findByLabelText('Delete account?'));
+      expect(queryByLabelText('Current password')).toBeNull();
+      await pressConfirm(findAllByText);
+
+      await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith(undefined));
     });
   });
 

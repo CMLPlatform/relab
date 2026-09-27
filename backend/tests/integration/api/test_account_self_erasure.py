@@ -1,0 +1,170 @@
+"""Self-service account deletion: ``DELETE /v1/users/me``.
+
+Goes through the real bearer login so the step-up password check, session revocation,
+and cookie clearing run end to end.
+"""
+
+from typing import TYPE_CHECKING, Any
+from unittest.mock import patch
+
+import pytest
+from fastapi import status
+from sqlalchemy import Select, select
+
+from app.api.application.account_erasure import ANONYMOUS_USER_EMAIL
+from app.api.auth.models import OAuthAccount, User
+from app.api.common.audit import AuditAction, AuditContext
+from app.api.data_collection.models.product import Product
+from app.api.plugins.rpi_cam.models import Camera
+from scripts.seed.factories.models import CameraFactory, UserFactory
+from tests.fixtures.client import override_authenticated_user
+from tests.integration.api.auth.shared import (
+    TEST_PASSWORD,
+    assert_refresh_session_revoked,
+    create_password_user,
+    login_bearer,
+)
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI
+    from httpx import AsyncClient
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.reference_data.models import ProductType
+
+pytestmark = pytest.mark.api
+
+ME = "/v1/users/me"
+
+
+async def _row_exists(session: AsyncSession, statement: Select[tuple[Any]]) -> bool:
+    return (await session.execute(statement)).first() is not None
+
+
+async def _login(api_client: AsyncClient, user: User) -> tuple[dict[str, str], str]:
+    tokens = await login_bearer(api_client, email=user.email, password=TEST_PASSWORD)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}, str(tokens["refresh_token"])
+
+
+async def test_self_deletion_anonymizes_content_and_erases_the_account(
+    api_client: AsyncClient, db_session: AsyncSession, db_product_type: ProductType
+) -> None:
+    """Products move to the anonymous account; personal data, cameras, links and sessions go."""
+    user = await create_password_user(db_session, email="leaving@example.com", username="leaving_user")
+    product = Product(owner_id=user.id, name="Owned product", product_type=db_product_type)
+    component = Product(owner_id=user.id, name="Owned component", parent=product, amount_in_parent=1)
+    oauth_account = OAuthAccount(
+        user_id=user.id,
+        oauth_name="google",
+        access_token="access-token",  # test fixture value, not a credential
+        account_id="oauth-account-self",
+        account_email="leaving@example.com",
+    )
+    db_session.add_all([product, component, oauth_account])
+    camera = await CameraFactory.create_async(session=db_session, owner_id=user.id)
+    await db_session.flush()
+    user_id = user.id
+    headers, refresh_token = await _login(api_client, user)
+
+    with patch("app.api.application.routers.account_erasure.audit_event") as log_audit:
+        response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    anonymous_id = (await db_session.execute(select(User.id).where(User.email == ANONYMOUS_USER_EMAIL))).scalar_one()
+    owners = (
+        (await db_session.execute(select(Product.owner_id).where(Product.id.in_([product.id, component.id]))))
+        .scalars()
+        .all()
+    )
+    assert list(owners) == [anonymous_id, anonymous_id]
+    assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+    assert not await _row_exists(db_session, select(Camera.id).where(Camera.id == camera.id))
+    assert not await _row_exists(db_session, select(OAuthAccount.id).where(OAuthAccount.user_id == user_id))
+    log_audit.assert_called_once_with(
+        user_id, AuditAction.DELETE, User, user_id, context=AuditContext(operation="erase_anonymize", flow="self")
+    )
+    # Signed out everywhere: cookies cleared here, refresh sessions revoked, token dead.
+    assert response.headers["Clear-Site-Data"]
+    assert "set-cookie" in response.headers
+    await assert_refresh_session_revoked(api_client, refresh_token)
+    assert (await api_client.get(ME, headers=headers)).status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.parametrize(
+    ("body", "expected"),
+    [
+        (None, status.HTTP_400_BAD_REQUEST),
+        ({}, status.HTTP_400_BAD_REQUEST),
+        ({"current_password": "not-the-password-42"}, status.HTTP_401_UNAUTHORIZED),
+    ],
+    ids=["no-body", "no-password", "wrong-password"],
+)
+async def test_self_deletion_requires_the_current_password(
+    api_client: AsyncClient, db_session: AsyncSession, body: dict[str, str] | None, expected: int
+) -> None:
+    """Without a valid step-up password the account and its sessions stay untouched."""
+    user = await create_password_user(db_session, email="staying@example.com", username="staying_user")
+    headers, refresh_token = await _login(api_client, user)
+
+    with patch("app.api.application.routers.account_erasure.revoke_user_refresh_tokens") as revoke:
+        response = await api_client.request("DELETE", ME, json=body, headers=headers)
+
+    assert response.status_code == expected
+    assert await _row_exists(db_session, select(User.id).where(User.id == user.id))
+    revoke.assert_not_called()
+    refreshed = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": refresh_token})
+    assert refreshed.status_code == status.HTTP_200_OK
+
+
+async def test_oauth_only_account_deletes_without_a_password(
+    api_client: AsyncClient, db_session: AsyncSession, db_user: User, test_app: FastAPI
+) -> None:
+    """An account with no usable password has nothing to re-enter, matching the other step-up flows."""
+    db_user.has_usable_password = False
+    await db_session.flush()
+    user_id = db_user.id
+
+    with override_authenticated_user(test_app, db_user):
+        response = await api_client.delete(ME)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+
+
+async def test_last_active_superuser_cannot_delete_themself(api_client: AsyncClient, db_session: AsyncSession) -> None:
+    """The only remaining admin keeps their account and their sessions."""
+    admin = await create_password_user(
+        db_session, email="only-admin@example.com", username="only_admin", is_superuser=True
+    )
+    headers, _ = await _login(api_client, admin)
+
+    with patch("app.api.application.routers.account_erasure.revoke_user_refresh_tokens") as revoke:
+        response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert await _row_exists(db_session, select(User.id).where(User.id == admin.id))
+    revoke.assert_not_called()
+
+
+async def test_superuser_can_delete_themself_while_another_is_active(
+    api_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """The guard blocks only the last admin."""
+    admin = await create_password_user(
+        db_session, email="one-of-two@example.com", username="one_of_two", is_superuser=True
+    )
+    await UserFactory.create_async(session=db_session, is_active=True, is_superuser=True)
+    await db_session.flush()
+    headers, _ = await _login(api_client, admin)
+
+    response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not await _row_exists(db_session, select(User.id).where(User.id == admin.id))
+
+
+async def test_self_deletion_requires_authentication(api_client: AsyncClient) -> None:
+    """A guest cannot call the route."""
+    response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD})
+
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED

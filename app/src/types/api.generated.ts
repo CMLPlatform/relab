@@ -2090,7 +2090,15 @@ export interface paths {
     get: operations['users_current_user_v1_users_me_get'];
     put?: never;
     post?: never;
-    delete?: never;
+    /**
+     * Delete your own account
+     * @description Delete the signed-in account, keeping its products under the anonymous system account.
+     *
+     *     Personal data is erased; contributed products and media stay on the platform without
+     *     the owner's name. Requires the current password, the same step-up as an email or
+     *     password change.
+     */
+    delete: operations['delete_own_account_v1_users_me_delete'];
     options?: never;
     head?: never;
     /** Users:Patch Current User */
@@ -2735,6 +2743,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /**
+     * AccountDeletionRequest
+     * @description Step-up body for deleting your own account.
+     */
+    AccountDeletionRequest: {
+      /**
+       * Current Password
+       * @description Current account password, to reauthenticate the deletion. Required unless the account has no usable password (OAuth-only).
+       */
+      current_password?: string | null;
+    };
     /** Body_auth_bearer_login_v1_auth_bearer_login_post */
     Body_auth_bearer_login_v1_auth_bearer_login_post: {
       /** Grant Type */
@@ -10612,6 +10631,37 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  delete_own_account_v1_users_me_delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AccountDeletionRequest'] | null;
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
       };
     };
   };

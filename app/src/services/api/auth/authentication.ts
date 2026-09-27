@@ -3,7 +3,7 @@ import { ApiError, throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
-import { fetchWithAuth } from './authRefresh';
+import { clearCachedAuthState, fetchWithAuth } from './authRefresh';
 import { authRuntime } from './authRuntime';
 import { getUser } from './authUser';
 
@@ -96,4 +96,22 @@ export async function unlinkOAuth(provider: string, currentPassword?: string): P
     logError('[UnlinkOAuth Error]:', error);
     throw error;
   }
+}
+
+/** Delete the signed-in account. Products and photos stay on the platform, anonymized. */
+export async function deleteAccount(currentPassword?: string): Promise<void> {
+  // Same step-up as unlinking: OAuth-only accounts have no password and send no body.
+  const response = await fetchWithAuth(new URL(`${API_URL}/users/me`), {
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+      ...(currentPassword ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: currentPassword ? JSON.stringify({ current_password: currentPassword }) : undefined,
+  });
+  if (!response.ok) {
+    await throwFromResponse(response, 'Failed to delete account');
+  }
+  // The server already revoked every session; drop the local copies too.
+  await clearCachedAuthState();
 }

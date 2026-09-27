@@ -8,7 +8,7 @@ description: The terms you agree to when you contribute records, images, or note
 # at registration, and scopes consent in the dataset release script; there is
 # no re-prompt.
 version: 1
-meta: "Version 1 · Last updated: August 13, 2026"
+meta: "Version 1 · Last updated: September 28, 2026"
 intro: These terms cover what you contribute to Relab and how it may be used. They are short on purpose.
 ---
 
@@ -51,4 +51,4 @@ Your own profile is separate. Your name and contributions stay visible in the ap
 
 Once a dataset release is published, copies are out in the world and we cannot recall them.
 
-You can delete your account and your uploads at any time. That removes your records from the live platform, but it cannot retract anything already included in a published release.
+You can delete your account at any time in the app. Your products and photos then stay on the platform without your name. To have your uploads removed as well, email us. Either way, deletion cannot retract anything already included in a published release.

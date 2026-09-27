@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useState } from 'react';
 import type { View } from 'react-native';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
-import { unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
+import { deleteAccount, unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
 import type { User } from '@/types/User';
 import { getErrorMessage } from '@/utils/errors';
 
@@ -222,4 +222,34 @@ export async function confirmOAuthUnlink({
 
   closeUnlinkDialog();
   void refetch();
+}
+
+/** Delete the signed-in account; reports failure itself and returns whether it succeeded. */
+export async function deleteOwnAccount({
+  deleteDialog,
+  streaming,
+  feedback,
+}: {
+  deleteDialog: { password: string; setPending: (pending: boolean) => void };
+  streaming: boolean;
+  feedback: ReturnType<typeof useAppFeedback>;
+}): Promise<boolean> {
+  if (streaming) {
+    feedback.error('Stop your live stream before deleting your account.', 'Stream still active');
+    return false;
+  }
+  deleteDialog.setPending(true);
+  try {
+    await deleteAccount(deleteDialog.password || undefined);
+  } catch (error: unknown) {
+    feedback.error(
+      `Failed to delete account: ${getErrorMessage(error, 'Unknown error')}`,
+      'Delete failed',
+    );
+    return false;
+  } finally {
+    deleteDialog.setPending(false);
+  }
+  feedback.toast('Your account has been deleted.');
+  return true;
 }

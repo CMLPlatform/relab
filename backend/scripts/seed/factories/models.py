@@ -130,6 +130,8 @@ class UserFactory(BaseModelFactory[User]):
     # Pinned: role is an enum column, so an unpinned factory draws randomly between
     # tiers and a test that means "an ordinary contributor" silently becomes lab.
     role = UserRole.CONTRIBUTOR
+    # Pinned for the same reason: a random False silently skips step-up password checks.
+    has_usable_password = True
     upload_file_count = 0
     upload_total_bytes = 0
 

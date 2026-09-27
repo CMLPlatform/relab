@@ -26,6 +26,11 @@ type ProfileDialogsProps = {
   onConfirmLogout: () => void;
   deleteDialogVisible: boolean;
   onDismissDeleteDialog: () => void;
+  onConfirmDelete: () => void;
+  deleteRequiresPassword: boolean;
+  deletePassword: string;
+  onChangeDeletePassword: (value: string) => void;
+  deletePending: boolean;
   unlinkTriggerRef?: RefObject<View | null>;
   logoutTriggerRef?: RefObject<View | null>;
   deleteAccountTriggerRef?: RefObject<View | null>;
@@ -45,6 +50,11 @@ export function ProfileDialogs({
   onConfirmLogout,
   deleteDialogVisible,
   onDismissDeleteDialog,
+  onConfirmDelete,
+  deleteRequiresPassword,
+  deletePassword,
+  onChangeDeletePassword,
+  deletePending,
   unlinkTriggerRef,
   logoutTriggerRef,
   deleteAccountTriggerRef,
@@ -112,14 +122,42 @@ export function ProfileDialogs({
         <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Delete account
         </AppText>
-        <AppText>To delete your account and all its data, email us at:</AppText>
-        <Link href={`mailto:${SUPPORT_EMAIL}`}>
-          <AppText className="mt-2.5 font-bold">{SUPPORT_EMAIL}</AppText>
-        </Link>
-        <AppText className="mt-2.5">We&apos;ll confirm the deletion by email.</AppText>
+        <AppText>
+          This deletes your account and signs you out on every device. It cannot be undone.
+        </AppText>
+        <AppText className="mt-2.5">
+          Products and photos you added stay on the platform, without your name.
+        </AppText>
+        {deleteRequiresPassword ? (
+          <TextInput
+            value={deletePassword}
+            onChangeText={onChangeDeletePassword}
+            placeholder="Current password"
+            accessibilityLabel="Current password"
+            secureTextEntry
+            autoComplete="current-password"
+            textContentType="password"
+            className="border px-2 py-2 mt-2.5"
+            style={{ borderColor: theme.colors.outline }}
+          />
+        ) : null}
+        <AppText className="mt-2.5">
+          To have your uploads removed as well, email{' '}
+          <Link href={`mailto:${SUPPORT_EMAIL}`}>
+            <AppText className="font-bold">{SUPPORT_EMAIL}</AppText>
+          </Link>
+          .
+        </AppText>
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
-            OK
+            Cancel
+          </AppButton>
+          <AppButton
+            variant="destructive"
+            onPress={onConfirmDelete}
+            disabled={deletePending || (deleteRequiresPassword && deletePassword.length === 0)}
+          >
+            Delete account
           </AppButton>
         </View>
       </AppDialog>

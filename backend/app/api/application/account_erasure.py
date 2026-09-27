@@ -1,7 +1,8 @@
-"""Administrative account erasure with a per-deletion content policy.
+"""Account erasure with a per-deletion content policy.
 
 Deleting a user always erases their personal data. What happens to the research
-data they contributed is the admin's choice at deletion time:
+data they contributed is the admin's choice at deletion time; self-service deletion
+always anonymizes:
 
 - ``anonymize`` (default) reassigns their products to a dedicated, permanently
   inactive system account, so published research data survives the account.
@@ -83,8 +84,9 @@ async def erase_user(
 ) -> None:
     """Erase a user account, applying the chosen policy to the content they own.
 
-    ``actor_id`` is the admin performing the erasure, not the erased user; it is
-    the audit subject for the product deletions this triggers.
+    ``actor_id`` is the account performing the erasure: the admin, or the user
+    themself for self-service deletion. It is the audit subject for the product
+    deletions this triggers.
 
     Raises:
         ConflictError: when the target is the anonymous system account or the last
