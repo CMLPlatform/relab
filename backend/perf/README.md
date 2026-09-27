@@ -211,6 +211,20 @@ shape and the first thing to saturate carry over to other hosts.
 | 300            | 214    | 708    | 1202   | 0%     |
 | 400            | 67     | 1276   | 30058  | 42%    |
 
+After the auth dependencies started sharing the request session (one connection per
+authenticated request), the same mixed run, with other test suites running on the host at the same
+time:
+
+| Mixed target/s | p50 ms | p95 ms | p99 ms | errors |
+| -------------- | ------ | ------ | ------ | ------ |
+| 200            | 96     | 341    | 451    | 0%     |
+| 300            | 165    | 382    | 615    | 0%     |
+| 400            | 203    | 580    | 1041   | 0%     |
+| 500            | 173    | 2823   | 4691   | 34%    |
+
+The knee moves from about 300 to about 400-450 requests/s. Past it, the p99 stays in seconds
+instead of hitting the 30 s pool timeout.
+
 | Login target/s | p50 ms | p95 ms | p99 ms | errors |
 | -------------- | ------ | ------ | ------ | ------ |
 | 100            | 28     | 38     | 78     | 0%     |
