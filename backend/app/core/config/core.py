@@ -187,7 +187,10 @@ class CoreSettings(RelabBaseSettings):
     # ── Request, upload, and DoS limits ──────────────────────────────────────────
     request_body_limit_bytes: int = Field(default=1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     max_file_upload_size_mb: int = Field(default=50, ge=1, le=500)
-    max_image_upload_size_mb: int = Field(default=10, ge=1, le=100)
+    # Sized for untouched 48 MP phone and 45 MP camera JPEGs (roughly 12-30 MB). Keep it at
+    # or under max_file_upload_size_mb: the request-size middleware caps every multipart
+    # body at that value.
+    max_image_upload_size_mb: int = Field(default=40, ge=1, le=100)
     # Upload quotas are tiered by role (app.api.auth.roles): per_user is the contributor tier.
     max_upload_files_per_user: int = Field(default=1000, ge=1, le=100_000)
     max_upload_bytes_per_user_mb: int = Field(default=1024, ge=1, le=1_000_000)

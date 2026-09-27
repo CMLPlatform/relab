@@ -30,6 +30,7 @@ from app.api.file_storage.upload_policy import (
     validate_image_upload_content,
     validate_image_upload_metadata,
 )
+from app.core.images.constants import MAX_IMAGE_DIMENSION
 
 TEST_SAN_RAW = "test file.txt"
 TEST_SAN_CLEAN = "test-file.txt"
@@ -415,7 +416,7 @@ def test_ooxml_upload_rejects_symlink_members() -> None:
 def test_image_upload_content_rejects_pixel_flood_images() -> None:
     """Image uploads must reject dimensions over the configured pixel cap before storage."""
     buffer = BytesIO()
-    PILImage.new("RGB", (8001, 1), color="red").save(buffer, format="PNG")
+    PILImage.new("RGB", (MAX_IMAGE_DIMENSION + 1, 1), color="red").save(buffer, format="PNG")
     upload = _upload("photo.png", "image/png", buffer.getvalue())
 
     with pytest.raises(BadRequestError, match="exceed"):

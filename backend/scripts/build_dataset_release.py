@@ -73,6 +73,7 @@ from app.api.reference_data.models import (
 from app.core.database import async_session_context, close_async_engine
 from app.core.env import get_secrets_dir
 from app.core.images.constants import PRESERVED_EXIF_TAGS
+from app.core.images.exif import display_size
 from app.core.logging import setup_logging
 
 if TYPE_CHECKING:
@@ -754,7 +755,8 @@ async def export_images(session: AsyncSession, record_ids: set[int], images_dir:
         if not target.exists():
             target.write_bytes(payload)
         with PILImage.open(target) as opened:
-            width, height = opened.size
+            # As displayed: JPEG originals keep their EXIF orientation tag.
+            width, height = display_size(opened)
             image_format = opened.format or ""
         manifest.append(
             {
@@ -867,8 +869,8 @@ are not included.
 | --- | --- |
 | `records.parquet` | One row per record (a product or one of its components). |
 | `record_materials.parquet` | Bill-of-materials rows linking records to `reference/materials.parquet`. |
-| `images/` | Photographs, named by the SHA-256 of their own bytes. |
-| `manifest.csv` | Image file to record id, with checksum and pixel dimensions. |
+| `images/` | Photographs, named by the SHA-256 of their own bytes. JPEGs keep an EXIF orientation tag. |
+| `manifest.csv` | Image file to record id, with checksum and pixel dimensions as displayed. |
 | `reference/` | Frozen taxonomy, categories, materials, product types and units. |
 | `croissant.json` | MLCommons Croissant description of this release. |
 | `SHA256SUMS` | Checksums for every file above. |

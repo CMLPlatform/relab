@@ -123,14 +123,14 @@ async def test_create_image_rejects_oversized_upload(mock_session: AsyncMock) ->
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = IMAGE_FILENAME
     mock_file.content_type = CONTENT_TYPE_PNG
-    mock_file.size = 11 * MB
+    mock_file.size = 41 * MB
     mock_file.file = BytesIO(b"")
 
     image_create = ImageCreateInternal(
         file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
     )
 
-    with pytest.raises(UploadTooLargeError, match="Maximum size: 10 MB"):
+    with pytest.raises(UploadTooLargeError, match="Maximum size: 40 MB"):
         await image_storage_service.create(mock_session, image_create)
 
 

@@ -1,13 +1,14 @@
 """Image processing helpers for originals and ad-hoc resized bytes."""
 
 import contextlib
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PIL import Image as PILImage
 from PIL import ImageOps
 
-from .constants import FORMAT_JPEG, FORMAT_WEBP
-from .exif import filter_exif, get_exif_orientation
+from .constants import _EXIF_ORIENTATION_TAG, FORMAT_JPEG, FORMAT_WEBP
+from .exif import display_size, filter_exif, get_exif_orientation, rewrite_jpeg_metadata
 from .validation import validate_image_dimensions
 
 if TYPE_CHECKING:
@@ -16,53 +17,69 @@ if TYPE_CHECKING:
 
 
 def process_image_for_storage(image_path: PathLike[str]) -> tuple[int, int]:
-    """Process an uploaded image in-place for storage.
+    """Strip identifying metadata from an uploaded image in place.
 
-    Returns the stored image's ``(width, height)`` in pixels. Read here rather
-    than by a second open: the header is already parsed for the dimension
-    validation below, and the EXIF rotation further down swaps the two, so this
-    is the only point that knows the size the file actually ends up with.
+    Returns the image's ``(width, height)`` as it displays, after EXIF orientation;
+    every recorded dimension uses that, never the stored pixel layout.
+
+    JPEG originals keep their pixel data byte for byte: only the metadata segments are
+    rewritten, keeping the allowlisted EXIF tags. Orientation is on that list, so
+    browsers and the thumbnailer still turn the image upright.
     """
     with PILImage.open(image_path) as img:
-        original_format = img.format or FORMAT_JPEG
         validate_image_dimensions(img)
-        unrotated_size = img.size
-
-        has_exif = bool(img.info.get("exif"))
-        if not has_exif:
-            with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
-                has_exif = bool(img.getexif())
-
-        is_multiframe = getattr(img, "n_frames", 1) > 1
-        orientation = get_exif_orientation(img) if has_exif else None
-        needs_rotation = orientation not in (None, 1)
-        preserved_exif = b""
-        # Re-save only to apply rotation or filter EXIF; an unconditional re-save flattens
-        # animated GIFs and re-encodes lossless WebP lossily.
-        # NOTE: animated originals are never re-saved: exif_transpose sees only the first
-        # frame, so fixing one frame would flatten the rest.
-        if (has_exif or needs_rotation) and not is_multiframe:
-            # Read the allowlisted tags off the original, before exif_transpose rewrites them.
+        if img.format == FORMAT_JPEG:
             allowlisted = filter_exif(img)
-            preserved_exif = allowlisted.tobytes() if allowlisted else b""
-            try:
-                processed: PILImage.Image | None = ImageOps.exif_transpose(img)
-            except AttributeError, ValueError, OSError, TypeError:
-                processed = img
-            processed = processed.copy()
+            jpeg_exif: bytes | None = allowlisted.tobytes() if allowlisted else b""
+            resave = None
+            size = display_size(img)
         else:
-            processed = None
+            jpeg_exif = None
+            resave = _prepare_non_jpeg(img)
+            size = img.size
 
-    if processed is None:
-        return unrotated_size
-
-    # Only allowlisted tags are written back; GPS, MakerNote and serial numbers were never copied.
-    save_kwargs: dict[str, Any] = {"format": original_format, "exif": preserved_exif}
-    if original_format == FORMAT_JPEG:
-        save_kwargs.update({"quality": 95, "optimize": True})
-    elif original_format == FORMAT_WEBP:
-        # Avoid a second lossy generation on a WebP re-saved only to strip metadata.
-        save_kwargs["lossless"] = True
-
+    if jpeg_exif is not None:
+        path = Path(image_path)
+        path.write_bytes(rewrite_jpeg_metadata(path.read_bytes(), jpeg_exif))
+        return size
+    if resave is None:
+        return size
+    processed, save_kwargs = resave
     processed.save(image_path, **save_kwargs)
     return processed.size
+
+
+def _prepare_non_jpeg(img: PILImage.Image) -> tuple[PILImage.Image, dict[str, Any]] | None:
+    """Return the image and save arguments for a lossless metadata re-save, or None.
+
+    A non-JPEG is re-saved only when it carries EXIF, with the rotation applied.
+
+    PNG re-saves losslessly anyway, and WebP is re-saved lossless, so the pixels are
+    unchanged apart from the rotation. Rotation is applied rather than kept as a tag
+    because browsers do not reliably honour an orientation tag outside JPEG.
+    """
+    has_exif = bool(img.info.get("exif"))
+    if not has_exif:
+        with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
+            has_exif = bool(img.getexif())
+    # NOTE: animated originals are never re-saved: exif_transpose sees only the first
+    # frame, so fixing one frame would flatten the rest. An unconditional re-save would
+    # also flatten animated GIFs and grow lossy WebP into lossless.
+    if not has_exif or getattr(img, "n_frames", 1) > 1:
+        return None
+
+    allowlisted = filter_exif(img)
+    # The rotation is baked into the pixels below; writing the tag back would double-rotate.
+    allowlisted.pop(_EXIF_ORIENTATION_TAG, None)
+    original_format = img.format
+    try:
+        processed = ImageOps.exif_transpose(img) if get_exif_orientation(img) not in (None, 1) else img.copy()
+    except AttributeError, ValueError, OSError, TypeError:
+        processed = img.copy()
+
+    # Only allowlisted tags are written back; GPS, MakerNote and serial numbers were never copied.
+    save_kwargs: dict[str, Any] = {"format": original_format, "exif": allowlisted.tobytes() if allowlisted else b""}
+    if original_format == FORMAT_WEBP:
+        # Avoid a second lossy generation on a WebP re-saved only to strip metadata.
+        save_kwargs["lossless"] = True
+    return processed, save_kwargs

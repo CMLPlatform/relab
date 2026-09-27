@@ -96,7 +96,7 @@ For the camera integration, see [RPi camera integration](../rpi-cam/).
 
 Accepted types and size limits:
 
-- Images (up to 10 MiB): `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp`
+- Images (up to 40 MiB and 50 megapixels): `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.webp`
 - Research files (up to 50 MiB): `.csv`, `.docx`, `.json`, `.md`, `.pdf`, `.pptx`, `.tsv`, `.txt`,
   `.xlsx`
 - Scientific data (up to 50 MiB): `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`,
@@ -104,6 +104,11 @@ Accepted types and size limits:
 
 Relab validates type, size, and content before storing a file, and unpacks and inspects office
 files. If malware scanning is enabled, flagged files are rejected.
+
+Contributor accounts resize photos in the app to at most 4096 px and 10 MiB before upload. Lab
+accounts upload the original file untouched. Either way the server keeps a JPEG's pixel data
+exactly as uploaded and removes identifying metadata (GPS position, serial numbers, author) without
+re-encoding it; the orientation tag stays, so the photo still displays upright.
 
 Each account also has a cap on total file count and storage, set by its role:
 

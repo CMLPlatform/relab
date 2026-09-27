@@ -20,11 +20,14 @@ __all__ = [
 
 FORMAT_JPEG = "JPEG"
 FORMAT_WEBP = "WEBP"
-MAX_IMAGE_DIMENSION = 8000
-# Total-pixel ceiling. The per-side cap allows 8000x8000 = 64 MPx, under Pillow's
-# 89 MPx bomb guard, which can OOM the worker during thumbnailing. Pillow's guard
-# is lowered to match.
-MAX_IMAGE_PIXELS = 30_000_000
+# Long side of the largest sensors under the pixel cap below: 45 MP full-frame bodies
+# are 8192 or 8256 px wide, a 50 MP one 8640 px. The pixel cap is what bounds memory.
+MAX_IMAGE_DIMENSION = 10_000
+# Total-pixel ceiling, sized for 48 MP phone modes and 45 MP cameras. The per-side cap
+# alone allows 100 MPx, past Pillow's own 89 MPx bomb guard, which is enough to OOM the
+# worker during thumbnailing, so Pillow's guard is lowered to match. A decoded 50 MPx
+# RGB image is 150 MB; JPEG thumbnails decode through `draft` at a fraction of that.
+MAX_IMAGE_PIXELS = 50_000_000
 PILImage.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
     {
@@ -63,10 +66,9 @@ PRESERVED_EXIF_TAGS: frozenset[int] = frozenset(
         0x9209,  # Flash
         0xA001,  # ColorSpace
         0x9003,  # DateTimeOriginal
+        0x0112,  # Orientation: JPEG originals keep their pixels as shot and rely on it
     }
 )
-# Not in the allowlist: exif_transpose bakes orientation into the pixels, so writing
-# the tag back would double-rotate on the next open.
 _EXIF_ORIENTATION_TAG = 0x0112
 
 RESAMPLE_FILTER = Resampling.LANCZOS

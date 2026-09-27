@@ -13,6 +13,7 @@ from .constants import (
     THUMBNAIL_WIDTHS,
     WEBP_ENCODE_METHOD,
 )
+from .exif import apply_exif_orientation, display_size, get_exif_orientation
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -30,7 +31,7 @@ def thumbnail_path_for(image_path: Path, width: int) -> Path:
 
 
 def _write_thumbnail(img: PILImage.Image, image_path: Path, width: int, height: int) -> Path:
-    """Resize *img* to (width, height) and write it as WebP beside the original."""
+    """Resize the upright *img* to (width, height) and write it as WebP beside the original."""
     resized = img.resize((width, height), RESAMPLE_FILTER, reducing_gap=RESIZE_REDUCING_GAP)
     destination = thumbnail_path_for(image_path, width)
     resized.save(destination, format=FORMAT_WEBP, quality=85, method=WEBP_ENCODE_METHOD)
@@ -45,9 +46,15 @@ def generate_thumbnails(image_path: Path, widths: tuple[int, ...] = THUMBNAIL_WI
     DCT domain, which decodes a fraction of the pixels the full image holds. Every
     other format decodes once and resizes from that: ``draft`` is a JPEG-only
     facility, and re-opening a PNG would pay a full decode per width for nothing.
+
+    Widths are of the image as it displays: the EXIF orientation a JPEG original keeps
+    is applied before resizing, and the WebP output carries no EXIF.
     """
     with PILImage.open(image_path) as probe:
-        original_width, original_height = probe.size
+        original_width, original_height = display_size(probe)
+        quarter_turned = (original_width, original_height) != probe.size
+        # Skipping the no-op keeps the non-JPEG path from copying a full-size decode.
+        oriented = get_exif_orientation(probe) not in (None, 1)
         drafts = probe.format == FORMAT_JPEG
 
     targets = [(width, int((width / original_width) * original_height)) for width in widths if width < original_width]
@@ -56,15 +63,17 @@ def generate_thumbnails(image_path: Path, widths: tuple[int, ...] = THUMBNAIL_WI
 
     if not drafts:
         with PILImage.open(image_path) as img:
-            return [_write_thumbnail(img, image_path, width, height) for width, height in targets]
+            upright = apply_exif_orientation(img) if oriented else img
+            return [_write_thumbnail(upright, image_path, width, height) for width, height in targets]
 
     generated: list[Path] = []
     for width, height in targets:
         with PILImage.open(image_path) as img:
             # Picks the largest DCT scale that still covers the target, so the LANCZOS
             # pass below runs on a much smaller source without changing its output size.
-            img.draft("RGB", (width, height))
-            generated.append(_write_thumbnail(img, image_path, width, height))
+            # The request is in stored layout, before the orientation turns it.
+            img.draft("RGB", (height, width) if quarter_turned else (width, height))
+            generated.append(_write_thumbnail(apply_exif_orientation(img), image_path, width, height))
     return generated
 
 
