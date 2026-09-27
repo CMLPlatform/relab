@@ -28,7 +28,7 @@ export default function ProductMaterials({ product }: Props) {
   return (
     <View className="mt-4">
       <View className="mb-2 flex-row items-center gap-1.5">
-        <AppText variant="heading" {...heading(3)} className="font-semibold">
+        <AppText variant="body" {...heading(3)} className="font-semibold">
           Materials
         </AppText>
         <AppText variant="label" className="text-muted-foreground">

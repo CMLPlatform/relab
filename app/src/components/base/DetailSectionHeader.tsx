@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { View } from 'react-native';
+import { heading } from '@/utils/a11y';
 import { AppText } from './AppText';
 import { InfoTooltip } from './InfoTooltip';
 
@@ -11,14 +12,15 @@ interface Props {
 
 /**
  * A sub-header inside a Section card. Section itself is the card title
- * (`heading`, 19/24), so this sits one step below it: body size, semibold.
+ * (`heading`, 19/24), so this sits one step below it: body size, semibold,
+ * and a level-3 heading like the other subsections inside a card.
  */
 export default function DetailSectionHeader({ title, tooltipTitle, rightElement }: Props) {
   return (
     <View className="mb-3 flex-row items-center justify-between">
       <View className="flex-1 flex-row items-center gap-1.5">
         {/* The tooltip renders a View, so it sits beside the AppText, not inside it. */}
-        <AppText variant="body" className="font-semibold">
+        <AppText variant="body" {...heading(3)} className="font-semibold">
           {title}
         </AppText>
         {tooltipTitle ? <InfoTooltip title={tooltipTitle} /> : null}
