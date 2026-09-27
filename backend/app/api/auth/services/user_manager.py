@@ -111,9 +111,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             if db_user:
                 credentials.username = db_user.email
 
-        # Rate-limit on the resolved email so a username and its email share one bucket.
-        await limiter.ahit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
-        return await self._authenticate_offloading_hashes(credentials)
+        # Bucket on the resolved email so a username and its email share one budget. Only
+        # failures count: a room signing in to one shared account must not lock it, while a
+        # password guesser still gets LOGIN_RATE_LIMIT tries per account however many IPs
+        # it uses. NOTE: check-then-hit is not atomic, so a burst of concurrent guesses can
+        # overshoot by the number in flight; the per-IP login limit bounds that per source.
+        account_key = _login_identifier_rate_limit_key(credentials.username)
+        await limiter.acheck_key(LOGIN_RATE_LIMIT, account_key)
+        user = await self._authenticate_offloading_hashes(credentials)
+        if user is None:
+            await limiter.ahit_key(LOGIN_RATE_LIMIT, account_key)
+        return user
 
     async def _authenticate_offloading_hashes(self, credentials: OAuth2PasswordRequestForm) -> User | None:
         """Run the upstream authenticate flow with the Argon2 work off the event loop.

@@ -14,6 +14,7 @@ from redis.asyncio import Redis
 
 from app.api.auth.models import User
 from app.api.auth.schemas import UserUpdate
+from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT
 from app.api.auth.services.user_manager import (
     RESET_PASSWORD_TOKEN_AUDIENCE,
     SECRET,
@@ -22,7 +23,7 @@ from app.api.auth.services.user_manager import (
 )
 from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction
-from app.api.common.rate_limiting import RateLimitExceededError
+from app.api.common.rate_limiting import Limiter, RateLimitExceededError
 from app.core.runtime import AppServices
 
 
@@ -55,7 +56,7 @@ def _make_manager(mock_user: MagicMock | None = None) -> tuple[UserManager, Asyn
 
 
 async def test_applies_account_aware_rate_limit_before_lookup() -> None:
-    """Login attempts should also be bucketed by a keyed digest of the submitted identifier."""
+    """A failed login is checked against, then charged to, a keyed digest of the identifier."""
     manager, mock_session = _make_manager()
     credentials = _make_credentials(" User@Example.COM ")
 
@@ -63,16 +64,36 @@ async def test_applies_account_aware_rate_limit_before_lookup() -> None:
         patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter,
         patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock) as mock_super,
     ):
+        mock_limiter.acheck_key = AsyncMock()
         mock_limiter.ahit_key = AsyncMock()
         mock_super.return_value = None
         await manager.authenticate(credentials)
 
+    mock_limiter.acheck_key.assert_called_once()
     mock_limiter.ahit_key.assert_called_once()
     rate, key = mock_limiter.ahit_key.call_args.args
+    assert mock_limiter.acheck_key.call_args.args == (rate, key)
     assert rate == "3/minute"
     assert key.startswith("auth:login:account:")
     assert "user@example.com" not in key
     mock_session.execute.assert_not_called()
+
+
+async def test_successful_login_is_not_charged_to_the_account() -> None:
+    """Only failures spend the per-account budget, so a shared account is not locked by use."""
+    manager, _ = _make_manager()
+
+    with (
+        patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter,
+        patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock) as mock_super,
+    ):
+        mock_limiter.acheck_key = AsyncMock()
+        mock_limiter.ahit_key = AsyncMock()
+        mock_super.return_value = MagicMock()
+        await manager.authenticate(_make_credentials("user@example.com"))
+
+    mock_limiter.acheck_key.assert_called_once()
+    mock_limiter.ahit_key.assert_not_called()
 
 
 async def test_account_rate_limit_exceeded_skips_lookup() -> None:
@@ -80,12 +101,51 @@ async def test_account_rate_limit_exceeded_skips_lookup() -> None:
     manager, mock_session = _make_manager()
     credentials = _make_credentials("blocked@example.com")
 
-    with patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter:
-        mock_limiter.ahit_key.side_effect = RateLimitExceededError
+    with (
+        patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter,
+        patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock) as mock_super,
+    ):
+        mock_limiter.acheck_key = AsyncMock(side_effect=RateLimitExceededError)
         with pytest.raises(RateLimitExceededError):
             await manager.authenticate(credentials)
 
     mock_session.execute.assert_not_called()
+    mock_super.assert_not_called()
+
+
+async def test_room_logs_in_to_one_account_from_one_ip_but_guessing_is_capped() -> None:
+    """A workshop signs in to one shared account from one IP; wrong passwords still lock out.
+
+    Uses the real login budgets: the per-IP route limit and the per-account failure limit.
+    """
+    room_size = 50
+    limiter = Limiter(storage_uri="memory://")
+    ip_check = limiter.dependency(LOGIN_IP_RATE_LIMIT).dependency
+    assert ip_check is not None
+    request = MagicMock(spec=Request)
+    request.headers = {}
+    request.client.host = "203.0.113.50"
+    demo_user = MagicMock()
+
+    async def fake_authenticate(credentials: OAuth2PasswordRequestForm) -> MagicMock | None:
+        return demo_user if credentials.password == "demo-password" else None
+
+    manager, _ = _make_manager()
+    with (
+        patch("app.api.auth.services.user_manager.limiter", new=limiter),
+        patch.object(UserManager, "_authenticate_offloading_hashes", side_effect=fake_authenticate),
+    ):
+        for _ in range(room_size):
+            await ip_check(request)
+            assert await manager.authenticate(_make_credentials("demo@example.com", "demo-password")) is demo_user
+
+        for _ in range(3):
+            assert await manager.authenticate(_make_credentials("demo@example.com", "wrong")) is None
+        with pytest.raises(RateLimitExceededError):
+            await manager.authenticate(_make_credentials("demo@example.com", "wrong"))
+        # Once the failure budget is spent, even the right password waits out the window.
+        with pytest.raises(RateLimitExceededError):
+            await manager.authenticate(_make_credentials("demo@example.com", "demo-password"))
 
 
 async def test_email_input_skips_db_lookup() -> None:
@@ -143,18 +203,18 @@ async def test_username_and_email_login_share_rate_limit_bucket() -> None:
         patch("app.api.auth.services.user_manager.limiter", create=True) as username_limiter,
         patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock),
     ):
-        username_limiter.ahit_key = AsyncMock()
+        username_limiter.acheck_key = AsyncMock()
         await username_manager.authenticate(_make_credentials("myusername"))
-    username_key = username_limiter.ahit_key.call_args.args[1]
+    username_key = username_limiter.acheck_key.call_args.args[1]
 
     email_manager, _ = _make_manager()
     with (
         patch("app.api.auth.services.user_manager.limiter", create=True) as email_limiter,
         patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock),
     ):
-        email_limiter.ahit_key = AsyncMock()
+        email_limiter.acheck_key = AsyncMock()
         await email_manager.authenticate(_make_credentials("shared@example.com"))
-    email_key = email_limiter.ahit_key.call_args.args[1]
+    email_key = email_limiter.acheck_key.call_args.args[1]
 
     assert username_key == email_key
 
