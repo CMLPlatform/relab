@@ -1,6 +1,8 @@
 import http from "k6/http";
 import { check } from "k6";
+import encoding from "k6/encoding";
 import exec from "k6/execution";
+import { WebSocket } from "k6/websockets";
 
 const baseUrl = __ENV.BASE_URL || "http://127.0.0.1:8010";
 const productListPath = __ENV.PERF_PRODUCT_LIST_PATH || "/v1/products?size=20";
@@ -18,6 +20,8 @@ const mediaUrl = __ENV.PERF_MEDIA_URL;
 const stageSeconds = Number(__ENV.PERF_STAGE_SECONDS || 20);
 const gapSeconds = Number(__ENV.PERF_STAGE_GAP_SECONDS || 5);
 let nextStartSeconds = 0;
+// How long the fake camera holds its relay socket open; set where its stages are.
+let rpiCamDeviceSeconds = 0;
 
 function stage(rate, preAllocatedVUs) {
   const scenario = {
@@ -66,14 +70,15 @@ const uploadImages = [
 // Per size, because a percentile mixed across all three hides which one moved.
 //
 // Measured p95: 31 / 33 / 59 ms on a GitHub runner, 79 / 92 / 154 ms on a busy dev
-// box. These are a coarse guard, not a tight one: two runs of the same commit put
-// small at 69 ms and 31 ms, so run-to-run variance here is over 2x. A ceiling tight
-// enough to catch the ~40-50ms a re-blocked derivative pass would add is a ceiling
-// that flaps on that variance, and a flapping threshold gets ignored, which is worse
-// than a loose one. What these catch is a gross
-// regression; the pipeline's own cost is better guarded by measuring the resize
-// path directly, where there is no network or runner noise in the number.
-const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 190, large: 250 };
+// box, back when only the 200px width was generated in the request. Every width is
+// now generated inline, which adds ~110-130 ms of derivative work from `medium` up,
+// so those two ceilings carry that on top. These are a coarse guard, not a tight one:
+// two runs of the same commit put small at 69 ms and 31 ms, so run-to-run variance
+// here is over 2x, and a threshold tight enough to catch a ~40-50ms regression would
+// flap on it. A flapping threshold gets ignored, which is worse than a loose one.
+// What these catch is a gross regression; the pipeline's own cost is better guarded
+// by measuring the resize path directly, where there is no network or runner noise.
+const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 320, large: 400 };
 
 const thresholds = {
   "http_req_failed{scenario:live_probe}": ["rate<0.01"],
@@ -128,6 +133,57 @@ if (loginEmail && loginPassword) {
   for (const { size } of uploadImages) {
     thresholds[`http_req_duration{upload_size:${size}}`] = [`p(95)<${UPLOAD_THRESHOLDS_MS[size]}`];
   }
+
+  // The rpi_cam relay. A camera is a long-lived WebSocket the device opens, and
+  // user requests reach it as JSON frames over that socket, so an HTTP latency
+  // number alone cannot see it. These stages measure the relay three ways:
+  // connection setup (`ws_connecting`), round-trip latency through the socket
+  // (`http_req_duration` of a relayed request), and relay failures
+  // (`http_req_failed`, which a dropped frame or dead socket shows up as a 503).
+  // The camera is simulated in k6 itself: it signs the same ES256 device assertion
+  // a paired Pi does, so the auth path measured is the real one.
+  scenarios.rpi_cam_ws_connect = { ...stage(Number(__ENV.PERF_RPI_CAM_CONNECT_RATE || 5), 10), exec: "rpiCamWsConnect" };
+  // Measured p95 19 ms in two isolated CI-stack runs; roughly 5x, rounded up to 100.
+  thresholds["ws_connecting{scenario:rpi_cam_ws_connect}"] = ["p(95)<100"];
+
+  // One fake camera stays connected across the relayed stages, from halfway through
+  // the gap before them to halfway through the gap after. Connecting any earlier
+  // lets a straggling connect-stage socket replace it (the backend keeps one socket
+  // per camera); closing any earlier fails the last capture still in flight.
+  const relayStartSeconds = nextStartSeconds;
+  scenarios.rpi_cam_telemetry_relay = {
+    ...stage(Number(__ENV.PERF_RPI_CAM_TELEMETRY_RATE || 10), 10),
+    exec: "rpiCamTelemetryRelay",
+  };
+  scenarios.rpi_cam_hls_relay = { ...stage(Number(__ENV.PERF_RPI_CAM_HLS_RATE || 10), 10), exec: "rpiCamHlsRelay" };
+  scenarios.rpi_cam_capture = { ...stage(Number(__ENV.PERF_RPI_CAM_CAPTURE_RATE || 2), 10), exec: "rpiCamCapture" };
+  const deviceStartSeconds = relayStartSeconds - gapSeconds / 2;
+  rpiCamDeviceSeconds = nextStartSeconds - gapSeconds / 2 - deviceStartSeconds;
+  scenarios.rpi_cam_device = {
+    executor: "per-vu-iterations",
+    vus: 1,
+    iterations: 1,
+    startTime: `${deviceStartSeconds}s`,
+    maxDuration: `${rpiCamDeviceSeconds + gapSeconds}s`,
+    exec: "rpiCamDevice",
+  };
+  for (const scenario of ["rpi_cam_telemetry_relay", "rpi_cam_hls_relay", "rpi_cam_capture"]) {
+    thresholds[`http_req_failed{scenario:${scenario}}`] = ["rate<0.01"];
+  }
+  // Roughly 5x the worse of two isolated CI-stack runs (p95 22 / 23 / 125 ms),
+  // rounded up to 100.
+  thresholds["http_req_duration{scenario:rpi_cam_telemetry_relay}"] = ["p(95)<200"];
+  thresholds["http_req_duration{scenario:rpi_cam_hls_relay}"] = ["p(95)<200"];
+  thresholds["http_req_duration{scenario:rpi_cam_capture}"] = ["p(95)<700"];
+
+  // Device-side HTTP, no socket: the Pi's thumbnail worker posting a preview frame.
+  scenarios.rpi_cam_preview_upload = {
+    ...stage(Number(__ENV.PERF_RPI_CAM_PREVIEW_RATE || 3), 10),
+    exec: "rpiCamPreviewUpload",
+  };
+  thresholds["http_req_failed{scenario:rpi_cam_preview_upload}"] = ["rate<0.01"];
+  // Measured p95 20-25 ms in two isolated CI-stack runs; roughly 5x, rounded up to 100.
+  thresholds["http_req_duration{scenario:rpi_cam_preview_upload}"] = ["p(95)<200"];
 }
 
 export const options = {
@@ -138,7 +194,7 @@ export const options = {
   summaryTrendStats: ["avg", "min", "med", "p(95)", "p(99)", "max"],
 };
 
-export function setup() {
+export async function setup() {
   // Ids are resolved once here rather than per iteration, so the scenarios
   // measure the endpoint under test and not the lookup that found their input.
   const listing = http.get(`${baseUrl}/v1/products?size=100`);
@@ -161,7 +217,204 @@ export function setup() {
     { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } },
   );
 
-  return { token, detailProductId, uploadProductId: created.json("id") };
+  // A camera owned by the same user, registered with a fresh P-256 key the way
+  // pairing registers a Pi's. The private half goes to the VUs that play the device.
+  const cameraKeys = await crypto.subtle.generateKey(EC_P256, true, ["sign", "verify"]);
+  const { kty, crv, x, y } = await crypto.subtle.exportKey("jwk", cameraKeys.publicKey);
+  const cameraKeyId = `perf-${Date.now()}`;
+  const camera = http.post(
+    `${baseUrl}/v1/plugins/rpi-cam/cameras`,
+    JSON.stringify({
+      name: "perf baseline camera",
+      relay_public_key_jwk: { kty, crv, x, y },
+      relay_key_id: cameraKeyId,
+    }),
+    { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } },
+  );
+
+  return {
+    token,
+    detailProductId,
+    uploadProductId: created.json("id"),
+    camera: {
+      id: camera.json("id"),
+      keyId: cameraKeyId,
+      privateJwk: await crypto.subtle.exportKey("jwk", cameraKeys.privateKey),
+    },
+  };
+}
+
+// --- rpi_cam fake device ------------------------------------------------------
+
+const EC_P256 = { name: "ECDSA", namedCurve: "P-256" };
+const wsBaseUrl = baseUrl.replace(/^http/, "ws");
+
+// The ES256 device assertion a paired Pi signs for the relay socket and for its
+// own uploads. The backend accepts each `jti` once, so every use needs a new one.
+async function deviceAssertion(camera) {
+  const key = await crypto.subtle.importKey("jwk", camera.privateJwk, EC_P256, false, ["sign"]);
+  const now = Math.floor(Date.now() / 1000);
+  const issuer = `camera:${camera.id}`;
+  const b64 = (value) => encoding.b64encode(JSON.stringify(value), "rawurl");
+  const signingInput = `${b64({ alg: "ES256", typ: "JWT", kid: camera.keyId })}.${b64({
+    iss: issuer,
+    sub: issuer,
+    aud: "relab-rpi-cam-relay",
+    iat: now,
+    nbf: now,
+    exp: now + 120,
+    jti: `${exec.vu.idInTest}-${exec.scenario.iterationInTest}-${Math.random().toString(36).slice(2)}`,
+  })}`;
+  // WebCrypto's ECDSA signature is raw r||s, which is exactly the JWS ES256 form.
+  const signature = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    key,
+    new TextEncoder().encode(signingInput),
+  );
+  return `${signingInput}.${encoding.b64encode(signature, "rawurl")}`;
+}
+
+async function openCameraSocket(camera) {
+  const ws = new WebSocket(`${wsBaseUrl}/v1/plugins/rpi-cam/ws/connect?camera_id=${camera.id}`, null, {
+    headers: { Authorization: `Bearer ${await deviceAssertion(camera)}` },
+  });
+  const opened = await new Promise((resolve) => {
+    ws.onopen = () => resolve(true);
+    ws.onerror = () => resolve(false);
+  });
+  check(opened, { "camera relay socket opened": (ok) => ok });
+  return opened ? ws : null;
+}
+
+// A small fixed playlist and one fMP4-sized binary body for segment requests. The
+// segment bytes do not need to be video: the relay forwards them opaquely.
+const HLS_PLAYLIST = "#EXTM3U\n#EXT-X-VERSION:9\n#EXT-X-TARGETDURATION:1\n#EXTINF:1.0,\nseg0.mp4\n";
+const hlsSegment = uploadImages[0].body;
+
+function respond(ws, id, status, data, extra = {}) {
+  ws.send(JSON.stringify({ id, type: "response", status, data, ...extra }));
+}
+
+// Answers the relay commands the stages below send, as the Pi's local API would.
+async function handleRelayCommand(ws, camera, msg) {
+  if (msg.method === "GET" && msg.path === "/system/telemetry") {
+    respond(ws, msg.id, 200, {
+      timestamp: new Date().toISOString(),
+      cpu_percent: 12.5,
+      mem_percent: 40.0,
+      disk_percent: 20.0,
+      thermal_state: "normal",
+    });
+  } else if (msg.method === "GET" && msg.path.startsWith("/preview/hls/")) {
+    if (msg.path.endsWith(".m3u8")) {
+      respond(ws, msg.id, 200, HLS_PLAYLIST, { content_type: "application/vnd.apple.mpegurl" });
+    } else {
+      // Binary bodies travel as a JSON header then one binary frame.
+      respond(ws, msg.id, 200, null, { content_type: "video/mp4", has_binary: true });
+      ws.send(hlsSegment);
+    }
+  } else if (msg.method === "POST" && msg.path === "/captures") {
+    // A real capture: the Pi pushes the image to the backend over HTTPS, then
+    // answers the relayed command with the stored image's id.
+    const upload = http.post(
+      `${baseUrl}/v1/plugins/rpi-cam/device/cameras/${camera.id}/image-upload`,
+      {
+        file: http.file(uploadImages[0].body, "capture.jpg", "image/jpeg"),
+        capture_metadata: "{}",
+        upload_metadata: JSON.stringify(msg.body),
+      },
+      { headers: { Authorization: `Bearer ${await deviceAssertion(camera)}` } },
+    );
+    respond(ws, msg.id, upload.status === 201 ? 200 : 502, {
+      status: "uploaded",
+      image_id: upload.json("image_id"),
+      image_url: upload.json("image_url"),
+    });
+  } else {
+    respond(ws, msg.id, 404, { detail: `Unknown: ${msg.method} ${msg.path}` });
+  }
+}
+
+// Holds one relay socket open for the relayed stages and serves their commands.
+export async function rpiCamDevice(data) {
+  const ws = await openCameraSocket(data.camera);
+  if (!ws) {
+    return;
+  }
+  ws.binaryType = "arraybuffer";
+  ws.onmessage = async (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === "ping") {
+      ws.send(JSON.stringify({ type: "pong" }));
+    } else if (msg.type === "request") {
+      await handleRelayCommand(ws, data.camera, msg);
+    }
+  };
+  setTimeout(() => ws.close(), rpiCamDeviceSeconds * 1000);
+}
+
+export async function rpiCamWsConnect(data) {
+  const ws = await openCameraSocket(data.camera);
+  if (ws) {
+    ws.close();
+  }
+}
+
+export function rpiCamTelemetryRelay(data) {
+  // force_refresh skips the telemetry cache, so every request crosses the relay.
+  const response = http.get(`${baseUrl}/v1/plugins/rpi-cam/cameras/${data.camera.id}/telemetry?force_refresh=true`, {
+    headers: { Authorization: `Bearer ${data.token}` },
+    tags: { scenario: "rpi_cam_telemetry_relay" },
+  });
+
+  check(response, {
+    "relayed telemetry returned 200": (res) => res.status === 200,
+    "relayed telemetry returned a snapshot": (res) => res.json("thermal_state") === "normal",
+  });
+}
+
+export function rpiCamHlsRelay(data) {
+  const response = http.get(`${baseUrl}/v1/plugins/rpi-cam/cameras/${data.camera.id}/hls/cam-preview/seg0.mp4`, {
+    headers: { Authorization: `Bearer ${data.token}` },
+    responseType: "binary",
+    tags: { scenario: "rpi_cam_hls_relay" },
+  });
+
+  check(response, {
+    "relayed HLS segment returned 200": (res) => res.status === 200,
+    "relayed HLS segment is intact": (res) => res.body && res.body.byteLength === hlsSegment.byteLength,
+  });
+}
+
+export function rpiCamCapture(data) {
+  const response = http.post(
+    `${baseUrl}/v1/plugins/rpi-cam/cameras/${data.camera.id}/captures`,
+    JSON.stringify({ product_id: data.uploadProductId }),
+    {
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.token}` },
+      tags: { scenario: "rpi_cam_capture" },
+    },
+  );
+
+  check(response, {
+    "camera capture returned 201": (res) => res.status === 201,
+  });
+}
+
+export async function rpiCamPreviewUpload(data) {
+  const assertion = await deviceAssertion(data.camera);
+  const response = http.post(
+    `${baseUrl}/v1/plugins/rpi-cam/device/cameras/${data.camera.id}/preview-thumbnail-upload`,
+    { file: http.file(uploadImages[0].body, "preview.jpg", "image/jpeg") },
+    {
+      headers: { Authorization: `Bearer ${assertion}` },
+      tags: { scenario: "rpi_cam_preview_upload" },
+    },
+  );
+
+  check(response, {
+    "preview thumbnail upload returned 201": (res) => res.status === 201,
+  });
 }
 
 export function liveProbe() {

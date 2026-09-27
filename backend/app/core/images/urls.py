@@ -36,8 +36,8 @@ def relative_to_storage_root(file_path: Path, storage_root: Path) -> Path | None
 # Only successes are cached, which is what makes this safe. A file that resolved
 # once does not stop existing while its database row is alive, so a hit cannot go
 # stale in a way a caller would notice. A *missing* file is never cached, so a
-# thumbnail the backfill generates later is picked up on the next request rather
-# than after a restart.
+# thumbnail written later is picked up on the next request rather than after a
+# restart.
 _RESOLVED_URL_CACHE_MAX = 20_000
 _resolved_urls: dict[tuple[str, str, str], str] = {}
 

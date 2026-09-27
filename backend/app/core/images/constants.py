@@ -5,8 +5,6 @@ from PIL.Image import Resampling
 
 __all__ = [
     "ALLOWED_IMAGE_MIME_TYPES",
-    "DEFERRED_THUMBNAIL_WIDTHS",
-    "EAGER_THUMBNAIL_WIDTHS",
     "FORMAT_JPEG",
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
@@ -39,10 +37,6 @@ ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
     }
 )
 THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600, 2560)
-# The width the create response publishes and every list card uses; generated inline
-# so an upload never answers without it. The wider widths are generated afterwards.
-EAGER_THUMBNAIL_WIDTHS: tuple[int, ...] = THUMBNAIL_WIDTHS[:1]
-DEFERRED_THUMBNAIL_WIDTHS: tuple[int, ...] = THUMBNAIL_WIDTHS[1:]
 # Pillow pre-reduces by an integer factor before the resample filter runs whenever the
 # source is at least this many times the target. It costs a box-filter pass and saves a
 # much larger LANCZOS one; 2.0 is Pillow's own default for `thumbnail`.

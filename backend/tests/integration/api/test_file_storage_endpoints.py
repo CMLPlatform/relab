@@ -14,9 +14,8 @@ from app.api.file_storage import upload_quota
 from app.api.file_storage.crud.support_paths import stored_file_path
 from app.api.file_storage.models import Image
 from app.core.config.core import settings
-from app.core.images import DEFERRED_THUMBNAIL_WIDTHS, thumbnail_path_for
+from app.core.images import THUMBNAIL_WIDTHS, thumbnail_path_for
 from scripts.maintenance.backfill_image_dimensions import measure_images_missing_dimensions
-from scripts.maintenance.backfill_thumbnails import thumbnail_unverified_images
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 
 if TYPE_CHECKING:
@@ -187,16 +186,15 @@ async def test_backfill_measures_images_stored_before_dimensions_existed(
     assert (restored.width_px, restored.height_px) == (222, 111)
 
 
-async def test_backfill_repairs_and_stamps_only_the_unverified_rows(
+async def test_upload_generates_every_thumbnail_width_before_responding(
     api_client_superuser: AsyncClient,
     db_session: AsyncSession,
     setup_product_for_files: Product,
 ) -> None:
-    """The backfill selects rows, not files, and stamps what it has verified.
+    """The create response already lists, and the disk already holds, every width.
 
-    Walking the storage directory cost one pass over every image ever uploaded on every
-    deploy. Selecting on the stamp bounds each run to rows written since the last one,
-    and a row left with only its inline narrow thumbnail by a restart is repaired.
+    Nothing is generated after the response, so a restart right after an upload cannot
+    leave an image serving its full-size original in place of a missing derivative.
     """
     buffer = BytesIO()
     PILImage.new("RGB", (3200, 1600), color="green").save(buffer, format="PNG")
@@ -206,28 +204,13 @@ async def test_backfill_repairs_and_stamps_only_the_unverified_rows(
         data={"description": IMAGE_DESC},
     )
     assert response.status_code == status.HTTP_201_CREATED, response.text
-    image_id = UUID(response.json()["id"])
+    body = response.json()
+    assert list(body["thumbnail_urls"]) == [str(width) for width in THUMBNAIL_WIDTHS]
 
-    stored = (await db_session.execute(select(Image).where(Image.id == image_id))).scalar_one()
+    stored = (await db_session.execute(select(Image).where(Image.id == UUID(body["id"])))).scalar_one()
     original = stored_file_path(stored)
     assert original is not None
-
-    # The state a restart during the detached pass leaves: narrow width only, unstamped.
-    for width in DEFERRED_THUMBNAIL_WIDTHS:
-        thumbnail_path_for(original, width).unlink(missing_ok=True)
-    await db_session.execute(update(Image).where(Image.id == image_id).values(thumbnails_generated_at=None))
-    await db_session.commit()
-
-    assert await thumbnail_unverified_images(db_session) == (1, 0)
-
-    for width in DEFERRED_THUMBNAIL_WIDTHS:
-        assert thumbnail_path_for(original, width).exists()
-
-    # Stamped, so the next deploy's pass selects nothing and does no work at all.
-    db_session.expire_all()
-    verified = (await db_session.execute(select(Image).where(Image.id == image_id))).scalar_one()
-    assert verified.thumbnails_generated_at is not None
-    assert await thumbnail_unverified_images(db_session) == (0, 0)
+    assert all(thumbnail_path_for(original, width).exists() for width in THUMBNAIL_WIDTHS)
 
 
 @pytest.mark.parametrize(

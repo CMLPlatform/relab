@@ -45,15 +45,6 @@ echo "Backfilling image dimensions..."
 .venv/bin/python -m scripts.maintenance.backfill_image_dimensions \
     || echo "Image-dimension backfill failed; re-run scripts.maintenance.backfill_image_dimensions manually." >&2
 
-# Complete the thumbnail set for any image row not yet verified. Same reasoning as
-# above: it selects on `thumbnails_generated_at IS NULL` through a partial index, so a
-# deploy that follows one with no new uploads does an index lookup and stops. Without
-# it, an upload whose detached wide-thumbnail pass died leaves `thumbnail_url` falling
-# back to the full-size original and product lists downloading megabytes per 80px card.
-echo "Backfilling image thumbnails..."
-.venv/bin/python -m scripts.maintenance.backfill_thumbnails \
-    || echo "Thumbnail backfill failed; re-run scripts.maintenance.backfill_thumbnails manually." >&2
-
 # Seed dummy data if enabled and if the database is empty
 if [ "$(lc "$SEED_DUMMY_DATA")" = "true" ]; then
     echo "Dummy data seeding is enabled."
