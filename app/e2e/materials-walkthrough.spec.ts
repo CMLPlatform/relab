@@ -1,5 +1,5 @@
 /**
- * The demo chain, end to end: a seeded product → its components → one
+ * The materials chain, end to end: a seeded product → its components → one
  * component's recorded material quantity and the material's reference → the
  * photograph of that component → who recorded it.
  *
