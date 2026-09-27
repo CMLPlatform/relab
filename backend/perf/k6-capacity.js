@@ -31,7 +31,8 @@ const holdSeconds = Number(__ENV.PERF_CAPACITY_HOLD_SECONDS || 30);
 const userCount = Number(__ENV.PERF_CAPACITY_USERS || 50);
 const password = __ENV.PERF_CAPACITY_PASSWORD;
 const email = (i) => `capacity-${i}@example.com`;
-const anyUser = () => 1 + Math.floor(Math.random() * userCount);
+// Round-robin over the accounts by iteration: spreads logins evenly with no RNG.
+const nextUser = () => 1 + (exec.scenario.iterationInTest % userCount);
 
 function login(i) {
   const response = http.post(
@@ -57,11 +58,11 @@ const mix = {
     [20, (data) => productDetailRead({ detailProductId: pick(data.productIds) })],
     [10, (data) => productComponentsRead({ detailProductId: pick(data.productIds) })],
     [10, referenceDataRead],
-    [2, () => login(anyUser())],
+    [2, () => login(nextUser())],
     [9, (data) => productCreateWrite(pick(data.users))],
     [4, (data) => imageUploadWrite(pick(data.users))],
   ],
-  login: [[100, () => login(anyUser())]],
+  login: [[100, () => login(nextUser())]],
 }[mode];
 const ops = mix.flatMap(([weight, fn]) => Array(weight).fill(fn));
 
