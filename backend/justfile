@@ -180,6 +180,23 @@ _perf-ci media_url="" base_url="http://api:8000": perf-fixtures
         -e PERF_MEDIA_URL="$media_url" \
         {{ k6_docker_image }} run --summary-export /reports/latest-k6-summary.json /perf/k6-baseline.js
 
+# Run the k6 capacity probe against a running stack on `network`.
+# Started, seeded and torn down by the root `docker-perf-capacity` recipe, which also
+# creates the PERF_CAPACITY_USERS accounts the script logs in as.
+_perf-capacity network mode="mixed":
+    mkdir -p reports/performance
+    docker run --rm \
+        --user "$(id -u):$(id -g)" \
+        --network {{ quote(network) }} \
+        -v "$PWD/perf:/perf:ro" \
+        -v "$PWD/reports/performance:/reports" \
+        -e BASE_URL=http://api:8000 \
+        -e PERF_CAPACITY_MODE={{ quote(mode) }} \
+        -e PERF_CAPACITY_SUMMARY=/reports/capacity-{{ mode }}.json \
+        -e PERF_CAPACITY_USERS -e PERF_CAPACITY_PASSWORD \
+        -e PERF_CAPACITY_RATES -e PERF_CAPACITY_HOLD_SECONDS \
+        {{ k6_docker_image }} run --quiet /perf/k6-capacity.js
+
 # Write a dated CI baseline report from the latest k6 JSON summary export
 _perf-report-ci date="" base_url="http://api:8000":
     #!/usr/bin/env bash
