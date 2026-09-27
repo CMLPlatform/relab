@@ -7,7 +7,7 @@ from fastapi import HTTPException, Response, status
 from fastapi_users.exceptions import UserNotExists
 from pydantic import SecretStr
 
-from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError
+from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError, MfaStepUpCodeInvalidError
 from app.api.auth.schemas import (
     MfaChallengeRequest,
     MfaOAuthClaimRequest,
@@ -244,7 +244,7 @@ async def test_disable_totp_invalid_code_keeps_enrollment() -> None:
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=False)),
         patch("app.api.auth.services.mfa_flow.mfa_service.clear_totp", new=AsyncMock()) as clear,
         patch("app.api.auth.services.mfa_flow.audit_event") as audit_event,
-        pytest.raises(MfaCodeInvalidError),
+        pytest.raises(MfaStepUpCodeInvalidError),
     ):
         await mfa_flow.disable_totp(
             MfaTotpDisableRequest(code="000000"),
@@ -358,7 +358,7 @@ async def test_regenerate_recovery_codes_rejects_invalid_code() -> None:
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=False)),
         patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
-        pytest.raises(MfaCodeInvalidError),
+        pytest.raises(MfaStepUpCodeInvalidError),
     ):
         await mfa_flow.regenerate_recovery_codes(
             MfaRecoveryCodesRegenerateRequest(code="000000"),

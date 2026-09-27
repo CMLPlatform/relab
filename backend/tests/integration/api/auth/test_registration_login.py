@@ -342,7 +342,7 @@ async def test_totp_setup_retry_allows_valid_code_after_invalid_code(
         },
     )
 
-    assert invalid_response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert invalid_response.status_code == status.HTTP_403_FORBIDDEN
     assert valid_response.status_code == status.HTTP_200_OK
 
 

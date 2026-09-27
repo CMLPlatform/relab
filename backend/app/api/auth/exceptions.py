@@ -6,6 +6,7 @@ from fastapi_users.router.common import ErrorCode
 from app.api.common.exceptions import (
     BadRequestError,
     ConflictError,
+    ForbiddenError,
     NotFoundError,
     UnauthorizedError,
 )
@@ -108,6 +109,17 @@ class MfaChallengeInvalidError(MfaError):
 
 class MfaCodeInvalidError(MfaError):
     """Raised when an MFA one-time code is invalid."""
+
+    def __init__(self) -> None:
+        super().__init__("Invalid MFA code")
+
+
+class MfaStepUpCodeInvalidError(ForbiddenError):
+    """Raised when a signed-in user's MFA code for a sensitive action is invalid.
+
+    403, not 401 like the login challenge: the session is valid, and clients refresh
+    and resend on a 401, which would count one wrong guess twice.
+    """
 
     def __init__(self) -> None:
         super().__init__("Invalid MFA code")
