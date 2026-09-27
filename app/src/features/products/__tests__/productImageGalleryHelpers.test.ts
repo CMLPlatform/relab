@@ -61,7 +61,7 @@ describe('productImageGalleryHelpers', () => {
       { uri: 'file://48mp.jpg', width: 8000, height: 6000, fileSize: 24 * 1024 * 1024 },
     ] as ImagePicker.ImagePickerAsset[];
 
-    await expect(buildImportedImages(assets, onReject, { keepOriginals: true })).resolves.toEqual([
+    await expect(buildImportedImages(assets, onReject, true)).resolves.toEqual([
       { url: 'file://48mp.jpg', description: '' },
     ]);
     expect(mockProcessImage).not.toHaveBeenCalled();

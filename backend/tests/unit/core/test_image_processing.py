@@ -7,9 +7,7 @@ import pytest
 from anyio import Path as AnyIOPath
 from fastapi import UploadFile
 from PIL import Image as PILImage
-from PIL import ImageCms
 from PIL.ExifTags import GPS, IFD
-from PIL.Image import Transpose
 from starlette.datastructures import Headers
 
 from app.core.images import (
@@ -26,7 +24,6 @@ from app.core.images import (
     validate_image_file,
     validate_image_mime_type,
 )
-from app.core.images.exif import rewrite_jpeg_metadata
 
 
 def _make_jpeg_with_exif(
@@ -92,6 +89,8 @@ def test_validate_dimensions_accepts_high_resolution_sensors(size: tuple[int, in
     """Untouched originals from 48 MP phones and 45 MP cameras fit both caps, either way up."""
     validate_image_dimensions(PILImage.new("L", size))
     validate_image_dimensions(PILImage.new("L", size[::-1]))
+    # Both limits are inclusive: exactly at the per-side and total-pixel caps is allowed.
+    validate_image_dimensions(PILImage.new("RGB", (10, 20)), max_dimension=20, max_pixels=200)
 
 
 def test_validate_dimensions_exceeds_width() -> None:
@@ -208,8 +207,8 @@ def test_filter_exif_keeps_only_allowlisted_tags(tmp_path: Path) -> None:
     assert filtered[IFD.Exif] == {0x920A: 35.0, 0x8827: 400}
     assert 0x0131 not in filtered  # Software
     assert IFD.GPSInfo not in filtered
-    # JPEG originals keep their pixels as shot, so the tag that turns them upright stays.
-    assert filtered[0x0112] == 6
+    # Orientation is baked into the pixels by the caller; re-writing it double-rotates.
+    assert 0x0112 not in filtered
 
 
 def test_filter_exif_leaves_source_image_untouched(tmp_path: Path) -> None:
@@ -252,11 +251,11 @@ def test_process_image_returns_the_stored_size(tmp_path: Path) -> None:
     assert process_image_for_storage(path) == (640, 480)
 
 
-def test_process_image_returns_the_displayed_size(tmp_path: Path) -> None:
-    """Orientation 6 displays a portrait-stored JPEG as landscape.
+def test_process_image_returns_the_size_after_rotation(tmp_path: Path) -> None:
+    """Orientation 6 rotates a portrait original to landscape on disk.
 
-    The pixels stay as shot and the tag stays, so the returned size is the displayed
-    one, or every consumer of the recorded dimensions gets the aspect ratio wrong.
+    The returned size has to describe the file as stored, or every consumer of
+    the recorded dimensions gets the aspect ratio the wrong way round.
     """
     path = _make_jpeg_with_exif(tmp_path / "rotated.jpg", 40, 60, orientation=6)
 
@@ -264,8 +263,7 @@ def test_process_image_returns_the_displayed_size(tmp_path: Path) -> None:
 
     assert size == (60, 40)
     with PILImage.open(path) as result:
-        assert result.size == (40, 60)
-        assert apply_exif_orientation(result).size == size
+        assert result.size == size
 
 
 def test_process_image_dimension_guard(tmp_path: Path) -> None:
@@ -296,15 +294,31 @@ def test_process_image_keeps_capture_parameters_and_drops_the_rest(tmp_path: Pat
     assert b"SecretSoftware" not in stored
 
 
-def test_process_image_keeps_jpeg_orientation_tag(tmp_path: Path) -> None:
-    """A JPEG keeps its orientation tag alongside the other preserved capture parameters."""
-    path = _make_jpeg_with_rich_exif(tmp_path / "oriented_rich.jpg", 40, 60, orientation=6)
+def test_process_image_applies_orientation_and_strips_tag(tmp_path: Path) -> None:
+    """Orientation should be baked into pixels and the orientation tag removed."""
+    # 100w x 200h tagged orientation 6 → after processing: 200w x 100h, no orientation tag
+    path = _make_jpeg_with_exif(tmp_path / "orient.jpg", 100, 200, orientation=6)
 
-    assert process_image_for_storage(path) == (60, 40)
+    process_image_for_storage(path)
 
     with PILImage.open(path) as result:
-        assert result.size == (40, 60)
-        assert result.getexif()[0x0112] == 6
+        assert result.width == 200
+        assert result.height == 100
+        assert result.getexif().get(0x0112) is None
+
+
+def test_process_image_orientation_survives_preserved_exif(tmp_path: Path) -> None:
+    """Writing preserved tags back must not smuggle the orientation tag along with them.
+
+    A re-written orientation tag would double-rotate the image on the next open.
+    """
+    path = _make_jpeg_with_rich_exif(tmp_path / "oriented_rich.jpg", 40, 60, orientation=6)
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert result.size == (60, 40)
+        assert 0x0112 not in result.getexif()
         assert result.getexif()[0x0110] == "Model X"
 
 
@@ -499,154 +513,33 @@ def test_process_image_strips_gps_tags(tmp_path: Path) -> None:
         assert not result.getexif().get_ifd(IFD.GPSInfo)
 
 
-def test_png_with_exif_orientation_is_rotated_and_stripped(tmp_path: Path) -> None:
-    """A non-JPEG is still turned upright in its pixels, losslessly, and loses the tag.
+def test_process_image_strips_exif_only_exposed_through_getexif(tmp_path: Path) -> None:
+    """Formats whose EXIF lives outside ``info["exif"]`` (TIFF) must still be filtered."""
+    path = tmp_path / "artist.tiff"
+    img = PILImage.new("RGB", (20, 10))
+    exif = PILImage.Exif()
+    exif[0x013B] = "Jane Doe"  # Artist: personal data, not on the allowlist
+    img.save(path, exif=exif)
+    with PILImage.open(path) as before:
+        assert not before.info.get("exif")
+        assert before.getexif().get(0x013B) == "Jane Doe"
 
-    Browsers do not reliably honour an orientation tag outside JPEG.
-    """
-    path = tmp_path / "rotated.png"
-    img = PILImage.effect_noise((40, 60), 60).convert("RGB")
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert 0x013B not in result.getexif()
+
+
+def test_jpeg_with_exif_orientation_is_still_rotated_and_stripped(tmp_path: Path) -> None:
+    """The processing path must still apply rotation and strip EXIF when present."""
+    path = tmp_path / "rotated.jpg"
+    img = PILImage.new("RGB", (40, 60), (90, 90, 90))
     exif = img.getexif()
-    exif[0x0112] = 6
-    img.save(path, format="PNG", exif=exif)
-
-    assert process_image_for_storage(path) == (60, 40)
-
-    with PILImage.open(path) as out:
-        assert out.size == (60, 40)
-        assert 0x0112 not in out.getexif()
-        # Orientation 6 is a quarter turn clockwise.
-        assert out.tobytes() == img.transpose(Transpose.ROTATE_270).tobytes()
-
-
-# ---------------------------------------------------------------------------
-# lossless JPEG originals
-# ---------------------------------------------------------------------------
-
-
-def _noisy_jpeg_bytes(**save_kwargs: object) -> bytes:
-    """A JPEG with real entropy-coded content, so a re-encode would change its pixels."""
-    buf = io.BytesIO()
-    PILImage.effect_noise((64, 48), 60).convert("RGB").save(buf, format="JPEG", quality=90, **save_kwargs)
-    return buf.getvalue()
-
-
-def _decoded(data: bytes) -> bytes:
-    with PILImage.open(io.BytesIO(data)) as img:
-        return img.tobytes()
-
-
-def _scan_data(data: bytes) -> bytes:
-    """Everything from the first start-of-scan marker on: the compressed pixels."""
-    return data[data.index(b"\xff\xda") :]
-
-
-def _segment(marker: int, payload: bytes) -> bytes:
-    return bytes((0xFF, marker)) + (len(payload) + 2).to_bytes(2) + payload
-
-
-@pytest.mark.parametrize("save_kwargs", [{}, {"progressive": True}, {"restart_marker_blocks": 2}])
-def test_process_image_keeps_jpeg_pixel_data_byte_identical(tmp_path: Path, save_kwargs: dict[str, object]) -> None:
-    """Stripping metadata must not re-encode: the scan bytes and decoded pixels are unchanged."""
-    exif = PILImage.Exif()
-    exif[0x0110] = "Model X"
-    exif[0x013B] = "Jane Photographer"  # Artist (dropped)
-    exif.get_ifd(IFD.GPSInfo)[GPS.GPSLatitudeRef] = "N"
-    original = _noisy_jpeg_bytes(exif=exif.tobytes(), **save_kwargs)
-    path = tmp_path / "photo.jpg"
-    path.write_bytes(original)
-
-    process_image_for_storage(path)
-
-    stored = path.read_bytes()
-    assert _scan_data(stored) == _scan_data(original)
-    assert _decoded(stored) == _decoded(original)
-    with PILImage.open(path) as result:
-        tags = result.getexif()
-        assert tags[0x0110] == "Model X"
-        assert 0x013B not in tags
-        assert not tags.get_ifd(IFD.GPSInfo)
-    assert b"Jane Photographer" not in stored
-
-
-def test_process_image_drops_jpeg_xmp_iptc_comments_and_trailer(tmp_path: Path) -> None:
-    """XMP repeats GPS, IPTC names people, and bytes after EOI can hold a whole video."""
-    original = _noisy_jpeg_bytes()
-    xmp = b"http://ns.adobe.com/xap/1.0/\x00<x:xmpmeta><exif:GPSLatitude>52,9.6N</exif:GPSLatitude></x:xmpmeta>"
-    iptc = b"Photoshop 3.0\x008BIM\x04\x04 By-line: Jane Photographer"
-    metadata = _segment(0xE1, xmp) + _segment(0xED, iptc) + _segment(0xFE, b"shot at Home Street 1")
-    path = tmp_path / "photo.jpg"
-    path.write_bytes(original[:2] + metadata + original[2:] + b"ftypmp42 motion photo video")
-
-    process_image_for_storage(path)
-
-    stored = path.read_bytes()
-    for secret in (b"GPSLatitude", b"Jane Photographer", b"Home Street", b"motion photo"):
-        assert secret not in stored
-    assert stored.endswith(b"\xff\xd9")
-    assert _decoded(stored) == _decoded(original)
-
-
-def test_process_image_keeps_jpeg_icc_profile(tmp_path: Path) -> None:
-    """The colour profile is needed to display the pixels as shot, so it survives."""
-    icc = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
-    path = tmp_path / "photo.jpg"
-    path.write_bytes(_noisy_jpeg_bytes(icc_profile=icc))
-
-    process_image_for_storage(path)
-
-    with PILImage.open(path) as result:
-        assert result.info["icc_profile"] == icc
-
-
-def test_rewrite_jpeg_metadata_rejects_truncated_segment() -> None:
-    """A segment length running past the end of the file is malformed, not silently kept."""
-    with pytest.raises(ValueError, match="truncated"):
-        rewrite_jpeg_metadata(b"\xff\xd8\xff\xe1\x40\x00Exif", b"")
-
-
-def test_rewrite_jpeg_metadata_rejects_non_jpeg() -> None:
-    """Only JPEG data is rewritten at the segment level."""
-    with pytest.raises(ValueError, match="Not a JPEG"):
-        rewrite_jpeg_metadata(b"\x89PNG\r\n\x1a\n", b"")
-
-
-def test_process_image_accepts_48_megapixel_jpeg(tmp_path: Path) -> None:
-    """A 48 MP phone original passes validation and keeps its compressed pixels."""
-    path = tmp_path / "48mp.jpg"
-    PILImage.new("L", (8000, 6000), 128).save(path, format="JPEG")
-    before = _scan_data(path.read_bytes())
-
-    assert process_image_for_storage(path) == (8000, 6000)
-    assert _scan_data(path.read_bytes()) == before
-
-
-# ---------------------------------------------------------------------------
-# thumbnails of oriented originals
-# ---------------------------------------------------------------------------
-
-
-def test_generate_thumbnails_applies_jpeg_orientation(tmp_path: Path) -> None:
-    """Thumbnails are upright and sized by the displayed width, not the stored one."""
-    # Stored 600 wide x 1000 high, red on the left, blue on the right. Orientation 6
-    # turns it a quarter clockwise: displayed 1000x600 with red on top.
-    img = PILImage.new("RGB", (600, 1000), (0, 0, 255))
-    img.paste((255, 0, 0), (0, 0, 300, 1000))
-    exif = PILImage.Exif()
-    exif[0x0112] = 6
-    path = tmp_path / "oriented.jpg"
+    exif[0x0112] = 6  # orientation: rotate 90°
     img.save(path, format="JPEG", exif=exif)
 
-    generate_thumbnails(path, widths=(200, 800))
+    process_image_for_storage(path)
 
-    with PILImage.open(thumbnail_path_for(path, 200)) as thumb:
-        assert thumb.size == (200, 120)
-        rgb = thumb.convert("RGB")
-        top, bottom = rgb.getpixel((100, 10)), rgb.getpixel((100, 110))
-        assert isinstance(top, tuple)
-        assert isinstance(bottom, tuple)
-        assert top[0] > 200 > top[2]
-        assert bottom[2] > 200 > bottom[0]
-        assert not thumb.getexif()
-    with PILImage.open(thumbnail_path_for(path, 800)) as thumb:
-        assert thumb.size == (800, 480)
+    out = PILImage.open(path)
+    assert out.size == (60, 40)
+    assert 0x0112 not in out.getexif()

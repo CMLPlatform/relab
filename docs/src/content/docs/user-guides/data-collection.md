@@ -106,9 +106,8 @@ Relab validates type, size, and content before storing a file, and unpacks and i
 files. If malware scanning is enabled, flagged files are rejected.
 
 Contributor accounts resize photos in the app to at most 4096 px and 10 MiB before upload. Lab
-accounts upload the original file untouched. Either way the server keeps a JPEG's pixel data
-exactly as uploaded and removes identifying metadata (GPS position, serial numbers, author) without
-re-encoding it; the orientation tag stays, so the photo still displays upright.
+accounts upload photos at full resolution. Either way the server turns the photo upright and
+removes identifying metadata (GPS position, serial numbers, author) before storing it.
 
 Each account also has a cap on total file count and storage, set by its role:
 

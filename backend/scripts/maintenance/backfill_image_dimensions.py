@@ -20,7 +20,6 @@ from app.api.file_storage.models import Image
 from app.core.config.core import settings
 from app.core.config.models import StorageBackend
 from app.core.database import async_session_context, close_async_engine
-from app.core.images.exif import display_size
 from app.core.logging import setup_logging
 
 if TYPE_CHECKING:
@@ -33,10 +32,10 @@ BATCH_SIZE = 500
 
 
 def _measure(path: Path) -> tuple[int, int] | None:
-    """Return the image's displayed (width, height), or None when it cannot be read."""
+    """Return the image's (width, height), or None when it cannot be read."""
     try:
         with PILImage.open(path) as img:
-            return display_size(img)
+            return img.size
     # A missing file, an unreadable one and a decompression bomb all mean the
     # same thing here: no dimensions for this row.
     except OSError, ValueError, PILImage.DecompressionBombError:

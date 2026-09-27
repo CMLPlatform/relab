@@ -135,9 +135,7 @@ export function useProductGalleryImageActions({
     });
 
     if (!result.canceled) {
-      const newImages = await buildImportedImages(result.assets, feedback.error, {
-        keepOriginals,
-      });
+      const newImages = await buildImportedImages(result.assets, feedback.error, keepOriginals);
       if (newImages.length > 0) onImagesChange?.([...media.images, ...newImages]);
     }
   }, [feedback.error, keepOriginals, media.images, onImagesChange, quality]);
@@ -149,9 +147,11 @@ export function useProductGalleryImageActions({
     }
     const result = await launchCameraAsync({ quality });
     if (!result.canceled) {
-      const [newImage] = await buildImportedImages([result.assets[0]], feedback.error, {
+      const [newImage] = await buildImportedImages(
+        [result.assets[0]],
+        feedback.error,
         keepOriginals,
-      });
+      );
       if (newImage) onImagesChange?.([...media.images, newImage]);
     }
   }, [feedback.error, keepOriginals, media.images, onImagesChange, quality]);
