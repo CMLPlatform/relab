@@ -726,6 +726,25 @@ docker-ci-perf-baseline perf_products="5000":
     echo "→ Running backend k6 baseline against the CI stack..."
     just backend/_perf-ci
 
+# Find how much load a deploy-shaped API takes before it saturates (mode: mixed or login).
+# Its own project, so it never touches the CI stack; torn down with its volumes at the end.
+# Prints one row per arrival-rate step; see "Capacity" in backend/perf/README.md.
+[group('dev')]
+[doc('Step a 4-worker API up to saturation with k6 and print the knee')]
+docker-perf-capacity mode="mixed" perf_products="5000":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    project="${COMPOSE_PROJECT_NAME:-relab_capacity}"
+    compose="docker compose -p $project -f compose.yaml -f compose.ci.yaml -f backend/perf/compose.capacity.yaml"
+    trap '$compose --profile migrations down -v --remove-orphans' EXIT
+    just backend/perf-fixtures
+    $compose up --build -d --wait --wait-timeout 180 postgres redis api
+    $compose run --rm --build -e SEED_DUMMY_DATA=true -e BULK_SEED_PRODUCTS={{ quote(perf_products) }} migrator
+    # Verified accounts, so logins and writes spread over many user rows like a real room.
+    export PERF_CAPACITY_USERS="${PERF_CAPACITY_USERS:-50}" PERF_CAPACITY_PASSWORD="Slow-Kettle-Orbit-4471"
+    $compose run --rm --entrypoint python migrator -c "import anyio; from scripts.users.create_user import create_normal_user as create; [anyio.run(create, f'capacity-{i}@example.com', f'capacity_{i}', '$PERF_CAPACITY_PASSWORD') for i in range(1, $PERF_CAPACITY_USERS + 1)]"
+    just backend/_perf-capacity "${project}_edge" {{ quote(mode) }}
+
 # ============================================================================
 # Maintenance
 # ============================================================================

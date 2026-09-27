@@ -1,15 +1,24 @@
 """Unit tests for auth dependency helpers."""
 
+from typing import TYPE_CHECKING, Annotated
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.testclient import TestClient
 from fastapi_users.exceptions import InvalidID, UserNotExists
 
 from app.api.auth.dependencies import current_lab_user, current_mfa_user, get_user_or_404
 from app.api.auth.roles import UserRole
+from app.api.auth.services.user_database import UserDatabaseAsync
+from app.api.auth.services.user_manager import get_user_db
 from app.api.common.exceptions import ForbiddenError
+from app.api.common.routers.dependencies import AsyncSessionDep
+from app.core.database import get_async_session
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 
 @pytest.mark.asyncio
@@ -85,3 +94,32 @@ class TestGetUserOr404:
         with pytest.raises(HTTPException) as exc_info:
             await get_user_or_404(uuid4(), user_manager)
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_user_db_shares_the_request_session() -> None:
+    """An authenticated route that also takes AsyncSessionDep must open one session, not two.
+
+    Two sessions per request hold two pool connections, and under load the pool deadlocks on
+    requests that each wait for their second connection.
+    """
+    opened: list[object] = []
+
+    async def counting_session() -> AsyncGenerator[object]:
+        session = object()
+        opened.append(session)
+        yield session
+
+    app = FastAPI()
+
+    @app.get("/probe")
+    async def probe(
+        session: AsyncSessionDep,
+        user_db: Annotated[UserDatabaseAsync, Depends(get_user_db)],
+    ) -> bool:
+        return user_db.session is session
+
+    app.dependency_overrides[get_async_session] = counting_session
+    response = TestClient(app).get("/probe")
+
+    assert response.json() is True
+    assert len(opened) == 1

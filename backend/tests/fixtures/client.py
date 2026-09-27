@@ -17,7 +17,6 @@ from app.api.auth.dependencies import (
     optional_current_active_user,
 )
 from app.api.auth.models import User
-from app.api.auth.services.user_manager import get_auth_async_session
 from app.api.common.rate_limiting import limiter
 from app.core.cache import close_cache, init_cache
 from app.core.config.core import settings
@@ -115,9 +114,7 @@ async def api_client(
     async def override_get_session() -> AsyncGenerator[AsyncSession]:
         yield db_session
 
-    # Override both the app-wide DB session seam and the auth-specific seam that wraps it lazily.
     test_app.dependency_overrides[get_async_session] = override_get_session
-    test_app.dependency_overrides[get_auth_async_session] = override_get_session
 
     limiter.enabled = False
     outbound_http_client = httpx.AsyncClient(transport=_NoNetworkTransport())
@@ -172,7 +169,6 @@ async def api_client_light(
         yield db_session
 
     test_app.dependency_overrides[get_async_session] = override_get_session
-    test_app.dependency_overrides[get_auth_async_session] = override_get_session
     # The real optional_current_active_user Security dep hits the auth backend
     # (Redis), which api_client_light deliberately does not start. Default to
     # "guest"; per-test override_authenticated_user replaces this when needed.

@@ -42,6 +42,7 @@ from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import background_tasks_from, get_external_http_client
+from app.core.database import get_async_session
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -284,16 +285,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         logger.info("User %s logged in", email_log_token(user.email))
 
 
-async def get_auth_async_session() -> AsyncGenerator[AsyncSession]:
-    """Yield the shared async database session for auth request dependencies."""
-    from app.core.database import get_async_session  # noqa: PLC0415
-
-    async for session in get_async_session():
-        yield session
-
-
 async def get_user_db(
-    session: Annotated[AsyncSession, Depends(get_auth_async_session)],
+    # The request's own session: FastAPI caches it per request, so an authenticated route
+    # that also takes AsyncSessionDep holds one pool connection, not two.
+    session: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> AsyncGenerator[UserDatabaseAsync[User, UUID4]]:
     """Build the FastAPI Users database adapter from the shared DB session."""
     yield UserDatabaseAsync(session, User, OAuthAccount)
