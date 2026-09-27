@@ -1,10 +1,8 @@
 """Image processing utilities using Pillow."""
 
-from .concurrency import deferred_thumbnail_limiter, image_resize_limiter
+from .concurrency import image_resize_limiter
 from .constants import (
     ALLOWED_IMAGE_MIME_TYPES,
-    DEFERRED_THUMBNAIL_WIDTHS,
-    EAGER_THUMBNAIL_WIDTHS,
     FORMAT_JPEG,
     FORMAT_WEBP,
     MAX_IMAGE_DIMENSION,
@@ -18,8 +16,6 @@ from .validation import validate_image_dimensions, validate_image_file, validate
 
 __all__ = [
     "ALLOWED_IMAGE_MIME_TYPES",
-    "DEFERRED_THUMBNAIL_WIDTHS",
-    "EAGER_THUMBNAIL_WIDTHS",
     "FORMAT_JPEG",
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
@@ -27,7 +23,6 @@ __all__ = [
     "THUMBNAIL_INFIX",
     "THUMBNAIL_WIDTHS",
     "apply_exif_orientation",
-    "deferred_thumbnail_limiter",
     "delete_thumbnails",
     "filter_exif",
     "generate_thumbnails",
