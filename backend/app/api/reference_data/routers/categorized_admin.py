@@ -15,8 +15,8 @@ from fastapi import File as FastAPIFile
 from pydantic import UUID4, BaseModel, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
+from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
-from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.file_storage.crud.parent_media import create_parent_media, delete_parent_media
 from app.api.file_storage.schemas import FileCreate, FileReadWithinParent, ImageReadWithinParent, empty_str_to_none

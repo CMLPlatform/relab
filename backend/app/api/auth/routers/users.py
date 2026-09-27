@@ -14,10 +14,10 @@ from app.api.auth.schemas import (
     UserRead,
     UserUpdate,
 )
+from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.auth.services.user_manager import fastapi_user_manager
 from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audiences import PublicAPIRouter
-from app.api.common.rate_limiting import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import attach_background_tasks
 
 ### User self-management routes ###

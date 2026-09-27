@@ -44,6 +44,13 @@ Review security-sensitive changes against this baseline:
 Security-sensitive areas:
 
 - authentication and OAuth
+- rate limits: anonymous requests are keyed per client IP. Read, write, and upload limits key a
+  request that carries a live access token per user instead, with a budget sized for a room
+  sharing one account and one IP.
+  - The token only selects the bucket. An unknown or expired token falls back to the IP bucket, so
+    rotating forged tokens never buys a fresh budget.
+  - Password login is limited per IP and by failed attempts per account, so a shared account is
+    not locked by use while guessing stays capped per account.
 - public read APIs
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
