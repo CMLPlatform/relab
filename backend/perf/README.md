@@ -171,6 +171,81 @@ just perf-baseline
 - The `k6` image is pinned by digest. A moving `:latest` changes the measurement tool between runs,
   which is the one variable a latency baseline must hold still.
 
+## Capacity
+
+The baseline catches regressions; it does not say how much load the deploy can take.
+`perf/k6-capacity.js` answers that separately, with none of the choices that keep the baseline
+stable: all operations overlap, the rate keeps climbing, and nothing is thresholded.
+
+```bash
+just docker-perf-capacity           # mixed workload
+just docker-perf-capacity login     # logins only
+PERF_CAPACITY_RATES=200,300,400 just docker-perf-capacity   # pick the steps
+```
+
+The recipe runs from the repo root under its own Compose project (`relab_capacity`, or
+`COMPOSE_PROJECT_NAME`), so it never touches the CI stack. It layers
+`perf/compose.capacity.yaml` over the CI stack to copy the deploy shape: four workers, a pool of
+3 + 10 overflow per worker, `max_connections=100`, a 6 GiB API memory cap and a concurrency limit
+of 100 per worker. It seeds 5000 products and 50 verified accounts, runs k6, and removes the stack
+and its volumes on exit.
+
+The arrival rate climbs in steps (`ramping-arrival-rate`, a 5 s ramp, then a 30 s hold). The script
+prints one row per hold: target and achieved rate, p50/p95/p99, and the error rate. The knee is
+the last row before errors or a shortfall appear. The mixed workload is 30% list, 15% search, 20%
+detail, 10% components, 10% materials, 2% login, 9% product create and 4% photo upload (the three
+upload sizes above). Logins and writes rotate across the 50 accounts. With a single account, every
+login and upload queues on one user row, and the result would measure that row lock.
+
+### Results, 2026-09-27
+
+Measured on a shared development host, not production hardware: Intel i9-14900KF (32 threads),
+62 GiB RAM, with other stacks idle alongside. The API is not CPU-capped, and Argon2 releases the GIL,
+so logins can use more than the four worker cores. Treat the absolute numbers as an upper bound. The
+shape and the first thing to saturate carry over to other hosts.
+
+| Mixed target/s | p50 ms | p95 ms | p99 ms | errors |
+| -------------- | ------ | ------ | ------ | ------ |
+| 100            | 13     | 153    | 331    | 0%     |
+| 200            | 157    | 469    | 638    | 0%     |
+| 300            | 214    | 708    | 1202   | 0%     |
+| 400            | 67     | 1276   | 30058  | 42%    |
+
+| Login target/s | p50 ms | p95 ms | p99 ms | errors |
+| -------------- | ------ | ------ | ------ | ------ |
+| 100            | 28     | 38     | 78     | 0%     |
+| 200            | 187    | 445    | 695    | 0%     |
+| 300            | 401    | 791    | 1103   | 0%     |
+| 400            | 1124   | 2190   | 3083   | 21%    |
+
+- **Mixed knee: about 300 requests/s.** At one request every 5-10 s per active person, that is
+  roughly 1500-3000 people working at once. Latency starts queueing from 150-200/s.
+- **The connection pool saturates first, not the CPU.** At 400/s, all 52 pool connections sat
+  `idle in transaction` while API CPU fell back to about two cores, and the p99 of 30 s is the
+  SQLAlchemy pool timeout. Postgres itself peaked at about 1.5 cores. An authenticated route that
+  also takes `AsyncSessionDep` holds two connections: `get_auth_async_session` opens its own
+  session instead of sharing the request session. Under pool pressure, requests holding one
+  connection wait for their second until the timeout, so past the knee throughput collapses rather
+  than degrading.
+- **Logins: about 300/s before queueing turns into errors.** The Argon2 threadpool (40 tokens
+  per worker) was never the limit. The two limits were CPU, with the API at about 16 cores at
+  400/s, and the per-worker concurrency limit of 100, which returned the 503s. Each login also holds
+  a pool connection during the hash. On a host with fewer cores, expect roughly 25-30 logins/s per
+  free core.
+
+Before a workshop, in order:
+
+1. Share one session per request between the auth dependencies and `AsyncSessionDep`, so that an
+   authenticated write holds one connection. That turns the cliff past the knee into gradual
+   queueing and raises the effective pool size for writes.
+2. Check the per-IP rate limits against the room. The limiter keys on client IP, and a room on one
+   network usually shares one public address. Then 3 logins/min, 5 registrations/hour and 300
+   reads/min apply to everyone in it together. Neither this test nor the CI stack exercises the
+   limits, which are off in `testing`.
+
+Not covered: malware scanning (the deploy scans uploads with ClamAV), Cloudflare and the tunnel in
+front of the API, the telemetry exporter, and hosts with fewer cores than the four workers need.
+
 ## Recording Results
 
 `just perf-baseline` writes a raw `k6` summary to `reports/performance/latest-k6-summary.json`
