@@ -256,9 +256,9 @@ function StepButton({
   );
 }
 
-// NOTE: 15/500 is Chip's own face, shared by title, value and input so the three
-// segments align; the body (16) and data (14) steps each break that alignment.
-const amountText = { fontWeight: '500', fontSize: 15 } as const;
+// NOTE: 13/500 is Chip's own face (the label step, font-medium), shared by title,
+// value and input so the Amount chip reads at the same size as Brand and Model.
+const amountText = { fontWeight: '500', fontSize: 13 } as const;
 const amountStyles = { titleText: amountText, valueText: amountText, input: amountText };
 
 const styles = {
