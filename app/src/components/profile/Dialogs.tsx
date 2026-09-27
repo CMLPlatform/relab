@@ -30,6 +30,9 @@ type ProfileDialogsProps = {
   deleteRequiresPassword: boolean;
   deletePassword: string;
   onChangeDeletePassword: (value: string) => void;
+  deleteRequiresMfa: boolean;
+  deleteMfaCode: string;
+  onChangeDeleteMfaCode: (value: string) => void;
   deletePending: boolean;
   unlinkTriggerRef?: RefObject<View | null>;
   logoutTriggerRef?: RefObject<View | null>;
@@ -54,6 +57,9 @@ export function ProfileDialogs({
   deleteRequiresPassword,
   deletePassword,
   onChangeDeletePassword,
+  deleteRequiresMfa,
+  deleteMfaCode,
+  onChangeDeleteMfaCode,
   deletePending,
   unlinkTriggerRef,
   logoutTriggerRef,
@@ -141,6 +147,20 @@ export function ProfileDialogs({
             style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
+        {deleteRequiresMfa ? (
+          <TextInput
+            value={deleteMfaCode}
+            onChangeText={onChangeDeleteMfaCode}
+            placeholder="Authenticator or recovery code"
+            accessibilityLabel="Authentication code"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            className="border px-2 py-2 mt-2.5"
+            style={{ borderColor: theme.colors.outline }}
+          />
+        ) : null}
         <AppText className="mt-2.5">
           To have your uploads removed as well, email{' '}
           <Link href={`mailto:${SUPPORT_EMAIL}`}>
@@ -155,7 +175,11 @@ export function ProfileDialogs({
           <AppButton
             variant="destructive"
             onPress={onConfirmDelete}
-            disabled={deletePending || (deleteRequiresPassword && deletePassword.length === 0)}
+            disabled={
+              deletePending ||
+              (deleteRequiresPassword && deletePassword.length === 0) ||
+              (deleteRequiresMfa && deleteMfaCode.trim().length === 0)
+            }
           >
             Delete account
           </AppButton>

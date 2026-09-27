@@ -24,11 +24,15 @@ def sensitive_update_fields(user_update: UserUpdate) -> set[str]:
 
 
 def verify_current_password(*, password_helper: PasswordHelperProtocol, password: str, user: User) -> None:
-    """Reauthenticate with the account password, raising 401 on mismatch."""
+    """Reauthenticate with the account password, raising 403 on mismatch.
+
+    403, not 401: the session is valid, so clients must not treat this as an expired
+    access token and refresh-and-retry (which would spend a second password guess).
+    """
     is_valid, _ = password_helper.verify_and_update(password, user.hashed_password)
     if not is_valid:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Current password is invalid.",
         )
 

@@ -26,6 +26,7 @@ from app.api.auth.services.email.service import (
 )
 from app.api.auth.services.user_manager import UserManager
 from app.api.common.audit import AuditAction, AuditContext, audit_event
+from app.api.common.exceptions import ForbiddenError
 from app.core.redis import Redis
 
 
@@ -225,6 +226,28 @@ async def complete_mfa_challenge(
         redis=redis,
         bearer_strategy=bearer_strategy,
     )
+
+
+async def require_mfa_step_up(code: str | None, *, user: User, redis: Redis, action: str) -> None:
+    """Require a current TOTP or recovery code before a sensitive action, when MFA is on.
+
+    Runs after the password step-up, so a stolen session plus a phished password still
+    cannot act without the second factor. OAuth-only accounts with MFA need it too.
+    """
+    if not user.mfa_enabled:
+        return
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Authentication code is required to {action}.",
+        )
+    # NOTE: a matched recovery code is not persisted as spent: the only caller erases
+    # the account next. Persist the remaining hashes if a non-destructive caller appears.
+    if await _verify_challenge_code(code, user=user, redis=redis) is None:
+        audit_mfa_failure(user, reason="invalid_step_up_code")
+        # 403, not 401: the session is valid, and clients refresh and retry on a 401.
+        msg = "Invalid MFA code"
+        raise ForbiddenError(msg)
 
 
 async def _verify_challenge_code(

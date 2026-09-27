@@ -197,7 +197,7 @@ describe('useOAuthAssociations', () => {
       })
       .mockResolvedValueOnce({
         ok: false,
-        status: 400,
+        status: 403,
         detail: 'Incorrect password.',
         authorizationUrl: undefined,
       });

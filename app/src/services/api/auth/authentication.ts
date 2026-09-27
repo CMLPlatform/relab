@@ -99,15 +99,21 @@ export async function unlinkOAuth(provider: string, currentPassword?: string): P
 }
 
 /** Delete the signed-in account. Products and photos stay on the platform, anonymized. */
-export async function deleteAccount(currentPassword?: string): Promise<void> {
-  // Same step-up as unlinking: OAuth-only accounts have no password and send no body.
+export async function deleteAccount(currentPassword?: string, mfaCode?: string): Promise<void> {
+  // Same step-up as unlinking, plus the MFA code when MFA is on. An OAuth-only account
+  // without MFA has nothing to re-enter and sends no body.
+  const body = {
+    ...(currentPassword ? { current_password: currentPassword } : {}),
+    ...(mfaCode ? { mfa_code: mfaCode } : {}),
+  };
+  const hasBody = Object.keys(body).length > 0;
   const response = await fetchWithAuth(new URL(`${API_URL}/users/me`), {
     method: 'DELETE',
     headers: {
       Accept: 'application/json',
-      ...(currentPassword ? { 'Content-Type': 'application/json' } : {}),
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
     },
-    body: currentPassword ? JSON.stringify({ current_password: currentPassword }) : undefined,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
   if (!response.ok) {
     await throwFromResponse(response, 'Failed to delete account');

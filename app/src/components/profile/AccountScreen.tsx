@@ -142,6 +142,9 @@ export function AccountScreen() {
         deleteRequiresPassword={profile.profile.hasUsablePassword}
         deletePassword={dialogs.deleteDialog.password}
         onChangeDeletePassword={dialogs.deleteDialog.setPassword}
+        deleteRequiresMfa={profile.profile.mfaEnabled}
+        deleteMfaCode={dialogs.deleteDialog.mfaCode}
+        onChangeDeleteMfaCode={dialogs.deleteDialog.setMfaCode}
         deletePending={dialogs.deleteDialog.pending}
         unlinkTriggerRef={unlinkTriggerRef}
         logoutTriggerRef={logoutTriggerRef}

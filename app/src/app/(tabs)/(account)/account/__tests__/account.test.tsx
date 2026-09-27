@@ -360,7 +360,7 @@ describe('ProfileTab', () => {
       await pressConfirm(findAllByText);
 
       await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/products'));
-      expect(mockDeleteAccount).toHaveBeenCalledWith('my-password');
+      expect(mockDeleteAccount).toHaveBeenCalledWith('my-password', undefined);
       expect(mockRefetch).toHaveBeenCalledWith(false);
     });
 
@@ -391,7 +391,33 @@ describe('ProfileTab', () => {
       expect(queryByLabelText('Current password')).toBeNull();
       await pressConfirm(findAllByText);
 
-      await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith(undefined));
+      await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith(undefined, undefined));
+    });
+
+    it('asks an MFA account for an authentication code and sends it', async () => {
+      const { useAuth } = require('@/context/auth.ts');
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...defaultUser, hasUsablePassword: true, mfaEnabled: true },
+        refetch: mockRefetch,
+      });
+      const { findByLabelText, findAllByText } = await renderProfile();
+      await fireEvent.press(await findByLabelText('Delete account?'));
+      await fireEvent.changeText(await findByLabelText('Current password'), 'my-password');
+      // Password alone is not enough once MFA is on.
+      await pressConfirm(findAllByText);
+      expect(mockDeleteAccount).not.toHaveBeenCalled();
+
+      await fireEvent.changeText(await findByLabelText('Authentication code'), ' 123456 ');
+      await pressConfirm(findAllByText);
+
+      await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith('my-password', '123456'));
+    });
+
+    it('asks an account without MFA for no authentication code', async () => {
+      withPasswordUser();
+      const { findByLabelText, queryByLabelText } = await renderProfile();
+      await fireEvent.press(await findByLabelText('Delete account?'));
+      expect(queryByLabelText('Authentication code')).toBeNull();
     });
   });
 

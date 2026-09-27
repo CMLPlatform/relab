@@ -148,7 +148,7 @@ async def test_confirm_totp_setup_rejects_wrong_password() -> None:
             background_tasks=MagicMock(),
         )
 
-    assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     enable.assert_not_awaited()
 
 

@@ -760,6 +760,18 @@ describe('Authentication API Service', () => {
       expect(secureStoreMock.deleteItemAsync).toHaveBeenCalled();
     });
 
+    it('sends the MFA code alongside the password', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
+
+      await auth.deleteAccount('current-password', '123456');
+
+      expect(JSON.parse(String(fetchMock().mock.calls[0][1]?.body))).toEqual({
+        current_password: 'current-password',
+        mfa_code: '123456',
+      });
+    });
+
     it('sends no body for an account without a password', async () => {
       secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);

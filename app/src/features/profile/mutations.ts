@@ -230,7 +230,7 @@ export async function deleteOwnAccount({
   streaming,
   feedback,
 }: {
-  deleteDialog: { password: string; setPending: (pending: boolean) => void };
+  deleteDialog: { password: string; mfaCode: string; setPending: (pending: boolean) => void };
   streaming: boolean;
   feedback: ReturnType<typeof useAppFeedback>;
 }): Promise<boolean> {
@@ -240,7 +240,10 @@ export async function deleteOwnAccount({
   }
   deleteDialog.setPending(true);
   try {
-    await deleteAccount(deleteDialog.password || undefined);
+    await deleteAccount(
+      deleteDialog.password || undefined,
+      deleteDialog.mfaCode.trim() || undefined,
+    );
   } catch (error: unknown) {
     feedback.error(
       `Failed to delete account: ${getErrorMessage(error, 'Unknown error')}`,

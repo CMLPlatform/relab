@@ -2096,7 +2096,7 @@ export interface paths {
      *
      *     Personal data is erased; contributed products and media stay on the platform without
      *     the owner's name. Requires the current password, the same step-up as an email or
-     *     password change.
+     *     password change, and a current MFA code when the account has MFA enabled.
      */
     delete: operations['delete_own_account_v1_users_me_delete'];
     options?: never;
@@ -2753,6 +2753,11 @@ export interface components {
        * @description Current account password, to reauthenticate the deletion. Required unless the account has no usable password (OAuth-only).
        */
       current_password?: string | null;
+      /**
+       * Mfa Code
+       * @description Current authenticator code or a recovery code. Required when the account has MFA enabled.
+       */
+      mfa_code?: string | null;
     };
     /** Body_auth_bearer_login_v1_auth_bearer_login_post */
     Body_auth_bearer_login_v1_auth_bearer_login_post: {

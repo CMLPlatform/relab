@@ -13,10 +13,12 @@ from sqlalchemy import Select, select
 
 from app.api.application.account_erasure import ANONYMOUS_USER_EMAIL
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services import mfa_service
 from app.api.common.audit import AuditAction, AuditContext
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.models import Camera
 from scripts.seed.factories.models import CameraFactory, UserFactory
+from tests.fixtures.auth import totp_code
 from tests.fixtures.client import override_authenticated_user
 from tests.integration.api.auth.shared import (
     TEST_PASSWORD,
@@ -28,6 +30,7 @@ from tests.integration.api.auth.shared import (
 if TYPE_CHECKING:
     from fastapi import FastAPI
     from httpx import AsyncClient
+    from redis.asyncio import Redis
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.reference_data.models import ProductType
@@ -95,7 +98,7 @@ async def test_self_deletion_anonymizes_content_and_erases_the_account(
     [
         (None, status.HTTP_400_BAD_REQUEST),
         ({}, status.HTTP_400_BAD_REQUEST),
-        ({"current_password": "not-the-password-42"}, status.HTTP_401_UNAUTHORIZED),
+        ({"current_password": "not-the-password-42"}, status.HTTP_403_FORBIDDEN),
     ],
     ids=["no-body", "no-password", "wrong-password"],
 )
@@ -168,3 +171,92 @@ async def test_self_deletion_requires_authentication(api_client: AsyncClient) ->
     response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD})
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+async def _mfa_user(db_session: AsyncSession, **overrides: Any) -> tuple[User, str, list[str]]:
+    """Create an MFA-enabled password user; return it with its TOTP secret and recovery codes."""
+    secret = mfa_service.generate_totp_secret()
+    codes, hashes = mfa_service.generate_recovery_codes()
+    user = await create_password_user(
+        db_session,
+        email="mfa-leaving@example.com",
+        username="mfa_leaving",
+        mfa_enabled=True,
+        mfa_totp_secret=secret,
+        mfa_recovery_codes=hashes,
+        **overrides,
+    )
+    return user, secret, codes
+
+
+@pytest.mark.parametrize("factor", ["totp", "recovery"])
+async def test_mfa_account_deletes_with_a_valid_code(
+    api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI, factor: str
+) -> None:
+    """With MFA on, the password plus a current TOTP or a recovery code deletes the account."""
+    user, secret, recovery_codes = await _mfa_user(db_session)
+    user_id = user.id
+    code = totp_code(secret) if factor == "totp" else recovery_codes[0]
+
+    with override_authenticated_user(test_app, user):
+        response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD, "mfa_code": code})
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+
+
+async def test_oauth_only_mfa_account_still_needs_the_code(
+    api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI
+) -> None:
+    """No password to re-enter does not waive the second factor."""
+    user, secret, _ = await _mfa_user(db_session, has_usable_password=False)
+    user_id = user.id
+
+    with override_authenticated_user(test_app, user):
+        missing = await api_client.delete(ME)
+        response = await api_client.request("DELETE", ME, json={"mfa_code": totp_code(secret)})
+
+    assert missing.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+
+
+@pytest.mark.parametrize("case", ["missing", "wrong", "replayed", "wrong-password"])
+async def test_mfa_account_deletion_rejects_without_a_valid_code(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+    test_app: FastAPI,
+    mock_redis_dependency: Redis,
+    case: str,
+) -> None:
+    """A missing, wrong or already-used code leaves the account and its sessions untouched."""
+    user, secret, _ = await _mfa_user(db_session)
+    valid = totp_code(secret)
+    body: dict[str, str] = {"current_password": TEST_PASSWORD, "mfa_code": valid}
+    expected = status.HTTP_403_FORBIDDEN
+    if case == "missing":
+        del body["mfa_code"]
+        expected = status.HTTP_400_BAD_REQUEST
+    elif case == "wrong":
+        body["mfa_code"] = "000000" if valid != "000000" else "000001"
+    elif case == "replayed":
+        # The same code already spent elsewhere (e.g. to sign in) must not count again.
+        assert await mfa_service.verify_totp_code_once(
+            mock_redis_dependency, user_id=user.id, secret=secret, code=valid
+        )
+    else:
+        # The password step-up runs first, so a wrong password never spends the code.
+        body["current_password"] = "not-the-password-42"
+        expected = status.HTTP_403_FORBIDDEN
+
+    with (
+        override_authenticated_user(test_app, user),
+        patch("app.api.application.routers.account_erasure.revoke_user_refresh_tokens") as revoke,
+    ):
+        response = await api_client.request("DELETE", ME, json=body)
+
+    assert response.status_code == expected
+    if case == "missing":
+        assert "authentication code" in response.json()["detail"].lower()
+    assert await _row_exists(db_session, select(User.id).where(User.id == user.id))
+    revoke.assert_not_called()

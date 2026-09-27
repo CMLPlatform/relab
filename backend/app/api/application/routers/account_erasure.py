@@ -22,12 +22,14 @@ from app.api.auth.dependencies import (
 from app.api.auth.models import User
 from app.api.auth.services.account_security import require_step_up_password, revoke_user_refresh_tokens
 from app.api.auth.services.auth_backends import clear_auth_cookies
+from app.api.auth.services.mfa_flow import require_mfa_step_up
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
 from app.api.auth.services.session_flow import SESSION_LOGOUT_CLEAR_SITE_DATA
 from app.api.common.audiences import AdminAPIRouter, PublicAPIRouter
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.rate_limiting import limiter
 from app.api.common.routers.dependencies import AsyncSessionDep
+from app.core.redis import RedisDep
 
 router = AdminAPIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
 # Rate-limited like login: the body carries a password guess.
@@ -78,6 +80,13 @@ class AccountDeletionRequest(BaseModel):
             "Required unless the account has no usable password (OAuth-only)."
         ),
     )
+    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ").
+    mfa_code: str | None = Field(
+        default=None,
+        min_length=6,
+        max_length=20,
+        description="Current authenticator code or a recovery code. Required when the account has MFA enabled.",
+    )
 
 
 @self_service_router.delete("/me", summary="Delete your own account", status_code=204)
@@ -85,6 +94,7 @@ async def delete_own_account(
     user: CurrentActiveUserDep,
     user_manager: UserManagerDep,
     session: AsyncSessionDep,
+    redis: RedisDep,
     request: Request,
     response: Response,
     payload: Annotated[AccountDeletionRequest | None, Body()] = None,
@@ -93,7 +103,7 @@ async def delete_own_account(
 
     Personal data is erased; contributed products and media stay on the platform without
     the owner's name. Requires the current password, the same step-up as an email or
-    password change.
+    password change, and a current MFA code when the account has MFA enabled.
     """
     current_password = payload.current_password.get_secret_value() if payload and payload.current_password else None
     require_step_up_password(
@@ -101,6 +111,9 @@ async def delete_own_account(
         user=user,
         current_password=current_password,
         action="delete your account",
+    )
+    await require_mfa_step_up(
+        payload.mfa_code if payload else None, user=user, redis=redis, action="delete your account"
     )
     user_id = user.id
     # Same order as the admin route: guard, revoke, erase.
