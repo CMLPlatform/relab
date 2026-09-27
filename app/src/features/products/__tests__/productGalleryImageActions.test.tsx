@@ -1,13 +1,24 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
+import { launchCameraAsync, launchImageLibraryAsync } from 'expo-image-picker';
 import { buildGalleryMedia } from '@/components/product/gallery/shared';
 import { useProductGalleryImageActions } from '@/features/products/productGalleryCapture';
+import { processImage } from '@/services/imageProcessing';
 import type { Product } from '@/types/Product';
 
 jest.mock('expo-image-picker', () => ({
   launchCameraAsync: jest.fn(),
   launchImageLibraryAsync: jest.fn(),
-  requestCameraPermissionsAsync: jest.fn(),
+  requestCameraPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+}));
+
+let mockRole: 'contributor' | 'lab' = 'contributor';
+jest.mock('@/context/auth', () => ({
+  useAuth: () => ({ user: { role: mockRole } }),
+}));
+
+jest.mock('@/services/imageProcessing', () => ({
+  processImage: jest.fn(async () => 'file://processed.jpg'),
 }));
 
 // Deleting a photo removes it immediately and offers an Undo on the toast;
@@ -154,5 +165,56 @@ describe('undo', () => {
     });
 
     expect(onImagesChange).toHaveBeenLastCalledWith([IMAGES[0], IMAGES[1], IMAGES[2], added]);
+  });
+});
+
+describe('importing photos', () => {
+  const picked = {
+    canceled: false,
+    assets: [{ uri: 'file://original.jpg', width: 8000, height: 6000 }],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.mocked(launchImageLibraryAsync).mockResolvedValue(picked as never);
+    jest.mocked(launchCameraAsync).mockResolvedValue(picked as never);
+  });
+
+  it('resizes and re-encodes a contributor photo, as before', async () => {
+    mockRole = 'contributor';
+    const onImagesChange = jest.fn();
+    const { result } = await setup(onImagesChange);
+
+    await act(async () => {
+      await result.current.handlePickImage();
+    });
+
+    expect(launchImageLibraryAsync).toHaveBeenCalledWith(expect.objectContaining({ quality: 0.8 }));
+    expect(processImage).toHaveBeenCalledTimes(1);
+    expect(onImagesChange).toHaveBeenCalledWith([
+      ...IMAGES,
+      { url: 'file://processed.jpg', description: '' },
+    ]);
+  });
+
+  it.each([
+    ['library', 'handlePickImage', launchImageLibraryAsync],
+    ['camera', 'handleTakePhoto', launchCameraAsync],
+  ] as const)('uploads a lab %s photo untouched', async (_source, handler, picker) => {
+    mockRole = 'lab';
+    const onImagesChange = jest.fn();
+    const { result } = await setup(onImagesChange);
+
+    await act(async () => {
+      await result.current[handler]();
+    });
+
+    // Quality 1 makes the picker hand over the file as-is instead of re-compressing it.
+    expect(picker).toHaveBeenCalledWith(expect.objectContaining({ quality: 1 }));
+    expect(processImage).not.toHaveBeenCalled();
+    expect(onImagesChange).toHaveBeenCalledWith([
+      ...IMAGES,
+      { url: 'file://original.jpg', description: '' },
+    ]);
   });
 });

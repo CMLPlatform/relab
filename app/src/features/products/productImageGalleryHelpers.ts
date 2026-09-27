@@ -24,11 +24,17 @@ export function appendCapturedImage(
   ];
 }
 
-/** Processes picked assets into image entries, dropping any rejected for size (else an opaque 413 at save). */
+/**
+ * Processes picked assets into image entries, dropping any rejected for size (else a 413 at save).
+ * With `keepOriginals` (lab accounts) the picked file is uploaded untouched: no resize, no
+ * re-encode, and no client size cap, so the server's own limit is the one that applies.
+ */
 export async function buildImportedImages(
   assets: readonly ImagePicker.ImagePickerAsset[],
   onReject?: (message: string) => void,
+  { keepOriginals = false }: { keepOriginals?: boolean } = {},
 ) {
+  if (keepOriginals) return assets.map((asset) => ({ url: asset.uri, description: '' }));
   const results = await Promise.all(
     assets.map(async (asset) => {
       let tooLarge = false;

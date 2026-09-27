@@ -55,6 +55,19 @@ describe('productImageGalleryHelpers', () => {
     ]);
   });
 
+  it('passes lab originals through untouched, with no client size cap', async () => {
+    const onReject = jest.fn();
+    const assets = [
+      { uri: 'file://48mp.jpg', width: 8000, height: 6000, fileSize: 24 * 1024 * 1024 },
+    ] as ImagePicker.ImagePickerAsset[];
+
+    await expect(buildImportedImages(assets, onReject, { keepOriginals: true })).resolves.toEqual([
+      { url: 'file://48mp.jpg', description: '' },
+    ]);
+    expect(mockProcessImage).not.toHaveBeenCalled();
+    expect(onReject).not.toHaveBeenCalled();
+  });
+
   // Keeping the raw asset after a size rejection only defers the failure to
   // save time, where the server answers with an opaque 413.
   it('drops an oversized pick and reports it instead of falling back to the raw asset', async () => {

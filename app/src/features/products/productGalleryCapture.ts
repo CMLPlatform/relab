@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { clampIndex } from '@/components/product/gallery/shared';
+import { useAuth } from '@/context/auth';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
@@ -120,31 +121,40 @@ export function useProductGalleryImageActions({
   onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
 }) {
   const feedback = useAppFeedback();
+  const { user } = useAuth();
+  // Lab accounts upload the original file. At quality 1 the picker hands the file over
+  // as-is instead of re-compressing it, and the import then skips the resize.
+  const keepOriginals = user?.role === 'lab';
+  const quality = keepOriginals ? 1 : 0.8;
 
   const handlePickImage = useCallback(async () => {
     const result = await launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsMultipleSelection: true,
-      quality: 0.8,
+      quality,
     });
 
     if (!result.canceled) {
-      const newImages = await buildImportedImages(result.assets, feedback.error);
+      const newImages = await buildImportedImages(result.assets, feedback.error, {
+        keepOriginals,
+      });
       if (newImages.length > 0) onImagesChange?.([...media.images, ...newImages]);
     }
-  }, [feedback.error, media.images, onImagesChange]);
+  }, [feedback.error, keepOriginals, media.images, onImagesChange, quality]);
 
   const handleTakePhoto = useCallback(async () => {
     if (Platform.OS !== 'web') {
       const permission = await requestCameraPermissionsAsync();
       if (permission.status !== 'granted') return;
     }
-    const result = await launchCameraAsync({ quality: 0.8 });
+    const result = await launchCameraAsync({ quality });
     if (!result.canceled) {
-      const [newImage] = await buildImportedImages([result.assets[0]], feedback.error);
+      const [newImage] = await buildImportedImages([result.assets[0]], feedback.error, {
+        keepOriginals,
+      });
       if (newImage) onImagesChange?.([...media.images, newImage]);
     }
-  }, [feedback.error, media.images, onImagesChange]);
+  }, [feedback.error, keepOriginals, media.images, onImagesChange, quality]);
 
   // Undo, not confirm: removal is draft-local until save. Read through a ref,
   // not the closed-over array: a photo imported during the undo window would

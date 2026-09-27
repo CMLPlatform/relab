@@ -67,6 +67,11 @@ jest.mock('@/features/cameras/serverPreferenceToggle', () => ({
   useServerPreferenceToggle: () => mockUseRpiIntegration(),
 }));
 
+// Photo import reads the account role; these tests do not exercise it.
+jest.mock('@/context/auth', () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 jest.mock('@/features/cameras/rpi/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureImageMutation: () => mockUseCaptureImageMutation(),

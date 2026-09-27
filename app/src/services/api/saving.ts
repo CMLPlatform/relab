@@ -199,8 +199,6 @@ async function deleteImage(product: Product, image: { id: string }) {
   await throwOnError(response, 'delete image');
 }
 
-const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
-
 // The backend requires filename extension, declared MIME type, and sniffed
 // content to agree.
 const IMAGE_EXTENSION_BY_MIME: Record<string, string> = {
@@ -230,15 +228,12 @@ async function addImage(
   const url = productImagesUrl(product);
   const body = new FormData();
 
+  // No size check here: the server's limit is the one that applies, and its 413 names it.
+  // Contributor photos are capped at pick time by processImage; lab originals are not.
   if (image.url.startsWith('data:')) {
     const fileBlob = dataURItoBlob(image.url);
-    if (fileBlob.size > MAX_IMAGE_SIZE_BYTES) {
-      throw new Error('Image is too large. Please use an image smaller than 10 MB.');
-    }
     body.append('file', fileBlob, imageFilename(fileBlob.type));
   } else if (image.url.startsWith('file:')) {
-    // No size check: RN streams the file from disk and nothing here can stat
-    // it. processImage guards size at pick time.
     // RN FormData accepts { uri, name, type } for native file uploads.
     const extension = image.url.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
     const mimeType = IMAGE_MIME_BY_EXTENSION[extension] ?? 'image/jpeg';
@@ -250,9 +245,6 @@ async function addImage(
   } else if (image.url.startsWith('blob:') || image.url.startsWith('http')) {
     const response = await fetch(image.url);
     const blob = await response.blob();
-    if (blob.size > MAX_IMAGE_SIZE_BYTES) {
-      throw new Error('Image is too large. Please use an image smaller than 10 MB.');
-    }
     body.append('file', blob, imageFilename(blob.type));
   }
 
@@ -260,7 +252,8 @@ async function addImage(
     method: 'POST',
     headers: ACCEPT_HEADERS,
     body: body,
-    timeoutMs: 30_000,
+    // A 40 MB lab original takes about a minute on a 5 Mbit/s uplink.
+    timeoutMs: 120_000,
   });
   await throwOnError(response, 'upload image');
 
