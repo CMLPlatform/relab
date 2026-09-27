@@ -107,3 +107,18 @@ def test_success_redirect_uses_fragment_status_and_removes_access_tokens() -> No
     assert "access_token" not in fragment
     assert query.get("foo") == ["bar"]
     assert fragment.get("status") == ["success"]
+
+
+def test_result_redirect_carries_only_the_session_cookies() -> None:
+    """Session cookies set during the callback reach the browser; other headers do not."""
+    callback_response = Response(headers={"x-internal": "not-for-redirect"})
+    callback_response.set_cookie("auth", "session-value")
+
+    redirect = create_oauth_result_redirect(
+        "https://app.example.com/auth/callback", status="success", response=callback_response
+    )
+
+    cookies = redirect.headers.getlist("set-cookie")
+    assert len(cookies) == 1
+    assert cookies[0].startswith("auth=session-value")
+    assert "x-internal" not in redirect.headers
