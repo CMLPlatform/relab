@@ -70,7 +70,7 @@ export default function ProductTags({
   };
 
   return (
-    <View className="my-3 px-4 gap-2.5 flex-row flex-wrap">
+    <View className="my-3 gap-2.5 flex-row flex-wrap">
       <Chip
         title={'Brand'}
         readOnly={!editMode}
