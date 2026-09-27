@@ -27,6 +27,8 @@ import { PRODUCTS_LIST_FAB_CLEARANCE, productsScreenStyles as styles } from './s
 type ProductsHeaderFadeProps = {
   headerBottom: number;
   overlayColor: string;
+  /** False at the top of the list, where there is nothing scrolling under the header to fade. */
+  scrolled: boolean;
 };
 
 type ProductsListContentProps = {
@@ -229,8 +231,13 @@ export function ProductsListContent({
   );
 }
 
-export function ProductsHeaderFade({ headerBottom, overlayColor }: ProductsHeaderFadeProps) {
-  if (headerBottom <= 0) return null;
+export function ProductsHeaderFade({
+  headerBottom,
+  overlayColor,
+  scrolled,
+}: ProductsHeaderFadeProps) {
+  // At rest the fade sat over the first row of cards and greyed their titles.
+  if (headerBottom <= 0 || !scrolled) return null;
 
   return (
     <LinearGradient

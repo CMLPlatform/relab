@@ -1,11 +1,15 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
-import { ProductsListContent } from '@/components/product/products-screen/ListContent';
+import {
+  ProductsHeaderFade,
+  ProductsListContent,
+} from '@/components/product/products-screen/ListContent';
 import { PRODUCTS_FAB_EDGE_GAP } from '@/components/product/products-screen/shared';
 import { MIN_TAP_TARGET } from '@/constants';
 import {
   baseProduct,
   getHostByType,
   mockPlatform,
+  queryAllHostsByType,
   renderWithProviders,
   restorePlatform,
 } from '@/test-utils/index';
@@ -223,5 +227,21 @@ describe('ProductsListContent empty state', () => {
   it('does not mount the teardown photo behind a populated list', async () => {
     await renderList();
     expect(screen.queryByTestId('expo-image-bg', { includeHiddenElements: true })).toBeNull();
+  });
+});
+
+describe('ProductsHeaderFade', () => {
+  it('renders nothing at the top of the list, so it cannot grey out the first row', async () => {
+    await renderWithProviders(
+      <ProductsHeaderFade headerBottom={120} overlayColor="#FAFBFE" scrolled={false} />,
+    );
+    expect(queryAllHostsByType('LinearGradient')).toHaveLength(0);
+  });
+
+  it('fades content scrolling under the header once the list has scrolled', async () => {
+    await renderWithProviders(
+      <ProductsHeaderFade headerBottom={120} overlayColor="#FAFBFE" scrolled />,
+    );
+    expect(queryAllHostsByType('LinearGradient')).toHaveLength(1);
   });
 });

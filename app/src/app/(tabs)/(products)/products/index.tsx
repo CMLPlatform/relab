@@ -162,7 +162,12 @@ export default function Products() {
         </View>
       </PageContainer>
 
-      <ProductsHeaderFade headerBottom={screen.headerBottom} overlayColor={bgOverlay} />
+      <ProductsHeaderFade
+        headerBottom={screen.headerBottom}
+        overlayColor={bgOverlay}
+        // The FAB collapses exactly when the list leaves the top.
+        scrolled={!screen.fabExtended}
+      />
 
       <ProductsFab
         extended={screen.fabExtended}
