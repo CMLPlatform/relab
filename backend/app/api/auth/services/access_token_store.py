@@ -14,11 +14,15 @@ import secrets
 import time
 from typing import TYPE_CHECKING, Any
 
+from fastapi import Request
+from fastapi.security.utils import get_authorization_scheme_param
 from fastapi_users import exceptions, models
 from fastapi_users.authentication.strategy.redis import RedisStrategy
 from pydantic import UUID4
 
 from app.api.auth.config import settings as auth_settings
+from app.core.http_headers import AUTH_COOKIE_NAME
+from app.core.runtime import get_connection_services
 
 if TYPE_CHECKING:
     from fastapi_users.manager import BaseUserManager
@@ -29,6 +33,7 @@ if TYPE_CHECKING:
 # silently orphan tokens written under the old prefix.
 ACCESS_TOKEN_KEY_PREFIX = "fastapi_users_token:"  # noqa: S105 # Redis key prefix, not a credential
 _REVOKED_BEFORE_KEY_PREFIX = "auth:at:revoked-before:"
+_BEARER_SCHEME = "bearer"
 
 
 def _revoked_before_key(user_id: UUID4 | str) -> str:
@@ -72,6 +77,23 @@ class RevocableRedisStrategy(RedisStrategy[models.UP, models.ID]):
             return await user_manager.get(parsed_id)
         except exceptions.UserNotExists, exceptions.InvalidID:
             return None
+
+
+async def request_access_token_owner_id(request: Request) -> str | None:
+    """Return the user id the request's bearer or session-cookie access token was issued to.
+
+    For rate-limit bucketing only: one Redis GET, no user load and no revocation check.
+    Only a token this server issued resolves, so a forged one cannot pick a bucket.
+    Never use this to authorize a request.
+    """
+    scheme, token = get_authorization_scheme_param(request.headers.get("authorization"))
+    if scheme.lower() != _BEARER_SCHEME or not token:
+        token = request.cookies.get(AUTH_COOKIE_NAME)
+    redis = get_connection_services(request).redis
+    if not token or redis is None:
+        return None
+    stored = await redis.get(f"{ACCESS_TOKEN_KEY_PREFIX}{token}")
+    return None if stored is None else _parse_stored_token(stored)[0]
 
 
 def _parse_stored_token(stored: Any) -> tuple[str | None, float | None]:  # noqa: ANN401 - redis returns str|bytes

@@ -37,7 +37,7 @@ Forgot-password returns the same accepted response for known, unknown, and inact
 
 Rate limits use the Redis-backed `limits` integration:
 
-- login by transient client-IP bucket and by a keyed digest of the submitted identifier
+- login by transient client-IP bucket (60 a minute, so a workshop room behind one IP can sign in) and by failed attempts against a keyed digest of the submitted identifier (3 a minute); successful logins do not count against the account, so a shared demo account is not locked by use
 - forgot-password requests by transient client-IP bucket and by a keyed digest of the submitted email address
 - reset-password submissions, registration, and email verification requests by transient client-IP bucket
 

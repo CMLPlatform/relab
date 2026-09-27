@@ -9,7 +9,7 @@ from fastapi_users.router.common import ErrorModel
 
 from app.api.auth.schemas import MfaPendingResponse, RefreshTokenResponse
 from app.api.auth.services import login_flow
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
+from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT
 from app.api.auth.services.user_manager import (
     UserManager,
     bearer_auth_backend,
@@ -31,7 +31,7 @@ router = APIRouter()
     response_model=RefreshTokenResponse | MfaPendingResponse,
     responses=AUTH_ERROR_RESPONSES,
     summary="Login with email and password for bearer-token clients",
-    dependencies=[limiter.dependency(LOGIN_RATE_LIMIT)],
+    dependencies=[limiter.dependency(LOGIN_IP_RATE_LIMIT)],
 )
 async def bearer_login(
     response: Response,
@@ -58,7 +58,7 @@ async def bearer_login(
     response_model=MfaPendingResponse | None,
     responses=AUTH_ERROR_RESPONSES,
     summary="Login with email and password for browser sessions",
-    dependencies=[limiter.dependency(LOGIN_RATE_LIMIT)],
+    dependencies=[limiter.dependency(LOGIN_IP_RATE_LIMIT)],
 )
 async def session_login(
     response: Response,

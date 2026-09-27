@@ -14,11 +14,11 @@ from fastapi_pagination.links import Page
 from pydantic import UUID4, BeforeValidator
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep, CurrentLabUserDep
+from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY, API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.idempotency import IDEMPOTENCY_RESPONSES, IdempotencyKeyDep, idempotent_request
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
-from app.api.common.rate_limiting import API_UPLOAD_RATE_LIMIT_DEPENDENCY, API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import create_product as create_product_record

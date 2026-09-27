@@ -4,11 +4,13 @@ Replaces the unmaintained slowapi package with a minimal implementation
 that covers exactly the features this project uses: FastAPI route dependencies,
 explicit service-level buckets, Redis-backed storage, and a fixed-window strategy.
 
-Lives in ``common`` because every context rate-limits: auth owns only its own
-login/register/verify/reset bucket sizes (``auth.services.rate_limiter``).
+Lives in ``common`` because every context rate-limits. Auth owns its own bucket sizes
+and, because it owns identity, the per-user API limits (``auth.services.rate_limiter``).
 """
 
+import functools
 import logging
+from collections.abc import Awaitable, Callable
 
 import anyio.to_thread
 from fastapi import Depends, Request
@@ -46,15 +48,22 @@ def request_ip_rate_limit_key(request: Request) -> str:
     return rate_limit_bucket_key("client:ip", get_client_ip(request))
 
 
+type RequestUserId = Callable[[Request], Awaitable[str | None]]
+"""Resolve the signed-in user id of a request, or None. Supplied by auth, which owns identity."""
+
+
 class Limiter:
-    """Fixed-window rate limiter for per-IP FastAPI dependencies and explicit service buckets."""
+    """Fixed-window rate limiter for per-IP or per-user FastAPI dependencies and explicit buckets."""
 
     def __init__(self, *, storage_uri: str, enabled: bool = True) -> None:
         self.enabled = enabled
         self._limiter = FixedWindowRateLimiter(storage_from_string(storage_uri)) if enabled else None
 
-    def hit_key(self, rate_string: str, key: str) -> None:
+    def hit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
         """Enforce *rate_string* for an explicit bucket key.
+
+        ``consume=False`` only checks the bucket, for budgets that count some outcomes,
+        such as failed logins: check before the work, hit only when the outcome counts.
 
         Fails open on a Redis backend outage: an unreachable rate limiter must not
         turn into a hard outage for login/register/pairing. The narrower risk (a
@@ -66,7 +75,7 @@ class Limiter:
 
         parsed = parse(rate_string)
         try:
-            allowed = self._limiter.hit(parsed, key)
+            allowed = (self._limiter.hit if consume else self._limiter.test)(parsed, key)
         except RedisError, ConnectionError, TimeoutError, OSError:
             logger.warning("Rate limiter backend unavailable; failing open for bucket %s", key)
             return
@@ -76,22 +85,49 @@ class Limiter:
             logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
             raise RateLimitExceededError
 
-    async def ahit_key(self, rate_string: str, key: str) -> None:
+    async def ahit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
         """Async ``hit_key`` for callers already on the event loop.
 
         The ``limits`` Redis backend is synchronous (its async backend would pull in a
         second Redis client, coredis), so a direct call from an async handler blocks the
         event loop on every login/reset/pairing attempt, a cheap DoS lever under load.
-        Offloading to a worker thread keeps the loop free, exactly as FastAPI already does
-        for the sync ``dependency`` path. Sync callers (that path) must not use this.
+        Offloading to a worker thread keeps the loop free; route dependencies use it too.
+        Sync callers must use ``hit_key`` instead.
         """
-        await anyio.to_thread.run_sync(self.hit_key, rate_string, key)
+        await anyio.to_thread.run_sync(functools.partial(self.hit_key, rate_string, key, consume=consume))
 
-    def dependency(self, rate_string: str, *, name: str = "rate_limit") -> DependsParam:
-        """Return a FastAPI dependency that enforces *rate_string* per client IP."""
+    def dependency(
+        self,
+        rate_string: str,
+        *,
+        name: str = "rate_limit",
+        per_user: tuple[str, RequestUserId] | None = None,
+    ) -> DependsParam:
+        """Return a FastAPI dependency that enforces *rate_string* per client IP.
 
-        def dependency(request: Request) -> None:
-            self.hit_key(rate_string, request_ip_rate_limit_key(request))
+        With ``per_user=(rate, user_id_of)``, a signed-in request is counted against that
+        rate in its user's bucket instead, so people sharing one IP (a classroom behind one
+        NAT) do not share one budget. Without it, every request is keyed per IP, which is
+        what the login and signup routes want.
+        """
+
+        async def dependency(request: Request) -> None:
+            if not self.enabled:
+                return
+            if per_user is None:
+                await self.ahit_key(rate_string, request_ip_rate_limit_key(request))
+                return
+            user_rate_string, user_id_of = per_user
+            # No user id, or a Redis error resolving one, keeps the IP bucket, so rotating junk
+            # tokens never buys a fresh budget. The id only picks a bucket, never grants access.
+            try:
+                user_id = await user_id_of(request)
+            except RedisError, ConnectionError, TimeoutError, OSError:
+                user_id = None
+            if user_id is None:
+                await self.ahit_key(rate_string, request_ip_rate_limit_key(request))
+            else:
+                await self.ahit_key(user_rate_string, rate_limit_bucket_key("client:user", user_id))
 
         dependency.__name__ = name
         return Depends(dependency)
@@ -116,10 +152,6 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
     )
 
 
-# Singleton limiter instance and rate-limit strings
+# Singleton limiter instance
 
 limiter = Limiter(storage_uri=core_settings.redis.cache_url, enabled=core_settings.enable_rate_limit)
-
-API_READ_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_read_rate_limit, name="api_read_rate_limit")
-API_WRITE_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_write_rate_limit, name="api_write_rate_limit")
-API_UPLOAD_RATE_LIMIT_DEPENDENCY = limiter.dependency(core_settings.api_upload_rate_limit, name="api_upload_rate_limit")
