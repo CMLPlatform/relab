@@ -11,7 +11,15 @@ export default function ProductDetailsSkeleton() {
   const bg = theme.colors.surfaceVariant;
 
   return (
-    <ScrollView contentContainerClassName="gap-[15px] pb-5" scrollEnabled={false}>
+    // Named and busy, like CenteredSpinner: the grey blocks alone say nothing to a screen reader.
+    <ScrollView
+      contentContainerClassName="gap-[15px] pb-5"
+      scrollEnabled={false}
+      accessible
+      accessibilityRole="progressbar"
+      aria-busy
+      accessibilityLabel="Loading details"
+    >
       {/* Full-bleed image gallery */}
       <Skeleton style={[styles.gallery, { backgroundColor: bg }]} />
 

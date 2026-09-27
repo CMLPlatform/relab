@@ -96,14 +96,22 @@ function SkeletonGrid({ numColumns }: { numColumns: number }) {
     [numColumns],
   );
   return (
-    <FlatList
-      key={numColumns}
-      numColumns={numColumns}
-      data={Array.from({ length: 8 })}
-      keyExtractor={skeletonKeyExtractor}
-      renderItem={renderSkeleton}
-      scrollEnabled={false}
-    />
+    // Named and busy, like CenteredSpinner: the grey cards alone say nothing to a screen reader.
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      aria-busy
+      accessibilityLabel="Loading products"
+    >
+      <FlatList
+        key={numColumns}
+        numColumns={numColumns}
+        data={Array.from({ length: 8 })}
+        keyExtractor={skeletonKeyExtractor}
+        renderItem={renderSkeleton}
+        scrollEnabled={false}
+      />
+    </View>
   );
 }
 

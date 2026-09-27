@@ -114,6 +114,8 @@ describe('ProductsListContent loading skeleton', () => {
     };
     walk(screen.toJSON());
     expect(cells).toHaveLength(8);
+    // Named and busy for assistive tech, not eight silent grey cards.
+    expect(screen.getByRole('progressbar', { name: 'Loading products' })).toBeOnTheScreen();
   });
 });
 
