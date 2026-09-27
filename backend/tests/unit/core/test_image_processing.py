@@ -75,6 +75,8 @@ def test_validate_dimensions_accepts_valid_images() -> None:
     # At the per-side limit but within the pixel cap (a square at the per-side max would
     # be 64 MPx, over the 30 MPx bomb guard, and is rejected by the pixel-flood test).
     validate_image_dimensions(PILImage.new("RGB", (MAX_IMAGE_DIMENSION, 3000)))
+    # Both limits are inclusive: exactly at the per-side and total-pixel caps is allowed.
+    validate_image_dimensions(PILImage.new("RGB", (10, 20)), max_dimension=20, max_pixels=200)
 
 
 def test_validate_dimensions_exceeds_width() -> None:
@@ -495,6 +497,23 @@ def test_process_image_strips_gps_tags(tmp_path: Path) -> None:
 
     with PILImage.open(path) as result:
         assert not result.getexif().get_ifd(IFD.GPSInfo)
+
+
+def test_process_image_strips_exif_only_exposed_through_getexif(tmp_path: Path) -> None:
+    """Formats whose EXIF lives outside ``info["exif"]`` (TIFF) must still be filtered."""
+    path = tmp_path / "artist.tiff"
+    img = PILImage.new("RGB", (20, 10))
+    exif = PILImage.Exif()
+    exif[0x013B] = "Jane Doe"  # Artist: personal data, not on the allowlist
+    img.save(path, exif=exif)
+    with PILImage.open(path) as before:
+        assert not before.info.get("exif")
+        assert before.getexif().get(0x013B) == "Jane Doe"
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert 0x013B not in result.getexif()
 
 
 def test_jpeg_with_exif_orientation_is_still_rotated_and_stripped(tmp_path: Path) -> None:
