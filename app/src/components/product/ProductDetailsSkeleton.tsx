@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card } from '@/components/base/Card';
 import { Skeleton } from '@/components/base/Skeleton';
+import { IMAGE_HEIGHT } from '@/components/product/gallery/shared';
 import { radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 
@@ -39,9 +40,11 @@ export default function ProductDetailsSkeleton() {
 
 // Skeleton wraps Animated.View, which ignores className.
 const styles = StyleSheet.create({
+  // The gallery's fixed height, not an aspect ratio: 16:9 drew a ~810px block at
+  // 1440px wide and ~220px on a phone, against the 300px the images then took.
   gallery: {
     width: '100%',
-    aspectRatio: 16 / 9,
+    height: IMAGE_HEIGHT,
   },
   name: {
     height: 28,

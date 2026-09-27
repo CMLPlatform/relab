@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   type DimensionValue,
@@ -87,6 +87,30 @@ function ProductsListFooter({
   );
 }
 
+const skeletonKeyExtractor = (_: unknown, index: number) => `skeleton-${index}`;
+
+/** Same column grid as the loaded list, so the swap to cards does not reflow into a grid. */
+function SkeletonGrid({ numColumns }: { numColumns: number }) {
+  const renderSkeleton = useCallback(
+    () => <GridCell numColumns={numColumns} child={<ProductCardSkeleton />} />,
+    [numColumns],
+  );
+  return (
+    <FlatList
+      key={numColumns}
+      numColumns={numColumns}
+      data={Array.from({ length: 8 })}
+      keyExtractor={skeletonKeyExtractor}
+      renderItem={renderSkeleton}
+      scrollEnabled={false}
+    />
+  );
+}
+
+function GridCell({ numColumns, child }: { numColumns: number; child: ReactNode }) {
+  return <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>{child}</View>;
+}
+
 export function ProductsListContent({
   numColumns,
   products,
@@ -122,16 +146,15 @@ export function ProductsListContent({
     if (hasNextPage) onFetchNextPage();
   }, [hasNextPage, onFetchNextPage]);
 
-  const renderSkeleton = useCallback(() => <ProductCardSkeleton />, []);
   const renderProduct = useCallback(
     ({ item }: { item: (typeof products)[number] }) => (
-      <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>
-        <ProductCard product={item} showOwner={showOwner} />
-      </View>
+      <GridCell
+        numColumns={numColumns}
+        child={<ProductCard product={item} showOwner={showOwner} />}
+      />
     ),
     [numColumns, showOwner],
   );
-  const skeletonKeyExtractor = useCallback((_: unknown, index: number) => `skeleton-${index}`, []);
   const productKeyExtractor = useCallback((item: Product) => (item.id ?? 'draft').toString(), []);
 
   const listFooter = useMemo(
@@ -150,12 +173,7 @@ export function ProductsListContent({
   if (isLoading && products.length === 0) {
     return (
       <View className="flex-1">
-        <FlatList
-          data={Array.from({ length: 8 })}
-          keyExtractor={skeletonKeyExtractor}
-          renderItem={renderSkeleton}
-          scrollEnabled={false}
-        />
+        <SkeletonGrid numColumns={numColumns} />
         {slowLoading ? (
           <View className="absolute right-0 bottom-[100px] left-0 items-center">
             <Card className="px-4 py-2" style={{ backgroundColor: theme.tokens.surface.sunken }}>

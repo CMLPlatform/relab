@@ -83,6 +83,40 @@ function refreshControl() {
   return control.props;
 }
 
+describe('ProductsListContent loading skeleton', () => {
+  it('lays the skeleton cards out in the same column grid as the loaded list', async () => {
+    await renderWithProviders(
+      <ProductsListContent
+        numColumns={3}
+        products={[]}
+        filterMode="all"
+        isLoading
+        isFetchingNextPage={false}
+        slowLoading={false}
+        total={0}
+        hasNextPage={false}
+        searchQuery=""
+        isAuthenticated
+        onScroll={undefined}
+        onRefresh={jest.fn()}
+        onFetchNextPage={jest.fn()}
+      />,
+    );
+    // Each skeleton sits in a one-third-width cell, as each loaded card does.
+    const cellWidth = `${100 / 3}%`;
+    const cells: unknown[] = [];
+    const walk = (node: unknown) => {
+      if (!node || typeof node !== 'object') return;
+      const n = node as { props?: { style?: unknown }; children?: unknown[] | null };
+      const style = [n.props?.style].flat(3) as ({ width?: unknown } | undefined)[];
+      if (style.some((st) => st?.width === cellWidth)) cells.push(n);
+      for (const child of n.children ?? []) walk(child);
+    };
+    walk(screen.toJSON());
+    expect(cells).toHaveLength(8);
+  });
+});
+
 describe('ProductsListContent pull-to-refresh', () => {
   it('does not spin the pull-to-refresh control for a background refetch', async () => {
     // isFetchingNextPage must never drive the pull-to-refresh spinner; only a
