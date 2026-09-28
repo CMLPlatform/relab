@@ -1,4 +1,5 @@
 import Head from 'expo-router/head';
+import { FramedAuthNotice } from '@/components/auth/FramedAuthNotice';
 import {
   NewAccountEmailStep,
   NewAccountLayout,
@@ -6,12 +7,15 @@ import {
   NewAccountUsernameStep,
 } from '@/components/auth/NewAccountSections';
 import { useNewAccountScreen } from '@/features/auth/useNewAccountScreen';
+import { isFramed } from '@/utils/platformLayout';
 
 export default function NewAccount() {
   const { ui, flow, form, actions } = useNewAccountScreen();
   const handleAdvanceFromUsername = async () => actions.advanceFromUsername();
   const handleAdvanceFromEmail = async () => actions.advanceFromEmail();
   const handleCreateAccount = async () => actions.createAccount();
+
+  if (isFramed()) return <FramedAuthNotice />;
 
   return (
     <>

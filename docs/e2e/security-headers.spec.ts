@@ -82,7 +82,7 @@ test.describe('Caddy CSP security headers', () => {
     expect(policy).toContain("object-src 'none'");
     expect(policy).toContain("base-uri 'none'");
     expect(policy).toContain("form-action 'self'");
-    expect(policy).toContain("frame-ancestors 'none'");
+    expect(policy).toContain('frame-ancestors https:');
     expect(policy).not.toContain('report-uri');
   });
 
