@@ -5,8 +5,8 @@ import HeroTeardown from './HeroTeardown.astro';
 
 const TEARDOWN = {
   id: 47,
-  name: 'Dell XPS 13',
-  brand: 'Dell',
+  name: 'HP ProBook 430 G2',
+  brand: 'HP',
   weightG: 1190,
   productType: 'Laptop',
   parts: [
@@ -20,7 +20,7 @@ const TEARDOWN = {
     },
     { name: 'Shell', weightG: null, share: null, photo: null },
   ],
-  photos: [{ url: '/media/a.jpg', alt: 'Dell XPS 13, photographed during disassembly' }],
+  photos: [{ url: '/media/a.jpg', alt: 'HP ProBook 430 G2, photographed during disassembly' }],
 };
 
 /** The same record once its components carry photographs: one has, one has not. */
@@ -52,7 +52,7 @@ async function render(props: Record<string, unknown>): Promise<string> {
 describe('HeroTeardown', () => {
   it('renders the product name and its parts with masses', async () => {
     const html = await render({});
-    expect(html).toContain('Dell XPS 13');
+    expect(html).toContain('HP ProBook 430 G2');
     expect(html).toContain('Battery pack');
     expect(html).toContain('212 g');
   });

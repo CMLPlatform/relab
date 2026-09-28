@@ -18,7 +18,7 @@ import type { Product } from '@/types/Product';
 interface Props {
   component: Product;
   enabled: boolean;
-  /** Internal: nested child rows never expand further (BOM shows one level deep). */
+  /** Internal: nested child rows never expand further (the component list shows one level deep). */
   nested?: boolean;
   /** Edit mode only: copy this row into a new sibling component. */
   onDuplicate?: () => void;
@@ -26,7 +26,7 @@ interface Props {
 
 const THUMBNAIL_SIZE = 44;
 
-/** Bill-of-materials row. Children absent from the parent payload are fetched on first expand. */
+/** Component row. Children absent from the parent payload are fetched on first expand. */
 export function ComponentRow({ component, enabled, nested = false, onDuplicate }: Props) {
   const router = useRouter();
   const theme = useAppTheme();

@@ -8,6 +8,7 @@ import { entityLabel, type Product } from '@/types/Product';
 import ProductCircularityProperties from './ProductCircularityProperties';
 import ProductComponents from './ProductComponents';
 import ProductFiles from './ProductFiles';
+import ProductMaterials from './ProductMaterials';
 import ProductPhysicalProperties from './ProductPhysicalProperties';
 import ProductTags from './ProductTags';
 import ProductType from './ProductType';
@@ -126,7 +127,7 @@ export const SECTIONS: SectionConfig[] = [
     ),
   },
   {
-    // Measurements and circularity notes share one section (six chips did not fit a phone).
+    // Measurements, materials and circularity notes share one section (six chips did not fit a phone).
     key: 'properties',
     label: 'Properties',
     addLabel: 'Add properties',
@@ -135,7 +136,10 @@ export const SECTIONS: SectionConfig[] = [
     isEmpty: (product, ctx) => {
       if (!ctx.editMode) return false;
       const { weight, width, height, depth } = product.physicalProperties;
-      return !(weight || width || height || depth) && !hasCircularityNotes(product);
+      const hasMaterials = (product.materials?.length ?? 0) > 0;
+      return (
+        !(weight || width || height || depth) && !hasCircularityNotes(product) && !hasMaterials
+      );
     },
     render: (props) => (
       <>
@@ -144,6 +148,7 @@ export const SECTIONS: SectionConfig[] = [
           editMode={props.editMode}
           onChangePhysicalProperties={props.onChangePhysicalProperties}
         />
+        <ProductMaterials product={props.product} />
         <ProductCircularityProperties
           product={props.product}
           editMode={props.editMode}

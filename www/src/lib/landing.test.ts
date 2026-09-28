@@ -3,8 +3,8 @@ import { loadLandingData, parseTeardown } from './landing.ts';
 
 const RAW = {
   id: 47,
-  name: 'Dell XPS 13',
-  brand: 'Dell',
+  name: 'HP ProBook 430 G2',
+  brand: 'HP',
   weight_g: 1190,
   components: [
     { name: 'Battery pack', weight_g: 212 },
@@ -26,7 +26,7 @@ describe('parseTeardown', () => {
   it('maps the API payload to camelCase', () => {
     const t = parseTeardown(RAW);
     expect(t?.id).toBe(47);
-    expect(t?.name).toBe('Dell XPS 13');
+    expect(t?.name).toBe('HP ProBook 430 G2');
     expect(t?.weightG).toBe(1190);
     expect(t?.parts[0]).toEqual({
       name: 'Battery pack',
@@ -125,7 +125,7 @@ describe('parseTeardown', () => {
 
   it('gives every photo descriptive alt text naming the product', () => {
     const t = parseTeardown(RAW);
-    expect(t?.photos[0].alt).toContain('Dell XPS 13');
+    expect(t?.photos[0].alt).toContain('HP ProBook 430 G2');
   });
 
   it('returns null for a payload without a usable name', () => {
@@ -351,9 +351,9 @@ describe('loadLandingData', () => {
 
     const data = await loadLandingData();
     expect(data.fromFixture).toBe(true);
-    expect(data.teardown?.name).toBe('Dell XPS 13');
+    expect(data.teardown?.name).toBe('HP ProBook 430 G2');
     // The fixture stores parts without shares; the loader computes them.
-    expect(data.teardown?.parts[0].share).toBe(0.382);
+    expect(data.teardown?.parts[0].share).toBe(0.348);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('API unavailable at build time'));
   });
 

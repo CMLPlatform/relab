@@ -19,6 +19,8 @@ interface Props extends PressableProps {
   title?: string;
   icon?: React.ReactNode;
   error?: boolean;
+  /** Displays a value with no action: no button role, not in the tab order. */
+  readOnly?: boolean;
 }
 
 export const Chip = ({
@@ -31,6 +33,7 @@ export const Chip = ({
   accessibilityLabel,
   accessibilityRole = 'button',
   accessibilityState,
+  readOnly = false,
   ...props
 }: Props) => {
   const theme = useAppTheme();
@@ -56,19 +59,12 @@ export const Chip = ({
     accessibilityLabel ??
     (title ? `${title}: ${children ?? ''}${error ? ', required' : ''}` : undefined);
 
-  return (
-    <Pressable
-      style={resolveStyle}
-      disabled={disabled}
-      accessibilityRole={accessibilityRole}
-      accessibilityLabel={composedLabel}
-      accessibilityState={accessibilityState ?? (disabled ? { disabled } : undefined)}
-      {...props}
-    >
+  const content = (
+    <>
       {title ? (
         <AppText
           variant="label"
-          className="px-3 py-2 text-center font-medium"
+          className="self-center px-3 py-2 text-center font-medium"
           style={{ color: theme.colors.primary }}
         >
           {title}
@@ -94,6 +90,36 @@ export const Chip = ({
         </AppText>
         {icon}
       </View>
+    </>
+  );
+
+  // A value with nothing to do on press is not a button: a focusable control
+  // that does nothing costs a keyboard stop and misstates its role (WCAG 4.1.2).
+  // A named group keeps title and value one screen-reader stop, not two.
+  if (readOnly) {
+    return (
+      <View
+        testID={props.testID}
+        accessible
+        role="group"
+        accessibilityLabel={composedLabel}
+        style={[styles.base, { backgroundColor: theme.tokens.surface.accent }]}
+      >
+        {content}
+      </View>
+    );
+  }
+
+  return (
+    <Pressable
+      style={resolveStyle}
+      disabled={disabled}
+      accessibilityRole={accessibilityRole}
+      accessibilityLabel={composedLabel}
+      accessibilityState={accessibilityState ?? (disabled ? { disabled } : undefined)}
+      {...props}
+    >
+      {content}
     </Pressable>
   );
 };

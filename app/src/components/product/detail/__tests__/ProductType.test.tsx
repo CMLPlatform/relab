@@ -103,6 +103,45 @@ describe('ProductType', () => {
     expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
   });
 
+  // Regression: the bundled CPV snapshot is keyed by its own ids, not the
+  // database's. A seeded "Display module" stored as id 3 rendered as snapshot
+  // entry 3, "CPV: 03 Agricultural, farming...".
+  it('shows the type the API recorded, not the snapshot entry sharing its id', async () => {
+    const product = {
+      ...baseProduct,
+      productTypeID: 1,
+      productType: { id: 1, name: 'Display module', description: 'A screen assembly.' },
+    };
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
+    expect(await screen.findByText('Display module')).toBeOnTheScreen();
+    expect(screen.queryByText('Agricultural products')).toBeNull();
+  });
+
+  it('shows a type picked since load from the snapshot, not the stale recorded one', async () => {
+    const product = {
+      ...baseProduct,
+      productTypeID: 1,
+      productType: { id: 3, name: 'Display module', description: 'A screen assembly.' },
+    };
+    await renderWithProviders(<ProductType product={product} editMode={true} />);
+    expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
+    expect(screen.queryByText('Display module')).toBeNull();
+  });
+
+  // The tooltip is an instruction to pick a type, which a viewer cannot do.
+  it('offers the category tooltip only in edit mode', async () => {
+    const product = { ...baseProduct, productTypeID: 1 };
+    const info = 'Info: Select a fitting category for the product.';
+    const { rerender } = await renderWithProviders(
+      <ProductType product={product} editMode={false} />,
+    );
+    expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
+    expect(screen.queryByLabelText(info)).toBeNull();
+
+    await rerender(<ProductType product={product} editMode={true} />);
+    expect(await screen.findByLabelText(info)).toBeOnTheScreen();
+  });
+
   // Regression: an unresolvable (stale/unknown) type id used to fall back to
   // cpv.root, which CPVCard renders as a red "Category undefined" error card.
   it('renders nothing for an unresolvable type id instead of the undefined error card', async () => {

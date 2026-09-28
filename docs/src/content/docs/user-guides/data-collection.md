@@ -23,6 +23,10 @@ Photos and notes are often worth more than a perfectly filled form.
 1. Attach images, files, measurements, and notes to the most appropriate record level.
 1. Link product types, categories, or materials where you are reasonably confident.
 
+The app shows a record's bill of materials read-only under Properties; material quantities are
+recorded through the API, at `/v1/products/{id}/materials` for a base product and
+`/v1/components/{id}/materials` for a component.
+
 ## When to create a child component
 
 Create a child record when:

@@ -480,9 +480,15 @@ describe('ProductPage state handling', () => {
     const setOptionsArg = mockSetOptions.mock.calls.at(-1)?.[0] as {
       title?: string;
       headerLeft?: () => ReactElement;
+      headerTitle?: () => ReactElement;
     };
 
     expect(setOptionsArg.title).toMatch(LONG_PRODUCT_NAME_PREFIX_PATTERN);
+
+    // The header shows the name as plain text: the page's own title is the h1.
+    await renderWithProviders(setOptionsArg.headerTitle?.() as ReactElement, { withDialog: true });
+    expect(screen.getByText(LONG_PRODUCT_NAME_PREFIX_PATTERN)).toBeOnTheScreen();
+    expect(screen.queryByRole('header')).toBeNull();
 
     await renderWithProviders(setOptionsArg.headerLeft?.() as ReactElement, { withDialog: true });
     await fireEvent.press(screen.getByLabelText('header-back'));

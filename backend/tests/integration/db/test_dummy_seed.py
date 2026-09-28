@@ -1,16 +1,17 @@
 """Tests for the dummy-data seeder's component tree and its photographs.
 
-The seeded XPS 13 is what dev and CI render as a real teardown: www's hero picks
-its layout from whether components carry photographs, and builds a ``srcset``
-from the derivative widths below. Both only exist if seeding walks the tree.
+The seeded HP ProBook 430 G2 is what dev and CI render as a real teardown:
+www's hero picks its layout from whether components carry photographs, and
+builds a ``srcset`` from the derivative widths below. Both only exist if seeding walks the tree.
 """
 
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
-from app.api.data_collection.models.product import Product
+from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.file_storage.models import Image, MediaParentType
+from app.api.reference_data.models import Material
 from app.core.config.core import settings
 from app.core.images import THUMBNAIL_WIDTHS
 from app.core.images.urls import build_thumbnail_urls_by_width
@@ -27,7 +28,7 @@ SEEDED_PARTS = {
     "Bottom cover",
     "Keyboard",
     "Motherboard assembly",
-    "Keyboard frame assembly",
+    "Top cover assembly",
     "SSD",
 }
 
@@ -37,7 +38,7 @@ async def test_seeding_builds_a_photographed_component_tree_with_responsive_deri
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Seeding should give the XPS 13 a nested, photographed teardown tree.
+    """Seeding should give the ProBook a nested, photographed teardown tree.
 
     Tree and derivatives are asserted together because seeding is the expensive
     part (a full-size lossless WebP re-save per photograph); splitting them paid
@@ -50,7 +51,7 @@ async def test_seeding_builds_a_photographed_component_tree_with_responsive_deri
 
     await run_seed_steps(db_session)
 
-    laptop = (await db_session.execute(select(Product).where(Product.name == "Dell XPS 13"))).scalar_one()
+    laptop = (await db_session.execute(select(Product).where(Product.name == "HP ProBook 430 G2"))).scalar_one()
     part_rows = (await db_session.execute(select(Product.name, Product.id).where(Product.parent_id == laptop.id))).all()
     parts = {name: product_id for name, product_id in part_rows}  # noqa: C416 -- dict() rejects Row's tuple-like overload
     assert set(parts) == SEEDED_PARTS
@@ -92,3 +93,28 @@ async def test_seeding_builds_a_photographed_component_tree_with_responsive_deri
     widths = build_thumbnail_urls_by_width(str(image.file.path), settings.image_storage_path)
     assert set(widths) == {width for width in THUMBNAIL_WIDTHS if width < 960}
     assert len(widths) > 1
+
+    # A teardown record is only a teardown record if the observations hang off
+    # the parts, not just the assembled product: a component carries its own
+    # type, its own circularity notes and its own bill of materials.
+    display = (await db_session.execute(select(Product).where(Product.id == parts["Display assembly"]))).scalar_one()
+    assert display.product_type_id is not None
+    assert display.circularity_properties
+    assert laptop.circularity_properties
+
+    component_bom = (
+        (
+            await db_session.execute(
+                select(MaterialProductLink.quantity).where(MaterialProductLink.product_id == display.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(component_bom) > 0
+
+    # No seeded material carries a reference: a placeholder URL would read as a
+    # real source in the app, where "No reference recorded" is the honest state.
+    sources = (await db_session.execute(select(Material.source))).scalars().all()
+    assert sources
+    assert all(source is None for source in sources)

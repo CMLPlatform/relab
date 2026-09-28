@@ -59,3 +59,22 @@ test('has web hover, cursor, and focus-visible affordances', async () => {
   expect(className).toEqual(expect.stringContaining('hover:'));
   expect(className).toEqual(expect.stringContaining('focus-visible:'));
 });
+
+test('on web, a focused chip scrolls itself into view in the chip row', async () => {
+  mockPlatform('web');
+  await render(
+    <SectionNavLayout
+      isLg={false}
+      navSections={[...sections]}
+      activeKey="overview"
+      onPressSection={jest.fn()}
+    >
+      {null}
+    </SectionNavLayout>,
+  );
+  const scrollIntoView = jest.fn();
+  await fireEvent(screen.getByLabelText('Components'), 'focus', {
+    currentTarget: { scrollIntoView },
+  });
+  expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' });
+});

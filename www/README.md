@@ -98,7 +98,7 @@ blend amplifies aliasing on fine repeating detail such as a keyboard.
 
 `srcset` is `""` because the fixture ships one width per photo, so the fixture lane cannot cover
 the responsive path. `just test-e2e-live` covers it: it builds against the running
-`compose.e2e.yaml` backend (`PUBLIC_FEATURED_PRODUCT_ID=2`, the seeded Dell XPS 13) and runs
+`compose.e2e.yaml` backend (`PUBLIC_FEATURED_PRODUCT_ID=2`, the seeded HP ProBook 430 G2) and runs
 [e2e/landing-live.spec.ts](e2e/landing-live.spec.ts), which asserts the page shows a live record and
 that every plate carries a two-candidate `srcset` plus `sizes`. The root `just test-e2e-full-stack`
 runs it before the app's lane, on the same stack.
