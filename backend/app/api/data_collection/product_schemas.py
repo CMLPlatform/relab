@@ -62,6 +62,13 @@ class ProductReadBase(
     """Shared read fields for base products and components."""
 
     product_type_id: PositiveInt | None = None
+    version: PositiveInt = Field(
+        default=1,
+        description='Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.',
+    )
+    updated_by_moderator: bool = Field(
+        default=False, description="Whether the last field edit was made by a moderator rather than the owner."
+    )
 
 
 class ProductRead(ProductReadBase):

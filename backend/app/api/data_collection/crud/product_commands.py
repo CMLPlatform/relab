@@ -12,7 +12,11 @@ from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.crud.product_tree_queries import MAX_COMPONENT_DEPTH, component_depth
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.crud.storage import cleanup_product_media_storage, delete_product_media
-from app.api.data_collection.exceptions import ProductOwnerRequiredError, ProductTreeTooDeepError
+from app.api.data_collection.exceptions import (
+    ProductOwnerRequiredError,
+    ProductTreeTooDeepError,
+    ProductVersionMismatchError,
+)
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.data_collection.schemas import ComponentCreateWithComponents, ProductCreateWithComponents, ProductUpdate
 from app.api.file_storage.models import Video
@@ -171,20 +175,41 @@ async def validate_product_type(db: AsyncSession, product_type_id: int | None) -
         await require_model(db, ProductType, product_type_id)
 
 
-def apply_product_update(db_product: Product, product: ProductUpdate) -> None:
-    """Apply the provided mutable product fields to an existing row."""
+def apply_product_update(db_product: Product, product: ProductUpdate) -> bool:
+    """Apply the provided mutable product fields to an existing row; return whether any changed."""
     product_data: dict[str, Any] = product.model_dump(exclude_unset=True)
+    changed = False
     for key, value in product_data.items():
-        setattr(db_product, key, value)
+        if getattr(db_product, key) != value:
+            setattr(db_product, key, value)
+            changed = True
+    return changed
 
 
-async def update_product(db: AsyncSession, product_id: int, product: ProductUpdate) -> Product:
-    """Update an existing product in the database."""
+async def update_product(
+    db: AsyncSession, product_id: int, product: ProductUpdate, *, if_match_version: int, user_id: UUID4
+) -> Product:
+    """Update an existing product, refusing the edit if it changed since the client read it.
+
+    Holding the row lock, compares the client's version with the stored one. An update
+    that changes a field bumps the version and records the editor; one that changes
+    nothing leaves both alone.
+    """
     db_product = await require_locked_model(db, Product, product_id)
+    if db_product.version != if_match_version:
+        raise ProductVersionMismatchError
     await validate_product_type(db, product.product_type_id)
-    apply_product_update(db_product, product)
+    if not apply_product_update(db_product, product):
+        return db_product
+
+    db_product.version += 1
+    db_product.updated_by_id = user_id
+    moderated = user_id != db_product.owner_id
 
     res = await commit_and_refresh(db, db_product)
+    if moderated:
+        # updated_by_id is cleared if the moderator's account is erased; the log keeps who it was.
+        audit_event(user_id, AuditAction.UPDATE, Product, product_id)
     if db_product.owner_id is not None:
         await recompute_user_profile_stats(db, db_product.owner_id)
         await db.commit()

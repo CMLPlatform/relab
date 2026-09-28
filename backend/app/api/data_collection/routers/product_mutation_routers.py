@@ -25,8 +25,10 @@ from app.api.data_collection.crud.product_commands import create_product as crea
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
 from app.api.data_collection.dependencies import (
+    IF_MATCH_RESPONSES,
     BaseProductDep,
     ModeratableBaseProductDep,
+    ProductIfMatchVersionDep,
     UserOwnedBaseProductDep,
 )
 from app.api.data_collection.examples import (
@@ -110,15 +112,19 @@ async def create_product(
     response_model=ProductRead,
     summary="Update base product",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+    responses=IF_MATCH_RESPONSES,
 )
 async def update_product(
     product_update: ProductUpdate,
     db_product: ModeratableBaseProductDep,
+    if_match_version: ProductIfMatchVersionDep,
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> ProductRead:
     """Update an existing base product. Use ``PATCH /components/{id}`` for components."""
-    updated = await update_product_record(session, db_product.id, product_update)
+    updated = await update_product_record(
+        session, db_product.id, product_update, if_match_version=if_match_version, user_id=current_user.id
+    )
     await session.refresh(updated, attribute_names=["owner"])
     return to_read_model(updated, ProductRead, current_user)
 

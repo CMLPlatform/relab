@@ -1,9 +1,11 @@
 """Integration tests for product-focused data-collection endpoints."""
 
+import logging
 from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
+from sqlalchemy import update
 
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import Material, ProductType
@@ -14,6 +16,7 @@ from tests.constants import (
     BRAND_X,
     COMPONENT_NAME,
     HEIGHT_10,
+    IF_MATCH_FRESH,
     NEW_PRODUCT_NAME,
     PRODUCT_BASE_NAME,
     PRODUCT_DESC,
@@ -155,10 +158,87 @@ async def test_create_product_normalizes_empty_circularity_properties(
 
 async def test_update_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
     """PATCH /products/{id} updates a product."""
-    response = await api_client_superuser.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+    response = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME}, headers=IF_MATCH_FRESH
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["name"] == UPDATED_PRODUCT_NAME
+
+
+async def test_update_product_requires_if_match(api_client_superuser: AsyncClient, setup_product: Product) -> None:
+    """PATCH /products/{id} without If-Match is refused with 428."""
+    response = await api_client_superuser.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+
+    assert response.status_code == status.HTTP_428_PRECONDITION_REQUIRED
+
+
+@pytest.mark.parametrize("if_match", ['"2"', "1", 'W/"1"', "*", '"1", "2"'])
+async def test_update_product_refuses_stale_or_malformed_if_match(
+    api_client_superuser: AsyncClient, setup_product: Product, if_match: str
+) -> None:
+    """A version other than the stored one, or a tag that is not a strong quoted version, is a 412."""
+    response = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME}, headers={"If-Match": if_match}
+    )
+
+    assert response.status_code == status.HTTP_412_PRECONDITION_FAILED
+
+
+async def test_update_product_bumps_version_and_records_editor(
+    api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User, setup_product: Product
+) -> None:
+    """A changing update bumps the version and records the editor; replaying the old version is a 412."""
+    response = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}",
+        json={"name": UPDATED_PRODUCT_NAME, "height_cm": HEIGHT_10},
+        headers=IF_MATCH_FRESH,
+    )
+    stale = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}", json={"name": NEW_PRODUCT_NAME}, headers=IF_MATCH_FRESH
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["version"] == 2
+    assert response.json()["updated_by_moderator"] is False
+    assert stale.status_code == status.HTTP_412_PRECONDITION_FAILED
+    await db_session.refresh(setup_product)
+    assert (setup_product.version, setup_product.updated_by_id) == (2, db_superuser.id)
+
+
+async def test_update_product_without_changes_keeps_version(
+    api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
+) -> None:
+    """Resending the stored values (an autosave with no edits) keeps the version and records no editor."""
+    response = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}", json={"name": setup_product.name}, headers=IF_MATCH_FRESH
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["version"] == 1
+    await db_session.refresh(setup_product)
+    assert setup_product.updated_by_id is None
+
+
+async def test_update_product_compares_against_the_locked_row(
+    api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
+) -> None:
+    """The version check reads the row under the lock, not the instance the auth dependency loaded first.
+
+    The session is shared with the request, so the dependency's read returns this in-memory
+    instance; a stale in-memory version must not let a replayed edit through.
+    """
+    await db_session.execute(
+        update(Product).where(Product.id == setup_product.id).values(version=2),
+        execution_options={"synchronize_session": False},
+    )
+    assert setup_product.version == 1  # the identity map still holds the pre-update value
+
+    response = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME}, headers=IF_MATCH_FRESH
+    )
+
+    assert response.status_code == status.HTTP_412_PRECONDITION_FAILED
 
 
 async def test_delete_product(api_client_superuser: AsyncClient, setup_product: Product) -> None:
@@ -176,6 +256,7 @@ async def test_superuser_moderates_another_users_product_only_with_mfa(
     db_product_type: ProductType,
     db_material: Material,
     mfa_enabled: bool,  # noqa: FBT001
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """An MFA superuser may correct and delete someone else's product, but never add content to it."""
     other_user = await UserFactory.create_async(session=db_session, is_active=True)
@@ -186,9 +267,10 @@ async def test_superuser_moderates_another_users_product_only_with_mfa(
     await db_session.flush()
     moderated = status.HTTP_200_OK if mfa_enabled else status.HTTP_404_NOT_FOUND
 
-    patch_response = await api_client_superuser.patch(
-        f"/v1/products/{other_product.id}", json={"name": UPDATED_PRODUCT_NAME}
-    )
+    with caplog.at_level(logging.INFO, logger="audit"):
+        patch_response = await api_client_superuser.patch(
+            f"/v1/products/{other_product.id}", json={"name": UPDATED_PRODUCT_NAME}, headers=IF_MATCH_FRESH
+        )
     upload_response = await api_client_superuser.post(
         f"/v1/products/{other_product.id}/images",
         # NOTE: ownership is checked before the file is read, so the bytes need not be a real image.
@@ -201,6 +283,10 @@ async def test_superuser_moderates_another_users_product_only_with_mfa(
     delete_response = await api_client_superuser.delete(f"/v1/products/{other_product.id}")
 
     assert patch_response.status_code == moderated
+    if mfa_enabled:
+        assert patch_response.json()["updated_by_moderator"] is True
+        # The edit itself is audited, not only the moderation access that preceded it.
+        assert any(getattr(r, "action", None) == "update" for r in caplog.records)
     assert upload_response.status_code == status.HTTP_404_NOT_FOUND
     assert materials_response.status_code == status.HTTP_404_NOT_FOUND
     assert delete_response.status_code == (status.HTTP_204_NO_CONTENT if mfa_enabled else status.HTTP_404_NOT_FOUND)
@@ -208,7 +294,9 @@ async def test_superuser_moderates_another_users_product_only_with_mfa(
 
 async def test_non_owner_cannot_update_product(api_client_user: AsyncClient, setup_product: Product) -> None:
     """PATCH /products/{id} hides products owned by another user."""
-    response = await api_client_user.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+    response = await api_client_user.patch(
+        f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME}, headers=IF_MATCH_FRESH
+    )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 

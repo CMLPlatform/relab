@@ -1,6 +1,6 @@
 """Custom exceptions for data collection CRUD and router flows."""
 
-from app.api.common.exceptions import BadRequestError
+from app.api.common.exceptions import BadRequestError, PreconditionFailedError, PreconditionRequiredError
 
 
 class InvalidProductTreeError(BadRequestError):
@@ -37,3 +37,17 @@ class MaterialIDRequiredError(BadRequestError):
 
     def __init__(self) -> None:
         super().__init__("Material ID is required for this operation")
+
+
+class ProductVersionRequiredError(PreconditionRequiredError):
+    """Raised when a product update arrives without an If-Match header."""
+
+    def __init__(self) -> None:
+        super().__init__("Send the product's ETag in an If-Match header to update it.")
+
+
+class ProductVersionMismatchError(PreconditionFailedError):
+    """Raised when a product changed since the client last read it."""
+
+    def __init__(self) -> None:
+        super().__init__("This product was changed since you loaded it. Reload it and apply your edits again.")

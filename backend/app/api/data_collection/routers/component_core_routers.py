@@ -15,7 +15,12 @@ from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
 from app.api.data_collection.crud.product_tree_queries import require_product_detail
-from app.api.data_collection.dependencies import ModeratableComponentDep, UserOwnedComponentDep
+from app.api.data_collection.dependencies import (
+    IF_MATCH_RESPONSES,
+    ModeratableComponentDep,
+    ProductIfMatchVersionDep,
+    UserOwnedComponentDep,
+)
 from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.schemas import (
@@ -102,15 +107,21 @@ async def add_component_to_component(
     response_model=ComponentRead,
     summary="Update component",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+    responses=IF_MATCH_RESPONSES,
 )
 async def update_component(
     component_update: ProductUpdate,
     db_component: ModeratableComponentDep,
+    if_match_version: ProductIfMatchVersionDep,
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> ComponentRead:
     """Update a component. Response is the lean :class:`ComponentRead` shape (no relationships)."""
-    updated = await update_product_record(session, db_component.id, component_update)
+    updated = await update_product_record(
+        session, db_component.id, component_update, if_match_version=if_match_version, user_id=current_user.id
+    )
+    # The locked read reloads the row and unloads `owner`, which the read model needs.
+    await session.refresh(updated, attribute_names=["owner"])
     return to_read_model(updated, ComponentRead, current_user)
 
 

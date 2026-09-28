@@ -3,7 +3,18 @@
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
-from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, func, literal_column, select
+from sqlalchemy import (
+    CheckConstraint,
+    Computed,
+    ForeignKey,
+    Index,
+    and_,
+    asc,
+    func,
+    literal_column,
+    select,
+    text,
+)
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import (
     Mapped,
@@ -153,6 +164,12 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     product_type_id: Mapped[int | None] = mapped_column(ForeignKey("producttype.id"), default=None)
     product_type: Mapped[ProductType] = relationship(uselist=False)
 
+    # Optimistic-concurrency token, sent as the ETag. Bumped by update_product only, so
+    # it tracks the row's own fields, not its media, components, or bill of materials.
+    version: Mapped[int] = mapped_column(server_default=text("1"), default=1)
+    # Who made the last field edit; SET NULL so erasing that account keeps the product.
+    updated_by_id: Mapped[UUID4 | None] = mapped_column(ForeignKey("user.id", ondelete="SET NULL"), default=None)
+
     bill_of_materials: Mapped[list[MaterialProductLink] | None] = relationship(
         back_populates="product", lazy="selectin", cascade="all, delete-orphan"
     )
@@ -166,6 +183,11 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     def is_base_product(self) -> bool:
         """Check if the product is a base product (no parent)."""
         return self.parent_id is None
+
+    @property
+    def updated_by_moderator(self) -> bool:
+        """Whether the last field edit was made by a moderator rather than the owner."""
+        return self.updated_by_id is not None and self.updated_by_id != self.owner_id
 
     @property
     def owner_username(self) -> str | None:

@@ -1858,6 +1858,19 @@
             "title": "Updated At",
             "type": "string"
           },
+          "updated_by_moderator": {
+            "default": false,
+            "description": "Whether the last field edit was made by a moderator rather than the owner.",
+            "title": "Updated By Moderator",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          },
           "volume_cm3": {
             "anyOf": [
               {
@@ -2057,6 +2070,19 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "updated_by_moderator": {
+            "default": false,
+            "description": "Whether the last field edit was made by a moderator rather than the owner.",
+            "title": "Updated By Moderator",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -2265,6 +2291,19 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "updated_by_moderator": {
+            "default": false,
+            "description": "Whether the last field edit was made by a moderator rather than the owner.",
+            "title": "Updated By Moderator",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -2507,6 +2546,19 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "updated_by_moderator": {
+            "default": false,
+            "description": "Whether the last field edit was made by a moderator rather than the owner.",
+            "title": "Updated By Moderator",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -4542,6 +4594,19 @@
             "title": "Updated At",
             "type": "string"
           },
+          "updated_by_moderator": {
+            "default": false,
+            "description": "Whether the last field edit was made by a moderator rather than the owner.",
+            "title": "Updated By Moderator",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          },
           "videos": {
             "description": "Disassembly videos",
             "items": {
@@ -4756,6 +4821,19 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "updated_by_moderator": {
+            "default": false,
+            "description": "Whether the last field edit was made by a moderator rather than the owner.",
+            "title": "Updated By Moderator",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -4986,6 +5064,19 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "updated_by_moderator": {
+            "default": false,
+            "description": "Whether the last field edit was made by a moderator rather than the owner.",
+            "title": "Updated By Moderator",
+            "type": "boolean"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "videos": {
             "description": "Disassembly videos",
@@ -8970,6 +9061,24 @@
               "title": "Component Id",
               "type": "integer"
             }
+          },
+          {
+            "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
+            "in": "header",
+            "name": "if-match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
+              "title": "If-Match"
+            }
           }
         ],
         "requestBody": {
@@ -8993,6 +9102,9 @@
             },
             "description": "Successful Response"
           },
+          "412": {
+            "description": "The record changed since the `version` sent in `If-Match`, or the header is malformed."
+          },
           "422": {
             "content": {
               "application/json": {
@@ -9002,6 +9114,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "428": {
+            "description": "The `If-Match` header is missing."
           }
         },
         "security": [
@@ -16167,6 +16282,24 @@
               "title": "Product Id",
               "type": "integer"
             }
+          },
+          {
+            "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
+            "in": "header",
+            "name": "if-match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
+              "title": "If-Match"
+            }
           }
         ],
         "requestBody": {
@@ -16190,6 +16323,9 @@
             },
             "description": "Successful Response"
           },
+          "412": {
+            "description": "The record changed since the `version` sent in `If-Match`, or the header is malformed."
+          },
           "422": {
             "content": {
               "application/json": {
@@ -16199,6 +16335,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "428": {
+            "description": "The `If-Match` header is missing."
           }
         },
         "security": [
