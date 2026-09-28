@@ -7,7 +7,7 @@ from fastapi import HTTPException, Response, status
 from fastapi_users.exceptions import UserNotExists
 from pydantic import SecretStr
 
-from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError
+from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError, MfaStepUpCodeInvalidError
 from app.api.auth.schemas import (
     MfaChallengeRequest,
     MfaOAuthClaimRequest,
@@ -90,7 +90,9 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
     setup.secret = "secret"
 
     with (
-        patch("app.api.auth.services.mfa_flow.mfa_service.get_totp_setup", new=AsyncMock(return_value=setup)),
+        patch(
+            "app.api.auth.services.mfa_flow.mfa_service.get_totp_setup", new=AsyncMock(return_value=setup)
+        ) as get_setup,
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code", new=AsyncMock(return_value=42)),
         patch(
             "app.api.auth.services.mfa_flow.mfa_service.consume_totp_setup",
@@ -109,8 +111,10 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
             background_tasks=MagicMock(),
         )
 
-    consume.assert_awaited_once()
-    enable.assert_awaited_once()
+    # The setup token is bound to the enrolling user on both the read and the consume.
+    get_setup.assert_awaited_once_with(ANY, "setup-token", user_id=user.id)
+    consume.assert_awaited_once_with(ANY, "setup-token", user_id=user.id)
+    enable.assert_awaited_once_with(user_manager, user, "secret")
     # The time-step burns only after enrollment succeeds, so a failed commit
     # doesn't lock the still-valid code out of a retry.
     burn.assert_awaited_once_with(ANY, user_id=user.id, counter=42)
@@ -144,7 +148,7 @@ async def test_confirm_totp_setup_rejects_wrong_password() -> None:
             background_tasks=MagicMock(),
         )
 
-    assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
     enable.assert_not_awaited()
 
 
@@ -209,9 +213,12 @@ async def test_confirm_totp_setup_requires_password_when_account_has_one() -> No
 async def test_disable_totp_clears_enrollment_after_valid_code() -> None:
     """Disabling TOTP with a current code should clear the enrollment."""
     user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
+    redis = MagicMock()
 
     with (
-        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)),
+        patch(
+            "app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)
+        ) as verify,
         patch("app.api.auth.services.mfa_flow.mfa_service.clear_totp", new=AsyncMock()) as clear,
         patch("app.api.auth.services.mfa_flow.send_mfa_changed_notification", new=AsyncMock()) as notify,
     ):
@@ -219,10 +226,11 @@ async def test_disable_totp_clears_enrollment_after_valid_code() -> None:
             MfaTotpDisableRequest(code="123456"),
             current_user=user,
             user_manager=user_manager,
-            redis=MagicMock(),
+            redis=redis,
             background_tasks=MagicMock(),
         )
 
+    verify.assert_awaited_once_with(redis, user_id="user-id", secret="totp-secret", code="123456")
     clear.assert_awaited_once_with(user_manager, user)
     notify.assert_awaited_once()
     assert notify.call_args.kwargs["enabled"] is False
@@ -236,7 +244,7 @@ async def test_disable_totp_invalid_code_keeps_enrollment() -> None:
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=False)),
         patch("app.api.auth.services.mfa_flow.mfa_service.clear_totp", new=AsyncMock()) as clear,
         patch("app.api.auth.services.mfa_flow.audit_event") as audit_event,
-        pytest.raises(MfaCodeInvalidError),
+        pytest.raises(MfaStepUpCodeInvalidError),
     ):
         await mfa_flow.disable_totp(
             MfaTotpDisableRequest(code="000000"),
@@ -317,9 +325,12 @@ async def test_complete_mfa_challenge_rejects_bad_recovery_code() -> None:
 async def test_regenerate_recovery_codes_reissues_after_valid_code() -> None:
     """Regenerating with a current TOTP code should return a fresh set of codes."""
     user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
+    redis = MagicMock()
 
     with (
-        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)),
+        patch(
+            "app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)
+        ) as verify,
         patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
         patch("app.api.auth.services.mfa_flow.send_recovery_codes_regenerated_notification", new=AsyncMock()) as notify,
     ):
@@ -327,16 +338,37 @@ async def test_regenerate_recovery_codes_reissues_after_valid_code() -> None:
             MfaRecoveryCodesRegenerateRequest(code="123456"),
             current_user=user,
             user_manager=user_manager,
-            redis=MagicMock(),
+            redis=redis,
             background_tasks=MagicMock(),
         )
 
+    verify.assert_awaited_once_with(redis, user_id="user-id", secret="totp-secret", code="123456")
     notify.assert_awaited_once()
     assert len(result.recovery_codes) == 10
     # Only the hashes are persisted: a DB compromise must not yield usable codes.
     set_codes.assert_awaited_once_with(
         user_manager, user, [mfa_service.hash_recovery_code(code) for code in result.recovery_codes]
     )
+
+
+async def test_regenerate_recovery_codes_rejects_invalid_code() -> None:
+    """A wrong TOTP code must not rotate the recovery codes of an enrolled user."""
+    user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=False)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
+        pytest.raises(MfaStepUpCodeInvalidError),
+    ):
+        await mfa_flow.regenerate_recovery_codes(
+            MfaRecoveryCodesRegenerateRequest(code="000000"),
+            current_user=user,
+            user_manager=user_manager,
+            redis=MagicMock(),
+            background_tasks=MagicMock(),
+        )
+
+    set_codes.assert_not_awaited()
 
 
 async def test_disable_totp_accepts_recovery_code() -> None:

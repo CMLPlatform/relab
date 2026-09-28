@@ -1,0 +1,50 @@
+# Capacity-test overlay: layered on compose.yaml + compose.ci.yaml by
+# `just docker-perf-capacity`, it gives the CI stack the deploy's worker and pool shape.
+# Only the values that decide capacity are copied from compose.deploy.yaml; NOTE: keep
+# them in step with it, or the capacity note in perf/README.md describes a different stack.
+
+services:
+  api:
+    mem_limit: 6g
+    environment:
+      WEB_CONCURRENCY: "4"
+      IMAGE_RESIZE_WORKERS: "5"
+      DB_POOL_SIZE: "3"
+      DB_POOL_MAX_OVERFLOW: "10"
+      UVICORN_LIMIT_CONCURRENCY: "100"
+      # Lifted so a long run of uploads into one account never hits the quota and
+      # reads as a capacity error. Lab tier must not sit below the contributor tier.
+      MAX_UPLOAD_FILES_PER_USER: "100000"
+      MAX_UPLOAD_FILES_PER_LAB_USER: "100000"
+      MAX_UPLOAD_BYTES_PER_USER_MB: "1000000"
+      MAX_UPLOAD_BYTES_PER_LAB_USER_MB: "1000000"
+
+  postgres:
+    # Compose replaces `command` wholesale, so this repeats compose.deploy.yaml's list.
+    # The difference that matters is max_connections=100: four workers can open 52.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=2560MB
+      - -c
+      - work_mem=16MB
+      - -c
+      - maintenance_work_mem=256MB
+      - -c
+      - autovacuum_work_mem=128MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - track_io_timing=on
+      - -c
+      - jit=off

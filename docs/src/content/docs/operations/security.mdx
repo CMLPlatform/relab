@@ -63,6 +63,8 @@ The catch-all exception handler logs internal details and stack traces for opera
 
 Production and staging are HTTPS-only behind Cloudflare Tunnel. `infra/cloudflare/` holds the per-environment DNS records, public hostnames, and tunnel ingress rules; `infra/cloudflare-zone/` holds the zone-wide TLS minimums, HTTPS redirects, and rulesets. Edge rate limiting covers the authentication endpoints only (the zone's plan allows a single rate-limit rule). Upload and RPi camera limits live in the application's Redis-backed limiters, which fail open when Redis is unreachable; the per-user upload quota is then the remaining bound.
 
+The application's read, write, and upload limits key anonymous requests per client IP (300, 120, and 30 a minute). A request carrying a live access token is keyed per user instead, at 1500, 600, and 300 a minute: a workshop of about 50 people often shares one demo account behind one IP, so a single user bucket has to carry the room. The token only selects the bucket; an unknown or expired token falls back to the IP bucket. The limits are the `API_*_RATE_LIMIT` and `API_*_RATE_LIMIT_PER_USER` settings. The edge rule still counts every `/v1/auth/` request per IP (10 per 10 seconds), so a room signing in within the same few seconds sees brief 429s from the edge and succeeds on retry.
+
 Unknown tunnel hostnames fall through to a final `http_status:404` rule. Compose still owns runtime services; OpenTofu owns only the public edge.
 
 ## Network boundaries

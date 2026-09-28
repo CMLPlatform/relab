@@ -131,6 +131,8 @@ class UserFactory(BaseModelFactory[User]):
     # tiers and a test that means "an ordinary contributor" silently becomes lab.
     # Superusers always hold the lab tier (ck_user_superuser_is_lab).
     role = PostGenerated(lambda _name, values: UserRole.LAB if values["is_superuser"] else UserRole.CONTRIBUTOR)
+    # Pinned for the same reason: a random False silently skips step-up password checks.
+    has_usable_password = True
     upload_file_count = 0
     upload_total_bytes = 0
 

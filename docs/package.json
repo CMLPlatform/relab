@@ -23,7 +23,7 @@
     "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl' --skip 'doi.org'"
   },
   "dependencies": {
-    "@astrojs/starlight": "0.42.3",
+    "@astrojs/starlight": "0.42.4",
     "@mermaid-js/layout-elk": "^1.0.0",
     "@scalar/api-reference": "^1.64.1",
     "astro": "catalog:",

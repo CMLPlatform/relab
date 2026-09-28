@@ -174,6 +174,20 @@ describe('authRefresh', () => {
     expect(fetchWithTimeout).toHaveBeenCalledTimes(3);
   });
 
+  // A 403 is a refused step-up (e.g. wrong password), not an expired token: a
+  // refresh-and-retry would resend the guess and spend a second rate-limit attempt.
+  it('returns a 403 as-is without refreshing', async () => {
+    const { fetchWithTimeout } = request();
+    authRuntime.token = 'valid-token';
+    fetchWithTimeout.mockResolvedValueOnce({ status: 403, ok: false } as never);
+
+    const response = await fetchWithAuth('http://example.test', { method: 'DELETE' });
+
+    expect(response.status).toBe(403);
+    expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
+    expect(session().loadStoredRefreshToken).not.toHaveBeenCalled();
+  });
+
   it('keeps stored tokens when the refresh endpoint fails transiently (5xx)', async () => {
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
       fetchWithTimeout: jest.Mock;

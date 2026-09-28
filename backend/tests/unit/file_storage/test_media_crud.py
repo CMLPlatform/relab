@@ -132,7 +132,7 @@ def test_image_create_rejects_quota_user_fields() -> None:
     ("caps_role", "size_mb", "limit_mb"),
     [
         (UserRole.CONTRIBUTOR, 11, 10),
-        (UserRole.LAB, 41, 40),
+        (UserRole.LAB, 21, 20),
     ],
 )
 async def test_create_image_rejects_upload_over_the_uploader_role_cap(

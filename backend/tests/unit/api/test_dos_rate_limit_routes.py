@@ -8,6 +8,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.routing import APIRoute
 from httpx import ASGITransport
 
+from app.api.application.routers.account_erasure import self_service_router as account_self_service_router
 from app.api.common.rate_limiting import Limiter, RateLimitExceededError, rate_limit_exceeded_handler
 from app.api.data_collection.routers.component_core_routers import component_core_router
 from app.api.data_collection.routers.component_media_routers import component_media_router
@@ -26,13 +27,16 @@ def _route(router: APIRouter, path: str, method: str) -> APIRoute:
     )
 
 
-def _assert_rate_limited(route: APIRoute, dependency_name: str) -> None:
-    dependency_names = {
+def _dependency_names(route: APIRoute) -> set[str]:
+    return {
         getattr(dependency.dependency, "__name__", "")
         for dependency in route.dependencies
         if dependency.dependency is not None
     }
-    assert dependency_name in dependency_names
+
+
+def _assert_rate_limited(route: APIRoute, dependency_name: str) -> None:
+    assert dependency_name in _dependency_names(route)
     assert "request" not in signature(route.endpoint).parameters
 
 
@@ -113,3 +117,11 @@ def test_rpi_cam_device_upload_routes_are_rate_limited() -> None:
         _route(rpi_cam_device_image_router, "/{camera_id}/preview-thumbnail-upload", "POST"),
         "api_upload_rate_limit",
     )
+
+
+def test_self_service_account_deletion_is_rate_limited() -> None:
+    """Deleting your own account takes a password guess, so it carries the per-IP login limit.
+
+    The endpoint keeps its ``request`` parameter to revoke sessions, so only the dependency is checked.
+    """
+    assert "login_ip_rate_limit" in _dependency_names(_route(account_self_service_router, "/users/me", "DELETE"))

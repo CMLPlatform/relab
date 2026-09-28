@@ -114,13 +114,15 @@ def test_verify_state_preserves_expired_state_error() -> None:
         verify_oauth_state(config, mock_request, state)
 
 
-def test_verify_state_raises_on_csrf_mismatch() -> None:
-    """Rejects state values whose CSRF token does not match the cookie."""
+@pytest.mark.parametrize("cookies", [{OAuthCookieSettings.name: "wrong-csrf-token"}, {}], ids=["mismatch", "missing"])
+def test_verify_state_raises_on_csrf_mismatch(cookies: dict[str, str]) -> None:
+    """Rejects an otherwise valid state whose CSRF token does not match the cookie."""
     config = make_base_config()
     csrf_token = generate_csrf_token()
-    state = generate_state_token({CSRF_TOKEN_KEY: csrf_token}, TEST_STATE_JWT_SECRET)
+    # Bound to the right provider and flow, so only the CSRF check can reject it.
+    state = make_oauth_state(csrf_token, provider_name="github", oauth_flow="github:associate")
     mock_request = MagicMock()
-    mock_request.cookies = {OAuthCookieSettings.name: "wrong-csrf-token"}
+    mock_request.cookies = cookies
 
     with pytest.raises(HTTPException) as exc_info:
         verify_oauth_state(config, mock_request, state)

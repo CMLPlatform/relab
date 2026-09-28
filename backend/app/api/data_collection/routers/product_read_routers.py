@@ -12,12 +12,12 @@ from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiv
 from app.api.auth.models import User
 from app.api.auth.schemas import normalize_username
 from app.api.auth.services.privacy import can_view_profile
+from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
-from app.api.common.rate_limiting import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (

@@ -6,11 +6,18 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
+import { FormFieldError } from '@/components/base/FormField';
 import { TextInput } from '@/components/base/TextInput';
 import { SUPPORT_EMAIL } from '@/constants';
+import type { useProfileDialogs } from '@/features/profile/state';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { heading } from '@/utils/a11y';
+import { describedBy, heading } from '@/utils/a11y';
 import { createProfileSectionStyles } from './styles';
+
+type DeleteDialogState = Pick<
+  ReturnType<typeof useProfileDialogs>['deleteDialog'],
+  'visible' | 'close' | 'password' | 'setPassword' | 'mfaCode' | 'setMfaCode' | 'pending' | 'error'
+>;
 
 type ProfileDialogsProps = {
   unlinkDialogVisible: boolean;
@@ -24,8 +31,10 @@ type ProfileDialogsProps = {
   logoutDialogVisible: boolean;
   onDismissLogout: () => void;
   onConfirmLogout: () => void;
-  deleteDialogVisible: boolean;
-  onDismissDeleteDialog: () => void;
+  deleteDialog: DeleteDialogState;
+  onConfirmDelete: () => void;
+  deleteRequiresPassword: boolean;
+  deleteRequiresMfa: boolean;
   unlinkTriggerRef?: RefObject<View | null>;
   logoutTriggerRef?: RefObject<View | null>;
   deleteAccountTriggerRef?: RefObject<View | null>;
@@ -43,14 +52,17 @@ export function ProfileDialogs({
   logoutDialogVisible,
   onDismissLogout,
   onConfirmLogout,
-  deleteDialogVisible,
-  onDismissDeleteDialog,
+  deleteDialog,
+  onConfirmDelete,
+  deleteRequiresPassword,
+  deleteRequiresMfa,
   unlinkTriggerRef,
   logoutTriggerRef,
   deleteAccountTriggerRef,
 }: ProfileDialogsProps) {
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
+  const deleteErrorProps = describedBy('delete-account-error', Boolean(deleteDialog.error));
   return (
     <>
       <AppDialog
@@ -104,22 +116,71 @@ export function ProfileDialogs({
       />
 
       <AppDialog
-        visible={deleteDialogVisible}
-        onDismiss={onDismissDeleteDialog}
+        visible={deleteDialog.visible}
+        onDismiss={deleteDialog.close}
         triggerRef={deleteAccountTriggerRef}
         accessibilityLabel="Delete account"
       >
         <AppText variant="title" {...heading(2)} style={dialogTitleStyle}>
           Delete account
         </AppText>
-        <AppText>To delete your account and all its data, email us at:</AppText>
-        <Link href={`mailto:${SUPPORT_EMAIL}`}>
-          <AppText className="mt-2.5 font-bold">{SUPPORT_EMAIL}</AppText>
-        </Link>
-        <AppText className="mt-2.5">We&apos;ll confirm the deletion by email.</AppText>
+        <AppText>
+          This deletes your account and signs you out on every device. It cannot be undone.
+        </AppText>
+        <AppText className="mt-2.5">
+          Products and photos you added stay on the platform, without your name.
+        </AppText>
+        {deleteRequiresPassword ? (
+          <TextInput
+            value={deleteDialog.password}
+            onChangeText={deleteDialog.setPassword}
+            placeholder="Current password"
+            accessibilityLabel="Current password"
+            secureTextEntry
+            autoComplete="current-password"
+            textContentType="password"
+            {...deleteErrorProps}
+            className="border px-2 py-2 mt-2.5"
+            style={{ borderColor: theme.colors.outline }}
+          />
+        ) : null}
+        {deleteRequiresMfa ? (
+          <TextInput
+            value={deleteDialog.mfaCode}
+            onChangeText={deleteDialog.setMfaCode}
+            placeholder="Authenticator or recovery code"
+            accessibilityLabel="Authentication code"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            {...deleteErrorProps}
+            className="border px-2 py-2 mt-2.5"
+            style={{ borderColor: theme.colors.outline }}
+          />
+        ) : null}
+        <FormFieldError errorId="delete-account-error" message={deleteDialog.error ?? undefined} />
+        <AppText className="mt-2.5">
+          To have your uploads removed as well, email{' '}
+          <Link href={`mailto:${SUPPORT_EMAIL}`}>
+            <AppText className="font-bold">{SUPPORT_EMAIL}</AppText>
+          </Link>
+          .
+        </AppText>
         <View style={dialogActionsStyle}>
-          <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
-            OK
+          <AppButton variant="ghost" onPress={deleteDialog.close}>
+            Cancel
+          </AppButton>
+          <AppButton
+            variant="destructive"
+            onPress={onConfirmDelete}
+            loading={deleteDialog.pending}
+            disabled={
+              (deleteRequiresPassword && deleteDialog.password.length === 0) ||
+              (deleteRequiresMfa && deleteDialog.mfaCode.trim().length === 0)
+            }
+          >
+            Delete account
           </AppButton>
         </View>
       </AppDialog>

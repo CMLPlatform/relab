@@ -6,7 +6,13 @@ import type { StreamSessionState } from '@/context/streamSession';
 import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { logout, revokeAllSessions } from '@/services/api/auth/authLogin';
-import { confirmOAuthUnlink, promptUsernameEdit, sendVerificationEmail } from './mutations';
+import {
+  confirmOAuthUnlink,
+  deleteOwnAccount,
+  type ExitSessionOptions,
+  promptUsernameEdit,
+  sendVerificationEmail,
+} from './mutations';
 import type { useProfileDialogs } from './state';
 
 export function useProfileActions({
@@ -35,18 +41,9 @@ export function useProfileActions({
   setYoutubeEnabled: (enabled: boolean) => Promise<void>;
 }) {
   const exitSession = useCallback(
-    ({
-      endSession,
-      redirectTo,
-      closeDialog,
-    }: {
-      endSession: () => Promise<void>;
-      redirectTo: '/login' | '/products';
-      closeDialog?: () => void;
-    }) => {
+    ({ endSession, redirectTo, closeDialog }: ExitSessionOptions) => {
       closeDialog?.();
       setIsLoggingOut(true);
-
       const proceed = () => {
         setActiveStream(null);
         void endSession()
@@ -56,12 +53,10 @@ export function useProfileActions({
           })
           .finally(() => setIsLoggingOut(false));
       };
-
       if (!activeStream) {
         proceed();
         return;
       }
-
       stopStreamMutation.mutate(undefined, {
         onSuccess: proceed,
         onError: () => {
@@ -98,6 +93,18 @@ export function useProfileActions({
       redirectTo: '/products',
     });
   }, [dialogs.logoutDialog.close, exitSession]);
+
+  const confirmDeleteAccount = useCallback(
+    () =>
+      deleteOwnAccount({
+        deleteDialog: dialogs.deleteDialog,
+        streaming: Boolean(activeStream),
+        feedback,
+        setIsLoggingOut,
+        exitSession,
+      }),
+    [activeStream, dialogs.deleteDialog, exitSession, feedback, setIsLoggingOut],
+  );
 
   const onVerifyAccount = useCallback(() => {
     if (!profile) return;
@@ -149,6 +156,7 @@ export function useProfileActions({
   return {
     onLogout,
     confirmLogout,
+    confirmDeleteAccount,
     onRevokeAllSessions,
     onVerifyAccount,
     promptEditUsername,

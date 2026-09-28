@@ -1,7 +1,7 @@
 import { type RefObject, useCallback, useState } from 'react';
 import type { View } from 'react-native';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
-import { unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
+import { deleteAccount, unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
 import type { User } from '@/types/User';
 import { getErrorMessage } from '@/utils/errors';
 
@@ -222,4 +222,60 @@ export async function confirmOAuthUnlink({
 
   closeUnlinkDialog();
   void refetch();
+}
+
+/** Ending the session (stopping any live stream first), then leaving the account screen. */
+export type ExitSessionOptions = {
+  endSession: () => Promise<void>;
+  redirectTo: '/login' | '/products';
+  closeDialog?: () => void;
+};
+
+/** Delete the signed-in account, then leave the screen; failures show in the dialog. */
+export async function deleteOwnAccount({
+  deleteDialog,
+  streaming,
+  feedback,
+  setIsLoggingOut,
+  exitSession,
+}: {
+  deleteDialog: {
+    password: string;
+    mfaCode: string;
+    close: () => void;
+    setPending: (pending: boolean) => void;
+    setError: (error: string | null) => void;
+  };
+  streaming: boolean;
+  feedback: ReturnType<typeof useAppFeedback>;
+  setIsLoggingOut: (value: boolean) => void;
+  exitSession: (options: ExitSessionOptions) => void;
+}) {
+  if (streaming) {
+    deleteDialog.setError('Stop your live stream before deleting your account.');
+    return;
+  }
+  // Set before the request: a cleared session must not bounce this screen to /login.
+  setIsLoggingOut(true);
+  deleteDialog.setError(null);
+  deleteDialog.setPending(true);
+  try {
+    await deleteAccount(
+      deleteDialog.password || undefined,
+      deleteDialog.mfaCode.trim() || undefined,
+    );
+  } catch (error: unknown) {
+    deleteDialog.setError(getErrorMessage(error, 'Failed to delete account.'));
+    setIsLoggingOut(false);
+    return;
+  } finally {
+    deleteDialog.setPending(false);
+  }
+  feedback.toast('Your account has been deleted.');
+  // The server already ended the session; this only leaves the screen like logout does.
+  exitSession({
+    closeDialog: deleteDialog.close,
+    endSession: async () => {},
+    redirectTo: '/products',
+  });
 }

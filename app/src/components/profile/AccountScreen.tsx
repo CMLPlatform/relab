@@ -136,8 +136,10 @@ export function AccountScreen() {
         logoutDialogVisible={dialogs.logoutDialog.visible}
         onDismissLogout={dialogs.logoutDialog.close}
         onConfirmLogout={actions.confirmLogout}
-        deleteDialogVisible={dialogs.deleteDialog.visible}
-        onDismissDeleteDialog={dialogs.deleteDialog.close}
+        deleteDialog={dialogs.deleteDialog}
+        onConfirmDelete={actions.confirmDeleteAccount}
+        deleteRequiresPassword={profile.profile.hasUsablePassword}
+        deleteRequiresMfa={profile.profile.mfaEnabled}
         unlinkTriggerRef={unlinkTriggerRef}
         logoutTriggerRef={logoutTriggerRef}
         deleteAccountTriggerRef={deleteAccountTriggerRef}

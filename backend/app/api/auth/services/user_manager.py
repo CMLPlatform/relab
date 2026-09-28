@@ -42,6 +42,7 @@ from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import background_tasks_from, get_external_http_client
+from app.core.database import get_async_session
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -111,9 +112,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             if db_user:
                 credentials.username = db_user.email
 
-        # Rate-limit on the resolved email so a username and its email share one bucket.
-        await limiter.ahit_key(LOGIN_RATE_LIMIT, _login_identifier_rate_limit_key(credentials.username))
-        return await self._authenticate_offloading_hashes(credentials)
+        # Bucket on the resolved email so a username and its email share one budget. Only
+        # failures count: a room signing in to one shared account must not lock it, while a
+        # password guesser still gets LOGIN_RATE_LIMIT tries per account however many IPs
+        # it uses. NOTE: check-then-hit is not atomic, so a burst of concurrent guesses can
+        # overshoot by the number in flight; the per-IP login limit bounds that per source.
+        account_key = _login_identifier_rate_limit_key(credentials.username)
+        await limiter.ahit_key(LOGIN_RATE_LIMIT, account_key, consume=False)
+        user = await self._authenticate_offloading_hashes(credentials)
+        if user is None:
+            await limiter.ahit_key(LOGIN_RATE_LIMIT, account_key)
+        return user
 
     async def _authenticate_offloading_hashes(self, credentials: OAuth2PasswordRequestForm) -> User | None:
         """Run the upstream authenticate flow with the Argon2 work off the event loop.
@@ -284,16 +293,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         logger.info("User %s logged in", email_log_token(user.email))
 
 
-async def get_auth_async_session() -> AsyncGenerator[AsyncSession]:
-    """Yield the shared async database session for auth request dependencies."""
-    from app.core.database import get_async_session  # noqa: PLC0415
-
-    async for session in get_async_session():
-        yield session
-
-
 async def get_user_db(
-    session: Annotated[AsyncSession, Depends(get_auth_async_session)],
+    # The request's own session: FastAPI caches it per request, so an authenticated route
+    # that also takes AsyncSessionDep holds one pool connection, not two.
+    session: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> AsyncGenerator[UserDatabaseAsync[User, UUID4]]:
     """Build the FastAPI Users database adapter from the shared DB session."""
     yield UserDatabaseAsync(session, User, OAuthAccount)
