@@ -17,7 +17,7 @@ test('flow layout fills available width, wraps content, and is not positioned', 
       validationValid={false}
       errorCount={12}
       onPrimaryPress={jest.fn()}
-      ownedByMe
+      canModerate
     />,
   );
 
@@ -44,7 +44,7 @@ test('save bar shows error count and routes to the first error', async () => {
       errorCount={3}
       onErrorSummaryPress={onErrorSummaryPress}
       onPrimaryPress={jest.fn()}
-      ownedByMe
+      canModerate
     />,
   );
   await fireEvent.press(screen.getByText('3 fields need attention'));
@@ -61,7 +61,7 @@ test('read mode renders a single Edit action', async () => {
       isSaving={false}
       isPaused={false}
       validationValid
-      ownedByMe
+      canModerate
       onPrimaryPress={jest.fn()}
     />,
   );
@@ -78,7 +78,7 @@ test('not owned by me renders nothing', async () => {
       isSaving={false}
       isPaused={false}
       validationValid
-      ownedByMe={false}
+      canModerate={false}
       onPrimaryPress={jest.fn()}
     />,
   );
@@ -98,7 +98,7 @@ test('dirty edits with invalid validation and no error count block the save pres
       validationValid={false}
       validationError="Name is required"
       onPrimaryPress={onPrimaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   expect(screen.getByText('Name is required')).toBeTruthy();
@@ -121,7 +121,7 @@ test('needsAttention state routes the primary button press to the error summary,
       errorCount={2}
       onPrimaryPress={onPrimaryPress}
       onErrorSummaryPress={onErrorSummaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   await fireEvent.press(screen.getByText('Save Product'));
@@ -141,7 +141,7 @@ test('shows a queued label and no spinner while the save mutation is paused offl
       isSaving={true}
       isPaused={true}
       validationValid
-      ownedByMe
+      canModerate
       onPrimaryPress={jest.fn()}
     />,
   );
@@ -159,7 +159,7 @@ test('shows the loading spinner while actually saving (not paused)', async () =>
       isSaving={true}
       isPaused={false}
       validationValid
-      ownedByMe
+      canModerate
       onPrimaryPress={jest.fn()}
     />,
   );
@@ -177,7 +177,7 @@ test('uses component labels for component pages', async () => {
       isSaving={false}
       isPaused={false}
       validationValid
-      ownedByMe
+      canModerate
       onPrimaryPress={jest.fn()}
     />,
   );
@@ -199,7 +199,7 @@ test('edit mode with nothing unsaved reads Done and stays pressable even while i
       validationValid={false}
       validationError="Type is required"
       onPrimaryPress={onPrimaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   expect(screen.queryByText('Save Product')).toBeNull();
@@ -222,7 +222,7 @@ test('valid dirty edits save on press', async () => {
       errorCount={0}
       onPrimaryPress={onPrimaryPress}
       onErrorSummaryPress={onErrorSummaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   await fireEvent.press(screen.getByText('Save Product'));
@@ -244,7 +244,7 @@ test('blocks the press while a save is already in flight', async () => {
       isPaused={false}
       validationValid
       onPrimaryPress={onPrimaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   await fireEvent.press(screen.getByText('Save Product'));
@@ -265,7 +265,7 @@ test('blocks the press while the save sits queued offline', async () => {
       isPaused={true}
       validationValid
       onPrimaryPress={onPrimaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   await fireEvent.press(screen.getByText('Queued — sends when online'));
@@ -284,7 +284,7 @@ test('uses singular phrasing for a single error', async () => {
       validationValid={false}
       errorCount={1}
       onPrimaryPress={jest.fn()}
-      ownedByMe
+      canModerate
     />,
   );
   expect(screen.getByText('1 field needs attention')).toBeTruthy();
@@ -307,7 +307,7 @@ test('blocks the press when invalid with a zero error count', async () => {
       errorCount={0}
       onPrimaryPress={onPrimaryPress}
       onErrorSummaryPress={onErrorSummaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   await fireEvent.press(screen.getByText('Save Product'));
@@ -329,7 +329,7 @@ test('blocks the press with no inline message when the form supplies no validati
       isPaused={false}
       validationValid={false}
       onPrimaryPress={onPrimaryPress}
-      ownedByMe
+      canModerate
     />,
   );
   await fireEvent.press(screen.getByText('Save Product'));
@@ -350,7 +350,7 @@ test('gives the inline validation error its own row in flow layout only', async 
     validationValid: false,
     validationError: 'Name is required',
     onPrimaryPress: jest.fn(),
-    ownedByMe: true,
+    canModerate: true,
   };
 
   const flow = await renderWithProviders(<SaveBar layout="flow" {...props} />);

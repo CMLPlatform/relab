@@ -26,6 +26,8 @@ interface Video {
 interface Props {
   product: Product;
   editMode: boolean;
+  /** False while moderating someone else's product: videos can be removed but not added or edited. */
+  canEdit?: boolean;
   onVideoChange?: (videos: Video[]) => void;
   onGoLivePress: () => void;
   goLiveTriggerRef?: RefObject<View | null>;
@@ -34,6 +36,7 @@ interface Props {
 export default function ProductVideo({
   product,
   editMode,
+  canEdit = true,
   onVideoChange,
   onGoLivePress,
   goLiveTriggerRef,
@@ -125,7 +128,7 @@ export default function ProductVideo({
             isExpanded={expanded}
             videoCount={videos.length}
             linkColor={linkColor}
-            onAdd={handleAdd}
+            onAdd={canEdit ? handleAdd : undefined}
             onToggleExpanded={toggleExpanded}
           />
         }
@@ -148,7 +151,8 @@ export default function ProductVideo({
       {showVideoRows ? (
         <VideoList
           videos={videos}
-          editMode={editMode}
+          editMode={editMode && canEdit}
+          canRemove={editMode}
           textColor={textColor}
           linkColor={linkColor}
           onVideoChange={handleVideoChange}
@@ -175,10 +179,11 @@ function VideoHeaderAction({
   isExpanded: boolean;
   videoCount: number;
   linkColor: string;
-  onAdd: () => void;
+  onAdd?: () => void;
   onToggleExpanded: () => void;
 }) {
   if (editMode) {
+    if (!onAdd) return null;
     return (
       <TouchableOpacity
         onPress={onAdd}
@@ -210,6 +215,7 @@ function VideoHeaderAction({
 function VideoList({
   videos,
   editMode,
+  canRemove,
   textColor,
   linkColor,
   onVideoChange,
@@ -217,6 +223,7 @@ function VideoList({
 }: {
   videos: Video[];
   editMode: boolean;
+  canRemove: boolean;
   textColor: string;
   linkColor: string;
   onVideoChange: (idx: number, field: 'url' | 'title' | 'description', value: string) => void;
@@ -230,6 +237,7 @@ function VideoList({
       video={video}
       idx={idx}
       editMode={editMode}
+      canRemove={canRemove}
       textColor={textColor}
       linkColor={linkColor}
       onVideoChange={onVideoChange}
@@ -242,6 +250,7 @@ function VideoRow({
   video,
   idx,
   editMode,
+  canRemove,
   textColor,
   linkColor,
   onVideoChange,
@@ -250,6 +259,7 @@ function VideoRow({
   video: Video;
   idx: number;
   editMode: boolean;
+  canRemove: boolean;
   textColor: string;
   linkColor: string;
   onVideoChange: (idx: number, field: 'url' | 'title' | 'description', value: string) => void;
@@ -325,7 +335,7 @@ function VideoRow({
           />
         ) : null}
       </View>
-      {editMode ? (
+      {canRemove ? (
         <IconButton
           testID={`delete-video-${idx}`}
           icon="trash-2"

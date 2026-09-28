@@ -2,8 +2,13 @@ import { describe, expect, it } from '@jest/globals';
 import { isValidElement } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@/components/base/Icon';
-import { getPrimaryFabIcon, getSaveStatus } from '@/features/products/productPageHelpers';
+import {
+  getPrimaryFabIcon,
+  getProductCapabilities,
+  getSaveStatus,
+} from '@/features/products/productPageHelpers';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
+import { baseProduct } from '@/test-utils/fixtures';
 import { getAppTheme } from '@/theme/themes';
 
 const theme = getAppTheme('light');
@@ -74,4 +79,39 @@ describe('getSaveStatus', () => {
     expect(getSaveStatus({ ...base, editMode: false })).toBeUndefined();
     expect(getSaveStatus({ ...base, id: undefined })).toBeUndefined();
   });
+});
+
+describe('getProductCapabilities', () => {
+  const baseArgs = {
+    activeStream: null,
+    rpiEnabled: false,
+    youtubeEnabled: false,
+    isGoogleLinked: false,
+    isProductComponent: false,
+    isSuperuser: false,
+    mfaEnabled: false,
+  };
+  const othersProduct = { ...baseProduct, ownedBy: 'someone-else' };
+
+  // canEdit (add content) is owner-only; canModerate mirrors the backend's moderation
+  // bypass (is_superuser AND mfa_enabled): correct fields and delete, nothing new.
+  it.each([
+    ['owner', baseProduct, false, false, true, true],
+    ['owner who is an MFA superuser', baseProduct, true, true, true, true],
+    ['non-owner', othersProduct, false, false, false, false],
+    ['MFA-enrolled superuser', othersProduct, true, true, false, true],
+    ['superuser without MFA', othersProduct, true, false, false, false],
+  ])(
+    '%s: canEdit and canModerate',
+    (_label, product, isSuperuser, mfaEnabled, canEdit, canModerate) => {
+      const capabilities = getProductCapabilities({
+        ...baseArgs,
+        product,
+        isSuperuser,
+        mfaEnabled,
+      });
+      expect(capabilities.canEdit).toBe(canEdit);
+      expect(capabilities.canModerate).toBe(canModerate);
+    },
+  );
 });

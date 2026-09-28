@@ -140,8 +140,19 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
         youtubeEnabled,
         isGoogleLinked,
         isProductComponent,
+        isSuperuser: profile?.isSuperuser ?? false,
+        mfaEnabled: profile?.mfaEnabled ?? false,
       }),
-    [product, activeStream, rpiEnabled, youtubeEnabled, isGoogleLinked, isProductComponent],
+    [
+      product,
+      activeStream,
+      rpiEnabled,
+      youtubeEnabled,
+      isGoogleLinked,
+      isProductComponent,
+      profile?.isSuperuser,
+      profile?.mfaEnabled,
+    ],
   );
 
   // Read the back target from the fetched record, not the watched form: the
@@ -227,7 +238,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
   // FAB, the header back button, and the save bar.
   useProductEditShortcuts({
     editMode,
-    canEdit: capabilities.ownedByMe,
+    canModerate: capabilities.canModerate,
     canSave: validationResult.isValid && !isSaving,
     onEdit: enterEditMode,
     onSave: saveAndExit,

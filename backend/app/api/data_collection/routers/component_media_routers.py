@@ -13,7 +13,7 @@ from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.data_collection.dependencies import ComponentDep, UserOwnedComponentDep
+from app.api.data_collection.dependencies import ComponentDep, ModeratableComponentDep, UserOwnedComponentDep
 from app.api.data_collection.routers.media_handlers import (
     handle_delete_file,
     handle_delete_image,
@@ -89,7 +89,7 @@ async def upload_component_file(
     status_code=204,
 )
 async def delete_component_file(
-    db_component: UserOwnedComponentDep,
+    db_component: ModeratableComponentDep,
     file_id: Annotated[UUID4, Path(description="ID of the file")],
     session: AsyncSessionDep,
 ) -> None:
@@ -164,7 +164,7 @@ async def upload_component_image(
     status_code=204,
 )
 async def delete_component_image(
-    db_component: UserOwnedComponentDep,
+    db_component: ModeratableComponentDep,
     image_id: Annotated[UUID4, Path(description="ID of the image")],
     session: AsyncSessionDep,
 ) -> None:

@@ -15,7 +15,7 @@ from app.api.data_collection.crud.product_commands import create_component
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
 from app.api.data_collection.crud.product_tree_queries import require_product_detail
-from app.api.data_collection.dependencies import UserOwnedComponentDep
+from app.api.data_collection.dependencies import ModeratableComponentDep, UserOwnedComponentDep
 from app.api.data_collection.examples import COMPONENT_CREATE_OPENAPI_EXAMPLES
 from app.api.data_collection.presentation.product_reads import to_read_model
 from app.api.data_collection.schemas import (
@@ -105,7 +105,7 @@ async def add_component_to_component(
 )
 async def update_component(
     component_update: ProductUpdate,
-    db_component: UserOwnedComponentDep,
+    db_component: ModeratableComponentDep,
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> ComponentRead:
@@ -120,6 +120,6 @@ async def update_component(
     summary="Delete component",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
-async def delete_component(db_component: UserOwnedComponentDep, session: AsyncSessionDep) -> None:
+async def delete_component(db_component: ModeratableComponentDep, session: AsyncSessionDep) -> None:
     """Delete a component (cascades to its sub-components)."""
     await delete_product_record(session, db_component.id)

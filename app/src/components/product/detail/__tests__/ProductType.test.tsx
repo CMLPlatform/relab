@@ -13,6 +13,8 @@ jest.mock('@/features/products/pendingTypeSelection', () => ({
   setPendingTypeSelection: jest.fn(),
 }));
 
+const VIEW_ALL_LABEL_PATTERN = /View all products of type/;
+
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);
@@ -146,5 +148,29 @@ describe('ProductType', () => {
     await renderWithProviders(<ProductType product={product} editMode={false} />);
     await user.press(await screen.findByText('Agricultural products'));
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('links to the products list filtered by type name in view mode', async () => {
+    const product = { ...baseProduct, productTypeID: 1, productTypeName: '03000000-1' };
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
+    await user.press(await screen.findByLabelText('View all products of type 03000000-1'));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/products',
+      params: { types: '03000000-1' },
+    });
+  });
+
+  it('hides the "view all" link in editMode', async () => {
+    const product = { ...baseProduct, productTypeID: 1, productTypeName: '03000000-1' };
+    await renderWithProviders(<ProductType product={product} editMode={true} />);
+    await screen.findByText('Agricultural products');
+    expect(screen.queryByLabelText('View all products of type 03000000-1')).toBeNull();
+  });
+
+  it('hides the "view all" link when the product has no type name', async () => {
+    const product = { ...baseProduct, productTypeID: 1, productTypeName: undefined };
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
+    await screen.findByText('Agricultural products');
+    expect(screen.queryByLabelText(VIEW_ALL_LABEL_PATTERN)).toBeNull();
   });
 });

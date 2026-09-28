@@ -83,7 +83,8 @@ describe('ProductFiles', () => {
     expect(await screen.findByText('Add research file')).toBeTruthy();
   });
 
-  it('withholds the picker from a lab account on a record it does not own', async () => {
+  // Edit mode on someone else's record means moderating: removal stays, adding goes.
+  it('withholds the picker but keeps removal on a record it does not own', async () => {
     signedInAs('lab');
 
     await renderWithProviders(
@@ -93,6 +94,7 @@ describe('ProductFiles', () => {
 
     await screen.findByText('cube.h5');
     expect(screen.queryByText('Add research file')).toBeNull();
+    expect(screen.getByLabelText('Remove cube.h5')).toBeOnTheScreen();
   });
 
   it('does not offer the picker on an unsaved draft', async () => {

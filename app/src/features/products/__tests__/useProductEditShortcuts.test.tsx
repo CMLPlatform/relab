@@ -27,11 +27,13 @@ describe('useProductEditShortcuts', () => {
     return preventDefault;
   }
 
-  function render(overrides: { canSave?: boolean; canEdit?: boolean; editMode?: boolean } = {}) {
+  function render(
+    overrides: { canSave?: boolean; canModerate?: boolean; editMode?: boolean } = {},
+  ) {
     return renderHook(() =>
       useProductEditShortcuts({
         editMode: overrides.editMode ?? true,
-        canEdit: overrides.canEdit ?? true,
+        canModerate: overrides.canModerate ?? true,
         canSave: overrides.canSave ?? true,
         onEdit,
         onSave,
@@ -70,7 +72,7 @@ describe('useProductEditShortcuts', () => {
     });
 
     it('ignores "e" when the user does not own the product', async () => {
-      await render({ editMode: false, canEdit: false });
+      await render({ editMode: false, canModerate: false });
 
       press({ key: 'e' });
 

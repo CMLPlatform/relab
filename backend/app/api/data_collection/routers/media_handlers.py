@@ -179,8 +179,8 @@ async def handle_upload_image(
 
     Components denormalize their base's owner_id, so this resolves correctly for either
     role, and matches ``handle_delete_image``, which also recomputes for the owner
-    rather than the acting user (who may be a superuser uploading on someone else's
-    behalf).
+    rather than the acting user (who may be a superuser moderating someone else's
+    product).
     """
     db_product = await session.get(Product, parent_id)
     item = await create_parent_media(

@@ -124,6 +124,8 @@ export function getProductCapabilities({
   youtubeEnabled,
   isGoogleLinked,
   isProductComponent,
+  isSuperuser,
+  mfaEnabled,
 }: {
   product: Product;
   activeStream: { productId: number } | null;
@@ -131,13 +133,22 @@ export function getProductCapabilities({
   youtubeEnabled: boolean;
   isGoogleLinked: boolean;
   isProductComponent: boolean;
+  isSuperuser: boolean;
+  mfaEnabled: boolean;
 }) {
+  const ownedByMe = product.ownedBy === 'me';
   return {
     isProductComponent,
     rpiEnabled,
     youtubeEnabled,
     isGoogleLinked,
-    ownedByMe: product.ownedBy === 'me',
+    ownedByMe,
+    // Full editing, including adding images, videos, files and components: owner only.
+    canEdit: ownedByMe,
+    // Opens edit mode: correct the record's fields and delete it or its media. Mirrors the
+    // backend's moderation bypass (is_superuser AND mfa_enabled): an unenrolled superuser
+    // gets no edit affordance on someone else's product.
+    canModerate: ownedByMe || (isSuperuser && mfaEnabled),
     ...getStreamingState(product, activeStream),
   };
 }

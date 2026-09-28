@@ -52,12 +52,9 @@ jest.mock('@/hooks/useAppFeedback', () => ({
   }),
 }));
 
+const mockUseAuth = jest.fn();
 jest.mock('@/context/auth', () => ({
-  useAuth: () => ({
-    user: {
-      oauth_accounts: [{ oauth_name: 'google' }],
-    },
-  }),
+  useAuth: (...args: unknown[]) => mockUseAuth(...args),
 }));
 
 jest.mock('@/context/streamSession', () => ({
@@ -132,6 +129,11 @@ describe('useProductPageScreen', () => {
     mockUseProductQuery.mockReturnValue({ data: undefined });
     mockUseAncestorTrail.mockReturnValue({ ancestors: [], isLoading: false });
     mockUseProductForm.mockReturnValue(baseFormReturn);
+    mockUseAuth.mockReturnValue({
+      user: {
+        oauth_accounts: [{ oauth_name: 'google' }],
+      },
+    });
   });
 
   it('returns grouped screen, editing, streaming, capabilities, and actions domains', async () => {
@@ -141,7 +143,56 @@ describe('useProductPageScreen', () => {
     expect(result.current.editing.editMode).toBe(false);
     expect(result.current.streaming.streamingOtherProduct).toBe(true);
     expect(result.current.capabilities.ownedByMe).toBe(true);
+    expect(result.current.capabilities.canEdit).toBe(true);
+    expect(result.current.capabilities.canModerate).toBe(true);
     expect(typeof result.current.actions.saveAndExit).toBe('function');
+  });
+
+  // Mirrors the backend's moderation bypass, which also requires MFA enrollment.
+  it('lets an MFA-enrolled superuser moderate, not edit, a product owned by someone else', async () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, ownedBy: 'someone-else' },
+    });
+    mockUseAuth.mockReturnValue({
+      user: { oauth_accounts: [], isSuperuser: true, mfaEnabled: true },
+    });
+
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
+
+    expect(result.current.capabilities.ownedByMe).toBe(false);
+    expect(result.current.capabilities.canEdit).toBe(false);
+    expect(result.current.capabilities.canModerate).toBe(true);
+  });
+
+  it("denies a superuser without MFA enrolled moderation on someone else's product", async () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, ownedBy: 'someone-else' },
+    });
+    mockUseAuth.mockReturnValue({
+      user: { oauth_accounts: [], isSuperuser: true, mfaEnabled: false },
+    });
+
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
+
+    expect(result.current.capabilities.canEdit).toBe(false);
+    expect(result.current.capabilities.canModerate).toBe(false);
+  });
+
+  it("denies a non-superuser moderation on someone else's product", async () => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, ownedBy: 'someone-else' },
+    });
+    mockUseAuth.mockReturnValue({
+      user: { oauth_accounts: [], isSuperuser: false, mfaEnabled: false },
+    });
+
+    const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
+
+    expect(result.current.capabilities.canEdit).toBe(false);
+    expect(result.current.capabilities.canModerate).toBe(false);
   });
 
   it('opens and closes the stream picker through named actions', async () => {

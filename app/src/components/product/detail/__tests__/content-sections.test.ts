@@ -1,5 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
-import { guardedSections, SECTIONS } from '@/components/product/detail/content-sections';
+import {
+  guardedSections,
+  isSectionShown,
+  SECTIONS,
+} from '@/components/product/detail/content-sections';
 import { baseProduct } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
@@ -224,5 +228,22 @@ describe('files section', () => {
         { editMode: false, mediaStreamable: false, hasResearchFiles: true },
       ),
     ).toBe(true);
+  });
+});
+
+describe('isSectionShown', () => {
+  const media = SECTIONS.find((section) => section.key === 'media');
+  if (!media) throw new Error('media section missing from SECTIONS');
+  const noVideos = { ...baseProduct, videos: [] };
+  const ctx = { editMode: true, mediaStreamable: false };
+
+  it('offers an empty content section as an add-row to the owner', () => {
+    expect(isSectionShown(media, noVideos, { ...ctx, canEdit: true })).toBe(true);
+  });
+
+  it('hides an empty content section from a moderator, who cannot add to it', () => {
+    expect(isSectionShown(media, noVideos, { ...ctx, canEdit: false })).toBe(false);
+    // Field sections still offer their add-row: a moderator may fill in details.
+    expect(isSectionShown(overview, bareProduct, { ...ctx, canEdit: false })).toBe(true);
   });
 });

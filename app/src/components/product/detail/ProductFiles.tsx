@@ -14,6 +14,7 @@ type Props = {
 export default function ProductFiles({ product, editMode }: Props) {
   const {
     canManage,
+    canRemove,
     isLab,
     files,
     isLoading,
@@ -45,7 +46,7 @@ export default function ProductFiles({ product, editMode }: Props) {
                   </AppText>
                 ) : null}
               </View>
-              {canManage && editMode ? (
+              {canRemove && editMode ? (
                 <IconButton
                   icon="trash-2"
                   accessibilityLabel={`Remove ${file.filename}`}
