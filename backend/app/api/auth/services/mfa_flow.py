@@ -24,6 +24,7 @@ from app.api.auth.services.email.service import (
     send_mfa_changed_notification,
     send_recovery_codes_regenerated_notification,
 )
+from app.api.auth.services.rate_limiter import account_guess_budget
 from app.api.auth.services.user_manager import UserManager
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import Redis
@@ -190,10 +191,13 @@ async def complete_mfa_challenge(
     if not user.mfa_enabled or not user.mfa_totp_secret:
         audit_mfa_failure(user, reason="mfa_not_enabled")
         raise MfaCodeInvalidError
-    verified = await _verify_challenge_code(payload.code, user=user, redis=redis)
-    if verified is None:
-        audit_mfa_failure(user, reason="invalid_mfa_code")
-        raise MfaCodeInvalidError
+    # Per account, not only per challenge token: signing in again with a known password
+    # issues a fresh token, and must not buy fresh guesses.
+    async with account_guess_budget(user.id):
+        verified = await _verify_challenge_code(payload.code, user=user, redis=redis)
+        if verified is None:
+            audit_mfa_failure(user, reason="invalid_mfa_code")
+            raise MfaCodeInvalidError
     factor, remaining_recovery = verified
 
     challenge = await mfa_service.consume_login_challenge(redis, mfa_token)

@@ -43,6 +43,7 @@ pytestmark = pytest.mark.api
 
 ME = "/v1/users/me"
 ROUTER = "app.api.application.routers.account_erasure"
+BUDGET = "app.api.auth.services.rate_limiter"
 
 
 async def _row_exists(session: AsyncSession, statement: Select[tuple[Any]]) -> bool:
@@ -164,7 +165,7 @@ async def test_failed_step_ups_are_limited_per_account(
 
     with (
         override_authenticated_user(test_app, user),
-        patch(f"{ROUTER}.limiter", new=Limiter(storage_uri="memory://")),
+        patch(f"{BUDGET}.limiter", new=Limiter(storage_uri="memory://")),
     ):
         wrong = [
             (await api_client.request("DELETE", ME, json={"current_password": "not-the-password-42"})).status_code

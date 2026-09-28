@@ -14,7 +14,7 @@ from app.api.common.exceptions import ForbiddenError
 
 current_active_user = fastapi_user_manager.current_user(active=True)
 current_active_verified_user = fastapi_user_manager.current_user(active=True, verified=True)
-current_active_superuser = fastapi_user_manager.current_user(active=True, superuser=True)
+current_active_superuser_account = fastapi_user_manager.current_user(active=True, superuser=True)
 # active=True so a deactivated account with a still-valid token is anonymous, not a viewer.
 optional_current_active_user = fastapi_user_manager.current_user(optional=True, active=True)
 
@@ -27,6 +27,16 @@ async def current_lab_user(user: Annotated[User, Security(current_active_verifie
     """
     if not has_role_at_least(user.role, UserRole.LAB):
         message = "This action is restricted to lab accounts."
+        raise ForbiddenError(message)
+    return user
+
+
+async def current_active_superuser(
+    user: Annotated[User, Security(current_active_superuser_account)],
+) -> User:
+    """Require an active superuser with TOTP MFA enrolled; guards every admin route."""
+    if not user.has_admin_access:
+        message = "Admin routes need two-factor authentication. Enrol it in your account settings."
         raise ForbiddenError(message)
     return user
 

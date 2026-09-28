@@ -23,6 +23,8 @@ from scripts.seed.factories.models import UserFactory
         ("private", "owner", (True, False)),
         ("private", "other", (False, True)),
         ("private", "admin", (True, False)),
+        # Admin reach needs MFA enrolled; without it a superuser is any other viewer.
+        ("private", "admin_without_mfa", (False, True)),
     ],
 )
 def test_profile_visibility_policy_matrix(
@@ -36,7 +38,8 @@ def test_profile_visibility_policy_matrix(
         "guest": None,
         "owner": UserFactory.build(id=owner.id),
         "other": UserFactory.build(),
-        "admin": UserFactory.build(is_superuser=True),
+        "admin": UserFactory.build(is_superuser=True, mfa_enabled=True),
+        "admin_without_mfa": UserFactory.build(is_superuser=True),
     }[viewer_kind]
 
     expected_can_view, expected_redacts = expected
