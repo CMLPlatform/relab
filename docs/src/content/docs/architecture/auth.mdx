@@ -33,6 +33,8 @@ TOTP MFA is optional account hardening for contributors and required for adminis
   profiles) needs MFA enrolled on the superuser account.
 - TOTP seeds and pending challenge tokens use cryptographically secure randomness.
 - Accepted TOTP counters are recorded briefly to prevent replay within the clock window.
+- Wrong passwords, TOTP and recovery codes re-entered by a signed-in user count against one
+  per-account budget shared by every re-authentication route, not only against the client IP.
 - Administrators can reset a user's MFA enrollment after identity-proofed recovery, but cannot choose a replacement factor.
 
 Forgot-password returns the same accepted response for known, unknown, and inactive accounts, padded to a small minimum duration against timing-based enumeration. Login failures use the same bad-credentials response for unknown, invalid, and inactive accounts.

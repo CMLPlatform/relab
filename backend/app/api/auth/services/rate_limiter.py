@@ -5,10 +5,20 @@ auth flow budgets, and the per-user API limits too, because only auth can tell w
 a request belongs to.
 """
 
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
+
+from fastapi import HTTPException, status
+
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.services.access_token_store import request_access_token_owner_id
-from app.api.common.rate_limiting import limiter
+from app.api.common.exceptions import ForbiddenError
+from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.core.config.core import settings as core_settings
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+    from uuid import UUID
 
 LOGIN_RATE_LIMIT = f"{auth_settings.rate_limit_login_attempts_per_minute}/minute"
 LOGIN_IP_RATE_LIMIT = f"{auth_settings.rate_limit_login_attempts_per_ip_per_minute}/minute"
@@ -32,3 +42,27 @@ API_UPLOAD_RATE_LIMIT_DEPENDENCY = limiter.dependency(
     name="api_upload_rate_limit",
     per_user=(core_settings.api_upload_rate_limit_per_user, request_access_token_owner_id),
 )
+
+
+@asynccontextmanager
+async def step_up_budget(user_id: UUID) -> AsyncIterator[None]:
+    """Charge a wrong re-entered password, TOTP or recovery code to the account's budget.
+
+    Every signed-in re-authentication (account deletion, email and password changes,
+    social login link and unlink, MFA changes) shares this per-account bucket, sized like
+    the failed-login budget, so guesses spread over routes or IP addresses still run out.
+    The bucket is checked before the block without being spent, and charged only when the
+    block fails with a 403: the status every wrong credential raises here, and never a
+    missing field (400) or an invalid MFA setup state (401).
+    """
+    key = rate_limit_bucket_key("auth:step-up:account", str(user_id))
+    await limiter.ahit_key(LOGIN_RATE_LIMIT, key, consume=False)
+    try:
+        yield
+    except ForbiddenError:
+        await limiter.ahit_key(LOGIN_RATE_LIMIT, key)
+        raise
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_403_FORBIDDEN:
+            await limiter.ahit_key(LOGIN_RATE_LIMIT, key)
+        raise

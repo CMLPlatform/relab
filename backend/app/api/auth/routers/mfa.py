@@ -18,7 +18,7 @@ from app.api.auth.schemas import (
     RefreshTokenResponse,
 )
 from app.api.auth.services import mfa_flow
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, step_up_budget
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
 from app.api.common.rate_limiting import limiter
 from app.core.redis import RedisDep
@@ -50,13 +50,15 @@ async def confirm_totp_setup(
     redis: RedisDep,
 ) -> MfaRecoveryCodesResponse:
     """Confirm authenticated TOTP enrollment and return one-time recovery codes."""
-    return await mfa_flow.confirm_totp_setup(
-        payload,
-        current_user=current_user,
-        user_manager=user_manager,
-        redis=redis,
-        background_tasks=background_tasks,
-    )
+    # A wrong password, TOTP or recovery code spends the account's step-up budget.
+    async with step_up_budget(current_user.id):
+        return await mfa_flow.confirm_totp_setup(
+            payload,
+            current_user=current_user,
+            user_manager=user_manager,
+            redis=redis,
+            background_tasks=background_tasks,
+        )
 
 
 @router.post(
@@ -72,13 +74,15 @@ async def disable_totp(
     redis: RedisDep,
 ) -> None:
     """Turn off TOTP MFA after confirming a current code."""
-    await mfa_flow.disable_totp(
-        payload,
-        current_user=current_user,
-        user_manager=user_manager,
-        redis=redis,
-        background_tasks=background_tasks,
-    )
+    # A wrong password, TOTP or recovery code spends the account's step-up budget.
+    async with step_up_budget(current_user.id):
+        await mfa_flow.disable_totp(
+            payload,
+            current_user=current_user,
+            user_manager=user_manager,
+            redis=redis,
+            background_tasks=background_tasks,
+        )
 
 
 @router.post(
@@ -93,13 +97,15 @@ async def regenerate_recovery_codes(
     redis: RedisDep,
 ) -> MfaRecoveryCodesResponse:
     """Reissue recovery codes after confirming a current TOTP code."""
-    return await mfa_flow.regenerate_recovery_codes(
-        payload,
-        current_user=current_user,
-        user_manager=user_manager,
-        redis=redis,
-        background_tasks=background_tasks,
-    )
+    # A wrong password, TOTP or recovery code spends the account's step-up budget.
+    async with step_up_budget(current_user.id):
+        return await mfa_flow.regenerate_recovery_codes(
+            payload,
+            current_user=current_user,
+            user_manager=user_manager,
+            redis=redis,
+            background_tasks=background_tasks,
+        )
 
 
 @router.post(
