@@ -15,6 +15,7 @@ import pytest
 from sqlalchemy import Select, select
 
 from app.api.application.account_erasure import ANONYMOUS_USER_EMAIL, get_or_create_anonymous_user
+from app.api.auth.dependencies import current_active_superuser_account
 from app.api.auth.models import OAuthAccount, User
 from app.api.common.audit import AuditAction, AuditContext
 from app.api.data_collection.models.product import Product
@@ -64,6 +65,26 @@ class TestAdminUsersAuthorization:
         kwargs = {"json": {}} if method == "patch" else {}
         response = await getattr(api_client_user, method)(path, **kwargs)
         assert response.status_code in (401, 403)
+
+    # Overrides only the fastapi-users account dependency, so the MFA check inside
+    # current_active_superuser runs for real.
+    @pytest.mark.parametrize(("mfa_enabled", "expected"), [(False, 403), (True, 200)])
+    async def test_superuser_needs_mfa_enrolled(
+        self, api_client, test_app, db_session: AsyncSession, *, mfa_enabled: bool, expected: int
+    ) -> None:
+        """Admin routes refuse a superuser until TOTP MFA is enrolled."""
+        admin = await UserFactory.create_async(
+            session=db_session, is_superuser=True, is_active=True, mfa_enabled=mfa_enabled, refresh_instance=True
+        )
+        test_app.dependency_overrides[current_active_superuser_account] = lambda: admin
+        try:
+            response = await api_client.get(ADMIN_USERS)
+        finally:
+            test_app.dependency_overrides.pop(current_active_superuser_account, None)
+
+        assert response.status_code == expected, response.text
+        if not mfa_enabled:
+            assert "two-factor" in response.json()["detail"]
 
     async def test_guest_is_unauthorized(self, api_client, db_user: User) -> None:
         """An unauthenticated client is rejected."""

@@ -221,7 +221,8 @@ the topology these steps produce.
 1. Verify.
 
    `/live` on the API is the shallow process check Compose uses; `/health` also checks PostgreSQL
-   and Redis. Then log in as the bootstrap superuser and try one upload.
+   and Redis. Then log in as the bootstrap superuser, enrol two-factor authentication in the account
+   settings (the `/admin` routes refuse a superuser without it), and try one upload.
 
    ```bash
    just stack prod logs

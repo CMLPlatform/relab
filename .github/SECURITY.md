@@ -51,6 +51,11 @@ Security-sensitive areas:
     rotating forged tokens never buys a fresh budget.
   - Password login is limited per IP and by failed attempts per account, so a shared account is
     not locked by use while guessing stays capped per account.
+  - The MFA login challenge and every signed-in re-authentication (account deletion, email and
+    password changes, social login link and unlink, MFA setup, disable and recovery-code
+    rotation) share one per-account budget of wrong passwords, TOTP and recovery codes
+    (`account_guess_budget`). Rotating IPs, routes or fresh login challenges buys no extra
+    guesses, so the MFA routes themselves sit on the looser login IP budget.
 - public read APIs
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
@@ -81,9 +86,13 @@ Account privileges are three independent things; conflating any two of them is a
 escalation:
 
 - `is_verified` gates whether an account may create records at all.
-- `is_superuser` grants the `/admin` routes. Every superuser also holds the `lab` tier, so an
-  administrator can exercise every upload path: the `ck_user_superuser_is_lab` constraint enforces
-  it, and the role route refuses to demote a superuser.
+- `is_superuser` grants the `/admin` routes and moderation of other contributors' products
+  (correcting and deleting, never adding content). Every superuser power needs TOTP MFA enrolled
+  on the account (`User.has_admin_access`): the admin routes refuse a superuser without it, and
+  off them such an account is treated as an ordinary user. Every superuser also holds the `lab`
+  tier, so an administrator can exercise every upload path on their own products: the
+  `ck_user_superuser_is_lab` constraint enforces it, and the role route refuses to demote a
+  superuser.
 - `role` (`contributor` by default, `lab`) is the contributor tier. It gates non-image
   research-file upload and selects the upload quota tier, charged to the product owner, and the
   per-image size and pixel caps, which follow the uploader so the app can fit photos to them.
