@@ -36,9 +36,12 @@ ______________________________________________________________________
 cd /path/to/relab
 git fetch origin && git checkout main && git pull --ff-only
 
-just stack staging build
+just stack staging tag YES <tag>    # a release (0.4.0), or sha-<short sha> from a manual publish
 just stack staging up YES migrations
 ```
+
+The images come from GHCR: a release publishes them, and running the Publish Images workflow by
+hand on any commit publishes that commit as `sha-<short sha>`.
 
 ClamAV starts unless `MALWARE_SCAN_ENABLED=false` in the root `.env`. It needs 3–4 GiB; staging can
 run without it if the host is short on RAM.

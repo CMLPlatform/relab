@@ -32,7 +32,16 @@ terraform {
       source  = "cloudflare/cloudflare"
       version = "~> 5.0"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.13"
+    }
   }
 }
 
 provider "cloudflare" {}
+
+# Authenticates with GITHUB_TOKEN (`export GITHUB_TOKEN="$(gh auth token)"`); see README.
+provider "github" {
+  owner = var.github_owner
+}

@@ -221,7 +221,11 @@ async function fetchComponentTree(base: string, id: number): Promise<unknown> {
   }
 }
 
-/** Load the landing payload at build time. Never throws. */
+/**
+ * Load the landing payload at build time. Falls back to the fixture rather than
+ * throwing, unless LANDING_REQUIRE_LIVE=1: the image publish sets it, so a release
+ * cannot quietly ship the fixture in place of the configured product.
+ */
 export async function loadLandingData(): Promise<LandingData> {
   const base = apiBaseUrl();
   const id = featuredProductId();
@@ -241,9 +245,22 @@ export async function loadLandingData(): Promise<LandingData> {
     } catch {
       // Fall through to the fixture below.
     }
+    if (process.env.LANDING_REQUIRE_LIVE === '1') {
+      throw new Error(
+        `[landing] product ${id} unavailable at build time and LANDING_REQUIRE_LIVE=1`,
+      );
+    }
     // biome-ignore lint/suspicious/noConsole: diagnostic when the API is unreachable at build time
     console.warn('[landing] API unavailable at build time; using the committed fixture.');
   } else {
+    // A configured product that cannot be fetched (malformed id, no API URL) is the
+    // same failure as an unreachable API, not "no featured product".
+    const configured = import.meta.env.PUBLIC_FEATURED_PRODUCT_ID?.trim();
+    if (configured && process.env.LANDING_REQUIRE_LIVE === '1') {
+      throw new Error(
+        `[landing] featured product '${configured}' needs a positive integer id and PUBLIC_API_URL when LANDING_REQUIRE_LIVE=1`,
+      );
+    }
     // biome-ignore lint/suspicious/noConsole: expected on builds without a featured product
     console.info('[landing] no featured product configured; using the committed fixture.');
   }

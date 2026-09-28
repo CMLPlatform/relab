@@ -1,0 +1,216 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Publish Images
+
+# Builds the deploy images, scans them, and pushes them to GHCR. The deploy hosts
+# pull these instead of building: `IMAGE_TAG` in the host's root .env picks the tag.
+#
+# release.yml calls this with the release tag, which publishes `:<version>`
+# (`:0.4.0`). A manual run publishes the selected commit as `:sha-<short sha>`, for
+# trying an unreleased commit on staging.
+#
+# The backend images are the same in every environment. www, app and docs bake their
+# public URLs in at build time, so they are built once per environment and tagged
+# `:<tag>-prod` and `:<tag>-staging`, with the URLs taken from the variables of the
+# matching GitHub Environment. infra/cloudflare manages those from its hostname map.
+on:
+  workflow_call:
+    inputs:
+      tag_name:
+        description: Release tag (`v0.4.0`); the images are published as `:0.4.0`.
+        required: true
+        type: string
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  image:
+    name: ${{ matrix.service }}${{ matrix.env && format(' ({0})', matrix.env) || '' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    # Empty for the backend images, which need no environment variables.
+    environment: ${{ matrix.env }}
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {service: api, context: ./backend, dockerfile: ./backend/Dockerfile, image: relab-backend}
+          - {service: migrator, context: ./backend, dockerfile: ./backend/Dockerfile.migrations, image: relab-backend-migrations}
+          - {service: relab-backup, context: ./backend, dockerfile: ./backend/Dockerfile.backups, image: relab-backup}
+          - {service: docs, env: prod, context: ., dockerfile: ./docs/Dockerfile, image: relab-docs}
+          - {service: docs, env: staging, context: ., dockerfile: ./docs/Dockerfile, image: relab-docs}
+          - {service: app, env: prod, context: ., dockerfile: ./app/Dockerfile, image: relab-app}
+          - {service: app, env: staging, context: ., dockerfile: ./app/Dockerfile, image: relab-app}
+          - {service: www, env: prod, context: ., dockerfile: ./www/Dockerfile, image: relab-www}
+          - {service: www, env: staging, context: ., dockerfile: ./www/Dockerfile, image: relab-www}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve image reference
+        id: meta
+        env:
+          TAG_NAME: ${{ inputs.tag_name }}
+          ENV_NAME: ${{ matrix.env }}
+          IMAGE: ${{ matrix.image }}
+          SERVICE: ${{ matrix.service }}
+          API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
+          APP_PUBLIC_URL: ${{ vars.APP_PUBLIC_URL }}
+          SITE_PUBLIC_URL: ${{ vars.SITE_PUBLIC_URL }}
+          DOCS_PUBLIC_URL: ${{ vars.DOCS_PUBLIC_URL }}
+        run: |
+          if [[ -n "$TAG_NAME" ]]; then
+            [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+              echo "tag_name must look like v1.2.3, got '$TAG_NAME'" >&2
+              exit 1
+            }
+            tag="${TAG_NAME#v}"
+          else
+            tag="sha-${GITHUB_SHA::7}"
+          fi
+          # A frontend built without its URLs would ship pages that link nowhere.
+          if [[ -n "$ENV_NAME" ]]; then
+            for name in API_PUBLIC_URL APP_PUBLIC_URL SITE_PUBLIC_URL DOCS_PUBLIC_URL; do
+              [[ "${!name}" == https://* ]] || {
+                echo "the '$ENV_NAME' GitHub Environment needs variable $name (an https:// URL)" >&2
+                exit 1
+              }
+            done
+            tag="$tag-$ENV_NAME"
+          fi
+          ref="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/$IMAGE"
+          {
+            echo "name=$ref"
+            echo "ref=$ref:$tag"
+            echo "sbom=sbom-$SERVICE${ENV_NAME:+-$ENV_NAME}.spdx.json"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          # Loaded, not pushed: the scan below gates the push.
+          load: true
+          pull: true
+          tags: ${{ steps.meta.outputs.ref }}
+          # Warm from the scan builds in ci.yml; nothing reads a cache written here.
+          cache-from: type=gha,scope=scan-${{ matrix.service }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # Unused args on the other services are ignored.
+          build-args: |
+            ENVIRONMENT=${{ matrix.env }}
+            PUBLIC_APP_URL=${{ vars.APP_PUBLIC_URL }}
+            PUBLIC_DOCS_URL=${{ vars.DOCS_PUBLIC_URL }}
+            PUBLIC_SITE_URL=${{ vars.SITE_PUBLIC_URL }}
+            PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
+            PUBLIC_BACKEND_API_URL=${{ vars.API_PUBLIC_URL }}
+            PUBLIC_FEATURED_PRODUCT_ID=${{ vars.FEATURED_PRODUCT_ID }}
+            LANDING_REQUIRE_LIVE=1
+            EXPO_PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
+            EXPO_PUBLIC_WEBSITE_URL=${{ vars.SITE_PUBLIC_URL }}
+            EXPO_PUBLIC_DOCS_URL=${{ vars.DOCS_PUBLIC_URL }}
+
+      # Same policy as the scan in ci.yml; suppressions live in .github/trivyignore.yaml.
+      - name: Scan image with Trivy
+        uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+        with:
+          args: >-
+            image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL --ignorefile .github/trivyignore.yaml ${{ steps.meta.outputs.ref }}
+
+      - name: Generate SPDX SBOM
+        uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+        with:
+          args: >-
+            image --format spdx-json --output ${{ steps.meta.outputs.sbom }} ${{ steps.meta.outputs.ref }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Push image
+        id: push
+        env:
+          REF: ${{ steps.meta.outputs.ref }}
+        run: |
+          docker push "$REF"
+          digest="$(docker image inspect --format '{{index .RepoDigests 0}}' "$REF")"
+          echo "digest=${digest#*@}" >>"$GITHUB_OUTPUT"
+
+      # Build provenance for the pushed digest: what `just images-verify` checks
+      # before a host pulls the tag (the workflow, repository and ref that built it).
+      - name: Attest image provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.meta.outputs.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest image SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.meta.outputs.name }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: ${{ steps.meta.outputs.sbom }}
+          push-to-registry: true
+
+      - name: Keep the SBOM for the release
+        if: inputs.tag_name != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.meta.outputs.sbom }}
+          path: ${{ steps.meta.outputs.sbom }}
+          retention-days: 1
+
+  # Separate from the image jobs so only this one, and only for a release, holds
+  # `contents: write`.
+  release-assets:
+    name: Release SBOMs
+    needs: image
+    if: inputs.tag_name != ''
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      attestations: write
+      contents: write
+      id-token: write
+    steps:
+      - name: Download SBOMs
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: sbom-*
+          merge-multiple: true
+
+      - name: Attest SBOM asset provenance
+        id: attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: sbom-*.spdx.json
+
+      # The Sigstore bundle is also uploaded as a release asset: the attestation
+      # store holds it already, but Scorecard's Signed-Releases check only reads
+      # release assets and recognises the `.sigstore.json` suffix.
+      - name: Upload SBOMs and signature bundle to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ inputs.tag_name }}
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |-
+          cp "$BUNDLE_PATH" sboms.sigstore.json
+          gh release upload "$TAG_NAME" sbom-*.spdx.json sboms.sigstore.json --clobber

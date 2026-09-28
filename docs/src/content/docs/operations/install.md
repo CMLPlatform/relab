@@ -104,7 +104,7 @@ use, or local development. For contributor workflow and tooling policy, see
 ## Production and staging deployment
 
 The stack runs on one host behind a Cloudflare Tunnel, so the host needs no public ports. Deploys
-are three commands on the server: pull the repo, build, start the stack. They can be run there, or
+are three commands on the server: pull the repo, pick a published image tag, start the stack. They can be run there, or
 sent from another machine over an ssh key whose forced command is `scripts/remote_deploy.sh`, which
 allows exactly those steps and nothing else (see `deploy/DEPLOY-PROD.md` Part 1.6). Every command
 runs as `just stack <prod|staging> <command>`, and a state-changing command takes `YES` to confirm
@@ -155,6 +155,8 @@ the topology these steps produce.
      says otherwise.
    - `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL`, `DOCS_PUBLIC_URL`: the four public
      origins on your domain.
+   - `IMAGE_TAG`: the published image tag to run, see step 5. Set `IMAGE_REGISTRY` too when the
+     images come from your own fork.
    - `CLOUDFLARE_TUNNEL_TOKEN`: the tunnel token from the previous step.
    - `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`: OAuth client IDs for social login.
    - `EMAIL_PROVIDER` and the sender fields. With `smtp`, also fill `SMTP_HOST`, `SMTP_USERNAME`,
@@ -195,6 +197,29 @@ the topology these steps produce.
    just deploy-secrets-check   # every secret file exists, has mode 0644 in a 0700 dir, and is not a placeholder
    ```
 
+1. Publish the images.
+
+   The hosts pull their images from GHCR instead of building them. The backend images work for any
+   deployment, but www, app and docs bake their public URLs in at build time, so a deployment on
+   another domain publishes its own from a fork:
+
+   - In the fork's settings, create a GitHub Environment named `prod` (and `staging` if you run
+     one) with the variables `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL` and
+     `DOCS_PUBLIC_URL`, plus the optional `FEATURED_PRODUCT_ID` for the landing page hero. If you
+     run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you.
+   - Run the Publish Images workflow. A manual run publishes the commit as `sha-<short sha>`; a
+     release published by `release.yml` uses its version (`0.4.0`).
+   - Make the packages public in the fork's package settings, or log the host in to GHCR.
+   - Set `IMAGE_REGISTRY=ghcr.io/<your-account>` in `.env`, then pull the tag:
+
+   ```bash
+   just stack prod tag YES <tag>   # pulls every image, then writes IMAGE_TAG to .env
+   ```
+
+   To check first that the tag was built by your fork's workflow, run
+   `GITHUB_REPOSITORY=<your-account>/relab IMAGE_REGISTRY=ghcr.io/<your-account> just images-verify prod <tag>`
+   from a machine with `gh` logged in.
+
 1. Start the stack.
 
    The `migrations` profile runs the migrator first and starts the API only after it exits 0, so
@@ -228,13 +253,13 @@ the topology these steps produce.
    just stack prod logs
    ```
 
-1. Upgrade later with the same commands: pull a known-good revision, `just stack prod build`, then
-   `just stack prod up YES migrations`. A failed migration leaves the old API serving. If the
+1. Upgrade later with the same commands: pull a known-good revision, `just stack prod tag YES <tag>`,
+   then `just stack prod up YES migrations`. A failed migration leaves the old API serving. If the
    migrator stops on an unresolvable revision, the database's `alembic_version` predates the
    2026-09-08 flatten: bring the host to `a9c2e4f60b18` on a release from before the flatten, or
    restore from backup, before continuing. To return to
-   the previous release, `just stack prod rollback YES <sha>` retags the images that build produced;
-   add the previous alembic revision to downgrade the schema too
+   the previous release, `just stack prod rollback YES <tag>` pulls that release's images and
+   restarts on them; add the previous alembic revision to downgrade the schema too
    (revisions before `a9c2e4f60b18` were flattened away and cannot be targeted), which the recipe
    allows only when no migration in between dropped or rewrote data. `just stack prod down YES` stops
    the stack.
@@ -252,7 +277,7 @@ the topology these steps produce.
    sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
    for volume in user_uploads restic_cache; do
        docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
-           "relab-backend:${env}-local" chown -R 65532:65532 /mnt
+           busybox chown -R 65532:65532 /mnt
    done
    just stack "$env" up YES migrations
    ```

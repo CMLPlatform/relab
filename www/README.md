@@ -124,6 +124,7 @@ non-Compose production-mode build; export `API_PUBLIC_URL` and friends to overri
 | `PUBLIC_API_URL`             | no       | Backend base URL the homepage stats panel fetches from in the browser (panel stays hidden if unset/unreachable)                   |
 | `PUBLIC_CONTACT_EMAIL`       | no       | Public contact address                                                                                                            |
 | `PUBLIC_FEATURED_PRODUCT_ID` | no       | Product ID whose teardown is featured in the landing hero (falls back to `src/data/landing-fixture.json` if unset or unreachable) |
+| `LANDING_REQUIRE_LIVE`       | no       | `1` fails the build instead of falling back when the featured product cannot be fetched; the image publish sets it |
 
 Tooling also reads two environment variables in [playwright.config.ts](playwright.config.ts).
 

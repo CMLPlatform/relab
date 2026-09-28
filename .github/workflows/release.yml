@@ -9,9 +9,13 @@ on:
 
 permissions: {}
 
+# Queue, never cancel: only the run that creates a release publishes its images, so a
+# push to main during that publish must not cancel it. A queued run superseded by a
+# newer one is safe to drop, since release-please picks up any merged release PR it
+# has not tagged yet.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   release-please:
@@ -36,15 +40,15 @@ jobs:
           config-file: .github/release-please-config.json
           manifest-file: .github/.release-please-manifest.json
 
-  release-sboms:
-    name: Release SBOM
+  publish-images:
+    name: Publish images
     needs: [release-please]
     if: needs.release-please.outputs.release_created == 'true'
     permissions:
       attestations: write
       contents: write
       id-token: write
-    uses: ./.github/workflows/container-images.yml
+      packages: write
+    uses: ./.github/workflows/publish-images.yml
     with:
-      mode: release
       tag_name: ${{ needs.release-please.outputs.tag_name }}

@@ -5,6 +5,7 @@
 # Zone-global resources are tested in ../cloudflare-zone/tests/zone.tftest.hcl.
 
 mock_provider "cloudflare" {}
+mock_provider "github" {}
 
 variables {
   cloudflare_account_id = "00000000000000000000000000000000"
@@ -78,4 +79,45 @@ run "rejects_an_unknown_environment" {
   }
 
   expect_failures = [var.environment]
+}
+
+run "publish_urls_follow_the_hostnames" {
+  command = plan
+
+  variables {
+    environment = "staging"
+  }
+
+  # The images bake these in; one drifting from the DNS record ships a site linking to
+  # a host that does not answer.
+  assert {
+    condition = alltrue([
+      for name, url in local.github_public_url_variables :
+      contains([for hostname in output.hostnames : "https://${hostname}"], url)
+    ])
+    error_message = "every publish URL must be one of this environment's hostnames."
+  }
+
+  assert {
+    condition     = github_actions_environment_variable.public_url["SITE_PUBLIC_URL"].value == "https://web-test.cml-relab.org"
+    error_message = "staging SITE_PUBLIC_URL must be the staging www hostname."
+  }
+
+  assert {
+    condition     = length(github_repository_environment_deployment_policy.main) == 0
+    error_message = "staging must accept a publish from any branch."
+  }
+}
+
+run "prod_publishes_only_from_main" {
+  command = plan
+
+  variables {
+    environment = "prod"
+  }
+
+  assert {
+    condition     = github_repository_environment_deployment_policy.main[0].branch_pattern == "main"
+    error_message = "prod URLs must only be baked into images built from main."
+  }
 }

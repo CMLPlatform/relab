@@ -63,7 +63,9 @@ x-backend-runtime-secrets: &backend-runtime-secrets
 
 services:
   api:
-    image: relab-backend:${ENVIRONMENT}-local
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
+    # Deploy hosts pull the published image; see publish-images.yml.
+    build: !reset null
     logging: *json-logging
     read_only: true
     user: *app-user
@@ -200,7 +202,9 @@ services:
       - scanning
 
   migrator:
-    image: relab-backend-migrations:${ENVIRONMENT}-local
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-backend-migrations:${IMAGE_TAG:?IMAGE_TAG must be set}
+    # Deploy hosts pull the published image; see publish-images.yml.
+    build: !reset null
     logging: *json-logging
     read_only: true
     user: *app-user
@@ -213,10 +217,7 @@ services:
 
   backup:
     # Encrypted logical PostgreSQL + user upload backups.
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.backups
-    image: relab-backup:${ENVIRONMENT}-local
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-backup:${IMAGE_TAG:?IMAGE_TAG must be set}
     logging: *json-logging
     cap_drop:
       - ALL
@@ -408,15 +409,12 @@ services:
       - database_backup_password
 
   docs:
-    image: relab-docs:${ENVIRONMENT}-local
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-docs:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
     logging: *json-logging
     read_only: true
     user: *app-user
-    build:
-      args:
-        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
-        PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
-        PUBLIC_BACKEND_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
+    # URLs are baked in at build time, so each environment has its own tag.
+    build: !reset null
     environment:
       # Needed by Caddyfile so API reference pages can fetch live OpenAPI JSON.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
@@ -426,16 +424,12 @@ services:
       - /tmp:mode=1777
 
   app:
-    image: relab-app:${ENVIRONMENT}-local
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-app:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
     logging: *json-logging
     read_only: true
     user: *app-user
-    build:
-      args:
-        ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}
-        EXPO_PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
-        EXPO_PUBLIC_WEBSITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
-        EXPO_PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
+    # URLs are baked in at build time, so each environment has its own tag.
+    build: !reset null
     environment:
       # Needed by Caddyfile to determine the API origin.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
@@ -445,18 +439,12 @@ services:
       - /tmp:mode=1777
 
   www:
-    image: relab-www:${ENVIRONMENT}-local
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-www:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
     logging: *json-logging
     read_only: true
     user: *app-user
-    build:
-      args:
-        PUBLIC_APP_URL: ${APP_PUBLIC_URL:?APP_PUBLIC_URL must be set}
-        PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:?DOCS_PUBLIC_URL must be set}
-        PUBLIC_SITE_URL: ${SITE_PUBLIC_URL:?SITE_PUBLIC_URL must be set}
-        PUBLIC_API_URL: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
-        # Optional: the landing hero falls back to the committed fixture when unset.
-        PUBLIC_FEATURED_PRODUCT_ID: ${FEATURED_PRODUCT_ID:-}
+    # URLs are baked in at build time, so each environment has its own tag.
+    build: !reset null
     environment:
       # Needed by Caddyfile to allow the homepage stats fetch in the CSP.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}

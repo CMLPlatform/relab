@@ -5,6 +5,10 @@ This directory manages Relab's **per-environment** Cloudflare edge with OpenTofu
 - a Cloudflare Tunnel per environment
 - DNS records for that environment's public hostnames
 - tunnel ingress routes into the Compose `edge` network
+- the environment's GitHub Environment (`prod` or `staging`) and its four public URL variables,
+  which `publish-images.yml` bakes into the www, app and docs images. They derive from the same
+  hostname map as the DNS records, so a domain change reaches the images with the same apply.
+  Prod accepts publishes from `main` only.
 
 Zone-global configuration (TLS settings and the three entrypoint rulesets) lives in
 [`../cloudflare-zone`](../cloudflare-zone). See "Why two roots" below.
@@ -127,7 +131,14 @@ export CLOUDFLARE_API_TOKEN='...'
 export TF_VAR_cloudflare_account_id='...'
 export TF_VAR_cloudflare_zone_id='...'
 export TF_VAR_state_passphrase='...'      # >= 16 chars, see State Encryption
+export GITHUB_TOKEN="$(gh auth token)"     # the GitHub Environment, see below
 ```
+
+The GitHub token needs admin rights on the repository, since it manages an Environment.
+`gh auth token` has them when your account is a repository admin. The narrower option is a
+fine-grained token for this repository alone, with **Administration** (the Environment and its
+branch policy) and **Environments** (its variables) set to read and write. `FEATURED_PRODUCT_ID` is left to the Environment's
+settings page: it is a content choice, not an edge setting.
 
 Keep them in one file outside the repo and source it; a half-set environment is the most common way
 these commands fail:
@@ -140,6 +151,7 @@ Optional:
 
 ```bash
 export TF_VAR_cloudflare_zone_name='cml-relab.org'
+export TF_VAR_github_owner='CMLPlatform'  # a fork's owner, when it publishes its own images
 ```
 
 Do not commit tokens, tunnel tokens, or state files.

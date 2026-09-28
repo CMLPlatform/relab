@@ -60,6 +60,7 @@ VALIDATION_ENV_VALUES = {
     "APP_PUBLIC_URL": "https://app.placeholder.test",
     "SITE_PUBLIC_URL": "https://placeholder.test",
     "DOCS_PUBLIC_URL": "https://docs.placeholder.test",
+    "IMAGE_TAG": "0.0.0",
 }
 
 REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
@@ -69,6 +70,8 @@ REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
     "APP_PUBLIC_URL",
     "SITE_PUBLIC_URL",
     "DOCS_PUBLIC_URL",
+    # The published image tag the stack runs; `just stack <env> tag` rewrites it.
+    "IMAGE_TAG",
     "CLOUDFLARE_TUNNEL_TOKEN",
     "EMAIL_PROVIDER",
     "EMAIL_FROM",
@@ -99,8 +102,8 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     # will not open the first's repo), but see deploy/DEPLOY-PROD.md Part 1.1 before doing that.
     "BACKUP_HOST_DIR",
     "POSTGRES_SUPERUSER",
-    # May be empty: the www landing hero falls back to its committed fixture.
-    "FEATURED_PRODUCT_ID",
+    # A fork publishing its own images sets its registry namespace here.
+    "IMAGE_REGISTRY",
     # Upload ceilings and malware scanning, overridable per instance.
     "MAX_UPLOAD_FILES_PER_USER",
     "MAX_UPLOAD_BYTES_PER_USER_MB",

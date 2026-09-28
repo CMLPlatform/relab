@@ -10,7 +10,7 @@
 # host's own (root .env), never an argument: one host serves one environment.
 #
 # From the dev host, over an ssh config alias for the deploy user:
-#   ssh relab-prod pull && ssh relab-prod build && ssh relab-prod up migrations
+#   ssh relab-prod pull && ssh relab-prod tag 0.4.0 && ssh relab-prod up migrations
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -36,17 +36,13 @@ case "$action" in
     pull)
         git fetch --quiet origin && git pull --ff-only && git log --oneline -1
         ;;
-    build)
-        # `build nocache`: www bakes the landing page's API data in at build time, so a
-        # changed edge rule or featured product needs a rebuild the layer cache would skip.
-        case "${args[0]:-}" in
-            "") exec just stack "$env_name" build ;;
-            nocache) NO_CACHE=1 exec just stack "$env_name" build ;;
-            *)
-                echo "remote_deploy: build takes 'nocache' or nothing" >&2
-                exit 2
-                ;;
-        esac
+    tag)
+        # The pattern is repeated from require_image_tag so a bad argument never reaches just.
+        [[ "${args[0]:-}" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
+            echo "remote_deploy: tag needs an image tag like 0.4.0 or sha-5b099f3" >&2
+            exit 2
+        }
+        exec just stack "$env_name" tag YES "${args[0]}"
         ;;
     up)
         # `migrations` is the routine profile; anything else must be a known profile name.
@@ -62,11 +58,11 @@ case "$action" in
         exec just stack "$env_name" migrate YES
         ;;
     rollback)
-        [[ "${args[0]:-}" =~ ^[0-9a-f]{7,40}$ ]] || {
-            echo "remote_deploy: rollback needs an image sha" >&2
+        [[ "${args[0]:-}" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
+            echo "remote_deploy: rollback needs an image tag like 0.4.0 or sha-5b099f3" >&2
             exit 2
         }
-        # The alembic target is as dangerous as the sha and was not checked: `base`
+        # The alembic target is as dangerous as the tag and was not checked: `base`
         # downgrades through every revision, dropping every table. Only a concrete
         # revision id or a relative step may come over the key. Going to `base` is done
         # at the host's own console, never over a key.
@@ -90,7 +86,7 @@ case "$action" in
         exec bash scripts/deploy_ops.sh stack "$env_name" ps
         ;;
     "" | help)
-        echo "usage: ssh <deploy-host> {pull|build [nocache]|up [migrations|backups]|migrate|rollback <sha> [<rev>]|backup|watchdog|logs [<since>]|status}"
+        echo "usage: ssh <deploy-host> {pull|tag <tag>|up [migrations|backups]|migrate|rollback <tag> [<rev>]|backup|watchdog|logs [<since>]|status}"
         ;;
     *)
         echo "remote_deploy: '$action' is not allowed" >&2
