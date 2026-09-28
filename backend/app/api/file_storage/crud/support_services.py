@@ -3,9 +3,10 @@
 import logging
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from anyio import to_thread
+from fastapi import UploadFile
 from pydantic import UUID4
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -130,31 +131,27 @@ async def list_parent_storage_items[StorageModelT: StorageModel](
     return list((await db.execute(statement)).scalars().all())
 
 
-async def _process_created_image(db: AsyncSession, db_image: Image) -> Image:
-    """Post-process a stored image and roll back the record on processing failures."""
+async def _process_image_upload(upload_file: UploadFile) -> dict[str, Any]:
+    """Strip metadata from an image upload and bake in its rotation, before it is stored.
+
+    Runs on the upload itself, not on the stored file, so every storage backend (S3 has
+    no local file to post-process) receives the cleaned bytes. Returns the post-rotation
+    dimensions for the row.
+    """
+    try:
+        width_px, height_px = await to_thread.run_sync(
+            process_image_for_storage, upload_file.file, limiter=image_resize_limiter()
+        )
+    except (ValueError, OSError) as e:
+        raise BadRequestError(str(e)) from e
+    return {"width_px": width_px, "height_px": height_px}
+
+
+async def _generate_image_thumbnails(_db: AsyncSession, db_image: Image) -> Image:
+    """Generate the thumbnail set for a locally stored image."""
     image_path = stored_file_path(db_image)
     if image_path is None:
         return db_image
-
-    try:
-        await require_model(db, Image, db_image.id)
-        # The only step that sees the post-rotation dimensions.
-        width_px, height_px = await to_thread.run_sync(
-            process_image_for_storage, image_path, limiter=image_resize_limiter()
-        )
-        db_image.width_px = width_px
-        db_image.height_px = height_px
-        # Commit, not flush: `create()` already committed the row, so this runs in a new
-        # transaction that nothing else closes. A flush alone is rolled back at session
-        # teardown and the dimensions never reach the database. The refresh is required:
-        # the UPDATE leaves `updated_at` stale in memory, and serializing it would then
-        # attempt lazy IO from a sync context.
-        await db.commit()
-        await db.refresh(db_image)
-    except (ValueError, OSError) as e:
-        logger.warning("Image processing failed for image %s, rolling back: %s", db_image.id, e)
-        await image_storage_service.delete(db, db_image.id)
-        raise BadRequestError(str(e)) from e
 
     # Every width is generated here, before the response, so nothing is left for later:
     # image size is capped per role (at most MAX_IMAGE_PIXELS) and JPEGs decode through `draft`, which
@@ -186,6 +183,9 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
     # Checks the upload's metadata, size and content against the caps of the uploader's
     # tier, and returns its size in bytes.
     validate_upload: Callable[[CreateSchemaT, UserRole], Awaitable[int]]
+    # Rewrites the validated upload before any storage backend receives it, and returns
+    # extra column values for the new row.
+    prepare_upload: Callable[[UploadFile], Awaitable[dict[str, Any]]] | None = None
     after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] | None = None
 
     async def create(
@@ -209,6 +209,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
         upload_size_bytes = await self.validate_upload(payload, caps_role)
         await scan_upload_or_raise(payload.file)
+        extra_fields = await self.prepare_upload(payload.file) if self.prepare_upload is not None else {}
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         if quota_user_id is not None:
             # quota_user_id gates whether this upload counts against quota (product
@@ -223,6 +224,7 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             original_filename=original_filename,
             stored_name=stored_name,
             payload=payload,
+            **extra_fields,
         )
 
         db.add(db_item)
@@ -283,5 +285,6 @@ image_storage_service: StoredMediaService[Image, ImageCreateFromForm | ImageCrea
     model=Image,
     get_storage=_get_image_storage,
     validate_upload=_validate_image_upload,
-    after_create=_process_created_image,
+    prepare_upload=_process_image_upload,
+    after_create=_generate_image_thumbnails,
 )

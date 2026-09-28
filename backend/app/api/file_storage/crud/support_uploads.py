@@ -108,9 +108,11 @@ def build_storage_instance[StorageModelT: StorageModel](
     original_filename: str,
     stored_name: str,
     payload: StorageCreateSchema,
+    **extra_fields: Any,  # noqa: ANN401
 ) -> StorageModelT:
-    """Create a storage model instance from an upload payload."""
+    """Create a storage model instance from an upload payload, plus any extra column values."""
     item_kwargs: dict[str, Any] = {
+        **extra_fields,
         "id": file_id,
         "description": payload.description,
         "filename": original_filename,

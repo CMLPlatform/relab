@@ -7,7 +7,7 @@ import pytest
 from anyio import Path as AnyIOPath
 from fastapi import UploadFile
 from PIL import Image as PILImage
-from PIL import ImageCms
+from PIL import ImageCms, PngImagePlugin
 from PIL.ExifTags import GPS, IFD
 from starlette.datastructures import Headers
 
@@ -613,3 +613,115 @@ def test_process_image_skips_the_transpose_copy_when_upright(tmp_path: Path, mon
     monkeypatch.setattr("app.core.images.processing.ImageOps.exif_transpose", _fail)
 
     assert process_image_for_storage(path) == (40, 30)
+
+
+# ---------------------------------------------------------------------------
+# metadata outside EXIF: PNG text chunks, eXIf and XMP
+# ---------------------------------------------------------------------------
+
+_XMP_PACKET = b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><exif:GPSLatitude>52,9.6N</exif:GPSLatitude></x:xmpmeta>'
+
+
+def _allowlisted_and_personal_exif(orientation: int | None = None) -> PILImage.Exif:
+    exif = PILImage.Exif()
+    exif[0x0110] = "Model X"  # Model (preserved)
+    exif[0x013B] = "Jane Doe"  # Artist (dropped)
+    if orientation is not None:
+        exif[0x0112] = orientation
+    return exif
+
+
+def _xmp_kwargs(image_format: str) -> dict[str, object]:
+    """Pillow's PNG writer has no ``xmp`` option; PNG carries XMP in an iTXt chunk."""
+    if image_format != "PNG":
+        return {"xmp": _XMP_PACKET}
+    info = PngImagePlugin.PngInfo()
+    info.add_itxt("XML:com.adobe.xmp", _XMP_PACKET.decode())
+    return {"pnginfo": info}
+
+
+def test_process_image_drops_png_text_chunks(tmp_path: Path) -> None:
+    """tEXt, iTXt and zTXt chunks are free text under any keyword; none survive storage."""
+    info = PngImagePlugin.PngInfo()
+    info.add_text("Comment", "shot at Home Street 1")
+    info.add_itxt("Author", "Jane Doe")
+    info.add_text("Location", "Secret Place", zip=True)
+    path = tmp_path / "text.png"
+    PILImage.new("RGB", (40, 30)).save(path, pnginfo=info)
+    with PILImage.open(path) as before:
+        assert before.info.keys() >= {"Comment", "Author", "Location"}
+
+    process_image_for_storage(path)
+
+    stored = path.read_bytes()
+    assert b"Home Street" not in stored
+    assert b"Jane Doe" not in stored
+    with PILImage.open(path) as result:
+        assert not result.info.keys() & {"Comment", "Author", "Location"}
+
+
+@pytest.mark.parametrize("image_format", ["PNG", "WEBP", "JPEG"])
+def test_process_image_drops_xmp_and_keeps_the_exif_allowlist(tmp_path: Path, image_format: str) -> None:
+    """XMP repeats GPS in every format; it goes while the allowlisted EXIF stays."""
+    path = tmp_path / f"xmp.{image_format.lower()}"
+    PILImage.new("RGB", (40, 30)).save(
+        path, format=image_format, exif=_allowlisted_and_personal_exif(), **_xmp_kwargs(image_format)
+    )
+    assert b"GPSLatitude" in path.read_bytes()
+
+    process_image_for_storage(path)
+
+    stored = path.read_bytes()
+    assert b"GPSLatitude" not in stored
+    assert b"Jane Doe" not in stored
+    with PILImage.open(path) as result:
+        assert result.format == image_format
+        assert result.getexif()[0x0110] == "Model X"
+
+
+@pytest.mark.parametrize("image_format", ["PNG", "WEBP"])
+def test_process_image_xmp_alone_triggers_the_strip(tmp_path: Path, image_format: str) -> None:
+    """With no EXIF at all, an XMP packet on its own still has to be removed."""
+    path = tmp_path / f"xmp_only.{image_format.lower()}"
+    PILImage.new("RGB", (40, 30)).save(path, format=image_format, **_xmp_kwargs(image_format))
+    assert b"GPSLatitude" in path.read_bytes()
+
+    process_image_for_storage(path)
+
+    assert b"GPSLatitude" not in path.read_bytes()
+
+
+@pytest.mark.parametrize("image_format", ["PNG", "WEBP"])
+def test_process_image_rotates_and_filters_png_and_webp_exif(tmp_path: Path, image_format: str) -> None:
+    """A PNG eXIf chunk or WebP EXIF chunk gets the same allowlist and rotation as a JPEG."""
+    path = tmp_path / f"rotated.{image_format.lower()}"
+    PILImage.new("RGB", (40, 60)).save(
+        path, format=image_format, exif=_allowlisted_and_personal_exif(orientation=6), lossless=True
+    )
+
+    assert process_image_for_storage(path) == (60, 40)
+
+    assert b"Jane Doe" not in path.read_bytes()
+    with PILImage.open(path) as result:
+        assert result.size == (60, 40)
+        exif = result.getexif()
+        assert 0x0112 not in exif
+        assert exif[0x0110] == "Model X"
+
+
+def test_process_image_rewrites_an_upload_file_object_in_place() -> None:
+    """Uploads are stripped as file objects, before any storage backend sees them."""
+    upload = io.BytesIO()
+    PILImage.new("RGB", (40, 60)).save(
+        upload, format="JPEG", xmp=_XMP_PACKET, exif=_allowlisted_and_personal_exif(orientation=6)
+    )
+
+    assert process_image_for_storage(upload) == (60, 40)
+
+    stored = upload.getvalue()
+    assert b"GPSLatitude" not in stored
+    assert b"Jane Doe" not in stored
+    upload.seek(0)
+    with PILImage.open(upload) as result:
+        assert result.size == (60, 40)
+        assert result.getexif()[0x0110] == "Model X"
