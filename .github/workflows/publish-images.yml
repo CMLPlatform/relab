@@ -8,10 +8,11 @@ name: Publish Images
 # (`:0.4.0`). A manual run publishes the selected commit as `:sha-<short sha>`, for
 # trying an unreleased commit on staging.
 #
-# The backend images are the same in every environment. www, app and docs bake their
-# public URLs in at build time, so they are built once per environment and tagged
-# `:<tag>-prod` and `:<tag>-staging`, with the URLs taken from the variables of the
-# matching GitHub Environment. infra/cloudflare manages those from its hostname map.
+# The backend images are the same in every environment. The app bakes its public URLs
+# in at build time, so it is built once per environment and tagged `:<tag>-prod` and
+# `:<tag>-staging`, with the URLs taken from the variables of the matching GitHub
+# Environment. infra/cloudflare manages those from its hostname map. www and docs are
+# not images: deploy-sites.yml puts them on Cloudflare Workers.
 on:
   workflow_call:
     inputs:
@@ -42,12 +43,8 @@ jobs:
           - {service: api, context: ./backend, dockerfile: ./backend/Dockerfile, image: relab-backend}
           - {service: migrator, context: ./backend, dockerfile: ./backend/Dockerfile.migrations, image: relab-backend-migrations}
           - {service: relab-backup, context: ./backend, dockerfile: ./backend/Dockerfile.backups, image: relab-backup}
-          - {service: docs, env: prod, context: ., dockerfile: ./docs/Dockerfile, image: relab-docs}
-          - {service: docs, env: staging, context: ., dockerfile: ./docs/Dockerfile, image: relab-docs}
           - {service: app, env: prod, context: ., dockerfile: ./app/Dockerfile, image: relab-app}
           - {service: app, env: staging, context: ., dockerfile: ./app/Dockerfile, image: relab-app}
-          - {service: www, env: prod, context: ., dockerfile: ./www/Dockerfile, image: relab-www}
-          - {service: www, env: staging, context: ., dockerfile: ./www/Dockerfile, image: relab-www}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -112,13 +109,6 @@ jobs:
           # Unused args on the other services are ignored.
           build-args: |
             ENVIRONMENT=${{ matrix.env }}
-            PUBLIC_APP_URL=${{ vars.APP_PUBLIC_URL }}
-            PUBLIC_DOCS_URL=${{ vars.DOCS_PUBLIC_URL }}
-            PUBLIC_SITE_URL=${{ vars.SITE_PUBLIC_URL }}
-            PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
-            PUBLIC_BACKEND_API_URL=${{ vars.API_PUBLIC_URL }}
-            PUBLIC_FEATURED_PRODUCT_ID=${{ vars.FEATURED_PRODUCT_ID }}
-            LANDING_REQUIRE_LIVE=1
             EXPO_PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
             EXPO_PUBLIC_WEBSITE_URL=${{ vars.SITE_PUBLIC_URL }}
             EXPO_PUBLIC_DOCS_URL=${{ vars.DOCS_PUBLIC_URL }}

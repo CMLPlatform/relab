@@ -1,6 +1,6 @@
 // Public system stats for the homepage, fetched in the browser. The site CSP
-// allows the API origin via CADDY_API_ORIGIN; the API allows the www origin in
-// its CORS list.
+// allows the API origin (src/integrations/security-headers.ts); the API allows
+// the www origin in its CORS list.
 
 const DEV_API_URL = 'http://127.0.0.1:8010';
 const FETCH_TIMEOUT_MS = 4000;

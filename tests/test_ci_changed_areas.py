@@ -49,9 +49,7 @@ def test_everything_outputs_every_job() -> None:
     out = outputs(EVERYTHING)
     assert json.loads(out["web"]) == ["www", "app"]
     assert json.loads(out["smoke"]) == [
-        "docker-smoke-static www",
-        "docker-smoke-static app",
-        "docker-smoke-static docs",
+        "docker-smoke-app",
         "docker-orchestration-smoke",
         "docker-smoke-backups",
     ]

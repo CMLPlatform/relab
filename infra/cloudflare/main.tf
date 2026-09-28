@@ -13,7 +13,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared" "relab" {
 }
 
 resource "cloudflare_dns_record" "edge" {
-  for_each = local.edge_routes
+  for_each = local.tunnel_routes
 
   zone_id = var.cloudflare_zone_id
   name    = each.value.hostname
@@ -31,7 +31,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
   config = {
     ingress = concat(
       [
-        for route in values(local.edge_routes) : {
+        for route in values(local.tunnel_routes) : {
           hostname = route.hostname
           service  = route.origin
         }
@@ -44,4 +44,19 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
       ]
     )
   }
+}
+
+# Static sites served by a Worker. The custom domain owns its DNS record, and Cloudflare
+# refuses one on a hostname that still has a CNAME: depends_on makes an apply that moves
+# a hostname off the tunnel delete the old record first. The Worker must already exist,
+# so deploy-sites.yml runs once before the apply that adds its domain.
+resource "cloudflare_workers_custom_domain" "site" {
+  for_each = local.worker_routes
+
+  account_id = var.cloudflare_account_id
+  zone_id    = var.cloudflare_zone_id
+  hostname   = each.value.hostname
+  service    = each.value.worker
+
+  depends_on = [cloudflare_dns_record.edge]
 }

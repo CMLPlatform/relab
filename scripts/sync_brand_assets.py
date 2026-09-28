@@ -69,7 +69,7 @@ WEB_FONT_FILES = (
 )
 
 # Brand images land in src/assets wherever the site's build can hash them into
-# /_astro/, which Caddy serves with immutable cache headers. Anything needing a
+# /_astro/, which is served with immutable cache headers. Anything needing a
 # stable public URL (og.png, favicons, apple-touch-icon, wordmark.png in the
 # backend's emails) has to stay in public/ and gets a shorter max-age instead.
 COPY_ASSETS = (

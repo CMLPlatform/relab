@@ -1,6 +1,7 @@
 import process from 'node:process';
 import starlight from '@astrojs/starlight';
 import { defineConfig } from 'astro/config';
+import { securityHeaders } from './src/integrations/security-headers.ts';
 
 const MODE_SITES = {
   dev: 'http://127.0.0.1:8012',
@@ -128,5 +129,5 @@ export default defineConfig({
       chunkSizeWarningLimit: 3000,
     },
   },
-  integrations: [starlight(STARLIGHT_OPTIONS)],
+  integrations: [starlight(STARLIGHT_OPTIONS), securityHeaders(process.env.PUBLIC_BACKEND_API_URL)],
 });

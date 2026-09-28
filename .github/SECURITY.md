@@ -80,7 +80,8 @@ Security-sensitive areas:
 - admin APIs
 - RPi camera device APIs and WebSocket relay
 - backups, secrets, logs, and telemetry
-- release and security artifacts
+- release and security artifacts: the GHCR images the hosts pull, and the landing page and docs
+  deploy, whose Cloudflare API token is a GitHub Environment secret limited to Workers scripts
 
 Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files,
 OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup

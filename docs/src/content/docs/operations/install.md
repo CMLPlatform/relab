@@ -199,14 +199,19 @@ the topology these steps produce.
 
 1. Publish the images.
 
-   The hosts pull their images from GHCR instead of building them. The backend images work for any
-   deployment, but www, app and docs bake their public URLs in at build time, so a deployment on
-   another domain publishes its own from a fork:
+   The hosts pull their images from GHCR instead of building them, and the landing page and docs
+   are served by Cloudflare Workers. The backend images work for any deployment, but the app,
+   landing page and docs bake their public URLs in at build time, so a deployment on another domain
+   publishes its own from a fork:
 
    - In the fork's settings, create a GitHub Environment named `prod` (and `staging` if you run
      one) with the variables `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL` and
      `DOCS_PUBLIC_URL`, plus the optional `FEATURED_PRODUCT_ID` for the landing page hero. If you
-     run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you.
+     run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you,
+     along with the Worker names and your Cloudflare account ID.
+   - Add a `CLOUDFLARE_API_TOKEN` secret to each Environment: an account API token with
+     **Workers Scripts: Edit** and nothing else. Run the Deploy Sites workflow for each
+     environment before the `infra/cloudflare` apply that gives the Workers their hostnames.
    - Run the Publish Images workflow. A manual run publishes the commit as `sha-<short sha>`; a
      release published by `release.yml` uses its version (`0.4.0`).
    - Make the packages public in the fork's package settings, or log the host in to GHCR.

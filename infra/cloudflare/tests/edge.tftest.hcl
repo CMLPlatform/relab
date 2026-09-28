@@ -56,6 +56,36 @@ run "environments_never_share_a_hostname" {
   }
 }
 
+run "static_sites_leave_the_tunnel_for_workers" {
+  command = plan
+
+  variables {
+    environment = "staging"
+  }
+
+  # A hostname with both a tunnel CNAME and a custom domain cannot exist: Cloudflare
+  # refuses the domain. Each route is served one way.
+  assert {
+    condition     = length(setintersection(keys(cloudflare_dns_record.edge), keys(cloudflare_workers_custom_domain.site))) == 0
+    error_message = "no hostname may have both a tunnel record and a Workers custom domain."
+  }
+
+  assert {
+    condition     = cloudflare_workers_custom_domain.site["www"].service == github_actions_environment_variable.publish["WWW_WORKER"].value
+    error_message = "the www custom domain must serve the Worker the site deploy targets."
+  }
+
+  assert {
+    condition     = cloudflare_workers_custom_domain.site["docs"].hostname == "docs-test.cml-relab.org"
+    error_message = "staging docs must be served by a Worker on its -test hostname."
+  }
+
+  assert {
+    condition     = !contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : rule.service], "http://www:8081")
+    error_message = "the tunnel must no longer route to a www container."
+  }
+}
+
 run "tunnel_ingress_ends_in_a_catch_all" {
   command = plan
 
@@ -99,7 +129,7 @@ run "publish_urls_follow_the_hostnames" {
   }
 
   assert {
-    condition     = github_actions_environment_variable.public_url["SITE_PUBLIC_URL"].value == "https://web-test.cml-relab.org"
+    condition     = github_actions_environment_variable.publish["SITE_PUBLIC_URL"].value == "https://web-test.cml-relab.org"
     error_message = "staging SITE_PUBLIC_URL must be the staging www hostname."
   }
 

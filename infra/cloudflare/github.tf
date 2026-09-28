@@ -1,8 +1,10 @@
-# The GitHub Environment the image publish reads its public URLs from
-# (.github/workflows/publish-images.yml). The URLs derive from the same hostname map as
-# the DNS records and tunnel ingress, so a domain change lands in both with one apply.
+# The GitHub Environment the image publish and the site deploy read their public URLs
+# and Worker names from (.github/workflows/publish-images.yml, deploy-sites.yml). They
+# derive from the same hostname map as the DNS records, tunnel ingress and custom
+# domains, so a domain change lands everywhere with one apply.
 #
-# FEATURED_PRODUCT_ID is a content choice, not an edge setting: it is set by hand in the
+# FEATURED_PRODUCT_ID is a content choice, not an edge setting, and CLOUDFLARE_API_TOKEN
+# is a credential this root has no business minting: both are set by hand in the
 # environment's settings and left alone here.
 locals {
   github_public_url_variables = {
@@ -11,6 +13,13 @@ locals {
     SITE_PUBLIC_URL = "https://${local.edge_routes.www.hostname}"
     DOCS_PUBLIC_URL = "https://${local.edge_routes.docs.hostname}"
   }
+
+  # deploy-sites.yml deploys to the Worker each custom domain serves.
+  github_environment_variables = merge(local.github_public_url_variables, {
+    WWW_WORKER            = local.edge_routes.www.worker
+    DOCS_WORKER           = local.edge_routes.docs.worker
+    CLOUDFLARE_ACCOUNT_ID = var.cloudflare_account_id
+  })
 }
 
 resource "github_repository_environment" "publish" {
@@ -36,8 +45,8 @@ resource "github_repository_environment_deployment_policy" "main" {
   branch_pattern = "main"
 }
 
-resource "github_actions_environment_variable" "public_url" {
-  for_each = local.github_public_url_variables
+resource "github_actions_environment_variable" "publish" {
+  for_each = local.github_environment_variables
 
   repository    = var.github_repository
   environment   = github_repository_environment.publish.environment

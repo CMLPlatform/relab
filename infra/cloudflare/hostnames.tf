@@ -4,43 +4,54 @@
 locals {
   cloudflare_zone = var.cloudflare_zone_name
 
-  # Origins are resolved inside the Docker Compose `edge` network by cloudflared.
+  # Each route has exactly one of `origin` or `worker`. An origin is resolved inside the
+  # Docker Compose `edge` network by cloudflared. A worker is the Cloudflare Worker that
+  # serves a static site (deployed by .github/workflows/deploy-sites.yml), bound to the
+  # hostname as a Workers Custom Domain.
   edge_routes_by_environment = {
     prod = {
       www = {
         hostname = local.cloudflare_zone
-        origin   = "http://www:8081"
+        origin   = null
+        worker   = "relab-www-prod"
       }
       app = {
         hostname = "app.${local.cloudflare_zone}"
         origin   = "http://app:8081"
+        worker   = null
       }
       api = {
         hostname = "api.${local.cloudflare_zone}"
         origin   = "http://api:8000"
+        worker   = null
       }
       docs = {
         hostname = "docs.${local.cloudflare_zone}"
-        origin   = "http://docs:8000"
+        origin   = null
+        worker   = "relab-docs-prod"
       }
     }
 
     staging = {
       www = {
         hostname = "web-test.${local.cloudflare_zone}"
-        origin   = "http://www:8081"
+        origin   = null
+        worker   = "relab-www-staging"
       }
       app = {
         hostname = "app-test.${local.cloudflare_zone}"
         origin   = "http://app:8081"
+        worker   = null
       }
       api = {
         hostname = "api-test.${local.cloudflare_zone}"
         origin   = "http://api:8000"
+        worker   = null
       }
       docs = {
         hostname = "docs-test.${local.cloudflare_zone}"
-        origin   = "http://docs:8000"
+        origin   = null
+        worker   = "relab-docs-staging"
       }
     }
   }
