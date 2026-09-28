@@ -95,10 +95,14 @@ export const Chip = ({
 
   // A value with nothing to do on press is not a button: a focusable control
   // that does nothing costs a keyboard stop and misstates its role (WCAG 4.1.2).
+  // A named group keeps title and value one screen-reader stop, not two.
   if (readOnly) {
     return (
       <View
         testID={props.testID}
+        accessible
+        role="group"
+        accessibilityLabel={composedLabel}
         style={[styles.base, { backgroundColor: theme.tokens.surface.accent }]}
       >
         {content}

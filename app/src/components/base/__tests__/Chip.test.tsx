@@ -199,6 +199,8 @@ describe('Chip', () => {
       </Chip>,
     );
     expect(screen.queryByRole('button')).toBeNull();
+    // Still one named stop for screen readers, not "Brand" and the value apart.
+    expect(screen.getByRole('group', { name: 'Brand: CircularTech' })).toBeOnTheScreen();
     expect(screen.getByText('Brand')).toBeOnTheScreen();
     await user.press(screen.getByText('CircularTech'));
     expect(onPress).not.toHaveBeenCalled();
