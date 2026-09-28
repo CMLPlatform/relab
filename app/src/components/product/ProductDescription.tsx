@@ -48,7 +48,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
   // Render
   if (!editMode) {
     return (
-      <View style={{ paddingHorizontal: 14, paddingVertical: 8, gap: 10 }}>
+      <View style={{ paddingVertical: 8, gap: 10 }}>
         <AppText
           style={{ opacity: text ? 1 : 0.7 }}
           numberOfLines={expanded ? undefined : COLLAPSED_DESCRIPTION_LINES}

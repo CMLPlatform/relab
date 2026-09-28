@@ -84,12 +84,23 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     router.push({ pathname: '/products', params: { types: product.productTypeName } });
   };
 
+  // The snapshot is keyed by its own ids, which match the database's only by
+  // construction order, so a recorded type is shown as the API returned it.
+  // A type picked since load has only a snapshot id, so it falls through.
+  const recordedType =
+    product.productType?.id === product.productTypeID ? product.productType : undefined;
+  const shownType = recordedType
+    ? { name: recordedType.name, description: recordedType.description ?? '' }
+    : selectedType;
+
   const labels = typeRowLabels(product.role);
 
   const header = (
     <DetailSectionHeader
       title={labels.title}
-      tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
+      tooltipTitle={
+        editMode ? `Select a fitting category for the ${entityLabel(product)}.` : undefined
+      }
     />
   );
 
@@ -115,9 +126,9 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   return (
     <View>
       {header}
-      {selectedType ? (
+      {shownType ? (
         <CPVCard
-          CPV={selectedType}
+          CPV={shownType}
           onPress={editMode ? onTypeSelectionStart : undefined}
           actionElement={
             !editMode && product.productTypeName ? (

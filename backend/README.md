@@ -41,7 +41,7 @@ The disposable-email validator starts from the committed list in
 so startup works offline. The background refresh or the command above updates it.
 
 Seed payloads live under [data/seed/](data/seed/) and ship in the migrations image. `dummy_data.json`
-seeds one full teardown (a Dell XPS 13 with a component tree and a photograph per part). Seed
+seeds one full teardown (an HP ProBook 430 G2 with a component tree and a photograph per part). Seed
 photographs must stay wider than 800px: `generate_thumbnails` skips widths at or above the original's,
 and a narrower file loses its `srcset`.
 [tests/integration/db/test_dummy_seed.py](tests/integration/db/test_dummy_seed.py) checks this.

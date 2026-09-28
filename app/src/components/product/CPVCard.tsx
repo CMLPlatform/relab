@@ -6,7 +6,7 @@ import { getStatusTone } from '@/theme/color';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 interface Props {
-  CPV: CPVCategory;
+  CPV: Pick<CPVCategory, 'name' | 'description'>;
   onPress?: () => void;
   actionElement?: React.ReactNode;
 }
@@ -18,7 +18,9 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 
   return (
     <View
-      className="rounded-lg border border-border bg-card overflow-hidden min-h-[100px] justify-between"
+      // The fixed floor keeps pickable cards even in a selection grid; a read-only
+      // card on a record hugs its text instead of trailing an empty band.
+      className={`rounded-lg border border-border bg-card overflow-hidden justify-between ${onPress ? 'min-h-[100px]' : ''}`}
       // Tinted danger fill, same as Chip's error state.
       style={error ? { backgroundColor: getStatusTone(tokens.status.danger) } : undefined}
     >

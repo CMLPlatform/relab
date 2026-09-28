@@ -1,11 +1,16 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
-import { ProductsListContent } from '@/components/product/products-screen/ListContent';
+import { StyleSheet } from 'react-native';
+import {
+  ProductsHeaderFade,
+  ProductsListContent,
+} from '@/components/product/products-screen/ListContent';
 import { PRODUCTS_FAB_EDGE_GAP } from '@/components/product/products-screen/shared';
 import { MIN_TAP_TARGET } from '@/constants';
 import {
   baseProduct,
   getHostByType,
   mockPlatform,
+  queryAllHostsByType,
   renderWithProviders,
   restorePlatform,
 } from '@/test-utils/index';
@@ -18,6 +23,8 @@ function renderList({
   onFetchNextPage = jest.fn(),
   products = [baseProduct],
   total = 1,
+  isLoading = false,
+  numColumns = 1,
 }: {
   isFetchingNextPage?: boolean;
   hasNextPage?: boolean;
@@ -25,13 +32,15 @@ function renderList({
   onFetchNextPage?: () => void;
   products?: Product[];
   total?: number;
+  isLoading?: boolean;
+  numColumns?: number;
 } = {}) {
   return renderWithProviders(
     <ProductsListContent
-      numColumns={1}
+      numColumns={numColumns}
       products={products}
       filterMode="all"
-      isLoading={false}
+      isLoading={isLoading}
       isFetchingNextPage={isFetchingNextPage}
       slowLoading={false}
       total={total}
@@ -78,6 +87,19 @@ function refreshControl() {
   };
   return control.props;
 }
+
+describe('ProductsListContent loading skeleton', () => {
+  it('lays the skeleton cards out in the same column grid as the loaded list', async () => {
+    await renderList({ numColumns: 3, products: [], total: 0, isLoading: true });
+    // Each skeleton sits in a one-third-width cell, as each loaded card does.
+    const cells = queryAllHostsByType('View').filter(
+      (view) => StyleSheet.flatten(view.props.style)?.width === `${100 / 3}%`,
+    );
+    expect(cells).toHaveLength(8);
+    // Named and busy for assistive tech, not eight silent grey cards.
+    expect(screen.getByRole('progressbar', { name: 'Loading products' })).toBeOnTheScreen();
+  });
+});
 
 describe('ProductsListContent pull-to-refresh', () => {
   it('does not spin the pull-to-refresh control for a background refetch', async () => {
@@ -223,5 +245,21 @@ describe('ProductsListContent empty state', () => {
   it('does not mount the teardown photo behind a populated list', async () => {
     await renderList();
     expect(screen.queryByTestId('expo-image-bg', { includeHiddenElements: true })).toBeNull();
+  });
+});
+
+describe('ProductsHeaderFade', () => {
+  it('renders nothing at the top of the list, so it cannot grey out the first row', async () => {
+    await renderWithProviders(
+      <ProductsHeaderFade headerBottom={120} overlayColor="#FAFBFE" scrolled={false} />,
+    );
+    expect(queryAllHostsByType('LinearGradient')).toHaveLength(0);
+  });
+
+  it('fades content scrolling under the header once the list has scrolled', async () => {
+    await renderWithProviders(
+      <ProductsHeaderFade headerBottom={120} overlayColor="#FAFBFE" scrolled />,
+    );
+    expect(queryAllHostsByType('LinearGradient')).toHaveLength(1);
   });
 });

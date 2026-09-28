@@ -10,6 +10,7 @@ import type {
   ApiComponentChildItem,
   ApiComponentDetail,
   ApiImageRead,
+  ApiMaterialLink,
   ApiPaginatedProducts,
   ApiVideoRead,
 } from '@/types/api';
@@ -61,6 +62,14 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
   // Display label, not the stored name: CPV-imported types keep their code in
   // `name`, which is still what product_type_name[in] filters on.
   const productTypeName = 'product_type' in data ? productTypeLabel(data.product_type) : undefined;
+  const productType =
+    'product_type' in data && data.product_type
+      ? {
+          id: data.product_type.id,
+          name: data.product_type.name,
+          description: data.product_type.description,
+        }
+      : undefined;
   return {
     id: Number(data.id),
     name: data.name,
@@ -96,9 +105,23 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
         height: img.height_px ?? undefined,
         description: img.description ?? '',
       })) ?? [],
+    // undefined = the payload has no bill of materials (list rows, nested
+    // children); [] = loaded and empty. ProductMaterials renders nothing for
+    // the former, so a list row never claims a record has no materials.
+    // Sorted by name here because the API relationship has no order_by.
+    materials: ('bill_of_materials' in data ? data.bill_of_materials : undefined)
+      ?.map((link: ApiMaterialLink) => ({
+        materialID: link.material_id,
+        name: link.material.name,
+        quantity: link.quantity,
+        unit: link.unit,
+        ...(link.material.source ? { source: link.material.source } : {}),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     thumbnailUrls: resolveApiMediaUrlMap(data.thumbnail_urls),
     ...(productTypeName ? { productTypeName } : {}),
+    ...(productType ? { productType } : {}),
   };
 }
 

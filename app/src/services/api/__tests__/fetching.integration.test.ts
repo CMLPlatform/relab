@@ -75,6 +75,21 @@ const rawProductData = {
       description: 'Main image',
     },
   ],
+  bill_of_materials: [
+    {
+      material_id: 7,
+      quantity: 0.5,
+      unit: 'kg',
+      material: {
+        id: 7,
+        name: 'Aluminum',
+        description: 'Lightweight metal.',
+        source: 'https://example.com/aluminum',
+        density_kg_m3: 2700,
+        is_crm: false,
+      },
+    },
+  ],
   videos: [{ id: 20, url: 'https://example.com/vid', description: '', title: 'Demo' }],
   product_type: { id: 1, name: 'CPV: 302132', description: 'Tablet computer' },
 };
@@ -213,9 +228,55 @@ describe('Fetching API Service logic', () => {
       // own); undefined means "not loaded", distinct from `[]` ("loaded and
       // childless"); ComponentRow relies on this to decide whether to fetch.
       expect(p.components?.[0].components).toBeUndefined();
+      // Same distinction for materials: a nested child carries no bill of materials.
+      expect(p.components?.[0].materials).toBeUndefined();
       expect(p.images?.[0]?.description).toBe('Main image');
       expect(p.videos?.[0]?.title).toBe('Demo');
       expect(p.ownedBy).toBe('me');
+    });
+
+    it('maps the bill of materials with quantity, unit and the material source', async () => {
+      // The materials block is the only place a recorded quantity and where it
+      // came from reach the screen, and an unmapped `bill_of_materials` renders
+      // nothing at all rather than failing visibly.
+      server.use(http.get(`${API_URL}/products/42`, () => HttpResponse.json(rawProductData)));
+
+      const p = await getBaseProduct(42);
+
+      expect(p.materials).toEqual([
+        {
+          materialID: 7,
+          name: 'Aluminum',
+          quantity: 0.5,
+          unit: 'kg',
+          source: 'https://example.com/aluminum',
+        },
+      ]);
+    });
+
+    it('maps a loaded but empty bill of materials to [] and sorts rows by material name', async () => {
+      const link = rawProductData.bill_of_materials[0];
+      server.use(
+        http.get(`${API_URL}/products/42`, () =>
+          HttpResponse.json({ ...rawProductData, bill_of_materials: [] }),
+        ),
+        http.get(`${API_URL}/products/43`, () =>
+          HttpResponse.json({
+            ...rawProductData,
+            id: 43,
+            bill_of_materials: [
+              { ...link, material_id: 8, material: { ...link.material, id: 8, name: 'Steel' } },
+              link,
+            ],
+          }),
+        ),
+      );
+
+      expect((await getBaseProduct(42)).materials).toEqual([]);
+      expect((await getBaseProduct(43)).materials?.map(({ name }) => name)).toEqual([
+        'Aluminum',
+        'Steel',
+      ]);
     });
 
     it('maps the wire image derivatives, dimensions and product-type label', async () => {
@@ -237,6 +298,7 @@ describe('Fetching API Service logic', () => {
         height: 900,
       });
       expect(p.productTypeName).toBe('Tablet computer');
+      expect(p.productType).toEqual({ id: 1, name: 'CPV: 302132', description: 'Tablet computer' });
     });
 
     it('maps ownership to owner_id string when not current user', async () => {
@@ -351,14 +413,16 @@ describe('Fetching API Service logic', () => {
 
   describe('products', () => {
     it('fetches and returns mapped products in a paginated response', async () => {
-      server.use(
-        http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([rawProductData]))),
-      );
+      // A list row, like the real page item, has no `bill_of_materials` key.
+      const { bill_of_materials: _bom, ...listRow } = rawProductData;
+      server.use(http.get(`${API_URL}/products`, () => HttpResponse.json(makePage([listRow]))));
 
       const result = await products();
 
       expect(result.items).toHaveLength(1);
       expect(result.items[0].name).toBe('Recycled Aluminum Laptop Stand');
+      // Not loaded, so not "none recorded": the materials block renders nothing.
+      expect(result.items[0].materials).toBeUndefined();
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
       expect(result.size).toBe(50);

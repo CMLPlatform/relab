@@ -70,7 +70,7 @@ export default function ProductPhysicalProperties({
   // Render
   return (
     <View>
-      <AppText variant="heading" {...heading(3)} className="mb-2 font-semibold">
+      <AppText variant="body" {...heading(3)} className="mb-2 font-semibold">
         Measurements
       </AppText>
       {hasDimensions ? (
