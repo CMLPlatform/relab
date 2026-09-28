@@ -37,7 +37,10 @@ export default function ProductMetaData({ product }: Props) {
       ) : null}
       {product.updatedAt ? (
         <MetaRow label="Last Updated">
-          <AppText variant="data">{new Date(product.updatedAt).toLocaleDateString()}</AppText>
+          <AppText variant="data">
+            {new Date(product.updatedAt).toLocaleDateString()}
+            {product.updatedByModerator ? ' by a moderator' : null}
+          </AppText>
         </MetaRow>
       ) : null}
       <MetaRow label="Owner">

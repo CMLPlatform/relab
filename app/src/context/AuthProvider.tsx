@@ -5,6 +5,7 @@ import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { getToken } from '@/services/api/auth/authRefresh';
 import { hasWebSessionFlag } from '@/services/api/auth/authSession';
 import { getUser } from '@/services/api/auth/authUser';
+import { forgetSavedVersions } from '@/services/api/saving';
 import { clearPersistedUserData } from '@/services/storage';
 import type { User } from '@/types/User';
 import { logError } from '@/utils/logging';
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Shared device: wipe the in-memory cache and both persisted copies, or
       // the next user sees this one's data (query cache lives 24h, recents forever).
       queryClient.clear();
+      forgetSavedVersions();
       void clearPersistedUserData();
       return;
     }

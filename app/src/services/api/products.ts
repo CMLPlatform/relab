@@ -78,6 +78,8 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
     description: data.description ?? undefined,
     createdAt: data.created_at ?? undefined,
     updatedAt: data.updated_at ?? undefined,
+    version: data.version,
+    updatedByModerator: data.updated_by_moderator,
     productTypeID: data.product_type_id ?? undefined,
     physicalProperties: {
       weight: data.weight_g ?? undefined,

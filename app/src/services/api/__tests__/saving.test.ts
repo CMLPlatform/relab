@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
+import { ApiError } from '@/services/api/errors';
 import { getBaseProduct } from '@/services/api/products';
-import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
+import {
+  deleteProduct,
+  forgetSavedVersions,
+  isEditConflict,
+  MediaSyncError,
+  saveProduct,
+} from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
 // Mock dependencies
@@ -57,6 +64,7 @@ function mockFetchError(status = 400, body: unknown = { detail: 'Error' }) {
 describe('Saving API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    forgetSavedVersions();
     // Default: getBaseProduct returns a product with no images or videos
     mockGetProduct.mockResolvedValue({
       ...baseProduct,
@@ -270,6 +278,74 @@ describe('Saving API Service', () => {
       mockFetchError(400, { detail: 'Validation failed' });
 
       await expect(saveProduct(existingProduct)).rejects.toThrow('Validation failed');
+    });
+
+    it('sends the loaded version as a quoted If-Match tag', async () => {
+      mockFetchOk({ id: 77, version: 4 });
+
+      await saveProduct({ ...baseProduct, id: 77, version: 3 });
+
+      const patchCall = mockFetchWithAuth.mock.calls.find((c) => c[1]?.method === 'PATCH');
+      expect(patchCall?.[1]?.headers).toHaveProperty('If-Match', '"3"');
+    });
+
+    it("chains a form's second save onto the version its first save produced", async () => {
+      mockFetchOk({ id: 78, version: 2 });
+      mockFetchOk({ id: 78, version: 3 });
+
+      // Both snapshots come from a form hydrated at version 1.
+      await saveProduct({ ...baseProduct, id: 78, version: 1 });
+      await saveProduct({ ...baseProduct, id: 78, version: 1 });
+
+      const tags = mockFetchWithAuth.mock.calls
+        .filter((c) => c[1]?.method === 'PATCH')
+        .map((c) => (c[1]?.headers as Record<string, string> | undefined)?.['If-Match']);
+      expect(tags).toEqual(['"1"', '"2"']);
+    });
+
+    it('treats a 412 as success when the record already holds the payload (a retry after a lost response)', async () => {
+      const product = { ...baseProduct, id: 80, version: 1 };
+      mockFetchError(412, { detail: 'stale' });
+      mockFetchOk({
+        id: 80,
+        version: 2,
+        name: product.name,
+        brand: product.brand,
+        model: product.model,
+        description: product.description,
+        product_type_id: null,
+        weight_g: 500,
+        height_cm: 5,
+        width_cm: 10,
+        depth_cm: 3,
+        // Key order differs from the payload's on purpose.
+        circularity_properties: {
+          remanufacturability: 'medium',
+          recyclability: 'low',
+          disassemblability: 'high',
+        },
+      });
+      mockFetchOk({ id: 80, version: 3 });
+
+      await expect(saveProduct(product)).resolves.toBe(80);
+      await saveProduct(product);
+
+      const tags = mockFetchWithAuth.mock.calls
+        .filter((c) => c[1]?.method === 'PATCH')
+        .map((c) => (c[1]?.headers as Record<string, string> | undefined)?.['If-Match']);
+      expect(tags).toEqual(['"1"', '"2"']);
+    });
+
+    it('reports a 412 as an edit conflict', async () => {
+      mockFetchError(412, { detail: 'This product was changed since you loaded it.' });
+      mockFetchOk({ id: 79, version: 2, name: 'Changed elsewhere' }); // the reconciling GET
+
+      const err = await saveProduct({ ...baseProduct, id: 79, version: 1 }).catch(
+        (e: unknown) => e,
+      );
+
+      expect(isEditConflict(err)).toBe(true);
+      expect(isEditConflict(new ApiError('nope', 409))).toBe(false);
     });
   });
 

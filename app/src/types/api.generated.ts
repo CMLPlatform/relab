@@ -3672,6 +3672,18 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
+      /**
+       * Updated By Moderator
+       * @description Whether the last field edit was made by a moderator rather than the owner.
+       * @default false
+       */
+      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3746,6 +3758,18 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
+      /**
+       * Updated By Moderator
+       * @description Whether the last field edit was made by a moderator rather than the owner.
+       * @default false
+       */
+      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3799,6 +3823,18 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
+      /**
+       * Updated By Moderator
+       * @description Whether the last field edit was made by a moderator rather than the owner.
+       * @default false
+       */
+      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3857,6 +3893,18 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
+      /**
+       * Updated By Moderator
+       * @description Whether the last field edit was made by a moderator rather than the owner.
+       * @default false
+       */
+      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -4902,6 +4950,18 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
+      /**
+       * Updated By Moderator
+       * @description Whether the last field edit was made by a moderator rather than the owner.
+       * @default false
+       */
+      updated_by_moderator: boolean;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -4984,6 +5044,18 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
+      /**
+       * Updated By Moderator
+       * @description Whether the last field edit was made by a moderator rather than the owner.
+       * @default false
+       */
+      updated_by_moderator: boolean;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -5030,6 +5102,18 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
+      /**
+       * Updated By Moderator
+       * @description Whether the last field edit was made by a moderator rather than the owner.
+       * @default false
+       */
+      updated_by_moderator: boolean;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -8090,7 +8174,10 @@ export interface operations {
   update_product_v1_products__product_id__patch: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        /** @description Required. The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412. */
+        'if-match'?: string | null;
+      };
       path: {
         product_id: number;
       };
@@ -8111,6 +8198,13 @@ export interface operations {
           'application/json': components['schemas']['ProductRead'];
         };
       };
+      /** @description The record changed since the `version` sent in `If-Match`, or the header is malformed. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -8119,6 +8213,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
+      };
+      /** @description The `If-Match` header is missing. */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -8826,7 +8927,10 @@ export interface operations {
   update_component_v1_components__component_id__patch: {
     parameters: {
       query?: never;
-      header?: never;
+      header?: {
+        /** @description Required. The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412. */
+        'if-match'?: string | null;
+      };
       path: {
         component_id: number;
       };
@@ -8847,6 +8951,13 @@ export interface operations {
           'application/json': components['schemas']['ComponentRead'];
         };
       };
+      /** @description The record changed since the `version` sent in `If-Match`, or the header is malformed. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -8855,6 +8966,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
+      };
+      /** @description The `If-Match` header is missing. */
+      428: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

@@ -6,6 +6,8 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useDialog } from '@/components/base/dialogContext';
 import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import { ApiError } from '@/services/api/errors';
 import { type ProductsQuery, products } from '@/services/api/products';
@@ -14,7 +16,7 @@ import {
   searchProductBrands,
   searchProductTypes,
 } from '@/services/api/productTypes';
-import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
+import { deleteProduct, isEditConflict, MediaSyncError, saveProduct } from '@/services/api/saving';
 import { fetchTopCategories } from '@/services/api/stats';
 import type { Product } from '@/types/Product';
 
@@ -230,6 +232,34 @@ function isRetryableSaveError(failureCount: number, error: unknown): boolean {
   if (failureCount >= 3) return false;
   if (error instanceof ApiError) return error.status === 409;
   return true;
+}
+
+// A save restored from the persisted cache after a restart has no screen
+// awaiting it, so its conflict is announced here. Screens' own saves never
+// reach this: useSaveProductMutation's onError replaces the default one.
+let announceResumedSaveConflict: ((message: string) => void) | undefined;
+
+/** Registers the toast that announces a resumed save refused as a conflict. Mount once, under DialogProvider. */
+export function ResumedSaveConflictNotice() {
+  const { toast } = useDialog();
+  useEffect(() => {
+    announceResumedSaveConflict = toast;
+    return () => {
+      announceResumedSaveConflict = undefined;
+    };
+  }, [toast]);
+  return null;
+}
+
+/** Default onError for restored saves: on a conflict, refresh the record and say the edit was dropped. */
+export function onResumedSaveError(queryClient: QueryClient) {
+  return (error: unknown, { product }: SaveProductVariables) => {
+    if (!isEditConflict(error) || typeof product.id !== 'number') return;
+    invalidateAfterSave(queryClient, product, product.id);
+    announceResumedSaveConflict?.(
+      `"${product.name}" changed elsewhere while your edit waited to send, so the edit was not saved.`,
+    );
+  };
 }
 
 // Shown on the save/create button and in the toast when the mutation pauses.

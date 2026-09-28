@@ -9,6 +9,7 @@ const PRODUCT_ID_PATTERN = /Product ID:/;
 const CREATED_PATTERN = /Created:/;
 const LAST_UPDATED_PATTERN = /Last Updated:/;
 const OWNER_PATTERN = /Owner:/;
+const BY_MODERATOR_PATTERN = /by a moderator/;
 const ANONYMOUS_PATTERN = /Anonymous/;
 const TESTUSER_PATTERN = /testuser/;
 const COMPONENT_ID_PATTERN = /Component ID:/;
@@ -36,6 +37,21 @@ describe('ProductMetaData', () => {
     const product = { ...baseProduct, updatedAt: '2024-06-01T00:00:00Z' };
     await renderWithProviders(<ProductMetaData product={product} />);
     expect(screen.getByText(LAST_UPDATED_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('says when a moderator made the last edit', async () => {
+    const updatedAt = '2024-06-01T00:00:00Z';
+    await renderWithProviders(
+      <ProductMetaData product={{ ...baseProduct, updatedAt, updatedByModerator: true }} />,
+    );
+    expect(screen.getByText(BY_MODERATOR_PATTERN)).toBeOnTheScreen();
+  });
+
+  it('names no editor when the owner made the last edit', async () => {
+    await renderWithProviders(
+      <ProductMetaData product={{ ...baseProduct, updatedAt: '2024-06-01T00:00:00Z' }} />,
+    );
+    expect(screen.queryByText(BY_MODERATOR_PATTERN)).toBeNull();
   });
 
   it('does not show creation date when createdAt is absent', async () => {
