@@ -14,6 +14,7 @@ import CircleCheckBig from 'lucide-react-native/icons/circle-check-big';
 import CircleUserRound from 'lucide-react-native/icons/circle-user-round';
 import Clock from 'lucide-react-native/icons/clock';
 import Copy from 'lucide-react-native/icons/copy';
+import Download from 'lucide-react-native/icons/download';
 import EthernetPort from 'lucide-react-native/icons/ethernet-port';
 import ExternalLink from 'lucide-react-native/icons/external-link';
 import Eye from 'lucide-react-native/icons/eye';
@@ -102,6 +103,7 @@ const iconMap = {
   'circle-user-round': CircleUserRound,
   clock: Clock,
   copy: Copy,
+  download: Download,
   'ethernet-port': EthernetPort,
   'external-link': ExternalLink,
   eye: Eye,

@@ -57,6 +57,10 @@ Security-sensitive areas:
     (`account_guess_budget`). Rotating IPs, routes or fresh login challenges buys no extra
     guesses, so the MFA routes themselves sit on the looser login IP budget.
 - public read APIs
+  - Product export (`/products/export`, `/products/{id}/export`) assembles whole product trees, so
+    it has its own, stricter rate limit and refuses more than 100 base products per request.
+    Owner attribution follows the same profile-visibility redaction as the product page. CSV cells
+    that a spreadsheet would read as a formula are prefixed with `'`.
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so

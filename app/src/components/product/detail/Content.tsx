@@ -10,6 +10,7 @@ import { AppText } from '@/components/base/AppText';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Section } from '@/components/base/Section';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
+import { ExportMenu } from '@/components/product/ExportMenu';
 import ProductDelete from '@/components/product/ProductDelete';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
 import { type MissingField, missingFields } from '@/features/products/missingFields';
@@ -180,6 +181,12 @@ export function ProductPageContent({
               the record; keeping it out of the nav is what lets the chips
               fit one row on a phone. */}
           <ProductMetaData product={product} />
+          {/* Exports cover a whole product tree, so only base products offer one. */}
+          {product.role === 'product' && typeof product.id === 'number' && !editMode ? (
+            <View className="mb-2 flex-row">
+              <ExportMenu label="Export" productId={product.id} />
+            </View>
+          ) : null}
           <ProductDelete product={product} editMode={editMode} onDelete={onProductDelete} />
         </View>
       </PageContainer>

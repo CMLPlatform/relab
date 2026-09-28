@@ -1659,6 +1659,248 @@
         "title": "ComponentCreateWithComponents",
         "type": "object"
       },
+      "ComponentExportRead": {
+        "description": "Component in a product export: the detail read plus every sub-component.",
+        "properties": {
+          "amount_in_parent": {
+            "description": "Quantity within parent product",
+            "title": "Amount In Parent",
+            "type": "integer"
+          },
+          "bill_of_materials": {
+            "description": "Bill of materials with quantities and units",
+            "items": {
+              "$ref": "#/components/schemas/MaterialProductLinkReadWithinProduct"
+            },
+            "title": "Bill Of Materials",
+            "type": "array"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "circularity_properties": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircularityPropertiesFields"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "components": {
+            "description": "List of sub-components",
+            "items": {
+              "$ref": "#/components/schemas/ComponentExportRead"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "depth_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth Cm"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "files": {
+            "description": "Product files",
+            "items": {
+              "$ref": "#/components/schemas/FileRead"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "height_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Cm"
+          },
+          "id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Id",
+            "type": "integer"
+          },
+          "images": {
+            "description": "Product images",
+            "items": {
+              "$ref": "#/components/schemas/ImageRead"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "owner_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Username"
+          },
+          "parent_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Parent Id",
+            "type": "integer"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductTypeRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product_type_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type Id"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "title": "Thumbnail Urls",
+            "type": "object"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "volume_cm3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Cm3"
+          },
+          "weight_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight G"
+          },
+          "width_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Cm"
+          }
+        },
+        "required": [
+          "name",
+          "id",
+          "parent_id",
+          "amount_in_parent"
+        ],
+        "title": "ComponentExportRead",
+        "type": "object"
+      },
       "ComponentRead": {
         "description": "Read schema for components (nested inside a base product tree).",
         "properties": {
@@ -4109,6 +4351,244 @@
           "name"
         ],
         "title": "ProductCreateWithComponents",
+        "type": "object"
+      },
+      "ProductExportRead": {
+        "description": "Base product in a product export: the detail read plus its whole component tree.",
+        "properties": {
+          "bill_of_materials": {
+            "description": "Bill of materials with quantities and units",
+            "items": {
+              "$ref": "#/components/schemas/MaterialProductLinkReadWithinProduct"
+            },
+            "title": "Bill Of Materials",
+            "type": "array"
+          },
+          "brand": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "circularity_properties": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CircularityPropertiesFields"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "components": {
+            "description": "List of component products",
+            "items": {
+              "$ref": "#/components/schemas/ComponentExportRead"
+            },
+            "title": "Components",
+            "type": "array"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "depth_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Depth Cm"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "files": {
+            "description": "Product files",
+            "items": {
+              "$ref": "#/components/schemas/FileRead"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "height_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Height Cm"
+          },
+          "id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Id",
+            "type": "integer"
+          },
+          "images": {
+            "description": "Product images",
+            "items": {
+              "$ref": "#/components/schemas/ImageRead"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid4",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "owner_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Username"
+          },
+          "product_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProductTypeRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "product_type_id": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Type Id"
+          },
+          "thumbnail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thumbnail Url"
+          },
+          "thumbnail_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.",
+            "propertyNames": {
+              "pattern": "^[1-9][0-9]*$"
+            },
+            "title": "Thumbnail Urls",
+            "type": "object"
+          },
+          "updated_at": {
+            "title": "Updated At",
+            "type": "string"
+          },
+          "videos": {
+            "description": "Disassembly videos",
+            "items": {
+              "$ref": "#/components/schemas/VideoReadWithinProduct"
+            },
+            "title": "Videos",
+            "type": "array"
+          },
+          "volume_cm3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Cm3"
+          },
+          "weight_g": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight G"
+          },
+          "width_cm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Width Cm"
+          }
+        },
+        "required": [
+          "name",
+          "id"
+        ],
+        "title": "ProductExportRead",
         "type": "object"
       },
       "ProductFacetValue": {
@@ -14762,6 +15242,536 @@
         ]
       }
     },
+    "/v1/products/export": {
+      "get": {
+        "description": "Export every base product the product list would match, each with its whole component tree.\n\nTakes the same filters, search and sorting as ``GET /products``. CSV has one row per\nproduct or component, linked by ``parent_id``; JSON nests components as the detail read\ndoes. At most 100 base products: narrow the filters, or use the dataset release for bulk data.",
+        "operationId": "export_products_v1_products_export_get",
+        "parameters": [
+          {
+            "description": "File format: 'csv' or 'json'",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "csv",
+              "description": "File format: 'csv' or 'json'",
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Use 'me' for the current user's products, or a username for that user's public products",
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 50,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Use 'me' for the current user's products, or a username for that user's public products",
+              "title": "Owner"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Search"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Name"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name[ilike]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Name[Ilike]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "description",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            }
+          },
+          {
+            "in": "query",
+            "name": "description[ilike]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description[Ilike]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand[ilike]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand[Ilike]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand[in]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Brand[In]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model"
+            }
+          },
+          {
+            "in": "query",
+            "name": "model[ilike]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model[Ilike]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_at",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_at[ge]",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "title": "Created At[Ge]",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "created_at[le]",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "title": "Created At[Le]",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "updated_at",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "updated_at[ge]",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "title": "Updated At[Ge]",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "updated_at[le]",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "title": "Updated At[Le]",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "weight_g",
+            "required": false,
+            "schema": {
+              "title": "Weight G",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "weight_g[ge]",
+            "required": false,
+            "schema": {
+              "title": "Weight G[Ge]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "weight_g[le]",
+            "required": false,
+            "schema": {
+              "title": "Weight G[Le]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "height_cm",
+            "required": false,
+            "schema": {
+              "title": "Height Cm",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "height_cm[ge]",
+            "required": false,
+            "schema": {
+              "title": "Height Cm[Ge]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "height_cm[le]",
+            "required": false,
+            "schema": {
+              "title": "Height Cm[Le]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "width_cm",
+            "required": false,
+            "schema": {
+              "title": "Width Cm",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "width_cm[ge]",
+            "required": false,
+            "schema": {
+              "title": "Width Cm[Ge]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "width_cm[le]",
+            "required": false,
+            "schema": {
+              "title": "Width Cm[Le]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth_cm",
+            "required": false,
+            "schema": {
+              "title": "Depth Cm",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth_cm[ge]",
+            "required": false,
+            "schema": {
+              "title": "Depth Cm[Ge]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "depth_cm[le]",
+            "required": false,
+            "schema": {
+              "title": "Depth Cm[Le]",
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_type_name",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Type Name"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_type_name[ilike]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Type Name[Ilike]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_type_name[in]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Type Name[In]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_type_description",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Type Description"
+            }
+          },
+          {
+            "in": "query",
+            "name": "product_type_description[ilike]",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Product Type Description[Ilike]"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order_by",
+            "required": false,
+            "schema": {
+              "explode": false,
+              "items": {
+                "enum": [
+                  "+name",
+                  "+brand",
+                  "+model",
+                  "+created_at",
+                  "+updated_at",
+                  "+product_type_name",
+                  "name",
+                  "brand",
+                  "model",
+                  "created_at",
+                  "updated_at",
+                  "product_type_name",
+                  "-name",
+                  "-brand",
+                  "-model",
+                  "-created_at",
+                  "-updated_at",
+                  "-product_type_name"
+                ],
+                "type": "string"
+              },
+              "title": "Order By",
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProductExportRead"
+                  },
+                  "title": "Response Export Products V1 Products Export Get",
+                  "type": "array"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "More than 100 base products match the filters"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Export base products matching the list filters, with their components",
+        "tags": [
+          "products"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
     "/v1/products/facets": {
       "get": {
         "description": "Return derived filter values and counts for product browsing.",
@@ -16345,6 +17355,87 @@
           }
         ],
         "summary": "Get product component subtree",
+        "tags": [
+          "products"
+        ],
+        "x-audience": [
+          "public",
+          "app"
+        ]
+      }
+    },
+    "/v1/products/{product_id}/export": {
+      "get": {
+        "description": "Export one base product and its whole component tree, in the same formats as ``/products/export``.",
+        "operationId": "export_product_v1_products__product_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "exclusiveMinimum": 0,
+              "title": "Product Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "File format: 'csv' or 'json'",
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "csv",
+              "description": "File format: 'csv' or 'json'",
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProductExportRead"
+                  },
+                  "title": "Response Export Product V1 Products  Product Id  Export Get",
+                  "type": "array"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyCookie": []
+          }
+        ],
+        "summary": "Export one base product with its components",
         "tags": [
           "products"
         ],

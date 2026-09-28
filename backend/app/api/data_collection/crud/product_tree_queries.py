@@ -14,12 +14,17 @@ from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import MaterialProductLink, Product
 
+COMPONENTS_RELATIONSHIP = "components"
 PRODUCT_READ_SUMMARY_RELATIONSHIPS: frozenset[str] = frozenset({"owner"})
 PRODUCT_READ_DETAIL_RELATIONSHIPS: frozenset[str] = frozenset(
-    {"owner", "product_type", "videos", "files", "images", "bill_of_materials", "components"}
+    {"owner", "product_type", "videos", "files", "images", "bill_of_materials", COMPONENTS_RELATIONSHIP}
 )
+# Export walks the tree level by level itself, so it loads no ``components`` per row.
+PRODUCT_EXPORT_RELATIONSHIPS: frozenset[str] = PRODUCT_READ_DETAIL_RELATIONSHIPS - {COMPONENTS_RELATIONSHIP}
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from sqlalchemy import Select
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +37,10 @@ class ProductTreeData:
     children_by_parent_id: dict[int, list[Product]]
 
 
-def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tuple[Product]]:
+def apply_product_detail_loaders(
+    statement: Select[tuple[Product]],
+    relationships: frozenset[str] = PRODUCT_READ_DETAIL_RELATIONSHIPS,
+) -> Select[tuple[Product]]:
     """Apply relationship loaders required by product detail responses.
 
     ``Product``'s components, parent and images are all eagerly loaded at class
@@ -43,9 +51,10 @@ def apply_product_detail_loaders(statement: Select[tuple[Product]]) -> Select[tu
     component's own components come back unloaded. See
     ``test_product_detail_load_stops_below_the_first_component_level``.
     """
-    statement = apply_loader_profile(statement, Product, PRODUCT_READ_DETAIL_RELATIONSHIPS)
+    statement = apply_loader_profile(statement, Product, relationships)
+    if COMPONENTS_RELATIONSHIP in relationships:
+        statement = statement.options(selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)))
     return statement.options(
-        selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)),
         selectinload(orm_attr(Product.bill_of_materials)).selectinload(orm_attr(MaterialProductLink.material)),
     )
 
@@ -113,3 +122,25 @@ async def load_component_subtree(
         frontier = next_frontier
 
     return ProductTreeData(roots=roots, children_by_parent_id=children_by_parent_id)
+
+
+async def load_all_descendants(db: AsyncSession, root_ids: Iterable[int]) -> dict[int, list[Product]]:
+    """Load every component below ``root_ids`` with export relationships, keyed by parent id.
+
+    One query batch per tree level, however many roots or components there are.
+    """
+    seen = set(root_ids)
+    frontier = list(seen)
+    children_by_parent_id: defaultdict[int, list[Product]] = defaultdict(list)
+    while frontier:
+        statement = apply_product_detail_loaders(
+            select(Product).where(Product.parent_id.in_(frontier)).order_by(Product.id),
+            PRODUCT_EXPORT_RELATIONSHIPS,
+        )
+        children = [child for child in (await db.execute(statement)).scalars().unique() if child.id not in seen]
+        for child in children:
+            if child.parent_id is not None:
+                children_by_parent_id[child.parent_id].append(child)
+        seen.update(child.id for child in children)
+        frontier = [child.id for child in children]
+    return children_by_parent_id

@@ -3,6 +3,7 @@ import { useCallback, useRef } from 'react';
 import { type LayoutChangeEvent, type TextInput, useWindowDimensions, View } from 'react-native';
 import { PageContainer } from '@/components/base/PageContainer';
 import { ScreenTitle } from '@/components/base/ScreenTitle';
+import { ExportMenu } from '@/components/product/ExportMenu';
 import {
   ProductsErrorBanner,
   ProductsFab,
@@ -121,6 +122,12 @@ export default function Products() {
               onSetTypeSearch={filters.setTypeSearch}
               onClearTypes={filters.clearTypes}
             />
+          ) : null}
+
+          {filters.expanded && list.total > 0 ? (
+            <View className="flex-row">
+              <ExportMenu label="Export results" query={list.exportQuery} />
+            </View>
           ) : null}
 
           <ProductsErrorBanner error={list.error} onRetry={handleRetry} />

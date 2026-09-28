@@ -219,6 +219,9 @@ class CoreSettings(RelabBaseSettings):
     api_read_rate_limit_per_user: str = "1500/minute"  # 50 x 30
     api_write_rate_limit_per_user: str = "600/minute"  # 50 x 12
     api_upload_rate_limit_per_user: str = "300/minute"  # 50 x 6
+    # Product export assembles up to 100 whole product trees per request.
+    api_export_rate_limit: str = "10/minute"
+    api_export_rate_limit_per_user: str = "30/minute"
     rpi_cam_ws_auth_rate_limit: str = "10/minute"
     rpi_cam_ws_binary_frame_limit_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")
