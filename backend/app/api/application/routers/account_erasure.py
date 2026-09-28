@@ -8,7 +8,7 @@ belong in the application layer.
 
 from typing import Annotated
 
-from fastapi import BackgroundTasks, Body, HTTPException, Query, Request, Response, Security, status
+from fastapi import BackgroundTasks, Body, Query, Request, Response, Security, status
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from app.api.application.account_erasure import ANONYMIZE, ErasureContent, erase_user, require_erasable_account
@@ -19,7 +19,6 @@ from app.api.auth.dependencies import (
     UserManagerDep,
     current_active_superuser,
 )
-from app.api.auth.exceptions import MfaStepUpCodeInvalidError
 from app.api.auth.models import User
 from app.api.auth.services.account_security import (
     require_recent_sign_in,
@@ -29,11 +28,11 @@ from app.api.auth.services.account_security import (
 from app.api.auth.services.auth_backends import clear_auth_cookies
 from app.api.auth.services.email.service import send_account_deleted_notification
 from app.api.auth.services.mfa_flow import require_mfa_step_up
-from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT, LOGIN_RATE_LIMIT
+from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT, account_guess_budget
 from app.api.auth.services.session_flow import SESSION_LOGOUT_CLEAR_SITE_DATA
 from app.api.common.audiences import AdminAPIRouter, PublicAPIRouter
 from app.api.common.audit import AuditAction, AuditContext, audit_event
-from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
+from app.api.common.rate_limiting import limiter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.core.redis import RedisDep
 
@@ -125,31 +124,20 @@ async def delete_own_account(
     with neither must have signed in within the last few minutes. The former address gets
     a notification email.
     """
-    # Only failed guesses count, like the per-account failed-login budget.
-    step_up_key = rate_limit_bucket_key("auth:step-up:account", str(user.id))
-    await limiter.ahit_key(LOGIN_RATE_LIMIT, step_up_key, consume=False)
-
     payload = payload or AccountDeletionRequest()
     current_password = payload.current_password.get_secret_value() if payload.current_password else None
-    try:
+    async with account_guess_budget(user.id):
         require_step_up_password(
             password_helper=user_manager.password_helper,
             user=user,
             current_password=current_password,
             action="delete your account",
         )
-    except HTTPException as exc:
-        if exc.status_code == status.HTTP_403_FORBIDDEN:
-            await limiter.ahit_key(LOGIN_RATE_LIMIT, step_up_key)
-        raise
     require_recent_sign_in(user)
     # Before the MFA step-up, so a refused deletion does not spend the TOTP code.
     await require_erasable_account(session, user)
-    try:
+    async with account_guess_budget(user.id):
         await require_mfa_step_up(payload.mfa_code, user=user, redis=redis, action="delete your account")
-    except MfaStepUpCodeInvalidError:
-        await limiter.ahit_key(LOGIN_RATE_LIMIT, step_up_key)
-        raise
 
     # Read before the erase: the row, and so these attributes, are gone after the commit.
     user_id, email, username = user.id, user.email, user.username

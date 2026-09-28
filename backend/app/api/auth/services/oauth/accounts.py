@@ -10,6 +10,7 @@ from app.api.auth.exceptions import InvalidOAuthProviderError, OAuthAccountNotLi
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.account_security import require_step_up_password
 from app.api.auth.services.email.service import send_oauth_link_changed_notification
+from app.api.auth.services.rate_limiter import account_guess_budget
 
 if TYPE_CHECKING:
     from fastapi_users.password import PasswordHelperProtocol
@@ -48,12 +49,13 @@ async def remove_oauth_association(
 
     # Step-up re-auth after confirming the link exists. Shared with the link flow so the
     # two cannot drift apart.
-    require_step_up_password(
-        password_helper=password_helper,
-        user=current_user,
-        current_password=current_password,
-        action="unlink a social login",
-    )
+    async with account_guess_budget(current_user.id):
+        require_step_up_password(
+            password_helper=password_helper,
+            user=current_user,
+            current_password=current_password,
+            action="unlink a social login",
+        )
 
     await session.delete(oauth_account)
     await session.commit()

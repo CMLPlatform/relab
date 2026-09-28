@@ -73,7 +73,7 @@ async def _fetch_owned_product(
     bypass needs MFA enrolled on the superuser account: acting on anyone's data must not
     rest on a password alone. A superuser without MFA is treated like any other user.
     """
-    if allow_moderation and current_user.is_superuser and current_user.mfa_enabled:
+    if allow_moderation and current_user.has_admin_access:
         audit_event(current_user.id, AuditAction.SUPERUSER_ACCESS, Product, item_id)
         return await require_model(session, Product, item_id)
     return await get_user_owned_object(session, Product, item_id, current_user.id)

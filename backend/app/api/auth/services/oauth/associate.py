@@ -27,6 +27,7 @@ from app.api.auth.services.oauth.base import (
     create_oauth_result_redirect,
     verify_oauth_state,
 )
+from app.api.auth.services.rate_limiter import account_guess_budget
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
 
 from .utils import (
@@ -123,14 +124,15 @@ def build_oauth_associate_router(
         # Every provider, the YouTube data-scope client included: the link is stored
         # under ``oauth_client.name`` ("google" for both), which login matches on, so any
         # association grants sign-in.
-        require_step_up_password(
-            password_helper=user_manager.password_helper,
-            user=user,
-            current_password=(
-                payload.current_password.get_secret_value() if payload and payload.current_password else None
-            ),
-            action="link a social login",
-        )
+        async with account_guess_budget(user.id):
+            require_step_up_password(
+                password_helper=user_manager.password_helper,
+                user=user,
+                current_password=(
+                    payload.current_password.get_secret_value() if payload and payload.current_password else None
+                ),
+                action="link a social login",
+            )
         return await build_authorize_response(
             config,
             request,
