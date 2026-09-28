@@ -119,9 +119,7 @@ RUNTIME_CONFIG_FILES = (
     ROOT / "app" / "Dockerfile",
     ROOT / "app" / "Caddyfile",
     ROOT / "docs" / "Dockerfile",
-    ROOT / "docs" / "Caddyfile",
     ROOT / "www" / "Dockerfile",
-    ROOT / "www" / "Caddyfile",
 )
 
 

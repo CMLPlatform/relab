@@ -16,6 +16,16 @@ x-backend-runtime-secrets: &backend-runtime-secrets
   - microsoft_graph_client_secret
   - bootstrap_superuser_password
 
+# www and docs are not part of compose.yaml, which covers what the deploy hosts run:
+# they deploy to Cloudflare Workers. Here they run the Astro dev server, with the same
+# hardening compose.yaml gives the app.
+x-dev-site-hardening: &dev-site-hardening
+  cap_drop:
+    - ALL
+  pids_limit: 512
+  security_opt:
+    - no-new-privileges:true
+
 services:
   api:
     build:
@@ -97,6 +107,7 @@ services:
     secrets: *backend-runtime-secrets
 
   docs:
+    !!merge <<: *dev-site-hardening
     build:
       context: .
       dockerfile: docs/Dockerfile
@@ -107,7 +118,6 @@ services:
     environment:
       PUBLIC_BACKEND_API_URL: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
       PUBLIC_DOCS_URL: ${DOCS_PUBLIC_URL:-http://127.0.0.1:8012}
-      CADDY_API_ORIGIN: ${API_PUBLIC_URL:-http://127.0.0.1:8010}
     develop:
       watch:
         # Keep watch scope explicit for Node-based subrepos: sync only source and
@@ -130,9 +140,6 @@ services:
         - action: sync
           path: ./docs/tsconfig.json
           target: /opt/relab/docs/tsconfig.json
-        - action: sync
-          path: ./docs/Caddyfile
-          target: /opt/relab/docs/Caddyfile
         - action: sync
           path: ./docs/README.md
           target: /opt/relab/docs/README.md
@@ -208,7 +215,9 @@ services:
           path: ./app/package.json
 
   www:
+    !!merge <<: *dev-site-hardening
     build:
+      context: .
       dockerfile: www/Dockerfile
       target: dev
     restart: "no"
@@ -229,17 +238,11 @@ services:
           path: ./www/public
           target: /opt/relab/www/public
         - action: sync
-          path: ./www/config
-          target: /opt/relab/www/config
-        - action: sync
           path: ./www/astro.config.ts
           target: /opt/relab/www/astro.config.ts
         - action: sync
           path: ./www/biome.jsonc
           target: /opt/relab/www/biome.jsonc
-        - action: sync
-          path: ./www/Caddyfile
-          target: /opt/relab/www/Caddyfile
         - action: sync
           path: ./www/playwright.config.ts
           target: /opt/relab/www/playwright.config.ts

@@ -5,6 +5,7 @@ node_modules/
 # Astro
 dist/
 .astro/
+.wrangler/
 
 # TypeScript
 *.tsbuildinfo

@@ -221,19 +221,6 @@ services:
     networks:
       - data
 
-  docs:
-    !!merge <<: *service-hardening
-    build:
-      context: .
-      dockerfile: docs/Dockerfile
-      cache_from:
-        - type=gha,scope=docs
-      cache_to:
-        - type=gha,scope=docs,mode=max
-    restart: unless-stopped
-    networks:
-      - edge
-
   app:
     !!merge <<: *service-hardening
     build:
@@ -248,19 +235,6 @@ services:
       # cache is only ever read back by another push to that same branch anyway.
       cache_to:
         - type=gha,scope=app,mode=${BUILDKIT_APP_CACHE_MODE:-max}
-    restart: unless-stopped
-    networks:
-      - edge
-
-  www:
-    !!merge <<: *service-hardening
-    build:
-      context: .
-      dockerfile: www/Dockerfile
-      cache_from:
-        - type=gha,scope=www
-      cache_to:
-        - type=gha,scope=www,mode=max
     restart: unless-stopped
     networks:
       - edge

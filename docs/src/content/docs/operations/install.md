@@ -114,7 +114,8 @@ the topology these steps produce.
 1. Create a Cloudflare Tunnel, one of two ways.
 
    - **By hand:** in the Cloudflare dashboard, create a remotely managed tunnel and add a public
-     hostname per service, forwarding to `app:8081`, `www:8081`, `api:8000`, and `docs:8000`.
+     hostname per service, forwarding to `app:8081` and `api:8000`. The landing page and docs
+     hostnames are Workers Custom Domains instead (step 5).
 
    - **With OpenTofu:** `infra/cloudflare/` manages the DNS records, the tunnels, and the ingress
      rules. Export the credentials, then plan and apply per environment:
@@ -199,14 +200,24 @@ the topology these steps produce.
 
 1. Publish the images.
 
-   The hosts pull their images from GHCR instead of building them. The backend images work for any
-   deployment, but www, app and docs bake their public URLs in at build time, so a deployment on
-   another domain publishes its own from a fork:
+   The hosts pull their images from GHCR instead of building them, and the landing page and docs
+   are served by Cloudflare Workers. The backend images work for any deployment, but the app,
+   landing page and docs bake their public URLs in at build time, so a deployment on another domain
+   publishes its own from a fork:
 
    - In the fork's settings, create a GitHub Environment named `prod` (and `staging` if you run
      one) with the variables `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL` and
      `DOCS_PUBLIC_URL`, plus the optional `FEATURED_PRODUCT_ID` for the landing page hero. If you
-     run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you.
+     run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you,
+     along with the Worker names and your Cloudflare account ID.
+   - Add a `CLOUDFLARE_API_TOKEN` secret to each Environment: an account API token with
+     **Workers Scripts: Edit** and nothing else. It can deploy every Worker in the account, so
+     give the `staging` Environment a required reviewer (`infra/cloudflare` does, and refuses to
+     apply staging without one).
+   - Run the Deploy Sites workflow for each environment before the `infra/cloudflare` apply that
+     gives the Workers their hostnames; `infra/cloudflare/README.md` lists the order.
+   - Without Cloudflare, `pnpm run build` in `www/` and `docs/` gives a static `dist/` for any
+     static host. Its security headers are in `dist/_headers`, which your host has to apply.
    - Run the Publish Images workflow. A manual run publishes the commit as `sha-<short sha>`; a
      release published by `release.yml` uses its version (`0.4.0`).
    - Make the packages public in the fork's package settings, or log the host in to GHCR.

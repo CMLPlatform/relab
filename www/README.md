@@ -15,7 +15,7 @@ pnpm run dev
 The local dev server runs at <http://127.0.0.1:8013>. Use the numeric loopback host through VS Code
 Remote port forwarding; Firefox can be unreliable with forwarded `localhost` URLs.
 
-In the full Docker stack, the site is served behind Caddy at <http://127.0.0.1:8013>.
+In the full Docker dev stack, the dev server is published at <http://127.0.0.1:8013>.
 
 ## What is here
 
@@ -53,7 +53,9 @@ In the full Docker stack, the site is served behind Caddy at <http://127.0.0.1:8
 - Biome handles linting and formatting.
 - Vitest covers utilities and small DOM scripts.
 - Playwright covers the browser flows and accessibility checks.
-- Production output is served by Caddy from `dist/`.
+- Production output in `dist/` is deployed to Cloudflare Workers static assets
+  (`.github/workflows/deploy-sites.yml`). `src/integrations/security-headers.ts` writes the
+  `_headers` file that sets its security and cache headers.
 
 ### The landing hero's teardown photography
 

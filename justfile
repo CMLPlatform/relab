@@ -550,7 +550,7 @@ images-verify env tag:
     source_ref=()
     [[ "$env" == prod ]] && source_ref=(--source-ref refs/heads/main)
     for image in "relab-backend:$tag" "relab-backend-migrations:$tag" "relab-backup:$tag" \
-        "relab-app:$tag-$env" "relab-www:$tag-$env" "relab-docs:$tag-$env"; do
+        "relab-app:$tag-$env"; do
         gh attestation verify "oci://$registry/$image" --repo "$repo" \
             --signer-workflow "$repo/.github/workflows/publish-images.yml" \
             --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
@@ -673,24 +673,18 @@ _docker-smoke-down services:
 
 # --- Smoke tests: Docker images and orchestration ---
 
-# Smoke test one static-site image: docs, www, or app (slow: expo export runs during
-# build). www and app also assert their security headers on a live response, not on the
-# Caddyfile text; the runtime image has no curl, so use the wget its HEALTHCHECK runs.
+# Smoke test the app image (slow: expo export runs during build), asserting its security
+# headers on a live response, not on the Caddyfile text; the runtime image has no curl,
+# so use the wget its HEALTHCHECK runs. www and docs are not images: their headers are
+# unit-tested in src/integrations/ and served by Cloudflare Workers.
 [group('verify')]
-[doc('Smoke test one static-site image: docs, www, or app')]
-docker-smoke-static svc:
+[doc('Smoke test the app image and its security headers')]
+docker-smoke-app:
     #!/usr/bin/env bash
     set -euo pipefail
-    svc={{ quote(svc) }}
-    case "$svc" in
-      docs | www) timeout=60 ;;
-      app) timeout=300 ;;
-      *) echo "svc must be docs, www or app" >&2; exit 2 ;;
-    esac
-    trap 'just _docker-smoke-down "$svc"' EXIT
-    just _docker-smoke-up "$svc" "$timeout"
-    [ "$svc" = docs ] && exit 0
-    headers=$({{ ci_compose }} exec -T "$svc" wget -qS -O /dev/null http://localhost:8081/ 2>&1)
+    trap 'just _docker-smoke-down app' EXIT
+    just _docker-smoke-up app 300
+    headers=$({{ ci_compose }} exec -T app wget -qS -O /dev/null http://localhost:8081/ 2>&1)
     echo "$headers" | grep -qi 'Content-Security-Policy:'
     echo "$headers" | grep -qi 'Strict-Transport-Security:'
 
@@ -726,9 +720,7 @@ docker-orchestration-smoke:
 # Run all Docker smoke tests sequentially (CI runs them in parallel per-service)
 [group('verify')]
 docker-smoke:
-    @just docker-smoke-static docs
-    @just docker-smoke-static www
-    @just docker-smoke-static app
+    @just docker-smoke-app
     @just docker-smoke-backups
     @just docker-orchestration-smoke
 

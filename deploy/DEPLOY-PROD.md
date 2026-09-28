@@ -372,10 +372,13 @@ once the release is cut, so wait for that run to finish. `tag` pulls every image
 `IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. `up` never pulls: it
 runs the images `tag` pulled, so a tag moved on GHCR afterwards cannot reach the host on a restart.
 `images-verify` checks each image's build provenance and needs `read:packages` on your `gh`
-login (`gh auth refresh -s read:packages`). www bakes the landing
-page's API data in at build time; picking up a new featured product (the `FEATURED_PRODUCT_ID`
-variable of the `prod` GitHub Environment) needs a new publish. To try a commit before a release,
-run the Publish Images workflow on it by hand and use its `sha-<short sha>` tag.
+login (`gh auth refresh -s read:packages`). To try a commit before a release, run the Publish
+Images workflow on it by hand and use its `sha-<short sha>` tag.
+
+The landing page and docs are not on this host: the same release deploys them to Cloudflare
+Workers (`deploy-sites.yml`), with no step here. They rebuild weekly from the latest release, so a
+changed featured product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment)
+shows within a week; run Deploy Sites by hand on `main` for it to show now.
 
 The `migrations` profile is the routine path: the API waits for the migrator to exit 0, so a failed
 migration leaves the old API serving. Without it you get a two-step that briefly serves against the

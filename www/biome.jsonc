@@ -57,7 +57,7 @@
     },
     {
       // Build and test config files run in Node and keep conventional exports.
-      "includes": ["astro.config.ts", "playwright.config.ts", "vitest.config.ts", "config/**/*.ts"],
+      "includes": ["astro.config.ts", "playwright.config.ts", "vitest.config.ts"],
       "linter": {
         "rules": {
           "correctness": {

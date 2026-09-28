@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 
-# Multi-target Dockerfile for the Astro Starlight docs site
-#   - `dev`     → hot-reload dev server (use with `docker compose watch`)
-#   - `runtime` → caddy-served static build (default)
+# Dev image for the Astro Starlight docs site: the hot-reload dev server (use with `docker compose
+# watch`). The production build deploys to Cloudflare Workers (deploy-sites.yml), not
+# as an image.
 
 ARG WORKDIR=/opt/relab
 
@@ -39,75 +39,21 @@ FROM deps AS dev
 ARG WORKDIR
 WORKDIR $WORKDIR
 
-COPY docs/ docs/
+# The image's unprivileged node user runs the dev server. It owns the sources (which
+# `docker compose watch` syncs into), docs/ (where Astro writes .astro/) and
+# docs/node_modules (Vite's cache); the installed dependencies stay root-owned.
+COPY --chown=node:node docs/ docs/
+RUN chown node:node docs docs/node_modules
 
 WORKDIR $WORKDIR/docs
+
+USER node
 
 EXPOSE 8000
 
 # Drop any stale dev-server lock left in the container's writable layer when
 # `docker compose up` reuses/restarts a container: astro refuses to start if
 # .astro/dev.json names a PID that looks alive, and a recycled PID often does.
-# (astro's --force clears the content cache, it does NOT replace the lock.)
-CMD ["sh", "-c", "rm -f .astro/dev.json; exec pnpm exec astro dev --port 8000 --host 0.0.0.0 --strictPort --mode dev"]
-
-# --- Build stage (prod static build) ---
-FROM deps AS build
-
-ARG WORKDIR
-WORKDIR $WORKDIR
-
-ENV CI=1
-
-COPY docs/astro.config.mjs docs/tsconfig.json docs/
-COPY docs/public/ docs/public/
-COPY docs/src/ docs/src/
-
-ARG ENVIRONMENT=prod
-ARG PUBLIC_DOCS_URL
-ARG PUBLIC_BACKEND_API_URL
-ENV ENVIRONMENT=${ENVIRONMENT}
-ENV PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL}
-ENV PUBLIC_BACKEND_API_URL=${PUBLIC_BACKEND_API_URL}
-
-WORKDIR $WORKDIR/docs
-
-RUN pnpm run build:${ENVIRONMENT}
-
-# --- Runtime stage (default) ---
-# --- Caddy binary, stripped of its low-port capability ---
-# Relab serves on high ports, so cap_net_bind_service is dead weight next to
-# no-new-privileges. `setcap -r` rewrites the 48MB binary and the overlay
-# copy-up leaves a second copy in the layer, so strip in a throwaway stage and
-# copy onto plain Alpine. BuildKit preserves caps across COPY --from, so the
-# strip must precede the copy.
-FROM caddy:2-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b AS caddybin
-RUN setcap -r /usr/bin/caddy
-
-FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
-
-ARG WORKDIR
-
-# ca-certificates for egress TLS, mailcap for MIME types by extension. The
-# healthcheck uses busybox wget, so no curl. Upgrade keeps patches current.
-RUN apk upgrade --no-cache \
-    && apk add --no-cache ca-certificates mailcap \
-    && install -d -o 65532 -g 65532 /config /data
-
-COPY --link --from=caddybin /usr/bin/caddy /usr/bin/caddy
-
-# Inherited from the official Caddy image, which this stage no longer uses.
-ENV XDG_CONFIG_HOME=/config \
-    XDG_DATA_HOME=/data
-WORKDIR /srv
-CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
-
-COPY --link --from=build ${WORKDIR}/docs/dist /srv
-COPY --link docs/Caddyfile /etc/caddy/Caddyfile
-
-USER 65532:65532
-
-EXPOSE 8000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO- http://localhost:8000/health || exit 1
+# (astro's --force clears the content cache, it does NOT replace the lock.) The binary
+# is called directly: `pnpm exec` would re-verify and install the whole workspace.
+CMD ["sh", "-c", "rm -f .astro/dev.json; exec node_modules/.bin/astro dev --port 8000 --host 0.0.0.0 --strictPort --mode dev"]

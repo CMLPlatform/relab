@@ -52,3 +52,13 @@ jobs:
     uses: ./.github/workflows/publish-images.yml
     with:
       tag_name: ${{ needs.release-please.outputs.tag_name }}
+
+  deploy-sites:
+    name: Deploy sites
+    needs: [release-please]
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy-sites.yml
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}

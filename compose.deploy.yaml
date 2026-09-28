@@ -328,14 +328,10 @@ services:
     depends_on:
       api:
         condition: service_healthy
-      # The tunnel fronts four hostnames; starting it before the frontends are
-      # up serves 502s on three of them for the length of every deploy. They
-      # have no healthcheck, so `service_started` is as strict as it gets.
-      docs:
-        condition: service_started
+      # The tunnel fronts the api and app hostnames; starting it before the app is
+      # up serves 502s on it for the length of every deploy. The app has no
+      # healthcheck, so `service_started` is as strict as it gets.
       app:
-        condition: service_started
-      www:
         condition: service_started
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set (in root .env on the deploy host)}
@@ -408,21 +404,6 @@ services:
       - database_migration_password
       - database_backup_password
 
-  docs:
-    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-docs:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
-    logging: *json-logging
-    read_only: true
-    user: *app-user
-    # URLs are baked in at build time, so each environment has its own tag.
-    build: !reset null
-    environment:
-      # Needed by Caddyfile so API reference pages can fetch live OpenAPI JSON.
-      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
-    tmpfs:
-      - /config:uid=65532,gid=65532
-      - /data:uid=65532,gid=65532
-      - /tmp:mode=1777
-
   app:
     image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-app:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
     logging: *json-logging
@@ -432,21 +413,6 @@ services:
     build: !reset null
     environment:
       # Needed by Caddyfile to determine the API origin.
-      CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
-    tmpfs:
-      - /config:uid=65532,gid=65532
-      - /data:uid=65532,gid=65532
-      - /tmp:mode=1777
-
-  www:
-    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-www:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
-    logging: *json-logging
-    read_only: true
-    user: *app-user
-    # URLs are baked in at build time, so each environment has its own tag.
-    build: !reset null
-    environment:
-      # Needed by Caddyfile to allow the homepage stats fetch in the CSP.
       CADDY_API_ORIGIN: ${API_PUBLIC_URL:?API_PUBLIC_URL must be set}
     tmpfs:
       - /config:uid=65532,gid=65532

@@ -3,7 +3,7 @@ title: Security and hardening
 description: Relab's deployed security posture and trust-boundary controls.
 ---
 
-Public traffic enters through Cloudflare Tunnel, data services stay on private Compose networks, outbound backend HTTP is allowlisted, and source-controlled checks cover sensitive application behavior.
+Public traffic enters through Cloudflare: Tunnel for the API and app, Workers static assets for the landing page and docs. Data services stay on private Compose networks, outbound backend HTTP is allowlisted, and source-controlled checks cover sensitive application behavior.
 
 ## Baseline
 
@@ -61,7 +61,7 @@ The catch-all exception handler logs internal details and stack traces for opera
 
 ## Inbound edge
 
-Production and staging are HTTPS-only behind Cloudflare Tunnel. `infra/cloudflare/` holds the per-environment DNS records, public hostnames, and tunnel ingress rules; `infra/cloudflare-zone/` holds the zone-wide TLS minimums, HTTPS redirects, and rulesets. Edge rate limiting covers the authentication endpoints only (the zone's plan allows a single rate-limit rule). Upload and RPi camera limits live in the application's Redis-backed limiters, which fail open when Redis is unreachable; the per-user upload quota is then the remaining bound.
+Production and staging are HTTPS-only behind Cloudflare Tunnel. `infra/cloudflare/` holds the per-environment DNS records, public hostnames, tunnel ingress rules, and the Workers custom domains of the landing page and docs; `infra/cloudflare-zone/` holds the zone-wide TLS minimums, HTTPS redirects, and rulesets. Edge rate limiting covers the authentication endpoints only (the zone's plan allows a single rate-limit rule). Upload and RPi camera limits live in the application's Redis-backed limiters, which fail open when Redis is unreachable; the per-user upload quota is then the remaining bound.
 
 The application's read, write, and upload limits key anonymous requests per client IP (300, 120, and 30 a minute). A request carrying a live access token is keyed per user instead, at 1500, 600, and 300 a minute: a workshop of about 50 people often shares one demo account behind one IP, so a single user bucket has to carry the room. The token only selects the bucket; an unknown or expired token falls back to the IP bucket. The limits are the `API_*_RATE_LIMIT` and `API_*_RATE_LIMIT_PER_USER` settings. The edge rule still counts every `/v1/auth/` request per IP (10 per 10 seconds), so a room signing in within the same few seconds sees brief 429s from the edge and succeeds on retry.
 

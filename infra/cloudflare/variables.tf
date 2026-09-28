@@ -48,3 +48,9 @@ variable "github_repository" {
   type        = string
   default     = "relab"
 }
+
+variable "github_staging_reviewers" {
+  description = "GitHub logins that approve every run using the staging Environment. Required for staging: its Cloudflare token can deploy every Worker in the account."
+  type        = list(string)
+  default     = []
+}

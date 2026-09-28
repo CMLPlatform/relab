@@ -29,6 +29,8 @@ allowBuilds:
   sharp: true
   unrs-resolver: false
   vue-demi: false
+  # Only `wrangler dev` runs workerd; `wrangler deploy` of static assets does not.
+  workerd: false
 
 overrides:
   # Security pins for transitive deps whose parent pins a vulnerable version
@@ -60,6 +62,8 @@ catalog:
   # loads, breaking typecheck in docs/ and www/. Renovate blocks 7.0.x only, so
   # 7.1 arrives as a PR whose docs/www typecheck says whether the API is back.
   typescript: ^6.0.3
+  # Deploys www and docs to Cloudflare Workers (deploy-sites.yml).
+  wrangler: ^4.140.0
 
 # Expo SDK packages land in same-day waves, so the release-age gate would block
 # every `expo install --fix`. Name patterns match all versions; everything

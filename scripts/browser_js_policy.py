@@ -22,12 +22,10 @@ _BROWSER_ASSET_PATHS = (
     "docs/src/pages/**",
     "docs/src/scripts/**",
     "docs/public/**",
-    "docs/Caddyfile",
     "docs/package.json",
     "docs/astro.config.*",
     "www/src/**",
     "www/public/**",
-    "www/Caddyfile",
     "www/package.json",
     "www/astro.config.*",
 )

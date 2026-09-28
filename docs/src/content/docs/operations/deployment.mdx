@@ -18,7 +18,7 @@ config:
 ---
 graph TD
     accTitle: Deployment Compose service topology
-    accDescr: The core services are the FastAPI backend, PostgreSQL, Redis, ClamAV, user media storage, the Expo app, the Astro landing page, and the Starlight docs site. They run alongside optional operational services for migrations, backups, the Cloudflare tunnel, and OTLP telemetry export from both the backend and an Alloy log collector. The backend is the hub, talking to the database, cache, malware scanner, and external monitoring collector.
+    accDescr: The core services are the FastAPI backend, PostgreSQL, Redis, ClamAV, user media storage, and the Expo app. They run alongside optional operational services for migrations, backups, the Cloudflare tunnel, and OTLP telemetry export from both the backend and an Alloy log collector. The backend is the hub, talking to the database, cache, malware scanner, and external monitoring collector.
     subgraph Core ["Core Services"]
         Backend[FastAPI Backend]
         DB[(PostgreSQL)]
@@ -26,8 +26,6 @@ graph TD
         ClamAV[ClamAV\nupload malware scanning]
         Uploads[(User Media)]
         FrontendApp[Expo App]
-        FrontendWeb[Astro Landing Page]
-        Docs[Astro Starlight Docs]
     end
 
     subgraph Operational ["Optional Operational Services"]
@@ -47,6 +45,8 @@ graph TD
     Alloy -->|container stdout via OTLP| OTel
 ```
 
+The Astro landing page and the Starlight docs site are not part of this topology: they are static sites on Cloudflare Workers, deployed by `.github/workflows/deploy-sites.yml` on every release, weekly (so the landing page picks up a changed featured teardown), and by hand. They reach the backend only from the visitor's browser and from their own build.
+
 Compose profiles enable the backup services. `OTEL_EXPORTER_OTLP_ENDPOINT` enables the backend's OTLP export and includes the Alloy overlay that ships every other container's stdout.
 
 ## Supported delivery path
@@ -55,8 +55,8 @@ Compose profiles enable the backup services. `OTEL_EXPORTER_OTLP_ENDPOINT` enabl
 - `compose.yaml` is the shared base topology.
 - `compose.dev.yaml`, `compose.ci.yaml`, and `compose.deploy.yaml` are the supported environment overlays.
 - Prod and staging share `compose.deploy.yaml`; the `just stack <env>` argument selects which. The root `.env` supplies everything host-local: the public origins, the tunnel token, OAuth client IDs, email sender metadata, the initial superuser identity, telemetry endpoints, and backup paths. One host serves one environment; the deploy recipes refuse a mismatch. Manual shell helpers read exported environment variables, not `.env`.
-- GitHub Actions validate changes, run security checks, and maintain release automation. Deploys run from the server checkout.
-- Cloudflare DNS and Tunnel hostnames live in `infra/cloudflare/`. OpenTofu owns only the public edge; Compose owns the runtime services.
+- GitHub Actions validate changes, run security checks, and maintain release automation. A release publishes the backend and app images to GHCR and deploys the landing page and docs to Cloudflare Workers; the Compose stacks pull their images when an operator runs the deploy from the server checkout.
+- Cloudflare DNS, Tunnel hostnames, the Workers custom domains, and the GitHub Environments the release reads its URLs from live in `infra/cloudflare/`. OpenTofu owns only the public edge; Compose owns the runtime services.
 
 Docker development and E2E ports bind to localhost by default. To test Expo from another device over a LAN, run the Expo dev server from `app/` on the host instead of the Docker app service.
 
@@ -93,7 +93,7 @@ Public-facing services use the `edge` network, data services the internal `data`
 
 | Service group | Compose networks | Host ports in prod/staging |
 | --- | --- | --- |
-| `cloudflared`, `docs`, `app`, `www` | `edge` only | none |
+| `cloudflared`, `app` | `edge` only | none |
 | `api` | `edge`, `data`, `scanning` | none |
 | `postgres`, `redis`, `migrator`, `backup` | `data` only | none |
 | `clamav` (`scanning` profile only) | `scanning` only | none |
@@ -121,7 +121,7 @@ Every deployed browser-facing origin emits:
 Strict-Transport-Security: max-age=63072000; includeSubDomains
 ```
 
-Static frontends set it in Caddy; the API sets it from FastAPI in `prod` and `staging`. `preload` is omitted because the full `cml-relab.org` subdomain inventory has not been verified for preloading.
+The app sets it in Caddy, the landing page and docs in the `_headers` file their Workers serve, and the API sets it from FastAPI in `prod` and `staging`. `preload` is omitted because the full `cml-relab.org` subdomain inventory has not been verified for preloading.
 
 PostgreSQL and Redis stay on the private Compose `data` network, so `DATABASE_TLS=false` and
 `REDIS_TLS=false` are the defaults. If either service moves off that network, set

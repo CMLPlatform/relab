@@ -38,8 +38,9 @@ test.describe('Landing page', () => {
   });
 
   test('ships no inline scripts, matching the production CSP @smoke', async ({ page }) => {
-    // The Caddy CSP is script-src 'self' with no 'unsafe-inline' and no hashes,
-    // so any inline <script> in the build would be silently dead in production.
+    // The production CSP (src/integrations/security-headers.ts) is script-src
+    // 'self' with no 'unsafe-inline' and no hashes, so any inline <script> in the
+    // build would be silently dead in production.
     await page.goto('/');
     await expect(page.locator('script:not([src])')).toHaveCount(0);
   });
