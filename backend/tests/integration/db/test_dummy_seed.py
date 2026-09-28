@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 
-from app.api.data_collection.models.product import Product
+from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.file_storage.models import Image, MediaParentType
 from app.core.config.core import settings
 from app.core.images import THUMBNAIL_WIDTHS
@@ -92,3 +92,22 @@ async def test_seeding_builds_a_photographed_component_tree_with_responsive_deri
     widths = build_thumbnail_urls_by_width(str(image.file.path), settings.image_storage_path)
     assert set(widths) == {width for width in THUMBNAIL_WIDTHS if width < 960}
     assert len(widths) > 1
+
+    # A teardown record is only a teardown record if the observations hang off
+    # the parts, not just the assembled product: a component carries its own
+    # type, its own circularity notes and its own bill of materials.
+    display = (await db_session.execute(select(Product).where(Product.id == parts["Display assembly"]))).scalar_one()
+    assert display.product_type_id is not None
+    assert display.circularity_properties
+    assert laptop.circularity_properties
+
+    component_bom = (
+        (
+            await db_session.execute(
+                select(MaterialProductLink.quantity).where(MaterialProductLink.product_id == display.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(component_bom) > 0

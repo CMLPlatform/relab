@@ -71,8 +71,29 @@ async def get_existing_product_id(session: AsyncSession, name: str) -> int | Non
     return int(existing_id) if existing_id is not None else None
 
 
-def build_components_from_data(components_data: list[dict[str, Any]]) -> list[ComponentCreateWithComponents]:
-    """Build a nested component tree from seed data dicts."""
+def resolve_product_type_id(product_type_map: dict[str, ProductType], data: dict[str, Any]) -> int | None:
+    """Return the id of the named product type, or None when unnamed or unknown."""
+    name = data.get("product_type_name")
+    if not name:
+        return None
+    product_type = product_type_map.get(name)
+    if not product_type or product_type.id is None:
+        logger.warning("Unknown product type '%s' for %s; leaving it unset.", name, data["name"])
+        return None
+    return int(product_type.id)
+
+
+def build_components_from_data(
+    components_data: list[dict[str, Any]],
+    product_type_map: dict[str, ProductType],
+    material_map: dict[str, Material],
+) -> list[ComponentCreateWithComponents]:
+    """Build a nested component tree from seed data dicts.
+
+    Components carry their own type, circularity notes and bill of materials, so
+    a seeded teardown reads like a real one: the observations hang off the part
+    they were made on, not only off the assembled product.
+    """
     components: list[ComponentCreateWithComponents] = []
     for data in components_data:
         physical_props = data.get("physical_properties", {})
@@ -82,12 +103,17 @@ def build_components_from_data(components_data: list[dict[str, Any]]) -> list[Co
                 description=data.get("description"),
                 brand=data.get("brand"),
                 model=data.get("model"),
+                product_type_id=resolve_product_type_id(product_type_map, data),
                 amount_in_parent=data.get("amount_in_parent", 1),
                 weight_g=physical_props.get("weight_g"),
                 height_cm=physical_props.get("height_cm"),
                 width_cm=physical_props.get("width_cm"),
                 depth_cm=physical_props.get("depth_cm"),
-                components=build_components_from_data(data.get("components", [])),
+                circularity_properties=data.get("circularity_properties"),
+                bill_of_materials=build_bill_of_materials(
+                    material_map, data.get("bill_of_materials", []), data["name"]
+                ),
+                components=build_components_from_data(data.get("components", []), product_type_map, material_map),
             )
         )
     return components
@@ -106,7 +132,11 @@ async def get_component_ids_by_name(session: AsyncSession) -> dict[str, int]:
 
 
 def build_product_create_from_data(
-    data: dict[str, Any], product_type_id: int, bill_of_materials: list[MaterialProductLinkCreateWithinProduct]
+    data: dict[str, Any],
+    product_type_id: int,
+    bill_of_materials: list[MaterialProductLinkCreateWithinProduct],
+    product_type_map: dict[str, ProductType],
+    material_map: dict[str, Material],
 ) -> ProductCreateWithComponents:
     """Build ProductCreateWithComponents from seed data dict."""
     physical_props = data.get("physical_properties", {})
@@ -120,8 +150,9 @@ def build_product_create_from_data(
         height_cm=physical_props.get("height_cm"),
         width_cm=physical_props.get("width_cm"),
         depth_cm=physical_props.get("depth_cm"),
+        circularity_properties=data.get("circularity_properties"),
         bill_of_materials=bill_of_materials,
-        components=build_components_from_data(data.get("components", [])),
+        components=build_components_from_data(data.get("components", []), product_type_map, material_map),
     )
 
 
@@ -163,7 +194,9 @@ async def seed_products(
 
         bill_of_materials = build_bill_of_materials(material_map, bill_of_materials_data, data["name"])
 
-        product_create = build_product_create_from_data(data, int(product_type.id), bill_of_materials)
+        product_create = build_product_create_from_data(
+            data, int(product_type.id), bill_of_materials, product_type_map, material_map
+        )
         product = await create_product(session, product_create, owner_id=user.id)
 
         if product.id:

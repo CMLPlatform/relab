@@ -1,4 +1,5 @@
 {
+  "_readme": "Illustrative development and demo data. The values are plausible for the products named but are not measurements, and every source is a placeholder.",
   "user_data": [
     {
       "email": "alice@example.com",
@@ -47,6 +48,11 @@
       "name": "Plastics",
       "description": "Category for plastics.",
       "taxonomy_name": "Materials Taxonomy"
+    },
+    {
+      "name": "Laptop parts",
+      "description": "Category for laptop subassemblies.",
+      "taxonomy_name": "Electronics Taxonomy"
     }
   ],
   "material_data": [
@@ -77,6 +83,16 @@
       "name": "Laptop",
       "description": "A portable personal computer.",
       "categories": ["Laptops"]
+    },
+    {
+      "name": "Display module",
+      "description": "A screen assembly supplied as one replaceable unit.",
+      "categories": ["Laptop parts"]
+    },
+    {
+      "name": "Printed circuit board assembly",
+      "description": "A populated circuit board supplied as one unit.",
+      "categories": ["Laptop parts"]
     }
   ],
   "product_data": [
@@ -99,7 +115,7 @@
     },
     {
       "name": "Dell XPS 13",
-      "description": "Dell laptop.",
+      "description": "Illustrative seed record, not a measured teardown. Dell laptop.",
       "brand": "Dell",
       "model": "XPS9380",
       "product_type_name": "Laptop",
@@ -109,6 +125,11 @@
         "width_cm": 30.2,
         "depth_cm": 19.9
       },
+      "circularity_properties": {
+        "recyclability": "Illustrative note. An aluminium lid and base are typically recoverable once the board is out; a bonded glass-and-polymer display stack typically is not separated.",
+        "disassemblability": "Illustrative note. Laptops of this build typically open with Torx screws around the base.",
+        "remanufacturability": "Illustrative note. Display assembly, keyboard and SSD are candidates for reuse as whole parts; the mainboard would need testing first."
+      },
       "bill_of_materials": [
         {"material": "Aluminum", "quantity": 0.5, "unit": "kg"},
         {"material": "Polycarbonate", "quantity": 0.3, "unit": "kg"}
@@ -117,8 +138,18 @@
         {
           "name": "Display assembly",
           "description": "Lid, hinges and LCD panel as one removable unit.",
+          "product_type_name": "Display module",
           "amount_in_parent": 1,
           "physical_properties": {"weight_g": 258},
+          "circularity_properties": {
+            "recyclability": "Illustrative note. An aluminium lid is typically recoverable; panel glass bonded to a polymer frame typically is not separated.",
+            "disassemblability": "Illustrative note. An adhered bezel typically needs heat before the panel comes out; hinges typically unscrew.",
+            "remanufacturability": "Illustrative note. Reusable as a whole assembly if the hinge mounts are undamaged."
+          },
+          "bill_of_materials": [
+            {"material": "Aluminum", "quantity": 0.095, "unit": "kg"},
+            {"material": "Polycarbonate", "quantity": 0.05, "unit": "kg"}
+          ],
           "components": [
             {
               "name": "LCD panel",
@@ -138,7 +169,10 @@
           "name": "Bottom cover",
           "description": "Machined aluminium base plate.",
           "amount_in_parent": 1,
-          "physical_properties": {"weight_g": 156}
+          "physical_properties": {"weight_g": 156},
+          "bill_of_materials": [
+            {"material": "Aluminum", "quantity": 0.156, "unit": "kg"}
+          ]
         },
         {
           "name": "Keyboard",
@@ -149,8 +183,14 @@
         {
           "name": "Motherboard assembly",
           "description": "Mainboard with heatsink and port brackets.",
+          "product_type_name": "Printed circuit board assembly",
           "amount_in_parent": 1,
           "physical_properties": {"weight_g": 88},
+          "circularity_properties": {
+            "recyclability": "Illustrative note. A populated board typically goes to WEEE processing whole.",
+            "disassemblability": "Illustrative note. Heatsink and port brackets typically unscrew, and connectors unlatch.",
+            "remanufacturability": "Illustrative note. Not covered by this example."
+          },
           "components": [
             {
               "name": "PCB assembly",
