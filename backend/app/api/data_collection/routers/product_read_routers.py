@@ -127,7 +127,7 @@ async def get_user_products(
     product_filter: ProductFilterWithRelationshipsDep,
 ) -> Page[ProductRead] | Response:
     """Get base products collected by a specific user."""
-    if user_id != current_user.id and not current_user.is_superuser:
+    if user_id != current_user.id and not current_user.has_admin_access:
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
 
     statement = select(Product).where(Product.owner_id == user_id, Product.parent_id.is_(None))

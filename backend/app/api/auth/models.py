@@ -79,6 +79,15 @@ class User(BaseUserDB, TimeStampMixinBare):
     upload_total_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False, server_default="0", default=0)
 
     @property
+    def has_admin_access(self) -> bool:
+        """Return whether this account may use superuser powers: superuser with TOTP MFA enrolled.
+
+        Enrolment is what is checked: every sign-in after it passes a TOTP challenge, so
+        acting on other people's data never rests on a password alone.
+        """
+        return self.is_superuser and self.mfa_enabled
+
+    @property
     def terms_acceptance_required(self) -> bool:
         """Return whether this account should still be asked to accept the terms."""
         return terms_acceptance_required(self.terms_accepted_version)
