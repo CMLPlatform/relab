@@ -140,8 +140,8 @@ class ImageReadWithinParent(UUIDIdReadSchemaWithTimeStamp, ImageBase):
         default=None,
         description=(
             "Pixel width of the stored image, after any EXIF rotation. Null for images uploaded "
-            "before dimensions were recorded whose file could not be measured since, and for "
-            "remotely stored (S3) images. With `height_px` this gives the aspect ratio every "
+            "before dimensions were recorded whose file could not be measured since, which "
+            "includes every remotely stored (S3) one. With `height_px` this gives the aspect ratio every "
             "entry in `thumbnail_urls` shares, so a client can reserve layout space before the "
             "image loads and derive each derivative's height from its width."
         ),

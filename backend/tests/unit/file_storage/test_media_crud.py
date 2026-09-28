@@ -8,7 +8,9 @@ from uuid import uuid4
 import pytest
 from fastapi import UploadFile
 from PIL import Image as PILImage
+from PIL.ExifTags import GPS, IFD
 from pydantic import ValidationError
+from starlette.datastructures import Headers
 
 from app.api.auth.roles import UserRole
 from app.api.common.crud.exceptions import ModelNotFoundError
@@ -16,11 +18,14 @@ from app.api.file_storage.crud import support_services
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.exceptions import ModelFileNotFoundError, UploadTooLargeError
 from app.api.file_storage.models import File, Image, MediaParentType
+from app.api.file_storage.models.storage_s3 import S3Storage
 from app.api.file_storage.schemas import FileCreate, ImageCreateInternal
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
+
+    from pytest_mock import MockerFixture
 
 TEST_FILE_DESC = "Test file"
 TEST_FILENAME = "test.txt"
@@ -215,27 +220,62 @@ async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_sess
     mock_delete_image.assert_awaited_once_with(mock_db_image)
 
 
-async def test_image_dimensions_are_committed_not_just_flushed(mock_session: AsyncMock, tmp_path: Path) -> None:
-    """The post-processing UPDATE must commit, not flush.
-
-    ``create()`` commits before calling ``after_create``, so the dimensions write runs in
-    a fresh transaction that nothing else closes: flushing alone loses it when the request
-    session is closed. The integration suite cannot see this: it binds every request to
-    one connection whose transaction the fixture owns, so an uncommitted flush still reads
-    back, which is why the guard lives here.
-    """
+async def test_thumbnails_are_generated_for_a_local_image(mock_session: AsyncMock, tmp_path: Path) -> None:
+    """A filesystem-stored image gets the full default thumbnail set before the response."""
     image_path = tmp_path / "shot.png"
     PILImage.new("RGB", (2001, 1234), color="red").save(image_path)
-    db_image = Image(id=uuid4(), width_px=None, height_px=None)
+    db_image = Image(id=uuid4())
 
     with (
         patch.object(support_services, "stored_file_path", return_value=image_path),
-        patch.object(support_services, "require_model", AsyncMock(return_value=db_image)),
         patch.object(support_services, "generate_thumbnails") as mock_generate,
     ):
-        await support_services._process_created_image(mock_session, db_image)
+        await support_services._generate_image_thumbnails(mock_session, db_image)
 
-    assert (db_image.width_px, db_image.height_px) == (2001, 1234)
-    mock_session.commit.assert_awaited()
     # Called with no widths, so the upload generates the full default set inline.
     mock_generate.assert_called_once_with(image_path)
+
+
+async def test_create_image_strips_metadata_before_an_s3_upload(mock_session: AsyncMock, mocker: MockerFixture) -> None:
+    """The S3 backend receives the stripped, rotated bytes, and the row records their size.
+
+    S3 has no local path to post-process, so stripping has to happen on the upload itself,
+    before it reaches any storage backend.
+    """
+    exif = PILImage.Exif()
+    exif[0x0110] = "Model X"
+    exif[0x013B] = "Jane Doe"
+    exif[0x0112] = 6
+    exif.get_ifd(IFD.GPSInfo)[GPS.GPSLatitudeRef] = "N"
+    original = BytesIO()
+    xmp = b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><exif:GPSLatitude>52,9.6N</exif:GPSLatitude></x:xmpmeta>'
+    PILImage.new("RGB", (40, 60), "red").save(original, format="JPEG", exif=exif, xmp=xmp)
+    upload = UploadFile(
+        file=BytesIO(original.getvalue()),
+        filename="photo.jpg",
+        size=len(original.getvalue()),
+        headers=Headers({"content-type": "image/jpeg"}),
+    )
+
+    uploaded: list[bytes] = []
+    client = MagicMock()
+    client.upload_fileobj.side_effect = lambda fileobj, **_: uploaded.append(fileobj.read())
+    storage = S3Storage(bucket="bucket", prefix="images")
+    mocker.patch.object(storage, "_get_client", return_value=client)
+    mocker.patch.object(image_storage_service, "get_storage", return_value=storage)
+
+    image_create = ImageCreateInternal(
+        file=upload, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+    )
+    db_image = await image_storage_service.create(mock_session, image_create, caps_role=UserRole.CONTRIBUTOR)
+
+    [stored] = uploaded
+    assert b"GPSLatitude" not in stored
+    assert b"Jane Doe" not in stored
+    with PILImage.open(BytesIO(stored)) as result:
+        assert result.size == (60, 40)
+        stored_exif = result.getexif()
+        assert stored_exif[0x0110] == "Model X"
+        assert 0x0112 not in stored_exif
+        assert not stored_exif.get_ifd(IFD.GPSInfo)
+    assert (db_image.width_px, db_image.height_px) == (60, 40)
