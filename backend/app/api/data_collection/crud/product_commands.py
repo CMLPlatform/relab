@@ -188,7 +188,9 @@ async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = Tr
     """
     # Not the loader-profile helpers, and populate_existing so components a detail read
     # already put in the session under raiseload("*") are reloaded with the relationships
-    # the delete cascade walks at flush time.
+    # the delete cascade walks at flush time. Whether such stale instances are still in
+    # the identity map depends on garbage collection, so every walked relationship
+    # (the components' product_type and parent) is loaded here explicitly.
     db_product = ensure_model_exists(
         await db.get(
             Product,
@@ -198,6 +200,7 @@ async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = Tr
             options=[
                 selectinload(orm_attr(Product.product_type)),
                 selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.product_type)),
+                selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.parent)),
             ],
         ),
         Product,
