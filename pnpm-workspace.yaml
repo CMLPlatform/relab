@@ -29,7 +29,9 @@ allowBuilds:
   sharp: true
   unrs-resolver: false
   vue-demi: false
-  # Only `wrangler dev` runs workerd; `wrangler deploy` of static assets does not.
+  # scripts/check_site_headers.sh runs workerd through `wrangler dev`. Its binary
+  # arrives as the @cloudflare/workerd-<platform> optional dependency; the install
+  # script only validates it, or downloads it from npm when that package is missing.
   workerd: false
 
 overrides:
