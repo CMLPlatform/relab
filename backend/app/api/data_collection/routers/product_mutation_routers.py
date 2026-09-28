@@ -25,7 +25,6 @@ from app.api.data_collection.crud.product_commands import create_product as crea
 from app.api.data_collection.crud.product_commands import delete_product as delete_product_record
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
 from app.api.data_collection.dependencies import (
-    IF_MATCH_RESPONSES,
     BaseProductDep,
     ModeratableBaseProductDep,
     ProductIfMatchVersionDep,
@@ -112,7 +111,7 @@ async def create_product(
     response_model=ProductRead,
     summary="Update base product",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
-    responses=IF_MATCH_RESPONSES,
+    responses={412: {"description": "The record changed since the `version` sent in `If-Match`."}},
 )
 async def update_product(
     product_update: ProductUpdate,

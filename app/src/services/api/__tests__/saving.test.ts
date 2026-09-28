@@ -303,42 +303,8 @@ describe('Saving API Service', () => {
       expect(tags).toEqual(['"1"', '"2"']);
     });
 
-    it('treats a 412 as success when the record already holds the payload (a retry after a lost response)', async () => {
-      const product = { ...baseProduct, id: 80, version: 1 };
-      mockFetchError(412, { detail: 'stale' });
-      mockFetchOk({
-        id: 80,
-        version: 2,
-        name: product.name,
-        brand: product.brand,
-        model: product.model,
-        description: product.description,
-        product_type_id: null,
-        weight_g: 500,
-        height_cm: 5,
-        width_cm: 10,
-        depth_cm: 3,
-        // Key order differs from the payload's on purpose.
-        circularity_properties: {
-          remanufacturability: 'medium',
-          recyclability: 'low',
-          disassemblability: 'high',
-        },
-      });
-      mockFetchOk({ id: 80, version: 3 });
-
-      await expect(saveProduct(product)).resolves.toBe(80);
-      await saveProduct(product);
-
-      const tags = mockFetchWithAuth.mock.calls
-        .filter((c) => c[1]?.method === 'PATCH')
-        .map((c) => (c[1]?.headers as Record<string, string> | undefined)?.['If-Match']);
-      expect(tags).toEqual(['"1"', '"2"']);
-    });
-
     it('reports a 412 as an edit conflict', async () => {
       mockFetchError(412, { detail: 'This product was changed since you loaded it.' });
-      mockFetchOk({ id: 79, version: 2, name: 'Changed elsewhere' }); // the reconciling GET
 
       const err = await saveProduct({ ...baseProduct, id: 79, version: 1 }).catch(
         (e: unknown) => e,

@@ -9063,21 +9063,14 @@
             }
           },
           {
-            "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
+            "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
             "in": "header",
             "name": "if-match",
-            "required": false,
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
-              "title": "If-Match"
+              "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
+              "title": "If-Match",
+              "type": "string"
             }
           }
         ],
@@ -9103,7 +9096,7 @@
             "description": "Successful Response"
           },
           "412": {
-            "description": "The record changed since the `version` sent in `If-Match`, or the header is malformed."
+            "description": "The record changed since the `version` sent in `If-Match`."
           },
           "422": {
             "content": {
@@ -9114,9 +9107,6 @@
               }
             },
             "description": "Validation Error"
-          },
-          "428": {
-            "description": "The `If-Match` header is missing."
           }
         },
         "security": [
@@ -16284,21 +16274,14 @@
             }
           },
           {
-            "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
+            "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
             "in": "header",
             "name": "if-match",
-            "required": false,
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Required. The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412.",
-              "title": "If-Match"
+              "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
+              "title": "If-Match",
+              "type": "string"
             }
           }
         ],
@@ -16324,7 +16307,7 @@
             "description": "Successful Response"
           },
           "412": {
-            "description": "The record changed since the `version` sent in `If-Match`, or the header is malformed."
+            "description": "The record changed since the `version` sent in `If-Match`."
           },
           "422": {
             "content": {
@@ -16335,9 +16318,6 @@
               }
             },
             "description": "Validation Error"
-          },
-          "428": {
-            "description": "The `If-Match` header is missing."
           }
         },
         "security": [

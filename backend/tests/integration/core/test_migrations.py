@@ -268,29 +268,6 @@ def test_downgrade_lands_on_the_lengths_the_previous_revision_declares(
 
 
 @pytest.mark.migration
-def test_product_updated_by_fk_is_added_unvalidated_then_validated(
-    relab_alembic_config: Config, migration_helper: MigrationHelper
-) -> None:
-    """The last-editor FK is added NOT VALID, so adding it never scans product under the table lock."""
-
-    def fk_validated() -> bool | None:
-        with migration_helper.sync_engine.connect() as connection:
-            return connection.execute(
-                text("SELECT convalidated FROM pg_constraint WHERE conname = 'product_updated_by_id_fkey'")
-            ).scalar()
-
-    try:
-        # Validation cannot be undone, so rebuild the FK from the revision before it.
-        command.downgrade(relab_alembic_config, "c9d5e3f1a7b2")
-        command.upgrade(relab_alembic_config, "d7a3f9c1e2b4")
-        assert fk_validated() is False
-    finally:
-        command.upgrade(relab_alembic_config, "head")
-
-    assert fk_validated() is True
-
-
-@pytest.mark.migration
 def test_alembic_autogenerate_is_clean(relab_alembic_config: Config) -> None:
     """Alembic autogenerate should detect no pending schema changes after head.
 

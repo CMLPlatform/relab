@@ -319,7 +319,7 @@ class ProductFactory(BaseModelFactory[Product]):
     amount_in_parent = None
     circularity_properties = None
     version = 1
-    updated_by_id = None
+    updated_by_moderator = False
 
     @classmethod
     def components(cls) -> list:

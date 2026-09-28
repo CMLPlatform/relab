@@ -16,7 +16,6 @@ from app.api.data_collection.crud.product_commands import delete_product as dele
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
 from app.api.data_collection.crud.product_tree_queries import require_product_detail
 from app.api.data_collection.dependencies import (
-    IF_MATCH_RESPONSES,
     ModeratableComponentDep,
     ProductIfMatchVersionDep,
     UserOwnedComponentDep,
@@ -107,7 +106,7 @@ async def add_component_to_component(
     response_model=ComponentRead,
     summary="Update component",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
-    responses=IF_MATCH_RESPONSES,
+    responses={412: {"description": "The record changed since the `version` sent in `If-Match`."}},
 )
 async def update_component(
     component_update: ProductUpdate,

@@ -8174,9 +8174,9 @@ export interface operations {
   update_product_v1_products__product_id__patch: {
     parameters: {
       query?: never;
-      header?: {
-        /** @description Required. The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412. */
-        'if-match'?: string | null;
+      header: {
+        /** @description The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412. */
+        'if-match': string;
       };
       path: {
         product_id: number;
@@ -8198,7 +8198,7 @@ export interface operations {
           'application/json': components['schemas']['ProductRead'];
         };
       };
-      /** @description The record changed since the `version` sent in `If-Match`, or the header is malformed. */
+      /** @description The record changed since the `version` sent in `If-Match`. */
       412: {
         headers: {
           [name: string]: unknown;
@@ -8213,13 +8213,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
-      };
-      /** @description The `If-Match` header is missing. */
-      428: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };
@@ -8927,9 +8920,9 @@ export interface operations {
   update_component_v1_components__component_id__patch: {
     parameters: {
       query?: never;
-      header?: {
-        /** @description Required. The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. Missing is refused with 428, stale or malformed with 412. */
-        'if-match'?: string | null;
+      header: {
+        /** @description The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412. */
+        'if-match': string;
       };
       path: {
         component_id: number;
@@ -8951,7 +8944,7 @@ export interface operations {
           'application/json': components['schemas']['ComponentRead'];
         };
       };
-      /** @description The record changed since the `version` sent in `If-Match`, or the header is malformed. */
+      /** @description The record changed since the `version` sent in `If-Match`. */
       412: {
         headers: {
           [name: string]: unknown;
@@ -8966,13 +8959,6 @@ export interface operations {
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
         };
-      };
-      /** @description The `If-Match` header is missing. */
-      428: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
       };
     };
   };

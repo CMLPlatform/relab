@@ -165,19 +165,16 @@ async function updateProduct(
 ): Promise<number> {
   const id = product.id as number;
   const version = Math.max(product.version ?? 1, savedVersions.get(id) ?? 0);
-  const payload = toProductPayload(product);
   const productRes = await fetchWithAuth(productRootUrl(product), {
     method: 'PATCH',
     headers: { ...JSON_HEADERS, 'If-Match': `"${version}"` },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(toProductPayload(product)),
   });
 
-  // A retry after a lost response is refused as stale by the very write it
-  // repeats. When the record already holds this payload, the save landed.
-  const data =
-    productRes.status === 412 ? await recordIfPayloadApplied(product, payload) : undefined;
-  if (!data) await throwOnError(productRes, 'update product');
-  const saved = data ?? (await productRes.json());
+  // A retry of a save that already landed changes nothing, which the API
+  // accepts whatever version it names.
+  await throwOnError(productRes, 'update product');
+  const saved = await productRes.json();
   savedVersions.set(id, saved.version);
 
   // The PATCH already landed, so a media failure is partial, not a failed save.
@@ -191,30 +188,6 @@ async function updateProduct(
   }
 
   return saved.id;
-}
-
-/** The record as stored, when it already matches every field of `payload`; otherwise undefined. */
-async function recordIfPayloadApplied(
-  product: Product,
-  payload: ProductPayload,
-): Promise<{ id: number; version: number } | undefined> {
-  const res = await fetchWithAuth(productRootUrl(product), { headers: ACCEPT_HEADERS });
-  if (!res.ok) return undefined;
-  const stored = await res.json();
-  const matches = Object.entries(payload).every(
-    ([key, value]) => value === undefined || sameJson(stored[key], value),
-  );
-  return matches ? stored : undefined;
-}
-
-/** Deep equality for plain JSON values, ignoring object key order and null vs. undefined. */
-function sameJson(a: unknown, b: unknown): boolean {
-  if (a == null || b == null) return a == null && b == null;
-  if (typeof a !== 'object' || typeof b !== 'object') return a === b;
-  const aRecord = a as Record<string, unknown>;
-  const bRecord = b as Record<string, unknown>;
-  const keys = new Set([...Object.keys(aRecord), ...Object.keys(bRecord)]);
-  return [...keys].every((key) => sameJson(aRecord[key], bRecord[key]));
 }
 
 async function updateProductImages(product: Product, originalImages: Product['images']) {

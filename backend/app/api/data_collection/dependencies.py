@@ -1,7 +1,7 @@
 """Router dependencies for data collection routers."""
 
 import re
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Path
 from pydantic import PositiveInt
@@ -12,7 +12,7 @@ from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import require_model
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.data_collection.exceptions import ProductVersionMismatchError, ProductVersionRequiredError
+from app.api.data_collection.exceptions import ProductVersionMismatchError
 from app.api.data_collection.filters import MaterialProductLinkFilter, ProductFilterWithRelationships
 from app.api.data_collection.models.product import Product
 
@@ -28,17 +28,15 @@ ProductFilterWithRelationshipsDep = Annotated[
 ### Optimistic concurrency ###
 def product_if_match_version(
     if_match: Annotated[
-        str | None,
+        str,
         Header(
-            description='Required. The `version` field from the product\'s last read, quoted: `"3"`. '
+            description='The `version` field from the product\'s last read, quoted: `"3"`. '
             "Not the `ETag` a GET returns: that one also changes with media. "
-            "Missing is refused with 428, stale or malformed with 412.",
+            "A stale or malformed value is refused with 412.",
         ),
-    ] = None,
+    ],
 ) -> int:
     """Parse the required ``If-Match: "<version>"`` header on product updates."""
-    if if_match is None:
-        raise ProductVersionRequiredError
     match = re.fullmatch(r'"([0-9]{1,9})"', if_match.strip())
     if match is None:
         raise ProductVersionMismatchError
@@ -46,10 +44,6 @@ def product_if_match_version(
 
 
 ProductIfMatchVersionDep = Annotated[int, Depends(product_if_match_version)]
-IF_MATCH_RESPONSES: dict[int | str, dict[str, Any]] = {
-    412: {"description": "The record changed since the `version` sent in `If-Match`, or the header is malformed."},
-    428: {"description": "The `If-Match` header is missing."},
-}
 
 
 ### Product Dependencies ###

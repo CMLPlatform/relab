@@ -167,10 +167,10 @@ async def test_update_product(api_client_superuser: AsyncClient, setup_product: 
 
 
 async def test_update_product_requires_if_match(api_client_superuser: AsyncClient, setup_product: Product) -> None:
-    """PATCH /products/{id} without If-Match is refused with 428."""
+    """PATCH /products/{id} without If-Match is refused as invalid."""
     response = await api_client_superuser.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})
 
-    assert response.status_code == status.HTTP_428_PRECONDITION_REQUIRED
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.parametrize("if_match", ['"2"', "1", 'W/"1"', "*", '"1", "2"'])
@@ -185,10 +185,8 @@ async def test_update_product_refuses_stale_or_malformed_if_match(
     assert response.status_code == status.HTTP_412_PRECONDITION_FAILED
 
 
-async def test_update_product_bumps_version_and_records_editor(
-    api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User, setup_product: Product
-) -> None:
-    """A changing update bumps the version and records the editor; replaying the old version is a 412."""
+async def test_update_product_bumps_version(api_client_superuser: AsyncClient, setup_product: Product) -> None:
+    """A changing update bumps the version; replaying the old version is a 412."""
     response = await api_client_superuser.patch(
         f"/v1/products/{setup_product.id}",
         json={"name": UPDATED_PRODUCT_NAME, "height_cm": HEIGHT_10},
@@ -202,22 +200,22 @@ async def test_update_product_bumps_version_and_records_editor(
     assert response.json()["version"] == 2
     assert response.json()["updated_by_moderator"] is False
     assert stale.status_code == status.HTTP_412_PRECONDITION_FAILED
-    await db_session.refresh(setup_product)
-    assert (setup_product.version, setup_product.updated_by_id) == (2, db_superuser.id)
 
 
-async def test_update_product_without_changes_keeps_version(
-    api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
+async def test_update_product_without_changes_ignores_the_version(
+    api_client_superuser: AsyncClient, setup_product: Product
 ) -> None:
-    """Resending the stored values (an autosave with no edits) keeps the version and records no editor."""
+    """An update that changes nothing succeeds even when stale, and keeps the version.
+
+    That is what a retry of a save whose response was lost looks like: its first attempt
+    already applied these values and moved the version on.
+    """
     response = await api_client_superuser.patch(
-        f"/v1/products/{setup_product.id}", json={"name": setup_product.name}, headers=IF_MATCH_FRESH
+        f"/v1/products/{setup_product.id}", json={"name": setup_product.name}, headers={"If-Match": '"7"'}
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["version"] == 1
-    await db_session.refresh(setup_product)
-    assert setup_product.updated_by_id is None
 
 
 async def test_update_product_compares_against_the_locked_row(

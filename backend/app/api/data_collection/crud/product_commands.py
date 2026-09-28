@@ -175,15 +175,11 @@ async def validate_product_type(db: AsyncSession, product_type_id: int | None) -
         await require_model(db, ProductType, product_type_id)
 
 
-def apply_product_update(db_product: Product, product: ProductUpdate) -> bool:
-    """Apply the provided mutable product fields to an existing row; return whether any changed."""
+def apply_product_update(db_product: Product, product: ProductUpdate) -> None:
+    """Apply the provided mutable product fields to an existing row."""
     product_data: dict[str, Any] = product.model_dump(exclude_unset=True)
-    changed = False
     for key, value in product_data.items():
-        if getattr(db_product, key) != value:
-            setattr(db_product, key, value)
-            changed = True
-    return changed
+        setattr(db_product, key, value)
 
 
 async def update_product(
@@ -191,24 +187,25 @@ async def update_product(
 ) -> Product:
     """Update an existing product, refusing the edit if it changed since the client read it.
 
-    Holding the row lock, compares the client's version with the stored one. An update
-    that changes a field bumps the version and records the editor; one that changes
-    nothing leaves both alone.
+    Under the row lock, an update that changes a field must name the stored version; it
+    bumps the version and records whether a moderator made it. An update that changes
+    nothing succeeds whatever version it names, so a retry of a save that already
+    landed is not reported as a conflict.
     """
     db_product = await require_locked_model(db, Product, product_id)
+    await validate_product_type(db, product.product_type_id)
+    apply_product_update(db_product, product)
+    if not db.is_modified(db_product):
+        return db_product
     if db_product.version != if_match_version:
         raise ProductVersionMismatchError
-    await validate_product_type(db, product.product_type_id)
-    if not apply_product_update(db_product, product):
-        return db_product
 
     db_product.version += 1
-    db_product.updated_by_id = user_id
-    moderated = user_id != db_product.owner_id
+    db_product.updated_by_moderator = user_id != db_product.owner_id
 
     res = await commit_and_refresh(db, db_product)
-    if moderated:
-        # updated_by_id is cleared if the moderator's account is erased; the log keeps who it was.
+    if db_product.updated_by_moderator:
+        # The row says a moderator edited it; the log says which one.
         audit_event(user_id, AuditAction.UPDATE, Product, product_id)
     if db_product.owner_id is not None:
         await recompute_user_profile_stats(db, db_product.owner_id)

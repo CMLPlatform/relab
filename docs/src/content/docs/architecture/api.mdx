@@ -65,9 +65,8 @@ A retry that arrives while the first request is still running returns `409`. If 
 
 Updates (`PATCH /v1/products/{id}`, `PATCH /v1/components/{id}`) require an `If-Match` header carrying the record's `version` field from its last read, quoted: `If-Match: "3"`. This stops two editors, or one editor's queued offline save, from silently overwriting each other:
 
-- a missing header returns `428`
 - a version that no longer matches, or a value that is not one quoted version, returns `412`; read the record again and reapply the edit
-- an update that changes a field bumps `version` and records the editor; an update that changes nothing leaves both alone
+- an update that changes a field bumps `version`; an update that changes nothing succeeds whatever version it names, so retrying a save whose response was lost is safe
 
 Send the `version` field, not the `ETag` header a `GET` returns. That `ETag` is a cache validator over the whole response and changes with media too, so it never matches. `version` covers the record's own fields only: media, component and bill-of-materials edits do not change it.
 

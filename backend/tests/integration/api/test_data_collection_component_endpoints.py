@@ -280,7 +280,7 @@ async def test_patch_component_without_changes_returns_the_component(
 @pytest.mark.parametrize(
     ("headers", "expected"),
     [
-        ({}, status.HTTP_428_PRECONDITION_REQUIRED),
+        ({}, status.HTTP_422_UNPROCESSABLE_CONTENT),
         ({"If-Match": '"2"'}, status.HTTP_412_PRECONDITION_FAILED),
         ({"If-Match": 'W/"1"'}, status.HTTP_412_PRECONDITION_FAILED),
     ],

@@ -3,7 +3,7 @@
 ```mermaid
 erDiagram
     accTitle: Data collection entities
-    accDescr: The data collection tables are MATERIALPRODUCTLINK, PRODUCT. Each MATERIALPRODUCTLINK row names exactly one MATERIAL as its material. Each MATERIALPRODUCTLINK row names exactly one PRODUCT as its product. Each PRODUCT row names exactly one USER as its owner. Each PRODUCT row names zero or one PRODUCT as its parent. Each PRODUCT row names zero or one PRODUCTTYPE as its product type. Each PRODUCT row names zero or one USER as its updated by.
+    accDescr: The data collection tables are MATERIALPRODUCTLINK, PRODUCT. Each MATERIALPRODUCTLINK row names exactly one MATERIAL as its material. Each MATERIALPRODUCTLINK row names exactly one PRODUCT as its product. Each PRODUCT row names exactly one USER as its owner. Each PRODUCT row names zero or one PRODUCT as its parent. Each PRODUCT row names zero or one PRODUCTTYPE as its product type.
 
     MATERIALPRODUCTLINK {
         integer material_id PK, FK
@@ -19,7 +19,6 @@ erDiagram
         uuid owner_id FK
         integer parent_id FK
         integer product_type_id FK
-        uuid updated_by_id FK
         integer amount_in_parent
         varchar brand
         jsonb circularity_properties
@@ -29,6 +28,7 @@ erDiagram
         varchar model
         varchar name
         tsvector search_vector
+        boolean updated_by_moderator
         integer version
         float weight_g
         float width_cm
@@ -41,5 +41,4 @@ erDiagram
     USER ||--o{ PRODUCT : "owner"
     PRODUCT |o--o{ PRODUCT : "parent"
     PRODUCTTYPE |o--o{ PRODUCT : "product type"
-    USER |o--o{ PRODUCT : "updated by"
 ```

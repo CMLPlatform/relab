@@ -52,12 +52,6 @@ class PreconditionFailedError(APIError):
     http_status_code = status.HTTP_412_PRECONDITION_FAILED
 
 
-class PreconditionRequiredError(APIError):
-    """Exception raised when a conditional request header is required but missing."""
-
-    http_status_code = status.HTTP_428_PRECONDITION_REQUIRED
-
-
 class FailedDependencyError(APIError):
     """Exception raised when an upstream or dependent system returns unusable data."""
 
