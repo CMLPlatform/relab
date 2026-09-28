@@ -8,7 +8,9 @@
     "directory": "./dist",
     "not_found_handling": "404-page"
   },
-  // Served on the custom domain alone.
+  // Served on the custom domain alone. Each version also gets a public URL on
+  // workers.dev, which deploy-sites.yml checks before the version takes traffic;
+  // it serves the same public pages.
   "workers_dev": false,
-  "preview_urls": false
+  "preview_urls": true
 }

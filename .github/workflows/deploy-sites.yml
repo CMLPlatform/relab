@@ -5,6 +5,9 @@ name: Deploy Sites
 # Worker names, public URLs and account come from the variables infra/cloudflare
 # writes into each GitHub Environment; the API token is an Environment secret.
 #
+# Each deploy uploads a new version, checks its headers, 404 page and TRACE handling
+# on the version's own workers.dev URL, and only then sends traffic to it.
+#
 # - release.yml calls this with the release tag: both environments get the release.
 # - Weekly, both environments are rebuilt from the latest release, so the www hero
 #   picks up a changed featured product or a changed teardown without a release.
@@ -156,7 +159,10 @@ jobs:
         working-directory: ${{ matrix.site }}
         run: ../scripts/check_site_headers.sh
 
-      - name: Deploy to Workers
+      # A new Worker has no version to build on, and only `wrangler deploy` turns its
+      # version URLs on (`preview_urls` in wrangler.jsonc). It has no hostname until
+      # the infra/cloudflare apply, so this one unchecked deploy serves nobody.
+      - name: Create the Worker if it is new
         working-directory: ${{ matrix.site }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -164,4 +170,80 @@ jobs:
           WORKER: ${{ matrix.site == 'www' && vars.WWW_WORKER || vars.DOCS_WORKER }}
           REF: ${{ needs.resolve.outputs.ref }}
           WRANGLER_SEND_METRICS: "false"
-        run: pnpm exec wrangler deploy --name "$WORKER" --message "$REF"
+        run: |
+          status="$(curl -sS -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/scripts/$WORKER/settings")"
+          case "$status" in
+            200) ;;
+            404) pnpm exec wrangler deploy --name "$WORKER" --message "$REF (first deploy)" ;;
+            *)
+              echo "could not tell whether Worker $WORKER exists (HTTP $status)" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Upload a version
+        id: upload
+        working-directory: ${{ matrix.site }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER: ${{ matrix.site == 'www' && vars.WWW_WORKER || vars.DOCS_WORKER }}
+          REF: ${{ needs.resolve.outputs.ref }}
+          WRANGLER_SEND_METRICS: "false"
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.ndjson
+        run: |
+          pnpm exec wrangler versions upload --name "$WORKER" --message "$REF"
+          jq -rs 'map(select(.type == "version-upload")) | last
+            | "version_id=\(.version_id)", "preview_url=\(.preview_url // "")"' \
+            "$WRANGLER_OUTPUT_FILE_PATH" >>"$GITHUB_OUTPUT"
+
+      # On the version's own workers.dev URL, before it takes traffic. The public
+      # hostnames sit behind the zone's Bot Fight Mode, which challenges a runner,
+      # and a challenge page sends a CSP of its own; workers.dev is outside the zone.
+      - name: Check the version
+        env:
+          URL: ${{ steps.upload.outputs.preview_url }}
+        run: |
+          if [[ -z "$URL" ]]; then
+            echo "wrangler reported no version URL; the Worker needs preview_urls on" >&2
+            exit 1
+          fi
+          headers="$(curl -fsS --retry 5 --retry-all-errors -o /dev/null -D - "$URL/")"
+          csp="$(grep -ciE '^content-security-policy: .*frame-ancestors https:' <<<"$headers" || true)"
+          hsts="$(grep -ci '^strict-transport-security: max-age=63072000' <<<"$headers" || true)"
+          missing="$(curl -s -o /dev/null -w '%{http_code}' "$URL/deploy-check-no-such-page/")"
+          # Caddy answered TRACE, TRACK and CONNECT with 405; nothing may echo a request back.
+          trace="$(curl -s -o /dev/null -w '%{http_code}' -X TRACE "$URL/")"
+
+          fail=0
+          expect() {
+            if [[ "$2" == "$3" ]]; then
+              echo "ok: $1"
+            else
+              echo "FAIL: $1 (got $2, want $3)" >&2
+              fail=1
+            fi
+          }
+          expect "the site's CSP header" "$csp" 1
+          expect "the HSTS header" "$hsts" 1
+          expect "a missing page's status" "$missing" 404
+          if [[ "$trace" == 2* ]]; then
+            echo "FAIL: TRACE answered $trace" >&2
+            fail=1
+          else
+            echo "ok: TRACE refused ($trace)"
+          fi
+          exit "$fail"
+
+      - name: Deploy the version
+        working-directory: ${{ matrix.site }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER: ${{ matrix.site == 'www' && vars.WWW_WORKER || vars.DOCS_WORKER }}
+          REF: ${{ needs.resolve.outputs.ref }}
+          VERSION_ID: ${{ steps.upload.outputs.version_id }}
+          WRANGLER_SEND_METRICS: "false"
+        run: pnpm exec wrangler versions deploy "$VERSION_ID@100%" --name "$WORKER" --message "$REF" --yes
