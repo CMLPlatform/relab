@@ -1,4 +1,5 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import {
   ProductsHeaderFade,
   ProductsListContent,
@@ -22,6 +23,8 @@ function renderList({
   onFetchNextPage = jest.fn(),
   products = [baseProduct],
   total = 1,
+  isLoading = false,
+  numColumns = 1,
 }: {
   isFetchingNextPage?: boolean;
   hasNextPage?: boolean;
@@ -29,13 +32,15 @@ function renderList({
   onFetchNextPage?: () => void;
   products?: Product[];
   total?: number;
+  isLoading?: boolean;
+  numColumns?: number;
 } = {}) {
   return renderWithProviders(
     <ProductsListContent
-      numColumns={1}
+      numColumns={numColumns}
       products={products}
       filterMode="all"
-      isLoading={false}
+      isLoading={isLoading}
       isFetchingNextPage={isFetchingNextPage}
       slowLoading={false}
       total={total}
@@ -85,34 +90,11 @@ function refreshControl() {
 
 describe('ProductsListContent loading skeleton', () => {
   it('lays the skeleton cards out in the same column grid as the loaded list', async () => {
-    await renderWithProviders(
-      <ProductsListContent
-        numColumns={3}
-        products={[]}
-        filterMode="all"
-        isLoading
-        isFetchingNextPage={false}
-        slowLoading={false}
-        total={0}
-        hasNextPage={false}
-        searchQuery=""
-        isAuthenticated
-        onScroll={undefined}
-        onRefresh={jest.fn()}
-        onFetchNextPage={jest.fn()}
-      />,
-    );
+    await renderList({ numColumns: 3, products: [], total: 0, isLoading: true });
     // Each skeleton sits in a one-third-width cell, as each loaded card does.
-    const cellWidth = `${100 / 3}%`;
-    const cells: unknown[] = [];
-    const walk = (node: unknown) => {
-      if (!node || typeof node !== 'object') return;
-      const n = node as { props?: { style?: unknown }; children?: unknown[] | null };
-      const style = [n.props?.style].flat(3) as ({ width?: unknown } | undefined)[];
-      if (style.some((st) => st?.width === cellWidth)) cells.push(n);
-      for (const child of n.children ?? []) walk(child);
-    };
-    walk(screen.toJSON());
+    const cells = queryAllHostsByType('View').filter(
+      (view) => StyleSheet.flatten(view.props.style)?.width === `${100 / 3}%`,
+    );
     expect(cells).toHaveLength(8);
     // Named and busy for assistive tech, not eight silent grey cards.
     expect(screen.getByRole('progressbar', { name: 'Loading products' })).toBeOnTheScreen();

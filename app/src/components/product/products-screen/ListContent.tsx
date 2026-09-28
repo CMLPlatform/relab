@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { type ReactNode, useCallback, useMemo, useState } from 'react';
+import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   type DimensionValue,
@@ -87,36 +87,30 @@ function ProductsListFooter({
   );
 }
 
-const skeletonKeyExtractor = (_: unknown, index: number) => `skeleton-${index}`;
+const SKELETON_KEYS = Array.from({ length: 8 }, (_, index) => `skeleton-${index}`);
 
 /** Same column grid as the loaded list, so the swap to cards does not reflow into a grid. */
 function SkeletonGrid({ numColumns }: { numColumns: number }) {
-  const renderSkeleton = useCallback(
-    () => <GridCell numColumns={numColumns} child={<ProductCardSkeleton />} />,
-    [numColumns],
-  );
   return (
     // Named and busy, like CenteredSpinner: the grey cards alone say nothing to a screen reader.
     <View
+      className="flex-row flex-wrap"
       accessible
       accessibilityRole="progressbar"
       aria-busy
       accessibilityLabel="Loading products"
     >
-      <FlatList
-        key={numColumns}
-        numColumns={numColumns}
-        data={Array.from({ length: 8 })}
-        keyExtractor={skeletonKeyExtractor}
-        renderItem={renderSkeleton}
-        scrollEnabled={false}
-      />
+      {SKELETON_KEYS.map((key) => (
+        <GridCell key={key} numColumns={numColumns}>
+          <ProductCardSkeleton />
+        </GridCell>
+      ))}
     </View>
   );
 }
 
-function GridCell({ numColumns, child }: { numColumns: number; child: ReactNode }) {
-  return <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>{child}</View>;
+function GridCell({ numColumns, children }: PropsWithChildren<{ numColumns: number }>) {
+  return <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>{children}</View>;
 }
 
 export function ProductsListContent({
@@ -156,10 +150,9 @@ export function ProductsListContent({
 
   const renderProduct = useCallback(
     ({ item }: { item: (typeof products)[number] }) => (
-      <GridCell
-        numColumns={numColumns}
-        child={<ProductCard product={item} showOwner={showOwner} />}
-      />
+      <GridCell numColumns={numColumns}>
+        <ProductCard product={item} showOwner={showOwner} />
+      </GridCell>
     ),
     [numColumns, showOwner],
   );
