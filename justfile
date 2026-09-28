@@ -512,16 +512,16 @@ dev-migrate:
 #
 #   up [profiles...]        start the stack (optional profiles: backups, migrations)
 #   down [profiles...]      stop the stack
-#   build [profiles...]     build images and tag them with the commit sha; NO_CACHE=1 skips the cache
+#   tag YES TAG             pull a published image tag and make it the .env IMAGE_TAG
 #   ps                      one line per service: status and image
 #   logs [args...]          follow the logs (arguments replace -f)
 #   migrate YES             run database migrations (staging also seeds dummy data)
-#   rollback YES SHA [REV]  retag to the images `build` tagged with SHA; REV downgrades the schema first
+#   rollback YES TAG [REV]  return to an earlier published tag; REV downgrades the schema first
 #
 # State-changing commands take YES (or FORCE=1) to confirm; the script prints the
 # exact form when it is missing.
 [group('deploy')]
-[doc('Operate a deploy stack: `just stack <prod|staging> <up|down|build|ps|logs|migrate|rollback>`')]
+[doc('Operate a deploy stack: `just stack <prod|staging> <up|down|tag|ps|logs|migrate|rollback>`')]
 stack env command *args:
     @bash scripts/deploy_ops.sh stack {{ quote(env) }} {{ quote(command) }} {{ args }}
 

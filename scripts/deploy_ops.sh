@@ -41,7 +41,8 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     APP_PUBLIC_URL
     SITE_PUBLIC_URL
     DOCS_PUBLIC_URL
-    FEATURED_PRODUCT_ID
+    IMAGE_REGISTRY
+    IMAGE_TAG
     CLOUDFLARE_TUNNEL_TOKEN
     EMAIL_PROVIDER
     EMAIL_FROM
@@ -70,7 +71,12 @@ compose_args() {
 
     # The recipe's environment, not the .env's, selects images and secrets; the .env
     # ENVIRONMENT only guards the recipe (require_dotenv_environment).
-    printf '%s\n' env "${unset_flags[@]}" PROJECT=relab "ENVIRONMENT=$env" docker compose -p "relab_$env" --env-file "$root_env_file" -f compose.yaml -f compose.deploy.yaml
+    local -a assignments=(PROJECT=relab "ENVIRONMENT=$env")
+    # Set only by pull_image_tag, to fetch a tag before the .env names it.
+    if [[ -n "${DEPLOY_IMAGE_TAG:-}" ]]; then
+        assignments+=("IMAGE_TAG=$DEPLOY_IMAGE_TAG")
+    fi
+    printf '%s\n' env "${unset_flags[@]}" "${assignments[@]}" docker compose -p "relab_$env" --env-file "$root_env_file" -f compose.yaml -f compose.deploy.yaml
     telemetry_overlay_args "$root_env_file"
     host_overlay_args
 }
@@ -527,42 +533,27 @@ require_dotenv_environment() {
     fi
 }
 
-require_short_sha() {
-    if [[ ! "$1" =~ ^[0-9a-f]{7,40}$ ]]; then
-        echo "error: expected a commit sha (7-40 hex characters), got '$1'" >&2
+# publish-images.yml tags a release `<version>` and a manual run `sha-<short sha>`.
+require_image_tag() {
+    if [[ ! "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]]; then
+        echo "error: expected an image tag like 0.4.0 or sha-5b099f3, got '$1'" >&2
         exit 2
     fi
 }
 
-# Every image the stack builds (all profiles), one name per line without the tag.
-stack_images() {
-    run_deploy_compose "$1" --profile migrations --profile backups config --images | sort -u \
-        | sed -n "s/:$1-local\$//p" | grep '^relab-'
+# Pull every image TAG needs before anything changes, so a tag that was never
+# published stops the command here instead of halfway through a deploy.
+pull_image_tag() {
+    DEPLOY_IMAGE_TAG="$2" run_deploy_compose "$1" --profile migrations --profile backups pull --quiet
 }
 
-# Sha tags outlive their usefulness after a few releases and, untagged, nothing
-# removes them. Keep the newest KEEP_SHA_TAGS per image (by image creation time).
-KEEP_SHA_TAGS="${KEEP_SHA_TAGS:-5}"
-prune_sha_tags() {
-    local image="$1" env="$2" current="$3" tag
-    while IFS= read -r tag; do
-        [[ "$tag" == "$env-$current" ]] && continue
-        docker image rm "$image:$tag" >/dev/null
-    done < <(docker images "$image" --format '{{.CreatedAt}}\t{{.Tag}}' | grep -E "\s$env-[0-9a-f]{7,40}$" \
-        | sort -r | tail -n "+$((KEEP_SHA_TAGS + 1))" | cut -f2)
-}
-
-# Fail unless every stack image carries the `<env>-<sha>` tag a previous `build` left,
-# so a rollback never mixes two releases.
-require_rollback_images() {
-    local env="$1" sha="$2" image missing=0
-    for image in "${@:3}"; do
-        if ! docker image inspect "$image:$env-$sha" >/dev/null 2>&1; then
-            echo "error: no image $image:$env-$sha; \`docker images '$image'\` lists the shas available" >&2
-            missing=1
-        fi
-    done
-    [[ "$missing" -eq 0 ]] || exit 2
+# Point the host's .env at TAG, replacing every assignment (dotenv_value reads the last).
+write_image_tag() {
+    if grep -qE '^[[:space:]]*(export[[:space:]]+)?IMAGE_TAG=' .env; then
+        sed -i -E "s/^[[:space:]]*(export[[:space:]]+)?IMAGE_TAG=.*/IMAGE_TAG=$1/" .env
+    else
+        printf 'IMAGE_TAG=%s\n' "$1" >>.env
+    fi
 }
 
 # Stamp the uploads volume with its environment, so backup runs can tell "lost its
@@ -607,7 +598,7 @@ mount_writability_alert() {
             echo "Docker sets a named volume's ownership only when it first creates the volume, so" >&2
             echo "relab_${env}_${target#volume:} still belongs to whichever uid created it." >&2
             echo "Fix with: docker run --rm --user 0 -v relab_${env}_${target#volume:}:/mnt" \
-                "relab-backend:$env-local chown -R $DEPLOY_APP_UID:$DEPLOY_APP_UID /mnt" >&2
+                "busybox chown -R $DEPLOY_APP_UID:$DEPLOY_APP_UID /mnt" >&2
             ;;
         host:*)
             echo "Docker creates a missing bind-mount directory root-owned." >&2
@@ -728,9 +719,11 @@ stack_command() {
             uv run python scripts/env_policy.py check --env "$env"
             # `up` does not start backups: the backup service is a one-shot driven
             # by a systemd timer (deploy/systemd/), not a long-running container.
-            # `build` still defaults to the backups profile so the image exists.
             add_scanning_profile_from_dotenv
             require_confirmation "start the $env stack" "just stack $env up YES [profiles...]" "FORCE=1 just stack $env up [profiles...]"
+            # Every image the .env's IMAGE_TAG names, the timer's backup image included,
+            # before anything restarts.
+            run_deploy_compose "$env" --profile migrations --profile backups pull --quiet
             # Before the API starts, so a mount the containers cannot write stops the
             # deploy here rather than surfacing later as uploads and backups that fail
             # silently. On a host that has never run the stack this also creates the named
@@ -791,29 +784,15 @@ stack_command() {
             require_confirmation "stop the $env stack" "just stack $env down YES [profiles...]" "FORCE=1 just stack $env down [profiles...]"
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" down --remove-orphans
             ;;
-        build)
-            parse_profiles "$env" "migrations backups scanning" "$@"
-            if [[ "${#DEPLOY_PROFILE_FLAGS[@]}" -eq 0 ]]; then
-                DEPLOY_PROFILE_FLAGS=(--profile migrations --profile backups)
-            fi
-            local -a no_cache=()
-            if [[ "${NO_CACHE:-}" == "1" || "${NO_CACHE:-}" == "true" ]]; then
-                no_cache=(--no-cache)
-            fi
-            run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" build "${no_cache[@]}"
-            # Every build overwrites the single :$env-local tag, so also tag the result
-            # with the current commit; `rollback` retags from those. Tag every stack
-            # image, not only the profiles built now, so the set is always complete.
-            local sha image
-            sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
-            if [[ -n "$sha" ]]; then
-                for image in $(stack_images "$env"); do
-                    docker image inspect "$image:$env-local" >/dev/null 2>&1 || continue
-                    docker tag "$image:$env-local" "$image:$env-$sha"
-                    prune_sha_tags "$image" "$env" "$sha"
-                done
-                echo "tagged built images with $env-$sha (keeping the newest $KEEP_SHA_TAGS)"
-            fi
+        tag)
+            # `just stack <env> tag YES <tag>`: pull a published tag and make it the .env's
+            # IMAGE_TAG. The running stack is untouched until the next `up`.
+            local tag="${2:-}"
+            require_image_tag "$tag"
+            require_confirmation_command "switch the $env stack to images $tag" "just stack $env tag YES $tag" "FORCE=1 just stack $env tag _ $tag" "${1:-}"
+            pull_image_tag "$env" "$tag"
+            write_image_tag "$tag"
+            echo "IMAGE_TAG=$tag; start it with: just stack $env up YES migrations"
             ;;
         logs)
             # Follows by default; extra arguments replace -f (remote_deploy.sh passes
@@ -828,19 +807,12 @@ stack_command() {
             run_deploy_compose "$env" ps --format 'table {{.Service}}\t{{.Status}}\t{{.Image}}'
             ;;
         rollback)
-            # `just stack <env> rollback YES <sha> [<revision>]`: retag the images a previous
-            # `build` tagged with its commit, optionally after `alembic downgrade`.
-            local sha="${2:-}" revision="${3:-}"
-            require_short_sha "$sha"
-            # Not a process substitution: an `exit` inside one only ends the subshell.
-            local -a images=()
-            mapfile -t images <<<"$(stack_images "$env")"
-            [[ "${#images[@]}" -gt 0 && -n "${images[0]}" ]] || {
-                echo "error: could not list the $env stack images" >&2
-                exit 2
-            }
-            require_rollback_images "$env" "$sha" "${images[@]}"
-            require_confirmation_command "roll the $env stack back to $sha" "just stack $env rollback YES $sha" "FORCE=1 just stack $env rollback _ $sha" "${1:-}"
+            # `just stack <env> rollback YES <tag> [<revision>]`: return to an earlier
+            # published tag, optionally after `alembic downgrade`.
+            local tag="${2:-}" revision="${3:-}"
+            require_image_tag "$tag"
+            require_confirmation_command "roll the $env stack back to $tag" "just stack $env rollback YES $tag" "FORCE=1 just stack $env rollback _ $tag" "${1:-}"
+            pull_image_tag "$env" "$tag"
             if [[ -n "$revision" ]]; then
                 # Both steps use the CURRENT migrator image: only the code being rolled
                 # back knows how to downgrade its own migrations.
@@ -849,10 +821,8 @@ stack_command() {
                 run_deploy_compose "$env" stop api
                 run_deploy_compose "$env" --profile migrations run --rm --entrypoint alembic migrator downgrade "$revision"
             fi
-            local image
-            for image in "${images[@]}"; do
-                docker tag "$image:$env-$sha" "$image:$env-local"
-            done
+            # After the downgrade, which needs the current .env tag's migrator.
+            write_image_tag "$tag"
             add_scanning_profile_from_dotenv
             run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" up -d
             # `up -d` returning 0 is not proof the stack started; see stack_gate_alerts.

@@ -109,7 +109,7 @@ assert_eq "an unwritable named volume names the volume and the chown" \
     "1|error: the prod stack's api service cannot write /opt/relab/backend/data/uploads as uid 65532.
 Docker sets a named volume's ownership only when it first creates the volume, so
 relab_prod_user_uploads still belongs to whichever uid created it.
-Fix with: docker run --rm --user 0 -v relab_prod_user_uploads:/mnt relab-backend:prod-local chown -R 65532:65532 /mnt" \
+Fix with: docker run --rm --user 0 -v relab_prod_user_uploads:/mnt busybox chown -R 65532:65532 /mnt" \
     "$(mount_alert api /opt/relab/backend/data/uploads volume:user_uploads no)"
 assert_eq "an unwritable bind mount asks for a host chown, not a docker one" \
     "1|error: the prod stack's backup service cannot write /restic as uid 65532.
@@ -136,13 +136,37 @@ if [[ $EUID -ne 0 ]]; then
     assert_eq "env guard: unreadable .env names the permissions" blocked "$(unreadable_env_guard)"
 fi
 
-sha_guard() {
-    (require_short_sha "$1" 2>/dev/null) && echo ok || echo rejected
+tag_guard() {
+    (require_image_tag "$1" 2>/dev/null) && echo ok || echo rejected
 }
-assert_eq "rollback sha: short sha accepted" ok "$(sha_guard 5b099f3c)"
-assert_eq "rollback sha: full sha accepted" ok "$(sha_guard 5b099f3c5b099f3c5b099f3c5b099f3c5b099f3c)"
-assert_eq "rollback sha: tag name rejected" rejected "$(sha_guard v1.2.0)"
-assert_eq "rollback sha: empty rejected" rejected "$(sha_guard '')"
+assert_eq "image tag: release version accepted" ok "$(tag_guard 0.4.0)"
+assert_eq "image tag: sha tag accepted" ok "$(tag_guard sha-5b099f3)"
+assert_eq "image tag: git tag name rejected" rejected "$(tag_guard v0.4.0)"
+assert_eq "image tag: bare sha rejected" rejected "$(tag_guard 5b099f3c)"
+assert_eq "image tag: empty rejected" rejected "$(tag_guard '')"
+
+# write_image_tag: every assignment is replaced, so the last one (which dotenv_value
+# and compose read) cannot keep the old tag; a .env without one gains it.
+image_tag_after_write() {
+    local dir
+    dir="$(mktemp -d)"
+    printf '%s' "$1" >"$dir/.env"
+    (cd "$dir" && write_image_tag 0.4.0 && dotenv_value IMAGE_TAG && echo " $(grep -c IMAGE_TAG .env)")
+    rm -rf "$dir"
+}
+assert_eq "image tag: replaces the assignment" "0.4.0 1" "$(image_tag_after_write $'ENVIRONMENT=prod\nIMAGE_TAG=0.3.2\n')"
+assert_eq "image tag: replaces an exported duplicate" "0.4.0 2" "$(image_tag_after_write $'IMAGE_TAG=0.3.1\nexport IMAGE_TAG=0.3.2\n')"
+assert_eq "image tag: appends when missing" "0.4.0 1" "$(image_tag_after_write $'ENVIRONMENT=prod\n')"
+
+# A pull ahead of `tag` or `rollback` must see the new tag, not the .env's. IMAGE_TAG
+# is scrubbed from the shell, so the override has to be an assignment after the scrub.
+tag_override() {
+    local args
+    args="$(compose_args prod /dev/null | tr '\n' ' ')"
+    [[ "$args" == *"-u IMAGE_TAG "*"IMAGE_TAG=${DEPLOY_IMAGE_TAG:-none} docker compose "* ]] && echo override || echo none
+}
+assert_eq "image tag: override reaches compose after the scrub" override "$(DEPLOY_IMAGE_TAG=0.4.0 tag_override)"
+assert_eq "image tag: no override by default" none "$(tag_override)"
 
 # ---------------------------------------------------------------------------
 # Secret templating: what each secret class is seeded with.
@@ -878,15 +902,16 @@ remote_deploy() {
 }
 
 assert_eq "remote deploy: up forwards the migrations profile with YES" "just stack prod up YES migrations" "$(remote_deploy 'up migrations')"
-assert_eq "remote deploy: build nocache sets NO_CACHE" "just stack prod build" "$(remote_deploy 'build nocache')"
+assert_eq "remote deploy: tag forwards a release tag with YES" "just stack prod tag YES 0.4.0" "$(remote_deploy 'tag 0.4.0')"
+assert_eq "remote deploy: tag without a tag is refused" "remote_deploy: tag needs an image tag like 0.4.0 or sha-5b099f3" "$(remote_deploy 'tag latest')"
 assert_eq "remote deploy: migrate needs no argument" "just stack prod migrate YES" "$(remote_deploy migrate)"
-assert_eq "remote deploy: rollback takes a sha" "just stack prod rollback YES 2f91e3b5 " "$(remote_deploy 'rollback 2f91e3b5')"
+assert_eq "remote deploy: rollback takes a tag" "just stack prod rollback YES 0.3.2 " "$(remote_deploy 'rollback 0.3.2')"
 assert_eq "remote deploy: a shell command is refused" "remote_deploy: 'rm' is not allowed" "$(remote_deploy 'rm -rf /')"
 assert_eq "remote deploy: an unknown profile is refused" "remote_deploy: unknown profile 'scanning'" "$(remote_deploy 'up scanning')"
-assert_eq "remote deploy: rollback without a sha is refused" "remote_deploy: rollback needs an image sha" "$(remote_deploy 'rollback abc')"
-assert_eq "remote deploy: rollback to base is refused" "remote_deploy: rollback revision must be a revision id or a -N step" "$(remote_deploy 'rollback 2f91e3b5 base')"
-assert_eq "remote deploy: rollback to a revision id is allowed" "just stack prod rollback YES 2f91e3b5 4a672549f270" "$(remote_deploy 'rollback 2f91e3b5 4a672549f270')"
-assert_eq "remote deploy: rollback one step is allowed" "just stack prod rollback YES 2f91e3b5 -1" "$(remote_deploy 'rollback 2f91e3b5 -1')"
+assert_eq "remote deploy: rollback without a tag is refused" "remote_deploy: rollback needs an image tag like 0.4.0 or sha-5b099f3" "$(remote_deploy 'rollback abc')"
+assert_eq "remote deploy: rollback to base is refused" "remote_deploy: rollback revision must be a revision id or a -N step" "$(remote_deploy 'rollback 0.3.2 base')"
+assert_eq "remote deploy: rollback to a revision id is allowed" "just stack prod rollback YES 0.3.2 4a672549f270" "$(remote_deploy 'rollback 0.3.2 4a672549f270')"
+assert_eq "remote deploy: rollback one step is allowed" "just stack prod rollback YES 0.3.2 -1" "$(remote_deploy 'rollback 0.3.2 -1')"
 
 # ---------------------------------------------------------------------------
 # deploy_watchdog.sh check 4: why the git probe failed. Running as root against a

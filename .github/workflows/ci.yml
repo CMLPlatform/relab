@@ -434,7 +434,6 @@ jobs:
       contents: read
     uses: ./.github/workflows/container-images.yml
     with:
-      mode: scan
       blocking: ${{ github.event_name != 'push' }}
 
   trivy-iac:

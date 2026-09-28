@@ -44,29 +44,30 @@ API refills it at startup, so existence alone proves nothing about the data insi
 `backup-init` to silence this — it fails against an existing repository.
 
 **Marker missing, and the volume already has real uploads in it:** this host was deployed before
-the marker existed. Rebuild first, then stamp, then take the first marked snapshot:
+the marker existed. Switch to a release that has the guard first, then stamp, then take the first
+marked snapshot:
 
 ```bash
-just stack prod build            # the guard ships inside the backup image, not the checkout
+just stack prod tag YES <tag>    # the guard ships inside the backup image, not the checkout
 just backup-stamp-volume prod    # writes .relab-volume; safe to re-run, never overwrites
 just backup prod                 # first snapshot carrying the marker
 just timers-install prod         # re-render the units
 ```
 
-`just backup` runs the script baked into `relab-backup:prod-local` (`backend/Dockerfile.backups`
-copies it in), not the one in the checkout, and no backup recipe builds that image. Pull the new
-code without rebuilding and the stamp lands while every guard stays inert: the run archives, the
-snapshot carries the marker, and nothing checks it.
+`just backup` runs the script baked into the `relab-backup` image that `IMAGE_TAG` names
+(`backend/Dockerfile.backups` copies it in), not the one in the checkout. Pull the new code without
+switching the tag and the stamp lands while every guard stays inert: the run archives, the snapshot
+carries the marker, and nothing checks it.
 
-The rebuilt image says so in its own log. A guarded run reports each tag by name:
+The new image says so in its own log. A guarded run reports each tag by name:
 
 ```text
 postgres size 267556 bytes (100% of previous); archiving
 user-uploads size 355234816 bytes (100% of previous); archiving
 ```
 
-`Dump size ...` with no `user-uploads` line means the container is still on the old image; rebuild
-and run it again.
+`Dump size ...` with no `user-uploads` line means the container is still on the old image; check
+`IMAGE_TAG` and run it again.
 
 `just backup` has to happen before the next `relab-restore-check@` fires — restore verification
 enforces the marker strictly, so a check landing between the stamp and the first marked snapshot
@@ -83,6 +84,7 @@ Postgres and Docker use, and the watchdog only checks `BACKUP_HOST_DIR`. It must
 65532 (the backup image's uid); `--no-lock` is required because the repository mounts read-only.
 
 ```bash
+BACKUP_IMAGE="ghcr.io/cmlplatform/relab-backup:$(sed -n 's/^IMAGE_TAG=//p' .env)"
 just stack prod down YES
 SCRATCH="${BACKUP_HOST_DIR:-./backups}/uploads-restore"
 mkdir -p "$SCRATCH"
@@ -92,12 +94,12 @@ docker run --rm \
   -v "$(pwd)/secrets/prod/restic_password:/run/secrets/restic_password:ro" \
   -v "$SCRATCH:/restore" \
   -e RESTIC_PASSWORD_FILE=/run/secrets/restic_password \
-  --entrypoint restic relab-backup:prod-local \
+  --entrypoint restic "$BACKUP_IMAGE" \
   restore --no-lock latest --repo /restic --tag user-uploads --target /restore
 docker run --rm \
   -v relab_prod_user_uploads:/data/uploads \
   -v "$SCRATCH:/restore:ro" \
-  --entrypoint sh relab-backup:prod-local -c \
+  --entrypoint sh "$BACKUP_IMAGE" -c \
   'rm -rf /data/uploads/* && cp -a /restore/data/uploads/. /data/uploads/'
 docker run --rm -v "$SCRATCH:/restore" --entrypoint chown alpine:3.22 -R "$(id -u):$(id -g)" /restore
 rm -rf "$SCRATCH"
@@ -109,7 +111,7 @@ backup-stamp-volume prod` cannot fix that (it never overwrites), so rewrite it b
 snapshot was another environment's:
 
 ```bash
-docker run --rm -v relab_prod_user_uploads:/data/uploads --entrypoint sh relab-backup:prod-local -c \
+docker run --rm -v relab_prod_user_uploads:/data/uploads --entrypoint sh busybox -c \
   'printf prod >/data/uploads/.relab-volume.tmp && mv /data/uploads/.relab-volume.tmp /data/uploads/.relab-volume'
 ```
 
@@ -356,12 +358,20 @@ deploy user on the prod host):
 
 ```bash
 ssh relab-prod pull                 # git pull --ff-only of origin/main, prints the revision
-ssh relab-prod build                # `build nocache` when only the edge or the featured product changed:
-ssh relab-prod up migrations        # www bakes API data in at build time, and the layer cache would skip it
+ssh relab-prod tag 0.4.0            # pull the release's published images, write IMAGE_TAG
+ssh relab-prod up migrations
 ```
 
 `ssh relab-prod` with no command prints the allow-list. On the host itself the same three steps
-are `git pull --ff-only`, `just stack prod build`, `just stack prod up YES migrations` as the deploy user.
+are `git pull --ff-only`, `just stack prod tag YES <tag>`, `just stack prod up YES migrations` as
+the deploy user.
+
+The images come from the release: `release.yml` publishes them to GHCR (`publish-images.yml`)
+once the release is cut, so wait for that run to finish. `tag` pulls every image before it writes
+`IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. www bakes the landing
+page's API data in at build time; picking up a new featured product (the `FEATURED_PRODUCT_ID`
+variable of the `prod` GitHub Environment) needs a new publish. To try a commit before a release,
+run the Publish Images workflow on it by hand and use its `sha-<short sha>` tag.
 
 The `migrations` profile is the routine path: the API waits for the migrator to exit 0, so a failed
 migration leaves the old API serving. Without it you get a two-step that briefly serves against the
@@ -395,7 +405,7 @@ order that works:
 
 ```bash
 env=prod                          # or staging
-just stack "$env" build           # safe with the stack up; the snapshot then runs on the new image
+just stack "$env" tag YES <tag>   # safe with the stack up; the snapshot then runs on the new image
 # The restic repository is a host bind, so it can be chowned with the stack still up.
 sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
 just backup "$env" manual         # tagged, so retention cannot expire your rollback
@@ -404,7 +414,7 @@ just stack "$env" down YES
 # image so the host needs no knowledge of where Docker keeps the volume.
 for volume in user_uploads restic_cache; do
     docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
-        "relab-backend:${env}-local" chown -R 65532:65532 /mnt
+        busybox chown -R 65532:65532 /mnt
 done
 just stack "$env" up YES migrations
 ```
@@ -439,20 +449,19 @@ Migrations commit one revision at a time (`transaction_per_migration=True` in
 succeeded, and a re-run resumes from there. Fix forward where possible. One kind of revision
 escapes that guarantee: see "A revision that builds an index concurrently" at the end of this part.
 
-Every `just stack prod build` tags its images with the commit sha of the checkout it built (unrelated to
-the alembic revision, which names the schema), so a release can be rolled back without a rebuild.
-The newest five sha tags per image are kept; `KEEP_SHA_TAGS=<n>` on the build changes that.
+Every release stays published on GHCR under its version (unrelated to the alembic revision, which
+names the schema), so rolling back is pulling an earlier tag. The package pages on GitHub list them.
 
 ```bash
-docker images 'relab-backend' --format '{{.Tag}}' | grep prod-   # the shas available
-just stack prod rollback YES <sha>                    # code only: the new schema still suits the old code
-just stack prod rollback YES <sha> <alembic-revision> # also downgrade the schema to that revision
+just stack prod rollback YES <tag>                    # code only: the new schema still suits the old code
+just stack prod rollback YES <tag> <alembic-revision> # also downgrade the schema to that revision
 ```
 
 With a revision, the recipe first checks that no migration in the range dropped or rewrote data
 (`scripts.maintenance.downgrade_safety`); a downgrade would re-create such objects empty, so it
-refuses and points at the backup instead. Then it stops the API, runs `alembic downgrade`, retags,
-and starts the stack. Find the revision with `cd backend && uv run alembic history`.
+refuses and points at the backup instead. Then it stops the API, runs `alembic downgrade` with the
+current release's migrator, writes the earlier tag to `IMAGE_TAG`, and starts the stack. The
+earlier tag's images are pulled before any of that, so a missing tag changes nothing. Find the revision with `cd backend && uv run alembic history`.
 
 History was flattened at `a9c2e4f60b18` on 2026-09-08; revisions older than that no
 longer resolve, so a schema rollback can only target that id or a newer one.
