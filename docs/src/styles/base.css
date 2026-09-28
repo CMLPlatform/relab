@@ -52,7 +52,11 @@ body {
   /* Chrome one faint step off the page ground, in the blue family; Starlight's
      stock grey (#f6f7f9 / #23262f) reads as a mismatched band on a flat ground.
      color-mix lands on the correct side of the ground in both schemes. */
-  --sl-color-bg-sidebar: color-mix(in srgb, var(--relab-brand-primary) 5%, var(--relab-brand-background));
+  --sl-color-bg-sidebar: color-mix(
+    in srgb,
+    var(--relab-brand-primary) 5%,
+    var(--relab-brand-background)
+  );
   --sl-color-bg-nav: var(--sl-color-bg-sidebar);
 }
 

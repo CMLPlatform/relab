@@ -8,11 +8,15 @@ afterEach(() => {
 
 describe('normalizeBackendApiUrl', () => {
   it('trims whitespace and strips trailing slashes', () => {
-    expect(normalizeBackendApiUrl('  https://api.example.com///  ')).toBe('https://api.example.com');
+    expect(normalizeBackendApiUrl('  https://api.example.com///  ')).toBe(
+      'https://api.example.com',
+    );
   });
 
   it('preserves a path while stripping only trailing slashes', () => {
-    expect(normalizeBackendApiUrl('https://api.example.com/v1/')).toBe('https://api.example.com/v1');
+    expect(normalizeBackendApiUrl('https://api.example.com/v1/')).toBe(
+      'https://api.example.com/v1',
+    );
   });
 
   it('rejects a non-absolute URL', () => {

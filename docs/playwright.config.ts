@@ -19,7 +19,9 @@ export default defineConfig({
   use: {
     baseURL: DOCS_PREVIEW_URL,
     // Matches the zone's staging Super Bot Fight Mode skip rule (infra/cloudflare-zone).
-    extraHTTPHeaders: process.env.E2E_EDGE_KEY ? { 'x-e2e-key': process.env.E2E_EDGE_KEY } : undefined,
+    extraHTTPHeaders: process.env.E2E_EDGE_KEY
+      ? { 'x-e2e-key': process.env.E2E_EDGE_KEY }
+      : undefined,
     trace: 'on-first-retry',
   },
   projects: [
