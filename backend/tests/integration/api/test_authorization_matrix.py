@@ -146,3 +146,17 @@ async def test_authorization_matrix_for_representative_route_classes(
             status.HTTP_200_OK,
             "superuser foreign scoped product list",
         )
+
+
+async def test_superuser_without_mfa_is_an_ordinary_user_off_the_admin_routes(
+    api_client: AsyncClient, test_app: FastAPI, db_session: AsyncSession, db_user: User
+) -> None:
+    """Reading another user's products is an admin power, so it needs MFA enrolled too."""
+    admin = await UserFactory.create_async(
+        session=db_session, is_superuser=True, is_active=True, mfa_enabled=False, refresh_instance=True
+    )
+
+    with override_authenticated_user(test_app, admin, superuser=True):
+        response = await api_client.get(f"/v1/users/{db_user.id}/products")
+
+    assert_status(response.status_code, status.HTTP_403_FORBIDDEN, "superuser without MFA, foreign product list")

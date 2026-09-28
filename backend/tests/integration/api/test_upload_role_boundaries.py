@@ -186,18 +186,18 @@ class TestImageCapsFollowTheUploaderRole:
 
         assert response.status_code == status.HTTP_201_CREATED, response.text
 
-    async def test_cap_follows_the_uploader_not_the_owner(
+    async def test_superuser_cannot_add_photos_to_someone_elses_product(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_user: User
     ) -> None:
-        """A superuser adding a photo to a contributor's product gets the caps the app fitted it to.
+        """Moderation corrects and removes; it never adds content under another owner's name.
 
-        The quota is still charged to the owner; only the per-image caps follow the uploader.
+        Uploads are owner-only, so the uploader whose caps apply is always the owner.
         """
         product = await _product_owned_by(db_session, db_user)
 
         response = await api_client_superuser.post(f"/v1/products/{product.id}/images", files=_png_file(40, 40))
 
-        assert response.status_code == status.HTTP_201_CREATED, response.text
+        assert response.status_code == status.HTTP_404_NOT_FOUND, response.text
 
 
 class TestQuotaFollowsTheRole:
