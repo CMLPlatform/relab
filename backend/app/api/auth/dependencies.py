@@ -41,19 +41,6 @@ async def current_active_superuser(
     return user
 
 
-async def current_mfa_user(user: Annotated[User, Security(current_active_user)]) -> User:
-    """Require an active account that has TOTP MFA *enrolled*.
-
-    NOTE: this checks enrolment, not that the current session passed an MFA
-    challenge. It is not a step-up gate; do not use it to guard a sensitive
-    operation on the assumption the session was MFA-verified.
-    """
-    if not user.mfa_enabled:
-        message = "MFA is required for this action."
-        raise ForbiddenError(message)
-    return user
-
-
 UserDBDep = Annotated[UserDatabaseAsync[User, UUID4], Depends(get_user_db)]
 UserManagerDep = Annotated[UserManager, Depends(get_user_manager)]
 
@@ -76,6 +63,5 @@ CurrentActiveUserDep = Annotated[User, Security(current_active_user)]
 CurrentActiveVerifiedUserDep = Annotated[User, Security(current_active_verified_user)]
 CurrentActiveSuperUserDep = Annotated[User, Security(current_active_superuser)]
 CurrentLabUserDep = Annotated[User, Security(current_lab_user)]
-CurrentMfaUserDep = Annotated[User, Security(current_mfa_user)]
 OptionalCurrentActiveUserDep = Annotated[User | None, Security(optional_current_active_user)]
 UserByIDDep = Annotated[User, Depends(get_user_or_404)]

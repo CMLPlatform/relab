@@ -31,7 +31,7 @@ def _auth_dependencies(dependant: Dependant) -> set[str]:
     Reads FastAPI's own resolved dependency tree rather than the endpoint signature:
     the tree already carries route-level and router-level ``dependencies=[Security(...)]``,
     which a signature never shows, and it reaches the nested deps that `current_lab_user`
-    and `current_mfa_user` are built from.
+    and `current_active_superuser` are built from.
     """
     found: set[str] = set()
     for sub in dependant.dependencies:
