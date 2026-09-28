@@ -5,11 +5,18 @@
 # Zone-global resources are tested in ../cloudflare-zone/tests/zone.tftest.hcl.
 
 mock_provider "cloudflare" {}
-mock_provider "github" {}
+mock_provider "github" {
+  mock_data "github_user" {
+    defaults = {
+      id = "4242"
+    }
+  }
+}
 
 variables {
-  cloudflare_account_id = "00000000000000000000000000000000"
-  cloudflare_zone_id    = "11111111111111111111111111111111"
+  cloudflare_account_id    = "00000000000000000000000000000000"
+  cloudflare_zone_id       = "11111111111111111111111111111111"
+  github_staging_reviewers = ["staging-reviewer"]
 }
 
 run "staging_serves_only_test_subdomains" {
@@ -149,5 +156,43 @@ run "prod_publishes_only_from_main" {
   assert {
     condition     = github_repository_environment_deployment_policy.main[0].branch_pattern == "main"
     error_message = "prod URLs must only be baked into images built from main."
+  }
+}
+
+run "staging_waits_for_a_reviewer" {
+  command = plan
+
+  variables {
+    environment = "staging"
+  }
+
+  assert {
+    condition     = github_repository_environment.publish.reviewers[0].users == toset([4242])
+    error_message = "staging runs must wait for a required reviewer."
+  }
+}
+
+run "staging_without_a_reviewer_is_refused" {
+  command = plan
+
+  variables {
+    environment              = "staging"
+    github_staging_reviewers = []
+  }
+
+  expect_failures = [github_repository_environment.publish]
+}
+
+run "prod_has_no_reviewer" {
+  command = plan
+
+  variables {
+    environment              = "prod"
+    github_staging_reviewers = []
+  }
+
+  assert {
+    condition     = length(github_repository_environment.publish.reviewers) == 0
+    error_message = "prod deploys from release.yml unattended; it must not wait for a reviewer."
   }
 }

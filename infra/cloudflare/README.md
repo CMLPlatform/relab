@@ -156,6 +156,16 @@ export TF_VAR_cloudflare_zone_name='cml-relab.org'
 export TF_VAR_github_owner='CMLPlatform'  # a fork's owner, when it publishes its own images
 ```
 
+Required for staging:
+
+```bash
+export TF_VAR_github_staging_reviewers='["<your-github-login>"]'
+```
+
+Staging accepts a run from any branch, and its `CLOUDFLARE_API_TOKEN` can deploy every Worker in
+the account, prod's included, so every staging run waits for one of these reviewers to approve it.
+A release waits there too, for its staging images and site deploy.
+
 Do not commit tokens, tunnel tokens, or state files.
 
 ## Moving a hostname onto a Worker
@@ -163,15 +173,23 @@ Do not commit tokens, tunnel tokens, or state files.
 `hostnames.tf` gives each route either an `origin` (served through the tunnel) or a `worker`. A
 Workers Custom Domain cannot be created on a hostname that still has a CNAME, so the apply deletes
 the tunnel record first (`depends_on` orders it) and the hostname is unserved for the seconds in
-between. The Worker must exist before that apply:
+between. The Worker must exist before that apply, and Deploy Sites reads the Worker names this
+root writes, so the Environment goes first:
+
+1. Write the GitHub Environment and its variables alone:
+
+   ```bash
+   tofu -chdir=infra/cloudflare workspace select <env>
+   tofu -chdir=infra/cloudflare apply -var=environment=<env> -target=github_actions_environment_variable.publish
+   ```
 
 1. Run the Deploy Sites workflow for the environment (Actions -> Deploy Sites -> Run workflow).
    It needs the `CLOUDFLARE_API_TOKEN` Environment secret, an account token with **Workers
    Scripts: Edit** alone.
-2. `just cloudflare-apply <env>`: expect the two tunnel records destroyed, the tunnel config
+1. `just cloudflare-apply <env>`: expect the two tunnel records destroyed, the tunnel config
    updated, and two custom domains created. Then `just cloudflare-apply <env> YES`.
-3. `curl -sI https://<hostname>/` returns 200 with the site's `content-security-policy`.
-4. On the host, remove the containers nothing routes to any more:
+1. `curl -sI https://<hostname>/` returns 200 with the site's `content-security-policy`.
+1. On the host, remove the containers nothing routes to any more:
    `docker rm -f relab_<env>-www-1 relab_<env>-docs-1`.
 
 Staging first; prod once staging serves.

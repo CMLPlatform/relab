@@ -29,10 +29,6 @@ on:
 
 permissions: {}
 
-concurrency:
-  group: ${{ github.workflow }}-${{ inputs.environment || 'all' }}
-  cancel-in-progress: false
-
 jobs:
   resolve:
     name: Resolve ref
@@ -56,6 +52,12 @@ jobs:
             ref="$TAG_NAME"
           elif [[ "$EVENT" == schedule ]]; then
             ref="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
+            # NOTE: releases cut before the sites moved to Workers have nothing to
+            # deploy. Drop this once a release contains www/wrangler.jsonc.
+            if ! gh api "repos/$GITHUB_REPOSITORY/contents/www/wrangler.jsonc?ref=$ref" --silent 2>/dev/null; then
+              echo "::notice::$ref predates the Workers deploy; nothing to rebuild."
+              ref=""
+            fi
           else
             ref="$GITHUB_SHA"
           fi
@@ -72,7 +74,14 @@ jobs:
   deploy:
     name: ${{ matrix.site }} (${{ matrix.env }})
     needs: resolve
+    if: needs.resolve.outputs.ref != ''
     runs-on: ubuntu-26.04
+    # Per Worker, not per workflow: called from release.yml, `github.workflow` is the
+    # caller's name, so a workflow-level group would not serialize a release deploy
+    # with a weekly or manual one.
+    concurrency:
+      group: deploy-sites-${{ matrix.env }}-${{ matrix.site }}
+      cancel-in-progress: false
     timeout-minutes: 20
     environment: ${{ matrix.env }}
     permissions:
@@ -142,6 +151,10 @@ jobs:
           PUBLIC_DOCS_URL: ${{ vars.DOCS_PUBLIC_URL }}
           PUBLIC_BACKEND_API_URL: ${{ vars.API_PUBLIC_URL }}
         run: pnpm run "build:$ENV_NAME"
+
+      - name: Check the built site under workerd
+        working-directory: ${{ matrix.site }}
+        run: ../scripts/check_site_headers.sh
 
       - name: Deploy to Workers
         working-directory: ${{ matrix.site }}

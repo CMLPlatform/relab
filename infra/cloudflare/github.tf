@@ -35,6 +35,27 @@ resource "github_repository_environment" "publish" {
       custom_branch_policies = true
     }
   }
+
+  # Open to any branch, staging instead waits for a person: its CLOUDFLARE_API_TOKEN
+  # (Workers Scripts: Edit) is account-wide and could deploy prod's Workers too.
+  dynamic "reviewers" {
+    for_each = var.environment == "staging" ? [1] : []
+    content {
+      users = [for user in data.github_user.staging_reviewer : user.id]
+    }
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.environment != "staging" || length(var.github_staging_reviewers) > 0
+      error_message = "staging needs at least one required reviewer: set TF_VAR_github_staging_reviewers."
+    }
+  }
+}
+
+data "github_user" "staging_reviewer" {
+  for_each = toset(var.environment == "staging" ? var.github_staging_reviewers : [])
+  username = each.value
 }
 
 resource "github_repository_environment_deployment_policy" "main" {

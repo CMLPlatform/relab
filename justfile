@@ -550,7 +550,7 @@ images-verify env tag:
     source_ref=()
     [[ "$env" == prod ]] && source_ref=(--source-ref refs/heads/main)
     for image in "relab-backend:$tag" "relab-backend-migrations:$tag" "relab-backup:$tag" \
-        "relab-app:$tag-$env" "relab-www:$tag-$env" "relab-docs:$tag-$env"; do
+        "relab-app:$tag-$env"; do
         gh attestation verify "oci://$registry/$image" --repo "$repo" \
             --signer-workflow "$repo/.github/workflows/publish-images.yml" \
             --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
