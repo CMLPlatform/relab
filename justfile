@@ -526,6 +526,37 @@ dev-migrate:
 stack env command *args:
     @bash scripts/deploy_ops.sh stack {{ quote(env) }} {{ quote(command) }} {{ args }}
 
+# Check a published tag's build provenance from the dev host, before
+# `ssh relab-<env> tag <tag>` makes a host pull it: every image must have been built by
+# this repository's publish-images.yml on a GitHub-hosted runner, and a prod image
+# from main. gh needs `read:packages` (`gh auth refresh -s read:packages`).
+# NOTE: checks what the tag points at now; a tag moved between this check and the
+# host's pull is not caught. Pin image digests in compose.deploy.yaml if it matters.
+[group('deploy')]
+[doc('Verify the build provenance of a published image tag before deploying it')]
+images-verify env tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    env={{ quote(env) }}
+    tag={{ quote(tag) }}
+    [[ "$env" =~ ^(prod|staging)$ ]] || { echo "env must be prod or staging, got '$env'" >&2; exit 2; }
+    [[ "$tag" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
+        echo "expected an image tag like 0.4.0 or sha-5b099f3, got '$tag'" >&2
+        exit 2
+    }
+    repo="${GITHUB_REPOSITORY:-CMLPlatform/relab}"
+    registry="${IMAGE_REGISTRY:-ghcr.io/cmlplatform}"
+    # Staging deliberately accepts a manual publish of any branch.
+    source_ref=()
+    [[ "$env" == prod ]] && source_ref=(--source-ref refs/heads/main)
+    for image in "relab-backend:$tag" "relab-backend-migrations:$tag" "relab-backup:$tag" \
+        "relab-app:$tag-$env" "relab-www:$tag-$env" "relab-docs:$tag-$env"; do
+        gh attestation verify "oci://$registry/$image" --repo "$repo" \
+            --signer-workflow "$repo/.github/workflows/publish-images.yml" \
+            --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
+        echo "verified $registry/$image"
+    done
+
 # Run one backup cycle now. This is what the systemd timer calls; see deploy/systemd/.
 # Pass `manual` before a risky operation. Retention keeps `manual` snapshots
 # unconditionally, so the next scheduled run cannot expire your safety copy.

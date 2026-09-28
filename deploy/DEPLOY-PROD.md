@@ -357,6 +357,7 @@ From the dev host, over the restricted key (`relab-prod` here is an ssh config a
 deploy user on the prod host):
 
 ```bash
+just images-verify prod 0.4.0       # on the dev host: built by publish-images.yml from main
 ssh relab-prod pull                 # git pull --ff-only of origin/main, prints the revision
 ssh relab-prod tag 0.4.0            # pull the release's published images, write IMAGE_TAG
 ssh relab-prod up migrations
@@ -368,7 +369,10 @@ the deploy user.
 
 The images come from the release: `release.yml` publishes them to GHCR (`publish-images.yml`)
 once the release is cut, so wait for that run to finish. `tag` pulls every image before it writes
-`IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. www bakes the landing
+`IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. `up` never pulls: it
+runs the images `tag` pulled, so a tag moved on GHCR afterwards cannot reach the host on a restart.
+`images-verify` checks each image's build provenance and needs `read:packages` on your `gh`
+login (`gh auth refresh -s read:packages`). www bakes the landing
 page's API data in at build time; picking up a new featured product (the `FEATURED_PRODUCT_ID`
 variable of the `prod` GitHub Environment) needs a new publish. To try a commit before a release,
 run the Publish Images workflow on it by hand and use its `sha-<short sha>` tag.

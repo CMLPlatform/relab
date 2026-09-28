@@ -721,9 +721,10 @@ stack_command() {
             # by a systemd timer (deploy/systemd/), not a long-running container.
             add_scanning_profile_from_dotenv
             require_confirmation "start the $env stack" "just stack $env up YES [profiles...]" "FORCE=1 just stack $env up [profiles...]"
-            # Every image the .env's IMAGE_TAG names, the timer's backup image included,
-            # before anything restarts.
-            run_deploy_compose "$env" --profile migrations --profile backups pull --quiet
+            # No pull: `tag` and `rollback` pulled every image IMAGE_TAG names, and a
+            # re-pull here would let a tag moved on GHCR since then replace them on a
+            # plain restart. Compose still pulls an image that is missing locally, such
+            # as a third-party one whose pinned digest changed with `git pull`.
             # Before the API starts, so a mount the containers cannot write stops the
             # deploy here rather than surfacing later as uploads and backups that fail
             # silently. On a host that has never run the stack this also creates the named

@@ -386,6 +386,17 @@ describe('loadLandingData', () => {
     await expect(loadLandingData()).resolves.toMatchObject({ fromFixture: true });
   });
 
+  it.each(['abc', '#47', '0'])(
+    'throws for the malformed featured product id %j when LANDING_REQUIRE_LIVE=1',
+    async (raw) => {
+      vi.stubEnv('LANDING_REQUIRE_LIVE', '1');
+      vi.stubEnv('PUBLIC_FEATURED_PRODUCT_ID', raw);
+      stubFetch({});
+
+      await expect(loadLandingData()).rejects.toThrow(`featured product '${raw}'`);
+    },
+  );
+
   // A blank, non-integer, zero or negative id is not a product to fetch.
   it.each(['', '  ', 'abc', '0', '-3', '4.5'])(
     'uses the fixture without warning for the featured product id %j',

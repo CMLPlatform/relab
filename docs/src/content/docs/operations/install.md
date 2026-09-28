@@ -216,6 +216,10 @@ the topology these steps produce.
    just stack prod tag YES <tag>   # pulls every image, then writes IMAGE_TAG to .env
    ```
 
+   To check first that the tag was built by your fork's workflow, run
+   `GITHUB_REPOSITORY=<your-account>/relab IMAGE_REGISTRY=ghcr.io/<your-account> just images-verify prod <tag>`
+   from a machine with `gh` logged in.
+
 1. Start the stack.
 
    The `migrations` profile runs the migrator first and starts the API only after it exits 0, so

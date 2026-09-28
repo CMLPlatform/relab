@@ -9,9 +9,13 @@ on:
 
 permissions: {}
 
+# Queue, never cancel: only the run that creates a release publishes its images, so a
+# push to main during that publish must not cancel it. A queued run superseded by a
+# newer one is safe to drop, since release-please picks up any merged release PR it
+# has not tagged yet.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   release-please:

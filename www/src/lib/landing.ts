@@ -253,6 +253,14 @@ export async function loadLandingData(): Promise<LandingData> {
     // biome-ignore lint/suspicious/noConsole: diagnostic when the API is unreachable at build time
     console.warn('[landing] API unavailable at build time; using the committed fixture.');
   } else {
+    // A configured product that cannot be fetched (malformed id, no API URL) is the
+    // same failure as an unreachable API, not "no featured product".
+    const configured = import.meta.env.PUBLIC_FEATURED_PRODUCT_ID?.trim();
+    if (configured && process.env.LANDING_REQUIRE_LIVE === '1') {
+      throw new Error(
+        `[landing] featured product '${configured}' needs a positive integer id and PUBLIC_API_URL when LANDING_REQUIRE_LIVE=1`,
+      );
+    }
     // biome-ignore lint/suspicious/noConsole: expected on builds without a featured product
     console.info('[landing] no featured product configured; using the committed fixture.');
   }
