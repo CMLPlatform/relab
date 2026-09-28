@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 // charges the screen's whole module-transform cost to the first test, which on
 // a cold jest cache blows the 15s testTimeout.
 import ProfileTab from '@/app/(tabs)/(account)/account';
+import { ApiError } from '@/services/api/errors';
 import { renderWithProviders } from '@/test-utils/render';
 
 // Variables prefixed with 'mock' can be referenced inside jest.mock() factories.
@@ -24,6 +25,7 @@ const COMMUNITY_VISIBILITY_PATTERN = /community/i;
 const CONTENT_STAYS_PATTERN = /stay on the platform, without your name/;
 const REMOVE_UPLOADS_PATTERN = /To have your uploads removed as well/;
 const INVALID_PASSWORD_PATTERN = /Current password is invalid/;
+const SIGN_IN_AGAIN_PATTERN = /sign in again/;
 
 jest.mock('expo-router', () => {
   const React = require('react');
@@ -373,26 +375,85 @@ describe('ProfileTab', () => {
       expect(mockDeleteAccount).not.toHaveBeenCalled();
     });
 
-    it('keeps the user signed in and shows the error when deletion fails', async () => {
+    it('keeps the user signed in and ties a wrong password to the inputs', async () => {
       withPasswordUser();
-      mockDeleteAccount.mockRejectedValueOnce(new Error('Current password is invalid.'));
+      mockDeleteAccount.mockRejectedValueOnce(new ApiError('Current password is invalid.', 403));
       const { findByLabelText, findAllByText, findByText } = await renderProfile();
       await fireEvent.press(await findByLabelText('Delete account?'));
       await fireEvent.changeText(await findByLabelText('Current password'), 'wrong');
       await pressConfirm(findAllByText);
 
       expect(await findByText(INVALID_PASSWORD_PATTERN)).toBeTruthy();
+      expect((await findByLabelText('Current password')).props.accessibilityDescribedBy).toBe(
+        'delete-account-error',
+      );
       expect(mockRouterReplace).not.toHaveBeenCalled();
     });
 
-    it('asks an account without a password for no password', async () => {
-      const { findByLabelText, findAllByText, queryByLabelText } = await renderProfile();
+    it('ties a wrong authentication code to both inputs', async () => {
+      const { useAuth } = require('@/context/auth.ts');
+      (useAuth as jest.Mock).mockReturnValue({
+        user: { ...defaultUser, hasUsablePassword: true, mfaEnabled: true },
+        refetch: mockRefetch,
+      });
+      mockDeleteAccount.mockRejectedValueOnce(
+        new ApiError('Invalid MFA code', 403, 'MfaStepUpCodeInvalidError'),
+      );
+      const { findByLabelText, findAllByText, findByText, getByLabelText } = await renderProfile();
       await fireEvent.press(await findByLabelText('Delete account?'));
-      expect(queryByLabelText('Current password')).toBeNull();
+      await fireEvent.changeText(await findByLabelText('Current password'), 'my-password');
+      await fireEvent.changeText(await findByLabelText('Authentication code'), '000000');
       await pressConfirm(findAllByText);
 
-      await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith(undefined, undefined));
+      expect(await findByText('Invalid MFA code')).toBeTruthy();
+      for (const label of ['Current password', 'Authentication code']) {
+        expect(getByLabelText(label).props.accessibilityDescribedBy).toBe('delete-account-error');
+      }
     });
+
+    it('asks an account with a stale sign-in to sign in again, inside the dialog', async () => {
+      mockDeleteAccount.mockRejectedValueOnce(
+        new ApiError(
+          'For your security, sign in again, then retry.',
+          403,
+          'RecentSignInRequiredError',
+        ),
+      );
+      const { findByLabelText, findAllByText, findByText } = await renderProfile();
+      await fireEvent.press(await findByLabelText('Delete account?'));
+      await pressConfirm(findAllByText);
+
+      expect(await findByText(SIGN_IN_AGAIN_PATTERN)).toBeTruthy();
+      expect(mockRouterReplace).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { missing: 'password', user: {}, hiddenField: 'Current password', password: undefined },
+      {
+        missing: 'MFA',
+        user: { hasUsablePassword: true },
+        hiddenField: 'Authentication code',
+        password: 'my-password',
+      },
+    ])(
+      'asks an account without $missing for no $hiddenField',
+      async ({ user, hiddenField, password }) => {
+        const { useAuth } = require('@/context/auth.ts');
+        (useAuth as jest.Mock).mockReturnValue({
+          user: { ...defaultUser, ...user },
+          refetch: mockRefetch,
+        });
+        const { findByLabelText, findAllByText, queryByLabelText } = await renderProfile();
+        await fireEvent.press(await findByLabelText('Delete account?'));
+        expect(queryByLabelText(hiddenField)).toBeNull();
+        if (password) {
+          await fireEvent.changeText(await findByLabelText('Current password'), password);
+        }
+        await pressConfirm(findAllByText);
+
+        await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith(password, undefined));
+      },
+    );
 
     it('asks an MFA account for an authentication code and sends it', async () => {
       const { useAuth } = require('@/context/auth.ts');
@@ -411,13 +472,6 @@ describe('ProfileTab', () => {
       await pressConfirm(findAllByText);
 
       await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith('my-password', '123456'));
-    });
-
-    it('asks an account without MFA for no authentication code', async () => {
-      withPasswordUser();
-      const { findByLabelText, queryByLabelText } = await renderProfile();
-      await fireEvent.press(await findByLabelText('Delete account?'));
-      expect(queryByLabelText('Authentication code')).toBeNull();
     });
   });
 

@@ -125,6 +125,13 @@ class MfaStepUpCodeInvalidError(ForbiddenError):
         super().__init__("Invalid MFA code")
 
 
+class RecentSignInRequiredError(ForbiddenError):
+    """Raised when a sensitive action needs a fresh sign-in and the last one is too old."""
+
+    def __init__(self) -> None:
+        super().__init__("For your security, sign in again, then retry.")
+
+
 class OAuthHTTPError(HTTPException):
     """Base class for OAuth flow errors that intentionally preserve FastAPI HTTPException payloads."""
 

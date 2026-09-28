@@ -52,7 +52,7 @@ External videos are the exception, which is why they never load on their own. Ch
 
 **Updates:** Project updates may be shared on GitHub and LinkedIn. Optional account update emails follow your account preferences.
 
-**Account holders:** You can view, update, and delete your account in the app. Deleting it erases your personal data; your products and photos stay on the platform without your name. To have your uploads removed as well, email us.
+**Account holders:** You can view, update, and delete your account in the app. Deleting it erases your account details: your email address, username, sign-ins, and cameras. Your products, photos, and any text you wrote in product records stay public without your name. That includes the original file names of your photos. To have your uploads removed as well, email us.
 
 **Your rights:** You can ask for a copy of the personal data we hold about you, have it corrected, have it deleted, have our use of it restricted, object to our use of it, or receive it in a portable form. Where you gave consent — for optional update emails, for example — you can withdraw it at any time, and withdrawing does not affect what we did before you withdrew. One limit is worth stating plainly: a published dataset release cannot be recalled, so deletion removes your records from the platform but cannot retract a release that is already out.
 

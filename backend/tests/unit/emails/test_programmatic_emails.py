@@ -11,6 +11,7 @@ from fastapi import BackgroundTasks
 from app.api.auth.config import settings as auth_settings
 from app.api.auth.services.email.service import (
     generate_token_link,
+    send_account_deleted_notification,
     send_email_changed_notification,
     send_oauth_link_changed_notification,
     send_oauth_welcome_notification,
@@ -254,6 +255,21 @@ async def test_send_oauth_link_changed_notification_reflects_action(
     assert message.subject == ("A social login was linked" if linked else "A social login was unlinked")
     assert f"Github was {expected_verb} your Relab account" in message.html_body
     assert email_data["username"] in message.html_body
+    assert "token=" not in message.html_body
+
+
+async def test_send_account_deleted_notification_uses_plain_message(
+    email_data: dict[str, str], mock_email_sending: AsyncMock
+) -> None:
+    """The deletion notice greets the former owner and carries no links or tokens."""
+    await send_account_deleted_notification(email_data["email"], email_data["username"])
+
+    await_args = mock_email_sending.await_args
+    assert await_args is not None
+    message = await_args.args[0]
+    assert message.subject == "Your Relab account was deleted"
+    assert email_data["username"] in message.html_body
+    assert "contact Relab support" in message.html_body
     assert "token=" not in message.html_body
 
 

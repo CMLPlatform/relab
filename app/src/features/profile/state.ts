@@ -6,6 +6,7 @@ export function useProfileDialogs() {
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteMfaCode, setDeleteMfaCode] = useState('');
   const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
@@ -16,6 +17,7 @@ export function useProfileDialogs() {
     setDeleteDialogVisible(false);
     setDeletePassword('');
     setDeleteMfaCode('');
+    setDeleteError(null);
   }, []);
   const openLogoutDialog = useCallback(() => setLogoutDialogVisible(true), []);
   const closeLogoutDialog = useCallback(() => setLogoutDialogVisible(false), []);
@@ -40,6 +42,8 @@ export function useProfileDialogs() {
       setMfaCode: setDeleteMfaCode,
       pending: deletePending,
       setPending: setDeletePending,
+      error: deleteError,
+      setError: setDeleteError,
     },
     logoutDialog: {
       visible: logoutDialogVisible,
