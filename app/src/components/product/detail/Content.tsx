@@ -1,5 +1,5 @@
 import type { ComponentProps, RefObject } from 'react';
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
 import {
@@ -12,10 +12,12 @@ import { Section } from '@/components/base/Section';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
 import ProductDelete from '@/components/product/ProductDelete';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
+import { type MissingField, missingFields } from '@/features/products/missingFields';
 import { useAnchoredSectionNav } from '@/hooks/useAnchoredSectionNav';
 import type { Product } from '@/types/Product';
 import type { SectionContext, SectionRenderProps } from './content-sections';
 import { guardedSections, isSectionShown } from './content-sections';
+import { MissingFieldsNotice } from './MissingFieldsNotice';
 import ProductMetaData from './ProductMetaData';
 import { SpecHeader } from './SpecHeader';
 
@@ -26,6 +28,8 @@ type ProductPageContentProps = {
   canEdit: boolean;
   /** True while a superuser edits a product they do not own; shows the ownership notice. */
   editingOthersProduct: boolean;
+  /** Gates the missing-data checklist: shown to the owner only, never to a moderating superuser. */
+  ownedByMe?: boolean;
   /** "Saved · ID 29" style line under the title (edit mode only). */
   saveStatus?: string;
   isProductComponent: boolean;
@@ -54,6 +58,7 @@ export function ProductPageContent({
   editMode,
   canEdit,
   editingOthersProduct,
+  ownedByMe = false,
   saveStatus,
   isProductComponent,
   isLab,
@@ -81,6 +86,18 @@ export function ProductPageContent({
     onPageContainerLayout,
     onSectionsWrapperLayout,
   } = useAnchoredSectionNav(outerNav);
+
+  const missing = ownedByMe ? missingFields(product) : [];
+  const onPressMissingField = useCallback(
+    (field: MissingField) => {
+      if (field.target === 'gallery') {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+        return;
+      }
+      anchoredNav?.scrollTo(field.target);
+    },
+    [anchoredNav, scrollRef],
+  );
 
   const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
   const sectionProps: SectionRenderProps = {
@@ -140,6 +157,7 @@ export function ProductPageContent({
             saveStatus={saveStatus}
             onNameChange={onProductNameChange}
           />
+          <MissingFieldsNotice fields={missing} onPressField={onPressMissingField} />
           <SectionNavContext.Provider value={anchoredNav}>
             {guardedSections({ isProductComponent, isLab })
               .filter((section) => isSectionShown(section, product, ctx))

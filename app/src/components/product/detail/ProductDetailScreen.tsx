@@ -173,6 +173,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
       editMode={editing.editMode}
       canEdit={capabilities.canEdit}
       editingOthersProduct={editing.editMode && !capabilities.ownedByMe}
+      ownedByMe={capabilities.ownedByMe}
       saveStatus={editing.saveStatus}
       isProductComponent={capabilities.isProductComponent}
       isLab={isLab}
