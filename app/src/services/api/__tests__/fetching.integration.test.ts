@@ -298,6 +298,7 @@ describe('Fetching API Service logic', () => {
         height: 900,
       });
       expect(p.productTypeName).toBe('Tablet computer');
+      expect(p.productType).toEqual({ id: 1, name: 'CPV: 302132', description: 'Tablet computer' });
     });
 
     it('maps ownership to owner_id string when not current user', async () => {

@@ -62,6 +62,14 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
   // Display label, not the stored name: CPV-imported types keep their code in
   // `name`, which is still what product_type_name[in] filters on.
   const productTypeName = 'product_type' in data ? productTypeLabel(data.product_type) : undefined;
+  const productType =
+    'product_type' in data && data.product_type
+      ? {
+          id: data.product_type.id,
+          name: data.product_type.name,
+          description: data.product_type.description,
+        }
+      : undefined;
   return {
     id: Number(data.id),
     name: data.name,
@@ -113,6 +121,7 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     thumbnailUrls: resolveApiMediaUrlMap(data.thumbnail_urls),
     ...(productTypeName ? { productTypeName } : {}),
+    ...(productType ? { productType } : {}),
   };
 }
 

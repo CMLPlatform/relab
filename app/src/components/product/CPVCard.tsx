@@ -6,7 +6,7 @@ import { getStatusTone } from '@/theme/color';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 interface Props {
-  CPV: CPVCategory;
+  CPV: Pick<CPVCategory, 'name' | 'description'>;
   onPress?: () => void;
   actionElement?: React.ReactNode;
 }

@@ -1,4 +1,4 @@
-import type { ApiMaterialUnit } from './api';
+import type { ApiMaterialUnit, ApiProductTypeRead } from './api';
 
 export type Product = {
   /** Undefined for unsaved drafts. Populated once the backend assigns an id on save. */
@@ -14,6 +14,8 @@ export type Product = {
   updatedAt?: string;
   productTypeID?: number;
   productTypeName?: string;
+  /** The type as the API recorded it. Its id is the database's, which the bundled CPV snapshot does not share. */
+  productType?: Pick<ApiProductTypeRead, 'id' | 'name' | 'description'>;
   componentIDs: number[];
   components?: Product[];
   ownerUsername?: string;
