@@ -70,9 +70,22 @@ describe('authHelpers', () => {
       role: 'contributor',
       termsAcceptanceRequired: false,
       uploadQuota: { files: 0, bytes: 0, usedFiles: 0, usedBytes: 0 },
+      imageLimits: { maxBytes: undefined, maxPixels: undefined },
       oauth_accounts: [],
       preferences: {},
     });
+  });
+
+  it("maps the image caps the server reports for the account's role", () => {
+    expect(
+      mapApiUserToUser({
+        id: 9,
+        email: 'lab@example.com',
+        role: 'lab',
+        image_upload_max_bytes: 40 * 1024 * 1024,
+        image_upload_max_pixels: 50_000_000,
+      } as never).imageLimits,
+    ).toEqual({ maxBytes: 40 * 1024 * 1024, maxPixels: 50_000_000 });
   });
 
   it('preserves null usernames for incomplete OAuth onboarding', () => {

@@ -30,6 +30,7 @@ from app.api.file_storage.upload_policy import (
     validate_image_upload_content,
     validate_image_upload_metadata,
 )
+from app.core.images.constants import MAX_IMAGE_DIMENSION, MAX_IMAGE_PIXELS
 
 TEST_SAN_RAW = "test file.txt"
 TEST_SAN_CLEAN = "test-file.txt"
@@ -438,12 +439,23 @@ def test_ooxml_upload_rejects_symlink_members() -> None:
 def test_image_upload_content_rejects_pixel_flood_images() -> None:
     """Image uploads must reject dimensions over the configured pixel cap before storage."""
     buffer = BytesIO()
-    PILImage.new("RGB", (8001, 1), color="red").save(buffer, format="PNG")
+    PILImage.new("RGB", (MAX_IMAGE_DIMENSION + 1, 1), color="red").save(buffer, format="PNG")
     upload = _upload("photo.png", "image/png", buffer.getvalue())
 
     with pytest.raises(BadRequestError, match="exceed"):
-        validate_image_upload_content(upload)
+        validate_image_upload_content(upload, max_pixels=MAX_IMAGE_PIXELS)
     assert upload.file.tell() == 0
+
+
+def test_image_upload_content_accepts_a_jpeg_with_an_embedded_gain_map() -> None:
+    """Ultra HDR and depth-map phone JPEGs open as MPO; they are JPEGs and must be accepted."""
+    buffer = BytesIO()
+    PILImage.new("RGB", (64, 48)).save(
+        buffer, format="MPO", save_all=True, append_images=[PILImage.new("RGB", (32, 24))]
+    )
+    upload = _upload("photo.jpg", "image/jpeg", buffer.getvalue())
+
+    validate_image_upload_content(upload, max_pixels=MAX_IMAGE_PIXELS)
 
 
 def _item_with_path(path: str | None):

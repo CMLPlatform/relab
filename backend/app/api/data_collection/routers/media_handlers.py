@@ -113,6 +113,7 @@ async def handle_upload_file(
         parent_type=MediaParentType.PRODUCT,
         storage_service=file_storage_service,
         item_data=_product_file_create(parent_id, file=file, description=description),
+        caps_role=current_user.role,
         quota_user_id=current_user.id,
     )
     return FileReadWithinParent.model_validate(item)
@@ -194,6 +195,7 @@ async def handle_upload_image(
             description=description,
             image_metadata=image_metadata,
         ),
+        caps_role=current_user.role,
         quota_user_id=current_user.id,
     )
     if db_product and db_product.owner_id is not None:

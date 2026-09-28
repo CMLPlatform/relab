@@ -15,6 +15,7 @@ from fastapi import File as FastAPIFile
 from pydantic import UUID4, BaseModel, BeforeValidator, PositiveInt
 
 from app.api.auth.dependencies import current_active_superuser
+from app.api.auth.roles import UserRole
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.openapi_examples import IMAGE_METADATA_JSON_STRING_OPENAPI_EXAMPLES
 from app.api.common.routers.dependencies import AsyncSessionDep
@@ -119,6 +120,8 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
             parent_id=item_id,
             parent_type=spec.files.parent_type,
             storage_service=spec.files.storage_service,
+            # Superuser-only routes, and every superuser holds the lab tier.
+            caps_role=UserRole.LAB,
             item_data=FileCreate(
                 file=file,
                 description=description,
@@ -162,6 +165,8 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
             parent_id=item_id,
             parent_type=spec.images.parent_type,
             storage_service=spec.images.storage_service,
+            # Superuser-only routes, and every superuser holds the lab tier.
+            caps_role=UserRole.LAB,
             item_data=reference_image_create(
                 item_id,
                 parent_type=spec.images.parent_type,

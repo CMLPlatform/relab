@@ -6,13 +6,19 @@ from typing import TYPE_CHECKING
 from PIL import Image as PILImage
 from PIL import ImageOps
 
-from .constants import FORMAT_JPEG, FORMAT_WEBP
+from .constants import FORMAT_JPEG, FORMAT_MPO, FORMAT_WEBP
 from .exif import filter_exif, get_exif_orientation
 from .validation import validate_image_dimensions
 
 if TYPE_CHECKING:
     from os import PathLike
     from typing import Any
+
+
+# Metadata outside EXIF that can identify a person or place: XMP repeats GPS and can flag
+# an appended motion-photo video, and a JPEG comment is free text. Any of them triggers the
+# re-save, which writes none of them back.
+_IDENTIFYING_INFO_KEYS = ("xmp", "XML:com.adobe.xmp", "comment")
 
 
 def process_image_for_storage(image_path: PathLike[str]) -> tuple[int, int]:
@@ -24,45 +30,50 @@ def process_image_for_storage(image_path: PathLike[str]) -> tuple[int, int]:
     is the only point that knows the size the file actually ends up with.
     """
     with PILImage.open(image_path) as img:
-        original_format = img.format or FORMAT_JPEG
         validate_image_dimensions(img)
-        unrotated_size = img.size
+        # A JPEG with an embedded secondary image (an HDR gain map, a depth map) opens as
+        # MPO. It is stored as a plain JPEG of its primary image.
+        is_mpo = img.format == FORMAT_MPO
+        original_format = FORMAT_JPEG if is_mpo else (img.format or FORMAT_JPEG)
 
         has_exif = bool(img.info.get("exif"))
         if not has_exif:
             with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
                 has_exif = bool(img.getexif())
+        carries_metadata = has_exif or any(img.info.get(key) for key in _IDENTIFYING_INFO_KEYS)
 
-        is_multiframe = getattr(img, "n_frames", 1) > 1
-        orientation = get_exif_orientation(img) if has_exif else None
-        needs_rotation = orientation not in (None, 1)
-        preserved_exif = b""
-        # Re-save only to apply rotation or filter EXIF; an unconditional re-save flattens
-        # animated GIFs and re-encodes lossless WebP lossily.
+        # Re-save only to strip metadata or apply rotation; an unconditional re-save
+        # flattens animated GIFs and re-encodes lossless WebP lossily.
         # NOTE: animated originals are never re-saved: exif_transpose sees only the first
-        # frame, so fixing one frame would flatten the rest.
-        if (has_exif or needs_rotation) and not is_multiframe:
-            # Read the allowlisted tags off the original, before exif_transpose rewrites them.
-            allowlisted = filter_exif(img)
-            preserved_exif = allowlisted.tobytes() if allowlisted else b""
-            try:
-                processed: PILImage.Image | None = ImageOps.exif_transpose(img)
-            except AttributeError, ValueError, OSError, TypeError:
-                processed = img
-            processed = processed.copy()
-        else:
-            processed = None
+        # frame, so fixing one frame would flatten the rest. An MPO is not animated; its
+        # later frames are derived images and are dropped.
+        if not is_mpo and (not carries_metadata or getattr(img, "n_frames", 1) > 1):
+            return img.size
 
-    if processed is None:
-        return unrotated_size
+        # Read the allowlisted tags off the original, before exif_transpose rewrites them.
+        allowlisted = filter_exif(img)
+        processed = img
+        # Transposing costs a second full-size decode (150 MB at the 50 MPx cap), so it
+        # only runs when there is a rotation to apply.
+        if get_exif_orientation(img) not in (None, 1):
+            with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
+                processed = ImageOps.exif_transpose(img)
 
-    # Only allowlisted tags are written back; GPS, MakerNote and serial numbers were never copied.
-    save_kwargs: dict[str, Any] = {"format": original_format, "exif": preserved_exif}
-    if original_format == FORMAT_JPEG:
-        save_kwargs.update({"quality": 95, "optimize": True})
-    elif original_format == FORMAT_WEBP:
-        # Avoid a second lossy generation on a WebP re-saved only to strip metadata.
-        save_kwargs["lossless"] = True
+        # Only allowlisted tags are written back; GPS, MakerNote and serial numbers were never
+        # copied. JPEG's saver would otherwise carry the comment over, and drop the colour profile.
+        save_kwargs: dict[str, Any] = {
+            "format": original_format,
+            "exif": allowlisted.tobytes() if allowlisted else b"",
+            "comment": b"",
+            "icc_profile": img.info.get("icc_profile"),
+        }
+        if original_format == FORMAT_JPEG:
+            save_kwargs.update({"quality": 95, "optimize": True})
+        elif original_format == FORMAT_WEBP:
+            # Avoid a second lossy generation on a WebP re-saved only to strip metadata.
+            save_kwargs["lossless"] = True
 
-    processed.save(image_path, **save_kwargs)
-    return processed.size
+        # Saved inside the `with`: closing the source discards its pixels. The file is
+        # overwritten in place, which is safe because save() loads the pixels first.
+        processed.save(image_path, **save_kwargs)
+        return processed.size

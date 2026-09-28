@@ -44,6 +44,7 @@ export function mapApiUserToUser(data: ApiUserRead): User {
       usedFiles: data.upload_file_count ?? 0,
       usedBytes: data.upload_total_bytes ?? 0,
     },
+    imageLimits: { maxBytes: data.image_upload_max_bytes, maxPixels: data.image_upload_max_pixels },
     oauth_accounts: data.oauth_accounts ?? [],
     preferences: data.preferences ?? {},
   };

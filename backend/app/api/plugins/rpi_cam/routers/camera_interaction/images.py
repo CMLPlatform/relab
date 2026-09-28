@@ -2,14 +2,18 @@
 
 import contextlib
 import logging
+from functools import partial
 from typing import TYPE_CHECKING, Annotated
 
 from anyio import to_thread
 from fastapi import Body, File, Form, HTTPException, UploadFile
 from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
+from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.auth.models import User
+from app.api.auth.roles import DEFAULT_USER_ROLE, UserRole, image_upload_max_pixels_for_role
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.exceptions import APIError, InternalServerError
@@ -176,7 +180,14 @@ async def receive_camera_upload(
         product_id_int,
         sanitize_log_value(file.filename),
     )
-    image = await image_storage_service.create(session, image_data, quota_user_id=camera.owner_id)
+    # The camera uploads on its owner's behalf, so the owner's tier sets the caps.
+    owner_role = await session.scalar(select(User.role).where(User.id == camera.owner_id))
+    image = await image_storage_service.create(
+        session,
+        image_data,
+        caps_role=UserRole(owner_role) if owner_role else DEFAULT_USER_ROLE,
+        quota_user_id=camera.owner_id,
+    )
 
     # ImageRead computes the public `image_url` via a model_validator based on
     # the image's storage path. Round-trip through it to reuse that logic.
@@ -208,7 +219,11 @@ async def receive_preview_thumbnail_upload(
     """Receive a cached preview thumbnail pushed from the Pi and persist it."""
     try:
         await validate_upload_size(file, settings.max_image_upload_size_mb)
-        await to_thread.run_sync(validate_image_upload_content, file)
+        # Device previews get the lowest tier's pixel cap, not the global ceiling.
+        await to_thread.run_sync(
+            partial(validate_image_upload_content, max_pixels=image_upload_max_pixels_for_role(UserRole.CONTRIBUTOR)),
+            file,
+        )
         # Device-pushed bytes are untrusted; scan them like every other upload path
         # (fails closed when malware scanning is enabled but the scanner is down).
         await scan_upload_or_raise(file)

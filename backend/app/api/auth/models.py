@@ -11,6 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.api.auth.roles import (
     DEFAULT_USER_ROLE,
     UserRole,
+    image_upload_max_mb_for_role,
+    image_upload_max_pixels_for_role,
     upload_quota_bytes_for_role,
     upload_quota_files_for_role,
 )
@@ -29,6 +31,9 @@ class User(BaseUserDB, TimeStampMixinBare):
     __tablename__ = "user"
     __table_args__ = (
         CheckConstraint(f"role IN ({_ROLE_VALUES_SQL})", name=USER_ROLE_CHECK_CONSTRAINT_NAME),
+        # Superusers debug every upload path, research files included, so they always
+        # hold the lab tier. The role route refuses to demote one.
+        CheckConstraint("NOT is_superuser OR role = 'lab'", name="ck_user_superuser_is_lab"),
         CheckConstraint("upload_file_count >= 0", name="ck_user_upload_file_count_non_negative"),
         CheckConstraint("upload_total_bytes >= 0", name="ck_user_upload_total_bytes_non_negative"),
         # The admin user list does an unanchored ILIKE on email OR username and
@@ -87,6 +92,16 @@ class User(BaseUserDB, TimeStampMixinBare):
     def upload_quota_bytes(self) -> int:
         """Return the byte quota this account's role grants."""
         return upload_quota_bytes_for_role(self.role)
+
+    @property
+    def image_upload_max_bytes(self) -> int:
+        """Return the per-image size cap that applies to this account's uploads."""
+        return image_upload_max_mb_for_role(self.role) * 1024 * 1024
+
+    @property
+    def image_upload_max_pixels(self) -> int:
+        """Return the per-image total-pixel cap that applies to this account's uploads."""
+        return image_upload_max_pixels_for_role(self.role)
 
     oauth_accounts: Mapped[list[OAuthAccount]] = relationship(
         back_populates="user",

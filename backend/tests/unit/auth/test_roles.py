@@ -6,6 +6,8 @@ from app.api.auth.roles import (
     DEFAULT_USER_ROLE,
     UserRole,
     has_role_at_least,
+    image_upload_max_mb_for_role,
+    image_upload_max_pixels_for_role,
     role_rank,
     upload_quota_bytes_for_role,
     upload_quota_files_for_role,
@@ -62,3 +64,31 @@ def test_quota_bytes_are_megabyte_settings_converted() -> None:
 
     assert upload_quota_bytes_for_role(UserRole.CONTRIBUTOR) == settings.max_upload_bytes_per_user_mb * 1024 * 1024
     assert upload_quota_bytes_for_role(UserRole.LAB) == settings.max_upload_bytes_per_lab_user_mb * 1024 * 1024
+
+
+def test_lab_image_caps_exceed_the_contributor_caps() -> None:
+    """Lab accounts upload full-resolution originals; contributors stay on the smaller tier."""
+    assert image_upload_max_mb_for_role(UserRole.LAB) > image_upload_max_mb_for_role(UserRole.CONTRIBUTOR)
+    assert image_upload_max_pixels_for_role(UserRole.LAB) > image_upload_max_pixels_for_role(UserRole.CONTRIBUTOR)
+
+
+def test_image_pixel_caps_stay_under_the_decompression_bomb_guard() -> None:
+    """No tier may admit an image Pillow's global guard would refuse to open."""
+    from app.core.images.constants import MAX_IMAGE_PIXELS  # noqa: PLC0415 -- read after test env settings are loaded
+
+    assert all(image_upload_max_pixels_for_role(role) <= MAX_IMAGE_PIXELS for role in UserRole)
+
+
+@pytest.mark.parametrize(
+    "tier_for_role",
+    [
+        upload_quota_files_for_role,
+        upload_quota_bytes_for_role,
+        image_upload_max_mb_for_role,
+        image_upload_max_pixels_for_role,
+    ],
+)
+def test_tiers_accept_the_plain_string_a_loaded_row_carries(tier_for_role: object) -> None:
+    """A role read back from the VARCHAR column can be a plain str; it must still select the lab tier."""
+    assert callable(tier_for_role)
+    assert tier_for_role("lab") == tier_for_role(UserRole.LAB)

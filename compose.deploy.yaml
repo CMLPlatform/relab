@@ -122,7 +122,8 @@ services:
       # changes.
       #
       #                    per worker  x  workers  =  total (prod)
-      # Image threads:          5      x     4     =   20  (CPU-bound)
+      # Image threads:          5      x     4     =   20  (CPU-bound; up to ~145 MB each
+      #                                                 for a rotated 24 MP lab photo)
       # DB connections:     3 + 10     x     4     =   52  (configured postgres max_connections=100 below)
       # Outbound HTTP:        100      x     4     =  400  (mostly idle)
       WEB_CONCURRENCY: "4"
@@ -136,9 +137,9 @@ services:
       # existing corpus already exceeds a default (the quota ledger counts real
       # rows, so an over-limit owner is blocked from uploading entirely).
       MAX_UPLOAD_FILES_PER_USER: "${MAX_UPLOAD_FILES_PER_USER:-5000}"
-      MAX_UPLOAD_BYTES_PER_USER_MB: "${MAX_UPLOAD_BYTES_PER_USER_MB:-2048}"
+      MAX_UPLOAD_BYTES_PER_USER_MB: "${MAX_UPLOAD_BYTES_PER_USER_MB:-3072}"
       MAX_UPLOAD_FILES_PER_LAB_USER: "${MAX_UPLOAD_FILES_PER_LAB_USER:-20000}"
-      MAX_UPLOAD_BYTES_PER_LAB_USER_MB: "${MAX_UPLOAD_BYTES_PER_LAB_USER_MB:-20480}"
+      MAX_UPLOAD_BYTES_PER_LAB_USER_MB: "${MAX_UPLOAD_BYTES_PER_LAB_USER_MB:-51200}"
       # deploy_ops.sh adds the `scanning` profile below whenever this is not false;
       # true without a running clamav fails uploads closed.
       MALWARE_SCAN_ENABLED: "${MALWARE_SCAN_ENABLED:-true}"

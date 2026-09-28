@@ -81,10 +81,12 @@ Account privileges are three independent things; conflating any two of them is a
 escalation:
 
 - `is_verified` gates whether an account may create records at all.
-- `is_superuser` grants the `/admin` routes. It does **not** imply trust with research data.
+- `is_superuser` grants the `/admin` routes. Every superuser also holds the `lab` tier, so an
+  administrator can exercise every upload path: the `ck_user_superuser_is_lab` constraint enforces
+  it, and the role route refuses to demote a superuser.
 - `role` (`contributor` by default, `lab`) is the contributor tier. It gates non-image
-  research-file upload and selects the upload quota tier. A superuser who is not `lab` is refused
-  a research-file upload exactly like any other contributor.
+  research-file upload and selects the upload quota tier, charged to the product owner, and the
+  per-image size and pixel caps, which follow the uploader so the app can fit photos to them.
 
 Only a superuser assigns roles, through `PUT /v1/admin/users/{user_id}/role`, which records an
 audit event. Keep `role` off `UserUpdate`: fastapi-users' safe update path strips a fixed set of

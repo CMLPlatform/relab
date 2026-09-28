@@ -172,6 +172,12 @@ the topology these steps produce.
    promotes lab members with
    `PUT /v1/admin/users/{user_id}/role` and body `{"role": "lab"}`.
 
+   Per-image caps: `MAX_IMAGE_UPLOAD_SIZE_MB` and `MAX_IMAGE_UPLOAD_PIXELS` cap `contributor`
+   images (10 MB, 12.6 MP); `MAX_IMAGE_UPLOAD_SIZE_LAB_MB` and `MAX_IMAGE_UPLOAD_PIXELS_LAB` cap
+   `lab` images (20 MB, 24 MP). No pixel cap may exceed 50 MP. An image takes about 6 bytes per
+   pixel of memory while it is processed (about 145 MB at 24 MP), so size `IMAGE_RESIZE_WORKERS`
+   x `WEB_CONCURRENCY` against the backend's memory limit before raising a pixel cap.
+
 1. Create the runtime secret files.
 
    ```bash

@@ -24,6 +24,8 @@ from .support_types import StorageCreateSchema, StorageModel
 if TYPE_CHECKING:
     from uuid import UUID
 
+    from app.api.auth.roles import UserRole
+
     from .support_services import StoredMediaService
 
 
@@ -108,11 +110,12 @@ async def create_parent_media[StorageModelT: StorageModel, CreateSchemaT: Storag
     parent_type: MediaParentType,
     storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
     item_data: CreateSchemaT,
+    caps_role: UserRole,
     quota_user_id: UUID | None = None,
 ) -> StorageModelT:
     """Create a new parent-scoped storage item."""
     validate_parent_media_scope(parent_id=parent_id, parent_type=parent_type, item_data=item_data)
-    return await storage_service.create(db, item_data, quota_user_id=quota_user_id)
+    return await storage_service.create(db, item_data, caps_role=caps_role, quota_user_id=quota_user_id)
 
 
 async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](

@@ -1,6 +1,6 @@
 import type * as ImagePicker from 'expo-image-picker';
 import { resolveApiMediaUrl } from '@/services/api/media';
-import { processImage } from '@/services/imageProcessing';
+import { type ImageLimits, processImage } from '@/services/imageProcessing';
 
 export function appendCapturedImage(
   images: { url: string; description: string; id?: string }[],
@@ -24,25 +24,25 @@ export function appendCapturedImage(
   ];
 }
 
-/** Processes picked assets into image entries, dropping any rejected for size (else an opaque 413 at save). */
+/**
+ * Turns picked assets into image entries, each fitted to the account's upload caps. A photo that
+ * cannot be made to fit is dropped and reported, rather than failing later at save.
+ */
 export async function buildImportedImages(
   assets: readonly ImagePicker.ImagePickerAsset[],
+  limits: ImageLimits,
   onReject?: (message: string) => void,
 ) {
-  const results = await Promise.all(
-    assets.map(async (asset) => {
-      let tooLarge = false;
-      const processedUri = await processImage(asset, {
-        onError: (error) => {
-          if (error.type !== 'size') return;
-          tooLarge = true;
-          onReject?.(error.message);
-        },
-      });
-      return tooLarge ? [] : [{ url: processedUri ?? asset.uri, description: '' }];
-    }),
-  );
-  return results.flat();
+  const urls = await Promise.all(assets.map((asset) => processImage(asset, limits)));
+  const rejected = urls.filter((url) => url === null).length;
+  if (rejected > 0) {
+    onReject?.(
+      rejected === 1
+        ? "Couldn't prepare that photo for upload. Try another one."
+        : `Couldn't prepare ${rejected} photos for upload. Try other ones.`,
+    );
+  }
+  return urls.flatMap((url) => (url === null ? [] : [{ url, description: '' }]));
 }
 
 export function hasRpiCamerasConfigured(cameraCount: number | undefined) {

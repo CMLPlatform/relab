@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import Headers
 
+from app.api.auth.roles import UserRole
 from app.api.file_storage.crud.support_services import image_storage_service
 from app.api.file_storage.models import Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateFromForm
@@ -79,4 +80,5 @@ async def seed_images(session: AsyncSession, product_id_map: dict[str, int]) -> 
             parent_id=parent_id,
             parent_type=MediaParentType.PRODUCT,
         )
-        await image_storage_service.create(session, image_create)
+        # Seed images are trusted fixtures; the top tier keeps a large sample from being refused.
+        await image_storage_service.create(session, image_create, caps_role=UserRole.LAB)

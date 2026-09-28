@@ -15,12 +15,14 @@ from app.api.auth.dependencies import (
 from app.api.auth.examples import ADMIN_USERS_RESPONSE_EXAMPLES
 from app.api.auth.filters import UserFilter
 from app.api.auth.models import User
+from app.api.auth.roles import UserRole
 from app.api.auth.schemas import UserRead, UserRoleUpdate, UserUpdate
 from app.api.auth.services import mfa_service
 from app.api.common.audiences import AdminAPIRouter
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import page_models
+from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 
 router = AdminAPIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
@@ -128,6 +130,9 @@ async def set_user_role(
     user is loaded by the auth session, which is a separate dependency, so a
     commit on the common session would persist nothing.
     """
+    if user.is_superuser and role_update.role != UserRole.LAB:
+        msg = "Superusers always hold the lab tier."
+        raise BadRequestError(msg)
     updated = await user_manager.user_db.update(user, {"role": role_update.role})
     audit_event(
         actor.id,

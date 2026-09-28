@@ -6,6 +6,7 @@ from PIL.Image import Resampling
 __all__ = [
     "ALLOWED_IMAGE_MIME_TYPES",
     "FORMAT_JPEG",
+    "FORMAT_MPO",
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
     "MAX_IMAGE_PIXELS",
@@ -19,12 +20,17 @@ __all__ = [
 
 
 FORMAT_JPEG = "JPEG"
+FORMAT_MPO = "MPO"
 FORMAT_WEBP = "WEBP"
-MAX_IMAGE_DIMENSION = 8000
-# Total-pixel ceiling. The per-side cap allows 8000x8000 = 64 MPx, under Pillow's
-# 89 MPx bomb guard, which can OOM the worker during thumbnailing. Pillow's guard
-# is lowered to match.
-MAX_IMAGE_PIXELS = 30_000_000
+# Long side of the largest sensors under the pixel cap below: 45 MP full-frame bodies
+# are 8192 or 8256 px wide, a 50 MP one 8640 px. The pixel cap is what bounds memory.
+MAX_IMAGE_DIMENSION = 10_000
+# Total-pixel ceiling for every tier, sized for 48 MP phone modes and 45 MP cameras; the
+# per-role caps in settings (app.api.auth.roles) sit at or under it. The per-side cap
+# alone allows 100 MPx, past Pillow's own 89 MPx bomb guard, which is enough to OOM the
+# worker, so Pillow's guard is lowered to match. A decoded 50 MPx RGB image is 150 MB,
+# and the storage re-save holds two of them (source and rotated copy).
+MAX_IMAGE_PIXELS = 50_000_000
 PILImage.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
     {
