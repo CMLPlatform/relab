@@ -772,13 +772,13 @@ describe('Authentication API Service', () => {
       });
     });
 
-    it('sends no body for an account without a password', async () => {
+    it('sends an empty body for an account without a password', async () => {
       secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
 
       await auth.deleteAccount();
 
-      expect(fetchMock().mock.calls[0][1]?.body).toBeUndefined();
+      expect(JSON.parse(String(fetchMock().mock.calls[0][1]?.body))).toEqual({});
     });
 
     it('throws the server detail and keeps the session when refused', async () => {

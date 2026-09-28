@@ -9,10 +9,15 @@ import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogSt
 import { FormFieldError } from '@/components/base/FormField';
 import { TextInput } from '@/components/base/TextInput';
 import { SUPPORT_EMAIL } from '@/constants';
-import type { DeleteAccountError } from '@/features/profile/state';
+import type { useProfileDialogs } from '@/features/profile/state';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { describedBy, heading } from '@/utils/a11y';
 import { createProfileSectionStyles } from './styles';
+
+type DeleteDialogState = Pick<
+  ReturnType<typeof useProfileDialogs>['deleteDialog'],
+  'visible' | 'close' | 'password' | 'setPassword' | 'mfaCode' | 'setMfaCode' | 'pending' | 'error'
+>;
 
 type ProfileDialogsProps = {
   unlinkDialogVisible: boolean;
@@ -26,17 +31,10 @@ type ProfileDialogsProps = {
   logoutDialogVisible: boolean;
   onDismissLogout: () => void;
   onConfirmLogout: () => void;
-  deleteDialogVisible: boolean;
-  onDismissDeleteDialog: () => void;
+  deleteDialog: DeleteDialogState;
   onConfirmDelete: () => void;
   deleteRequiresPassword: boolean;
-  deletePassword: string;
-  onChangeDeletePassword: (value: string) => void;
   deleteRequiresMfa: boolean;
-  deleteMfaCode: string;
-  onChangeDeleteMfaCode: (value: string) => void;
-  deletePending: boolean;
-  deleteError?: DeleteAccountError | null;
   unlinkTriggerRef?: RefObject<View | null>;
   logoutTriggerRef?: RefObject<View | null>;
   deleteAccountTriggerRef?: RefObject<View | null>;
@@ -54,17 +52,10 @@ export function ProfileDialogs({
   logoutDialogVisible,
   onDismissLogout,
   onConfirmLogout,
-  deleteDialogVisible,
-  onDismissDeleteDialog,
+  deleteDialog,
   onConfirmDelete,
   deleteRequiresPassword,
-  deletePassword,
-  onChangeDeletePassword,
   deleteRequiresMfa,
-  deleteMfaCode,
-  onChangeDeleteMfaCode,
-  deletePending,
-  deleteError,
   unlinkTriggerRef,
   logoutTriggerRef,
   deleteAccountTriggerRef,
@@ -73,11 +64,17 @@ export function ProfileDialogs({
   const styles = createProfileSectionStyles(theme);
   // A field error falls back to the dialog level when that field is not shown.
   const deletePasswordError =
-    deleteRequiresPassword && deleteError?.field === 'password' ? deleteError.message : undefined;
+    deleteRequiresPassword && deleteDialog.error?.field === 'password'
+      ? deleteDialog.error.message
+      : undefined;
   const deleteMfaError =
-    deleteRequiresMfa && deleteError?.field === 'mfa' ? deleteError.message : undefined;
+    deleteRequiresMfa && deleteDialog.error?.field === 'mfa'
+      ? deleteDialog.error.message
+      : undefined;
   const deleteFormError =
-    deleteError && !deletePasswordError && !deleteMfaError ? deleteError.message : undefined;
+    deleteDialog.error && !deletePasswordError && !deleteMfaError
+      ? deleteDialog.error.message
+      : undefined;
   return (
     <>
       <AppDialog
@@ -131,8 +128,8 @@ export function ProfileDialogs({
       />
 
       <AppDialog
-        visible={deleteDialogVisible}
-        onDismiss={onDismissDeleteDialog}
+        visible={deleteDialog.visible}
+        onDismiss={deleteDialog.close}
         triggerRef={deleteAccountTriggerRef}
         accessibilityLabel="Delete account"
       >
@@ -147,8 +144,8 @@ export function ProfileDialogs({
         </AppText>
         {deleteRequiresPassword ? (
           <TextInput
-            value={deletePassword}
-            onChangeText={onChangeDeletePassword}
+            value={deleteDialog.password}
+            onChangeText={deleteDialog.setPassword}
             placeholder="Current password"
             accessibilityLabel="Current password"
             secureTextEntry
@@ -164,8 +161,8 @@ export function ProfileDialogs({
         <FormFieldError errorId="delete-password-error" message={deletePasswordError} />
         {deleteRequiresMfa ? (
           <TextInput
-            value={deleteMfaCode}
-            onChangeText={onChangeDeleteMfaCode}
+            value={deleteDialog.mfaCode}
+            onChangeText={deleteDialog.setMfaCode}
             placeholder="Authenticator or recovery code"
             accessibilityLabel="Authentication code"
             autoCapitalize="characters"
@@ -189,16 +186,16 @@ export function ProfileDialogs({
         </AppText>
         <FormFieldError errorId="delete-account-error" message={deleteFormError} />
         <View style={dialogActionsStyle}>
-          <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
+          <AppButton variant="ghost" onPress={deleteDialog.close}>
             Cancel
           </AppButton>
           <AppButton
             variant="destructive"
             onPress={onConfirmDelete}
-            loading={deletePending}
+            loading={deleteDialog.pending}
             disabled={
-              (deleteRequiresPassword && deletePassword.length === 0) ||
-              (deleteRequiresMfa && deleteMfaCode.trim().length === 0)
+              (deleteRequiresPassword && deleteDialog.password.length === 0) ||
+              (deleteRequiresMfa && deleteDialog.mfaCode.trim().length === 0)
             }
           >
             Delete account

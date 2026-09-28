@@ -5,7 +5,23 @@ import { ProfileDialogs } from '@/components/profile/Dialogs';
 import { queryAllHostsByType } from '@/test-utils/host';
 import { renderWithProviders } from '@/test-utils/index';
 
-function renderDeleteDialog(overrides: Partial<ComponentProps<typeof ProfileDialogs>> = {}) {
+type DeleteDialog = ComponentProps<typeof ProfileDialogs>['deleteDialog'];
+
+function renderDeleteDialog({
+  dialog = {},
+  ...overrides
+}: Partial<ComponentProps<typeof ProfileDialogs>> & { dialog?: Partial<DeleteDialog> } = {}) {
+  const deleteDialog: DeleteDialog = {
+    visible: true,
+    close: jest.fn(),
+    password: 'my-password',
+    setPassword: jest.fn(),
+    mfaCode: '',
+    setMfaCode: jest.fn(),
+    pending: false,
+    error: null,
+    ...dialog,
+  };
   return renderWithProviders(
     <ProfileDialogs
       unlinkDialogVisible={false}
@@ -19,16 +35,10 @@ function renderDeleteDialog(overrides: Partial<ComponentProps<typeof ProfileDial
       logoutDialogVisible={false}
       onDismissLogout={jest.fn()}
       onConfirmLogout={jest.fn()}
-      deleteDialogVisible
-      onDismissDeleteDialog={jest.fn()}
+      deleteDialog={deleteDialog}
       onConfirmDelete={jest.fn()}
       deleteRequiresPassword
-      deletePassword="my-password"
-      onChangeDeletePassword={jest.fn()}
       deleteRequiresMfa={false}
-      deleteMfaCode=""
-      onChangeDeleteMfaCode={jest.fn()}
-      deletePending={false}
       {...overrides}
     />,
   );
@@ -36,7 +46,7 @@ function renderDeleteDialog(overrides: Partial<ComponentProps<typeof ProfileDial
 
 describe('delete account dialog', () => {
   it('shows the confirm button as loading, and not pressable, while the deletion runs', async () => {
-    await renderDeleteDialog({ deletePending: true });
+    await renderDeleteDialog({ dialog: { pending: true } });
 
     expect(screen.getByRole('button', { name: 'Delete account' })).toBeDisabled();
     // The spinner is what tells the user the press registered.
@@ -45,7 +55,7 @@ describe('delete account dialog', () => {
 
   it('ties a password error to the password field', async () => {
     await renderDeleteDialog({
-      deleteError: { field: 'password', message: 'Current password is invalid.' },
+      dialog: { error: { field: 'password', message: 'Current password is invalid.' } },
     });
 
     expect(screen.getByText('Current password is invalid.')).toBeTruthy();
@@ -58,7 +68,7 @@ describe('delete account dialog', () => {
   it('shows a field error at the dialog level when that field is not shown', async () => {
     await renderDeleteDialog({
       deleteRequiresPassword: false,
-      deleteError: { field: 'password', message: 'Current password is invalid.' },
+      dialog: { error: { field: 'password', message: 'Current password is invalid.' } },
     });
 
     expect(screen.getByText('Current password is invalid.')).toBeTruthy();

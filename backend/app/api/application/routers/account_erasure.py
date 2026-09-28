@@ -129,7 +129,8 @@ async def delete_own_account(
     step_up_key = rate_limit_bucket_key("auth:step-up:account", str(user.id))
     await limiter.ahit_key(LOGIN_RATE_LIMIT, step_up_key, consume=False)
 
-    current_password = payload.current_password.get_secret_value() if payload and payload.current_password else None
+    payload = payload or AccountDeletionRequest()
+    current_password = payload.current_password.get_secret_value() if payload.current_password else None
     try:
         require_step_up_password(
             password_helper=user_manager.password_helper,
@@ -145,9 +146,7 @@ async def delete_own_account(
     # Before the MFA step-up, so a refused deletion does not spend the TOTP code.
     await require_erasable_account(session, user)
     try:
-        await require_mfa_step_up(
-            payload.mfa_code if payload else None, user=user, redis=redis, action="delete your account"
-        )
+        await require_mfa_step_up(payload.mfa_code, user=user, redis=redis, action="delete your account")
     except MfaStepUpCodeInvalidError:
         await limiter.ahit_key(LOGIN_RATE_LIMIT, step_up_key)
         raise
