@@ -279,6 +279,7 @@ export async function downloadExport(url: URL): Promise<void> {
   if (Platform.OS !== 'web') {
     // NOTE: the system browser carries no session, so a native owner=me export
     // opens without it; the in-app request above already confirmed the rest.
+    // TODO: save the file natively instead (issue #352).
     await openURL(url.toString());
     return;
   }
@@ -290,7 +291,8 @@ export async function downloadExport(url: URL): Promise<void> {
   link.href = href;
   link.download = filename;
   link.click();
-  URL.revokeObjectURL(href);
+  // Revoked on the next task: some browsers start the download after click() returns.
+  setTimeout(() => URL.revokeObjectURL(href), 0);
 }
 
 function parseProductsResponse(

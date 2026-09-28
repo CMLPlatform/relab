@@ -872,7 +872,8 @@ export interface paths {
      *
      *     Takes the same filters, search and sorting as ``GET /products``. CSV has one row per
      *     product or component, linked by ``parent_id``; JSON nests components as the detail read
-     *     does. At most 100 base products: narrow the filters, or use the dataset release for bulk data.
+     *     does. At most 100 base products, 5,000 components and 20 component levels: narrow the filters,
+     *     or use the dataset release for bulk data.
      */
     get: operations['export_products_v1_products_export_get'];
     put?: never;
@@ -7974,12 +7975,14 @@ export interface operations {
           'text/csv': string;
         };
       };
-      /** @description More than 100 base products match the filters */
+      /** @description Invalid filter parameters, more than 100 base products match, or the export is too large (components nested more than 20 levels deep, or more than 5,000 components) */
       422: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
       };
     };
   };
@@ -8136,7 +8139,7 @@ export interface operations {
           'text/csv': string;
         };
       };
-      /** @description Validation Error */
+      /** @description Invalid parameters, or the export is too large (components nested more than 20 levels deep, or more than 5,000 components) */
       422: {
         headers: {
           [name: string]: unknown;

@@ -73,9 +73,10 @@ public, empty when it is hidden. Exports are public and have a stricter rate lim
 reads.
 
 :::note[Limits]
-One export holds at most 100 base products. Components do not count toward that limit. If more
-products match, the request fails with a `422` response that asks you to narrow the filters. For
-the whole dataset, use the [dataset release](../../project/dataset/).
+One export holds at most 100 base products, with at most 5,000 components between them and
+components nested at most 20 levels deep. Past any of these limits the request fails with a `422`
+response that asks you to narrow the filters. A `422` can also mean a filter parameter is invalid;
+the response says which. For the whole dataset, use the [dataset release](../../project/dataset/).
 :::
 
 ## Integration advice

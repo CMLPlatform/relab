@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
 import { openURL } from 'expo-linking';
 import { HttpResponse, http } from 'msw';
 import { ExportMenu } from '@/components/product/ExportMenu';
 import { API_URL } from '@/config';
+import { authRuntime } from '@/services/api/auth/authRuntime';
 import { downloadExport, productExportUrl, productsExportUrl } from '@/services/api/products';
 import {
   mockPlatform,
@@ -44,6 +45,7 @@ describe('ExportMenu', () => {
     await waitFor(() => expect(openUrlMock).toHaveBeenCalledTimes(1));
     expect(requested?.href).toBe(`${API_URL}/products/7/export?format=csv`);
     expect(openUrlMock).toHaveBeenCalledWith(`${API_URL}/products/7/export?format=csv`);
+    expect(await screen.findByText('Export downloaded')).toBeOnTheScreen();
   });
 
   it("shows the server's reason when the export is refused", async () => {
@@ -103,7 +105,7 @@ describe('downloadExport on web', () => {
     mockPlatform('web');
     try {
       await downloadExport(productExportUrl(7, 'json'));
-      expect(revokeObjectURL).toHaveBeenCalledWith('blob:export');
+      await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith('blob:export'));
     } finally {
       restorePlatform();
       globals.document = originalDocument;
@@ -115,5 +117,29 @@ describe('downloadExport on web', () => {
     expect(link.href).toBe('blob:export');
     expect(link.click).toHaveBeenCalledTimes(1);
     expect(openUrlMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('downloadExport authentication', () => {
+  afterEach(() => {
+    authRuntime.token = undefined;
+  });
+
+  it.each([
+    [{ owner: 'me' }, 'Bearer session-token'],
+    [{ search: 'kettle' }, null],
+  ] as const)('with %o sends Authorization %p', async (query, expected) => {
+    authRuntime.token = 'session-token';
+    let authorization: string | null | undefined;
+    server.use(
+      http.get(`${API_URL}/products/export`, ({ request }) => {
+        authorization = request.headers.get('Authorization');
+        return new HttpResponse('id\n', { headers: { 'Content-Type': 'text/csv' } });
+      }),
+    );
+
+    await downloadExport(productsExportUrl(query, 'csv'));
+
+    expect(authorization).toBe(expected);
   });
 });

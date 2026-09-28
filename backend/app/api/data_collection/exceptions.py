@@ -1,6 +1,8 @@
 """Custom exceptions for data collection CRUD and router flows."""
 
-from app.api.common.exceptions import BadRequestError
+from fastapi import status
+
+from app.api.common.exceptions import APIError, BadRequestError
 
 
 class InvalidProductTreeError(BadRequestError):
@@ -12,6 +14,28 @@ class ProductOwnerRequiredError(InvalidProductTreeError):
 
     def __init__(self) -> None:
         super().__init__("Product owner_id must be set before creating a product or component.")
+
+
+class ProductTreeTooDeepError(InvalidProductTreeError):
+    """Raised when a create would nest components deeper than the tree depth limit."""
+
+    http_status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+
+    def __init__(self, max_depth: int) -> None:
+        super().__init__(f"Components can be nested at most {max_depth} levels below a product.")
+
+
+class ProductExportTooLargeError(APIError):
+    """Raised when an export's component trees are too deep or too large to build in one request."""
+
+    http_status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
+
+    def __init__(self, max_depth: int, max_components: int) -> None:
+        super().__init__(
+            f"This export is too large: a product has components nested more than {max_depth} levels deep, "
+            f"or the export has more than {max_components:,} components. "
+            "Narrow the filters or use the dataset release."
+        )
 
 
 class MaterialIDRequiredError(BadRequestError):

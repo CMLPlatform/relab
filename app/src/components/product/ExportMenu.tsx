@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { useDialog } from '@/components/base/dialogContext';
@@ -28,6 +29,7 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
   const { colors } = useAppTheme();
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
+  const buttonRef = useRef<View>(null);
 
   const open = useCallback(() => setVisible(true), []);
   const close = useCallback(() => setVisible(false), []);
@@ -41,10 +43,12 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
             ? productsExportUrl(query ?? {}, format)
             : productExportUrl(productId, format),
         );
+        dialog.toast('Export downloaded');
       } catch (error) {
         dialog.alert({
           title: 'Export failed',
           message: error instanceof Error ? error.message : 'Try again later.',
+          triggerRef: buttonRef,
         });
       } finally {
         setBusy(false);
@@ -59,13 +63,23 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
     <Menu
       visible={visible}
       onDismiss={close}
+      triggerRef={buttonRef}
       anchor={
-        <AppButton variant="outline" onPress={open} loading={busy} accessibilityLabel={label}>
-          {busy ? null : (
-            <Icon name="download" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(colors)} />
-          )}
-          {label}
-        </AppButton>
+        // NOTE: the ref sits on a wrapper View, as elsewhere: the vendored Button's ref type is not View.
+        <View ref={buttonRef} collapsable={false}>
+          <AppButton
+            variant="outline"
+            onPress={open}
+            loading={busy}
+            aria-busy={busy}
+            accessibilityLabel={label}
+          >
+            {busy ? null : (
+              <Icon name="download" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(colors)} />
+            )}
+            {label}
+          </AppButton>
+        </View>
       }
     >
       <Menu.Item title="CSV (spreadsheet)" onPress={exportCsv} />

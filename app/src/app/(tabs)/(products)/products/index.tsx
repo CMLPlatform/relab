@@ -1,6 +1,12 @@
 import Head from 'expo-router/head';
 import { useCallback, useRef } from 'react';
-import { type LayoutChangeEvent, type TextInput, useWindowDimensions, View } from 'react-native';
+import {
+  type LayoutChangeEvent,
+  Platform,
+  type TextInput,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { PageContainer } from '@/components/base/PageContainer';
 import { ScreenTitle } from '@/components/base/ScreenTitle';
 import { ExportMenu } from '@/components/product/ExportMenu';
@@ -124,7 +130,11 @@ export default function Products() {
             />
           ) : null}
 
-          {filters.expanded && list.total > 0 ? (
+          {/* NOTE: native opens exports in the system browser, which has no session, so an
+              owner=me export cannot work there yet; see issue #352. */}
+          {filters.expanded &&
+          list.total > 0 &&
+          (Platform.OS === 'web' || screen.filterMode !== 'mine') ? (
             <View className="flex-row">
               <ExportMenu label="Export results" query={list.exportQuery} />
             </View>

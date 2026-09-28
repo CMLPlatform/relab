@@ -22,6 +22,9 @@ from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (
+    EXPORT_MAX_BASE_PRODUCTS,
+    EXPORT_MAX_COMPONENTS,
+    MAX_COMPONENT_DEPTH,
     PRODUCT_EXPORT_RELATIONSHIPS,
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     apply_product_detail_loaders,
@@ -67,8 +70,6 @@ PRODUCT_FACET_BRAND: ProductFacetField = "brand"
 ExportFormat = Literal["csv", "json"]
 EXPORT_FORMAT_CSV: ExportFormat = "csv"
 ExportFormatQuery = Annotated[ExportFormat, Query(alias="format", description="File format: 'csv' or 'json'")]
-# Bulk pulls belong to the dataset release; components do not count toward this.
-EXPORT_MAX_BASE_PRODUCTS = 100
 OwnerQuery = Annotated[
     str | None,
     Query(
@@ -76,10 +77,13 @@ OwnerQuery = Annotated[
         description="Use 'me' for the current user's products, or a username for that user's public products",
     ),
 ]
-_EXPORT_RESPONSES: dict[int | str, dict[str, Any]] = {
-    200: {"content": {"text/csv": {"schema": {"type": "string"}}}},
-    422: {"description": f"More than {EXPORT_MAX_BASE_PRODUCTS} base products match the filters"},
-}
+_EXPORT_TOO_LARGE = (
+    f"the export is too large (components nested more than {MAX_COMPONENT_DEPTH} levels deep, "
+    f"or more than {EXPORT_MAX_COMPONENTS:,} components)"
+)
+# Keeps FastAPI's validation error schema: a 422 can also be an invalid query parameter.
+_EXPORT_422_CONTENT = {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}
+_EXPORT_200: dict[str, Any] = {"content": {"text/csv": {"schema": {"type": "string"}}}}
 
 
 async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
@@ -209,7 +213,16 @@ async def get_products(
 @product_read_router.get(
     "/export",
     response_model=list[ProductExportRead],
-    responses=_EXPORT_RESPONSES,
+    responses={
+        200: _EXPORT_200,
+        422: {
+            "description": (
+                f"Invalid filter parameters, more than {EXPORT_MAX_BASE_PRODUCTS} base products match, "
+                f"or {_EXPORT_TOO_LARGE}"
+            ),
+            "content": _EXPORT_422_CONTENT,
+        },
+    },
     summary="Export base products matching the list filters, with their components",
     dependencies=[API_EXPORT_RATE_LIMIT_DEPENDENCY],
 )
@@ -224,7 +237,8 @@ async def export_products(
 
     Takes the same filters, search and sorting as ``GET /products``. CSV has one row per
     product or component, linked by ``parent_id``; JSON nests components as the detail read
-    does. At most 100 base products: narrow the filters, or use the dataset release for bulk data.
+    does. At most 100 base products, 5,000 components and 20 component levels: narrow the filters,
+    or use the dataset release for bulk data.
     """
     statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.is_(None))
     if owner is not None:
@@ -295,7 +309,10 @@ async def get_product(
 @product_read_router.get(
     "/{product_id}/export",
     response_model=list[ProductExportRead],
-    responses={200: _EXPORT_RESPONSES[200]},
+    responses={
+        200: _EXPORT_200,
+        422: {"description": f"Invalid parameters, or {_EXPORT_TOO_LARGE}", "content": _EXPORT_422_CONTENT},
+    },
     summary="Export one base product with its components",
     dependencies=[API_EXPORT_RATE_LIMIT_DEPENDENCY],
 )
