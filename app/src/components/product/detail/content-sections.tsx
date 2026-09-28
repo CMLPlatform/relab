@@ -38,6 +38,8 @@ export type SectionContext = {
   mediaStreamable: boolean;
   /** Edit mode: some sections stay rendered in view mode but collapse to an add-row here. */
   editMode: boolean;
+  /** False while moderating someone else's record, which cannot add content. Defaults to true. */
+  canEdit?: boolean;
   /** Whether the record has research files attached; only lab accounts can see them. */
   hasResearchFiles?: boolean;
 };
@@ -51,6 +53,8 @@ export type SectionConfig = {
   /** Info-tooltip text shown beside the Section title. Return undefined for no tooltip. */
   tooltip?: (product: Product, editMode: boolean) => string | undefined;
   isEmpty: (product: Product, ctx: SectionContext) => boolean;
+  /** Holds only added content (videos, files): empty, it has nothing to offer a moderator. */
+  addsContent?: boolean;
   render: (props: SectionRenderProps) => ReactNode;
 };
 
@@ -152,12 +156,14 @@ export const SECTIONS: SectionConfig[] = [
     key: 'media',
     label: 'Media',
     addLabel: 'Add a video',
+    addsContent: true,
     isEmpty: (product, ctx) => (product.videos?.length ?? 0) === 0 && !ctx.mediaStreamable,
     render: (props) => (
       <>
         <ProductVideo
           product={props.product}
           editMode={props.editMode}
+          canEdit={props.canEdit}
           onVideoChange={props.onVideoChange}
           onGoLivePress={props.onGoLivePress}
           goLiveTriggerRef={props.goLiveTriggerRef}
@@ -169,6 +175,7 @@ export const SECTIONS: SectionConfig[] = [
     key: 'files',
     label: 'Research files',
     addLabel: 'Add research files',
+    addsContent: true,
     isEmpty: (_product, ctx) => !ctx.hasResearchFiles,
     render: (props) => <ProductFiles product={props.product} editMode={props.editMode} />,
   },
@@ -188,12 +195,22 @@ export function guardedSections(ctx: GuardContext): SectionConfig[] {
   return SECTIONS.filter((section) => passesGuard(section, ctx));
 }
 
+/** Empty sections show only in edit mode, as an add-row, and not when that row would add content a moderator cannot. */
+export function isSectionShown(
+  section: SectionConfig,
+  product: Product,
+  ctx: SectionContext,
+): boolean {
+  if (!section.isEmpty(product, ctx)) return true;
+  return ctx.editMode && (ctx.canEdit !== false || !section.addsContent);
+}
+
 /** The sections actually rendered right now, reused by the nav chips/outline. */
 export function visibleSections(
   product: Product,
   ctx: SectionContext & GuardContext,
 ): { key: SectionKey; label: string }[] {
   return guardedSections(ctx)
-    .filter((section) => ctx.editMode || !section.isEmpty(product, ctx))
+    .filter((section) => isSectionShown(section, product, ctx))
     .map(({ key, label }) => ({ key, label }));
 }

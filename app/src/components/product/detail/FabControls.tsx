@@ -12,7 +12,7 @@ import { SaveBar } from './SaveBar';
 type ProductFabControlsProps = {
   entityRole: 'product' | 'component';
   editMode: boolean;
-  canEdit: boolean;
+  canModerate: boolean;
   productId?: number;
   productName: string;
   fabExtended: boolean;
@@ -34,7 +34,7 @@ type ProductFabControlsProps = {
 export function ProductFabControls({
   entityRole,
   editMode,
-  canEdit,
+  canModerate,
   productId,
   productName,
   fabExtended,
@@ -72,7 +72,7 @@ export function ProductFabControls({
           errorCount={errorCount}
           onErrorSummaryPress={onErrorSummaryPress}
           onPrimaryPress={onPrimaryFabPress}
-          canEdit={canEdit}
+          canModerate={canModerate}
         />
       ) : (
         <PrimaryProductFab
@@ -83,7 +83,7 @@ export function ProductFabControls({
           fabExtended={fabExtended}
           isSaving={isSaving}
           isPaused={isPaused}
-          canEdit={canEdit}
+          canModerate={canModerate}
         />
       )}
       {productId ? (
@@ -107,7 +107,7 @@ function PrimaryProductFab({
   fabExtended,
   isSaving,
   isPaused,
-  canEdit,
+  canModerate,
 }: {
   bottomOffset: number;
   entityRole: 'product' | 'component';
@@ -116,7 +116,7 @@ function PrimaryProductFab({
   fabExtended: boolean;
   isSaving: boolean;
   isPaused: boolean;
-  canEdit: boolean;
+  canModerate: boolean;
 }) {
   // Edit mode always routes to SaveBar, so this FAB only ever opens the editor:
   // it carries no save, validation, or error-summary state of its own.
@@ -134,7 +134,7 @@ function PrimaryProductFab({
       style={[styles.rightFab, { bottom: bottomOffset }]}
       disabled={isSaving}
       extended={fabExtended}
-      visible={canEdit}
+      visible={canModerate}
     />
   );
 }

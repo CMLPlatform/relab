@@ -26,7 +26,12 @@ from app.api.data_collection.crud.material_links import (
     remove_materials_from_product as remove_materials_from_product_links,
 )
 from app.api.data_collection.crud.video import create_video, delete_video, update_video
-from app.api.data_collection.dependencies import BaseProductDep, MaterialProductLinkFilterDep, UserOwnedBaseProductDep
+from app.api.data_collection.dependencies import (
+    BaseProductDep,
+    MaterialProductLinkFilterDep,
+    ModeratableBaseProductDep,
+    UserOwnedBaseProductDep,
+)
 from app.api.data_collection.examples import (
     PRODUCT_MATERIAL_ID_PATH_OPENAPI_EXAMPLES,
     PRODUCT_MATERIAL_LINKS_BULK_OPENAPI_EXAMPLES,
@@ -144,7 +149,7 @@ async def update_product_video(
     summary="Delete video by ID",
 )
 async def delete_product_video(
-    product: UserOwnedBaseProductDep,
+    product: ModeratableBaseProductDep,
     video_id: PositiveInt,
     session: AsyncSessionDep,
 ) -> None:

@@ -93,34 +93,25 @@ describe('getProductCapabilities', () => {
   };
   const othersProduct = { ...baseProduct, ownedBy: 'someone-else' };
 
-  it('lets the owner edit their own product regardless of superuser status', () => {
-    expect(getProductCapabilities({ ...baseArgs, product: baseProduct }).canEdit).toBe(true);
-  });
-
-  it('denies a non-owner, non-superuser edit access', () => {
-    expect(getProductCapabilities({ ...baseArgs, product: othersProduct }).canEdit).toBe(false);
-  });
-
-  // Mirrors the backend's superuser bypass: is_superuser AND mfa_enabled.
-  it("grants an MFA-enrolled superuser edit access on someone else's product", () => {
-    expect(
-      getProductCapabilities({
+  // canEdit (add content) is owner-only; canModerate mirrors the backend's moderation
+  // bypass (is_superuser AND mfa_enabled): correct fields and delete, nothing new.
+  it.each([
+    ['owner', baseProduct, false, false, true, true],
+    ['owner who is an MFA superuser', baseProduct, true, true, true, true],
+    ['non-owner', othersProduct, false, false, false, false],
+    ['MFA-enrolled superuser', othersProduct, true, true, false, true],
+    ['superuser without MFA', othersProduct, true, false, false, false],
+  ])(
+    '%s: canEdit and canModerate',
+    (_label, product, isSuperuser, mfaEnabled, canEdit, canModerate) => {
+      const capabilities = getProductCapabilities({
         ...baseArgs,
-        product: othersProduct,
-        isSuperuser: true,
-        mfaEnabled: true,
-      }).canEdit,
-    ).toBe(true);
-  });
-
-  it("denies a superuser without MFA enrolled edit access on someone else's product", () => {
-    expect(
-      getProductCapabilities({
-        ...baseArgs,
-        product: othersProduct,
-        isSuperuser: true,
-        mfaEnabled: false,
-      }).canEdit,
-    ).toBe(false);
-  });
+        product,
+        isSuperuser,
+        mfaEnabled,
+      });
+      expect(capabilities.canEdit).toBe(canEdit);
+      expect(capabilities.canModerate).toBe(canModerate);
+    },
+  );
 });

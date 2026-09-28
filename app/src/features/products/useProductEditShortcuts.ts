@@ -17,15 +17,15 @@ function isTextFieldWithText(target: HTMLElement | null): boolean {
  */
 export function useProductEditShortcuts({
   editMode,
-  canEdit,
+  canModerate,
   canSave,
   onEdit,
   onSave,
   onExit,
 }: {
   editMode: boolean;
-  /** Mirrors the Edit FAB's own `visible={canEdit}`: no shortcut into an editor the user cannot open. */
-  canEdit: boolean;
+  /** Mirrors the Edit FAB's own `visible={canModerate}`: no shortcut into an editor the user cannot open. */
+  canModerate: boolean;
   /** Save is gated the same way the FAB gates it; invalid forms don't save. */
   canSave: boolean;
   onEdit: () => void;
@@ -46,7 +46,7 @@ export function useProductEditShortcuts({
         // Cmd/Ctrl+S are not plain shortcuts, so they need it here.
         if (isDialogOpen()) return;
         if (!editMode) {
-          if (shortcutsEnabled && canEdit && isPlainShortcut(event, 'e')) {
+          if (shortcutsEnabled && canModerate && isPlainShortcut(event, 'e')) {
             event.preventDefault();
             onEdit();
           }
@@ -65,6 +65,6 @@ export function useProductEditShortcuts({
       };
       window.addEventListener('keydown', onKey);
       return () => window.removeEventListener('keydown', onKey);
-    }, [editMode, shortcutsEnabled, canEdit, canSave, onEdit, onSave, onExit]),
+    }, [editMode, shortcutsEnabled, canModerate, canSave, onEdit, onSave, onExit]),
   );
 }

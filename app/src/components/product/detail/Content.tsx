@@ -15,13 +15,14 @@ import ProductImageGallery from '@/components/product/ProductImageGallery';
 import { useAnchoredSectionNav } from '@/hooks/useAnchoredSectionNav';
 import type { Product } from '@/types/Product';
 import type { SectionContext, SectionRenderProps } from './content-sections';
-import { guardedSections } from './content-sections';
+import { guardedSections, isSectionShown } from './content-sections';
 import ProductMetaData from './ProductMetaData';
 import { SpecHeader } from './SpecHeader';
 
 type ProductPageContentProps = {
   product: Product;
   editMode: boolean;
+  /** False while a superuser moderates someone else's product: fields and deletes only, no new content. */
   canEdit: boolean;
   /** True while a superuser edits a product they do not own; shows the ownership notice. */
   editingOthersProduct: boolean;
@@ -81,7 +82,7 @@ export function ProductPageContent({
     onSectionsWrapperLayout,
   } = useAnchoredSectionNav(outerNav);
 
-  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode };
+  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
   const sectionProps: SectionRenderProps = {
     product,
     editMode,
@@ -112,6 +113,7 @@ export function ProductPageContent({
         <ProductImageGallery
           product={product}
           editMode={editMode}
+          canEdit={canEdit}
           onImagesChange={onImagesChange}
         />
       </PageContainer>
@@ -127,7 +129,8 @@ export function ProductPageContent({
                 accessibilityLiveRegion="polite"
                 className="text-muted-foreground"
               >
-                You are editing someone else's product.
+                You are moderating someone else's product. You can correct details or remove
+                content.
               </AppText>
             </View>
           ) : null}
@@ -138,20 +141,22 @@ export function ProductPageContent({
             onNameChange={onProductNameChange}
           />
           <SectionNavContext.Provider value={anchoredNav}>
-            {guardedSections({ isProductComponent, isLab }).map((section) => (
-              <Section
-                key={section.key}
-                title={section.label}
-                sectionKey={section.key}
-                isEmpty={section.isEmpty(product, ctx)}
-                editMode={editMode}
-                addLabel={section.addLabel}
-                titleSuffix={section.titleSuffix?.(product)}
-                tooltip={section.tooltip?.(product, editMode)}
-              >
-                {section.render(sectionProps)}
-              </Section>
-            ))}
+            {guardedSections({ isProductComponent, isLab })
+              .filter((section) => isSectionShown(section, product, ctx))
+              .map((section) => (
+                <Section
+                  key={section.key}
+                  title={section.label}
+                  sectionKey={section.key}
+                  isEmpty={section.isEmpty(product, ctx)}
+                  editMode={editMode}
+                  addLabel={section.addLabel}
+                  titleSuffix={section.titleSuffix?.(product)}
+                  tooltip={section.tooltip?.(product, editMode)}
+                >
+                  {section.render(sectionProps)}
+                </Section>
+              ))}
           </SectionNavContext.Provider>
           {/* Record metadata (dates, owner, id) is a footer, not a chunk of
               the record; keeping it out of the nav is what lets the chips

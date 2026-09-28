@@ -238,7 +238,7 @@ export function useProductPageScreen(formOptions: UseProductFormOptions) {
   // FAB, the header back button, and the save bar.
   useProductEditShortcuts({
     editMode,
-    canEdit: capabilities.canEdit,
+    canModerate: capabilities.canModerate,
     canSave: validationResult.isValid && !isSaving,
     onEdit: enterEditMode,
     onSave: saveAndExit,

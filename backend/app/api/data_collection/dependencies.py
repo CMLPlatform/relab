@@ -63,41 +63,59 @@ async def _fetch_owned_product(
     session: AsyncSessionDep,
     item_id: int,
     current_user: CurrentActiveVerifiedUserDep,
+    *,
+    allow_moderation: bool = False,
 ) -> Product:
-    """Fetch a product with superuser bypass. Owner_id is denormalized on every row, so this is O(1).
+    """Fetch a product the current user owns. Owner_id is denormalized on every row, so this is O(1).
 
-    The bypass needs MFA enrolled on the superuser account: acting on anyone's data must not
-    rest on a password alone. A superuser without MFA is treated like any other user here.
+    With ``allow_moderation``, a superuser may also act on someone else's product. That
+    covers correcting the record and deleting it or its media, never adding content. The
+    bypass needs MFA enrolled on the superuser account: acting on anyone's data must not
+    rest on a password alone. A superuser without MFA is treated like any other user.
     """
-    if current_user.is_superuser and current_user.mfa_enabled:
+    if allow_moderation and current_user.is_superuser and current_user.mfa_enabled:
         audit_event(current_user.id, AuditAction.SUPERUSER_ACCESS, Product, item_id)
         return await require_model(session, Product, item_id)
     return await get_user_owned_object(session, Product, item_id, current_user.id)
 
 
-async def get_user_owned_product(
-    product_id: Annotated[PositiveInt, Path()],
-    session: AsyncSessionDep,
-    current_user: CurrentActiveVerifiedUserDep,
-) -> Product:
-    """Resolve the product owned by the current user from the path ID."""
-    return await _fetch_owned_product(session, product_id, current_user)
-
-
-UserOwnedProductDep = Annotated[Product, Depends(get_user_owned_product)]
-
-
-async def get_user_owned_base_product(product: UserOwnedProductDep) -> Product:
-    """Like :func:`get_user_owned_product` but 404s when the row is a component."""
+def _require_base_product(product: Product) -> Product:
     if not product.is_base_product:
+        raise HTTPException(status_code=404, detail="Product is a component; use /components/{id} instead.")
+    return product
+
+
+def _require_component(product: Product) -> Product:
+    if product.is_base_product:
         raise HTTPException(
             status_code=404,
-            detail="Product is a component; use /components/{id} instead.",
+            detail=f"ID {product.id} belongs to a base product; use /products/{{id}} instead.",
         )
     return product
 
 
+async def get_user_owned_base_product(
+    product_id: Annotated[PositiveInt, Path()],
+    session: AsyncSessionDep,
+    current_user: CurrentActiveVerifiedUserDep,
+) -> Product:
+    """Resolve a base product owned by the current user; 404s for components."""
+    return _require_base_product(await _fetch_owned_product(session, product_id, current_user))
+
+
 UserOwnedBaseProductDep = Annotated[Product, Depends(get_user_owned_base_product)]
+
+
+async def get_moderatable_base_product(
+    product_id: Annotated[PositiveInt, Path()],
+    session: AsyncSessionDep,
+    current_user: CurrentActiveVerifiedUserDep,
+) -> Product:
+    """Resolve a base product the current user owns or may moderate (MFA superuser, audited)."""
+    return _require_base_product(await _fetch_owned_product(session, product_id, current_user, allow_moderation=True))
+
+
+ModeratableBaseProductDep = Annotated[Product, Depends(get_moderatable_base_product)]
 
 
 async def get_user_owned_component(
@@ -105,14 +123,20 @@ async def get_user_owned_component(
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> Product:
-    """Resolve the component owned by the current user from the path ID."""
-    product = await _fetch_owned_product(session, component_id, current_user)
-    if product.is_base_product:
-        raise HTTPException(
-            status_code=404,
-            detail=f"ID {component_id} belongs to a base product; use /products/{{id}} instead.",
-        )
-    return product
+    """Resolve a component owned by the current user; 404s for base products."""
+    return _require_component(await _fetch_owned_product(session, component_id, current_user))
 
 
 UserOwnedComponentDep = Annotated[Product, Depends(get_user_owned_component)]
+
+
+async def get_moderatable_component(
+    component_id: Annotated[PositiveInt, Path()],
+    session: AsyncSessionDep,
+    current_user: CurrentActiveVerifiedUserDep,
+) -> Product:
+    """Resolve a component the current user owns or may moderate (MFA superuser, audited)."""
+    return _require_component(await _fetch_owned_product(session, component_id, current_user, allow_moderation=True))
+
+
+ModeratableComponentDep = Annotated[Product, Depends(get_moderatable_component)]

@@ -12,10 +12,17 @@ import type { Product } from '@/types/Product';
 interface Props {
   product: Product;
   editMode: boolean;
+  /** False while moderating someone else's record: images can be deleted but not added. */
+  canEdit?: boolean;
   onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
 }
 
-export default function ProductImageGallery({ product, editMode, onImagesChange }: Props) {
+export default function ProductImageGallery({
+  product,
+  editMode,
+  canEdit = true,
+  onImagesChange,
+}: Props) {
   const { media, viewer, capture, actions } = useProductImageGallery({
     product,
     editMode,
@@ -30,7 +37,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
   // Only one RPi button renders at a time, so one ref covers both (AppDialog's `triggerRef`).
   const rpiTriggerRef = useRef<View>(null);
 
-  if (media.imageCount === 0 && !editMode) {
+  if (media.imageCount === 0 && !(editMode && canEdit)) {
     return <ProductImagePlaceholder width={media.width} />;
   }
 
@@ -49,6 +56,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           onNext={actions.showNextImage}
           onScrollEnd={actions.syncIndexFromScroll}
           editMode={editMode}
+          canEdit={canEdit}
           showCameraOption={capture.showCameraOption}
           showRpiButton={capture.showRpiButton}
           hasCamerasConfigured={capture.hasCamerasConfigured}
@@ -61,7 +69,7 @@ export default function ProductImageGallery({ product, editMode, onImagesChange 
           fallbackLabel={product.name}
           rpiTriggerRef={rpiTriggerRef}
         />
-      ) : editMode ? (
+      ) : editMode && canEdit ? (
         <ProductImageEmptyEditState
           showCameraOption={capture.showCameraOption}
           showRpiButton={capture.showRpiButton}

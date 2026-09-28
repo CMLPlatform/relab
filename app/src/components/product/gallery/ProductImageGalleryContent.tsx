@@ -31,6 +31,8 @@ type Props = {
   onNext: () => void;
   onScrollEnd: (event: ScrollEvent) => void;
   editMode: boolean;
+  /** False while moderating someone else's record: the delete button stays, the add buttons go. */
+  canEdit?: boolean;
   showCameraOption: boolean;
   showRpiButton: boolean;
   hasCamerasConfigured: boolean;
@@ -46,6 +48,7 @@ type Props = {
 };
 
 type EditModeOverlayProps = {
+  canEdit: boolean;
   showCameraOption: boolean;
   showRpiButton: boolean;
   hasCamerasConfigured: boolean;
@@ -61,6 +64,7 @@ type EditModeOverlayProps = {
 };
 
 function EditModeOverlay({
+  canEdit,
   showCameraOption,
   showRpiButton,
   hasCamerasConfigured,
@@ -77,34 +81,36 @@ function EditModeOverlay({
   const theme = useAppTheme();
   return (
     <>
-      <View className="absolute top-3 left-3 flex-row gap-2">
-        {showCameraOption ? (
-          <OverlayActionButton onPress={onTakePhoto} label="Take photo" icon="camera" />
-        ) : null}
-        <OverlayActionButton
-          onPress={onPickImage}
-          label="Add photo from gallery"
-          icon="image-plus"
-        />
-        {showRpiButton ? (
-          <Pressable
-            ref={rpiTriggerRef}
-            onPress={onRpiCapture}
-            disabled={isCapturing || rpiCamerasLoading}
-            accessibilityLabel={
-              hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
-            }
-            className="h-11 w-11 items-center justify-center rounded-md"
-            style={rpiButtonStyle}
-          >
-            {isCapturing || rpiCamerasLoading ? (
-              <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
-            ) : (
-              <Icon name="camera" size="md" color={theme.tokens.text.onMedia} />
-            )}
-          </Pressable>
-        ) : null}
-      </View>
+      {canEdit ? (
+        <View className="absolute top-3 left-3 flex-row gap-2">
+          {showCameraOption ? (
+            <OverlayActionButton onPress={onTakePhoto} label="Take photo" icon="camera" />
+          ) : null}
+          <OverlayActionButton
+            onPress={onPickImage}
+            label="Add photo from gallery"
+            icon="image-plus"
+          />
+          {showRpiButton ? (
+            <Pressable
+              ref={rpiTriggerRef}
+              onPress={onRpiCapture}
+              disabled={isCapturing || rpiCamerasLoading}
+              accessibilityLabel={
+                hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
+              }
+              className="h-11 w-11 items-center justify-center rounded-md"
+              style={rpiButtonStyle}
+            >
+              {isCapturing || rpiCamerasLoading ? (
+                <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
+              ) : (
+                <Icon name="camera" size="md" color={theme.tokens.text.onMedia} />
+              )}
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
 
       <Pressable
         onPress={onDeleteImage}
@@ -133,6 +139,7 @@ export function ProductImageGalleryContent({
   onNext,
   onScrollEnd,
   editMode,
+  canEdit = true,
   showCameraOption,
   showRpiButton,
   hasCamerasConfigured,
@@ -230,6 +237,7 @@ export function ProductImageGalleryContent({
 
       {editMode ? (
         <EditModeOverlay
+          canEdit={canEdit}
           showCameraOption={showCameraOption}
           showRpiButton={showRpiButton}
           hasCamerasConfigured={hasCamerasConfigured}

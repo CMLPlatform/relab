@@ -144,11 +144,12 @@ describe('useProductPageScreen', () => {
     expect(result.current.streaming.streamingOtherProduct).toBe(true);
     expect(result.current.capabilities.ownedByMe).toBe(true);
     expect(result.current.capabilities.canEdit).toBe(true);
+    expect(result.current.capabilities.canModerate).toBe(true);
     expect(typeof result.current.actions.saveAndExit).toBe('function');
   });
 
-  // Mirrors the backend's superuser edit bypass, which also requires MFA enrollment.
-  it('grants canEdit to an MFA-enrolled superuser on a product owned by someone else', async () => {
+  // Mirrors the backend's moderation bypass, which also requires MFA enrollment.
+  it('lets an MFA-enrolled superuser moderate, not edit, a product owned by someone else', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: { ...baseProduct, ownedBy: 'someone-else' },
@@ -160,10 +161,11 @@ describe('useProductPageScreen', () => {
     const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.capabilities.ownedByMe).toBe(false);
-    expect(result.current.capabilities.canEdit).toBe(true);
+    expect(result.current.capabilities.canEdit).toBe(false);
+    expect(result.current.capabilities.canModerate).toBe(true);
   });
 
-  it("denies canEdit to a superuser without MFA enrolled on someone else's product", async () => {
+  it("denies a superuser without MFA enrolled moderation on someone else's product", async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: { ...baseProduct, ownedBy: 'someone-else' },
@@ -175,9 +177,10 @@ describe('useProductPageScreen', () => {
     const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.capabilities.canEdit).toBe(false);
+    expect(result.current.capabilities.canModerate).toBe(false);
   });
 
-  it("denies canEdit to a non-superuser on someone else's product", async () => {
+  it("denies a non-superuser moderation on someone else's product", async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: { ...baseProduct, ownedBy: 'someone-else' },
@@ -189,6 +192,7 @@ describe('useProductPageScreen', () => {
     const { result } = await renderHook(() => useProductPageScreen({ role: 'product' }));
 
     expect(result.current.capabilities.canEdit).toBe(false);
+    expect(result.current.capabilities.canModerate).toBe(false);
   });
 
   it('opens and closes the stream picker through named actions', async () => {

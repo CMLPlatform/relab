@@ -25,7 +25,10 @@ export function useProductFiles(product: Product) {
   // An unsaved draft has no id to attach a file to.
   const productId = typeof product.id === 'number' ? product.id : undefined;
   const isLab = user?.role === 'lab';
+  // Uploading is owner-only; removing is also open to a moderating superuser, and edit
+  // mode only opens for the owner or a moderator.
   const canManage = isLab && product.ownedBy === 'me' && productId !== undefined;
+  const canRemove = isLab && productId !== undefined;
 
   const filesQuery = useQuery({
     queryKey: productFilesQueryKey(productId),
@@ -97,6 +100,7 @@ export function useProductFiles(product: Product) {
 
   return {
     canManage,
+    canRemove,
     isLab,
     files: filesQuery.data ?? [],
     isLoading: filesQuery.isLoading,

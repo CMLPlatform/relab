@@ -160,6 +160,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
 
   const navSections = visibleSections(screen.product, {
     editMode: editing.editMode,
+    canEdit: capabilities.canEdit,
     isProductComponent: capabilities.isProductComponent,
     isLab,
     mediaStreamable,
@@ -205,7 +206,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         <ProductFabControls
           entityRole={screen.product.role}
           editMode={editing.editMode}
-          canEdit={capabilities.canEdit}
+          canModerate={capabilities.canModerate}
           productId={typeof screen.product.id === 'number' ? screen.product.id : undefined}
           productName={screen.product.name ?? ''}
           fabExtended={editing.fabExtended}

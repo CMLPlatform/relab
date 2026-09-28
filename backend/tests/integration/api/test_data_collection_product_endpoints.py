@@ -168,26 +168,42 @@ async def test_delete_product(api_client_superuser: AsyncClient, setup_product: 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
-@pytest.mark.parametrize(("mfa_enabled", "expected"), [(True, status.HTTP_200_OK), (False, status.HTTP_404_NOT_FOUND)])
-async def test_superuser_edits_another_users_product_only_with_mfa(
+@pytest.mark.parametrize("mfa_enabled", [True, False])
+async def test_superuser_moderates_another_users_product_only_with_mfa(
     api_client_superuser: AsyncClient,
     db_session: AsyncSession,
     db_superuser: User,
     db_product_type: ProductType,
+    db_material: Material,
     mfa_enabled: bool,  # noqa: FBT001
-    expected: int,
 ) -> None:
-    """The superuser bypass on someone else's product needs MFA enrolled on the superuser."""
+    """An MFA superuser may correct and delete someone else's product, but never add content to it."""
     other_user = await UserFactory.create_async(session=db_session, is_active=True)
     other_product = await ProductFactory.create_async(
         session=db_session, owner_id=other_user.id, product_type_id=db_product_type.id
     )
     db_superuser.mfa_enabled = mfa_enabled
     await db_session.flush()
+    moderated = status.HTTP_200_OK if mfa_enabled else status.HTTP_404_NOT_FOUND
 
-    response = await api_client_superuser.patch(f"/v1/products/{other_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+    patch_response = await api_client_superuser.patch(
+        f"/v1/products/{other_product.id}", json={"name": UPDATED_PRODUCT_NAME}
+    )
+    upload_response = await api_client_superuser.post(
+        f"/v1/products/{other_product.id}/images",
+        # NOTE: ownership is checked before the file is read, so the bytes need not be a real image.
+        files={"file": ("image.gif", b"GIF89a", "image/gif")},
+    )
+    materials_response = await api_client_superuser.post(
+        f"/v1/products/{other_product.id}/materials",
+        json=[{"material_id": db_material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}],
+    )
+    delete_response = await api_client_superuser.delete(f"/v1/products/{other_product.id}")
 
-    assert response.status_code == expected
+    assert patch_response.status_code == moderated
+    assert upload_response.status_code == status.HTTP_404_NOT_FOUND
+    assert materials_response.status_code == status.HTTP_404_NOT_FOUND
+    assert delete_response.status_code == (status.HTTP_204_NO_CONTENT if mfa_enabled else status.HTTP_404_NOT_FOUND)
 
 
 async def test_non_owner_cannot_update_product(api_client_user: AsyncClient, setup_product: Product) -> None:

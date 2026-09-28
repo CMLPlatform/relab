@@ -26,6 +26,7 @@ from app.api.data_collection.crud.product_commands import delete_product as dele
 from app.api.data_collection.crud.product_commands import update_product as update_product_record
 from app.api.data_collection.dependencies import (
     BaseProductDep,
+    ModeratableBaseProductDep,
     UserOwnedBaseProductDep,
 )
 from app.api.data_collection.examples import (
@@ -112,7 +113,7 @@ async def create_product(
 )
 async def update_product(
     product_update: ProductUpdate,
-    db_product: UserOwnedBaseProductDep,
+    db_product: ModeratableBaseProductDep,
     session: AsyncSessionDep,
     current_user: CurrentActiveVerifiedUserDep,
 ) -> ProductRead:
@@ -128,7 +129,7 @@ async def update_product(
     summary="Delete base product",
     dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
-async def delete_product(db_product: UserOwnedBaseProductDep, session: AsyncSessionDep) -> None:
+async def delete_product(db_product: ModeratableBaseProductDep, session: AsyncSessionDep) -> None:
     """Delete a base product, cascading to its components. Use ``DELETE /components/{id}`` for a component."""
     await delete_product_record(session, db_product.id)
 
@@ -241,7 +242,7 @@ async def upload_product_file(
     status_code=204,
 )
 async def delete_product_file(
-    db_product: UserOwnedBaseProductDep,
+    db_product: ModeratableBaseProductDep,
     file_id: Annotated[UUID4, Path(description="ID of the file")],
     session: AsyncSessionDep,
 ) -> None:
@@ -319,7 +320,7 @@ async def upload_product_image(
     status_code=204,
 )
 async def delete_product_image(
-    db_product: UserOwnedBaseProductDep,
+    db_product: ModeratableBaseProductDep,
     image_id: Annotated[UUID4, Path(description="ID of the image")],
     session: AsyncSessionDep,
 ) -> None:
