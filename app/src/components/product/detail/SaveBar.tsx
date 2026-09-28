@@ -21,13 +21,13 @@ type SaveBarProps = {
   errorCount?: number;
   onErrorSummaryPress?: () => void;
   onPrimaryPress: () => void;
-  ownedByMe: boolean;
+  canEdit: boolean;
 };
 
 /**
  * Edit / Save / Done action bar plus an inline error summary. In normal flow below
  * md, docked to the viewport above. ActiveStreamBanner reserves dock space via
- * SAVE_BAR_DOCK_ROUTE; update it if the route or `ownedByMe` condition changes.
+ * SAVE_BAR_DOCK_ROUTE; update it if the route or `canEdit` condition changes.
  */
 export function SaveBar({
   layout = 'floating',
@@ -42,9 +42,9 @@ export function SaveBar({
   errorCount,
   onErrorSummaryPress,
   onPrimaryPress,
-  ownedByMe,
+  canEdit,
 }: SaveBarProps) {
-  if (!ownedByMe) return null;
+  if (!canEdit) return null;
   const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
   // Validation only gates a press that would actually save dirty edits, not a
   // plain view->edit toggle.

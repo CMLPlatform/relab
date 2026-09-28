@@ -15,6 +15,7 @@ import ProductType from './ProductType';
 export type SectionRenderProps = {
   product: Product;
   editMode: boolean;
+  canEdit: boolean;
   isProductComponent: boolean;
   onChangeDescription: ComponentProps<typeof ProductDescription>['onChangeDescription'];
   onBrandChange: ComponentProps<typeof ProductTags>['onBrandChange'];
@@ -112,7 +113,13 @@ export const SECTIONS: SectionConfig[] = [
       typeof product.id === 'number'
         ? undefined
         : `Add components after saving the ${entityLabel(product)}.`,
-    render: (props) => <ProductComponents product={props.product} editMode={props.editMode} />,
+    render: (props) => (
+      <ProductComponents
+        product={props.product}
+        editMode={props.editMode}
+        canEdit={props.canEdit}
+      />
+    ),
   },
   {
     // Measurements and circularity notes share one section (six chips did not fit a phone).

@@ -6,6 +6,7 @@ import {
   KeyboardAwareScrollView,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
+import { AppText } from '@/components/base/AppText';
 import { PageContainer } from '@/components/base/PageContainer';
 import { Section } from '@/components/base/Section';
 import { SectionNavContext } from '@/components/base/SectionNavContext';
@@ -21,6 +22,9 @@ import { SpecHeader } from './SpecHeader';
 type ProductPageContentProps = {
   product: Product;
   editMode: boolean;
+  canEdit: boolean;
+  /** True while a superuser edits a product they do not own; shows the ownership notice. */
+  editingOthersProduct: boolean;
   /** "Saved · ID 29" style line under the title (edit mode only). */
   saveStatus?: string;
   isProductComponent: boolean;
@@ -47,6 +51,8 @@ type ProductPageContentProps = {
 export function ProductPageContent({
   product,
   editMode,
+  canEdit,
+  editingOthersProduct,
   saveStatus,
   isProductComponent,
   isLab,
@@ -79,6 +85,7 @@ export function ProductPageContent({
   const sectionProps: SectionRenderProps = {
     product,
     editMode,
+    canEdit,
     isProductComponent,
     onChangeDescription,
     onBrandChange,
@@ -110,6 +117,20 @@ export function ProductPageContent({
       </PageContainer>
       <PageContainer onLayout={onPageContainerLayout}>
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
+          {editingOthersProduct ? (
+            <View
+              testID="editing-others-product-notice"
+              className="rounded-lg border border-border bg-muted px-4 py-2"
+            >
+              <AppText
+                variant="caption"
+                accessibilityLiveRegion="polite"
+                className="text-muted-foreground"
+              >
+                You are editing someone else's product.
+              </AppText>
+            </View>
+          ) : null}
           <SpecHeader
             product={product}
             editMode={editMode}

@@ -168,6 +168,28 @@ async def test_delete_product(api_client_superuser: AsyncClient, setup_product: 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
+@pytest.mark.parametrize(("mfa_enabled", "expected"), [(True, status.HTTP_200_OK), (False, status.HTTP_404_NOT_FOUND)])
+async def test_superuser_edits_another_users_product_only_with_mfa(
+    api_client_superuser: AsyncClient,
+    db_session: AsyncSession,
+    db_superuser: User,
+    db_product_type: ProductType,
+    mfa_enabled: bool,  # noqa: FBT001
+    expected: int,
+) -> None:
+    """The superuser bypass on someone else's product needs MFA enrolled on the superuser."""
+    other_user = await UserFactory.create_async(session=db_session, is_active=True)
+    other_product = await ProductFactory.create_async(
+        session=db_session, owner_id=other_user.id, product_type_id=db_product_type.id
+    )
+    db_superuser.mfa_enabled = mfa_enabled
+    await db_session.flush()
+
+    response = await api_client_superuser.patch(f"/v1/products/{other_product.id}", json={"name": UPDATED_PRODUCT_NAME})
+
+    assert response.status_code == expected
+
+
 async def test_non_owner_cannot_update_product(api_client_user: AsyncClient, setup_product: Product) -> None:
     """PATCH /products/{id} hides products owned by another user."""
     response = await api_client_user.patch(f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME})

@@ -30,9 +30,12 @@ describe('ProductComponents', () => {
   // (title + titleSuffix, see content-sections.test.ts); this component no
   // longer owns a heading of its own.
   it("shows 'no subcomponents' message when empty", async () => {
-    await renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductComponents product={baseProduct} editMode={false} canEdit />,
+      {
+        withDialog: true,
+      },
+    );
     await waitFor(() => {
       expect(screen.getByText('This product has no subcomponents.')).toBeOnTheScreen();
     });
@@ -50,6 +53,7 @@ describe('ProductComponents', () => {
       <ProductComponents
         product={{ ...baseProduct, components: [componentProduct] }}
         editMode={false}
+        canEdit
       />,
       {
         withDialog: true,
@@ -70,7 +74,11 @@ describe('ProductComponents', () => {
     }));
 
     await renderWithProviders(
-      <ProductComponents product={{ ...baseProduct, components: eight }} editMode={false} />,
+      <ProductComponents
+        product={{ ...baseProduct, components: eight }}
+        editMode={false}
+        canEdit
+      />,
       { withDialog: true },
     );
 
@@ -93,6 +101,7 @@ describe('ProductComponents', () => {
       <ProductComponents
         product={{ ...baseProduct, components: manyComponents }}
         editMode={false}
+        canEdit
       />,
       {
         withDialog: true,
@@ -119,9 +128,12 @@ describe('ProductComponents', () => {
   });
 
   it('shows Add component button when owned by me and not in editMode', async () => {
-    await renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductComponents product={baseProduct} editMode={false} canEdit />,
+      {
+        withDialog: true,
+      },
+    );
     await waitFor(() => {
       expect(screen.getByText('Add component')).toBeOnTheScreen();
     });
@@ -132,7 +144,7 @@ describe('ProductComponents', () => {
   // next step exactly when the user has the opened product in front of them.
   // The record is already persisted on that route, so the gate is `id`.
   it('shows Add component in editMode once the record has an id', async () => {
-    await renderWithProviders(<ProductComponents product={baseProduct} editMode={true} />, {
+    await renderWithProviders(<ProductComponents product={baseProduct} editMode={true} canEdit />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -142,7 +154,7 @@ describe('ProductComponents', () => {
 
   it('hides Add component while the record has no id yet', async () => {
     const unsaved = { ...baseProduct, id: undefined };
-    await renderWithProviders(<ProductComponents product={unsaved} editMode={true} />, {
+    await renderWithProviders(<ProductComponents product={unsaved} editMode={true} canEdit />, {
       withDialog: true,
     });
     await waitFor(() => {
@@ -152,18 +164,24 @@ describe('ProductComponents', () => {
 
   it('hides Add component button when not owned by me', async () => {
     const notMine = { ...baseProduct, ownedBy: 'other' };
-    await renderWithProviders(<ProductComponents product={notMine} editMode={false} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductComponents product={notMine} editMode={false} canEdit={false} />,
+      {
+        withDialog: true,
+      },
+    );
     await waitFor(() => {
       expect(screen.queryByText('Add component')).toBeNull();
     });
   });
 
   it('navigates to the base-product scoped create route when Add component is pressed on a product', async () => {
-    await renderWithProviders(<ProductComponents product={baseProduct} editMode={false} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductComponents product={baseProduct} editMode={false} canEdit />,
+      {
+        withDialog: true,
+      },
+    );
 
     await fireEvent.press(await screen.findByText('Add component'));
 
@@ -187,9 +205,12 @@ describe('ProductComponents', () => {
       parentID: baseProduct.id,
       name: 'Existing component',
     };
-    await renderWithProviders(<ProductComponents product={componentProduct} editMode={false} />, {
-      withDialog: true,
-    });
+    await renderWithProviders(
+      <ProductComponents product={componentProduct} editMode={false} canEdit />,
+      {
+        withDialog: true,
+      },
+    );
 
     await fireEvent.press(await screen.findByText('Add component'));
 
@@ -226,6 +247,7 @@ describe('ProductComponents', () => {
       <ProductComponents
         product={{ ...baseProduct, components: [componentProduct] }}
         editMode={true}
+        canEdit
       />,
       { withDialog: true },
     );
@@ -266,6 +288,7 @@ describe('ProductComponents', () => {
       <ProductComponents
         product={{ ...baseProduct, components: [componentProduct] }}
         editMode={false}
+        canEdit
       />,
       { withDialog: true },
     );

@@ -1,13 +1,39 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, type PressableStateCallbackType, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
+import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
+import { Icon } from '@/components/base/Icon';
 import CPVCard from '@/components/product/CPVCard';
+import { MIN_TAP_TARGET } from '@/constants';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { loadCPV } from '@/services/cpv';
+import { useAppTheme } from '@/theme/appThemeContext';
 import type { CPVCategory } from '@/types/CPVCategory';
 import { entityLabel, type Product, typeRowLabels } from '@/types/Product';
+
+function ViewProductsOfTypeLink({ typeName, onPress }: { typeName: string; onPress: () => void }) {
+  const { colors } = useAppTheme();
+  const linkStyle = useCallback(
+    ({ pressed }: PressableStateCallbackType) => [styles.link, pressed && { opacity: 0.5 }],
+    [],
+  );
+
+  return (
+    <Pressable
+      style={linkStyle}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`View all products of type ${typeName}`}
+    >
+      <AppText variant="caption" className="text-right" style={{ color: colors.primary }}>
+        View all
+      </AppText>
+      <Icon size="md" name="chevron-right" color={colors.primary} />
+    </Pressable>
+  );
+}
 
 interface Props {
   product: Product;
@@ -51,6 +77,13 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     router.push('/category-selection');
   };
 
+  // Filters the products list by this type's name — the same value the list
+  // reads back via screenData.ts's `types` param.
+  const onViewAllOfType = () => {
+    if (!product.productTypeName) return;
+    router.push({ pathname: '/products', params: { types: product.productTypeName } });
+  };
+
   const labels = typeRowLabels(product.role);
 
   const header = (
@@ -83,8 +116,31 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     <View>
       {header}
       {selectedType ? (
-        <CPVCard CPV={selectedType} onPress={editMode ? onTypeSelectionStart : undefined} />
+        <CPVCard
+          CPV={selectedType}
+          onPress={editMode ? onTypeSelectionStart : undefined}
+          actionElement={
+            !editMode && product.productTypeName ? (
+              <ViewProductsOfTypeLink
+                typeName={product.productTypeName}
+                onPress={onViewAllOfType}
+              />
+            ) : undefined
+          }
+        />
       ) : null}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  link: {
+    minHeight: MIN_TAP_TARGET,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 5,
+    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
+  },
+});

@@ -42,7 +42,7 @@ Protection requirements:
 Three independent attributes decide what an account may do; each is enforced separately:
 
 - `is_verified`: whether the account may create records at all.
-- `is_superuser`: access to the `/admin` routes. It carries no data privileges: a superuser who is not `lab` is refused a research-file upload like any other contributor.
+- `is_superuser`: access to the `/admin` routes, and editing or deleting any contributor's products, which is audited and needs MFA enrolled on the superuser account. It carries no other data privileges: a superuser who is not `lab` is refused a research-file upload like any other contributor.
 - `role`: the contributor tier, `contributor` (default) or `lab`. It gates non-image research-file upload and selects the upload quota tier.
 
 Only a superuser sets roles, through `PUT /v1/admin/users/{user_id}/role`; every change is audit-logged. The self-service update schema has no `role` field, so `PATCH /users/me` cannot reach it. New accounts, and every account backfilled when roles were introduced, start at `contributor`.

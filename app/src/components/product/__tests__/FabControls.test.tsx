@@ -47,7 +47,7 @@ describe('ProductFabControls — responsive action layout', () => {
 const baseProps = {
   entityRole: 'product' as const,
   editMode: false,
-  ownedByMe: true,
+  canEdit: true,
   productName: 'Test',
   fabExtended: true,
   validationValid: true,

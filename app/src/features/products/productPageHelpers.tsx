@@ -124,6 +124,8 @@ export function getProductCapabilities({
   youtubeEnabled,
   isGoogleLinked,
   isProductComponent,
+  isSuperuser,
+  mfaEnabled,
 }: {
   product: Product;
   activeStream: { productId: number } | null;
@@ -131,13 +133,19 @@ export function getProductCapabilities({
   youtubeEnabled: boolean;
   isGoogleLinked: boolean;
   isProductComponent: boolean;
+  isSuperuser: boolean;
+  mfaEnabled: boolean;
 }) {
+  const ownedByMe = product.ownedBy === 'me';
   return {
     isProductComponent,
     rpiEnabled,
     youtubeEnabled,
     isGoogleLinked,
-    ownedByMe: product.ownedBy === 'me',
+    ownedByMe,
+    // Mirrors the backend's superuser edit bypass (is_superuser AND mfa_enabled):
+    // an unenrolled superuser gets no edit affordance on someone else's product.
+    canEdit: ownedByMe || (isSuperuser && mfaEnabled),
     ...getStreamingState(product, activeStream),
   };
 }

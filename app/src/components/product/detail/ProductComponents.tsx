@@ -15,13 +15,14 @@ import { ComponentRow } from './ComponentRow';
 interface Props {
   product: Product;
   editMode: boolean;
+  canEdit: boolean;
 }
 
 const VISIBLE_WHEN_COLLAPSED = 5;
 /** Lists up to this many rows in full; beyond it, the first five plus a disclosure. */
 const COLLAPSE_ABOVE = 8;
 
-export default function ProductComponents({ product, editMode }: Props) {
+export default function ProductComponents({ product, editMode, canEdit }: Props) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const components = product.components ?? [];
@@ -98,9 +99,7 @@ export default function ProductComponents({ product, editMode }: Props) {
           key={component.id}
           component={component}
           enabled={!editMode}
-          onDuplicate={
-            editMode && product.ownedBy === 'me' ? () => duplicate(component) : undefined
-          }
+          onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
         />
       ))}
       {collapsible && (
@@ -118,7 +117,7 @@ export default function ProductComponents({ product, editMode }: Props) {
           removed the teardown's actual next step at the exact moment the user
           has the product open in front of them, and the record is already
           persisted by then, which is why the gate is `id`, not `editMode`. */}
-      {typeof product.id === 'number' && product.ownedBy === 'me' && (
+      {typeof product.id === 'number' && canEdit && (
         <AppButton variant="primary" onPress={newComponent} className="mx-4 my-2">
           Add component
         </AppButton>

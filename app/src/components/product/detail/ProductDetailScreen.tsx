@@ -170,6 +170,8 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     <ProductPageContent
       product={screen.product}
       editMode={editing.editMode}
+      canEdit={capabilities.canEdit}
+      editingOthersProduct={editing.editMode && !capabilities.ownedByMe}
       saveStatus={editing.saveStatus}
       isProductComponent={capabilities.isProductComponent}
       isLab={isLab}
@@ -203,7 +205,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
         <ProductFabControls
           entityRole={screen.product.role}
           editMode={editing.editMode}
-          ownedByMe={capabilities.ownedByMe}
+          canEdit={capabilities.canEdit}
           productId={typeof screen.product.id === 'number' ? screen.product.id : undefined}
           productName={screen.product.name ?? ''}
           fabExtended={editing.fabExtended}

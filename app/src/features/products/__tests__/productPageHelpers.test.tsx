@@ -2,8 +2,13 @@ import { describe, expect, it } from '@jest/globals';
 import { isValidElement } from 'react';
 import { ActivityIndicator } from 'react-native';
 import { Icon } from '@/components/base/Icon';
-import { getPrimaryFabIcon, getSaveStatus } from '@/features/products/productPageHelpers';
+import {
+  getPrimaryFabIcon,
+  getProductCapabilities,
+  getSaveStatus,
+} from '@/features/products/productPageHelpers';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
+import { baseProduct } from '@/test-utils/fixtures';
 import { getAppTheme } from '@/theme/themes';
 
 const theme = getAppTheme('light');
@@ -73,5 +78,49 @@ describe('getSaveStatus', () => {
   it('is absent outside edit mode and before the record has an id', () => {
     expect(getSaveStatus({ ...base, editMode: false })).toBeUndefined();
     expect(getSaveStatus({ ...base, id: undefined })).toBeUndefined();
+  });
+});
+
+describe('getProductCapabilities', () => {
+  const baseArgs = {
+    activeStream: null,
+    rpiEnabled: false,
+    youtubeEnabled: false,
+    isGoogleLinked: false,
+    isProductComponent: false,
+    isSuperuser: false,
+    mfaEnabled: false,
+  };
+  const othersProduct = { ...baseProduct, ownedBy: 'someone-else' };
+
+  it('lets the owner edit their own product regardless of superuser status', () => {
+    expect(getProductCapabilities({ ...baseArgs, product: baseProduct }).canEdit).toBe(true);
+  });
+
+  it('denies a non-owner, non-superuser edit access', () => {
+    expect(getProductCapabilities({ ...baseArgs, product: othersProduct }).canEdit).toBe(false);
+  });
+
+  // Mirrors the backend's superuser bypass: is_superuser AND mfa_enabled.
+  it("grants an MFA-enrolled superuser edit access on someone else's product", () => {
+    expect(
+      getProductCapabilities({
+        ...baseArgs,
+        product: othersProduct,
+        isSuperuser: true,
+        mfaEnabled: true,
+      }).canEdit,
+    ).toBe(true);
+  });
+
+  it("denies a superuser without MFA enrolled edit access on someone else's product", () => {
+    expect(
+      getProductCapabilities({
+        ...baseArgs,
+        product: othersProduct,
+        isSuperuser: true,
+        mfaEnabled: false,
+      }).canEdit,
+    ).toBe(false);
   });
 });

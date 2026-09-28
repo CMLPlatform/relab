@@ -103,6 +103,8 @@ async def test_upload_image_recomputes_stats_for_product_owner_not_uploader(
     )
     owner.profile_stats_computed_at = None
     db_superuser.profile_stats_computed_at = None
+    # The superuser bypass on someone else's product needs MFA enrolled.
+    db_superuser.mfa_enabled = True
     await db_session.flush()
 
     response = await api_client_superuser.post(
