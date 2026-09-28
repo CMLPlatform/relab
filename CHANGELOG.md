@@ -1,5 +1,51 @@
 # Changelog
 
+## [0.3.3](https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.3.3) (2026-09-28)
+
+
+### Features
+
+* Allow embedding the app, docs and website in iframes ([#360](https://github.com/CMLPlatform/relab/issues/360)) ([55ed000](https://github.com/CMLPlatform/relab/commit/55ed000ea3278cef012ee017220274ab01629c9f))
+* **app:** Show a record's bill of materials, and fix its type label ([#358](https://github.com/CMLPlatform/relab/issues/358)) ([76e490f](https://github.com/CMLPlatform/relab/commit/76e490ff08939a64abc4685a56606c41b08729e9))
+* **app:** Show owners which product fields are still missing ([#347](https://github.com/CMLPlatform/relab/issues/347)) ([6617cc1](https://github.com/CMLPlatform/relab/commit/6617cc10b3190daf5a60a5d2ee4d5c4051c2e4f4))
+* **auth:** Let users delete their own account ([#336](https://github.com/CMLPlatform/relab/issues/336)) ([78249d3](https://github.com/CMLPlatform/relab/commit/78249d3878654c89b50b98ce3a7a1176a5925e97))
+* **auth:** Require MFA for every superuser power ([#342](https://github.com/CMLPlatform/relab/issues/342)) ([6bed221](https://github.com/CMLPlatform/relab/commit/6bed2210fe28da7ff5ad3f3397cb184c52ce8c6b))
+* **backend:** Rate-limit signed-in requests per user ([#334](https://github.com/CMLPlatform/relab/issues/334)) ([98cd309](https://github.com/CMLPlatform/relab/commit/98cd3091cb0443654e820a50f03a5082dbf3850d))
+* **deploy:** Pull published GHCR images instead of building on the host ([#362](https://github.com/CMLPlatform/relab/issues/362)) ([e029ca6](https://github.com/CMLPlatform/relab/commit/e029ca61c0a94349237e99a7042482b219e9aa93))
+* **env:** Increase upload size limits for users and lab users ([#348](https://github.com/CMLPlatform/relab/issues/348)) ([73dac4d](https://github.com/CMLPlatform/relab/commit/73dac4d9bbba0d3535dab6b4225e80d9d6c030bf))
+* Export products as CSV or JSON ([#349](https://github.com/CMLPlatform/relab/issues/349)) ([72f7c9e](https://github.com/CMLPlatform/relab/commit/72f7c9e62b020de4f33379205df311881a07e3b6))
+* **images:** Tier per-image caps by role, upload photos at full resolution, and make superusers lab ([#335](https://github.com/CMLPlatform/relab/issues/335)) ([89cef3f](https://github.com/CMLPlatform/relab/commit/89cef3fea5cd059f15fbb9cf96185f70f9270eea))
+* Product type link and superuser moderation ([#340](https://github.com/CMLPlatform/relab/issues/340)) ([0297d69](https://github.com/CMLPlatform/relab/commit/0297d69eeb7a028782d0e55434e41a6638d89880))
+* Refuse stale product edits and show the last editor ([#363](https://github.com/CMLPlatform/relab/issues/363)) ([b645d1e](https://github.com/CMLPlatform/relab/commit/b645d1e62ade39bdd4a9d95fbea247a2e4c523a2))
+* Serve www and docs from Cloudflare Workers ([#364](https://github.com/CMLPlatform/relab/issues/364)) ([2d906e6](https://github.com/CMLPlatform/relab/commit/2d906e675483a042bf682b9b1f117bdb832f1464))
+
+
+### Bug Fixes
+
+* **auth:** Harden self-service account deletion ([#339](https://github.com/CMLPlatform/relab/issues/339)) ([b59a285](https://github.com/CMLPlatform/relab/commit/b59a285d6f6728402fecd9d69ac4505438d5614e))
+* **backend:** Draw unique usernames and emails in the user factory ([#305](https://github.com/CMLPlatform/relab/issues/305)) ([43ce559](https://github.com/CMLPlatform/relab/commit/43ce55924196d98cbbf60f855e30c4cbbd5f229c))
+* Count stored image size in the upload quota, clean up camera previews on admin delete ([#353](https://github.com/CMLPlatform/relab/issues/353)) ([7d7d6c0](https://github.com/CMLPlatform/relab/commit/7d7d6c01bea4ff7f5112199108a3cbb5aa8ef0e1))
+* **deploy:** Report a migration that failed without stranding the stack ([#276](https://github.com/CMLPlatform/relab/issues/276)) ([e77cc09](https://github.com/CMLPlatform/relab/commit/e77cc097e31de9e0c38c24139a67e73e59460a26))
+* **deploy:** Surface a migration that gates the stack ([#274](https://github.com/CMLPlatform/relab/issues/274)) ([71e457d](https://github.com/CMLPlatform/relab/commit/71e457d1ca921d09435efc931817a9cd01315061))
+* **deps:** Patch transitive advisories and keep overrides from piling up ([#294](https://github.com/CMLPlatform/relab/issues/294)) ([1771643](https://github.com/CMLPlatform/relab/commit/1771643812d7c2978007ac005ef24793e37bd3b1))
+* **deps:** Pin lodash-es to 4.18.1 under chevrotain ([#356](https://github.com/CMLPlatform/relab/issues/356)) ([7453637](https://github.com/CMLPlatform/relab/commit/7453637244b45c7efe57ce5ce6d8387d6a316c27))
+* **deps:** Update all non-major ([#331](https://github.com/CMLPlatform/relab/issues/331)) ([5b34108](https://github.com/CMLPlatform/relab/commit/5b34108118e99c3a04c2a1bfbff079f37002da48))
+* **deps:** Update docs ([#315](https://github.com/CMLPlatform/relab/issues/315)) ([6ccfa4b](https://github.com/CMLPlatform/relab/commit/6ccfa4bf2c0a5f7b3e9af6e20b6771babd61f13f))
+* **deps:** Update docs ([#319](https://github.com/CMLPlatform/relab/issues/319)) ([c5b47d1](https://github.com/CMLPlatform/relab/commit/c5b47d113171df6ac51368d73ca6cc0df33b5c5c))
+* **deps:** Update repo-tooling ([#277](https://github.com/CMLPlatform/relab/issues/277)) ([c8501a9](https://github.com/CMLPlatform/relab/commit/c8501a9b97d600602d9179cba7d5a6b38f2f5df6))
+* **docker:** Refresh python, uv, and postgres base image digests ([#283](https://github.com/CMLPlatform/relab/issues/283)) ([285f109](https://github.com/CMLPlatform/relab/commit/285f109a6ab049450bae55305568ec06139a4bf2))
+* **docs:** Lint the whole docs subrepo ([#365](https://github.com/CMLPlatform/relab/issues/365)) ([088bce7](https://github.com/CMLPlatform/relab/commit/088bce7f9dd2af5a8c9ab06e4bfe66c0d7fba373))
+* **files:** Sanitize values in the missing-storage delete warning ([#359](https://github.com/CMLPlatform/relab/issues/359)) ([cecdd96](https://github.com/CMLPlatform/relab/commit/cecdd96e9cca4dc1f2cf2af514bb91d0874c6182))
+* **images:** Strip metadata on every storage backend and in png/webp/xmp ([#346](https://github.com/CMLPlatform/relab/issues/346)) ([e25f2d3](https://github.com/CMLPlatform/relab/commit/e25f2d35b9cc574f874fe3d048ec0400580e9f95))
+* Make main green: scroll the section chip row, update the delete-dialog spec ([#357](https://github.com/CMLPlatform/relab/issues/357)) ([4baebc3](https://github.com/CMLPlatform/relab/commit/4baebc32818ae81466bcffa6f6c5be328d2f8bc5))
+* **renovate:** Stop holding lock file maintenance on release age ([#299](https://github.com/CMLPlatform/relab/issues/299)) ([587e289](https://github.com/CMLPlatform/relab/commit/587e2894dba13ed3546fcb7dd6a548a520e009fd))
+
+
+### Performance Improvements
+
+* **backend:** Add a deploy-shaped capacity probe ([#333](https://github.com/CMLPlatform/relab/issues/333)) ([9ac5c04](https://github.com/CMLPlatform/relab/commit/9ac5c049947bb26c16e3422f3e4bedd67b1d9391))
+* **backend:** Cover the rpi_cam relay in the k6 baseline ([#321](https://github.com/CMLPlatform/relab/issues/321)) ([ac6a00c](https://github.com/CMLPlatform/relab/commit/ac6a00c73dda5910c5c189c65a252439e1bf3327))
+
 ## v0.3.2 - 2026-09
 
 ### Description
