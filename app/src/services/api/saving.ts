@@ -252,7 +252,7 @@ async function addImage(
     method: 'POST',
     headers: ACCEPT_HEADERS,
     body: body,
-    // A 40 MB lab original takes about a minute on a 5 Mbit/s uplink.
+    // A 20 MB lab photo takes about 30 s on a 5 Mbit/s uplink; slower links need the headroom.
     timeoutMs: 120_000,
   });
   await throwOnError(response, 'upload image');

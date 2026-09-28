@@ -111,7 +111,7 @@ most 10 000 px on its longest side:
 | Role          | Per image | Pixels                |
 | ------------- | --------- | --------------------- |
 | `contributor` | 10 MiB    | 12.6 MP (4096 × 3072) |
-| `lab`         | 40 MiB    | 50 MP                 |
+| `lab`         | 20 MiB    | 24 MP                 |
 
 The app uploads a photo within your caps at full resolution. A photo over them is scaled down just
 enough to fit, then uploaded; a format the server does not accept, such as HEIC from an iPhone, is

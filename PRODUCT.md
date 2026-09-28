@@ -126,7 +126,7 @@ No surface may present it as a prerequisite.
 
 **Uploads.** Images only in-app: jpeg, png, webp, gif, bmp; the app converts anything else (HEIC)
 to JPEG. Per-image size and pixel caps follow the uploader's role (contributor 10 MB / 12.6 MP, lab
-40 MB / 50 MP) and are enforced on the server; the app reads them from `/users/me` and uploads a
+20 MB / 24 MP) and are enforced on the server; the app reads them from `/users/me` and uploads a
 photo at full resolution unless it has to shrink to fit. The backend rejects
 an upload unless extension, declared MIME type, and sniffed content agree. Uploads are sequential. Quotas are tiered by role (contributor 1,000 files / 3 GB; lab 20,000 files / 50 GB) and
 `/users/me` reports limits and usage. There is no per-product limit.

@@ -23,7 +23,7 @@ const { processImage } =
 
 const MB = 1024 * 1024;
 const CONTRIBUTOR = { maxBytes: 10 * MB, maxPixels: 30_000_000 };
-const LAB = { maxBytes: 40 * MB, maxPixels: 50_000_000 };
+const LAB = { maxBytes: 20 * MB, maxPixels: 24_000_000 };
 const originalFetch = global.fetch;
 
 /** Makes the re-encoded output report these sizes, one per attempt. */
@@ -57,10 +57,10 @@ describe('processImage', () => {
     expect(mockManipulate).not.toHaveBeenCalled();
   });
 
-  it('keeps a 48 MP original untouched for a lab account', async () => {
-    const asset = { uri: 'file://48mp.jpg', width: 8000, height: 6000, fileSize: 24 * MB };
+  it('keeps a 24 MP original untouched for a lab account', async () => {
+    const asset = { uri: 'file://24mp.jpg', width: 6000, height: 4000, fileSize: 12 * MB };
 
-    await expect(processImage(asset, LAB)).resolves.toBe('file://48mp.jpg');
+    await expect(processImage(asset, LAB)).resolves.toBe('file://24mp.jpg');
     expect(mockManipulate).not.toHaveBeenCalled();
   });
 
