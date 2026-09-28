@@ -859,6 +859,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/v1/products/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Export base products matching the list filters, with their components
+     * @description Export every base product the product list would match, each with its whole component tree.
+     *
+     *     Takes the same filters, search and sorting as ``GET /products``. CSV has one row per
+     *     product or component, linked by ``parent_id``; JSON nests components as the detail read
+     *     does. At most 100 base products, 5,000 components and 10 component levels: narrow the filters,
+     *     or use the dataset release for bulk data.
+     */
+    get: operations['export_products_v1_products_export_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/v1/products/facets': {
     parameters: {
       query?: never;
@@ -905,6 +930,26 @@ export interface paths {
      * @description Update an existing base product. Use ``PATCH /components/{id}`` for components.
      */
     patch: operations['update_product_v1_products__product_id__patch'];
+    trace?: never;
+  };
+  '/v1/products/{product_id}/export': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Export one base product with its components
+     * @description Export one base product and its whole component tree, in the same formats as ``/products/export``.
+     */
+    get: operations['export_product_v1_products__product_id__export_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
   '/v1/products/{product_id}/components/tree': {
@@ -3587,6 +3632,80 @@ export interface components {
       components?: components['schemas']['ComponentCreateWithComponents'][];
     };
     /**
+     * ComponentExportRead
+     * @description Component in a product export: the detail read plus every sub-component.
+     */
+    ComponentExportRead: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
+      /** Weight G */
+      weight_g?: number | null;
+      /** Height Cm */
+      height_cm?: number | null;
+      /** Width Cm */
+      width_cm?: number | null;
+      /** Depth Cm */
+      depth_cm?: number | null;
+      /** Volume Cm3 */
+      volume_cm3?: number | null;
+      /** Name */
+      name: string;
+      /** Description */
+      description?: string | null;
+      /** Brand */
+      brand?: string | null;
+      /** Model */
+      model?: string | null;
+      /** Created At */
+      created_at?: string;
+      /** Updated At */
+      updated_at?: string;
+      /** Id */
+      id: number;
+      /** Product Type Id */
+      product_type_id?: number | null;
+      /** Parent Id */
+      parent_id: number;
+      /**
+       * Amount In Parent
+       * @description Quantity within parent product
+       */
+      amount_in_parent: number;
+      /** Owner Id */
+      owner_id?: string | null;
+      /** Owner Username */
+      owner_username?: string | null;
+      product_type?: components['schemas']['ProductTypeRead'] | null;
+      /**
+       * Images
+       * @description Product images
+       */
+      images?: components['schemas']['ImageRead'][];
+      /**
+       * Files
+       * @description Product files
+       */
+      files?: components['schemas']['FileRead'][];
+      /**
+       * Bill Of Materials
+       * @description Bill of materials with quantities and units
+       */
+      bill_of_materials?: components['schemas']['MaterialProductLinkReadWithinProduct'][];
+      /**
+       * Components
+       * @description List of sub-components
+       */
+      components?: components['schemas']['ComponentExportRead'][];
+    };
+    /**
      * ComponentRead
      * @description Read schema for components (nested inside a base product tree).
      */
@@ -4741,6 +4860,78 @@ export interface components {
        * @description Set of component products
        */
       components?: components['schemas']['ComponentCreateWithComponents'][];
+    };
+    /**
+     * ProductExportRead
+     * @description Base product in a product export: the detail read plus its whole component tree.
+     */
+    ProductExportRead: {
+      /** Thumbnail Url */
+      thumbnail_url?: string | null;
+      /**
+       * Thumbnail Urls
+       * @description Pre-computed thumbnail URLs keyed by width in pixels. Only widths that exist for this image are present: narrower originals yield fewer entries. Pick the width you render at rather than scaling `thumbnail_url`, which is always the smallest, list-sized one.
+       */
+      thumbnail_urls?: {
+        [key: string]: string;
+      };
+      circularity_properties?: components['schemas']['CircularityPropertiesFields'] | null;
+      /** Weight G */
+      weight_g?: number | null;
+      /** Height Cm */
+      height_cm?: number | null;
+      /** Width Cm */
+      width_cm?: number | null;
+      /** Depth Cm */
+      depth_cm?: number | null;
+      /** Volume Cm3 */
+      volume_cm3?: number | null;
+      /** Name */
+      name: string;
+      /** Description */
+      description?: string | null;
+      /** Brand */
+      brand?: string | null;
+      /** Model */
+      model?: string | null;
+      /** Created At */
+      created_at?: string;
+      /** Updated At */
+      updated_at?: string;
+      /** Id */
+      id: number;
+      /** Product Type Id */
+      product_type_id?: number | null;
+      /** Owner Id */
+      owner_id?: string | null;
+      /** Owner Username */
+      owner_username?: string | null;
+      product_type?: components['schemas']['ProductTypeRead'] | null;
+      /**
+       * Images
+       * @description Product images
+       */
+      images?: components['schemas']['ImageRead'][];
+      /**
+       * Files
+       * @description Product files
+       */
+      files?: components['schemas']['FileRead'][];
+      /**
+       * Bill Of Materials
+       * @description Bill of materials with quantities and units
+       */
+      bill_of_materials?: components['schemas']['MaterialProductLinkReadWithinProduct'][];
+      /**
+       * Videos
+       * @description Disassembly videos
+       */
+      videos?: components['schemas']['VideoReadWithinProduct'][];
+      /**
+       * Components
+       * @description List of component products
+       */
+      components?: components['schemas']['ComponentExportRead'][];
     };
     /**
      * ProductFacetValue
@@ -7707,6 +7898,101 @@ export interface operations {
       };
     };
   };
+  export_products_v1_products_export_get: {
+    parameters: {
+      query?: {
+        /** @description File format: 'csv' or 'json' */
+        format?: 'csv' | 'json';
+        /** @description Use 'me' for the current user's products, or a username for that user's public products */
+        owner?: string | null;
+        search?: string | null;
+        name?: string | null;
+        'name[ilike]'?: string | null;
+        description?: string | null;
+        'description[ilike]'?: string | null;
+        brand?: string | null;
+        'brand[ilike]'?: string | null;
+        'brand[in]'?: string[] | null;
+        model?: string | null;
+        'model[ilike]'?: string | null;
+        created_at?: string;
+        'created_at[ge]'?: string;
+        'created_at[le]'?: string;
+        updated_at?: string;
+        'updated_at[ge]'?: string;
+        'updated_at[le]'?: string;
+        weight_g?: number;
+        'weight_g[ge]'?: number;
+        'weight_g[le]'?: number;
+        height_cm?: number;
+        'height_cm[ge]'?: number;
+        'height_cm[le]'?: number;
+        width_cm?: number;
+        'width_cm[ge]'?: number;
+        'width_cm[le]'?: number;
+        depth_cm?: number;
+        'depth_cm[ge]'?: number;
+        'depth_cm[le]'?: number;
+        product_type_name?: string | null;
+        'product_type_name[ilike]'?: string | null;
+        'product_type_name[in]'?: string[] | null;
+        product_type_description?: string | null;
+        'product_type_description[ilike]'?: string | null;
+        order_by?: (
+          | '+name'
+          | '+brand'
+          | '+model'
+          | '+created_at'
+          | '+updated_at'
+          | '+product_type_name'
+          | 'name'
+          | 'brand'
+          | 'model'
+          | 'created_at'
+          | 'updated_at'
+          | 'product_type_name'
+          | '-name'
+          | '-brand'
+          | '-model'
+          | '-created_at'
+          | '-updated_at'
+          | '-product_type_name'
+        )[];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProductExportRead'][];
+          'text/csv': string;
+        };
+      };
+      /** @description More than 100 base products match, or the export is too large (components nested more than 10 levels deep, or more than 5,000 components) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   get_product_facets_v1_products_facets_get: {
     parameters: {
       query?: {
@@ -7824,6 +8110,48 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ProductRead'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  export_product_v1_products__product_id__export_get: {
+    parameters: {
+      query?: {
+        /** @description File format: 'csv' or 'json' */
+        format?: 'csv' | 'json';
+      };
+      header?: never;
+      path: {
+        product_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProductExportRead'][];
+          'text/csv': string;
+        };
+      };
+      /** @description The export is too large (components nested more than 10 levels deep, or more than 5,000 components) */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

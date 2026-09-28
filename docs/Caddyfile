@@ -26,8 +26,10 @@
 		Cross-Origin-Resource-Policy "same-site"
 		# Starlight currently emits inline page styles/scripts. The report-only
 		# policy tracks the stricter target before enforcement.
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+		# Any HTTPS page may embed the static docs (e.g. in slides); they have no
+		# forms or sessions to clickjack.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors https:; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src 'none'; frame-ancestors https:; object-src 'none'; base-uri 'none'; form-action 'self'"
 	}
 
 	# Astro content-hashed static assets — immutable, cache forever

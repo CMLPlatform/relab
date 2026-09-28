@@ -47,6 +47,37 @@ The same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace
 - **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout.
   Send `login` once; the token flows into the calls below it.
 
+## Exporting products
+
+To analyse a set of products in a spreadsheet or in Python, export them instead of paging through
+the list:
+
+- `GET /v1/products/export?format=csv|json` takes the same filters, search, and sorting as
+  `GET /v1/products`, and returns every base product that matches, not only one page.
+- `GET /v1/products/{id}/export?format=csv|json` exports one base product.
+
+Each base product comes with all its components, at every depth.
+
+- **CSV** has one row per product or component. The `parent_id` column links a component to the
+  record it was taken out of. Column names follow the records table of the
+  [dataset release](../../project/dataset/), and `image_urls` lists the photo URLs separated by
+  spaces.
+- **JSON** is a list of products in the same shape as the product read API, with `components`
+  nested at every level.
+
+The app offers the same exports: **Export** on a product page, and **Export results** under the
+product list filters.
+
+An export shows the owner the way the product page does: the username when the owner's profile is
+public, empty when it is hidden. Exports are public and have a stricter rate limit than ordinary
+reads.
+
+:::note[Limits]
+One export holds at most 100 base products, with at most 5,000 components between them and
+components nested at most 10 levels deep. Past any of these limits the request fails with a `400`
+response that asks you to narrow the filters. An invalid filter parameter returns a `422` instead. For the whole dataset, use the [dataset release](../../project/dataset/).
+:::
+
 ## Integration advice
 
 - Build against the generated OpenAPI schema, not copied examples, which drift.

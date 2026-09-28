@@ -2,7 +2,7 @@
 
 **These images show seeded demonstration records, not real teardowns.**
 
-Everything visible here ("Dell XPS 13", "iPhone 12", their brands, dimensions, owners and photos)
+Everything visible here (the seeded laptop, "iPhone 12", their brands, dimensions, owners and photos)
 comes from the test fixture at `backend/data/seed/dummy_data.json`, loaded into a throwaway E2E
 database. The accounts (`relab_demo` / `e2e-admin@example.com`, `alice`, `bob`) are test accounts.
 No record in these screenshots describes a product anyone disassembled, weighed or measured.
@@ -21,7 +21,7 @@ Captured: **2026-08-18**.
 | Surface               | What it shows                            |
 | --------------------- | ---------------------------------------- |
 | `products`            | The product list, welcome card dismissed |
-| `product-detail`      | "Dell XPS 13" in view mode               |
+| `product-detail`      | The seeded laptop in view mode           |
 | `product-detail-edit` | The same record with `?edit=1`           |
 | `product-new`         | The capture screen at `/products/new`    |
 | `account`             | The account screen                       |
@@ -51,9 +51,11 @@ rather than committing them.
 positioned fixed or sticky (the save FAB, the docked save bar, the offline banner) to the bottom of
 the *expanded* frame. If the position of floating chrome matters, use a viewport-height capture.
 
-**Two caveats about the seeded content.** "Dell XPS 13" has no photo in the fixture, so the detail
-hero shows a placeholder; "iPhone 12" is the seeded record that has one. The signed-in test account
-owns nothing, so any account view reads `0 PRODUCTS / 0 PHOTOS`.
+**Two caveats about the seeded content.** The committed captures predate the laptop's relabel and
+show it as "Dell XPS 13"; the seed now names it "HP ProBook 430 G2", the model its photographs
+show. In those captures it has no photo, so the detail hero shows a placeholder; "iPhone 12" is
+the seeded record that has one. The signed-in test account owns nothing, so any account view
+reads `0 PRODUCTS / 0 PHOTOS`.
 
 ## Regenerating
 

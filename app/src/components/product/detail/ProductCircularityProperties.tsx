@@ -72,7 +72,7 @@ export default function ProductCircularityProperties({
 
   return (
     <View className="mt-4">
-      <AppText variant="heading" {...heading(3)} className="mb-2 font-semibold">
+      <AppText variant="body" {...heading(3)} className="mb-2 font-semibold">
         Circularity notes
       </AppText>
       {NOTE_FIELDS.map(({ key, label, hint, example }) => (

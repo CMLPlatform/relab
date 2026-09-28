@@ -81,6 +81,9 @@ export const productSchema = z.object({
   updatedAt: z.string().optional(),
   productTypeID: z.number().optional(),
   productTypeName: z.string().optional(),
+  productType: z
+    .object({ id: z.number(), name: z.string(), description: z.string().nullish() })
+    .optional(),
   componentIDs: z.array(z.number()),
   ownerUsername: z.string().optional(),
   physicalProperties: physicalPropertiesSchema,

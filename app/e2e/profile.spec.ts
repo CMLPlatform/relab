@@ -168,8 +168,8 @@ test.describe('Profile: delete dialog', () => {
     await expect(page.getByText('relab@cml.leidenuniv.nl')).toBeVisible({
       timeout: 3_000,
     });
-    // Dismiss the dialog
-    await page.getByRole('button', { name: 'OK' }).click();
+    // Dismiss the dialog without deleting
+    await page.getByRole('button', { name: 'Cancel' }).click();
     await expect(page.getByText('relab@cml.leidenuniv.nl')).not.toBeVisible();
   });
 });

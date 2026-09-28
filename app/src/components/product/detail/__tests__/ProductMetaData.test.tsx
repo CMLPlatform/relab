@@ -61,6 +61,6 @@ describe('ProductMetaData', () => {
     expect(screen.getByText(OWNER_PATTERN)).toBeOnTheScreen();
     expect(screen.getByText(TESTUSER_PATTERN)).toBeOnTheScreen();
     const link = screen.getByRole('link', { name: "View testuser's profile" });
-    expect(link).toHaveStyle({ minHeight: 44 });
+    expect(link).toHaveStyle({ minHeight: 44, minWidth: 44 });
   });
 });

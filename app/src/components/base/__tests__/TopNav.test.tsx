@@ -67,6 +67,14 @@ test('marks the active destination on a detail route (prefix match)', async () =
   expect(screen.getByLabelText('Cameras')).toBeOnTheScreen();
 });
 
+test('keeps Products active on a component record, which the products tab owns', async () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  (usePathname as jest.Mock).mockReturnValue('/components/3');
+  await render(<TopNav />);
+  expect(screen.getByLabelText('Products, current page')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Cameras')).toBeOnTheScreen();
+});
+
 test('pressing a destination routes', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   await render(<TopNav />);

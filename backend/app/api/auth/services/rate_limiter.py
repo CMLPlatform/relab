@@ -42,6 +42,11 @@ API_UPLOAD_RATE_LIMIT_DEPENDENCY = limiter.dependency(
     name="api_upload_rate_limit",
     per_user=(core_settings.api_upload_rate_limit_per_user, request_access_token_owner_id),
 )
+API_EXPORT_RATE_LIMIT_DEPENDENCY = limiter.dependency(
+    core_settings.api_export_rate_limit,
+    name="api_export_rate_limit",
+    per_user=(core_settings.api_export_rate_limit_per_user, request_access_token_owner_id),
+)
 
 
 @asynccontextmanager

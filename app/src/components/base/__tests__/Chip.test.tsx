@@ -191,6 +191,21 @@ describe('Chip', () => {
     expect(screen.getByRole('button').props.accessibilityState).toEqual({ disabled: true });
   });
 
+  it('renders a read-only chip without a button role or press handling', async () => {
+    const onPress = jest.fn();
+    await renderWithProviders(
+      <Chip title="Brand" readOnly onPress={onPress}>
+        CircularTech
+      </Chip>,
+    );
+    expect(screen.queryByRole('button')).toBeNull();
+    // Still one named stop for screen readers, not "Brand" and the value apart.
+    expect(screen.getByRole('group', { name: 'Brand: CircularTech' })).toBeOnTheScreen();
+    expect(screen.getByText('Brand')).toBeOnTheScreen();
+    await user.press(screen.getByText('CircularTech'));
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
   it('meets the MIN_TAP_TARGET floor', async () => {
     await renderWithProviders(<Chip>Tap Target</Chip>);
     expect(screen.getByRole('button')).toHaveStyle({ minHeight: MIN_TAP_TARGET });

@@ -163,7 +163,21 @@ describe('section chunking', () => {
       );
     });
 
-    it('is empty in edit mode only when both measurements and circularity notes are absent', () => {
+    it('is not empty in edit mode for a record whose only content is its bill of materials', () => {
+      // Materials share the Properties section, so collapsing it to the add-row
+      // in edit mode would otherwise hide them.
+      expect(
+        properties.isEmpty(
+          {
+            ...emptyProps,
+            materials: [{ materialID: 7, name: 'Aluminum', quantity: 0.5, unit: 'kg' }],
+          },
+          { editMode: true, mediaStreamable: false },
+        ),
+      ).toBe(false);
+    });
+
+    it('is empty in edit mode only when measurements, circularity notes and materials are all absent', () => {
       expect(properties.isEmpty(emptyProps, { editMode: true, mediaStreamable: false })).toBe(true);
       expect(
         properties.isEmpty(
@@ -180,6 +194,17 @@ describe('section chunking', () => {
           { editMode: true, mediaStreamable: false },
         ),
       ).toBe(false);
+    });
+
+    // A loaded but empty bill of materials is no content: it must not hold the
+    // section open in edit mode.
+    it('is empty in edit mode when the bill of materials is loaded but empty', () => {
+      expect(
+        properties.isEmpty(
+          { ...emptyProps, materials: [] },
+          { editMode: true, mediaStreamable: false },
+        ),
+      ).toBe(true);
     });
 
     it('offers one add-row for the merged section', () => {

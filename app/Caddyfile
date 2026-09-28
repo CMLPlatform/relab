@@ -43,11 +43,15 @@
 		#   opening media loading to arbitrary origins.
 		# - frame-src youtube-nocookie: product video embeds use YouTube's
 		#   privacy-enhanced embed host.
+		# - frame-ancestors https:: any HTTPS page may embed the app (e.g. in
+		#   slides). The session cookies are SameSite=Lax, so a cross-site
+		#   frame always runs signed out and has no session to clickjack; the
+		#   sign-in screens send framed users to a new tab instead.
 		# - Report-Only policy: observes the intended strict script policy
 		#   while Expo web still requires unsafe inline/eval script support.
 		# - CADDY_API_ORIGIN: injected by the container environment per deployment
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
-		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors 'none'; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors https:; object-src 'none'; base-uri 'none'; form-action 'self'"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: {$CADDY_API_ORIGIN}; connect-src 'self' blob: {$CADDY_API_ORIGIN}; worker-src 'self' blob:; media-src 'self' blob: {$CADDY_API_ORIGIN}; font-src 'self' data:; frame-src https://www.youtube-nocookie.com; frame-ancestors https:; object-src 'none'; base-uri 'none'; form-action 'self'"
 	}
 
 	# Hashed, content-addressed static assets — serve directly with no SPA fallback

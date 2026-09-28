@@ -1,3 +1,4 @@
+import { openURL } from 'expo-linking';
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import { getCachedUser } from '@/services/api/auth/authentication';
@@ -9,6 +10,7 @@ import type {
   ApiComponentChildItem,
   ApiComponentDetail,
   ApiImageRead,
+  ApiMaterialLink,
   ApiPaginatedProducts,
   ApiVideoRead,
 } from '@/types/api';
@@ -60,6 +62,14 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
   // Display label, not the stored name: CPV-imported types keep their code in
   // `name`, which is still what product_type_name[in] filters on.
   const productTypeName = 'product_type' in data ? productTypeLabel(data.product_type) : undefined;
+  const productType =
+    'product_type' in data && data.product_type
+      ? {
+          id: data.product_type.id,
+          name: data.product_type.name,
+          description: data.product_type.description,
+        }
+      : undefined;
   return {
     id: Number(data.id),
     name: data.name,
@@ -95,9 +105,23 @@ function commonProductFields(data: ProductMapperPayload, meId?: string) {
         height: img.height_px ?? undefined,
         description: img.description ?? '',
       })) ?? [],
+    // undefined = the payload has no bill of materials (list rows, nested
+    // children); [] = loaded and empty. ProductMaterials renders nothing for
+    // the former, so a list row never claims a record has no materials.
+    // Sorted by name here because the API relationship has no order_by.
+    materials: ('bill_of_materials' in data ? data.bill_of_materials : undefined)
+      ?.map((link: ApiMaterialLink) => ({
+        materialID: link.material_id,
+        name: link.material.name,
+        quantity: link.quantity,
+        unit: link.unit,
+        ...(link.material.source ? { source: link.material.source } : {}),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
     thumbnailUrl: resolveApiMediaUrl(data.thumbnail_url),
     thumbnailUrls: resolveApiMediaUrlMap(data.thumbnail_urls),
     ...(productTypeName ? { productTypeName } : {}),
+    ...(productType ? { productType } : {}),
   };
 }
 
@@ -223,10 +247,7 @@ export type ProductsQuery = {
 // FILTER_CSV_SEPARATOR. ASCII Unit Separator: a comma collides with user text.
 export const FILTER_CSV_SEPARATOR = '\x1f';
 
-function buildProductsUrl(query: ProductsQuery): URL {
-  const url = new URL(`${baseUrl}/products`);
-  url.searchParams.append('page', String(query.page ?? 1));
-  url.searchParams.append('size', String(query.size ?? 50));
+function appendProductFilters(url: URL, query: ProductsQuery): URL {
   if (query.search) url.searchParams.append('search', query.search);
   if (query.brands?.length)
     url.searchParams.append('brand[in]', query.brands.join(FILTER_CSV_SEPARATOR));
@@ -241,6 +262,60 @@ function buildProductsUrl(query: ProductsQuery): URL {
     url.searchParams.append('order_by', query.orderBy.join(FILTER_CSV_SEPARATOR));
   if (query.owner) url.searchParams.append('owner', query.owner);
   return url;
+}
+
+function buildProductsUrl(query: ProductsQuery): URL {
+  const url = new URL(`${baseUrl}/products`);
+  url.searchParams.append('page', String(query.page ?? 1));
+  url.searchParams.append('size', String(query.size ?? 50));
+  return appendProductFilters(url, query);
+}
+
+export type ExportFormat = 'csv' | 'json';
+const CONTENT_DISPOSITION_FILENAME = /filename="([^"]+)"/;
+
+/** Export of every base product the list query matches (the server caps the count). */
+export function productsExportUrl(query: ProductsQuery, format: ExportFormat): URL {
+  const url = new URL(`${baseUrl}/products/export`);
+  url.searchParams.append('format', format);
+  return appendProductFilters(url, query);
+}
+
+/** Export of one base product and its components. */
+export function productExportUrl(productId: number, format: ExportFormat): URL {
+  const url = new URL(`${baseUrl}/products/${productId}/export`);
+  url.searchParams.append('format', format);
+  return url;
+}
+
+/**
+ * Download an export. The request runs in-app first so a refusal (too many
+ * matches, rate limit) surfaces as an ApiError with the server's message.
+ * Web saves the fetched body; native hands the URL to the system browser,
+ * which downloads it.
+ */
+export async function downloadExport(url: URL): Promise<void> {
+  // owner=me needs the session; every other export is public.
+  const fetchExport = url.searchParams.get('owner') === 'me' ? fetchWithAuth : apiFetch;
+  const response = await fetchExport(url, { method: 'GET' });
+  if (!response.ok) await throwFromResponse(response, 'Export failed');
+  if (Platform.OS !== 'web') {
+    // NOTE: the system browser carries no session, so a native owner=me export
+    // opens without it; the in-app request above already confirmed the rest.
+    // TODO: save the file natively instead (issue #352).
+    await openURL(url.toString());
+    return;
+  }
+  const filename =
+    CONTENT_DISPOSITION_FILENAME.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ??
+    `relab-export.${url.searchParams.get('format') ?? 'csv'}`;
+  const href = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = filename;
+  link.click();
+  // Revoked on the next task: some browsers start the download after click() returns.
+  setTimeout(() => URL.revokeObjectURL(href), 0);
 }
 
 function parseProductsResponse(

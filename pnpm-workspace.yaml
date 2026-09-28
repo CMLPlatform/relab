@@ -41,6 +41,8 @@ overrides:
   "undici@>=7.0.0 <7.29.0": ">=7.29.0 <8" # GHSA-8xcm-r25x-g524 and 12 related
   # @scalar/agent-chat pins ai 6.0.33.
   "@ai-sdk/provider-utils@>=4.0.0-beta.10 <4.0.33": ">=4.0.33 <5" # GHSA-866g-f22w-33x8
+  # chevrotain@11 (via mermaid) pins lodash-es 4.17.23.
+  "lodash-es@<4.18.1": ">=4.18.1 <5" # GHSA-r5fr-rjxr-66jc and GHSA-f23m-r3pf-42rh
   # Carried over from NativeWind, which the app no longer uses, but still
   # earning its place: without it the tree resolves 1.30.1, 1.32.0 and
   # 1.33.0 side by side, each with its own native binary.
