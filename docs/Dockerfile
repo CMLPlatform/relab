@@ -39,14 +39,21 @@ FROM deps AS dev
 ARG WORKDIR
 WORKDIR $WORKDIR
 
-COPY docs/ docs/
+# The image's unprivileged node user runs the dev server. It owns the sources (which
+# `docker compose watch` syncs into), docs/ (where Astro writes .astro/) and
+# docs/node_modules (Vite's cache); the installed dependencies stay root-owned.
+COPY --chown=node:node docs/ docs/
+RUN chown node:node docs docs/node_modules
 
 WORKDIR $WORKDIR/docs
+
+USER node
 
 EXPOSE 8000
 
 # Drop any stale dev-server lock left in the container's writable layer when
 # `docker compose up` reuses/restarts a container: astro refuses to start if
 # .astro/dev.json names a PID that looks alive, and a recycled PID often does.
-# (astro's --force clears the content cache, it does NOT replace the lock.)
-CMD ["sh", "-c", "rm -f .astro/dev.json; exec pnpm exec astro dev --port 8000 --host 0.0.0.0 --strictPort --mode dev"]
+# (astro's --force clears the content cache, it does NOT replace the lock.) The binary
+# is called directly: `pnpm exec` would re-verify and install the whole workspace.
+CMD ["sh", "-c", "rm -f .astro/dev.json; exec node_modules/.bin/astro dev --port 8000 --host 0.0.0.0 --strictPort --mode dev"]
