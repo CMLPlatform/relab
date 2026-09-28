@@ -197,9 +197,9 @@ async def test_add_component_refuses_nesting_past_the_depth_limit(
     at_limit = await api_client_superuser.post(f"/v1/components/{parent.id}/components", json=leaf)
     past_limit = await api_client_superuser.post(f"/v1/components/{at_limit.json()['id']}/components", json=leaf)
 
-    assert nested.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert nested.status_code == status.HTTP_400_BAD_REQUEST
     assert at_limit.status_code == status.HTTP_201_CREATED, at_limit.text
-    assert past_limit.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert past_limit.status_code == status.HTTP_400_BAD_REQUEST
     assert f"at most {MAX_COMPONENT_DEPTH} levels" in past_limit.text
 
 

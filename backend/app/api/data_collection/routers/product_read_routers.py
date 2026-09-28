@@ -19,6 +19,7 @@ from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
+from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (
@@ -81,8 +82,6 @@ _EXPORT_TOO_LARGE = (
     f"the export is too large (components nested more than {MAX_COMPONENT_DEPTH} levels deep, "
     f"or more than {EXPORT_MAX_COMPONENTS:,} components)"
 )
-# Keeps FastAPI's validation error schema: a 422 can also be an invalid query parameter.
-_EXPORT_422_CONTENT = {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPValidationError"}}}
 _EXPORT_200: dict[str, Any] = {"content": {"text/csv": {"schema": {"type": "string"}}}}
 
 
@@ -215,13 +214,7 @@ async def get_products(
     response_model=list[ProductExportRead],
     responses={
         200: _EXPORT_200,
-        422: {
-            "description": (
-                f"Invalid filter parameters, more than {EXPORT_MAX_BASE_PRODUCTS} base products match, "
-                f"or {_EXPORT_TOO_LARGE}"
-            ),
-            "content": _EXPORT_422_CONTENT,
-        },
+        400: {"description": f"More than {EXPORT_MAX_BASE_PRODUCTS} base products match, or {_EXPORT_TOO_LARGE}"},
     },
     summary="Export base products matching the list filters, with their components",
     dependencies=[API_EXPORT_RATE_LIMIT_DEPENDENCY],
@@ -237,7 +230,7 @@ async def export_products(
 
     Takes the same filters, search and sorting as ``GET /products``. CSV has one row per
     product or component, linked by ``parent_id``; JSON nests components as the detail read
-    does. At most 100 base products, 5,000 components and 20 component levels: narrow the filters,
+    does. At most 100 base products, 5,000 components and 10 component levels: narrow the filters,
     or use the dataset release for bulk data.
     """
     statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.is_(None))
@@ -248,13 +241,11 @@ async def export_products(
     statement = statement.order_by(Product.id).limit(EXPORT_MAX_BASE_PRODUCTS + 1)
     roots = list((await session.execute(statement)).scalars().unique().all())
     if len(roots) > EXPORT_MAX_BASE_PRODUCTS:
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                f"More than {EXPORT_MAX_BASE_PRODUCTS} products match. Narrow the filters to export them, "
-                "or use the dataset release for bulk data."
-            ),
+        msg = (
+            f"More than {EXPORT_MAX_BASE_PRODUCTS} products match. Narrow the filters to export them, "
+            "or use the dataset release for bulk data."
         )
+        raise BadRequestError(msg)
     return await _export_response(session, roots, current_user, export_format, "relab-products")
 
 
@@ -311,7 +302,7 @@ async def get_product(
     response_model=list[ProductExportRead],
     responses={
         200: _EXPORT_200,
-        422: {"description": f"Invalid parameters, or {_EXPORT_TOO_LARGE}", "content": _EXPORT_422_CONTENT},
+        400: {"description": _EXPORT_TOO_LARGE.capitalize()},
     },
     summary="Export one base product with its components",
     dependencies=[API_EXPORT_RATE_LIMIT_DEPENDENCY],

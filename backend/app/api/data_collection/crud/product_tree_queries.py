@@ -20,7 +20,7 @@ EXPORT_MAX_BASE_PRODUCTS = 100
 # Components across all exported trees; keeps one export request bounded in time and memory.
 EXPORT_MAX_COMPONENTS = 5_000
 # Levels of components below a base product, enforced on create and on export.
-MAX_COMPONENT_DEPTH = 20
+MAX_COMPONENT_DEPTH = 10
 
 COMPONENTS_RELATIONSHIP = "components"
 PRODUCT_READ_SUMMARY_RELATIONSHIPS: frozenset[str] = frozenset({"owner"})

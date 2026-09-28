@@ -51,7 +51,7 @@ describe('ExportMenu', () => {
   it("shows the server's reason when the export is refused", async () => {
     server.use(
       http.get(`${API_URL}/products/export`, () =>
-        HttpResponse.json({ detail: CAP_MESSAGE }, { status: 422 }),
+        HttpResponse.json({ detail: CAP_MESSAGE }, { status: 400 }),
       ),
     );
     await renderWithProviders(<ExportMenu label="Export results" query={{ search: 'kettle' }} />, {

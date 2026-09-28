@@ -15244,7 +15244,7 @@
     },
     "/v1/products/export": {
       "get": {
-        "description": "Export every base product the product list would match, each with its whole component tree.\n\nTakes the same filters, search and sorting as ``GET /products``. CSV has one row per\nproduct or component, linked by ``parent_id``; JSON nests components as the detail read\ndoes. At most 100 base products, 5,000 components and 20 component levels: narrow the filters,\nor use the dataset release for bulk data.",
+        "description": "Export every base product the product list would match, each with its whole component tree.\n\nTakes the same filters, search and sorting as ``GET /products``. CSV has one row per\nproduct or component, linked by ``parent_id``; JSON nests components as the detail read\ndoes. At most 100 base products, 5,000 components and 10 component levels: narrow the filters,\nor use the dataset release for bulk data.",
         "operationId": "export_products_v1_products_export_get",
         "parameters": [
           {
@@ -15750,6 +15750,9 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "description": "More than 100 base products match, or the export is too large (components nested more than 10 levels deep, or more than 5,000 components)"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -15758,7 +15761,7 @@
                 }
               }
             },
-            "description": "Invalid filter parameters, more than 100 base products match, or the export is too large (components nested more than 20 levels deep, or more than 5,000 components)"
+            "description": "Validation Error"
           }
         },
         "security": [
@@ -17423,6 +17426,9 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "description": "The export is too large (components nested more than 10 levels deep, or more than 5,000 components)"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -17431,7 +17437,7 @@
                 }
               }
             },
-            "description": "Invalid parameters, or the export is too large (components nested more than 20 levels deep, or more than 5,000 components)"
+            "description": "Validation Error"
           }
         },
         "security": [

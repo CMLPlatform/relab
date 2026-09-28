@@ -145,7 +145,7 @@ async def test_export_past_the_cap_asks_to_narrow_the_filters(
 
     response = await api_client_light.get("/v1/products/export")
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Narrow the filters" in response.text
 
 
@@ -170,7 +170,7 @@ async def test_export_refuses_a_tree_past_the_depth_limit(
 
     response = await api_client_light.get(f"/v1/products/{root.id}/export")
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "This export is too large" in response.text
 
 
@@ -191,7 +191,7 @@ async def test_export_refuses_more_components_than_the_limit(
     past_limit = await api_client_light.get("/v1/products/export")
 
     assert at_limit.status_code == status.HTTP_200_OK
-    assert past_limit.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+    assert past_limit.status_code == status.HTTP_400_BAD_REQUEST
     assert "more than 2 components" in past_limit.text
 
 

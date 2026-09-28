@@ -1,8 +1,6 @@
 """Custom exceptions for data collection CRUD and router flows."""
 
-from fastapi import status
-
-from app.api.common.exceptions import APIError, BadRequestError
+from app.api.common.exceptions import BadRequestError
 
 
 class InvalidProductTreeError(BadRequestError):
@@ -19,16 +17,12 @@ class ProductOwnerRequiredError(InvalidProductTreeError):
 class ProductTreeTooDeepError(InvalidProductTreeError):
     """Raised when a create would nest components deeper than the tree depth limit."""
 
-    http_status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
-
     def __init__(self, max_depth: int) -> None:
         super().__init__(f"Components can be nested at most {max_depth} levels below a product.")
 
 
-class ProductExportTooLargeError(APIError):
+class ProductExportTooLargeError(BadRequestError):
     """Raised when an export's component trees are too deep or too large to build in one request."""
-
-    http_status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def __init__(self, max_depth: int, max_components: int) -> None:
         super().__init__(

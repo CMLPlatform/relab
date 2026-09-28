@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { View } from 'react-native';
+import type { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { useDialog } from '@/components/base/dialogContext';
@@ -65,21 +65,19 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
       onDismiss={close}
       triggerRef={buttonRef}
       anchor={
-        // NOTE: the ref sits on a wrapper View, as elsewhere: the vendored Button's ref type is not View.
-        <View ref={buttonRef} collapsable={false}>
-          <AppButton
-            variant="outline"
-            onPress={open}
-            loading={busy}
-            aria-busy={busy}
-            accessibilityLabel={label}
-          >
-            {busy ? null : (
-              <Icon name="download" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(colors)} />
-            )}
-            {label}
-          </AppButton>
-        </View>
+        <AppButton
+          ref={buttonRef}
+          variant="outline"
+          onPress={open}
+          loading={busy}
+          aria-busy={busy}
+          accessibilityLabel={label}
+        >
+          {busy ? null : (
+            <Icon name="download" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(colors)} />
+          )}
+          {label}
+        </AppButton>
       }
     >
       <Menu.Item title="CSV (spreadsheet)" onPress={exportCsv} />
