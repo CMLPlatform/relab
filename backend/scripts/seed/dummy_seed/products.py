@@ -134,7 +134,6 @@ async def get_component_ids_by_name(session: AsyncSession) -> dict[str, int]:
 def build_product_create_from_data(
     data: dict[str, Any],
     product_type_id: int,
-    bill_of_materials: list[MaterialProductLinkCreateWithinProduct],
     product_type_map: dict[str, ProductType],
     material_map: dict[str, Material],
 ) -> ProductCreateWithComponents:
@@ -151,7 +150,7 @@ def build_product_create_from_data(
         width_cm=physical_props.get("width_cm"),
         depth_cm=physical_props.get("depth_cm"),
         circularity_properties=data.get("circularity_properties"),
-        bill_of_materials=bill_of_materials,
+        bill_of_materials=build_bill_of_materials(material_map, data.get("bill_of_materials", []), data["name"]),
         components=build_components_from_data(data.get("components", []), product_type_map, material_map),
     )
 
@@ -185,18 +184,11 @@ async def seed_products(
 
         user = next(user_cycle)
 
-        physical_properties_data = data.get("physical_properties")
-        bill_of_materials_data = data.get("bill_of_materials", [])
-
-        if not physical_properties_data:
+        if not data.get("physical_properties"):
             logger.warning("Skipping product %s: missing physical properties.", data["name"])
             continue
 
-        bill_of_materials = build_bill_of_materials(material_map, bill_of_materials_data, data["name"])
-
-        product_create = build_product_create_from_data(
-            data, int(product_type.id), bill_of_materials, product_type_map, material_map
-        )
+        product_create = build_product_create_from_data(data, int(product_type.id), product_type_map, material_map)
         product = await create_product(session, product_create, owner_id=user.id)
 
         if product.id:
