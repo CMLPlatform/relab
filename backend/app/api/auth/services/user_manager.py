@@ -36,7 +36,7 @@ from app.api.auth.services.email.service import (
 )
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, step_up_budget
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, account_guess_budget
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction, audit_event
@@ -185,7 +185,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         # Only the self-service path (safe=True) can re-authenticate; an admin does not
         # know the target's password.
         if safe:
-            async with step_up_budget(user.id):
+            async with account_guess_budget(user.id):
                 require_current_password_for_sensitive_update(
                     password_helper=self.password_helper,
                     user_update=real_user_update,

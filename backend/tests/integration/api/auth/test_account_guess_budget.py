@@ -1,6 +1,6 @@
-"""Every signed-in re-authentication spends one per-account budget of wrong guesses.
+"""The MFA login challenge and every signed-in re-authentication share one per-account budget.
 
-A wrong password, TOTP or recovery code on any step-up route counts against the account,
+A wrong password, TOTP or recovery code on any of these routes counts against the account,
 not only against the client IP, so an attacker with a stolen session cannot rotate IPs or
 routes to keep guessing. Signs in for real: several of these routes resolve the user through
 fastapi-users' own dependency, which the shared override does not reach.
@@ -14,6 +14,7 @@ import pytest
 from fastapi import status
 
 from app.api.auth.models import OAuthAccount
+from app.api.auth.services import mfa_service
 from app.api.common.rate_limiting import Limiter
 
 from .shared import TEST_PASSWORD, create_password_user, login_bearer
@@ -118,7 +119,7 @@ async def test_the_budget_is_shared_across_routes(api_client: AsyncClient, db_se
 
 
 async def test_a_missing_credential_costs_nothing(api_client: AsyncClient, db_session: AsyncSession) -> None:
-    """Only a wrong credential (403) counts; a request that omits it (400) does not."""
+    """Only a wrong credential counts; a request that omits it (400) does not."""
     _user, headers = await _signed_in(api_client, db_session, "forgetful_user")
 
     with patch(BUDGET, new=Limiter(storage_uri="memory://")):
@@ -130,3 +131,26 @@ async def test_a_missing_credential_costs_nothing(api_client: AsyncClient, db_se
         ]
 
     assert statuses == [status.HTTP_400_BAD_REQUEST] * 4
+
+
+async def test_fresh_login_challenges_do_not_reset_the_budget(
+    api_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """Knowing the password buys a new challenge token, but not new guesses at the TOTP code."""
+    user = await create_password_user(
+        db_session,
+        email="challenge_guesser@example.com",
+        username="challenge_guesser",
+        mfa_enabled=True,
+        mfa_totp_secret=mfa_service.generate_totp_secret(),
+    )
+
+    async def _guess_on_a_fresh_challenge() -> int:
+        login = await api_client.post("/v1/auth/bearer/login", data={"username": user.email, "password": TEST_PASSWORD})
+        challenge = {"mfa_token": login.json()["mfa_token"], "code": WRONG_CODE}
+        return (await api_client.post("/v1/auth/mfa/challenge", json=challenge)).status_code
+
+    with patch(BUDGET, new=Limiter(storage_uri="memory://")):
+        statuses = [await _guess_on_a_fresh_challenge() for _ in range(4)]
+
+    assert statuses == [status.HTTP_401_UNAUTHORIZED] * 3 + [status.HTTP_429_TOO_MANY_REQUESTS]

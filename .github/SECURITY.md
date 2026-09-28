@@ -51,10 +51,11 @@ Security-sensitive areas:
     rotating forged tokens never buys a fresh budget.
   - Password login is limited per IP and by failed attempts per account, so a shared account is
     not locked by use while guessing stays capped per account.
-  - Signed-in re-authentication (account deletion, email and password changes, social login
-    link and unlink, MFA setup, disable and recovery-code rotation) shares one per-account
-    budget of wrong passwords, TOTP and recovery codes (`step_up_budget`), so a stolen session
-    cannot keep guessing by rotating IPs or routes.
+  - The MFA login challenge and every signed-in re-authentication (account deletion, email and
+    password changes, social login link and unlink, MFA setup, disable and recovery-code
+    rotation) share one per-account budget of wrong passwords, TOTP and recovery codes
+    (`account_guess_budget`). Rotating IPs, routes or fresh login challenges buys no extra
+    guesses, so the MFA routes themselves sit on the looser login IP budget.
 - public read APIs
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
