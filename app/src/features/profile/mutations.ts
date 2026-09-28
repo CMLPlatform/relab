@@ -2,8 +2,10 @@ import { type RefObject, useCallback, useState } from 'react';
 import type { View } from 'react-native';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { deleteAccount, unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
+import { ApiError } from '@/services/api/errors';
 import type { User } from '@/types/User';
 import { getErrorMessage } from '@/utils/errors';
+import type { DeleteAccountError } from './state';
 
 export type ProfileVisibility = 'public' | 'community' | 'private';
 
@@ -224,20 +226,39 @@ export async function confirmOAuthUnlink({
   void refetch();
 }
 
-/** Delete the signed-in account; reports failure itself and returns whether it succeeded. */
+/** Which dialog field a failed deletion belongs to: a 403 names the step-up that failed. */
+function deleteErrorField(error: unknown): DeleteAccountError['field'] {
+  if (!(error instanceof ApiError) || error.status !== 403) return 'form';
+  // biome-ignore lint/security/noSecrets: a backend error class name, not a secret.
+  if (error.code === 'MfaStepUpCodeInvalidError') return 'mfa';
+  // A stale sign-in is not about either field; the message asks the user to sign in again.
+  if (error.code === 'RecentSignInRequiredError') return 'form';
+  return 'password';
+}
+
+/** Delete the signed-in account; shows failure in the dialog and returns whether it succeeded. */
 export async function deleteOwnAccount({
   deleteDialog,
   streaming,
   feedback,
 }: {
-  deleteDialog: { password: string; mfaCode: string; setPending: (pending: boolean) => void };
+  deleteDialog: {
+    password: string;
+    mfaCode: string;
+    setPending: (pending: boolean) => void;
+    setError: (error: DeleteAccountError | null) => void;
+  };
   streaming: boolean;
   feedback: ReturnType<typeof useAppFeedback>;
 }): Promise<boolean> {
   if (streaming) {
-    feedback.error('Stop your live stream before deleting your account.', 'Stream still active');
+    deleteDialog.setError({
+      field: 'form',
+      message: 'Stop your live stream before deleting your account.',
+    });
     return false;
   }
+  deleteDialog.setError(null);
   deleteDialog.setPending(true);
   try {
     await deleteAccount(
@@ -245,10 +266,12 @@ export async function deleteOwnAccount({
       deleteDialog.mfaCode.trim() || undefined,
     );
   } catch (error: unknown) {
-    feedback.error(
-      `Failed to delete account: ${getErrorMessage(error, 'Unknown error')}`,
-      'Delete failed',
-    );
+    const field = deleteErrorField(error);
+    const message = getErrorMessage(error, 'Unknown error');
+    deleteDialog.setError({
+      field,
+      message: field === 'form' ? `Failed to delete account: ${message}` : message,
+    });
     return false;
   } finally {
     deleteDialog.setPending(false);

@@ -4,8 +4,9 @@ Goes through the real bearer login so the step-up password check, session revoca
 and cookie clearing run end to end.
 """
 
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
-from unittest.mock import patch
+from unittest.mock import ANY, AsyncMock, patch
 
 import pytest
 from fastapi import status
@@ -14,7 +15,10 @@ from sqlalchemy import Select, select
 from app.api.application.account_erasure import ANONYMOUS_USER_EMAIL
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services import mfa_service
+from app.api.auth.services.account_security import RECENT_SIGN_IN_WINDOW
+from app.api.auth.services.session_flow import SESSION_LOGOUT_CLEAR_SITE_DATA
 from app.api.common.audit import AuditAction, AuditContext
+from app.api.common.rate_limiting import Limiter
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.models import Camera
 from scripts.seed.factories.models import CameraFactory, UserFactory
@@ -38,6 +42,7 @@ if TYPE_CHECKING:
 pytestmark = pytest.mark.api
 
 ME = "/v1/users/me"
+ROUTER = "app.api.application.routers.account_erasure"
 
 
 async def _row_exists(session: AsyncSession, statement: Select[tuple[Any]]) -> bool:
@@ -69,7 +74,10 @@ async def test_self_deletion_anonymizes_content_and_erases_the_account(
     user_id = user.id
     headers, refresh_token = await _login(api_client, user)
 
-    with patch("app.api.application.routers.account_erasure.audit_event") as log_audit:
+    with (
+        patch(f"{ROUTER}.audit_event") as log_audit,
+        patch(f"{ROUTER}.send_account_deleted_notification", new=AsyncMock()) as notify,
+    ):
         response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
@@ -86,8 +94,10 @@ async def test_self_deletion_anonymizes_content_and_erases_the_account(
     log_audit.assert_called_once_with(
         user_id, AuditAction.DELETE, User, user_id, context=AuditContext(operation="erase_anonymize", flow="self")
     )
+    # Out-of-band notice to the former address, so a deletion never goes unnoticed.
+    notify.assert_awaited_once_with("leaving@example.com", "leaving_user", background_tasks=ANY)
     # Signed out everywhere: cookies cleared here, refresh sessions revoked, token dead.
-    assert response.headers["Clear-Site-Data"]
+    assert response.headers["Clear-Site-Data"] == SESSION_LOGOUT_CLEAR_SITE_DATA
     assert "set-cookie" in response.headers
     await assert_refresh_session_revoked(api_client, refresh_token)
     assert (await api_client.get(ME, headers=headers)).status_code == status.HTTP_401_UNAUTHORIZED
@@ -109,7 +119,7 @@ async def test_self_deletion_requires_the_current_password(
     user = await create_password_user(db_session, email="staying@example.com", username="staying_user")
     headers, refresh_token = await _login(api_client, user)
 
-    with patch("app.api.application.routers.account_erasure.revoke_user_refresh_tokens") as revoke:
+    with patch(f"{ROUTER}.revoke_user_refresh_tokens") as revoke:
         response = await api_client.request("DELETE", ME, json=body, headers=headers)
 
     assert response.status_code == expected
@@ -119,19 +129,52 @@ async def test_self_deletion_requires_the_current_password(
     assert refreshed.status_code == status.HTTP_200_OK
 
 
-async def test_oauth_only_account_deletes_without_a_password(
-    api_client: AsyncClient, db_session: AsyncSession, db_user: User, test_app: FastAPI
+@pytest.mark.parametrize("fresh", [True, False], ids=["fresh-sign-in", "stale-sign-in"])
+async def test_oauth_only_account_without_mfa_needs_a_recent_sign_in(
+    api_client: AsyncClient, db_session: AsyncSession, db_user: User, test_app: FastAPI, *, fresh: bool
 ) -> None:
-    """An account with no usable password has nothing to re-enter, matching the other step-up flows."""
+    """With no password and no MFA to re-enter, only a fresh sign-in can delete the account."""
     db_user.has_usable_password = False
+    age = timedelta(minutes=1) if fresh else RECENT_SIGN_IN_WINDOW + timedelta(minutes=1)
+    db_user.last_login_at = datetime.now(UTC) - age
     await db_session.flush()
     user_id = db_user.id
 
-    with override_authenticated_user(test_app, db_user):
+    with (
+        override_authenticated_user(test_app, db_user),
+        patch(f"{ROUTER}.revoke_user_refresh_tokens") as revoke,
+    ):
         response = await api_client.delete(ME)
 
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+    if fresh:
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+    else:
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json()["code"] == "RecentSignInRequiredError"
+        assert await _row_exists(db_session, select(User.id).where(User.id == user_id))
+        revoke.assert_not_called()
+
+
+async def test_failed_step_ups_are_limited_per_account(
+    api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI
+) -> None:
+    """Wrong passwords spend a per-account budget; once spent, even the right one waits."""
+    user = await create_password_user(db_session, email="guessed@example.com", username="guessed_user")
+
+    with (
+        override_authenticated_user(test_app, user),
+        patch(f"{ROUTER}.limiter", new=Limiter(storage_uri="memory://")),
+    ):
+        wrong = [
+            (await api_client.request("DELETE", ME, json={"current_password": "not-the-password-42"})).status_code
+            for _ in range(3)
+        ]
+        blocked = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD})
+
+    assert wrong == [status.HTTP_403_FORBIDDEN] * 3
+    assert blocked.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+    assert await _row_exists(db_session, select(User.id).where(User.id == user.id))
 
 
 async def test_last_active_superuser_cannot_delete_themself(api_client: AsyncClient, db_session: AsyncSession) -> None:
@@ -141,7 +184,7 @@ async def test_last_active_superuser_cannot_delete_themself(api_client: AsyncCli
     )
     headers, _ = await _login(api_client, admin)
 
-    with patch("app.api.application.routers.account_erasure.revoke_user_refresh_tokens") as revoke:
+    with patch(f"{ROUTER}.revoke_user_refresh_tokens") as revoke:
         response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
 
     assert response.status_code == status.HTTP_409_CONFLICT
@@ -251,7 +294,7 @@ async def test_mfa_account_deletion_rejects_without_a_valid_code(
 
     with (
         override_authenticated_user(test_app, user),
-        patch("app.api.application.routers.account_erasure.revoke_user_refresh_tokens") as revoke,
+        patch(f"{ROUTER}.revoke_user_refresh_tokens") as revoke,
     ):
         response = await api_client.request("DELETE", ME, json=body)
 
@@ -260,3 +303,22 @@ async def test_mfa_account_deletion_rejects_without_a_valid_code(
         assert "authentication code" in response.json()["detail"].lower()
     assert await _row_exists(db_session, select(User.id).where(User.id == user.id))
     revoke.assert_not_called()
+    if case == "wrong-password":
+        # The code survived: the right password with the same code now deletes the account.
+        with override_authenticated_user(test_app, user):
+            retry = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD, "mfa_code": valid})
+        assert retry.status_code == status.HTTP_204_NO_CONTENT
+
+
+async def test_refused_deletion_does_not_spend_the_mfa_code(
+    api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI, mock_redis_dependency: Redis
+) -> None:
+    """The last-superuser guard runs before the MFA step-up, so a 409 leaves the TOTP code unused."""
+    user, secret, _ = await _mfa_user(db_session, is_superuser=True)
+    code = totp_code(secret)
+
+    with override_authenticated_user(test_app, user):
+        response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD, "mfa_code": code})
+
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert await mfa_service.verify_totp_code_once(mock_redis_dependency, user_id=user.id, secret=secret, code=code)

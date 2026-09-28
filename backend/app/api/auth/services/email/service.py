@@ -466,3 +466,30 @@ async def send_email_changed_notification(
         background_tasks,
         provider,
     )
+
+
+async def send_account_deleted_notification(
+    to_email: EmailStr,
+    username: str | None,
+    *,
+    background_tasks: BackgroundTasks | None = None,
+    provider: EmailProvider | None = None,
+) -> None:
+    """Notify the former owner that their account was deleted.
+
+    Out-of-band, so a deletion through a stolen session cannot go unnoticed.
+    """
+    display_name = escape(_display_name(username, to_email))
+    await _notify(
+        to_email,
+        "Your Relab account was deleted",
+        (
+            f"<p>Hello {display_name},</p>"
+            "<p>Your Relab account was deleted, and you were signed out on every device. "
+            "Products and photos you added stay on the platform without your name. "
+            "If you did not do this, contact Relab support immediately.</p>"
+        ),
+        "Account-deletion notification",
+        background_tasks,
+        provider,
+    )

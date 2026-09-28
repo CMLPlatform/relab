@@ -6,10 +6,12 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
+import { FormFieldError } from '@/components/base/FormField';
 import { TextInput } from '@/components/base/TextInput';
 import { SUPPORT_EMAIL } from '@/constants';
+import type { DeleteAccountError } from '@/features/profile/state';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { heading } from '@/utils/a11y';
+import { describedBy, heading } from '@/utils/a11y';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileDialogsProps = {
@@ -34,6 +36,7 @@ type ProfileDialogsProps = {
   deleteMfaCode: string;
   onChangeDeleteMfaCode: (value: string) => void;
   deletePending: boolean;
+  deleteError?: DeleteAccountError | null;
   unlinkTriggerRef?: RefObject<View | null>;
   logoutTriggerRef?: RefObject<View | null>;
   deleteAccountTriggerRef?: RefObject<View | null>;
@@ -61,12 +64,20 @@ export function ProfileDialogs({
   deleteMfaCode,
   onChangeDeleteMfaCode,
   deletePending,
+  deleteError,
   unlinkTriggerRef,
   logoutTriggerRef,
   deleteAccountTriggerRef,
 }: ProfileDialogsProps) {
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
+  // A field error falls back to the dialog level when that field is not shown.
+  const deletePasswordError =
+    deleteRequiresPassword && deleteError?.field === 'password' ? deleteError.message : undefined;
+  const deleteMfaError =
+    deleteRequiresMfa && deleteError?.field === 'mfa' ? deleteError.message : undefined;
+  const deleteFormError =
+    deleteError && !deletePasswordError && !deleteMfaError ? deleteError.message : undefined;
   return (
     <>
       <AppDialog
@@ -143,10 +154,14 @@ export function ProfileDialogs({
             secureTextEntry
             autoComplete="current-password"
             textContentType="password"
+            {...describedBy('delete-password-error', Boolean(deletePasswordError))}
             className="border px-2 py-2 mt-2.5"
-            style={{ borderColor: theme.colors.outline }}
+            style={{
+              borderColor: deletePasswordError ? theme.tokens.status.danger : theme.colors.outline,
+            }}
           />
         ) : null}
+        <FormFieldError errorId="delete-password-error" message={deletePasswordError} />
         {deleteRequiresMfa ? (
           <TextInput
             value={deleteMfaCode}
@@ -157,10 +172,14 @@ export function ProfileDialogs({
             autoCorrect={false}
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
+            {...describedBy('delete-mfa-error', Boolean(deleteMfaError))}
             className="border px-2 py-2 mt-2.5"
-            style={{ borderColor: theme.colors.outline }}
+            style={{
+              borderColor: deleteMfaError ? theme.tokens.status.danger : theme.colors.outline,
+            }}
           />
         ) : null}
+        <FormFieldError errorId="delete-mfa-error" message={deleteMfaError} />
         <AppText className="mt-2.5">
           To have your uploads removed as well, email{' '}
           <Link href={`mailto:${SUPPORT_EMAIL}`}>
@@ -168,6 +187,7 @@ export function ProfileDialogs({
           </Link>
           .
         </AppText>
+        <FormFieldError errorId="delete-account-error" message={deleteFormError} />
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissDeleteDialog}>
             Cancel
@@ -175,8 +195,8 @@ export function ProfileDialogs({
           <AppButton
             variant="destructive"
             onPress={onConfirmDelete}
+            loading={deletePending}
             disabled={
-              deletePending ||
               (deleteRequiresPassword && deletePassword.length === 0) ||
               (deleteRequiresMfa && deleteMfaCode.trim().length === 0)
             }

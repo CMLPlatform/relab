@@ -2096,7 +2096,9 @@ export interface paths {
      *
      *     Personal data is erased; contributed products and media stay on the platform without
      *     the owner's name. Requires the current password, the same step-up as an email or
-     *     password change, and a current MFA code when the account has MFA enabled.
+     *     password change, and a current MFA code when the account has MFA enabled. An account
+     *     with neither must have signed in within the last few minutes. The former address gets
+     *     a notification email.
      */
     delete: operations['delete_own_account_v1_users_me_delete'];
     options?: never;
@@ -10654,6 +10656,27 @@ export interface operations {
     responses: {
       /** @description Successful Response */
       204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The current password or MFA code is missing. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The current password or MFA code is invalid, or the account needs a fresh sign-in. */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description This account cannot be deleted (the last active superuser). */
+      409: {
         headers: {
           [name: string]: unknown;
         };

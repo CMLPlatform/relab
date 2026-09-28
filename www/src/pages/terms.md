@@ -51,4 +51,4 @@ Your own profile is separate. Your name and contributions stay visible in the ap
 
 Once a dataset release is published, copies are out in the world and we cannot recall them.
 
-You can delete your account at any time in the app. Your products and photos then stay on the platform without your name. To have your uploads removed as well, email us. Either way, deletion cannot retract anything already included in a published release.
+You can delete your account at any time in the app. This erases your account details: your email address, username, sign-ins, and cameras. Your products, photos, and any text you wrote in product records stay public without your name, including the original file names of your photos. To have your uploads removed as well, email us. Either way, deletion cannot retract anything already included in a published release.

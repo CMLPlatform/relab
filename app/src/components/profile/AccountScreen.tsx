@@ -146,6 +146,7 @@ export function AccountScreen() {
         deleteMfaCode={dialogs.deleteDialog.mfaCode}
         onChangeDeleteMfaCode={dialogs.deleteDialog.setMfaCode}
         deletePending={dialogs.deleteDialog.pending}
+        deleteError={dialogs.deleteDialog.error}
         unlinkTriggerRef={unlinkTriggerRef}
         logoutTriggerRef={logoutTriggerRef}
         deleteAccountTriggerRef={deleteAccountTriggerRef}
