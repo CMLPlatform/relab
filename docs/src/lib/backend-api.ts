@@ -5,6 +5,8 @@ const BACKEND_API_URL_BY_MODE: Record<string, string> = {
   test: 'http://127.0.0.1:18010',
 };
 
+const TRAILING_SLASHES = /\/+$/;
+
 export function normalizeBackendApiUrl(value: string): string {
   const trimmedValue = value.trim();
   let parsedUrl: URL;
@@ -16,7 +18,7 @@ export function normalizeBackendApiUrl(value: string): string {
   if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
     throw new Error('Backend API URL must use http or https');
   }
-  return parsedUrl.toString().replace(/\/+$/, '');
+  return parsedUrl.toString().replace(TRAILING_SLASHES, '');
 }
 
 export function backendApiUrlForMode(mode: string): string {

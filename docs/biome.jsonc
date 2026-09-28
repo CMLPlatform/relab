@@ -4,7 +4,7 @@
   "files": {
     "includes": [
       // Lint all checked-in docs sources, minus generated output and caches.
-      ".",
+      "**",
       "!.astro",
       "!dist",
       "!!node_modules",
@@ -12,7 +12,13 @@
       "!test-results",
 
       // This wrapper re-exports Starlight's default head component.
-      "!src/components/Head.astro"
+      "!src/components/Head.astro",
+
+      // Generated: the OpenAPI exports come from the backend, the rest from
+      // scripts/sync_brand_assets.py. Formatting them would break `--check`.
+      "!public/api/schemas",
+      "!src/styles/tokens.generated.css",
+      "!src/components/Colophon.generated.astro"
     ]
   },
   "linter": {
@@ -32,6 +38,25 @@
           "correctness": {
             "noUnusedImports": "off",
             "noUnusedVariables": "off"
+          }
+        }
+      }
+    },
+    {
+      // Same as www: test placeholders look like secrets, describe/test blocks
+      // are long without being real functions, and an assertion regex matched
+      // once per run gains nothing from being hoisted away from its test.
+      "includes": ["e2e/**/*.ts", "src/**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
+          "performance": {
+            "useTopLevelRegex": "off"
+          },
+          "security": {
+            "noSecrets": "off"
           }
         }
       }

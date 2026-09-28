@@ -11,10 +11,13 @@ test.describe('API reference pages', () => {
       liveSchemaRequests.push(route.request().url());
       await route.abort();
     });
-    await page.route(/^https:\/\/(?:api|proxy|dashboard|registry)\.scalar\.com\//, async (route) => {
-      scalarServiceRequests.push(route.request().url());
-      await route.abort();
-    });
+    await page.route(
+      /^https:\/\/(?:api|proxy|dashboard|registry)\.scalar\.com\//,
+      async (route) => {
+        scalarServiceRequests.push(route.request().url());
+        await route.abort();
+      },
+    );
   });
 
   test('public API reference renders from the committed docs schema', async ({ page }) => {
@@ -95,10 +98,9 @@ test.describe('API reference discoverability', () => {
     // The direct "Open public API reference" shortcut is deliberately gone: it
     // sat in a "Quick links" block that repeated the header CTA and the sidebar,
     // and /api/public/ is one click further, from the API reference page itself.
-    await expect(page.getByRole('main').getByRole('link', { exact: true, name: 'API reference' })).toHaveAttribute(
-      'href',
-      'api-reference/',
-    );
+    await expect(
+      page.getByRole('main').getByRole('link', { exact: true, name: 'API reference' }),
+    ).toHaveAttribute('href', 'api-reference/');
     await expect(
       page.getByRole('main').getByRole('link', { name: /public API reference/i }),
     ).toHaveCount(0);
@@ -114,12 +116,20 @@ test.describe('API reference discoverability', () => {
   });
 
   test('related docs pages link to the API reference overview', async ({ page }) => {
-    const pages = ['/user-guides/api/', '/user-guides/rpi-cam/', '/architecture/api/', '/architecture/rpi-cam/'];
+    const pages = [
+      '/user-guides/api/',
+      '/user-guides/rpi-cam/',
+      '/architecture/api/',
+      '/architecture/rpi-cam/',
+    ];
 
     for (const path of pages) {
       await page.goto(path);
       await expect(
-        page.getByRole('main').getByRole('link', { exact: true, name: 'API reference overview' }).first(),
+        page
+          .getByRole('main')
+          .getByRole('link', { exact: true, name: 'API reference overview' })
+          .first(),
       ).toHaveAttribute('href', '/api-reference/');
     }
   });
