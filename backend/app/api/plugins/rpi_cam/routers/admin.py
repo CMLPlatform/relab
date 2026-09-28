@@ -13,7 +13,7 @@ from app.api.common.crud.query import page_models
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.dependencies import CameraByIDDep, CameraFilterWithOwnerDep
 from app.api.plugins.rpi_cam.models import Camera, CameraStatus
-from app.api.plugins.rpi_cam.routers.camera_crud import _notify_camera_unpair
+from app.api.plugins.rpi_cam.routers.camera_crud import delete_user_camera
 from app.api.plugins.rpi_cam.runtime.status import get_camera_status as fetch_camera_status
 from app.api.plugins.rpi_cam.schemas import CameraRead
 from app.core.redis import RedisDep
@@ -70,6 +70,4 @@ async def delete_camera(
     redis: RedisDep,
 ) -> None:
     """Delete Raspberry Pi camera."""
-    await session.delete(camera)
-    await session.commit()
-    background_tasks.add_task(_notify_camera_unpair, camera.id, redis)
+    await delete_user_camera(background_tasks=background_tasks, db=session, camera=camera, redis=redis)

@@ -77,7 +77,7 @@ def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str, s
     return file, file_id, original_filename, stored_filename
 
 
-def _measure_file_size(file: BinaryIO) -> int:
+def measure_file_size(file: BinaryIO) -> int:
     """Measure a binary file object without changing its current position."""
     current_position = file.tell()
     file.seek(0, 2)
@@ -90,7 +90,7 @@ async def validate_upload_size(upload_file: UploadFile, max_size_mb: int) -> int
     """Validate upload size, even when UploadFile.size is unavailable."""
     file_size = upload_file.size
     if file_size is None:
-        file_size = await to_thread.run_sync(_measure_file_size, upload_file.file)
+        file_size = await to_thread.run_sync(measure_file_size, upload_file.file)
 
     if file_size == 0:
         msg = "File size is zero."
