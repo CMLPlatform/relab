@@ -2,10 +2,8 @@ import { type RefObject, useCallback, useState } from 'react';
 import type { View } from 'react-native';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { deleteAccount, unlinkOAuth, updateUser, verify } from '@/services/api/auth/authentication';
-import { ApiError } from '@/services/api/errors';
 import type { User } from '@/types/User';
 import { getErrorMessage } from '@/utils/errors';
-import type { DeleteAccountError } from './state';
 
 export type ProfileVisibility = 'public' | 'community' | 'private';
 
@@ -226,38 +224,39 @@ export async function confirmOAuthUnlink({
   void refetch();
 }
 
-/** Which dialog field a failed deletion belongs to: a 403 names the step-up that failed. */
-function deleteErrorField(error: unknown): DeleteAccountError['field'] {
-  if (!(error instanceof ApiError) || error.status !== 403) return 'form';
-  // biome-ignore lint/security/noSecrets: a backend error class name, not a secret.
-  if (error.code === 'MfaStepUpCodeInvalidError') return 'mfa';
-  // A stale sign-in is not about either field; the message asks the user to sign in again.
-  if (error.code === 'RecentSignInRequiredError') return 'form';
-  return 'password';
-}
+/** Ending the session (stopping any live stream first), then leaving the account screen. */
+export type ExitSessionOptions = {
+  endSession: () => Promise<void>;
+  redirectTo: '/login' | '/products';
+  closeDialog?: () => void;
+};
 
-/** Delete the signed-in account; shows failure in the dialog and returns whether it succeeded. */
+/** Delete the signed-in account, then leave the screen; failures show in the dialog. */
 export async function deleteOwnAccount({
   deleteDialog,
   streaming,
   feedback,
+  setIsLoggingOut,
+  exitSession,
 }: {
   deleteDialog: {
     password: string;
     mfaCode: string;
+    close: () => void;
     setPending: (pending: boolean) => void;
-    setError: (error: DeleteAccountError | null) => void;
+    setError: (error: string | null) => void;
   };
   streaming: boolean;
   feedback: ReturnType<typeof useAppFeedback>;
-}): Promise<boolean> {
+  setIsLoggingOut: (value: boolean) => void;
+  exitSession: (options: ExitSessionOptions) => void;
+}) {
   if (streaming) {
-    deleteDialog.setError({
-      field: 'form',
-      message: 'Stop your live stream before deleting your account.',
-    });
-    return false;
+    deleteDialog.setError('Stop your live stream before deleting your account.');
+    return;
   }
+  // Set before the request: a cleared session must not bounce this screen to /login.
+  setIsLoggingOut(true);
   deleteDialog.setError(null);
   deleteDialog.setPending(true);
   try {
@@ -266,16 +265,17 @@ export async function deleteOwnAccount({
       deleteDialog.mfaCode.trim() || undefined,
     );
   } catch (error: unknown) {
-    const field = deleteErrorField(error);
-    const message = getErrorMessage(error, 'Unknown error');
-    deleteDialog.setError({
-      field,
-      message: field === 'form' ? `Failed to delete account: ${message}` : message,
-    });
-    return false;
+    deleteDialog.setError(getErrorMessage(error, 'Failed to delete account.'));
+    setIsLoggingOut(false);
+    return;
   } finally {
     deleteDialog.setPending(false);
   }
   feedback.toast('Your account has been deleted.');
-  return true;
+  // The server already ended the session; this only leaves the screen like logout does.
+  exitSession({
+    closeDialog: deleteDialog.close,
+    endSession: async () => {},
+    redirectTo: '/products',
+  });
 }

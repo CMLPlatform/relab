@@ -1,15 +1,12 @@
 import { useCallback, useState } from 'react';
 import type { useAuth } from '@/context/auth';
 
-/** A failed deletion, shown under the field it concerns, or at the dialog level ('form'). */
-export type DeleteAccountError = { field: 'password' | 'mfa' | 'form'; message: string };
-
 export function useProfileDialogs() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteMfaCode, setDeleteMfaCode] = useState('');
   const [deletePending, setDeletePending] = useState(false);
-  const [deleteError, setDeleteError] = useState<DeleteAccountError | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');

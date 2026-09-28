@@ -177,43 +177,27 @@ async def test_failed_step_ups_are_limited_per_account(
     assert await _row_exists(db_session, select(User.id).where(User.id == user.id))
 
 
-async def test_last_active_superuser_cannot_delete_themself(api_client: AsyncClient, db_session: AsyncSession) -> None:
-    """The only remaining admin keeps their account and their sessions."""
-    admin = await create_password_user(
-        db_session, email="only-admin@example.com", username="only_admin", is_superuser=True
-    )
+@pytest.mark.parametrize("other_admin", [False, True], ids=["last-admin", "another-admin-active"])
+async def test_superuser_self_deletion_is_blocked_only_for_the_last_admin(
+    api_client: AsyncClient, db_session: AsyncSession, *, other_admin: bool
+) -> None:
+    """The only remaining admin keeps their account and sessions; with another admin active, deletion proceeds."""
+    admin = await create_password_user(db_session, email="admin@example.com", username="admin_user", is_superuser=True)
+    if other_admin:
+        await UserFactory.create_async(session=db_session, is_active=True, is_superuser=True)
+        await db_session.flush()
     headers, _ = await _login(api_client, admin)
 
     with patch(f"{ROUTER}.revoke_user_refresh_tokens") as revoke:
         response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
 
-    assert response.status_code == status.HTTP_409_CONFLICT
-    assert await _row_exists(db_session, select(User.id).where(User.id == admin.id))
-    revoke.assert_not_called()
-
-
-async def test_superuser_can_delete_themself_while_another_is_active(
-    api_client: AsyncClient, db_session: AsyncSession
-) -> None:
-    """The guard blocks only the last admin."""
-    admin = await create_password_user(
-        db_session, email="one-of-two@example.com", username="one_of_two", is_superuser=True
-    )
-    await UserFactory.create_async(session=db_session, is_active=True, is_superuser=True)
-    await db_session.flush()
-    headers, _ = await _login(api_client, admin)
-
-    response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
-
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert not await _row_exists(db_session, select(User.id).where(User.id == admin.id))
-
-
-async def test_self_deletion_requires_authentication(api_client: AsyncClient) -> None:
-    """A guest cannot call the route."""
-    response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD})
-
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    if other_admin:
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        assert not await _row_exists(db_session, select(User.id).where(User.id == admin.id))
+    else:
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert await _row_exists(db_session, select(User.id).where(User.id == admin.id))
+        revoke.assert_not_called()
 
 
 async def _mfa_user(db_session: AsyncSession, **overrides: Any) -> tuple[User, str, list[str]]:

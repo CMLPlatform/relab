@@ -62,19 +62,7 @@ export function ProfileDialogs({
 }: ProfileDialogsProps) {
   const theme = useAppTheme();
   const styles = createProfileSectionStyles(theme);
-  // A field error falls back to the dialog level when that field is not shown.
-  const deletePasswordError =
-    deleteRequiresPassword && deleteDialog.error?.field === 'password'
-      ? deleteDialog.error.message
-      : undefined;
-  const deleteMfaError =
-    deleteRequiresMfa && deleteDialog.error?.field === 'mfa'
-      ? deleteDialog.error.message
-      : undefined;
-  const deleteFormError =
-    deleteDialog.error && !deletePasswordError && !deleteMfaError
-      ? deleteDialog.error.message
-      : undefined;
+  const deleteErrorProps = describedBy('delete-account-error', Boolean(deleteDialog.error));
   return (
     <>
       <AppDialog
@@ -151,14 +139,11 @@ export function ProfileDialogs({
             secureTextEntry
             autoComplete="current-password"
             textContentType="password"
-            {...describedBy('delete-password-error', Boolean(deletePasswordError))}
+            {...deleteErrorProps}
             className="border px-2 py-2 mt-2.5"
-            style={{
-              borderColor: deletePasswordError ? theme.tokens.status.danger : theme.colors.outline,
-            }}
+            style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
-        <FormFieldError errorId="delete-password-error" message={deletePasswordError} />
         {deleteRequiresMfa ? (
           <TextInput
             value={deleteDialog.mfaCode}
@@ -169,14 +154,12 @@ export function ProfileDialogs({
             autoCorrect={false}
             autoComplete="one-time-code"
             textContentType="oneTimeCode"
-            {...describedBy('delete-mfa-error', Boolean(deleteMfaError))}
+            {...deleteErrorProps}
             className="border px-2 py-2 mt-2.5"
-            style={{
-              borderColor: deleteMfaError ? theme.tokens.status.danger : theme.colors.outline,
-            }}
+            style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
-        <FormFieldError errorId="delete-mfa-error" message={deleteMfaError} />
+        <FormFieldError errorId="delete-account-error" message={deleteDialog.error ?? undefined} />
         <AppText className="mt-2.5">
           To have your uploads removed as well, email{' '}
           <Link href={`mailto:${SUPPORT_EMAIL}`}>
@@ -184,7 +167,6 @@ export function ProfileDialogs({
           </Link>
           .
         </AppText>
-        <FormFieldError errorId="delete-account-error" message={deleteFormError} />
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={deleteDialog.close}>
             Cancel

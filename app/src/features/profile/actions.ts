@@ -9,71 +9,11 @@ import { logout, revokeAllSessions } from '@/services/api/auth/authLogin';
 import {
   confirmOAuthUnlink,
   deleteOwnAccount,
+  type ExitSessionOptions,
   promptUsernameEdit,
   sendVerificationEmail,
 } from './mutations';
 import type { useProfileDialogs } from './state';
-
-/** End the session (stopping any live stream first), then leave the account screen. */
-function useExitSession({
-  activeStream,
-  feedback,
-  refetch,
-  router,
-  setActiveStream,
-  setIsLoggingOut,
-  stopStreamMutation,
-}: {
-  activeStream: StreamSessionState['activeStream'];
-  feedback: ReturnType<typeof useAppFeedback>;
-  refetch: ReturnType<typeof useAuth>['refetch'];
-  router: ReturnType<typeof useRouter>;
-  setActiveStream: StreamSessionState['setActiveStream'];
-  setIsLoggingOut: (value: boolean) => void;
-  stopStreamMutation: ReturnType<typeof useStopYouTubeStreamMutation>;
-}) {
-  return useCallback(
-    ({
-      endSession,
-      redirectTo,
-      closeDialog,
-    }: {
-      endSession: () => Promise<void>;
-      redirectTo: '/login' | '/products';
-      closeDialog?: () => void;
-    }) => {
-      closeDialog?.();
-      setIsLoggingOut(true);
-
-      const proceed = () => {
-        setActiveStream(null);
-        void endSession()
-          .then(() => {
-            void refetch(false);
-            router.replace(redirectTo);
-          })
-          .finally(() => setIsLoggingOut(false));
-      };
-
-      if (!activeStream) {
-        proceed();
-        return;
-      }
-
-      stopStreamMutation.mutate(undefined, {
-        onSuccess: proceed,
-        onError: () => {
-          feedback.error(
-            'Failed to stop the stream. Please stop it manually before signing out.',
-            'Stream error',
-          );
-          setIsLoggingOut(false);
-        },
-      });
-    },
-    [activeStream, feedback, refetch, router, setActiveStream, setIsLoggingOut, stopStreamMutation],
-  );
-}
 
 export function useProfileActions({
   profile,
@@ -100,15 +40,36 @@ export function useProfileActions({
   youtubeEnabled: boolean;
   setYoutubeEnabled: (enabled: boolean) => Promise<void>;
 }) {
-  const exitSession = useExitSession({
-    activeStream,
-    feedback,
-    refetch,
-    router,
-    setActiveStream,
-    setIsLoggingOut,
-    stopStreamMutation,
-  });
+  const exitSession = useCallback(
+    ({ endSession, redirectTo, closeDialog }: ExitSessionOptions) => {
+      closeDialog?.();
+      setIsLoggingOut(true);
+      const proceed = () => {
+        setActiveStream(null);
+        void endSession()
+          .then(() => {
+            void refetch(false);
+            router.replace(redirectTo);
+          })
+          .finally(() => setIsLoggingOut(false));
+      };
+      if (!activeStream) {
+        proceed();
+        return;
+      }
+      stopStreamMutation.mutate(undefined, {
+        onSuccess: proceed,
+        onError: () => {
+          feedback.error(
+            'Failed to stop the stream. Please stop it manually before signing out.',
+            'Stream error',
+          );
+          setIsLoggingOut(false);
+        },
+      });
+    },
+    [activeStream, feedback, refetch, router, setActiveStream, setIsLoggingOut, stopStreamMutation],
+  );
 
   const onLogout = useCallback(() => {
     if (activeStream) {
@@ -133,21 +94,17 @@ export function useProfileActions({
     });
   }, [dialogs.logoutDialog.close, exitSession]);
 
-  const confirmDeleteAccount = useCallback(async () => {
-    const { deleteDialog } = dialogs;
-    // Set before the request: a cleared session must not bounce this screen to /login.
-    setIsLoggingOut(true);
-    if (await deleteOwnAccount({ deleteDialog, streaming: Boolean(activeStream), feedback })) {
-      // The server already ended the session; this only leaves the screen like logout does.
-      exitSession({
-        closeDialog: deleteDialog.close,
-        endSession: async () => {},
-        redirectTo: '/products',
-      });
-    } else {
-      setIsLoggingOut(false);
-    }
-  }, [activeStream, dialogs, exitSession, feedback, setIsLoggingOut]);
+  const confirmDeleteAccount = useCallback(
+    () =>
+      deleteOwnAccount({
+        deleteDialog: dialogs.deleteDialog,
+        streaming: Boolean(activeStream),
+        feedback,
+        setIsLoggingOut,
+        exitSession,
+      }),
+    [activeStream, dialogs.deleteDialog, exitSession, feedback, setIsLoggingOut],
+  );
 
   const onVerifyAccount = useCallback(() => {
     if (!profile) return;

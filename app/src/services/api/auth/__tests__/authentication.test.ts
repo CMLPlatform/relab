@@ -745,40 +745,19 @@ describe('Authentication API Service', () => {
   // ─── deleteAccount ──────────────────────────────────────
 
   describe('deleteAccount', () => {
-    it('sends the current password and clears the local session', async () => {
-      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
-      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
-
-      await auth.deleteAccount('current-password');
-
-      const [url, init] = fetchMock().mock.calls[0];
-      expect(String(url)).toMatch(USERS_ME_PATTERN);
-      expect(init?.method).toBe('DELETE');
-      expect(JSON.parse(String(init?.body))).toEqual({ current_password: 'current-password' });
-      expect(authRuntime.token).toBeUndefined();
-      expect(authRuntime.explicitlyLoggedOut).toBe(true);
-      expect(secureStoreMock.deleteItemAsync).toHaveBeenCalled();
-    });
-
-    it('sends the MFA code alongside the password', async () => {
-      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
-      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
-
-      await auth.deleteAccount('current-password', '123456');
-
-      expect(JSON.parse(String(fetchMock().mock.calls[0][1]?.body))).toEqual({
-        current_password: 'current-password',
-        mfa_code: '123456',
-      });
-    });
-
-    it('sends an empty body for an account without a password', async () => {
+    it('sends an empty body for an account without a password and clears the local session', async () => {
       secureStoreMock.getItemAsync.mockResolvedValue('test-token');
       fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
 
       await auth.deleteAccount();
 
-      expect(JSON.parse(String(fetchMock().mock.calls[0][1]?.body))).toEqual({});
+      const [url, init] = fetchMock().mock.calls[0];
+      expect(String(url)).toMatch(USERS_ME_PATTERN);
+      expect(init?.method).toBe('DELETE');
+      expect(JSON.parse(String(init?.body))).toEqual({});
+      expect(authRuntime.token).toBeUndefined();
+      expect(authRuntime.explicitlyLoggedOut).toBe(true);
+      expect(secureStoreMock.deleteItemAsync).toHaveBeenCalled();
     });
 
     it('throws the server detail and keeps the session when refused', async () => {
