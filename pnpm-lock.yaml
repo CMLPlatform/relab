@@ -193,6 +193,7 @@ overrides:
   uuid@<11.1.1: '>=11.1.1'
   undici@>=7.0.0 <7.29.0: '>=7.29.0 <8'
   '@ai-sdk/provider-utils@>=4.0.0-beta.10 <4.0.33': '>=4.0.33 <5'
+  lodash-es@<4.18.1: '>=4.18.1 <5'
   lightningcss: 1.33.0
 
 importers:
@@ -345,7 +346,7 @@ importers:
         version: 3.7.0
       uniwind:
         specifier: ^1.10.1
-        version: 1.12.0(@expo/metro-config@57.0.12(expo@57.0.25)(supports-color@10.2.2)(typescript@6.0.3))(metro-cache@0.84.6(supports-color@10.2.2))(metro-transform-worker@0.87.1(supports-color@10.2.2))(metro@0.84.6(supports-color@10.2.2))(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(tailwindcss@4.3.3)
+        version: 1.12.0(@expo/metro-config@57.0.12(expo@57.0.25)(supports-color@10.2.2)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@10.2.2))(metro-transform-worker@0.87.1(supports-color@10.2.2))(metro@0.87.1(supports-color@10.2.2))(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(tailwindcss@4.3.3)
       use-debounce:
         specifier: ^10.1.1
         version: 10.1.1(react@19.2.3)
@@ -6654,9 +6655,6 @@ packages:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
 
-  lodash-es@4.17.23:
-    resolution: {integrity: sha512-kVI48u3PZr38HdYz98UmfPnXl2DXrpdctLrFLCd3kOx1xUkOmpFPx7gCWWM5MPkL/fD8zb+Ph0QzjGFs4+hHWg==}
-
   lodash-es@4.18.1:
     resolution: {integrity: sha512-J8xewKD/Gk22OZbhpOVSwcs60zhd95ESDwezOFuA3/099925PdHJ7OFHNTGtajL3AlZkykD32HykiMo+BIBI8A==}
 
@@ -10201,12 +10199,12 @@ snapshots:
     dependencies:
       '@chevrotain/gast': 11.1.2
       '@chevrotain/types': 11.1.2
-      lodash-es: 4.17.23
+      lodash-es: 4.18.1
 
   '@chevrotain/gast@11.1.2':
     dependencies:
       '@chevrotain/types': 11.1.2
-      lodash-es: 4.17.23
+      lodash-es: 4.18.1
 
   '@chevrotain/regexp-to-ast@11.1.2': {}
 
@@ -14020,7 +14018,7 @@ snapshots:
       '@chevrotain/regexp-to-ast': 11.1.2
       '@chevrotain/types': 11.1.2
       '@chevrotain/utils': 11.1.2
-      lodash-es: 4.17.23
+      lodash-es: 4.18.1
 
   chokidar@4.0.3:
     dependencies:
@@ -16763,8 +16761,6 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
-  lodash-es@4.17.23: {}
-
   lodash-es@4.18.1: {}
 
   lodash.debounce@4.0.8: {}
@@ -19466,14 +19462,14 @@ snapshots:
 
   universalify@0.2.0: {}
 
-  uniwind@1.12.0(@expo/metro-config@57.0.12(expo@57.0.25)(supports-color@10.2.2)(typescript@6.0.3))(metro-cache@0.84.6(supports-color@10.2.2))(metro-transform-worker@0.87.1(supports-color@10.2.2))(metro@0.84.6(supports-color@10.2.2))(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(tailwindcss@4.3.3):
+  uniwind@1.12.0(@expo/metro-config@57.0.12(expo@57.0.25)(supports-color@10.2.2)(typescript@6.0.3))(metro-cache@0.87.1(supports-color@10.2.2))(metro-transform-worker@0.87.1(supports-color@10.2.2))(metro@0.87.1(supports-color@10.2.2))(react-native@0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2))(react@19.2.3)(tailwindcss@4.3.3):
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
       culori: 4.0.2
       lightningcss: 1.33.0
-      metro: 0.84.6(supports-color@10.2.2)
-      metro-cache: 0.84.6(supports-color@10.2.2)
+      metro: 0.87.1(supports-color@10.2.2)
+      metro-cache: 0.87.1(supports-color@10.2.2)
       react: 19.2.3
       react-native: 0.86.2(@babel/core@7.29.7(supports-color@10.2.2))(@react-native/jest-preset@0.86.3(@babel/core@7.29.7(supports-color@10.2.2))(react@19.2.3)(supports-color@10.2.2))(@react-native/metro-config@0.87.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2))(@types/react@19.2.18)(react@19.2.3)(supports-color@10.2.2)
       tailwindcss: 4.3.3
