@@ -89,7 +89,9 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   const header = (
     <DetailSectionHeader
       title={labels.title}
-      tooltipTitle={`Select a fitting category for the ${entityLabel(product)}.`}
+      tooltipTitle={
+        editMode ? `Select a fitting category for the ${entityLabel(product)}.` : undefined
+      }
     />
   );
 

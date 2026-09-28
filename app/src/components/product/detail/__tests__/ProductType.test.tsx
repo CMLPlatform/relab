@@ -103,6 +103,20 @@ describe('ProductType', () => {
     expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
   });
 
+  // The tooltip is an instruction to pick a type, which a viewer cannot do.
+  it('offers the category tooltip only in edit mode', async () => {
+    const product = { ...baseProduct, productTypeID: 1 };
+    const info = 'Info: Select a fitting category for the product.';
+    const { rerender } = await renderWithProviders(
+      <ProductType product={product} editMode={false} />,
+    );
+    expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
+    expect(screen.queryByLabelText(info)).toBeNull();
+
+    await rerender(<ProductType product={product} editMode={true} />);
+    expect(await screen.findByLabelText(info)).toBeOnTheScreen();
+  });
+
   // Regression: an unresolvable (stale/unknown) type id used to fall back to
   // cpv.root, which CPVCard renders as a red "Category undefined" error card.
   it('renders nothing for an unresolvable type id instead of the undefined error card', async () => {
