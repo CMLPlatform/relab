@@ -35,13 +35,17 @@ def get_camera_last_seen_cache_key(camera_id: UUID4) -> str:
 # At least 2x the 30s heartbeat (`_HEARTBEAT_INTERVAL` in websocket/router.py) plus
 # slack, or a healthy camera reads OFFLINE between expiry and the next pong.
 ONLINE_STATUS_TTL_SECONDS = 75
+# Refreshed on every heartbeat, so it only lapses for a camera offline this long; that
+# camera then reads "never seen". Bounds the key for a deleted camera, which a pong racing
+# the delete could otherwise recreate after any explicit cleanup.
+LAST_SEEN_TTL_SECONDS = 90 * 24 * 3600
 
 
 async def mark_camera_online(redis_client: Redis, camera_id: UUID4, ttl: int = ONLINE_STATUS_TTL_SECONDS) -> None:
     """Mark a camera as online in Redis, updating its last seen timestamp."""
     now = serialize_datetime_with_z(datetime.now(UTC))
     await set_redis_value(redis_client, get_camera_online_cache_key(camera_id), "1", ex=ttl)
-    await set_redis_value(redis_client, get_camera_last_seen_cache_key(camera_id), now)
+    await set_redis_value(redis_client, get_camera_last_seen_cache_key(camera_id), now, ex=LAST_SEEN_TTL_SECONDS)
 
 
 async def mark_camera_offline(redis_client: Redis, camera_id: UUID4) -> None:
