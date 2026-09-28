@@ -122,11 +122,12 @@ services:
       # changes.
       #
       #                    per worker  x  workers  =  total (prod)
-      # Image threads:          5      x     4     =   20  (CPU-bound)
+      # Image threads:          3      x     4     =   12  (CPU-bound; up to ~300 MB each
+      #                                                 for a rotated 50 MP lab original)
       # DB connections:     3 + 10     x     4     =   52  (configured postgres max_connections=100 below)
       # Outbound HTTP:        100      x     4     =  400  (mostly idle)
       WEB_CONCURRENCY: "4"
-      IMAGE_RESIZE_WORKERS: "5"
+      IMAGE_RESIZE_WORKERS: "3"
       # Measured 2026-09-06: 0.26 req/s peak at 5 ms p99 never touched overflow;
       # 3 base per worker is still ~1000x that, and the pool lets bursts overflow.
       DB_POOL_SIZE: "3"

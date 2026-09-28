@@ -45,8 +45,8 @@ async def upload_limits_role(session: AsyncSession, *, parent_type: MediaParentT
     """Return the role whose per-upload caps apply to media attached to this parent.
 
     Product media follows the product owner's role, like the quota it is charged to.
-    A missing product falls back to the lowest tier; the parent check then rejects it.
-    Other parents are reference data only superusers can attach to, so they get the
+    Callers check the parent exists first; a product deleted since then falls back to the
+    lowest tier. Other parents are reference data only superusers can attach to, so they get the
     top tier.
     """
     if parent_type != MediaParentType.PRODUCT:

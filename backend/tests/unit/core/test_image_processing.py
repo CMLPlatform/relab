@@ -7,6 +7,7 @@ import pytest
 from anyio import Path as AnyIOPath
 from fastapi import UploadFile
 from PIL import Image as PILImage
+from PIL import ImageCms
 from PIL.ExifTags import GPS, IFD
 from starlette.datastructures import Headers
 
@@ -543,3 +544,72 @@ def test_jpeg_with_exif_orientation_is_still_rotated_and_stripped(tmp_path: Path
     out = PILImage.open(path)
     assert out.size == (60, 40)
     assert 0x0112 not in out.getexif()
+
+
+# ---------------------------------------------------------------------------
+# originals uploaded untouched from phones
+# ---------------------------------------------------------------------------
+
+
+def test_process_image_stores_an_mpo_as_its_primary_jpeg(tmp_path: Path) -> None:
+    """An Ultra HDR or depth-map JPEG keeps its primary image as a plain JPEG, EXIF filtered."""
+    exif = PILImage.Exif()
+    exif[0x0110] = "Model X"
+    exif.get_ifd(IFD.GPSInfo)[GPS.GPSLatitudeRef] = "N"
+    path = tmp_path / "hdr.jpg"
+    PILImage.new("RGB", (64, 48), (200, 10, 10)).save(
+        path, format="MPO", save_all=True, append_images=[PILImage.new("L", (32, 24))], exif=exif.tobytes()
+    )
+
+    assert process_image_for_storage(path) == (64, 48)
+
+    with PILImage.open(path) as stored:
+        assert stored.format == "JPEG"
+        assert getattr(stored, "n_frames", 1) == 1
+        assert stored.getexif()[0x0110] == "Model X"
+        assert not stored.getexif().get_ifd(IFD.GPSInfo)
+
+
+@pytest.mark.parametrize(
+    ("save_kwargs", "secret"),
+    [
+        ({"comment": b"shot at Home Street 1", "exif": PILImage.Exif().tobytes()}, b"Home Street"),
+        # No EXIF at all: the XMP alone has to trigger the re-save.
+        ({"xmp": b"<x:xmpmeta><exif:GPSLatitude>52,9.6N</exif:GPSLatitude></x:xmpmeta>"}, b"GPSLatitude"),
+        ({"comment": b"shot at Home Street 1"}, b"Home Street"),
+    ],
+)
+def test_process_image_drops_comments_and_xmp(tmp_path: Path, save_kwargs: dict[str, object], secret: bytes) -> None:
+    """A JPEG comment is free text and XMP repeats GPS; neither survives storage."""
+    path = tmp_path / "photo.jpg"
+    PILImage.new("RGB", (40, 30)).save(path, format="JPEG", **save_kwargs)
+    assert secret in path.read_bytes()
+
+    process_image_for_storage(path)
+
+    assert secret not in path.read_bytes()
+
+
+def test_process_image_keeps_the_colour_profile(tmp_path: Path) -> None:
+    """A wide-gamut phone photo must keep its ICC profile, or its colours shift."""
+    icc = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+    path = _make_jpeg_with_exif(tmp_path / "p3.jpg", 40, 30, camera_make=True)
+    with PILImage.open(path) as img:
+        img.save(path, format="JPEG", exif=img.info["exif"], icc_profile=icc)
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as stored:
+        assert stored.info["icc_profile"] == icc
+
+
+def test_process_image_skips_the_transpose_copy_when_upright(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Without a rotation the re-save holds one decode, not a transposed second copy."""
+    path = _make_jpeg_with_exif(tmp_path / "upright.jpg", 40, 30, orientation=1, camera_make=True)
+
+    def _fail(_img: object) -> None:
+        raise AssertionError
+
+    monkeypatch.setattr("app.core.images.processing.ImageOps.exif_transpose", _fail)
+
+    assert process_image_for_storage(path) == (40, 30)

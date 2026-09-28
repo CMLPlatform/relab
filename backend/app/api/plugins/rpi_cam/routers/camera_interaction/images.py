@@ -2,6 +2,7 @@
 
 import contextlib
 import logging
+from functools import partial
 from typing import TYPE_CHECKING, Annotated
 
 from anyio import to_thread
@@ -10,6 +11,7 @@ from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.auth.roles import UserRole, image_upload_max_pixels_for_role
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.exceptions import APIError, InternalServerError
 from app.api.common.form_json import parse_required_json_object
@@ -208,7 +210,11 @@ async def receive_preview_thumbnail_upload(
     """Receive a cached preview thumbnail pushed from the Pi and persist it."""
     try:
         await validate_upload_size(file, settings.max_image_upload_size_mb)
-        await to_thread.run_sync(validate_image_upload_content, file)
+        # Device previews get the lowest tier's pixel cap, not the global ceiling.
+        await to_thread.run_sync(
+            partial(validate_image_upload_content, max_pixels=image_upload_max_pixels_for_role(UserRole.CONTRIBUTOR)),
+            file,
+        )
         # Device-pushed bytes are untrusted; scan them like every other upload path
         # (fails closed when malware scanning is enabled but the scanner is down).
         await scan_upload_or_raise(file)

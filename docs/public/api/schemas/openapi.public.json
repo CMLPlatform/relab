@@ -5582,12 +5582,6 @@
             "title": "Image Upload Max Pixels",
             "type": "integer"
           },
-          "image_upload_max_side_px": {
-            "default": 0,
-            "description": "Longest side, in pixels, any uploaded image may have.",
-            "title": "Image Upload Max Side Px",
-            "type": "integer"
-          },
           "is_active": {
             "default": true,
             "title": "Is Active",

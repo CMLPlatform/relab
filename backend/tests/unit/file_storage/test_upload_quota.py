@@ -12,6 +12,7 @@ from app.api.file_storage.upload_quota import (
     recompute_user_upload_quota,
     release_product_upload_quota_for_media,
     reserve_product_upload_quota,
+    upload_limits_role,
 )
 
 
@@ -113,3 +114,23 @@ async def test_recompute_user_upload_quota_persists_product_owned_media_totals(m
     assert "UPDATE" in rendered_statement
     assert "UNION ALL" in rendered_statement
     assert "RETURNING" not in rendered_statement
+
+
+@pytest.mark.parametrize("parent_type", [t for t in MediaParentType if t is not MediaParentType.PRODUCT])
+async def test_upload_limits_role_gives_reference_data_the_top_tier(
+    mock_session: AsyncMock, parent_type: MediaParentType
+) -> None:
+    """Only superusers attach reference-data media, so it gets the lab caps without a lookup."""
+    assert await upload_limits_role(mock_session, parent_type=parent_type, parent_id=1) is UserRole.LAB
+    mock_session.scalar.assert_not_awaited()
+
+
+@pytest.mark.parametrize(("stored", "expected"), [("lab", UserRole.LAB), (None, UserRole.CONTRIBUTOR)])
+async def test_upload_limits_role_follows_the_product_owner(
+    mock_session: AsyncMock, stored: str | None, expected: UserRole
+) -> None:
+    """Product media takes the owner's role; a product gone since the parent check gets the lowest tier."""
+    mock_session.scalar.return_value = stored
+
+    assert await upload_limits_role(mock_session, parent_type=MediaParentType.PRODUCT, parent_id=1) is expected
+    assert "owner_id" in str(mock_session.scalar.await_args.args[0])

@@ -41,7 +41,6 @@ export type User = {
   imageLimits: {
     maxBytes: number;
     maxPixels: number;
-    maxSidePx: number;
   };
   oauth_accounts: NonNullable<ApiUserRead['oauth_accounts']>;
   preferences: UserPreferences;

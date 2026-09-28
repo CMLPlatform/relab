@@ -114,9 +114,10 @@ Each image has a size cap set by the role of the product's owner. Every image is
 | `lab`         | 40 MiB    | 50 MP  |
 
 The app uploads a photo within your caps at full resolution. A photo over them is scaled down just
-enough to fit, then uploaded. The server applies the same caps to every upload. It also turns each
-photo upright and removes identifying metadata (GPS position, serial numbers, author) before storing
-it.
+enough to fit, then uploaded; a format the server does not accept, such as HEIC from an iPhone, is
+converted to JPEG. The server applies the same caps to every upload. It also turns each photo
+upright and removes identifying metadata (GPS position, serial numbers, author, comments) before
+storing it.
 
 Each account also has a cap on total file count and storage, set by its role:
 

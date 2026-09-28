@@ -40,20 +40,23 @@ describe('productImageGalleryHelpers', () => {
     ]);
   });
 
-  it('builds imported images, keeping the original file when processing fails', async () => {
+  it('drops a photo that cannot be made to fit and reports it, instead of failing at save', async () => {
     mockProcessImage.mockImplementationOnce(async () => 'processed://image-1');
     mockProcessImage.mockImplementationOnce(async () => null);
-    const limits = { maxBytes: 10 * 1024 * 1024, maxPixels: 30_000_000, maxSidePx: 10_000 };
+    const limits = { maxBytes: 10 * 1024 * 1024, maxPixels: 30_000_000 };
+    const onReject = jest.fn();
 
     const assets = [
       { uri: 'file://one.jpg' },
       { uri: 'file://two.jpg' },
     ] as ImagePicker.ImagePickerAsset[];
 
-    await expect(buildImportedImages(assets, limits)).resolves.toEqual([
+    await expect(buildImportedImages(assets, limits, onReject)).resolves.toEqual([
       { url: 'processed://image-1', description: '' },
-      { url: 'file://two.jpg', description: '' },
     ]);
     expect(mockProcessImage).toHaveBeenCalledWith(assets[0], limits);
+    expect(onReject).toHaveBeenCalledWith(
+      "Couldn't prepare that photo for upload. Try another one.",
+    );
   });
 });

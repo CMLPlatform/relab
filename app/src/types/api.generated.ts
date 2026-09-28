@@ -5514,12 +5514,6 @@ export interface components {
        */
       image_upload_max_pixels: number;
       /**
-       * Image Upload Max Side Px
-       * @description Longest side, in pixels, any uploaded image may have.
-       * @default 0
-       */
-      image_upload_max_side_px: number;
-      /**
        * Upload File Count
        * @description Files and images this account currently has stored.
        * @default 0

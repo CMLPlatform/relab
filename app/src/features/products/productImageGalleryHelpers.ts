@@ -26,18 +26,23 @@ export function appendCapturedImage(
 
 /**
  * Turns picked assets into image entries, each fitted to the account's upload caps. A photo that
- * cannot be processed keeps its original file; the server's check at save names any cap it breaks.
+ * cannot be made to fit is dropped and reported, rather than failing later at save.
  */
-export function buildImportedImages(
+export async function buildImportedImages(
   assets: readonly ImagePicker.ImagePickerAsset[],
   limits: ImageLimits,
+  onReject?: (message: string) => void,
 ) {
-  return Promise.all(
-    assets.map(async (asset) => ({
-      url: (await processImage(asset, limits)) ?? asset.uri,
-      description: '',
-    })),
-  );
+  const urls = await Promise.all(assets.map((asset) => processImage(asset, limits)));
+  const rejected = urls.filter((url) => url === null).length;
+  if (rejected > 0) {
+    onReject?.(
+      rejected === 1
+        ? "Couldn't prepare that photo for upload. Try another one."
+        : `Couldn't prepare ${rejected} photos for upload. Try other ones.`,
+    );
+  }
+  return urls.flatMap((url) => (url === null ? [] : [{ url, description: '' }]));
 }
 
 export function hasRpiCamerasConfigured(cameraCount: number | undefined) {

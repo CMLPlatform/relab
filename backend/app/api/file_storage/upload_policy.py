@@ -11,7 +11,7 @@ from PIL import UnidentifiedImageError
 
 from app.api.common.exceptions import BadRequestError
 from app.core.config.core import settings
-from app.core.images.constants import MAX_IMAGE_PIXELS
+from app.core.images.constants import FORMAT_JPEG, FORMAT_MPO
 from app.core.images.validation import validate_image_dimensions
 
 if TYPE_CHECKING:
@@ -279,8 +279,12 @@ def validate_image_upload_metadata(upload_file: UploadFile) -> UploadFile:
     return upload_file
 
 
-def validate_image_upload_content(upload_file: UploadFile, *, max_pixels: int = MAX_IMAGE_PIXELS) -> UploadFile:
-    """Validate that image content matches its declared upload metadata and fits ``max_pixels``."""
+def validate_image_upload_content(upload_file: UploadFile, *, max_pixels: int) -> UploadFile:
+    """Validate that image content matches its declared upload metadata and fits ``max_pixels``.
+
+    ``max_pixels`` is required so no caller inherits the global ceiling by accident; the
+    per-role caps come from ``app.api.auth.roles``.
+    """
     validate_image_upload_metadata(upload_file)
     name = _safe_upload_name(upload_file)
     expected_format = IMAGE_EXTENSION_TO_FORMAT[_final_extension(name)]
@@ -288,7 +292,9 @@ def validate_image_upload_content(upload_file: UploadFile, *, max_pixels: int = 
     upload_file.file.seek(0)
     try:
         with PILImage.open(upload_file.file) as image:
-            detected_format = image.format
+            # A JPEG with an embedded gain or depth map opens as MPO; it is still a JPEG,
+            # and storage keeps only its primary image.
+            detected_format = FORMAT_JPEG if image.format == FORMAT_MPO else image.format
             validate_image_dimensions(image, max_pixels=max_pixels)
             image.verify()
     except ValueError as exc:

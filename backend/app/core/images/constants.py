@@ -6,6 +6,7 @@ from PIL.Image import Resampling
 __all__ = [
     "ALLOWED_IMAGE_MIME_TYPES",
     "FORMAT_JPEG",
+    "FORMAT_MPO",
     "FORMAT_WEBP",
     "MAX_IMAGE_DIMENSION",
     "MAX_IMAGE_PIXELS",
@@ -19,6 +20,7 @@ __all__ = [
 
 
 FORMAT_JPEG = "JPEG"
+FORMAT_MPO = "MPO"
 FORMAT_WEBP = "WEBP"
 # Long side of the largest sensors under the pixel cap below: 45 MP full-frame bodies
 # are 8192 or 8256 px wide, a 50 MP one 8640 px. The pixel cap is what bounds memory.

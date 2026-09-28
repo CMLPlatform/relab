@@ -12,7 +12,7 @@ jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
 }));
 
-const MOCK_IMAGE_LIMITS = { maxBytes: 40 * 1024 * 1024, maxPixels: 50_000_000, maxSidePx: 10_000 };
+const MOCK_IMAGE_LIMITS = { maxBytes: 40 * 1024 * 1024, maxPixels: 50_000_000 };
 jest.mock('@/context/auth', () => ({
   useAuth: () => ({ user: { imageLimits: MOCK_IMAGE_LIMITS } }),
 }));

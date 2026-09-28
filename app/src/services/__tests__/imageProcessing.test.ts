@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 type SaveAsync = (options: { compress: number }) => Promise<{ uri: string }>;
 type RenderAsync = () => Promise<{ saveAsync: jest.MockedFunction<SaveAsync> }>;
@@ -22,8 +22,18 @@ const { processImage } =
   require('@/services/imageProcessing') as typeof import('@/services/imageProcessing');
 
 const MB = 1024 * 1024;
-const CONTRIBUTOR = { maxBytes: 10 * MB, maxPixels: 30_000_000, maxSidePx: 10_000 };
-const LAB = { maxBytes: 40 * MB, maxPixels: 50_000_000, maxSidePx: 10_000 };
+const CONTRIBUTOR = { maxBytes: 10 * MB, maxPixels: 30_000_000 };
+const LAB = { maxBytes: 40 * MB, maxPixels: 50_000_000 };
+const originalFetch = global.fetch;
+
+/** Makes the re-encoded output report these sizes, one per attempt. */
+function outputSizes(...sizes: number[]) {
+  const fetchMock = jest.fn<typeof fetch>();
+  for (const size of sizes) {
+    fetchMock.mockResolvedValueOnce({ blob: async () => ({ size }) } as unknown as Response);
+  }
+  global.fetch = fetchMock;
+}
 
 describe('processImage', () => {
   beforeEach(() => {
@@ -33,6 +43,11 @@ describe('processImage', () => {
     mockRenderAsync.mockResolvedValue({ saveAsync: mockSaveAsync });
     mockResize.mockReturnValue(manipulator);
     mockManipulate.mockReturnValue(manipulator);
+    outputSizes(2 * MB);
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
   });
 
   it('returns a photo within the caps untouched, at full resolution', async () => {
@@ -48,6 +63,19 @@ describe('processImage', () => {
     await expect(processImage(asset, LAB)).resolves.toBe('file://48mp.jpg');
     expect(mockManipulate).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['an iOS HEIC file', { uri: 'file://IMG_0001.HEIC' }],
+    ['a HEIC mime type', { uri: 'blob:photo', mimeType: 'image/heic' }],
+  ])(
+    're-encodes %s within the caps, since the server only takes web formats',
+    async (_label, source) => {
+      const asset = { ...source, width: 4000, height: 3000, fileSize: 3 * MB };
+
+      await expect(processImage(asset, CONTRIBUTOR)).resolves.toBe('file://processed.jpg');
+      expect(mockResize).not.toHaveBeenCalled();
+    },
+  );
 
   it('scales a photo over the pixel cap down just enough to fit it', async () => {
     const asset = { uri: 'file://48mp.jpg', width: 8000, height: 6000, fileSize: 24 * MB };
@@ -72,6 +100,23 @@ describe('processImage', () => {
     await expect(processImage(asset, CONTRIBUTOR)).resolves.toBe('file://processed.jpg');
     expect(mockResize).not.toHaveBeenCalled();
     expect(mockSaveAsync).toHaveBeenCalledWith({ compress: 0.9 });
+  });
+
+  it('scales down further when the re-encoded file is still over the byte cap', async () => {
+    outputSizes(16 * MB, 8 * MB);
+    const asset = { uri: 'file://noisy.jpg', width: 4000, height: 3000, fileSize: 20 * MB };
+
+    await expect(processImage(asset, CONTRIBUTOR)).resolves.toBe('file://processed.jpg');
+    const [{ width, height }] = mockResize.mock.calls[0];
+    expect(width * height).toBeLessThan(4000 * 3000 * (10 / 16));
+  });
+
+  it('gives up on a photo that stays over the byte cap', async () => {
+    outputSizes(30 * MB, 30 * MB, 30 * MB);
+    const asset = { uri: 'file://noise.png', width: 4000, height: 3000, fileSize: 40 * MB };
+
+    await expect(processImage(asset, CONTRIBUTOR)).resolves.toBeNull();
+    expect(mockSaveAsync).toHaveBeenCalledTimes(3);
   });
 
   it('leaves a photo with unknown dimensions and size to the server check', async () => {

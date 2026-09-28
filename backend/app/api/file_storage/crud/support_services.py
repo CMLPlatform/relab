@@ -2,15 +2,15 @@
 
 import logging
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
 from anyio import to_thread
-from fastapi import UploadFile
 from pydantic import UUID4
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.roles import UserRole, image_upload_max_mb_for_role, image_upload_max_pixels_for_role
+from app.api.auth.roles import image_upload_max_mb_for_role, image_upload_max_pixels_for_role
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_locked_model, require_model
@@ -183,11 +183,9 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
     """
 
     model: type[StorageModelT]
-    # Both take the role whose caps apply (see upload_limits_role).
-    max_size_mb: Callable[[UserRole], int]
     get_storage: Callable[[], BaseStorage]
-    validate_upload_metadata: Callable[[UploadFile], object]
-    validate_upload_content: Callable[[UploadFile, UserRole], object]
+    # Checks the upload's metadata, size and content, and returns its size in bytes.
+    validate_upload: Callable[[AsyncSession, CreateSchemaT], Awaitable[int]]
     after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] | None = None
 
     async def create(
@@ -202,13 +200,12 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             msg = "File name is empty"
             raise BadRequestError(msg)
 
-        self.validate_upload_metadata(payload.file)
-        role = await upload_limits_role(db, parent_type=payload.parent_type, parent_id=payload.parent_id)
-        upload_size_bytes = await validate_upload_size(payload.file, self.max_size_mb(role))
-        await to_thread.run_sync(self.validate_upload_content, payload.file, role)
+        # Before the size check: image caps follow the parent's owner, so a missing
+        # parent must answer 404, not a cap that happens not to fit.
+        await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
+        upload_size_bytes = await self.validate_upload(db, payload)
         await scan_upload_or_raise(payload.file)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
-        await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
         if quota_user_id is not None:
             # quota_user_id gates whether this upload counts against quota (product
             # media only); the charge itself always targets the parent's owner.
@@ -256,20 +253,32 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             await delete_file_from_storage(db_item)
 
 
+async def _validate_file_upload(_db: AsyncSession, payload: FileCreate) -> int:
+    validate_generic_file_upload_metadata(payload.file)
+    upload_size_bytes = await validate_upload_size(payload.file, settings.max_file_upload_size_mb)
+    await to_thread.run_sync(validate_generic_file_upload_content, payload.file)
+    return upload_size_bytes
+
+
+async def _validate_image_upload(db: AsyncSession, payload: ImageCreateFromForm | ImageCreateInternal) -> int:
+    """Images meet the size and pixel caps of the parent owner's role."""
+    validate_image_upload_metadata(payload.file)
+    role = await upload_limits_role(db, parent_type=payload.parent_type, parent_id=payload.parent_id)
+    upload_size_bytes = await validate_upload_size(payload.file, image_upload_max_mb_for_role(role))
+    await to_thread.run_sync(
+        partial(validate_image_upload_content, max_pixels=image_upload_max_pixels_for_role(role)), payload.file
+    )
+    return upload_size_bytes
+
+
 file_storage_service: StoredMediaService[File, FileCreate] = StoredMediaService(
     model=File,
-    max_size_mb=lambda _role: settings.max_file_upload_size_mb,
     get_storage=_get_file_storage,
-    validate_upload_metadata=validate_generic_file_upload_metadata,
-    validate_upload_content=lambda file, _role: validate_generic_file_upload_content(file),
+    validate_upload=_validate_file_upload,
 )
 image_storage_service: StoredMediaService[Image, ImageCreateFromForm | ImageCreateInternal] = StoredMediaService(
     model=Image,
-    max_size_mb=image_upload_max_mb_for_role,
     get_storage=_get_image_storage,
-    validate_upload_metadata=validate_image_upload_metadata,
-    validate_upload_content=lambda file, role: validate_image_upload_content(
-        file, max_pixels=image_upload_max_pixels_for_role(role)
-    ),
+    validate_upload=_validate_image_upload,
     after_create=_process_created_image,
 )

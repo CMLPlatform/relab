@@ -41,7 +41,7 @@ export function mockUser(overrides: Partial<User> = {}): User {
     role: 'contributor',
     termsAcceptanceRequired: false,
     uploadQuota: { files: 1000, bytes: 1024 * 1024 * 1024, usedFiles: 0, usedBytes: 0 },
-    imageLimits: { maxBytes: 10 * 1024 * 1024, maxPixels: 30_000_000, maxSidePx: 10_000 },
+    imageLimits: { maxBytes: 10 * 1024 * 1024, maxPixels: 30_000_000 },
     oauth_accounts: [],
     preferences: {},
     ...overrides,

@@ -11,6 +11,7 @@ from PIL import Image as PILImage
 from pydantic import ValidationError
 
 from app.api.auth.roles import UserRole
+from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.file_storage.crud import support_services
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
 from app.api.file_storage.exceptions import ModelFileNotFoundError, UploadTooLargeError
@@ -18,6 +19,7 @@ from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import FileCreate, ImageCreateInternal
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
     from pathlib import Path
 
 TEST_FILE_DESC = "Test file"
@@ -28,6 +30,13 @@ FAKE_PATH = "/fake/path/test.txt"
 FAKE_IMAGE_PATH = "/fake/path/test.png"
 CONTENT_TYPE_PNG = "image/png"
 MB = 1024 * 1024
+
+
+@pytest.fixture(autouse=True)
+def _parent_exists() -> Iterator[None]:
+    """The parent check runs before the size and content checks these tests exercise."""
+    with patch.object(support_services, "ensure_parent_exists", AsyncMock()):
+        yield
 
 
 def test_file_create_rejects_quota_user_fields() -> None:
@@ -49,7 +58,6 @@ def test_file_create_rejects_quota_user_fields() -> None:
 
 async def test_create_file_rejects_oversized_upload(mock_session: AsyncMock) -> None:
     """Rejects file uploads above the size limit."""
-    mock_session.scalar.return_value = UserRole.LAB
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = TEST_FILENAME
     mock_file.size = 51 * MB
@@ -68,7 +76,6 @@ async def test_create_file_uses_configured_upload_size_limit(
 ) -> None:
     """Generic file uploads should use the configured limit instead of a module constant."""
     monkeypatch.setattr("app.api.file_storage.crud.support_services.settings.max_file_upload_size_mb", 2)
-    mock_session.scalar.return_value = UserRole.LAB
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = TEST_FILENAME
     mock_file.size = 3 * MB
@@ -124,7 +131,6 @@ def test_image_create_rejects_quota_user_fields() -> None:
 @pytest.mark.parametrize(
     ("owner_role", "size_mb", "limit_mb"),
     [
-        (None, 11, 10),  # missing product: the lowest tier, before the parent check 404s
         (UserRole.CONTRIBUTOR, 11, 10),
         (UserRole.LAB, 41, 40),
     ],
@@ -146,6 +152,26 @@ async def test_create_image_rejects_upload_over_the_owner_role_cap(
 
     with pytest.raises(UploadTooLargeError, match=f"Maximum size: {limit_mb} MB"):
         await image_storage_service.create(mock_session, image_create)
+
+
+async def test_create_image_on_a_missing_product_is_not_found_before_any_cap(mock_session: AsyncMock) -> None:
+    """A missing parent answers 404, not a size error from the fallback tier's cap."""
+    mock_file = MagicMock(spec=UploadFile)
+    mock_file.filename = IMAGE_FILENAME
+    mock_file.content_type = CONTENT_TYPE_PNG
+    mock_file.size = 30 * MB
+    mock_file.file = BytesIO(b"")
+
+    image_create = ImageCreateInternal(
+        file=mock_file, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+    )
+
+    with (
+        patch.object(support_services, "ensure_parent_exists", AsyncMock(side_effect=ModelNotFoundError())),
+        pytest.raises(ModelNotFoundError),
+    ):
+        await image_storage_service.create(mock_session, image_create)
+    mock_session.scalar.assert_not_awaited()
 
 
 async def test_create_image_uses_configured_upload_size_limit(

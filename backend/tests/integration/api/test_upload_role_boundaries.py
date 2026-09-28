@@ -19,7 +19,6 @@ from app.api.auth.roles import (
     upload_quota_files_for_role,
 )
 from app.core.config.core import settings
-from app.core.images.constants import MAX_IMAGE_DIMENSION
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 from tests.fixtures.client import override_authenticated_user
 
@@ -172,7 +171,7 @@ class TestImageCapsFollowTheOwnerRole:
         response = await api_client_user.post(f"/v1/products/{product.id}/images", files=_png_file(40, 40))
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
-        assert "1000" in response.text
+        assert response.json()["detail"] == "Image has 1600 pixels, exceeding the maximum allowed 1000."
 
     async def test_lab_user_gets_the_lab_cap(
         self, api_client_lab_user: AsyncClient, db_session: AsyncSession, db_lab_user: User
@@ -236,7 +235,6 @@ class TestQuotaFollowsTheRole:
         for body, role in ((contributor_body, UserRole.CONTRIBUTOR), (lab_body, UserRole.LAB)):
             assert body["image_upload_max_bytes"] == image_upload_max_mb_for_role(role) * 1024 * 1024
             assert body["image_upload_max_pixels"] == image_upload_max_pixels_for_role(role)
-            assert body["image_upload_max_side_px"] == MAX_IMAGE_DIMENSION
 
     async def test_usage_is_reported_alongside_the_limit(
         self, api_client: AsyncClient, db_session: AsyncSession
