@@ -367,8 +367,8 @@ ssh relab-prod up migrations
 are `git pull --ff-only`, `just stack prod tag YES <tag>`, `just stack prod up YES migrations` as
 the deploy user.
 
-The images come from the release: `release.yml` publishes them to GHCR (`publish-images.yml`)
-once the release is cut, so wait for that run to finish. `tag` pulls every image before it writes
+The images come from the release: publishing it on GitHub starts `release.yml`, which publishes
+them to GHCR (`publish-images.yml`), so wait for that run to finish. `tag` pulls every image before it writes
 `IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. `up` never pulls: it
 runs the images `tag` pulled, so a tag moved on GHCR afterwards cannot reach the host on a restart.
 `images-verify` checks each image's build provenance and needs `read:packages` on your `gh`

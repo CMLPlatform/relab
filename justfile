@@ -526,10 +526,61 @@ dev-migrate:
 stack env command *args:
     @bash scripts/deploy_ops.sh stack {{ quote(env) }} {{ quote(command) }} {{ args }}
 
+# ============================================================================
+# Releases
+# ============================================================================
+# A release is two steps with a PR between them:
+#
+#   just release-prep 0.4.0      branch release/v0.4.0 from origin/main, bump every version
+#                                file and draft the CHANGELOG section from the commits
+#   (rewrite the section, commit, open a PR and merge it)
+#   just release-publish 0.4.0   draft the GitHub release from that CHANGELOG section
+#
+# Publishing the draft on GitHub creates the tag and starts release.yml, which publishes
+# the images and deploys the sites. Add upgrade notes to the draft before publishing.
+
+[group('release')]
+[doc('Branch a release from origin/main, bump its version and draft its CHANGELOG section')]
+release-prep version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version={{ quote(version) }}
+    [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "expected a version like 0.4.0, got '$version'" >&2; exit 2; }
+    [[ -z "$(git status --porcelain)" ]] || { echo "the working tree has changes; commit or stash them first" >&2; exit 1; }
+    git fetch --quiet origin main --tags
+    git switch --create "release/v$version" origin/main
+    uv run cz bump --files-only --yes "$version"
+    sed -i -E "s/^date-released: .*/date-released: $(date +%F)/" CITATION.cff
+    git status --short
+    echo "Rewrite the v$version section at the top of CHANGELOG.md, then commit and open a PR."
+
+[group('release')]
+[doc('Draft the GitHub release for a merged version from its CHANGELOG section')]
+release-publish version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version={{ quote(version) }}
+    [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "expected a version like 0.4.0, got '$version'" >&2; exit 2; }
+    git fetch --quiet origin main
+    main_version="$(git show origin/main:package.json | jq -r .version)"
+    [[ "$main_version" == "$version" ]] || {
+        echo "origin/main is at $main_version, not $version: merge the release PR first" >&2
+        exit 1
+    }
+    # The section between this version's heading and the next one, heading excluded.
+    notes="$(git show origin/main:CHANGELOG.md | awk -v v="## v$version" '
+        index($0, v) == 1 { found = 1; next }
+        found && /^## v/ { exit }
+        found { print }')"
+    [[ -n "${notes//[[:space:]]/}" ]] || { echo "CHANGELOG.md on origin/main has no v$version section" >&2; exit 1; }
+    gh release create "v$version" --draft --target "$(git rev-parse origin/main)" \
+        --title "v$version" --notes "$notes"
+    echo "Review the draft, add any upgrade notes, then publish it: that starts release.yml."
+
 # Check a published tag's build provenance from the dev host, before
 # `ssh relab-<env> tag <tag>` makes a host pull it: every image must have been built by
 # this repository's publish-images.yml on a GitHub-hosted runner, and a prod image
-# from main. gh needs `read:packages` (`gh auth refresh -s read:packages`).
+# from its release tag (or from main, for a `sha-` tag). gh needs `read:packages` (`gh auth refresh -s read:packages`).
 # NOTE: checks what the tag points at now; a tag moved between this check and the
 # host's pull is not caught. Pin image digests in compose.deploy.yaml if it matters.
 [group('deploy')]
@@ -546,9 +597,12 @@ images-verify env tag:
     }
     repo="${GITHUB_REPOSITORY:-CMLPlatform/relab}"
     registry="${IMAGE_REGISTRY:-ghcr.io/cmlplatform}"
-    # Staging deliberately accepts a manual publish of any branch.
+    # Staging deliberately accepts a manual publish of any branch. A release publishes
+    # from the event of its tag; a manual prod publish runs on main.
     source_ref=()
-    [[ "$env" == prod ]] && source_ref=(--source-ref refs/heads/main)
+    if [[ "$env" == prod ]]; then
+        [[ "$tag" == sha-* ]] && source_ref=(--source-ref refs/heads/main) || source_ref=(--source-ref "refs/tags/v$tag")
+    fi
     for image in "relab-backend:$tag" "relab-backend-migrations:$tag" "relab-backup:$tag" \
         "relab-app:$tag-$env"; do
         gh attestation verify "oci://$registry/$image" --repo "$repo" \

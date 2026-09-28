@@ -157,6 +157,11 @@ run "prod_publishes_only_from_main" {
     condition     = github_repository_environment_deployment_policy.main[0].branch_pattern == "main"
     error_message = "prod URLs must only be baked into images built from main."
   }
+
+  assert {
+    condition     = github_repository_environment_deployment_policy.release_tag[0].tag_pattern == "v*"
+    error_message = "release.yml runs on the release tag, so prod must accept v* tags."
+  }
 }
 
 run "staging_waits_for_a_reviewer" {
