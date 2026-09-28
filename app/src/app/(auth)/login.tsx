@@ -14,14 +14,12 @@ import { useLoginScreen } from '@/features/auth/useLoginScreen';
 import { isFramed } from '@/utils/platformLayout';
 
 export default function Login() {
-  return isFramed() ? <FramedAuthNotice /> : <LoginScreen />;
-}
-
-function LoginScreen() {
   const { form, actions } = useLoginScreen();
   const handleSubmit = async () => form.submit();
   const handleGoogleLogin = async () => actions.loginWithGoogle();
   const handleGithubLogin = async () => actions.loginWithGithub();
+
+  if (isFramed()) return <FramedAuthNotice />;
 
   return (
     <>
