@@ -398,7 +398,7 @@ async def test_delete_product_with_components(
     api_client_superuser: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
-    """DELETE /products/{id} removes a product that still has components.
+    """DELETE /products/{id} removes a product that still has two levels of components.
 
     Detail reads load a product's components under ``raiseload("*")``. The delete used
     to hand those stale instances to the flush, which walked ``product_type`` on them
@@ -415,6 +415,13 @@ async def test_delete_product_with_components(
         )
         assert component.status_code == status.HTTP_201_CREATED, component.text
         component_ids.append(component.json()["id"])
+    # A second level, so the cascade has to reach below the direct components too.
+    sub_component = await api_client_superuser.post(
+        f"/v1/components/{component_ids[0]}/components",
+        json={"name": f"{COMPONENT_NAME}-sub", "amount_in_parent": 1},
+    )
+    assert sub_component.status_code == status.HTTP_201_CREATED, sub_component.text
+    component_ids.append(sub_component.json()["id"])
 
     # The detail read is what makes this a regression test: it is the only route that
     # applies raiseload("*"), leaving the components in this session's identity map as

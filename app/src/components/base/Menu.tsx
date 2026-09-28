@@ -1,10 +1,11 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
+import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
 
@@ -18,6 +19,8 @@ type MenuProps = {
   onDismiss: () => void;
   anchor: ReactNode;
   children: ReactNode;
+  /** Return-focus target for native screen readers on close; see AppDialog's `triggerRef`. */
+  triggerRef?: RefObject<View | null>;
 };
 
 /**
@@ -28,8 +31,9 @@ type MenuProps = {
  * NOTE: position is captured on open only; a menu does not follow an anchor
  * that scrolls away.
  */
-export function Menu({ visible, onDismiss, anchor, children }: MenuProps) {
+export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuProps) {
   const theme = useAppTheme();
+  useReturnFocus(visible, triggerRef);
   const anchorRef = useRef<View>(null);
   const { width: windowWidth } = useWindowDimensions();
   const [position, setPosition] = useState<MenuPosition>({ top: 0, left: 0 });

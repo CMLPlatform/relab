@@ -1,5 +1,6 @@
 """Unit tests for REST content negotiation middleware."""
 
+import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 
@@ -25,6 +26,10 @@ def _create_test_app() -> FastAPI:
 
     @app.get("/v1/json")
     async def read_probe() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/v1/things/export")
+    async def export_probe() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.post("/v10/json")
@@ -132,3 +137,14 @@ async def test_content_negotiation_uses_v1_path_boundary() -> None:
 
     assert response.status_code == 200
     assert response.json()["content_type"] == "text/plain"
+
+
+@pytest.mark.parametrize(("path", "expected"), [("/v1/things/export", 200), ("/v1/json", 406)])
+async def test_content_negotiation_accepts_csv_only_on_export_routes(path: str, expected: int) -> None:
+    """Export routes answer as CSV, so text/csv is acceptable there and nowhere else."""
+    app = _create_test_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get(path, headers={"accept": "text/csv"})
+
+    assert response.status_code == expected

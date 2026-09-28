@@ -57,6 +57,14 @@ Security-sensitive areas:
     (`account_guess_budget`). Rotating IPs, routes or fresh login challenges buys no extra
     guesses, so the MFA routes themselves sit on the looser login IP budget.
 - public read APIs
+  - Product export (`/products/export`, `/products/{id}/export`) assembles whole product trees, so
+    it has its own, stricter rate limit. One request is bounded by three limits, and past any of
+    them it fails with a `400` instead of a partial file: at most 100 base products, at most 10
+    component levels below a base product, and at most 5,000 components in total. The tree walk
+    checks the depth and component limits as it loads each level. Creating a component deeper
+    than 10 levels is refused as well.
+    Owner attribution follows the same profile-visibility redaction as the product page. CSV cells
+    that a spreadsheet would read as a formula are prefixed with `'`.
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so

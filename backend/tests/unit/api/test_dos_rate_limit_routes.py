@@ -62,6 +62,12 @@ def test_expensive_public_product_search_routes_are_rate_limited() -> None:
     _assert_rate_limited(_route(product_read_router, "/products/facets", "GET"), "api_read_rate_limit")
 
 
+def test_product_export_routes_have_the_export_rate_limit() -> None:
+    """Exports assemble whole product trees, so they carry a stricter limit than ordinary reads."""
+    _assert_rate_limited(_route(product_read_router, "/products/export", "GET"), "api_export_rate_limit")
+    _assert_rate_limited(_route(product_read_router, "/products/{product_id}/export", "GET"), "api_export_rate_limit")
+
+
 def test_product_and_component_upload_routes_are_rate_limited() -> None:
     """User media upload routes should have per-IP upload limits."""
     _assert_rate_limited(

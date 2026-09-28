@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
-import { productsInfiniteQueryOptions } from '@/features/products/queries';
+import { productsInfiniteQueryOptions, productsListQuery } from '@/features/products/queries';
 import { useProductsScreen } from '@/features/products/useProductsScreen';
 import { FILTER_CSV_SEPARATOR } from '@/services/api/products';
 
@@ -72,6 +72,7 @@ jest.mock('@/features/products/queries', () => ({
     { label: 'Oldest first', value: ['created_at'] },
   ],
   productsInfiniteQueryOptions: jest.fn(() => ({})),
+  productsListQuery: jest.fn(() => ({ search: 'from-list' })),
   useSearchBrandsQuery: () => ({ data: [], isLoading: false }),
   useSearchProductTypesQuery: () => ({ data: mockTypeSearchResults, isLoading: false }),
   useProductTypeLabelsQuery: () => ({ data: mockSelectedTypeResults, isLoading: false }),
@@ -238,6 +239,19 @@ describe('useProductsScreen', () => {
     expect(mockSetParams).toHaveBeenCalledWith({
       brands: `Apple${FILTER_CSV_SEPARATOR}Dell`,
     });
+  });
+
+  it('exposes the list filters for "Export results"', async () => {
+    mockSearchParams = { brands: 'acme' };
+    const { result } = await renderUseProductsScreen();
+
+    expect(jest.mocked(productsListQuery)).toHaveBeenCalledWith(
+      'all',
+      '',
+      ['-created_at'],
+      expect.objectContaining({ brands: ['acme'] }),
+    );
+    expect(result.current.list.exportQuery).toEqual({ search: 'from-list' });
   });
 
   describe('date preset filter', () => {

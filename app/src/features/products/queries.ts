@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-query';
 import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import { ApiError } from '@/services/api/errors';
-import { products } from '@/services/api/products';
+import { type ProductsQuery, products } from '@/services/api/products';
 import {
   fetchProductTypesByName,
   searchProductBrands,
@@ -50,6 +50,23 @@ const PAGE_SIZE = 24;
 
 // No placeholderData: it would carry the previous filter's whole pages array
 // (and stale total/hasNextPage) under the new filter while page 1 loads.
+/** The list's filters as an API query, shared by the list and "Export results". */
+export function productsListQuery(
+  filter: 'all' | 'mine',
+  search: string,
+  sortBy: string[],
+  extra: ProductExtraFilters = {},
+): ProductsQuery {
+  return {
+    search: search || undefined,
+    orderBy: sortBy,
+    brands: extra.brands?.length ? extra.brands : undefined,
+    createdAfter: extra.createdAfter,
+    productTypeNames: extra.productTypeNames?.length ? extra.productTypeNames : undefined,
+    ...(filter === 'mine' ? { owner: 'me' } : {}),
+  };
+}
+
 export const productsInfiniteQueryOptions = (
   filter: 'all' | 'mine',
   search: string,
@@ -71,12 +88,7 @@ export const productsInfiniteQueryOptions = (
       products({
         page: pageParam,
         size: PAGE_SIZE,
-        search: search || undefined,
-        orderBy: sortBy,
-        brands: extra.brands?.length ? extra.brands : undefined,
-        createdAfter: extra.createdAfter,
-        productTypeNames: extra.productTypeNames?.length ? extra.productTypeNames : undefined,
-        ...(filter === 'mine' ? { owner: 'me' } : {}),
+        ...productsListQuery(filter, search, sortBy, extra),
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, _pages, lastPageParam) =>

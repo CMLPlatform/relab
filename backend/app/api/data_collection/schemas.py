@@ -264,6 +264,21 @@ class ComponentReadWithRecursiveComponents(ComponentRead):
 ComponentReadWithRecursiveComponents.model_rebuild()
 
 
+class ComponentExportRead(ComponentReadWithRelationships):
+    """Component in a product export: the detail read plus every sub-component."""
+
+    components: list[ComponentExportRead] = Field(default_factory=list, description="List of sub-components")
+
+
+ComponentExportRead.model_rebuild()
+
+
+class ProductExportRead(ProductReadWithRelationships):
+    """Base product in a product export: the detail read plus its whole component tree."""
+
+    components: list[ComponentExportRead] = Field(default_factory=list, description="List of component products")
+
+
 ### Update Schemas ###
 class ProductUpdate(BaseUpdateSchema, ProductCircularityPropertiesInputFields):
     """Schema for updating product information including physical and circularity properties."""
