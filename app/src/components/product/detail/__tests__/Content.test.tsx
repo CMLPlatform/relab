@@ -104,3 +104,36 @@ describe('ProductPageContent — moderating someone else’s product', () => {
     expect(screen.getByText('Add component')).toBeOnTheScreen();
   });
 });
+
+const MISSING_LABEL_PATTERN = /^Missing: /;
+
+describe('ProductPageContent — missing-data checklist (#325)', () => {
+  const completeProduct = {
+    ...baseProduct,
+    productTypeID: 1,
+    productTypeName: 'Furniture',
+    brand: 'Acme',
+    description: 'A stand.',
+    images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
+  };
+
+  it('shows the checklist to the owner when data is missing', async () => {
+    await renderContent({ product: baseProduct, ownedByMe: true });
+
+    expect(await screen.findByLabelText(MISSING_LABEL_PATTERN)).toBeOnTheScreen();
+    expect(screen.getByLabelText('Jump to product type')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Jump to a photo')).toBeOnTheScreen();
+  });
+
+  it('hides the checklist from a non-owner (including a moderating superuser)', async () => {
+    await renderContent({ product: baseProduct, ownedByMe: false });
+
+    expect(screen.queryByLabelText(MISSING_LABEL_PATTERN)).toBeNull();
+  });
+
+  it('hides the checklist for the owner when the product is complete', async () => {
+    await renderContent({ product: completeProduct, ownedByMe: true });
+
+    expect(screen.queryByLabelText(MISSING_LABEL_PATTERN)).toBeNull();
+  });
+});
