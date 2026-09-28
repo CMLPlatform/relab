@@ -205,7 +205,8 @@ the topology these steps produce.
 
    - In the fork's settings, create a GitHub Environment named `prod` (and `staging` if you run
      one) with the variables `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL` and
-     `DOCS_PUBLIC_URL`, plus the optional `FEATURED_PRODUCT_ID` for the landing page hero.
+     `DOCS_PUBLIC_URL`, plus the optional `FEATURED_PRODUCT_ID` for the landing page hero. If you
+     run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you.
    - Run the Publish Images workflow. A manual run publishes the commit as `sha-<short sha>`; a
      release published by `release.yml` uses its version (`0.4.0`).
    - Make the packages public in the fork's package settings, or log the host in to GHCR.

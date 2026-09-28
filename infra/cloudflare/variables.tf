@@ -36,3 +36,15 @@ variable "cloudflare_zone_name" {
   type        = string
   default     = "cml-relab.org"
 }
+
+variable "github_owner" {
+  description = "GitHub organization that owns the repository whose Environments this root manages."
+  type        = string
+  default     = "CMLPlatform"
+}
+
+variable "github_repository" {
+  description = "Repository whose GitHub Environment holds this environment's image-build URLs."
+  type        = string
+  default     = "relab"
+}

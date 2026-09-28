@@ -419,6 +419,7 @@ _require-cloudflare-vars:
     [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || missing+=("CLOUDFLARE_API_TOKEN")
     [ -n "${TF_VAR_cloudflare_account_id:-}" ] || missing+=("TF_VAR_cloudflare_account_id")
     [ -n "${TF_VAR_cloudflare_zone_id:-}" ] || missing+=("TF_VAR_cloudflare_zone_id")
+    [ -n "${GITHUB_TOKEN:-}" ] || missing+=("GITHUB_TOKEN")
     # State encryption is fail-closed, so name the missing passphrase here rather than
     # letting tofu report it as an opaque decrypt error further in.
     [ -n "${TF_VAR_state_passphrase:-}" ] || missing+=("TF_VAR_state_passphrase")
