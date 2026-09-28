@@ -13,6 +13,7 @@ from tests.constants import (
     BOM_UNIT,
     COMPONENT_AMOUNT,
     COMPONENT_NAME,
+    IF_MATCH_FRESH,
     NEW_COMPONENT_NAME,
 )
 
@@ -256,10 +257,43 @@ async def test_patch_component(api_client_superuser: AsyncClient, setup_product_
     response = await api_client_superuser.patch(
         f"/v1/components/{setup_product_graph.component.id}",
         json={"name": "Renamed Component"},
+        headers=IF_MATCH_FRESH,
     )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["name"] == "Renamed Component"
+
+
+async def test_patch_component_without_changes_returns_the_component(
+    api_client_superuser: AsyncClient, setup_product_graph: ProductGraph
+) -> None:
+    """A PATCH that changes nothing (a photo-only Save) still answers with the component."""
+    component = setup_product_graph.component
+    response = await api_client_superuser.patch(
+        f"/v1/components/{component.id}", json={"name": component.name}, headers=IF_MATCH_FRESH
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["version"] == 1
+
+
+@pytest.mark.parametrize(
+    ("headers", "expected"),
+    [
+        ({}, status.HTTP_422_UNPROCESSABLE_CONTENT),
+        ({"If-Match": '"2"'}, status.HTTP_412_PRECONDITION_FAILED),
+        ({"If-Match": 'W/"1"'}, status.HTTP_412_PRECONDITION_FAILED),
+    ],
+)
+async def test_patch_component_enforces_if_match(
+    api_client_superuser: AsyncClient, setup_product_graph: ProductGraph, headers: dict[str, str], expected: int
+) -> None:
+    """PATCH /components/{id} needs the current version in If-Match, like base products."""
+    response = await api_client_superuser.patch(
+        f"/v1/components/{setup_product_graph.component.id}", json={"name": "Renamed Component"}, headers=headers
+    )
+
+    assert response.status_code == expected
 
 
 async def test_non_owner_cannot_patch_component(
@@ -270,6 +304,7 @@ async def test_non_owner_cannot_patch_component(
     response = await api_client_user.patch(
         f"/v1/components/{setup_product_graph.component.id}",
         json={"name": "Renamed Component"},
+        headers=IF_MATCH_FRESH,
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND

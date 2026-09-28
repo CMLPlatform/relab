@@ -12,7 +12,7 @@ from app.api.auth.dependencies import current_active_superuser, current_active_v
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import ProductType
 from scripts.seed.factories.models import UserFactory
-from tests.constants import UPDATED_PRODUCT_NAME
+from tests.constants import IF_MATCH_FRESH, UPDATED_PRODUCT_NAME
 from tests.fixtures.client import override_authenticated_user
 
 if TYPE_CHECKING:
@@ -77,6 +77,7 @@ async def test_authorization_matrix_for_representative_route_classes(
     anonymous_mutation = await api_client.patch(
         f"/v1/products/{setup_product.id}",
         json={"name": UPDATED_PRODUCT_NAME},
+        headers=IF_MATCH_FRESH,
     )
     assert_status(anonymous_mutation.status_code, status.HTTP_401_UNAUTHORIZED, "anonymous product mutation")
 
@@ -89,6 +90,7 @@ async def test_authorization_matrix_for_representative_route_classes(
             unverified_mutation = await api_client.patch(
                 f"/v1/products/{setup_product.id}",
                 json={"name": UPDATED_PRODUCT_NAME},
+                headers=IF_MATCH_FRESH,
             )
             assert_status(
                 unverified_mutation.status_code,
@@ -102,14 +104,22 @@ async def test_authorization_matrix_for_representative_route_classes(
         own_mutation = await api_client.patch(
             f"/v1/products/{regular_user_product.id}",
             json={"name": UPDATED_PRODUCT_NAME},
+            headers=IF_MATCH_FRESH,
         )
         assert_status(own_mutation.status_code, status.HTTP_200_OK, "regular user own-object mutation")
 
         foreign_mutation = await api_client.patch(
             f"/v1/products/{setup_product.id}",
             json={"name": UPDATED_PRODUCT_NAME},
+            headers=IF_MATCH_FRESH,
         )
         assert_status(foreign_mutation.status_code, status.HTTP_404_NOT_FOUND, "regular user foreign-object mutation")
+
+        # Ownership is decided before If-Match, so a missing header cannot reveal the record exists.
+        foreign_unconditional = await api_client.patch(
+            f"/v1/products/{setup_product.id}", json={"name": UPDATED_PRODUCT_NAME}
+        )
+        assert_status(foreign_unconditional.status_code, status.HTTP_404_NOT_FOUND, "foreign mutation without If-Match")
 
         own_user_products = await api_client.get(f"/v1/users/{db_user.id}/products")
         assert_status(own_user_products.status_code, status.HTTP_200_OK, "regular user own scoped product list")

@@ -1858,6 +1858,13 @@
             "title": "Updated At",
             "type": "string"
           },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          },
           "volume_cm3": {
             "anyOf": [
               {
@@ -2057,6 +2064,13 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -2265,6 +2279,13 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -2507,6 +2528,13 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -4542,6 +4570,13 @@
             "title": "Updated At",
             "type": "string"
           },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          },
           "videos": {
             "description": "Disassembly videos",
             "items": {
@@ -4756,6 +4791,13 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "volume_cm3": {
             "anyOf": [
@@ -4986,6 +5028,13 @@
           "updated_at": {
             "title": "Updated At",
             "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "description": "Edit version. Send it quoted in `If-Match` (`\"3\"`) when updating this product or component.",
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
           },
           "videos": {
             "description": "Disassembly videos",
@@ -8970,6 +9019,17 @@
               "title": "Component Id",
               "type": "integer"
             }
+          },
+          {
+            "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
+            "in": "header",
+            "name": "if-match",
+            "required": true,
+            "schema": {
+              "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -8992,6 +9052,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "412": {
+            "description": "The record changed since the `version` sent in `If-Match`."
           },
           "422": {
             "content": {
@@ -16167,6 +16230,17 @@
               "title": "Product Id",
               "type": "integer"
             }
+          },
+          {
+            "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
+            "in": "header",
+            "name": "if-match",
+            "required": true,
+            "schema": {
+              "description": "The `version` field from the product's last read, quoted: `\"3\"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412.",
+              "title": "If-Match",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -16189,6 +16263,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "412": {
+            "description": "The record changed since the `version` sent in `If-Match`."
           },
           "422": {
             "content": {

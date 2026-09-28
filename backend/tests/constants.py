@@ -13,3 +13,6 @@ NEW_COMPONENT_NAME = "New API Component"
 COMPONENT_AMOUNT = 2
 BOM_QUANTITY = 10.0
 BOM_UNIT = "g"
+
+# A freshly created product or component is at version 1.
+IF_MATCH_FRESH = {"If-Match": '"1"'}

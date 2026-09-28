@@ -1,8 +1,9 @@
 """Router dependencies for data collection routers."""
 
+import re
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Path
+from fastapi import Depends, Header, HTTPException, Path
 from pydantic import PositiveInt
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
@@ -11,6 +12,7 @@ from app.api.common.crud.filtering import create_filter_dependency
 from app.api.common.crud.query import require_model
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.data_collection.exceptions import ProductVersionMismatchError
 from app.api.data_collection.filters import MaterialProductLinkFilter, ProductFilterWithRelationships
 from app.api.data_collection.models.product import Product
 
@@ -21,6 +23,27 @@ MaterialProductLinkFilterDep = Annotated[
 ProductFilterWithRelationshipsDep = Annotated[
     ProductFilterWithRelationships, Depends(create_filter_dependency(ProductFilterWithRelationships))
 ]
+
+
+### Optimistic concurrency ###
+def product_if_match_version(
+    if_match: Annotated[
+        str,
+        Header(
+            description='The `version` field from the product\'s last read, quoted: `"3"`. '
+            "Not the `ETag` a GET returns: that one also changes with media. "
+            "A stale or malformed value is refused with 412.",
+        ),
+    ],
+) -> int:
+    """Parse the required ``If-Match: "<version>"`` header on product updates."""
+    match = re.fullmatch(r'"([0-9]{1,9})"', if_match.strip())
+    if match is None:
+        raise ProductVersionMismatchError
+    return int(match.group(1))
+
+
+ProductIfMatchVersionDep = Annotated[int, Depends(product_if_match_version)]
 
 
 ### Product Dependencies ###

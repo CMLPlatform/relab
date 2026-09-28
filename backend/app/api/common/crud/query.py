@@ -58,7 +58,9 @@ async def get_model[MT: Base](
         statement, model, loaders, read_schema=read_schema, raiseload_nested=raiseload_nested
     )
     if for_update:
-        statement = statement.with_for_update()
+        # populate_existing: an instance already in the session (loaded by an auth
+        # dependency, say) must take the row's values read under the lock, not keep stale ones.
+        statement = statement.with_for_update().execution_options(populate_existing=True)
     return (await db.execute(statement)).scalars().unique().one_or_none()
 
 

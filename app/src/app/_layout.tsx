@@ -31,7 +31,12 @@ import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { PRODUCT_SHORTCUT_GROUPS } from '@/features/products/productShortcutGroups';
-import { SAVE_PRODUCT_MUTATION_KEY, saveProductMutationFn } from '@/features/products/queries';
+import {
+  onResumedSaveError,
+  ResumedSaveConflictNotice,
+  SAVE_PRODUCT_MUTATION_KEY,
+  saveProductMutationFn,
+} from '@/features/products/queries';
 import { registerNativeOnlineListener } from '@/services/nativeOnline';
 import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
@@ -64,7 +69,10 @@ const queryClient = new QueryClient({
 
 // A mutation restored from the persisted cache has no mutationFn; this
 // re-attaches one by key before resumePausedMutations() runs it.
-queryClient.setMutationDefaults(SAVE_PRODUCT_MUTATION_KEY, { mutationFn: saveProductMutationFn });
+queryClient.setMutationDefaults(SAVE_PRODUCT_MUTATION_KEY, {
+  mutationFn: saveProductMutationFn,
+  onError: onResumedSaveError(queryClient),
+});
 
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
@@ -257,6 +265,7 @@ function ThemedProviders({ children }: { children: ReactNode }) {
               {children}
               {/* Needs DialogProvider (toast) and AuthProvider (user flag). */}
               <TermsAcceptanceDialog />
+              <ResumedSaveConflictNotice />
             </DialogProvider>
           </GestureHandlerRootView>
         </KeyboardProvider>

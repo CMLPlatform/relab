@@ -3672,6 +3672,12 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3746,6 +3752,12 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3799,6 +3811,12 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3857,6 +3875,12 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
       /** Parent Id */
       parent_id: number;
       /**
@@ -4902,6 +4926,12 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -4984,6 +5014,12 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -5030,6 +5066,12 @@ export interface components {
       id: number;
       /** Product Type Id */
       product_type_id?: number | null;
+      /**
+       * Version
+       * @description Edit version. Send it quoted in `If-Match` (`"3"`) when updating this product or component.
+       * @default 1
+       */
+      version: number;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -8090,7 +8132,10 @@ export interface operations {
   update_product_v1_products__product_id__patch: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412. */
+        'if-match': string;
+      };
       path: {
         product_id: number;
       };
@@ -8110,6 +8155,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ProductRead'];
         };
+      };
+      /** @description The record changed since the `version` sent in `If-Match`. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {
@@ -8826,7 +8878,10 @@ export interface operations {
   update_component_v1_components__component_id__patch: {
     parameters: {
       query?: never;
-      header?: never;
+      header: {
+        /** @description The `version` field from the product's last read, quoted: `"3"`. Not the `ETag` a GET returns: that one also changes with media. A stale or malformed value is refused with 412. */
+        'if-match': string;
+      };
       path: {
         component_id: number;
       };
@@ -8846,6 +8901,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ComponentRead'];
         };
+      };
+      /** @description The record changed since the `version` sent in `If-Match`. */
+      412: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

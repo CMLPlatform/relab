@@ -1,7 +1,7 @@
 import { API_URL } from '@/config';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import type { Product } from '@/types/Product';
-import { throwFromResponse } from './errors';
+import { ApiError, throwFromResponse } from './errors';
 import { resolveApiMediaUrl } from './media';
 
 const baseUrl = API_URL;
@@ -143,20 +143,39 @@ async function saveNewProduct(product: Product, idempotencyKey?: string): Promis
   return data.id;
 }
 
+// Versions this client's own saves produced, by product id. An edit form keeps
+// the version it loaded with, so its second blur-save would otherwise send a
+// version its first save already moved past and be refused as a conflict.
+const savedVersions = new Map<number, number>();
+
+/** Drop the remembered save versions, with the rest of the client state, on sign-out. */
+export function forgetSavedVersions(): void {
+  savedVersions.clear();
+}
+
+/** Whether a save was refused because the record changed since it was loaded (HTTP 412). */
+export function isEditConflict(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 412;
+}
+
 async function updateProduct(
   product: Product,
   originalImages: Product['images'],
   originalVideos: Product['videos'],
 ): Promise<number> {
+  const id = product.id as number;
+  const version = Math.max(product.version ?? 1, savedVersions.get(id) ?? 0);
   const productRes = await fetchWithAuth(productRootUrl(product), {
     method: 'PATCH',
-    headers: JSON_HEADERS,
+    headers: { ...JSON_HEADERS, 'If-Match': `"${version}"` },
     body: JSON.stringify(toProductPayload(product)),
   });
 
+  // A retry of a save that already landed changes nothing, which the API
+  // accepts whatever version it names.
   await throwOnError(productRes, 'update product');
-
-  const data = await productRes.json();
+  const saved = await productRes.json();
+  savedVersions.set(id, saved.version);
 
   // The PATCH already landed, so a media failure is partial, not a failed save.
   try {
@@ -165,10 +184,10 @@ async function updateProduct(
       updateProductVideos(product, originalVideos),
     ]);
   } catch (err) {
-    throw new MediaSyncError(data.id, err);
+    throw new MediaSyncError(saved.id, err);
   }
 
-  return data.id;
+  return saved.id;
 }
 
 async function updateProductImages(product: Product, originalImages: Product['images']) {

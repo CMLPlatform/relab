@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
-import { useDialog } from '@/components/base/dialogContext';
+import { type DialogOptions, useDialog } from '@/components/base/dialogContext';
 import type { SaveProductVariables } from '@/features/products/queries';
 import {
   useBaseProductQuery,
@@ -10,6 +10,7 @@ import {
   useSaveProductMutation,
 } from '@/features/products/queries';
 import { useProductForm } from '@/features/products/useProductForm';
+import { ApiError } from '@/services/api/errors';
 import { MediaSyncError } from '@/services/api/saving';
 import { baseProduct } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
@@ -345,6 +346,37 @@ describe('useProductForm', () => {
     expect(mockAlert).toHaveBeenCalledWith(
       expect.objectContaining({ title: 'Save failed', message: 'Network failure' }),
     );
+  });
+
+  it('offers a reload, not "Save failed", when Save hits an edit conflict', async () => {
+    const mockAlert = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: mockAlert, input: jest.fn(), toast: jest.fn() });
+    const mockMutate = jest.fn(async () => {
+      throw new ApiError('This product was changed since you loaded it.', 412);
+    });
+    const onSaveSuccess = jest.fn();
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+
+    const { result } = await renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true, onSaveSuccess }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+    mockAlert.mockClear();
+
+    await act(async () => {
+      result.current.saveAndExit();
+    });
+
+    expect(mockAlert).toHaveBeenCalledTimes(1);
+    expect(mockAlert).toHaveBeenCalledWith(expect.objectContaining({ title: 'Changed elsewhere' }));
+    expect(onSaveSuccess).not.toHaveBeenCalled();
   });
 
   // A media-sync failure means the entity itself saved: the caller must hear
@@ -804,6 +836,43 @@ describe('useProductForm blur-save', () => {
 
     expect(mockToast).toHaveBeenCalledWith('Network failure');
     expect(result.current.isDirty).toBe(true);
+  });
+
+  it('offers a reload instead of a toast when the record changed elsewhere', async () => {
+    const mockAlert = jest.fn();
+    const mockToast = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: mockAlert, input: jest.fn(), toast: mockToast });
+    const mockMutate = jest.fn(async () => {
+      throw new ApiError('This product was changed since you loaded it.', 412);
+    });
+    const latest = { ...validProduct, name: 'Renamed elsewhere', version: 5 };
+    const refetch = jest.fn(async () => ({ data: latest }));
+    (useSaveProductMutation as jest.Mock).mockReturnValue({ mutateAsync: mockMutate });
+    (useBaseProductQuery as jest.Mock).mockReturnValue({
+      data: validProduct,
+      isLoading: false,
+      refetch,
+    });
+    const { result } = await renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => {
+      result.current.onProductNameChange('Edited Name');
+    });
+
+    expect(mockToast).not.toHaveBeenCalled();
+    const [options] = mockAlert.mock.calls[0] as [DialogOptions];
+    expect(options.title).toBe('Changed elsewhere');
+    await act(async () => {
+      options.buttons?.find((b) => b.text === 'Reload')?.onPress?.();
+    });
+    await waitFor(() => expect(result.current.product.name).toBe('Renamed elsewhere'));
+    expect(result.current.isDirty).toBe(false);
   });
 
   it('does not save outside edit mode', async () => {

@@ -7,8 +7,11 @@ import {
 } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
+import { DialogContext } from '@/components/base/dialogContext';
 import {
+  onResumedSaveError,
   productsInfiniteQueryOptions,
+  ResumedSaveConflictNotice,
   useBaseProductQuery,
   useComponentQuery,
   useDeleteProductMutation,
@@ -667,5 +670,26 @@ describe('useProductQueries', () => {
       expect.objectContaining({ queryKey: ['component', 123] }),
     );
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
+  });
+
+  it('announces a restored save refused as a conflict, and refreshes the record', async () => {
+    const toast = jest.fn();
+    const dialog = { alert: jest.fn(), input: jest.fn(), toast };
+    const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+    const noticeWrapper = ({ children }: { children: React.ReactNode }) => (
+      <DialogContext.Provider value={dialog}>{wrapper({ children })}</DialogContext.Provider>
+    );
+    await renderHook(() => ResumedSaveConflictNotice(), { wrapper: noticeWrapper });
+    const onError = onResumedSaveError(queryClient);
+    const product = { ...baseProduct, id: 7, name: 'Kettle' };
+
+    onError(new ApiError('changed', 412), { product, originalImages: [], originalVideos: [] });
+    onError(new ApiError('down', 503), { product, originalImages: [], originalVideos: [] });
+
+    expect(toast).toHaveBeenCalledTimes(1);
+    expect(toast).toHaveBeenCalledWith(expect.stringContaining('"Kettle" changed elsewhere'));
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['baseProduct', 7] }),
+    );
   });
 });

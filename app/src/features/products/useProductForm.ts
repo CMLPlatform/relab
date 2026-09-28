@@ -13,7 +13,7 @@ import type { SectionKey } from '@/components/base/SectionNavContext';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
-import { MediaSyncError } from '@/services/api/saving';
+import { isEditConflict, MediaSyncError } from '@/services/api/saving';
 import { type ProductFormValues, productSchema } from '@/services/api/validation/productSchema';
 import type { Product } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
@@ -87,12 +87,14 @@ function useProductFieldHandlers({
   saveMutation,
   serverProduct,
   dialog,
+  onEditConflict,
 }: {
   form: ReturnType<typeof useForm<ProductFormValues>>;
   editMode: boolean;
   saveMutation: ReturnType<typeof useSaveProductMutation>;
   serverProduct: Product | undefined;
   dialog: ReturnType<typeof useDialog>;
+  onEditConflict: () => void;
 }) {
   const { setValue, getValues, trigger, reset, formState } = form;
 
@@ -130,7 +132,8 @@ function useProductFieldHandlers({
         { keepValues: true, keepErrors: true, keepIsValid: true },
       );
     } catch (err) {
-      dialog.toast(getErrorMessage(err, 'Could not save. Press Save to try again.'));
+      if (isEditConflict(err)) onEditConflict();
+      else dialog.toast(getErrorMessage(err, 'Could not save. Press Save to try again.'));
     }
   };
 
@@ -190,6 +193,7 @@ function useProductFormActions({
   idempotencyKeyRef,
   isDirty,
   onDeleteSuccess,
+  onEditConflict,
   onSaveSuccess,
   product,
   replace,
@@ -204,6 +208,7 @@ function useProductFormActions({
   idempotencyKeyRef: RefObject<string | null>;
   isDirty: boolean;
   onDeleteSuccess?: () => void;
+  onEditConflict: () => void;
   onSaveSuccess?: (savedId: number) => void;
   product: Product;
   replace: ReturnType<typeof useRouter>['replace'];
@@ -246,6 +251,10 @@ function useProductFormActions({
       reset({ ...currentProduct, id: savedId });
       onSaveSuccess?.(savedId);
     } catch (err) {
+      if (isEditConflict(err)) {
+        onEditConflict();
+        return;
+      }
       // A media-sync failure means the entity saved; stay put so the photos
       // can be retried.
       const partial = err instanceof MediaSyncError;
@@ -285,6 +294,34 @@ function useProductFormActions({
   });
 
   return { saveAndExit, onProductDelete };
+}
+
+/**
+ * Someone else saved this record since it was loaded: offer the latest version.
+ * Reloading replaces the form, so edits made here that did not save are dropped.
+ */
+function editConflictAlert(
+  dialog: ReturnType<typeof useDialog>,
+  refetch: () => Promise<{ data?: Product }>,
+  reset: ReturnType<typeof useForm<ProductFormValues>>['reset'],
+) {
+  return () =>
+    dialog.alert({
+      title: 'Changed elsewhere',
+      message:
+        'This record was changed on another device or by a moderator since you opened it. ' +
+        'Reload to see the latest version; your unsaved edits here will be lost.',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reload',
+          onPress: () =>
+            void refetch().then(({ data }) => {
+              if (data) reset(data);
+            }),
+        },
+      ],
+    });
 }
 
 export type UseProductFormOptions = {
@@ -352,12 +389,15 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
   // Lives for the draft's lifetime; minted in saveAndExit.
   const idempotencyKeyRef = useRef<string | null>(null);
 
+  const onEditConflict = editConflictAlert(dialog, refetch, reset);
+
   const fieldHandlers = useProductFieldHandlers({
     form,
     editMode,
     saveMutation,
     serverProduct,
     dialog,
+    onEditConflict,
   });
   const { saveAndExit, onProductDelete } = useProductFormActions({
     amountFlushRef,
@@ -366,6 +406,7 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
     idempotencyKeyRef,
     isDirty,
     onDeleteSuccess: options.onDeleteSuccess,
+    onEditConflict,
     onSaveSuccess: options.onSaveSuccess,
     product,
     replace,

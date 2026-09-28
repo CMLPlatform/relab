@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
+import { ApiError } from '@/services/api/errors';
 import { getBaseProduct } from '@/services/api/products';
-import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
+import {
+  deleteProduct,
+  forgetSavedVersions,
+  isEditConflict,
+  MediaSyncError,
+  saveProduct,
+} from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
 // Mock dependencies
@@ -57,6 +64,7 @@ function mockFetchError(status = 400, body: unknown = { detail: 'Error' }) {
 describe('Saving API Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    forgetSavedVersions();
     // Default: getBaseProduct returns a product with no images or videos
     mockGetProduct.mockResolvedValue({
       ...baseProduct,
@@ -270,6 +278,40 @@ describe('Saving API Service', () => {
       mockFetchError(400, { detail: 'Validation failed' });
 
       await expect(saveProduct(existingProduct)).rejects.toThrow('Validation failed');
+    });
+
+    it('sends the loaded version as a quoted If-Match tag', async () => {
+      mockFetchOk({ id: 77, version: 4 });
+
+      await saveProduct({ ...baseProduct, id: 77, version: 3 });
+
+      const patchCall = mockFetchWithAuth.mock.calls.find((c) => c[1]?.method === 'PATCH');
+      expect(patchCall?.[1]?.headers).toHaveProperty('If-Match', '"3"');
+    });
+
+    it("chains a form's second save onto the version its first save produced", async () => {
+      mockFetchOk({ id: 78, version: 2 });
+      mockFetchOk({ id: 78, version: 3 });
+
+      // Both snapshots come from a form hydrated at version 1.
+      await saveProduct({ ...baseProduct, id: 78, version: 1 });
+      await saveProduct({ ...baseProduct, id: 78, version: 1 });
+
+      const tags = mockFetchWithAuth.mock.calls
+        .filter((c) => c[1]?.method === 'PATCH')
+        .map((c) => (c[1]?.headers as Record<string, string> | undefined)?.['If-Match']);
+      expect(tags).toEqual(['"1"', '"2"']);
+    });
+
+    it('reports a 412 as an edit conflict', async () => {
+      mockFetchError(412, { detail: 'This product was changed since you loaded it.' });
+
+      const err = await saveProduct({ ...baseProduct, id: 79, version: 1 }).catch(
+        (e: unknown) => e,
+      );
+
+      expect(isEditConflict(err)).toBe(true);
+      expect(isEditConflict(new ApiError('nope', 409))).toBe(false);
     });
   });
 

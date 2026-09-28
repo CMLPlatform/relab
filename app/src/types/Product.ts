@@ -12,6 +12,8 @@ export type Product = {
   description?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** Edit version for optimistic concurrency; sent back in `If-Match` on update. */
+  version?: number;
   productTypeID?: number;
   productTypeName?: string;
   /** The type as the API recorded it. Its id is the database's, which the bundled CPV snapshot does not share. */

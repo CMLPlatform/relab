@@ -3,7 +3,18 @@
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
-from sqlalchemy import CheckConstraint, Computed, ForeignKey, Index, and_, asc, func, literal_column, select
+from sqlalchemy import (
+    CheckConstraint,
+    Computed,
+    ForeignKey,
+    Index,
+    and_,
+    asc,
+    func,
+    literal_column,
+    select,
+    text,
+)
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import (
     Mapped,
@@ -152,6 +163,10 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
 
     product_type_id: Mapped[int | None] = mapped_column(ForeignKey("producttype.id"), default=None)
     product_type: Mapped[ProductType] = relationship(uselist=False)
+
+    # Optimistic-concurrency token, sent as the ETag. Bumped by update_product only, so
+    # it tracks the row's own fields, not its media, components, or bill of materials.
+    version: Mapped[int] = mapped_column(server_default=text("1"), default=1)
 
     bill_of_materials: Mapped[list[MaterialProductLink] | None] = relationship(
         back_populates="product", lazy="selectin", cascade="all, delete-orphan"

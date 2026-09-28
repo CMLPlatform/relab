@@ -46,6 +46,12 @@ class ConflictError(APIError):
     http_status_code = status.HTTP_409_CONFLICT
 
 
+class PreconditionFailedError(APIError):
+    """Exception raised when an If-Match precondition no longer holds."""
+
+    http_status_code = status.HTTP_412_PRECONDITION_FAILED
+
+
 class FailedDependencyError(APIError):
     """Exception raised when an upstream or dependent system returns unusable data."""
 
