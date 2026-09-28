@@ -6,7 +6,7 @@ from fastapi_users.exceptions import UserNotExists
 from fastapi_users.router.common import ErrorCode
 from pydantic import SecretStr
 
-from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError
+from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError, MfaStepUpCodeInvalidError
 from app.api.auth.models import User
 from app.api.auth.schemas import (
     MfaChallengeRequest,
@@ -88,7 +88,7 @@ async def confirm_totp_setup(
     )
     if counter is None:
         audit_mfa_failure(user, reason="invalid_totp_setup_code")
-        raise MfaCodeInvalidError
+        raise MfaStepUpCodeInvalidError
 
     setup = await mfa_service.consume_totp_setup(redis, setup_token, user_id=current_user.id)
     await mfa_service.enable_totp(user_manager, user, setup.secret)
@@ -126,7 +126,7 @@ async def disable_totp(
     # clear_totp wipes the codes, so the matched one needs no persisting.
     if await _verify_challenge_code(payload.code, user=user, redis=redis) is None:
         audit_mfa_failure(user, reason="invalid_totp_disable_code")
-        raise MfaCodeInvalidError
+        raise MfaStepUpCodeInvalidError
     await mfa_service.clear_totp(user_manager, user)
     audit_event(user.id, AuditAction.MFA_SUCCESS, "mfa", user.id, context=AuditContext(flow="totp_disable"))
     await send_mfa_changed_notification(user.email, user.username, enabled=False, background_tasks=background_tasks)
@@ -149,7 +149,7 @@ async def regenerate_recovery_codes(
         code=payload.code,
     ):
         audit_mfa_failure(user, reason="invalid_totp_regenerate_code")
-        raise MfaCodeInvalidError
+        raise MfaStepUpCodeInvalidError
     codes, hashes = mfa_service.generate_recovery_codes()
     await mfa_service.set_recovery_codes(user_manager, user, hashes)
     audit_event(
@@ -225,6 +225,26 @@ async def complete_mfa_challenge(
         redis=redis,
         bearer_strategy=bearer_strategy,
     )
+
+
+async def require_mfa_step_up(code: str | None, *, user: User, redis: Redis, action: str) -> None:
+    """Require a current TOTP or recovery code before a sensitive action, when MFA is on.
+
+    Runs after the password step-up, so a stolen session plus a phished password still
+    cannot act without the second factor. OAuth-only accounts with MFA need it too.
+    """
+    if not user.mfa_enabled:
+        return
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Authentication code is required to {action}.",
+        )
+    # NOTE: a matched recovery code is not persisted as spent: the only caller erases
+    # the account next. Persist the remaining hashes if a non-destructive caller appears.
+    if await _verify_challenge_code(code, user=user, redis=redis) is None:
+        audit_mfa_failure(user, reason="invalid_step_up_code")
+        raise MfaStepUpCodeInvalidError
 
 
 async def _verify_challenge_code(

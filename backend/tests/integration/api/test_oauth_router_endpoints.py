@@ -113,7 +113,7 @@ async def test_unlink_rejects_wrong_password(
     active_user: User,
     db_session: AsyncSession,
 ) -> None:
-    """A wrong current password is a 401 and leaves the link in place."""
+    """A wrong current password is a 403 and leaves the link in place."""
     active_user.has_usable_password = True
     active_user.hashed_password = build_password_helper().hash(KNOWN_PASSWORD)
     oauth_account = _link_google(active_user)
@@ -124,7 +124,7 @@ async def test_unlink_rejects_wrong_password(
         "DELETE", "/v1/oauth/google/associate", json={"current_password": "wrong-password"}
     )
 
-    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.status_code == status.HTTP_403_FORBIDDEN
     assert await db_session.get(OAuthAccount, oauth_account.id) is not None
 
 

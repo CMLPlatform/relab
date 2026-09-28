@@ -50,7 +50,7 @@ def test_wrong_password_is_rejected() -> None:
             action="link a social login",
         )
 
-    assert exc.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert exc.value.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_correct_password_is_accepted() -> None:

@@ -3,13 +3,20 @@ import type { useAuth } from '@/context/auth';
 
 export function useProfileDialogs() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteMfaCode, setDeleteMfaCode] = useState('');
+  const [deletePending, setDeletePending] = useState(false);
   const [logoutDialogVisible, setLogoutDialogVisible] = useState(false);
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
   const [unlinkPassword, setUnlinkPassword] = useState('');
 
   const openDeleteDialog = useCallback(() => setDeleteDialogVisible(true), []);
-  const closeDeleteDialog = useCallback(() => setDeleteDialogVisible(false), []);
+  const closeDeleteDialog = useCallback(() => {
+    setDeleteDialogVisible(false);
+    setDeletePassword('');
+    setDeleteMfaCode('');
+  }, []);
   const openLogoutDialog = useCallback(() => setLogoutDialogVisible(true), []);
   const closeLogoutDialog = useCallback(() => setLogoutDialogVisible(false), []);
   const closeUnlinkDialog = useCallback(() => {
@@ -27,6 +34,12 @@ export function useProfileDialogs() {
       visible: deleteDialogVisible,
       open: openDeleteDialog,
       close: closeDeleteDialog,
+      password: deletePassword,
+      setPassword: setDeletePassword,
+      mfaCode: deleteMfaCode,
+      setMfaCode: setDeleteMfaCode,
+      pending: deletePending,
+      setPending: setDeletePending,
     },
     logoutDialog: {
       visible: logoutDialogVisible,

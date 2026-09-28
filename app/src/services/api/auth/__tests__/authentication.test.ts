@@ -12,6 +12,8 @@ const auth = {
   ...(require('@/services/api/auth/authUser') as typeof import('@/services/api/auth/authUser')),
 };
 
+const USERS_ME_PATTERN = /\/users\/me$/;
+
 setupFetchMock();
 const secureStoreMock = SecureStore as jest.Mocked<typeof SecureStore>;
 const fetchMock = () => global.fetch as jest.MockedFunction<typeof fetch>;
@@ -738,6 +740,61 @@ describe('Authentication API Service', () => {
       fetchMock().mockResolvedValueOnce(mockResponse(500, {}, false) as Response);
 
       await expect(auth.unlinkOAuth('github')).rejects.toThrow('Failed to unlink github account');
+    });
+  });
+  // ─── deleteAccount ──────────────────────────────────────
+
+  describe('deleteAccount', () => {
+    it('sends the current password and clears the local session', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
+
+      await auth.deleteAccount('current-password');
+
+      const [url, init] = fetchMock().mock.calls[0];
+      expect(String(url)).toMatch(USERS_ME_PATTERN);
+      expect(init?.method).toBe('DELETE');
+      expect(JSON.parse(String(init?.body))).toEqual({ current_password: 'current-password' });
+      expect(authRuntime.token).toBeUndefined();
+      expect(authRuntime.explicitlyLoggedOut).toBe(true);
+      expect(secureStoreMock.deleteItemAsync).toHaveBeenCalled();
+    });
+
+    it('sends the MFA code alongside the password', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
+
+      await auth.deleteAccount('current-password', '123456');
+
+      expect(JSON.parse(String(fetchMock().mock.calls[0][1]?.body))).toEqual({
+        current_password: 'current-password',
+        mfa_code: '123456',
+      });
+    });
+
+    it('sends no body for an account without a password', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
+
+      await auth.deleteAccount();
+
+      expect(fetchMock().mock.calls[0][1]?.body).toBeUndefined();
+    });
+
+    it('throws the server detail and keeps the session when refused', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(
+        mockResponse(
+          409,
+          { detail: 'The last active superuser cannot be deleted.' },
+          false,
+        ) as Response,
+      );
+
+      await expect(auth.deleteAccount('current-password')).rejects.toThrow(
+        'The last active superuser cannot be deleted.',
+      );
+      expect(authRuntime.explicitlyLoggedOut).toBe(false);
     });
   });
 });

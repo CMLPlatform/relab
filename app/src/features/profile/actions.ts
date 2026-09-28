@@ -6,35 +6,33 @@ import type { StreamSessionState } from '@/context/streamSession';
 import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { logout, revokeAllSessions } from '@/services/api/auth/authLogin';
-import { confirmOAuthUnlink, promptUsernameEdit, sendVerificationEmail } from './mutations';
+import {
+  confirmOAuthUnlink,
+  deleteOwnAccount,
+  promptUsernameEdit,
+  sendVerificationEmail,
+} from './mutations';
 import type { useProfileDialogs } from './state';
 
-export function useProfileActions({
-  profile,
-  feedback,
-  dialogs,
+/** End the session (stopping any live stream first), then leave the account screen. */
+function useExitSession({
   activeStream,
-  stopStreamMutation,
-  setIsLoggingOut,
-  setActiveStream,
+  feedback,
   refetch,
   router,
-  youtubeEnabled,
-  setYoutubeEnabled,
+  setActiveStream,
+  setIsLoggingOut,
+  stopStreamMutation,
 }: {
-  profile: ReturnType<typeof useAuth>['user'];
-  feedback: ReturnType<typeof useAppFeedback>;
-  dialogs: ReturnType<typeof useProfileDialogs>;
   activeStream: StreamSessionState['activeStream'];
-  stopStreamMutation: ReturnType<typeof useStopYouTubeStreamMutation>;
-  setIsLoggingOut: (value: boolean) => void;
-  setActiveStream: StreamSessionState['setActiveStream'];
+  feedback: ReturnType<typeof useAppFeedback>;
   refetch: ReturnType<typeof useAuth>['refetch'];
   router: ReturnType<typeof useRouter>;
-  youtubeEnabled: boolean;
-  setYoutubeEnabled: (enabled: boolean) => Promise<void>;
+  setActiveStream: StreamSessionState['setActiveStream'];
+  setIsLoggingOut: (value: boolean) => void;
+  stopStreamMutation: ReturnType<typeof useStopYouTubeStreamMutation>;
 }) {
-  const exitSession = useCallback(
+  return useCallback(
     ({
       endSession,
       redirectTo,
@@ -75,6 +73,42 @@ export function useProfileActions({
     },
     [activeStream, feedback, refetch, router, setActiveStream, setIsLoggingOut, stopStreamMutation],
   );
+}
+
+export function useProfileActions({
+  profile,
+  feedback,
+  dialogs,
+  activeStream,
+  stopStreamMutation,
+  setIsLoggingOut,
+  setActiveStream,
+  refetch,
+  router,
+  youtubeEnabled,
+  setYoutubeEnabled,
+}: {
+  profile: ReturnType<typeof useAuth>['user'];
+  feedback: ReturnType<typeof useAppFeedback>;
+  dialogs: ReturnType<typeof useProfileDialogs>;
+  activeStream: StreamSessionState['activeStream'];
+  stopStreamMutation: ReturnType<typeof useStopYouTubeStreamMutation>;
+  setIsLoggingOut: (value: boolean) => void;
+  setActiveStream: StreamSessionState['setActiveStream'];
+  refetch: ReturnType<typeof useAuth>['refetch'];
+  router: ReturnType<typeof useRouter>;
+  youtubeEnabled: boolean;
+  setYoutubeEnabled: (enabled: boolean) => Promise<void>;
+}) {
+  const exitSession = useExitSession({
+    activeStream,
+    feedback,
+    refetch,
+    router,
+    setActiveStream,
+    setIsLoggingOut,
+    stopStreamMutation,
+  });
 
   const onLogout = useCallback(() => {
     if (activeStream) {
@@ -98,6 +132,22 @@ export function useProfileActions({
       redirectTo: '/products',
     });
   }, [dialogs.logoutDialog.close, exitSession]);
+
+  const confirmDeleteAccount = useCallback(async () => {
+    const { deleteDialog } = dialogs;
+    // Set before the request: a cleared session must not bounce this screen to /login.
+    setIsLoggingOut(true);
+    if (await deleteOwnAccount({ deleteDialog, streaming: Boolean(activeStream), feedback })) {
+      // The server already ended the session; this only leaves the screen like logout does.
+      exitSession({
+        closeDialog: deleteDialog.close,
+        endSession: async () => {},
+        redirectTo: '/products',
+      });
+    } else {
+      setIsLoggingOut(false);
+    }
+  }, [activeStream, dialogs, exitSession, feedback, setIsLoggingOut]);
 
   const onVerifyAccount = useCallback(() => {
     if (!profile) return;
@@ -149,6 +199,7 @@ export function useProfileActions({
   return {
     onLogout,
     confirmLogout,
+    confirmDeleteAccount,
     onRevokeAllSessions,
     onVerifyAccount,
     promptEditUsername,

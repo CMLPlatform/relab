@@ -87,6 +87,12 @@ Refresh tokens are random bearer secrets stored in Redis under SHA-256 fingerpri
 
 Authorization is enforced in the backend route layer, not by client UI state. FastAPI dependencies separate public reads, authenticated self-service, verified-user writes, owner-scoped resources, device assertions, and superuser-only admin routes. Request bodies cannot set account-control or ownership fields, and product owner identity is redacted from viewers who cannot see the owner's profile.
 
+## Account deletion
+
+Signed-in users delete their own account from the account screen (`DELETE /v1/users/me`). Like an email or password change, this requires the current password; accounts that sign in only through Google or GitHub have no password to enter. Accounts with two-step verification also enter a current authenticator code or a recovery code, whether or not they have a password. A wrong current password returns 403 rather than 401 here and in every other password step-up, as does a wrong authenticator code when confirming or turning off two-step verification, regenerating recovery codes, or deleting the account, because the session itself is still valid and a client must not refresh and resend the guess. Deletion erases the account's personal data, cameras, and linked sign-ins, and revokes every session. Products and their media move to an inactive anonymous system account, so contributed research data stays on the platform without the owner's name. Removing the uploads as well is a request to the maintainers.
+
+Admins delete accounts through `DELETE /v1/admin/users/{user_id}` and can choose to delete the products instead of anonymizing them. Neither route deletes the last active superuser.
+
 ## OAuth
 
 Google and GitHub support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email; GitHub linking requires explicit association. OAuth login creates Relab-owned sessions; Relab does not perform IdP-wide logout.

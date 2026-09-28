@@ -101,6 +101,7 @@ export const handlers = [
       ...body,
     });
   }),
+  http.delete(`${API_URL}/users/me`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${API_URL}/auth/verify`, () => HttpResponse.json({ message: 'Verified' })),
   http.post(`${API_URL}/auth/request-verify-token`, () => HttpResponse.json({ message: 'Sent' })),
   http.delete(`${API_URL}/oauth/:provider/associate`, () =>
