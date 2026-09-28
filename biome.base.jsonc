@@ -51,6 +51,19 @@
       // renders one supplies the accessible name (title/aria-label), not the file.
       "includes": ["**/*.svg"],
       "linter": { "rules": { "a11y": { "noSvgWithoutTitle": "off" } } }
+    },
+    {
+      // Test placeholders look like secrets, describe/it blocks are long without
+      // being real functions, and an assertion regex matched once per run gains
+      // nothing from being hoisted away from the test that documents it.
+      "includes": ["**/e2e/**/*.ts", "**/*.test.ts"],
+      "linter": {
+        "rules": {
+          "complexity": { "noExcessiveLinesPerFunction": "off" },
+          "performance": { "useTopLevelRegex": "off" },
+          "security": { "noSecrets": "off" }
+        }
+      }
     }
   ],
   "vcs": {

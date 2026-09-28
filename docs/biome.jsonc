@@ -43,25 +43,6 @@
       }
     },
     {
-      // Same as www: test placeholders look like secrets, describe/test blocks
-      // are long without being real functions, and an assertion regex matched
-      // once per run gains nothing from being hoisted away from its test.
-      "includes": ["e2e/**/*.ts", "src/**/*.test.ts"],
-      "linter": {
-        "rules": {
-          "complexity": {
-            "noExcessiveLinesPerFunction": "off"
-          },
-          "performance": {
-            "useTopLevelRegex": "off"
-          },
-          "security": {
-            "noSecrets": "off"
-          }
-        }
-      }
-    },
-    {
       // Build and test config files run in Node and keep conventional exports.
       "includes": ["astro.config.mjs", "playwright.config.ts"],
       "linter": {
