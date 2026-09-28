@@ -68,7 +68,7 @@ async def test_create_file_rejects_oversized_upload(mock_session: AsyncMock) -> 
     )
 
     with pytest.raises(UploadTooLargeError, match="Maximum size: 50 MB"):
-        await file_storage_service.create(mock_session, file_create)
+        await file_storage_service.create(mock_session, file_create, caps_role=UserRole.CONTRIBUTOR)
 
 
 async def test_create_file_uses_configured_upload_size_limit(
@@ -86,7 +86,7 @@ async def test_create_file_uses_configured_upload_size_limit(
     )
 
     with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
-        await file_storage_service.create(mock_session, file_create)
+        await file_storage_service.create(mock_session, file_create, caps_role=UserRole.CONTRIBUTOR)
 
 
 async def test_delete_product_file_releases_upload_quota(mock_session: AsyncMock) -> None:
@@ -129,17 +129,16 @@ def test_image_create_rejects_quota_user_fields() -> None:
 
 
 @pytest.mark.parametrize(
-    ("owner_role", "size_mb", "limit_mb"),
+    ("caps_role", "size_mb", "limit_mb"),
     [
         (UserRole.CONTRIBUTOR, 11, 10),
         (UserRole.LAB, 41, 40),
     ],
 )
-async def test_create_image_rejects_upload_over_the_owner_role_cap(
-    mock_session: AsyncMock, owner_role: UserRole | None, size_mb: int, limit_mb: int
+async def test_create_image_rejects_upload_over_the_uploader_role_cap(
+    mock_session: AsyncMock, caps_role: UserRole, size_mb: int, limit_mb: int
 ) -> None:
-    """The per-image size cap follows the product owner's role."""
-    mock_session.scalar.return_value = owner_role
+    """The per-image size cap follows the tier the caller passes for the uploader."""
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = IMAGE_FILENAME
     mock_file.content_type = CONTENT_TYPE_PNG
@@ -151,11 +150,11 @@ async def test_create_image_rejects_upload_over_the_owner_role_cap(
     )
 
     with pytest.raises(UploadTooLargeError, match=f"Maximum size: {limit_mb} MB"):
-        await image_storage_service.create(mock_session, image_create)
+        await image_storage_service.create(mock_session, image_create, caps_role=caps_role)
 
 
 async def test_create_image_on_a_missing_product_is_not_found_before_any_cap(mock_session: AsyncMock) -> None:
-    """A missing parent answers 404, not a size error from the fallback tier's cap."""
+    """A missing parent answers 404, not a size error."""
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = IMAGE_FILENAME
     mock_file.content_type = CONTENT_TYPE_PNG
@@ -170,8 +169,7 @@ async def test_create_image_on_a_missing_product_is_not_found_before_any_cap(moc
         patch.object(support_services, "ensure_parent_exists", AsyncMock(side_effect=ModelNotFoundError())),
         pytest.raises(ModelNotFoundError),
     ):
-        await image_storage_service.create(mock_session, image_create)
-    mock_session.scalar.assert_not_awaited()
+        await image_storage_service.create(mock_session, image_create, caps_role=UserRole.CONTRIBUTOR)
 
 
 async def test_create_image_uses_configured_upload_size_limit(
@@ -179,7 +177,6 @@ async def test_create_image_uses_configured_upload_size_limit(
 ) -> None:
     """Image uploads should use the configured limit instead of a module constant."""
     monkeypatch.setattr("app.api.auth.roles.settings.max_image_upload_size_mb", 2)
-    mock_session.scalar.return_value = UserRole.CONTRIBUTOR
     mock_file = MagicMock(spec=UploadFile)
     mock_file.filename = IMAGE_FILENAME
     mock_file.content_type = CONTENT_TYPE_PNG
@@ -191,7 +188,7 @@ async def test_create_image_uses_configured_upload_size_limit(
     )
 
     with pytest.raises(UploadTooLargeError, match="Maximum size: 2 MB"):
-        await image_storage_service.create(mock_session, image_create)
+        await image_storage_service.create(mock_session, image_create, caps_role=UserRole.CONTRIBUTOR)
 
 
 async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_session: AsyncMock) -> None:

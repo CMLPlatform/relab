@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from faker import Faker
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
-from polyfactory.fields import Ignore
+from polyfactory.fields import Ignore, PostGenerated
 from polyfactory.utils.predicates import is_optional
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,7 +129,8 @@ class UserFactory(BaseModelFactory[User]):
     mfa_confirmed_at = None
     # Pinned: role is an enum column, so an unpinned factory draws randomly between
     # tiers and a test that means "an ordinary contributor" silently becomes lab.
-    role = UserRole.CONTRIBUTOR
+    # Superusers always hold the lab tier (ck_user_superuser_is_lab).
+    role = PostGenerated(lambda _name, values: UserRole.LAB if values["is_superuser"] else UserRole.CONTRIBUTOR)
     upload_file_count = 0
     upload_total_bytes = 0
 

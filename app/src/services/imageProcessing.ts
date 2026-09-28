@@ -7,7 +7,7 @@ export type ImageLimits = User['imageLimits'];
 /** The contributor tier's caps, for the moment before the signed-in account has loaded. */
 export const DEFAULT_IMAGE_LIMITS: ImageLimits = {
   maxBytes: 10 * 1024 * 1024,
-  maxPixels: 30_000_000,
+  maxPixels: 4096 * 3072,
 };
 
 // The server's per-side cap (MAX_IMAGE_DIMENSION), the same for every role.

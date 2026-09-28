@@ -10,7 +10,7 @@ from pydantic import UUID4
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth.roles import image_upload_max_mb_for_role, image_upload_max_pixels_for_role
+from app.api.auth.roles import UserRole, image_upload_max_mb_for_role, image_upload_max_pixels_for_role
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_locked_model, require_model
@@ -30,7 +30,6 @@ from app.api.file_storage.upload_policy import (
 from app.api.file_storage.upload_quota import (
     release_product_upload_quota_for_media,
     reserve_product_upload_quota,
-    upload_limits_role,
 )
 from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.core.config.core import settings
@@ -184,8 +183,9 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
 
     model: type[StorageModelT]
     get_storage: Callable[[], BaseStorage]
-    # Checks the upload's metadata, size and content, and returns its size in bytes.
-    validate_upload: Callable[[AsyncSession, CreateSchemaT], Awaitable[int]]
+    # Checks the upload's metadata, size and content against the caps of the uploader's
+    # tier, and returns its size in bytes.
+    validate_upload: Callable[[CreateSchemaT, UserRole], Awaitable[int]]
     after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] | None = None
 
     async def create(
@@ -193,17 +193,21 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         db: AsyncSession,
         payload: CreateSchemaT,
         *,
+        caps_role: UserRole,
         quota_user_id: UUID | None = None,
     ) -> StorageModelT:
-        """Create a file-backed model, store the upload, and persist the DB row."""
+        """Create a file-backed model, store the upload, and persist the DB row.
+
+        ``caps_role`` is the uploader's tier for the per-upload caps; the quota is charged
+        to the parent's owner regardless.
+        """
         if payload.file.filename is None:
             msg = "File name is empty"
             raise BadRequestError(msg)
 
-        # Before the size check: image caps follow the parent's owner, so a missing
-        # parent must answer 404, not a cap that happens not to fit.
+        # A missing parent answers 404 before any cap is checked.
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
-        upload_size_bytes = await self.validate_upload(db, payload)
+        upload_size_bytes = await self.validate_upload(payload, caps_role)
         await scan_upload_or_raise(payload.file)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         if quota_user_id is not None:
@@ -253,17 +257,16 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             await delete_file_from_storage(db_item)
 
 
-async def _validate_file_upload(_db: AsyncSession, payload: FileCreate) -> int:
+async def _validate_file_upload(payload: FileCreate, _caps_role: UserRole) -> int:
     validate_generic_file_upload_metadata(payload.file)
     upload_size_bytes = await validate_upload_size(payload.file, settings.max_file_upload_size_mb)
     await to_thread.run_sync(validate_generic_file_upload_content, payload.file)
     return upload_size_bytes
 
 
-async def _validate_image_upload(db: AsyncSession, payload: ImageCreateFromForm | ImageCreateInternal) -> int:
-    """Images meet the size and pixel caps of the parent owner's role."""
+async def _validate_image_upload(payload: ImageCreateFromForm | ImageCreateInternal, role: UserRole) -> int:
+    """Images meet the size and pixel caps of the uploader's tier."""
     validate_image_upload_metadata(payload.file)
-    role = await upload_limits_role(db, parent_type=payload.parent_type, parent_id=payload.parent_id)
     upload_size_bytes = await validate_upload_size(payload.file, image_upload_max_mb_for_role(role))
     await to_thread.run_sync(
         partial(validate_image_upload_content, max_pixels=image_upload_max_pixels_for_role(role)), payload.file

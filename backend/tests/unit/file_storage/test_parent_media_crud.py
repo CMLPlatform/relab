@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi import UploadFile
 
+from app.api.auth.roles import UserRole
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import BadRequestError
 from app.api.data_collection.models.product import Product
@@ -41,6 +42,7 @@ async def test_create_rejects_parent_scope_mismatch(mock_session: AsyncMock) -> 
             parent_type=MediaParentType.PRODUCT,
             storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
             item_data=image_create,
+            caps_role=UserRole.CONTRIBUTOR,
         )
 
 

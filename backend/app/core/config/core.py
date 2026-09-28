@@ -196,13 +196,15 @@ class CoreSettings(RelabBaseSettings):
     max_image_upload_size_lab_mb: int = Field(default=40, ge=1, le=100)
     # Bounded by Pillow's decompression-bomb guard (MAX_IMAGE_PIXELS in app.core.images),
     # which is the absolute ceiling for every tier.
-    max_image_upload_pixels: int = Field(default=30_000_000, ge=1_000_000, le=50_000_000)
+    # 4096 x 3072: every 12 MP phone sensor (4032 x 3024, 4080 x 3072) fits untouched, and a
+    # 24 or 48 MP photo is scaled down to it in the app.
+    max_image_upload_pixels: int = Field(default=4096 * 3072, ge=1_000_000, le=50_000_000)
     max_image_upload_pixels_lab: int = Field(default=50_000_000, ge=1_000_000, le=50_000_000)
     # Upload quotas are tiered by role (app.api.auth.roles): per_user is the contributor tier.
     max_upload_files_per_user: int = Field(default=1000, ge=1, le=100_000)
-    max_upload_bytes_per_user_mb: int = Field(default=1024, ge=1, le=1_000_000)
+    max_upload_bytes_per_user_mb: int = Field(default=3072, ge=1, le=1_000_000)
     max_upload_files_per_lab_user: int = Field(default=20_000, ge=1, le=100_000)
-    max_upload_bytes_per_lab_user_mb: int = Field(default=20_480, ge=1, le=1_000_000)
+    max_upload_bytes_per_lab_user_mb: int = Field(default=51_200, ge=1, le=1_000_000)
     malware_scan_enabled: bool = False
     clamav_host: str = ""
     clamav_port: int = Field(default=3310, ge=1, le=65535)

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 from PIL import Image as PILImage
+from sqlalchemy.exc import IntegrityError
 
 from app.api.auth.roles import (
     UserRole,
@@ -20,12 +21,10 @@ from app.api.auth.roles import (
 )
 from app.core.config.core import settings
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
-from tests.fixtures.client import override_authenticated_user
 
 from .auth.shared import TEST_PASSWORD, hash_test_password, login_bearer
 
 if TYPE_CHECKING:
-    from fastapi import FastAPI
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -111,29 +110,33 @@ class TestResearchFileUploadRequiresLab:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
 
-    async def test_superuser_alone_does_not_grant_lab(
-        self, api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI
+    async def test_superuser_uploads_a_research_file(
+        self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
     ) -> None:
-        """Backend admin and lab tier are independent privileges.
+        """Every superuser holds the lab tier, so an administrator can exercise every upload path."""
+        product = await _product_owned_by(db_session, db_superuser)
 
-        Guards the conflation this package exists to end: `is_superuser` means access
-        to /admin, never "trusted contributor". The shared db_superuser fixture is
-        deliberately both, so the distinction is asserted here on an account that is
-        superuser and contributor.
-        """
-        admin = await UserFactory.create_async(
-            session=db_session,
-            is_superuser=True,
-            is_active=True,
-            role=UserRole.CONTRIBUTOR,
-            refresh_instance=True,
+        response = await api_client_superuser.post(f"/v1/products/{product.id}/files", files=RESEARCH_FILE)
+
+        assert response.status_code == status.HTTP_201_CREATED, response.text
+
+    async def test_database_refuses_a_superuser_below_lab(self, db_session: AsyncSession) -> None:
+        """ck_user_superuser_is_lab holds even for writes that bypass the role route."""
+        with pytest.raises(IntegrityError, match="ck_user_superuser_is_lab"):
+            await UserFactory.create_async(
+                session=db_session, is_superuser=True, is_active=True, role=UserRole.CONTRIBUTOR
+            )
+
+    async def test_role_route_refuses_to_demote_a_superuser(
+        self, api_client_superuser: AsyncClient, db_superuser: User
+    ) -> None:
+        """Demoting a superuser is a 400 with a reason, not a constraint error."""
+        response = await api_client_superuser.put(
+            f"/v1/admin/users/{db_superuser.id}/role", json={"role": "contributor"}
         )
-        product = await _product_owned_by(db_session, admin)
 
-        with override_authenticated_user(test_app, admin, superuser=True):
-            response = await api_client.post(f"/v1/products/{product.id}/files", files=RESEARCH_FILE)
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN, response.text
+        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+        assert response.json()["detail"] == "Superusers always hold the lab tier."
 
 
 class TestImageUploadIsUnchanged:
@@ -150,8 +153,8 @@ class TestImageUploadIsUnchanged:
         assert response.status_code == status.HTTP_201_CREATED, response.text
 
 
-class TestImageCapsFollowTheOwnerRole:
-    """Per-image caps are tiered by the product owner's role, enforced on the server.
+class TestImageCapsFollowTheUploaderRole:
+    """Per-image caps are tiered by the uploader's role, enforced on the server.
 
     The app fits photos to the caps /users/me reports, but that is a convenience; a
     direct API call must meet the same limit. The contributor pixel cap is lowered
@@ -183,15 +186,18 @@ class TestImageCapsFollowTheOwnerRole:
 
         assert response.status_code == status.HTTP_201_CREATED, response.text
 
-    async def test_cap_follows_the_owner_not_the_uploader(
+    async def test_cap_follows_the_uploader_not_the_owner(
         self, api_client_superuser: AsyncClient, db_session: AsyncSession, db_user: User
     ) -> None:
-        """A lab superuser uploading to a contributor's product meets the contributor cap, like the quota."""
+        """A superuser adding a photo to a contributor's product gets the caps the app fitted it to.
+
+        The quota is still charged to the owner; only the per-image caps follow the uploader.
+        """
         product = await _product_owned_by(db_session, db_user)
 
         response = await api_client_superuser.post(f"/v1/products/{product.id}/images", files=_png_file(40, 40))
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST, response.text
+        assert response.status_code == status.HTTP_201_CREATED, response.text
 
 
 class TestQuotaFollowsTheRole:

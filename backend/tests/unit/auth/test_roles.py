@@ -77,3 +77,18 @@ def test_image_pixel_caps_stay_under_the_decompression_bomb_guard() -> None:
     from app.core.images.constants import MAX_IMAGE_PIXELS  # noqa: PLC0415 -- read after test env settings are loaded
 
     assert all(image_upload_max_pixels_for_role(role) <= MAX_IMAGE_PIXELS for role in UserRole)
+
+
+@pytest.mark.parametrize(
+    "tier_for_role",
+    [
+        upload_quota_files_for_role,
+        upload_quota_bytes_for_role,
+        image_upload_max_mb_for_role,
+        image_upload_max_pixels_for_role,
+    ],
+)
+def test_tiers_accept_the_plain_string_a_loaded_row_carries(tier_for_role: object) -> None:
+    """A role read back from the VARCHAR column can be a plain str; it must still select the lab tier."""
+    assert callable(tier_for_role)
+    assert tier_for_role("lab") == tier_for_role(UserRole.LAB)

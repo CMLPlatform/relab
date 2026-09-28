@@ -105,13 +105,13 @@ Accepted types and size limits:
 Relab validates type, size, and content before storing a file, and unpacks and inspects office
 files. If malware scanning is enabled, flagged files are rejected.
 
-Each image has a size cap set by the role of the product's owner. Every image is also at most
-10 000 px on its longest side:
+Each image has a size cap set by the role of the account that uploads it. Every image is also at
+most 10 000 px on its longest side:
 
-| Role          | Per image | Pixels |
-| ------------- | --------- | ------ |
-| `contributor` | 10 MiB    | 30 MP  |
-| `lab`         | 40 MiB    | 50 MP  |
+| Role          | Per image | Pixels                |
+| ------------- | --------- | --------------------- |
+| `contributor` | 10 MiB    | 12.6 MP (4096 × 3072) |
+| `lab`         | 40 MiB    | 50 MP                 |
 
 The app uploads a photo within your caps at full resolution. A photo over them is scaled down just
 enough to fit, then uploaded; a format the server does not accept, such as HEIC from an iPhone, is
@@ -123,8 +123,8 @@ Each account also has a cap on total file count and storage, set by its role:
 
 | Role          | Files  | Storage  |
 | ------------- | ------ | -------- |
-| `contributor` | 1000   | 1024 MB  |
-| `lab`         | 20 000 | 20480 MB |
+| `contributor` | 1000   | 3072 MB  |
+| `lab`         | 20 000 | 51200 MB |
 
 Operators tune both tiers through `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`
 for contributors, and `MAX_UPLOAD_FILES_PER_LAB_USER` and `MAX_UPLOAD_BYTES_PER_LAB_USER_MB` for

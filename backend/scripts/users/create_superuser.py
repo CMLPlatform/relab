@@ -7,6 +7,7 @@ import logging
 import anyio
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 
+from app.api.auth.roles import UserRole
 from app.api.auth.schemas import TrustedUserCreate
 from app.api.auth.services.programmatic_user_crud import create_user
 from app.core.config.core import settings
@@ -41,6 +42,8 @@ async def create_superuser() -> None:
                         password=bootstrap_superuser_password.get_secret_value(),
                         is_superuser=True,
                         is_verified=True,
+                        # Required by ck_user_superuser_is_lab: superusers hold every lab capability.
+                        role=UserRole.LAB,
                     ),
                     send_registration_email=False,
                     skip_breach_check=True,

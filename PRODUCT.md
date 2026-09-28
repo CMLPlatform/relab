@@ -125,11 +125,10 @@ enough to contribute usefully. The Pi rig only pays off for repeatable imagery a
 No surface may present it as a prerequisite.
 
 **Uploads.** Images only in-app: jpeg, png, webp, gif, bmp; the app converts anything else (HEIC)
-to JPEG. Per-image size and pixel caps are tiered by role and enforced on the server against the
-product owner's role. The app fits a photo to the signed-in account's own caps from `/users/me`,
-at full resolution unless it has to shrink, so an admin editing someone else's product can still
-hit the owner's cap at save. The backend rejects
-an upload unless extension, declared MIME type, and sniffed content agree. Uploads are sequential. Quotas are tiered by role (contributor 1,000 files / 1 GB; lab 20,000 files / 20 GB) and
+to JPEG. Per-image size and pixel caps follow the uploader's role (contributor 10 MB / 12.6 MP, lab
+40 MB / 50 MP) and are enforced on the server; the app reads them from `/users/me` and uploads a
+photo at full resolution unless it has to shrink to fit. The backend rejects
+an upload unless extension, declared MIME type, and sniffed content agree. Uploads are sequential. Quotas are tiered by role (contributor 1,000 files / 3 GB; lab 20,000 files / 50 GB) and
 `/users/me` reports limits and usage. There is no per-product limit.
 
 **Idempotency.** Creates carry an `Idempotency-Key` minted once per draft, so a retry, a rehydrated

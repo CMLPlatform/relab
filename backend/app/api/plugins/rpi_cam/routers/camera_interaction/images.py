@@ -9,9 +9,11 @@ from anyio import to_thread
 from fastapi import Body, File, Form, HTTPException, UploadFile
 from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
+from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveUserDep
-from app.api.auth.roles import UserRole, image_upload_max_pixels_for_role
+from app.api.auth.models import User
+from app.api.auth.roles import DEFAULT_USER_ROLE, UserRole, image_upload_max_pixels_for_role
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.exceptions import APIError, InternalServerError
 from app.api.common.form_json import parse_required_json_object
@@ -178,7 +180,14 @@ async def receive_camera_upload(
         product_id_int,
         sanitize_log_value(file.filename),
     )
-    image = await image_storage_service.create(session, image_data, quota_user_id=camera.owner_id)
+    # The camera uploads on its owner's behalf, so the owner's tier sets the caps.
+    owner_role = await session.scalar(select(User.role).where(User.id == camera.owner_id))
+    image = await image_storage_service.create(
+        session,
+        image_data,
+        caps_role=UserRole(owner_role) if owner_role else DEFAULT_USER_ROLE,
+        quota_user_id=camera.owner_id,
+    )
 
     # ImageRead computes the public `image_url` via a model_validator based on
     # the image's storage path. Round-trip through it to reuse that logic.

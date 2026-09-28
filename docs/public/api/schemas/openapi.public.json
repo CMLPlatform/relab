@@ -5572,13 +5572,13 @@
           },
           "image_upload_max_bytes": {
             "default": 0,
-            "description": "Largest single image this account's role may upload.",
+            "description": "Largest single image this account may upload.",
             "title": "Image Upload Max Bytes",
             "type": "integer"
           },
           "image_upload_max_pixels": {
             "default": 0,
-            "description": "Most pixels (width x height) in a single image this account's role may upload.",
+            "description": "Most pixels (width x height) in a single image this account may upload.",
             "title": "Image Upload Max Pixels",
             "type": "integer"
           },

@@ -39,27 +39,27 @@ def has_role_at_least(role: UserRole, minimum: UserRole) -> bool:
 
 def upload_quota_files_for_role(role: UserRole) -> int:
     """Return the file-count upload quota for ``role``."""
-    if role is UserRole.LAB:
+    if role == UserRole.LAB:
         return settings.max_upload_files_per_lab_user
     return settings.max_upload_files_per_user
 
 
 def upload_quota_bytes_for_role(role: UserRole) -> int:
     """Return the byte upload quota for ``role``."""
-    if role is UserRole.LAB:
+    if role == UserRole.LAB:
         return settings.max_upload_bytes_per_lab_user_mb * 1024 * 1024
     return settings.max_upload_bytes_per_user_mb * 1024 * 1024
 
 
 def image_upload_max_mb_for_role(role: UserRole) -> int:
     """Return the per-image upload size cap, in MB, for ``role``."""
-    if role is UserRole.LAB:
+    if role == UserRole.LAB:
         return settings.max_image_upload_size_lab_mb
     return settings.max_image_upload_size_mb
 
 
 def image_upload_max_pixels_for_role(role: UserRole) -> int:
     """Return the per-image total-pixel cap for ``role``."""
-    if role is UserRole.LAB:
+    if role == UserRole.LAB:
         return settings.max_image_upload_pixels_lab
     return settings.max_image_upload_pixels
