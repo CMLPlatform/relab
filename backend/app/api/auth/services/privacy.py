@@ -12,12 +12,12 @@ def can_view_profile(owner: User, viewer: User | None) -> bool:
     """Return whether ``viewer`` can see ``owner``'s public profile.
 
     Rules:
-    - Admins always see everything.
+    - Admins (superusers with MFA enrolled) always see everything.
     - public    → everyone can view.
     - community → authenticated users can view.
     - private   → only the owner and admins can view.
     """
-    if viewer and viewer.is_superuser:
+    if viewer and viewer.has_admin_access:
         return True
 
     visibility = load_user_preferences(owner.preferences).profile_visibility
