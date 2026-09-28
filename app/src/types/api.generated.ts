@@ -3678,12 +3678,6 @@ export interface components {
        * @default 1
        */
       version: number;
-      /**
-       * Updated By Moderator
-       * @description Whether the last field edit was made by a moderator rather than the owner.
-       * @default false
-       */
-      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3764,12 +3758,6 @@ export interface components {
        * @default 1
        */
       version: number;
-      /**
-       * Updated By Moderator
-       * @description Whether the last field edit was made by a moderator rather than the owner.
-       * @default false
-       */
-      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3829,12 +3817,6 @@ export interface components {
        * @default 1
        */
       version: number;
-      /**
-       * Updated By Moderator
-       * @description Whether the last field edit was made by a moderator rather than the owner.
-       * @default false
-       */
-      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -3899,12 +3881,6 @@ export interface components {
        * @default 1
        */
       version: number;
-      /**
-       * Updated By Moderator
-       * @description Whether the last field edit was made by a moderator rather than the owner.
-       * @default false
-       */
-      updated_by_moderator: boolean;
       /** Parent Id */
       parent_id: number;
       /**
@@ -4956,12 +4932,6 @@ export interface components {
        * @default 1
        */
       version: number;
-      /**
-       * Updated By Moderator
-       * @description Whether the last field edit was made by a moderator rather than the owner.
-       * @default false
-       */
-      updated_by_moderator: boolean;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -5050,12 +5020,6 @@ export interface components {
        * @default 1
        */
       version: number;
-      /**
-       * Updated By Moderator
-       * @description Whether the last field edit was made by a moderator rather than the owner.
-       * @default false
-       */
-      updated_by_moderator: boolean;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */
@@ -5108,12 +5072,6 @@ export interface components {
        * @default 1
        */
       version: number;
-      /**
-       * Updated By Moderator
-       * @description Whether the last field edit was made by a moderator rather than the owner.
-       * @default false
-       */
-      updated_by_moderator: boolean;
       /** Owner Id */
       owner_id?: string | null;
       /** Owner Username */

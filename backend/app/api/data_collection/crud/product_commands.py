@@ -187,10 +187,9 @@ async def update_product(
 ) -> Product:
     """Update an existing product, refusing the edit if it changed since the client read it.
 
-    Under the row lock, an update that changes a field must name the stored version; it
-    bumps the version and records whether a moderator made it. An update that changes
-    nothing succeeds whatever version it names, so a retry of a save that already
-    landed is not reported as a conflict.
+    Under the row lock, an update that changes a field must name the stored version, and
+    bumps it. An update that changes nothing succeeds whatever version it names, so a
+    retry of a save that already landed is not reported as a conflict.
     """
     db_product = await require_locked_model(db, Product, product_id)
     await validate_product_type(db, product.product_type_id)
@@ -201,11 +200,10 @@ async def update_product(
         raise ProductVersionMismatchError
 
     db_product.version += 1
-    db_product.updated_by_moderator = user_id != db_product.owner_id
 
     res = await commit_and_refresh(db, db_product)
-    if db_product.updated_by_moderator:
-        # The row says a moderator edited it; the log says which one.
+    if user_id != db_product.owner_id:
+        # A moderator's correction of someone else's product.
         audit_event(user_id, AuditAction.UPDATE, Product, product_id)
     if db_product.owner_id is not None:
         await recompute_user_profile_stats(db, db_product.owner_id)

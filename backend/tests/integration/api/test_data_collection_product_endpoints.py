@@ -198,7 +198,6 @@ async def test_update_product_bumps_version(api_client_superuser: AsyncClient, s
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["version"] == 2
-    assert response.json()["updated_by_moderator"] is False
     assert stale.status_code == status.HTTP_412_PRECONDITION_FAILED
 
 
@@ -282,7 +281,6 @@ async def test_superuser_moderates_another_users_product_only_with_mfa(
 
     assert patch_response.status_code == moderated
     if mfa_enabled:
-        assert patch_response.json()["updated_by_moderator"] is True
         # The edit itself is audited, not only the moderation access that preceded it.
         assert any(getattr(r, "action", None) == "update" for r in caplog.records)
     assert upload_response.status_code == status.HTTP_404_NOT_FOUND

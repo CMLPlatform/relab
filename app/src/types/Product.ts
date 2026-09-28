@@ -14,8 +14,6 @@ export type Product = {
   updatedAt?: string;
   /** Edit version for optimistic concurrency; sent back in `If-Match` on update. */
   version?: number;
-  /** Whether the last field edit was a moderator's rather than the owner's. */
-  updatedByModerator?: boolean;
   productTypeID?: number;
   productTypeName?: string;
   /** The type as the API recorded it. Its id is the database's, which the bundled CPV snapshot does not share. */

@@ -167,8 +167,6 @@ class Product(ProductFieldsMixin, TimeStampMixinBare, Base):
     # Optimistic-concurrency token, sent as the ETag. Bumped by update_product only, so
     # it tracks the row's own fields, not its media, components, or bill of materials.
     version: Mapped[int] = mapped_column(server_default=text("1"), default=1)
-    # Whether a moderator, not the owner, made the last field edit. The audit log names them.
-    updated_by_moderator: Mapped[bool] = mapped_column(server_default=text("false"), default=False)
 
     bill_of_materials: Mapped[list[MaterialProductLink] | None] = relationship(
         back_populates="product", lazy="selectin", cascade="all, delete-orphan"
