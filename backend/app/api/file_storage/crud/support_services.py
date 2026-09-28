@@ -35,6 +35,7 @@ from app.api.file_storage.upload_quota import (
 from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.core.config.core import settings
 from app.core.images import generate_thumbnails, image_resize_limiter, process_image_for_storage
+from app.core.logging import sanitize_log_value
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, stored_file_path
 from .support_types import StorageCreateSchema, StorageModel
@@ -243,9 +244,9 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
             db_item = ensure_storage_item_found(self.model, item_id, maybe_item)
             logger.warning(
                 "%s %s not found in storage: %s. Deleting database row only.",
-                self.model.__name__,
-                item_id,
-                e,
+                sanitize_log_value(self.model.__name__),
+                sanitize_log_value(item_id),
+                sanitize_log_value(e),
             )
 
         await db.delete(db_item)
