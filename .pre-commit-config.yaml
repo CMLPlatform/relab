@@ -71,7 +71,7 @@ repos:
         exclude: '^(?:frontend[^/]*(?:/.*)?/data/.*\.json|(?:.*/)?package-lock\.json)$'
 
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 9b16a472943852b803af3785c45041dcf10b9f12  # frozen: 0.12.18
+    rev: 2aeb804518b4373dbf5adb8dddc5466d9a6e6b21  # frozen: 0.12.19
     hooks:
       - id: uv-lock
         name: uv-lock-root
