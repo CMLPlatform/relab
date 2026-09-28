@@ -120,7 +120,13 @@ Supply-chain and code-security checks:
 - Source code: CodeQL.
 - Secrets: Gitleaks.
 - GitHub Actions workflows: actionlint and Zizmor.
-- Repository hygiene: OpenSSF Scorecard.
+- Repository hygiene: OpenSSF Scorecard. It is advisory; accepted Token-Permissions findings:
+  - `release.yml` grants `contents: write` to the release-please job, which tags releases and
+    opens release PRs, and to the release SBOM job, which uploads assets to the release. The
+    workflow default is `permissions: {}`.
+  - `container-images.yml` has no top-level `permissions`: it is a reusable workflow and runs
+    with the job-level permissions each caller grants, which differ between scan and release
+    mode. A fixed block in the called workflow would fail the caller that grants less.
 
 Use `just security` for local maintainer diagnosis: it runs the dependency audits and the Gitleaks
 secret scan. Trivy, CodeQL, actionlint, Zizmor, and Scorecard run in CI.
