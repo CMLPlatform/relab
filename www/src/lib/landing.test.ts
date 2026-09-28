@@ -371,6 +371,21 @@ describe('loadLandingData', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('API unavailable at build time'));
   });
 
+  it('throws instead of falling back when LANDING_REQUIRE_LIVE=1', async () => {
+    vi.stubEnv('LANDING_REQUIRE_LIVE', '1');
+    stubFetch({ '/v1/products/47': () => ({ ok: false, status: 503 }) });
+
+    await expect(loadLandingData()).rejects.toThrow('product 47 unavailable at build time');
+  });
+
+  it('keeps the fixture without a featured product even when LANDING_REQUIRE_LIVE=1', async () => {
+    vi.stubEnv('LANDING_REQUIRE_LIVE', '1');
+    vi.stubEnv('PUBLIC_FEATURED_PRODUCT_ID', '');
+    stubFetch({});
+
+    await expect(loadLandingData()).resolves.toMatchObject({ fromFixture: true });
+  });
+
   // A blank, non-integer, zero or negative id is not a product to fetch.
   it.each(['', '  ', 'abc', '0', '-3', '4.5'])(
     'uses the fixture without warning for the featured product id %j',

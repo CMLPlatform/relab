@@ -73,11 +73,15 @@ ARG PUBLIC_API_URL
 # Optional: product whose teardown the landing hero features, fetched at build
 # time. When unset or unreachable the hero renders the committed fixture.
 ARG PUBLIC_FEATURED_PRODUCT_ID
+# Optional: 1 fails the build instead of rendering the fixture when the featured
+# product cannot be fetched. The image publish sets it.
+ARG LANDING_REQUIRE_LIVE
 ENV PUBLIC_APP_URL=${PUBLIC_APP_URL} \
     PUBLIC_DOCS_URL=${PUBLIC_DOCS_URL} \
     PUBLIC_SITE_URL=${PUBLIC_SITE_URL} \
     PUBLIC_API_URL=${PUBLIC_API_URL} \
-    PUBLIC_FEATURED_PRODUCT_ID=${PUBLIC_FEATURED_PRODUCT_ID}
+    PUBLIC_FEATURED_PRODUCT_ID=${PUBLIC_FEATURED_PRODUCT_ID} \
+    LANDING_REQUIRE_LIVE=${LANDING_REQUIRE_LIVE}
 
 WORKDIR $WORKDIR/www
 

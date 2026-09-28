@@ -11,7 +11,7 @@ name: Publish Images
 # The backend images are the same in every environment. www, app and docs bake their
 # public URLs in at build time, so they are built once per environment and tagged
 # `:<tag>-prod` and `:<tag>-staging`, with the URLs taken from the variables of the
-# matching GitHub Environment.
+# matching GitHub Environment. infra/cloudflare manages those from its hostname map.
 on:
   workflow_call:
     inputs:
@@ -118,6 +118,7 @@ jobs:
             PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
             PUBLIC_BACKEND_API_URL=${{ vars.API_PUBLIC_URL }}
             PUBLIC_FEATURED_PRODUCT_ID=${{ vars.FEATURED_PRODUCT_ID }}
+            LANDING_REQUIRE_LIVE=1
             EXPO_PUBLIC_API_URL=${{ vars.API_PUBLIC_URL }}
             EXPO_PUBLIC_WEBSITE_URL=${{ vars.SITE_PUBLIC_URL }}
             EXPO_PUBLIC_DOCS_URL=${{ vars.DOCS_PUBLIC_URL }}
