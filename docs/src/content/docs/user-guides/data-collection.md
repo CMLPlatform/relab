@@ -128,7 +128,8 @@ Each account also has a cap on total file count and storage, set by its role:
 
 Operators tune both tiers through `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB`
 for contributors, and `MAX_UPLOAD_FILES_PER_LAB_USER` and `MAX_UPLOAD_BYTES_PER_LAB_USER_MB` for
-lab accounts. An upload over either cap is rejected; deleting media releases its quota. The image
+lab accounts. An upload over either cap is rejected; deleting media releases its quota. Images
+count at their stored size, after metadata is removed. The image
 caps are `MAX_IMAGE_UPLOAD_SIZE_MB` and `MAX_IMAGE_UPLOAD_PIXELS`, with `_LAB` variants
 (`MAX_IMAGE_UPLOAD_SIZE_LAB_MB`, `MAX_IMAGE_UPLOAD_PIXELS_LAB`); no pixel cap can exceed 50 MP.
 

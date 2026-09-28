@@ -279,3 +279,45 @@ async def test_create_image_strips_metadata_before_an_s3_upload(mock_session: As
         assert 0x0112 not in stored_exif
         assert not stored_exif.get_ifd(IFD.GPSInfo)
     assert (db_image.width_px, db_image.height_px) == (60, 40)
+
+
+async def test_create_image_charges_the_quota_for_the_stored_size(
+    mock_session: AsyncMock, mocker: MockerFixture
+) -> None:
+    """The quota and the row count the stripped bytes, not the original upload.
+
+    Otherwise metadata the backend throws away (here a large XMP packet) still uses up
+    the owner's quota, and deleting the image releases the same inflated amount.
+    """
+    original = BytesIO()
+    xmp = b'<x:xmpmeta xmlns:x="adobe:ns:meta/">' + b"x" * 50_000 + b"</x:xmpmeta>"
+    PILImage.new("RGB", (40, 60), "red").save(original, format="JPEG", xmp=xmp)
+    upload = UploadFile(
+        file=BytesIO(original.getvalue()),
+        filename="photo.jpg",
+        size=len(original.getvalue()),
+        headers=Headers({"content-type": "image/jpeg"}),
+    )
+
+    uploaded: list[bytes] = []
+    storage = MagicMock()
+
+    async def write_upload(upload_file: UploadFile, stored_filename: str) -> str:
+        uploaded.append(upload_file.file.read())
+        return stored_filename
+
+    storage.write_upload.side_effect = write_upload
+    mocker.patch.object(image_storage_service, "get_storage", return_value=storage)
+    mock_reserve = mocker.patch.object(support_services, "reserve_product_upload_quota", AsyncMock())
+
+    image_create = ImageCreateInternal(
+        file=upload, description=TEST_IMAGE_DESC, parent_id=1, parent_type=MediaParentType.PRODUCT
+    )
+    db_image = await image_storage_service.create(
+        mock_session, image_create, caps_role=UserRole.CONTRIBUTOR, quota_user_id=uuid4()
+    )
+
+    [stored] = uploaded
+    assert len(stored) < len(original.getvalue()) - 40_000
+    mock_reserve.assert_awaited_once_with(mock_session, parent_id=1, upload_size_bytes=len(stored))
+    assert db_image.upload_size_bytes == len(stored)
