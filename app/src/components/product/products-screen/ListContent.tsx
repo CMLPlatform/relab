@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useMemo, useState } from 'react';
+import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   type DimensionValue,
@@ -27,6 +27,8 @@ import { PRODUCTS_LIST_FAB_CLEARANCE, productsScreenStyles as styles } from './s
 type ProductsHeaderFadeProps = {
   headerBottom: number;
   overlayColor: string;
+  /** False at the top of the list, where there is nothing scrolling under the header to fade. */
+  scrolled: boolean;
 };
 
 type ProductsListContentProps = {
@@ -85,6 +87,32 @@ function ProductsListFooter({
   );
 }
 
+const SKELETON_KEYS = Array.from({ length: 8 }, (_, index) => `skeleton-${index}`);
+
+/** Same column grid as the loaded list, so the swap to cards does not reflow into a grid. */
+function SkeletonGrid({ numColumns }: { numColumns: number }) {
+  return (
+    // Named and busy, like CenteredSpinner: the grey cards alone say nothing to a screen reader.
+    <View
+      className="flex-row flex-wrap"
+      accessible
+      accessibilityRole="progressbar"
+      aria-busy
+      accessibilityLabel="Loading products"
+    >
+      {SKELETON_KEYS.map((key) => (
+        <GridCell key={key} numColumns={numColumns}>
+          <ProductCardSkeleton />
+        </GridCell>
+      ))}
+    </View>
+  );
+}
+
+function GridCell({ numColumns, children }: PropsWithChildren<{ numColumns: number }>) {
+  return <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>{children}</View>;
+}
+
 export function ProductsListContent({
   numColumns,
   products,
@@ -120,16 +148,14 @@ export function ProductsListContent({
     if (hasNextPage) onFetchNextPage();
   }, [hasNextPage, onFetchNextPage]);
 
-  const renderSkeleton = useCallback(() => <ProductCardSkeleton />, []);
   const renderProduct = useCallback(
     ({ item }: { item: (typeof products)[number] }) => (
-      <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>
+      <GridCell numColumns={numColumns}>
         <ProductCard product={item} showOwner={showOwner} />
-      </View>
+      </GridCell>
     ),
     [numColumns, showOwner],
   );
-  const skeletonKeyExtractor = useCallback((_: unknown, index: number) => `skeleton-${index}`, []);
   const productKeyExtractor = useCallback((item: Product) => (item.id ?? 'draft').toString(), []);
 
   const listFooter = useMemo(
@@ -148,12 +174,7 @@ export function ProductsListContent({
   if (isLoading && products.length === 0) {
     return (
       <View className="flex-1">
-        <FlatList
-          data={Array.from({ length: 8 })}
-          keyExtractor={skeletonKeyExtractor}
-          renderItem={renderSkeleton}
-          scrollEnabled={false}
-        />
+        <SkeletonGrid numColumns={numColumns} />
         {slowLoading ? (
           <View className="absolute right-0 bottom-[100px] left-0 items-center">
             <Card className="px-4 py-2" style={{ backgroundColor: theme.tokens.surface.sunken }}>
@@ -229,8 +250,13 @@ export function ProductsListContent({
   );
 }
 
-export function ProductsHeaderFade({ headerBottom, overlayColor }: ProductsHeaderFadeProps) {
-  if (headerBottom <= 0) return null;
+export function ProductsHeaderFade({
+  headerBottom,
+  overlayColor,
+  scrolled,
+}: ProductsHeaderFadeProps) {
+  // At rest the fade sat over the first row of cards and greyed their titles.
+  if (headerBottom <= 0 || !scrolled) return null;
 
   return (
     <LinearGradient

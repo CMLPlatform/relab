@@ -4,7 +4,11 @@ import { Platform, Pressable, View } from 'react-native';
 import { AUTH_HERO_PATHS, WEB_FOCUS_RING } from '@/constants';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { openShortcutsOverlay } from '@/hooks/useShortcutsOverlay';
-import { type Destination, useVisibleDestinations } from '@/navigation/destinations';
+import {
+  type Destination,
+  isDestinationActive,
+  useVisibleDestinations,
+} from '@/navigation/destinations';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
@@ -114,7 +118,7 @@ export function TopNav() {
           <TopNavDestinationItem
             key={destination.key}
             destination={destination}
-            active={pathname === destination.href || pathname.startsWith(`${destination.href}/`)}
+            active={isDestinationActive(destination, pathname)}
             onPress={goToDestination}
           />
         ))}

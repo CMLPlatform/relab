@@ -1,9 +1,9 @@
 {
   "teardown": {
     "id": 47,
-    "name": "Dell XPS 13",
-    "brand": "Dell",
-    "weightG": 1190,
+    "name": "HP ProBook 430 G2",
+    "brand": "HP",
+    "weightG": 1600,
     "productType": "Laptop",
     "parts": [
       {
@@ -56,28 +56,28 @@
         "children": [
           {
             "name": "PCB assembly",
-            "weightG": 66,
+            "weightG": 85,
             "photo": null
           },
           {
-            "name": "Port brackets",
-            "weightG": 22,
+            "name": "Coin-cell battery",
+            "weightG": 3,
             "photo": null
           }
         ]
       },
       {
-        "name": "Keyboard frame assembly",
-        "weightG": 71,
+        "name": "Top cover assembly",
+        "weightG": 350,
         "photo": {
-          "url": "/images/teardown/keyboard_frame_assembly.webp",
+          "url": "/images/teardown/top_cover.webp",
           "srcset": "",
           "alt": "Photographed during disassembly"
         }
       },
       {
         "name": "SSD",
-        "weightG": 8.4,
+        "weightG": 60,
         "photo": {
           "url": "/images/teardown/ssd.webp",
           "srcset": "",
@@ -89,7 +89,7 @@
       {
         "url": "/images/teardown/laptop.webp",
         "srcset": "",
-        "alt": "Dell XPS 13, photographed during disassembly"
+        "alt": "HP ProBook 430 G2, photographed during disassembly"
       }
     ]
   }

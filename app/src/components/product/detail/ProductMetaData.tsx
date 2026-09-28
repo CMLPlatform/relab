@@ -69,6 +69,8 @@ export default function ProductMetaData({ product }: Props) {
 const styles = StyleSheet.create({
   ownerLink: {
     minHeight: MIN_TAP_TARGET,
+    // A short username ("bob") left a ~25px-wide target; nothing sits to its right.
+    minWidth: MIN_TAP_TARGET,
     paddingVertical: 12,
     marginVertical: -12,
   },

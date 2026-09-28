@@ -70,9 +70,10 @@ export default function ProductTags({
   };
 
   return (
-    <View className="my-3 px-4 gap-2.5 flex-row flex-wrap">
+    <View className="my-3 gap-2.5 flex-row flex-wrap">
       <Chip
         title={'Brand'}
+        readOnly={!editMode}
         onPress={onEditBrand}
         icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
       >
@@ -80,6 +81,7 @@ export default function ProductTags({
       </Chip>
       <Chip
         title={'Model'}
+        readOnly={!editMode}
         onPress={onEditModel}
         icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
       >
@@ -163,7 +165,7 @@ function AmountChip({
   return (
     <View
       className="rounded-md flex-row items-center"
-      style={{ backgroundColor: tokens.surface.accent }}
+      style={{ backgroundColor: tokens.surface.accent, minHeight: MIN_TAP_TARGET }}
     >
       <View className="flex-row items-center">
         <AppText
@@ -204,13 +206,16 @@ function AmountChip({
           />
         </View>
       ) : (
-        <AppText
-          variant="data"
-          className="bg-primary text-primary-foreground rounded-md py-2 px-3"
-          style={amountStyles.valueText}
-        >
-          {String(amount)}
-        </AppText>
+        // Full chip height, like Brand and Model's value segment beside it.
+        <View className="bg-primary self-stretch justify-center rounded-md px-3">
+          <AppText
+            variant="data"
+            className="text-primary-foreground"
+            style={amountStyles.valueText}
+          >
+            {String(amount)}
+          </AppText>
+        </View>
       )}
     </View>
   );
@@ -251,9 +256,9 @@ function StepButton({
   );
 }
 
-// NOTE: 15/500 is Chip's own face, shared by title, value and input so the three
-// segments align; the body (16) and data (14) steps each break that alignment.
-const amountText = { fontWeight: '500', fontSize: 15 } as const;
+// NOTE: 13/500 is Chip's own face (the label step, font-medium), shared by title,
+// value and input so the Amount chip reads at the same size as Brand and Model.
+const amountText = { fontWeight: '500', fontSize: 13 } as const;
 const amountStyles = { titleText: amountText, valueText: amountText, input: amountText };
 
 const styles = {

@@ -19,7 +19,7 @@ import {
 
 test.setTimeout(60_000);
 
-const SEEDED_PRODUCT_NAME_PATTERN = /^(Dell XPS 13|iPhone 12)$/;
+const SEEDED_PRODUCT_NAME_PATTERN = /^(HP ProBook 430 G2|iPhone 12)$/;
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 const PRODUCTS_LIST_URL_PATTERN = /\/products$|\/products\?/;
 // The header back affordance is a Pressable (accessibilityRole="button", label "Go back"),

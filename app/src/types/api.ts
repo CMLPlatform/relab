@@ -15,6 +15,10 @@ export type ApiBaseProductPageItem = components['schemas']['ProductRead'];
 export type ApiComponentChildItem = components['schemas']['ComponentRead'];
 export type ApiProductCreate = components['schemas']['ProductCreateWithComponents'];
 export type ApiProductUpdate = components['schemas']['ProductUpdate'];
+// ─── Materials ───────────────────────────────────────────────────────────────
+export type ApiMaterialLink = components['schemas']['MaterialProductLinkReadWithinProduct'];
+export type ApiMaterialUnit = components['schemas']['Unit'];
+
 // ─── Media ───────────────────────────────────────────────────────────────────
 export type ApiImageRead = components['schemas']['ImageRead'];
 export type ApiVideoRead = components['schemas']['VideoReadWithinProduct'];

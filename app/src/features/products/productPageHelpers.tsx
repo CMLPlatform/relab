@@ -79,7 +79,9 @@ export function useProductPageHeader({
       headerLeft: (props: NativeStackHeaderBackProps) => (
         <HeaderBackButton {...props} onPress={goBackWithGuards} />
       ),
-      headerTitle: showTrail ? () => headerTitle : undefined,
+      // Always the custom node: the stack's default title renders an <h1> on
+      // web, a second one beside the page's own record name.
+      headerTitle: () => headerTitle,
       headerRight: undefined,
     });
   }, [goBackWithGuards, headerTitle, name, navigation, showTrail]);

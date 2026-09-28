@@ -8,7 +8,7 @@ const PROFILE_URL_PATTERN = /account/;
 const NEW_PRODUCT_URL_PATTERN = /\/products\/new$/;
 // One specific seeded product rather than "either of two": the lookup searches
 // for it by name, which needs an exact term.
-const SEEDED_PRODUCT_NAME = 'Dell XPS 13';
+const SEEDED_PRODUCT_NAME = 'HP ProBook 430 G2';
 const PRODUCT_DETAIL_URL_PATTERN = /products\/\d+/;
 // The gallery trigger is labelled `View ${altText}` (ProductImageGalleryContent),
 // where altText is the image's description or the product name, never the
