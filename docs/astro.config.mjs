@@ -87,9 +87,7 @@ const STARLIGHT_OPTIONS = {
   titleDelimiter: '·',
   lastUpdated: true,
   pagefind: true,
-  social: [
-    { icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' },
-  ],
+  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' }],
   editLink: {
     baseUrl: 'https://github.com/CMLPlatform/relab/edit/main/docs/',
   },

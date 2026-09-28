@@ -2,8 +2,8 @@
 import { backendApiUrlForMode } from '@/lib/backend-api.ts';
 // The canonical brand tokens; Astro bundles this into the page's own
 // stylesheet. The ?raw copy is only read at build time to derive theme-color.
-import '../styles/brand.css';
-import brandCss from '../styles/brand.css?raw';
+import '@/styles/brand.css';
+import brandCss from '@/styles/brand.css?raw';
 
 interface Props {
   schemaUrl: string;
