@@ -9,7 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.testclient import TestClient
 from fastapi_users.exceptions import InvalidID, UserNotExists
 
-from app.api.auth.dependencies import current_lab_user, current_mfa_user, get_user_or_404
+from app.api.auth.dependencies import current_active_superuser, current_lab_user, get_user_or_404
 from app.api.auth.roles import UserRole
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.services.user_manager import get_user_db
@@ -22,22 +22,20 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.asyncio
-async def test_current_mfa_user_returns_mfa_enabled_user() -> None:
-    """MFA dependency should pass through users with confirmed MFA enabled."""
-    user = MagicMock()
-    user.mfa_enabled = True
+async def test_admin_guard_passes_a_superuser_with_mfa() -> None:
+    """The admin guard passes a superuser whose account has admin access (MFA enrolled)."""
+    user = MagicMock(has_admin_access=True)
 
-    assert await current_mfa_user(user) is user
+    assert await current_active_superuser(user) is user
 
 
 @pytest.mark.asyncio
-async def test_current_mfa_user_rejects_user_without_mfa() -> None:
-    """MFA dependency should reject active users who have not enabled MFA."""
-    user = MagicMock()
-    user.mfa_enabled = False
+async def test_admin_guard_rejects_a_superuser_without_mfa() -> None:
+    """The admin guard refuses a superuser until MFA is enrolled, and says how to fix it."""
+    user = MagicMock(has_admin_access=False)
 
-    with pytest.raises(ForbiddenError) as exc_info:
-        await current_mfa_user(user)
+    with pytest.raises(ForbiddenError, match="two-factor") as exc_info:
+        await current_active_superuser(user)
 
     assert exc_info.value.http_status_code == status.HTTP_403_FORBIDDEN
 

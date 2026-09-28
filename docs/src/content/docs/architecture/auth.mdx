@@ -28,7 +28,6 @@ TOTP MFA is optional account hardening for contributors and required for adminis
 
 - Accounts without TOTP receive bearer tokens or session cookies after a successful password or OAuth login.
 - Accounts with TOTP receive a short-lived challenge token and must submit a current one-time code before the API issues credentials.
-- Sensitive backend routes can require confirmed MFA through the MFA dependency.
 - Every superuser power (the `/admin` routes, moderation of other users' products, reading private
   profiles) needs MFA enrolled on the superuser account.
 - TOTP seeds and pending challenge tokens use cryptographically secure randomness.
