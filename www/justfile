@@ -76,7 +76,7 @@ e2e_api_url := "http://127.0.0.1:" + e2e_backend_port
 # Build against the running E2E backend, so that the hero renders a live record.
 # The committed fixture ships one URL per photograph, so it cannot produce a srcset.
 # Only a real API response carries the width-keyed derivative map.
-# The seeded Dell XPS 13 is the one product whose components carry photographs;
+# The seeded HP ProBook 430 G2 is the one product whose components carry photographs;
 # seeding runs against an empty database, so its id is stable.
 [doc('Build against the running E2E backend, so the hero renders a live record')]
 build-e2e:

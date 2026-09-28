@@ -1,5 +1,5 @@
 {
-  "_readme": "Illustrative development and demo data. The values are plausible for the products named but are not measurements, and every source is a placeholder.",
+  "_readme": "Illustrative development and demo data. The values are plausible for the products named but are not measurements, and the taxonomy sources are placeholders. The laptop record is labelled after its photographs (HP logo, ProBook palm rest, mainboard marked ZPM30 LA-B171P); its display size, dimensions, the 1.6 kg configuration weight and the brushed aluminium keyboard deck follow HP QuickSpecs c04333719 (HP ProBook 430 G2 Notebook PC, https://h20195.www2.hp.com/v2/GetDocument.aspx?docname=c04333719), and every other value is illustrative.",
   "user_data": [
     {
       "email": "alice@example.com",
@@ -59,7 +59,6 @@
     {
       "name": "Aluminum",
       "description": "Lightweight metal.",
-      "source": "https://example.com/aluminum",
       "density_kg_m3": 2700,
       "is_crm": false,
       "categories": ["Metals"]
@@ -67,7 +66,6 @@
     {
       "name": "Polycarbonate",
       "description": "Durable plastic.",
-      "source": "https://example.com/polycarbonate",
       "density_kg_m3": 1200,
       "is_crm": false,
       "categories": ["Plastics"]
@@ -114,20 +112,20 @@
       ]
     },
     {
-      "name": "Dell XPS 13",
-      "description": "Illustrative seed record, not a measured teardown. Dell laptop.",
-      "brand": "Dell",
-      "model": "XPS9380",
+      "name": "HP ProBook 430 G2",
+      "description": "Illustrative seed record, not a measured teardown. HP business laptop, as shown in the photographs.",
+      "brand": "HP",
+      "model": "ProBook 430 G2",
       "product_type_name": "Laptop",
       "physical_properties": {
-        "weight_g": 1230,
-        "height_cm": 1.16,
-        "width_cm": 30.2,
-        "depth_cm": 19.9
+        "weight_g": 1600,
+        "height_cm": 2.1,
+        "width_cm": 32.6,
+        "depth_cm": 23.35
       },
       "circularity_properties": {
-        "recyclability": "Illustrative note. An aluminium lid and base are typically recoverable once the board is out; a bonded glass-and-polymer display stack typically is not separated.",
-        "disassemblability": "Illustrative note. Laptops of this build typically open with Torx screws around the base.",
+        "recyclability": "Illustrative note. A brushed aluminium keyboard deck is typically recoverable once the boards are out; a bonded glass-and-polymer display stack typically is not separated.",
+        "disassemblability": "Illustrative note. Laptops of this build typically open through a service door on the underside.",
         "remanufacturability": "Illustrative note. Display assembly, keyboard and SSD are candidates for reuse as whole parts; the mainboard would need testing first."
       },
       "bill_of_materials": [
@@ -137,29 +135,28 @@
       "components": [
         {
           "name": "Display assembly",
-          "description": "Lid, hinges and LCD panel as one removable unit.",
+          "description": "Lid, bezel, hinges and LCD panel as one removable unit.",
           "product_type_name": "Display module",
           "amount_in_parent": 1,
           "physical_properties": {"weight_g": 258},
           "circularity_properties": {
-            "recyclability": "Illustrative note. An aluminium lid is typically recoverable; panel glass bonded to a polymer frame typically is not separated.",
-            "disassemblability": "Illustrative note. An adhered bezel typically needs heat before the panel comes out; hinges typically unscrew.",
+            "recyclability": "Illustrative note. Panel glass bonded to a polymer frame typically is not separated, so the panel goes to WEEE processing whole.",
+            "disassemblability": "Illustrative note. The bezel typically comes off before the panel does; hinges typically unscrew.",
             "remanufacturability": "Illustrative note. Reusable as a whole assembly if the hinge mounts are undamaged."
           },
           "bill_of_materials": [
-            {"material": "Aluminum", "quantity": 0.095, "unit": "kg"},
             {"material": "Polycarbonate", "quantity": 0.05, "unit": "kg"}
           ],
           "components": [
             {
               "name": "LCD panel",
-              "description": "13.3-inch IPS panel.",
+              "description": "13.3-inch LED-backlit HD panel.",
               "amount_in_parent": 1,
               "physical_properties": {"weight_g": 163}
             },
             {
               "name": "Lid and hinges",
-              "description": "Aluminium lid with both hinges attached.",
+              "description": "Painted lid with both hinges attached.",
               "amount_in_parent": 1,
               "physical_properties": {"weight_g": 95}
             }
@@ -167,56 +164,55 @@
         },
         {
           "name": "Bottom cover",
-          "description": "Machined aluminium base plate.",
+          "description": "Sheet-metal service door from the underside, inner face up.",
           "amount_in_parent": 1,
-          "physical_properties": {"weight_g": 156},
-          "bill_of_materials": [
-            {"material": "Aluminum", "quantity": 0.156, "unit": "kg"}
-          ]
+          "physical_properties": {"weight_g": 156}
         },
         {
           "name": "Keyboard",
-          "description": "Backlit keyboard, removed from its frame.",
+          "description": "Spill-resistant keyboard, removed from the top cover.",
           "amount_in_parent": 1,
           "physical_properties": {"weight_g": 94}
         },
         {
           "name": "Motherboard assembly",
-          "description": "Mainboard with heatsink and port brackets.",
+          "description": "Mainboard with its coin-cell battery.",
           "product_type_name": "Printed circuit board assembly",
           "amount_in_parent": 1,
           "physical_properties": {"weight_g": 88},
           "circularity_properties": {
-            "recyclability": "Illustrative note. A populated board typically goes to WEEE processing whole.",
-            "disassemblability": "Illustrative note. Heatsink and port brackets typically unscrew, and connectors unlatch.",
-            "remanufacturability": "Illustrative note. Not covered by this example."
+            "recyclability": "Illustrative note. A populated board typically goes to WEEE processing whole, after its coin-cell battery is taken out.",
+            "disassemblability": "Illustrative note. The board typically unscrews from the top cover once its ribbon connectors unlatch."
           },
           "components": [
             {
               "name": "PCB assembly",
-              "description": "Populated mainboard PCB.",
+              "description": "Populated mainboard with VGA, HDMI, USB and SD card ports.",
               "amount_in_parent": 1,
-              "physical_properties": {"weight_g": 66}
+              "physical_properties": {"weight_g": 85}
             },
             {
-              "name": "Port brackets",
-              "description": "USB-C and audio port brackets.",
-              "amount_in_parent": 2,
-              "physical_properties": {"weight_g": 22}
+              "name": "Coin-cell battery",
+              "description": "CR2032 cell for the real-time clock.",
+              "amount_in_parent": 1,
+              "physical_properties": {"weight_g": 3}
             }
           ]
         },
         {
-          "name": "Keyboard frame assembly",
-          "description": "Magnesium frame the keyboard mounts into.",
+          "name": "Top cover assembly",
+          "description": "Aluminium keyboard deck and palm rest with the touchpad, fan and a small I/O board still attached.",
           "amount_in_parent": 1,
-          "physical_properties": {"weight_g": 71}
+          "physical_properties": {"weight_g": 350},
+          "bill_of_materials": [
+            {"material": "Aluminum", "quantity": 0.1, "unit": "kg"}
+          ]
         },
         {
           "name": "SSD",
-          "description": "M.2 2280 NVMe drive.",
+          "description": "2.5-inch SATA drive.",
           "amount_in_parent": 1,
-          "physical_properties": {"weight_g": 8.4}
+          "physical_properties": {"weight_g": 60}
         }
       ]
     }
@@ -228,38 +224,38 @@
       "parent_product_name": "iPhone 12"
     },
     {
-      "description": "Dell XPS 13 before disassembly",
-      "filename": "xps13_laptop.webp",
-      "parent_product_name": "Dell XPS 13"
+      "description": "HP ProBook 430 G2 before disassembly",
+      "filename": "probook430g2_laptop.webp",
+      "parent_product_name": "HP ProBook 430 G2"
     },
     {
       "description": "Display assembly, removed",
-      "filename": "xps13_screen.webp",
+      "filename": "probook430g2_screen.webp",
       "parent_product_name": "Display assembly"
     },
     {
-      "description": "Bottom cover, inner face",
-      "filename": "xps13_bottom_cover.webp",
+      "description": "Service door, inner face",
+      "filename": "probook430g2_bottom_cover.webp",
       "parent_product_name": "Bottom cover"
     },
     {
-      "description": "Keyboard, removed from its frame",
-      "filename": "xps13_keyboard.webp",
+      "description": "Keyboard, removed from the top cover",
+      "filename": "probook430g2_keyboard.webp",
       "parent_product_name": "Keyboard"
     },
     {
-      "description": "Motherboard assembly, removed",
-      "filename": "xps13_mobo.webp",
+      "description": "Mainboard, removed",
+      "filename": "probook430g2_mobo.webp",
       "parent_product_name": "Motherboard assembly"
     },
     {
-      "description": "Keyboard frame assembly, removed",
-      "filename": "xps13_keyboard_frame_assembly.webp",
-      "parent_product_name": "Keyboard frame assembly"
+      "description": "Top cover assembly, underside",
+      "filename": "probook430g2_top_cover.webp",
+      "parent_product_name": "Top cover assembly"
     },
     {
-      "description": "M.2 NVMe SSD, removed",
-      "filename": "xps13_ssd.webp",
+      "description": "2.5-inch SATA SSD, removed",
+      "filename": "probook430g2_ssd.webp",
       "parent_product_name": "SSD"
     }
   ]

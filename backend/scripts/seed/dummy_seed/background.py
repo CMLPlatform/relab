@@ -78,7 +78,7 @@ async def seed_materials(session: AsyncSession, category_map: dict[str, Category
         material = Material(
             name=data["name"],
             description=data["description"],
-            source=data["source"],
+            source=data.get("source"),
             density_kg_m3=data["density_kg_m3"],
             is_crm=data["is_crm"],
         )
