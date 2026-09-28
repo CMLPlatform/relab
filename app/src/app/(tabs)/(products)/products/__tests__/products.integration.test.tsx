@@ -5,7 +5,13 @@ import { HttpResponse, http } from 'msw';
 import Products from '@/app/(tabs)/(products)/products';
 import { API_URL } from '@/config';
 import { productsInfiniteQueryOptions } from '@/features/products/queries';
-import { mockUser, renderWithProviders, server } from '@/test-utils/index';
+import {
+  mockPlatform,
+  mockUser,
+  renderWithProviders,
+  restorePlatform,
+  server,
+} from '@/test-utils/index';
 
 const NETWORK_FAILURE_PATTERN = /Network failure/;
 
@@ -583,6 +589,31 @@ describe('Infinite scroll', () => {
 
     await waitFor(() => expect(screen.getByText('1 of 1 products')).toBeOnTheScreen());
     expect(screen.queryByLabelText('Load more products')).toBeNull();
+  });
+});
+
+describe('Export results', () => {
+  afterEach(() => {
+    restorePlatform();
+  });
+
+  it.each([
+    ['ios', 'all', true],
+    ['ios', 'mine', false],
+    ['android', 'mine', false],
+  ] as const)('on %s with filterMode=%s, shown: %s', async (os, filterMode, shown) => {
+    mockPlatform(os);
+    mockUseAuth.mockReturnValue({ user: mockUser() });
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode });
+    server.use(threePageProductsHandler());
+    await renderProducts();
+    await waitFor(() => expect(screen.getByText('Product A')).toBeOnTheScreen());
+    // The Mine filter counts as active, which already opens the chips.
+    if (!screen.getByLabelText(FILTERS_TOGGLE_PATTERN).props.accessibilityState.expanded) {
+      await openFilters();
+    }
+
+    expect(screen.queryByText('Export results') !== null).toBe(shown);
   });
 });
 

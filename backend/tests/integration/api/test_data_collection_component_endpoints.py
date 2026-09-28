@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
+from app.api.data_collection.crud.product_tree_queries import MAX_COMPONENT_DEPTH
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import Material
 from tests.constants import (
@@ -177,6 +178,29 @@ async def test_add_nested_component_to_component(
 
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json()["name"] == NEW_COMPONENT_NAME
+
+
+async def test_add_component_refuses_nesting_past_the_depth_limit(
+    api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
+) -> None:
+    """A component may sit at the deepest allowed level, but not one below it, whichever route adds it."""
+    root = parent = Product(owner_id=db_superuser.id, name="Chain")
+    for level in range(MAX_COMPONENT_DEPTH - 1):
+        parent = Product(owner_id=db_superuser.id, name=f"Level {level + 1}", parent=parent, amount_in_parent=1)
+    db_session.add(root)
+    await db_session.flush()
+    leaf = {"name": NEW_COMPONENT_NAME, "amount_in_parent": 1}
+
+    nested = await api_client_superuser.post(
+        f"/v1/components/{parent.id}/components", json={**leaf, "components": [leaf]}
+    )
+    at_limit = await api_client_superuser.post(f"/v1/components/{parent.id}/components", json=leaf)
+    past_limit = await api_client_superuser.post(f"/v1/components/{at_limit.json()['id']}/components", json=leaf)
+
+    assert nested.status_code == status.HTTP_400_BAD_REQUEST
+    assert at_limit.status_code == status.HTTP_201_CREATED, at_limit.text
+    assert past_limit.status_code == status.HTTP_400_BAD_REQUEST
+    assert f"at most {MAX_COMPONENT_DEPTH} levels" in past_limit.text
 
 
 async def test_add_component_rejects_videos(

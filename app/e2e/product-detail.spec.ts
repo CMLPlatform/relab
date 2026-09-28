@@ -131,21 +131,52 @@ test.describe('Product detail: section navigation', () => {
 });
 
 // ─── Chunking at phone width ────────────────────────────────────────────────
-// Six sections used to make six chips, of which two sat off-screen at 390pt.
-// Assert the painted result: every chip's right edge inside the viewport, in
-// edit mode (where every section, empty or not, is present).
+// The chip count varies with the account: lab accounts (every superuser, so
+// the E2E account too) get a fifth chip, Research files, which does not fit
+// 390pt. The row scrolls sideways instead, with its scrollbar showing, and
+// keyboard focus brings each chip into view. Checked in edit mode, where every
+// section, empty or not, is present.
 test.describe('Product detail: phone chunking', () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test('all section chips fit one row at 390pt in edit mode', async ({ page }) => {
+  test('the section chip row scrolls sideways and every chip is reachable at 390pt', async ({
+    page,
+  }) => {
     await loginAndReachProducts(page);
     await createProduct(page, `E2E Chunk ${Date.now()}`);
-    const chips = page.getByTestId('section-nav-chips').getByRole('button');
-    await expect(chips).toHaveCount(4);
-    const boxes = await Promise.all((await chips.all()).map((chip) => chip.boundingBox()));
-    for (const box of boxes) {
-      expect(box).not.toBeNull();
-      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390);
+    const row = page.getByTestId('section-nav-chips');
+    const chips = row.getByRole('button');
+    await expect(chips).toHaveCount(5);
+
+    const scroller = await row.evaluate((el) => {
+      const node = [el, ...el.querySelectorAll('*')].find((candidate) =>
+        ['auto', 'scroll'].includes(getComputedStyle(candidate).overflowX),
+      );
+      if (!node) return null;
+      return {
+        overflows: node.scrollWidth > node.clientWidth,
+        scrollbarHidden: getComputedStyle(node).scrollbarWidth === 'none',
+      };
+    });
+    expect(scroller).toEqual({ overflows: true, scrollbarHidden: false });
+    // The page itself never scrolls sideways; only the chip row does.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      390,
+    );
+
+    // Tab through the row: each chip scrolls fully on screen, with room for its
+    // 4px focus ring (2px outline at a 2px offset).
+    const all = await chips.all();
+    await all[0].focus();
+    for (const [index, chip] of all.entries()) {
+      if (index > 0) await page.keyboard.press('Tab');
+      await expect(chip).toBeFocused();
+      await expect
+        .poll(async () => {
+          const box = await chip.boundingBox();
+          return box !== null && box.x >= 4 && box.x + box.width <= 390 - 4;
+        })
+        .toBe(true);
     }
   });
 

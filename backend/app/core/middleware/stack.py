@@ -46,7 +46,8 @@ def register_middleware(app: FastAPI) -> None:
             IDEMPOTENCY_KEY_HEADER,
             "X-E2E-Key",
         ],
-        expose_headers=[REQUEST_ID_HEADER],
+        # Content-Disposition carries the export filename to cross-origin downloads.
+        expose_headers=[REQUEST_ID_HEADER, "Content-Disposition"],
     )
 
     register_response_policy_middleware(

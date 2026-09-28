@@ -6,6 +6,7 @@ import { useAuth } from '@/context/auth';
 import { productTypeLabelMap } from '@/services/api/productTypes';
 import { createProductAction, useProductsActions } from './actions';
 import {
+  productsListQuery,
   useProductTypeLabelsQuery,
   useSearchBrandsQuery,
   useSearchProductTypesQuery,
@@ -112,6 +113,16 @@ export function useProductsScreen() {
     createdAfter,
     activeProductTypes,
   });
+  // Same filters the list sends, for "Export results".
+  const exportQuery = useMemo(
+    () =>
+      productsListQuery(filterMode, searchQueryURL, sortBy, {
+        brands: activeBrands,
+        createdAfter,
+        productTypeNames: activeProductTypes,
+      }),
+    [filterMode, searchQueryURL, sortBy, activeBrands, createdAfter, activeProductTypes],
+  );
   const slowLoading = useSlowLoading(isLoading);
   const { showInfoCard, dismissInfoCard } = useProductsWelcomeCard({
     isAuthenticated,
@@ -183,6 +194,7 @@ export function useProductsScreen() {
       isLoading,
       error,
       refetch,
+      exportQuery,
       onScroll: header.onScroll,
       setHeaderBottom: header.setHeaderBottom,
     },

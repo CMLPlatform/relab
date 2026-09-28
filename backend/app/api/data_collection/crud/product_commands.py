@@ -9,9 +9,10 @@ from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_locked_model, require_model, require_models
 from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.sa_typing import orm_attr
+from app.api.data_collection.crud.product_tree_queries import MAX_COMPONENT_DEPTH, component_depth
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.crud.storage import cleanup_product_media_storage, delete_product_media
-from app.api.data_collection.exceptions import ProductOwnerRequiredError
+from app.api.data_collection.exceptions import ProductOwnerRequiredError, ProductTreeTooDeepError
 from app.api.data_collection.models.product import MaterialProductLink, Product
 from app.api.data_collection.schemas import ComponentCreateWithComponents, ProductCreateWithComponents, ProductUpdate
 from app.api.file_storage.models import Video
@@ -119,7 +120,18 @@ async def create_and_persist_product_tree(
     owner_id: UUID4 | None,
     parent_product: Product | None = None,
 ) -> Product:
-    """Create a product tree and persist the root row."""
+    """Create a product tree and persist the root row.
+
+    Refuses, before writing anything, a tree that would nest components deeper than
+    ``MAX_COMPONENT_DEPTH`` below its base product, counting the new nested components too.
+    """
+    depth = 0 if parent_product is None else await component_depth(db, parent_product.id) + 1
+    level = list(product_data.components)
+    while level and depth <= MAX_COMPONENT_DEPTH:
+        depth += 1
+        level = [child for component in level for child in component.components]
+    if depth > MAX_COMPONENT_DEPTH:
+        raise ProductTreeTooDeepError(MAX_COMPONENT_DEPTH)
     db_product = await create_product_tree(db, product_data, owner_id=owner_id, parent_product=parent_product)
     await db.commit()
     await db.refresh(db_product)
@@ -188,7 +200,9 @@ async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = Tr
     """
     # Not the loader-profile helpers, and populate_existing so components a detail read
     # already put in the session under raiseload("*") are reloaded with the relationships
-    # the delete cascade walks at flush time.
+    # the delete cascade walks at flush time. Whether such stale instances are still in
+    # the identity map depends on garbage collection, so the direct components' walked
+    # relationships (product_type and parent) are loaded here explicitly.
     db_product = ensure_model_exists(
         await db.get(
             Product,
@@ -198,6 +212,7 @@ async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = Tr
             options=[
                 selectinload(orm_attr(Product.product_type)),
                 selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.product_type)),
+                selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.parent)),
             ],
         ),
         Product,

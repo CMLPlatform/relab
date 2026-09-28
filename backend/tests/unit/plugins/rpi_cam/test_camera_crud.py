@@ -7,11 +7,13 @@ from fastapi import BackgroundTasks, HTTPException
 from redis.asyncio import Redis
 
 from app.api.plugins.rpi_cam.models import Camera, CameraConnectionStatus, CameraStatus
+from app.api.plugins.rpi_cam.routers.admin import delete_camera
 from app.api.plugins.rpi_cam.routers.camera_crud import (
     _notify_camera_unpair,
     delete_user_camera,
     self_unpair_camera,
 )
+from app.api.plugins.rpi_cam.runtime.preview import remove_preview_thumbnail
 
 
 def _fake_redis() -> Redis:
@@ -113,3 +115,21 @@ async def test_self_unpair_removes_the_cached_frame(mock_camera: Camera) -> None
     remove_thumbnail.assert_called_once_with("/previews/frame.jpg")
     session.delete.assert_awaited_once_with(mock_camera)
     session.commit.assert_awaited_once()
+
+
+async def test_admin_delete_camera_removes_the_preview_thumbnail(mock_camera: Camera) -> None:
+    """An admin delete cleans up the same camera artifacts as an owner delete."""
+    session = AsyncMock()
+    background_tasks = MagicMock(spec=BackgroundTasks)
+
+    await delete_camera(
+        _camera_id=mock_camera.id,
+        background_tasks=background_tasks,
+        session=session,
+        camera=mock_camera,
+        redis=_fake_redis(),
+    )
+
+    session.delete.assert_awaited_once_with(mock_camera)
+    queued = [call.args[0] for call in background_tasks.add_task.call_args_list]
+    assert remove_preview_thumbnail in queued

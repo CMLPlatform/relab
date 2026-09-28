@@ -116,7 +116,7 @@ async def test_composed_middleware_keeps_cross_origin_resource_policy_strict_whe
 
 
 async def test_composed_middleware_exposes_request_id_through_cors(monkeypatch: pytest.MonkeyPatch) -> None:
-    """CORS should allow clients to read the request ID produced by the request middleware."""
+    """CORS should let clients read the request ID and an export's download filename."""
     monkeypatch.setattr(settings, "allowed_hosts", ["*"])
     monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
     monkeypatch.setattr(settings, "cors_origin_regex", None)
@@ -128,7 +128,7 @@ async def test_composed_middleware_exposes_request_id_through_cors(monkeypatch: 
 
     assert response.status_code == 200
     assert response.headers[REQUEST_ID_HEADER]
-    assert response.headers["access-control-expose-headers"] == REQUEST_ID_HEADER
+    assert response.headers["access-control-expose-headers"] == f"{REQUEST_ID_HEADER}, Content-Disposition"
 
 
 async def test_composed_middleware_preflight_allows_the_edge_e2e_key(monkeypatch: pytest.MonkeyPatch) -> None:

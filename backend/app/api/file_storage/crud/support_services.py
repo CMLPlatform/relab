@@ -39,7 +39,12 @@ from app.core.logging import sanitize_log_value
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, stored_file_path
 from .support_types import StorageCreateSchema, StorageModel
-from .support_uploads import build_storage_instance, process_uploadfile_name, validate_upload_size
+from .support_uploads import (
+    build_storage_instance,
+    measure_file_size,
+    process_uploadfile_name,
+    validate_upload_size,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -210,7 +215,11 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         await ensure_parent_exists(db, payload.parent_type, payload.parent_id)
         upload_size_bytes = await self.validate_upload(payload, caps_role)
         await scan_upload_or_raise(payload.file)
-        extra_fields = await self.prepare_upload(payload.file) if self.prepare_upload is not None else {}
+        extra_fields: dict[str, Any] = {}
+        if self.prepare_upload is not None:
+            extra_fields = await self.prepare_upload(payload.file)
+            # The caps above apply to what was sent; the quota and the row count what is stored.
+            upload_size_bytes = await to_thread.run_sync(measure_file_size, payload.file.file)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
         if quota_user_id is not None:
             # quota_user_id gates whether this upload counts against quota (product

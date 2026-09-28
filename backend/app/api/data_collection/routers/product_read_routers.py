@@ -1,27 +1,35 @@
 """Read-focused routers for product and component endpoints."""
 
-from typing import TYPE_CHECKING, Annotated, Literal, cast
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
 from fastapi import HTTPException, Query, Request
 from fastapi_pagination.links import Page
-from pydantic import UUID4, PositiveInt
+from pydantic import UUID4, PositiveInt, TypeAdapter
 from sqlalchemy import select
-from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
+from starlette.responses import Response  # Runtime annotation evaluation needs this.
 
 from app.api.auth.dependencies import CurrentActiveUserDep, OptionalCurrentActiveUserDep
 from app.api.auth.models import User
 from app.api.auth.schemas import normalize_username
 from app.api.auth.services.privacy import can_view_profile
-from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
+from app.api.auth.services.rate_limiter import API_EXPORT_RATE_LIMIT_DEPENDENCY, API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
+from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (
+    EXPORT_MAX_BASE_PRODUCTS,
+    EXPORT_MAX_COMPONENTS,
+    MAX_COMPONENT_DEPTH,
+    PRODUCT_EXPORT_RELATIONSHIPS,
     PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+    apply_product_detail_loaders,
+    load_all_descendants,
     load_component_subtree,
     require_product_detail,
 )
@@ -32,6 +40,7 @@ from app.api.data_collection.filters import (
     get_product_facet_statement,
 )
 from app.api.data_collection.models.product import Product
+from app.api.data_collection.presentation.product_export import build_product_exports, render_products_csv
 from app.api.data_collection.presentation.product_reads import (
     render_component_tree,
     to_read_model,
@@ -40,6 +49,7 @@ from app.api.data_collection.product_schemas import ProductRead
 from app.api.data_collection.schemas import (
     ComponentRead,
     ComponentReadWithRecursiveComponents,
+    ProductExportRead,
     ProductFacetsRead,
     ProductFacetValue,
     ProductReadWithRelationshipsAndFlatComponents,
@@ -58,6 +68,21 @@ product_read_router = PublicAPIRouter(prefix="/products", tags=["products"])
 CURRENT_USER_OWNER = "me"
 ProductFacetField = Literal["brand", "model"]
 PRODUCT_FACET_BRAND: ProductFacetField = "brand"
+ExportFormat = Literal["csv", "json"]
+EXPORT_FORMAT_CSV: ExportFormat = "csv"
+ExportFormatQuery = Annotated[ExportFormat, Query(alias="format", description="File format: 'csv' or 'json'")]
+OwnerQuery = Annotated[
+    str | None,
+    Query(
+        max_length=50,
+        description="Use 'me' for the current user's products, or a username for that user's public products",
+    ),
+]
+_EXPORT_TOO_LARGE = (
+    f"the export is too large (components nested more than {MAX_COMPONENT_DEPTH} levels deep, "
+    f"or more than {EXPORT_MAX_COMPONENTS:,} components)"
+)
+_EXPORT_200: dict[str, Any] = {"content": {"text/csv": {"schema": {"type": "string"}}}}
 
 
 async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
@@ -114,6 +139,24 @@ async def resolve_owner_id(session: AsyncSessionDep, owner: str, viewer: User | 
     return user.id
 
 
+async def _export_response(
+    session: AsyncSessionDep,
+    roots: Sequence[Product],
+    viewer: User | None,
+    export_format: ExportFormat,
+    filename_stem: str,
+) -> Response:
+    """Load the component trees under ``roots`` and render them as a download."""
+    children_by_parent_id = await load_all_descendants(session, [root.id for root in roots])
+    products = build_product_exports(roots, children_by_parent_id, viewer)
+    filename = f"{filename_stem}-{datetime.now(UTC):%Y%m%d}.{export_format}"
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    if export_format == EXPORT_FORMAT_CSV:
+        return Response(render_products_csv(products), media_type="text/csv; charset=utf-8", headers=headers)
+    body = TypeAdapter(list[ProductExportRead]).dump_json(products)
+    return Response(body, media_type="application/json", headers=headers)
+
+
 @user_product_router.get(
     "",
     response_model=Page[ProductRead],
@@ -150,13 +193,7 @@ async def get_products(
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_filter: ProductFilterWithRelationshipsDep,
-    owner: Annotated[
-        str | None,
-        Query(
-            max_length=50,
-            description="Use 'me' for the current user's products, or a username for that user's public products",
-        ),
-    ] = None,
+    owner: OwnerQuery = None,
 ) -> Page[ProductRead] | Response:
     """Get all base products. Components live under ``/products/{id}/components``."""
     statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.is_(None))
@@ -172,6 +209,46 @@ async def get_products(
 
 
 # Declared before "/{product_id}" so the single-segment static path wins over the dynamic param.
+@product_read_router.get(
+    "/export",
+    response_model=list[ProductExportRead],
+    responses={
+        200: _EXPORT_200,
+        400: {"description": f"More than {EXPORT_MAX_BASE_PRODUCTS} base products match, or {_EXPORT_TOO_LARGE}"},
+    },
+    summary="Export base products matching the list filters, with their components",
+    dependencies=[API_EXPORT_RATE_LIMIT_DEPENDENCY],
+)
+async def export_products(
+    session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
+    product_filter: ProductFilterWithRelationshipsDep,
+    export_format: ExportFormatQuery = EXPORT_FORMAT_CSV,
+    owner: OwnerQuery = None,
+) -> Response:
+    """Export every base product the product list would match, each with its whole component tree.
+
+    Takes the same filters, search and sorting as ``GET /products``. CSV has one row per
+    product or component, linked by ``parent_id``; JSON nests components as the detail read
+    does. At most 100 base products, 5,000 components and 10 component levels: narrow the filters,
+    or use the dataset release for bulk data.
+    """
+    statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.is_(None))
+    if owner is not None:
+        statement = statement.where(Product.owner_id == await resolve_owner_id(session, owner, current_user))
+    statement = apply_product_detail_loaders(apply_filter(statement, product_filter), PRODUCT_EXPORT_RELATIONSHIPS)
+    # One row past the cap tells "too many" apart without a separate count query.
+    statement = statement.order_by(Product.id).limit(EXPORT_MAX_BASE_PRODUCTS + 1)
+    roots = list((await session.execute(statement)).scalars().unique().all())
+    if len(roots) > EXPORT_MAX_BASE_PRODUCTS:
+        msg = (
+            f"More than {EXPORT_MAX_BASE_PRODUCTS} products match. Narrow the filters to export them, "
+            "or use the dataset release for bulk data."
+        )
+        raise BadRequestError(msg)
+    return await _export_response(session, roots, current_user, export_format, "relab-products")
+
+
 @product_read_router.get(
     "/facets",
     response_model=ProductFacetsRead,
@@ -218,6 +295,32 @@ async def get_product(
         )
     payload = to_read_model(product, ProductReadWithRelationshipsAndFlatComponents, current_user)
     return conditional_json_response(request, payload)
+
+
+@product_read_router.get(
+    "/{product_id}/export",
+    response_model=list[ProductExportRead],
+    responses={
+        200: _EXPORT_200,
+        400: {"description": _EXPORT_TOO_LARGE.capitalize()},
+    },
+    summary="Export one base product with its components",
+    dependencies=[API_EXPORT_RATE_LIMIT_DEPENDENCY],
+)
+async def export_product(
+    session: AsyncSessionDep,
+    current_user: OptionalCurrentActiveUserDep,
+    product_id: PositiveInt,
+    export_format: ExportFormatQuery = EXPORT_FORMAT_CSV,
+) -> Response:
+    """Export one base product and its whole component tree, in the same formats as ``/products/export``."""
+    statement = apply_product_detail_loaders(
+        select(Product).where(Product.id == product_id, Product.parent_id.is_(None)), PRODUCT_EXPORT_RELATIONSHIPS
+    )
+    root = (await session.execute(statement)).scalars().unique().one_or_none()
+    if root is None:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return await _export_response(session, [root], current_user, export_format, f"relab-product-{product_id}")
 
 
 @product_read_router.get(

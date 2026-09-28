@@ -26,6 +26,9 @@ WILDCARD_RESPONSE_MEDIA_TYPES = frozenset({"*/*", "application/*"})
 BODYLESS_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "DELETE"})
 ACCEPT_QUALITY_PARAMETER = "q"
 JSON_STRUCTURED_SUFFIX = "+json"
+# Export routes can also answer as CSV, so an API client asking for text/csv is acceptable.
+EXPORT_PATH_SUFFIX = "/export"
+EXPORT_RESPONSE_MEDIA_TYPES = frozenset({"text/csv"})
 
 
 def _is_skipped_path(path: str) -> bool:
@@ -64,8 +67,8 @@ def _request_content_type_supported(request: Request) -> bool:
     return _base_media_type(content_type) in SUPPORTED_REQUEST_MEDIA_TYPES
 
 
-def _client_accepts_json_response(accept_header: str | None) -> bool:
-    """Return whether the client accepts JSON or Problem Details responses."""
+def _client_accepts_json_response(accept_header: str | None, extra: frozenset[str] = frozenset()) -> bool:
+    """Return whether the client accepts JSON, Problem Details, or one of ``extra``."""
     if not accept_header:
         return True
 
@@ -75,7 +78,7 @@ def _client_accepts_json_response(accept_header: str | None) -> bool:
             continue
         if media_type in WILDCARD_RESPONSE_MEDIA_TYPES:
             return True
-        if media_type in SUPPORTED_RESPONSE_MEDIA_TYPES:
+        if media_type in SUPPORTED_RESPONSE_MEDIA_TYPES or media_type in extra:
             return True
         if media_type.endswith(JSON_STRUCTURED_SUFFIX):
             return True
@@ -131,7 +134,8 @@ def register_content_negotiation_middleware(app: FastAPI) -> None:
                 "UnsupportedMediaType",
             )
 
-        if not _client_accepts_json_response(request.headers.get("accept")):
+        extra = EXPORT_RESPONSE_MEDIA_TYPES if path.endswith(EXPORT_PATH_SUFFIX) else frozenset()
+        if not _client_accepts_json_response(request.headers.get("accept"), extra):
             return _problem(
                 request,
                 406,
