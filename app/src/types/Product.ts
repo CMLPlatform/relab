@@ -1,3 +1,5 @@
+import type { ApiMaterialUnit } from './api';
+
 export type Product = {
   /** Undefined for unsaved drafts. Populated once the backend assigns an id on save. */
   id?: number;
@@ -35,6 +37,19 @@ export type Product = {
   videos?: { id?: number; url: string; description: string; title: string }[];
   ownedBy: 'me' | string;
   amountInParent?: number;
+  /** Recorded bill of materials. Undefined where the payload omits it (list
+   * rows and nested children), `[]` once loaded and empty. */
+  materials?: ProductMaterial[];
+};
+
+/** One bill-of-materials observation: how much of a material, and where the material record came from. */
+export type ProductMaterial = {
+  materialID: number;
+  name: string;
+  quantity: number;
+  unit: ApiMaterialUnit;
+  /** URL, IRI or citation key for the material record. Absent when unrecorded. */
+  source?: string;
 };
 
 export type PhysicalProperties = {
