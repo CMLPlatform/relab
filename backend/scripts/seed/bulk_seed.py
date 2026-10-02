@@ -226,7 +226,10 @@ def _uniquify_user(user: User, index: int) -> None:
     """
     local, _, domain = user.email.partition("@")
     user.email = f"{local}+bulk{index}@{domain or 'example.com'}"
-    user.username = f"{user.username}{index}"
+    # The separator keeps "anna1" + 23 apart from "anna12" + 3; the base is trimmed to
+    # fit the 50-character username limit.
+    suffix = f"_{index}"
+    user.username = f"{(user.username or '')[: 50 - len(suffix)]}{suffix}"
 
 
 async def _top_up(

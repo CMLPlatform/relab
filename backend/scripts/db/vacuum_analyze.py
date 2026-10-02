@@ -32,6 +32,7 @@ TABLE_SETS = {BULK: BULK_LOADED_TABLES, "taxonomy": TAXONOMY_TABLES}
 
 async def vacuum_analyze(tables: tuple[str, ...]) -> None:
     """Vacuum and analyse each table, warning rather than failing on refusal."""
+    done = []
     for table in tables:
         try:
             async with async_engine.connect() as connection:
@@ -41,7 +42,9 @@ async def vacuum_analyze(tables: tuple[str, ...]) -> None:
             # Hygiene, not correctness: a role without VACUUM rights on a table
             # must not fail a deploy.
             logger.warning("Could not vacuum/analyse %s: %s", table, exc)
-    logger.info("Vacuumed and analysed: %s", ", ".join(tables))
+        else:
+            done.append(table)
+    logger.info("Vacuumed and analysed: %s", ", ".join(done) or "none")
 
 
 def main() -> None:
