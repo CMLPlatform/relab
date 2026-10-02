@@ -328,6 +328,15 @@ describe('Products screen', () => {
     expect(screen.getByText('No products match your search.')).toBeOnTheScreen();
   });
 
+  it('asks for a second character instead of reporting no matches', async () => {
+    await renderProducts();
+    await waitFor(() => expect(screen.queryByTestId('product-card-skeleton')).toBeNull());
+
+    await fireEvent.changeText(screen.getByPlaceholderText('Search products'), 'x');
+    expect(screen.getByText('Type at least 2 characters to search.')).toBeOnTheScreen();
+    expect(screen.queryByText('No products match your search.')).toBeNull();
+  });
+
   it('clears the search query from the URL when the search box is emptied', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ q: 'saved query' });
     await renderProducts();
