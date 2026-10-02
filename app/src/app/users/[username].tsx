@@ -56,7 +56,7 @@ function ProfileStatCard({
 function UserProducts({ username }: { username: string }) {
   const { width } = useWindowDimensions();
   const numColumns = productGridColumns(width);
-  const { items, total, isLoading, isError, retry, isFetchingNextPage, hasNextPage, loadMore } =
+  const { items, total, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, loadMore } =
     useUserProducts(username);
   // A failed next page keeps the items already shown; only an empty list becomes an error.
   const failed = isError && items.length === 0;
@@ -69,7 +69,7 @@ function UserProducts({ username }: { username: string }) {
       {isLoading ? (
         <ProductCardSkeleton />
       ) : failed ? (
-        <ErrorState message="Couldn't load products." onRetry={retry} />
+        <ErrorState message="Couldn't load products." onRetry={() => void refetch()} />
       ) : items.length === 0 ? (
         <AppText className="text-muted-foreground">No public products yet</AppText>
       ) : (

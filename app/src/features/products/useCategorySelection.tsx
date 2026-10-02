@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useDebounce } from 'use-debounce';
 import { topCategoriesQueryOptions } from '@/features/products/queries';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -14,52 +14,24 @@ export function useCategorySelection() {
   // Safe redirect if the session expired while the picker was open.
   const { user } = useRequireAuth('/products');
 
-  const [cpv, setCpv] = useState<Record<string, CPVCategory> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
-  const [cpvClass, setCpvClass] = useState<CPVCategory | null>(null);
-  const [history, setHistory] = useState<CPVCategory[]>([]);
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  // The bundled taxonomy, loaded lazily; a failed load shows a retry instead of a spinner.
+  const {
+    data: cpv,
+    isError: loadFailed,
+    refetch: retryLoad,
+  } = useQuery({ queryKey: ['cpv'], queryFn: loadCPV, staleTime: Number.POSITIVE_INFINITY });
+  // Branches browsed into below the root.
+  const [trail, setTrail] = useState<CPVCategory[]>([]);
+  const cpvClass = trail.at(-1) ?? cpv?.root ?? null;
+  const history = cpv ? [cpv.root, ...trail] : [];
   const { recents, recordRecent } = useRecentCategories();
   // Public aggregate; a failure just hides the shortcut section.
   const { data: topCategories } = useQuery(topCategoriesQueryOptions);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: loadAttempt is a re-run trigger, not a value read here; retryLoad bumps it to load again.
-  useEffect(() => {
-    let isMounted = true;
-    loadCPV()
-      .then((data) => {
-        if (!isMounted) return;
-        setCpv(data);
-        setCpvClass(data.root);
-        setHistory([data.root]);
-      })
-      .catch(() => {
-        if (isMounted) setLoadFailed(true);
-      });
-    return () => {
-      isMounted = false;
-    };
-  }, [loadAttempt]);
-
-  const retryLoad = () => {
-    setLoadFailed(false);
-    setLoadAttempt((n) => n + 1);
-  };
-
-  const selectBranch = (item: CPVCategory) => {
-    setHistory((h) => [...h, item]);
-    setCpvClass(item);
-  };
-
-  const moveUp = () => {
-    setHistory((h) => {
-      const next = h.slice(0, -1);
-      setCpvClass(next.at(-1) ?? null);
-      return next;
-    });
-  };
+  const selectBranch = (item: CPVCategory) => setTrail((t) => [...t, item]);
+  const moveUp = () => setTrail((t) => t.slice(0, -1));
 
   const selectType = useCallback(
     (typeId: number) => {
