@@ -15,6 +15,10 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
+  // A healthy CI run takes a few minutes. Stop a broken stack early with a report instead of
+  // retrying every test until the job's own timeout kills it and leaves nothing to read.
+  globalTimeout: process.env.CI ? 15 * 60_000 : undefined,
+  maxFailures: process.env.CI ? 10 : undefined,
   retries: 2,
   workers: process.env.CI ? 2 : 4,
   reporter: process.env.CI ? 'github' : 'list',
