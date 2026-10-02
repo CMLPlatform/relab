@@ -6,8 +6,11 @@ name: Deploy Sites
 # writes into each GitHub Environment; the API token is an Environment secret.
 #
 # - release.yml calls this with the release tag: both environments get the release.
-# - Weekly, both environments are rebuilt from the latest release, so the www hero
-#   picks up a changed featured product or a changed teardown without a release.
+#   Each Environment has a required reviewer, so prod deploys once someone has checked
+#   staging and approved.
+# - Weekly, staging is rebuilt from the latest release, so its www hero picks up a
+#   changed featured product or teardown. Prod is never rebuilt unattended: run this
+#   by hand for prod to refresh it.
 # - A manual run deploys the selected commit to one environment. Prod's Environment
 #   accepts `main` and release tags only.
 on:
@@ -63,6 +66,8 @@ jobs:
           fi
           if [[ -n "$ENVIRONMENT" ]]; then
             environments="[\"$ENVIRONMENT\"]"
+          elif [[ "$EVENT" == schedule ]]; then
+            environments='["staging"]'
           else
             environments='["prod","staging"]'
           fi

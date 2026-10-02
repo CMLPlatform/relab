@@ -83,7 +83,8 @@ Security-sensitive areas:
 - release and security artifacts: the GHCR images the hosts pull, and the landing page and docs
   deploy, whose Cloudflare API token is a GitHub Environment secret holding only the Workers
   Editor role. Granted on all Workers, it reaches prod's too, so the staging Environment, which
-  accepts any branch, requires a reviewer. Hosts check image provenance with `just images-verify` before pulling a tag.
+  accepts any branch, requires a reviewer, as prod does for every release. Hosts check image
+  provenance with `just images-verify` before pulling a tag.
 
 Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files,
 OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup

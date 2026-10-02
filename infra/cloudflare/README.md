@@ -156,15 +156,16 @@ export TF_VAR_cloudflare_zone_name='cml-relab.org'
 export TF_VAR_github_owner='CMLPlatform'  # a fork's owner, when it publishes its own images
 ```
 
-Required for staging:
+Required for both environments:
 
 ```bash
-export TF_VAR_github_staging_reviewers='["<your-github-login>"]'
+export TF_VAR_github_reviewers='["<your-github-login>"]'
 ```
 
-Staging accepts a run from any branch, and its `CLOUDFLARE_API_TOKEN` can deploy every Worker in
-the account, prod's included, so every staging run waits for one of these reviewers to approve it.
-A release waits there too, for its staging images and site deploy.
+Every job in either GitHub Environment waits for one of these reviewers. In prod that is the
+release gate: a release deploys staging's sites, and prod's follow once you have checked staging
+and approved. Staging needs it because it accepts a run from any branch while its
+`CLOUDFLARE_API_TOKEN` can deploy every Worker in the account, prod's included.
 
 Do not commit tokens, tunnel tokens, or state files.
 

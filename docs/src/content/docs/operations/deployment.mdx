@@ -45,7 +45,7 @@ graph TD
     Alloy -->|container stdout via OTLP| OTel
 ```
 
-The Astro landing page and the Starlight docs site are not part of this topology: they are static sites on Cloudflare Workers, deployed by `.github/workflows/deploy-sites.yml` on every release, weekly (so the landing page picks up a changed featured teardown), and by hand. They reach the backend only from the visitor's browser and from their own build.
+The Astro landing page and the Starlight docs site are not part of this topology: they are static sites on Cloudflare Workers, deployed by `.github/workflows/deploy-sites.yml` on every release, by hand, and weekly on staging (so its landing page picks up a changed featured teardown). Prod deploys wait for a required reviewer, so a release reaches prod's sites only after staging has been checked. They reach the backend only from the visitor's browser and from their own build.
 
 Compose profiles enable the backup services. `OTEL_EXPORTER_OTLP_ENDPOINT` enables the backend's OTLP export and includes the Alloy overlay that ships every other container's stdout.
 
