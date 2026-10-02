@@ -222,6 +222,9 @@ class CoreSettings(RelabBaseSettings):
     # Product export assembles up to 100 whole product trees per request.
     api_export_rate_limit: str = "10/minute"
     api_export_rate_limit_per_user: str = "30/minute"
+    # Signed-in exports also share a per-IP ceiling, so throwaway accounts on one IP cannot
+    # each claim the per-user budget. 3x the per-user rate leaves room for a shared room.
+    api_export_rate_limit_signed_in_per_ip: str = "90/minute"
     rpi_cam_ws_auth_rate_limit: str = "10/minute"
     rpi_cam_ws_binary_frame_limit_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=50 * 1024 * 1024)
     trusted_proxy_cidrs: tuple[str, ...] = ("127.0.0.0/8", "::1/128")

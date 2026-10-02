@@ -7,6 +7,7 @@ from pydantic import UUID4, PositiveInt, ValidationError
 from relab_rpi_cam_models.stream import StreamView
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep, ExternalHTTPClientDep
 from app.api.common.validation import MultilineUserText, SingleLineUserText
@@ -63,7 +64,11 @@ async def get_camera_stream_status(
 
 
 @router.post(
-    "/{camera_id}/recording-stream", response_model=StreamView, status_code=201, summary="Start recording to YouTube"
+    "/{camera_id}/recording-stream",
+    response_model=StreamView,
+    status_code=201,
+    summary="Start recording to YouTube",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def start_recording(
     camera_id: UUID4,
@@ -120,6 +125,7 @@ async def start_recording(
     "/{camera_id}/recording-stream",
     response_model=VideoRead,
     summary="Stop recording to YouTube",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def stop_recording(
     camera_id: UUID4,

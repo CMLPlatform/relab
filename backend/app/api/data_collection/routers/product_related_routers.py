@@ -6,6 +6,7 @@ from fastapi import Body, Depends, Path
 from pydantic import PositiveInt
 from sqlalchemy import select
 
+from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.exceptions import DependentModelOwnershipError
 from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, apply_filter, create_filter_dependency
@@ -117,6 +118,7 @@ async def get_product_video(
     response_model=VideoReadWithinProduct,
     status_code=201,
     summary="Create a new video for a base product",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def create_product_video(
     product: UserOwnedBaseProductDep,
@@ -131,6 +133,7 @@ async def create_product_video(
     "/{product_id}/videos/{video_id}",
     response_model=VideoReadWithinProduct,
     summary="Update video by ID",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def update_product_video(
     product: UserOwnedBaseProductDep,
@@ -147,6 +150,7 @@ async def update_product_video(
     "/{product_id}/videos/{video_id}",
     status_code=204,
     summary="Delete video by ID",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def delete_product_video(
     product: ModeratableBaseProductDep,
@@ -191,6 +195,7 @@ async def get_material_in_product_bill_of_materials(
     response_model=list[MaterialProductLinkReadWithinProduct],
     status_code=201,
     summary="Add multiple materials to product bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def add_materials_to_product(
     product: UserOwnedBaseProductDep,
@@ -212,6 +217,7 @@ async def add_materials_to_product(
     response_model=MaterialProductLinkReadWithinProduct,
     status_code=201,
     summary="Add single material to product bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def add_material_to_product(
     product: UserOwnedBaseProductDep,
@@ -239,6 +245,7 @@ async def add_material_to_product(
     "/{product_id}/materials/{material_id}",
     response_model=MaterialProductLinkReadWithinProduct,
     summary="Update material in product bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def update_product_bill_of_materials(
     product: UserOwnedBaseProductDep,
@@ -254,6 +261,7 @@ async def update_product_bill_of_materials(
     "/{product_id}/materials/{material_id}",
     status_code=204,
     summary="Remove single material from product bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def remove_material_from_product(
     product: UserOwnedBaseProductDep,
@@ -271,6 +279,7 @@ async def remove_material_from_product(
     "/{product_id}/materials",
     status_code=204,
     summary="Remove multiple materials from product bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def remove_materials_from_product_bulk(
     product: UserOwnedBaseProductDep,

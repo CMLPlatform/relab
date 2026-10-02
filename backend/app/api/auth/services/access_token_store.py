@@ -43,6 +43,18 @@ def _revoked_before_key(user_id: UUID4 | str) -> str:
 class RevocableRedisStrategy(RedisStrategy[models.UP, models.ID]):
     """``RedisStrategy`` whose tokens carry an issue time and honour a revocation epoch."""
 
+    def __init__(
+        self,
+        redis: Redis,
+        lifetime_seconds: int | None = None,
+        *,
+        key_prefix: str = ACCESS_TOKEN_KEY_PREFIX,
+        request: Request | None = None,
+    ) -> None:
+        super().__init__(redis, lifetime_seconds, key_prefix=key_prefix)
+        # Shares the token lookup with the per-user rate limit (_get_stored_token).
+        self.request = request
+
     async def write_token(self, user: models.UP) -> str:
         """Issue a token stamped with its issue time.
 
@@ -61,7 +73,7 @@ class RevocableRedisStrategy(RedisStrategy[models.UP, models.ID]):
         if token is None:
             return None
 
-        stored = await self.redis.get(f"{self.key_prefix}{token}")
+        stored = await _get_stored_token(self.redis, f"{self.key_prefix}{token}", self.request)
         if stored is None:
             return None
 
@@ -82,9 +94,10 @@ class RevocableRedisStrategy(RedisStrategy[models.UP, models.ID]):
 async def request_access_token_owner_id(request: Request) -> str | None:
     """Return the user id the request's bearer or session-cookie access token was issued to.
 
-    For rate-limit bucketing only: one Redis GET, no user load and no revocation check.
-    Only a token this server issued resolves, so a forged one cannot pick a bucket.
-    Never use this to authorize a request.
+    For rate-limit bucketing only: no user load and no revocation check, and the Redis
+    read is shared with authentication on the same request. Only a token this server
+    issued resolves, so a forged one cannot pick a bucket. Never use this to authorize
+    a request.
     """
     scheme, token = get_authorization_scheme_param(request.headers.get("authorization"))
     if scheme.lower() != _BEARER_SCHEME or not token:
@@ -92,8 +105,25 @@ async def request_access_token_owner_id(request: Request) -> str | None:
     redis = get_connection_services(request).redis
     if not token or redis is None:
         return None
-    stored = await redis.get(f"{ACCESS_TOKEN_KEY_PREFIX}{token}")
+    stored = await _get_stored_token(redis, f"{ACCESS_TOKEN_KEY_PREFIX}{token}", request)
     return None if stored is None else _parse_stored_token(stored)[0]
+
+
+async def _get_stored_token(redis: Redis, key: str, request: Request | None) -> Any:  # noqa: ANN401 - redis returns str|bytes
+    """Read a stored token at most once per request.
+
+    The per-user rate limit and authentication both resolve the request's token; whichever
+    runs first reads Redis and the other reuses the value. Scoped to ``request.state``, so
+    it never outlives the request.
+    """
+    if request is None:
+        return await redis.get(key)
+    lookups: dict[str, Any] | None = getattr(request.state, "access_token_lookups", None)
+    if lookups is None:
+        lookups = request.state.access_token_lookups = {}
+    if key not in lookups:
+        lookups[key] = await redis.get(key)
+    return lookups[key]
 
 
 def _parse_stored_token(stored: Any) -> tuple[str | None, float | None]:  # noqa: ANN401 - redis returns str|bytes

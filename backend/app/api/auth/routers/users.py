@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from fastapi import Depends, Security
+from fastapi import APIRouter, Depends, Security
 
 from app.api.auth.dependencies import (
     CurrentActiveUserDep,
@@ -31,11 +31,19 @@ router = PublicAPIRouter(
 # fastapi-users bundles superuser /{id} routes in the same router; those are dropped
 # because by-id management lives on /admin/users, where every action is audit-logged.
 _SELF_SERVICE_PATH = "/me"
-_self_service_router = fastapi_user_manager.get_users_router(UserRead, UserUpdate)
-_self_service_router.routes = [
-    route for route in _self_service_router.routes if getattr(route, "path", None) == _SELF_SERVICE_PATH
+_self_service_routes = [
+    route
+    for route in fastapi_user_manager.get_users_router(UserRead, UserUpdate).routes
+    if getattr(route, "path", None) == _SELF_SERVICE_PATH
 ]
-router.include_router(_self_service_router)
+# The self-service PATCH edits the account, so it carries the write budget; the GET does not.
+_SELF_SERVICE_READ_METHODS = {"GET", "HEAD"}
+_self_service_reads, _self_service_writes = APIRouter(), APIRouter()
+for _route in _self_service_routes:
+    _is_read = set(getattr(_route, "methods", ())) <= _SELF_SERVICE_READ_METHODS
+    (_self_service_reads if _is_read else _self_service_writes).routes.append(_route)
+router.include_router(_self_service_reads)
+router.include_router(_self_service_writes, dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY])
 
 
 @router.post(
