@@ -63,7 +63,6 @@ export type AppTokens = {
   surface: {
     sunken: string;
     accent: string;
-    card: string;
   };
   type: {
     display: { fontSize: number; lineHeight: number };

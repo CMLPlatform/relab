@@ -82,11 +82,26 @@ const buttonTextVariants = cva(
 
 type ButtonProps = React.ComponentProps<typeof Pressable> & VariantProps<typeof buttonVariants>;
 
+// Solid fills go to the muted pair when disabled: same size and place, plainly
+// inert, without the half-transparent blue that read as a rendering fault. Text
+// variants have no fill to swap, so they fade. A busy button (aria-busy, the
+// loading state) keeps its variant: it is working, not unavailable.
+const FILLED = new Set(['primary', 'destructive']);
+
 export function Button({ className, variant, ...props }: ButtonProps) {
+  const inactive = props.disabled && !props['aria-busy'];
+  const filled = FILLED.has(variant ?? 'primary');
   return (
-    <TextClassContext.Provider value={buttonTextVariants({ variant })}>
+    <TextClassContext.Provider
+      value={cn(buttonTextVariants({ variant }), inactive && filled && 'text-muted-foreground')}
+    >
       <Pressable
-        className={cn(props.disabled && 'opacity-50', buttonVariants({ variant }), className)}
+        className={cn(
+          buttonVariants({ variant }),
+          inactive && (filled ? 'bg-muted' : 'opacity-50'),
+          Platform.select({ web: props.disabled && 'pointer-events-none' }),
+          className,
+        )}
         role="button"
         {...props}
       />

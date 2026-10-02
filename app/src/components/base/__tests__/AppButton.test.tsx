@@ -146,3 +146,33 @@ test('element children are left unwrapped', async () => {
   );
   expect(screen.container.queryAll((el) => el.type === 'Text')).toHaveLength(1);
 });
+
+// A disabled solid button swaps to the muted pair, not a half-transparent blue.
+test('disabled primary takes the muted fill and ink, without fading', async () => {
+  await render(<AppButton disabled>Continue</AppButton>);
+  const button = screen.getByRole('button');
+  expect(button.props.className).toEqual(expect.stringContaining('bg-muted'));
+  expect(button.props.className).not.toEqual(expect.stringContaining('opacity-50'));
+  expect(button.props.className).toEqual(expect.stringContaining('pointer-events-none'));
+  expect(screen.getByText('Continue').props.className).toEqual(
+    expect.stringContaining('text-muted-foreground'),
+  );
+});
+
+test('disabled outline fades instead: it has no fill to swap', async () => {
+  await render(
+    <AppButton variant="outline" disabled>
+      Skip
+    </AppButton>,
+  );
+  expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('opacity-50'));
+});
+
+// Loading is busy, not unavailable: the variant keeps its colours.
+test('a loading primary keeps its fill and announces busy', async () => {
+  await render(<AppButton loading>Continue</AppButton>);
+  const button = screen.getByRole('button');
+  expect(button).toBeBusy();
+  expect(button.props.className).not.toEqual(expect.stringContaining('bg-muted'));
+  expect(button.props.className).not.toEqual(expect.stringContaining('opacity-50'));
+});

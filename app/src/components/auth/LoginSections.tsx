@@ -38,7 +38,9 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
       </AppButton>
 
       <AuthScreen>
-        <View className="gap-3">{children}</View>
+        {/* pt-12 clears the absolutely placed Browse button when the island is taller
+            than the viewport and starts at the top instead of the centre. */}
+        <View className="gap-3 pt-12">{children}</View>
       </AuthScreen>
     </View>
   );
@@ -51,7 +53,7 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
       className="rounded-lg p-4 gap-2.5"
       style={[
         styles.card,
-        { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
+        { backgroundColor: theme.colors.card, borderColor: theme.tokens.border.subtle },
       ]}
     >
       {children}
@@ -60,9 +62,11 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
 }
 
 export function LoginBrandHero() {
-  // No wash behind the mark: the hero scrim's centre band already calms the backdrop.
+  // Its own paper ground: the scrim's centre band is narrower than the mark at phone
+  // width, and the flat auth scrim is too light, so busy photo detail sat behind
+  // the wordmark. Opaque, like the card under it, in both schemes.
   return (
-    <View className="py-3 px-[18px] mb-1">
+    <View className="py-3 px-[18px] mb-1 rounded-lg bg-background">
       <BrandWordmark style={styles.brandLogo} />
     </View>
   );

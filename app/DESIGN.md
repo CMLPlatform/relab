@@ -310,6 +310,10 @@ change it there first.*
   Pressed and hover: `destructive` at 90% (`active:bg-destructive/90`, `hover:bg-destructive/90`);
   the palette has no destructive-strong shade, so this is the one sanctioned alpha press.
 - **Loading:** Inline spinner tinted to the variant's foreground; the label stays.
+  A loading button is busy (`aria-busy`), not disabled-looking: it keeps its fill.
+- **Disabled:** Primary and destructive swap to the muted pair (`bg-muted`,
+  `text-muted-foreground`): same size and place, plainly inert, never a half-transparent blue.
+  Outline, ghost and tonal fade to 50%. On web a disabled button takes no pointer events.
 
 ### Chips
 

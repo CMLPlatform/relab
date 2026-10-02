@@ -245,7 +245,7 @@ function NewAccountStep({
         style={[
           styles.card,
           {
-            backgroundColor: theme.tokens.surface.card,
+            backgroundColor: theme.colors.card,
             borderColor: theme.tokens.border.subtle,
           },
         ]}
@@ -449,7 +449,7 @@ export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayo
           style={[
             styles.footerCard,
             {
-              backgroundColor: theme.tokens.surface.card,
+              backgroundColor: theme.colors.card,
               borderColor: theme.tokens.border.subtle,
             },
           ]}

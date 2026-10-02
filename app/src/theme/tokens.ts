@@ -82,9 +82,6 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
     surface: {
       sunken: isDark ? colors.card : colors.muted,
       accent: alpha(colors.primary, 0.12),
-      // Translucent panel behind auth controls: opaque enough to keep labels
-      // legible over a photo while a hint of the image still shows through.
-      card: alpha(colors.surface, 0.8),
     },
     // NOTE: these are the eight ramp steps (DESIGN.md, Ramp Rule).
     type: {
