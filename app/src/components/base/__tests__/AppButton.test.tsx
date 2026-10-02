@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { Text } from '@/components/base/ui/text';
+import { queryAllHostsByType } from '@/test-utils/index';
+import { lightTheme } from '@/theme/themes';
 
 // react-native's own Platform.select (Platform.ios.js) hardcodes 'ios'/'native'
 // key checks and ignores Platform.OS, and the vendored ui/button.tsx computes
@@ -43,9 +45,20 @@ test('primary variant label uses the primary-foreground text color', async () =>
   );
 });
 
-test('destructive variant label uses the white text color', async () => {
+test('destructive variant label uses the destructive-foreground text color', async () => {
   await render(<AppButton variant="destructive">Delete</AppButton>);
-  expect(screen.getByText('Delete').props.className).toEqual(expect.stringContaining('text-white'));
+  expect(screen.getByText('Delete').props.className).toEqual(
+    expect.stringContaining('text-destructive-foreground'),
+  );
+});
+
+test('destructive loading spinner uses the onError color', async () => {
+  await render(
+    <AppButton variant="destructive" loading>
+      Delete
+    </AppButton>,
+  );
+  expect(queryAllHostsByType('ActivityIndicator')[0].props.color).toBe(lightTheme.colors.onError);
 });
 
 test('tonal variant uses the soft-primary fill and primary text color', async () => {
@@ -53,8 +66,11 @@ test('tonal variant uses the soft-primary fill and primary text color', async ()
   expect(screen.getByRole('button').props.className).toEqual(
     expect.stringContaining('bg-primary/12'),
   );
+  expect(screen.getByRole('button').props.className).toEqual(
+    expect.stringContaining('active:bg-primary-strong'),
+  );
   expect(screen.getByText('Sign in').props.className).toEqual(
-    expect.stringContaining('text-primary'),
+    expect.stringContaining('group-active:text-primary-foreground'),
   );
 });
 
@@ -97,6 +113,20 @@ test.each(['outline', 'ghost'] as const)(
   },
 );
 
+// DESIGN.md Buttons: "if a thing responds to touch, it is blue" — outline and
+// ghost carry blue ink at rest, not only on press; the spinner and composed icons follow.
+test.each(['outline', 'ghost'] as const)('%s variant has blue ink at rest', async (variant) => {
+  await render(
+    <AppButton variant={variant} loading>
+      Label
+    </AppButton>,
+  );
+  const classes: string[] = screen.getByText('Label').props.className.split(' ');
+  expect(classes).toContain('text-primary');
+  expect(classes).not.toContain('text-foreground');
+  expect(queryAllHostsByType('ActivityIndicator')[0].props.color).toBe(lightTheme.colors.primary);
+});
+
 test('meets the 44px a11y tap-target floor regardless of caller className', async () => {
   await render(<AppButton className="mx-4 my-2">Add component</AppButton>);
   expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('min-h-11'));
@@ -129,4 +159,30 @@ test('element children are left unwrapped', async () => {
     </AppButton>,
   );
   expect(screen.container.queryAll((el) => el.type === 'Text')).toHaveLength(1);
+});
+
+// One disabled treatment for every variant: faint muted fill, hairline, muted ink; no fade.
+test.each(['primary', 'outline', 'ghost', 'tonal', 'destructive'] as const)(
+  'disabled %s takes the shared muted treatment without fading',
+  async (variant) => {
+    await render(
+      <AppButton variant={variant} disabled>
+        Continue
+      </AppButton>,
+    );
+    const className = screen.getByRole('button').props.className as string;
+    expect(className).toContain('bg-muted/50');
+    expect(className).toContain('border-border');
+    expect(className).not.toContain('opacity-50');
+    expect(screen.getByText('Continue').props.className).toContain('text-muted-foreground/60');
+  },
+);
+
+// Loading is busy, not unavailable: the variant keeps its colours.
+test('a loading primary keeps its fill and announces busy', async () => {
+  await render(<AppButton loading>Continue</AppButton>);
+  const button = screen.getByRole('button');
+  expect(button).toBeBusy();
+  expect(button.props.className).not.toEqual(expect.stringContaining('bg-muted/50'));
+  expect(button.props.className).not.toEqual(expect.stringContaining('opacity-50'));
 });

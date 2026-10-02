@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 import { type RefObject, useCallback, useRef } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -18,6 +19,7 @@ import { RPI_CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { MONO_FONT_FAMILY } from '@/theme/tokens';
 import { heading } from '@/utils/a11y';
 
 function PairingSuccessDialog({
@@ -77,7 +79,12 @@ export default function AddCameraScreen() {
       <Head>
         <title>Add camera · Relab</title>
       </Head>
-      <ScrollView contentContainerClassName="pt-4 pb-12" keyboardShouldPersistTaps="handled">
+      {/* Keyboard-aware like the capture screen: the description field and Pair
+          stay reachable above the on-screen keyboard. */}
+      <KeyboardAwareScrollView
+        contentContainerClassName="pt-4 pb-12"
+        keyboardShouldPersistTaps="handled"
+      >
         <PageContainer>
           {isLg ? (
             <PageHeaderRow title="Add camera" onBack={goToCameras} />
@@ -102,35 +109,30 @@ export default function AddCameraScreen() {
               className="mb-1 text-center"
               // NOTE: enlarged monospace entry field for a 6-character pairing
               // code: no ramp step targets an oversized input glyph.
-              style={{ fontFamily: 'monospace', fontSize: 20 }}
+              style={{ fontFamily: MONO_FONT_FAMILY, fontSize: 20 }}
             />
 
             <Separator className="my-1" />
 
-            <AppText variant="label" className="text-muted-foreground -mb-1">
-              Camera name *
-            </AppText>
             <ControlledTextField
               control={control}
               name="name"
+              label="Camera name"
+              required
               maxLength={100}
               autoCapitalize="words"
               placeholder="Camera name"
-              accessibilityLabel="Camera name, required"
               className="mb-1"
             />
 
-            <AppText variant="label" className="text-muted-foreground -mb-1">
-              Description (optional)
-            </AppText>
             <ControlledTextField
               control={control}
               name="description"
+              label="Description (optional)"
               maxLength={500}
               multiline
               numberOfLines={2}
               placeholder="Description (optional)"
-              accessibilityLabel="Description (optional)"
               className="mb-1"
             />
 
@@ -162,7 +164,7 @@ export default function AddCameraScreen() {
                 className="mt-2"
               >
                 <Icon name="link" size={18} color={theme.colors.onPrimary} />
-                <AppText className="text-primary-foreground">Pair camera</AppText>
+                Pair camera
               </AppButton>
             </View>
 
@@ -173,7 +175,7 @@ export default function AddCameraScreen() {
             />
           </View>
         </PageContainer>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </>
   );
 }

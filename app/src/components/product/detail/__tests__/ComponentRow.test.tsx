@@ -151,12 +151,14 @@ describe('ComponentRow', () => {
     await fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
     await waitFor(
       () => {
-        expect(screen.getByText("Couldn't load components — tap to retry")).toBeOnTheScreen();
+        expect(screen.getByText("Couldn't load components")).toBeOnTheScreen();
       },
       { timeout: 5000 },
     );
 
-    await fireEvent.press(screen.getByText("Couldn't load components — tap to retry"));
+    // The title names the problem; the mapped error message sits under it.
+    expect(screen.getByText('boom')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText('Retry loading components'));
     await waitFor(() => {
       expect(screen.getByText('Rotor')).toBeOnTheScreen();
     });

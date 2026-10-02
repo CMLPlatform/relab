@@ -3,9 +3,16 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
+import { PRESS_FADE, type PressState, pressFill } from '@/components/base/pressFeedback';
+import { MEDIA_PRESSED_FILL } from '@/components/product/gallery/styles';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
+import { cn } from '@/utils/cn';
 import { createLivePreviewStyles } from './styles';
+
+// White ink on the media scrim: a 12% tint is invisible there, so the retry link
+// presses like the other controls over media.
+const retryFill = (state: PressState) => pressFill(state, MEDIA_PRESSED_FILL);
 
 export function PreviewShell({
   children,
@@ -61,7 +68,12 @@ export function PreviewErrorOverlay({
     <View className="absolute inset-0 items-center justify-center gap-2" style={styles.overlay}>
       <Icon name="video-off" size={32} color={palette[theme.scheme].mutedForeground} />
       <AppText className="text-center text-primary-foreground">{message}</AppText>
-      <Pressable onPress={onRetry} accessibilityRole="button">
+      <Pressable
+        onPress={onRetry}
+        accessibilityRole="button"
+        className={cn('min-h-11 items-center justify-center rounded-md px-2', PRESS_FADE)}
+        style={retryFill}
+      >
         <AppText className="mt-1 text-primary-foreground underline">Tap to retry</AppText>
       </Pressable>
     </View>

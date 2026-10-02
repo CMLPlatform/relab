@@ -1,11 +1,23 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
+import { disabledTreatment } from '@/components/base/appButtonVariants';
 import { Fab } from '@/components/base/Fab';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { getAppTheme } from '@/theme/themes';
 
 describe('Fab', () => {
+  it('sizes the label to its content, capped, not a fixed width', async () => {
+    await render(
+      <Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />,
+    );
+    let clip = screen.getByText('New').parent;
+    while (clip && StyleSheet.flatten(clip.props.style)?.overflow !== 'hidden') clip = clip.parent;
+    const style = StyleSheet.flatten(clip?.props.style);
+    expect(style.width).toBeUndefined();
+    expect(style.maxWidth).toBe(240);
+  });
+
   it('renders the label when extended', async () => {
     await render(
       <Fab icon="plus" label="New product" extended onPress={jest.fn()} accessibilityLabel="a" />,
@@ -42,6 +54,18 @@ describe('Fab', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
+  // DESIGN.md Buttons: one disabled treatment, never an opacity fade.
+  it('takes the muted disabled fill and ink, not an opacity fade', async () => {
+    await render(
+      <Fab icon="plus" label="New" extended onPress={jest.fn()} disabled accessibilityLabel="a" />,
+    );
+    const inert = disabledTreatment(getAppTheme('light'));
+    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    expect(style.opacity).toBeUndefined();
+    expect(style.backgroundColor).toBe(inert.fill);
+    expect(StyleSheet.flatten(screen.getByText('New').props.style).color).toBe(inert.ink);
+  });
+
   it('renders nothing when not visible', async () => {
     await render(
       <Fab
@@ -60,8 +84,7 @@ describe('Fab', () => {
     await render(
       <Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />,
     );
-    // Resolved through the state callback: the floor lives in the style
-    // function, never in a className (mixing the two drops the function).
+    // Resolved through the state callback: the floor lives in the style function.
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.minWidth).toBe(MIN_TAP_TARGET);
     expect(style.minHeight).toBe(MIN_TAP_TARGET);

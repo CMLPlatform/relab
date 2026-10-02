@@ -13,10 +13,16 @@ import { pickThumbnailUrl } from '@/services/api/media';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import type { Product } from '@/types/Product';
 
-export function useProductGalleryMedia(product: Product) {
+/**
+ * `layoutWidth` is the gallery's measured width. Until it arrives (and on a phone,
+ * where the strip is full bleed) the window width stands in.
+ */
+export function useProductGalleryMedia(product: Product, layoutWidth?: number) {
   const { images, items: rawItems } = useMemo(() => buildGalleryMedia(product), [product]);
   // Reactive, unlike Dimensions.get, so rotation does not leave the pager stale.
-  const { width, height } = useWindowDimensions();
+  const window = useWindowDimensions();
+  const width = layoutWidth ?? window.width;
+  const { height } = window;
   // React Native has no srcset, so each tier is resolved once here, where the
   // screen size is known. Without this both tiers point at the full upload.
   const items = useMemo(() => {

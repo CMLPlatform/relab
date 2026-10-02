@@ -1,29 +1,31 @@
-import { type JSX, useCallback, useContext, useEffect, useState } from 'react';
-import { Pressable, type PressableStateCallbackType, TextInput, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { type JSX, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { Pressable, TextInput, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { disabledTreatment } from '@/components/base/appButtonVariants';
 import { Chip } from '@/components/base/Chip';
 import { useDialog } from '@/components/base/dialogContext';
 import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
+import { PRESS_FADE, type PressState, pressFill } from '@/components/base/pressFeedback';
 import { MIN_TAP_TARGET } from '@/constants';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
-import { useSearchBrandsQuery } from '@/features/products/queries';
+import { brandsSearchQueryOptions } from '@/features/products/queries';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 
 interface Props {
   product: Product;
-  editMode: boolean;
   onBrandChange?: (newBrand: string) => void;
   onModelChange?: (newModel: string) => void;
   onAmountChange?: (newAmount: number) => void;
   isComponent?: boolean;
 }
 
+/** Edit-mode brand, model and amount controls; view mode states them in OverviewFacts. */
 export default function ProductTags({
   product,
-  editMode,
   onBrandChange,
   onModelChange,
   onAmountChange,
@@ -38,7 +40,9 @@ export default function ProductTags({
   const [brandModalVisible, setBrandModalVisible] = useState(false);
   const [brandSearch, setBrandSearch] = useState('');
 
-  const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(brandSearch);
+  const { data: brandResults, isLoading: brandsLoading } = useQuery(
+    brandsSearchQueryOptions(brandSearch),
+  );
 
   const closeBrandModal = useCallback(() => setBrandModalVisible(false), []);
   const handleBrandSelection = useCallback(
@@ -46,13 +50,9 @@ export default function ProductTags({
     [onBrandChange],
   );
 
-  const onEditBrand = () => {
-    if (!editMode) return;
-    setBrandModalVisible(true);
-  };
+  const onEditBrand = () => setBrandModalVisible(true);
 
   const onEditModel = () => {
-    if (!editMode) return;
     dialog.input({
       title: 'Set model',
       placeholder: 'Model name',
@@ -73,23 +73,19 @@ export default function ProductTags({
     <View className="my-3 gap-2.5 flex-row flex-wrap">
       <Chip
         title={'Brand'}
-        readOnly={!editMode}
         onPress={onEditBrand}
-        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
+        icon={<Icon name="pencil" color={theme.colors.onPrimary} />}
       >
         {product.brand ?? 'Not recorded'}
       </Chip>
       <Chip
         title={'Model'}
-        readOnly={!editMode}
         onPress={onEditModel}
-        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
+        icon={<Icon name="pencil" color={theme.colors.onPrimary} />}
       >
         {product.model ?? 'Not recorded'}
       </Chip>
-      {isComponent ? (
-        <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />
-      ) : null}
+      {isComponent ? <AmountChip product={product} onAmountChange={onAmountChange} /> : null}
 
       <SingleSelectFilterModal
         visible={brandModalVisible}
@@ -107,13 +103,12 @@ export default function ProductTags({
   );
 }
 
+/** Edit-mode amount stepper; view mode states the amount as a spec fact. */
 function AmountChip({
   product,
-  editMode,
   onAmountChange,
 }: {
   product: Product;
-  editMode: boolean;
   onAmountChange?: (n: number) => void;
 }): JSX.Element {
   const { colors, tokens } = useAppTheme();
@@ -177,46 +172,34 @@ function AmountChip({
         </AppText>
         <InfoTooltip title="How many of this component the parent contains" />
       </View>
-      {editMode ? (
-        <View className="bg-primary flex-row items-center rounded-md overflow-hidden">
-          <StepButton
-            icon="minus"
-            color={colors.onPrimary}
-            onPress={decrease}
-            disabled={effectiveAmount <= 1}
-            label="Decrease amount"
-          />
-          <TextInput
-            value={inputValue}
-            onChangeText={handleTextChange}
-            onBlur={commitDraft}
-            onSubmitEditing={commitDraft}
-            keyboardType="numeric"
-            className="text-primary-foreground w-9 text-center py-2 px-0"
-            style={amountStyles.input}
-            accessibilityLabel="Amount"
-            accessibilityHint="Enter a whole number from 1 to 10000. Relab corrects a value outside that range."
-          />
-          <StepButton
-            icon="plus"
-            color={colors.onPrimary}
-            onPress={increase}
-            disabled={effectiveAmount >= 10000}
-            label="Increase amount"
-          />
-        </View>
-      ) : (
-        // Full chip height, like Brand and Model's value segment beside it.
-        <View className="bg-primary self-stretch justify-center rounded-md px-3">
-          <AppText
-            variant="data"
-            className="text-primary-foreground"
-            style={amountStyles.valueText}
-          >
-            {String(amount)}
-          </AppText>
-        </View>
-      )}
+      <View className="bg-primary flex-row items-center rounded-md overflow-hidden">
+        <StepButton
+          icon="minus"
+          color={colors.onPrimary}
+          onPress={decrease}
+          disabled={effectiveAmount <= 1}
+          label="Decrease amount"
+        />
+        <TextInput
+          value={inputValue}
+          onChangeText={handleTextChange}
+          onBlur={commitDraft}
+          onSubmitEditing={commitDraft}
+          keyboardType="numeric"
+          maxFontSizeMultiplier={2}
+          className="text-primary-foreground min-w-9 text-center py-2 px-1"
+          style={amountStyles.input}
+          accessibilityLabel="Amount"
+          accessibilityHint="Enter a whole number from 1 to 10000. Relab corrects a value outside that range."
+        />
+        <StepButton
+          icon="plus"
+          color={colors.onPrimary}
+          onPress={increase}
+          disabled={effectiveAmount >= 10000}
+          label="Increase amount"
+        />
+      </View>
     </View>
   );
 }
@@ -234,32 +217,38 @@ function StepButton({
   disabled: boolean;
   label: string;
 }) {
+  const theme = useAppTheme();
+  // The one disabled treatment (DESIGN.md Buttons), never an opacity fade.
+  const inert = useMemo(() => (disabled ? disabledTreatment(theme) : null), [disabled, theme]);
   const style = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      // No className on this Pressable: it would drop this function (see IconButton.tsx).
+    (state: PressState) => [
       styles.iconSlot,
-      (pressed || disabled) && { opacity: 0.4 },
+      inert
+        ? { backgroundColor: inert.fill, borderColor: inert.border, borderWidth: 1 }
+        : // On the chip's solid-primary value segment: a filled control, so primary-strong.
+          pressFill(state, theme.colors.primaryStrong),
     ],
-    [disabled],
+    [inert, theme.colors.primaryStrong],
   );
 
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      className={PRESS_FADE}
       style={style}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Icon name={icon} size={14} color={color} />
+      <Icon name={icon} size={14} color={inert ? inert.ink : color} />
     </Pressable>
   );
 }
 
-// NOTE: 13/500 is Chip's own face (the label step, font-medium), shared by title,
-// value and input so the Amount chip reads at the same size as Brand and Model.
+// NOTE: 13/500 is Chip's own face (the label step, font-medium), shared by title
+// and input so the Amount chip reads at the same size as Brand and Model.
 const amountText = { fontWeight: '500', fontSize: 13 } as const;
-const amountStyles = { titleText: amountText, valueText: amountText, input: amountText };
+const amountStyles = { titleText: amountText, input: amountText };
 
 const styles = {
   iconSlot: {

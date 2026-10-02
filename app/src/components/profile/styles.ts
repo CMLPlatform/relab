@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { memoizeByTheme } from '@/theme/memoizeByTheme';
 import type { AppTheme } from '@/theme/types';
 
-// Theme-dependent color with no CSS var (tokens.*, surfaceVariant) stays in `style`.
+// Theme-dependent color with no CSS var (tokens.*, muted) stays in `style`.
 export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
     docsLink: {
@@ -20,9 +20,6 @@ export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
     },
     danger: {
       color: theme.tokens.status.danger,
-    },
-    statItem: {
-      backgroundColor: theme.tokens.surface.accent,
     },
     unlinkWarning: {
       color: theme.tokens.status.warning,

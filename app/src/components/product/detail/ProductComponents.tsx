@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
+import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { DisclosureRow } from '@/components/base/DisclosureRow';
 import { useDialog } from '@/components/base/dialogContext';
+import { FADE_ENTER, FADE_EXIT, ROW_MOVE } from '@/components/base/motion';
 import { useSaveProductMutation } from '@/features/products/queries';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
@@ -94,14 +96,25 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
           This {label} has no subcomponents.
         </AppText>
       )}
-      {visibleComponents.map((component) => (
-        <ComponentRow
-          key={component.id}
-          component={component}
-          enabled={!editMode}
-          onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
-        />
-      ))}
+      <LayoutAnimationConfig skipEntering skipExiting>
+        {visibleComponents.map((component) => (
+          // Always the same wrapper, so a row keeps its identity (and its expanded
+          // state) when "Show more" changes which rows are past the fold. Rows
+          // added or revealed fade in; the rest slide to make room.
+          <Animated.View
+            key={component.id}
+            entering={FADE_ENTER}
+            exiting={FADE_EXIT}
+            layout={ROW_MOVE}
+          >
+            <ComponentRow
+              component={component}
+              enabled={!editMode}
+              onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
+            />
+          </Animated.View>
+        ))}
+      </LayoutAnimationConfig>
       {collapsible && (
         <DisclosureRow
           label={

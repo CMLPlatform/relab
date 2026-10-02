@@ -30,7 +30,9 @@ eyebrows (see [accent rules](#colour--type-roles-within-the-form)).
 
 The **Expo app intentionally stays on platform system fonts** (native feel,
 Dynamic Type, zero load cost). The app adopts the *scale and palette*, not the
-typeface. WOFF2 files in [fonts/](fonts/) are latin subsets for docs/www
+typeface. One exception: on web, the app's data voice is IBM Plex Mono 400
+(14.7 KB, self-hosted, `font-display: swap`), so measurements read the same on
+every OS; native keeps the platform monospace. WOFF2 files in [fonts/](fonts/) are latin subsets for docs/www
 delivery; italic is browser-synthesized.
 
 ## Colour — Cyanotype & Manila
@@ -171,7 +173,7 @@ heading under it is chrome, so www and docs carry no eyebrows at all. The app's
 compact tag rather than announcing a section.
 
 The accent never fills a button or drives a hover/pressed state. Lean on the mono
-voice (IBM Plex Mono on web, platform monospace in the app) for IDs, counts, and
+voice (IBM Plex Mono on web, including the app's web build; platform monospace in the native app) for IDs, counts, and
 measurements — the "lab instrument" register.
 
 **Accent is for small text, never for mass.** Bars, big figures, and other

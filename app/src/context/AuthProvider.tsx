@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
+import { announceDiscardedQueuedItems } from '@/features/products/queries';
 import { getToken } from '@/services/api/auth/authRefresh';
 import { hasWebSessionFlag } from '@/services/api/auth/authSession';
 import { getUser } from '@/services/api/auth/authUser';
@@ -25,6 +26,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     prevUserIdRef.current = user?.id;
 
     if (wasSignedIn && user === undefined) {
+      // The clear below drops saves still queued offline; report them, whether
+      // the user signed out or the session was lost.
+      const discarded = queryClient
+        .getMutationCache()
+        .getAll()
+        .filter((mutation) => mutation.state.isPaused).length;
+      if (discarded > 0) announceDiscardedQueuedItems(discarded);
       // Shared device: wipe the in-memory cache and both persisted copies, or
       // the next user sees this one's data (query cache lives 24h, recents forever).
       queryClient.clear();

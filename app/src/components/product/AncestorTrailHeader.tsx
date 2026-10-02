@@ -3,11 +3,13 @@ import { type ReactNode, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { MIN_TAP_TARGET } from '@/constants';
 import { truncateHeaderLabel } from '@/features/products/truncateHeaderLabel';
 import type { AncestorCrumb } from '@/features/products/useAncestorTrail';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import type { AppTheme } from '@/theme/types';
+import { cn } from '@/utils/cn';
 
 export function AncestorTrailHeader({
   ancestors,
@@ -33,7 +35,7 @@ export function AncestorTrailHeader({
           crumb={crumb}
           perCrumbLimit={perCrumbLimit}
           maxCrumbWidth={isLg ? 280 : 100}
-          iconColor={theme.colors.onSurfaceVariant}
+          iconColor={theme.colors.mutedForeground}
         />
       ))}
       {currentNameSlot}
@@ -72,6 +74,7 @@ function TrailCrumb({
         hitSlop={6}
         accessibilityRole="link"
         accessibilityLabel={`Go to ${crumb.name}`}
+        className={cn('rounded-md px-1', PRESS_TINT)}
         style={{
           minHeight: MIN_TAP_TARGET,
           justifyContent: 'center',

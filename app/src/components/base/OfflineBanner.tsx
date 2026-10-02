@@ -21,21 +21,22 @@ export function OfflineBanner() {
     }
   }, [isOnline]);
 
-  if (isOnline) return null;
+  // The region stays mounted while online: assistive tech only announces
+  // changes to a region it has already seen.
   return (
-    <Animated.View
-      entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
-      exiting={FadeOutUp.duration(150).reduceMotion(ReduceMotion.System)}
-    >
-      <View className="items-center border-b border-border bg-muted px-4 py-1.5">
-        <AppText
-          variant="caption"
-          accessibilityLiveRegion="polite"
-          className="text-muted-foreground"
+    <View testID="offline-live-region" role="status" accessibilityLiveRegion="polite">
+      {isOnline ? null : (
+        <Animated.View
+          entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
+          exiting={FadeOutUp.duration(150).reduceMotion(ReduceMotion.System)}
         >
-          {OFFLINE_MESSAGE}
-        </AppText>
-      </View>
-    </Animated.View>
+          <View className="items-center border-b border-border bg-muted px-4 py-1.5">
+            <AppText variant="caption" className="text-muted-foreground">
+              {OFFLINE_MESSAGE}
+            </AppText>
+          </View>
+        </Animated.View>
+      )}
+    </View>
   );
 }

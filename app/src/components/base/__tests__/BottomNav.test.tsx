@@ -95,12 +95,29 @@ test('hides Account when signed out', async () => {
   expect(screen.queryByLabelText('Account')).toBeNull();
 });
 
-test('marks the navigator’s focused tab as selected', async () => {
+// Destinations are links, not tabs: a tab implies an in-page tabpanel. Like
+// TopNav, the current one carries aria-current="page" for the web; native
+// screen readers read the selected state instead.
+test('marks the navigator’s focused destination as the current page', async () => {
   await renderBar(1);
-  // The state is passed as aria-selected (the only spelling react-native-web reads)
-  // and folded back into accessibilityState by RN, so these assertions guard both.
-  expect(screen.getByLabelText('Cameras').props.accessibilityState).toEqual({ selected: true });
-  expect(screen.getByLabelText('Products').props.accessibilityState).toEqual({ selected: false });
+  expect(screen.getByRole('link', { name: 'Cameras' })).toBeOnTheScreen();
+  expect(screen.queryByRole('tab')).toBeNull();
+  expect(screen.getByLabelText('Cameras').props['aria-current']).toBe('page');
+  expect(screen.getByLabelText('Products').props['aria-current']).toBeUndefined();
+  expect(screen.getByLabelText('Cameras').props.accessibilityState).toMatchObject({
+    selected: true,
+  });
+  expect(screen.getByLabelText('Products').props.accessibilityState).toMatchObject({
+    selected: false,
+  });
+});
+
+test('keeps aria-selected off the web, where it is invalid on a link', async () => {
+  mockPlatform('web');
+  await renderBar(1);
+  expect(screen.getByLabelText('Cameras').props['aria-selected']).toBeUndefined();
+  expect(screen.getByLabelText('Cameras').props.accessibilityState?.selected).toBeUndefined();
+  restorePlatform();
 });
 
 // Navigating by route name (not href) is what returns the user to that tab's
@@ -132,10 +149,11 @@ test('a listener that prevents the default press blocks the navigation', async (
   expect(navigate).not.toHaveBeenCalled();
 });
 
-test('tabs carry active-state opacity feedback', async () => {
+test('tabs press to the One Tint, not an opacity dim', async () => {
   await renderBar();
   const className = screen.getByLabelText('Products').props.className as string;
-  expect(className).toEqual(expect.stringContaining('active:opacity-60'));
+  expect(className).toEqual(expect.stringContaining('active:bg-primary/12'));
+  expect(className).not.toEqual(expect.stringContaining('active:opacity'));
 });
 
 test('tabs carry a web focus-visible ring', async () => {

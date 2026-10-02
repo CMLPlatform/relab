@@ -68,7 +68,7 @@ test.describe('Guest access', () => {
       timeout: 10_000,
     });
     // Header shows "Sign in" pill for guests
-    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
   });
 });
 

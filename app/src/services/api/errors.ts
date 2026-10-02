@@ -34,7 +34,7 @@ export function parseApiErrorDetail(body: unknown): string | undefined {
 
 export async function throwFromResponse(resp: Response, fallback: string): Promise<never> {
   const body = typeof resp.json === 'function' ? await resp.json().catch(() => null) : null;
-  const message = parseApiErrorDetail(body) ?? `${fallback} (${resp.status})`;
+  const message = parseApiErrorDetail(body) ?? fallback;
   const code =
     typeof (body as { code?: unknown } | null)?.code === 'string' ? body.code : undefined;
   throw new ApiError(message, resp.status, code);

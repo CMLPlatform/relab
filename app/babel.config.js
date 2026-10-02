@@ -1,13 +1,25 @@
-// Jest's CommonJS runtime cannot evaluate `import()`, so React.lazy splits would throw in
-// tests. There, rewrite it to an already-resolved require; bundles keep the real import.
+// Jest runs CommonJS without --experimental-vm-modules, so a source `import()` throws.
+// NOTE: tests only; Metro handles `import()` natively and splits the chunk.
 const dynamicImportToRequire = ({ types: t }) => ({
   visitor: {
     CallExpression(path) {
       if (path.node.callee.type !== 'Import') return;
       path.replaceWith(
-        t.callExpression(t.memberExpression(t.identifier('Promise'), t.identifier('resolve')), [
-          t.callExpression(t.identifier('require'), path.node.arguments),
-        ]),
+        t.callExpression(
+          t.memberExpression(
+            t.callExpression(
+              t.memberExpression(t.identifier('Promise'), t.identifier('resolve')),
+              [],
+            ),
+            t.identifier('then'),
+          ),
+          [
+            t.arrowFunctionExpression(
+              [],
+              t.callExpression(t.identifier('require'), path.node.arguments),
+            ),
+          ],
+        ),
       );
     },
   },
@@ -27,10 +39,9 @@ module.exports = (api) => {
     presets: ['babel-preset-expo'],
     // React Compiler is useful, but running it during every dev transform slows
     // Metro feedback noticeably on this app. Keep it for production bundles.
-    plugins: isProduction
-      ? [['babel-plugin-react-compiler', { target: '19' }]]
-      : env === 'test'
-        ? [dynamicImportToRequire]
-        : [],
+    plugins: [
+      ...(env === 'test' ? [dynamicImportToRequire] : []),
+      ...(isProduction ? [['babel-plugin-react-compiler', { target: '19' }]] : []),
+    ],
   };
 };

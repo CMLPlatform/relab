@@ -10,7 +10,6 @@ const mockAddListener = jest.fn((_eventName: string, _listener: unknown) => jest
 const mockAlert = jest.fn();
 const mockFeedbackAlert = jest.fn();
 const mockUseProductForm = jest.fn();
-const mockUseProductQuery = jest.fn();
 const mockUseAncestorTrail = jest.fn();
 let beforeRemoveListener:
   | ((event: { preventDefault: () => void; data: { action: { type: string } } }) => void)
@@ -72,11 +71,6 @@ jest.mock('@/features/products/useProductForm', () => ({
   useProductForm: (...args: unknown[]) => mockUseProductForm(...args),
 }));
 
-jest.mock('@/features/products/queries', () => ({
-  useBaseProductQuery: (...args: unknown[]) => mockUseProductQuery(...args),
-  useComponentQuery: (...args: unknown[]) => mockUseProductQuery(...args),
-}));
-
 jest.mock('@/features/products/useAncestorTrail', () => ({
   useAncestorTrail: (...args: unknown[]) => mockUseAncestorTrail(...args),
 }));
@@ -126,7 +120,6 @@ describe('useProductPageScreen', () => {
       }
       return jest.fn();
     });
-    mockUseProductQuery.mockReturnValue({ data: undefined });
     mockUseAncestorTrail.mockReturnValue({ ancestors: [], isLoading: false });
     mockUseProductForm.mockReturnValue(baseFormReturn);
     mockUseAuth.mockReturnValue({

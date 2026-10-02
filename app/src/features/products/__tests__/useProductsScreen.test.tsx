@@ -34,6 +34,16 @@ const mockAuthState = {
 
 jest.mock('@tanstack/react-query', () => ({
   useInfiniteQuery: () => mockProductsQueryResult,
+  // Routed by the option factories' keys mocked below.
+  useQuery: ({ queryKey: [key] }: { queryKey: [string] }) => ({
+    data:
+      key === 'typeSearch'
+        ? mockTypeSearchResults
+        : key === 'typeLabels'
+          ? mockSelectedTypeResults
+          : [],
+    isLoading: false,
+  }),
 }));
 
 jest.mock('expo-router', () => ({
@@ -73,9 +83,9 @@ jest.mock('@/features/products/queries', () => ({
   ],
   productsInfiniteQueryOptions: jest.fn(() => ({})),
   productsListQuery: jest.fn(() => ({ search: 'from-list' })),
-  useSearchBrandsQuery: () => ({ data: [], isLoading: false }),
-  useSearchProductTypesQuery: () => ({ data: mockTypeSearchResults, isLoading: false }),
-  useProductTypeLabelsQuery: () => ({ data: mockSelectedTypeResults, isLoading: false }),
+  brandsSearchQueryOptions: () => ({ queryKey: ['brands'] }),
+  productTypesSearchQueryOptions: () => ({ queryKey: ['typeSearch'] }),
+  productTypeLabelsQueryOptions: () => ({ queryKey: ['typeLabels'] }),
 }));
 
 jest.mock('@/services/api/auth/authentication', () => ({

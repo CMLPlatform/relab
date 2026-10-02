@@ -3,7 +3,7 @@ import { AccessibilityInfo, Platform, StyleSheet, type TextStyle, View } from 'r
 import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/theme/appThemeContext';
 
-// One caption line at fontSize 12, matches NewAccountSections' HELPER_SLOT_HEIGHT.
+// One caption line (13px), matches NewAccountSections' HELPER_SLOT_HEIGHT.
 // minHeight, not height: large OS text-scale settings may still grow the line.
 const HELPER_SLOT_MIN_HEIGHT = 18;
 
@@ -35,9 +35,10 @@ export function FormFieldError({
       nativeID={errorId}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      // Capped so error text stays legible instead of clipping inside
-      // fixed-height helper slots at large OS text-scale settings.
-      maxFontSizeMultiplier={1.5}
+      // The app-wide 2x Dynamic Type cap: both helper slots (reserveSpace
+      // here, NewAccountSections' helperSlot) are minHeight, so a scaled
+      // error grows its slot instead of clipping.
+      maxFontSizeMultiplier={2}
       // The caption step's 18px line height is HELPER_SLOT_MIN_HEIGHT.
       style={[{ color: theme.tokens.status.danger }, theme.tokens.type.caption, style]}
     >

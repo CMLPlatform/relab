@@ -2,10 +2,12 @@ import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { Switch } from '@/components/base/ui/switch';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import type { ThemeMode, User } from '@/types/User';
+import { cn } from '@/utils/cn';
 import { createProfileSectionStyles } from './styles';
 
 type ProfileSectionStyles = ReturnType<typeof createProfileSectionStyles>;
@@ -166,7 +168,7 @@ function ThemeModeOption({
 
   return (
     <Pressable
-      className="flex-1 items-center gap-1.5 rounded-lg border py-3"
+      className={cn('flex-1 items-center gap-1.5 rounded-md border py-3', PRESS_TINT)}
       style={[styles.themeModeOption, active && styles.themeModeOptionActive]}
       onPress={handlePress}
       accessibilityRole="radio"
@@ -206,7 +208,11 @@ function VisibilityOption({
 
   return (
     <Pressable
-      className="my-0.5 flex-row items-center gap-3 rounded-lg px-4 py-3"
+      // No hover tint while saving: the row is disabled then.
+      className={cn(
+        'my-0.5 flex-row items-center gap-3 rounded-lg px-4 py-3',
+        !saving && PRESS_TINT,
+      )}
       style={isActive ? styles.visibilityOptionActive : undefined}
       onPress={handlePress}
       disabled={saving}

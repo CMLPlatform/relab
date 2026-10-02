@@ -12,16 +12,24 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { memo, type ReactNode, useCallback, useEffect } from 'react';
-import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native';
+import {
+  AppState,
+  type AppStateStatus,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { enableScreens } from 'react-native-screens';
 import { Uniwind } from 'uniwind';
 import { z } from 'zod';
-import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { KeyboardShortcutsDialog } from '@/components/base/KeyboardShortcutsDialog';
+import { LazyBoundary } from '@/components/base/LazyBoundary';
+import { lazyWithRetry } from '@/components/base/lazyWithRetry';
 import { OfflineBanner } from '@/components/base/OfflineBanner';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { TopNav } from '@/components/base/TopNav';
@@ -31,20 +39,39 @@ import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
+import { useTermsAcceptance } from '@/features/auth/useTermsAcceptance';
 import { PRODUCT_SHORTCUT_GROUPS } from '@/features/products/productShortcutGroups';
 import {
   onResumedSaveError,
-  ResumedSaveConflictNotice,
+  ResumedSaveNotice,
   SAVE_PRODUCT_MUTATION_KEY,
   saveProductMutationFn,
 } from '@/features/products/queries';
 import { registerNativeOnlineListener } from '@/services/nativeOnline';
-import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
+import { serializePersistedClient, shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { createNavigationThemes, getAppTheme } from '@/theme/themes';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
+
+// NOTE: the prompt is rare, so its dialog loads only once an account owes acceptance.
+const TermsAcceptanceDialog = lazyWithRetry(() =>
+  import('@/components/auth/TermsAcceptanceDialog').then((m) => ({
+    default: m.TermsAcceptanceDialog,
+  })),
+);
+
+function TermsPrompt() {
+  const { shouldPrompt } = useTermsAcceptance();
+  if (!shouldPrompt) return null;
+  return (
+    // NOTE: a failed load skips the prompt this session; the next app start asks again.
+    <LazyBoundary>
+      <TermsAcceptanceDialog />
+    </LazyBoundary>
+  );
+}
 
 // Every navigator here paints its scene transparent so AppBackground shows through
 // (the flat theme background on content screens, the photo + scrim on auth routes).
@@ -84,6 +111,7 @@ const persister = createAsyncStoragePersister({
   key: QUERY_CACHE_STORAGE_KEY,
   // Drop the oldest query when a persisted write fails (storage quota).
   retry: removeOldestQuery,
+  serialize: serializePersistedClient,
   throttleTime: 5000,
 });
 
@@ -99,15 +127,24 @@ export default function RootLayout() {
   );
 }
 
+// The calm band spans the auth column (420 wide) plus a margin. Narrower than
+// that, as on a phone, the band covers the whole width, so the wordmark and
+// headline never sit on the vivid edges of the photo.
+const BAND_WIDTH = 520;
+
 function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
+  const { width } = useWindowDimensions();
+  const edge = Math.max(0, (width - BAND_WIDTH) / 2 / width);
   return (
     <>
       {overlay.photo ? <StaticBackground /> : null}
-      {overlay.edgeColor ? (
+      {/* No band edge left (a narrow screen) means a flat fill; a 0 stop also
+          reaches the web gradient as no position at all. */}
+      {overlay.edgeColor && edge > 0 ? (
         // Hero routes: calm the band behind the content column, vivid at the edges.
         <LinearGradient
           colors={[overlay.edgeColor, overlay.color, overlay.color, overlay.edgeColor]}
-          locations={[0, 0.3, 0.7, 1]}
+          locations={[0, edge, 1 - edge, 1]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}
@@ -269,8 +306,8 @@ function ThemedProviders({ children }: { children: ReactNode }) {
             <DialogProvider>
               {children}
               {/* Needs DialogProvider (toast) and AuthProvider (user flag). */}
-              <TermsAcceptanceDialog />
-              <ResumedSaveConflictNotice />
+              <TermsPrompt />
+              <ResumedSaveNotice />
             </DialogProvider>
           </GestureHandlerRootView>
         </KeyboardProvider>

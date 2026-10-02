@@ -1,13 +1,49 @@
-import type { TextInputProps, TextProps } from 'react-native';
+import { Platform, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
 
 /**
- * Props that associate an input with the `FormFieldError` sharing its `id`.
+ * Props that associate an input with the `FormFieldError` sharing its `id`
+ * and, by default, mark it invalid while the error shows. Pass
+ * `{ invalid: false }` for a hint that describes the field without
+ * claiming the value is wrong (e.g. a minimum-length cue before typing).
  * `accessibilityDescribedBy` is not in RN core's `TextInputProps`, but
  * react-native-web forwards it to `aria-describedby`.
  */
-export function describedBy(id: string, hasError: boolean): Partial<TextInputProps> {
-  return (hasError ? { accessibilityDescribedBy: id } : {}) as Partial<TextInputProps>;
+export function describedBy(
+  id: string,
+  hasError: boolean,
+  { invalid = true }: { invalid?: boolean } = {},
+): Partial<TextInputProps> {
+  if (!hasError) return {};
+  return {
+    accessibilityDescribedBy: id,
+    ...(invalid ? { 'aria-invalid': true } : {}),
+  } as Partial<TextInputProps>;
 }
+
+/**
+ * Marks a field the form cannot submit without (pair it with the visible
+ * "(required)" in the label). Only for fields the form truly needs: an empty
+ * observation is valid research data, so data fields stay unmarked.
+ * react-native-web forwards `aria-required`; native has no required state,
+ * so it gets a spoken hint instead.
+ */
+export function requiredField(): Partial<TextInputProps> {
+  return Platform.OS === 'web'
+    ? ({ 'aria-required': true } as Partial<TextInputProps>)
+    : { accessibilityHint: 'Required' };
+}
+
+/**
+ * Keeps a node in the accessibility tree while taking it off the screen. Not
+ * `display: none` or zero opacity: both can drop it from the tree.
+ */
+export const visuallyHidden = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  margin: -1,
+  overflow: 'hidden',
+} as const satisfies ViewStyle;
 
 /**
  * Props that render text as a heading at `level` (web: `<h1>`–`<h3>`).

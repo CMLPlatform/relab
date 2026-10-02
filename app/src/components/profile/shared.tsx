@@ -1,7 +1,8 @@
 import type { RefObject } from 'react';
-import { Platform, Pressable, type TextStyle, View } from 'react-native';
+import { Pressable, type TextStyle, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import { cn } from '@/utils/cn';
@@ -36,13 +37,10 @@ export function ProfileAction({
   return (
     <Pressable
       ref={triggerRef}
-      className={cn(
-        'min-h-11 flex-row items-center justify-between px-4 py-2.5 active:bg-primary/12',
-        Platform.select({ web: 'hover:bg-primary/12' }),
-      )}
+      className={cn('min-h-11 flex-row items-center justify-between px-4 py-2.5', PRESS_TINT)}
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}
     >
       <View className="flex-1 flex-row items-center gap-3">
         {icon ? (

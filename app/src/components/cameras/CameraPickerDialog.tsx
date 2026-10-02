@@ -1,12 +1,15 @@
 import { useRouter } from 'expo-router';
 import { type RefObject, useCallback, useMemo } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import {
   resolveEffectiveCameraConnection,
@@ -16,6 +19,7 @@ import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import { heading } from '@/utils/a11y';
+import { cn } from '@/utils/cn';
 
 interface CameraPickerDialogProps {
   visible: boolean;
@@ -65,7 +69,7 @@ export function CameraPickerDialog({
       </AppText>
       <View className="gap-2">
         {isLoading ? (
-          <ActivityIndicator className="p-4" />
+          <CenteredSpinner />
         ) : sorted.length === 0 ? (
           <View className="items-center gap-2 p-4">
             <Icon name="camera-off" size={32} color={palette[theme.scheme].mutedForeground} />
@@ -77,8 +81,8 @@ export function CameraPickerDialog({
       </View>
       <View className="mt-4 flex-row items-center justify-end gap-1">
         <AppButton variant="ghost" onPress={handleManage}>
-          <Icon name="settings" size={16} color={theme.colors.onSurface} />
-          <AppText style={{ color: theme.colors.onSurface }}>Manage</AppText>
+          <Icon name="settings" size={16} color={VARIANT_FOREGROUND_COLOR.ghost(theme.colors)} />
+          Manage
         </AppButton>
         <View className="flex-1" />
         <AppButton variant="ghost" onPress={onDismiss}>
@@ -109,8 +113,13 @@ function CameraPickerRow({
   return (
     <Pressable
       onPress={handleSelect}
+      disabled={!isReachable}
       accessibilityRole="button"
-      className="flex-row items-center gap-3 rounded-lg border border-border p-3"
+      // A disabled (offline) row must not tint on web hover.
+      className={cn(
+        'flex-row items-center gap-3 rounded-lg border border-border p-3',
+        isReachable && PRESS_TINT,
+      )}
       style={{ opacity: isReachable ? 1 : 0.4 }}
     >
       <View

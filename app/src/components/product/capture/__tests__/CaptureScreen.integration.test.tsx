@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { onlineManager } from '@tanstack/react-query';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { CaptureScreen } from '@/components/product/capture/CaptureScreen';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
@@ -29,6 +30,8 @@ let mockCanGoBack = false;
 let mockIsLg = false;
 
 jest.mock('expo-router', () => ({
+  // The toast reads it to clear BottomNav.
+  useSegments: () => [],
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
   useNavigation: () => ({
     addListener: mockAddListener,
@@ -52,7 +55,6 @@ const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<
 const mockUseAuth = jest.fn();
 // Plain mutable flags (not jest.fn().mockReturnValue) so the mocked hook
 // below re-reads them fresh on every render without extra setup per test.
-let mockIsPending = false;
 let mockIsPaused = false;
 
 jest.mock('@/context/auth', () => ({
@@ -63,7 +65,7 @@ jest.mock('@/features/products/queries', () => ({
   QUEUED_OFFLINE_LABEL: 'Queued — sends when online',
   useSaveProductMutation: () => ({
     mutateAsync: mockMutateAsync,
-    isPending: mockIsPending,
+    isPending: false,
     isPaused: mockIsPaused,
   }),
 }));
@@ -85,6 +87,8 @@ jest.mock('react-native-keyboard-controller', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { ScrollView } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
+    // AppDialog wraps its body in this; a passthrough is enough here.
+    KeyboardAvoidingView: ({ children }: { children?: ReactNode }) => children,
     KeyboardAwareScrollView: ({
       children,
       ...props
@@ -125,7 +129,6 @@ async function renderCapture(props: Parameters<typeof CaptureScreen>[0]) {
 describe('CaptureScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockIsPending = false;
     mockIsPaused = false;
     mockCanGoBack = false;
     mockIsLg = false;
@@ -155,14 +158,33 @@ describe('CaptureScreen', () => {
     expect(screen.queryByText('Component of:', { exact: false })).toBeNull();
   });
 
+  it('lets the two Create buttons wrap instead of overflowing a 320px screen', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    let row = screen.getByText('Create product').parent;
+    while (row && !String(row.props.className ?? '').includes('flex-wrap')) row = row.parent;
+    expect(row).toBeTruthy();
+    if (row) expect(within(row).getByText('Create & add another')).toBeOnTheScreen();
+  });
+
   // TDD for the offline-queued acknowledgment: a paused save mutation shows a
   // short "queued" label on both Create buttons and drops the spinner;
   // "paused" isn't "loading", there's nothing to spin for until the device
   // comes back online.
   it('shows a queued label and no spinner on both Create buttons while paused offline', async () => {
-    mockIsPending = true;
     mockIsPaused = true;
+    let settle!: (id: number) => void;
+    mockMutateAsync.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          settle = resolve;
+        }),
+    );
     await renderCapture({ entityRole: 'product' });
+    const nameInput = screen.getByPlaceholderText(NAME_PLACEHOLDER);
+    await fireEvent.changeText(nameInput, 'Kettle');
+    // Enter submits without awaiting the create, which stays paused until settled below.
+    await fireEvent(nameInput, 'submitEditing');
 
     // Both Create buttons, plus the one-time toast useCaptureEntity fires on
     // the isPaused transition (see useCaptureEntity.test.tsx for that in isolation).
@@ -170,6 +192,8 @@ describe('CaptureScreen', () => {
     expect(screen.queryByText('Create product')).toBeNull();
     expect(screen.queryByText('Create & add another')).toBeNull();
     expect(queryAllHostsByType('ActivityIndicator')).toHaveLength(0);
+
+    await act(async () => settle(1));
   });
 
   // Only a component can be a material; a product is always a type.
@@ -204,10 +228,22 @@ describe('CaptureScreen', () => {
     expect(screen.getByText('Create product')).toBeEnabled();
   });
 
+  // Name is the one field Create needs; the rest stay unmarked because an
+  // empty observation is valid research data.
+  it('marks only the name as required', async () => {
+    await renderCapture({ entityRole: 'product' });
+    expect(screen.getByText('(required)')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.accessibilityHint).toBe('Required');
+  });
+
   it('explains the name length while Create is disabled', async () => {
     await renderCapture({ entityRole: 'product' });
 
     expect(screen.getByText('At least 2 characters')).toBeOnTheScreen();
+    // A length cue describes the field; it must not mark an untouched field invalid.
+    const nameInput = screen.getByPlaceholderText(NAME_PLACEHOLDER);
+    expect(nameInput.props.accessibilityDescribedBy).toBeDefined();
+    expect(nameInput.props['aria-invalid']).toBeUndefined();
     await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'C');
     expect(screen.getByText('At least 2 characters')).toBeOnTheScreen();
 
@@ -267,6 +303,28 @@ describe('CaptureScreen', () => {
 
     expect(mockReplace).not.toHaveBeenCalled();
     expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('');
+  });
+
+  // At the bench, offline: the create queues and the form comes straight back
+  // for the next part, instead of waiting on the paused create.
+  it('hands back an empty, ready form after an offline Create & add another', async () => {
+    await act(() => onlineManager.setOnline(false));
+    try {
+      mockIsPaused = true;
+      mockMutateAsync.mockImplementationOnce(() => new Promise<number>(() => {}));
+      await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
+
+      await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
+      await fireEvent.press(screen.getByText('Create & add another'));
+
+      expect(await screen.findByText('Bolt queued — sends when online')).toBeOnTheScreen();
+      expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('');
+      // The buttons belong to the new draft, not the queued one.
+      expect(screen.getByText('Create component')).toBeOnTheScreen();
+      expect(mockReplace).not.toHaveBeenCalled();
+    } finally {
+      await act(() => onlineManager.setOnline(true));
+    }
   });
 
   // Batch mode has nothing left to batch once the record exists: a partial

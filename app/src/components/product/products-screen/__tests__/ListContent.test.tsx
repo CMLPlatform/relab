@@ -101,6 +101,39 @@ describe('ProductsListContent loading skeleton', () => {
   });
 });
 
+describe('ProductsListContent first render', () => {
+  afterEach(() => restorePlatform());
+
+  const manyProducts = Array.from({ length: 24 }, (_, index) => ({
+    ...baseProduct,
+    id: index + 1,
+    name: `Product ${index + 1}`,
+  }));
+
+  function renderedCells(numColumns: number) {
+    return queryAllHostsByType('View').filter(
+      (view) => StyleSheet.flatten(view.props.style)?.width === `${100 / numColumns}%`,
+    );
+  }
+
+  // A full page is 24 cards; the first frame only needs the rows that fit on screen.
+  it('renders only the first few rows of a full page up front', async () => {
+    await renderList({ numColumns: 2, products: manyProducts, total: 24 });
+    expect(renderedCells(2)).toHaveLength(2 * 4);
+  });
+
+  it('clips off-screen cards on native only', async () => {
+    await renderList({ products: manyProducts, total: 24 });
+    expect(getHostByType('RCTScrollView').props.removeClippedSubviews).toBe(true);
+  });
+
+  it('leaves off-screen cards in the DOM on web', async () => {
+    mockPlatform('web');
+    await renderList({ products: manyProducts, total: 24 });
+    expect(getHostByType('RCTScrollView').props.removeClippedSubviews).toBeFalsy();
+  });
+});
+
 describe('ProductsListContent pull-to-refresh', () => {
   it('does not spin the pull-to-refresh control for a background refetch', async () => {
     // isFetchingNextPage must never drive the pull-to-refresh spinner; only a

@@ -1,13 +1,14 @@
 import { useCallback, useId, useState } from 'react';
 import { View } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { FormFieldError } from '@/components/base/FormField';
+import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
 import { TextInput } from '@/components/base/TextInput';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
-import { describedBy, heading } from '@/utils/a11y';
-import { type SpecFact, SpecFacts } from './SpecFacts';
+import { describedBy, heading, visuallyHidden } from '@/utils/a11y';
 
 function buildFacts(product: Product): SpecFact[] {
   const facts: SpecFact[] = [];
@@ -89,10 +90,17 @@ export function SpecHeader({
     .join(' · ');
 
   return (
-    <View className="gap-2 px-4 py-3">
+    // No horizontal padding: the title shares the section cards' left edge.
+    <View className="gap-2 py-3">
       {editMode ? (
-        // Keyed per product so a stale draft is dropped on navigation.
-        <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
+        <>
+          {/* The name is an input here, so the screen's level-1 heading is not visible. */}
+          <AppText style={visuallyHidden} {...heading(1)}>
+            {product.id === undefined ? 'New product' : `Editing ${product.name}`}
+          </AppText>
+          {/* Keyed per product so a stale draft is dropped on navigation. */}
+          <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
+        </>
       ) : (
         <AppText variant="display" {...heading(1)}>
           {product.name}
@@ -100,10 +108,15 @@ export function SpecHeader({
       )}
       {saveStatus ? (
         // Not a live region: DocumentChrome already announces "Saved", and
-        // the queued state is toasted.
-        <AppText variant="data" className="text-manila" testID="save-status">
-          {saveStatus}
-        </AppText>
+        // the queued state is toasted. Keyed so each new status fades in rather than swapping in place.
+        <Animated.View
+          key={saveStatus}
+          entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
+        >
+          <AppText variant="data" className="text-manila" testID="save-status">
+            {saveStatus}
+          </AppText>
+        </Animated.View>
       ) : null}
       {identity ? (
         <AppText variant="body" className="text-muted-foreground">

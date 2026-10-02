@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { TextInput } from '@/components/base/TextInput';
 import { useAppTheme } from '@/theme/appThemeContext';
-
 import { entityLabel, type Product } from '@/types/Product';
+import { cn } from '@/utils/cn';
 
 const COLLAPSED_DESCRIPTION_LINES = 6;
 const APPROX_CHARS_PER_LINE = 55;
@@ -58,6 +59,7 @@ export default function ProductDescription({ product, editMode, onChangeDescript
         {isLongDescription && (
           <Pressable
             onPress={toggleExpanded}
+            className={cn('min-h-11 justify-center self-start rounded-md', PRESS_TINT)}
             accessibilityRole="button"
             accessibilityLabel={expanded ? 'Show less of description' : 'Show more of description'}
           >

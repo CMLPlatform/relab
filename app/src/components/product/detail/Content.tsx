@@ -138,26 +138,26 @@ export function ProductPageContent({
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
-      <PageContainer fullBleed>
-        <ProductImageGallery
-          product={product}
-          editMode={editMode}
-          canEdit={canEdit}
-          onImagesChange={onImagesChange}
-        />
-      </PageContainer>
       <PageContainer onLayout={onPageContainerLayout}>
+        {/* Full bleed on a phone (cancelling the base px-4 gutter); from md up the
+            photo keeps the content column's edges, so it, the title and the
+            section cards start on one line. */}
+        <View className="-mx-4 mb-4 md:mx-0">
+          <ProductImageGallery
+            product={product}
+            editMode={editMode}
+            canEdit={canEdit}
+            onImagesChange={onImagesChange}
+          />
+        </View>
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
           {editingOthersProduct ? (
             <View
               testID="editing-others-product-notice"
               className="rounded-lg border border-border bg-muted px-4 py-2"
             >
-              <AppText
-                variant="caption"
-                accessibilityLiveRegion="polite"
-                className="text-muted-foreground"
-              >
+              {/* Static notice shown with edit mode, not a status change: no live region. */}
+              <AppText variant="caption" className="text-muted-foreground">
                 You are moderating someone else's product. You can correct details or remove
                 content.
               </AppText>

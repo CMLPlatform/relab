@@ -43,6 +43,7 @@ export function AppButton({
       // aria-*, not accessibilityState: only the aria props reach the DOM on web
       // (RN folds aria-disabled back into accessibilityState for native).
       aria-disabled={disabled || loading}
+      aria-busy={loading}
       // min-h-11 (44px tap floor) is a different tailwind-merge group than the
       // vendored h-10/sm:h-9, so it survives the merge.
       className={cn('min-h-11', className)}

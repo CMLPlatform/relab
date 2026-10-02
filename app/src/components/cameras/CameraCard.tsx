@@ -78,6 +78,10 @@ function CameraCardComponent({
             style={styles.thumbnail}
             contentFit="cover"
             transition={150}
+            // The 5s poll re-versions the URL (?v=); caching keeps the last frame on
+            // remount, and the key stops a recycled cell flashing another camera.
+            cachePolicy="memory-disk"
+            recyclingKey={String(camera.id)}
             onError={handleThumbnailError}
           />
         ) : (
@@ -85,7 +89,7 @@ function CameraCardComponent({
             {isOnline ? (
               <>
                 <View className="opacity-40">
-                  <Icon name="image" size={40} color={theme.colors.onSurfaceVariant} />
+                  <Icon name="image" size={40} color={theme.colors.mutedForeground} />
                 </View>
                 <AppText variant="body" className="text-muted-foreground">
                   No preview available
@@ -94,7 +98,7 @@ function CameraCardComponent({
             ) : (
               <>
                 <View className="opacity-40">
-                  <Icon name="camera-off" size={40} color={theme.colors.onSurfaceVariant} />
+                  <Icon name="camera-off" size={40} color={theme.colors.mutedForeground} />
                 </View>
                 <AppText variant="body" className="text-muted-foreground">
                   Offline

@@ -11,23 +11,24 @@ import Animated, {
 
 interface SkeletonProps {
   style?: StyleProp<ViewStyle>;
-  duration?: number;
   testID?: string;
 }
 
+const PULSE_MS = 750;
+
 /** Pulsing skeleton placeholder; honors reduce-motion via `ReduceMotion.System`. */
-export function Skeleton({ style, duration = 750, testID }: SkeletonProps) {
+export function Skeleton({ style, testID }: SkeletonProps) {
   const opacity = useSharedValue(0.4);
 
   useEffect(() => {
     opacity.value = withRepeat(
-      withSequence(withTiming(1, { duration }), withTiming(0.4, { duration })),
+      withSequence(withTiming(1, { duration: PULSE_MS }), withTiming(0.4, { duration: PULSE_MS })),
       -1,
       false,
       undefined,
       ReduceMotion.System,
     );
-  }, [opacity, duration]);
+  }, [opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 

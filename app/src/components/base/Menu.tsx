@@ -1,17 +1,87 @@
 import type { ReactNode, RefObject } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeInDown, FadeInUp, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
+import { swallowKey, useModalPresence } from '@/hooks/useModalPresence';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
+import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition, nextMenuIndex } from './menuPosition';
+import { PRESS_FADE, type PressState, pressFill } from './pressFeedback';
+
+const NOOP = () => {};
 
 // Swallow presses so tapping an item does not fall through to the backdrop.
 function stopPropagation(e: { stopPropagation: () => void }) {
   e.stopPropagation();
+}
+
+/**
+ * Web keyboard model for an open menu (WAI-ARIA menu pattern): focus starts
+ * on the checked item, else the first; arrows move and wrap; Home/End jump.
+ * Roving tabindex: only the focused item is in the tab order, and Tab closes
+ * the menu (focus returns to the trigger) instead of walking the items.
+ * Escape is the Modal's own `onRequestClose`. Native screen readers swipe
+ * between items, so this is web-only.
+ */
+function useWebMenuKeyboard(popover: HTMLElement | null, visible: boolean, onDismiss: () => void) {
+  // An effect event, so a caller's inline onDismiss does not re-run the effect and refocus the first item.
+  const dismiss = useEffectEvent(onDismiss);
+  useEffect(() => {
+    // Closing: the popover stays mounted through its exit, but its keys are done.
+    if (!visible) return;
+    // A host node without DOM methods is a test renderer under a mocked web platform.
+    if (!popover || typeof popover.querySelectorAll !== 'function') return;
+    // biome-ignore lint/security/noSecrets: an ARIA attribute selector, not a secret.
+    const items = () => Array.from(popover.querySelectorAll<HTMLElement>('[role^="menuitem"]'));
+    // Reanimated's entering animation holds the popover at visibility:hidden
+    // until its first frame, and focus() on a hidden element does nothing, so
+    // retry per frame (bounded) until the starting item takes focus.
+    let frame = 0;
+    let raf = 0;
+    // Pointer focus included: whichever item holds focus is the one tab stop.
+    const onFocusIn = (event: FocusEvent) => {
+      const list = items();
+      if (!list.includes(event.target as HTMLElement)) return;
+      for (const item of list) item.tabIndex = item === event.target ? 0 : -1;
+    };
+    popover.addEventListener('focusin', onFocusIn);
+    const focusInitial = () => {
+      const list = items();
+      const target = list.find((item) => item.getAttribute('aria-checked') === 'true') ?? list[0];
+      target?.focus();
+      if (target && document.activeElement !== target && frame++ < 30) {
+        raf = requestAnimationFrame(focusInitial);
+      }
+    };
+    focusInitial();
+    // On the document, not the popover: until the first item takes focus the
+    // Modal's focus trap parks it on the scrim, outside the popover.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        dismiss();
+        return;
+      }
+      const list = items();
+      const next = nextMenuIndex(
+        event.key,
+        list.indexOf(document.activeElement as HTMLElement),
+        list.length,
+      );
+      if (next === null) return;
+      event.preventDefault();
+      list[next]?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      popover.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [popover, visible]);
 }
 
 type MenuProps = {
@@ -33,10 +103,17 @@ type MenuProps = {
  */
 export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuProps) {
   const theme = useAppTheme();
-  useReturnFocus(visible, triggerRef);
+  const { mounted, fadeStyle } = useModalPresence(visible);
+  useReturnFocus(mounted, triggerRef);
   const anchorRef = useRef<View>(null);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [position, setPosition] = useState<MenuPosition>({ top: 0, left: 0 });
+  // State, not a ref: the Modal mounts its content a render after `visible`
+  // flips, and the keyboard hook has to run once the popover exists.
+  const [popover, setPopover] = useState<HTMLElement | null>(null);
+  useWebMenuKeyboard(popover, visible, onDismiss);
+  // A second Escape during the exit must not dismiss again.
+  const handleRequestClose = visible ? onDismiss : NOOP;
 
   useEffect(() => {
     if (!visible) return;
@@ -59,30 +136,54 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
       <View ref={anchorRef} collapsable={false}>
         {anchor}
       </View>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={onDismiss}
-          accessibilityLabel="Dismiss menu"
+      <Modal
+        visible={mounted}
+        transparent
+        animationType="none"
+        onRequestClose={handleRequestClose}
+        aria-label="Menu"
+      >
+        <Animated.View
+          style={[StyleSheet.absoluteFill, fadeStyle]}
+          pointerEvents={visible ? 'auto' : 'none'}
+          // Focus stays on the chosen item through the exit; Enter there must not run it again.
+          // Spread: RN's TypeScript types omit onKeyDownCapture; RN-Web and native both take it.
+          {...{ onKeyDownCapture: visible ? undefined : swallowKey }}
         >
-          <Animated.View
-            entering={('bottom' in position ? FadeInUp : FadeInDown)
-              .duration(150)
-              .easing(Easing.out(Easing.quad))
-              .reduceMotion(ReduceMotion.System)}
-            style={[styles.content, position]}
+          {/* Scrim and wrapper are not controls: see AppDialog. */}
+          <Pressable
+            accessible={false}
+            tabIndex={-1}
+            testID="menu-scrim"
+            style={StyleSheet.absoluteFill}
+            onPress={onDismiss}
           >
-            <Pressable
-              onPress={stopPropagation}
-              accessibilityRole="menu"
-              // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
-              className="rounded-xl bg-background py-1"
-              style={theme.tokens.elevation.overlay}
+            <Animated.View
+              entering={('bottom' in position ? FadeInUp : FadeInDown)
+                .duration(150)
+                .easing(Easing.out(Easing.quad))
+                .reduceMotion(ReduceMotion.System)}
+              style={[styles.content, position]}
             >
-              {children}
-            </Pressable>
-          </Animated.View>
-        </Pressable>
+              <Pressable
+                // On web the host node is the popover's DOM element.
+                ref={Platform.OS === 'web' ? (setPopover as unknown as React.Ref<View>) : undefined}
+                // Not accessible: a focusable group would hide the items from VoiceOver.
+                // The role still reaches the DOM on web; the Modal carries the name.
+                accessible={false}
+                tabIndex={-1}
+                testID="menu-popover"
+                onPress={stopPropagation}
+                accessibilityRole="menu"
+                // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
+                className="rounded-xl bg-background py-1"
+                style={theme.tokens.elevation.overlay}
+              >
+                {children}
+              </Pressable>
+            </Animated.View>
+          </Pressable>
+        </Animated.View>
       </Modal>
     </>
   );
@@ -91,23 +192,36 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
 function MenuItem({
   title,
   trailingIcon,
+  checked,
   onPress,
 }: {
   title: string;
   trailingIcon?: IconName;
+  /** Marks the item as one choice of a group: `menuitemradio` plus its checked state. */
+  checked?: boolean;
   onPress: () => void;
 }) {
   const theme = useAppTheme();
   const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
-      // No className on this Pressable: it would drop this function (see IconButton.tsx).
-      styles.item,
-      pressed && { backgroundColor: theme.colors.surfaceVariant },
-    ],
-    [theme.colors.surfaceVariant],
+    (state: PressState) => [styles.item, pressFill(state, theme.tokens.surface.accent)],
+    [theme.tokens.surface.accent],
   );
   return (
-    <Pressable onPress={onPress} accessibilityRole="menuitem" style={pressableStyle}>
+    <Pressable
+      onPress={onPress}
+      className={PRESS_FADE}
+      // NOTE: menuitemradio is a valid ARIA role that react-native-web passes through but RN's
+      // types omit, and Android's native role enum rejects it (the view manager throws). Native
+      // keeps menuitem and carries the choice state in aria-checked -> accessibilityState.checked.
+      accessibilityRole={
+        (Platform.OS === 'web' && checked !== undefined
+          ? 'menuitemradio'
+          : 'menuitem') as 'menuitem'
+      }
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-checked={checked}
+      style={pressableStyle}
+    >
       <AppText testID="menu-item-title" className="shrink">
         {title}
       </AppText>

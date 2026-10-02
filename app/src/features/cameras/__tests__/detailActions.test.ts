@@ -113,7 +113,7 @@ describe('camera detail actions', () => {
 
     expect(alert).toHaveBeenCalledWith({
       title: 'Save failed',
-      message: 'Error: save broke',
+      message: 'save broke',
       buttons: [{ text: 'OK' }],
     });
   });
@@ -137,7 +137,7 @@ describe('camera detail actions', () => {
     expect(replace).toHaveBeenCalledWith('/cameras');
     expect(alert).toHaveBeenCalledWith({
       title: 'Delete failed',
-      message: 'cannot delete',
+      message: 'Something went wrong. Please try again.',
       buttons: [{ text: 'OK' }],
     });
   });

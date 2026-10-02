@@ -2,7 +2,8 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { Menu } from '@/components/base/Menu';
-import { getMenuPosition } from '@/components/base/menuPosition';
+import { getMenuPosition, nextMenuIndex } from '@/components/base/menuPosition';
+import { mockPlatform, queryAllHostsByProps, restorePlatform } from '@/test-utils/index';
 
 describe('getMenuPosition', () => {
   const anchor = { anchorY: 100, anchorWidth: 40, anchorHeight: 40, windowHeight: 900 };
@@ -80,7 +81,30 @@ describe('Menu', () => {
         <Menu.Item title="A-Z" onPress={jest.fn()} />
       </Menu>,
     );
-    expect(screen.getByRole('menu')).toBeOnTheScreen();
+    expect(screen.getByTestId('menu-popover').props.accessibilityRole).toBe('menu');
+  });
+
+  it('uses menuitem natively, where menuitemradio crashes the Android view manager', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" checked onPress={jest.fn()} />
+      </Menu>,
+    );
+    const item = screen.getByRole('menuitem');
+    expect(item.props.accessibilityState.checked).toBe(true);
+    expect(screen.queryByRole('menuitemradio')).toBeNull();
+  });
+
+  it('uses menuitemradio on web', async () => {
+    mockPlatform('web');
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" checked onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-popover')).toBeOnTheScreen();
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(1);
+    restorePlatform();
   });
 
   it('fires onPress and does not dismiss via the item press itself', async () => {
@@ -102,7 +126,97 @@ describe('Menu', () => {
         <Menu.Item title="A-Z" onPress={jest.fn()} />
       </Menu>,
     );
-    await fireEvent.press(screen.getByLabelText('Dismiss menu'));
+    await fireEvent.press(screen.getByTestId('menu-scrim'));
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('takes no Escape and no keys while it fades out', async () => {
+    // Hold the exit open: withTiming never reports finished, so the popover stays mounted.
+    const timing = jest
+      .spyOn(
+        jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated'),
+        'withTiming',
+      )
+      .mockImplementation(((to: number) => to) as never);
+    const onDismiss = jest.fn();
+    const menu = (visible: boolean) => (
+      <Menu visible={visible} onDismiss={onDismiss} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>
+    );
+    try {
+      await render(menu(true));
+      await screen.rerender(menu(false));
+      expect(screen.getByText('A-Z')).toBeOnTheScreen();
+
+      const [modal] = queryAllHostsByProps({ animationType: 'none' });
+      modal?.props.onRequestClose();
+      expect(onDismiss).not.toHaveBeenCalled();
+
+      const [guard] = queryAllHostsByProps({ pointerEvents: 'none' });
+      const key = { preventDefault: jest.fn(), stopPropagation: jest.fn() };
+      guard?.props.onKeyDownCapture(key);
+      expect(key.stopPropagation).toHaveBeenCalled();
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
+  it('keeps the scrim and wrapper out of the accessibility tree and names the menu', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-scrim').props.accessible).toBe(false);
+    // accessible=false keeps the items reachable on iOS; RNTL then hides the node from role queries.
+    expect(screen.getByTestId('menu-popover').props.accessible).toBe(false);
+    expect(
+      screen.getByRole('menuitem', { name: 'A-Z', includeHiddenElements: false }),
+    ).toBeOnTheScreen();
+  });
+
+  it('keeps the scrim and wrapper out of the web tab order', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-scrim').props.tabIndex).toBe(-1);
+    expect(screen.getByTestId('menu-popover').props.tabIndex).toBe(-1);
+  });
+
+  it('names the menu once, on the Modal, not again on the popover', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-popover').props['aria-label']).toBeUndefined();
+    expect(queryAllHostsByProps({ 'aria-label': 'Menu' })).toHaveLength(1);
+  });
+});
+
+describe('nextMenuIndex', () => {
+  it('moves down and up through the items, wrapping at either end', () => {
+    expect(nextMenuIndex('ArrowDown', 0, 3)).toBe(1);
+    expect(nextMenuIndex('ArrowDown', 2, 3)).toBe(0);
+    expect(nextMenuIndex('ArrowUp', 0, 3)).toBe(2);
+    expect(nextMenuIndex('ArrowUp', 2, 3)).toBe(1);
+  });
+
+  it('jumps to the first and last item on Home and End', () => {
+    expect(nextMenuIndex('Home', 1, 3)).toBe(0);
+    expect(nextMenuIndex('End', 1, 3)).toBe(2);
+  });
+
+  it('enters from outside the items at the first or last one', () => {
+    expect(nextMenuIndex('ArrowDown', -1, 3)).toBe(0);
+    expect(nextMenuIndex('ArrowUp', -1, 3)).toBe(2);
+  });
+
+  it('ignores other keys and empty menus', () => {
+    expect(nextMenuIndex('Tab', 0, 3)).toBeNull();
+    expect(nextMenuIndex('ArrowDown', -1, 0)).toBeNull();
   });
 });

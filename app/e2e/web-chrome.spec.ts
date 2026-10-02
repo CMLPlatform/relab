@@ -41,11 +41,11 @@ test.describe('Top nav (>=lg)', () => {
     // bar itself rendered.
     await expect(page.getByLabel('Relab, go to products')).toBeVisible();
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
-    await expect(page.getByRole('button', { name: 'Products', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Products', exact: true })).toBeVisible();
 
     // Cameras is gated on the RPi camera integration setting (Integrations
     // section of the account screen) and is hidden by default.
-    await expect(page.getByRole('button', { name: 'Cameras', exact: true })).not.toBeVisible();
+    await expect(page.getByRole('link', { name: 'Cameras', exact: true })).not.toBeVisible();
 
     // Enable RPi camera, then confirm the nav link appears and works.
     await rpiSwitch.click();
@@ -53,12 +53,17 @@ test.describe('Top nav (>=lg)', () => {
 
     await page.goto('/products');
     await dismissProductsInfoCard(page);
-    await expect(page.getByRole('button', { name: 'Products, current page' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Cameras', exact: true })).toBeVisible();
+    // TopNav destinations are links; the active one carries aria-current="page".
+    const productsLink = page.getByRole('link', { name: 'Products', exact: true });
+    const camerasLink = page.getByRole('link', { name: 'Cameras', exact: true });
+    await expect(productsLink).toHaveAttribute('aria-current', 'page');
+    await expect(camerasLink).toBeVisible();
+    await expect(camerasLink).not.toHaveAttribute('aria-current', 'page');
 
-    await page.getByRole('button', { name: 'Cameras', exact: true }).click();
+    await camerasLink.click();
     await expect(page).toHaveURL(CAMERAS_URL_PATTERN, { timeout: 10_000 });
-    await expect(page.getByRole('button', { name: 'Cameras, current page' })).toBeVisible();
+    await expect(camerasLink).toHaveAttribute('aria-current', 'page');
+    await expect(productsLink).not.toHaveAttribute('aria-current', 'page');
 
     // Leave the shared account clean for other tests/runs.
     await page.goto('/account');
@@ -72,7 +77,7 @@ test.describe('Top nav (>=lg)', () => {
 
     // HeaderRightPill is rendered once by TopNav and once (conditionally) by
     // the products stack header; hideForTopNav should keep exactly one alive.
-    await expect(page.getByRole('button', { name: HEADER_PILL_NAME })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: HEADER_PILL_NAME })).toHaveCount(1);
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
   });
 });
@@ -87,6 +92,6 @@ test.describe('Top nav (phone)', () => {
     // The stack header still shows the wordmark and the header pill, exactly
     // once, from the stack header alone (TopNav renders null below lg).
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
-    await expect(page.getByRole('button', { name: HEADER_PILL_NAME })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: HEADER_PILL_NAME })).toHaveCount(1);
   });
 });

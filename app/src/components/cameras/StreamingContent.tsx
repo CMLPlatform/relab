@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { Icon } from '@/components/base/Icon';
 import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamSession } from '@/context/streamSession';
@@ -14,10 +15,6 @@ import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { LivePreview } from './LivePreview';
 import { showStreamStopFailed } from './streamingFeedback';
-
-// Set as a style rather than a `tabular-nums` className: font-variant-numeric has no
-// className path through the RN style bridge, so the utility compiles to nothing.
-const tabularNums = { fontVariant: ['tabular-nums' as const] };
 
 interface StreamingContentProps {
   session: StreamSession;
@@ -65,7 +62,7 @@ export function StreamingContent({
       {/* Header: LIVE badge + elapsed */}
       <View className="flex-row items-center gap-2 px-4 py-1">
         <StatusPill label="LIVE" tone="live" />
-        <AppText variant="body" className="flex-1 text-muted-foreground" style={tabularNums}>
+        <AppText variant="data" className="flex-1 text-muted-foreground">
           {elapsed}
         </AppText>
       </View>
@@ -78,8 +75,12 @@ export function StreamingContent({
       {/* Actions */}
       <View className="flex-row gap-2 px-4 pt-1">
         <AppButton variant="outline" onPress={handleWatch} className="flex-1">
-          <Icon name="external-link" size={16} color={theme.colors.onSurface} />
-          <AppText style={{ color: theme.colors.onSurface }}>Watch on YouTube</AppText>
+          <Icon
+            name="external-link"
+            size={16}
+            color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)}
+          />
+          Watch on YouTube
         </AppButton>
         <AppButton
           variant="destructive"
@@ -95,8 +96,12 @@ export function StreamingContent({
       {/* Product link (sheet mode only) */}
       {showProductLink ? (
         <AppButton variant="ghost" onPress={handleGoToProduct} className="self-start ml-2 mt-0.5">
-          <AppText style={{ color: theme.colors.onSurface }}>Go to {session.productName}</AppText>
-          <Icon name="chevron-right" size={16} color={theme.colors.onSurface} />
+          {`Go to ${session.productName}`}
+          <Icon
+            name="chevron-right"
+            size={16}
+            color={VARIANT_FOREGROUND_COLOR.ghost(theme.colors)}
+          />
         </AppButton>
       ) : null}
     </View>

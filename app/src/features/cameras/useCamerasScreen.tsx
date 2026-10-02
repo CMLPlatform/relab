@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { useAuth } from '@/context/auth';
 import {
   useCameraCaptureActions,
@@ -10,7 +11,6 @@ import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/rpi/h
 import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions';
 import { baseProductQueryOptions } from '@/features/product-entity/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { setCamerasHeaderOptions, useCameraScreenData } from './helpers';
@@ -24,8 +24,7 @@ export function useCamerasScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const feedback = useAppFeedback();
-  // Web at >= the desktop breakpoint.
-  const isDesktop = useBreakpoint().isMd;
+  const { width } = useWindowDimensions();
   const { captureAllProductId, captureModeEnabled, streamProductId, streamModeEnabled } =
     useCameraRouteModes();
   const streaming = useCameraStreamingController();
@@ -67,7 +66,7 @@ export function useCamerasScreen() {
   );
   const screenData = useCameraScreenData<CameraReadWithStatus>({
     cameras,
-    isDesktop,
+    width,
     isCameraReachable,
   });
   const { selectAll, retainSelected } = selection;
@@ -133,6 +132,7 @@ export function useCamerasScreen() {
       captureAllPending: captureAll.isPending,
       handleSelectAll,
       clearSelection: selection.clearSelection,
+      enterSelectionMode: selection.enterSelectionMode,
       handleCaptureSelected,
     },
     streaming: {

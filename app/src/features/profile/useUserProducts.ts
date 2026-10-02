@@ -4,8 +4,16 @@ import { userProductsInfiniteQueryOptions } from '@/features/products/queries';
 
 /** One public profile's products, flattened across pages, plus the next-page and refetch triggers. */
 export function useUserProducts(username: string) {
-  const { data, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, fetchNextPage } =
-    useInfiniteQuery(userProductsInfiniteQueryOptions(username));
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery(userProductsInfiniteQueryOptions(username));
   const loadMore = useCallback(() => {
     void fetchNextPage();
   }, [fetchNextPage]);
@@ -15,6 +23,7 @@ export function useUserProducts(username: string) {
     total: data?.pages[0]?.total ?? 0,
     isLoading,
     isError,
+    error,
     refetch,
     isFetchingNextPage,
     hasNextPage,

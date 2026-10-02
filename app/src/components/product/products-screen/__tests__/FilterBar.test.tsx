@@ -50,6 +50,16 @@ async function renderFilterBar(props: Partial<Parameters<typeof ProductsFilterBa
 }
 
 describe('ProductsFilterBar sort chip', () => {
+  it('exposes the active sort option as a checked menu radio', async () => {
+    await renderFilterBar({ sortMenuVisible: true });
+
+    const options = screen.getAllByRole('menuitem');
+    expect(options.length).toBeGreaterThan(1);
+    const checked = options.filter((option) => option.props.accessibilityState.checked === true);
+    expect(checked).toHaveLength(1);
+    expect(checked[0]).toHaveTextContent('Newest first');
+  });
+
   it('marks an active filter pill as pressed for the web build', async () => {
     await renderFilterBar({ isAuthenticated: true, filterMode: 'mine' });
 

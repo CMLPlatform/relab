@@ -1,18 +1,22 @@
 import { type RefObject, useCallback, useId, useState } from 'react';
-import { Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
+import { WEB_FOCUS_RING } from '@/constants';
 import { useProductVideo } from '@/features/products/useProductVideo';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { describedBy } from '@/utils/a11y';
+import { cn } from '@/utils/cn';
 import { isHttpUrl } from '@/utils/urlSafety';
 import { VideoEmbed } from './ProductVideoEmbed';
 
@@ -165,6 +169,9 @@ export default function ProductVideo({
   );
 }
 
+// Text-link controls under the header: tap floor, press feedback, focus ring.
+const TOGGLE_CLASS_NAME = cn('mt-1 min-h-11 justify-center rounded-md', PRESS_TINT, WEB_FOCUS_RING);
+
 function VideoHeaderAction({
   editMode,
   showExpandToggle,
@@ -185,14 +192,14 @@ function VideoHeaderAction({
   if (editMode) {
     if (!onAdd) return null;
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={onAdd}
         accessibilityRole="button"
         // min-h-11: the 44px tap floor (MIN_TAP_TARGET) on a one-line text link.
-        className="mt-1 min-h-11 justify-center"
+        className={TOGGLE_CLASS_NAME}
       >
         <AppText style={{ color: linkColor }}>Add video</AppText>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
@@ -205,9 +212,21 @@ function VideoHeaderAction({
       onPress={onToggleExpanded}
       accessibilityRole="button"
       aria-expanded={isExpanded}
-      className="mt-1 min-h-11 justify-center"
+      className={TOGGLE_CLASS_NAME}
     >
-      <AppText style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</AppText>
+      <AppText style={{ color: linkColor }}>
+        {isExpanded ? (
+          'Hide'
+        ) : (
+          <>
+            Show (
+            <AppText variant="data" style={{ color: linkColor }}>
+              {videoCount}
+            </AppText>
+            )
+          </>
+        )}
+      </AppText>
     </Pressable>
   );
 }
@@ -294,10 +313,12 @@ function VideoRow({
   return (
     <View className="mb-4 flex-row items-center">
       <View className="flex-1">
+        {editMode ? <AppText variant="label">Video title</AppText> : null}
         <TextInput
           className="px-3.5"
           style={[tokens.type.heading, styles.titleInput, { color: textColor }]}
           placeholder="Title"
+          accessibilityLabel="Video title"
           value={video.title}
           onChangeText={handleTitleChange}
           editable={editMode}
@@ -307,10 +328,12 @@ function VideoRow({
         <FormFieldError errorId={titleErrorId} message={titleError} />
         {editMode ? (
           <>
+            <AppText variant="label">Video URL</AppText>
             <TextInput
               className="px-3.5"
               style={[tokens.type.body, { color: textColor }]}
               placeholder="Video URL"
+              accessibilityLabel="Video URL"
               value={video.url}
               onChangeText={handleUrlChange}
               errorOnEmpty
@@ -323,6 +346,7 @@ function VideoRow({
         ) : (
           <VideoEmbed url={video.url} linkColor={linkColor} />
         )}
+        {editMode ? <AppText variant="label">Video description</AppText> : null}
         {editMode || video.description ? (
           <TextInput
             className="px-3.5"
@@ -385,10 +409,12 @@ function GoLiveCTA({
       <AppButton
         variant="outline"
         onPress={handlePress}
-        className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
+        // Enabled even when not ready: the press explains what is missing. No fade: a
+        // dimmed button that still works reads as disabled.
+        className="mx-3.5 mb-2"
       >
-        <Icon name="youtube" size={18} color={theme.colors.onSurface} />
-        <AppText style={{ color: theme.colors.onSurface }}>Go Live</AppText>
+        <Icon name="youtube" size={18} color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
+        Go Live
       </AppButton>
     </View>
   );

@@ -1,6 +1,15 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
+import {
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { useInverseSurface } from '@/theme/inverseSurface';
 import { heading } from '@/utils/a11y';
@@ -19,6 +28,7 @@ import {
 import { dialogActionsStyle, dialogTitleStyle } from './dialogStyles';
 import { OverlaySurface } from './OverlaySurface';
 import { TextInput } from './TextInput';
+import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from './useBottomNav';
 
 // Within WCAG's 3-5s auto-dismiss guidance for transient toasts.
 const TOAST_DURATION_MS = 4000;
@@ -39,25 +49,59 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   } | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
 
-  const alert = useCallback<DialogContextType['alert']>((opts: DialogOptions) => {
-    setOptions({ ...opts, input: false });
+  // One dialog at a time; one raised while another is open waits its turn, so
+  // a burst of failure alerts (several queued saves failing on reconnect)
+  // shows each in order instead of keeping only the last.
+  const openRef = useRef(false);
+  const pendingRef = useRef<DialogOptions[]>([]);
+  // Mirrors dialogVersion synchronously, so a dismiss from a dialog that has
+  // already closed (a second press before re-render) can be told apart.
+  const versionRef = useRef(0);
+
+  const show = useCallback((opts: DialogOptions) => {
+    openRef.current = true;
+    versionRef.current += 1;
+    setOptions(opts);
     setVisible(true);
-    setDialogVersion((version) => version + 1);
+    setDialogVersion(versionRef.current);
   }, []);
 
-  const input = useCallback<DialogContextType['input']>((opts: DialogOptions) => {
-    setOptions({ ...opts, input: true });
-    setVisible(true);
-    setDialogVersion((version) => version + 1);
-  }, []);
+  const open = useCallback(
+    (opts: DialogOptions) => {
+      if (openRef.current) pendingRef.current.push(opts);
+      else show(opts);
+    },
+    [show],
+  );
+
+  const alert = useCallback<DialogContextType['alert']>(
+    (opts: DialogOptions) => open({ ...opts, input: false }),
+    [open],
+  );
+
+  const input = useCallback<DialogContextType['input']>(
+    (opts: DialogOptions) => open({ ...opts, input: true }),
+    [open],
+  );
 
   const toast = useCallback<DialogContextType['toast']>((message: string, action?: ToastAction) => {
     setToastState({ message, action });
   }, []);
 
-  const clear = useCallback(() => {
-    setVisible(false);
-  }, []);
+  const clear = useCallback(
+    (version: number) => {
+      if (!openRef.current || version !== versionRef.current) return;
+      const next = pendingRef.current.shift();
+      if (next) {
+        show(next);
+        return;
+      }
+      openRef.current = false;
+      setVisible(false);
+    },
+    [show],
+  );
+  const dismissDialog = useCallback(() => clear(dialogVersion), [clear, dialogVersion]);
 
   const dismissToast = useCallback(() => {
     setToastState(null);
@@ -71,7 +115,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
       {/* key remounts the body per dialog so the input resets to its defaultValue. */}
       {options ? (
-        <DialogBody key={dialogVersion} options={options} visible={visible} onDismiss={clear} />
+        <DialogBody
+          key={dialogVersion}
+          options={options}
+          visible={visible}
+          onDismiss={dismissDialog}
+        />
       ) : null}
       <Toast state={toastState} onDismiss={dismissToast} />
     </DialogContext.Provider>
@@ -101,9 +150,12 @@ function DialogBody({
   );
 
   // Every action (on-screen press, keyboard return) routes through here, so the
-  // disabled gate lives here rather than at each entry point.
+  // disabled and closing gates live here rather than at each entry point.
   const handleClose = useCallback(
     (btn?: DialogButton) => {
+      // The body stays mounted through its exit with the input already cleared; a
+      // second Enter in that window would hand onPress an empty value.
+      if (!visible) return;
       if (btn && isButtonDisabled(btn)) {
         return;
       }
@@ -113,7 +165,7 @@ function DialogBody({
       setInputValue('');
       onDismiss();
     },
-    [inputValue, isButtonDisabled, onDismiss, options.input],
+    [inputValue, isButtonDisabled, onDismiss, options.input, visible],
   );
 
   const buttons = useMemo(() => options.buttons ?? [{ text: 'OK' }], [options.buttons]);
@@ -163,7 +215,7 @@ function DialogBody({
           variant="caption"
           className="mt-1"
           style={{
-            color: options.error ? theme.tokens.status.danger : theme.colors.onSurfaceVariant,
+            color: options.error ? theme.tokens.status.danger : theme.colors.mutedForeground,
           }}
         >
           {options.helperText}
@@ -211,6 +263,9 @@ function DialogActionButton({
 }
 
 /** Transient feedback. A plain overlay View, not a Modal: aria-live without a focus trap. */
+// bottom-6: the toast's own gap above whatever it clears.
+const TOAST_BOTTOM_GAP = 24;
+
 function Toast({
   state,
   onDismiss,
@@ -219,8 +274,19 @@ function Toast({
   onDismiss: () => void;
 }) {
   const inverse = useInverseSurface();
+  const theme = useAppTheme();
   const message = state?.message ?? null;
   const action = state?.action;
+  // WCAG 2.2.1: a toast the reader is pointing at or tabbed into must not leave.
+  // Tracks the pointer/focus, not a toast, so a replacement toast under a resting
+  // pointer stays held too.
+  const [inside, setInside] = useState(false);
+  const held = state !== null && inside;
+  const hold = useCallback(() => setInside(true), []);
+  const release = useCallback(() => setInside(false), []);
+  // The hold area unmounts with the toast without a hover-out or blur, so reset here
+  // (a render-time adjustment, not an effect, so no stale render in between).
+  if (state === null && inside) setInside(false);
 
   // Dismiss first: the action may raise a toast of its own, and these two state
   // updates batch in call order, so dismissing afterwards would swallow it.
@@ -233,55 +299,87 @@ function Toast({
   // mints a new object, so a repeated identical message still restarts the
   // timer (and re-announces on iOS; Android's live region ignores equal text).
   useEffect(() => {
-    if (!state) return;
     // accessibilityLiveRegion is Android-only; VoiceOver needs an explicit announcement.
-    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(state.message);
+    if (state && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(state.message);
+  }, [state]);
+
+  useEffect(() => {
+    // NOTE: resuming restarts the full timer rather than counting down the remainder.
+    if (!state || held) return;
     const timer = setTimeout(
       onDismiss,
       state.action ? ACTION_TOAST_DURATION_MS : TOAST_DURATION_MS,
     );
     return () => clearTimeout(timer);
-  }, [state, onDismiss]);
+  }, [state, onDismiss, held]);
 
-  if (!message) return null;
+  // Same stacking as ActiveStreamBanner: above the home indicator, and above
+  // BottomNav wherever it renders.
+  // The context, not useSafeAreaInsets(): the provider sits above every
+  // screen, but DialogProvider also mounts in isolation, where it is absent.
+  const insetBottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const bottomNavVisible = useBottomNavVisible();
+  const bottom = TOAST_BOTTOM_GAP + insetBottom + (bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0);
 
+  // The status region stays mounted while there is no message: assistive tech
+  // only announces changes to a region it has already seen.
   return (
     <View
-      className="absolute bottom-6 left-0 right-0 items-center"
-      style={styles.toastContainer}
+      testID="toast-container"
+      className="absolute left-0 right-0 items-center"
+      style={[styles.toastContainer, { bottom }]}
       pointerEvents="box-none"
       // NOTE: exiting Animated.View must outlive this non-animated wrapper; without
       // collapsable={false} view flattening can drop the wrapper before the exit plays.
       collapsable={false}
     >
-      <Animated.View
-        entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
-        exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
-      >
-        <OverlaySurface
-          className={cn('flex-row items-center gap-3 px-4', action ? 'py-1' : 'py-2')}
-          style={[styles.toast, { backgroundColor: inverse.background }]}
-          tone="scrim"
-        >
-          <AppText
-            variant="body"
-            accessibilityLiveRegion="polite"
-            // Only shrink when sharing the row: alone, the toast hugs its message.
-            className={action ? 'flex-1' : undefined}
-            style={{ color: inverse.foreground }}
+      <View testID="toast-live-region" role="status" accessibilityLiveRegion="polite">
+        {message ? (
+          <Animated.View
+            entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
+            exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
           >
-            {message}
-          </AppText>
-          {action ? (
-            // Ink from useInverseSurface (Inverse-Pair Rule), not the variant's own foreground.
-            <AppButton variant="ghost" className="-mr-2 px-2" onPress={handleAction}>
-              <AppText variant="label" style={{ color: inverse.foreground }}>
-                {action.label}
-              </AppText>
-            </AppButton>
-          ) : null}
-        </OverlaySurface>
-      </Animated.View>
+            <Pressable
+              testID="toast-hold-area"
+              accessible={false}
+              // RN-Web ignores `accessible` and defaults Pressable to tabIndex 0.
+              // Focus from the Undo button still bubbles here to hold the toast.
+              tabIndex={-1}
+              onHoverIn={hold}
+              onHoverOut={release}
+              onFocus={hold}
+              onBlur={release}
+            >
+              <OverlaySurface
+                className={cn('flex-row items-center gap-3 px-4', action ? 'py-1' : 'py-2')}
+                style={[
+                  styles.toast,
+                  theme.tokens.elevation.overlay,
+                  { backgroundColor: inverse.background },
+                ]}
+                tone="scrim"
+              >
+                <AppText
+                  variant="body"
+                  // Only shrink when sharing the row: alone, the toast hugs its message.
+                  className={action ? 'flex-1' : undefined}
+                  style={{ color: inverse.foreground }}
+                >
+                  {message}
+                </AppText>
+                {action ? (
+                  // Ink from useInverseSurface (Inverse-Pair Rule), not the variant's own foreground.
+                  <AppButton variant="ghost" className="-mr-2 px-2" onPress={handleAction}>
+                    <AppText variant="label" style={{ color: inverse.foreground }}>
+                      {action.label}
+                    </AppText>
+                  </AppButton>
+                ) : null}
+              </OverlaySurface>
+            </Pressable>
+          </Animated.View>
+        ) : null}
+      </View>
     </View>
   );
 }

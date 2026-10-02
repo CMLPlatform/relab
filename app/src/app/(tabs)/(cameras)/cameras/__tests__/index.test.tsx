@@ -10,7 +10,6 @@ const mockUseAuth = jest.fn();
 const mockUseCamerasQuery = jest.fn();
 const mockUseLocalConnection = jest.fn();
 const mockCaptureMutate = jest.fn();
-const mockUseBreakpoint = jest.fn(() => ({ isMd: false, isLg: false }));
 
 jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
@@ -26,10 +25,6 @@ jest.mock('@/features/cameras/rpi/hooks', () => ({
 
 jest.mock('@/features/cameras/local-connection/useLocalConnection', () => ({
   useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
-}));
-
-jest.mock('@/hooks/useBreakpoint', () => ({
-  useBreakpoint: () => mockUseBreakpoint(),
 }));
 
 jest.mock('@/components/base/CenteredSpinner', () => {
@@ -98,7 +93,6 @@ describe('CamerasScreen', () => {
       mode: 'relay',
       localBaseUrl: null,
     });
-    mockUseBreakpoint.mockReturnValue({ isMd: false, isLg: false });
   });
 
   it('shows an empty state and lets the user navigate to add a camera', async () => {
@@ -212,6 +206,45 @@ describe('CamerasScreen', () => {
     // Long-press a camera in capture mode → enters selection mode → SelectionBar appears
     await fireEvent(screen.getByLabelText('Camera: Cam'), 'longPress');
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
+  });
+
+  it('offers a visible Select control that enters multi-select without a long press', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '42' });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
+
+    await renderWithProviders(<CamerasScreen />, { withDialog: true });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Select' }));
+    expect(screen.getByText('0 selected')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Select' })).toBeNull();
+    // In selection mode an unselected cell reads as a toggle that is not pressed.
+    expect(screen.getByTestId('camera-cell-cam-1').props['aria-pressed']).toBe(false);
+  });
+
+  it('exposes a select action and the selected state on camera cells', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '42' });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
+
+    await renderWithProviders(<CamerasScreen />, { withDialog: true });
+
+    const cell = screen.getByTestId('camera-cell-cam-1');
+    expect(cell.props.accessibilityActions).toEqual([{ name: 'longpress', label: 'Select' }]);
+    // Outside selection mode a cell is a plain button, not an unpressed toggle.
+    expect(cell.props['aria-pressed']).toBeUndefined();
+    expect(cell.props.accessibilityState?.selected).toBeUndefined();
+
+    await fireEvent(cell, 'accessibilityAction', { nativeEvent: { actionName: 'longpress' } });
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
+    expect(screen.getByTestId('camera-cell-cam-1').props['aria-pressed']).toBe(true);
+    expect(screen.getByTestId('camera-cell-cam-1').props.accessibilityState?.selected).toBe(true);
   });
 
   it('does not enable capture mode for non-numeric product param', async () => {

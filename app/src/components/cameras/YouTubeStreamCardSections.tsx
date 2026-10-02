@@ -12,10 +12,6 @@ import type { AppTheme } from '@/theme/types';
 
 const createThemedStyles = memoizeByTheme((theme: AppTheme) => {
   return StyleSheet.create({
-    liveCard: {
-      borderLeftWidth: 3,
-      borderLeftColor: theme.tokens.status.live,
-    },
     watchLink: { color: theme.colors.primary },
   });
 });
@@ -43,13 +39,13 @@ export function YouTubeStreamCardView({
   const themed = createThemedStyles(theme);
 
   return (
-    <Card style={isLive ? themed.liveCard : undefined}>
+    <Card>
       <View className="gap-2 p-3">
         <View className="flex-row items-center gap-2">
           <Icon
             name="youtube"
             size="md"
-            color={isLive ? theme.tokens.status.live : theme.colors.onSurfaceVariant}
+            color={isLive ? theme.tokens.status.live : theme.colors.mutedForeground}
           />
           <AppText variant="title" className="flex-1">
             YouTube Live
@@ -66,13 +62,13 @@ export function YouTubeStreamCardView({
               {streamStatus.url}
             </AppText>
             <AppButton
-              variant="outline"
+              variant="destructive"
               onPress={onStop}
               loading={isStopping}
               disabled={isStopping}
               className="self-start mt-1"
             >
-              <AppText style={{ color: theme.colors.error }}>Stop stream</AppText>
+              Stop stream
             </AppButton>
           </>
         ) : (

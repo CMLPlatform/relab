@@ -1,15 +1,19 @@
 import { usePathname } from 'expo-router';
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
+import { ENTER_MS, FADE_EXIT } from '@/components/base/motion';
+import { PressOverlay } from '@/components/base/PressOverlay';
+import type { PressState } from '@/components/base/pressFeedback';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { useStreamSession } from '@/context/streamSession';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useElapsed } from '@/hooks/useElapsed';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { alpha } from '@/theme/color';
 import { useInverseSurface } from '@/theme/inverseSurface';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
@@ -86,12 +90,12 @@ export function ActiveStreamBanner() {
         collapsable={false}
       >
         <Animated.View
-          entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
-          exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
+          entering={FadeInDown.duration(ENTER_MS).reduceMotion(ReduceMotion.System)}
+          exiting={FADE_EXIT}
         >
           <Pressable
             ref={bannerRef}
-            className="flex-row items-center gap-2 rounded-lg px-3.5 py-2.5"
+            className="flex-row items-center gap-2 rounded-xl px-3.5 py-2.5"
             style={[
               theme.tokens.elevation.overlay,
               {
@@ -104,21 +108,34 @@ export function ActiveStreamBanner() {
             accessibilityRole="button"
             accessibilityLabel="Manage live stream"
           >
-            <View
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: theme.tokens.status.live }}
-            />
-            <AppText
-              variant="label"
-              className="flex-1 font-semibold"
-              style={{ color: inverse.foreground }}
-              numberOfLines={1}
-            >
-              {activeStream.productName}
-            </AppText>
-            <AppText variant="data" style={[styles.elapsed, { color: inverse.muted }]}>
-              {elapsed}
-            </AppText>
+            {(state: PressState) => (
+              <>
+                <View
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: theme.tokens.status.live }}
+                />
+                <AppText
+                  variant="label"
+                  className="flex-1 font-semibold"
+                  style={{ color: inverse.foreground }}
+                  numberOfLines={1}
+                >
+                  {activeStream.productName}
+                </AppText>
+                <AppText variant="data" style={[styles.elapsed, { color: inverse.muted }]}>
+                  {elapsed}
+                </AppText>
+                {/* NOTE: press feedback is the inverse ink at 12% laid over the inverse
+                    ground, the One Tint's recipe in the banner's own polarity. Prussian
+                    blue at 12% vanishes on the dark light-scheme ground, and the banner
+                    is not a filled blue control, so primary-strong does not apply. */}
+                <PressOverlay
+                  {...state}
+                  className="rounded-xl"
+                  color={alpha(inverse.foreground, 0.12)}
+                />
+              </>
+            )}
           </Pressable>
         </Animated.View>
       </View>

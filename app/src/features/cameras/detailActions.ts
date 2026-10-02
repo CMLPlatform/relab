@@ -2,6 +2,7 @@ import type { ImperativeRouter } from 'expo-router';
 import type { RefObject } from 'react';
 import type { View } from 'react-native';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
+import { getErrorMessage } from '@/utils/errors';
 
 type CameraDetailFeedback = Pick<ReturnType<typeof useAppFeedback>, 'alert' | 'input'>;
 
@@ -49,7 +50,7 @@ function showActionError(
 ) {
   feedback.alert({
     title,
-    message: String(error),
+    message: getErrorMessage(error, 'Something went wrong. Please try again.'),
     buttons: [{ text: 'OK' }],
   });
 }

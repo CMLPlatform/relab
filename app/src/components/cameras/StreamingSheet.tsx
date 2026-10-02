@@ -1,5 +1,11 @@
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { Easing, ReduceMotion, SlideInDown } from 'react-native-reanimated';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, {
+  Easing,
+  ReduceMotion,
+  SlideInDown,
+  useReducedMotion,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
 import { IconButton } from '@/components/base/IconButton';
 import { OverlaySurface } from '@/components/base/OverlaySurface';
@@ -16,10 +22,18 @@ interface StreamingSheetProps {
 
 export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetProps) {
   const theme = useAppTheme();
+  const reduceMotion = useReducedMotion();
+  const insets = useSafeAreaInsets();
   if (!(visible && session)) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
+    <Modal
+      visible
+      transparent
+      animationType={reduceMotion ? 'none' : 'fade'}
+      onRequestClose={onDismiss}
+      aria-label={`Live stream: ${session.cameraName}`}
+    >
       <Pressable
         className="absolute inset-0"
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
@@ -39,7 +53,12 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
           testID="streaming-sheet"
           // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
           className="bottom-0 left-0 right-0 max-h-[60%] overflow-hidden rounded-t-xl bg-background pt-2"
-          style={[styles.sheet, theme.tokens.elevation.overlay]}
+          // Clears the home indicator / gesture bar; 16 floors a device with no inset.
+          style={[
+            styles.sheet,
+            { paddingBottom: Math.max(insets.bottom, 16) },
+            theme.tokens.elevation.overlay,
+          ]}
         >
           <View className="flex-row items-center justify-center">
             <OverlaySurface className="h-1 w-10 rounded-xs" tone="glass" />
@@ -71,7 +90,6 @@ const styles = StyleSheet.create({
   },
   sheet: {
     position: getFloatingPosition(),
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16, // clears the iOS home indicator
   },
   closeButton: {
     position: 'absolute',

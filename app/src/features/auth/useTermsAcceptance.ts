@@ -4,6 +4,7 @@ import { useAuth } from '@/context/auth';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { acceptContributorTerms } from '@/services/api/terms';
 import { getSessionItem, removeSessionItem, setSessionItem } from '@/services/storage';
+import { getErrorMessage } from '@/utils/errors';
 
 type TermsPromptState = {
   dismissed: boolean;
@@ -47,10 +48,12 @@ export function useTermsAcceptance() {
       await acceptContributorTerms();
       // Refetch rather than patch locally: the server owns the version it recorded.
       await refetch(true);
-      feedback.toast('Thank you — your contributions can now be included in published datasets.');
+      feedback.toast(
+        'Thank you — your contributions can be included in curated datasets once they are published.',
+      );
     } catch (error) {
       feedback.error(
-        error instanceof Error ? error.message : 'Please try again.',
+        getErrorMessage(error, 'Please try again.'),
         'Could not record your acceptance',
       );
     } finally {

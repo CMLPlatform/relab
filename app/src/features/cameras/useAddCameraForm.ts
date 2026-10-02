@@ -57,7 +57,9 @@ export function useAddCameraForm() {
         const isCodeMissing = err instanceof ApiError && err.status === 404;
         feedback.alert({
           title: 'Pairing failed',
-          message: isCodeMissing ? CODE_NOT_FOUND_MESSAGE : getErrorMessage(err, String(err)),
+          message: isCodeMissing
+            ? CODE_NOT_FOUND_MESSAGE
+            : getErrorMessage(err, 'Could not add the camera. Please try again.'),
           buttons: [{ text: 'OK' }],
         });
       }

@@ -35,7 +35,7 @@ test.describe('Authentication flow', () => {
     // Root redirects to /products; publicly accessible without login
     await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 5_000 });
     // Header shows Sign in pill for guests
-    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible();
   });
 
   test('login page shows expected fields and navigation links', async ({ page }) => {

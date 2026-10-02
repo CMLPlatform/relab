@@ -1,12 +1,16 @@
-// NOTE: hand-rolled on purpose; carries 1.5s auto-dismiss and mobile-web full-screen modal variant.
+// NOTE: hand-rolled on purpose; carries the mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
+import { useModalPresence } from '@/hooks/useModalPresence';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { useInverseSurface } from '@/theme/inverseSurface';
+import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { OverlaySurface } from './OverlaySurface';
+import { PRESS_TINT } from './pressFeedback';
 
 const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
 
@@ -19,19 +23,21 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useAppTheme();
   const inverse = useInverseSurface();
   const [visible, setVisible] = useState(false);
+  const { mounted, fadeStyle } = useModalPresence(visible);
   const show = useCallback(() => setVisible(true), []);
   const hide = useCallback(() => setVisible(false), []);
   // Both variants float over content, so they take the single overlay tier.
   const tooltipShadowStyle = theme.tokens.elevation.overlay;
 
-  // Settings
-  const exitDelay = 1500; // milliseconds
-
+  const toggle = useCallback(() => setVisible((v) => !v), []);
+  // Escape closes the bubble on web (WCAG 1.4.13).
   useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(() => setVisible(false), exitDelay);
-      return () => clearTimeout(timer);
-    }
+    if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setVisible(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [visible]);
 
   if (getIsMobileWeb()) {
@@ -39,7 +45,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       <View>
         <Pressable
           onPress={show}
-          className={`p-2 ${WEB_FOCUS_RING}`}
+          className={cn('rounded-md p-2', PRESS_TINT, WEB_FOCUS_RING)}
           testID="info-pressable"
           accessibilityRole="button"
           accessibilityLabel={`Info: ${title}`}
@@ -50,41 +56,62 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           {/* Icon doesn't forward testID (Lucide maps it to a data-testid attribute
               RNTL can't query), so the test target wraps the glyph instead. */}
           <View testID="info-icon">
-            <Icon name="info" size="md" color={theme.colors.onSurfaceVariant} />
+            <Icon name="info" size="md" color={theme.colors.mutedForeground} />
           </View>
         </Pressable>
 
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={hide}>
-          <Pressable
-            className="flex-1 items-center justify-center"
-            style={{ backgroundColor: theme.tokens.overlay.scrim }}
-            onPress={hide}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss"
+        <Modal visible={mounted} transparent animationType="none" onRequestClose={hide}>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, fadeStyle]}
+            pointerEvents={visible ? 'auto' : 'none'}
           >
-            <OverlaySurface
-              className="py-3 px-4"
-              style={[styles.tooltip, tooltipShadowStyle, { backgroundColor: inverse.background }]}
-              tone="scrim"
-            >
-              <AppText variant="body" style={{ color: inverse.foreground }}>
-                {title}
-              </AppText>
-            </OverlaySurface>
-          </Pressable>
+            {/* Scrim is a sibling of the text, not its parent: a button would swallow the
+              tooltip into one "Dismiss" control. Not a control itself (see AppDialog). */}
+            <Pressable
+              accessible={false}
+              tabIndex={-1}
+              testID="tooltip-scrim"
+              style={[StyleSheet.absoluteFill, { backgroundColor: theme.tokens.overlay.scrim }]}
+              onPress={hide}
+            />
+            <View className="flex-1 items-center justify-center" pointerEvents="box-none">
+              <OverlaySurface
+                className="py-3 px-4"
+                style={[
+                  styles.tooltip,
+                  tooltipShadowStyle,
+                  { backgroundColor: inverse.background },
+                ]}
+                tone="scrim"
+              >
+                <AppText variant="body" style={{ color: inverse.foreground }}>
+                  {title}
+                </AppText>
+              </OverlaySurface>
+            </View>
+          </Animated.View>
         </Modal>
       </View>
     );
   }
 
   // Native + desktop web: a bubble under the icon on press (native) or hover (web).
+  // On web the hover already opened it, so a click must not toggle it shut again;
+  // Escape, blur and hover-out close it there. The hover target is the wrapper,
+  // which holds icon and bubble edge to edge, so the pointer can move onto the
+  // bubble without closing it (WCAG 1.4.13).
+  const isWeb = Platform.OS === 'web';
   return (
-    <View className="self-start">
+    <View
+      className="self-start"
+      testID="info-hover-area"
+      onPointerEnter={isWeb ? show : undefined}
+      onPointerLeave={isWeb ? hide : undefined}
+    >
       <Pressable
-        onPress={show}
-        onHoverIn={Platform.OS === 'web' ? show : undefined}
-        onHoverOut={Platform.OS === 'web' ? hide : undefined}
-        className={`p-2 ${WEB_FOCUS_RING}`}
+        onPress={isWeb ? show : toggle}
+        onBlur={hide}
+        className={cn('rounded-md p-2', PRESS_TINT, WEB_FOCUS_RING)}
         accessibilityRole="button"
         accessibilityLabel={`Info: ${title}`}
         // See above: the box carries the 44px floor; hitSlop is native-only.
@@ -92,12 +119,13 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         style={styles.tapFloor}
       >
         <View testID="info-icon">
-          <Icon name="info" size="md" color={theme.colors.onSurfaceVariant} />
+          <Icon name="info" size="md" color={theme.colors.mutedForeground} />
         </View>
       </Pressable>
       {visible ? (
         <OverlaySurface
-          className="absolute left-0 z-10 mt-1 px-2 py-1"
+          // No top margin: a gap would sit outside the hover target.
+          className="absolute left-0 z-10 px-2 py-1"
           style={[styles.floating, tooltipShadowStyle, { backgroundColor: inverse.background }]}
           tone="scrim"
         >

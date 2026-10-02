@@ -2,6 +2,16 @@
 @import "uniwind";
 @import "./src/theme/brand.generated.css";
 
+/* The web `data` face (DESIGN.md, Typography). Native ignores @font-face and keeps the platform
+ * monospace; swap shows the fallback stack until the 14.7 KB file arrives. */
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-400.woff2") format("woff2");
+}
+
 @source "./src";
 
 @theme {
@@ -23,18 +33,35 @@
 
 /* Painted-Focus Rule (DESIGN.md): one indicator for every keyboard-focusable
  * control, including raw Pressables that carry a function `style` and so
- * cannot take WEB_FOCUS_RING as a class. Same outline the utility paints;
+ * cannot take WEB_FOCUS_RING as a class, and every TextInput (a text field
+ * matches :focus-visible on any focus, so this replaces the browser ring). Same outline the utility paints;
  * the attribute selectors outrank a utility's `outline-none`. Web only;
  * Uniwind ignores non-class selectors on native. */
 [role="button"]:focus-visible,
 [role="link"]:focus-visible,
 [role="tab"]:focus-visible,
 [role="menuitem"]:focus-visible,
+[role="menuitemradio"]:focus-visible,
 [role="switch"]:focus-visible,
 [role="checkbox"]:focus-visible,
 a:focus-visible,
 button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
 [tabindex="0"]:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* prefers-reduced-motion for every CSS transition the primitives carry
+ * (`transition-colors`, `transition-transform`, ...): state changes snap
+ * instead of easing. Reanimated motion honours the same setting through
+ * `ReduceMotion.System` (useModalPresence drives every Modal's fade).
+ * Unlayered, so it outranks the `@layer utilities` transition classes. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition-duration: 0s;
+  }
 }

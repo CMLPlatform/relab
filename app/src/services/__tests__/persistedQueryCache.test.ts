@@ -7,7 +7,7 @@ import {
   productsInfiniteQueryOptions,
   productTypesSearchQueryOptions,
 } from '@/features/products/queries';
-import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
+import { serializePersistedClient, shouldDehydrateQuery } from '@/services/persistedQueryCache';
 
 // A minimal stand-in for a successful query; shouldDehydrateQuery only reads
 // `queryKey` and (via defaultShouldDehydrateQuery) `state.status`.
@@ -98,5 +98,29 @@ describe('paused mutations survive the query allowlist', () => {
     });
 
     await act(() => onlineManager.setOnline(true));
+  });
+});
+
+describe('serializePersistedClient', () => {
+  it('keeps only the first page of an infinite list, so a reload refetches one page', () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['products', 'infinite', 'all', ''], {
+      pages: [{ items: [1] }, { items: [2] }, { items: [3] }],
+      pageParams: [1, 2, 3],
+    });
+    queryClient.setQueryData(['baseProduct', 1], { id: 1 });
+
+    const stored = JSON.parse(
+      serializePersistedClient({
+        timestamp: 0,
+        buster: '',
+        clientState: dehydrate(queryClient, { shouldDehydrateQuery }),
+      }),
+    );
+    const byKey = (key: string) =>
+      stored.clientState.queries.find((q: { queryKey: unknown[] }) => q.queryKey[0] === key);
+
+    expect(byKey('products').state.data).toEqual({ pages: [{ items: [1] }], pageParams: [1] });
+    expect(byKey('baseProduct').state.data).toEqual({ id: 1 });
   });
 });

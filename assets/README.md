@@ -27,8 +27,8 @@ derivatives from the SVG sources.
 Current shared assets:
 
 - `brand.css`
-- `images/bg-light.jpg`
-- `images/bg-dark.jpg`
+- `images/bg-light.webp`
+- `images/bg-dark.webp`
 - `r9lab-*.svg`: mark, logo, wordmark, and og-image variants, light and dark (see
   [logo-src/](logo-src/README.md)); `r9lab-wordmark.png` is the one PNG kept here, for the root
   README

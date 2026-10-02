@@ -1,7 +1,9 @@
-import { type RefObject, useCallback } from 'react';
+import type { RefObject } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
+import { PressOverlay } from '@/components/base/PressOverlay';
+import type { PressState } from '@/components/base/pressFeedback';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import { createGalleryStyles } from './styles';
@@ -31,14 +33,10 @@ export function ProductImageEmptyEditState({
 }: Props) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
-  const rpiCardStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
-      styles.emptyActionCard,
-      { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
-      pressed && { opacity: 0.85 },
-    ],
-    [styles, isCapturing, rpiCamerasLoading],
-  );
+  const rpiCardStyle = [
+    styles.emptyActionCard,
+    { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
+  ];
   return (
     <View testID="empty-gallery-actions" className="min-h-28 flex-row items-stretch gap-2">
       {showCameraOption ? (
@@ -66,17 +64,22 @@ export function ProductImageEmptyEditState({
           accessibilityLabel={
             hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
           }
-          className="min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-dashed px-1 py-3"
+          className="min-h-11 flex-1 items-center justify-center gap-1 rounded-md border border-dashed px-1 py-3"
           style={rpiCardStyle}
         >
-          {isCapturing || rpiCamerasLoading ? (
-            <ActivityIndicator size={32} />
-          ) : (
-            <Icon name="camera" size={24} color={palette[theme.scheme].mutedForeground} />
+          {(state: PressState) => (
+            <>
+              {isCapturing || rpiCamerasLoading ? (
+                <ActivityIndicator size={32} />
+              ) : (
+                <Icon name="camera" size={24} color={palette[theme.scheme].mutedForeground} />
+              )}
+              <AppText variant="caption" className="text-center text-muted-foreground">
+                {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
+              </AppText>
+              <PressOverlay {...state} className="rounded-md" />
+            </>
           )}
-          <AppText variant="caption" className="text-center text-muted-foreground">
-            {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
-          </AppText>
         </Pressable>
       ) : null}
     </View>
@@ -96,22 +99,23 @@ function EmptyActionCard({
 }) {
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
-  const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [styles.emptyActionCard, pressed && { opacity: 0.85 }],
-    [styles],
-  );
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-dashed px-1 py-3"
-      style={pressableStyle}
+      className="min-h-11 flex-1 items-center justify-center gap-1 rounded-md border border-dashed px-1 py-3"
+      style={styles.emptyActionCard}
     >
-      <Icon name={icon} size={24} color={palette[theme.scheme].mutedForeground} />
-      <AppText variant="caption" className="text-center text-muted-foreground">
-        {label}
-      </AppText>
+      {(state: PressState) => (
+        <>
+          <Icon name={icon} size={24} color={palette[theme.scheme].mutedForeground} />
+          <AppText variant="caption" className="text-center text-muted-foreground">
+            {label}
+          </AppText>
+          <PressOverlay {...state} className="rounded-md" />
+        </>
+      )}
     </Pressable>
   );
 }

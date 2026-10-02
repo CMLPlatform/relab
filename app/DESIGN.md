@@ -48,7 +48,7 @@ typography:
     fontSize: 13px
     lineHeight: 18px
   data:
-    fontFamily: Menlo, monospace
+    fontFamily: IBM Plex Mono, ui-monospace, monospace
     fontSize: 14px
     lineHeight: 20px
   eyebrow:
@@ -94,7 +94,7 @@ components:
     textColor: '{colors.foreground}'
     rounded: '{rounded.card}'
   status-pill:
-    typography: '{typography.label}'
+    typography: '{typography.caption}'
     rounded: '{rounded.control}'
     height: 24px
 ---
@@ -174,7 +174,8 @@ live = manila.
 small data labels, live/status pills, strategy tags. **Accent is for small text, never for
 mass.** It never fills a button, never drives a hover or pressed state, and never paints bars,
 big figures, or large areas. Interaction is always primary blue. *Mirrors
-assets/DESIGN.md:167-184 — change it there first.*
+assets/DESIGN.md:165-182 — change it there first.* In this app, data-label manila is spelled
+`text-manila` in a className and `tokens.text.data` in a style object or an SVG fill.
 
 **The One Tint Rule.** `tokens.surface.accent` (primary at 12%) is the single selected/tinted
 fill: chips, history rows, toggles, active nav. The Tailwind spelling is `bg-primary/12`.
@@ -192,8 +193,11 @@ shade (`#143567` light / `#BAD3FF` dark), not alpha on the primary. In Tailwind:
 
 **Display / UI Font:** platform system font (San Francisco on iOS, Roboto on Android, system UI
 stack on web)
-**Data / Label Font:** platform monospace (Menlo on iOS, `monospace` elsewhere), with
-`font-variant: tabular-nums`
+**Data / Label Font:** IBM Plex Mono 400 on web (self-hosted from `public/fonts/`, 14.7 KB,
+`font-display: swap`, falling back to `ui-monospace, SFMono-Regular, Menlo, Consolas,
+"Liberation Mono", monospace`); platform monospace on native (Menlo on iOS, `monospace` on
+Android). Always with `font-variant: tabular-nums`. Take it from `MONO_FONT_FAMILY` in
+`src/theme/tokens.ts`; a bare `monospace` on web falls to Courier New on Windows.
 
 **Character:** Neutral and native. The app borrows the scale and palette of the brand's IBM Plex
 system without shipping the typeface.
@@ -204,7 +208,7 @@ system without shipping the typeface.
 - **Title** (24/30): Screen and section titles.
 - **Heading** (19/24): Subsection headers, card titles.
 - **Body** (16/26): Prose, descriptions, form values. Selectable by default.
-- **Label** (13/18, +1.3 tracking): Field labels and dense chrome.
+- **Label** (13/18, +1.3 tracking): Field labels. Navigation uses untracked body or caption.
 - **Caption** (13/18): Helper text, timestamps, secondary annotations.
 - **Data** (14/20, monospace, tabular figures): Every measurement, ID, count, and code. If it is
   a number the user might compare to another number, it is `data`.
@@ -215,14 +219,14 @@ system without shipping the typeface.
 
 **The System-Font Rule.** The app stays on platform system fonts (native feel, Dynamic Type
 support, zero load cost). It adopts the brand's scale and palette, not its typeface. www and docs
-use IBM Plex; do not "unify" this. *Mirrors assets/DESIGN.md:33-35 — change it there first.*
+use IBM Plex; do not "unify" this. The one exception is the web `data` face, IBM Plex Mono. *Mirrors assets/DESIGN.md:31-36 — change it there first.*
 
 Dynamic Type is capped at 2x on **every** text primitive: both `AppText` and `ui/text` apply the
 cap by default. `ui/text` renders every button label plus HeroStats, ComponentRow, GoLiveDialog
 and ProductDelete.
 
 **The Eyebrow-Is-A-Datum Rule.** `eyebrow` labels a **value inside a compact tag**. It is not a
-kicker above a heading; www and docs carry none. *Mirrors assets/DESIGN.md:169-173 —
+kicker above a heading; www and docs carry none. *Mirrors assets/DESIGN.md:166-171 —
 change it there first.*
 
 **The Ramp Rule.** Every text size comes from the eight variants above. An inline `fontSize:`
@@ -232,6 +236,9 @@ is a defect unless it carries a comment naming the reason no ramp step fits.
 
 `PageContainer` is the scaffold: a max-width column with gutters that widen at `md` (768) and
 `lg` (1024), plus `fullBleed` and `phoneFullBleed` escape hatches for galleries and hero media.
+On a detail screen the photo strip, the title block and the section cards share one left edge: the
+strip sits inside the column and cancels the phone gutter (`-mx-4 md:mx-0`), so it is full bleed
+only on a phone. Cards inside a section card are a defect; flatten a sub-block to a hairline.
 
 Breakpoints are web-only: `useBreakpoint()` gates `isMd`/`isLg` on `Platform.OS === 'web'`, so a
 native tablet reads as phone-tier.
@@ -251,11 +258,12 @@ above the page.
 
 ### Shadow Vocabulary
 
-- **`shadow-overlay`** (light `0 8px 24px rgba(20,40,80,.16)`, dark `0 8px 24px rgba(0,0,0,.55)`):
+- **Overlay shadow** (light `0 8px 24px rgba(20,40,80,.16)`, dark `0 8px 24px rgba(0,0,0,.55)`):
   Menus, dialogs, bottom sheets, the FAB, toasts. This is the only shadow in the system.
 
-`src/theme/tokens.ts` reads this from `designTokens.rn.shadowOverlay[scheme]`, the RN-shaped
-variant the generator emits next to the CSS string. Never re-declare the values in the app. The
+Components take it from `theme.tokens.elevation.overlay`, which `src/theme/tokens.ts` builds from
+`designTokens.rn.shadowOverlay[scheme]`, the RN-shaped variant the generator emits next to the CSS
+string. There is no `shadow-overlay` CSS utility in the app. Never re-declare the values. The
 Android `elevation` is a scheme pair (8 light / 12 dark).
 
 ### Named Rules
@@ -268,9 +276,9 @@ current palette the pair gives 10.5:1 dark / 11.8:1 light for primary ink and 5.
 muted.
 
 **The One Tier Rule.** There is exactly one shadow. Inline surfaces get a hairline and no
-shadow; floating surfaces get `shadow-overlay`. A second elevation tier, a coloured glow, or a
+shadow; floating surfaces get `elevation.overlay`. A second elevation tier, a coloured glow, or a
 shadow stacked on an already-floating element is a defect. *Mirrors
-assets/DESIGN.md:119-127 — change it there first.*
+assets/DESIGN.md:117-126 — change it there first.*
 
 ## Shapes
 
@@ -284,12 +292,12 @@ radii.
 | `radius.overlay` | 12px   | Dialogs, bottom sheets, menus, FAB         |
 | `radius.full`    | 9999px | Avatars and **true pills only**            |
 
-All four map through `src/constants.ts:41`. Use the token, never a literal.
+All four map through `src/constants.ts:42`. Use the token, never a literal.
 
 ### Named Rules
 
 **The True-Pill Rule.** `radius.full` is for avatars and genuine pills only. A 44×44 icon button
-with `rounded-full` is not a pill. *Mirrors assets/DESIGN.md:111-114 —
+with `rounded-full` is not a pill. *Mirrors assets/DESIGN.md:112 —
 change it there first.*
 
 ## Components
@@ -297,16 +305,26 @@ change it there first.*
 ### Buttons
 
 - **Shape:** Gently squared (6px, `radius.control`), 44px minimum height.
-- **Primary:** Solid Prussian blue, white text. Pressed: `active:bg-primary/90`.
+- **Primary:** Solid Prussian blue, white text. Pressed and hover: `primary-strong`.
 - **Outline / Ghost / Tonal:** Blue ink, transparent or 12% tinted fill, hairline border on
-  outline.
-- **Destructive:** Solid `#BA1A1A`, white text. Never the keyboard default in a dialog.
+  outline. Tonal pressed and hover: `primary-strong` fill with `primary-foreground` text.
+- **Destructive:** Solid `#BA1A1A`, `destructive-foreground` text. Never the keyboard default in a dialog.
+  Pressed and hover: `destructive` at 90% (`active:bg-destructive/90`, `hover:bg-destructive/90`);
+  the palette has no destructive-strong shade, so this is the one sanctioned alpha press.
 - **Loading:** Inline spinner tinted to the variant's foreground; the label stays.
+  A loading button is busy (`aria-busy`), not disabled-looking: it keeps its fill.
+- **Disabled:** one treatment for every variant: a faint muted fill (`bg-muted/50`), the
+  hairline border and muted ink at 60% (`text-muted-foreground/60`); hover and pressed repeat
+  it. Same size and place, plainly inert in both schemes, never an opacity fade and never a
+  solid grey that reads as an enabled neutral button.
 
 ### Chips
 
-- **Style:** Two segments — a title segment in blue on `card`, and a value segment on solid
-  primary with white ink. 6px radius, 44px minimum height.
+- **Edit-mode controls only.** A chip is a button that edits its value. Read-only values (view-mode
+  brand, model, amount and type) are Spec Row facts, never a chip with nothing to do on press: a
+  solid-blue segment reads as a button.
+- **Style:** Two segments — a title segment in blue on `surface.accent`, and a value segment on solid
+  primary with white ink (pressed: `primary-strong`, as the FAB). 6px radius, 44px minimum height.
 - **Error:** Danger-tinted fill **plus** a border **plus** an alert icon **plus** ", required"
   composed into the accessible name. Never colour alone.
 
@@ -321,18 +339,63 @@ change it there first.*
   44px minimum height.
 - **Error:** Message rendered by `FormField` with a `nativeID` linked via
   `accessibilityLabelledBy`, so the error is programmatically associated, not merely adjacent.
+- **Required:** only a field the form cannot submit without (sign-in, sign-up, onboarding's
+  username, the capture name, the camera name) shows "(required)" in its label and spreads
+  `requiredField()` from `utils/a11y`. The marker is lower-case, in the label step and muted ink
+  after the label text; `ControlledTextField` takes `required` for both. Data
+  fields stay unmarked: an empty observation is valid.
 
 ### Navigation
 
 - **Below `lg`:** stack header plus custom bottom tab bar.
 - **At `lg` (web):** persistent `TopNav`, stack header hidden.
+- **Labels:** plain words in untracked type, medium weight: `body` in TopNav and the desktop
+  outline, `caption` in the phone chip row, the tab bar and the account pill. The tracked `label`
+  step is for field labels, not navigation.
 - **Items:** `min-h-11`, active `bg-primary/12` with blue ink, inactive at 70% opacity, web
-  `focus-visible:ring-2`.
+  `WEB_FOCUS_RING`. Both bars mark destinations as links with `aria-current="page"`, not
+  tabs: a tab promises an in-page panel.
+
+### Press feedback
+
+One press language, implemented in `src/components/base/pressFeedback.ts`:
+
+- Filled controls (primary, tonal, the chip value segment) press and hover to `primary-strong`.
+- Everything else that responds to touch (rows, cards, links, bare icon buttons) takes the One
+  Tint, `bg-primary/12`, on press and on web hover, drawn by `PressOverlay`. On a tinted fill,
+  lay the tint over it.
+- A disabled control drops the tint. Never dim on press: opacity is for disabled only.
+
+### Motion
+
+Motion says where something came from or went; it never decorates. Entrances run 150–300ms
+with an ease-out, exits are plain fades shorter than their entrance, and every animation honours
+`prefers-reduced-motion`. *Mirrors assets/DESIGN.md:135-138 — change it there first.*
+
+- **Overlays** fade through `src/hooks/useModalPresence.ts` and take no input while closing.
+- **Rows** in a short, non-virtualized list use the shared timings in
+  `src/components/base/motion.ts`; rows present on mount do not animate.
+- **The lightbox** is the one focal moment and the one `ReduceMotion.Never`: under reduced
+  motion it keeps the fade and drops the scale.
+- **CSS transitions** snap under `prefers-reduced-motion` (see `global.css`).
+
+### Errors and loading
+
+- **Errors:** one idiom, `ErrorState`. Full-height when the whole screen failed; `compact` for an
+  inline failure inside loaded content (a list header, an expanded row), drawn as a hairline-top
+  row with no fill or radius so it never nests a card in a card. The title names the
+  problem, the message names the recovery (`getErrorMessage()` maps the failure; its fallback
+  says what to do), and the one action retries.
+- **Loading:** a skeleton where the content's shape is known (lists, detail screens); a spinner
+  for actions (saving, load more, capture) and for waits whose shape is unknown. A screen-level
+  spinner is `CenteredSpinner`; an action's spinner sits in or beside its control.
 
 ### Focus indicators
 
 Every interactive control takes `WEB_FOCUS_RING` from `src/constants.ts`:
 `focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring` — a 2px Prussian-blue outline, 2px clear of the control.
+Text fields and role-carrying Pressables get the same outline from `global.css`, so never set an
+inline `outline` on them: an inline style outranks the stylesheet and the ring disappears.
 
 ### Named Rules
 
@@ -349,13 +412,19 @@ without measuring it in a browser.
 
 ### Status Pill
 
-24px tall, `radius.control`, `label` type. Solid or soft variant. The **live** pill is the one
+24px tall, `radius.control`, `caption` type. Solid or soft variant. The **live** pill is the one
 sanctioned manila fill in the app.
 
 ### Signature: the Spec Row
 
 Monospace value, manila eyebrow label, hairline separator. This is the app's most characteristic
-pattern.
+pattern. `SpecFacts` (`src/components/base/SpecFacts.tsx`) is the one implementation: facts sit
+left-aligned under a hairline and wrap onto more lines at narrow widths. Every read-only set of
+facts uses it: the product spec-sheet header, the view-mode Overview (brand, model, amount and
+type in one row, the type's description under it), and the account's and a public profile's
+record counts. A fact still resolving keeps its label and pulses its value, so nothing pops in. An unset value is a
+neutral "—", never an error. Don't render facts as hero-metric tiles (a centred number over a
+tracked label on a tinted fill).
 
 ## Do's and Don'ts
 
@@ -363,9 +432,13 @@ pattern.
 
 - **Do** use `tokens.surface.accent` (or `bg-primary/12`) for every selected or tinted fill.
 - **Do** use the `data` variant for every measurement, ID, count, and code.
+  One exception: a count inside a button label (`Capture 3`) stays in the button's label type;
+  a button label is one string.
 - **Do** pair every colour-carried meaning with a second signal: an icon, a border, or text.
 - **Do** apply `MIN_TAP_TARGET` (44) to every interactive control, including icon-only ones.
-- **Do** pass `ReduceMotion.System` on every Reanimated animation.
+- **Do** pass `ReduceMotion.System` on every Reanimated animation. The one exception is the
+  lightbox's `ReduceMotion.Never`, which keeps an opacity-only path under reduced motion (see
+  Motion).
 - **Do** keep entrance motion in the 150–300ms band, with exits shorter.
 - **Do** comment any departure from a token, naming what it departs from.
 

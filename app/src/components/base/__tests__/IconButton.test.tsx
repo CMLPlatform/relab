@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { IconButton } from '@/components/base/IconButton';
 import { MIN_TAP_TARGET, radius } from '@/constants';
+import { lightTheme } from '@/theme/themes';
 
 describe('IconButton', () => {
   it('fires onPress', async () => {
@@ -47,8 +48,7 @@ describe('IconButton', () => {
 
   it('meets the 44px a11y tap-target floor', async () => {
     await render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
-    // Resolved through the state callback: the floor lives in the style
-    // function, never in a className (mixing the two drops the function).
+    // Resolved through the state callback: the floor lives in the style function.
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.minWidth).toBe(MIN_TAP_TARGET);
     expect(style.minHeight).toBe(MIN_TAP_TARGET);
@@ -72,5 +72,14 @@ describe('IconButton', () => {
     await render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.borderRadius).toBe(radius.control);
+  });
+
+  it('presses to the One Tint, never by dimming', async () => {
+    await render(
+      <IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" testOnly_pressed />,
+    );
+    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    expect(style.backgroundColor).toBe(lightTheme.tokens.surface.accent);
+    expect(style.opacity).toBeUndefined();
   });
 });

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
+import { TimeoutError } from '@/services/api/request';
 import { buildLocalHlsUrl, fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
 import {
   deleteCamera,
@@ -8,8 +9,13 @@ import {
   fetchCameraTelemetry,
   updateCamera,
 } from '@/services/api/rpiCamera/cameras';
-import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera/capture';
+import {
+  captureImageFromCamera,
+  captureImageLocally,
+  LOCAL_CAMERA_UNREACHABLE_MESSAGE,
+} from '@/services/api/rpiCamera/capture';
 import { claimPairingCode } from '@/services/api/rpiCamera/pairing';
+import { getErrorMessage } from '@/utils/errors';
 
 jest.mock('@/services/api/auth/authRefresh', () => ({
   fetchWithAuth: jest.fn(),
@@ -162,29 +168,25 @@ describe('rpiCamera API service', () => {
     } as Response);
 
     await expect(claimPairingCode({ code: 'BROKEN', camera_name: 'Broken Cam' })).rejects.toThrow(
-      'Pairing failed (500)',
+      'Pairing failed',
     );
   });
 
   it('throws descriptive errors for failed camera requests', async () => {
     mockJsonResponse({}, { ok: false, status: 503 });
-    await expect(fetchCameras()).rejects.toThrow('Failed to fetch cameras (503)');
+    await expect(fetchCameras()).rejects.toThrow('Failed to fetch cameras');
 
     mockJsonResponse({}, { ok: false, status: 404 });
-    await expect(fetchCamera('missing')).rejects.toThrow('Failed to fetch camera (404)');
+    await expect(fetchCamera('missing')).rejects.toThrow('Failed to fetch camera');
 
     mockJsonResponse({}, { ok: false, status: 400 });
-    await expect(updateCamera('cam-9', { name: 'Bad' })).rejects.toThrow(
-      'Failed to update camera (400)',
-    );
+    await expect(updateCamera('cam-9', { name: 'Bad' })).rejects.toThrow('Failed to update camera');
 
     mockFetchWithAuth.mockResolvedValueOnce({ ok: false, status: 401 } as Response);
-    await expect(deleteCamera('cam-9')).rejects.toThrow('Failed to delete camera (401)');
+    await expect(deleteCamera('cam-9')).rejects.toThrow('Failed to delete camera');
 
     mockJsonResponse({}, { ok: false, status: 502 });
-    await expect(captureImageFromCamera('cam-9', 42)).rejects.toThrow(
-      'Failed to capture image (502)',
-    );
+    await expect(captureImageFromCamera('cam-9', 42)).rejects.toThrow('Failed to capture image');
   });
 
   it('builds the local LL-HLS playlist URL through the Pi FastAPI proxy', () => {
@@ -299,7 +301,7 @@ describe('rpiCamera API service', () => {
   it('throws a descriptive error when telemetry fetch fails', async () => {
     mockFetchWithAuth.mockResolvedValueOnce({ ok: false, status: 503 } as Response);
     await expect(fetchCameraTelemetry('cam-broken')).rejects.toThrow(
-      'Failed to fetch camera telemetry (503)',
+      'Failed to fetch camera telemetry',
     );
   });
 
@@ -347,6 +349,20 @@ describe('rpiCamera API service', () => {
     await expect(captureImageLocally('http://192.168.7.1:8018', 'local-key', 42)).rejects.toThrow(
       'no image id',
     );
+
+    fetchSpy.mockRestore();
+  });
+
+  it.each([
+    ['a network TypeError', new TypeError('Failed to fetch')],
+    ['a timeout', new TimeoutError(10_000)],
+  ])('names the camera, not Relab, when the local capture hits %s', async (_name, failure) => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockRejectedValueOnce(failure);
+
+    const error = await captureImageLocally('http://192.168.7.1:8018', 'local-key', 42).catch(
+      (e: unknown) => e,
+    );
+    expect(getErrorMessage(error, 'fb')).toBe(LOCAL_CAMERA_UNREACHABLE_MESSAGE);
 
     fetchSpy.mockRestore();
   });

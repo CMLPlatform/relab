@@ -1,9 +1,14 @@
 import { afterEach, expect, jest, test } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { SaveBar } from '@/components/product/detail/SaveBar';
 import { getImageUploadProgress } from '@/services/api/saving';
-import { queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
+import {
+  mockPlatform,
+  queryAllHostsByType,
+  renderWithProviders,
+  restorePlatform,
+} from '@/test-utils/index';
 
 jest.mock('@/services/api/saving', () => ({
   getImageUploadProgress: jest.fn(() => null),
@@ -32,8 +37,9 @@ test('flow layout fills available width, wraps content, and is not positioned', 
   );
 
   const style = StyleSheet.flatten(screen.getByTestId('save-bar-dock').props.style);
-  expect(style).toEqual(
-    expect.objectContaining({ width: '100%', flexWrap: 'wrap', marginBottom: 60 }),
+  expect(style).toEqual(expect.objectContaining({ width: '100%', marginBottom: 60 }));
+  expect(StyleSheet.flatten(screen.getByTestId('save-bar-row').props.style)).toEqual(
+    expect.objectContaining({ flexWrap: 'wrap' }),
   );
   expect(style.position).toBeUndefined();
   expect(style.right).toBeUndefined();
@@ -57,8 +63,10 @@ test('save bar shows error count and routes to the first error', async () => {
       canModerate
     />,
   );
-  await fireEvent.press(screen.getByText('3 fields need attention'));
+  await fireEvent.press(screen.getByRole('button', { name: '3 fields need attention' }));
   expect(onErrorSummaryPress).toHaveBeenCalled();
+  // The summary also lands in the polite status region, so it is heard when it appears.
+  expect(screen.getByTestId('save-bar-status')).toHaveTextContent('3 fields need attention');
 });
 
 test('read mode renders a single Edit action', async () => {
@@ -176,7 +184,9 @@ test('shows per-photo progress while photos upload mid-save', async () => {
       onPrimaryPress={jest.fn()}
     />,
   );
-  expect(screen.getByText('Uploading 2 of 5…')).toBeTruthy();
+  // Once on the button, once in the polite status region.
+  expect(screen.getAllByText('Uploading 2 of 5…')).toHaveLength(2);
+  expect(screen.getByTestId('upload-progress', { includeHiddenElements: true })).toBeTruthy();
 });
 
 test('ignores upload progress while the save is paused offline', async () => {
@@ -196,6 +206,7 @@ test('ignores upload progress while the save is paused offline', async () => {
   );
   expect(screen.getByText('Queued — sends when online')).toBeTruthy();
   expect(screen.queryByText('Uploading 2 of 5…')).toBeNull();
+  expect(screen.queryByTestId('upload-progress', { includeHiddenElements: true })).toBeNull();
 });
 
 test('shows the loading spinner while actually saving (not paused)', async () => {
@@ -336,7 +347,7 @@ test('uses singular phrasing for a single error', async () => {
       canModerate
     />,
   );
-  expect(screen.getByText('1 field needs attention')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '1 field needs attention' })).toBeOnTheScreen();
 });
 
 // errorCount 0 is not "no errors"; it is an invalid form whose error summary
@@ -403,12 +414,113 @@ test('gives the inline validation error its own row in flow layout only', async 
   };
 
   const flow = await renderWithProviders(<SaveBar layout="flow" {...props} />);
-  expect(StyleSheet.flatten(flow.getByTestId('save-bar-validation-error').props.style)).toEqual(
+  expect(StyleSheet.flatten(flow.getByTestId('save-bar-status').props.style)).toEqual(
     expect.objectContaining({ flexBasis: '100%' }),
   );
 
   const floating = await renderWithProviders(<SaveBar {...props} />);
-  expect(
-    StyleSheet.flatten(floating.getByTestId('save-bar-validation-error').props.style),
-  ).toBeUndefined();
+  expect(StyleSheet.flatten(floating.getByTestId('save-bar-status').props.style)).toBeUndefined();
+});
+
+test('announces upload progress through a polite status region', async () => {
+  jest.mocked(getImageUploadProgress).mockReturnValue({ current: 1, total: 3 });
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving
+      isPaused={false}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  const region = screen.getByTestId('save-bar-status');
+  expect(region.props.accessibilityLiveRegion).toBe('polite');
+  expect(region).toHaveTextContent('Uploading 1 of 3…');
+});
+
+test('announces upload progress on iOS, where live regions do nothing', async () => {
+  mockPlatform('ios');
+  const announce = jest
+    .spyOn(AccessibilityInfo, 'announceForAccessibility')
+    .mockImplementation(() => {});
+  jest.mocked(getImageUploadProgress).mockReturnValue({ current: 1, total: 3 });
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving
+      isPaused={false}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  expect(announce).toHaveBeenCalledWith('Uploading 1 of 3…');
+  announce.mockRestore();
+  restorePlatform();
+});
+
+test('announces the attention summary on iOS, where live regions do nothing', async () => {
+  mockPlatform('ios');
+  const announce = jest
+    .spyOn(AccessibilityInfo, 'announceForAccessibility')
+    .mockImplementation(() => {});
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={false}
+      isPaused={false}
+      validationValid={false}
+      errorCount={2}
+      onPrimaryPress={jest.fn()}
+      canModerate
+    />,
+  );
+  expect(announce).toHaveBeenCalledWith('2 fields need attention');
+  announce.mockRestore();
+  restorePlatform();
+});
+
+test('announces the validation message through the status region', async () => {
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={false}
+      isPaused={false}
+      validationValid={false}
+      validationError="Name is required"
+      onPrimaryPress={jest.fn()}
+      canModerate
+    />,
+  );
+  expect(screen.getByTestId('save-bar-status')).toHaveTextContent('Name is required');
+});
+
+test('keeps the status region mounted and empty when there is nothing to say', async () => {
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode={false}
+      isDirty={false}
+      isSaving={false}
+      isPaused={false}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  expect(screen.getByTestId('save-bar-status')).toHaveTextContent('');
 });

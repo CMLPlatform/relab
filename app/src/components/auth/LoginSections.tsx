@@ -5,13 +5,15 @@ import { StyleSheet, View } from 'react-native';
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { describedBy } from '@/utils/a11y';
+import { describedBy, requiredField } from '@/utils/a11y';
 
 type LoginLayoutProps = {
   children: React.ReactNode;
@@ -20,6 +22,20 @@ type LoginLayoutProps = {
 
 export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
   const theme = useAppTheme();
+  // Below md the island fills the screen, so a corner-pinned button lands on the
+  // card; there it sits in the flow above the island instead.
+  const { isMd } = useBreakpoint();
+  const browse = (
+    <AppButton
+      variant="ghost"
+      onPress={onBrowse}
+      className={isMd ? 'self-start absolute top-4 left-2 z-10' : 'self-start'}
+      style={{ backgroundColor: theme.tokens.overlay.page }}
+    >
+      <Icon name="arrow-left" size={16} color={VARIANT_FOREGROUND_COLOR.ghost(theme.colors)} />
+      Browse
+    </AppButton>
+  );
   return (
     <View className="flex-1">
       {/* Carries its own ground. As a bare ghost button it sat directly on the
@@ -27,18 +43,12 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
           3.55:1 in dark at 1440; the contrast varies with whatever part of the
           image lands under the glyphs, so it passes at some widths and fails at
           others. `overlay.page` is the near-opaque page tone in both schemes. */}
-      <AppButton
-        variant="ghost"
-        onPress={onBrowse}
-        className="self-start absolute top-4 left-2 z-10"
-        style={{ backgroundColor: theme.tokens.overlay.page }}
-      >
-        <Icon name="arrow-left" size={16} color={theme.colors.onSurface} />
-        <AppText className="text-foreground">Browse</AppText>
-      </AppButton>
-
+      {isMd ? browse : null}
       <AuthScreen>
-        <View className="gap-3">{children}</View>
+        <View className="gap-3">
+          {isMd === false ? browse : null}
+          {children}
+        </View>
       </AuthScreen>
     </View>
   );
@@ -51,7 +61,7 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
       className="rounded-lg p-4 gap-2.5"
       style={[
         styles.card,
-        { backgroundColor: theme.tokens.surface.card, borderColor: theme.tokens.border.subtle },
+        { backgroundColor: theme.colors.card, borderColor: theme.tokens.border.subtle },
       ]}
     >
       {children}
@@ -59,10 +69,10 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** The wordmark at the head of the auth card: on the card's opaque ground, never on the photo. */
 export function LoginBrandHero() {
-  // No wash behind the mark: the hero scrim's centre band already calms the backdrop.
   return (
-    <View className="py-3 px-[18px] mb-1">
+    <View className="items-center pt-2 pb-3">
       <BrandWordmark style={styles.brandLogo} />
     </View>
   );
@@ -109,7 +119,12 @@ export function LoginFormSection({
       return (
         // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
-          <AppText variant="label">Email or username</AppText>
+          <AppText variant="label">
+            Email or username{' '}
+            <AppText variant="label" className="text-muted-foreground">
+              (required)
+            </AppText>
+          </AppText>
           <TextInput
             ref={setEmailRef}
             value={value}
@@ -120,6 +135,7 @@ export function LoginFormSection({
             textContentType="username"
             accessibilityLabel="Email or username"
             placeholder="e.g. you@university.edu"
+            {...requiredField()}
             {...describedBy('login-email-error', Boolean(error))}
             className="border px-3 py-2.5"
             style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}
@@ -142,7 +158,12 @@ export function LoginFormSection({
       return (
         // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
-          <AppText variant="label">Password</AppText>
+          <AppText variant="label">
+            Password{' '}
+            <AppText variant="label" className="text-muted-foreground">
+              (required)
+            </AppText>
+          </AppText>
           <TextInput
             ref={setPasswordRef}
             value={value}
@@ -153,6 +174,7 @@ export function LoginFormSection({
             secureTextEntry
             accessibilityLabel="Password"
             onSubmitEditing={onSubmit}
+            {...requiredField()}
             {...describedBy('login-password-error', Boolean(error))}
             className="border px-3 py-2.5"
             style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}
@@ -199,12 +221,12 @@ export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps
   return (
     <>
       <AppButton variant="outline" className="w-full" onPress={onGoogle}>
-        <Icon name="google" size="sm" color={theme.colors.onSurface} />
-        <AppText className="text-foreground">Continue with Google</AppText>
+        <Icon name="google" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
+        Continue with Google
       </AppButton>
       <AppButton variant="outline" className="w-full" onPress={onGithub}>
-        <Icon name="github" size="sm" color={theme.colors.onSurface} />
-        <AppText className="text-foreground">Continue with GitHub</AppText>
+        <Icon name="github" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
+        Continue with GitHub
       </AppButton>
     </>
   );
@@ -222,7 +244,9 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
   },
+  // A mark, not a banner: capped so the card reads as one panel.
   brandLogo: {
-    width: '100%',
+    width: 220,
+    maxWidth: '100%',
   },
 });

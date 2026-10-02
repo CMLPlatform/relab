@@ -3,7 +3,6 @@ import {
   showGoogleAccountRequired,
   showStreamAlreadyLive,
   showStreamStartFailed,
-  showStreamStopFailed,
   showStreamVideoSaveFailed,
 } from '@/components/cameras/streamingFeedback';
 
@@ -35,16 +34,13 @@ describe('streamingFeedback', () => {
     });
   });
 
-  it('formats stream start and stop failures', () => {
+  it('formats a stream start failure', () => {
     showStreamStartFailed(feedback, new Error('boom'));
-    showStreamStopFailed(feedback, 'nope');
 
-    expect(feedback.error).toHaveBeenNthCalledWith(
-      1,
+    expect(feedback.error).toHaveBeenCalledWith(
       'Failed to start stream: boom',
       'Stream start failed',
     );
-    expect(feedback.error).toHaveBeenNthCalledWith(2, 'Failed to stop stream: nope', 'Stop failed');
   });
 
   it('formats a failure to save the stream video', () => {

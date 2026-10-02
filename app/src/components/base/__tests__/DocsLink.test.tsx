@@ -23,6 +23,15 @@ beforeEach(() => {
 });
 
 describe('DocsLink', () => {
+  it('keeps a 44px target when the caller passes tighter padding', async () => {
+    await render(
+      <DocsLink path="/x" accessibilityLabel="Guide" className="py-1">
+        Guide
+      </DocsLink>,
+    );
+    expect(screen.getByRole('link').props.className).toContain('min-h-11');
+  });
+
   it('resolves the path against the configured docs origin', async () => {
     await render(
       <DocsLink path="/user-guides/data-collection" accessibilityLabel="Read the guide">

@@ -52,11 +52,11 @@ describe('throwFromResponse', () => {
     });
   });
 
-  it('falls back to "<fallback> (status)" when the body has no usable detail', async () => {
+  it('falls back to the fallback when the body has no usable detail', async () => {
     const response = { status: 500, json: async () => ({}) } as unknown as Response;
 
     await expect(throwFromResponse(response, 'Failed to start stream')).rejects.toThrow(
-      'Failed to start stream (500)',
+      'Failed to start stream',
     );
   });
 
@@ -68,7 +68,7 @@ describe('throwFromResponse', () => {
       },
     } as unknown as Response;
 
-    await expect(throwFromResponse(response, 'Bad gateway')).rejects.toThrow('Bad gateway (502)');
+    await expect(throwFromResponse(response, 'Bad gateway')).rejects.toThrow('Bad gateway');
   });
 
   it('survives a response with no json method', async () => {

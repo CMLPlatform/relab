@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable } from 'react-native';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
@@ -7,23 +7,77 @@ import { useAppTheme } from '@/theme/appThemeContext';
 import { needsUsernameOnboarding } from '@/utils/router/onboarding';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { type PressState, pressFill } from './pressFeedback';
 
 function truncateUsername(username: string) {
   return username.length > 16 ? `${username.slice(0, 14)}…` : username;
 }
 
 // backgroundColor/color stay inline: theme-dependent values with no CSS var.
-const PILL_CLASS_NAME = `mr-4 flex-row items-center gap-1.5 rounded-[6px] px-3 py-1.5 ${WEB_FOCUS_RING}`;
-const PILL_TEXT_CLASS_NAME = 'text-[14px] font-semibold';
+const PILL_CLASS_NAME = `mr-4 flex-row items-center gap-1.5 rounded-md px-3 py-1.5 ${WEB_FOCUS_RING}`;
+
+/** Tonal pill: the One Tint at rest, primary-strong with primary-foreground ink pressed and hovered. */
+function Pill({
+  label,
+  accessibilityLabel,
+  withIcon,
+  current = false,
+  onPress,
+}: {
+  label: string;
+  accessibilityLabel: string;
+  withIcon: boolean;
+  /** The pill's destination is the screen on show (TopNav at lg, on /account). */
+  current?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useAppTheme();
+  // minHeight, not just hitSlop: hitSlop is invisible to the DOM on web.
+  const pillStyle = useCallback(
+    (state: PressState) => [
+      { backgroundColor: theme.tokens.surface.accent, minHeight: MIN_TAP_TARGET },
+      pressFill(state, theme.colors.primaryStrong),
+    ],
+    [theme],
+  );
+  return (
+    <Pressable
+      onPress={onPress}
+      className={PILL_CLASS_NAME}
+      style={pillStyle}
+      // ~32px pill + 6px hitSlop/side = 44px tap target (a11y floor).
+      hitSlop={6}
+      // Goes to the account or sign-in screen: a link, like TopNav's destinations.
+      accessibilityRole="link"
+      accessibilityLabel={accessibilityLabel}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-current={current ? 'page' : undefined}
+    >
+      {(state: PressState) => {
+        const ink = state.pressed || state.hovered ? theme.colors.onPrimary : theme.colors.primary;
+        return (
+          <>
+            {withIcon ? <Icon name="circle-user-round" size={18} color={ink} /> : null}
+            <AppText
+              variant="caption"
+              className="font-semibold"
+              style={{ color: ink }}
+              numberOfLines={1}
+            >
+              {label}
+            </AppText>
+          </>
+        );
+      }}
+    </Pressable>
+  );
+}
 
 export function HeaderRightPill() {
   const { user } = useAuth();
   const router = useRouter();
-  const theme = useAppTheme();
+  const pathname = usePathname();
   const needsOnboarding = user ? needsUsernameOnboarding(user) : false;
-  // minHeight, not just hitSlop: hitSlop is invisible to the DOM on web.
-  const pillStyle = { backgroundColor: theme.tokens.surface.accent, minHeight: MIN_TAP_TARGET };
-  const primaryTextStyle = { color: theme.colors.primary };
 
   const goToAccount = useCallback(() => {
     // navigate(): /account is a tab, and this pill also renders on the public
@@ -35,40 +89,15 @@ export function HeaderRightPill() {
   if (user) {
     const username = needsOnboarding ? 'Complete profile' : truncateUsername(user.username ?? '');
     return (
-      <Pressable
-        onPress={goToAccount}
-        className={PILL_CLASS_NAME}
-        style={pillStyle}
-        // ~32px pill + 6px hitSlop/side = 44px tap target (a11y floor).
-        hitSlop={6}
-        accessibilityRole="button"
+      <Pill
+        label={username}
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
-      >
-        <Icon name="circle-user-round" size={18} color={theme.colors.primary} />
-        <AppText
-          variant="label"
-          className={PILL_TEXT_CLASS_NAME}
-          style={primaryTextStyle}
-          numberOfLines={1}
-        >
-          {username}
-        </AppText>
-      </Pressable>
+        withIcon
+        current={!needsOnboarding && pathname === '/account'}
+        onPress={goToAccount}
+      />
     );
   }
 
-  return (
-    <Pressable
-      onPress={goToLogin}
-      className={PILL_CLASS_NAME}
-      style={pillStyle}
-      hitSlop={6}
-      accessibilityRole="button"
-      accessibilityLabel="Sign in"
-    >
-      <AppText variant="label" className={PILL_TEXT_CLASS_NAME} style={primaryTextStyle}>
-        Sign in
-      </AppText>
-    </Pressable>
-  );
+  return <Pill label="Sign in" accessibilityLabel="Sign in" withIcon={false} onPress={goToLogin} />;
 }

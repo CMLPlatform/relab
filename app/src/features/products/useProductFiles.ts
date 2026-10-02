@@ -12,6 +12,7 @@ import {
   uploadProductFile,
 } from '@/services/api/files';
 import type { Product } from '@/types/Product';
+import { getErrorMessage } from '@/utils/errors';
 
 export const productFilesQueryKey = (productId: number | undefined) =>
   ['product-files', productId] as const;
@@ -54,7 +55,7 @@ export function useProductFiles(product: Product) {
       feedback.toast(`Added ${file.name}.`);
     },
     onError: (error: Error) => {
-      feedback.error(error.message, 'Upload failed');
+      feedback.error(getErrorMessage(error, 'Could not upload the file.'), 'Upload failed');
     },
   });
 
@@ -65,7 +66,7 @@ export function useProductFiles(product: Product) {
       feedback.toast('File removed.');
     },
     onError: (error: Error) => {
-      feedback.error(error.message, 'Could not remove file');
+      feedback.error(getErrorMessage(error, 'Try again.'), 'Could not remove file');
     },
   });
 

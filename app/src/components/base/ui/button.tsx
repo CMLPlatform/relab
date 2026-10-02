@@ -24,7 +24,7 @@ const buttonVariants = cva(
           Platform.select({ web: 'hover:bg-primary-strong' }),
         ),
         destructive: cn(
-          'bg-destructive active:bg-destructive/90 dark:bg-destructive/60',
+          'bg-destructive active:bg-destructive/90',
           Platform.select({
             web: 'hover:bg-destructive/90',
           }),
@@ -37,8 +37,8 @@ const buttonVariants = cva(
         ),
         // Soft-primary fill: low-emphasis-but-filled CTA (flat, no shadow).
         tonal: cn(
-          'bg-primary/12 active:bg-primary/20',
-          Platform.select({ web: 'hover:bg-primary/20' }),
+          'bg-primary/12 active:bg-primary-strong',
+          Platform.select({ web: 'hover:bg-primary-strong' }),
         ),
         ghost: cn('active:bg-primary/12', Platform.select({ web: 'hover:bg-primary/12' })),
       },
@@ -51,6 +51,7 @@ const buttonVariants = cva(
 
 const buttonTextVariants = cva(
   cn(
+    // NOTE: text-sm is the vendored button size; relabelling every button to the label ramp step is out of scope.
     'text-foreground text-sm font-medium',
     Platform.select({ web: 'pointer-events-none transition-colors' }),
   ),
@@ -58,16 +59,14 @@ const buttonTextVariants = cva(
     variants: {
       variant: {
         primary: 'text-primary-foreground',
-        destructive: 'text-white',
-        outline: cn(
-          'group-active:text-primary',
-          Platform.select({ web: 'group-hover:text-primary' }),
+        destructive: 'text-destructive-foreground',
+        // Blue ink at rest: if it responds to touch, it is blue (DESIGN.md, Buttons).
+        outline: 'text-primary',
+        tonal: cn(
+          'text-primary group-active:text-primary-foreground',
+          Platform.select({ web: 'group-hover:text-primary-foreground' }),
         ),
-        tonal: 'text-primary',
-        ghost: cn(
-          'group-active:text-primary',
-          Platform.select({ web: 'group-hover:text-primary' }),
-        ),
+        ghost: 'text-primary',
       },
     },
     defaultVariants: {
@@ -78,11 +77,27 @@ const buttonTextVariants = cva(
 
 type ButtonProps = React.ComponentProps<typeof Pressable> & VariantProps<typeof buttonVariants>;
 
+// One disabled treatment for every variant: a faint muted fill, the hairline and
+// muted ink at 60%, so the control keeps its size and place but reads inert in
+// both schemes (the full muted fill read as an enabled grey button in dark). The
+// `dark:` overrides beat the outline variant's own dark fill and border. A busy
+// button (aria-busy, the loading state) keeps its variant: it is working, not
+// unavailable.
+// Hover and pressed repeat the rest state: the web hover fill still applied to a
+// disabled button, since pointer-events alone did not stop it.
+const DISABLED_CLASS =
+  'border border-border bg-muted/50 hover:bg-muted/50 active:bg-muted/50 dark:border-border dark:bg-muted/50';
+const DISABLED_TEXT_CLASS =
+  'text-muted-foreground/60 group-hover:text-muted-foreground/60 group-active:text-muted-foreground/60';
+
 export function Button({ className, variant, ...props }: ButtonProps) {
+  const inactive = props.disabled && !props['aria-busy'];
   return (
-    <TextClassContext.Provider value={buttonTextVariants({ variant })}>
+    <TextClassContext.Provider
+      value={cn(buttonTextVariants({ variant }), inactive && DISABLED_TEXT_CLASS)}
+    >
       <Pressable
-        className={cn(props.disabled && 'opacity-50', buttonVariants({ variant }), className)}
+        className={cn(buttonVariants({ variant }), inactive && DISABLED_CLASS, className)}
         role="button"
         {...props}
       />

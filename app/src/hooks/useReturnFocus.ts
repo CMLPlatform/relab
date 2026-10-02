@@ -14,8 +14,11 @@ export function useReturnFocus(visible: boolean, externalRef?: RefObject<View | 
   const triggerRef = externalRef ?? internalRef;
   const wasVisible = useRef(visible);
   const [renderedVisible, setRenderedVisible] = useState(visible);
-  const [webTrigger, setWebTrigger] = useState<HTMLElement | null>(null);
   const isWeb = Platform.OS === 'web' && typeof document !== 'undefined';
+  // A lazily mounted dialog first renders already open, so capture at mount too.
+  const [webTrigger, setWebTrigger] = useState<HTMLElement | null>(() =>
+    isWeb && visible ? (document.activeElement as HTMLElement | null) : null,
+  );
 
   // Captured during render: `autoFocus` inputs claim focus before the parent's effect runs.
   if (visible !== renderedVisible) {

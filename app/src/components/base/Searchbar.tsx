@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { Input } from '@/components/base/ui/input';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { cn } from '@/utils/cn';
 import { Icon } from './Icon';
+import { PRESS_TINT } from './pressFeedback';
 
 type SearchbarProps = Omit<
   ComponentProps<typeof Input>,
@@ -40,7 +42,7 @@ export function Searchbar({
   return (
     <View className="justify-center" style={style}>
       <View className="absolute left-3" style={styles.leadingIcon}>
-        <Icon name="search" size="md" color={theme.colors.onSurfaceVariant} />
+        <Icon name="search" size="md" color={theme.colors.mutedForeground} />
       </View>
       <Input
         ref={ref}
@@ -51,12 +53,12 @@ export function Searchbar({
         {...rest}
         // Inset via className, not `style`: on web a `style` padding loses to
         // the primitive's own `px-3` on source order; `cn` merges instead.
-        className="pl-10 pr-10"
+        className="pl-10 pr-11"
       />
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={theme.colors.onSurfaceVariant}
+          color={theme.colors.mutedForeground}
           className="absolute right-3"
         />
       ) : value ? (
@@ -64,11 +66,12 @@ export function Searchbar({
           onPress={handleClear}
           accessibilityRole="button"
           accessibilityLabel="Clear search"
-          // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).
-          hitSlop={12}
-          className="absolute right-3"
+          className={cn(
+            'absolute right-0 min-h-11 min-w-11 items-center justify-center rounded-md',
+            PRESS_TINT,
+          )}
         >
-          <Icon name="x" size="md" color={theme.colors.onSurfaceVariant} />
+          <Icon name="x" size="md" color={theme.colors.mutedForeground} />
         </Pressable>
       ) : null}
     </View>

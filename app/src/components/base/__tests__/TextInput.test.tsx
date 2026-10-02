@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { TextInput } from '@/components/base/TextInput';
+import { Input } from '@/components/base/ui/input';
 import { radius } from '@/constants';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { renderWithProviders } from '@/test-utils/index';
@@ -11,6 +12,18 @@ jest.mock('@/context/themeMode', () => ({
 }));
 
 describe('<TextInput />', () => {
+  it('caps font scaling at 2x on the ui Input too', async () => {
+    await renderWithProviders(<Input testID="ui" />);
+    expect(screen.getByTestId('ui').props.maxFontSizeMultiplier).toBe(2);
+  });
+
+  it('caps font scaling at 2x by default and lets callers override', async () => {
+    await renderWithProviders(<TextInput testID="a" />);
+    expect(screen.getByTestId('a').props.maxFontSizeMultiplier).toBe(2);
+    await renderWithProviders(<TextInput testID="b" maxFontSizeMultiplier={1} />);
+    expect(screen.getByTestId('b').props.maxFontSizeMultiplier).toBe(1);
+  });
+
   it('renders placeholder correctly', async () => {
     await renderWithProviders(<TextInput placeholder="Enter text" />);
     expect(screen.getByPlaceholderText('Enter text')).toBeOnTheScreen();
@@ -52,7 +65,7 @@ describe('<TextInput />', () => {
 
     const input = screen.getByTestId('dark-input');
     expect(input).toHaveStyle({ color: getAppTheme('dark').colors.onSurface });
-    expect(input).toHaveProp('placeholderTextColor', getAppTheme('dark').colors.onSurfaceVariant);
+    expect(input).toHaveProp('placeholderTextColor', getAppTheme('dark').colors.mutedForeground);
 
     jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
   });

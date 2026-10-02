@@ -23,19 +23,19 @@ export function showStreamAlreadyLive(feedback: FeedbackApi, cameraName: string)
 
 export function showStreamStartFailed(feedback: FeedbackApi, error: unknown) {
   feedback.error(
-    `Failed to start stream: ${getErrorMessage(error, String(error))}`,
+    `Failed to start stream: ${getErrorMessage(error, 'Try again.')}`,
     'Stream start failed',
   );
 }
 
 export function showStreamStopFailed(feedback: FeedbackApi, error: unknown) {
-  feedback.error(`Failed to stop stream: ${getErrorMessage(error, String(error))}`, 'Stop failed');
+  feedback.error(`Failed to stop stream: ${getErrorMessage(error, 'Try again.')}`, 'Stop failed');
 }
 
 /** The broadcast started but attaching it to the product failed; non-fatal. */
 export function showStreamVideoSaveFailed(feedback: FeedbackApi, error: unknown) {
   feedback.error(
-    `The stream is live, but saving it to the product failed: ${getErrorMessage(error, String(error))}`,
+    `The stream is live, but saving it to the product failed: ${getErrorMessage(error, 'Try again.')}`,
     'Video not saved',
   );
 }

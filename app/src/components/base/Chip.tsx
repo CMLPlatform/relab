@@ -11,16 +11,16 @@ import {
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getStatusTone } from '@/theme/color';
+import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { PRESS_FADE, type PressState } from './pressFeedback';
 
 interface Props extends PressableProps {
   children?: string;
   title?: string;
   icon?: React.ReactNode;
   error?: boolean;
-  /** Displays a value with no action: no button role, not in the tab order. */
-  readOnly?: boolean;
 }
 
 export const Chip = ({
@@ -33,7 +33,6 @@ export const Chip = ({
   accessibilityLabel,
   accessibilityRole = 'button',
   accessibilityState,
-  readOnly = false,
   ...props
 }: Props) => {
   const theme = useAppTheme();
@@ -42,13 +41,7 @@ export const Chip = ({
   const resolveStyle = useCallback(
     (state: PressableStateCallbackType) => {
       const resolvedStyle = typeof style === 'function' ? style(state) : style;
-      return [
-        // No className on this Pressable: it would drop this function (see IconButton.tsx).
-        styles.base,
-        { backgroundColor: theme.tokens.surface.accent },
-        state.pressed && { opacity: 0.5 },
-        resolvedStyle,
-      ];
+      return [styles.base, { backgroundColor: theme.tokens.surface.accent }, resolvedStyle];
     },
     [style, theme],
   );
@@ -59,7 +52,9 @@ export const Chip = ({
     accessibilityLabel ??
     (title ? `${title}: ${children ?? ''}${error ? ', required' : ''}` : undefined);
 
-  const content = (
+  // `active` is pressed or (web) hovered: the filled value segment takes
+  // primary-strong for both (Primary-Strong Rule).
+  const renderContent = (active: boolean) => (
     <>
       {title ? (
         <AppText
@@ -71,9 +66,13 @@ export const Chip = ({
         </AppText>
       ) : null}
       <View
-        className="flex-row items-center gap-1.5 rounded-md px-3 py-2"
+        className={cn('flex-row items-center gap-1.5 rounded-md px-3 py-2', PRESS_FADE)}
         style={{
-          backgroundColor: error ? getStatusTone(danger) : theme.colors.primary,
+          backgroundColor: error
+            ? getStatusTone(danger)
+            : active
+              ? theme.colors.primaryStrong
+              : theme.colors.primary,
           borderColor: error ? danger : undefined,
           borderWidth: error ? 1 : 0,
         }}
@@ -93,23 +92,6 @@ export const Chip = ({
     </>
   );
 
-  // A value with nothing to do on press is not a button: a focusable control
-  // that does nothing costs a keyboard stop and misstates its role (WCAG 4.1.2).
-  // A named group keeps title and value one screen-reader stop, not two.
-  if (readOnly) {
-    return (
-      <View
-        testID={props.testID}
-        accessible
-        role="group"
-        accessibilityLabel={composedLabel}
-        style={[styles.base, { backgroundColor: theme.tokens.surface.accent }]}
-      >
-        {content}
-      </View>
-    );
-  }
-
   return (
     <Pressable
       style={resolveStyle}
@@ -119,7 +101,7 @@ export const Chip = ({
       accessibilityState={accessibilityState ?? (disabled ? { disabled } : undefined)}
       {...props}
     >
-      {content}
+      {({ pressed, hovered }: PressState) => renderContent(pressed || Boolean(hovered))}
     </Pressable>
   );
 };

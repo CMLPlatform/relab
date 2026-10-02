@@ -39,7 +39,7 @@ const BASE_FIELDS: MissingField[] = [
     target: 'properties',
     missing: (p) => {
       const { width, height, depth } = p.physicalProperties ?? {};
-      return !(width && height && depth);
+      return !(width || height || depth);
     },
   },
   PHOTO,

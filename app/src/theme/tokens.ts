@@ -1,11 +1,11 @@
 import { Platform } from 'react-native';
 import { alpha } from './color';
+import { palette } from './palette.generated';
 import { designTokens } from './tokens.generated';
 import type { AppColorScale, AppScheme, AppTokens } from './types';
 
 const SEMANTIC_COLORS = {
   light: {
-    live: '#8F6212', // manila; DESIGN.md assigns live indicators to the accent
     success: '#2E7D32',
     warning: '#A05A00',
     info: '#1565C0',
@@ -14,7 +14,6 @@ const SEMANTIC_COLORS = {
     onStatus: '#FFFFFF',
   },
   dark: {
-    live: '#E3B95C',
     success: '#7BC67E',
     warning: '#FFB74D',
     info: '#90CAF9',
@@ -24,9 +23,22 @@ const SEMANTIC_COLORS = {
   },
 } as const;
 
+/**
+ * The `data` face. Web uses the self-hosted IBM Plex Mono (global.css @font-face) with a
+ * named fallback stack: the bare generic `monospace` resolves to Courier New on Windows
+ * and DejaVu Sans Mono on Linux.
+ */
+export const MONO_FONT_FAMILY = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default:
+    '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+});
+
 export function createTokens(scheme: AppScheme, colors: AppColorScale): AppTokens {
   const isDark = scheme === 'dark';
   const semantic = SEMANTIC_COLORS[scheme];
+  const p = palette[scheme];
 
   return {
     status: {
@@ -35,7 +47,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       danger: colors.error,
       info: semantic.info,
       offline: semantic.offline,
-      live: semantic.live,
+      live: p.accent, // manila; DESIGN.md assigns live indicators to the accent
       onStatus: semantic.onStatus,
     },
     overlay: {
@@ -45,7 +57,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       hero: isDark ? 'rgba(12,14,20,0.50)' : 'rgba(250,251,254,0.50)',
       // Band routes (content bare on the photo): `heroBand` behind the centred
       // column, fading to `heroEdge` at the sides. Tinted to the theme background.
-      heroBand: isDark ? 'rgba(12,14,20,0.82)' : 'rgba(250,251,254,0.78)',
+      heroBand: isDark ? 'rgba(12,14,20,0.88)' : 'rgba(250,251,254,0.88)',
       heroEdge: isDark ? 'rgba(12,14,20,0.22)' : 'rgba(250,251,254,0.18)',
       scrim: designTokens.rn.scrim[scheme],
       media: 'rgba(0,0,0,0.5)',
@@ -57,9 +69,9 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       overlay: designTokens.rn.shadowOverlay[scheme],
     },
     border: {
-      subtle: 'rgba(128,128,128,0.2)',
-      strong: 'rgba(128,128,128,0.5)',
-      selected: semantic.info,
+      subtle: p.border,
+      strong: p.input,
+      selected: colors.primary,
     },
     text: {
       link: semantic.link,
@@ -68,13 +80,12 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       // Always-light content for elements placed on overlay.media (a dark scrim),
       // regardless of app theme; the scrim is dark in both schemes.
       onMedia: '#fff',
+      /** Manila data labels: measurements, IDs, counts (DESIGN.md Data-Label Rule). */
+      data: p.accent, // manila
     },
     surface: {
-      sunken: isDark ? '#1a1a1a' : colors.surfaceVariant,
+      sunken: isDark ? colors.card : colors.muted,
       accent: alpha(colors.primary, 0.12),
-      // Translucent panel behind auth controls: opaque enough to keep labels
-      // legible over a photo while a hint of the image still shows through.
-      card: alpha(colors.surface, 0.8),
     },
     // NOTE: these are the eight ramp steps (DESIGN.md, Ramp Rule).
     type: {
@@ -100,7 +111,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       data: {
         fontSize: designTokens.type.data.size,
         lineHeight: designTokens.type.data.line,
-        fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+        fontFamily: MONO_FONT_FAMILY,
         fontVariant: ['tabular-nums'] as const,
       },
     },

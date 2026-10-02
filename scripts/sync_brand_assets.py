@@ -81,12 +81,12 @@ COPY_ASSETS = (
         ),
     ),
     (
-        root_path("assets/images/bg-light.jpg"),
-        (root_path("app/src/assets/images/bg-light.jpg"),),
+        root_path("assets/images/bg-light.webp"),
+        (root_path("app/src/assets/images/bg-light.webp"),),
     ),
     (
-        root_path("assets/images/bg-dark.jpg"),
-        (root_path("app/src/assets/images/bg-dark.jpg"),),
+        root_path("assets/images/bg-dark.webp"),
+        (root_path("app/src/assets/images/bg-dark.webp"),),
     ),
     # NOTE: docs has no logo target; its header renders the wordmark via a custom
     # SiteTitle override, so a synced logo.svg would just be a dead file in public/.
@@ -129,6 +129,11 @@ COPY_ASSETS = (
             ),
         )
         for font_file in WEB_FONT_FILES
+    ),
+    # The app's web build uses only the mono face, for its `data` text.
+    (
+        root_path("assets/fonts/ibm-plex-mono-latin-400.woff2"),
+        (root_path("app/public/fonts/ibm-plex-mono-latin-400.woff2"),),
     ),
     *(
         (

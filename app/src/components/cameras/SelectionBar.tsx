@@ -33,7 +33,7 @@ export function SelectionBar({
     >
       <IconButton icon="x" onPress={onClear} accessibilityLabel="Clear selection" />
       <AppText variant="title" className="ml-1">
-        {selectedCount} selected
+        <AppText variant="data">{selectedCount}</AppText> selected
       </AppText>
       <View className="flex-1" />
       <AppButton
@@ -51,9 +51,7 @@ export function SelectionBar({
         disabled={!canCapture}
       >
         <Icon name="images" size={16} color={theme.colors.onPrimary} />
-        <AppText style={{ color: theme.colors.onPrimary }}>
-          {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
-        </AppText>
+        {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
       </AppButton>
     </View>
   );

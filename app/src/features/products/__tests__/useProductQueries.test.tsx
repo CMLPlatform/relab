@@ -3,22 +3,23 @@ import {
   onlineManager,
   QueryClient,
   QueryClientProvider,
+  type UseQueryResult,
   useInfiniteQuery,
+  useQuery,
 } from '@tanstack/react-query';
-import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { DialogContext } from '@/components/base/dialogContext';
+import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import {
+  brandsSearchQueryOptions,
   onResumedSaveError,
   productsInfiniteQueryOptions,
-  ResumedSaveConflictNotice,
-  useBaseProductQuery,
-  useComponentQuery,
+  productTypesSearchQueryOptions,
+  ResumedSaveNotice,
   useDeleteProductMutation,
   userProductsInfiniteQueryOptions,
   useSaveProductMutation,
-  useSearchBrandsQuery,
-  useSearchProductTypesQuery,
 } from '@/features/products/queries';
 import { ApiError } from '@/services/api/errors';
 import {
@@ -30,6 +31,7 @@ import {
 import { searchProductBrands, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import { baseProduct } from '@/test-utils/fixtures';
+import { renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 type ProductsModule = typeof import('@/services/api/products');
@@ -289,21 +291,21 @@ describe('useProductQueries', () => {
     mockedSearchBrands.mockResolvedValue([]);
     mockedSearchProductTypes.mockResolvedValue([]);
 
-    await renderHook(() => useSearchBrandsQuery(''), { wrapper });
-    await renderHook(() => useSearchProductTypesQuery(''), { wrapper });
+    await renderHook(() => useQuery(brandsSearchQueryOptions('')), { wrapper });
+    await renderHook(() => useQuery(productTypesSearchQueryOptions('')), { wrapper });
 
     await waitFor(() => expect(searchProductBrands).toHaveBeenCalled());
     expect(searchProductBrands).toHaveBeenCalledWith(undefined, 1, 50);
     expect(searchProductTypes).toHaveBeenCalledWith(undefined, 1, 50);
   });
 
-  it('useBaseProductQuery calls getBaseProduct and respects enabled state', async () => {
+  it('baseProductQueryOptions calls getBaseProduct and respects enabled state', async () => {
     mockedGetBaseProduct.mockResolvedValue(existingProduct);
 
     const { result, rerender } = await renderHook<
-      ReturnType<typeof useBaseProductQuery>,
+      UseQueryResult<Product, unknown>,
       { id: number | undefined }
-    >(({ id }: { id: number | undefined }) => useBaseProductQuery(id), {
+    >(({ id }: { id: number | undefined }) => useQuery(baseProductQueryOptions(id)), {
       wrapper,
       initialProps: { id: undefined },
     });
@@ -317,13 +319,13 @@ describe('useProductQueries', () => {
     expect(getBaseProduct).toHaveBeenCalledWith(123);
   });
 
-  it('useComponentQuery calls getComponent and respects enabled state', async () => {
+  it('componentQueryOptions calls getComponent and respects enabled state', async () => {
     mockedGetComponent.mockResolvedValue(existingProduct);
 
     const { result, rerender } = await renderHook<
-      ReturnType<typeof useComponentQuery>,
+      UseQueryResult<Product, unknown>,
       { id: number | undefined }
-    >(({ id }: { id: number | undefined }) => useComponentQuery(id), {
+    >(({ id }: { id: number | undefined }) => useQuery(componentQueryOptions(id)), {
       wrapper,
       initialProps: { id: undefined },
     });
@@ -337,10 +339,10 @@ describe('useProductQueries', () => {
     expect(getComponent).toHaveBeenCalledWith(77);
   });
 
-  it('useBaseProductQuery does not retry when the product is missing', async () => {
+  it('baseProductQueryOptions does not retry when the product is missing', async () => {
     mockedGetBaseProduct.mockRejectedValue(new ProductNotFoundError(123));
 
-    const { result } = await renderHook(() => useBaseProductQuery(123), { wrapper });
+    const { result } = await renderHook(() => useQuery(baseProductQueryOptions(123)), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(getBaseProduct).toHaveBeenCalledTimes(1);
@@ -652,6 +654,20 @@ describe('useProductQueries', () => {
     expect(removeSpy).not.toHaveBeenCalled();
   });
 
+  // A delete applied long after the person moved on is worse than one that
+  // fails: it must not pause in the queue across a dropped connection.
+  it('useDeleteProductMutation fails fast offline instead of pausing', async () => {
+    await act(() => onlineManager.setOnline(false));
+    mockedDeleteProduct.mockRejectedValue(new TypeError('Network request failed'));
+
+    const { result } = await renderHook(() => useDeleteProductMutation(), { wrapper });
+    result.current.mutate({ ...existingProduct, id: 123, name: 'Old' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.isPaused).toBe(false);
+    expect(mockedDeleteProduct).toHaveBeenCalledTimes(1);
+  });
+
   it('useDeleteProductMutation removes both role caches for an existing entity', async () => {
     mockedDeleteProduct.mockResolvedValue(undefined);
     const removeSpy = jest.spyOn(queryClient, 'removeQueries');
@@ -672,6 +688,80 @@ describe('useProductQueries', () => {
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
   });
 
+  // After a restart a queued create has no screen awaiting it, and its form
+  // is long cleared: a failure must reach the person, not vanish.
+  it('alerts when a restored create fails, naming the item', async () => {
+    const alert = jest.fn();
+    const dialog = { alert, input: jest.fn(), toast: jest.fn() };
+    const noticeWrapper = ({ children }: { children: React.ReactNode }) => (
+      <DialogContext.Provider value={dialog}>{wrapper({ children })}</DialogContext.Provider>
+    );
+    await renderHook(() => ResumedSaveNotice(), { wrapper: noticeWrapper });
+    const onError = onResumedSaveError(queryClient);
+    const product = { ...baseProduct, id: undefined, name: 'Kettle' };
+
+    onError(new ApiError('Quota exceeded', 403), {
+      product,
+      originalImages: [],
+      originalVideos: [],
+      idempotencyKey: 'k',
+    });
+
+    expect(alert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Create failed',
+        message: expect.stringContaining('"Kettle" was not created.'),
+      }),
+    );
+  });
+
+  it('shows every restored create failure, one after another', async () => {
+    await renderWithProviders(<ResumedSaveNotice />, { withDialog: true });
+    const onError = onResumedSaveError(queryClient);
+    const variables = (name: string) => ({
+      product: { ...baseProduct, id: undefined, name },
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    await act(async () => {
+      onError(new ApiError('Unauthorized', 401), variables('Kettle'));
+      onError(new ApiError('Unauthorized', 401), variables('Toaster'));
+    });
+
+    expect(screen.getByText('"Kettle" was not created', { exact: false })).toBeOnTheScreen();
+    await act(async () => {
+      fireEvent.press(screen.getByText('OK'));
+    });
+    expect(
+      await screen.findByText('"Toaster" was not created', { exact: false }),
+    ).toBeOnTheScreen();
+  });
+
+  it('alerts when a restored save landed but its photos failed', async () => {
+    const alert = jest.fn();
+    const dialog = { alert, input: jest.fn(), toast: jest.fn() };
+    const noticeWrapper = ({ children }: { children: React.ReactNode }) => (
+      <DialogContext.Provider value={dialog}>{wrapper({ children })}</DialogContext.Provider>
+    );
+    await renderHook(() => ResumedSaveNotice(), { wrapper: noticeWrapper });
+    const onError = onResumedSaveError(queryClient);
+    const product = { ...baseProduct, id: 9, name: 'Kettle' };
+
+    onError(new MediaSyncError(9, new Error('upload')), {
+      product,
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    expect(alert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Upload failed',
+        message: expect.stringContaining('"Kettle" was saved, but some photos failed to upload'),
+      }),
+    );
+  });
+
   it('announces a restored save refused as a conflict, and refreshes the record', async () => {
     const toast = jest.fn();
     const dialog = { alert: jest.fn(), input: jest.fn(), toast };
@@ -679,7 +769,7 @@ describe('useProductQueries', () => {
     const noticeWrapper = ({ children }: { children: React.ReactNode }) => (
       <DialogContext.Provider value={dialog}>{wrapper({ children })}</DialogContext.Provider>
     );
-    await renderHook(() => ResumedSaveConflictNotice(), { wrapper: noticeWrapper });
+    await renderHook(() => ResumedSaveNotice(), { wrapper: noticeWrapper });
     const onError = onResumedSaveError(queryClient);
     const product = { ...baseProduct, id: 7, name: 'Kettle' };
 

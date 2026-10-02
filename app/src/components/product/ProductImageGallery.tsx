@@ -1,17 +1,22 @@
-import { lazy, Suspense, useCallback, useRef } from 'react';
-import { View } from 'react-native';
-import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
+import { useCallback, useRef, useState } from 'react';
+import { type LayoutChangeEvent, View } from 'react-native';
+import { LazyBoundary } from '@/components/base/LazyBoundary';
+import { lazyWithRetry } from '@/components/base/lazyWithRetry';
+import { loadLightbox } from '@/components/product/gallery/lightboxChunk';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
 import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
 import { ProductImagePlaceholder } from '@/components/product/gallery/ProductImagePlaceholder';
 import { ProductImageThumbnails } from '@/components/product/gallery/ProductImageThumbnails';
 import { useProductImageGallery } from '@/features/products/useProductImageGallery';
+import { useOpenedOnce } from '@/hooks/useOpenedOnce';
 import type { Product } from '@/types/Product';
 
-// NOTE: lazy so the zoom/gesture code loads with the gallery, not on every route's first load.
-const ProductImageLightbox = lazy(() =>
-  import('@/components/product/gallery/ProductImageLightbox').then((m) => ({
-    default: m.ProductImageLightbox,
+// NOTE: the lightbox (gestures, zoom) and the Pi preview (video player) are heavy and
+// opened rarely, so each loads on first open instead of with every product page.
+const ProductImageLightbox = lazyWithRetry(loadLightbox);
+const ProductImageCameraDialogs = lazyWithRetry(() =>
+  import('@/components/product/gallery/ProductImageCameraDialogs').then((m) => ({
+    default: m.ProductImageCameraDialogs,
   })),
 );
 
@@ -29,10 +34,17 @@ export default function ProductImageGallery({
   canEdit = true,
   onImagesChange,
 }: Props) {
+  // Pages match the strip, narrower than the window once inset into the column.
+  const [layoutWidth, setLayoutWidth] = useState<number>();
+  const onLayout = useCallback(
+    (event: LayoutChangeEvent) => setLayoutWidth(event.nativeEvent.layout.width),
+    [],
+  );
   const { media, viewer, capture, actions } = useProductImageGallery({
     product,
     editMode,
     onImagesChange,
+    layoutWidth,
   });
   const handleTakePhoto = async () => actions.takePhoto();
   const handlePickImage = async () => actions.pickImage();
@@ -42,13 +54,24 @@ export default function ProductImageGallery({
   );
   // Only one RPi button renders at a time, so one ref covers both (AppDialog's `triggerRef`).
   const rpiTriggerRef = useRef<View>(null);
+  const cameraDialogsOpen = viewer.cameraPickerVisible || viewer.previewCamera !== null;
+  const showCameraDialogs = useOpenedOnce(cameraDialogsOpen);
+  const showLightbox = useOpenedOnce(viewer.lightboxOpen);
+  const closeCameraDialogs = useCallback(() => {
+    actions.dismissCameraPicker();
+    actions.dismissPreview();
+  }, [actions]);
 
   if (media.imageCount === 0 && !(editMode && canEdit)) {
-    return <ProductImagePlaceholder width={media.width} />;
+    return (
+      <View onLayout={onLayout}>
+        <ProductImagePlaceholder width={media.width} />
+      </View>
+    );
   }
 
   return (
-    <View className="mb-4">
+    <View className="mb-4" onLayout={onLayout}>
       {media.imageCount > 0 ? (
         <ProductImageGalleryContent
           width={media.width}
@@ -89,16 +112,20 @@ export default function ProductImageGallery({
         />
       ) : null}
 
-      <ProductImageCameraDialogs
-        cameraPickerVisible={viewer.cameraPickerVisible}
-        onDismissCameraPicker={actions.dismissCameraPicker}
-        onSelectCamera={actions.selectPreviewCamera}
-        previewCamera={viewer.previewCamera}
-        onDismissPreview={actions.dismissPreview}
-        isCapturing={capture.isCapturing}
-        onCapturePreview={actions.capturePreview}
-        triggerRef={rpiTriggerRef}
-      />
+      {showCameraDialogs ? (
+        <LazyBoundary open={cameraDialogsOpen} onError={closeCameraDialogs}>
+          <ProductImageCameraDialogs
+            cameraPickerVisible={viewer.cameraPickerVisible}
+            onDismissCameraPicker={actions.dismissCameraPicker}
+            onSelectCamera={actions.selectPreviewCamera}
+            previewCamera={viewer.previewCamera}
+            onDismissPreview={actions.dismissPreview}
+            isCapturing={capture.isCapturing}
+            onCapturePreview={actions.capturePreview}
+            triggerRef={rpiTriggerRef}
+          />
+        </LazyBoundary>
+      ) : null}
 
       <ProductImageThumbnails
         imageCount={media.imageCount}
@@ -110,16 +137,18 @@ export default function ProductImageGallery({
         fallbackLabel={product.name}
       />
 
-      <Suspense fallback={null}>
-        <ProductImageLightbox
-          visible={viewer.lightboxOpen}
-          items={media.items}
-          startIndex={viewer.selectedIndex}
-          onIndexChange={actions.selectIndex}
-          onClose={actions.closeLightbox}
-          fallbackLabel={product.name}
-        />
-      </Suspense>
+      {showLightbox ? (
+        <LazyBoundary open={viewer.lightboxOpen} onError={actions.closeLightbox}>
+          <ProductImageLightbox
+            visible={viewer.lightboxOpen}
+            items={media.items}
+            startIndex={viewer.selectedIndex}
+            onIndexChange={actions.selectIndex}
+            onClose={actions.closeLightbox}
+            fallbackLabel={product.name}
+          />
+        </LazyBoundary>
+      ) : null}
     </View>
   );
 }

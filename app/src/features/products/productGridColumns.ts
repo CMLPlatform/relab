@@ -12,3 +12,24 @@ export function productGridColumns(windowWidth: number): number {
   const contentWidth = Math.min(windowWidth, MAX_CONTENT_WIDTH) - gutter;
   return contentWidth < 1000 ? 2 : 3;
 }
+
+/**
+ * Rows a product grid renders before its first scroll. FlatList counts rows, not
+ * cards, once numColumns > 1; four rows covers the first screen at every column
+ * count, and the rest of a page renders in later batches. Rows vary in height, so
+ * there is no getItemLayout.
+ */
+export const PRODUCT_GRID_INITIAL_ROWS = 4;
+
+/**
+ * Windowing for the product grids. A batch is one first screen of rows, so a
+ * scroll catches up in small steps instead of FlatList's default ten rows of
+ * cards (thirty on three columns) per frame. The window keeps five screens
+ * either side mounted, down from the default ten: cards stay in the DOM for
+ * find-in-page a good way past the viewport, at half the mounted images.
+ */
+export const PRODUCT_GRID_WINDOWING = {
+  initialNumToRender: PRODUCT_GRID_INITIAL_ROWS,
+  maxToRenderPerBatch: PRODUCT_GRID_INITIAL_ROWS,
+  windowSize: 11,
+} as const;

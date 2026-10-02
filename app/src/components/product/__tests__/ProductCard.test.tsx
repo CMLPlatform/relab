@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { useRouter } from 'expo-router';
+import { PixelRatio } from 'react-native';
 import ProductCard from '@/components/product/ProductCard';
 import { baseProduct, fireEvent, renderWithProviders, screen, setupUser } from '@/test-utils/index';
 
@@ -24,6 +25,19 @@ describe('ProductCard', () => {
     );
     expect(screen.getByText('Recycled Aluminum Laptop Stand')).toBeOnTheScreen();
     expect(screen.getByText('A nice product')).toBeOnTheScreen();
+  });
+
+  // The tint fills the whole card, not just the press target inset from it.
+  it('tints the whole card while its press target is pressed', async () => {
+    await renderWithProviders(<ProductCard product={baseProduct} />);
+    const tintClass = () =>
+      screen.getByTestId('product-card-tint', { includeHiddenElements: true }).props
+        .className as string;
+    expect(tintClass()).toContain('bg-transparent');
+    await fireEvent(screen.getByRole('link'), 'pressIn');
+    expect(tintClass()).toContain('bg-primary/12');
+    await fireEvent(screen.getByRole('link'), 'pressOut');
+    expect(tintClass()).toContain('bg-transparent');
   });
 
   it('uses the existing secondary line for a measured mass', async () => {
@@ -99,6 +113,28 @@ describe('ProductCard', () => {
     expect(
       screen.getByTestId('product-thumbnail', { includeHiddenElements: true }),
     ).toBeOnTheScreen();
+  });
+
+  it('picks the derivative that covers the 80px slot at the screen density', async () => {
+    jest.spyOn(PixelRatio, 'get').mockReturnValue(3);
+    await renderWithProviders(
+      <ProductCard
+        product={{
+          ...baseProduct,
+          thumbnailUrl: 'http://example.com/200.webp',
+          thumbnailUrls: {
+            200: 'http://example.com/200.webp',
+            400: 'http://example.com/400.webp',
+            800: 'http://example.com/800.webp',
+          },
+        }}
+      />,
+    );
+    const image = screen.getByTestId('product-thumbnail', { includeHiddenElements: true });
+    expect(image.props.source).toEqual(
+      expect.objectContaining({ uri: 'http://example.com/400.webp' }),
+    );
+    jest.restoreAllMocks();
   });
 
   it('hides the decorative thumbnail from assistive tech since the name is shown as text', async () => {

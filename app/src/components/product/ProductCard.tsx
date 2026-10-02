@@ -1,16 +1,23 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { PixelRatio, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
-import { IMAGE_FADE_MS, MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
+import { PressOverlay } from '@/components/base/PressOverlay';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
+import { IMAGE_FADE_MS, MIN_TAP_TARGET, radius, WEB_FOCUS_RING } from '@/constants';
+import { pickThumbnailUrl } from '@/services/api/media';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
+import { cn } from '@/utils/cn';
 import { getProfileHref } from '@/utils/router/profiles';
+
+/** The `w-20 h-20` thumbnail slot, in points. */
+const THUMBNAIL_PT = 80;
 
 // undefined locale defers to the device's own locale instead of hard-coding en-US.
 const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
@@ -69,12 +76,26 @@ interface Props {
   showOwner?: boolean;
 }
 
+/**
+ * The narrowest derivative that fills the 80pt slot at this density; `thumbnailUrl`
+ * (the smallest, list-size one) when the API listed none.
+ */
+function useThumbnailSource({ thumbnailUrl, thumbnailUrls }: Product) {
+  return useMemo(
+    () => ({
+      uri: pickThumbnailUrl(thumbnailUrls ?? {}, THUMBNAIL_PT * PixelRatio.get()) ?? thumbnailUrl,
+    }),
+    [thumbnailUrls, thumbnailUrl],
+  );
+}
+
 function ProductCardComponent({ product, enabled = true, showOwner = false }: Props) {
   const router = useRouter();
   const theme = useAppTheme();
   const [hadError, setHadError] = useState(false);
 
   const hasThumbnail = !hadError && !!product.thumbnailUrl;
+  const thumbnailSource = useThumbnailSource(product);
   const detailList = useMemo(
     () => [product.brand, product.model, product.productTypeName].filter(Boolean),
     [product.brand, product.model, product.productTypeName],
@@ -101,23 +122,22 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   }, [product.ownerUsername, router]);
 
   const handleImageError = useCallback(() => setHadError(true), []);
-  const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => (pressed && enabled ? styles.pressed : undefined),
-    [enabled],
-  );
+  const { tinted, handlers: tintHandlers } = useCardTint(enabled);
 
   return (
     // The press target must not wrap the owner link (axe `nested-interactive`).
     // `grow` fills the grid cell, which the row stretches to its tallest card,
     // so cards side by side share one height.
     <Card className="mx-2.5 my-1.5 grow">
+      <PressOverlay pressed={tinted} className="rounded-lg" testID="product-card-tint" />
       <View className="p-3">
         <Pressable
           onPress={enabled ? navigateToProduct : undefined}
+          {...tintHandlers}
           disabled={!enabled}
-          accessibilityRole={enabled ? 'button' : undefined}
-          style={pressableStyle}
-          className="flex-row items-center"
+          // Opens the product: a link, not an action on this page.
+          accessibilityRole={enabled ? 'link' : undefined}
+          className="flex-row items-center rounded-md"
         >
           <View className="mr-4">
             {hasThumbnail ? (
@@ -126,11 +146,11 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <View
                 aria-hidden
                 className="w-20 h-20 rounded-lg overflow-hidden"
-                style={{ backgroundColor: theme.colors.surfaceVariant }}
+                style={{ backgroundColor: theme.colors.muted }}
               >
                 <Image
                   accessibilityIgnoresInvertColors
-                  source={{ uri: product.thumbnailUrl }}
+                  source={thumbnailSource}
                   style={styles.thumbnailImage}
                   contentFit="cover"
                   transition={IMAGE_FADE_MS}
@@ -143,7 +163,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <ImagePlaceholder
                 width={80}
                 height={80}
-                borderRadius={8}
+                borderRadius={radius.card}
                 testID="product-thumbnail"
               />
             )}
@@ -170,10 +190,10 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               // Inside the press target; only the owner link sits outside it.
               <View className="mt-1 flex-row items-center gap-1">
                 {/* `colors.outline` is the input-stroke token; as text it
-                    measured 4.03:1. `onSurfaceVariant` is the muted-text
+                    measured 4.03:1. `mutedForeground` is the muted-text
                     token and is 7.8:1 on the same card. */}
-                <Icon name="clock" size={12} color={theme.colors.onSurfaceVariant} />
-                <AppText variant="caption" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Icon name="clock" size={12} color={theme.colors.mutedForeground} />
+                <AppText variant="caption" style={{ color: theme.colors.mutedForeground }}>
                   {createdAgo}
                 </AppText>
               </View>
@@ -196,21 +216,25 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 accessibilityLabel={
                   ownerLabel === 'you' ? 'View your profile' : `View ${ownerLabel}'s profile`
                 }
-                className={`flex-row items-center gap-1 pr-2 ${WEB_FOCUS_RING}`}
+                className={cn(
+                  'flex-row items-center gap-1 rounded-md pr-2',
+                  PRESS_TINT,
+                  WEB_FOCUS_RING,
+                )}
                 style={styles.ownerLink}
               >
-                <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />
+                <Icon name="user" size={12} color={theme.colors.mutedForeground} />
                 <AppText variant="caption" className="text-primary" numberOfLines={1}>
                   {ownerLabel}
                 </AppText>
               </Pressable>
             ) : (
               <View className="flex-row items-center gap-1 pr-2">
-                <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />
+                <Icon name="user" size={12} color={theme.colors.mutedForeground} />
                 <AppText
                   variant="caption"
                   numberOfLines={1}
-                  style={{ color: theme.colors.onSurfaceVariant }}
+                  style={{ color: theme.colors.mutedForeground }}
                 >
                   {ownerLabel}
                 </AppText>
@@ -223,14 +247,29 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   );
 }
 
+// The press target stops short of the owner link, so its tint is drawn on the
+// whole card instead (a tint on the target alone showed as an inset rectangle).
+// Pressable's render-prop state stays inside the target, so the card tracks it here.
+function useCardTint(enabled: boolean) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const handlers = useMemo(
+    () => ({
+      onHoverIn: () => setHovered(true),
+      onHoverOut: () => setHovered(false),
+      onPressIn: () => setPressed(true),
+      onPressOut: () => setPressed(false),
+    }),
+    [],
+  );
+  return { tinted: enabled && (hovered || pressed), handlers };
+}
+
 const ProductCard = memo(ProductCardComponent);
 
 export default ProductCard;
 
 const styles = StyleSheet.create({
-  pressed: {
-    opacity: 0.7,
-  },
   // The 44px touch floor lives on the link, via padding that the negative
   // margin lets overlap the row; `minHeight` on the row cost ~40% of the
   // records visible per screen.

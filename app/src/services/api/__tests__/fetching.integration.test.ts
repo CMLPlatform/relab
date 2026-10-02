@@ -333,7 +333,7 @@ describe('Fetching API Service logic', () => {
     it('throws a generic HTTP error for non-404 failures', async () => {
       server.use(http.get(`${API_URL}/products/99`, () => HttpResponse.json({}, { status: 500 })));
 
-      await expect(getBaseProduct(99)).rejects.toThrow('Failed to fetch product (500)');
+      await expect(getBaseProduct(99)).rejects.toThrow('Failed to fetch product');
     });
   });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
-import { getCameraGridColumns, setCamerasHeaderOptions } from '@/features/cameras/helpers';
+import { setCamerasHeaderOptions } from '@/features/cameras/helpers';
 
 type Options = {
   title: string;
@@ -85,12 +85,5 @@ describe('setCamerasHeaderOptions — back target', () => {
     await pressBack(options);
 
     expect(navigate).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('getCameraGridColumns', () => {
-  it('widens the grid on desktop', () => {
-    expect(getCameraGridColumns(true)).toBe(3);
-    expect(getCameraGridColumns(false)).toBe(2);
   });
 });

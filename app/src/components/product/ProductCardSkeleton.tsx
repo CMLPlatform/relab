@@ -6,7 +6,7 @@ import { useAppTheme } from '@/theme/appThemeContext';
 
 export default function ProductCardSkeleton() {
   const theme = useAppTheme();
-  const bg = theme.colors.surfaceVariant;
+  const bg = theme.colors.muted;
 
   return (
     <Card className="mx-2.5 my-1.5">
@@ -39,6 +39,8 @@ const styles = StyleSheet.create({
   metaLine: {
     height: 14,
     width: 140,
+    // Never wider than the narrow row it stands in for.
+    maxWidth: '60%',
     borderRadius: radius.control,
   },
   thumbnail: {

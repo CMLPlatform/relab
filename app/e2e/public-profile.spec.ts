@@ -26,7 +26,7 @@ const OWNER_LINK_NAME_PATTERN = /^View .+'s profile$/;
 // UserProducts' header once the count has loaded ("Products · 3").
 const PRODUCTS_HEADER_PATTERN = /^Products · \d+$/;
 // The product_count stat card moved into that header; these three remain.
-const STAT_LABELS = ['Total kg', 'Photos', 'Top category'];
+const STAT_LABELS = ['Weight', 'Photos', 'Top category'];
 
 test.describe('Public profile', () => {
   test('a signed-out visitor can read a public profile', {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCaptureImageMutation } from '@/features/cameras/rpi/hooks';
 import { useEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { Product } from '@/types/Product';
+import { getErrorMessage } from '@/utils/errors';
 import {
   useProductGalleryCaptureActions,
   useProductGalleryCaptureState,
@@ -56,7 +57,7 @@ function useProductGalleryActions({
           onError: (error) =>
             captureState.feedback.alert({
               title: 'Capture failed',
-              message: String(error),
+              message: getErrorMessage(error, 'Could not capture an image. Please try again.'),
               buttons: [{ text: 'OK' }],
             }),
           onSettled: () => captureActions.setIsCapturing(false),
@@ -83,12 +84,15 @@ export function useProductImageGallery({
   product,
   editMode,
   onImagesChange,
+  layoutWidth,
 }: {
   product: Product;
   editMode: boolean;
   onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
+  /** The gallery's measured width; see useProductGalleryMedia. */
+  layoutWidth?: number;
 }) {
-  const media = useProductGalleryMedia(product);
+  const media = useProductGalleryMedia(product, layoutWidth);
   const productId = typeof product.id === 'number' ? product.id : null;
   const captureState = useProductGalleryCaptureState({ productId, editMode });
   const viewerState = useProductGalleryViewer({

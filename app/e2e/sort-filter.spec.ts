@@ -72,6 +72,37 @@ test.describe('Sort menu', () => {
       .toEqual(expected);
   });
 
+  // WAI-ARIA menu keyboard model on web: focus starts on the checked item,
+  // arrows move and wrap, Home/End jump.
+  test('the sort menu is operable with arrow keys, Home and End', async ({ page }) => {
+    await goToProducts(page);
+    await openMenu(page, page.getByLabel('Sort: Newest first'));
+    const focused = () => page.evaluate(() => document.activeElement?.textContent?.trim() ?? '');
+    await expect.poll(focused).toBe('Newest first');
+    const steps: [string, string][] = [
+      ['ArrowDown', 'Oldest first'],
+      ['End', 'Brand Z→A'],
+      ['ArrowDown', 'Newest first'],
+      ['ArrowUp', 'Brand Z→A'],
+      ['Home', 'Newest first'],
+    ];
+    for (const [key, label] of steps) {
+      // biome-ignore lint/performance/noAwaitInLoops: each key press depends on the focus the last one left.
+      await page.keyboard.press(key);
+      await expect.poll(focused, { message: key }).toBe(label);
+    }
+    // Roving tabindex: the focused item is the menu's only tab stop.
+    const tabStops = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>('[role^="menuitem"]')).map(
+        (item) => item.tabIndex,
+      ),
+    );
+    expect(tabStops.filter((index) => index === 0)).toHaveLength(1);
+    // Tab leaves the menu: it closes rather than walking the items.
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[role^="menuitem"]')).toHaveCount(0);
+  });
+
   test('selecting "Oldest first" updates the URL sort param', async ({ page }) => {
     await goToProducts(page);
     await selectMenuItem(page, page.getByLabel('Sort: Newest first'), 'Oldest first');

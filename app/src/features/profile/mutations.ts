@@ -50,7 +50,7 @@ export async function updateProfileUsername({
     feedback.toast('Username updated.');
   } catch (error: unknown) {
     feedback.error(
-      `Failed to update username: ${getErrorMessage(error, 'Unknown error')}`,
+      `Failed to update username: ${getErrorMessage(error, 'Try again.')}`,
       'Update failed',
     );
   }
@@ -119,10 +119,7 @@ export async function updateProfilePreferenceField({
     await refetch(false);
     feedback.toast(copy.success(value));
   } catch (error) {
-    feedback.error(
-      `${copy.errorPrefix}: ${getErrorMessage(error, 'Unknown error')}`,
-      copy.errorTitle,
-    );
+    feedback.error(`${copy.errorPrefix}: ${getErrorMessage(error, 'Try again.')}`, copy.errorTitle);
   }
 }
 
@@ -203,7 +200,7 @@ export async function confirmOAuthUnlink({
   } catch (error: unknown) {
     closeUnlinkDialog();
     feedback.error(
-      `Failed to disconnect: ${getErrorMessage(error, 'Unknown error')}`,
+      `Failed to disconnect: ${getErrorMessage(error, 'Try again.')}`,
       'Disconnect failed',
     );
     return;
@@ -216,7 +213,7 @@ export async function confirmOAuthUnlink({
       await setYoutubeEnabled(false);
     } catch (error: unknown) {
       feedback.error(
-        `Google was disconnected, but YouTube streaming could not be turned off: ${getErrorMessage(error, 'Unknown error')}`,
+        `Google was disconnected, but YouTube streaming could not be turned off: ${getErrorMessage(error, 'Try again.')}`,
         'YouTube still enabled',
       );
     }

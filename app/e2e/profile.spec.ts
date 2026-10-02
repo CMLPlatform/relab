@@ -43,14 +43,14 @@ test.describe('Profile: access', () => {
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
     await finishOnboardingIfVisible(page);
     // Once authenticated, the header pill switches from "Sign in" to the username
-    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).not.toBeVisible({
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).not.toBeVisible({
       timeout: 5_000,
     });
     // The header also shows the email address as part of the identity in the profile page,
     // verifying the auth state is reflected. Navigate to /account to confirm it loads.
     await page.goto('/account');
     await expect(page).toHaveURL(PROFILE_URL_PATTERN, { timeout: 5_000 });
-    await expect(page.getByText('Hi,')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 });
 
@@ -101,9 +101,7 @@ test.describe('Profile: content', () => {
 test.describe('Profile: username dialog', () => {
   test('the edit control beside the username opens the edit-username dialog', async ({ page }) => {
     await loginAndGoToProfile(page);
-    // The "Hi," Text and the username Pressable are siblings in the hero section.
-    // Clicking the sibling immediately after "Hi," triggers setEditUsernameVisible.
-    await expect(page.getByText('Hi,')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     // The heading is no longer the trigger: ProfileHero renders it beside a
     // pencil button so the screen keeps a heading in its outline. Target the
     // button by accessible name rather than by position.
@@ -147,7 +145,8 @@ test.describe('Profile: logout dialog', () => {
     tag: ['@cross-browser', '@auth'],
   }, async ({ page }) => {
     await loginAndGoToProfile(page);
-    await page.getByRole('button', { name: 'Sign out', exact: true }).first().click();
+    // Profile rows are named "title, subtitle"; a bare "Sign out" is only the dialog's button.
+    await page.getByRole('button', { name: 'Sign out, Switch to another account' }).click();
     await expect(page.getByText('Are you sure you want to sign out?')).toBeVisible({
       timeout: 5_000,
     });
@@ -155,7 +154,7 @@ test.describe('Profile: logout dialog', () => {
     await page.getByRole('button', { name: 'Sign out', exact: true }).last().click();
     await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 15_000 });
     // The header should now show "Sign in" instead of the username
-    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible({
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible({
       timeout: 5_000,
     });
   });

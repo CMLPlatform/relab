@@ -2,12 +2,13 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useGlobalSearchParams } from 'expo-router';
 import { HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
+import { AccessibilityInfo } from 'react-native';
 import UserProfileScreen from '@/app/users/[username]';
 import { API_URL } from '@/config';
 import { ApiError } from '@/services/api/errors';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { getPublicProfile } from '@/services/api/profiles';
-import { renderWithProviders } from '@/test-utils/index';
+import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
 import { server } from '@/test-utils/server';
 
 jest.mock('@/services/api/profiles');
@@ -46,7 +47,7 @@ describe('UserProfileScreen', () => {
   it('shows loading spinner while the profile is being fetched', async () => {
     mockGetPublicProfile.mockReturnValue(new Promise(() => {})); // never resolves
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
-    await waitFor(() => expect(screen.getByTestId('activity-indicator')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByRole('progressbar')).toBeOnTheScreen());
     expect(screen.queryByText('alice')).toBeNull();
   });
 
@@ -58,12 +59,12 @@ describe('UserProfileScreen', () => {
 
     // Avatar initials
     expect(screen.getByText('AL')).toBeOnTheScreen();
-    // Stats
-    expect(screen.getByText('5.5')).toBeOnTheScreen();
+    // Stats, as a spec row with the unit on the value
+    expect(screen.getByText('5.5 kg')).toBeOnTheScreen();
     expect(screen.getByText('7')).toBeOnTheScreen();
     expect(screen.getByText('Electronics')).toBeOnTheScreen();
     // Labels
-    expect(screen.getByText('Total kg')).toBeOnTheScreen();
+    expect(screen.getByText('Weight')).toBeOnTheScreen();
     expect(screen.getByText('Photos')).toBeOnTheScreen();
     expect(screen.getByText('Top category')).toBeOnTheScreen();
   });
@@ -78,6 +79,69 @@ describe('UserProfileScreen', () => {
     );
     expect(screen.getByText('Products · 1')).toBeOnTheScreen();
     expect(screen.queryByLabelText('Load more products')).toBeNull();
+  });
+
+  // A prolific profile must not mount every card it has loaded: the grid is a
+  // virtualized list under the profile, and "Load more" appends the next page.
+  it('renders a long product list lazily and appends the next page on Load more', async () => {
+    (useGlobalSearchParams as jest.Mock).mockReturnValue({ username: 'alice' });
+    mockGetPublicProfile.mockResolvedValue(profileFixture);
+    const page = (n: number) =>
+      Array.from({ length: 24 }, (_, i) => ({
+        id: (n - 1) * 24 + i + 1,
+        name: `Part ${(n - 1) * 24 + i + 1}`,
+        owner_username: 'alice',
+      }));
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        const n = Number(new URL(request.url).searchParams.get('page') ?? '1');
+        return HttpResponse.json({ items: page(n), total: 48, page: n, size: 24, pages: 2 });
+      }),
+    );
+    await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+
+    await waitFor(() => expect(screen.getByText('Products · 48')).toBeOnTheScreen());
+    expect(screen.getByText('Part 1')).toBeOnTheScreen();
+    expect(screen.queryByText('Part 24')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Load more products'));
+
+    await waitFor(() => expect(screen.queryByLabelText('Load more products')).toBeNull());
+    expect(screen.getByText('Products · 48')).toBeOnTheScreen();
+  });
+
+  // VoiceOver ignores the footer's live region; the appended count is announced explicitly.
+  it('announces the loaded count on iOS after Load more', async () => {
+    mockPlatform('ios');
+    const announce = jest
+      .spyOn(AccessibilityInfo, 'announceForAccessibility')
+      .mockImplementation(() => {});
+    mockGetPublicProfile.mockResolvedValue(profileFixture);
+    const page = (n: number) =>
+      Array.from({ length: 24 }, (_, i) => ({
+        id: (n - 1) * 24 + i + 1,
+        name: `Part ${(n - 1) * 24 + i + 1}`,
+        owner_username: 'alice',
+      }));
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        const n = Number(new URL(request.url).searchParams.get('page') ?? '1');
+        return HttpResponse.json({ items: page(n), total: 48, page: n, size: 24, pages: 2 });
+      }),
+    );
+    try {
+      await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+      await waitFor(() => expect(screen.getByText('24 of 48 products')).toBeOnTheScreen());
+      expect(announce).not.toHaveBeenCalledWith('24 of 48 products');
+
+      await fireEvent.press(screen.getByLabelText('Load more products'));
+
+      await waitFor(() => expect(announce).toHaveBeenCalledWith('48 of 48 products'));
+      expect(screen.getByText('48 of 48 products')).toBeOnTheScreen();
+    } finally {
+      announce.mockRestore();
+      restorePlatform();
+    }
   });
 
   it('shows an empty state when the user has no public products', async () => {
@@ -125,7 +189,7 @@ describe('UserProfileScreen', () => {
     );
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
-    await waitFor(() => expect(screen.getByText("Couldn't load products.")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText("Couldn't load products")).toBeOnTheScreen());
     expect(screen.queryByText('No public products yet')).toBeNull();
 
     await fireEvent.press(screen.getByText('Retry'));
@@ -138,7 +202,7 @@ describe('UserProfileScreen', () => {
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(screen.getByText('Network error')).toBeOnTheScreen());
-    expect(screen.queryByTestId('activity-indicator')).toBeNull();
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows friendly privacy message for a 404 error', async () => {
@@ -159,7 +223,7 @@ describe('UserProfileScreen', () => {
     // The loading state stays true since setLoading(false) is in finally of the skipped block
     // Wait a tick so useEffect fires
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
-    expect(screen.queryByText('Total kg')).toBeNull();
+    expect(screen.queryByText('Top category')).toBeNull();
   });
 
   it('does not call getPublicProfile when username is an array', async () => {
@@ -168,7 +232,7 @@ describe('UserProfileScreen', () => {
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
-    expect(screen.queryByText('Total kg')).toBeNull();
+    expect(screen.queryByText('Top category')).toBeNull();
   });
 
   it('re-fetches the profile when the error state’s Retry action is pressed', async () => {

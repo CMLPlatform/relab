@@ -1,16 +1,13 @@
 import type { RefObject } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { Icon } from '@/components/base/Icon';
-import { Skeleton } from '@/components/base/Skeleton';
+import { IconButton } from '@/components/base/IconButton';
+import { SpecFacts } from '@/components/base/SpecFacts';
 import { Badge } from '@/components/base/ui/badge';
 import { Text } from '@/components/base/ui/text';
-import { radius } from '@/constants';
 import type { PublicProfileView } from '@/services/api/profiles';
-import { useAppTheme } from '@/theme/appThemeContext';
 import type { User } from '@/types/User';
 import { heading } from '@/utils/a11y';
-import { createProfileSectionStyles } from './styles';
 
 type ProfileHeroProps = {
   profile: User;
@@ -21,13 +18,9 @@ type ProfileHeroProps = {
 
 /** Account page header: identity block in the same spec-sheet voice as the product SpecHeader. */
 export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }: ProfileHeroProps) {
-  const theme = useAppTheme();
   return (
-    <View className="gap-2 px-4 py-3">
-      {/* A greeting, not a tag value: caption, not eyebrow (DESIGN.md Eyebrow-Is-A-Datum). */}
-      <AppText variant="caption" className="text-muted-foreground">
-        Hi,
-      </AppText>
+    // No horizontal padding: the name shares the section cards' left edge.
+    <View className="gap-2 pt-3">
       {/* The heading sits beside the edit control, not inside it: a button's
           content is its label, and a heading buried there leaves the screen
           without one in the outline. */}
@@ -41,15 +34,13 @@ export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }:
         >
           {profile.username}
         </AppText>
-        <Pressable
+        <IconButton
           ref={usernameEditTriggerRef}
+          icon="pencil"
+          size={18}
           onPress={onEditUsername}
-          accessibilityRole="button"
           accessibilityLabel="Edit username"
-          className="h-11 w-11 items-center justify-center"
-        >
-          <Icon name="pencil" size={18} color={theme.colors.onBackground} />
-        </Pressable>
+        />
       </View>
 
       <AppText variant="body" className="text-muted-foreground">
@@ -90,60 +81,16 @@ type ProfileStatsSectionProps = {
   statsLoading: boolean;
 };
 
-function StatCard({
-  label,
-  value,
-  loading = false,
-  singleLine = false,
-}: {
-  label: string;
-  value: string | number;
-  loading?: boolean;
-  singleLine?: boolean;
-}) {
-  const theme = useAppTheme();
-  const styles = createProfileSectionStyles(theme);
-  return (
-    <View className="flex-1 items-center rounded-lg p-2.5" style={styles.statItem}>
-      {loading ? (
-        <Skeleton
-          testID="stat-value-skeleton"
-          style={[statSkeletonStyles.value, { backgroundColor: theme.colors.surfaceVariant }]}
-        />
-      ) : (
-        <AppText variant="heading" className="font-bold" numberOfLines={singleLine ? 1 : undefined}>
-          {value}
-        </AppText>
-      )}
-      <AppText variant="eyebrow" className="mt-0.5">
-        {label}
-      </AppText>
-    </View>
-  );
-}
-
-// Skeleton wraps Animated.View, which ignores className. Sized to the heading
-// line height (24) so the real value does not shift layout.
-const statSkeletonStyles = StyleSheet.create({
-  value: {
-    width: 28,
-    height: 24,
-    borderRadius: radius.control,
-  },
-});
-
+/** The account's own record counts, as a Spec Row under the identity block. */
 export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSectionProps) {
   return (
-    <View className="flex-row gap-2 px-3 py-4">
-      <StatCard label="Products" value={ownStats?.product_count ?? 0} loading={statsLoading} />
-      <StatCard label="Photos" value={ownStats?.image_count ?? 0} loading={statsLoading} />
-      <StatCard label="Weight (kg)" value={ownStats?.total_weight_kg ?? 0} loading={statsLoading} />
-      <StatCard
-        label="Top category"
-        value={ownStats?.top_category || '—'}
-        loading={statsLoading}
-        singleLine
-      />
-    </View>
+    <SpecFacts
+      facts={[
+        { label: 'Products', value: String(ownStats?.product_count ?? 0) },
+        { label: 'Photos', value: String(ownStats?.image_count ?? 0) },
+        { label: 'Weight', value: `${ownStats?.total_weight_kg ?? 0} kg` },
+        { label: 'Top category', value: ownStats?.top_category || '—' },
+      ].map((fact) => ({ ...fact, loading: statsLoading }))}
+    />
   );
 }

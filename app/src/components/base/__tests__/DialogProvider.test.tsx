@@ -3,7 +3,13 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { createRef } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
+import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
+
+jest.mock('@/components/base/useBottomNav', () => ({
+  ...jest.requireActual<object>('@/components/base/useBottomNav'),
+  useBottomNavVisible: jest.fn(() => false),
+}));
 
 function renderAlertTrigger(onPress: () => void) {
   return (
@@ -198,6 +204,42 @@ describe('DialogProvider', () => {
     expect(onSubmit).toHaveBeenCalledWith('hello');
   });
 
+  it('a second Enter during the closing fade does not re-run the action with an empty value', async () => {
+    // Hold the exit open: withTiming never reports finished, so the body stays mounted.
+    const timing = jest
+      .spyOn(
+        jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated'),
+        'withTiming',
+      )
+      .mockImplementation(((to: number) => to) as never);
+    const onSubmit = jest.fn();
+
+    function InputSubmitTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() =>
+        dialog.input({
+          title: 'Enter Name',
+          placeholder: 'Your name',
+          buttons: [{ text: 'Cancel' }, { text: 'OK', onPress: onSubmit }],
+        }),
+      );
+    }
+
+    try {
+      await renderWithProviders(<InputSubmitTest />, { withDialog: true });
+      await user.press(screen.getByTestId('trigger'));
+      await user.type(screen.getByPlaceholderText('Your name'), 'hello');
+      await fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
+      // Still mounted mid-fade; a second Enter lands on the cleared field.
+      await fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit).toHaveBeenCalledWith('hello');
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
   it('submitEditing does not fire the primary action while it is disabled', async () => {
     const onSubmit = jest.fn();
 
@@ -269,6 +311,54 @@ describe('DialogProvider', () => {
     expect(screen.getByText('Second Title')).toBeOnTheScreen();
   });
 
+  // Several queued creates can fail in one reconnect; each failure alert must
+  // be seen, not overwritten by the next.
+  it('queues an alert raised while another is open, and shows it after the first closes', async () => {
+    function TwoAlerts() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => {
+        dialog.alert({ title: 'First failure', buttons: [{ text: 'OK' }] });
+        dialog.alert({ title: 'Second failure', buttons: [{ text: 'Dismiss' }] });
+      });
+    }
+
+    await renderWithProviders(<TwoAlerts />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+
+    expect(screen.getByText('First failure')).toBeOnTheScreen();
+    expect(screen.queryByText('Second failure')).toBeNull();
+
+    await user.press(screen.getByText('OK'));
+
+    expect(await screen.findByText('Second failure')).toBeOnTheScreen();
+    expect(screen.queryByText('First failure')).toBeNull();
+  });
+
+  // A second OK press can reach the closing dialog before it re-renders; it
+  // must not also dismiss the next queued dialog unseen.
+  it('ignores a second dismiss from a dialog that already closed', async () => {
+    function ThreeAlerts() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => {
+        dialog.alert({ title: 'First failure', buttons: [{ text: 'OK' }] });
+        dialog.alert({ title: 'Second failure', buttons: [{ text: 'Next' }] });
+        dialog.alert({ title: 'Third failure', buttons: [{ text: 'Done' }] });
+      });
+    }
+
+    await renderWithProviders(<ThreeAlerts />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+
+    const ok = screen.getByText('OK');
+    await act(async () => {
+      fireEvent.press(ok);
+      fireEvent.press(ok);
+    });
+
+    expect(await screen.findByText('Second failure')).toBeOnTheScreen();
+    expect(screen.queryByText('Third failure')).toBeNull();
+  });
+
   it('pressing a button with no onPress closes the dialog without throwing', async () => {
     function Test() {
       const dialog = useDialog();
@@ -322,6 +412,19 @@ describe('DialogProvider', () => {
     expect(screen.queryByText('Discard changes?')).toBeNull();
   });
 
+  it('floats the toast above BottomNav when the bar is showing', async () => {
+    jest.mocked(useBottomNavVisible).mockReturnValue(true);
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    expect(StyleSheet.flatten(screen.getByTestId('toast-container').props.style).bottom).toBe(
+      24 + BOTTOM_NAV_CLEARANCE,
+    );
+    jest.mocked(useBottomNavVisible).mockReturnValue(false);
+  });
+
   it('toast() auto-dismisses after its duration and announces via aria-live without a Modal', async () => {
     function ToastTest() {
       const dialog = useDialog();
@@ -334,7 +437,7 @@ describe('DialogProvider', () => {
 
     const toastText = screen.getByText('Saved');
     expect(toastText).toBeOnTheScreen();
-    expect(toastText).toHaveProp('accessibilityLiveRegion', 'polite');
+    expect(screen.getByTestId('toast-live-region')).toHaveProp('accessibilityLiveRegion', 'polite');
 
     // A toast must not steal focus or block the rest of the screen: the
     // trigger stays pressable while the toast is showing.
@@ -348,6 +451,89 @@ describe('DialogProvider', () => {
     await waitFor(() => {
       expect(screen.queryByText('Saved')).toBeNull();
     });
+  });
+
+  it('keeps the status region mounted and empty while there is no toast', async () => {
+    await renderWithProviders(<View />, { withDialog: true });
+
+    const region = screen.getByTestId('toast-live-region');
+    expect(region.props.role).toBe('status');
+    expect(region.props.accessibilityLiveRegion).toBe('polite');
+    expect(region.children).toHaveLength(0);
+  });
+
+  it('showing a toast changes only the text inside the same status region', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    const before = screen.getByTestId('toast-live-region');
+
+    await user.press(screen.getByTestId('trigger'));
+
+    expect(screen.getByTestId('toast-live-region')).toBe(before);
+    expect(before).toContainElement(screen.getByText('Saved'));
+  });
+
+  describe.each([
+    ['focus', 'focus', 'blur'],
+    ['hover', 'hoverIn', 'hoverOut'],
+  ])('an Undo toast under %s', (_name, enter, leave) => {
+    it('stays past its duration until released', async () => {
+      function ToastTest() {
+        const dialog = useDialog();
+        return renderAlertTrigger(() =>
+          dialog.toast('Photo removed', { label: 'Undo', onPress: () => {} }),
+        );
+      }
+      await renderWithProviders(<ToastTest />, { withDialog: true });
+      await user.press(screen.getByTestId('trigger'));
+
+      await fireEvent(screen.getByTestId('toast-hold-area'), enter);
+      await act(() => {
+        jest.advanceTimersByTime(9000);
+      });
+      expect(screen.getByText('Photo removed')).toBeOnTheScreen();
+
+      await fireEvent(screen.getByTestId('toast-hold-area'), leave);
+      await act(() => {
+        jest.advanceTimersByTime(9000);
+      });
+      await waitFor(() => {
+        expect(screen.queryByText('Photo removed')).toBeNull();
+      });
+    });
+  });
+
+  it('keeps a replacement toast held while the pointer rests on the hold area', async () => {
+    let n = 0;
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => {
+        n += 1;
+        dialog.toast(`Photo ${n} removed`, { label: 'Undo', onPress: () => {} });
+      });
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+    await fireEvent(screen.getByTestId('toast-hold-area'), 'hoverIn');
+
+    await user.press(screen.getByTestId('trigger'));
+    await act(() => {
+      jest.advanceTimersByTime(9000);
+    });
+    expect(screen.getByText('Photo 2 removed')).toBeOnTheScreen();
+  });
+
+  it('keeps the toast hold area out of the tab order', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByTestId('toast-hold-area')).toHaveProp('tabIndex', -1);
   });
 
   it('repeating the same toast message resets the dismiss timer', async () => {

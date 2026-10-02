@@ -11,6 +11,7 @@ describe('PreviewErrorOverlay', () => {
     );
 
     const retry = screen.getByRole('button', { name: 'Tap to retry' });
+    expect(retry.props.className).toContain('min-h-11');
     await fireEvent.press(retry);
     expect(onRetry).toHaveBeenCalledTimes(1);
   });

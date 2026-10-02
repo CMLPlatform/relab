@@ -24,20 +24,32 @@ describe('ProfileAboutSection', () => {
   it('renders the 9R framework row', async () => {
     await renderWithProviders(<ProfileAboutSection />);
 
-    expect(screen.getByRole('button', { name: 'The 9R framework' })).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', {
+        name: 'The 9R framework, The nine circular-economy strategies behind Relab',
+      }),
+    ).toBeOnTheScreen();
     expect(screen.getByText('The nine circular-economy strategies behind Relab')).toBeOnTheScreen();
   });
 
   it('renders the glossary row', async () => {
     await renderWithProviders(<ProfileAboutSection />);
 
-    expect(screen.getByRole('button', { name: 'Glossary' })).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', {
+        name: 'Glossary, What the words in Relab mean, in plain language',
+      }),
+    ).toBeOnTheScreen();
   });
 
   it('opens the glossary on the docs site', async () => {
     await renderWithProviders(<ProfileAboutSection />);
 
-    await user.press(screen.getByRole('button', { name: 'Glossary' }));
+    await user.press(
+      screen.getByRole('button', {
+        name: 'Glossary, What the words in Relab mean, in plain language',
+      }),
+    );
 
     expect(mockOpenExternalUrl).toHaveBeenCalledWith(
       new URL('/user-guides/glossary', DOCS_URL).toString(),
@@ -47,7 +59,11 @@ describe('ProfileAboutSection', () => {
   it('opens the 9R framework page on the docs site', async () => {
     await renderWithProviders(<ProfileAboutSection />);
 
-    await user.press(screen.getByRole('button', { name: 'The 9R framework' }));
+    await user.press(
+      screen.getByRole('button', {
+        name: 'The 9R framework, The nine circular-economy strategies behind Relab',
+      }),
+    );
 
     expect(mockOpenExternalUrl).toHaveBeenCalledWith(
       new URL('/project/9r-framework', DOCS_URL).toString(),

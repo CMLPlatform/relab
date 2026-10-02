@@ -101,7 +101,7 @@ describe('useProductImageGallery', () => {
     expect(result.current.viewer.selectedIndex).toBe(0);
   });
 
-  it('alerts when trying to capture from an RPi camera before the product is saved', async () => {
+  it('hides the RPi button on an unsaved product', async () => {
     const { result } = await renderHook(() =>
       useProductImageGallery({
         product: { ...baseProduct, id: undefined } as Product,
@@ -110,14 +110,7 @@ describe('useProductImageGallery', () => {
       }),
     );
 
-    await act(() => {
-      result.current.actions.requestRpiCapture();
-    });
-
-    expect(mockFeedbackAlert).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Save required' }),
-    );
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(result.current.capture.showRpiButton).toBe(false);
   });
 
   it('routes to camera setup when no RPi cameras are configured', async () => {

@@ -1,7 +1,15 @@
 import { StyleSheet } from 'react-native';
 import { alpha } from '@/theme/color';
 import { memoizeByTheme } from '@/theme/memoizeByTheme';
+import { palette } from '@/theme/palette.generated';
 import type { AppTheme } from '@/theme/types';
+
+/**
+ * Pressed and hovered fill for the glass buttons laid over a photo: a filled control, so
+ * primary-strong (DESIGN.md, Press feedback). Light-scheme strong in both schemes, because the
+ * media scrim and its white ink do not change with the scheme either.
+ */
+export const MEDIA_PRESSED_FILL = palette.light.primaryStrong;
 
 // Theme-dependent color with no CSS var (tokens.* / alpha()) stays in `style`.
 export const createGalleryStyles = memoizeByTheme((theme: AppTheme) => {

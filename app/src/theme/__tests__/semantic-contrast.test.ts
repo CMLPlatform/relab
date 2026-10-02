@@ -45,4 +45,12 @@ describe.each<[string, AppTheme, string]>([
       expect(contrast(theme.tokens.status.onStatus, fill)).toBeGreaterThanOrEqual(4.5);
     }
   });
+  test('destructive fill carries readable destructive-foreground text', () => {
+    expect(contrast(theme.colors.onError, theme.colors.error)).toBeGreaterThanOrEqual(4.5);
+  });
+  test('pressed primary-strong fill carries readable onPrimary text', () => {
+    expect(contrast(theme.colors.onPrimary, theme.colors.primaryStrong)).toBeGreaterThanOrEqual(
+      4.5,
+    );
+  });
 });

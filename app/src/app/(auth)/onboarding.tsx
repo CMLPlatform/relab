@@ -23,10 +23,10 @@ function OnboardingBody({
   return (
     // Sizing and centering come from AuthScreen; this only sets inner rhythm.
     <View className="gap-3">
-      <LoginBrandHero />
-      {/* The hero scrim is deliberately light: the card is what carries control
-          legibility over the photo backdrop, so the copy and field live on it. */}
+      {/* The hero scrim is deliberately light: the card is what carries the mark and
+          control legibility over the photo backdrop, so everything lives on it. */}
       <LoginCard>
+        <LoginBrandHero />
         <AppText variant="title" className="font-bold text-center text-foreground">
           Welcome!
         </AppText>
@@ -37,6 +37,7 @@ function OnboardingBody({
           control={control}
           name="username"
           label="Username"
+          required
           autoCapitalize="none"
           autoCorrect={false}
           placeholder="e.g. awesome_user"

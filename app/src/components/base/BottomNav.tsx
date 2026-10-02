@@ -7,6 +7,7 @@ import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { PRESS_TINT } from './pressFeedback';
 import { type Tab, tabRouteName, useBottomNavTabs, useBottomNavVisible } from './useBottomNav';
 
 function BottomNavTab({
@@ -22,15 +23,18 @@ function BottomNavTab({
   const handlePress = useCallback(() => onPress(tab.key), [onPress, tab.key]);
   return (
     <Pressable
-      accessibilityRole="tab"
+      // Links to destinations, like TopNav: a tab role promises an in-page tabpanel.
+      accessibilityRole="link"
       accessibilityLabel={tab.label}
-      // aria-*, not accessibilityState: react-native-web reads only the aria props,
-      // while RN folds them back into accessibilityState for native.
-      aria-selected={active}
+      aria-current={active ? 'page' : undefined}
+      // Native screen readers read `selected`; on web it would become
+      // aria-selected, which a link does not allow.
+      accessibilityState={Platform.OS === 'web' ? undefined : { selected: active }}
       onPress={handlePress}
       style={{ minHeight: MIN_TAP_TARGET }}
       className={cn(
-        'flex-1 items-center justify-center gap-0.5 py-2 active:opacity-60',
+        'flex-1 items-center justify-center gap-0.5 py-2',
+        PRESS_TINT,
         Platform.select({
           web: cn('cursor-pointer outline-none', WEB_FOCUS_RING),
         }),
@@ -39,9 +43,12 @@ function BottomNavTab({
       <Icon
         name={tab.icon}
         size={22}
-        color={active ? theme.colors.primary : theme.colors.onSurfaceVariant}
+        color={active ? theme.colors.primary : theme.colors.mutedForeground}
       />
-      <AppText variant="label" className={active ? 'text-primary' : 'text-muted-foreground'}>
+      <AppText
+        variant="caption"
+        className={cn('font-medium', active ? 'text-primary' : 'text-muted-foreground')}
+      >
         {tab.label}
       </AppText>
     </Pressable>
@@ -83,7 +90,6 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
       <View
         className="flex-row border-t border-border bg-background"
         style={{ paddingBottom: insets.bottom }}
-        accessibilityRole="tablist"
       >
         {tabs.map((tab) => (
           <BottomNavTab

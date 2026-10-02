@@ -1,4 +1,5 @@
 import { View } from 'react-native';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
@@ -15,7 +16,7 @@ export default function ImagePlaceholder({
   width,
   height,
   label,
-  borderRadius = 8,
+  borderRadius = radius.card,
   testID,
 }: Props) {
   const theme = useAppTheme();
@@ -28,7 +29,7 @@ export default function ImagePlaceholder({
         width,
         height,
         borderRadius,
-        backgroundColor: theme.colors.surfaceVariant,
+        backgroundColor: theme.colors.muted,
         alignItems: 'center',
         justifyContent: 'center',
       }}

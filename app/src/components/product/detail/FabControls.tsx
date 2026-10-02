@@ -1,5 +1,6 @@
 import type { ComponentProps, RefObject } from 'react';
 import { Platform, type View, type ViewStyle } from 'react-native';
+import { LayoutAnimationConfig } from 'react-native-reanimated';
 import { Fab } from '@/components/base/Fab';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { CameraStreamPicker } from '@/components/cameras/CameraStreamPicker';
@@ -58,34 +59,37 @@ export function ProductFabControls({
   const bottomOffset = Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0;
   return (
     <>
-      {isMd || editMode ? (
-        <SaveBar
-          layout={isMd ? 'floating' : 'flow'}
-          bottomOffset={bottomOffset}
-          entityRole={entityRole}
-          editMode={editMode}
-          isDirty={isDirty}
-          isSaving={isSaving}
-          isPaused={isPaused}
-          validationValid={validationValid}
-          validationError={validationError}
-          errorCount={errorCount}
-          onErrorSummaryPress={onErrorSummaryPress}
-          onPrimaryPress={onPrimaryFabPress}
-          canModerate={canModerate}
-        />
-      ) : (
-        <PrimaryProductFab
-          bottomOffset={bottomOffset}
-          entityRole={entityRole}
-          icon={primaryFabIcon}
-          onPrimaryPress={onPrimaryFabPress}
-          fabExtended={fabExtended}
-          isSaving={isSaving}
-          isPaused={isPaused}
-          canModerate={canModerate}
-        />
-      )}
+      {/* skipExiting: leaving the screen does not play the save bar's exit. */}
+      <LayoutAnimationConfig skipExiting>
+        {isMd || editMode ? (
+          <SaveBar
+            layout={isMd ? 'floating' : 'flow'}
+            bottomOffset={bottomOffset}
+            entityRole={entityRole}
+            editMode={editMode}
+            isDirty={isDirty}
+            isSaving={isSaving}
+            isPaused={isPaused}
+            validationValid={validationValid}
+            validationError={validationError}
+            errorCount={errorCount}
+            onErrorSummaryPress={onErrorSummaryPress}
+            onPrimaryPress={onPrimaryFabPress}
+            canModerate={canModerate}
+          />
+        ) : (
+          <PrimaryProductFab
+            bottomOffset={bottomOffset}
+            entityRole={entityRole}
+            icon={primaryFabIcon}
+            onPrimaryPress={onPrimaryFabPress}
+            fabExtended={fabExtended}
+            isSaving={isSaving}
+            isPaused={isPaused}
+            canModerate={canModerate}
+          />
+        )}
+      </LayoutAnimationConfig>
       {productId ? (
         <CameraStreamPicker
           productId={productId}

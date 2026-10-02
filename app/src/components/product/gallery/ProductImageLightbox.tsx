@@ -20,11 +20,20 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { Easing, ReduceMotion, ZoomIn } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  useReducedMotion,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { type PressState, pressFill } from '@/components/base/pressFeedback';
 import ZoomableImage, { type ZoomableImageHandle } from '@/components/product/ZoomableImage';
+import { radius } from '@/constants';
+import { type PresenceTiming, useModalPresence } from '@/hooks/useModalPresence';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { memoizeByTheme } from '@/theme/memoizeByTheme';
 import type { AppTheme } from '@/theme/types';
@@ -41,8 +50,23 @@ import {
   type ScrollEvent,
   scrollListToIndex,
 } from './shared';
+import { MEDIA_PRESSED_FILL } from './styles';
 
-const chevronPressableStyle = ({ pressed }: { pressed: boolean }) => pressed && { opacity: 0.7 };
+const chevronPressableStyle = (state: PressState) => [
+  { borderRadius: radius.control },
+  pressFill(state, MEDIA_PRESSED_FILL),
+];
+
+// The focal moment: the photo grows into view with a confident settle, and closing
+// gets out of the way faster than it arrived.
+// NOTE: ReduceMotion.Never departs from the ReduceMotion.System default on
+// purpose. Reduced motion keeps this fade and drops only the scale term (see
+// `photoStyle`), the opacity-only path the motion brief asks for.
+const LIGHTBOX_TIMING: PresenceTiming = {
+  open: { duration: 250, easing: Easing.bezier(0.16, 1, 0.3, 1), reduceMotion: ReduceMotion.Never },
+  close: { duration: 150, easing: Easing.in(Easing.quad), reduceMotion: ReduceMotion.Never },
+};
+const CLOSED_SCALE = 0.96;
 
 type Props = {
   visible: boolean;
@@ -65,6 +89,8 @@ export function ProductImageLightbox({
 }: Props) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
+  const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   // Reactive: a non-subscribing read measured against the pre-rotation screen.
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [isZoomed, setIsZoomed] = useState(false);
@@ -77,6 +103,12 @@ export function ProductImageLightbox({
   const isTouchWeb =
     isWeb && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const index = startIndex;
+
+  const { mounted, progress, fadeStyle } = useModalPresence(visible, LIGHTBOX_TIMING);
+  // The backdrop and controls fade; only the photo grows, so the edges never show through.
+  const photoStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: reduceMotion ? 1 : CLOSED_SCALE + (1 - CLOSED_SCALE) * progress.value }],
+  }));
 
   const clampIndex = useCallback(
     (nextIndex: number) => clampIndexIn(nextIndex, items.length),
@@ -247,63 +279,70 @@ export function ProductImageLightbox({
   const goPrev = useCallback(() => navigateBy(-1), [navigateBy]);
   const goNext = useCallback(() => navigateBy(1), [navigateBy]);
   const closeButtonStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [styles.closeButton, pressed && { opacity: 0.7 }],
-    [styles],
+    (state: PressState) => [
+      styles.closeButton,
+      { top: insets.top + 8 },
+      pressFill(state, MEDIA_PRESSED_FILL),
+    ],
+    [styles, insets.top],
   );
 
-  if (!visible) return null;
+  if (!mounted) return null;
 
   return (
     <Modal
-      visible={visible}
+      visible
       transparent
-      animationType="fade"
+      // The sheet runs its own open and close (LIGHTBOX_TIMING).
+      animationType="none"
       onRequestClose={handleClose}
       statusBarTranslucent={true}
+      aria-label="Image gallery"
     >
-      <GestureHandlerRootView style={styles.root}>
-        <Animated.View
-          style={styles.root}
-          entering={ZoomIn.duration(200)
-            .withInitialValues({ transform: [{ scale: 0.94 }] })
-            .easing(Easing.out(Easing.cubic))
-            .reduceMotion(ReduceMotion.System)}
-        >
+      <GestureHandlerRootView style={styles.gestureRoot}>
+        <Animated.View style={[styles.root, fadeStyle]} pointerEvents={visible ? 'auto' : 'none'}>
           <Pressable
             onPress={handleClose}
             hitSlop={20}
+            accessibilityRole="button"
             accessibilityLabel="Close lightbox"
-            className="absolute top-10 right-5 z-10 rounded-md w-11 h-11 justify-center items-center"
+            className="absolute right-5 z-10 rounded-md w-11 h-11 justify-center items-center"
             style={closeButtonStyle}
           >
             <Icon name="x" size={28} color={theme.tokens.text.onMedia} />
           </Pressable>
 
-          <GalleryFlatList
-            ref={setScrollRef}
-            testID="lightbox-pager"
-            data={items}
-            horizontal
-            pagingEnabled
-            disableIntervalMomentum={true}
-            bounces={false}
-            scrollEnabled={!(isZoomed || isTouchWeb)}
-            style={styles.list}
-            snapToInterval={screenWidth}
-            snapToAlignment="center"
-            decelerationRate="fast"
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={galleryItemKeyExtractor}
-            getItemLayout={getItemLayout}
-            onScrollBeginDrag={handleScrollBeginDrag}
-            onScrollEndDrag={handleScrollEnd}
-            onMomentumScrollEnd={handleScrollEnd}
-            renderItem={renderItem}
-          />
+          <Animated.View style={[styles.list, photoStyle]}>
+            <GalleryFlatList
+              ref={setScrollRef}
+              testID="lightbox-pager"
+              data={items}
+              horizontal
+              pagingEnabled
+              disableIntervalMomentum={true}
+              bounces={false}
+              scrollEnabled={!(isZoomed || isTouchWeb)}
+              style={styles.list}
+              snapToInterval={screenWidth}
+              snapToAlignment="center"
+              decelerationRate="fast"
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={galleryItemKeyExtractor}
+              getItemLayout={getItemLayout}
+              onScrollBeginDrag={handleScrollBeginDrag}
+              onScrollEndDrag={handleScrollEnd}
+              onMomentumScrollEnd={handleScrollEnd}
+              renderItem={renderItem}
+            />
+          </Animated.View>
 
           {items.length > 1 ? (
             <View className="absolute bottom-10 w-full items-center">
               <View className="flex-row items-center rounded-xl px-4 py-2" style={styles.footerBar}>
+                {/* NOTE: the one place a disabled control fades instead of taking the muted
+                    fill: these chevrons sit bare on the photo's dark bar, where a muted
+                    fill would read as a lit button. The disabled state still reaches
+                    assistive tech through `disabled`. */}
                 <Pressable
                   onPress={goPrev}
                   hitSlop={15}
@@ -317,6 +356,7 @@ export function ProductImageLightbox({
                 </Pressable>
 
                 <AppText
+                  variant="data"
                   className="mx-5 min-w-[60px] text-center"
                   style={{ color: theme.tokens.text.onMedia }}
                 >
@@ -422,7 +462,11 @@ const LightboxSlide = memo(function LightboxSlide({
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    // GestureHandlerRootView ignores className.
+    // GestureHandlerRootView ignores className. Transparent, so the backdrop
+    // fades with the sheet rather than snapping in under it.
+    gestureRoot: {
+      flex: 1,
+    },
     root: {
       flex: 1,
       backgroundColor: theme.tokens.overlay.media,

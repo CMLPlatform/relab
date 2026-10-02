@@ -105,15 +105,17 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
   };
 
   const handleCreate = async () => {
-    const savedId = await create();
-    if (savedId === undefined) return;
-    goToSaved(savedId);
+    const result = await create();
+    if (result === undefined) return;
+    goToSaved(result.id);
   };
 
   // Returns whether the screen stayed put with a freshly reset form.
   const handleCreateAndAddAnother = async (): Promise<boolean> => {
     const result = await createAndAddAnother();
     if (result === undefined) return false;
+    // Offline: the create is queued and the form already reset for the next draft.
+    if (result === 'queued') return true;
     // Partial success: route to the detail screen like a plain Create.
     if (result.partial) {
       goToSaved(result.id);

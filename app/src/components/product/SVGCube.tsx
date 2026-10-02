@@ -32,11 +32,9 @@ const COMPACT_SVG_HEIGHT = 132;
 const NORMAL_X = Math.sin(Math.PI / 6);
 const NORMAL_Y = Math.cos(Math.PI / 6);
 
-const TIMING = {
-  duration: 200,
-  easing: Easing.out(Easing.quad),
-  reduceMotion: ReduceMotion.System,
-};
+// Exponential settle: fast off the mark, no overshoot on a measured drawing.
+const SETTLE = Easing.bezier(0.16, 1, 0.3, 1);
+const TIMING = { duration: 280, easing: SETTLE, reduceMotion: ReduceMotion.System };
 
 /** Marks a face whose shape is inferred rather than measured. */
 const UNCERTAIN_DASH = '5 4';
@@ -88,7 +86,8 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
   const ty = useSharedValue(layout.ty);
 
   // withTiming retargets mid-flight, so typing 1 -> 10 -> 100 does not queue.
-  // The mount run is skipped: withTiming to an equal target still burns 200ms.
+  // The mount run is skipped: the drawing mounts at rest, labels included, as it
+  // usually mounts below the fold and the measurements are the content.
   const mounted = useRef(false);
   useEffect(() => {
     if (!mounted.current) {
@@ -146,8 +145,11 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
     stroke: theme.colors.outline,
     strokeDasharray: certain ? undefined : UNCERTAIN_DASH,
   });
+  // Edge measurements are values, so they read like a Spec Row value: ink on
+  // the data face. Manila stays on labels (DESIGN.md Data-Label Rule).
   const label = {
-    fill: theme.colors.onSurfaceVariant,
+    fill: theme.colors.onSurface,
+    fontFamily: theme.tokens.type.data.fontFamily,
     fontSize: FONT_SIZE,
     alignmentBaseline: 'middle',
   } as const;

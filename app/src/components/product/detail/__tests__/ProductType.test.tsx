@@ -13,8 +13,6 @@ jest.mock('@/features/products/pendingTypeSelection', () => ({
   setPendingTypeSelection: jest.fn(),
 }));
 
-const VIEW_ALL_LABEL_PATTERN = /View all products of type/;
-
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);
@@ -97,26 +95,9 @@ describe('ProductType', () => {
     expect(queryByText('Category undefined')).toBeNull();
   });
 
-  it('renders the correct category description when productTypeID is set', async () => {
-    const product = { ...baseProduct, productTypeID: 1 };
-    await renderWithProviders(<ProductType product={product} editMode={false} />);
-    expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
-  });
-
   // Regression: the bundled CPV snapshot is keyed by its own ids, not the
   // database's. A seeded "Display module" stored as id 3 rendered as snapshot
   // entry 3, "CPV: 03 Agricultural, farming...".
-  it('shows the type the API recorded, not the snapshot entry sharing its id', async () => {
-    const product = {
-      ...baseProduct,
-      productTypeID: 1,
-      productType: { id: 1, name: 'Display module', description: 'A screen assembly.' },
-    };
-    await renderWithProviders(<ProductType product={product} editMode={false} />);
-    expect(await screen.findByText('Display module')).toBeOnTheScreen();
-    expect(screen.queryByText('Agricultural products')).toBeNull();
-  });
-
   it('shows a type picked since load from the snapshot, not the stale recorded one', async () => {
     const product = {
       ...baseProduct,
@@ -129,21 +110,22 @@ describe('ProductType', () => {
   });
 
   // The tooltip is an instruction to pick a type, which a viewer cannot do.
-  it('offers the category tooltip only in edit mode', async () => {
+  // View mode states the type in OverviewFacts; this component is the edit control only.
+  it('renders nothing in view mode', async () => {
     const product = { ...baseProduct, productTypeID: 1 };
-    const info = 'Info: Select a fitting category for the product.';
-    const { rerender } = await renderWithProviders(
-      <ProductType product={product} editMode={false} />,
-    );
-    expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
-    expect(screen.queryByLabelText(info)).toBeNull();
-
-    await rerender(<ProductType product={product} editMode={true} />);
-    expect(await screen.findByLabelText(info)).toBeOnTheScreen();
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
+    await act(async () => {});
+    expect(screen.queryByText('Product type')).toBeNull();
+    expect(screen.queryByText('Agricultural products')).toBeNull();
   });
 
-  // Regression: an unresolvable (stale/unknown) type id used to fall back to
-  // cpv.root, which CPVCard renders as a red "Category undefined" error card.
+  it('offers the category tooltip in edit mode', async () => {
+    const product = { ...baseProduct, productTypeID: 1 };
+    await renderWithProviders(<ProductType product={product} editMode={true} />);
+    expect(
+      await screen.findByLabelText('Info: Select a fitting category for the product.'),
+    ).toBeOnTheScreen();
+  });
   it('renders nothing for an unresolvable type id instead of the undefined error card', async () => {
     const product = { ...baseProduct, productTypeID: 999 };
     await renderWithProviders(<ProductType product={product} editMode={false} />);
@@ -182,34 +164,11 @@ describe('ProductType', () => {
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
-  it('does not navigate when not in editMode', async () => {
-    const product = { ...baseProduct, productTypeID: 1 };
-    await renderWithProviders(<ProductType product={product} editMode={false} />);
-    await user.press(await screen.findByText('Agricultural products'));
-    expect(mockPush).not.toHaveBeenCalled();
-  });
-
-  it('links to the products list filtered by type name in view mode', async () => {
-    const product = { ...baseProduct, productTypeID: 1, productTypeName: '03000000-1' };
-    await renderWithProviders(<ProductType product={product} editMode={false} />);
-    await user.press(await screen.findByLabelText('View all products of type 03000000-1'));
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/products',
-      params: { types: '03000000-1' },
-    });
-  });
-
+  // No card nested in the Overview card: view mode states the type as a spec fact.
   it('hides the "view all" link in editMode', async () => {
     const product = { ...baseProduct, productTypeID: 1, productTypeName: '03000000-1' };
     await renderWithProviders(<ProductType product={product} editMode={true} />);
     await screen.findByText('Agricultural products');
     expect(screen.queryByLabelText('View all products of type 03000000-1')).toBeNull();
-  });
-
-  it('hides the "view all" link when the product has no type name', async () => {
-    const product = { ...baseProduct, productTypeID: 1, productTypeName: undefined };
-    await renderWithProviders(<ProductType product={product} editMode={false} />);
-    await screen.findByText('Agricultural products');
-    expect(screen.queryByLabelText(VIEW_ALL_LABEL_PATTERN)).toBeNull();
   });
 });

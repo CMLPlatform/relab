@@ -4,8 +4,11 @@ import { ActivityIndicator, Pressable, type StyleProp, View, type ViewStyle } fr
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { PressOverlay } from '@/components/base/PressOverlay';
+import { type PressState, pressFill } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { prefetchLightbox } from './lightboxChunk';
 import {
   GalleryFlatList,
   type GalleryItem,
@@ -17,7 +20,7 @@ import {
   type ScrollableListHandle,
   type ScrollEvent,
 } from './shared';
-import { createGalleryStyles } from './styles';
+import { createGalleryStyles, MEDIA_PRESSED_FILL } from './styles';
 
 type Props = {
   width: number;
@@ -96,6 +99,8 @@ function EditModeOverlay({
               ref={rpiTriggerRef}
               onPress={onRpiCapture}
               disabled={isCapturing || rpiCamerasLoading}
+              accessibilityRole="button"
+              aria-busy={isCapturing}
               accessibilityLabel={
                 hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
               }
@@ -163,16 +168,17 @@ export function ProductImageGalleryContent({
   );
   const getItemLayout = useMemo(() => makeHorizontalItemLayout(width), [width]);
   const rpiButtonStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
+    (state: PressState) => [
       styles.overlayIconButton,
       { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
-      pressed && { opacity: 0.7 },
+      pressFill(state, MEDIA_PRESSED_FILL),
     ],
     [styles, isCapturing, rpiCamerasLoading],
   );
   const deleteButtonStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [styles.deleteButton, pressed && { opacity: 0.7 }],
-    [styles],
+    // Destructive: the translucent danger fill presses to solid danger.
+    (state: PressState) => [styles.deleteButton, pressFill(state, theme.tokens.status.danger)],
+    [styles, theme.tokens.status.danger],
   );
   const renderItem = useCallback(
     ({ item, index }: { item: GalleryItem; index: number }) => (
@@ -222,11 +228,11 @@ export function ProductImageGalleryContent({
             style={{ right: 8 }}
           />
           <View
-            className="absolute right-3 bottom-3 rounded-full px-3 py-1"
+            className="absolute right-3 bottom-3 rounded-md px-3 py-1"
             style={styles.counterBadge}
           >
             <AppText
-              variant="caption"
+              variant="data"
               style={{ color: theme.tokens.text.onMedia, fontWeight: 'bold' }}
             >
               {selectedIndex + 1} / {imageCount}
@@ -283,28 +289,37 @@ const GalleryImageItem = memo(function GalleryImageItem({
   return (
     <Pressable
       onPress={handlePress}
+      // Start the lightbox chunk before the click lands so the first open is not dead air.
+      onPressIn={prefetchLightbox}
+      onHoverIn={prefetchLightbox}
       accessibilityRole="button"
       accessibilityLabel={`View ${altText}`}
     >
-      {uri ? (
-        // Decorative: the Pressable carries the label. expo-image drops an empty
-        // alt, so hide the subtree.
-        <View aria-hidden>
-          <Image
-            accessibilityIgnoresInvertColors
-            // Empty when the API has no dimensions; `uri` is then the size
-            // picked in useProductGalleryMedia.
-            source={sourceSet.length > 1 ? sourceSet : { uri }}
-            // The cached list thumbnail paints immediately under the full-width image.
-            placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
-            placeholderContentFit="cover"
-            contentFit="cover"
-            transition={IMAGE_FADE_MS}
-            style={{ width, height: IMAGE_HEIGHT }}
-          />
-        </View>
-      ) : (
-        <ImagePlaceholder width={width} height={IMAGE_HEIGHT} borderRadius={0} />
+      {/* The photo hides a background fill, so the press tint lies over it. */}
+      {(state: PressState) => (
+        <>
+          {uri ? (
+            // Decorative: the Pressable carries the label. expo-image drops an empty
+            // alt, so hide the subtree.
+            <View aria-hidden>
+              <Image
+                accessibilityIgnoresInvertColors
+                // Empty when the API has no dimensions; `uri` is then the size
+                // picked in useProductGalleryMedia.
+                source={sourceSet.length > 1 ? sourceSet : { uri }}
+                // The cached list thumbnail paints immediately under the full-width image.
+                placeholder={placeholderUri ? { uri: placeholderUri } : undefined}
+                placeholderContentFit="cover"
+                contentFit="cover"
+                transition={IMAGE_FADE_MS}
+                style={{ width, height: IMAGE_HEIGHT }}
+              />
+            </View>
+          ) : (
+            <ImagePlaceholder width={width} height={IMAGE_HEIGHT} borderRadius={0} />
+          )}
+          <PressOverlay {...state} />
+        </>
       )}
     </Pressable>
   );
@@ -322,7 +337,7 @@ function OverlayActionButton({
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
   const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [styles.overlayIconButton, pressed && { opacity: 0.7 }],
+    (state: PressState) => [styles.overlayIconButton, pressFill(state, MEDIA_PRESSED_FILL)],
     [styles],
   );
   return (
@@ -355,17 +370,18 @@ function GalleryNavButton({
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
   const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
+    (state: PressState) => [
       styles.navButton,
       style,
       { opacity: disabled ? 0.3 : 1 },
-      pressed && { opacity: 0.7 },
+      pressFill(state, MEDIA_PRESSED_FILL),
     ],
     [styles, style, disabled],
   );
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel={label}
       disabled={disabled}
       hitSlop={15}

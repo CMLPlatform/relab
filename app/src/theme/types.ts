@@ -5,6 +5,8 @@ export type AppScheme = 'light' | 'dark';
 export type AppColorScale = {
   primary: string;
   onPrimary: string;
+  /** Pressed/hover fill for primary surfaces (Primary-Strong Rule). */
+  primaryStrong: string;
   secondary: string;
   error: string;
   onError: string;
@@ -12,8 +14,8 @@ export type AppColorScale = {
   onBackground: string;
   surface: string;
   onSurface: string;
-  surfaceVariant: string;
-  onSurfaceVariant: string;
+  muted: string;
+  mutedForeground: string;
   outline: string;
   shadow: string;
   scrim: string;
@@ -57,11 +59,11 @@ export type AppTokens = {
     link: string;
     inverseMuted: string;
     onMedia: string;
+    data: string;
   };
   surface: {
     sunken: string;
     accent: string;
-    card: string;
   };
   type: {
     display: { fontSize: number; lineHeight: number };

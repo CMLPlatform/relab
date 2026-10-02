@@ -4,6 +4,8 @@ import { AppText } from '@/components/base/AppText';
 import { DOCS_URL } from '@/config';
 import { WEB_FOCUS_RING } from '@/constants';
 import { openExternalUrl } from '@/services/externalLinks';
+import { cn } from '@/utils/cn';
+import { PRESS_TINT } from './pressFeedback';
 
 /** Caption-sized link into the docs, rendered only when a docs URL is configured. */
 export function DocsLink({
@@ -32,7 +34,12 @@ export function DocsLink({
       onPress={open}
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
-      className={`${className ?? 'justify-center py-2'} ${WEB_FOCUS_RING}`}
+      className={cn(
+        'min-h-11 justify-center rounded-md',
+        className ?? 'py-2',
+        PRESS_TINT,
+        WEB_FOCUS_RING,
+      )}
     >
       <AppText variant="caption" className="text-primary underline">
         {children}

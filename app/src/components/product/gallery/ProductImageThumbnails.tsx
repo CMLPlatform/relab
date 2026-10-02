@@ -1,8 +1,11 @@
 import { Image } from 'expo-image';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Platform, Pressable, View } from 'react-native';
-import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { ROW_MOVE } from '@/components/base/motion';
+import { PressOverlay } from '@/components/base/PressOverlay';
+import type { PressState } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import {
@@ -81,7 +84,7 @@ export function ProductImageThumbnails({
           showsHorizontalScrollIndicator={false}
           keyExtractor={galleryItemKeyExtractor}
           renderItem={renderItem}
-          itemLayoutAnimation={LinearTransition.duration(200).reduceMotion(ReduceMotion.System)}
+          itemLayoutAnimation={ROW_MOVE}
         />
       )}
     </View>
@@ -110,11 +113,8 @@ const ThumbnailItem = memo(function ThumbnailItem({
     onScrollToIndex(index);
   }, [onSelectIndex, onScrollToIndex, index]);
 
-  const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
-      { borderColor: selected ? selectedBorderColor : 'transparent' },
-      pressed && { opacity: 0.7 },
-    ],
+  const borderStyle = useMemo(
+    () => ({ borderColor: selected ? selectedBorderColor : 'transparent' }),
     [selected, selectedBorderColor],
   );
 
@@ -124,23 +124,31 @@ const ThumbnailItem = memo(function ThumbnailItem({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`Select ${altText}`}
+      accessibilityState={{ selected }}
+      // aria-selected is invalid on role=button; the toggle state goes out as aria-pressed.
+      aria-pressed={selected}
       className="mr-2 overflow-hidden rounded-md border-2"
-      style={pressableStyle}
+      style={borderStyle}
     >
-      {uri ? (
-        // Decorative: the Pressable carries the label. expo-image drops an empty
-        // alt, so hide the subtree.
-        <View aria-hidden>
-          <Image
-            accessibilityIgnoresInvertColors
-            source={{ uri }}
-            style={{ width: 60, height: 60 }}
-            transition={IMAGE_FADE_MS}
-            cachePolicy="memory-disk"
-          />
-        </View>
-      ) : (
-        <ImagePlaceholder width={60} height={60} borderRadius={0} />
+      {(state: PressState) => (
+        <>
+          {uri ? (
+            // Decorative: the Pressable carries the label. expo-image drops an empty
+            // alt, so hide the subtree.
+            <View aria-hidden>
+              <Image
+                accessibilityIgnoresInvertColors
+                source={{ uri }}
+                style={{ width: 60, height: 60 }}
+                transition={IMAGE_FADE_MS}
+                cachePolicy="memory-disk"
+              />
+            </View>
+          ) : (
+            <ImagePlaceholder width={60} height={60} borderRadius={0} />
+          )}
+          <PressOverlay {...state} />
+        </>
       )}
     </Pressable>
   );

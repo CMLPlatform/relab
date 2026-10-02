@@ -22,9 +22,23 @@ const DIST = new URL('../dist/', import.meta.url).pathname;
 // eagerly, so a component reused across routes lands on every first load. Split such a
 // component with React.lazy at its call sites, as ProductImageGallery does.
 //
+// NOTE: culori is not the app's: Uniwind's web runtime parses colours with it
+// (uniwind/core/web/webUtils), so it stays until Uniwind drops it. Icons are already
+// imported one module each from `lucide-react-native/icons/*` (Icon.tsx); the barrel
+// is only a type import.
+//
 // The budget is the measurement plus roughly 5%: enough that a dependency bump does not
 // cry wolf, tight enough that a new library on the first-load path does. When it fails,
 // either justify the new bytes in the commit or split the import.
+//
+// NOTE: zod (~60 KB gzipped) and react-hook-form (~15 KB with its zod resolver) stay in
+// __common, and so on first load. The shell itself only touches zod for
+// `z.config({ jitless: true })`; what keeps them eager is how Expo splits the web export:
+// every route is an async chunk, and any module two async chunks share is hoisted into
+// __common, which index.html loads up front. The product schemas are shared by the
+// product detail, edit and capture routes and the forms by login, sign-up, onboarding and
+// password reset, so moving them off this path would mean routing all validation through
+// one dynamic import. Revisit if Expo's chunker gains a shared-async-chunk mode.
 const BUDGET_BYTES = 875 * 1024;
 
 const SCRIPT_TAG = /<script[^>]+src="([^"]+)"/g;

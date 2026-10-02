@@ -5,6 +5,7 @@ import type { SectionKey } from '@/components/base/SectionNavContext';
 import ProductDescription from '@/components/product/ProductDescription';
 import ProductVideo from '@/components/product/ProductVideo';
 import { entityLabel, type Product } from '@/types/Product';
+import { OverviewFacts } from './OverviewFacts';
 import ProductCircularityProperties from './ProductCircularityProperties';
 import ProductComponents from './ProductComponents';
 import ProductFiles from './ProductFiles';
@@ -91,19 +92,24 @@ export const SECTIONS: SectionConfig[] = [
           editMode={props.editMode}
           onChangeDescription={props.onChangeDescription}
         />
-        <ProductTags
-          product={props.product}
-          editMode={props.editMode}
-          onBrandChange={props.onBrandChange}
-          onModelChange={props.onModelChange}
-          onAmountChange={props.onAmountInParentChange}
-          isComponent={props.isProductComponent}
-        />
-        <ProductType
-          product={props.product}
-          editMode={props.editMode}
-          onTypeChange={props.onTypeChange}
-        />
+        {props.editMode ? (
+          <>
+            <ProductTags
+              product={props.product}
+              onBrandChange={props.onBrandChange}
+              onModelChange={props.onModelChange}
+              onAmountChange={props.onAmountInParentChange}
+              isComponent={props.isProductComponent}
+            />
+            <ProductType
+              product={props.product}
+              editMode={props.editMode}
+              onTypeChange={props.onTypeChange}
+            />
+          </>
+        ) : (
+          <OverviewFacts product={props.product} />
+        )}
       </>
     ),
   },

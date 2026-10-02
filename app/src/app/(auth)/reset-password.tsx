@@ -8,10 +8,12 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { ControlledTextField } from '@/components/base/ControlledTextField';
 import { Icon } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { useResetPassword } from '@/features/auth/usePasswordReset';
 import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 import { PASSWORD_MIN_LENGTH } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { cn } from '@/utils/cn';
 
 export default function ResetPasswordScreen() {
   const theme = useAppTheme();
@@ -53,20 +55,22 @@ export default function ResetPasswordScreen() {
                     editable={!isSubmitting}
                     placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
                     accessibilityLabel="New password"
-                    style={{ paddingRight: 40 }}
+                    style={{ paddingRight: 44 }}
                   />
                   <Pressable
                     onPress={toggleShowPassword}
                     accessibilityRole="button"
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                    // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).
-                    hitSlop={12}
-                    style={{ position: 'absolute', top: 10, right: 12 }}
+                    className={cn(
+                      'min-h-11 min-w-11 items-center justify-center rounded-md',
+                      PRESS_TINT,
+                    )}
+                    style={{ position: 'absolute', top: 0, right: 0 }}
                   >
                     <Icon
                       name={showPassword ? 'eye-off' : 'eye'}
                       size="md"
-                      color={theme.colors.onSurfaceVariant}
+                      color={theme.colors.mutedForeground}
                     />
                   </Pressable>
                 </View>

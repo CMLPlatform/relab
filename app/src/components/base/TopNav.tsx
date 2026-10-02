@@ -15,6 +15,7 @@ import { AppText } from './AppText';
 import { BrandHeaderTitle } from './BrandHeaderTitle';
 import { HeaderRightPill } from './HeaderRightPill';
 import { Icon } from './Icon';
+import { PRESS_TINT } from './pressFeedback';
 
 // Routes where TopNav hides: the chrome-free splash/auth routes (AppStack's
 // headerShown: false list), plus /mfa and /category-selection, which keep
@@ -35,17 +36,25 @@ function TopNavDestinationItem({
   return (
     <Pressable
       onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel={active ? `${destination.label}, current page` : destination.label}
+      accessibilityRole="link"
+      accessibilityLabel={destination.label}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-current={active ? 'page' : undefined}
       className={cn(
         'min-h-11 justify-center rounded-md px-4 py-2',
         active ? 'bg-primary/12' : 'opacity-70',
+        PRESS_TINT,
         Platform.select({
-          web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
+          web: cn('cursor-pointer outline-none', WEB_FOCUS_RING),
         }),
       )}
     >
-      <AppText variant="label" className={cn(active && 'text-primary')}>
+      {/* Plain words, so untracked body type: tracking is for field labels and data. */}
+      <AppText
+        variant="body"
+        selectable={false}
+        className={cn('font-medium', active && 'text-primary')}
+      >
         {destination.label}
       </AppText>
     </Pressable>
@@ -68,12 +77,13 @@ function ShortcutsButton() {
       accessibilityLabel="Keyboard shortcuts"
       className={cn(
         'min-h-11 min-w-11 items-center justify-center rounded-md',
+        PRESS_TINT,
         Platform.select({
-          web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
+          web: cn('cursor-pointer outline-none', WEB_FOCUS_RING),
         }),
       )}
     >
-      <Icon name="keyboard" size="md" color={theme.colors.onSurfaceVariant} />
+      <Icon name="keyboard" size="md" color={theme.colors.mutedForeground} />
     </Pressable>
   );
 }
@@ -102,12 +112,13 @@ export function TopNav() {
     >
       <Pressable
         onPress={goToProducts}
-        accessibilityRole="button"
+        accessibilityRole="link"
         accessibilityLabel="Relab, go to products"
         className={cn(
-          'min-h-11 justify-center',
+          'min-h-11 justify-center rounded-md',
+          PRESS_TINT,
           Platform.select({
-            web: cn('cursor-pointer outline-none hover:opacity-90', WEB_FOCUS_RING),
+            web: cn('cursor-pointer outline-none', WEB_FOCUS_RING),
           }),
         )}
       >

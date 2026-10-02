@@ -301,7 +301,7 @@ describe('Authentication API Service', () => {
       expect(user?.username).toBe('testuser');
     });
 
-    it('returns undefined when response is not ok (401)', async () => {
+    it('returns undefined when response is not ok', async () => {
       secureStoreMock.getItemAsync.mockResolvedValueOnce('test-token');
       fetchMock().mockResolvedValueOnce(
         mockResponse(401, { detail: 'Unauthorized' }, false) as Response,
@@ -431,7 +431,7 @@ describe('Authentication API Service', () => {
       fetchMock().mockResolvedValueOnce(mockResponse(400, 'Bad Request', false) as Response);
       const result = await auth.register('user', 'user@example.com', 'pass');
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Registration failed. Please try again. (400)');
+      expect(result.error).toBe('Registration failed. Please try again.');
     });
 
     it('returns success:false with detail string on failure', async () => {

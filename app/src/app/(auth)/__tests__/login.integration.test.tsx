@@ -24,6 +24,8 @@ const mockDialogApi = {
 const mockAuthRefetch = jest.fn<() => Promise<void>>();
 
 jest.mock('expo-router', () => ({
+  // The toast reads it to clear BottomNav.
+  useSegments: () => [],
   useLocalSearchParams: jest.fn(),
   useRouter: jest.fn(),
 }));
@@ -166,6 +168,14 @@ describe('Login screen', () => {
     expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Email or username')).toBeOnTheScreen();
     expect(screen.getByLabelText('Password')).toBeOnTheScreen();
+  });
+
+  // requiredField's own test covers the web spelling (aria-required).
+  it('marks both credentials as required, visibly and for assistive tech', async () => {
+    await renderWithProviders(<Login />, { withDialog: true });
+    expect(screen.getAllByText('(required)')).toHaveLength(2);
+    expect(screen.getByLabelText('Email or username').props.accessibilityHint).toBe('Required');
+    expect(screen.getByLabelText('Password').props.accessibilityHint).toBe('Required');
   });
 
   // The OAuth buttons here provision an account on first sign-in, so the terms

@@ -2,10 +2,9 @@ import type { AppTheme } from '@/theme/types';
 
 export function getProductsHeaderStyle(theme: AppTheme) {
   return {
-    // NOTE: 34 is iOS's large-title metric, not a ramp step.
+    // NOTE: no size or weight here: the products header renders BrandHeaderTitle, so the
+    // title text style only sets the ink of the fallback string.
     headerTitleStyle: {
-      fontWeight: '700' as const,
-      fontSize: 34,
       color: theme.colors.onBackground,
     },
     headerStyle: {
