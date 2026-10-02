@@ -235,12 +235,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             oauth_provider=user.oauth_accounts[0].oauth_name,
             background_tasks=background_tasks_from(request),
         )
-        logger.info("OAuth welcome email sent to user %s", email_log_token(user.email))
+        logger.info("OAuth welcome email queued for user %s", email_log_token(user.email))
 
     async def on_after_request_verify(self, user: User, token: str, request: Request | None = None) -> None:
         """Send verification email after verification is requested."""
         await send_verification_email(user.email, user.username, token, background_tasks_from(request))
-        logger.info("Verification email sent to user %s", email_log_token(user.email))
+        logger.info("Verification email queued for user %s", email_log_token(user.email))
 
     async def on_after_verify(self, user: User, request: Request | None = None) -> None:
         """Send welcome email after user verifies their email."""
