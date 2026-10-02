@@ -195,6 +195,9 @@ async def update_product(
     await validate_product_type(db, product.product_type_id)
     apply_product_update(db_product, product)
     if not db.is_modified(db_product):
+        # The fields were still set, so the next autoflush expires the first-image column;
+        # reload it here, as the changing path does, rather than lazily while serializing.
+        await db.refresh(db_product)
         return db_product
     if db_product.version != if_match_version:
         raise ProductVersionMismatchError
