@@ -152,12 +152,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
           {/* Content */}
           <View className="flex-1">
             {/* Two lines at most, so a long name cannot stretch a whole grid row. */}
-            <AppText
-              variant="heading"
-              className="mb-0.5 font-bold"
-              numberOfLines={2}
-              ellipsizeMode="tail"
-            >
+            <AppText variant="heading" className="mb-0.5 font-bold" numberOfLines={2}>
               {product.name || 'Unnamed Product'}
             </AppText>
             <MutedText
