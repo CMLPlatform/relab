@@ -26,17 +26,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     }, [onTypeChange]),
   );
 
-  // The snapshot is keyed by its own ids, which match the database's only by
-  // construction order, so a recorded type is shown as the API returned it.
-  // A type picked since load has only a snapshot id, so it is looked up.
-  const cpvType = useCpvType(
-    product.productTypeID,
-    product.productType && {
-      id: product.productType.id,
-      name: product.productType.name,
-      description: product.productType.description ?? '',
-    },
-  );
+  const cpvType = useCpvType(product.productTypeID, product.productType);
 
   // Callback
   const onTypeSelectionStart = () => router.push('/category-selection');

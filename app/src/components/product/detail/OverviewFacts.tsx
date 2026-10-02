@@ -39,15 +39,7 @@ function ViewProductsOfTypeLink({ typeName, onPress }: { typeName: string; onPre
 export function OverviewFacts({ product }: { product: Product }) {
   const router = useRouter();
   const { colors } = useAppTheme();
-  // Recorded type as the API returned it; see ProductType for why it is not looked up.
-  const cpvType = useCpvType(
-    product.productTypeID,
-    product.productType && {
-      id: product.productType.id,
-      name: product.productType.name,
-      description: product.productType.description ?? '',
-    },
-  );
+  const cpvType = useCpvType(product.productTypeID, product.productType);
 
   const facts: SpecFact[] = [
     { label: 'Brand', value: product.brand || '—' },
