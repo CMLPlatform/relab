@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import { type RefObject, useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Icon } from '@/components/base/Icon';

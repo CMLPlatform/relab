@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { View } from 'react-native';
-import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { Icon } from '@/components/base/Icon';
 import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamSession } from '@/context/streamSession';
@@ -75,7 +75,11 @@ export function StreamingContent({
       {/* Actions */}
       <View className="flex-row gap-2 px-4 pt-1">
         <AppButton variant="outline" onPress={handleWatch} className="flex-1">
-          <Icon name="external-link" size={16} color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
+          <Icon
+            name="external-link"
+            size={16}
+            color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)}
+          />
           Watch on YouTube
         </AppButton>
         <AppButton
@@ -93,7 +97,11 @@ export function StreamingContent({
       {showProductLink ? (
         <AppButton variant="ghost" onPress={handleGoToProduct} className="self-start ml-2 mt-0.5">
           {`Go to ${session.productName}`}
-          <Icon name="chevron-right" size={16} color={VARIANT_FOREGROUND_COLOR.ghost(theme.colors)} />
+          <Icon
+            name="chevron-right"
+            size={16}
+            color={VARIANT_FOREGROUND_COLOR.ghost(theme.colors)}
+          />
         </AppButton>
       ) : null}
     </View>
