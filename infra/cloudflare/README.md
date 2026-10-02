@@ -205,12 +205,22 @@ root writes, so the Environment goes first:
 
    A branch policy imports as `relab:<env>:<policy id>`; `gh api
    repos/<owner>/relab/environments/<env>/deployment-branch-policies` lists the ids.
-1. Run the Deploy Sites workflow for the environment (Actions -> Deploy Sites -> Run workflow).
-   It needs the `CLOUDFLARE_API_TOKEN` Environment secret, an account token with the **Workers
-   Editor** role and nothing else.
+1. Run the Deploy Sites workflow for the environment (Actions -> Deploy Sites -> Run workflow)
+   and approve it. It needs the `CLOUDFLARE_API_TOKEN` Environment secret: an account token with
+   **Workers Scripts: Edit** on all Workers.
+1. Apply the tunnel records that stay (`api`, `app`) on their own first:
+
+   ```bash
+   tofu -chdir=infra/cloudflare apply -var=environment=<env> \
+     -target='cloudflare_dns_record.edge["api"]' -target='cloudflare_dns_record.edge["app"]'
+   ```
+
+   The provider can report "inconsistent result after apply" on `modified_on` for this update.
+   The records are updated, and a second run reports no changes.
 1. `just cloudflare-apply <env>`: expect the two tunnel records destroyed, the tunnel config
-   updated, and two custom domains created. Then `just cloudflare-apply <env> YES`.
-1. `curl -sI https://<hostname>/` returns 200 with the site's `content-security-policy`.
+   updated, two custom domains created, and nothing else. Then `just cloudflare-apply <env> YES`.
+1. Open both hostnames in a browser: a plain `curl` gets a bot challenge. The page loads, and
+   its response carries the site's `content-security-policy` and no `server: Caddy`.
 1. On the host, remove the containers nothing routes to any more:
    `docker rm -f relab_<env>-www-1 relab_<env>-docs-1`.
 
