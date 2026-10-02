@@ -115,7 +115,10 @@ export default function AddCameraScreen() {
             <Separator className="my-1" />
 
             <AppText variant="label" className="text-muted-foreground -mb-1">
-              Camera name <AppText className="text-muted-foreground">(required)</AppText>
+              Camera name{' '}
+              <AppText variant="label" className="text-muted-foreground">
+                (required)
+              </AppText>
             </AppText>
             <ControlledTextField
               control={control}

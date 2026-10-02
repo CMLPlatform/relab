@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, type StyleProp, StyleSheet, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
+import { disabledTreatment } from '@/components/base/appButtonVariants';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { Icon, type IconName } from './Icon';
@@ -69,20 +70,29 @@ export function Fab({
     transform: [{ translateX: (1 - progress.value) * -LABEL_SLIDE }],
   }));
 
+  // The one disabled treatment (DESIGN.md Buttons), never an opacity fade; it keeps
+  // the overlay shadow because the FAB still floats.
+  const inert = useMemo(() => (disabled ? disabledTreatment(theme) : null), [disabled, theme]);
+  const ink = inert ? inert.ink : theme.colors.onPrimary;
   const pressableStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
       // First so callers can override.
       styles.base,
       theme.tokens.elevation.overlay,
-      { backgroundColor: pressed && !disabled ? theme.colors.primaryStrong : theme.colors.primary },
-      disabled && styles.disabled,
+      inert
+        ? {
+            backgroundColor: inert.fill,
+            borderColor: inert.border,
+            borderWidth: StyleSheet.hairlineWidth,
+          }
+        : { backgroundColor: pressed ? theme.colors.primaryStrong : theme.colors.primary },
       style,
     ],
     [
       theme.tokens.elevation.overlay,
       theme.colors.primary,
       theme.colors.primaryStrong,
-      disabled,
+      inert,
       style,
     ],
   );
@@ -101,16 +111,12 @@ export function Fab({
       className={PRESS_FADE}
       style={pressableStyle}
     >
-      {typeof icon === 'function' ? (
-        icon()
-      ) : (
-        <Icon name={icon} size="lg" color={theme.colors.onPrimary} />
-      )}
+      {typeof icon === 'function' ? icon() : <Icon name={icon} size="lg" color={ink} />}
       {extended ? (
         // Animated.View isn't a NativeWind className target (see ZoomableImage.tsx), so
         // overflow stays inline.
         <Animated.View style={[styles.labelClip, labelStyle]}>
-          <AppText numberOfLines={1} className="ml-2" style={{ color: theme.colors.onPrimary }}>
+          <AppText numberOfLines={1} className="ml-2" style={{ color: ink }}>
             {label}
           </AppText>
         </Animated.View>
@@ -127,9 +133,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     borderRadius: radius.overlay,
-  },
-  disabled: {
-    opacity: 0.5,
   },
   labelClip: {
     maxWidth: LABEL_MAX_WIDTH,

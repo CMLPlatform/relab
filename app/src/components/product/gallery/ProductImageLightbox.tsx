@@ -339,6 +339,10 @@ export function ProductImageLightbox({
           {items.length > 1 ? (
             <View className="absolute bottom-10 w-full items-center">
               <View className="flex-row items-center rounded-xl px-4 py-2" style={styles.footerBar}>
+                {/* NOTE: the one place a disabled control fades instead of taking the muted
+                    fill: these chevrons sit bare on the photo's dark bar, where a muted
+                    fill would read as a lit button. The disabled state still reaches
+                    assistive tech through `disabled`. */}
                 <Pressable
                   onPress={goPrev}
                   hitSlop={15}

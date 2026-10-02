@@ -338,8 +338,10 @@ change it there first.*
   44px minimum height.
 - **Error:** Message rendered by `FormField` with a `nativeID` linked via
   `accessibilityLabelledBy`, so the error is programmatically associated, not merely adjacent.
-- **Required:** only a field the form cannot submit without (sign-in, sign-up, the capture
-  name) shows "(required)" in its label and spreads `requiredField()` from `utils/a11y`. Data
+- **Required:** only a field the form cannot submit without (sign-in, sign-up, onboarding's
+  username, the capture name, the camera name) shows "(required)" in its label and spreads
+  `requiredField()` from `utils/a11y`. The marker is lower-case, in the label step and muted ink
+  after the label text; `ControlledTextField` takes `required` for both. Data
   fields stay unmarked: an empty observation is valid.
 
 ### Navigation

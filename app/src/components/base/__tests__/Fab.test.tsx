@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
+import { disabledTreatment } from '@/components/base/appButtonVariants';
 import { Fab } from '@/components/base/Fab';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { getAppTheme } from '@/theme/themes';
@@ -51,6 +52,18 @@ describe('Fab', () => {
     );
     await fireEvent.press(screen.getByRole('button'));
     expect(onPress).not.toHaveBeenCalled();
+  });
+
+  // DESIGN.md Buttons: one disabled treatment, never an opacity fade.
+  it('takes the muted disabled fill and ink, not an opacity fade', async () => {
+    await render(
+      <Fab icon="plus" label="New" extended onPress={jest.fn()} disabled accessibilityLabel="a" />,
+    );
+    const inert = disabledTreatment(getAppTheme('light'));
+    const style = StyleSheet.flatten(screen.getByRole('button').props.style);
+    expect(style.opacity).toBeUndefined();
+    expect(style.backgroundColor).toBe(inert.fill);
+    expect(StyleSheet.flatten(screen.getByText('New').props.style).color).toBe(inert.ink);
   });
 
   it('renders nothing when not visible', async () => {

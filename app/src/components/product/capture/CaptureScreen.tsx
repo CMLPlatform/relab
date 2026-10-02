@@ -142,8 +142,11 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
             ) : null}
             <View>
               {/* Name is the only field Create needs; everything else may stay empty. */}
-              <AppText variant="eyebrow">
-                Name <AppText variant="eyebrow">(required)</AppText>
+              <AppText variant="label">
+                Name{' '}
+                <AppText variant="label" className="text-muted-foreground">
+                  (required)
+                </AppText>
               </AppText>
               <Input
                 ref={nameInputRef}

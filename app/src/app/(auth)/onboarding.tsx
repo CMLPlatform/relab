@@ -37,6 +37,7 @@ function OnboardingBody({
           control={control}
           name="username"
           label="Username"
+          required
           autoCapitalize="none"
           autoCorrect={false}
           placeholder="e.g. awesome_user"

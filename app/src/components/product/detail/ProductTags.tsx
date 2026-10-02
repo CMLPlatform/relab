@@ -1,6 +1,7 @@
-import { type JSX, useCallback, useContext, useEffect, useState } from 'react';
+import { type JSX, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { disabledTreatment } from '@/components/base/appButtonVariants';
 import { Chip } from '@/components/base/Chip';
 import { useDialog } from '@/components/base/dialogContext';
 import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal';
@@ -213,14 +214,18 @@ function StepButton({
   disabled: boolean;
   label: string;
 }) {
-  const { colors } = useAppTheme();
+  const theme = useAppTheme();
+  // The one disabled treatment (DESIGN.md Buttons), never an opacity fade.
+  const inert = useMemo(() => (disabled ? disabledTreatment(theme) : null), [disabled, theme]);
   const style = useCallback(
     (state: PressState) => [
       styles.iconSlot,
-      // On the chip's solid-primary value segment: a filled control, so primary-strong.
-      disabled ? { opacity: 0.4 } : pressFill(state, colors.primaryStrong),
+      inert
+        ? { backgroundColor: inert.fill, borderColor: inert.border, borderWidth: 1 }
+        : // On the chip's solid-primary value segment: a filled control, so primary-strong.
+          pressFill(state, theme.colors.primaryStrong),
     ],
-    [disabled, colors.primaryStrong],
+    [inert, theme.colors.primaryStrong],
   );
 
   return (
@@ -232,7 +237,7 @@ function StepButton({
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Icon name={icon} size={14} color={color} />
+      <Icon name={icon} size={14} color={inert ? inert.ink : color} />
     </Pressable>
   );
 }

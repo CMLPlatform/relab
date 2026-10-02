@@ -1,8 +1,8 @@
 import { type RefObject, useCallback, useId, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { useDialog } from '@/components/base/dialogContext';
 import { FormFieldError } from '@/components/base/FormField';
@@ -409,7 +409,9 @@ function GoLiveCTA({
       <AppButton
         variant="outline"
         onPress={handlePress}
-        className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
+        // Enabled even when not ready: the press explains what is missing. No fade: a
+        // dimmed button that still works reads as disabled.
+        className="mx-3.5 mb-2"
       >
         <Icon name="youtube" size={18} color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
         Go Live
