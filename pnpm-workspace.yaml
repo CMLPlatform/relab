@@ -11,6 +11,7 @@ preferFrozenLockfile: true
 auditConfig:
   ignoreGhsas:
     - GHSA-vcc3-ghjq-m6fr # decode-uri-component (query-string@7 pins ^0.2.2)
+    - GHSA-86w9-cpqp-85rv # node-forge via @expo/cli code signing, unused
 
 # Wait 3 days before accepting newly published packages, transitive ones
 # included. Strict by default: resolution fails rather than fall back to a
@@ -42,7 +43,7 @@ overrides:
   # xcode@3 (via @expo/config-plugins) still requires uuid ^7.
   "uuid@<11.1.1": ">=11.1.1" # GHSA-w5hq-g745-h8pq
   # @scalar/json-magic <0.15.2 pins undici 7.24.4.
-  "undici@>=7.0.0 <7.29.0": ">=7.29.0 <8" # GHSA-8xcm-r25x-g524 and 12 related
+  "undici@>=7.0.0 <7.29.1": ">=7.29.1 <8" # GHSA-8xcm-r25x-g524, GHSA-rfgv-xxqx-mfg5 and related
   # @scalar/agent-chat pins ai 6.0.33.
   "@ai-sdk/provider-utils@>=4.0.0-beta.10 <4.0.33": ">=4.0.33 <5" # GHSA-866g-f22w-33x8
   # chevrotain@11 (via mermaid) pins lodash-es 4.17.23.

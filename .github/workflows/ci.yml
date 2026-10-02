@@ -16,8 +16,9 @@ on:
 
 concurrency:
   # Keyed by event so a scheduled run and a push run on the same ref never share
-  # a group. A new pull request commit supersedes the older run; main runs queue
-  # instead, so the post-merge full-stack E2E job finishes for every merge.
+  # a group. A new pull request commit supersedes the older run. A main run in
+  # progress always finishes; while it runs, only the newest waiting main run is
+  # kept, so the post-merge full-stack E2E job finishes for the latest main.
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
@@ -387,7 +388,13 @@ jobs:
           # deep link can stall the JS thread of the app that opened it, which costs
           # that one user a force-quit and reaches no server and no other user. Drop
           # when expo-router moves to query-string@8+ or query-string@7 backports.
-          allow-ghsas: GHSA-vcc3-ghjq-m6fr
+          #
+          # GHSA-86w9-cpqp-85rv: node-forge <=1.4.0, no patched release, arrives only
+          # through expo -> @expo/cli -> @expo/code-signing-certificates. That package
+          # signs and verifies expo-updates manifests, which the app does not configure,
+          # so the vulnerable verification never runs. Drop when node-forge ships a fix
+          # or @expo/cli stops depending on it.
+          allow-ghsas: GHSA-vcc3-ghjq-m6fr, GHSA-86w9-cpqp-85rv
 
   audit:
     name: Dependency Audit
