@@ -8,12 +8,10 @@ Zone-scoped configuration for `cml-relab.org`, managed with OpenTofu:
 
 ## Why this is a separate root
 
-Cloudflare allows one entrypoint ruleset per (zone, phase), and prod and staging share this zone.
-Owning these from either environment's workspace would let the last apply overwrite the other's
-rules, so they live here, in a single `default` workspace.
-
-The rules match **both** environments' hostnames. The hostname map is `hostnames.tf`, a symlink to
-the one in `../cloudflare`.
+Cloudflare allows one entrypoint ruleset per (zone, phase), and prod and staging share this zone, so
+these resources live here in a single `default` workspace. See
+[Why two roots](../cloudflare/README.md#why-two-roots). The rules match **both** environments'
+hostnames; `hostnames.tf` is a symlink to the map in `../cloudflare`.
 
 **Everything here affects prod and staging together.** A change to the TLS floor or a
 firewall rule lands on every hostname in the zone at once.
@@ -106,7 +104,7 @@ changed, so `tests/zone.tftest.hcl` asserts them:
 - **No `matches` (regex) operator.** It needs a Business or WAF Advanced plan. The affected
   expressions use `starts_with`/`ends_with` instead.
 
-Raising either limit needs a paid Cloudflare plan.
+Raising any of these limits needs a paid Cloudflare plan.
 
 ## Commands
 
