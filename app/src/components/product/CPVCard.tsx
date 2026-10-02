@@ -1,8 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { WEB_FOCUS_RING } from '@/constants';
-import { useAppTheme } from '@/theme/appThemeContext';
-import { getStatusTone } from '@/theme/color';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 interface Props {
@@ -13,16 +11,11 @@ interface Props {
 
 /** Category card: name as the heading, description as a caption under it. Plain card surface. */
 export default function CPVCard({ CPV, onPress, actionElement }: Props) {
-  const { tokens } = useAppTheme();
-  const error = CPV.name === 'undefined';
-
   return (
     <View
       // The fixed floor keeps pickable cards even in a selection grid; a read-only
       // card on a record hugs its text instead of trailing an empty band.
       className={`rounded-lg border border-border bg-card overflow-hidden justify-between ${onPress ? 'min-h-[100px]' : ''}`}
-      // Tinted danger fill, same as Chip's error state.
-      style={error ? { backgroundColor: getStatusTone(tokens.status.danger) } : undefined}
     >
       <Pressable
         onPress={onPress}
@@ -35,7 +28,6 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
           <AppText
             variant="heading"
             className="font-semibold"
-            style={error ? { color: tokens.status.danger } : undefined}
             numberOfLines={2}
             ellipsizeMode="tail"
           >
@@ -44,7 +36,6 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
           <AppText
             variant="caption"
             className="text-muted-foreground"
-            style={error ? { color: tokens.status.danger } : undefined}
             numberOfLines={3}
             ellipsizeMode="tail"
           >
@@ -53,6 +44,27 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
         </View>
       </Pressable>
       {actionElement}
+    </View>
+  );
+}
+
+/** Shown when the category name could not be loaded: the type ID and a retry link. */
+export function CpvTypeLoadError({ typeID, retry }: { typeID: number; retry: () => void }) {
+  return (
+    <View className="flex-row flex-wrap items-center gap-2">
+      <AppText variant="caption" className="text-muted-foreground">
+        {`Category ${typeID}`}
+      </AppText>
+      <Pressable
+        onPress={retry}
+        accessibilityRole="button"
+        accessibilityLabel="Retry loading category name"
+        className={WEB_FOCUS_RING}
+      >
+        <AppText variant="caption" className="underline">
+          Retry
+        </AppText>
+      </Pressable>
     </View>
   );
 }

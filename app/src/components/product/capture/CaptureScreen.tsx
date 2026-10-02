@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useId, useRef } from 'react';
 import { type TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AmountStepper } from '@/components/base/AmountStepper';
@@ -10,19 +10,18 @@ import { DocsLink } from '@/components/base/DocsLink';
 import { PageContainer } from '@/components/base/PageContainer';
 import { PageHeaderRow } from '@/components/base/PageHeaderRow';
 import { Input } from '@/components/base/ui/input';
-import CPVCard from '@/components/product/CPVCard';
+import CPVCard, { CpvTypeLoadError } from '@/components/product/CPVCard';
 import ProductImageGallery from '@/components/product/ProductImageGallery';
 import { DATA_COLLECTION_DOCS_PATH } from '@/config';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { useCaptureScreen } from '@/features/products/useCaptureScreen';
+import { useCpvType } from '@/features/products/useCpvType';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import {
   PRODUCT_NAME_MAX_LENGTH,
   PRODUCT_NAME_MIN_LENGTH,
 } from '@/services/api/validation/productSchema';
-import { loadCPV } from '@/services/cpv';
-import type { CPVCategory } from '@/types/CPVCategory';
 import { typeRowLabels } from '@/types/Product';
 import { describedBy } from '@/utils/a11y';
 
@@ -44,7 +43,7 @@ function CaptureTypeRow({
   entityRole: 'product' | 'component';
 }) {
   const router = useRouter();
-  const [selectedType, setSelectedType] = useState<CPVCategory | null>(null);
+  const cpvType = useCpvType(typeID);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,21 +51,6 @@ function CaptureTypeRow({
       if (pendingTypeId !== null) onTypeChange(pendingTypeId);
     }, [onTypeChange]),
   );
-
-  useEffect(() => {
-    let isMounted = true;
-    loadCPV()
-      .then((cpv) => {
-        if (!isMounted) return;
-        // Never fall back to cpv.root: its {name: "undefined"} placeholder
-        // renders as a red "Category undefined" card.
-        setSelectedType(cpv[String(typeID ?? 'root')] ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      isMounted = false;
-    };
-  }, [typeID]);
 
   const labels = typeRowLabels(entityRole);
   const goToCategorySelection = useCallback(() => router.push('/category-selection'), [router]);
@@ -83,8 +67,10 @@ function CaptureTypeRow({
         >
           {labels.choose}
         </AppButton>
-      ) : selectedType ? (
-        <CPVCard CPV={selectedType} onPress={goToCategorySelection} />
+      ) : cpvType.status === 'ready' ? (
+        <CPVCard CPV={cpvType.type} onPress={goToCategorySelection} />
+      ) : cpvType.status === 'error' ? (
+        <CpvTypeLoadError typeID={typeID} retry={cpvType.retry} />
       ) : null}
     </View>
   );

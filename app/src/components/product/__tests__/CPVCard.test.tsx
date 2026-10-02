@@ -3,7 +3,6 @@ import { screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import CPVCard from '@/components/product/CPVCard';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
-import { getAppTheme } from '@/theme/themes';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 jest.mock('@/context/themeMode', () => ({
@@ -33,14 +32,6 @@ describe('CPVCard', () => {
     expect(screen.getByText('Agricultural products')).toHaveStyle({ fontSize: 13 });
     // Not interactive without onPress: no button role.
     expect(screen.queryByRole('button')).toBeNull();
-  });
-
-  it("applies the danger text color when CPV.name is 'undefined'", async () => {
-    const errorCPV = { ...mockCPV, name: 'undefined' };
-    await renderWithProviders(<CPVCard CPV={errorCPV} />);
-    expect(screen.getByText('Agricultural products')).toHaveStyle({
-      color: getAppTheme('light').tokens.status.danger,
-    });
   });
 
   it('calls onPress when pressed', async () => {

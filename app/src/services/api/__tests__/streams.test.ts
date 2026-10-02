@@ -83,7 +83,7 @@ describe('rpiCamera streams service', () => {
 
     mockResponse({ ok: false, status: 500 });
     await expect(startYouTubeStream('cam-1', { product_id: 1 })).rejects.toThrow(
-      'Failed to start stream (500)',
+      'Failed to start stream',
     );
   });
 
@@ -92,7 +92,7 @@ describe('rpiCamera streams service', () => {
     await expect(stopYouTubeStream('cam-2')).resolves.toBeUndefined();
 
     mockResponse({ ok: false, status: 503 });
-    await expect(stopYouTubeStream('cam-2')).rejects.toThrow('Failed to stop stream (503)');
+    await expect(stopYouTubeStream('cam-2')).rejects.toThrow('Failed to stop stream');
   });
 
   it('returns null for missing stream status and throws for other failures', async () => {
@@ -100,7 +100,7 @@ describe('rpiCamera streams service', () => {
     await expect(getStreamStatus('cam-3')).resolves.toBeNull();
 
     mockResponse({ ok: false, status: 502 });
-    await expect(getStreamStatus('cam-3')).rejects.toThrow('Failed to fetch stream status (502)');
+    await expect(getStreamStatus('cam-3')).rejects.toThrow('Failed to fetch stream status');
   });
 
   it('returns the current stream status payload when present', async () => {

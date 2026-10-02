@@ -1,16 +1,15 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 import { Pressable, type PressableStateCallbackType, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Icon } from '@/components/base/Icon';
-import CPVCard from '@/components/product/CPVCard';
+import CPVCard, { CpvTypeLoadError } from '@/components/product/CPVCard';
 import { MIN_TAP_TARGET } from '@/constants';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
-import { loadCPV } from '@/services/cpv';
+import { useCpvType } from '@/features/products/useCpvType';
 import { useAppTheme } from '@/theme/appThemeContext';
-import type { CPVCategory } from '@/types/CPVCategory';
 import { entityLabel, type Product, typeRowLabels } from '@/types/Product';
 
 const linkStyle = ({ pressed }: PressableStateCallbackType) => [
@@ -45,7 +44,6 @@ interface Props {
 export default function ProductType({ product, editMode, onTypeChange }: Props) {
   // Hooks
   const router = useRouter();
-  const [selectedType, setSelectedType] = useState<CPVCategory | null>(null);
 
   // Apply the type picked on the category-selection screen (see pendingTypeSelection.ts).
   useFocusEffect(
@@ -55,22 +53,17 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     }, [onTypeChange]),
   );
 
-  useEffect(() => {
-    let isMounted = true;
-
-    loadCPV()
-      .then((cpv) => {
-        if (!isMounted) return;
-        // Never fall back to cpv.root: its {name: "undefined"} placeholder
-        // renders as a red "Category undefined" card.
-        setSelectedType(cpv[String(product.productTypeID ?? 'root')] ?? null);
-      })
-      .catch(() => {});
-
-    return () => {
-      isMounted = false;
-    };
-  }, [product.productTypeID]);
+  // The snapshot is keyed by its own ids, which match the database's only by
+  // construction order, so a recorded type is shown as the API returned it.
+  // A type picked since load has only a snapshot id, so it is looked up.
+  const cpvType = useCpvType(
+    product.productTypeID,
+    product.productType && {
+      id: product.productType.id,
+      name: product.productType.name,
+      description: product.productType.description ?? '',
+    },
+  );
 
   // Callback
   const onTypeSelectionStart = () => {
@@ -84,15 +77,6 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     if (!product.productTypeName) return;
     router.push({ pathname: '/products', params: { types: product.productTypeName } });
   };
-
-  // The snapshot is keyed by its own ids, which match the database's only by
-  // construction order, so a recorded type is shown as the API returned it.
-  // A type picked since load has only a snapshot id, so it falls through.
-  const recordedType =
-    product.productType?.id === product.productTypeID ? product.productType : undefined;
-  const shownType = recordedType
-    ? { name: recordedType.name, description: recordedType.description ?? '' }
-    : selectedType;
 
   const labels = typeRowLabels(product.role);
 
@@ -127,9 +111,12 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   return (
     <View>
       {header}
-      {shownType ? (
+      {cpvType.status === 'error' ? (
+        <CpvTypeLoadError typeID={product.productTypeID} retry={cpvType.retry} />
+      ) : null}
+      {cpvType.status === 'ready' ? (
         <CPVCard
-          CPV={shownType}
+          CPV={cpvType.type}
           onPress={editMode ? onTypeSelectionStart : undefined}
           actionElement={
             !editMode && product.productTypeName ? (

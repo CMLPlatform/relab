@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { type DialogOptions, useDialog } from '@/components/base/dialogContext';
@@ -889,5 +889,40 @@ describe('useProductForm blur-save', () => {
     });
 
     expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it('does not call the delete mutation while offline', async () => {
+    const mockAlert = jest.fn();
+    jest
+      .mocked(useDialog)
+      .mockReturnValue({ alert: mockAlert, input: jest.fn(), toast: jest.fn() });
+    const deleteMutate = jest.fn(async () => undefined);
+    (useBaseProductQuery as jest.Mock).mockReturnValue({ data: mockProduct, isLoading: false });
+    (useSaveProductMutation as jest.Mock).mockReturnValue({
+      mutateAsync: jest.fn(async (_vars: SaveProductVariables) => 123),
+    });
+    (useDeleteProductMutation as jest.Mock).mockReturnValue({ mutateAsync: deleteMutate });
+
+    const { result } = await renderHook(
+      () => useProductForm('123', { role: 'product', initialEditMode: true }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.product.id).toBe(123));
+
+    await act(async () => onlineManager.setOnline(false));
+    try {
+      await act(async () => {
+        result.current.onProductDelete();
+      });
+    } finally {
+      await act(async () => onlineManager.setOnline(true));
+    }
+
+    expect(deleteMutate).not.toHaveBeenCalled();
+    expect(mockAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "You're offline. Delete again once you're back online.",
+      }),
+    );
   });
 });

@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { onlineManager } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { type RefObject, useEffect, useRef } from 'react';
 import {
@@ -273,6 +274,15 @@ function useProductFormActions({
   });
 
   const onProductDelete = useSingleFlight(async () => {
+    // A paused delete would sit in the queue and silently vanish on failure.
+    if (!onlineManager.isOnline()) {
+      dialog.alert({
+        title: 'Delete failed',
+        message: "You're offline. Delete again once you're back online.",
+        buttons: [{ text: 'OK' }],
+      });
+      return;
+    }
     try {
       await deleteMutation.mutateAsync(product);
       // Reset so the unsaved-changes guard does not fire during the redirect.

@@ -13,7 +13,7 @@ import {
   server,
 } from '@/test-utils/index';
 
-const NETWORK_FAILURE_PATTERN = /Network failure/;
+const NETWORK_FAILURE_PATTERN = /Relab had a problem on its side/;
 
 const mockUseAuth = jest.fn();
 const mockDismissWelcomeCard = jest.fn();

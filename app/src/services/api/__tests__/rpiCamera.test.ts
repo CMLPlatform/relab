@@ -162,29 +162,25 @@ describe('rpiCamera API service', () => {
     } as Response);
 
     await expect(claimPairingCode({ code: 'BROKEN', camera_name: 'Broken Cam' })).rejects.toThrow(
-      'Pairing failed (500)',
+      'Pairing failed',
     );
   });
 
   it('throws descriptive errors for failed camera requests', async () => {
     mockJsonResponse({}, { ok: false, status: 503 });
-    await expect(fetchCameras()).rejects.toThrow('Failed to fetch cameras (503)');
+    await expect(fetchCameras()).rejects.toThrow('Failed to fetch cameras');
 
     mockJsonResponse({}, { ok: false, status: 404 });
-    await expect(fetchCamera('missing')).rejects.toThrow('Failed to fetch camera (404)');
+    await expect(fetchCamera('missing')).rejects.toThrow('Failed to fetch camera');
 
     mockJsonResponse({}, { ok: false, status: 400 });
-    await expect(updateCamera('cam-9', { name: 'Bad' })).rejects.toThrow(
-      'Failed to update camera (400)',
-    );
+    await expect(updateCamera('cam-9', { name: 'Bad' })).rejects.toThrow('Failed to update camera');
 
     mockFetchWithAuth.mockResolvedValueOnce({ ok: false, status: 401 } as Response);
-    await expect(deleteCamera('cam-9')).rejects.toThrow('Failed to delete camera (401)');
+    await expect(deleteCamera('cam-9')).rejects.toThrow('Failed to delete camera');
 
     mockJsonResponse({}, { ok: false, status: 502 });
-    await expect(captureImageFromCamera('cam-9', 42)).rejects.toThrow(
-      'Failed to capture image (502)',
-    );
+    await expect(captureImageFromCamera('cam-9', 42)).rejects.toThrow('Failed to capture image');
   });
 
   it('builds the local LL-HLS playlist URL through the Pi FastAPI proxy', () => {
@@ -299,7 +295,7 @@ describe('rpiCamera API service', () => {
   it('throws a descriptive error when telemetry fetch fails', async () => {
     mockFetchWithAuth.mockResolvedValueOnce({ ok: false, status: 503 } as Response);
     await expect(fetchCameraTelemetry('cam-broken')).rejects.toThrow(
-      'Failed to fetch camera telemetry (503)',
+      'Failed to fetch camera telemetry',
     );
   });
 
