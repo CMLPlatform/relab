@@ -1,5 +1,7 @@
-import { describe, expect, it, jest } from '@jest/globals';
-import { screen } from '@testing-library/react-native';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import { onlineManager, useMutation } from '@tanstack/react-query';
+import { act, screen } from '@testing-library/react-native';
+import { useEffect } from 'react';
 import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
 
@@ -50,5 +52,38 @@ describe('LogoutConfirm', () => {
     const items = screen.getAllByText('Sign out');
     await user.press(items[items.length - 1]);
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  describe('with items still waiting to send', () => {
+    afterEach(async () => {
+      await act(() => onlineManager.setOnline(true));
+    });
+
+    // Sign-out clears the query client, paused mutations included.
+    function QueuedItem() {
+      const { mutate } = useMutation({ mutationFn: () => new Promise<void>(() => {}) });
+      useEffect(() => mutate(), [mutate]);
+      return null;
+    }
+
+    it('warns that signing out discards them', async () => {
+      await act(() => onlineManager.setOnline(false));
+      await renderWithProviders(
+        <>
+          <QueuedItem />
+          <QueuedItem />
+          <LogoutConfirm visible onDismiss={jest.fn()} onConfirm={jest.fn()} />
+        </>,
+        { withDialog: true },
+      );
+
+      expect(
+        await screen.findByText(
+          '2 items are still waiting to send. Signing out now discards them.',
+        ),
+      ).toBeOnTheScreen();
+      expect(screen.getByText('Sign out anyway')).toBeOnTheScreen();
+      expect(screen.getByText('Cancel')).toBeOnTheScreen();
+    });
   });
 });
