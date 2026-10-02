@@ -7,7 +7,7 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
-import { PRESS_TINT } from '@/components/base/pressFeedback';
+import { PRESS_FADE, PRESS_TINT } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS, MIN_TAP_TARGET, radius, WEB_FOCUS_RING } from '@/constants';
 import { pickThumbnailUrl } from '@/services/api/media';
 import { useAppTheme } from '@/theme/appThemeContext';
@@ -121,18 +121,41 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   }, [product.ownerUsername, router]);
 
   const handleImageError = useCallback(() => setHadError(true), []);
+  // The press target stops short of the owner link, so its tint is drawn on the
+  // whole card instead (a tint on the target alone showed as an inset rectangle).
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const hoverIn = useCallback(() => setHovered(true), []);
+  const hoverOut = useCallback(() => setHovered(false), []);
+  const pressIn = useCallback(() => setPressed(true), []);
+  const pressOut = useCallback(() => setPressed(false), []);
+  const tinted = enabled && (hovered || pressed);
 
   return (
     // The press target must not wrap the owner link (axe `nested-interactive`).
     // `grow` fills the grid cell, which the row stretches to its tallest card,
     // so cards side by side share one height.
     <Card className="mx-2.5 my-1.5 grow">
+      <View
+        aria-hidden
+        pointerEvents="none"
+        testID="product-card-tint"
+        className={cn(
+          'absolute inset-0 rounded-lg',
+          tinted ? 'bg-primary/12' : 'bg-transparent',
+          PRESS_FADE,
+        )}
+      />
       <View className="p-3">
         <Pressable
           onPress={enabled ? navigateToProduct : undefined}
+          onHoverIn={hoverIn}
+          onHoverOut={hoverOut}
+          onPressIn={pressIn}
+          onPressOut={pressOut}
           disabled={!enabled}
           accessibilityRole={enabled ? 'button' : undefined}
-          className={cn('flex-row items-center rounded-md', enabled && PRESS_TINT)}
+          className="flex-row items-center rounded-md"
         >
           <View className="mr-4">
             {hasThumbnail ? (

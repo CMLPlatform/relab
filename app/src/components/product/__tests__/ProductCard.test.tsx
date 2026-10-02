@@ -27,6 +27,19 @@ describe('ProductCard', () => {
     expect(screen.getByText('A nice product')).toBeOnTheScreen();
   });
 
+  // The tint fills the whole card, not just the press target inset from it.
+  it('tints the whole card while its press target is pressed', async () => {
+    await renderWithProviders(<ProductCard product={baseProduct} />);
+    const tintClass = () =>
+      screen.getByTestId('product-card-tint', { includeHiddenElements: true }).props
+        .className as string;
+    expect(tintClass()).toContain('bg-transparent');
+    await fireEvent(screen.getByRole('button'), 'pressIn');
+    expect(tintClass()).toContain('bg-primary/12');
+    await fireEvent(screen.getByRole('button'), 'pressOut');
+    expect(tintClass()).toContain('bg-transparent');
+  });
+
   it('uses the existing secondary line for a measured mass', async () => {
     await renderWithProviders(
       <ProductCard product={{ ...baseProduct, description: 'A nice product' }} />,
