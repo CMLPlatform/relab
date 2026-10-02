@@ -73,7 +73,10 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined
     : {
-        command: 'pnpm exec serve dist -l 18011 --single --no-clipboard',
+        // Started directly, not through `pnpm exec`: Playwright stops the web server
+        // by signalling its process group, which pnpm's child does not stay in, so the
+        // run then waits on a server that never exits.
+        command: './node_modules/.bin/serve dist -l 18011 --single --no-clipboard',
         url: 'http://localhost:18011',
         // Never reuse: this serves the dist/ the recipe just built, and a server
         // left over from an earlier run keeps serving its own. Failing on a busy
