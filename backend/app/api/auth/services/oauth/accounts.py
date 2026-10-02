@@ -8,7 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth.exceptions import InvalidOAuthProviderError, OAuthAccountNotLinkedError
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.services.account_security import require_recent_sign_in, require_step_up_password
+from app.api.auth.services.account_security import (
+    require_recent_sign_in,
+    require_step_up_fields,
+    require_step_up_password,
+)
 from app.api.auth.services.email.service import send_oauth_link_changed_notification
 from app.api.auth.services.mfa_flow import require_mfa_step_up
 from app.api.auth.services.rate_limiter import account_guess_budget
@@ -53,6 +57,9 @@ async def remove_oauth_association(
 
     # Step-up re-auth after confirming the link exists. Shared with the link flow so the
     # two cannot drift apart.
+    require_step_up_fields(
+        current_user, current_password=current_password, mfa_code=mfa_code, action="unlink a social login"
+    )
     async with account_guess_budget(current_user.id):
         require_step_up_password(
             password_helper=user_manager.password_helper,

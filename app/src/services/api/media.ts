@@ -37,10 +37,14 @@ export function resolveApiMediaUrlMap(
   return resolved;
 }
 
+// A slightly soft 2560 WebP beats downloading a multi-megabyte original on a 3x phone.
+const WIDEST_DERIVATIVE_MIN_COVERAGE = 0.75;
+
 /**
- * The narrowest derivative at least `neededPx` wide; undefined when the map
- * is empty or every derivative is narrower than the need, so the caller falls
- * back to its own URL (usually the original) instead of stretching a small thumbnail.
+ * The narrowest derivative at least `neededPx` wide, else the widest one if it
+ * covers at least three quarters of the need; undefined when the map is empty or
+ * the widest is narrower than that, so the caller falls back to its own URL
+ * (usually the original) instead of stretching a small thumbnail.
  */
 export function pickThumbnailUrl(
   urls: Record<number, string>,
@@ -49,6 +53,11 @@ export function pickThumbnailUrl(
   const widths = Object.keys(urls)
     .map(Number)
     .sort((a, b) => a - b);
-  const fit = widths.find((width) => width >= neededPx);
+  const widest = widths.at(-1);
+  const fit =
+    widths.find((width) => width >= neededPx) ??
+    (widest !== undefined && widest >= neededPx * WIDEST_DERIVATIVE_MIN_COVERAGE
+      ? widest
+      : undefined);
   return fit === undefined ? undefined : urls[fit];
 }

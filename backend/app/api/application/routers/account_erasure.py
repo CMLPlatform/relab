@@ -22,6 +22,7 @@ from app.api.auth.dependencies import (
 from app.api.auth.models import User
 from app.api.auth.services.account_security import (
     require_recent_sign_in,
+    require_step_up_fields,
     require_step_up_password,
     revoke_user_refresh_tokens,
 )
@@ -126,6 +127,13 @@ async def delete_own_account(
     """
     payload = payload or AccountDeletionRequest()
     current_password = payload.current_password.get_secret_value() if payload.current_password else None
+    require_step_up_fields(
+        user, current_password=current_password, mfa_code=payload.mfa_code, action="delete your account"
+    )
+    require_recent_sign_in(user)
+    # Before the step-up, so a refused deletion does not spend the TOTP code.
+    await require_erasable_account(session, user)
+    # One attempt is one guess, so a mistyped code leaves room for the retry.
     async with account_guess_budget(user.id):
         require_step_up_password(
             password_helper=user_manager.password_helper,
@@ -133,10 +141,6 @@ async def delete_own_account(
             current_password=current_password,
             action="delete your account",
         )
-    require_recent_sign_in(user)
-    # Before the MFA step-up, so a refused deletion does not spend the TOTP code.
-    await require_erasable_account(session, user)
-    async with account_guess_budget(user.id):
         await require_mfa_step_up(payload.mfa_code, user=user, redis=redis, action="delete your account")
 
     # Read before the erase: the row, and so these attributes, are gone after the commit.
