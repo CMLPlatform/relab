@@ -23,8 +23,14 @@ const DIST = new URL('../dist/', import.meta.url).pathname;
 // cry wolf, tight enough that a new library on the first-load path does. When it fails,
 // either justify the new bytes in the commit or split the import.
 //
-// TODO: __common's first-load weight is dominated by reanimated, zod, gesture-handler and
-// react-hook-form; taking zod and react-hook-form off the eager path is the next lever.
+// NOTE: zod (~60 KB gzipped) and react-hook-form (~15 KB with its zod resolver) stay in
+// __common, and so on first load. The shell itself only touches zod for
+// `z.config({ jitless: true })`; what keeps them eager is how Expo splits the web export:
+// every route is an async chunk, and any module two async chunks share is hoisted into
+// __common, which index.html loads up front. The product schemas are shared by the
+// product detail, edit and capture routes and the forms by login, sign-up, onboarding and
+// password reset, so moving them off this path would mean routing all validation through
+// one dynamic import. Revisit if Expo's chunker gains a shared-async-chunk mode.
 const BUDGET_BYTES = 875 * 1024;
 
 const SCRIPT_TAG = /<script[^>]+src="([^"]+)"/g;
