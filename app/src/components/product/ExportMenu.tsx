@@ -43,7 +43,8 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
             ? productsExportUrl(query ?? {}, format)
             : productExportUrl(productId, format),
         );
-        dialog.toast('Export downloaded');
+        // Neutral: the native share sheet resolves the same way when it is dismissed.
+        dialog.toast('Export ready');
       } catch (error) {
         dialog.alert({
           title: 'Export failed',
