@@ -1,14 +1,19 @@
 # Changelog
 
-## v0.3.2 - 2026-09
+All notable changes to this project are documented in this file.
 
-### Description
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.3.2] - 2026-09-10
 
 A consolidation release after the production cutover. It repairs the interface and
 deployment faults that the first weeks of real use surfaced, cuts upload and page-load
 latency, and makes the release and backup paths fail loudly instead of quietly.
 
-### Features
+### Added
 
 - A "?" overlay lists the app's keyboard shortcuts ([#219])
 - The lightbox serves a 2560px tier, and product lists serve real thumbnails rather than
@@ -17,7 +22,21 @@ latency, and makes the release and backup paths fail loudly instead of quietly.
 - Deploys run as a dedicated user over a restricted key, with a no-cache rebuild
   available when one is needed ([#201], [#203], [#204], [#210])
 
-### Fixes
+### Changed
+
+- Uploads answer before the wide thumbnails are derived, and transactional email no
+  longer blocks the response ([#239])
+- The web export has a first-load JavaScript budget, checked on every run ([#243])
+- Smaller runtime images and build contexts, with Metro cached across builds ([#224],
+  [#228], [#236])
+- A k6 baseline and an upload benchmark across a spread of photo sizes ([#237], [#241])
+
+- CORS preflights carry the staging edge key and pass the edge's bot protections
+  ([#206], [#214], [#216])
+- E2E runs never reuse a leftover preview server ([#227], [#229])
+- CodeQL suppressions use the comment form it honors ([#251])
+
+### Fixed
 
 - Two concurrent edits to the same product no longer lose one of the saves ([#264])
 - Deleting a product that has components succeeds ([#217])
@@ -47,22 +66,6 @@ latency, and makes the release and backup paths fail loudly instead of quietly.
 - The tunnel container drops its capabilities ([#254])
 - The app serves a Content-Security-Policy header ([#202])
 - Cloudflare applies are gated on the plan they apply ([#257])
-
-### Performance
-
-- Uploads answer before the wide thumbnails are derived, and transactional email no
-  longer blocks the response ([#239])
-- The web export has a first-load JavaScript budget, checked on every run ([#243])
-- Smaller runtime images and build contexts, with Metro cached across builds ([#224],
-  [#228], [#236])
-- A k6 baseline and an upload benchmark across a spread of photo sizes ([#237], [#241])
-
-### Maintenance
-
-- CORS preflights carry the staging edge key and pass the edge's bot protections
-  ([#206], [#214], [#216])
-- E2E runs never reuse a leftover preview server ([#227], [#229])
-- CodeQL suppressions use the comment form it honors ([#251])
 
 [#199]: https://github.com/CMLPlatform/relab/pull/199
 [#200]: https://github.com/CMLPlatform/relab/pull/200
@@ -113,15 +116,21 @@ latency, and makes the release and backup paths fail loudly instead of quietly.
 [#271]: https://github.com/CMLPlatform/relab/pull/271
 [#272]: https://github.com/CMLPlatform/relab/pull/272
 
-## v0.3.1 - 2026-09
-
-### Description
+## [0.3.1] - 2026-09-08
 
 A maintenance release. It carries the toolchain forward, closes one interface bug that
 crashed on device, repairs two production provisioning faults, and puts the workflow
 files under static analysis.
 
-### Fixes
+### Changed
+
+- Jest 30, pnpm 12, AsyncStorage 3, and React Native Testing Library 14
+- Refreshed container images, the Cloudflare Terraform provider, and the lockfiles
+- Held Babel and TypeScript at the majors their toolchains still support
+- Declared the licence in package metadata and added CODEOWNERS
+- Corrected the production cutover runbook against the live host
+
+### Fixed
 
 - A button with an interpolated label, such as the cameras "Select all (2)" control, no
   longer crashes, and the label renders as one `Text` node instead of three gapped ones
@@ -140,17 +149,7 @@ files under static analysis.
 - Vulnerability alerts still open pull requests for the Expo-managed packages that
   Renovate otherwise leaves alone
 
-### Maintenance
-
-- Jest 30, pnpm 12, AsyncStorage 3, and React Native Testing Library 14
-- Refreshed container images, the Cloudflare Terraform provider, and the lockfiles
-- Held Babel and TypeScript at the majors their toolchains still support
-- Declared the licence in package metadata and added CODEOWNERS
-- Corrected the production cutover runbook against the live host
-
-## v0.3.0 - 2026-09
-
-### Description
+## [0.3.0] - 2026-09-07
 
 Security, research output, and identity. The backend now meets the OWASP ASVS 5.0 baseline:
 multi-factor authentication, audit logging, upload scanning, token revocation, and rate limits. A
@@ -158,16 +157,7 @@ dataset release pipeline tracks contributor consent and publishes under CC BY 4.
 moved onto the Cyanotype design system under the name "Relab". Deployment is reproducible: restic
 backups, systemd timers, Cloudflare configuration as code, and telemetry over OTLP.
 
-### Breaking Changes
-
-- Registration requires a username; public profiles moved to `/users`, account screens to `/account`
-- Recovery codes replace the email-based MFA reset
-- Product dismantling time fields removed
-- Newsletter signup and `/organizations` removed
-- Stored videos must be HTTP URLs; media lookups are scoped by parent id and type
-- `frontend-app` renamed to `app`, `frontend-web` to `www`
-
-### Features
+### Added
 
 #### Security and Hardening
 
@@ -264,13 +254,20 @@ backups, systemd timers, Cloudflare configuration as code, and telemetry over OT
 - Accessibility scans on www, docs, and the app web build; cross-browser E2E matrix
 - Full-stack E2E against a seeded Docker backend; k6 performance baseline
 
-## v0.2.0 - 2026-04
+### Changed
 
-### Description
+- **BREAKING:** Registration requires a username; public profiles moved to `/users`, account screens to `/account`
+- **BREAKING:** Recovery codes replace the email-based MFA reset
+- **BREAKING:** Product dismantling time fields removed
+- **BREAKING:** Newsletter signup and `/organizations` removed
+- **BREAKING:** Stored videos must be HTTP URLs; media lookups are scoped by parent id and type
+- **BREAKING:** `frontend-app` renamed to `app`, `frontend-web` to `www`
+
+## [0.2.0] - 2026-04-23
 
 Major expansion of the platform: reworked authentication, overhauled frontend-app and frontend-web, Raspberry Pi camera live streaming, observability, and a substantially hardened CI/CD pipeline.
 
-### Features
+### Added
 
 #### Authentication and Access Control
 
@@ -353,13 +350,11 @@ Major expansion of the platform: reworked authentication, overhauled frontend-ap
 - Broad backend unit-test suite (auth, OAuth, relay, encryption, background data, organizations, newsletter preferences)
 - Frontend-app and frontend-web test coverage expansion
 
-## v0.1.0 - 2025-06
-
-### Description
+## [0.1.0] - 2025-06-30
 
 Initial release of the Relab platform for circular economy and computer vision research.
 
-### Features
+### Added
 
 #### API and Backend
 
@@ -395,3 +390,10 @@ Initial release of the Relab platform for circular economy and computer vision r
 - File and image storage management
 - Image and video upload for products
 - Raspberry Pi Camera Plugin for remote image capture
+
+[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/CMLPlatform/relab/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/CMLPlatform/relab/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/CMLPlatform/relab/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/CMLPlatform/relab/releases/tag/v0.1.0
