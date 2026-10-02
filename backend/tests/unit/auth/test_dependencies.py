@@ -6,8 +6,8 @@ from uuid import uuid4
 
 import pytest
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.testclient import TestClient
 from fastapi_users.exceptions import InvalidID, UserNotExists
+from httpx import ASGITransport, AsyncClient
 
 from app.api.auth.dependencies import current_active_superuser, current_lab_user, get_user_or_404
 from app.api.auth.roles import UserRole
@@ -94,7 +94,7 @@ class TestGetUserOr404:
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
 
 
-def test_user_db_shares_the_request_session() -> None:
+async def test_user_db_shares_the_request_session() -> None:
     """An authenticated route that also takes AsyncSessionDep must open one session, not two.
 
     Two sessions per request hold two pool connections, and under load the pool deadlocks on
@@ -117,7 +117,8 @@ def test_user_db_shares_the_request_session() -> None:
         return user_db.session is session
 
     app.dependency_overrides[get_async_session] = counting_session
-    response = TestClient(app).get("/probe")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/probe")
 
     assert response.json() is True
     assert len(opened) == 1

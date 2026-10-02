@@ -153,9 +153,7 @@ jobs:
           coverage-file: ./backend/reports/coverage/coverage.xml
           junit-file: ./backend/reports/junit.xml
           network-prefix: backend/app/
-          artifact-path: |
-            backend/reports/coverage/html/
-            backend/reports/coverage/coverage.xml
+          artifact-path: backend/reports/coverage/coverage.xml
 
   web:
     name: ${{ matrix.subrepo }}
