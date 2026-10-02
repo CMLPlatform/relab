@@ -111,11 +111,11 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
   };
 
   // Returns whether the screen stayed put with a freshly reset form.
-  // TODO: offline, "Create & add another" waits on the paused create; returning control after
-  // enqueueing is a behaviour change (decision D5), not built yet.
   const handleCreateAndAddAnother = async (): Promise<boolean> => {
     const result = await createAndAddAnother();
     if (result === undefined) return false;
+    // Offline: the create is queued and the form already reset for the next draft.
+    if (result === 'queued') return true;
     // Partial success: route to the detail screen like a plain Create.
     if (result.partial) {
       goToSaved(result.id);

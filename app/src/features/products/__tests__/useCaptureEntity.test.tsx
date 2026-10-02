@@ -1,7 +1,12 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import { onlineManager } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
 import type { SaveProductVariables } from '@/features/products/queries';
 import { useCaptureEntity } from '@/features/products/useCaptureEntity';
+
+type AddAnotherOutcome = Awaited<
+  ReturnType<ReturnType<typeof useCaptureEntity>['createAndAddAnother']>
+>;
 
 const mockMutateAsync = jest.fn<(args: SaveProductVariables) => Promise<number>>();
 const mockToast = jest.fn();
@@ -216,7 +221,7 @@ describe('useCaptureEntity', () => {
       result.current.setImages([{ url: 'file:///photo.jpg', description: '' }]);
     });
 
-    let outcome: { id: number; partial: boolean } | undefined;
+    let outcome: AddAnotherOutcome;
     await act(async () => {
       outcome = await result.current.createAndAddAnother();
     });
@@ -293,7 +298,7 @@ describe('useCaptureEntity', () => {
       result.current.setImages([{ url: 'x', description: '' }]);
     });
 
-    let outcome: { id: number; partial: boolean } | undefined;
+    let outcome: AddAnotherOutcome;
     await act(async () => {
       outcome = await result.current.createAndAddAnother();
     });
@@ -312,7 +317,10 @@ describe('useCaptureEntity', () => {
 
     await act(() => result.current.setName('Widget'));
 
-    let outcome: { id: number; partial: boolean } | undefined = { id: -1, partial: false };
+    let outcome: AddAnotherOutcome = {
+      id: -1,
+      partial: false,
+    };
     await act(async () => {
       outcome = await result.current.createAndAddAnother();
     });
@@ -320,6 +328,133 @@ describe('useCaptureEntity', () => {
     expect(outcome).toBeUndefined();
     expect(mockToast).not.toHaveBeenCalled();
     expect(result.current.name).toBe('Widget');
+  });
+
+  describe('createAndAddAnother while offline', () => {
+    afterEach(async () => {
+      await act(() => onlineManager.setOnline(true));
+    });
+
+    // A paused create never settles until reconnect; the bench must not wait on it.
+    const never = () => new Promise<number>(() => {});
+
+    it('queues the create and hands back a reset form without waiting', async () => {
+      await act(() => onlineManager.setOnline(false));
+      mockMutateAsync.mockImplementationOnce(never);
+      const { result } = await renderHook(() =>
+        useCaptureEntity({ role: 'component', parentID: 1, parentRole: 'product' }),
+      );
+      const photos = [{ url: 'file:///photo.jpg', description: '' }];
+      await act(() => {
+        result.current.setName('Bolt');
+        result.current.setTypeID(5);
+        result.current.setAmount(4);
+        result.current.setImages(photos);
+      });
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.createAndAddAnother();
+      });
+
+      expect(outcome).toBe('queued');
+      // The queued draft keeps its photos; they upload once the create lands.
+      expect(mockMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          product: expect.objectContaining({ name: 'Bolt', images: photos, amountInParent: 4 }),
+          idempotencyKey: expect.any(String),
+        }),
+      );
+      expect(mockToast).toHaveBeenCalledWith('Bolt queued — sends when online');
+      expect(result.current.name).toBe('');
+      expect(result.current.images).toEqual([]);
+      expect(result.current.amount).toBe(1);
+      expect(result.current.typeID).toBe(5);
+      expect(result.current.isCreating).toBe(false);
+    });
+
+    it('lets the next draft be created at once, under its own idempotency key', async () => {
+      await act(() => onlineManager.setOnline(false));
+      mockMutateAsync.mockImplementation(never);
+      const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
+
+      await act(() => result.current.setName('First'));
+      await act(async () => {
+        await result.current.createAndAddAnother();
+      });
+      expect(result.current.canCreate).toBe(false);
+      await act(() => result.current.setName('Second'));
+      expect(result.current.canCreate).toBe(true);
+      await act(async () => {
+        await result.current.createAndAddAnother();
+      });
+
+      const keys = mockMutateAsync.mock.calls.map((call) => call[0].idempotencyKey);
+      expect(mockMutateAsync.mock.calls.map((call) => call[0].product.name)).toEqual([
+        'First',
+        'Second',
+      ]);
+      expect(keys[0]).toEqual(expect.any(String));
+      expect(keys[1]).toEqual(expect.any(String));
+      expect(keys[1]).not.toBe(keys[0]);
+      mockMutateAsync.mockReset();
+    });
+
+    it('reports a queued create that later fails, naming the item', async () => {
+      await act(() => onlineManager.setOnline(false));
+      let reject!: (err: unknown) => void;
+      mockMutateAsync.mockImplementationOnce(
+        () =>
+          new Promise<number>((_resolve, rej) => {
+            reject = rej;
+          }),
+      );
+      const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
+      await act(() => result.current.setName('Widget'));
+      await act(async () => {
+        await result.current.createAndAddAnother();
+      });
+      expect(mockError).not.toHaveBeenCalled();
+
+      await act(async () => {
+        reject(new TypeError('Network request failed'));
+      });
+
+      expect(mockError).toHaveBeenCalledWith(
+        expect.stringContaining('"Widget" was not created.'),
+        'Create failed',
+      );
+    });
+
+    it('reports a queued create whose photos failed after the record landed', async () => {
+      await act(() => onlineManager.setOnline(false));
+      mockMutateAsync.mockImplementationOnce(async ({ product }) => {
+        product.id = 77;
+        throw new Error('upload failed');
+      });
+      const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
+      await act(() => result.current.setName('Widget'));
+      await act(async () => {
+        await result.current.createAndAddAnother();
+      });
+
+      expect(mockError).toHaveBeenCalledWith(
+        expect.stringContaining('"Widget" was created, but some photos failed to upload'),
+        'Upload failed',
+      );
+    });
+
+    it('toasts once the queued create lands', async () => {
+      await act(() => onlineManager.setOnline(false));
+      mockMutateAsync.mockResolvedValueOnce(5);
+      const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
+      await act(() => result.current.setName('Widget'));
+      await act(async () => {
+        await result.current.createAndAddAnother();
+      });
+
+      expect(mockToast).toHaveBeenLastCalledWith('Widget added');
+    });
   });
 
   // TDD for the offline-queued acknowledgment: a paused mutation must not

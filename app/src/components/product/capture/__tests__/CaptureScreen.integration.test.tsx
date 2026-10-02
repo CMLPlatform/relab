@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import { onlineManager } from '@tanstack/react-query';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { CaptureScreen } from '@/components/product/capture/CaptureScreen';
@@ -52,7 +53,6 @@ const mockMutateAsync = jest.fn<(args: { product: { id?: number } }) => Promise<
 const mockUseAuth = jest.fn();
 // Plain mutable flags (not jest.fn().mockReturnValue) so the mocked hook
 // below re-reads them fresh on every render without extra setup per test.
-let mockIsPending = false;
 let mockIsPaused = false;
 
 jest.mock('@/context/auth', () => ({
@@ -63,7 +63,7 @@ jest.mock('@/features/products/queries', () => ({
   QUEUED_OFFLINE_LABEL: 'Queued — sends when online',
   useSaveProductMutation: () => ({
     mutateAsync: mockMutateAsync,
-    isPending: mockIsPending,
+    isPending: false,
     isPaused: mockIsPaused,
   }),
 }));
@@ -127,7 +127,6 @@ async function renderCapture(props: Parameters<typeof CaptureScreen>[0]) {
 describe('CaptureScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockIsPending = false;
     mockIsPaused = false;
     mockCanGoBack = false;
     mockIsLg = false;
@@ -171,9 +170,19 @@ describe('CaptureScreen', () => {
   // "paused" isn't "loading", there's nothing to spin for until the device
   // comes back online.
   it('shows a queued label and no spinner on both Create buttons while paused offline', async () => {
-    mockIsPending = true;
     mockIsPaused = true;
+    let settle!: (id: number) => void;
+    mockMutateAsync.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          settle = resolve;
+        }),
+    );
     await renderCapture({ entityRole: 'product' });
+    const nameInput = screen.getByPlaceholderText(NAME_PLACEHOLDER);
+    await fireEvent.changeText(nameInput, 'Kettle');
+    // Enter submits without awaiting the create, which stays paused until settled below.
+    await fireEvent(nameInput, 'submitEditing');
 
     // Both Create buttons, plus the one-time toast useCaptureEntity fires on
     // the isPaused transition (see useCaptureEntity.test.tsx for that in isolation).
@@ -181,6 +190,8 @@ describe('CaptureScreen', () => {
     expect(screen.queryByText('Create product')).toBeNull();
     expect(screen.queryByText('Create & add another')).toBeNull();
     expect(queryAllHostsByType('ActivityIndicator')).toHaveLength(0);
+
+    await act(async () => settle(1));
   });
 
   // Only a component can be a material; a product is always a type.
@@ -282,6 +293,28 @@ describe('CaptureScreen', () => {
 
     expect(mockReplace).not.toHaveBeenCalled();
     expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('');
+  });
+
+  // At the bench, offline: the create queues and the form comes straight back
+  // for the next part, instead of waiting on the paused create.
+  it('hands back an empty, ready form after an offline Create & add another', async () => {
+    await act(() => onlineManager.setOnline(false));
+    try {
+      mockIsPaused = true;
+      mockMutateAsync.mockImplementationOnce(() => new Promise<number>(() => {}));
+      await renderCapture({ entityRole: 'component', parentID: 5, parentRole: 'product' });
+
+      await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Bolt');
+      await fireEvent.press(screen.getByText('Create & add another'));
+
+      expect(await screen.findByText('Bolt queued — sends when online')).toBeOnTheScreen();
+      expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.value).toBe('');
+      // The buttons belong to the new draft, not the queued one.
+      expect(screen.getByText('Create component')).toBeOnTheScreen();
+      expect(mockReplace).not.toHaveBeenCalled();
+    } finally {
+      await act(() => onlineManager.setOnline(true));
+    }
   });
 
   // Batch mode has nothing left to batch once the record exists: a partial
