@@ -24,13 +24,15 @@ const SEMANTIC_COLORS = {
 } as const;
 
 /**
- * The `data` face. Web gets a named stack: the bare generic `monospace` resolves
- * to Courier New on Windows and DejaVu Sans Mono on Linux.
+ * The `data` face. Web uses the self-hosted IBM Plex Mono (global.css @font-face) with a
+ * named fallback stack: the bare generic `monospace` resolves to Courier New on Windows
+ * and DejaVu Sans Mono on Linux.
  */
 export const MONO_FONT_FAMILY = Platform.select({
   ios: 'Menlo',
   android: 'monospace',
-  default: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+  default:
+    '"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
 });
 
 export function createTokens(scheme: AppScheme, colors: AppColorScale): AppTokens {

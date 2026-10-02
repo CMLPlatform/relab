@@ -48,7 +48,7 @@ typography:
     fontSize: 13px
     lineHeight: 18px
   data:
-    fontFamily: Menlo, monospace
+    fontFamily: IBM Plex Mono, ui-monospace, monospace
     fontSize: 14px
     lineHeight: 20px
   eyebrow:
@@ -193,10 +193,11 @@ shade (`#143567` light / `#BAD3FF` dark), not alpha on the primary. In Tailwind:
 
 **Display / UI Font:** platform system font (San Francisco on iOS, Roboto on Android, system UI
 stack on web)
-**Data / Label Font:** platform monospace (Menlo on iOS, `monospace` on Android, and on web the
-stack `ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace`), with
-`font-variant: tabular-nums`. Take it from `MONO_FONT_FAMILY` in `src/theme/tokens.ts`; a bare
-`monospace` on web falls to Courier New on Windows.
+**Data / Label Font:** IBM Plex Mono 400 on web (self-hosted from `public/fonts/`, 14.7 KB,
+`font-display: swap`, falling back to `ui-monospace, SFMono-Regular, Menlo, Consolas,
+"Liberation Mono", monospace`); platform monospace on native (Menlo on iOS, `monospace` on
+Android). Always with `font-variant: tabular-nums`. Take it from `MONO_FONT_FAMILY` in
+`src/theme/tokens.ts`; a bare `monospace` on web falls to Courier New on Windows.
 
 **Character:** Neutral and native. The app borrows the scale and palette of the brand's IBM Plex
 system without shipping the typeface.
@@ -218,7 +219,7 @@ system without shipping the typeface.
 
 **The System-Font Rule.** The app stays on platform system fonts (native feel, Dynamic Type
 support, zero load cost). It adopts the brand's scale and palette, not its typeface. www and docs
-use IBM Plex; do not "unify" this. *Mirrors assets/DESIGN.md:31-34 — change it there first.*
+use IBM Plex; do not "unify" this. The one exception is the web `data` face, IBM Plex Mono. *Mirrors assets/DESIGN.md:31-36 — change it there first.*
 
 Dynamic Type is capped at 2x on **every** text primitive: both `AppText` and `ui/text` apply the
 cap by default. `ui/text` renders every button label plus HeroStats, ComponentRow, GoLiveDialog

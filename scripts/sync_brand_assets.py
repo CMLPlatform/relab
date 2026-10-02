@@ -130,6 +130,11 @@ COPY_ASSETS = (
         )
         for font_file in WEB_FONT_FILES
     ),
+    # The app's web build uses only the mono face, for its `data` text.
+    (
+        root_path("assets/fonts/ibm-plex-mono-latin-400.woff2"),
+        (root_path("app/public/fonts/ibm-plex-mono-latin-400.woff2"),),
+    ),
     *(
         (
             root_path(f"assets/icons/brand/{icon_name}.svg"),
