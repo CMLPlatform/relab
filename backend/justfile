@@ -83,6 +83,8 @@ test-ci:
 mutation *mutants:
     #!/usr/bin/env bash
     set -euo pipefail
+    # Mutant globs pass through to mutmut, not the shell.
+    set -f
     container=$(docker run -d --rm -p 127.0.0.1::5432 -e POSTGRES_PASSWORD=postgres postgres:18-alpine)
     trap 'docker stop "$container" >/dev/null' EXIT
     export TEST_POSTGRES_HOST=127.0.0.1
