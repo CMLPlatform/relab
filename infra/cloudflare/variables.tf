@@ -50,7 +50,7 @@ variable "github_repository" {
 }
 
 variable "github_reviewers" {
-  description = "GitHub logins that approve every job using this Environment: prod's release gate, and staging's while its Cloudflare token can deploy every Worker in the account. Required."
+  description = "GitHub logins that approve every job using this Environment: prod's release gate, and staging's while its Cloudflare token is not scoped to its own Workers. Required."
   type        = list(string)
   default     = []
 }

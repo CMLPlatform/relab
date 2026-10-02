@@ -221,10 +221,9 @@ just deploy-secrets-check   # reports if the remote is still undefined
 > recommendation** for it. The commonly repeated "1/12 monthly" is forum folklore, not upstream
 > guidance. Pick a cadence and write down why.
 
-**This does not give immutability.** restic must delete to prune, so no credential setup makes the
-offsite copy append-only: a compromised share token can erase prod's off-host backups, leaving the
-local repository the only copy. Real protection needs object-lock storage (B2, Wasabi, S3) or a
-restic REST server with `--append-only` — WebDAV offers neither.
+**This does not give immutability.** restic must delete to prune, so no credential setup makes a
+WebDAV copy append-only. Where offsite immutability is required, use object-lock storage (B2,
+Wasabi, S3) or a restic REST server with `--append-only`.
 
 ### 1.4 What the watchdog checks
 
@@ -297,7 +296,7 @@ Nothing on this host can tell you that rule is missing. The arguments must match
 label values the rule matches on.
 Bootstrap also prints the `.env` block and the commands that vendor the agent files at a pinned tag.
 
-CML hosts with an NVIDIA card set `GPU_METRICS=1`.
+Hosts with an NVIDIA card set `GPU_METRICS=1`.
 
 Verify the whole path end to end with a real job:
 
@@ -312,7 +311,7 @@ ______________________________________________________________________
 ### 1.6 A deploy user and a restricted key
 
 The host runs prod from a checkout nobody edits, as a sudo-less account, and is only ever *reached*
-from the dev host; agents, credentials and working trees stay on the dev host.
+from the operator's machine; credentials and working trees stay there.
 
 **Run recipes as that account: `sudo -u relab just <recipe> prod`.** Plain `sudo just` runs as root,
 which git refuses against a checkout `relab` owns — the watchdog's drift check then reports the
@@ -337,7 +336,7 @@ deploy user whose forced command is `scripts/remote_deploy.sh`. The script maps 
 onto the `just` recipes and refuses anything else, so the key cannot open a shell or read a secret:
 
 ```text
-command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... devbox-deploy
+command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... relab-deploy
 ```
 
 The environment is the host's own root `.env`; it is never an argument. The repository is public,

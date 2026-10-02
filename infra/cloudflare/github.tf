@@ -39,7 +39,7 @@ resource "github_repository_environment" "publish" {
   # Every job in either Environment waits for a person. In prod that is the release gate:
   # a release deploys staging's sites, and prod's follow once someone has checked
   # staging and approved. Staging needs it while its CLOUDFLARE_API_TOKEN holds the
-  # Workers Editor role on all Workers, which reaches prod's Workers too.
+  # Workers Editor role on all Workers, a grant not scoped to one environment.
   # TODO: drop staging's reviewer once each Environment's token is limited to its own
   # Workers.
   reviewers {

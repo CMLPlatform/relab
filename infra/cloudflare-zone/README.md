@@ -47,9 +47,8 @@ send both headers. The token authenticates at the collector, the key only buys t
 skip, and the two rotate independently.
 
 > **The monitoring stack shares this zone.** `otel.cml-relab.org` belongs to
-> CMLPlatform/monitoring, which runs its own Cloudflare Terraform against this zone.
-> Checked on 2026-09-05: its `infra/main.tf` declares a tunnel, two DNS records
-> (`grafana.`, `otel.`) and a Zero Trust Access application, and no `cloudflare_ruleset`.
+> CMLPlatform/monitoring, which runs its own Cloudflare Terraform against this zone and must
+> own no ruleset in it.
 >
 > The one-entrypoint-ruleset-per-(zone, phase) limit crosses repository boundaries. If the
 > monitoring stack adds a WAF, cache or rate-limit ruleset for this zone, whichever
@@ -58,8 +57,8 @@ skip, and the two rotate independently.
 
 Leaving the key unset **omits the rule** rather than relaxing it. A plan run without the
 key therefore proposes **deleting** the live rule, so export it whenever you plan this
-root. Rotate it together with the deploy hosts' `OTLP_AUTH_TOKEN`, the same token in the
-header form `Bearer <token>`.
+root. Rotate it together with `TELEMETRY_EDGE_KEY` in the deploy hosts' `.env`, which must hold
+the same value.
 
 ### The end-to-end credential
 

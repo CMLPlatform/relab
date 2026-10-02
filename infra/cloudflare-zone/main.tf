@@ -31,7 +31,7 @@ resource "cloudflare_zone_setting" "always_use_https" {
 resource "cloudflare_ruleset" "rate_limiting" {
   zone_id     = var.cloudflare_zone_id
   name        = "default"
-  description = "Zone-level rate limiting for Relab auth, media upload, and RPi camera endpoints (all environments)."
+  description = "Zone-level rate limiting for Relab authentication endpoints (all environments)."
   kind        = "zone"
   phase       = "http_ratelimit"
 
