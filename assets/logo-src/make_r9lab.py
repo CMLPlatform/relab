@@ -32,7 +32,7 @@ ASSETS = HERE.parent
 LIGHT = {"nine": "#1f4c96", "letters": "#16202e", "muted": "#5a6675", "bg": "#f5f7fa"}
 DARK = {"nine": "#8fb8ff", "letters": "#e9eff8", "muted": "#8c99ad", "bg": "#0c1220"}
 
-# Tuned (Simon, 2026-07-13).
+# Tuned by eye against the brand palette; re-tune if the font or the scale changes.
 SPEC = {
     "nine_font": "titillium-web-600.woff2",
     "letter_font": "ibm-plex-sans-600.woff2",

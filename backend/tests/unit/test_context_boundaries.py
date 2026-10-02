@@ -1,9 +1,8 @@
 """Pins the dependency edges between bounded contexts.
 
-CLAUDE.md describes a layering that nothing used to enforce, so it had drifted. These
-record it: contexts may depend on the shared contexts beneath them, the three documented
-exceptions are listed by name, and a cross-context use case lives in `application`, above
-every context, rather than inside whichever one owns its entry point.
+Contexts may depend on the shared contexts beneath them, the three documented exceptions
+are listed by name, and a cross-context use case lives in `application`, above every
+context, rather than inside whichever one owns its entry point.
 
 Adding an edge is not forbidden; it is a decision. Update ALLOWED_EDGES in the same
 commit, and say why in the message. Removing one is always fine: the assertion is

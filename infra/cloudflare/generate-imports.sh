@@ -84,8 +84,8 @@ if [[ "$mode" == edge ]]; then
     # The live tunnels predate this module and carry their original names, so match on
     # the name the module WILL set as well as the one Cloudflare has today.
     # Set RELAB_TUNNEL_NAME to point at a tunnel called something else again.
-    # Verified against the account's tunnel list on 2026-08-19: prod's tunnel is
-    # cml-relab-prod. Staging's was cml-relab-test until its first apply renamed it.
+    # Prod's tunnel is cml-relab-prod; staging's was cml-relab-test until its first apply
+    # renamed it.
     legacy_name="cml-relab-prod"
     [[ "$env" == staging ]] && legacy_name="cml-relab-test"
     override="${RELAB_TUNNEL_NAME:-}"
