@@ -11,7 +11,12 @@ just dev
 
 The Expo dev server runs on <http://127.0.0.1:8011>.
 
-Run the backend too. If the API is not on localhost, set `EXPO_PUBLIC_API_URL` in `.env.local`.
+Run the backend too. On a physical device, or when the API is not on localhost, set
+`EXPO_PUBLIC_API_URL` in `.env.local`.
+
+To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` to the web client ID from
+Google Cloud Console, and register your environment's redirect URI there (for local dev,
+`http://127.0.0.1:8011/login`).
 
 Docker development ports are localhost-only. To open the app from another device on your LAN, run
 `just dev` from this subrepo instead of the Docker app service.
@@ -142,17 +147,10 @@ and `largeUrl`; pager, lightbox, and prefetch read those two fields.
 
 ## Regenerating API Types
 
-`src/types/api.generated.ts` is generated from the backend OpenAPI schema. It is the only
+`just codegen` regenerates `src/types/api.generated.ts` from the committed `src/types/openapi.json`
+(see [Data Flow](#data-flow)), so it needs no running backend. The generated file is the only
 supported frontend contract for the RPi camera integration; do not import or re-declare the
 `relab-rpi-cam-models` Python package in frontend code.
-
-Codegen reads the committed `src/types/openapi.json` (exported via `just backend/openapi`), so no
-running backend is required:
-
-```bash
-# regenerate types from the committed schema, redact JWT examples, and format
-just codegen
-```
 
 ## Common Commands
 
@@ -247,7 +245,7 @@ Validate memoization changes in a release-like build, not only in Metro dev mode
 
 ## Build And Deploy
 
-- **Dev (web):** `just dev`: Expo Metro on :8081.
+- **Dev (web):** `just dev`: Expo Metro on :8011.
 - **Dev (native):** `pnpm android` / `pnpm ios`.
 - **Web build:** `just build-web` runs `expo export -p web -c` → `dist/`.
 - **Runtime:** Caddy serves `dist/` with CSP templated from `CADDY_API_ORIGIN`. The enforced
@@ -283,5 +281,5 @@ accessibility rules.
 
 ## More
 
-For emulator and device setup, testing patterns, and app-specific development notes, see
+For repo-wide frontend conventions, see
 [CONTRIBUTING.md](../.github/CONTRIBUTING.md#frontend-development).

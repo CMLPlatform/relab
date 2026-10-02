@@ -9,13 +9,12 @@ Run commands from `www/`.
 
 ```bash
 just install
-pnpm run dev
+just dev
 ```
 
-The local dev server runs at <http://127.0.0.1:8013>. Use the numeric loopback host through VS Code
-Remote port forwarding; Firefox can be unreliable with forwarded `localhost` URLs.
-
-In the full Docker dev stack, the dev server is published at <http://127.0.0.1:8013>.
+The dev server runs at <http://127.0.0.1:8013>, standalone or in the full Docker dev stack. Use the
+numeric loopback host through VS Code Remote port forwarding; Firefox can be unreliable with
+forwarded `localhost` URLs.
 
 ## What is here
 
@@ -31,13 +30,10 @@ In the full Docker dev stack, the dev server is published at <http://127.0.0.1:8
 
 ## Common commands
 
-`just build` uses the reference deployment's public URLs unless `*_PUBLIC_URL` are exported; see
-[Environment variables](#environment-variables) for how staging and production get theirs.
-
 | Task                             | Command                          |
 | -------------------------------- | -------------------------------- |
 | Install dependencies             | `just install`                   |
-| Start local dev server           | `pnpm run dev`                   |
+| Start local dev server           | `just dev`                       |
 | Build production output          | `just build`                     |
 | Preview a build locally          | `pnpm run preview`               |
 | Lint and type-check              | `just check`                     |
@@ -113,10 +109,10 @@ governed by the ToS grant and are not automatically clear for marketing surfaces
 ## Environment variables
 
 [src/config/public.ts](src/config/public.ts) reads public variables through `import.meta.env`.
-Staging and production are built by Docker Compose (`compose.deploy.yaml`), which passes `PUBLIC_*`
-values as build args. `just dev` defaults to the `127.0.0.1` dev ports from `compose.dev.yaml`,
-overridable through the root `.env`; there is no `dev.compose.env`. `just build` is a local,
-non-Compose production-mode build; export `API_PUBLIC_URL` and friends to override its origins.
+The Deploy Sites workflow (`.github/workflows/deploy-sites.yml`) builds staging and production with
+the `PUBLIC_*` values from each GitHub Environment. `just dev` defaults them to the `127.0.0.1` dev
+ports; export a `PUBLIC_*` variable to override one. `just build` is a local production-mode build
+against the reference deployment's origins; export `API_PUBLIC_URL` and friends to override them.
 
 | Name                         | Required | Purpose                                                                                                                           |
 | ---------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
@@ -126,7 +122,7 @@ non-Compose production-mode build; export `API_PUBLIC_URL` and friends to overri
 | `PUBLIC_API_URL`             | no       | Backend base URL the homepage stats panel fetches from in the browser (panel stays hidden if unset/unreachable)                   |
 | `PUBLIC_CONTACT_EMAIL`       | no       | Public contact address                                                                                                            |
 | `PUBLIC_FEATURED_PRODUCT_ID` | no       | Product ID whose teardown is featured in the landing hero (falls back to `src/data/landing-fixture.json` if unset or unreachable) |
-| `LANDING_REQUIRE_LIVE`       | no       | `1` fails the build instead of falling back when the featured product cannot be fetched; the image publish sets it |
+| `LANDING_REQUIRE_LIVE`       | no       | `1` fails the build instead of falling back when the featured product cannot be fetched; Deploy Sites sets it |
 
 Tooling also reads two environment variables in [playwright.config.ts](playwright.config.ts).
 

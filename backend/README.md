@@ -12,9 +12,12 @@ cd backend
 just dev
 ```
 
-The API is then available at <http://127.0.0.1:8010>. Docker Compose runs PostgreSQL and Redis.
+The API is then available at <http://127.0.0.1:8010>. Docker Compose runs PostgreSQL and Redis;
 Redis is required at startup. Put backend-only non-secret overrides in `.env.dev`; local secrets live
-in `../secrets/dev/`.
+in `../secrets/dev/`. Use `SEED_DUMMY_DATA=true just dev-migrate` (from the root) for sample data.
+
+`ENVIRONMENT` is required, and the backend fails fast without it. `just dev` does not export it, so
+set `ENVIRONMENT=dev` in `.env.dev` or export it in your shell.
 
 - Filtered public contracts: <http://127.0.0.1:8010/openapi.public.json> and
   <http://127.0.0.1:8010/openapi.device.json>
@@ -33,6 +36,7 @@ just test-cov      # tests with coverage
 just refresh-disposable-email-domains # update the committed disposable-email fallback list
 just perf-baseline # run the k6 baseline suite and export a JSON summary (output under reports/performance/ is gitignored)
 just migrate       # apply migrations
+just migrate-create "description"  # create a migration from the current model changes
 just fix           # lint autofix + format
 ```
 
@@ -130,5 +134,5 @@ Newsletter delivery is not part of the runtime API.
 
 ## More
 
-For Docker setup, local development, migration workflow, and testing conventions, see
-[CONTRIBUTING.md](../.github/CONTRIBUTING.md#backend-development).
+Test tiers and conventions: [tests/README.md](tests/README.md). Schema-change rules and OpenAPI
+examples: [CONTRIBUTING.md](../.github/CONTRIBUTING.md#backend-development).

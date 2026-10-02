@@ -1,6 +1,8 @@
 # Backend Tests
 
-Fast unit tests are kept separate from persistence, runtime, and end-to-end coverage.
+Fast unit tests are kept separate from persistence, runtime, and end-to-end coverage. The shared
+fixtures are `db_session`, `db_user`, `db_superuser`, `api_client`, `api_client_user`,
+`api_client_superuser`, and `redis_client`.
 
 ## Tiers
 
