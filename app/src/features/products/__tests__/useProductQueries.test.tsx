@@ -652,6 +652,20 @@ describe('useProductQueries', () => {
     expect(removeSpy).not.toHaveBeenCalled();
   });
 
+  // A delete applied long after the person moved on is worse than one that
+  // fails: it must not pause in the queue across a dropped connection.
+  it('useDeleteProductMutation fails fast offline instead of pausing', async () => {
+    await act(() => onlineManager.setOnline(false));
+    mockedDeleteProduct.mockRejectedValue(new TypeError('Network request failed'));
+
+    const { result } = await renderHook(() => useDeleteProductMutation(), { wrapper });
+    result.current.mutate({ ...existingProduct, id: 123, name: 'Old' });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(result.current.isPaused).toBe(false);
+    expect(mockedDeleteProduct).toHaveBeenCalledTimes(1);
+  });
+
   it('useDeleteProductMutation removes both role caches for an existing entity', async () => {
     mockedDeleteProduct.mockResolvedValue(undefined);
     const removeSpy = jest.spyOn(queryClient, 'removeQueries');

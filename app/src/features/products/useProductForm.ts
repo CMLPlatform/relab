@@ -274,9 +274,8 @@ function useProductFormActions({
   });
 
   const onProductDelete = useSingleFlight(async () => {
-    // TODO: a connection drop mid-request pauses the mutation and holds the single flight
-    // until reconnect; the offline guard below only covers starting a delete while offline.
-    // A paused delete would sit in the queue and silently vanish on failure.
+    // The delete mutation never pauses (networkMode 'always'), so a dropped
+    // connection rejects here. This guard only gives the clearer offline message.
     if (!onlineManager.isOnline()) {
       dialog.alert({
         title: 'Delete failed',

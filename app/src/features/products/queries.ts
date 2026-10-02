@@ -309,6 +309,11 @@ export function useDeleteProductMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
+    // NOTE: 'always', unlike saves: a delete never pauses offline. A queued
+    // delete would land long after the person moved on, and a failure then
+    // would have no screen to report to. Offline or on a dropped connection the
+    // request fails at once and the caller shows the connection error.
+    networkMode: 'always',
     mutationFn: (product: Product) => deleteProduct(product),
     onSuccess: (_data, product) => {
       if (typeof product.id === 'number') {
