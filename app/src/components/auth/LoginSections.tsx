@@ -2,6 +2,7 @@ import { type RefObject, useCallback } from 'react';
 import type { Control, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { AuthScreen } from '@/components/auth/AuthScreen';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
@@ -31,7 +32,7 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
       className={isMd ? 'self-start absolute top-4 left-2 z-10' : 'self-start'}
       style={{ backgroundColor: theme.tokens.overlay.page }}
     >
-      <Icon name="arrow-left" size={16} color={theme.colors.onSurface} />
+      <Icon name="arrow-left" size={16} color={VARIANT_FOREGROUND_COLOR.ghost(theme.colors)} />
       Browse
     </AppButton>
   );
@@ -220,11 +221,11 @@ export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps
   return (
     <>
       <AppButton variant="outline" className="w-full" onPress={onGoogle}>
-        <Icon name="google" size="sm" color={theme.colors.onSurface} />
+        <Icon name="google" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
         Continue with Google
       </AppButton>
       <AppButton variant="outline" className="w-full" onPress={onGithub}>
-        <Icon name="github" size="sm" color={theme.colors.onSurface} />
+        <Icon name="github" size="sm" color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
         Continue with GitHub
       </AppButton>
     </>

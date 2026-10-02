@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { type RefObject, useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
@@ -80,7 +81,7 @@ export function CameraPickerDialog({
       </View>
       <View className="mt-4 flex-row items-center justify-end gap-1">
         <AppButton variant="ghost" onPress={handleManage}>
-          <Icon name="settings" size={16} color={theme.colors.onSurface} />
+          <Icon name="settings" size={16} color={VARIANT_FOREGROUND_COLOR.ghost(theme.colors)} />
           Manage
         </AppButton>
         <View className="flex-1" />

@@ -60,18 +60,13 @@ const buttonTextVariants = cva(
       variant: {
         primary: 'text-primary-foreground',
         destructive: 'text-destructive-foreground',
-        outline: cn(
-          'group-active:text-primary',
-          Platform.select({ web: 'group-hover:text-primary' }),
-        ),
+        // Blue ink at rest: if it responds to touch, it is blue (DESIGN.md, Buttons).
+        outline: 'text-primary',
         tonal: cn(
           'text-primary group-active:text-primary-foreground',
           Platform.select({ web: 'group-hover:text-primary-foreground' }),
         ),
-        ghost: cn(
-          'group-active:text-primary',
-          Platform.select({ web: 'group-hover:text-primary' }),
-        ),
+        ghost: 'text-primary',
       },
     },
     defaultVariants: {

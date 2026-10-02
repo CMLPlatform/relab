@@ -113,6 +113,20 @@ test.each(['outline', 'ghost'] as const)(
   },
 );
 
+// DESIGN.md Buttons: "if a thing responds to touch, it is blue" — outline and
+// ghost carry blue ink at rest, not only on press; the spinner and composed icons follow.
+test.each(['outline', 'ghost'] as const)('%s variant has blue ink at rest', async (variant) => {
+  await render(
+    <AppButton variant={variant} loading>
+      Label
+    </AppButton>,
+  );
+  const classes: string[] = screen.getByText('Label').props.className.split(' ');
+  expect(classes).toContain('text-primary');
+  expect(classes).not.toContain('text-foreground');
+  expect(queryAllHostsByType('ActivityIndicator')[0].props.color).toBe(lightTheme.colors.primary);
+});
+
 test('meets the 44px a11y tap-target floor regardless of caller className', async () => {
   await render(<AppButton className="mx-4 my-2">Add component</AppButton>);
   expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('min-h-11'));

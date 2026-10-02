@@ -1,5 +1,6 @@
 import { type RefObject, useCallback, useId, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
@@ -410,7 +411,7 @@ function GoLiveCTA({
         onPress={handlePress}
         className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
       >
-        <Icon name="youtube" size={18} color={theme.colors.onSurface} />
+        <Icon name="youtube" size={18} color={VARIANT_FOREGROUND_COLOR.outline(theme.colors)} />
         Go Live
       </AppButton>
     </View>

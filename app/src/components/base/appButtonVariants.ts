@@ -7,7 +7,7 @@ export type AppButtonVariant = 'primary' | 'tonal' | 'outline' | 'ghost' | 'dest
 export const VARIANT_FOREGROUND_COLOR: Record<AppButtonVariant, (colors: AppColors) => string> = {
   primary: (colors) => colors.onPrimary,
   tonal: (colors) => colors.primary,
-  outline: (colors) => colors.onSurface,
-  ghost: (colors) => colors.onSurface,
+  outline: (colors) => colors.primary,
+  ghost: (colors) => colors.primary,
   destructive: (colors) => colors.onError,
 };
