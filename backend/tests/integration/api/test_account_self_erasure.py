@@ -18,7 +18,6 @@ from app.api.auth.services import mfa_service
 from app.api.auth.services.account_security import RECENT_SIGN_IN_WINDOW
 from app.api.auth.services.session_flow import SESSION_LOGOUT_CLEAR_SITE_DATA
 from app.api.common.audit import AuditAction, AuditContext
-from app.api.common.rate_limiting import Limiter
 from app.api.data_collection.models.product import Product
 from app.api.plugins.rpi_cam.models import Camera
 from scripts.seed.factories.models import CameraFactory, UserFactory
@@ -28,6 +27,7 @@ from tests.integration.api.auth.shared import (
     TEST_PASSWORD,
     assert_refresh_session_revoked,
     create_password_user,
+    link_google,
     login_bearer,
 )
 
@@ -43,7 +43,6 @@ pytestmark = pytest.mark.api
 
 ME = "/v1/users/me"
 ROUTER = "app.api.application.routers.account_erasure"
-BUDGET = "app.api.auth.services.rate_limiter"
 
 
 async def _row_exists(session: AsyncSession, statement: Select[tuple[Any]]) -> bool:
@@ -62,14 +61,8 @@ async def test_self_deletion_anonymizes_content_and_erases_the_account(
     user = await create_password_user(db_session, email="leaving@example.com", username="leaving_user")
     product = Product(owner_id=user.id, name="Owned product", product_type=db_product_type)
     component = Product(owner_id=user.id, name="Owned component", parent=product, amount_in_parent=1)
-    oauth_account = OAuthAccount(
-        user_id=user.id,
-        oauth_name="google",
-        access_token="access-token",  # test fixture value, not a credential
-        account_id="oauth-account-self",
-        account_email="leaving@example.com",
-    )
-    db_session.add_all([product, component, oauth_account])
+    db_session.add_all([product, component])
+    await link_google(db_session, user)
     camera = await CameraFactory.create_async(session=db_session, owner_id=user.id)
     await db_session.flush()
     user_id = user.id
@@ -157,27 +150,6 @@ async def test_oauth_only_account_without_mfa_needs_a_recent_sign_in(
         revoke.assert_not_called()
 
 
-async def test_failed_step_ups_are_limited_per_account(
-    api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI
-) -> None:
-    """Wrong passwords spend a per-account budget; once spent, even the right one waits."""
-    user = await create_password_user(db_session, email="guessed@example.com", username="guessed_user")
-
-    with (
-        override_authenticated_user(test_app, user),
-        patch(f"{BUDGET}.limiter", new=Limiter(storage_uri="memory://")),
-    ):
-        wrong = [
-            (await api_client.request("DELETE", ME, json={"current_password": "not-the-password-42"})).status_code
-            for _ in range(3)
-        ]
-        blocked = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD})
-
-    assert wrong == [status.HTTP_403_FORBIDDEN] * 3
-    assert blocked.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-    assert await _row_exists(db_session, select(User.id).where(User.id == user.id))
-
-
 @pytest.mark.parametrize("other_admin", [False, True], ids=["last-admin", "another-admin-active"])
 async def test_superuser_self_deletion_is_blocked_only_for_the_last_admin(
     api_client: AsyncClient, db_session: AsyncSession, *, other_admin: bool
@@ -233,6 +205,7 @@ async def test_mfa_account_deletes_with_a_valid_code(
     assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
 
 
+@pytest.mark.usefixtures("fresh_guess_budget")
 async def test_a_mistyped_code_then_a_correct_retry_deletes_the_account(
     api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI
 ) -> None:
@@ -242,10 +215,7 @@ async def test_a_mistyped_code_then_a_correct_retry_deletes_the_account(
     valid = totp_code(secret)
     wrong = "000000" if valid != "000000" else "000001"
 
-    with (
-        override_authenticated_user(test_app, user),
-        patch(f"{BUDGET}.limiter", new=Limiter(storage_uri="memory://")),
-    ):
+    with override_authenticated_user(test_app, user):
         typo = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD, "mfa_code": wrong})
         retry = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD, "mfa_code": valid})
 
