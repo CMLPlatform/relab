@@ -73,8 +73,7 @@
       "expo-font",
       "expo-asset",
       "expo-status-bar",
-      "./plugins/withLocalNetworkSecurity",
-      "expo-sharing"
+      "./plugins/withLocalNetworkSecurity"
     ],
     "experiments": {
       "typedRoutes": true

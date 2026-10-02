@@ -14,20 +14,29 @@ import {
   setupUser,
 } from '@/test-utils/index';
 
-const mockWrittenFiles = new Map<string, string>();
-jest.mock('expo-file-system', () => ({
-  __esModule: true,
-  Paths: { cache: 'file:///cache' },
-  File: class {
+const mockWrittenFiles = new Map<string, Uint8Array>();
+jest.mock('expo-file-system', () => {
+  class File {
     uri: string;
-    constructor(directory: string, name: string) {
-      this.uri = `${directory}/${name}`;
+    name: string;
+    constructor(directory: { uri: string }, name: string) {
+      this.uri = `${directory.uri}/${name}`;
+      this.name = name;
     }
-    write(content: string) {
+    write(content: Uint8Array) {
       mockWrittenFiles.set(this.uri, content);
     }
-  },
-}));
+    delete() {
+      mockWrittenFiles.delete(this.uri);
+    }
+  }
+  const cache = {
+    uri: 'file:///cache',
+    list: () =>
+      [...mockWrittenFiles.keys()].map((uri) => new File(cache, uri.split('/').pop() ?? '')),
+  };
+  return { __esModule: true, Paths: { cache }, File };
+});
 jest.mock('expo-sharing', () => ({
   __esModule: true,
   shareAsync: require('@jest/globals').jest.fn(),
@@ -49,7 +58,7 @@ describe('ExportMenu', () => {
     server.use(
       http.get(`${API_URL}/products/:id/export`, () => {
         requests += 1;
-        return new HttpResponse('id,parent_id\n7,\n', {
+        return new HttpResponse('\uFEFFid,parent_id\n7,\n', {
           headers: {
             'Content-Type': 'text/csv',
             'Content-Disposition': 'attachment; filename="relab-product-7-20260928.csv"',
@@ -57,6 +66,7 @@ describe('ExportMenu', () => {
         });
       }),
     );
+    mockWrittenFiles.set('file:///cache/relab-product-3-20260901.csv', new Uint8Array([1]));
     await renderWithProviders(<ExportMenu label="Export" productId={7} />, { withDialog: true });
 
     await user.press(screen.getByText('Export'));
@@ -64,13 +74,17 @@ describe('ExportMenu', () => {
 
     await waitFor(() => expect(shareMock).toHaveBeenCalledTimes(1));
     const uri = 'file:///cache/relab-product-7-20260928.csv';
-    expect(mockWrittenFiles.get(uri)).toBe('id,parent_id\n7,\n');
+    // Written as bytes, so the UTF-8 BOM survives.
+    expect(Array.from(mockWrittenFiles.get(uri) ?? [])).toEqual(
+      Array.from(new TextEncoder().encode('\uFEFFid,parent_id\n7,\n')),
+    );
+    expect([...mockWrittenFiles.keys()]).toEqual([uri]);
     expect(shareMock).toHaveBeenCalledWith(uri, {
       mimeType: 'text/csv',
       dialogTitle: 'relab-product-7-20260928.csv',
     });
     expect(requests).toBe(1);
-    expect(await screen.findByText('Export downloaded')).toBeOnTheScreen();
+    expect(await screen.findByText('Export ready')).toBeOnTheScreen();
   });
 
   it("shows the server's reason when the export is refused", async () => {

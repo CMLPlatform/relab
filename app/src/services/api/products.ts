@@ -305,8 +305,13 @@ export async function downloadExport(url: URL): Promise<void> {
     CONTENT_DISPOSITION_FILENAME.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ??
     `relab-export.${url.searchParams.get('format') ?? 'csv'}`;
   if (Platform.OS !== 'web') {
+    // Earlier exports would otherwise sit in the cache until the OS clears it.
+    for (const entry of Paths.cache.list()) {
+      if (entry instanceof File && entry.name.startsWith('relab-')) entry.delete();
+    }
     const file = new File(Paths.cache, filename);
-    file.write(await response.text());
+    // Bytes, not text: re-encoding could drop the CSV's BOM, which Excel needs to read UTF-8.
+    file.write(new Uint8Array(await response.arrayBuffer()));
     await shareAsync(file.uri, {
       mimeType: response.headers.get('Content-Type') ?? undefined,
       dialogTitle: filename,
