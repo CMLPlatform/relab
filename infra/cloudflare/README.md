@@ -182,9 +182,13 @@ root writes, so the Environment goes first:
    ```bash
    tofu -chdir=infra/cloudflare workspace select <env>
    tofu -chdir=infra/cloudflare apply -var=environment=<env> \
+     -target=github_repository_environment.publish \
      -target=github_actions_environment_variable.publish \
      -target=github_repository_environment_deployment_policy.release_tag
    ```
+
+   Name the Environment as a target too: reached only as a dependency of the others, an
+   in-place change to it (its reviewers) shows in the plan but is skipped by the apply.
 
    An Environment, variable or branch policy made by hand before this root managed it makes the
    apply fail with "already exists". Import each one first, for example:
