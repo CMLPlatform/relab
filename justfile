@@ -202,8 +202,18 @@ ci: pre-commit check test-ci policy-check
 ci-full: ci audit cloudflare-check docker-smoke test-e2e
 
 # Start the E2E backend stack (database, cache, API) and wait for readiness
+# Registry pulls retry: a reset connection to Docker Hub should not fail the run.
 _e2e-backend-up:
-    docker compose -p relab_e2e -f compose.e2e.yaml up --build -d --wait --wait-timeout 120
+    #!/usr/bin/env bash
+    set -euo pipefail
+    compose=(docker compose -p relab_e2e -f compose.e2e.yaml)
+    for attempt in 1 2 3; do
+        "${compose[@]}" pull --ignore-buildable --quiet && break
+        [ "$attempt" = 3 ] && exit 1
+        echo "image pull failed (attempt $attempt), retrying in $((attempt * 10))s" >&2
+        sleep $((attempt * 10))
+    done
+    "${compose[@]}" up --build -d --wait --wait-timeout 120
 
 # Stop the E2E backend stack and remove its volumes
 _e2e-backend-down:
