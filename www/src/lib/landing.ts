@@ -223,7 +223,7 @@ async function fetchComponentTree(base: string, id: number): Promise<unknown> {
 
 /**
  * Load the landing payload at build time. Falls back to the fixture rather than
- * throwing, unless LANDING_REQUIRE_LIVE=1: the image publish sets it, so a release
+ * throwing, unless LANDING_REQUIRE_LIVE=1: the site deploy sets it, so a release
  * cannot quietly ship the fixture in place of the configured product.
  */
 export async function loadLandingData(): Promise<LandingData> {
