@@ -45,9 +45,10 @@ if onboarding needs one of these edited, report that upstream as a bug.
 | `deploy/alloy/config.alloy` | `templates/alloy/config.alloy`        |
 | `scripts/run_scheduled.sh`  | `templates/run_scheduled.sh`          |
 
-Vendored at **`v0.3.0`**. Update that tag in the same commit that re-vendors:
+Vendored at **`v0.4.0`**, except that `compose.telemetry.gpu.yml` carries a newer
+`nvidia_gpu_exporter` pin than that tag. Update the tag in the same commit that re-vendors:
 
 ```sh
-git -C ../monitoring checkout v0.3.0    # or the newer tag being adopted
+git -C ../monitoring checkout v0.4.0    # or the newer tag being adopted
 diff -u ../monitoring/templates/compose.telemetry.yml compose.telemetry.yml
 ```

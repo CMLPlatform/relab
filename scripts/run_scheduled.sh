@@ -46,11 +46,14 @@ ping_url="${!url_var:-}"
 output_file="$(mktemp)"
 trap 'rm -f "$output_file"' EXIT
 
-# The job's output is the failure body, so the alert carries the reason. This puts job
-# output in a third party's hands; keep credentials out of it.
-ping_fail() {
-    curl -fsS -m 10 --retry 3 --data-binary "@${output_file}" "${ping_url}/fail" -o /dev/null \
-        || echo "WARNING: failure ping to ${url_var} failed" >&2
+# healthchecks.io reads <ping_url>/<exit status>: 0 is success, anything else a failure.
+# A failure carries the job's output, so the alert has the reason. That puts job output
+# in a third party's hands; keep credentials out of it.
+ping_status() {
+    local body=()
+    [[ "$1" == 0 ]] || body=(--data-binary "@${output_file}")
+    curl -fsS -m 10 --retry 3 "${body[@]}" "${ping_url}/$1" -o /dev/null \
+        || echo "WARNING: ping to ${url_var} failed" >&2
 }
 
 # A killed job must still report: systemd's TimeoutStartSec TERMs the whole cgroup, and
@@ -62,7 +65,7 @@ on_terminate() {
     echo "run_scheduled: received SIG${sig}; job killed (likely a systemd timeout)" >>"$output_file"
     cat "$output_file"
     if [[ -n "$ping_url" ]]; then
-        ping_fail
+        ping_status 143
     fi
     rm -f "$output_file"
     exit 143
@@ -75,15 +78,5 @@ status=0
 wait $! || status=$?
 cat "$output_file"
 
-if [[ -z "$ping_url" ]]; then
-    exit "$status"
-fi
-
-if [[ "$status" -eq 0 ]]; then
-    curl -fsS -m 10 --retry 3 "$ping_url" -o /dev/null \
-        || echo "WARNING: success ping to ${url_var} failed" >&2
-else
-    ping_fail
-fi
-
+[[ -z "$ping_url" ]] || ping_status "$status"
 exit "$status"

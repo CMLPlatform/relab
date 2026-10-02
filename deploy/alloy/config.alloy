@@ -99,8 +99,8 @@ otelcol.processor.transform "resource_attributes" {
 
 // ---------------------------------------------------------------------------
 // Host metrics: node_exporter's collectors, scraped in-process and converted to OTLP.
-// set_collectors is an allowlist, which keeps the series count down. `hwmon` feeds a
-// dashboard panel only; nothing alerts on temperature.
+// set_collectors is an allowlist, which keeps the series count down. Every collector
+// feeds a Host & Containers panel; nothing alerts on temperature, load or disk I/O.
 prometheus.exporter.unix "host" {
 	procfs_path = "/host/proc"
 	sysfs_path  = "/host/sys"
@@ -113,7 +113,6 @@ prometheus.exporter.unix "host" {
 		"hwmon",
 		"loadavg",
 		"meminfo",
-		"netdev",
 		"stat",
 		"uname",
 	]
@@ -141,6 +140,13 @@ prometheus.exporter.cadvisor "containers" {
 		"com.docker.compose.project",
 		"com.docker.compose.service",
 	]
+
+	// cAdvisor collects every enabled kind about once a second per container, long
+	// before the keep-list in cadvisor_scope runs. These cover the kept families
+	// (start_time and spec_memory_limit are always on). The defaults add `disk`, a
+	// filesystem walk per container per tick that was a third of cAdvisor's CPU, plus
+	// kinds nothing reads. Widen this together with that keep-list.
+	enabled_metrics = ["cpu", "memory", "oom_event", "network", "diskIO", "pressure"]
 }
 
 prometheus.scrape "cadvisor" {
@@ -162,14 +168,46 @@ prometheus.relabel "cadvisor_scope" {
 		action        = "keep"
 	}
 
-	// cAdvisor emits ~59 metric families per container (per-cpu, per-disk, per-NIC,
-	// TCP state); the stack reads four. The rest is the fastest-growing block in the
-	// series budget, since it scales per container per host. Add a name here when a
-	// dashboard or rule starts using one.
+	// The enabled kinds still emit ~40 families per container; Host & Containers and
+	// the alerts read these, one per USE question (usage, saturation as PSI wait time,
+	// errors as OOMs), with network and disk I/O traffic alongside. The rest is the
+	// fastest-growing block in the series budget, since it scales per container per
+	// host. Add a name here, and its kind to enabled_metrics above, when a dashboard or
+	// rule starts using one.
 	rule {
 		source_labels = ["__name__"]
-		regex         = "container_(start_time_seconds|oom_events_total|cpu_usage_seconds_total|memory_working_set_bytes)"
+		regex         = "container_(start_time_seconds|oom_events_total|cpu_usage_seconds_total|memory_working_set_bytes|spec_memory_limit_bytes|pressure_(cpu|memory|io)_waiting_seconds_total|network_(receive|transmit)_bytes_total|fs_(reads|writes)_bytes_total)"
 		action        = "keep"
+	}
+}
+
+// netdev reads <procfs>/net/dev, and /host/proc/net links to self/net: this
+// container's namespace, so the host collector above would report Alloy's own veth.
+// PID 1's view is the host's. Bridges and veths are per-container noise.
+prometheus.exporter.unix "host_net" {
+	procfs_path    = "/host/proc/1"
+	set_collectors = ["netdev"]
+
+	netdev {
+		device_exclude = "^(lo|veth.+|br-.+|docker[0-9]+)$"
+	}
+}
+
+prometheus.scrape "host_net" {
+	targets         = prometheus.exporter.unix.host_net.targets
+	forward_to      = [prometheus.relabel.host_net.receiver]
+	scrape_interval = "30s"
+	job_name        = "host_net"
+}
+
+// Both unix exporters label their targets job="integrations/unix" and the same
+// instance, whatever job_name says, so their `up` series would collide.
+prometheus.relabel "host_net" {
+	forward_to = [prometheus.relabel.host.receiver]
+
+	rule {
+		target_label = "job"
+		replacement  = "integrations/unix_net"
 	}
 }
 
@@ -187,20 +225,17 @@ prometheus.relabel "host" {
 	rule {
 		target_label = "env"
 		replacement  = sys.env("ENVIRONMENT")
-		action       = "replace"
 	}
 
 	rule {
 		target_label = "project"
 		replacement  = sys.env("PROJECT")
-		action       = "replace"
 	}
 
 	// See the note on the log labels.
 	rule {
 		target_label = "host_name"
 		replacement  = coalesce(string.trim_space(local.file.hostname.content), constants.hostname)
-		action       = "replace"
 	}
 }
 
@@ -216,15 +251,16 @@ prometheus.scrape "alloy" {
 	job_name        = "alloy"
 }
 
-// Alloy is the only exporter in this file with histograms, and nothing central
-// reads them: 345 of this job's 760 series. The _sum and _count series survive.
+// Of this job's ~760 series the hub reads only the export failures; the queue gauges
+// show how close an outage came to dropping data. `up` passes through relabelling
+// here, unlike in Prometheus, so it is kept explicitly.
 prometheus.relabel "alloy_self" {
 	forward_to = [prometheus.relabel.host.receiver]
 
 	rule {
 		source_labels = ["__name__"]
-		regex         = ".*_bucket"
-		action        = "drop"
+		regex         = "up|otelcol_exporter_(send_failed|queue)_.+"
+		action        = "keep"
 	}
 }
 
@@ -232,16 +268,11 @@ prometheus.relabel "alloy_self" {
 // GPU metrics, present only on hosts that run compose.telemetry.gpu.yml. Without the
 // exporter container this finds no targets and costs nothing.
 discovery.relabel "gpu_exporter" {
-	targets = discovery.docker.containers.targets
+	// Already scoped to this Compose project, with service_name set.
+	targets = discovery.relabel.containers.output
 
 	rule {
-		source_labels = ["__meta_docker_container_label_com_docker_compose_project"]
-		regex         = sys.env("COMPOSE_PROJECT_NAME")
-		action        = "keep"
-	}
-
-	rule {
-		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		source_labels = ["service_name"]
 		regex         = "nvidia-gpu-exporter"
 		action        = "keep"
 	}
@@ -249,7 +280,6 @@ discovery.relabel "gpu_exporter" {
 	rule {
 		target_label = "service_name"
 		replacement  = "gpu"
-		action       = "replace"
 	}
 }
 
@@ -281,7 +311,12 @@ otelcol.processor.memory_limiter "default" {
 	}
 }
 
+// The 200ms default sends a request per trickle of log lines, each through the
+// tunnel and the hub's auth. 5s matches the hub's own batching and no alert is
+// that tight.
 otelcol.processor.batch "default" {
+	timeout = "5s"
+
 	output {
 		logs    = [otelcol.exporter.otlphttp.central.input]
 		metrics = [otelcol.exporter.otlphttp.central.input]
