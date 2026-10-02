@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import Head from 'expo-router/head';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { type TextInput, View } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { AmountStepper } from '@/components/base/AmountStepper';
@@ -17,10 +17,14 @@ import { takePendingTypeSelection } from '@/features/products/pendingTypeSelecti
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { useCaptureScreen } from '@/features/products/useCaptureScreen';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { PRODUCT_NAME_MAX_LENGTH } from '@/services/api/validation/productSchema';
+import {
+  PRODUCT_NAME_MAX_LENGTH,
+  PRODUCT_NAME_MIN_LENGTH,
+} from '@/services/api/validation/productSchema';
 import { loadCPV } from '@/services/cpv';
 import type { CPVCategory } from '@/types/CPVCategory';
 import { typeRowLabels } from '@/types/Product';
+import { describedBy } from '@/utils/a11y';
 
 type CaptureScreenProps = {
   // Not `role`: that is a live RN-Web prop that would leak an invalid ARIA role.
@@ -115,6 +119,9 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
   const isQueued = isCreating && isPaused;
 
   const nameInputRef = useRef<TextInput>(null);
+  const nameHintId = useId();
+  // The name is the only thing Create waits on, so say so while it is too short.
+  const nameTooShort = name.trim().length < PRODUCT_NAME_MIN_LENGTH;
   const onCreateAndAddAnother = useCallback(async () => {
     // Only refocus Name when the form was reset.
     const didReset = await handleCreateAndAddAnother();
@@ -158,7 +165,16 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
                 placeholder={role === 'component' ? 'e.g. Battery pack' : 'e.g. Cordless drill'}
                 accessibilityLabel="Name"
                 onSubmitEditing={submitOnEnter}
+                {...describedBy(nameHintId, nameTooShort)}
               />
+              {/* Slot stays reserved so the form does not jump once the name is long enough. */}
+              <AppText
+                nativeID={nameHintId}
+                variant="caption"
+                className="mt-1 min-h-[18px] text-muted-foreground"
+              >
+                {nameTooShort ? `At least ${PRODUCT_NAME_MIN_LENGTH} characters` : ''}
+              </AppText>
             </View>
 
             <CaptureTypeRow typeID={typeID} onTypeChange={setTypeID} entityRole={role} />
