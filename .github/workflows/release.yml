@@ -1,49 +1,47 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-name: Release Please
+name: Release
 
+# Publishing a GitHub release (drafted by `just release-publish <version>`) creates its tag
+# and starts this: the release's images go to GHCR and its sites to Cloudflare Workers.
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+  release:
+    types: [published]
 
 permissions: {}
 
-# Queue, never cancel: only the run that creates a release publishes its images, so a
-# push to main during that publish must not cancel it. A queued run superseded by a
-# newer one is safe to drop, since release-please picks up any merged release PR it
-# has not tagged yet.
+# Queue, never cancel: a release publishes its images exactly once.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.release.tag_name }}
   cancel-in-progress: false
 
 jobs:
-  release-please:
+  check:
+    name: Check version
     runs-on: ubuntu-26.04
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
-      contents: write
-      pull-requests: write
-    outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Run release-please
-        id: release
-        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
-        with:
-          config-file: .github/release-please-config.json
-          manifest-file: .github/.release-please-manifest.json
+      # A release published by hand from a commit `release-prep` never bumped would ship
+      # images whose version files name the previous release.
+      - name: Tag matches the version files
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          version="$(jq -r .version package.json)"
+          [[ "$TAG_NAME" == "v$version" ]] || {
+            echo "release $TAG_NAME is on a commit at version $version; run just release-prep first" >&2
+            exit 1
+          }
 
   publish-images:
     name: Publish images
-    needs: [release-please]
-    if: needs.release-please.outputs.release_created == 'true'
+    needs: check
     permissions:
       attestations: write
       contents: write
@@ -51,14 +49,13 @@ jobs:
       packages: write
     uses: ./.github/workflows/publish-images.yml
     with:
-      tag_name: ${{ needs.release-please.outputs.tag_name }}
+      tag_name: ${{ github.event.release.tag_name }}
 
   deploy-sites:
     name: Deploy sites
-    needs: [release-please]
-    if: needs.release-please.outputs.release_created == 'true'
+    needs: check
     permissions:
       contents: read
     uses: ./.github/workflows/deploy-sites.yml
     with:
-      tag_name: ${{ needs.release-please.outputs.tag_name }}
+      tag_name: ${{ github.event.release.tag_name }}

@@ -9,7 +9,7 @@ name: Deploy Sites
 # - Weekly, both environments are rebuilt from the latest release, so the www hero
 #   picks up a changed featured product or a changed teardown without a release.
 # - A manual run deploys the selected commit to one environment. Prod's Environment
-#   accepts `main` only.
+#   accepts `main` and release tags only.
 on:
   workflow_call:
     inputs:

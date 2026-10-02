@@ -26,8 +26,9 @@ resource "github_repository_environment" "publish" {
   repository  = var.github_repository
   environment = var.environment
 
-  # Prod URLs are baked in only from main, which is where release.yml runs. Staging
-  # stays open so a manual publish of any branch can be tried there.
+  # Prod URLs are baked in only from main (a manual publish, the weekly site rebuild) or
+  # a release tag, which is the ref release.yml runs on. Staging stays open so a manual
+  # publish of any branch can be tried there.
   dynamic "deployment_branch_policy" {
     for_each = var.environment == "prod" ? [1] : []
     content {
@@ -64,6 +65,14 @@ resource "github_repository_environment_deployment_policy" "main" {
   repository     = var.github_repository
   environment    = github_repository_environment.publish.environment
   branch_pattern = "main"
+}
+
+resource "github_repository_environment_deployment_policy" "release_tag" {
+  count = var.environment == "prod" ? 1 : 0
+
+  repository  = var.github_repository
+  environment = github_repository_environment.publish.environment
+  tag_pattern = "v*"
 }
 
 resource "github_actions_environment_variable" "publish" {

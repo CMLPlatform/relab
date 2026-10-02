@@ -19,8 +19,8 @@
 
   ## Dependencies and version constraints
   requires-python = ">=3.14"
-  # Not a distributed package. The release version lives in .github/.release-please-manifest.json;
-  # a static value here keeps uv.lock out of every release bump.
+  # Not a distributed package. The release version lives in the root package.json (see
+  # [tool.commitizen]); a static value here keeps uv.lock out of every release bump.
   version = "0.0.0"
 
 [dependency-groups]
@@ -37,12 +37,23 @@
     "ty>=0.0.15",
   ]
 
+# `just release-prep <version>` runs `cz bump`: the root package.json holds the release
+# version, and version_files carry it to every other place that states it.
 [tool.commitizen]
-  annotated_tag      = true
-  major_version_zero = true
-  name               = "cz_conventional_commits"
-  tag_format         = "v$version"
-  version_scheme     = "semver2"
+  major_version_zero       = true
+  name                     = "cz_conventional_commits"
+  tag_format               = "v$version"
+  update_changelog_on_bump = true
+  version_files = [
+    "app/package.json:\"version\"",
+    "app/app.json:\"version\"",
+    "docs/package.json:\"version\"",
+    "www/package.json:\"version\"",
+    "backend/app/__version__.py:^version",
+    "CITATION.cff:^version",
+  ]
+  version_provider = "npm"
+  version_scheme   = "semver2"
 
 [tool.pytest.ini_options]
   # Unit tests for the root ops scripts (scripts/env_policy.py); the shell side

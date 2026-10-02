@@ -445,6 +445,16 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 <type>(<scope>): <short summary>
 ```
 
+### Releases
+
+1. `just release-prep 0.4.0` branches `release/v0.4.0` from `origin/main`, bumps every version
+   file, and drafts the version's CHANGELOG section from the commits since the last tag.
+1. Rewrite that section for readers, commit, and open a PR. Its description is yours: put
+   one-time upgrade steps there and in the release notes.
+1. After the merge, `just release-publish 0.4.0` drafts the GitHub release from the section.
+1. Publish the draft. That creates the `v0.4.0` tag and starts `release.yml`, which publishes the
+   images to GHCR and deploys the sites.
+
 ## Backend Development
 
 For code style, test commands, migration workflow, and email templates, see
