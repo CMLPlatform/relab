@@ -5,7 +5,9 @@ name: Deploy Sites
 # Worker names, public URLs and account come from the variables infra/cloudflare
 # writes into each GitHub Environment; the API token is an Environment secret.
 #
-# - release.yml calls this with the release tag: both environments get the release.
+# - Publishing a release runs this with its tag: both environments get the release.
+#   It is triggered by the release rather than called from release.yml, because only a
+#   directly triggered job receives its Environment's secrets.
 #   Each Environment has a required reviewer, so prod deploys once someone has checked
 #   staging and approved.
 # - Weekly, staging is rebuilt from the latest release, so its www hero picks up a
@@ -14,12 +16,8 @@ name: Deploy Sites
 # - A manual run deploys the selected commit to one environment. Prod's Environment
 #   accepts `main` and release tags only.
 on:
-  workflow_call:
-    inputs:
-      tag_name:
-        description: Release tag to deploy.
-        required: true
-        type: string
+  release:
+    types: [published]
   schedule:
     - cron: "17 5 * * 1"
   workflow_dispatch:
@@ -47,7 +45,7 @@ jobs:
         id: ref
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ inputs.tag_name }}
+          TAG_NAME: ${{ github.event.release.tag_name }}
           ENVIRONMENT: ${{ inputs.environment }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -55,12 +53,6 @@ jobs:
             ref="$TAG_NAME"
           elif [[ "$EVENT" == schedule ]]; then
             ref="$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)"
-            # NOTE: releases cut before the sites moved to Workers have nothing to
-            # deploy. Drop this once a release contains www/wrangler.jsonc.
-            if ! gh api "repos/$GITHUB_REPOSITORY/contents/www/wrangler.jsonc?ref=$ref" --silent 2>/dev/null; then
-              echo "::notice::$ref predates the Workers deploy; nothing to rebuild."
-              ref=""
-            fi
           else
             ref="$GITHUB_SHA"
           fi
@@ -79,11 +71,9 @@ jobs:
   deploy:
     name: ${{ matrix.site }} (${{ matrix.env }})
     needs: resolve
-    if: needs.resolve.outputs.ref != ''
     runs-on: ubuntu-26.04
-    # Per Worker, not per workflow: called from release.yml, `github.workflow` is the
-    # caller's name, so a workflow-level group would not serialize a release deploy
-    # with a weekly or manual one.
+    # Per Worker, so a release, weekly and manual deploy of the same Worker queue
+    # behind each other.
     concurrency:
       group: deploy-sites-${{ matrix.env }}-${{ matrix.site }}
       cancel-in-progress: false

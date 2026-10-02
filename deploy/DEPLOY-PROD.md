@@ -379,8 +379,8 @@ Docker's credentials, so they must be public (or run `docker login ghcr.io` firs
 before a release, run the Publish Images workflow on it by hand and use its `sha-<short sha>` tag.
 
 The landing page and docs are not on this host: the same release deploys them to Cloudflare
-Workers (`deploy-sites.yml`). Staging's go first. Prod's wait in the release run until you approve
-them, so check staging before you do. Prod is never rebuilt unattended. To show a changed featured
+Workers (`deploy-sites.yml`, which the published release starts). Staging's go first. Prod's wait
+in that run until you approve them, so check staging before you do. Prod is never rebuilt unattended. To show a changed featured
 product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment), run Deploy Sites by
 hand for `prod` on `main` and approve it. Staging rebuilds weekly on its own.
 
