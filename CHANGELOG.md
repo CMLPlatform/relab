@@ -9,6 +9,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The web app downloads about 14 KB less JavaScript before its first screen: the image
+  lightbox, measurement cube, capture screen and streaming sheet now load when first shown.
 - Photo uploads finish faster: thumbnails are made from one decode of the original, about
   four times quicker for a 12 MP photo.
 - The API no longer generates a 2560px image derivative; `thumbnail_urls` tops

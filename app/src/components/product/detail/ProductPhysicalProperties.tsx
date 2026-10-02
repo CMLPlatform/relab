@@ -1,14 +1,16 @@
-import { useCallback } from 'react';
+import { lazy, Suspense, useCallback } from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { DocsLink } from '@/components/base/DocsLink';
 import { Separator } from '@/components/base/ui/separator';
 import LocalizedFloatInput from '@/components/product/LocalizedFloatInput';
-import Cube from '@/components/product/SVGCube';
 import { DATA_COLLECTION_DOCS_PATH } from '@/config';
 import { productSchema } from '@/services/api/validation/productSchema';
 import type { PhysicalProperties, Product } from '@/types/Product';
 import { heading } from '@/utils/a11y';
+
+// NOTE: lazy so the SVG cube loads with the measurements, not on every route's first load.
+const Cube = lazy(() => import('@/components/product/SVGCube'));
 
 interface Props {
   product: Product;
@@ -74,12 +76,14 @@ export default function ProductPhysicalProperties({
         Measurements
       </AppText>
       {hasDimensions ? (
-        <Cube
-          width={product.physicalProperties.width}
-          height={product.physicalProperties.height}
-          depth={product.physicalProperties.depth}
-          compact={editMode}
-        />
+        <Suspense fallback={null}>
+          <Cube
+            width={product.physicalProperties.width}
+            height={product.physicalProperties.height}
+            depth={product.physicalProperties.depth}
+            compact={editMode}
+          />
+        </Suspense>
       ) : null}
       {/* Four labelled boxes do not say which box is which, that centimetres and
           grams are the units, or what an empty field means, and the audience

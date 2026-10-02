@@ -14,10 +14,13 @@ import { gzipSync } from 'node:zlib';
 
 const DIST = new URL('../dist/', import.meta.url).pathname;
 
-// Measured 2026-09-09 on the export at ecb4000b: 836.1 KB across three scripts, of which
-// __common is 514.7 KB (react-native-reanimated, react-native-web, zod, gesture-handler,
-// culori and the lucide icon set, all reachable from the root layout) and entry is
-// 319.9 KB.
+// Measured 2026-10-02: 837.4 KB across three scripts. entry is 320.3 KB (expo-router,
+// react-native-web, react-dom, culori via uniwind); __common is 515.4 KB (reanimated, zod,
+// gesture-handler, keyboard-controller and app code).
+//
+// __common holds every module that two or more routes share, and index.html loads it
+// eagerly, so a component reused across routes lands on every first load. Split such a
+// component with React.lazy at its call sites, as ProductImageGallery does.
 //
 // The budget is the measurement plus roughly 5%: enough that a dependency bump does not
 // cry wolf, tight enough that a new library on the first-load path does. When it fails,
