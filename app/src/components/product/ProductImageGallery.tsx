@@ -1,13 +1,19 @@
-import { useCallback, useRef } from 'react';
+import { lazy, Suspense, useCallback, useRef } from 'react';
 import { View } from 'react-native';
 import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
 import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
-import { ProductImageLightbox } from '@/components/product/gallery/ProductImageLightbox';
 import { ProductImagePlaceholder } from '@/components/product/gallery/ProductImagePlaceholder';
 import { ProductImageThumbnails } from '@/components/product/gallery/ProductImageThumbnails';
 import { useProductImageGallery } from '@/features/products/useProductImageGallery';
 import type { Product } from '@/types/Product';
+
+// NOTE: lazy so the zoom/gesture code loads with the gallery, not on every route's first load.
+const ProductImageLightbox = lazy(() =>
+  import('@/components/product/gallery/ProductImageLightbox').then((m) => ({
+    default: m.ProductImageLightbox,
+  })),
+);
 
 interface Props {
   product: Product;
@@ -104,14 +110,16 @@ export default function ProductImageGallery({
         fallbackLabel={product.name}
       />
 
-      <ProductImageLightbox
-        visible={viewer.lightboxOpen}
-        items={media.items}
-        startIndex={viewer.selectedIndex}
-        onIndexChange={actions.selectIndex}
-        onClose={actions.closeLightbox}
-        fallbackLabel={product.name}
-      />
+      <Suspense fallback={null}>
+        <ProductImageLightbox
+          visible={viewer.lightboxOpen}
+          items={media.items}
+          startIndex={viewer.selectedIndex}
+          onIndexChange={actions.selectIndex}
+          onClose={actions.closeLightbox}
+          fallbackLabel={product.name}
+        />
+      </Suspense>
     </View>
   );
 }
