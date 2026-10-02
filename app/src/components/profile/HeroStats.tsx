@@ -111,7 +111,7 @@ function StatCard({
           style={[statSkeletonStyles.value, { backgroundColor: theme.colors.surfaceVariant }]}
         />
       ) : (
-        <AppText variant="heading" className="font-bold" numberOfLines={singleLine ? 1 : undefined}>
+        <AppText variant="data" className="font-bold" numberOfLines={singleLine ? 1 : undefined}>
           {value}
         </AppText>
       )}
@@ -122,12 +122,12 @@ function StatCard({
   );
 }
 
-// Skeleton wraps Animated.View, which ignores className. Sized to the heading
-// line height (24) so the real value does not shift layout.
+// Skeleton wraps Animated.View, which ignores className. Sized to the data
+// line height (20) so the real value does not shift layout.
 const statSkeletonStyles = StyleSheet.create({
   value: {
     width: 28,
-    height: 24,
+    height: 20,
     borderRadius: radius.control,
   },
 });

@@ -25,6 +25,13 @@ import {
 // 2.4.13 have no axe coverage and are verified by hand.
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 const GATED_IMPACTS = new Set(['serious', 'critical']);
+// ARIA misuse the app controls: fail at any impact so a regression in the
+// role/attribute plumbing cannot hide behind a moderate rating.
+const ALWAYS_GATED_RULES = new Set([
+  'aria-prohibited-attr',
+  'aria-allowed-role',
+  'aria-valid-attr-value',
+]);
 
 async function seriousViolations(page: Page) {
   // Neutralize animations so results are deterministic (mirrors www/docs).
@@ -43,7 +50,9 @@ async function seriousViolations(page: Page) {
     .withTags(WCAG_TAGS)
     .disableRules(['color-contrast'])
     .analyze();
-  return results.violations.filter((v) => v.impact && GATED_IMPACTS.has(v.impact));
+  return results.violations.filter(
+    (v) => ALWAYS_GATED_RULES.has(v.id) || (v.impact && GATED_IMPACTS.has(v.impact)),
+  );
 }
 
 test.describe('Accessibility', () => {

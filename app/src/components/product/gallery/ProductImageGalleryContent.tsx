@@ -229,7 +229,7 @@ export function ProductImageGalleryContent({
             style={styles.counterBadge}
           >
             <AppText
-              variant="caption"
+              variant="data"
               style={{ color: theme.tokens.text.onMedia, fontWeight: 'bold' }}
             >
               {selectedIndex + 1} / {imageCount}

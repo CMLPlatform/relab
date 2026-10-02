@@ -81,7 +81,8 @@ function ProductsListFooter({
         </AppButton>
       ) : null}
       <AppText className="text-muted-foreground">
-        {productCount} of {total} products
+        <AppText variant="data">{productCount}</AppText> of{' '}
+        <AppText variant="data">{total}</AppText> products
       </AppText>
     </View>
   );

@@ -325,6 +325,7 @@ export function ProductImageLightbox({
                 </Pressable>
 
                 <AppText
+                  variant="data"
                   className="mx-5 min-w-[60px] text-center"
                   style={{ color: theme.tokens.text.onMedia }}
                 >

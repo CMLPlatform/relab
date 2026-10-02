@@ -17,7 +17,7 @@ export function TelemetryBadge({ telemetry }: { telemetry: CameraTelemetry | nul
       <StatusPill label={label} tone={STATE_TONE[telemetry.thermal_state]} variant="soft" />
       {telemetry.preview_sessions > 0 && (
         <AppText variant="label" className="text-muted-foreground">
-          {telemetry.preview_sessions} live
+          <AppText variant="data">{telemetry.preview_sessions}</AppText> live
         </AppText>
       )}
     </View>

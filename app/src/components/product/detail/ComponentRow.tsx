@@ -8,7 +8,6 @@ import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { Badge } from '@/components/base/ui/badge';
-import { Text } from '@/components/base/ui/text';
 import { IMAGE_FADE_MS, radius, WEB_FOCUS_RING } from '@/constants';
 import { componentQueryOptions } from '@/features/product-entity/queries';
 import { useAppTheme } from '@/theme/appThemeContext';
@@ -133,7 +132,9 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
           </View>
           {childCount > 0 ? (
             <Badge variant="secondary">
-              <Text>{childCount}</Text>
+              <AppText variant="data" className="text-secondary-foreground">
+                {childCount}
+              </AppText>
             </Badge>
           ) : null}
         </Pressable>

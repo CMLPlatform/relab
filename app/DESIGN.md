@@ -94,7 +94,7 @@ components:
     textColor: '{colors.foreground}'
     rounded: '{rounded.card}'
   status-pill:
-    typography: '{typography.label}'
+    typography: '{typography.caption}'
     rounded: '{rounded.control}'
     height: 24px
 ---
@@ -251,11 +251,12 @@ above the page.
 
 ### Shadow Vocabulary
 
-- **`shadow-overlay`** (light `0 8px 24px rgba(20,40,80,.16)`, dark `0 8px 24px rgba(0,0,0,.55)`):
+- **Overlay shadow** (light `0 8px 24px rgba(20,40,80,.16)`, dark `0 8px 24px rgba(0,0,0,.55)`):
   Menus, dialogs, bottom sheets, the FAB, toasts. This is the only shadow in the system.
 
-`src/theme/tokens.ts` reads this from `designTokens.rn.shadowOverlay[scheme]`, the RN-shaped
-variant the generator emits next to the CSS string. Never re-declare the values in the app. The
+Components take it from `theme.tokens.elevation.overlay`, which `src/theme/tokens.ts` builds from
+`designTokens.rn.shadowOverlay[scheme]`, the RN-shaped variant the generator emits next to the CSS
+string. There is no `shadow-overlay` CSS utility in the app. Never re-declare the values. The
 Android `elevation` is a scheme pair (8 light / 12 dark).
 
 ### Named Rules
@@ -268,7 +269,7 @@ current palette the pair gives 10.5:1 dark / 11.8:1 light for primary ink and 5.
 muted.
 
 **The One Tier Rule.** There is exactly one shadow. Inline surfaces get a hairline and no
-shadow; floating surfaces get `shadow-overlay`. A second elevation tier, a coloured glow, or a
+shadow; floating surfaces get `elevation.overlay`. A second elevation tier, a coloured glow, or a
 shadow stacked on an already-floating element is a defect. *Mirrors
 assets/DESIGN.md:119-127 — change it there first.*
 
@@ -284,7 +285,7 @@ radii.
 | `radius.overlay` | 12px   | Dialogs, bottom sheets, menus, FAB         |
 | `radius.full`    | 9999px | Avatars and **true pills only**            |
 
-All four map through `src/constants.ts:41`. Use the token, never a literal.
+All four map through `src/constants.ts:42`. Use the token, never a literal.
 
 ### Named Rules
 
@@ -297,16 +298,16 @@ change it there first.*
 ### Buttons
 
 - **Shape:** Gently squared (6px, `radius.control`), 44px minimum height.
-- **Primary:** Solid Prussian blue, white text. Pressed: `active:bg-primary/90`.
+- **Primary:** Solid Prussian blue, white text. Pressed and hover: `primary-strong`.
 - **Outline / Ghost / Tonal:** Blue ink, transparent or 12% tinted fill, hairline border on
-  outline.
-- **Destructive:** Solid `#BA1A1A`, white text. Never the keyboard default in a dialog.
+  outline. Tonal pressed and hover: `primary-strong` fill with `primary-foreground` text.
+- **Destructive:** Solid `#BA1A1A`, `destructive-foreground` text. Never the keyboard default in a dialog.
 - **Loading:** Inline spinner tinted to the variant's foreground; the label stays.
 
 ### Chips
 
-- **Style:** Two segments — a title segment in blue on `card`, and a value segment on solid
-  primary with white ink. 6px radius, 44px minimum height.
+- **Style:** Two segments — a title segment in blue on `surface.accent`, and a value segment on solid
+  primary with white ink (pressed: `primary-strong`, as the FAB). 6px radius, 44px minimum height.
 - **Error:** Danger-tinted fill **plus** a border **plus** an alert icon **plus** ", required"
   composed into the accessible name. Never colour alone.
 
@@ -349,7 +350,7 @@ without measuring it in a browser.
 
 ### Status Pill
 
-24px tall, `radius.control`, `label` type. Solid or soft variant. The **live** pill is the one
+24px tall, `radius.control`, `caption` type. Solid or soft variant. The **live** pill is the one
 sanctioned manila fill in the app.
 
 ### Signature: the Spec Row

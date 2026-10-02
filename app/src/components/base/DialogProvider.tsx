@@ -219,6 +219,7 @@ function Toast({
   onDismiss: () => void;
 }) {
   const inverse = useInverseSurface();
+  const theme = useAppTheme();
   const message = state?.message ?? null;
   const action = state?.action;
   // WCAG 2.2.1: a toast the reader is pointing at or tabbed into must not leave.
@@ -280,7 +281,11 @@ function Toast({
             >
               <OverlaySurface
                 className={cn('flex-row items-center gap-3 px-4', action ? 'py-1' : 'py-2')}
-                style={[styles.toast, { backgroundColor: inverse.background }]}
+                style={[
+                  styles.toast,
+                  theme.tokens.elevation.overlay,
+                  { backgroundColor: inverse.background },
+                ]}
                 tone="scrim"
               >
                 <AppText

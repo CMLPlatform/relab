@@ -31,7 +31,7 @@ export default function ProductMaterials({ product }: Props) {
         <AppText variant="body" {...heading(3)} className="font-semibold">
           Materials
         </AppText>
-        <AppText variant="label" className="text-muted-foreground">
+        <AppText variant="data" className="text-muted-foreground">
           {`(${materials.length})`}
         </AppText>
       </View>
