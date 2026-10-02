@@ -10,7 +10,7 @@ import { setPendingTypeSelection } from '@/features/products/pendingTypeSelectio
 import { useCategorySelection } from '@/features/products/useCategorySelection';
 import { useRecentCategories } from '@/features/products/useRecentCategories';
 import { loadCPV } from '@/services/cpv';
-import { renderWithProviders } from '@/test-utils/index';
+import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
 import { server } from '@/test-utils/server';
 import type { User } from '@/types/User';
 
@@ -132,6 +132,19 @@ describe('CategorySelection', () => {
     await waitFor(() => {
       expect(mockedLoadCPV).toHaveBeenCalled();
     });
+  });
+
+  // The picker has no in-page title, so without this the document has no h1
+  // and entry focus lands on the unlabelled main column.
+  it('gives the screen a level 1 heading on web', async () => {
+    mockPlatform('web');
+    try {
+      await renderWithProviders(<CategorySelection />);
+      const title = await screen.findByText('Select category');
+      expect(title.props['aria-level']).toBe(1);
+    } finally {
+      restorePlatform();
+    }
   });
 
   it('renders root category items initially', async () => {

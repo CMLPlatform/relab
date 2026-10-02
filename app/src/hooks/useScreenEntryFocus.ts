@@ -7,14 +7,15 @@ import { useScreenFocusedSafe } from './useScreenFocused';
  * move keyboard focus to its h1, else to the scaffold itself. Without this the
  * browser leaves focus on <body> after every route change, so screen-reader and
  * keyboard users restart from the top of the document. Attach the ref to the
- * screen's scaffold View; no-op on native.
+ * screen's scaffold View; no-op on native. Pass `ready = false` while the
+ * screen's h1 is still loading, so focus waits for it instead of the scaffold.
  */
-export function useScreenEntryFocus() {
+export function useScreenEntryFocus(ready = true) {
   const ref = useRef<View>(null);
   const focused = useScreenFocusedSafe();
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || !focused) return;
+    if (Platform.OS !== 'web' || !focused || !ready) return;
     // Next frame: the screen's DOM is committed and any exit transition has
     // released focus by then.
     const frame = requestAnimationFrame(() => {
@@ -28,7 +29,7 @@ export function useScreenEntryFocus() {
       target.focus();
     });
     return () => cancelAnimationFrame(frame);
-  }, [focused]);
+  }, [focused, ready]);
 
   return ref;
 }

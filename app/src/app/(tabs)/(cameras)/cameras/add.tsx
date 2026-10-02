@@ -12,6 +12,7 @@ import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { PageContainer } from '@/components/base/PageContainer';
 import { PageHeaderRow } from '@/components/base/PageHeaderRow';
+import { ScreenTitle } from '@/components/base/ScreenTitle';
 import { Separator } from '@/components/base/ui/separator';
 import { RPI_CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
@@ -78,7 +79,11 @@ export default function AddCameraScreen() {
       </Head>
       <ScrollView contentContainerClassName="pt-4 pb-12" keyboardShouldPersistTaps="handled">
         <PageContainer>
-          {isLg ? <PageHeaderRow title="Add camera" onBack={goToCameras} /> : null}
+          {isLg ? (
+            <PageHeaderRow title="Add camera" onBack={goToCameras} />
+          ) : (
+            <ScreenTitle>Add camera</ScreenTitle>
+          )}
           <View className="gap-3">
             <AppText variant="label" className="text-muted-foreground mb-1">
               PAIRING CODE

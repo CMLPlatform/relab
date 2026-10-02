@@ -129,7 +129,7 @@ export default function UserProfileScreen() {
         }}
       />
       <ScrollView contentContainerClassName="flex-grow py-4">
-        <PageContainer>
+        <PageContainer entryFocusReady={!loading}>
           {loading ? (
             <View className="flex-1 justify-center items-center mt-16">
               <ActivityIndicator

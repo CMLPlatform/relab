@@ -100,7 +100,9 @@ export function useLoginForm({
         // Inline field error; focus stays put so the retry is one keystroke away.
         rejectPassword: () => {
           setError('password', { type: 'server', message: INVALID_CREDENTIALS_MESSAGE });
-          passwordRef.current?.focus();
+          // Next frame: the error and its aria-describedby link have committed
+          // by then, so the field is announced with the error on focus.
+          requestAnimationFrame(() => passwordRef.current?.focus());
         },
       });
     })();
