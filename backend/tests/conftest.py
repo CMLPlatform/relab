@@ -293,7 +293,9 @@ async def db_session(_setup_test_database: None, async_engine: AsyncEngine) -> A
             bind=connection,
             class_=AsyncSession,
             autocommit=False,
-            autoflush=False,
+            # Autoflush like the app's sessions: flush-time expiry is what breaks a lazy
+            # read while a response is serialized, and a test without it cannot see that.
+            autoflush=True,
             expire_on_commit=False,
         )
 
