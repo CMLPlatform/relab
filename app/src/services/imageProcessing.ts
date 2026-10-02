@@ -69,6 +69,7 @@ export async function processImage(
           height: Math.floor(height * scale),
         });
       }
+      // biome-ignore lint/performance/noAwaitInLoops: each attempt's scale depends on the previous attempt's size.
       const rendered = await manipulator.renderAsync();
       const saved = await rendered.saveAsync({ compress: FIT_QUALITY });
       const size = await fileSize(saved.uri);

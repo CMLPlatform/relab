@@ -80,6 +80,7 @@ test.describe('Accessibility', () => {
       ['/cameras/add', 'Add camera'],
       ['/users/bob', 'bob'],
     ]) {
+      // biome-ignore lint/performance/noAwaitInLoops: one page, so each route loads after the last.
       await page.goto(path);
       await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText(title, {
         timeout: 15_000,
