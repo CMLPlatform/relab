@@ -231,11 +231,7 @@ def render_app_palette_css(palette: dict) -> str:
     lines.append("  }")
     lines.append("}")
     lines.append("")
-    # NOTE: plain @theme, not inline. Uniwind declares each theme variable as `unset`, so an
-    # inlined var() makes Tailwind resolve opacity classes (bg-primary/12) to
-    # color-mix(unset, ...). Plain @theme keeps a var(--color-*) rule behind @supports
-    # that browsers apply; native opacity colours still resolve to unset upstream.
-    lines.append("@theme {")
+    lines.append("@theme inline {")
     for key in palette["light"]:
         prop = _css_var(key)
         lines.append(f"  --color{prop[1:]}: var({prop});")

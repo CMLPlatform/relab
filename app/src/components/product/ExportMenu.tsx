@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { Platform, type View } from 'react-native';
+import type { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { useDialog } from '@/components/base/dialogContext';
@@ -44,7 +44,8 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
             ? productsExportUrl(query ?? {}, format)
             : productExportUrl(productId, format),
         );
-        dialog.toast(Platform.OS === 'web' ? 'Export downloaded' : 'Export opened in your browser');
+        // Neutral: the native share sheet resolves the same way when it is dismissed.
+        dialog.toast('Export ready');
       } catch (error) {
         dialog.alert({
           title: 'Export failed',

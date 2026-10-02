@@ -7,10 +7,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+
+- The web app downloads about 14 KB less JavaScript before its first screen: the image
+  lightbox, measurement cube, capture screen and streaming sheet now load when first shown.
+- Photo uploads finish faster: thumbnails are made from one decode of the original, about
+  four times quicker for a 12 MP photo.
+- The API no longer generates a 2560px image derivative; `thumbnail_urls` tops
+  out at 1600px. Clients that need more, such as a full-screen lightbox on a high-density
+  phone, load the original. Existing 2560px files are removed by the daily storage cleanup,
+  which cuts about a fifth of the space each photo takes.
+
 ### Fixed
 
-- On the web app, tinted backgrounds, hover and pressed colours, placeholder text and the red
-  outline on invalid fields show again
+- Rows on the profile screen, such as "Delete account?", now tint when hovered or pressed
 - The API reference pages no longer request fonts that the docs site's content
   security policy blocks.
 

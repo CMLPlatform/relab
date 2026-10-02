@@ -8,8 +8,11 @@ import type { PhysicalProperties, Product } from '@/types/Product';
 jest.mock('@/components/product/SVGCube', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  return function SVGCubeMock({ compact }: { compact?: boolean }) {
-    return React.createElement(View, { testID: compact ? 'svg-cube-compact' : 'svg-cube-full' });
+  return {
+    __esModule: true,
+    default: function SVGCubeMock({ compact }: { compact?: boolean }) {
+      return React.createElement(View, { testID: compact ? 'svg-cube-compact' : 'svg-cube-full' });
+    },
   };
 });
 

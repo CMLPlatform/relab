@@ -1,5 +1,5 @@
 import { usePathname } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,12 @@ import { useAppTheme } from '@/theme/appThemeContext';
 import { alpha } from '@/theme/color';
 import { useInverseSurface } from '@/theme/inverseSurface';
 import { getFloatingPosition } from '@/utils/platformLayout';
-import { StreamingSheet } from './StreamingSheet';
+
+// NOTE: lazy because the banner is mounted at the root, which would put the sheet on every
+// route's first load.
+const StreamingSheet = lazy(() =>
+  import('./StreamingSheet').then((m) => ({ default: m.StreamingSheet })),
+);
 
 // Baseline float above the bottom edge, before any tab-bar clearance.
 // Native 88 clears a Fab: MIN_TAP_TARGET (44) tall, docked 16px from the
@@ -136,7 +141,9 @@ export function ActiveStreamBanner() {
         </Animated.View>
       </View>
 
-      <StreamingSheet visible={sheetVisible} onDismiss={closeSheet} session={activeStream} />
+      <Suspense fallback={null}>
+        <StreamingSheet visible={sheetVisible} onDismiss={closeSheet} session={activeStream} />
+      </Suspense>
     </>
   );
 }

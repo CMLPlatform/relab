@@ -37,7 +37,7 @@ export function resolveApiMediaUrlMap(
   return resolved;
 }
 
-// A slightly soft 2560 WebP beats downloading a multi-megabyte original on a 3x phone.
+// A slightly soft wide WebP beats downloading a multi-megabyte original.
 const WIDEST_DERIVATIVE_MIN_COVERAGE = 0.75;
 
 /**

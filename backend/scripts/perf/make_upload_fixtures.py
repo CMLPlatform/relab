@@ -34,7 +34,7 @@ SOURCE = PERF_DIR / "fixtures" / "upload-sample.jpg"
 GENERATED_DIR = PERF_DIR / "fixtures" / "generated"
 
 # (name, tiles per axis). The source is 1200x900, so:
-#   medium -> 2400x1800, every standard width except the largest (2560) applies
+#   medium -> 2400x1800, every standard width applies
 #   large  -> 4800x3600 (17MP), in the range a phone or DSLR upload actually lands
 TILINGS: tuple[tuple[str, int], ...] = (("medium", 2), ("large", 4))
 JPEG_QUALITY = 85
