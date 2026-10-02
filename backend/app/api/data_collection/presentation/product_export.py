@@ -91,22 +91,9 @@ def _absolute_url(url: str) -> str:
 def _csv_rows(node: ProductExportRead | ComponentExportRead) -> Iterator[dict[str, Any]]:
     """Yield one row for ``node`` and then one per component below it, depth first."""
     circularity = node.circularity_properties
-    yield {
-        "id": node.id,
-        "parent_id": getattr(node, "parent_id", None),
-        "amount_in_parent": getattr(node, "amount_in_parent", None),
-        "owner_username": node.owner_username,
-        "name": node.name,
-        "description": node.description,
-        "brand": node.brand,
-        "model": node.model,
-        "product_type_id": node.product_type_id,
+    # Components carry parent_id and amount_in_parent; a base product lacks them, so getattr reads None.
+    yield {column: getattr(node, column, None) for column in CSV_COLUMNS} | {
         "product_type_name": node.product_type.name if node.product_type else None,
-        "weight_g": node.weight_g,
-        "height_cm": node.height_cm,
-        "width_cm": node.width_cm,
-        "depth_cm": node.depth_cm,
-        "volume_cm3": node.volume_cm3,
         "circularity_properties": circularity.model_dump_json(exclude_none=True) if circularity else None,
         "created_at": node.created_at.isoformat() if node.created_at else None,
         "updated_at": node.updated_at.isoformat() if node.updated_at else None,
