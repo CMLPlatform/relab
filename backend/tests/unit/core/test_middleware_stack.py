@@ -153,6 +153,28 @@ async def test_composed_middleware_preflight_allows_the_edge_e2e_key(monkeypatch
     assert "x-e2e-key" in response.headers["access-control-allow-headers"].lower()
 
 
+async def test_composed_middleware_preflight_allows_if_match(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Product and component edits send If-Match; a refused preflight would fail every web edit."""
+    monkeypatch.setattr(settings, "allowed_hosts", ["*"])
+    monkeypatch.setattr(settings, "allowed_origins", ["https://app.example.test"])
+    monkeypatch.setattr(settings, "cors_origin_regex", None)
+
+    app = _create_composed_middleware_app()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://api.example.test") as client:
+        response = await client.options(
+            "/v1/json",
+            headers={
+                "Origin": "https://app.example.test",
+                "Access-Control-Request-Method": "PATCH",
+                "Access-Control-Request-Headers": "content-type,if-match",
+            },
+        )
+
+    assert response.status_code == 200
+    assert "if-match" in response.headers["access-control-allow-headers"].lower()
+
+
 async def test_composed_middleware_keeps_api_guards(monkeypatch: pytest.MonkeyPatch) -> None:
     """Method policy, content negotiation, and request size limits should compose together."""
     monkeypatch.setattr(settings, "allowed_hosts", ["*"])
