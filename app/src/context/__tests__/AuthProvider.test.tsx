@@ -7,7 +7,6 @@ import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth';
 import { announceDiscardedQueuedItems } from '@/features/products/queries';
 import { getToken } from '@/services/api/auth/authRefresh';
-import { authRuntime } from '@/services/api/auth/authRuntime';
 import { hasWebSessionFlag } from '@/services/api/auth/authSession';
 import { getUser } from '@/services/api/auth/authUser';
 import type { User } from '@/types/User';
@@ -84,8 +83,7 @@ describe('AuthProvider — sign-out cache clearing', () => {
     );
   });
 
-  // A session can end with no one at the confirm dialog (expiry, revoked
-  // elsewhere); queued items cleared then must still be reported.
+  // Covers both a confirmed sign-out and a lost session (expiry, revoked elsewhere).
   it('reports paused queued items the sign-out clear discards', async () => {
     mockedHasWebSessionFlag.mockReturnValue(false);
     mockedGetToken.mockResolvedValue('token');
@@ -119,44 +117,6 @@ describe('AuthProvider — sign-out cache clearing', () => {
     }
 
     expect(jest.mocked(announceDiscardedQueuedItems)).toHaveBeenCalledWith(2);
-  });
-
-  // LogoutConfirm already warned; a second notice after it repeats the same news.
-  it('stays quiet about discarded items after a confirmed sign-out', async () => {
-    jest.mocked(announceDiscardedQueuedItems).mockClear();
-    mockedHasWebSessionFlag.mockReturnValue(false);
-    mockedGetToken.mockResolvedValue('token');
-    mockedGetUser.mockResolvedValueOnce(signedInUser);
-    const queryClient = new QueryClient();
-    function wrapper({ children }: { children: React.ReactNode }) {
-      return (
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>{children}</AuthProvider>
-        </QueryClientProvider>
-      );
-    }
-    const { result } = await renderHook(() => useAuth(), { wrapper });
-    await waitFor(() => expect(result.current.user?.id).toBe('u1'));
-
-    onlineManager.setOnline(false);
-    try {
-      void queryClient
-        .getMutationCache()
-        .build(queryClient, { mutationFn: () => new Promise<void>(() => {}) })
-        .execute(undefined);
-      authRuntime.signOutConfirmed = true;
-      mockedGetUser.mockResolvedValueOnce(undefined);
-      await act(async () => {
-        await result.current.refetch(false);
-      });
-      await waitFor(() => expect(result.current.user).toBeUndefined());
-    } finally {
-      onlineManager.setOnline(true);
-    }
-
-    expect(jest.mocked(announceDiscardedQueuedItems)).not.toHaveBeenCalled();
-    // Consumed: the next, unconfirmed session loss reports again.
-    expect(authRuntime.signOutConfirmed).toBe(false);
   });
 
   it('does not clear the cache on sign-in (only on sign-out)', async () => {

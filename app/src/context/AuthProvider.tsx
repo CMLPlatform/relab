@@ -4,7 +4,6 @@ import { Platform } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { announceDiscardedQueuedItems } from '@/features/products/queries';
 import { getToken } from '@/services/api/auth/authRefresh';
-import { authRuntime } from '@/services/api/auth/authRuntime';
 import { hasWebSessionFlag } from '@/services/api/auth/authSession';
 import { getUser } from '@/services/api/auth/authUser';
 import { forgetSavedVersions } from '@/services/api/saving';
@@ -27,15 +26,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     prevUserIdRef.current = user?.id;
 
     if (wasSignedIn && user === undefined) {
-      // The clear below drops saves still queued offline. A confirmed sign-out
-      // was warned in LogoutConfirm; a lost session (or sign-out everywhere,
-      // account deletion) had no such warning, so report it here.
+      // The clear below drops saves still queued offline; report them, whether
+      // the user signed out or the session was lost.
       const discarded = queryClient
         .getMutationCache()
         .getAll()
         .filter((mutation) => mutation.state.isPaused).length;
-      if (discarded > 0 && !authRuntime.signOutConfirmed) announceDiscardedQueuedItems(discarded);
-      authRuntime.signOutConfirmed = false;
+      if (discarded > 0) announceDiscardedQueuedItems(discarded);
       // Shared device: wipe the in-memory cache and both persisted copies, or
       // the next user sees this one's data (query cache lives 24h, recents forever).
       queryClient.clear();

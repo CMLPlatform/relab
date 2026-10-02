@@ -57,7 +57,6 @@ describe('authLogin', () => {
     authRuntime.refreshPromise = null;
     authRuntime.getUserPromise = null;
     authRuntime.explicitlyLoggedOut = false;
-    authRuntime.signOutConfirmed = false;
     authRuntime.authGeneration = 0;
     jest.clearAllMocks();
     isWeb.mockReturnValue(false);
@@ -186,12 +185,6 @@ describe('authLogin', () => {
 
     await expect(logout()).resolves.toBeUndefined();
     expect(clearCachedAuthState).toHaveBeenCalled();
-  });
-
-  it('marks the sign-out as confirmed, so the queued-items warning is not repeated', async () => {
-    fetchWithTimeout.mockResolvedValueOnce({ ok: true, status: 204 } as never);
-    await logout();
-    expect(authRuntime.signOutConfirmed).toBe(true);
   });
 
   it('uses stored native access and refresh tokens on logout after runtime cache is empty', async () => {

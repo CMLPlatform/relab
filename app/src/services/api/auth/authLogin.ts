@@ -88,9 +88,7 @@ export async function login(username: string, password: string): Promise<LoginRe
   }
 }
 
-/** The sign-out LogoutConfirm runs; that dialog has already warned about queued saves. */
 export async function logout(): Promise<void> {
-  authRuntime.signOutConfirmed = true;
   const web = isWeb();
   const refreshToken = web ? undefined : await loadStoredRefreshToken();
   const logoutPath = web ? '/auth/session/logout' : '/auth/bearer/logout';
