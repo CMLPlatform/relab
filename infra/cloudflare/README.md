@@ -230,6 +230,15 @@ curl -s https://api.cloudflare.com/client/v4/user/tokens/verify \
   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq .
 ```
 
+That endpoint knows only user tokens (**My Profile -> API Tokens**). An account-owned token
+(**Manage Account -> Account API Tokens**) answers `Invalid API Token` there; verify it at the
+account instead:
+
+```bash
+curl -s "https://api.cloudflare.com/client/v4/accounts/$TF_VAR_cloudflare_account_id/tokens/verify" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq .
+```
+
 A missing scope surfaces during `plan`/`apply` as a 403 naming the resource or ruleset phase; add
 that one permission.
 
