@@ -38,7 +38,7 @@ resource "github_repository_environment" "publish" {
   }
 
   # Open to any branch, staging instead waits for a person: its CLOUDFLARE_API_TOKEN
-  # (Workers Scripts: Edit) is account-wide and could deploy prod's Workers too.
+  # (the Workers Editor role on all Workers) could deploy prod's Workers too.
   dynamic "reviewers" {
     for_each = var.environment == "staging" ? [1] : []
     content {
