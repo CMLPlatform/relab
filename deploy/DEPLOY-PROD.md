@@ -370,9 +370,9 @@ The images come from the release: publishing it on GitHub starts `release.yml`, 
 them to GHCR (`publish-images.yml`), so wait for that run to finish. `tag` pulls every image before it writes
 `IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. `up` never pulls: it
 runs the images `tag` pulled, so a tag moved on GHCR afterwards cannot reach the host on a restart.
-`images-verify` checks each image's build provenance and needs `read:packages` on your `gh`
-login (`gh auth refresh -s read:packages`). To try a commit before a release, run the Publish
-Images workflow on it by hand and use its `sha-<short sha>` tag.
+`images-verify` checks each image's build provenance; it reads the images from GHCR with Docker's
+credentials, so they must be public (or `docker login ghcr.io` first). To try a commit before a
+release, run the Publish Images workflow on it by hand and use its `sha-<short sha>` tag.
 
 The landing page and docs are not on this host: the same release deploys them to Cloudflare
 Workers (`deploy-sites.yml`). Staging's go first; prod's wait in the release run until you approve
