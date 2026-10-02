@@ -33,7 +33,8 @@ GIF_BYTES = (
 
 
 def _csv_rows(text: str) -> tuple[list[str], list[dict[str, str]]]:
-    reader = csv.DictReader(io.StringIO(text))
+    assert text.startswith("\ufeff"), "CSV export lost its UTF-8 BOM"
+    reader = csv.DictReader(io.StringIO(text.removeprefix("\ufeff")))
     return list(reader.fieldnames or []), list(reader)
 
 

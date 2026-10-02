@@ -32,6 +32,23 @@ def validate_image_dimensions(
         raise ValueError(msg)
 
 
+def validate_animation_pixels(img: PILImage.Image) -> None:
+    """Raise ValueError if every frame of ``img`` together exceeds the total-pixel limit.
+
+    Re-saving an animation decodes every frame, and the GIF and PNG savers hold them all
+    until the file is written, so the cap applies to the frames combined. ``n_frames``
+    comes from the frame headers, so this runs before any frame is decoded.
+    """
+    n_frames = getattr(img, "n_frames", 1)
+    width, height = img.size
+    if n_frames * width * height > MAX_IMAGE_PIXELS:
+        msg = (
+            f"Animation has {n_frames} frames of {width}x{height} pixels, exceeding the maximum "
+            f"allowed {MAX_IMAGE_PIXELS} pixels across all frames."
+        )
+        raise ValueError(msg)
+
+
 def validate_image_mime_type(file: UploadFile | None) -> UploadFile | None:
     """Validate the uploaded image MIME type."""
     if file is None:

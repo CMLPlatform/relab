@@ -3,6 +3,7 @@
 import contextlib
 import io
 import os
+from pathlib import Path
 from typing import IO, TYPE_CHECKING
 
 from PIL import Image as PILImage
@@ -10,7 +11,7 @@ from PIL import ImageOps
 
 from .constants import FORMAT_JPEG, FORMAT_MPO, FORMAT_WEBP
 from .exif import filter_exif, get_exif_orientation
-from .validation import validate_image_dimensions
+from .validation import validate_animation_pixels, validate_image_dimensions
 
 if TYPE_CHECKING:
     from typing import Any
@@ -31,6 +32,26 @@ def _carries_metadata(img: PILImage.Image) -> bool:
     # PNG tEXt/iTXt/zTXt chunks are free text under any keyword and may follow the image
     # data, so `text` (which reads to the end of the file) is checked rather than `info`.
     return has_exif or any(img.info.get(key) for key in _IDENTIFYING_INFO_KEYS) or bool(getattr(img, "text", None))
+
+
+def _animation_save_kwargs(img: PILImage.Image) -> dict[str, Any]:
+    """Return the saver arguments that write every frame of ``img`` back unchanged.
+
+    The WebP saver only takes per-frame durations as a list, and a GIF without a loop
+    count plays once, so ``loop`` is copied only when the original has one. Pillow
+    composites each frame on read, so the default disposal and blend operators
+    reproduce the animation.
+    """
+    durations = []
+    for index in range(img.n_frames):  # ty: ignore[unresolved-attribute]
+        img.seek(index)
+        img.load()  # WebP sets a frame's duration only once it is decoded.
+        durations.append(img.info.get("duration", 0))
+    img.seek(0)
+    kwargs: dict[str, Any] = {"save_all": True, "duration": durations}
+    with contextlib.suppress(KeyError):
+        kwargs["loop"] = img.info["loop"]
+    return kwargs
 
 
 def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tuple[int, int]:
@@ -55,19 +76,20 @@ def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tupl
         original_format = FORMAT_JPEG if is_mpo else (img.format or FORMAT_JPEG)
 
         # Re-save only to strip metadata or apply rotation; an unconditional re-save
-        # flattens animated GIFs and re-encodes lossless WebP lossily.
-        # NOTE: animated originals are never re-saved: exif_transpose sees only the first
-        # frame, so fixing one frame would flatten the rest. An MPO is not animated; its
-        # later frames are derived images and are dropped.
-        if not is_mpo and (getattr(img, "n_frames", 1) > 1 or not _carries_metadata(img)):
+        # re-encodes every frame of an animation and costs a full decode for nothing.
+        # An MPO is not animated; its later frames are derived images and are dropped.
+        is_animated = not is_mpo and getattr(img, "n_frames", 1) > 1
+        if not is_mpo and not _carries_metadata(img):
             return img.size
 
         # Read the allowlisted tags off the original, before exif_transpose rewrites them.
-        allowlisted = filter_exif(img)
+        # An animation keeps no EXIF at all: its tags describe the first frame only.
+        allowlisted = None if is_animated else filter_exif(img)
         processed = img
         # Transposing costs a second full-size decode (150 MB at the 50 MPx cap), so it
-        # only runs when there is a rotation to apply.
-        if get_exif_orientation(img) not in (None, 1):
+        # only runs when there is a rotation to apply. NOTE: exif_transpose sees only the
+        # first frame, so an animation is stored unrotated rather than flattened.
+        if not is_animated and get_exif_orientation(img) not in (None, 1):
             with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
                 processed = ImageOps.exif_transpose(img)
 
@@ -87,12 +109,17 @@ def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tupl
         elif original_format == FORMAT_WEBP:
             # Avoid a second lossy generation on a WebP re-saved only to strip metadata.
             save_kwargs["lossless"] = True
+        if is_animated:
+            validate_animation_pixels(img)
+            save_kwargs.update(_animation_save_kwargs(img))
 
-        # Saved inside the `with`: closing the source discards its pixels. A path is
+        # Saved inside the `with`: closing the source discards its pixels. A still path is
         # overwritten in place, which is safe because save() loads the pixels first. A file
-        # is still the open source, so it is encoded to a buffer and copied back below.
+        # is still the open source, and an animation's later frames are read during the
+        # save, so both are encoded to a buffer and copied back below.
+        buffered = is_file or is_animated
         encoded = io.BytesIO()
-        processed.save(encoded if is_file else image, **save_kwargs)
+        processed.save(encoded if buffered else image, **save_kwargs)
         size = processed.size
 
     if is_file:
@@ -100,4 +127,6 @@ def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tupl
         image.truncate()
         image.write(encoded.getbuffer())
         image.seek(0)
+    elif buffered:
+        Path(image).write_bytes(encoded.getbuffer())
     return size
