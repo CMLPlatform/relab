@@ -13,7 +13,9 @@ cloudflare_zone_dir := "infra/cloudflare-zone"
 # Where an apply's reviewed plan waits for its confirming re-run. Gitignored, created
 # private, and emptied by the apply; the age cap bounds how long an unapplied plan can sit
 # there and how far the zone can drift from the diff a person actually read.
-cloudflare_plan_dir := ".tofu-plans"
+# Absolute: the plan is written and applied through `tofu -chdir=<root>`, which resolves a
+# relative path against that root, not the repository.
+cloudflare_plan_dir := justfile_directory() / ".tofu-plans"
 cloudflare_plan_max_age_minutes := "20"
 
 # Subrepos that mirror the root quality / test / audit / clean recipes.
