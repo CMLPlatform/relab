@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 import pandas as pd
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 
 from app.api.reference_data.models import (
     Category,
@@ -188,9 +188,7 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
     logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
 
     with sync_session_context() as session:
-        # Older installs stored the "CPV:" prefix in name, newer ones in description.
-        cpv_prefix = or_(ProductType.name.startswith("CPV:"), ProductType.description.startswith("CPV:"))
-        existing_cpv = session.execute(select(ProductType).where(cpv_prefix)).scalars().first()
+        existing_cpv = session.execute(select(ProductType).where(ProductType.name.startswith("CPV:"))).scalars().first()
         if existing_cpv:
             logger.info("CPV product types already exist, skipping seeding")
             return
@@ -203,7 +201,8 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
             cpv_code = row["external_id"].rstrip("0")
             cpv_name = row["name"]
 
-            pt = ProductType(name=cpv_name, description=f"CPV: {cpv_code}")
+            # Code in name, label in description: the shape the app's bundled taxonomy uses.
+            pt = ProductType(name=f"CPV: {cpv_code}", description=cpv_name)
             session.add(pt)
             product_types_created += 1
 
