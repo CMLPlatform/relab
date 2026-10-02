@@ -1,7 +1,7 @@
 """The MFA login challenge and every signed-in re-authentication share one per-account budget.
 
-A wrong password, TOTP or recovery code on any of these routes counts against the account,
-not only against the client IP, so an attacker with a stolen session cannot rotate IPs or
+Every password, TOTP or recovery-code check on any of these routes counts against the
+account, not only against the client IP, so an attacker with a stolen session cannot rotate IPs or
 routes to keep guessing. Signs in for real: several of these routes resolve the user through
 fastapi-users' own dependency, which the shared override does not reach.
 """
@@ -118,19 +118,23 @@ async def test_the_budget_is_shared_across_routes(api_client: AsyncClient, db_se
     assert blocked.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
 
-async def test_a_missing_credential_costs_nothing(api_client: AsyncClient, db_session: AsyncSession) -> None:
-    """Only a wrong credential counts; a request that omits it (400) does not."""
-    _user, headers = await _signed_in(api_client, db_session, "forgetful_user")
+async def test_an_edit_without_a_credential_check_costs_nothing(
+    api_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """Every credential check is charged up front, so edits that check none must stay outside the budget."""
+    _user, headers = await _signed_in(api_client, db_session, "profile_editor")
 
     with patch(BUDGET, new=Limiter(storage_uri="memory://")):
         statuses = [
             (
-                await api_client.request("PATCH", "/v1/users/me", json={"email": "moved@example.com"}, headers=headers)
+                await api_client.request(
+                    "PATCH", "/v1/users/me", json={"username": f"profile_editor_{i}"}, headers=headers
+                )
             ).status_code
-            for _ in range(4)
+            for i in range(4)
         ]
 
-    assert statuses == [status.HTTP_400_BAD_REQUEST] * 4
+    assert statuses == [status.HTTP_200_OK] * 4
 
 
 async def test_fresh_login_challenges_do_not_reset_the_budget(

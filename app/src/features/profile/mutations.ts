@@ -182,6 +182,7 @@ export function useProfilePreferences({
 export async function confirmOAuthUnlink({
   provider,
   currentPassword,
+  mfaCode,
   youtubeEnabled,
   setYoutubeEnabled,
   closeUnlinkDialog,
@@ -190,6 +191,7 @@ export async function confirmOAuthUnlink({
 }: {
   provider: string;
   currentPassword?: string;
+  mfaCode?: string;
   youtubeEnabled: boolean;
   setYoutubeEnabled: (enabled: boolean) => Promise<void>;
   closeUnlinkDialog: () => void;
@@ -197,7 +199,7 @@ export async function confirmOAuthUnlink({
   feedback: ReturnType<typeof useAppFeedback>;
 }) {
   try {
-    await unlinkOAuth(provider, currentPassword);
+    await unlinkOAuth(provider, currentPassword, mfaCode);
   } catch (error: unknown) {
     closeUnlinkDialog();
     feedback.error(

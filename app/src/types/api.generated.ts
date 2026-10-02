@@ -1659,7 +1659,10 @@ export interface paths {
     put?: never;
     /**
      * Confirm Totp Setup
-     * @description Confirm authenticated TOTP enrollment and return one-time recovery codes.
+     * @description Confirm TOTP enrollment, return one-time recovery codes, and replace the session.
+     *
+     *     Enrolment signs out every other session. A client that authenticated with a bearer
+     *     token gets new tokens in ``tokens``; a browser session gets new cookies.
      */
     post: operations['confirm_totp_setup_v1_auth_mfa_totp_confirm_post'];
     delete?: never;
@@ -2116,7 +2119,7 @@ export interface paths {
     post?: never;
     /**
      * Remove Oauth Association
-     * @description Remove a linked OAuth account (step-up re-auth if the account has a password).
+     * @description Remove a linked OAuth account (password and MFA step-up where the account has them).
      */
     delete: operations['remove_oauth_association_v1_oauth__provider__associate_delete'];
     options?: never;
@@ -4509,6 +4512,16 @@ export interface components {
       password?: string | null;
     };
     /**
+     * MfaTotpConfirmResponse
+     * @description Recovery codes plus the session that replaces the ones enrolment revoked.
+     */
+    MfaTotpConfirmResponse: {
+      /** Recovery Codes */
+      recovery_codes: string[];
+      /** @description New bearer tokens; null for browser sessions, which get new cookies instead */
+      tokens?: components['schemas']['RefreshTokenResponse'] | null;
+    };
+    /**
      * MfaTotpDisableRequest
      * @description Request to turn off TOTP MFA, confirmed with a current code or a recovery code.
      */
@@ -4552,12 +4565,17 @@ export interface components {
      * OAuthStepUpRequest
      * @description Optional step-up body for linking or unlinking a social login.
      *
-     *     Optional because an OAuth-only account has no usable password to re-assert; the
-     *     server decides whether one is required from ``user.has_usable_password``.
+     *     Optional because an OAuth-only account has no usable password to re-assert, and an
+     *     account without MFA has no code; the server decides which the account needs.
      */
     OAuthStepUpRequest: {
       /** Current Password */
       current_password?: string | null;
+      /**
+       * Mfa Code
+       * @description Current authenticator code or a recovery code. Required when the account has MFA enabled.
+       */
+      mfa_code?: string | null;
     };
     /** Page[CameraRead] */
     Page_CameraRead_: {
@@ -10237,7 +10255,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['MfaRecoveryCodesResponse'];
+          'application/json': components['schemas']['MfaTotpConfirmResponse'];
         };
       };
       /** @description Validation Error */

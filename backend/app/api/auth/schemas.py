@@ -318,13 +318,20 @@ class MfaTotpSetupResponse(BaseModel):
 class OAuthStepUpRequest(BaseModel):
     """Optional step-up body for linking or unlinking a social login.
 
-    Optional because an OAuth-only account has no usable password to re-assert; the
-    server decides whether one is required from ``user.has_usable_password``.
+    Optional because an OAuth-only account has no usable password to re-assert, and an
+    account without MFA has no code; the server decides which the account needs.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     current_password: SecretStr | None = None
+    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ").
+    mfa_code: str | None = Field(
+        default=None,
+        min_length=6,
+        max_length=20,
+        description="Current authenticator code or a recovery code. Required when the account has MFA enabled.",
+    )
 
 
 class MfaTotpConfirmRequest(BaseModel):
@@ -374,3 +381,11 @@ class MfaRecoveryCodesResponse(BaseModel):
     """One-time delivery of freshly generated recovery codes."""
 
     recovery_codes: list[str]
+
+
+class MfaTotpConfirmResponse(MfaRecoveryCodesResponse):
+    """Recovery codes plus the session that replaces the ones enrolment revoked."""
+
+    tokens: RefreshTokenResponse | None = Field(
+        default=None, description="New bearer tokens; null for browser sessions, which get new cookies instead"
+    )

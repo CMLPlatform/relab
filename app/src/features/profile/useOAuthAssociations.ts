@@ -23,6 +23,8 @@ type UseOAuthAssociationsParams = {
   setYoutubeEnabled: (enabled: boolean) => Promise<void>;
   /** Used to collect the account password when the API asks for step-up re-auth. */
   dialog: Pick<DialogContextType, 'input'>;
+  /** The account has MFA on, so linking also needs an authenticator or recovery code. */
+  mfaEnabled?: boolean;
 };
 
 type OAuthProvider = 'google' | 'github';
@@ -32,42 +34,68 @@ const STEP_UP_REQUIRED_STATUS = 400;
 
 export class OAuthStepUpRequiredError extends Error {}
 type OAuthAssociationResult = { type: string; url?: string };
+type StepUp = { currentPassword?: string; mfaCode?: string };
 
 /**
- * Run *action*; on a step-up 400, collect the password and retry once. Never
- * throws: the retry runs detached from the dialog's onPress, so both attempts
- * report through *onError*.
+ * Run *action*; on a step-up 400, collect the password and retry once. With MFA on,
+ * the code is collected first, since the API always asks for it. Never throws: the
+ * retries run detached from the dialog's onPress, so every attempt reports through
+ * *onError*.
  */
 async function withStepUp(
   dialog: Pick<DialogContextType, 'input'>,
-  action: (currentPassword?: string) => Promise<void>,
+  action: (stepUp: StepUp) => Promise<void>,
   message: string,
   onError: (error: unknown) => void,
+  mfaEnabled: boolean,
 ): Promise<void> {
-  try {
-    await action();
-  } catch (error: unknown) {
-    if (!(error instanceof OAuthStepUpRequiredError)) {
-      onError(error);
-      return;
-    }
-    dialog.input({
-      title: 'Confirm your password',
-      message,
-      placeholder: 'Current password',
-      buttons: [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          disabled: (value) => !value?.trim(),
-          onPress: (currentPassword) => {
-            if (!currentPassword?.trim()) return;
-            void action(currentPassword).catch(onError);
+  const run = async (stepUp: StepUp) => {
+    try {
+      await action(stepUp);
+    } catch (error: unknown) {
+      if (!(error instanceof OAuthStepUpRequiredError)) {
+        onError(error);
+        return;
+      }
+      dialog.input({
+        title: 'Confirm your password',
+        message,
+        placeholder: 'Current password',
+        buttons: [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue',
+            disabled: (value) => !value?.trim(),
+            onPress: (currentPassword) => {
+              if (!currentPassword?.trim()) return;
+              void action({ ...stepUp, currentPassword }).catch(onError);
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    }
+  };
+
+  if (!mfaEnabled) {
+    await run({});
+    return;
   }
+  dialog.input({
+    title: 'Enter your authentication code',
+    message,
+    placeholder: 'Authenticator or recovery code',
+    buttons: [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Continue',
+        disabled: (value) => !value?.trim(),
+        onPress: (mfaCode) => {
+          if (!mfaCode?.trim()) return;
+          void run({ mfaCode: mfaCode.trim() });
+        },
+      },
+    ],
+  });
 }
 
 export function useOAuthAssociations({
@@ -75,17 +103,22 @@ export function useOAuthAssociations({
   refetch,
   setYoutubeEnabled,
   dialog,
+  mfaEnabled = false,
 }: UseOAuthAssociationsParams) {
   const [youtubeAuthPending, setYoutubeAuthPending] = useState(false);
 
   const startAssociationFlow = async (
     path: string,
-    currentPassword?: string,
+    { currentPassword, mfaCode }: StepUp,
   ): Promise<OAuthAssociationResult> => {
     const redirectUri = createURL('/account');
     const associateUrl = buildOAuthAuthorizeUrl(`${API_URL}${path}`, redirectUri);
-    // Step-up POST: the server requires the password for any account that has one.
-    const authorization = await fetchOAuthAuthorizationUrl(associateUrl, { currentPassword });
+    // Step-up POST: the server requires the password for any account that has one,
+    // and the MFA code for any account with MFA on.
+    const authorization = await fetchOAuthAuthorizationUrl(associateUrl, {
+      currentPassword,
+      mfaCode,
+    });
 
     if (authorization.status === STEP_UP_REQUIRED_STATUS && !currentPassword) {
       throw new OAuthStepUpRequiredError(
@@ -121,10 +154,10 @@ export function useOAuthAssociations({
     try {
       await withStepUp(
         dialog,
-        async (currentPassword) => {
+        async (stepUp) => {
           const result = await startAssociationFlow(
             '/oauth/google-youtube/associate/authorize',
-            currentPassword,
+            stepUp,
           );
           const callback =
             result.type === 'success' && result.url ? parseOAuthCallbackUrl(result.url) : undefined;
@@ -144,6 +177,7 @@ export function useOAuthAssociations({
             `Failed to start YouTube authorization: ${getErrorMessage(error, 'Unknown error')}`,
             'Authorization failed',
           ),
+        mfaEnabled,
       );
     } finally {
       setYoutubeAuthPending(false);
@@ -153,11 +187,8 @@ export function useOAuthAssociations({
   const linkOAuth = async (provider: OAuthProvider) => {
     await withStepUp(
       dialog,
-      async (currentPassword) => {
-        const result = await startAssociationFlow(
-          `/oauth/${provider}/associate/authorize`,
-          currentPassword,
-        );
+      async (stepUp) => {
+        const result = await startAssociationFlow(`/oauth/${provider}/associate/authorize`, stepUp);
         if (result.type !== 'success') return;
 
         // The outcome lives in the callback fragment, not in the session completing.
@@ -175,6 +206,7 @@ export function useOAuthAssociations({
           `Failed to start link flow: ${getErrorMessage(error, 'Unknown error')}`,
           'Link failed',
         ),
+      mfaEnabled,
     );
   };
 

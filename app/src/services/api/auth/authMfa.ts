@@ -2,7 +2,7 @@ import { API_URL } from '@/config';
 import { throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
 import { isWeb } from '@/services/storage';
-import { persistAccessToken, persistRefreshToken } from './authRefresh';
+import { fetchWithAuth, persistAccessToken, persistRefreshToken } from './authRefresh';
 import { markWebSessionActive } from './authSession';
 
 export type TotpSetup = {
@@ -82,12 +82,16 @@ function mapTotpSetup(data: unknown): TotpSetup {
   };
 }
 
+// Enrolment and recovery-code calls act on the signed-in account, so they carry the
+// session (a bearer token on native); the login challenge and handoff run before one exists.
 async function postMfaJson(
   path: string,
   body: Record<string, string>,
   fallbackError: string,
+  { signedIn = false }: { signedIn?: boolean } = {},
 ): Promise<Response> {
-  const response = await fetchWithTimeout(new URL(`${API_URL}${path}`), {
+  const send = signedIn ? fetchWithAuth : fetchWithTimeout;
+  const response = await send(new URL(`${API_URL}${path}`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(body),
@@ -119,7 +123,9 @@ async function persistMfaLoginResponse(response: Response): Promise<void> {
 }
 
 export async function startTotpSetup(): Promise<TotpSetup> {
-  const response = await postMfaJson('/auth/mfa/totp/setup', {}, 'Unable to start MFA setup.');
+  const response = await postMfaJson('/auth/mfa/totp/setup', {}, 'Unable to start MFA setup.', {
+    signedIn: true,
+  });
   return mapTotpSetup(await response.json());
 }
 
@@ -156,8 +162,21 @@ export async function confirmTotpSetup(
     '/auth/mfa/totp/confirm',
     { setup_token: setupToken, code, password },
     'Unable to confirm MFA setup.',
+    { signedIn: true },
   );
-  return mapRecoveryCodes(await response.json());
+  const data = await response.json();
+  const codes = mapRecoveryCodes(data);
+  // Enrolment revokes every earlier session. A bearer client gets its replacement
+  // here; a browser gets new cookies on the same response.
+  const tokens = (data as { tokens?: { access_token?: unknown; refresh_token?: unknown } | null })
+    .tokens;
+  if (typeof tokens?.access_token === 'string') {
+    await persistAccessToken(tokens.access_token);
+    if (typeof tokens.refresh_token === 'string') {
+      await persistRefreshToken(tokens.refresh_token);
+    }
+  }
+  return codes;
 }
 
 export async function regenerateRecoveryCodes(code: string): Promise<string[]> {
@@ -165,6 +184,7 @@ export async function regenerateRecoveryCodes(code: string): Promise<string[]> {
     '/auth/mfa/recovery-codes/regenerate',
     { code },
     'Unable to generate new recovery codes.',
+    { signedIn: true },
   );
   return mapRecoveryCodes(await response.json());
 }
@@ -174,6 +194,7 @@ export async function disableTotp(code: string): Promise<void> {
     '/auth/mfa/totp/disable',
     { code },
     'Unable to turn off two-step verification.',
+    { signedIn: true },
   );
 }
 

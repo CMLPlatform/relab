@@ -11,6 +11,7 @@ export function useProfileDialogs() {
   const [unlinkDialogVisible, setUnlinkDialogVisible] = useState(false);
   const [providerToUnlink, setProviderToUnlink] = useState('');
   const [unlinkPassword, setUnlinkPassword] = useState('');
+  const [unlinkMfaCode, setUnlinkMfaCode] = useState('');
 
   const openDeleteDialog = useCallback(() => setDeleteDialogVisible(true), []);
   const closeDeleteDialog = useCallback(() => {
@@ -24,10 +25,12 @@ export function useProfileDialogs() {
   const closeUnlinkDialog = useCallback(() => {
     setUnlinkDialogVisible(false);
     setUnlinkPassword('');
+    setUnlinkMfaCode('');
   }, []);
   const requestUnlink = useCallback((provider: string) => {
     setProviderToUnlink(provider);
     setUnlinkPassword('');
+    setUnlinkMfaCode('');
     setUnlinkDialogVisible(true);
   }, []);
 
@@ -57,6 +60,8 @@ export function useProfileDialogs() {
       close: closeUnlinkDialog,
       password: unlinkPassword,
       setPassword: setUnlinkPassword,
+      mfaCode: unlinkMfaCode,
+      setMfaCode: setUnlinkMfaCode,
     },
   };
 }

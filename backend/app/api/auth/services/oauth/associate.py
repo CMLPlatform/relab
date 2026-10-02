@@ -18,8 +18,9 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import OAuthStepUpRequest
-from app.api.auth.services.account_security import require_step_up_password
+from app.api.auth.services.account_security import require_recent_sign_in, require_step_up_password
 from app.api.auth.services.email.service import send_oauth_link_changed_notification
+from app.api.auth.services.mfa_flow import require_mfa_step_up
 from app.api.auth.services.oauth.base import (
     OAuthFlowConfig,
     authorize_callback_dependency,
@@ -29,6 +30,7 @@ from app.api.auth.services.oauth.base import (
 )
 from app.api.auth.services.rate_limiter import account_guess_budget
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
+from app.core.redis import RedisDep
 
 from .utils import (
     FRONTEND_REDIRECT_URI_KEY,
@@ -119,6 +121,7 @@ def build_oauth_associate_router(
         response: Response,
         user: Annotated[User, Depends(get_current_active_user)],
         user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
+        redis: RedisDep,
         payload: Annotated[OAuthStepUpRequest | None, Body()] = None,
     ) -> OAuth2AuthorizeResponse:
         # Every provider, the YouTube data-scope client included: the link is stored
@@ -133,6 +136,14 @@ def build_oauth_associate_router(
                 ),
                 action="link a social login",
             )
+            await require_mfa_step_up(
+                payload.mfa_code if payload else None,
+                user=user,
+                redis=redis,
+                action="link a social login",
+                user_manager=user_manager,
+            )
+        require_recent_sign_in(user)
         return await build_authorize_response(
             config,
             request,

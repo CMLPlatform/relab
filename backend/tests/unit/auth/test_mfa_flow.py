@@ -1,5 +1,6 @@
 """Unit tests for MFA flow orchestration."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
@@ -7,7 +8,12 @@ from fastapi import HTTPException, Response, status
 from fastapi_users.exceptions import UserNotExists
 from pydantic import SecretStr
 
-from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError, MfaStepUpCodeInvalidError
+from app.api.auth.exceptions import (
+    MfaChallengeInvalidError,
+    MfaCodeInvalidError,
+    MfaStepUpCodeInvalidError,
+    RecentSignInRequiredError,
+)
 from app.api.auth.schemas import (
     MfaChallengeRequest,
     MfaOAuthClaimRequest,
@@ -16,6 +22,7 @@ from app.api.auth.schemas import (
     MfaTotpDisableRequest,
 )
 from app.api.auth.services import mfa_flow, mfa_service
+from app.api.auth.services.account_security import RECENT_SIGN_IN_WINDOW
 from app.api.common.audit import AuditAction
 
 
@@ -102,6 +109,7 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
         patch("app.api.auth.services.mfa_flow.mfa_service.burn_totp_counter", new=AsyncMock()) as burn,
         patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
         patch("app.api.auth.services.mfa_flow.send_mfa_changed_notification", new=AsyncMock()) as notify,
+        patch("app.api.auth.services.mfa_flow.refresh_token_service.create_refresh_token", new=AsyncMock()),
     ):
         result = await mfa_flow.confirm_totp_setup(
             MfaTotpConfirmRequest(setup_token=SecretStr("setup-token"), code="123456", password=SecretStr("pw")),
@@ -109,12 +117,15 @@ async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None
             user_manager=user_manager,
             redis=MagicMock(),
             background_tasks=MagicMock(),
+            response=Response(),
+            session_strategy=MagicMock(write_token=AsyncMock(return_value="access-token")),
+            bearer=False,
         )
 
     # The setup token is bound to the enrolling user on both the read and the consume.
     get_setup.assert_awaited_once_with(ANY, "setup-token", user_id=user.id)
     consume.assert_awaited_once_with(ANY, "setup-token", user_id=user.id)
-    enable.assert_awaited_once_with(user_manager, user, "secret")
+    enable.assert_awaited_once_with(ANY, user_manager, user, "secret")
     # The time-step burns only after enrollment succeeds, so a failed commit
     # doesn't lock the still-valid code out of a retry.
     burn.assert_awaited_once_with(ANY, user_id=user.id, counter=42)
@@ -146,6 +157,9 @@ async def test_confirm_totp_setup_rejects_wrong_password() -> None:
             user_manager=user_manager,
             redis=MagicMock(),
             background_tasks=MagicMock(),
+            response=Response(),
+            session_strategy=MagicMock(write_token=AsyncMock(return_value="access-token")),
+            bearer=False,
         )
 
     assert exc.value.status_code == status.HTTP_403_FORBIDDEN
@@ -159,7 +173,9 @@ async def test_confirm_totp_setup_allows_oauth_only_account_without_password() -
     Google/GitHub (random password, has_usable_password=False) got 401 and could never
     turn MFA on.
     """
-    user, user_manager = build_mfa_user(mfa_enabled=False, mfa_totp_secret=None, has_usable_password=False)
+    user, user_manager = build_mfa_user(
+        mfa_enabled=False, mfa_totp_secret=None, has_usable_password=False, last_login_at=datetime.now(UTC)
+    )
 
     setup = MagicMock()
     setup.secret = "secret"
@@ -172,6 +188,7 @@ async def test_confirm_totp_setup_allows_oauth_only_account_without_password() -
         patch("app.api.auth.services.mfa_flow.mfa_service.burn_totp_counter", new=AsyncMock()),
         patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()),
         patch("app.api.auth.services.mfa_flow.send_mfa_changed_notification", new=AsyncMock()),
+        patch("app.api.auth.services.mfa_flow.refresh_token_service.create_refresh_token", new=AsyncMock()),
     ):
         result = await mfa_flow.confirm_totp_setup(
             MfaTotpConfirmRequest(setup_token=SecretStr("setup-token"), code="123456"),
@@ -179,12 +196,45 @@ async def test_confirm_totp_setup_allows_oauth_only_account_without_password() -
             user_manager=user_manager,
             redis=MagicMock(),
             background_tasks=MagicMock(),
+            response=Response(),
+            session_strategy=MagicMock(write_token=AsyncMock(return_value="access-token")),
+            bearer=False,
         )
 
     enable.assert_awaited_once()
     assert len(result.recovery_codes) == 10
     # The password helper is never consulted for a password-less account.
     user_manager.password_helper.verify_and_update.assert_not_called()
+
+
+async def test_confirm_totp_setup_refuses_passwordless_account_with_stale_sign_in() -> None:
+    """With no password to re-enter, enrolment needs a recent sign-in, not just a live session."""
+    user, user_manager = build_mfa_user(
+        mfa_enabled=False,
+        mfa_totp_secret=None,
+        has_usable_password=False,
+        last_login_at=datetime.now(UTC) - RECENT_SIGN_IN_WINDOW - timedelta(minutes=1),
+    )
+    setup = MagicMock()
+    setup.secret = "secret"
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_totp_setup", new=AsyncMock(return_value=setup)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.enable_totp", new=AsyncMock()) as enable,
+        pytest.raises(RecentSignInRequiredError),
+    ):
+        await mfa_flow.confirm_totp_setup(
+            MfaTotpConfirmRequest(setup_token=SecretStr("setup-token"), code="123456"),
+            current_user=user,
+            user_manager=user_manager,
+            redis=MagicMock(),
+            background_tasks=MagicMock(),
+            response=Response(),
+            session_strategy=MagicMock(write_token=AsyncMock(return_value="access-token")),
+            bearer=False,
+        )
+
+    enable.assert_not_awaited()
 
 
 async def test_confirm_totp_setup_requires_password_when_account_has_one() -> None:
@@ -204,6 +254,9 @@ async def test_confirm_totp_setup_requires_password_when_account_has_one() -> No
             user_manager=user_manager,
             redis=MagicMock(),
             background_tasks=MagicMock(),
+            response=Response(),
+            session_strategy=MagicMock(write_token=AsyncMock(return_value="access-token")),
+            bearer=False,
         )
 
     assert exc.value.status_code == status.HTTP_400_BAD_REQUEST

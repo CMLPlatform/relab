@@ -134,24 +134,18 @@ export function useProfileActions({
   );
 
   const handleUnlinkOAuthConfirm = useCallback(async () => {
+    const { provider, password, mfaCode, close } = dialogs.unlinkDialog;
     await confirmOAuthUnlink({
-      provider: dialogs.unlinkDialog.provider,
-      currentPassword: dialogs.unlinkDialog.password || undefined,
+      provider,
+      currentPassword: password || undefined,
+      mfaCode: mfaCode.trim() || undefined,
       youtubeEnabled,
       setYoutubeEnabled,
-      closeUnlinkDialog: dialogs.unlinkDialog.close,
+      closeUnlinkDialog: close,
       refetch,
       feedback,
     });
-  }, [
-    dialogs.unlinkDialog.close,
-    dialogs.unlinkDialog.password,
-    dialogs.unlinkDialog.provider,
-    feedback,
-    refetch,
-    setYoutubeEnabled,
-    youtubeEnabled,
-  ]);
+  }, [dialogs.unlinkDialog, feedback, refetch, setYoutubeEnabled, youtubeEnabled]);
 
   return {
     onLogout,

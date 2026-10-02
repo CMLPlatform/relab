@@ -11,13 +11,24 @@ import {
   setPendingMfaLogin,
   startTotpSetup,
 } from '@/services/api/auth/authMfa';
+import { persistAccessToken, persistRefreshToken } from '@/services/api/auth/authRefresh';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
 jest.mock('@/services/api/request', () => ({
   fetchWithTimeout: jest.fn(),
 }));
 
+// fetchWithAuth adds the session and forwards to fetchWithTimeout, so the request
+// assertions below see every call; `signedInCalls` records which ones carried it.
+const signedInCalls: string[] = [];
 jest.mock('@/services/api/auth/authRefresh', () => ({
+  fetchWithAuth: jest.fn(async (url: URL, init: unknown) => {
+    signedInCalls.push(url.pathname);
+    const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+      fetchWithTimeout: (url: URL, init: unknown) => Promise<unknown>;
+    };
+    return fetchWithTimeout(url, init);
+  }),
   persistAccessToken: jest.fn(async () => undefined),
   persistRefreshToken: jest.fn(async () => undefined),
 }));
@@ -180,6 +191,44 @@ describe('parseMfaPendingPayload redirect guard', () => {
   });
 });
 
+describe('MFA request authentication', () => {
+  const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
+    fetchWithTimeout: jest.Mock;
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    signedInCalls.length = 0;
+  });
+
+  it('sends the session on enrolment and recovery-code calls, not on the login challenge', async () => {
+    fetchWithTimeout.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        setup_token: 't',
+        secret: 's',
+        otpauth_uri: 'otpauth://x',
+        recovery_codes: [],
+        access_token: 'a',
+      }),
+    } as never);
+
+    await startTotpSetup();
+    await confirmTotpSetup('t', '123456', 'pw');
+    await regenerateRecoveryCodes('123456');
+    await disableTotp('123456');
+    await completeMfaChallenge('mfa-token', '123456');
+
+    expect(signedInCalls).toEqual([
+      '/v1/auth/mfa/totp/setup',
+      '/v1/auth/mfa/totp/confirm',
+      '/v1/auth/mfa/recovery-codes/regenerate',
+      '/v1/auth/mfa/totp/disable',
+    ]);
+  });
+});
+
 describe('TOTP enrolment', () => {
   const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {
     fetchWithTimeout: jest.Mock;
@@ -248,6 +297,33 @@ describe('TOTP enrolment', () => {
       code: '123456',
       password: 'hunter2',
     });
+  });
+
+  it('stores the replacement bearer tokens that enrolment returns', async () => {
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        recovery_codes: ['aaaa-bbbb'],
+        tokens: { access_token: 'new-access', refresh_token: 'new-refresh', token_type: 'bearer' },
+      }),
+    } as never);
+
+    await expect(confirmTotpSetup('setup-token', '123456', 'hunter2')).resolves.toEqual([
+      'aaaa-bbbb',
+    ]);
+    expect(persistAccessToken).toHaveBeenCalledWith('new-access');
+    expect(persistRefreshToken).toHaveBeenCalledWith('new-refresh');
+  });
+
+  it('stores nothing when enrolment set session cookies instead', async () => {
+    fetchWithTimeout.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ recovery_codes: ['aaaa-bbbb'], tokens: null }),
+    } as never);
+
+    await confirmTotpSetup('setup-token', '123456', 'hunter2');
+    expect(persistAccessToken).not.toHaveBeenCalled();
+    expect(persistRefreshToken).not.toHaveBeenCalled();
   });
 
   it.each([{ recovery_codes: 'aaaa-bbbb' }, { recovery_codes: [1, 2] }, {}])(

@@ -71,19 +71,27 @@ export async function updateUser(updates: Partial<User>): Promise<User | undefin
   }
 }
 
-export async function unlinkOAuth(provider: string, currentPassword?: string): Promise<boolean> {
+export async function unlinkOAuth(
+  provider: string,
+  currentPassword?: string,
+  mfaCode?: string,
+): Promise<boolean> {
   const url = new URL(`${API_URL}/oauth/${provider}/associate`);
+  const hasStepUp = Boolean(currentPassword || mfaCode);
 
   try {
-    // Accounts with a usable password must re-authenticate (step-up); OAuth-only
-    // accounts have none and send no body.
+    // Accounts with a usable password must re-authenticate (step-up), and accounts
+    // with MFA add a code; an account with neither sends no body. JSON.stringify
+    // drops the fields left undefined.
     const response = await fetchWithAuth(url, {
       method: 'DELETE',
       headers: {
         Accept: 'application/json',
-        ...(currentPassword ? { 'Content-Type': 'application/json' } : {}),
+        ...(hasStepUp ? { 'Content-Type': 'application/json' } : {}),
       },
-      body: currentPassword ? JSON.stringify({ current_password: currentPassword }) : undefined,
+      body: hasStepUp
+        ? JSON.stringify({ current_password: currentPassword, mfa_code: mfaCode })
+        : undefined,
     });
 
     if (!response.ok) {

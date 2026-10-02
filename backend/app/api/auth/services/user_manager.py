@@ -183,8 +183,9 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         real_user_update = cast("UserUpdate", user_update)
         sensitive_fields = sensitive_update_fields(real_user_update)
         # Only the self-service path (safe=True) can re-authenticate; an admin does not
-        # know the target's password.
-        if safe:
+        # know the target's password. The budget charges every attempt, so only a change
+        # that needs the password enters it: a preferences or username edit costs nothing.
+        if safe and sensitive_fields:
             async with account_guess_budget(user.id):
                 require_current_password_for_sensitive_update(
                     password_helper=self.password_helper,

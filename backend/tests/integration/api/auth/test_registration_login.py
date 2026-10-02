@@ -30,6 +30,7 @@ from .shared import (
     TEST_PASSWORD,
     TEST_USERNAME,
     UNIQUE_USERNAME,
+    assert_refresh_session_revoked,
     create_password_user,
     login_session,
 )
@@ -266,6 +267,58 @@ async def test_authenticated_totp_setup_enables_mfa(
 
     assert confirm_response.status_code == status.HTTP_200_OK
     assert len(confirm_response.json()["recovery_codes"]) == 10
+
+
+async def test_totp_enrolment_replaces_bearer_session(api_client: AsyncClient, db_session: AsyncSession) -> None:
+    """Enrolment revokes every earlier token and hands the enrolling device a fresh pair."""
+    user = await create_password_user(db_session, email="totp-rotate@example.com", username="totp_rotate_user")
+    old = await login_bearer_and_authorize(api_client, email=user.email)
+    old_headers = {"Authorization": api_client.headers["Authorization"]}
+    setup_data = await start_totp_setup(api_client)
+
+    confirm_response = await api_client.post(
+        "/v1/auth/mfa/totp/confirm",
+        json={
+            "setup_token": setup_data["setup_token"],
+            "code": totp_code(setup_data["secret"]),
+            "password": TEST_PASSWORD,
+        },
+    )
+
+    assert confirm_response.status_code == status.HTTP_200_OK, confirm_response.text
+    tokens = confirm_response.json()["tokens"]
+    assert (await api_client.get("/v1/users/me", headers=old_headers)).status_code == status.HTTP_401_UNAUTHORIZED
+    await assert_refresh_session_revoked(api_client, str(old["refresh_token"]))
+    new_headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+    assert (await api_client.get("/v1/users/me", headers=new_headers)).status_code == status.HTTP_200_OK
+    refreshed = await api_client.post("/v1/auth/bearer/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert refreshed.status_code == status.HTTP_200_OK
+
+
+async def test_totp_enrolment_replaces_session_cookies(api_client: AsyncClient, db_session: AsyncSession) -> None:
+    """A browser session gets new cookies on enrolment; the pre-enrolment cookie stops working."""
+    user = await create_password_user(db_session, email="totp-cookie@example.com", username="totp_cookie_user")
+    await login_session(api_client, email=user.email, password=TEST_PASSWORD)
+    old_cookie = api_client.cookies[AUTH_COOKIE_NAME]
+    setup_data = await start_totp_setup(api_client)
+
+    confirm_response = await api_client.post(
+        "/v1/auth/mfa/totp/confirm",
+        json={
+            "setup_token": setup_data["setup_token"],
+            "code": totp_code(setup_data["secret"]),
+            "password": TEST_PASSWORD,
+        },
+    )
+
+    assert confirm_response.status_code == status.HTTP_200_OK, confirm_response.text
+    assert confirm_response.json()["tokens"] is None
+    assert confirm_response.cookies[AUTH_COOKIE_NAME] != old_cookie
+    assert confirm_response.cookies[REFRESH_COOKIE_NAME]
+    assert (await api_client.get("/v1/users/me")).status_code == status.HTTP_200_OK
+    api_client.cookies.clear()
+    stale = await api_client.get("/v1/users/me", headers={"Cookie": f"{AUTH_COOKIE_NAME}={old_cookie}"})
+    assert stale.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 async def test_totp_setup_confirm_requires_authentication(

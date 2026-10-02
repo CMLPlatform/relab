@@ -86,8 +86,8 @@ def require_step_up_password(
     an active session alone is not enough, or a stolen session can attach a provider the
     attacker controls and keep access after the victim resets their password.
 
-    An OAuth-only account has no usable password to re-assert; the out-of-band
-    notification email is the compensating control there.
+    An OAuth-only account has no usable password to re-assert; callers pair this with
+    ``require_recent_sign_in``, and the out-of-band notification email backs that up.
     """
     if not user.has_usable_password:
         return

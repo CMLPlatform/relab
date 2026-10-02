@@ -28,6 +28,9 @@ type ProfileDialogsProps = {
   unlinkRequiresPassword: boolean;
   unlinkPassword: string;
   onChangeUnlinkPassword: (value: string) => void;
+  unlinkRequiresMfa?: boolean;
+  unlinkMfaCode?: string;
+  onChangeUnlinkMfaCode?: (value: string) => void;
   logoutDialogVisible: boolean;
   onDismissLogout: () => void;
   onConfirmLogout: () => void;
@@ -49,6 +52,9 @@ export function ProfileDialogs({
   unlinkRequiresPassword,
   unlinkPassword,
   onChangeUnlinkPassword,
+  unlinkRequiresMfa = false,
+  unlinkMfaCode = '',
+  onChangeUnlinkMfaCode,
   logoutDialogVisible,
   onDismissLogout,
   onConfirmLogout,
@@ -94,6 +100,20 @@ export function ProfileDialogs({
             style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
+        {unlinkRequiresMfa ? (
+          <TextInput
+            value={unlinkMfaCode}
+            onChangeText={onChangeUnlinkMfaCode}
+            placeholder="Authenticator or recovery code"
+            accessibilityLabel="Authentication code"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
+            className="border px-2 py-2 mt-2"
+            style={{ borderColor: theme.colors.outline }}
+          />
+        ) : null}
         <View style={dialogActionsStyle}>
           <AppButton variant="ghost" onPress={onDismissUnlink}>
             Cancel
@@ -101,7 +121,10 @@ export function ProfileDialogs({
           <AppButton
             variant="destructive"
             onPress={onConfirmUnlink}
-            disabled={unlinkRequiresPassword && unlinkPassword.length === 0}
+            disabled={
+              (unlinkRequiresPassword && unlinkPassword.length === 0) ||
+              (unlinkRequiresMfa && unlinkMfaCode.trim().length === 0)
+            }
           >
             Unlink
           </AppButton>

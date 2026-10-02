@@ -14,6 +14,7 @@ from pydantic import UUID4
 
 from app.api.auth.exceptions import MfaChallengeInvalidError
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
+from app.api.auth.services.refresh_token_service import revoke_all_user_tokens
 from app.api.auth.services.token_store import read_token_metadata, store_new_token, token_fingerprint
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 
@@ -262,14 +263,22 @@ async def consume_totp_setup(redis: Redis, token: str, *, user_id: UUID4 | None 
     return _totp_setup_from_metadata(metadata, user_id=user_id)
 
 
-async def enable_totp(user_manager: UserManager, user: User, secret: str) -> User:
-    """Persist a confirmed TOTP enrollment."""
+async def enable_totp(redis: Redis, user_manager: UserManager, user: User, secret: str) -> User:
+    """Persist a confirmed TOTP enrollment and revoke every session that predates it.
+
+    Enrolment raises what the account may do (admin access needs MFA), so a session or
+    refresh token issued on a single factor must not carry over. The caller issues the
+    enrolling client a fresh session.
+    """
     user.mfa_totp_secret = secret
     user.mfa_enabled = True
     user.mfa_confirmed_at = datetime.now(UTC)
     user_manager.user_db.session.add(user)
     await user_manager.user_db.session.commit()
     await user_manager.user_db.session.refresh(user)
+    # After the commit: a session refreshed between a revoke and a failed commit would
+    # otherwise survive the enrolment that follows on retry.
+    await revoke_all_user_tokens(redis, user.id)
     return user
 
 

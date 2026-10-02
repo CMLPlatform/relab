@@ -6,6 +6,7 @@ from fastapi_users.exceptions import UserNotExists
 from fastapi_users.router.common import ErrorCode
 from pydantic import SecretStr
 
+from app.api.auth.config import settings as auth_settings
 from app.api.auth.exceptions import MfaChallengeInvalidError, MfaCodeInvalidError, MfaStepUpCodeInvalidError
 from app.api.auth.models import User
 from app.api.auth.schemas import (
@@ -15,11 +16,13 @@ from app.api.auth.schemas import (
     MfaRecoveryCodesRegenerateRequest,
     MfaRecoveryCodesResponse,
     MfaTotpConfirmRequest,
+    MfaTotpConfirmResponse,
     MfaTotpDisableRequest,
     MfaTotpSetupResponse,
     RefreshTokenResponse,
 )
-from app.api.auth.services import account_security, login_completion, mfa_service
+from app.api.auth.services import account_security, login_completion, mfa_service, refresh_token_service
+from app.api.auth.services.auth_backends import set_session_auth_cookies
 from app.api.auth.services.email.service import (
     send_mfa_changed_notification,
     send_recovery_codes_regenerated_notification,
@@ -61,38 +64,43 @@ async def confirm_totp_setup(
     user_manager: UserManager,
     redis: Redis,
     background_tasks: BackgroundTasks,
-) -> MfaRecoveryCodesResponse:
-    """Confirm authenticated TOTP enrollment and issue one-time recovery codes."""
+    response: Response,
+    session_strategy: Strategy,
+    bearer: bool,
+) -> MfaTotpConfirmResponse:
+    """Confirm authenticated TOTP enrollment and issue one-time recovery codes.
+
+    Enrolment revokes every earlier session, so the enrolling client gets a fresh one:
+    bearer tokens in the body when ``bearer``, otherwise new session cookies.
+    """
     setup_token = await get_mfa_token(payload.setup_token)
     setup = await mfa_service.get_totp_setup(redis, setup_token, user_id=current_user.id)
     user = await user_manager.get(current_user.id)
     if user.mfa_enabled or user.mfa_totp_secret:
         raise MfaChallengeInvalidError
     # Reauthenticate before enabling (OWASP). OAuth-only accounts have no password to
-    # re-enter, so the session is their only factor (same as oauth/accounts.py).
-    if user.has_usable_password:
-        if payload.password is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Current password is required to enable MFA.",
-            )
-        account_security.verify_current_password(
+    # re-enter, so they need a recent sign-in instead (same as oauth/accounts.py).
+    account_security.require_recent_sign_in(user)
+    # The password and setup code are guesses, so they spend the account's guess budget.
+    async with account_guess_budget(user.id):
+        account_security.require_step_up_password(
             password_helper=user_manager.password_helper,
-            password=payload.password.get_secret_value(),
             user=user,
+            current_password=payload.password.get_secret_value() if payload.password else None,
+            action="enable MFA",
         )
-    counter = await mfa_service.verify_totp_code(
-        redis,
-        user_id=current_user.id,
-        secret=setup.secret,
-        code=payload.code,
-    )
+        counter = await mfa_service.verify_totp_code(
+            redis,
+            user_id=current_user.id,
+            secret=setup.secret,
+            code=payload.code,
+        )
     if counter is None:
         audit_mfa_failure(user, reason="invalid_totp_setup_code")
         raise MfaStepUpCodeInvalidError
 
     setup = await mfa_service.consume_totp_setup(redis, setup_token, user_id=current_user.id)
-    await mfa_service.enable_totp(user_manager, user, setup.secret)
+    await mfa_service.enable_totp(redis, user_manager, user, setup.secret)
     # Burn only after enrollment is committed, so a failed commit can be retried with
     # the same code. The one-time setup token above already blocks replay.
     await mfa_service.burn_totp_counter(redis, user_id=current_user.id, counter=counter)
@@ -102,7 +110,20 @@ async def confirm_totp_setup(
         current_user.id, AuditAction.MFA_SUCCESS, "mfa", current_user.id, context=AuditContext(flow="totp_setup")
     )
     await send_mfa_changed_notification(user.email, user.username, enabled=True, background_tasks=background_tasks)
-    return MfaRecoveryCodesResponse(recovery_codes=codes)
+    # Not issue_*_login_response: enrolment is not a sign-in, so last_login_at stays put.
+    access_token = await session_strategy.write_token(user)
+    refresh_token = await refresh_token_service.create_refresh_token(redis, user.id)
+    if not bearer:
+        set_session_auth_cookies(response, access_token=access_token, refresh_token=refresh_token)
+        return MfaTotpConfirmResponse(recovery_codes=codes)
+    return MfaTotpConfirmResponse(
+        recovery_codes=codes,
+        tokens=RefreshTokenResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_in=auth_settings.access_token_ttl_seconds,
+        ),
+    )
 
 
 async def _load_enrolled_mfa_user(user_manager: UserManager, current_user: User) -> User:
@@ -125,7 +146,9 @@ async def disable_totp(
     user = await _load_enrolled_mfa_user(user_manager, current_user)
     # Recovery codes are accepted so a lost authenticator can still turn MFA off.
     # clear_totp wipes the codes, so the matched one needs no persisting.
-    if await _verify_challenge_code(payload.code, user=user, redis=redis) is None:
+    async with account_guess_budget(user.id):
+        verified = await _verify_challenge_code(payload.code, user=user, redis=redis)
+    if verified is None:
         audit_mfa_failure(user, reason="invalid_totp_disable_code")
         raise MfaStepUpCodeInvalidError
     await mfa_service.clear_totp(user_manager, user)
@@ -143,12 +166,14 @@ async def regenerate_recovery_codes(
 ) -> MfaRecoveryCodesResponse:
     """Reissue recovery codes after confirming a current TOTP code."""
     user = await _load_enrolled_mfa_user(user_manager, current_user)
-    if not user.mfa_totp_secret or not await mfa_service.verify_totp_code_once(
-        redis,
-        user_id=user.id,
-        secret=user.mfa_totp_secret,
-        code=payload.code,
-    ):
+    async with account_guess_budget(user.id):
+        verified = user.mfa_totp_secret is not None and await mfa_service.verify_totp_code_once(
+            redis,
+            user_id=user.id,
+            secret=user.mfa_totp_secret,
+            code=payload.code,
+        )
+    if not verified:
         audit_mfa_failure(user, reason="invalid_totp_regenerate_code")
         raise MfaStepUpCodeInvalidError
     codes, hashes = mfa_service.generate_recovery_codes()
@@ -231,7 +256,9 @@ async def complete_mfa_challenge(
     )
 
 
-async def require_mfa_step_up(code: str | None, *, user: User, redis: Redis, action: str) -> None:
+async def require_mfa_step_up(
+    code: str | None, *, user: User, redis: Redis, action: str, user_manager: UserManager | None = None
+) -> None:
     """Require a current TOTP or recovery code before a sensitive action, when MFA is on.
 
     Runs after the password step-up, so a stolen session plus a phished password still
@@ -244,11 +271,15 @@ async def require_mfa_step_up(code: str | None, *, user: User, redis: Redis, act
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Authentication code is required to {action}.",
         )
-    # NOTE: a matched recovery code is not persisted as spent: the only caller erases
-    # the account next. Persist the remaining hashes if a non-destructive caller appears.
-    if await _verify_challenge_code(code, user=user, redis=redis) is None:
+    verified = await _verify_challenge_code(code, user=user, redis=redis)
+    if verified is None:
         audit_mfa_failure(user, reason="invalid_step_up_code")
         raise MfaStepUpCodeInvalidError
+    # Pass user_manager to burn a matched recovery code. Account deletion omits it: the
+    # account, codes included, is erased next.
+    _factor, remaining_recovery = verified
+    if remaining_recovery is not None and user_manager is not None:
+        await mfa_service.set_recovery_codes(user_manager, user, remaining_recovery)
 
 
 async def _verify_challenge_code(

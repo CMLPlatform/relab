@@ -82,8 +82,9 @@ class User(BaseUserDB, TimeStampMixinBare):
     def has_admin_access(self) -> bool:
         """Return whether this account may use superuser powers: superuser with TOTP MFA enrolled.
 
-        Enrolment is what is checked: every sign-in after it passes a TOTP challenge, so
-        acting on other people's data never rests on a password alone.
+        Enrolment is what is checked: enrolling revokes every earlier session, and every
+        sign-in after it passes a TOTP challenge, so acting on other people's data never
+        rests on a password alone.
         """
         return self.is_superuser and self.mfa_enabled
 

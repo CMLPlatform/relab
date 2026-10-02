@@ -40,3 +40,51 @@ describe('delete account dialog', () => {
     expect(queryAllHostsByType('ActivityIndicator')).toHaveLength(1);
   });
 });
+
+describe('unlink dialog', () => {
+  const renderUnlink = (mfaCode: string) =>
+    renderWithProviders(
+      <ProfileDialogs
+        unlinkDialogVisible
+        onDismissUnlink={jest.fn()}
+        providerToUnlink="google"
+        onConfirmUnlink={jest.fn()}
+        isLastLinkedProvider={false}
+        unlinkRequiresPassword={false}
+        unlinkPassword=""
+        onChangeUnlinkPassword={jest.fn()}
+        unlinkRequiresMfa
+        unlinkMfaCode={mfaCode}
+        onChangeUnlinkMfaCode={jest.fn()}
+        logoutDialogVisible={false}
+        onDismissLogout={jest.fn()}
+        onConfirmLogout={jest.fn()}
+        deleteDialog={{
+          visible: false,
+          close: jest.fn(),
+          password: '',
+          setPassword: jest.fn(),
+          mfaCode: '',
+          setMfaCode: jest.fn(),
+          pending: false,
+          error: null,
+        }}
+        onConfirmDelete={jest.fn()}
+        deleteRequiresPassword={false}
+        deleteRequiresMfa={false}
+      />,
+    );
+
+  it('asks an MFA account for a code and keeps Unlink disabled until one is entered', async () => {
+    await renderUnlink('');
+
+    expect(screen.getByLabelText('Authentication code')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Unlink' })).toBeDisabled();
+  });
+
+  it('enables Unlink once a code is entered', async () => {
+    await renderUnlink('123456');
+
+    expect(screen.getByRole('button', { name: 'Unlink' })).toBeEnabled();
+  });
+});
