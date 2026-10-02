@@ -2,7 +2,8 @@
 name: Release
 
 # Publishing a GitHub release (drafted by `just release-publish <version>`) creates its tag
-# and starts this: the release's images go to GHCR and its sites to Cloudflare Workers.
+# and starts this: the release's images go to GHCR. The same event starts deploy-sites.yml,
+# which puts its sites on Cloudflare Workers.
 on:
   release:
     types: [published]
@@ -48,14 +49,5 @@ jobs:
       id-token: write
       packages: write
     uses: ./.github/workflows/publish-images.yml
-    with:
-      tag_name: ${{ github.event.release.tag_name }}
-
-  deploy-sites:
-    name: Deploy sites
-    needs: check
-    permissions:
-      contents: read
-    uses: ./.github/workflows/deploy-sites.yml
     with:
       tag_name: ${{ github.event.release.tag_name }}
