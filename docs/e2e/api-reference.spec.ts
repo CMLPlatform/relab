@@ -115,15 +115,13 @@ test.describe('API reference discoverability', () => {
     await expect(sidebar.getByRole('link', { exact: true, name: 'RPi camera API' })).toHaveCount(0);
   });
 
-  test('related docs pages link to the API reference overview', async ({ page }) => {
-    const pages = [
-      '/user-guides/api/',
-      '/user-guides/rpi-cam/',
-      '/architecture/api/',
-      '/architecture/rpi-cam/',
-    ];
-
-    for (const path of pages) {
+  for (const path of [
+    '/user-guides/api/',
+    '/user-guides/rpi-cam/',
+    '/architecture/api/',
+    '/architecture/rpi-cam/',
+  ]) {
+    test(`${path} links to the API reference overview`, async ({ page }) => {
       await page.goto(path);
       await expect(
         page
@@ -131,6 +129,6 @@ test.describe('API reference discoverability', () => {
           .getByRole('link', { exact: true, name: 'API reference overview' })
           .first(),
       ).toHaveAttribute('href', '/api-reference/');
-    }
-  });
+    });
+  }
 });
