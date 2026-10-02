@@ -49,4 +49,25 @@ describe('useMfaScreen guards', () => {
       release();
     });
   });
+
+  // Regression: the pending login was re-read from its module slot on every
+  // render, so clearing it after a correct code flashed "session has ended"
+  // while the auth refetch was still in flight.
+  it('keeps the challenge it opened with once the pending login is cleared', async () => {
+    mockPending.mockReturnValue({ status: 'mfa_required', mfaToken: 'tok' });
+    mockComplete.mockResolvedValue(undefined);
+
+    const { result, rerender } = await renderHook(() => useMfaScreen());
+    await act(() => result.current.handleCodeChange('123456'));
+    mockPending.mockReturnValue(undefined);
+
+    await act(async () => {
+      await result.current.submit();
+    });
+    // The auth context update re-renders the screen before navigation lands.
+    await rerender({});
+
+    expect(mockComplete).toHaveBeenCalledWith('tok', '123456');
+    expect(result.current.tokenPresent).toBe(true);
+  });
 });
