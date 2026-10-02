@@ -7,6 +7,81 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-02
+
+**Upgrading from 0.3:** deploy hosts now pull published images, and the landing page and docs
+move to Cloudflare Workers. Superusers need MFA before upgrading. The self-host guide and
+`infra/cloudflare/README.md` list the steps.
+
+Every release now goes to staging first and reaches production after review. Users can delete
+their account, export their products, and see a product's bill of materials.
+
+### Added
+
+- Delete your own account ([#336], [#339])
+- Export products as CSV or JSON ([#349])
+- See a product's bill of materials and which of its fields are still missing ([#347], [#358])
+- Embed the app, docs and website in other pages ([#360])
+- Product type links and superuser moderation ([#340])
+
+### Changed
+
+- **Breaking:** Deploy hosts pull published, signed images instead of building them, chosen
+  by `IMAGE_TAG` in the root `.env` ([#362], [#370], [#372])
+- The landing page and docs run on Cloudflare Workers, and production deploys wait for review
+  after staging ([#364], [#369])
+- Editing an outdated copy of a product is refused, and the page shows who edited it last ([#363])
+- Photos upload at full resolution, with higher upload limits per role ([#335], [#348])
+- Faster uploads and API startup ([#329], [#381])
+
+### Removed
+
+- **Breaking:** The landing page and docs container images ([#364])
+
+### Fixed
+
+- Product editing: saving with no changes, Cmd/Ctrl+S, and the type label ([#358], [#380],
+  [#381])
+- Clearer errors with a retry button when a list fails to load ([#381])
+- Keyboard focus and screen headings, camera pairing, and the MFA screen ([#381])
+- Account deletion, upload quotas and thumbnails ([#353], [#381])
+- Backups and deploys recover from failed steps ([#274], [#276], [#367], [#381])
+
+### Security
+
+- **Breaking:** Superuser powers require a session that passed MFA ([#342], [#372])
+- Rate limits on every write route and per signed-in user ([#334], [#372])
+- Photo metadata, such as location, is removed from every upload ([#346], [#372])
+- Registration and sign-in leak less, and each service gets only the secrets it needs
+  ([#376], [#381])
+
+[#274]: https://github.com/CMLPlatform/relab/pull/274
+[#276]: https://github.com/CMLPlatform/relab/pull/276
+[#329]: https://github.com/CMLPlatform/relab/pull/329
+[#334]: https://github.com/CMLPlatform/relab/pull/334
+[#335]: https://github.com/CMLPlatform/relab/pull/335
+[#336]: https://github.com/CMLPlatform/relab/pull/336
+[#339]: https://github.com/CMLPlatform/relab/pull/339
+[#340]: https://github.com/CMLPlatform/relab/pull/340
+[#342]: https://github.com/CMLPlatform/relab/pull/342
+[#346]: https://github.com/CMLPlatform/relab/pull/346
+[#347]: https://github.com/CMLPlatform/relab/pull/347
+[#348]: https://github.com/CMLPlatform/relab/pull/348
+[#349]: https://github.com/CMLPlatform/relab/pull/349
+[#353]: https://github.com/CMLPlatform/relab/pull/353
+[#358]: https://github.com/CMLPlatform/relab/pull/358
+[#360]: https://github.com/CMLPlatform/relab/pull/360
+[#362]: https://github.com/CMLPlatform/relab/pull/362
+[#363]: https://github.com/CMLPlatform/relab/pull/363
+[#364]: https://github.com/CMLPlatform/relab/pull/364
+[#367]: https://github.com/CMLPlatform/relab/pull/367
+[#369]: https://github.com/CMLPlatform/relab/pull/369
+[#370]: https://github.com/CMLPlatform/relab/pull/370
+[#372]: https://github.com/CMLPlatform/relab/pull/372
+[#376]: https://github.com/CMLPlatform/relab/pull/376
+[#380]: https://github.com/CMLPlatform/relab/pull/380
+[#381]: https://github.com/CMLPlatform/relab/pull/381
+
 ## [0.3.2] - 2026-09-10
 
 A consolidation release after the production cutover. It repairs the interface and
@@ -256,12 +331,12 @@ backups, systemd timers, Cloudflare configuration as code, and telemetry over OT
 
 ### Changed
 
-- **BREAKING:** Registration requires a username; public profiles moved to `/users`, account screens to `/account`
-- **BREAKING:** Recovery codes replace the email-based MFA reset
-- **BREAKING:** Product dismantling time fields removed
-- **BREAKING:** Newsletter signup and `/organizations` removed
-- **BREAKING:** Stored videos must be HTTP URLs; media lookups are scoped by parent id and type
-- **BREAKING:** `frontend-app` renamed to `app`, `frontend-web` to `www`
+- **Breaking:** Registration requires a username; public profiles moved to `/users`, account screens to `/account`
+- **Breaking:** Recovery codes replace the email-based MFA reset
+- **Breaking:** Product dismantling time fields removed
+- **Breaking:** Newsletter signup and `/organizations` removed
+- **Breaking:** Stored videos must be HTTP URLs; media lookups are scoped by parent id and type
+- **Breaking:** `frontend-app` renamed to `app`, `frontend-web` to `www`
 
 ## [0.2.0] - 2026-04-23
 
@@ -391,7 +466,8 @@ Initial release of the Relab platform for circular economy and computer vision r
 - Image and video upload for products
 - Raspberry Pi Camera Plugin for remote image capture
 
-[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/CMLPlatform/relab/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/CMLPlatform/relab/compare/v0.2.0...v0.3.0
