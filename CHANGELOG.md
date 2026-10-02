@@ -46,14 +46,17 @@ their account, export their products, and see a product's bill of materials.
 - Keyboard focus and screen headings, camera pairing, and the MFA screen ([#381])
 - Account deletion, upload quotas and thumbnails ([#353], [#381])
 - Backups and deploys recover from failed steps ([#274], [#276], [#367], [#381])
+- A single typo when confirming a sensitive account action no longer locks you out for a
+  minute ([#376])
 
 ### Security
 
 - **Breaking:** Superuser powers require a session that passed MFA ([#342], [#372])
 - Rate limits on every write route and per signed-in user ([#334], [#372])
 - Photo metadata, such as location, is removed from every upload ([#346], [#372])
-- Registration and sign-in leak less, and each service gets only the secrets it needs
-  ([#376], [#381])
+- Registration takes the same steps whether or not an email already has an account, so it
+  does not reveal which addresses are registered ([#381])
+- Each backend service gets only the secrets it reads ([#381])
 
 [#274]: https://github.com/CMLPlatform/relab/pull/274
 [#276]: https://github.com/CMLPlatform/relab/pull/276
