@@ -147,32 +147,28 @@ test('element children are left unwrapped', async () => {
   expect(screen.container.queryAll((el) => el.type === 'Text')).toHaveLength(1);
 });
 
-// A disabled solid button swaps to the muted pair, not a half-transparent blue.
-test('disabled primary takes the muted fill and ink, without fading', async () => {
-  await render(<AppButton disabled>Continue</AppButton>);
-  const button = screen.getByRole('button');
-  expect(button.props.className).toEqual(expect.stringContaining('bg-muted'));
-  expect(button.props.className).not.toEqual(expect.stringContaining('opacity-50'));
-  expect(button.props.className).toEqual(expect.stringContaining('pointer-events-none'));
-  expect(screen.getByText('Continue').props.className).toEqual(
-    expect.stringContaining('text-muted-foreground'),
-  );
-});
-
-test('disabled outline fades instead: it has no fill to swap', async () => {
-  await render(
-    <AppButton variant="outline" disabled>
-      Skip
-    </AppButton>,
-  );
-  expect(screen.getByRole('button').props.className).toEqual(expect.stringContaining('opacity-50'));
-});
+// One disabled treatment for every variant: faint muted fill, hairline, muted ink; no fade.
+test.each(['primary', 'outline', 'ghost', 'tonal', 'destructive'] as const)(
+  'disabled %s takes the shared muted treatment without fading',
+  async (variant) => {
+    await render(
+      <AppButton variant={variant} disabled>
+        Continue
+      </AppButton>,
+    );
+    const className = screen.getByRole('button').props.className as string;
+    expect(className).toContain('bg-muted/50');
+    expect(className).toContain('border-border');
+    expect(className).not.toContain('opacity-50');
+    expect(screen.getByText('Continue').props.className).toContain('text-muted-foreground/60');
+  },
+);
 
 // Loading is busy, not unavailable: the variant keeps its colours.
 test('a loading primary keeps its fill and announces busy', async () => {
   await render(<AppButton loading>Continue</AppButton>);
   const button = screen.getByRole('button');
   expect(button).toBeBusy();
-  expect(button.props.className).not.toEqual(expect.stringContaining('bg-muted'));
+  expect(button.props.className).not.toEqual(expect.stringContaining('bg-muted/50'));
   expect(button.props.className).not.toEqual(expect.stringContaining('opacity-50'));
 });
