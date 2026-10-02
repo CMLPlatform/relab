@@ -18,7 +18,7 @@ export function MissingFieldsNotice({
   if (fields.length === 0) return null;
 
   return (
-    <View testID="missing-fields-notice" className="flex-row flex-wrap items-baseline gap-x-1 px-4">
+    <View testID="missing-fields-notice" className="flex-row flex-wrap items-baseline gap-x-1">
       {/* Each item below already carries its own "Jump to X" label; this text
           node is what assistive tech reads for "Not recorded yet:" itself, so the
           wrapping View needs no label of its own (a generic View would not

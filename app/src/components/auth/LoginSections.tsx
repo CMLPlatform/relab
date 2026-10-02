@@ -114,7 +114,10 @@ export function LoginFormSection({
         // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
           <AppText variant="label">
-            Email or username <AppText className="text-muted-foreground">(required)</AppText>
+            Email or username{' '}
+            <AppText variant="label" className="text-muted-foreground">
+              (required)
+            </AppText>
           </AppText>
           <TextInput
             ref={setEmailRef}
@@ -150,7 +153,10 @@ export function LoginFormSection({
         // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
           <AppText variant="label">
-            Password <AppText className="text-muted-foreground">(required)</AppText>
+            Password{' '}
+            <AppText variant="label" className="text-muted-foreground">
+              (required)
+            </AppText>
           </AppText>
           <TextInput
             ref={setPasswordRef}

@@ -55,7 +55,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       hero: isDark ? 'rgba(12,14,20,0.50)' : 'rgba(250,251,254,0.50)',
       // Band routes (content bare on the photo): `heroBand` behind the centred
       // column, fading to `heroEdge` at the sides. Tinted to the theme background.
-      heroBand: isDark ? 'rgba(12,14,20,0.82)' : 'rgba(250,251,254,0.78)',
+      heroBand: isDark ? 'rgba(12,14,20,0.88)' : 'rgba(250,251,254,0.88)',
       heroEdge: isDark ? 'rgba(12,14,20,0.22)' : 'rgba(250,251,254,0.18)',
       scrim: designTokens.rn.scrim[scheme],
       media: 'rgba(0,0,0,0.5)',

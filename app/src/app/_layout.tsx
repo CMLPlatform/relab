@@ -12,7 +12,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
 import { memo, type ReactNode, useCallback, useEffect } from 'react';
-import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native';
+import {
+  AppState,
+  type AppStateStatus,
+  Platform,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { enableScreens } from 'react-native-screens';
@@ -120,15 +127,24 @@ export default function RootLayout() {
   );
 }
 
+// The calm band spans the auth column (420 wide) plus a margin. Narrower than
+// that, as on a phone, the band covers the whole width, so the wordmark and
+// headline never sit on the vivid edges of the photo.
+const BAND_WIDTH = 520;
+
 function AppBackground({ overlay }: { overlay: BackgroundOverlay }) {
+  const { width } = useWindowDimensions();
+  const edge = Math.max(0, (width - BAND_WIDTH) / 2 / width);
   return (
     <>
       {overlay.photo ? <StaticBackground /> : null}
-      {overlay.edgeColor ? (
+      {/* No band edge left (a narrow screen) means a flat fill; a 0 stop also
+          reaches the web gradient as no position at all. */}
+      {overlay.edgeColor && edge > 0 ? (
         // Hero routes: calm the band behind the content column, vivid at the edges.
         <LinearGradient
           colors={[overlay.edgeColor, overlay.color, overlay.color, overlay.edgeColor]}
-          locations={[0, 0.3, 0.7, 1]}
+          locations={[0, edge, 1 - edge, 1]}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={StyleSheet.absoluteFill}
