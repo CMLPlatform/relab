@@ -125,7 +125,7 @@ const CameraGridCell = memo(function CameraGridCell({
 }: {
   camera: CameraReadWithStatus;
   selected: boolean;
-  /** Any cell selected: only then is a cell a toggle with a pressed state to read out. */
+  /** Multi-select is active (even with nothing selected yet): only then is a cell a toggle with a pressed state to read out. */
   selectionMode: boolean;
   onPress: (camera: CameraReadWithStatus) => void;
   onLongPress: (camera: CameraReadWithStatus) => void;
