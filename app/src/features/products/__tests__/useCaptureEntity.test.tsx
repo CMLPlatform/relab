@@ -332,6 +332,7 @@ describe('useCaptureEntity', () => {
 
   describe('createAndAddAnother while offline', () => {
     afterEach(async () => {
+      mockMutateAsync.mockReset();
       await act(() => onlineManager.setOnline(true));
     });
 
@@ -397,7 +398,40 @@ describe('useCaptureEntity', () => {
       expect(keys[0]).toEqual(expect.any(String));
       expect(keys[1]).toEqual(expect.any(String));
       expect(keys[1]).not.toBe(keys[0]);
-      mockMutateAsync.mockReset();
+    });
+
+    // Both calls come from the same render, so they still see the queued
+    // draft's name; the second must not queue it again under a new key.
+    it('ignores a second add-another from the same render', async () => {
+      await act(() => onlineManager.setOnline(false));
+      mockMutateAsync.mockImplementation(never);
+      const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
+      await act(() => result.current.setName('Widget'));
+
+      const stale = result.current;
+      await act(async () => {
+        await stale.createAndAddAnother();
+        await stale.createAndAddAnother();
+      });
+
+      expect(mockMutateAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores a stale Create (Enter) right after a queued add-another', async () => {
+      await act(() => onlineManager.setOnline(false));
+      mockMutateAsync.mockImplementation(never);
+      const { result } = await renderHook(() => useCaptureEntity({ role: 'product' }));
+      await act(() => result.current.setName('Widget'));
+
+      const stale = result.current;
+      let created: number | undefined = -1;
+      await act(async () => {
+        await stale.createAndAddAnother();
+        created = await stale.create();
+      });
+
+      expect(created).toBeUndefined();
+      expect(mockMutateAsync).toHaveBeenCalledTimes(1);
     });
 
     it('reports a queued create that later fails, naming the item', async () => {

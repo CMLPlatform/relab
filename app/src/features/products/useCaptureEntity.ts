@@ -23,7 +23,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
 
   const queuedToastShownRef = useQueuedOfflineToast(saveMutation.isPaused, feedback);
 
-  const { resetForNextDraft, ...fields } = useCaptureFields();
+  const { resetForNextDraft, isStaleDraft, ...fields } = useCaptureFields();
   const { name, typeID, amount, images } = fields;
 
   // Not saveMutation.isPending: a create queued offline stays pending while the next draft is captured.
@@ -53,7 +53,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
   };
 
   const performCreate = async (): Promise<{ id: number; partial: boolean } | undefined> => {
-    if (inFlightRef.current) return undefined;
+    if (inFlightRef.current || isStaleDraft()) return undefined;
     inFlightRef.current = true;
     setIsCreating(true);
     try {
@@ -87,7 +87,8 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
   // Offline at the bench: queue this draft (photos and Idempotency-Key ride in
   // the paused mutation; the save scope sends queued creates in order) and hand
   // back an empty form. The outcome is reported even after this screen has gone.
-  const queueAndContinue = (savedName: string) => {
+  const queueAndContinue = (savedName: string): boolean => {
+    if (isStaleDraft()) return false;
     const variables = buildDraft();
     // The key now belongs to the queued draft; the next draft mints its own.
     idempotencyKeyRef.current = null;
@@ -95,6 +96,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
     queuedToastShownRef.current = true;
     void reportQueuedCreate(feedback, savedName, variables.product, created);
     resetForNextDraft();
+    return true;
   };
 
   const create = async (): Promise<number | undefined> => {
@@ -107,8 +109,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
   > => {
     const savedName = trimmedName;
     if (!onlineManager.isOnline() && !inFlightRef.current) {
-      queueAndContinue(savedName);
-      return 'queued';
+      return queueAndContinue(savedName) ? 'queued' : undefined;
     }
     const result = await performCreate();
     // Partial success (record created, upload failed): do not toast success
@@ -137,7 +138,14 @@ function useCaptureFields() {
   const [typeID, setTypeID] = useState<number | undefined>(undefined);
   const [amount, setAmount] = useState(DEFAULT_AMOUNT);
   const [images, setImages] = useState<Product['images']>([]);
+  // Bumped on every reset. A handler from a render before the reset still sees
+  // the sent draft's fields (an Enter and a click in one frame), so it must not
+  // send them again under a fresh Idempotency-Key.
+  const draftGenRef = useRef(0);
+  const renderedGen = draftGenRef.current;
+  const isStaleDraft = () => renderedGen !== draftGenRef.current;
   const resetForNextDraft = () => {
+    draftGenRef.current += 1;
     setName('');
     setImages([]);
     setAmount(DEFAULT_AMOUNT);
@@ -152,6 +160,7 @@ function useCaptureFields() {
     images,
     setImages,
     resetForNextDraft,
+    isStaleDraft,
   };
 }
 

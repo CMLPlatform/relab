@@ -19,6 +19,7 @@ import {
 import { deleteProduct, isEditConflict, MediaSyncError, saveProduct } from '@/services/api/saving';
 import { fetchTopCategories } from '@/services/api/stats';
 import type { Product } from '@/types/Product';
+import { getErrorMessage } from '@/utils/errors';
 
 export type ProductRole = 'product' | 'component';
 
@@ -235,28 +236,47 @@ function isRetryableSaveError(failureCount: number, error: unknown): boolean {
 }
 
 // A save restored from the persisted cache after a restart has no screen
-// awaiting it, so its conflict is announced here. Screens' own saves never
+// awaiting it, so its failure is announced here. Screens' own saves never
 // reach this: useSaveProductMutation's onError replaces the default one.
-let announceResumedSaveConflict: ((message: string) => void) | undefined;
+let resumedSaveDialog: Pick<ReturnType<typeof useDialog>, 'alert' | 'toast'> | undefined;
 
-/** Registers the toast that announces a resumed save refused as a conflict. Mount once, under DialogProvider. */
-export function ResumedSaveConflictNotice() {
-  const { toast } = useDialog();
+/** Registers the dialog that announces a failed resumed save. Mount once, under DialogProvider. */
+export function ResumedSaveNotice() {
+  const { alert, toast } = useDialog();
   useEffect(() => {
-    announceResumedSaveConflict = toast;
+    resumedSaveDialog = { alert, toast };
     return () => {
-      announceResumedSaveConflict = undefined;
+      resumedSaveDialog = undefined;
     };
-  }, [toast]);
+  }, [alert, toast]);
   return null;
 }
 
-/** Default onError for restored saves: on a conflict, refresh the record and say the edit was dropped. */
+/** Default onError for restored saves: say which item failed and how. */
 export function onResumedSaveError(queryClient: QueryClient) {
   return (error: unknown, { product }: SaveProductVariables) => {
-    if (!isEditConflict(error) || typeof product.id !== 'number') return;
+    // A queued create whose form was cleared long ago: an alert, not a toast,
+    // so the lost observation cannot pass unseen.
+    if (typeof product.id !== 'number') {
+      resumedSaveDialog?.alert({
+        title: 'Create failed',
+        message: `"${product.name}" was not created. ${getErrorMessage(error, 'Please capture it again.')}`,
+        buttons: [{ text: 'OK' }],
+      });
+      return;
+    }
+    if (error instanceof MediaSyncError) {
+      invalidateAfterSave(queryClient, product, error.productId);
+      resumedSaveDialog?.alert({
+        title: 'Upload failed',
+        message: `"${product.name}" was saved, but some photos failed to upload. Open it to add them again.`,
+        buttons: [{ text: 'OK' }],
+      });
+      return;
+    }
+    if (!isEditConflict(error)) return;
     invalidateAfterSave(queryClient, product, product.id);
-    announceResumedSaveConflict?.(
+    resumedSaveDialog?.toast(
       `"${product.name}" changed elsewhere while your edit waited to send, so the edit was not saved.`,
     );
   };

@@ -36,7 +36,7 @@ import { useTermsAcceptance } from '@/features/auth/useTermsAcceptance';
 import { PRODUCT_SHORTCUT_GROUPS } from '@/features/products/productShortcutGroups';
 import {
   onResumedSaveError,
-  ResumedSaveConflictNotice,
+  ResumedSaveNotice,
   SAVE_PRODUCT_MUTATION_KEY,
   saveProductMutationFn,
 } from '@/features/products/queries';
@@ -290,7 +290,7 @@ function ThemedProviders({ children }: { children: ReactNode }) {
               {children}
               {/* Needs DialogProvider (toast) and AuthProvider (user flag). */}
               <TermsPrompt />
-              <ResumedSaveConflictNotice />
+              <ResumedSaveNotice />
             </DialogProvider>
           </GestureHandlerRootView>
         </KeyboardProvider>

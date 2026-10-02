@@ -11,7 +11,7 @@ import { DialogContext } from '@/components/base/dialogContext';
 import {
   onResumedSaveError,
   productsInfiniteQueryOptions,
-  ResumedSaveConflictNotice,
+  ResumedSaveNotice,
   useBaseProductQuery,
   useComponentQuery,
   useDeleteProductMutation,
@@ -686,6 +686,57 @@ describe('useProductQueries', () => {
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
   });
 
+  // After a restart a queued create has no screen awaiting it, and its form
+  // is long cleared: a failure must reach the person, not vanish.
+  it('alerts when a restored create fails, naming the item', async () => {
+    const alert = jest.fn();
+    const dialog = { alert, input: jest.fn(), toast: jest.fn() };
+    const noticeWrapper = ({ children }: { children: React.ReactNode }) => (
+      <DialogContext.Provider value={dialog}>{wrapper({ children })}</DialogContext.Provider>
+    );
+    await renderHook(() => ResumedSaveNotice(), { wrapper: noticeWrapper });
+    const onError = onResumedSaveError(queryClient);
+    const product = { ...baseProduct, id: undefined, name: 'Kettle' };
+
+    onError(new ApiError('Quota exceeded', 403), {
+      product,
+      originalImages: [],
+      originalVideos: [],
+      idempotencyKey: 'k',
+    });
+
+    expect(alert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Create failed',
+        message: expect.stringContaining('"Kettle" was not created.'),
+      }),
+    );
+  });
+
+  it('alerts when a restored save landed but its photos failed', async () => {
+    const alert = jest.fn();
+    const dialog = { alert, input: jest.fn(), toast: jest.fn() };
+    const noticeWrapper = ({ children }: { children: React.ReactNode }) => (
+      <DialogContext.Provider value={dialog}>{wrapper({ children })}</DialogContext.Provider>
+    );
+    await renderHook(() => ResumedSaveNotice(), { wrapper: noticeWrapper });
+    const onError = onResumedSaveError(queryClient);
+    const product = { ...baseProduct, id: 9, name: 'Kettle' };
+
+    onError(new MediaSyncError(9, new Error('upload')), {
+      product,
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    expect(alert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Upload failed',
+        message: expect.stringContaining('"Kettle" was saved, but some photos failed to upload'),
+      }),
+    );
+  });
+
   it('announces a restored save refused as a conflict, and refreshes the record', async () => {
     const toast = jest.fn();
     const dialog = { alert: jest.fn(), input: jest.fn(), toast };
@@ -693,7 +744,7 @@ describe('useProductQueries', () => {
     const noticeWrapper = ({ children }: { children: React.ReactNode }) => (
       <DialogContext.Provider value={dialog}>{wrapper({ children })}</DialogContext.Provider>
     );
-    await renderHook(() => ResumedSaveConflictNotice(), { wrapper: noticeWrapper });
+    await renderHook(() => ResumedSaveNotice(), { wrapper: noticeWrapper });
     const onError = onResumedSaveError(queryClient);
     const product = { ...baseProduct, id: 7, name: 'Kettle' };
 
