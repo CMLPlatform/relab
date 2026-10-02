@@ -5,7 +5,7 @@ import FilterSelectionModal, {
   SingleSelectFilterModal,
 } from '@/components/base/FilterSelectionModal';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
-import { renderWithProviders, setupUser } from '@/test-utils/index';
+import { queryAllHostsByProps, renderWithProviders, setupUser } from '@/test-utils/index';
 
 jest.mock('@/hooks/useReturnFocus', () => ({ useReturnFocus: jest.fn() }));
 
@@ -56,6 +56,13 @@ describe('FilterSelectionModal', () => {
     expect(input.props.accessibilityLabel).toBe('Search tags');
     expect(input.props.role).not.toBe('search');
     expect(input.props.accessibilityRole).not.toBe('search');
+  });
+
+  it('keeps the scrim and card wrapper out of the web tab order', async () => {
+    await renderMulti({});
+    const nonControls = queryAllHostsByProps({ accessible: false });
+    expect(nonControls.length).toBeGreaterThanOrEqual(2);
+    for (const node of nonControls) expect(node.props.tabIndex).toBe(-1);
   });
 
   it('names the dialog and returns focus on close', async () => {

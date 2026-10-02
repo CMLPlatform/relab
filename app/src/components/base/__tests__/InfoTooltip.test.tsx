@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { act, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
 
@@ -37,6 +37,7 @@ describe('InfoTooltip component', () => {
     await user.press(pressable);
 
     expect(screen.getByText(title)).toBeOnTheScreen();
+    expect(screen.getByTestId('tooltip-scrim').props.tabIndex).toBe(-1);
 
     await act(() => {
       jest.advanceTimersByTime(5000);
@@ -80,8 +81,59 @@ describe('InfoTooltip component', () => {
     expect(screen.queryByText(title)).toBeNull();
   });
 
-  it('clears timer on unmount', async () => {
+  it('unmounts cleanly', async () => {
     const { unmount } = await renderWithProviders(<InfoTooltip title={title} />);
     await unmount();
+  });
+
+  describe('on desktop web', () => {
+    beforeEach(() => {
+      mockPlatform('web');
+    });
+
+    it('stays open when the hovered icon is clicked', async () => {
+      await renderWithProviders(<InfoTooltip title={title} />);
+      const button = screen.getByRole('button', { name: `Info: ${title}` });
+      await fireEvent(button, 'hoverIn');
+      expect(screen.getByText(title)).toBeOnTheScreen();
+      await user.press(button);
+      expect(screen.getByText(title)).toBeOnTheScreen();
+    });
+
+    it('hides on hover-out', async () => {
+      await renderWithProviders(<InfoTooltip title={title} />);
+      const button = screen.getByRole('button', { name: `Info: ${title}` });
+      await fireEvent(button, 'hoverIn');
+      await fireEvent(button, 'hoverOut');
+      expect(screen.queryByText(title)).toBeNull();
+    });
+
+    it('hides on Escape', async () => {
+      let onKeyDown: ((e: { key: string }) => void) | undefined;
+      const originalDocument = globalThis.document;
+      Object.defineProperty(globalThis, 'document', {
+        configurable: true,
+        value: {
+          addEventListener: (_: string, handler: (e: { key: string }) => void) => {
+            onKeyDown = handler;
+          },
+          removeEventListener: () => {},
+        },
+      });
+      try {
+        await renderWithProviders(<InfoTooltip title={title} />);
+        await fireEvent(screen.getByRole('button', { name: `Info: ${title}` }), 'hoverIn');
+        expect(screen.getByText(title)).toBeOnTheScreen();
+        await act(() => {
+          onKeyDown?.({ key: 'Escape' });
+        });
+        expect(screen.queryByText(title)).toBeNull();
+      } finally {
+        Object.defineProperty(globalThis, 'document', {
+          configurable: true,
+          value: originalDocument,
+        });
+      }
+    });
   });
 });

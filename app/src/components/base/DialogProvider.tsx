@@ -223,11 +223,15 @@ function Toast({
   const message = state?.message ?? null;
   const action = state?.action;
   // WCAG 2.2.1: a toast the reader is pointing at or tabbed into must not leave.
-  // Keyed to the toast it was set for, so a new toast starts unheld.
-  const [heldState, setHeldState] = useState<typeof state>(null);
-  const held = state !== null && heldState === state;
-  const hold = useCallback(() => setHeldState(state), [state]);
-  const release = useCallback(() => setHeldState(null), []);
+  // Tracks the pointer/focus, not a toast, so a replacement toast under a resting
+  // pointer stays held too.
+  const [inside, setInside] = useState(false);
+  const held = state !== null && inside;
+  const hold = useCallback(() => setInside(true), []);
+  const release = useCallback(() => setInside(false), []);
+  // The hold area unmounts with the toast without a hover-out or blur, so reset here
+  // (a render-time adjustment, not an effect, so no stale render in between).
+  if (state === null && inside) setInside(false);
 
   // Dismiss first: the action may raise a toast of its own, and these two state
   // updates batch in call order, so dismissing afterwards would swallow it.
@@ -274,6 +278,9 @@ function Toast({
             <Pressable
               testID="toast-hold-area"
               accessible={false}
+              // RN-Web ignores `accessible` and defaults Pressable to tabIndex 0.
+              // Focus from the Undo button still bubbles here to hold the toast.
+              tabIndex={-1}
               onHoverIn={hold}
               onHoverOut={release}
               onFocus={hold}

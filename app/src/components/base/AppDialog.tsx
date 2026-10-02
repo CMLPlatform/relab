@@ -64,12 +64,14 @@ export function AppDialog({
           full-screen unlabelled button would swallow the card it contains. */}
       <Pressable
         accessible={false}
+        tabIndex={-1}
         className="flex-1 items-center justify-center p-4"
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={handleDismiss}
       >
         <Pressable
           accessible={false}
+          tabIndex={-1}
           onPress={stopPropagation}
           className="w-full"
           style={styles.dialogWrapper}

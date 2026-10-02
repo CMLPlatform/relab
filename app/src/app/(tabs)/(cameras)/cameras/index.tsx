@@ -64,6 +64,7 @@ export default function CamerasScreen() {
           rows={screen.rows}
           numColumns={screen.numColumns}
           selectedIds={selection.selectedIds}
+          selectionMode={selection.selectionMode}
           isFetching={screen.isFetching}
           onRefresh={handleRetry}
           onCardPress={actions.handleCardTap}

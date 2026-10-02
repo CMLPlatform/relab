@@ -221,6 +221,8 @@ describe('CamerasScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Select' }));
     expect(screen.getByText('0 selected')).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Select' })).toBeNull();
+    // In selection mode an unselected cell reads as a toggle that is not pressed.
+    expect(screen.getByTestId('camera-cell-cam-1').props['aria-pressed']).toBe(false);
   });
 
   it('exposes a select action and the selected state on camera cells', async () => {
@@ -235,11 +237,14 @@ describe('CamerasScreen', () => {
 
     const cell = screen.getByTestId('camera-cell-cam-1');
     expect(cell.props.accessibilityActions).toEqual([{ name: 'longpress', label: 'Select' }]);
-    expect(cell.props['aria-pressed']).toBe(false);
+    // Outside selection mode a cell is a plain button, not an unpressed toggle.
+    expect(cell.props['aria-pressed']).toBeUndefined();
+    expect(cell.props.accessibilityState?.selected).toBeUndefined();
 
     await fireEvent(cell, 'accessibilityAction', { nativeEvent: { actionName: 'longpress' } });
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
     expect(screen.getByTestId('camera-cell-cam-1').props['aria-pressed']).toBe(true);
+    expect(screen.getByTestId('camera-cell-cam-1').props.accessibilityState?.selected).toBe(true);
   });
 
   it('does not enable capture mode for non-numeric product param', async () => {

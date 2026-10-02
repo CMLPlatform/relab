@@ -60,6 +60,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
               tooltip into one "Dismiss" control. Not a control itself (see AppDialog). */}
           <Pressable
             accessible={false}
+            tabIndex={-1}
             testID="tooltip-scrim"
             style={[StyleSheet.absoluteFill, { backgroundColor: theme.tokens.overlay.scrim }]}
             onPress={hide}
@@ -81,10 +82,12 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   }
 
   // Native + desktop web: a bubble under the icon on press (native) or hover (web).
+  // On web the hover already opened it, so a click must not toggle it shut again;
+  // Escape, blur and hover-out close it there.
   return (
     <View className="self-start">
       <Pressable
-        onPress={toggle}
+        onPress={Platform.OS === 'web' ? show : toggle}
         onBlur={hide}
         onHoverIn={Platform.OS === 'web' ? show : undefined}
         onHoverOut={Platform.OS === 'web' ? hide : undefined}

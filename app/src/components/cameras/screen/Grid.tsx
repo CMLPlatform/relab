@@ -24,6 +24,8 @@ type CamerasGridProps = {
   rows: CameraReadWithStatus[];
   numColumns: number;
   selectedIds: Set<string>;
+  /** Multi-select is active: cells become toggles with a pressed state. */
+  selectionMode: boolean;
   isFetching: boolean;
   onRefresh: () => void;
   onCardPress: (camera: CameraReadWithStatus) => void;
@@ -42,6 +44,7 @@ export function CamerasGrid({
   rows,
   numColumns,
   selectedIds,
+  selectionMode,
   isFetching,
   onRefresh,
   onCardPress,
@@ -58,13 +61,21 @@ export function CamerasGrid({
       <CameraGridCell
         camera={item}
         selected={selectedIds.has(item.id)}
+        selectionMode={selectionMode}
         onPress={onCardPress}
         onLongPress={onCardLongPress}
         onEffectiveConnectionChange={onEffectiveConnectionChange}
         streamTriggerRef={streamTriggerRef}
       />
     ),
-    [onCardLongPress, onCardPress, onEffectiveConnectionChange, selectedIds, streamTriggerRef],
+    [
+      onCardLongPress,
+      onCardPress,
+      onEffectiveConnectionChange,
+      selectedIds,
+      selectionMode,
+      streamTriggerRef,
+    ],
   );
 
   return (
@@ -106,6 +117,7 @@ export function CamerasGrid({
 const CameraGridCell = memo(function CameraGridCell({
   camera,
   selected,
+  selectionMode,
   onPress,
   onLongPress,
   onEffectiveConnectionChange,
@@ -113,6 +125,8 @@ const CameraGridCell = memo(function CameraGridCell({
 }: {
   camera: CameraReadWithStatus;
   selected: boolean;
+  /** Any cell selected: only then is a cell a toggle with a pressed state to read out. */
+  selectionMode: boolean;
   onPress: (camera: CameraReadWithStatus) => void;
   onLongPress: (camera: CameraReadWithStatus) => void;
   onEffectiveConnectionChange: (cameraId: string, connection: EffectiveConnectionSnapshot) => void;
@@ -170,9 +184,10 @@ const CameraGridCell = memo(function CameraGridCell({
         accessibilityRole="button"
         accessibilityActions={CELL_ACTIONS}
         onAccessibilityAction={handleAccessibilityAction}
-        accessibilityState={{ selected }}
+        // Outside selection mode a cell is a plain button, not a toggle reading "not pressed".
+        accessibilityState={selectionMode ? { selected } : undefined}
         // aria-selected is invalid on role=button; the toggle state goes out as aria-pressed.
-        aria-pressed={selected}
+        aria-pressed={selectionMode ? selected : undefined}
         style={cellStyle}
       >
         <CameraCard camera={camera} effectiveConnection={effectiveConnection} />

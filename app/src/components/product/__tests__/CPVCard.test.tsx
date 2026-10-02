@@ -1,8 +1,8 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
-import { Text } from 'react-native';
-import CPVCard from '@/components/product/CPVCard';
-import { renderWithProviders, setupUser } from '@/test-utils/index';
+import { AccessibilityInfo, Text } from 'react-native';
+import CPVCard, { CpvTypeLoadError } from '@/components/product/CPVCard';
+import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
 import type { CPVCategory } from '@/types/CPVCategory';
 
 jest.mock('@/context/themeMode', () => ({
@@ -45,5 +45,30 @@ describe('CPVCard', () => {
     await renderWithProviders(<CPVCard CPV={mockCPV} actionElement={<Text>Custom Action</Text>} />);
     expect(screen.getByText('Custom Action')).toBeOnTheScreen();
     expect(screen.getByText('03000000-1')).toBeOnTheScreen();
+  });
+});
+
+describe('CpvTypeLoadError', () => {
+  afterEach(() => {
+    restorePlatform();
+  });
+
+  it('states the failure in a status region and gives Retry a 44px floor', async () => {
+    const retry = jest.fn();
+    await renderWithProviders(<CpvTypeLoadError typeID={7} retry={retry} />);
+    const message = screen.getByText("Category 7. Couldn't load its name.");
+    const region = screen.getByTestId('cpv-load-error-status');
+    expect(region.props.role).toBe('status');
+    expect(region).toContainElement(message);
+    const button = screen.getByRole('button', { name: 'Retry loading category name' });
+    expect(button.props.className).toContain('min-h-11');
+  });
+
+  it('announces the failure on iOS, where live regions are ignored', async () => {
+    mockPlatform('ios');
+    const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+    await renderWithProviders(<CpvTypeLoadError typeID={7} />);
+    expect(announce).toHaveBeenCalledWith("Category 7. Couldn't load its name.");
+    announce.mockRestore();
   });
 });

@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { Menu } from '@/components/base/Menu';
 import { getMenuPosition } from '@/components/base/menuPosition';
-import { mockPlatform, restorePlatform } from '@/test-utils/index';
+import { mockPlatform, queryAllHostsByProps, restorePlatform } from '@/test-utils/index';
 
 describe('getMenuPosition', () => {
   const anchor = { anchorY: 100, anchorWidth: 40, anchorHeight: 40, windowHeight: 900 };
@@ -142,5 +142,25 @@ describe('Menu', () => {
     expect(
       screen.getByRole('menuitem', { name: 'A-Z', includeHiddenElements: false }),
     ).toBeOnTheScreen();
+  });
+
+  it('keeps the scrim and wrapper out of the web tab order', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-scrim').props.tabIndex).toBe(-1);
+    expect(screen.getByTestId('menu-popover').props.tabIndex).toBe(-1);
+  });
+
+  it('names the menu once, on the Modal, not again on the popover', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-popover').props['aria-label']).toBeUndefined();
+    expect(queryAllHostsByProps({ 'aria-label': 'Menu' })).toHaveLength(1);
   });
 });

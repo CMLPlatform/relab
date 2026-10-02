@@ -95,12 +95,14 @@ function FilterModalShell({
       {/* Scrim and card wrapper, neither of them a control: see AppDialog. */}
       <Pressable
         accessible={false}
+        tabIndex={-1}
         className="flex-1 items-center justify-center p-4"
         style={{ backgroundColor: theme.tokens.overlay.scrim }}
         onPress={onDismiss}
       >
         <Pressable
           accessible={false}
+          tabIndex={-1}
           onPress={stopPropagation}
           className="w-full"
           style={styles.dialogWrapper}

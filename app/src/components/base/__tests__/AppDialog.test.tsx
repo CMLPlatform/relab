@@ -6,6 +6,7 @@ import { AppDialog } from '@/components/base/AppDialog';
 import {
   getHostByType,
   mockPlatform,
+  queryAllHostsByProps,
   renderWithProviders,
   restorePlatform,
 } from '@/test-utils/index';
@@ -41,6 +42,17 @@ describe('AppDialog', () => {
     );
     expect(within(screen.getByTestId('kav')).getByText('Body')).toBeOnTheScreen();
     expect(getHostByType('RCTScrollView')).toBeTruthy();
+  });
+
+  it('keeps the scrim and card wrapper out of the web tab order', async () => {
+    await renderWithProviders(
+      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Tall">
+        <Text>Body</Text>
+      </AppDialog>,
+    );
+    const nonControls = queryAllHostsByProps({ accessible: false });
+    expect(nonControls).toHaveLength(2);
+    for (const node of nonControls) expect(node.props.tabIndex).toBe(-1);
   });
 
   it('names the dialog for assistive tech', async () => {

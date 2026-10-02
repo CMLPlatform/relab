@@ -40,8 +40,10 @@ function SectionNavItem({
       onFocus={Platform.OS === 'web' ? scrollFocusedChipIntoView : undefined}
       accessibilityRole="button"
       accessibilityLabel={section.label}
-      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      // aria-current reaches the DOM on web but RN has no native mapping for it;
+      // accessibilityState (ignored on web) carries the cue to VoiceOver/TalkBack.
       aria-current={active ? 'page' : undefined}
+      accessibilityState={{ selected: active }}
       className={cn(
         // px-2 keeps four chips on a 390pt phone; more scroll sideways (see SectionNav).
         'min-h-11 justify-center rounded-md px-2 py-2',

@@ -69,6 +69,7 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
         {/* Scrim and wrapper are not controls: see AppDialog. */}
         <Pressable
           accessible={false}
+          tabIndex={-1}
           testID="menu-scrim"
           style={StyleSheet.absoluteFill}
           onPress={onDismiss}
@@ -84,10 +85,10 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
               // Not accessible: a focusable group would hide the items from VoiceOver.
               // The role still reaches the DOM on web; the Modal carries the name.
               accessible={false}
+              tabIndex={-1}
               testID="menu-popover"
               onPress={stopPropagation}
               accessibilityRole="menu"
-              aria-label="Menu"
               // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
               className="rounded-xl bg-background py-1"
               style={theme.tokens.elevation.overlay}

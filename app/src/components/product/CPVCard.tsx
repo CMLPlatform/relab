@@ -1,4 +1,5 @@
-import { Pressable, View } from 'react-native';
+import { useEffect } from 'react';
+import { AccessibilityInfo, Platform, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { WEB_FOCUS_RING } from '@/constants';
 import type { CPVCategory } from '@/types/CPVCategory';
@@ -50,17 +51,25 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 
 /** Shown when the category name could not be loaded: the type ID and a retry link. */
 export function CpvTypeLoadError({ typeID, retry }: { typeID: number; retry?: () => void }) {
+  const message = `Category ${typeID}. Couldn't load its name.`;
+  // VoiceOver ignores accessibilityLiveRegion; announce explicitly.
+  useEffect(() => {
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(message);
+  }, [message]);
   return (
     <View className="flex-row flex-wrap items-center gap-2">
-      <AppText variant="caption" className="text-muted-foreground">
-        {`Category ${typeID}`}
-      </AppText>
+      <View testID="cpv-load-error-status" role="status" accessibilityLiveRegion="polite">
+        <AppText variant="caption" className="text-muted-foreground">
+          {message}
+        </AppText>
+      </View>
       {retry ? (
         <Pressable
           onPress={retry}
           accessibilityRole="button"
           accessibilityLabel="Retry loading category name"
-          className={WEB_FOCUS_RING}
+          // min-h-11: the 44px tap floor; the caption alone is ~16px tall.
+          className={`min-h-11 justify-center ${WEB_FOCUS_RING}`}
         >
           <AppText variant="caption" className="underline">
             Retry

@@ -403,6 +403,36 @@ describe('DialogProvider', () => {
     });
   });
 
+  it('keeps a replacement toast held while the pointer rests on the hold area', async () => {
+    let n = 0;
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => {
+        n += 1;
+        dialog.toast(`Photo ${n} removed`, { label: 'Undo', onPress: () => {} });
+      });
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+    await fireEvent(screen.getByTestId('toast-hold-area'), 'hoverIn');
+
+    await user.press(screen.getByTestId('trigger'));
+    await act(() => {
+      jest.advanceTimersByTime(9000);
+    });
+    expect(screen.getByText('Photo 2 removed')).toBeOnTheScreen();
+  });
+
+  it('keeps the toast hold area out of the tab order', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+    expect(screen.getByTestId('toast-hold-area')).toHaveProp('tabIndex', -1);
+  });
+
   it('repeating the same toast message resets the dismiss timer', async () => {
     function ToastTest() {
       const dialog = useDialog();

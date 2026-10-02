@@ -76,6 +76,9 @@ export function SaveBar({
     ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
     : null;
   const showsSummary = needsAttention || (blockedByValidation && Boolean(validationError));
+  const attentionText = needsAttention
+    ? `${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`
+    : null;
   return (
     <View
       testID="save-bar-dock"
@@ -97,10 +100,16 @@ export function SaveBar({
         // Out of flow when empty, so it adds no gap beside the button.
         style={showsMessage ? (layout === 'flow' ? flowSummaryStyle : undefined) : visuallyHidden}
       >
-        <IosAnnouncement text={uploadingText ?? (showsMessage ? validationError : undefined)} />
+        <IosAnnouncement
+          text={uploadingText ?? attentionText ?? (showsMessage ? validationError : undefined)}
+        />
         {uploadingText ? (
           // The button label carries this visibly; the region makes it heard.
           <AppText style={visuallyHidden}>{uploadingText}</AppText>
+        ) : null}
+        {attentionText ? (
+          // Same for the attention summary: the ghost button shows it, the region speaks it.
+          <AppText style={visuallyHidden}>{attentionText}</AppText>
         ) : null}
         {blockedByValidation && validationError ? (
           <Animated.View
@@ -119,7 +128,7 @@ export function SaveBar({
           style={layout === 'flow' ? flowSummaryStyle : undefined}
         >
           <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
-            {`${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`}
+            {attentionText}
           </AppButton>
         </Animated.View>
       ) : null}

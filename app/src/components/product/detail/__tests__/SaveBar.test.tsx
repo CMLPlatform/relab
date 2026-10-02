@@ -62,8 +62,10 @@ test('save bar shows error count and routes to the first error', async () => {
       canModerate
     />,
   );
-  await fireEvent.press(screen.getByText('3 fields need attention'));
+  await fireEvent.press(screen.getByRole('button', { name: '3 fields need attention' }));
   expect(onErrorSummaryPress).toHaveBeenCalled();
+  // The summary also lands in the polite status region, so it is heard when it appears.
+  expect(screen.getByTestId('save-bar-status')).toHaveTextContent('3 fields need attention');
 });
 
 test('read mode renders a single Edit action', async () => {
@@ -342,7 +344,7 @@ test('uses singular phrasing for a single error', async () => {
       canModerate
     />,
   );
-  expect(screen.getByText('1 field needs attention')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '1 field needs attention' })).toBeOnTheScreen();
 });
 
 // errorCount 0 is not "no errors"; it is an invalid form whose error summary
@@ -457,6 +459,30 @@ test('announces upload progress on iOS, where live regions do nothing', async ()
     />,
   );
   expect(announce).toHaveBeenCalledWith('Uploading 1 of 3…');
+  announce.mockRestore();
+  restorePlatform();
+});
+
+test('announces the attention summary on iOS, where live regions do nothing', async () => {
+  mockPlatform('ios');
+  const announce = jest
+    .spyOn(AccessibilityInfo, 'announceForAccessibility')
+    .mockImplementation(() => {});
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={false}
+      isPaused={false}
+      validationValid={false}
+      errorCount={2}
+      onPrimaryPress={jest.fn()}
+      canModerate
+    />,
+  );
+  expect(announce).toHaveBeenCalledWith('2 fields need attention');
   announce.mockRestore();
   restorePlatform();
 });
