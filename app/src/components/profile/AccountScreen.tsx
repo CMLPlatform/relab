@@ -133,6 +133,9 @@ export function AccountScreen() {
         unlinkRequiresPassword={profile.profile.hasUsablePassword}
         unlinkPassword={dialogs.unlinkDialog.password}
         onChangeUnlinkPassword={dialogs.unlinkDialog.setPassword}
+        unlinkRequiresMfa={profile.profile.mfaEnabled}
+        unlinkMfaCode={dialogs.unlinkDialog.mfaCode}
+        onChangeUnlinkMfaCode={dialogs.unlinkDialog.setMfaCode}
         logoutDialogVisible={dialogs.logoutDialog.visible}
         onDismissLogout={dialogs.logoutDialog.close}
         onConfirmLogout={actions.confirmLogout}

@@ -10,6 +10,7 @@ from sqlalchemy import select
 from starlette.responses import FileResponse
 
 from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import DeviceAPIRouter, PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.persistence import update_and_commit
@@ -163,6 +164,7 @@ async def get_user_camera_status(
     response_model=CameraRead,
     summary="Register new Raspberry Pi camera",
     status_code=201,
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def register_user_camera(
     camera: CameraCreate, session: AsyncSessionDep, current_user: CurrentActiveUserDep
@@ -176,7 +178,12 @@ async def register_user_camera(
     return await crud.create_camera(session, camera, current_user.id)
 
 
-@camera_router.patch("/{camera_id}", response_model=CameraRead, summary="Update Raspberry Pi camera")
+@camera_router.patch(
+    "/{camera_id}",
+    response_model=CameraRead,
+    summary="Update Raspberry Pi camera",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+)
 async def update_user_camera(
     *,
     session: AsyncSessionDep,
@@ -187,7 +194,12 @@ async def update_user_camera(
     return await update_and_commit(session, db_camera, camera_in)
 
 
-@camera_router.delete("/{camera_id}", summary="Delete Raspberry Pi camera", status_code=204)
+@camera_router.delete(
+    "/{camera_id}",
+    summary="Delete Raspberry Pi camera",
+    status_code=204,
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
+)
 async def delete_user_camera(
     background_tasks: BackgroundTasks,
     db: AsyncSessionDep,

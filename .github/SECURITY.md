@@ -53,14 +53,20 @@ Security-sensitive areas:
     not locked by use while guessing stays capped per account.
   - The MFA login challenge and every signed-in re-authentication (account deletion, email and
     password changes, social login link and unlink, MFA setup, disable and recovery-code
-    rotation) share one per-account budget of wrong passwords, TOTP and recovery codes
-    (`account_guess_budget`). Rotating IPs, routes or fresh login challenges buys no extra
-    guesses, so the MFA routes themselves sit on the looser login IP budget.
+    rotation) share one per-account budget of password, TOTP and recovery-code checks
+    (`account_guess_budget`). Every check is charged before it runs, right or wrong, so parallel
+    guesses cannot race past the cap. Rotating IPs, routes or fresh login challenges buys no
+    extra guesses, so the MFA routes themselves sit on the looser login IP budget.
+  - Every mutating `/v1` route carries a rate limit; the exemptions (admin routes, device-signed
+    camera routes, routes on the guess budget) are listed and justified in
+    `backend/tests/unit/api/test_dos_rate_limit_routes.py`.
 - public read APIs
   - Product export (`/products/export`, `/products/{id}/export`) assembles whole product trees, so
-    it has its own, stricter rate limit. One request is bounded by three limits, and past any of
-    them it fails with a `400` instead of a partial file: at most 100 base products, at most 10
-    component levels below a base product, and at most 5,000 components in total. The tree walk
+    it has its own, stricter rate limit. Signed-in exports also share a looser per-IP ceiling, so
+    throwaway accounts on one IP cannot multiply the per-user budget. One request is bounded by
+    three limits, and past any of them it fails with a `400` instead of a partial file: at most
+    100 base products, at most 10 component levels below a base product, and at most 5,000
+    components in total. The tree walk
     checks the depth and component limits as it loads each level. Creating a component deeper
     than 10 levels is refused as well.
     Owner attribution follows the same profile-visibility redaction as the product page. CSV cells
@@ -124,8 +130,12 @@ Supply-chain and code-security checks:
   Actions secret: rotate it whenever the key, or a workflow that can read it, may have leaked.
   Changes to `main` go through a pull request and must pass the required `CI Result` check;
   no approving review is required, so the app can land what `.github/renovate.json` marks
-  automerge. It cannot skip that check, so a leaked key can merge only a pull request that
-  passes CI.
+  automerge. It cannot skip that check, so a leaked key cannot reach `main` without a pull
+  request that passes CI. That is not all it can do: its `contents` and `workflows` write
+  access reaches every other branch, and the workflows a push there starts run its changes.
+  Release tags are held by the `release tags` ruleset (`infra/cloudflare/github.tf`), which only
+  repository admins and maintainers bypass, so the key cannot mint or move the tag hosts deploy
+  from, and every job in the `staging` and `prod` Environments waits for a required reviewer.
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
 - Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu
   validates Cloudflare edge config, plus Relab Compose render and deploy secret path checks.

@@ -13,6 +13,7 @@ from app.api.auth.services.oauth.routes import (
 )
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep, attach_background_tasks
+from app.core.redis import RedisDep
 
 router = PublicAPIRouter(prefix="/oauth", tags=["oauth"], dependencies=[Depends(attach_background_tasks)])
 
@@ -27,15 +28,18 @@ async def remove_oauth_association(
     session: AsyncSessionDep,
     user_manager: UserManagerDep,
     background_tasks: BackgroundTasks,
+    redis: RedisDep,
     payload: Annotated[OAuthStepUpRequest | None, Body()] = None,
 ) -> None:
-    """Remove a linked OAuth account (step-up re-auth if the account has a password)."""
+    """Remove a linked OAuth account (password and MFA step-up where the account has them)."""
     current_password = payload.current_password.get_secret_value() if payload and payload.current_password else None
     await oauth_accounts.remove_oauth_association(
         provider=provider,
         current_user=current_user,
         session=session,
-        password_helper=user_manager.password_helper,
+        user_manager=user_manager,
+        redis=redis,
         current_password=current_password,
+        mfa_code=payload.mfa_code if payload else None,
         background_tasks=background_tasks,
     )

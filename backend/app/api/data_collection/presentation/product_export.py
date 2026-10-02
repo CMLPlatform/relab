@@ -120,6 +120,8 @@ def _csv_rows(node: ProductExportRead | ComponentExportRead) -> Iterator[dict[st
 def render_products_csv(products: Sequence[ProductExportRead]) -> str:
     """Render product exports as CSV, one row per product or component."""
     buffer = io.StringIO()
+    # A UTF-8 BOM, so Excel reads accented names as UTF-8 rather than the legacy code page.
+    buffer.write("\ufeff")
     writer = csv.DictWriter(buffer, fieldnames=CSV_COLUMNS)
     writer.writeheader()
     for product in products:

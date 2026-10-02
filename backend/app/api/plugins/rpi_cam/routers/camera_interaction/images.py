@@ -78,6 +78,8 @@ def _write_preview_thumbnail_atomic(path: Path, image_bytes: bytes) -> None:
         " Send optional parent type and ID in the request body to associate the image with another object."
     ),
     status_code=201,
+    # A capture stores a full-size photo, so it spends the upload budget, not the write one.
+    dependencies=[API_UPLOAD_RATE_LIMIT_DEPENDENCY],
 )
 async def capture_image(
     camera_id: UUID4,

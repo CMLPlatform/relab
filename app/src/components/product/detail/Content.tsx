@@ -52,6 +52,9 @@ type ProductPageContentProps = {
   onProductDelete: () => void;
   onGoLivePress: () => void;
   goLiveTriggerRef?: RefObject<View | null>;
+  /** Enters edit mode (the `?edit=1` route param); used to make a missing-field link
+   * useful when its section is currently collapsed out of view mode. */
+  enterEditMode: () => void;
 };
 
 export function ProductPageContent({
@@ -80,6 +83,7 @@ export function ProductPageContent({
   onProductDelete,
   onGoLivePress,
   goLiveTriggerRef,
+  enterEditMode,
 }: ProductPageContentProps) {
   const outerNav = useContext(SectionNavContext);
   const {
@@ -88,6 +92,8 @@ export function ProductPageContent({
     onSectionsWrapperLayout,
   } = useAnchoredSectionNav(outerNav);
 
+  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
+
   const missing = ownedByMe ? missingFields(product) : [];
   const onPressMissingField = useCallback(
     (field: MissingField) => {
@@ -95,12 +101,32 @@ export function ProductPageContent({
         scrollRef.current?.scrollTo({ y: 0, animated: true });
         return;
       }
+      // A section that view mode collapses (e.g. an empty Overview) has nothing to
+      // scroll to; edit mode is what shows it.
+      const sectionCtx = { mediaStreamable, hasResearchFiles, editMode, canEdit };
+      const rendered = guardedSections({ isProductComponent, isLab }).some(
+        (section) => section.key === field.target && isSectionShown(section, product, sectionCtx),
+      );
+      if (!editMode && !rendered) {
+        enterEditMode();
+        return;
+      }
       anchoredNav?.scrollTo(field.target);
     },
-    [anchoredNav, scrollRef],
+    [
+      anchoredNav,
+      canEdit,
+      editMode,
+      enterEditMode,
+      hasResearchFiles,
+      isLab,
+      isProductComponent,
+      mediaStreamable,
+      product,
+      scrollRef,
+    ],
   );
 
-  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
   const sectionProps: SectionRenderProps = {
     product,
     editMode,

@@ -89,10 +89,10 @@ describe('pickThumbnailUrl', () => {
     expect(pickThumbnailUrl(urls, 1170)).toBe('a_1600');
   });
 
-  it('falls back to the widest available rather than overshooting into the original', () => {
-    expect(pickThumbnailUrl(urls, 4000)).toBe('a_1600');
+  it('returns undefined rather than stretching the widest derivative past its need', () => {
+    expect(pickThumbnailUrl(urls, 4000)).toBeUndefined();
     // Sparse map: a narrow original generates no wide derivatives.
-    expect(pickThumbnailUrl({ 200: 'a_200' }, 1170)).toBe('a_200');
+    expect(pickThumbnailUrl({ 200: 'a_200' }, 1170)).toBeUndefined();
   });
 
   it('returns undefined for an empty map so the caller keeps its own URL', () => {

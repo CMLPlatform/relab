@@ -73,17 +73,18 @@ export function parseOAuthCallbackUrl(url: string): OAuthCallbackResult | undefi
 
 export async function fetchOAuthAuthorizationUrl(
   authorizeUrl: string,
-  stepUp?: { currentPassword?: string },
+  stepUp?: { currentPassword?: string; mfaCode?: string },
 ) {
-  // Association authorize is a POST: the step-up password must travel in a
-  // body. Login authorize stays a GET.
+  // Association authorize is a POST: the step-up password and MFA code must travel
+  // in a body. Login authorize stays a GET. JSON.stringify drops undefined fields.
   const init = stepUp
     ? {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(
-          stepUp.currentPassword ? { current_password: stepUp.currentPassword } : {},
-        ),
+        body: JSON.stringify({
+          current_password: stepUp.currentPassword || undefined,
+          mfa_code: stepUp.mfaCode || undefined,
+        }),
       }
     : {};
   const response = await fetchWithAuth(authorizeUrl, init);

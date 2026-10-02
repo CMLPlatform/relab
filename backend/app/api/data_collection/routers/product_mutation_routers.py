@@ -245,6 +245,7 @@ async def upload_product_file(
     "/{product_id}/files/{file_id}",
     summary="Remove a file from a base product",
     status_code=204,
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def delete_product_file(
     db_product: ModeratableBaseProductDep,
@@ -323,6 +324,7 @@ async def upload_product_image(
     "/{product_id}/images/{image_id}",
     summary="Remove an image from a base product",
     status_code=204,
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def delete_product_image(
     db_product: ModeratableBaseProductDep,

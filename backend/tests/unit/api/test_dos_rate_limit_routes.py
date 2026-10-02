@@ -5,7 +5,8 @@ from inspect import signature
 import httpx
 import pytest
 from fastapi import APIRouter, FastAPI
-from fastapi.routing import APIRoute
+from fastapi.dependencies.models import Dependant
+from fastapi.routing import APIRoute, iter_route_contexts
 from httpx import ASGITransport
 
 from app.api.application.routers.account_erasure import self_service_router as account_self_service_router
@@ -17,6 +18,7 @@ from app.api.data_collection.routers.product_read_routers import product_read_ro
 from app.api.plugins.rpi_cam.routers.camera_interaction.images import device_router as rpi_cam_device_image_router
 from app.api.reference_data.routers.admin_materials import router as material_router
 from app.api.reference_data.routers.admin_product_types import router as product_type_router
+from app.main import create_app
 
 
 def _route(router: APIRouter, path: str, method: str) -> APIRoute:
@@ -131,3 +133,87 @@ def test_self_service_account_deletion_is_rate_limited() -> None:
     The endpoint keeps its ``request`` parameter to revoke sessions, so only the dependency is checked.
     """
     assert "login_ip_rate_limit" in _dependency_names(_route(account_self_service_router, "/users/me", "DELETE"))
+
+
+# Mutating /v1 routes that carry no route-level rate limit, each with the reason.
+RATE_LIMIT_EXEMPT_ROUTES = {
+    # Superuser-only: a stolen admin session is an incident, not a load problem.
+    ("POST", "/v1/admin/cache/clear/{namespace}"),
+    ("POST", "/v1/admin/categories"),
+    ("PATCH", "/v1/admin/categories/{category_id}"),
+    ("DELETE", "/v1/admin/categories/{category_id}"),
+    ("POST", "/v1/admin/taxonomies"),
+    ("PATCH", "/v1/admin/taxonomies/{taxonomy_id}"),
+    ("DELETE", "/v1/admin/taxonomies/{taxonomy_id}"),
+    ("POST", "/v1/admin/materials"),
+    ("PATCH", "/v1/admin/materials/{material_id}"),
+    ("DELETE", "/v1/admin/materials/{material_id}"),
+    ("POST", "/v1/admin/materials/{material_id}/categories"),
+    ("DELETE", "/v1/admin/materials/{material_id}/categories"),
+    ("DELETE", "/v1/admin/materials/{material_id}/files/{file_id}"),
+    ("DELETE", "/v1/admin/materials/{material_id}/images/{image_id}"),
+    ("POST", "/v1/admin/product-types"),
+    ("PATCH", "/v1/admin/product-types/{product_type_id}"),
+    ("DELETE", "/v1/admin/product-types/{product_type_id}"),
+    ("POST", "/v1/admin/product-types/{product_type_id}/categories"),
+    ("DELETE", "/v1/admin/product-types/{product_type_id}/categories"),
+    ("DELETE", "/v1/admin/product-types/{product_type_id}/files/{file_id}"),
+    ("DELETE", "/v1/admin/product-types/{product_type_id}/images/{image_id}"),
+    ("PATCH", "/v1/admin/users/{user_id}"),
+    ("POST", "/v1/admin/users/{user_id}/mfa/reset"),
+    ("PUT", "/v1/admin/users/{user_id}/role"),
+    ("DELETE", "/v1/admin/users/{user_id}"),
+    ("DELETE", "/v1/admin/plugins/rpi-cam/cameras/{camera_id}"),
+    # Device-authenticated: needs a fresh ES256 assertion from a paired camera's key.
+    ("DELETE", "/v1/plugins/rpi-cam/device/cameras/{camera_id}/self"),
+    # Charged to the per-account guess budget (account_guess_budget) before any work.
+    ("POST", "/v1/oauth/github/associate/authorize"),
+    ("POST", "/v1/oauth/google/associate/authorize"),
+    ("POST", "/v1/oauth/google-youtube/associate/authorize"),
+    ("DELETE", "/v1/oauth/{provider}/associate"),
+}
+
+
+def _all_dependency_names(dependant: Dependant) -> set[str]:
+    names: set[str] = set()
+    for dependency in dependant.dependencies:
+        names.add(getattr(dependency.call, "__name__", ""))
+        names |= _all_dependency_names(dependency)
+    return names
+
+
+def _mutating_routes() -> list[tuple[str, str, Dependant]]:
+    """Return (method, path, effective dependant) for every non-GET /v1 route, router dependencies included."""
+    return [
+        (method, path, ctx.dependant)
+        for ctx in iter_route_contexts(create_app().routes)
+        if isinstance(ctx.route, APIRoute) and (path := ctx.path or "").startswith("/v1/")
+        for method in sorted(ctx.methods or set())
+        if method not in {"GET", "HEAD", "OPTIONS"}
+    ]
+
+
+def test_every_mutating_route_is_rate_limited() -> None:
+    """Every non-GET /v1 route carries a rate-limit dependency or a named exemption above."""
+    unlimited = {
+        (method, path)
+        for method, path, dependant in _mutating_routes()
+        if not any(name.endswith("rate_limit") for name in _all_dependency_names(dependant))
+    }
+
+    assert unlimited - RATE_LIMIT_EXEMPT_ROUTES == set()
+
+
+def test_rate_limit_exemptions_name_real_routes() -> None:
+    """A renamed or removed route must drop out of the exemption set rather than linger there."""
+    assert {(method, path) for method, path, _dependant in _mutating_routes()} >= RATE_LIMIT_EXEMPT_ROUTES
+
+
+def test_rpi_cam_capture_spends_the_upload_budget() -> None:
+    """A camera capture stores a full-size photo, so it is charged like an upload."""
+    dependant = next(
+        dependant
+        for method, path, dependant in _mutating_routes()
+        if (method, path) == ("POST", "/v1/plugins/rpi-cam/cameras/{camera_id}/captures")
+    )
+    assert "api_upload_rate_limit" in _all_dependency_names(dependant)

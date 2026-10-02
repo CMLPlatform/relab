@@ -2,7 +2,7 @@
 
 from typing import cast
 
-from fastapi import Response
+from fastapi import Request, Response
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -83,13 +83,15 @@ def clear_auth_cookies(response: Response) -> None:
 bearer_transport = BearerTransport(tokenUrl="/v1/auth/bearer/login")
 
 
-async def get_token_strategy(redis: RedisDep) -> Strategy[User, UUID4]:
+async def get_token_strategy(redis: RedisDep, request: Request) -> Strategy[User, UUID4]:
     """Return an authentication token strategy."""
     # RevocableRedisStrategy stamps each token's issue time so a global revocation can
     # refuse older tokens (see access_token_store); upstream RedisStrategy cannot.
     return cast(
         "Strategy[User, UUID4]",
-        RevocableRedisStrategy(redis, lifetime_seconds=ACCESS_TOKEN_TTL, key_prefix=ACCESS_TOKEN_KEY_PREFIX),
+        RevocableRedisStrategy(
+            redis, lifetime_seconds=ACCESS_TOKEN_TTL, key_prefix=ACCESS_TOKEN_KEY_PREFIX, request=request
+        ),
     )
 
 

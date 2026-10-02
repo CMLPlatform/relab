@@ -265,7 +265,9 @@ the topology these steps produce.
    ```
 
 1. Upgrade later with the same commands: pull a known-good revision, `just stack prod tag YES <tag>`,
-   then `just stack prod up YES migrations`. A failed migration leaves the old API serving. If the
+   then `just stack prod up YES migrations`. A failed migration does not leave the old API
+   serving: `up` exits non-zero naming the migrator, with the new API either not started or running
+   on the unfinished schema, so fix forward or roll back. If the
    migrator stops on an unresolvable revision, the database's `alembic_version` predates the
    2026-09-08 flatten: bring the host to `a9c2e4f60b18` on a release from before the flatten, or
    restore from backup, before continuing. To return to

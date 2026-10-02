@@ -741,6 +741,20 @@ describe('Authentication API Service', () => {
 
       await expect(auth.unlinkOAuth('github')).rejects.toThrow('Failed to unlink github account');
     });
+
+    it('sends the password and MFA code as the step-up body', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
+
+      await auth.unlinkOAuth('google', 'hunter2', '123456');
+
+      const [, init] = fetchMock().mock.calls[0];
+      expect(init?.method).toBe('DELETE');
+      expect(JSON.parse(String(init?.body))).toEqual({
+        current_password: 'hunter2',
+        mfa_code: '123456',
+      });
+    });
   });
   // ─── deleteAccount ──────────────────────────────────────
 

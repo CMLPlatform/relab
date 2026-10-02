@@ -399,6 +399,33 @@ def test_generate_thumbnails_custom_widths(large_image: Path) -> None:
         assert img.width == 600
 
 
+def test_generate_thumbnails_resizes_non_jpeg_from_the_previous_width(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A non-JPEG resizes each width from the next larger thumbnail, not the original.
+
+    Output sizes must match the per-width target computed from the original.
+    """
+    path = tmp_path / "large.png"
+    PILImage.new("RGB", (3001, 1999), (40, 80, 120)).save(path, format="PNG")
+    sources: list[int] = []
+    original_resize = PILImage.Image.resize
+
+    def recording_resize(self: PILImage.Image, *args: object, **kwargs: object) -> PILImage.Image:
+        sources.append(self.width)
+        return original_resize(self, *args, **kwargs)  # ty: ignore[invalid-argument-type]
+
+    monkeypatch.setattr(PILImage.Image, "resize", recording_resize)
+
+    generated = generate_thumbnails(path)
+
+    assert generated == [thumbnail_path_for(path, w) for w in THUMBNAIL_WIDTHS]
+    assert sources == [3001, *sorted(THUMBNAIL_WIDTHS, reverse=True)[:-1]]
+    for w in THUMBNAIL_WIDTHS:
+        with PILImage.open(thumbnail_path_for(path, w)) as img:
+            assert img.size == (w, int((w / 3001) * 1999))
+
+
 def test_generate_thumbnails_not_found() -> None:
     """Should raise FileNotFoundError for a missing source image."""
     with pytest.raises(FileNotFoundError):
@@ -450,27 +477,137 @@ def test_multiframe_gif_without_exif_is_left_untouched(tmp_path: Path) -> None:
         assert reopened.n_frames == 3  # ty: ignore[unresolved-attribute]
 
 
-def test_multiframe_gif_with_exif_is_left_untouched(tmp_path: Path) -> None:
-    """An animated original carrying EXIF is skipped rather than flattened.
+_ANIMATION_COLORS = ((201, 13, 7), (11, 197, 23), (5, 19, 203))
+_ANIMATION_DURATIONS = [100, 200, 300]
 
-    exif_transpose only sees the first frame, so applying rotation/stripping to an
-    animation would mean re-saving it as a single still. Preserving every frame is
-    worth more than stripping EXIF from the rare animated upload that has any.
-    """
-    path = tmp_path / "animated.gif"
-    frames = [PILImage.new("RGB", (48, 48), color).convert("P") for color in ((200, 0, 0), (0, 200, 0), (0, 0, 200))]
+
+def _gps_exif() -> PILImage.Exif:
     exif = PILImage.Exif()
-    exif[0x010F] = "Test Camera"
-    frames[0].save(path, save_all=True, append_images=frames[1:], duration=100, loop=0, exif=exif)
+    exif[IFD.GPSInfo] = {GPS.GPSLatitudeRef: "N"}
+    return exif
 
-    before = path.read_bytes()
+
+def _animation_frames() -> list[PILImage.Image]:
+    return [PILImage.new("RGB", (48, 48), color) for color in _ANIMATION_COLORS]
+
+
+def _frame_summary(path: Path) -> tuple[int, list[int], list[tuple[int, ...]]]:
+    """Return the frame count, per-frame durations and per-frame corner colour."""
+    with PILImage.open(path) as img:
+        durations, colors = [], []
+        # n_frames and seek are added by the format plugins at runtime; Pillow's stub only
+        # types the base ImageFile.
+        for index in range(img.n_frames):  # ty: ignore[unresolved-attribute]
+            img.seek(index)
+            colors.append(img.convert("RGB").getpixel((0, 0)))
+            # WebP sets a frame's duration only once the frame is decoded.
+            durations.append(img.info.get("duration"))
+        return img.n_frames, durations, colors  # ty: ignore[unresolved-attribute]
+
+
+def test_animated_webp_metadata_is_stripped_and_frames_kept(tmp_path: Path) -> None:
+    """An animated WebP is re-saved frame by frame without its EXIF or XMP.
+
+    Regression: animated originals were never re-saved, so GPS EXIF and XMP survived
+    storage. Lossless input must stay lossless, so every pixel comes back exactly.
+    """
+    path = tmp_path / "animated.webp"
+    frames = _animation_frames()
+    frames[0].save(
+        path,
+        save_all=True,
+        append_images=frames[1:],
+        duration=_ANIMATION_DURATIONS,
+        loop=3,
+        lossless=True,
+        exif=_gps_exif(),
+        xmp=b"<x:xmpmeta>GPS</x:xmpmeta>",
+    )
+    with PILImage.open(path) as before:
+        assert before.getexif().get_ifd(IFD.GPSInfo)
+        assert before.info.get("xmp")
+    expected = _frame_summary(path)
+
     process_image_for_storage(path)
 
-    assert path.read_bytes() == before, "animated original was re-encoded despite carrying EXIF"
-    with PILImage.open(path) as reopened:
-        # n_frames is added by GifImagePlugin at runtime; Pillow's stub only types the
-        # base ImageFile.
-        assert reopened.n_frames == 3  # ty: ignore[unresolved-attribute]
+    with PILImage.open(path) as result:
+        assert not result.getexif()
+        assert not result.info.get("xmp")
+        assert result.info["loop"] == 3
+    assert _frame_summary(path) == expected
+    assert expected[0] == 3
+    assert expected[2] == list(_ANIMATION_COLORS)
+
+
+def test_apng_gps_exif_is_stripped_and_frames_kept(tmp_path: Path) -> None:
+    """An animated PNG is re-saved frame by frame without its EXIF."""
+    path = tmp_path / "animated.png"
+    frames = _animation_frames()
+    frames[0].save(
+        path, save_all=True, append_images=frames[1:], duration=_ANIMATION_DURATIONS, loop=2, exif=_gps_exif()
+    )
+    with PILImage.open(path) as before:
+        assert before.getexif().get_ifd(IFD.GPSInfo)
+    expected = _frame_summary(path)
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert not result.getexif()
+        assert result.info["loop"] == 2
+    assert _frame_summary(path) == expected
+    assert expected[:2] == (3, _ANIMATION_DURATIONS)
+
+
+def test_animated_gif_comment_is_stripped_and_frames_kept(tmp_path: Path) -> None:
+    """An animated GIF is re-saved frame by frame without its free-text comment."""
+    path = tmp_path / "animated.gif"
+    frames = [PILImage.new("RGB", (48, 48), color).convert("P") for color in _ANIMATION_COLORS]
+    frames[0].save(
+        path, save_all=True, append_images=frames[1:], duration=_ANIMATION_DURATIONS, loop=0, comment=b"home address"
+    )
+    with PILImage.open(path) as before:
+        assert before.info.get("comment")
+    expected = _frame_summary(path)
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert not result.info.get("comment")
+        assert result.info["loop"] == 0
+    assert _frame_summary(path) == expected
+    assert expected[:2] == (3, _ANIMATION_DURATIONS)
+
+
+def _commented_gif(path: Path) -> Path:
+    """Save a three-frame 48x48 GIF (6912 pixels across frames) carrying a comment."""
+    frames = [PILImage.new("RGB", (48, 48), color).convert("P") for color in _ANIMATION_COLORS]
+    frames[0].save(path, save_all=True, append_images=frames[1:], duration=100, comment=b"home address")
+    return path
+
+
+def test_animation_over_the_frame_total_cap_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Re-saving decodes every frame, so the pixel cap applies to all frames combined."""
+    monkeypatch.setattr("app.core.images.validation.MAX_IMAGE_PIXELS", 6911)
+    path = _commented_gif(tmp_path / "animated.gif")
+    before = path.read_bytes()
+
+    with pytest.raises(ValueError, match="across all frames"):
+        process_image_for_storage(path)
+
+    assert path.read_bytes() == before
+
+
+def test_animation_at_the_frame_total_cap_is_processed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """An animation whose frames together stay within the cap is cleaned as usual."""
+    monkeypatch.setattr("app.core.images.validation.MAX_IMAGE_PIXELS", 6912)
+    path = _commented_gif(tmp_path / "animated.gif")
+
+    process_image_for_storage(path)
+
+    with PILImage.open(path) as result:
+        assert not result.info.get("comment")
+        assert result.n_frames == 3  # ty: ignore[unresolved-attribute]
 
 
 def test_lossless_webp_without_exif_is_left_untouched(tmp_path: Path) -> None:

@@ -38,10 +38,12 @@ def register_middleware(app: FastAPI) -> None:
         # X-E2E-Key is the edge's staging bot-skip credential (infra/cloudflare-zone). Chromium
         # sends Playwright's extra headers on cross-origin fetches, which turns every call into
         # a preflight; without this entry the browser refuses them all. The API ignores it.
+        # If-Match carries the record version on product and component edits.
         allow_headers=[
             "Authorization",
             "Content-Type",
             "Accept",
+            "If-Match",
             REQUEST_ID_HEADER,
             IDEMPOTENCY_KEY_HEADER,
             "X-E2E-Key",

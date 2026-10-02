@@ -810,7 +810,14 @@ describe('ProductImages', () => {
           id: '1',
           url: 'https://cdn.test/original.jpg',
           thumbnailUrl: 'https://cdn.test/a_200.webp',
-          thumbnailUrls: { 200: 'https://cdn.test/a_200.webp', 800: 'https://cdn.test/a_800.webp' },
+          // 3200 covers both the pager tier (750pt runner @2x = 1500px) and the
+          // lightbox tier (max(750,1334)@2x = 2668px), so it is what opens;
+          // pickThumbnailUrl no longer stretches a narrower derivative to stand
+          // in for either, so the zoom below still has a real original to reveal.
+          thumbnailUrls: {
+            200: 'https://cdn.test/a_200.webp',
+            3200: 'https://cdn.test/a_3200.webp',
+          },
           description: 'A photo',
         },
       ],
@@ -820,12 +827,12 @@ describe('ProductImages', () => {
       withDialog: true,
     });
 
-    await fireEvent.press(screen.getAllByText('img:https://cdn.test/a_800.webp', HIDDEN)[0]);
+    await fireEvent.press(screen.getAllByText('img:https://cdn.test/a_3200.webp', HIDDEN)[0]);
     await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
 
     // Opens on the derivative, which is all a 1x view of the screen needs.
     const opened = mockZoomableImageCalls.at(-1);
-    expect(opened?.uri).toBe('https://cdn.test/a_800.webp');
+    expect(opened?.uri).toBe('https://cdn.test/a_3200.webp');
 
     await act(() => opened?.onScaleChange?.(2));
 

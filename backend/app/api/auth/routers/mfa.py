@@ -2,7 +2,8 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
+from fastapi.security.utils import get_authorization_scheme_param
 from fastapi_users.authentication import Strategy
 
 from app.api.auth.dependencies import CurrentActiveUserDep, UserManagerDep
@@ -13,18 +14,22 @@ from app.api.auth.schemas import (
     MfaRecoveryCodesRegenerateRequest,
     MfaRecoveryCodesResponse,
     MfaTotpConfirmRequest,
+    MfaTotpConfirmResponse,
     MfaTotpDisableRequest,
     MfaTotpSetupResponse,
     RefreshTokenResponse,
 )
 from app.api.auth.services import mfa_flow
-from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT, account_guess_budget
+from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT
 from app.api.auth.services.user_manager import bearer_auth_backend, cookie_auth_backend
 from app.api.common.rate_limiting import limiter
 from app.core.redis import RedisDep
 
+_BEARER_SCHEME = "bearer"
+
 # The login IP budget, shared with password login. Guessing is capped per account by
-# account_guess_budget and per challenge token (mfa_service), not by this per-IP limit.
+# account_guess_budget, which mfa_flow charges on every credential check, right or wrong,
+# and per challenge token (mfa_service), not by this per-IP limit.
 router = APIRouter(
     prefix="/mfa", tags=["auth"], dependencies=[limiter.dependency(LOGIN_IP_RATE_LIMIT, name="login_ip_rate_limit")]
 )
@@ -44,25 +49,36 @@ async def start_totp_setup(
 
 @router.post(
     "/totp/confirm",
-    response_model=MfaRecoveryCodesResponse,
+    response_model=MfaTotpConfirmResponse,
 )
 async def confirm_totp_setup(
     payload: MfaTotpConfirmRequest,
+    request: Request,
+    response: Response,
     background_tasks: BackgroundTasks,
     current_user: CurrentActiveUserDep,
     user_manager: UserManagerDep,
     redis: RedisDep,
-) -> MfaRecoveryCodesResponse:
-    """Confirm authenticated TOTP enrollment and return one-time recovery codes."""
-    # A wrong password, TOTP or recovery code spends the account's guess budget.
-    async with account_guess_budget(current_user.id):
-        return await mfa_flow.confirm_totp_setup(
-            payload,
-            current_user=current_user,
-            user_manager=user_manager,
-            redis=redis,
-            background_tasks=background_tasks,
-        )
+    bearer_strategy: Annotated[Strategy, Depends(bearer_auth_backend.get_strategy)],
+    cookie_strategy: Annotated[Strategy, Depends(cookie_auth_backend.get_strategy)],
+) -> MfaTotpConfirmResponse:
+    """Confirm TOTP enrollment, return one-time recovery codes, and replace the session.
+
+    Enrolment signs out every other session. A client that authenticated with a bearer
+    token gets new tokens in ``tokens``; a browser session gets new cookies.
+    """
+    scheme, _ = get_authorization_scheme_param(request.headers.get("authorization"))
+    bearer = scheme.lower() == _BEARER_SCHEME
+    return await mfa_flow.confirm_totp_setup(
+        payload,
+        current_user=current_user,
+        user_manager=user_manager,
+        redis=redis,
+        background_tasks=background_tasks,
+        response=response,
+        session_strategy=bearer_strategy if bearer else cookie_strategy,
+        bearer=bearer,
+    )
 
 
 @router.post(
@@ -78,15 +94,13 @@ async def disable_totp(
     redis: RedisDep,
 ) -> None:
     """Turn off TOTP MFA after confirming a current code."""
-    # A wrong password, TOTP or recovery code spends the account's guess budget.
-    async with account_guess_budget(current_user.id):
-        await mfa_flow.disable_totp(
-            payload,
-            current_user=current_user,
-            user_manager=user_manager,
-            redis=redis,
-            background_tasks=background_tasks,
-        )
+    await mfa_flow.disable_totp(
+        payload,
+        current_user=current_user,
+        user_manager=user_manager,
+        redis=redis,
+        background_tasks=background_tasks,
+    )
 
 
 @router.post(
@@ -101,15 +115,13 @@ async def regenerate_recovery_codes(
     redis: RedisDep,
 ) -> MfaRecoveryCodesResponse:
     """Reissue recovery codes after confirming a current TOTP code."""
-    # A wrong password, TOTP or recovery code spends the account's guess budget.
-    async with account_guess_budget(current_user.id):
-        return await mfa_flow.regenerate_recovery_codes(
-            payload,
-            current_user=current_user,
-            user_manager=user_manager,
-            redis=redis,
-            background_tasks=background_tasks,
-        )
+    return await mfa_flow.regenerate_recovery_codes(
+        payload,
+        current_user=current_user,
+        user_manager=user_manager,
+        redis=redis,
+        background_tasks=background_tasks,
+    )
 
 
 @router.post(

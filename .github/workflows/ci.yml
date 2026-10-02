@@ -16,9 +16,10 @@ on:
 
 concurrency:
   # Keyed by event so a scheduled run and a push run on the same ref never share
-  # a group; within a group, newer commits supersede older runs.
+  # a group. A new pull request commit supersedes the older run; main runs queue
+  # instead, so the post-merge full-stack E2E job finishes for every merge.
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

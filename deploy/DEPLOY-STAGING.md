@@ -41,7 +41,11 @@ just stack staging up YES migrations
 ```
 
 The images come from GHCR: a release publishes them, and running the Publish Images workflow by
-hand on any commit publishes that commit as `sha-<short sha>`.
+hand on any commit publishes that commit as `sha-<short sha>`. Check the tag's provenance from the
+dev host before `tag` pulls it: `just images-verify staging <tag>`. With a restricted deploy key
+set up as for prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.6), `just deploy staging <tag>` on
+the dev host does the check and the `tag` step in one go (`RELAB_DEPLOY_HOST` names the ssh alias
+when it is not `relab-staging`).
 
 ClamAV starts unless `MALWARE_SCAN_ENABLED=false` in the root `.env`. It needs 3–4 GiB; staging can
 run without it if the host is short on RAM.

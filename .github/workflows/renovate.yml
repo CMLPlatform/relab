@@ -27,10 +27,13 @@ jobs:
   renovate:
     name: Renovate
     # Renovate rewrites the dashboard on every run; skip its own edits so a run
-    # never triggers the next one.
+    # never triggers the next one. Only the bot-authored dashboard counts: an
+    # issue anyone opens with the same title must not start a run.
     if: >-
       github.event_name != 'issues' ||
-      (github.event.issue.title == 'Dependency Dashboard' && github.event.sender.type != 'Bot')
+      (github.event.issue.title == 'Dependency Dashboard' &&
+       github.event.issue.user.type == 'Bot' &&
+       github.event.sender.type != 'Bot')
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     steps:

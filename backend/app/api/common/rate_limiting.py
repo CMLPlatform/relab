@@ -10,6 +10,8 @@ and, because it owns identity, the per-user API limits (``auth.services.rate_lim
 
 import functools
 import logging
+import math
+import time
 from collections.abc import Awaitable, Callable
 
 import anyio.to_thread
@@ -33,8 +35,9 @@ logger = logging.getLogger(__name__)
 class RateLimitExceededError(Exception):
     """Raised when a client exceeds the configured rate limit."""
 
-    def __init__(self, detail: str = "Rate limit exceeded") -> None:
+    def __init__(self, detail: str = "Rate limit exceeded", *, retry_after: int | None = None) -> None:
         self.detail = detail
+        self.retry_after = retry_after
         super().__init__(detail)
 
 
@@ -83,7 +86,11 @@ class Limiter:
         if not allowed:
             # Safe to log: sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
             logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
-            raise RateLimitExceededError
+            try:
+                reset_time = self._limiter.get_window_stats(parsed, key).reset_time
+            except RedisError, ConnectionError, TimeoutError, OSError:
+                raise RateLimitExceededError from None
+            raise RateLimitExceededError(retry_after=max(1, math.ceil(reset_time - time.time())))
 
     async def ahit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
         """Async ``hit_key`` for callers already on the event loop.
@@ -102,6 +109,7 @@ class Limiter:
         *,
         name: str = "rate_limit",
         per_user: tuple[str, RequestUserId] | None = None,
+        signed_in_ip_ceiling: str | None = None,
     ) -> DependsParam:
         """Return a FastAPI dependency that enforces *rate_string* per client IP.
 
@@ -109,6 +117,9 @@ class Limiter:
         rate in its user's bucket instead, so people sharing one IP (a classroom behind one
         NAT) do not share one budget. Without it, every request is keyed per IP, which is
         what the login and signup routes want.
+
+        ``signed_in_ip_ceiling`` also charges signed-in requests to a per-IP bucket of their
+        own, so a stack of throwaway accounts on one IP cannot multiply the per-user budget.
         """
 
         async def dependency(request: Request) -> None:
@@ -128,6 +139,9 @@ class Limiter:
                 await self.ahit_key(rate_string, request_ip_rate_limit_key(request))
             else:
                 await self.ahit_key(user_rate_string, rate_limit_bucket_key("client:user", user_id))
+                if signed_in_ip_ceiling is not None:
+                    ip_key = rate_limit_bucket_key("client:ip:signed-in", get_client_ip(request))
+                    await self.ahit_key(signed_in_ip_ceiling, ip_key)
 
         dependency.__name__ = name
         return Depends(dependency)
@@ -136,6 +150,7 @@ class Limiter:
 def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONResponse:
     """Return a 429 JSON response for rate-limited requests."""
     detail = exc.detail if isinstance(exc, RateLimitExceededError) else "Rate limit exceeded"
+    retry_after = exc.retry_after if isinstance(exc, RateLimitExceededError) else None
     audit_event(
         None,
         AuditAction.RATE_LIMITED,
@@ -149,6 +164,7 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
         detail=detail,
         code="RateLimitExceeded",
         type_="https://httpstatuses.com/429",
+        headers=None if retry_after is None else {"Retry-After": str(retry_after)},
     )
 
 

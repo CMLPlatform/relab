@@ -26,10 +26,12 @@ import Default from '@astrojs/starlight/components/SocialIcons.astro';
   .app-cta:hover {
     background: var(--relab-brand-primary-strong);
   }
-  /* drop the CTA before the mobile menu collapse to keep the bar uncluttered */
+  /* Shrink, don't hide, before the mobile menu collapse: the link stays reachable. */
   @media (max-width: 30rem) {
     .app-cta {
-      display: none;
+      margin-inline-start: 0.375rem;
+      padding: 0.22rem 0.5rem;
+      font-size: 0.7rem;
     }
   }
 </style>

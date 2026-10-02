@@ -223,6 +223,76 @@ describe('useOAuthAssociations', () => {
     );
   });
 
+  it('asks an MFA account for its code before linking, then sends it', async () => {
+    const { result } = await renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
+        mfaEnabled: true,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.actions.linkOAuth('google');
+    });
+
+    // Nothing is sent until the code is in: the API would refuse without it.
+    expect(fetchOAuthAuthorizationUrl).not.toHaveBeenCalled();
+    const options = mockDialog.input.mock.calls[0]?.[0] as {
+      placeholder?: string;
+      buttons?: { text: string; onPress?: (value?: string) => void }[];
+    };
+    expect(options.placeholder).toBe('Authenticator or recovery code');
+    await act(async () => {
+      options.buttons?.find((button) => button.text === 'Continue')?.onPress?.(' 123456 ');
+      await Promise.resolve();
+    });
+
+    expect(fetchOAuthAuthorizationUrl).toHaveBeenCalledWith(expect.any(String), {
+      currentPassword: undefined,
+      mfaCode: '123456',
+    });
+  });
+
+  it('keeps the MFA code when the password prompt follows', async () => {
+    jest.mocked(fetchOAuthAuthorizationUrl).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      detail: 'Current password is required to link a social login.',
+      authorizationUrl: undefined,
+    });
+    const { result } = await renderHook(() =>
+      useOAuthAssociations({
+        feedback: mockFeedback,
+        refetch: mockRefetch,
+        setYoutubeEnabled: mockSetYoutubeEnabled,
+        dialog: mockDialog,
+        mfaEnabled: true,
+      }),
+    );
+    type InputOptions = { buttons?: { text: string; onPress?: (value?: string) => void }[] };
+    const pressContinue = async (call: number, value: string) => {
+      const options = mockDialog.input.mock.calls[call]?.[0] as InputOptions;
+      await act(async () => {
+        options.buttons?.find((button) => button.text === 'Continue')?.onPress?.(value);
+        await Promise.resolve();
+      });
+    };
+
+    await act(async () => {
+      await result.current.actions.linkOAuth('google');
+    });
+    await pressContinue(0, '123456');
+    await pressContinue(1, 'hunter2');
+
+    expect(fetchOAuthAuthorizationUrl).toHaveBeenLastCalledWith(expect.any(String), {
+      currentPassword: 'hunter2',
+      mfaCode: '123456',
+    });
+  });
+
   it('shows an error when starting a link flow fails', async () => {
     jest.mocked(fetchOAuthAuthorizationUrl).mockImplementation(async () => ({
       ok: false,

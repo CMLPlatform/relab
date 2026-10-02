@@ -38,10 +38,9 @@ export function resolveApiMediaUrlMap(
 }
 
 /**
- * The narrowest derivative at least `neededPx` wide, or the widest there is;
- * undefined for an empty map. Never the original (reserved for zoom).
- * NOTE: blurs for very small originals; fall back to the original when the
- * widest derivative is far narrower than the need if that matters.
+ * The narrowest derivative at least `neededPx` wide; undefined when the map
+ * is empty or every derivative is narrower than the need, so the caller falls
+ * back to its own URL (usually the original) instead of stretching a small thumbnail.
  */
 export function pickThumbnailUrl(
   urls: Record<number, string>,
@@ -50,6 +49,6 @@ export function pickThumbnailUrl(
   const widths = Object.keys(urls)
     .map(Number)
     .sort((a, b) => a - b);
-  const fit = widths.find((width) => width >= neededPx) ?? widths.at(-1);
+  const fit = widths.find((width) => width >= neededPx);
   return fit === undefined ? undefined : urls[fit];
 }

@@ -7,6 +7,10 @@ import type { AstroIntegration } from 'astro';
  * the long-lived paths set Cache-Control; a second rule setting it on the same
  * path would be joined to the first with a comma.
  *
+ * Request methods are not set here: with no Worker script, the static-asset
+ * server answers only GET and HEAD and refuses the rest (TRACE and CONNECT
+ * included) with 405. A Worker script added later must keep that refusal.
+ *
  * `apiOrigin` lets the homepage stats panel fetch the public stats API and the
  * hero load the featured teardown's photos from it. Without one, the policy
  * allows neither, which is what a build without PUBLIC_API_URL serves anyway.

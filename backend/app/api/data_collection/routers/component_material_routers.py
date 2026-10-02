@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import Body, Path
 from pydantic import PositiveInt
 
+from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.data_collection.crud.material_links import (
@@ -72,6 +73,7 @@ async def get_material_in_component_bill_of_materials(
     response_model=list[MaterialProductLinkReadWithinProduct],
     status_code=201,
     summary="Add multiple materials to component bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def add_materials_to_component(
     component: UserOwnedComponentDep,
@@ -93,6 +95,7 @@ async def add_materials_to_component(
     response_model=MaterialProductLinkReadWithinProduct,
     status_code=201,
     summary="Add single material to component bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def add_material_to_component(
     component: UserOwnedComponentDep,
@@ -120,6 +123,7 @@ async def add_material_to_component(
     "/{component_id}/materials/{material_id}",
     response_model=MaterialProductLinkReadWithinProduct,
     summary="Update material in component bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def update_component_bill_of_materials(
     component: UserOwnedComponentDep,
@@ -135,6 +139,7 @@ async def update_component_bill_of_materials(
     "/{component_id}/materials/{material_id}",
     status_code=204,
     summary="Remove single material from component bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def remove_material_from_component(
     component: UserOwnedComponentDep,
@@ -152,6 +157,7 @@ async def remove_material_from_component(
     "/{component_id}/materials",
     status_code=204,
     summary="Remove multiple materials from component bill of materials",
+    dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY],
 )
 async def remove_materials_from_component_bulk(
     component: UserOwnedComponentDep,

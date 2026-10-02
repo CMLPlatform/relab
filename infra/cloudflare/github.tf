@@ -83,3 +83,41 @@ resource "github_actions_environment_variable" "publish" {
   variable_name = each.key
   value         = each.value
 }
+
+# Release tags name the images hosts deploy, so only repository admins and maintainers may
+# create, move or delete one. A ruleset is repository-wide: the prod workspace owns it so
+# the two workspaces never fight over one resource.
+resource "github_repository_ruleset" "release_tags" {
+  count = var.environment == "prod" ? 1 : 0
+
+  name        = "release tags"
+  repository  = var.github_repository
+  target      = "tag"
+  enforcement = "active"
+
+  conditions {
+    ref_name {
+      include = ["refs/tags/v*"]
+      exclude = []
+    }
+  }
+
+  # Repository role ids: 5 is admin, 2 is maintain.
+  bypass_actors {
+    actor_id    = 5
+    actor_type  = "RepositoryRole"
+    bypass_mode = "always"
+  }
+
+  bypass_actors {
+    actor_id    = 2
+    actor_type  = "RepositoryRole"
+    bypass_mode = "always"
+  }
+
+  rules {
+    creation = true
+    update   = true
+    deletion = true
+  }
+}

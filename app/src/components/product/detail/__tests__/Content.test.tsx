@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import { ProductPageContent } from '@/components/product/detail/Content';
 import { baseProduct, renderWithProviders } from '@/test-utils/index';
 
@@ -42,6 +42,7 @@ function renderContent(overrides: Partial<Parameters<typeof ProductPageContent>[
       onVideoChange={jest.fn()}
       onProductDelete={jest.fn()}
       onGoLivePress={jest.fn()}
+      enterEditMode={jest.fn()}
       {...overrides}
     />,
     { withDialog: true, withAuth: true },
@@ -105,8 +106,6 @@ describe('ProductPageContent — moderating someone else’s product', () => {
   });
 });
 
-const MISSING_LABEL_PATTERN = /^Missing: /;
-
 describe('ProductPageContent — missing-data checklist (#325)', () => {
   const completeProduct = {
     ...baseProduct,
@@ -120,7 +119,7 @@ describe('ProductPageContent — missing-data checklist (#325)', () => {
   it('shows the checklist to the owner when data is missing', async () => {
     await renderContent({ product: baseProduct, ownedByMe: true });
 
-    expect(await screen.findByLabelText(MISSING_LABEL_PATTERN)).toBeOnTheScreen();
+    expect(await screen.findByTestId('missing-fields-notice')).toBeOnTheScreen();
     expect(screen.getByLabelText('Jump to product type')).toBeOnTheScreen();
     expect(screen.getByLabelText('Jump to a photo')).toBeOnTheScreen();
   });
@@ -128,12 +127,41 @@ describe('ProductPageContent — missing-data checklist (#325)', () => {
   it('hides the checklist from a non-owner (including a moderating superuser)', async () => {
     await renderContent({ product: baseProduct, ownedByMe: false });
 
-    expect(screen.queryByLabelText(MISSING_LABEL_PATTERN)).toBeNull();
+    expect(screen.queryByTestId('missing-fields-notice')).toBeNull();
   });
 
   it('hides the checklist for the owner when the product is complete', async () => {
     await renderContent({ product: completeProduct, ownedByMe: true });
 
-    expect(screen.queryByLabelText(MISSING_LABEL_PATTERN)).toBeNull();
+    expect(screen.queryByTestId('missing-fields-notice')).toBeNull();
+  });
+
+  // TDD for #18: in view mode, an empty Overview is collapsed out of the page
+  // entirely, so a link into it has nothing to scroll to until edit mode shows
+  // the section. Properties always renders in view mode, so its own link still
+  // just scrolls.
+  it('enters edit mode from a missing-field link whose section is collapsed in view mode', async () => {
+    const enterEditMode = jest.fn();
+    // Brand, product type and description all missing -> Overview has nothing
+    // to show and view mode collapses it (content-sections.tsx isOverviewEmpty).
+    const emptyOverviewProduct = {
+      ...baseProduct,
+      brand: '',
+      model: '',
+      description: '',
+      productTypeID: undefined,
+      productTypeName: undefined,
+    };
+    await renderContent({
+      product: emptyOverviewProduct,
+      editMode: false,
+      ownedByMe: true,
+      enterEditMode,
+    });
+
+    const link = await screen.findByLabelText('Jump to product type');
+    fireEvent.press(link);
+
+    expect(enterEditMode).toHaveBeenCalledTimes(1);
   });
 });

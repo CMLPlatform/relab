@@ -1,14 +1,22 @@
 """Tests for revocable opaque access tokens."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock
+from typing import Annotated
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import httpx
+from fastapi import Depends, FastAPI, Request
+from httpx import ASGITransport
 
 from app.api.auth.services.access_token_store import (
     ACCESS_TOKEN_KEY_PREFIX,
     RevocableRedisStrategy,
+    request_access_token_owner_id,
     revoke_user_access_tokens,
 )
+from app.api.common.rate_limiting import Limiter
 from app.core.redis import Redis
+from app.core.runtime import AppServices
 
 ACCESS_TOKEN_TTL = 900
 
@@ -111,3 +119,34 @@ async def test_write_token_stores_the_issue_time(redis_client: Redis) -> None:
     raw = stored.decode() if isinstance(stored, bytes) else str(stored)
     assert '"iat"' in raw
     assert str(user.id) in raw
+
+
+async def test_rate_limit_and_authentication_share_one_token_read(redis_client: Redis) -> None:
+    """The per-user rate limit and the auth strategy resolve the token with one Redis GET per request."""
+    user = _user(uuid.uuid4())
+    manager = _user_manager(user)
+    token = await _strategy(redis_client).write_token(user)
+
+    app = FastAPI()
+    app.state.services = AppServices(redis=redis_client)
+    limiter = Limiter(storage_uri="memory://")
+
+    async def signed_in_user(request: Request) -> str:
+        strategy = RevocableRedisStrategy(
+            redis_client, lifetime_seconds=ACCESS_TOKEN_TTL, key_prefix=ACCESS_TOKEN_KEY_PREFIX, request=request
+        )
+        resolved = await strategy.read_token(token, manager)
+        assert resolved is user
+        return str(resolved.id)
+
+    @app.get("/me", dependencies=[limiter.dependency("5/minute", per_user=("5/minute", request_access_token_owner_id))])
+    async def me(user_id: Annotated[str, Depends(signed_in_user)]) -> dict[str, str]:
+        return {"id": user_id}
+
+    with patch.object(redis_client, "get", wraps=redis_client.get) as get:
+        async with httpx.AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as client:
+            response = await client.get("/me", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 200
+    token_reads = [call for call in get.call_args_list if call.args[0] == f"{ACCESS_TOKEN_KEY_PREFIX}{token}"]
+    assert len(token_reads) == 1

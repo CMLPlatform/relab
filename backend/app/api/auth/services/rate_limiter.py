@@ -8,10 +8,7 @@ a request belongs to.
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from fastapi import HTTPException, status
-
 from app.api.auth.config import settings as auth_settings
-from app.api.auth.exceptions import MfaCodeInvalidError, MfaStepUpCodeInvalidError
 from app.api.auth.services.access_token_store import request_access_token_owner_id
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 from app.core.config.core import settings as core_settings
@@ -46,29 +43,22 @@ API_EXPORT_RATE_LIMIT_DEPENDENCY = limiter.dependency(
     core_settings.api_export_rate_limit,
     name="api_export_rate_limit",
     per_user=(core_settings.api_export_rate_limit_per_user, request_access_token_owner_id),
+    signed_in_ip_ceiling=core_settings.api_export_rate_limit_signed_in_per_ip,
 )
 
 
 @asynccontextmanager
 async def account_guess_budget(user_id: UUID) -> AsyncIterator[None]:
-    """Charge a wrong password, TOTP or recovery code to the account's guess budget.
+    """Charge a password, TOTP or recovery-code check to the account's guess budget.
 
     One per-account bucket, sized like the failed-login budget, covers the MFA login
     challenge and every signed-in re-authentication (account deletion, email and password
     changes, social login link and unlink, MFA changes). Guesses spread over routes, IP
-    addresses or fresh login challenges still run out. The bucket is checked before the
-    block without being spent, and charged only for a wrong credential: a 403 password
-    check or an invalid MFA code, never a missing field or an expired token.
+    addresses or fresh login challenges still run out.
+
+    Every attempt is charged up front, right or wrong: check-then-charge-on-failure lets
+    parallel guesses all pass the check before any of them is charged. Wrap only the
+    credential check, so requests that verify nothing do not spend the budget.
     """
-    key = rate_limit_bucket_key("auth:guesses:account", str(user_id))
-    await limiter.ahit_key(LOGIN_RATE_LIMIT, key, consume=False)
-    try:
-        yield
-    except MfaCodeInvalidError, MfaStepUpCodeInvalidError:
-        await limiter.ahit_key(LOGIN_RATE_LIMIT, key)
-        raise
-    except HTTPException as exc:
-        # A wrong re-entered password (verify_current_password).
-        if exc.status_code == status.HTTP_403_FORBIDDEN:
-            await limiter.ahit_key(LOGIN_RATE_LIMIT, key)
-        raise
+    await limiter.ahit_key(LOGIN_RATE_LIMIT, rate_limit_bucket_key("auth:guesses:account", str(user_id)))
+    yield

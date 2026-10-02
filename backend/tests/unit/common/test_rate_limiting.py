@@ -69,6 +69,24 @@ def test_body_contains_detail() -> None:
     assert body["detail"] == "nope"
 
 
+def test_sets_retry_after_from_the_window_reset() -> None:
+    """A limiter rejection tells the client how long to wait."""
+    resp = rate_limit_exceeded_handler(MagicMock(), RateLimitExceededError(retry_after=42))
+    assert resp.headers["retry-after"] == "42"
+
+
+def test_hit_key_reports_seconds_until_the_window_resets() -> None:
+    """The rejection carries the time left in the current window, at least one second."""
+    limiter = Limiter(storage_uri="memory://")
+    limiter.hit_key("1/minute", "bucket")
+
+    with pytest.raises(RateLimitExceededError) as exc_info:
+        limiter.hit_key("1/minute", "bucket")
+
+    assert exc_info.value.retry_after is not None
+    assert 1 <= exc_info.value.retry_after <= 60
+
+
 # ---------------------------------------------------------------------------
 # Privacy-preserving keys
 # ---------------------------------------------------------------------------
@@ -323,3 +341,30 @@ async def test_redis_error_during_lookup_falls_back_to_ip(keyed_client: httpx.As
 
     with patch.object(redis_client, "get", side_effect=RedisConnectionError("down")):
         assert await _statuses(keyed_client, 3, bearer) == [200, 200, 429]
+
+
+async def test_signed_in_ip_ceiling_caps_many_accounts_on_one_ip(redis_client: Redis) -> None:
+    """Fresh accounts each get a user budget, but together they stop at the per-IP ceiling."""
+    app = FastAPI()
+    app.state.services = AppServices(redis=redis_client)
+    app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
+    limiter = Limiter(storage_uri="memory://")
+    per_user = ("2/minute", request_access_token_owner_id)
+
+    @app.get(
+        "/export", dependencies=[limiter.dependency("1/minute", per_user=per_user, signed_in_ip_ceiling="3/minute")]
+    )
+    async def export() -> dict[str, bool]:
+        return {"ok": True}
+
+    transport = ASGITransport(app=app, client=(_ROOM_IP, 1234))
+    async with httpx.AsyncClient(transport=transport, base_url="https://test") as client:
+        statuses = []
+        for account in ("a", "b", "c", "d"):
+            bearer = {"Authorization": f"Bearer {await _issue_token(redis_client, f'throwaway-{account}')}"}
+            statuses.append((await client.get("/export", headers=bearer)).status_code)
+        # The anonymous per-IP bucket is separate from the signed-in ceiling.
+        anonymous = (await client.get("/export")).status_code
+
+    assert statuses == [200, 200, 200, 429]
+    assert anonymous == 200

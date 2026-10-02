@@ -59,6 +59,7 @@ export function useProfileScreen() {
     refetch,
     setYoutubeEnabled,
     dialog,
+    mfaEnabled: profile?.mfaEnabled ?? false,
   });
 
   const { emailUpdatesSaving, visibilitySaving, handleVisibilityChange, handleEmailUpdatesChange } =
