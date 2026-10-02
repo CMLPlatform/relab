@@ -8,7 +8,6 @@ Lives in ``common`` because every context rate-limits. Auth owns its own bucket 
 and, because it owns identity, the per-user API limits (``auth.services.rate_limiter``).
 """
 
-import functools
 import logging
 import math
 import time
@@ -62,11 +61,16 @@ class Limiter:
         self.enabled = enabled
         self._limiter = FixedWindowRateLimiter(storage_from_string(storage_uri)) if enabled else None
 
-    def hit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
+    async def ahit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
         """Enforce *rate_string* for an explicit bucket key.
 
         ``consume=False`` only checks the bucket, for budgets that count some outcomes,
         such as failed logins: check before the work, hit only when the outcome counts.
+
+        The ``limits`` Redis backend is synchronous (its async backend would pull in a
+        second Redis client, coredis), so its calls run in a worker thread: a direct call
+        would block the event loop on every login/reset/pairing attempt, a cheap DoS lever
+        under load.
 
         Fails open on a Redis backend outage: an unreachable rate limiter must not
         turn into a hard outage for login/register/pairing. The narrower risk (a
@@ -78,7 +82,7 @@ class Limiter:
 
         parsed = parse(rate_string)
         try:
-            allowed = (self._limiter.hit if consume else self._limiter.test)(parsed, key)
+            allowed = await anyio.to_thread.run_sync(self._limiter.hit if consume else self._limiter.test, parsed, key)
         except RedisError, ConnectionError, TimeoutError, OSError:
             logger.warning("Rate limiter backend unavailable; failing open for bucket %s", key)
             return
@@ -87,21 +91,10 @@ class Limiter:
             # Safe to log: sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
             logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
             try:
-                reset_time = self._limiter.get_window_stats(parsed, key).reset_time
+                stats = await anyio.to_thread.run_sync(self._limiter.get_window_stats, parsed, key)
             except RedisError, ConnectionError, TimeoutError, OSError:
                 raise RateLimitExceededError from None
-            raise RateLimitExceededError(retry_after=max(1, math.ceil(reset_time - time.time())))
-
-    async def ahit_key(self, rate_string: str, key: str, *, consume: bool = True) -> None:
-        """Async ``hit_key`` for callers already on the event loop.
-
-        The ``limits`` Redis backend is synchronous (its async backend would pull in a
-        second Redis client, coredis), so a direct call from an async handler blocks the
-        event loop on every login/reset/pairing attempt, a cheap DoS lever under load.
-        Offloading to a worker thread keeps the loop free; route dependencies use it too.
-        Sync callers must use ``hit_key`` instead.
-        """
-        await anyio.to_thread.run_sync(functools.partial(self.hit_key, rate_string, key, consume=consume))
+            raise RateLimitExceededError(retry_after=max(1, math.ceil(stats.reset_time - time.time())))
 
     def dependency(
         self,
