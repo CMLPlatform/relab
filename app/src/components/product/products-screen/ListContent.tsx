@@ -87,6 +87,8 @@ function ProductsListFooter({
   );
 }
 
+// Full-text and trigram matching find nothing for a single character.
+const MIN_SEARCH_LENGTH = 2;
 const SKELETON_KEYS = Array.from({ length: 8 }, (_, index) => `skeleton-${index}`);
 
 /** Same column grid as the loaded list, so the swap to cards does not reflow into a grid. */
@@ -224,7 +226,9 @@ export function ProductsListContent({
                 contentFit="contain"
               />
             </View>
-            {searchQuery ? (
+            {searchQuery && searchQuery.trim().length < MIN_SEARCH_LENGTH ? (
+              <AppText>Type at least {MIN_SEARCH_LENGTH} characters to search.</AppText>
+            ) : searchQuery ? (
               <AppText>No products match your search.</AppText>
             ) : !isAuthenticated ? (
               <AppText>No products available yet. Sign in to add your own.</AppText>

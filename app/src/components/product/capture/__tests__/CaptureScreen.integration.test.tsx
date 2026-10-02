@@ -204,6 +204,17 @@ describe('CaptureScreen', () => {
     expect(screen.getByText('Create product')).toBeEnabled();
   });
 
+  it('explains the name length while Create is disabled', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    expect(screen.getByText('At least 2 characters')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'C');
+    expect(screen.getByText('At least 2 characters')).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Cordless drill');
+    expect(screen.queryByText('At least 2 characters')).toBeNull();
+  });
+
   it('routes to the saved product with edit=1 on successful create', async () => {
     mockMutateAsync.mockResolvedValueOnce(77);
     await renderCapture({ entityRole: 'product' });
