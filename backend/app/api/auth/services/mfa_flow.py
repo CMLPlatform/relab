@@ -247,7 +247,6 @@ async def complete_mfa_challenge(
             redis=redis,
             cookie_strategy=cookie_strategy,
         )
-        response.status_code = status.HTTP_204_NO_CONTENT
         return None
 
     return await login_completion.issue_bearer_login_response(
@@ -282,6 +281,38 @@ async def require_mfa_step_up(
     _factor, remaining_recovery = verified
     if remaining_recovery is not None and user_manager is not None:
         await mfa_service.set_recovery_codes(user_manager, user, remaining_recovery)
+
+
+async def require_step_up(
+    user: User,
+    *,
+    user_manager: UserManager,
+    redis: Redis,
+    current_password: str | None,
+    mfa_code: str | None,
+    action: str,
+    burn_recovery_code: bool = True,
+) -> None:
+    """Re-authenticate a signed-in user before a sensitive account change.
+
+    A request missing a credential the account needs, or an account that can only show a
+    recent sign-in, is refused before any guess is charged; the password and MFA checks
+    then spend one guess from the account's budget, so a mistyped code leaves room for
+    the retry. ``burn_recovery_code=False`` leaves a matched recovery code unspent, for
+    an action that erases the account and its codes next.
+    """
+    account_security.require_step_up_fields(user, current_password=current_password, mfa_code=mfa_code, action=action)
+    account_security.require_recent_sign_in(user)
+    async with account_guess_budget(user.id):
+        account_security.require_step_up_password(
+            password_helper=user_manager.password_helper,
+            user=user,
+            current_password=current_password,
+            action=action,
+        )
+        await require_mfa_step_up(
+            mfa_code, user=user, redis=redis, action=action, user_manager=user_manager if burn_recovery_code else None
+        )
 
 
 async def _verify_challenge_code(

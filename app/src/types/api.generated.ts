@@ -2793,22 +2793,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    /**
-     * AccountDeletionRequest
-     * @description Step-up body for deleting your own account.
-     */
-    AccountDeletionRequest: {
-      /**
-       * Current Password
-       * @description Current account password, to reauthenticate the deletion. Required unless the account has no usable password (OAuth-only).
-       */
-      current_password?: string | null;
-      /**
-       * Mfa Code
-       * @description Current authenticator code or a recovery code. Required when the account has MFA enabled.
-       */
-      mfa_code?: string | null;
-    };
     /** Body_auth_bearer_login_v1_auth_bearer_login_post */
     Body_auth_bearer_login_v1_auth_bearer_login_post: {
       /** Grant Type */
@@ -4561,22 +4545,6 @@ export interface components {
       /** Account Email */
       account_email: string;
     };
-    /**
-     * OAuthStepUpRequest
-     * @description Optional step-up body for linking or unlinking a social login.
-     *
-     *     Optional because an OAuth-only account has no usable password to re-assert, and an
-     *     account without MFA has no code; the server decides which the account needs.
-     */
-    OAuthStepUpRequest: {
-      /** Current Password */
-      current_password?: string | null;
-      /**
-       * Mfa Code
-       * @description Current authenticator code or a recovery code. Required when the account has MFA enabled.
-       */
-      mfa_code?: string | null;
-    };
     /** Page[CameraRead] */
     Page_CameraRead_: {
       /** Items */
@@ -5413,6 +5381,25 @@ export interface components {
       generated_at: string;
       /** Series */
       series: components['schemas']['SeriesPoint'][];
+    };
+    /**
+     * StepUpRequest
+     * @description Optional step-up body for a sensitive account change (social login link or unlink, account deletion).
+     *
+     *     Optional because an OAuth-only account has no usable password to re-assert, and an
+     *     account without MFA has no code; the server decides which the account needs.
+     */
+    StepUpRequest: {
+      /**
+       * Current Password
+       * @description Current account password, to reauthenticate the change. Required unless the account has no usable password (OAuth-only).
+       */
+      current_password?: string | null;
+      /**
+       * Mfa Code
+       * @description Current authenticator code or a recovery code. Required when the account has MFA enabled.
+       */
+      mfa_code?: string | null;
     };
     /**
      * StreamMetadata
@@ -10701,7 +10688,7 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
+        'application/json': components['schemas']['StepUpRequest'] | null;
       };
     };
     responses: {
@@ -10876,7 +10863,7 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
+        'application/json': components['schemas']['StepUpRequest'] | null;
       };
     };
     responses: {
@@ -10943,7 +10930,7 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
+        'application/json': components['schemas']['StepUpRequest'] | null;
       };
     };
     responses: {
@@ -11012,7 +10999,7 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['OAuthStepUpRequest'] | null;
+        'application/json': components['schemas']['StepUpRequest'] | null;
       };
     };
     responses: {
@@ -11070,7 +11057,7 @@ export interface operations {
     };
     requestBody?: {
       content: {
-        'application/json': components['schemas']['AccountDeletionRequest'] | null;
+        'application/json': components['schemas']['StepUpRequest'] | null;
       };
     };
     responses: {

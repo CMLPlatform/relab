@@ -9,7 +9,6 @@ belong in the application layer.
 from typing import Annotated
 
 from fastapi import BackgroundTasks, Body, Query, Request, Response, Security, status
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from app.api.application.account_erasure import ANONYMIZE, ErasureContent, erase_user, require_erasable_account
 from app.api.auth.dependencies import (
@@ -20,16 +19,12 @@ from app.api.auth.dependencies import (
     current_active_superuser,
 )
 from app.api.auth.models import User
-from app.api.auth.services.account_security import (
-    require_recent_sign_in,
-    require_step_up_fields,
-    require_step_up_password,
-    revoke_user_refresh_tokens,
-)
+from app.api.auth.schemas import StepUpRequest
+from app.api.auth.services.account_security import revoke_user_refresh_tokens
 from app.api.auth.services.auth_backends import clear_auth_cookies
 from app.api.auth.services.email.service import send_account_deleted_notification
-from app.api.auth.services.mfa_flow import require_mfa_step_up
-from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT, account_guess_budget
+from app.api.auth.services.mfa_flow import require_step_up
+from app.api.auth.services.rate_limiter import LOGIN_IP_RATE_LIMIT
 from app.api.auth.services.session_flow import SESSION_LOGOUT_CLEAR_SITE_DATA
 from app.api.common.audiences import AdminAPIRouter, PublicAPIRouter
 from app.api.common.audit import AuditAction, AuditContext, audit_event
@@ -74,27 +69,6 @@ async def delete_user(
     audit_event(actor.id, AuditAction.DELETE, User, user.id, context=AuditContext(operation=f"erase_{content}"))
 
 
-class AccountDeletionRequest(BaseModel):
-    """Step-up body for deleting your own account."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    current_password: SecretStr | None = Field(
-        default=None,
-        description=(
-            "Current account password, to reauthenticate the deletion. "
-            "Required unless the account has no usable password (OAuth-only)."
-        ),
-    )
-    # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ").
-    mfa_code: str | None = Field(
-        default=None,
-        min_length=6,
-        max_length=20,
-        description="Current authenticator code or a recovery code. Required when the account has MFA enabled.",
-    )
-
-
 @self_service_router.delete(
     "/me",
     summary="Delete your own account",
@@ -115,7 +89,7 @@ async def delete_own_account(
     request: Request,
     response: Response,
     background_tasks: BackgroundTasks,
-    payload: Annotated[AccountDeletionRequest | None, Body()] = None,
+    payload: Annotated[StepUpRequest | None, Body()] = None,
 ) -> None:
     """Delete the signed-in account, keeping its products under the anonymous system account.
 
@@ -125,23 +99,20 @@ async def delete_own_account(
     with neither must have signed in within the last few minutes. The former address gets
     a notification email.
     """
-    payload = payload or AccountDeletionRequest()
+    payload = payload or StepUpRequest()
     current_password = payload.current_password.get_secret_value() if payload.current_password else None
-    require_step_up_fields(
-        user, current_password=current_password, mfa_code=payload.mfa_code, action="delete your account"
-    )
-    require_recent_sign_in(user)
     # Before the step-up, so a refused deletion does not spend the TOTP code.
     await require_erasable_account(session, user)
-    # One attempt is one guess, so a mistyped code leaves room for the retry.
-    async with account_guess_budget(user.id):
-        require_step_up_password(
-            password_helper=user_manager.password_helper,
-            user=user,
-            current_password=current_password,
-            action="delete your account",
-        )
-        await require_mfa_step_up(payload.mfa_code, user=user, redis=redis, action="delete your account")
+    await require_step_up(
+        user,
+        user_manager=user_manager,
+        redis=redis,
+        current_password=current_password,
+        mfa_code=payload.mfa_code,
+        action="delete your account",
+        # The account, codes included, is erased next.
+        burn_recovery_code=False,
+    )
 
     # Read before the erase: the row, and so these attributes, are gone after the commit.
     user_id, email, username = user.id, user.email, user.username
