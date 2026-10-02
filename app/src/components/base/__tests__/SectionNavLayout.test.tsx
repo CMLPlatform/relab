@@ -103,3 +103,23 @@ test('scrolls the chip row when the active section changes', async () => {
   );
   expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ x: 176 }));
 });
+
+// Plain words: body in the desktop outline, caption in the phone chip row; never tracked.
+test.each([
+  [true, 16],
+  [false, 13],
+])('sets nav labels untracked (isLg=%s → %spx)', async (isLg, fontSize) => {
+  await render(
+    <SectionNavLayout
+      isLg={isLg}
+      navSections={[...sections]}
+      activeKey="overview"
+      onPressSection={jest.fn()}
+    >
+      {null}
+    </SectionNavLayout>,
+  );
+  const label = screen.getByText('Overview');
+  expect(label).toHaveStyle({ fontSize });
+  expect(label).not.toHaveStyle({ letterSpacing: expect.any(Number) });
+});

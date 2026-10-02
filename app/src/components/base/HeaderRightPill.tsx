@@ -15,7 +15,6 @@ function truncateUsername(username: string) {
 
 // backgroundColor/color stay inline: theme-dependent values with no CSS var.
 const PILL_CLASS_NAME = `mr-4 flex-row items-center gap-1.5 rounded-md px-3 py-1.5 ${WEB_FOCUS_RING}`;
-const PILL_TEXT_CLASS_NAME = 'text-[14px] font-semibold';
 
 /** Tonal pill: the One Tint at rest, primary-strong with primary-foreground ink pressed and hovered. */
 function Pill({
@@ -54,8 +53,8 @@ function Pill({
           <>
             {withIcon ? <Icon name="circle-user-round" size={18} color={ink} /> : null}
             <AppText
-              variant="label"
-              className={PILL_TEXT_CLASS_NAME}
+              variant="caption"
+              className="font-semibold"
               style={{ color: ink }}
               numberOfLines={1}
             >

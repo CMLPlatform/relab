@@ -45,7 +45,10 @@ function BottomNavTab({
         size={22}
         color={active ? theme.colors.primary : theme.colors.mutedForeground}
       />
-      <AppText variant="label" className={active ? 'text-primary' : 'text-muted-foreground'}>
+      <AppText
+        variant="caption"
+        className={cn('font-medium', active ? 'text-primary' : 'text-muted-foreground')}
+      >
         {tab.label}
       </AppText>
     </Pressable>

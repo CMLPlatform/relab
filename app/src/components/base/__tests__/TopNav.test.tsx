@@ -51,6 +51,15 @@ test('renders destinations at lg', async () => {
   expect(screen.getByText('Cameras')).toBeOnTheScreen();
 });
 
+// Plain words, not field labels: untracked body type, never the tracked label step.
+test('sets destination labels in untracked body type', async () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  await render(<TopNav />);
+  const label = screen.getByText('Products');
+  expect(label).toHaveStyle({ fontSize: 16 });
+  expect(label).not.toHaveStyle({ letterSpacing: expect.any(Number) });
+});
+
 test('marks the active destination from the pathname', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   (usePathname as jest.Mock).mockReturnValue('/cameras');

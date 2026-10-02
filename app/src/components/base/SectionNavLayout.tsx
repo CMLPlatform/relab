@@ -21,11 +21,14 @@ const CHIP_SCROLL_INSET = 24;
 function SectionNavItem({
   section,
   active,
+  compact,
   onPress,
   onItemLayout,
 }: {
   section: { key: SectionKey; label: string };
   active: boolean;
+  /** The phone chip row: caption size so four chips fit a 390pt screen. */
+  compact: boolean;
   onPress: (key: SectionKey) => void;
   onItemLayout?: (key: SectionKey, x: number) => void;
 }) {
@@ -56,7 +59,12 @@ function SectionNavItem({
         }),
       )}
     >
-      <AppText variant="label" className={cn(active && 'text-primary')}>
+      {/* Plain words, so untracked type: body in the outline, caption in the chip row. */}
+      <AppText
+        variant={compact ? 'caption' : 'body'}
+        selectable={false}
+        className={cn('font-medium', active && 'text-primary')}
+      >
         {section.label}
       </AppText>
     </Pressable>
@@ -96,6 +104,7 @@ function SectionNav({
       key={section.key}
       section={section}
       active={section.key === activeKey}
+      compact={orientation === 'chips'}
       onPress={onPress}
       onItemLayout={handleItemLayout}
     />

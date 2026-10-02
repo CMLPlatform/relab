@@ -206,7 +206,7 @@ system without shipping the typeface.
 - **Title** (24/30): Screen and section titles.
 - **Heading** (19/24): Subsection headers, card titles.
 - **Body** (16/26): Prose, descriptions, form values. Selectable by default.
-- **Label** (13/18, +1.3 tracking): Field labels and dense chrome.
+- **Label** (13/18, +1.3 tracking): Field labels. Navigation uses untracked body or caption.
 - **Caption** (13/18): Helper text, timestamps, secondary annotations.
 - **Data** (14/20, monospace, tabular figures): Every measurement, ID, count, and code. If it is
   a number the user might compare to another number, it is `data`.
@@ -340,6 +340,9 @@ change it there first.*
 
 - **Below `lg`:** stack header plus custom bottom tab bar.
 - **At `lg` (web):** persistent `TopNav`, stack header hidden.
+- **Labels:** plain words in untracked type, medium weight: `body` in TopNav and the desktop
+  outline, `caption` in the phone chip row, the tab bar and the account pill. The tracked `label`
+  step is for field labels, not navigation.
 - **Items:** `min-h-11`, active `bg-primary/12` with blue ink, inactive at 70% opacity, web
   `WEB_FOCUS_RING`. Both bars mark destinations as links with `aria-current="page"`, not
   tabs: a tab promises an in-page panel.

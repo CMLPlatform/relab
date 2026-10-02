@@ -49,7 +49,12 @@ function TopNavDestinationItem({
         }),
       )}
     >
-      <AppText variant="label" className={cn(active && 'text-primary')}>
+      {/* Plain words, so untracked body type: tracking is for field labels and data. */}
+      <AppText
+        variant="body"
+        selectable={false}
+        className={cn('font-medium', active && 'text-primary')}
+      >
         {destination.label}
       </AppText>
     </Pressable>
