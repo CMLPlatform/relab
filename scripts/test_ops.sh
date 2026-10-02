@@ -416,6 +416,49 @@ assert_eq "a failed migrator is reported when the migrations profile ran it" \
        read the migration error with: docker logs relab_staging-migrator-1" \
     "$(started --profile migrations)"
 
+# A `ps` that fails or lists nothing cannot show the stack started, so it fails the gate
+# rather than passing it with nothing to check.
+# shellcheck disable=SC2317,SC2329 # the stub is called by the code under test
+unlisted() {
+    local ps_exit="$1" out status
+    out="$(
+        run_deploy_compose() { return "$ps_exit"; }
+        DEPLOY_PROFILE_FLAGS=()
+        assert_stack_started staging 2>&1
+    )"
+    status=$?
+    printf '%s|%s' "$status" "$(head -n1 <<<"$out")"
+}
+
+assert_eq "a failing ps fails the start gate" \
+    "1|error: could not list the staging stack's containers after starting it" "$(unlisted 1)"
+assert_eq "an empty ps fails the start gate" \
+    "1|error: could not list the staging stack's containers after starting it" "$(unlisted 0)"
+
+# deploy_ops.sh secret modes: containers run as uid 65532, so a secret only its owner can
+# read is as broken as a world-writable one.
+# shellcheck disable=SC2317,SC2329 # the stub is called by the code under test
+secret_mode() {
+    local dir status
+    dir="$(mktemp -d)"
+    mkdir -p "$dir/secrets/prod"
+    chmod 700 "$dir/secrets/prod"
+    printf 'x' >"$dir/secrets/prod/restic_password"
+    chmod "$1" "$dir/secrets/prod/restic_password"
+    (
+        cd "$dir" || exit 1
+        uv() { echo restic_password; }
+        assert_secret_file_modes prod /dev/null
+    ) >/dev/null 2>&1
+    status=$?
+    rm -rf "$dir"
+    echo "$status"
+}
+
+assert_eq "an owner-only 0600 secret is rejected" 2 "$(secret_mode 600)"
+assert_eq "a world-readable 0644 secret is accepted" 0 "$(secret_mode 644)"
+assert_eq "a group-writable 0664 secret is rejected" 2 "$(secret_mode 664)"
+
 # ---------------------------------------------------------------------------
 # deploy_ops.sh rollback: a failed downgrade must stop the rollback and say what it left
 # behind, not write the earlier tag and start code against a half-downgraded schema.
