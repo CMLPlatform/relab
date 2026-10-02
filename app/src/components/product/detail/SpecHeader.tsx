@@ -2,12 +2,12 @@ import { useCallback, useId, useState } from 'react';
 import { View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { FormFieldError } from '@/components/base/FormField';
+import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
 import { TextInput } from '@/components/base/TextInput';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { describedBy, heading, visuallyHidden } from '@/utils/a11y';
-import { type SpecFact, SpecFacts } from './SpecFacts';
 
 function buildFacts(product: Product): SpecFact[] {
   const facts: SpecFact[] = [];

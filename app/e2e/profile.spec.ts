@@ -50,7 +50,7 @@ test.describe('Profile: access', () => {
     // verifying the auth state is reflected. Navigate to /account to confirm it loads.
     await page.goto('/account');
     await expect(page).toHaveURL(PROFILE_URL_PATTERN, { timeout: 5_000 });
-    await expect(page.getByText('Hi,')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 });
 
@@ -101,9 +101,7 @@ test.describe('Profile: content', () => {
 test.describe('Profile: username dialog', () => {
   test('the edit control beside the username opens the edit-username dialog', async ({ page }) => {
     await loginAndGoToProfile(page);
-    // The "Hi," Text and the username Pressable are siblings in the hero section.
-    // Clicking the sibling immediately after "Hi," triggers setEditUsernameVisible.
-    await expect(page.getByText('Hi,')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     // The heading is no longer the trigger: ProfileHero renders it beside a
     // pencil button so the screen keeps a heading in its outline. Target the
     // button by accessible name rather than by position.

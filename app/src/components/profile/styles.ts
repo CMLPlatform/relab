@@ -21,9 +21,6 @@ export const createProfileSectionStyles = memoizeByTheme((theme: AppTheme) => {
     danger: {
       color: theme.tokens.status.danger,
     },
-    statItem: {
-      backgroundColor: theme.tokens.surface.accent,
-    },
     unlinkWarning: {
       color: theme.tokens.status.warning,
     },

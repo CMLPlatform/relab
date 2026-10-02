@@ -233,14 +233,23 @@ describe('ProfileTab', () => {
       expect(await findByText('3')).toBeTruthy();
     });
 
+    it('renders the stats as a spec row: label over a unit-bearing value, no greeting', async () => {
+      const { findByText, getByText, queryByText } = await renderProfile();
+      expect(await findByText('1.5 kg')).toBeTruthy();
+      expect(getByText('Weight')).toBeTruthy();
+      expect(getByText('Top category')).toBeTruthy();
+      expect(getByText('Electronics')).toBeTruthy();
+      expect(queryByText('Hi,')).toBeNull();
+    });
+
     it('shows a skeleton placeholder while stats are fetching', async () => {
       const { getPublicProfile } = require('@/services/api/profiles.ts');
       // Stall getPublicProfile so the loading state stays visible
       (getPublicProfile as jest.Mock).mockReturnValue(new Promise(() => {}));
 
       const { getAllByTestId } = await renderProfileTab();
-      // statsLoading=true renders a Skeleton for each of the four stat values
-      expect(getAllByTestId('stat-value-skeleton')).toHaveLength(4);
+      // statsLoading=true keeps the four spec-row labels and pulses each value
+      expect(getAllByTestId('spec-fact-skeleton')).toHaveLength(4);
       // Settle the stats effect to avoid act() warnings
       await act(async () => {});
     });

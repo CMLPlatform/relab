@@ -385,7 +385,11 @@ sanctioned manila fill in the app.
 ### Signature: the Spec Row
 
 Monospace value, manila eyebrow label, hairline separator. This is the app's most characteristic
-pattern.
+pattern. `SpecFacts` (`src/components/base/SpecFacts.tsx`) is the one implementation: facts sit
+left-aligned under a hairline and wrap onto more lines at narrow widths. Every read-only set of
+facts uses it: the product spec-sheet header, the account's record counts. An unset value is a
+neutral "—", never an error. Don't render facts as hero-metric tiles (a centred number over a
+tracked label on a tinted fill).
 
 ## Do's and Don'ts
 

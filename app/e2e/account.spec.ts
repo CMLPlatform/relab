@@ -52,10 +52,9 @@ test.describe('Account: dialog keyboard a11y', () => {
   }) => {
     await loginAndGoToProfile(page);
 
-    await expect(page.getByText('Hi,')).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     // By accessible name, not DOM position: the heading sits beside the edit
-    // control rather than inside it, so the control is no longer the greeting's
-    // next sibling (see ProfileHero in components/profile/HeroStats.tsx).
+    // control rather than inside it (see ProfileHero in components/profile/HeroStats.tsx).
     await page.getByRole('button', { name: 'Edit username' }).click();
     await expect(page.getByText('Edit username')).toBeVisible({ timeout: 3_000 });
 
