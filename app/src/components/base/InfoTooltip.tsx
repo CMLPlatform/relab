@@ -53,7 +53,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           {/* Icon doesn't forward testID (Lucide maps it to a data-testid attribute
               RNTL can't query), so the test target wraps the glyph instead. */}
           <View testID="info-icon">
-            <Icon name="info" size="md" color={theme.colors.onSurfaceVariant} />
+            <Icon name="info" size="md" color={theme.colors.mutedForeground} />
           </View>
         </Pressable>
 
@@ -112,7 +112,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         style={styles.tapFloor}
       >
         <View testID="info-icon">
-          <Icon name="info" size="md" color={theme.colors.onSurfaceVariant} />
+          <Icon name="info" size="md" color={theme.colors.mutedForeground} />
         </View>
       </Pressable>
       {visible ? (

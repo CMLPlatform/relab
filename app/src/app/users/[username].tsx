@@ -144,7 +144,16 @@ function ProfileProductList({ username, header }: { username: string; header: Re
       {header}
       <View className="w-full mt-12" testID="user-products">
         <AppText variant="eyebrow" className="mb-3" {...heading(2)}>
-          {isLoading || failed ? 'Products' : `Products · ${total}`}
+          {isLoading || failed ? (
+            'Products'
+          ) : (
+            <>
+              Products ·{' '}
+              <AppText variant="data" className="text-muted-foreground">
+                {total}
+              </AppText>
+            </>
+          )}
         </AppText>
         {isLoading ? (
           <ProductCardSkeleton />

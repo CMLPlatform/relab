@@ -66,7 +66,7 @@ export function ProductImageEmptyEditState({
           accessibilityLabel={
             hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
           }
-          className="min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-dashed px-1 py-3"
+          className="min-h-11 flex-1 items-center justify-center gap-1 rounded-md border border-dashed px-1 py-3"
           style={rpiCardStyle}
         >
           {isCapturing || rpiCamerasLoading ? (
@@ -105,7 +105,7 @@ function EmptyActionCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-dashed px-1 py-3"
+      className="min-h-11 flex-1 items-center justify-center gap-1 rounded-md border border-dashed px-1 py-3"
       style={pressableStyle}
     >
       <Icon name={icon} size={24} color={palette[theme.scheme].mutedForeground} />

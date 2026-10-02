@@ -86,7 +86,7 @@ export function ActiveStreamBanner() {
         >
           <Pressable
             ref={bannerRef}
-            className="flex-row items-center gap-2 rounded-lg px-3.5 py-2.5"
+            className="flex-row items-center gap-2 rounded-xl px-3.5 py-2.5"
             style={[
               theme.tokens.elevation.overlay,
               {

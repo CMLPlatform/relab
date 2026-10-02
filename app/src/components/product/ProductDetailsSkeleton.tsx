@@ -8,7 +8,7 @@ import { useAppTheme } from '@/theme/appThemeContext';
 /** Loading placeholder mirroring the detail layout (Content.tsx). */
 export default function ProductDetailsSkeleton() {
   const theme = useAppTheme();
-  const bg = theme.colors.surfaceVariant;
+  const bg = theme.colors.muted;
 
   return (
     // Named and busy, like CenteredSpinner: the grey blocks alone say nothing to a screen reader.

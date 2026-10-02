@@ -30,7 +30,7 @@ export function ProductPageErrorState({
     return (
       <ErrorState
         icon="package-x"
-        iconColor={theme.colors.onSurfaceVariant}
+        iconColor={theme.colors.mutedForeground}
         title={`${entityTitle} not found`}
         message={`This ${entity} may have been removed or the link is no longer valid.`}
         actionLabel="Back to products"
@@ -51,10 +51,10 @@ export function ProductPageErrorState({
 
 export function ProductPageLoadingState({
   slowLoading,
-  surfaceVariant,
+  muted,
 }: {
   slowLoading: boolean;
-  surfaceVariant: string;
+  muted: string;
 }) {
   return (
     <View style={{ flex: 1 }}>
@@ -63,7 +63,7 @@ export function ProductPageLoadingState({
         <View style={styles.slowLoadingContainer}>
           <Card
             style={{
-              backgroundColor: surfaceVariant,
+              backgroundColor: muted,
               paddingHorizontal: 16,
               paddingVertical: 8,
             }}

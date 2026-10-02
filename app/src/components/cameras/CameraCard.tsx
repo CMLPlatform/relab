@@ -85,7 +85,7 @@ function CameraCardComponent({
             {isOnline ? (
               <>
                 <View className="opacity-40">
-                  <Icon name="image" size={40} color={theme.colors.onSurfaceVariant} />
+                  <Icon name="image" size={40} color={theme.colors.mutedForeground} />
                 </View>
                 <AppText variant="body" className="text-muted-foreground">
                   No preview available
@@ -94,7 +94,7 @@ function CameraCardComponent({
             ) : (
               <>
                 <View className="opacity-40">
-                  <Icon name="camera-off" size={40} color={theme.colors.onSurfaceVariant} />
+                  <Icon name="camera-off" size={40} color={theme.colors.mutedForeground} />
                 </View>
                 <AppText variant="body" className="text-muted-foreground">
                   Offline

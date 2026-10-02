@@ -45,7 +45,7 @@ export function YouTubeStreamCardView({
           <Icon
             name="youtube"
             size="md"
-            color={isLive ? theme.tokens.status.live : theme.colors.onSurfaceVariant}
+            color={isLive ? theme.tokens.status.live : theme.colors.mutedForeground}
           />
           <AppText variant="title" className="flex-1">
             YouTube Live

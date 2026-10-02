@@ -17,7 +17,6 @@ import { showStreamStopFailed } from './streamingFeedback';
 
 // Set as a style rather than a `tabular-nums` className: font-variant-numeric has no
 // className path through the RN style bridge, so the utility compiles to nothing.
-const tabularNums = { fontVariant: ['tabular-nums' as const] };
 
 interface StreamingContentProps {
   session: StreamSession;
@@ -65,7 +64,7 @@ export function StreamingContent({
       {/* Header: LIVE badge + elapsed */}
       <View className="flex-row items-center gap-2 px-4 py-1">
         <StatusPill label="LIVE" tone="live" />
-        <AppText variant="body" className="flex-1 text-muted-foreground" style={tabularNums}>
+        <AppText variant="data" className="flex-1 text-muted-foreground">
           {elapsed}
         </AppText>
       </View>

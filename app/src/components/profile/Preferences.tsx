@@ -166,7 +166,7 @@ function ThemeModeOption({
 
   return (
     <Pressable
-      className="flex-1 items-center gap-1.5 rounded-lg border py-3"
+      className="flex-1 items-center gap-1.5 rounded-md border py-3"
       style={[styles.themeModeOption, active && styles.themeModeOptionActive]}
       onPress={handlePress}
       accessibilityRole="radio"

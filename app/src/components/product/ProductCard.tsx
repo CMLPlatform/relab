@@ -126,7 +126,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <View
                 aria-hidden
                 className="w-20 h-20 rounded-lg overflow-hidden"
-                style={{ backgroundColor: theme.colors.surfaceVariant }}
+                style={{ backgroundColor: theme.colors.muted }}
               >
                 <Image
                   accessibilityIgnoresInvertColors
@@ -170,10 +170,10 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               // Inside the press target; only the owner link sits outside it.
               <View className="mt-1 flex-row items-center gap-1">
                 {/* `colors.outline` is the input-stroke token; as text it
-                    measured 4.03:1. `onSurfaceVariant` is the muted-text
+                    measured 4.03:1. `mutedForeground` is the muted-text
                     token and is 7.8:1 on the same card. */}
-                <Icon name="clock" size={12} color={theme.colors.onSurfaceVariant} />
-                <AppText variant="caption" style={{ color: theme.colors.onSurfaceVariant }}>
+                <Icon name="clock" size={12} color={theme.colors.mutedForeground} />
+                <AppText variant="caption" style={{ color: theme.colors.mutedForeground }}>
                   {createdAgo}
                 </AppText>
               </View>
@@ -199,18 +199,18 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 className={`flex-row items-center gap-1 pr-2 ${WEB_FOCUS_RING}`}
                 style={styles.ownerLink}
               >
-                <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />
+                <Icon name="user" size={12} color={theme.colors.mutedForeground} />
                 <AppText variant="caption" className="text-primary" numberOfLines={1}>
                   {ownerLabel}
                 </AppText>
               </Pressable>
             ) : (
               <View className="flex-row items-center gap-1 pr-2">
-                <Icon name="user" size={12} color={theme.colors.onSurfaceVariant} />
+                <Icon name="user" size={12} color={theme.colors.mutedForeground} />
                 <AppText
                   variant="caption"
                   numberOfLines={1}
-                  style={{ color: theme.colors.onSurfaceVariant }}
+                  style={{ color: theme.colors.mutedForeground }}
                 >
                   {ownerLabel}
                 </AppText>

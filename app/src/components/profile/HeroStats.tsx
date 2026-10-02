@@ -108,7 +108,7 @@ function StatCard({
       {loading ? (
         <Skeleton
           testID="stat-value-skeleton"
-          style={[statSkeletonStyles.value, { backgroundColor: theme.colors.surfaceVariant }]}
+          style={[statSkeletonStyles.value, { backgroundColor: theme.colors.muted }]}
         />
       ) : (
         <AppText variant="data" className="font-bold" numberOfLines={singleLine ? 1 : undefined}>

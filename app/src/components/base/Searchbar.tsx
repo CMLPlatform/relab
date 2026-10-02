@@ -40,7 +40,7 @@ export function Searchbar({
   return (
     <View className="justify-center" style={style}>
       <View className="absolute left-3" style={styles.leadingIcon}>
-        <Icon name="search" size="md" color={theme.colors.onSurfaceVariant} />
+        <Icon name="search" size="md" color={theme.colors.mutedForeground} />
       </View>
       <Input
         ref={ref}
@@ -56,7 +56,7 @@ export function Searchbar({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={theme.colors.onSurfaceVariant}
+          color={theme.colors.mutedForeground}
           className="absolute right-3"
         />
       ) : value ? (
@@ -66,7 +66,7 @@ export function Searchbar({
           accessibilityLabel="Clear search"
           className="absolute right-0 min-w-11 min-h-11 items-center justify-center"
         >
-          <Icon name="x" size="md" color={theme.colors.onSurfaceVariant} />
+          <Icon name="x" size="md" color={theme.colors.mutedForeground} />
         </Pressable>
       ) : null}
     </View>

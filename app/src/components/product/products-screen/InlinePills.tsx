@@ -31,7 +31,7 @@ export function ProfilePill() {
 
   return (
     <View
-      className="flex-row items-center gap-1 self-center rounded-full px-2 py-0.5"
+      className="flex-row items-center gap-1 self-center rounded-md px-2 py-0.5"
       style={{ backgroundColor: theme.tokens.surface.accent }}
     >
       <Icon name="circle-user-round" size={14} color={pillInk} />

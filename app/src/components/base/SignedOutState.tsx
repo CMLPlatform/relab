@@ -17,7 +17,7 @@ export function SignedOutState({
   const goToLogin = useCallback(() => router.replace('/login'), [router]);
   return (
     <View className="flex-1 items-center justify-center gap-3 p-6">
-      <Icon name="lock" size={48} color={colors.onSurfaceVariant} />
+      <Icon name="lock" size={48} color={colors.mutedForeground} />
       <AppText className="text-center text-muted-foreground">{message}</AppText>
       <AppButton variant="primary" onPress={goToLogin} className="mt-2">
         Sign in

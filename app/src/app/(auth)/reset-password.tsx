@@ -65,7 +65,7 @@ export default function ResetPasswordScreen() {
                     <Icon
                       name={showPassword ? 'eye-off' : 'eye'}
                       size="md"
-                      color={theme.colors.onSurfaceVariant}
+                      color={theme.colors.mutedForeground}
                     />
                   </Pressable>
                 </View>

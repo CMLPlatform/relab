@@ -211,7 +211,19 @@ function VideoHeaderAction({
       aria-expanded={isExpanded}
       className={TOGGLE_CLASS_NAME}
     >
-      <AppText style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</AppText>
+      <AppText style={{ color: linkColor }}>
+        {isExpanded ? (
+          'Hide'
+        ) : (
+          <>
+            Show (
+            <AppText variant="data" style={{ color: linkColor }}>
+              {videoCount}
+            </AppText>
+            )
+          </>
+        )}
+      </AppText>
     </Pressable>
   );
 }

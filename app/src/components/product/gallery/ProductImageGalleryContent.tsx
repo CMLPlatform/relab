@@ -225,7 +225,7 @@ export function ProductImageGalleryContent({
             style={{ right: 8 }}
           />
           <View
-            className="absolute right-3 bottom-3 rounded-full px-3 py-1"
+            className="absolute right-3 bottom-3 rounded-md px-3 py-1"
             style={styles.counterBadge}
           >
             <AppText

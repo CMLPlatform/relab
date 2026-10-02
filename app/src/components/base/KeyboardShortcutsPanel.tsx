@@ -102,7 +102,7 @@ function ShortcutRow({ shortcutKey, action }: { shortcutKey: string; action: str
       <AppText
         variant="caption"
         className="px-2 py-0.5 border rounded-md"
-        style={{ borderColor: colors.outline, color: colors.onSurfaceVariant }}
+        style={{ borderColor: colors.outline, color: colors.mutedForeground }}
       >
         {shortcutKey}
       </AppText>

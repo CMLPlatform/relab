@@ -33,7 +33,7 @@ export function AncestorTrailHeader({
           crumb={crumb}
           perCrumbLimit={perCrumbLimit}
           maxCrumbWidth={isLg ? 280 : 100}
-          iconColor={theme.colors.onSurfaceVariant}
+          iconColor={theme.colors.mutedForeground}
         />
       ))}
       {currentNameSlot}

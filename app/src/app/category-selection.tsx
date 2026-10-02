@@ -214,7 +214,10 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
       accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}
     >
       <AppText variant="caption" className="text-right" style={{ color: colors.primary }}>
-        {`${CPV.directChildren.length} subcategories`}
+        <AppText variant="data" style={{ color: colors.primary }}>
+          {CPV.directChildren.length}
+        </AppText>{' '}
+        subcategories
       </AppText>
       <Icon size="md" name="chevron-right" color={colors.primary} />
     </Pressable>

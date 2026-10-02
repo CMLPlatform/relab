@@ -147,7 +147,7 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
     strokeDasharray: certain ? undefined : UNCERTAIN_DASH,
   });
   const label = {
-    fill: theme.colors.onSurfaceVariant,
+    fill: theme.colors.mutedForeground,
     fontSize: FONT_SIZE,
     alignmentBaseline: 'middle',
   } as const;

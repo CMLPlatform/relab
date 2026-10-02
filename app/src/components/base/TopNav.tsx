@@ -75,7 +75,7 @@ function ShortcutsButton() {
         }),
       )}
     >
-      <Icon name="keyboard" size="md" color={theme.colors.onSurfaceVariant} />
+      <Icon name="keyboard" size="md" color={theme.colors.mutedForeground} />
     </Pressable>
   );
 }

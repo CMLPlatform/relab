@@ -212,7 +212,7 @@ function DialogBody({
           variant="caption"
           className="mt-1"
           style={{
-            color: options.error ? theme.tokens.status.danger : theme.colors.onSurfaceVariant,
+            color: options.error ? theme.tokens.status.danger : theme.colors.mutedForeground,
           }}
         >
           {options.helperText}

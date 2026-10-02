@@ -29,7 +29,7 @@ export default function ImagePlaceholder({
         width,
         height,
         borderRadius,
-        backgroundColor: theme.colors.surfaceVariant,
+        backgroundColor: theme.colors.muted,
         alignItems: 'center',
         justifyContent: 'center',
       }}

@@ -179,9 +179,9 @@ function MenuItem({
     ({ pressed }: { pressed: boolean }) => [
       // No className on this Pressable: it would drop this function (see IconButton.tsx).
       styles.item,
-      pressed && { backgroundColor: theme.colors.surfaceVariant },
+      pressed && { backgroundColor: theme.colors.muted },
     ],
-    [theme.colors.surfaceVariant],
+    [theme.colors.muted],
   );
   return (
     <Pressable

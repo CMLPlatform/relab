@@ -14,8 +14,8 @@ export type AppColorScale = {
   onBackground: string;
   surface: string;
   onSurface: string;
-  surfaceVariant: string;
-  onSurfaceVariant: string;
+  muted: string;
+  mutedForeground: string;
   outline: string;
   shadow: string;
   scrim: string;

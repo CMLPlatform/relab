@@ -83,12 +83,7 @@ function renderScreenGuard({
   onBack: () => void;
 }) {
   if (screen.isLoading) {
-    return (
-      <ProductPageLoadingState
-        slowLoading={screen.slowLoading}
-        surfaceVariant={theme.colors.surfaceVariant}
-      />
-    );
+    return <ProductPageLoadingState slowLoading={screen.slowLoading} muted={theme.colors.muted} />;
   }
 
   if (screen.isError) {

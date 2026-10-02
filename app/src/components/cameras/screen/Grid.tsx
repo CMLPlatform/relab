@@ -102,7 +102,7 @@ export function CamerasGrid({
         <View className="flex-1 items-center justify-center p-8" testID="cameras-empty-state">
           <StaticBackground scrim={theme.tokens.overlay.hero} />
           <View className="opacity-40">
-            <Icon name="camera-off" size={64} color={theme.colors.onSurfaceVariant} />
+            <Icon name="camera-off" size={64} color={theme.colors.mutedForeground} />
           </View>
           <AppText variant="title" className="mt-4 text-muted-foreground">
             No cameras yet

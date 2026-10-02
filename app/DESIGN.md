@@ -302,6 +302,8 @@ change it there first.*
 - **Outline / Ghost / Tonal:** Blue ink, transparent or 12% tinted fill, hairline border on
   outline. Tonal pressed and hover: `primary-strong` fill with `primary-foreground` text.
 - **Destructive:** Solid `#BA1A1A`, `destructive-foreground` text. Never the keyboard default in a dialog.
+  Pressed and hover: `destructive` at 90% (`active:bg-destructive/90`, `hover:bg-destructive/90`);
+  the palette has no destructive-strong shade, so this is the one sanctioned alpha press.
 - **Loading:** Inline spinner tinted to the variant's foreground; the label stays.
 
 ### Chips
@@ -370,6 +372,8 @@ pattern.
 
 - **Do** use `tokens.surface.accent` (or `bg-primary/12`) for every selected or tinted fill.
 - **Do** use the `data` variant for every measurement, ID, count, and code.
+  One exception: a count inside a button label (`Capture 3`) stays in the button's label type;
+  a button label is one string.
 - **Do** pair every colour-carried meaning with a second signal: an icon, a border, or text.
 - **Do** apply `MIN_TAP_TARGET` (44) to every interactive control, including icon-only ones.
 - **Do** pass `ReduceMotion.System` on every Reanimated animation.

@@ -41,7 +41,7 @@ function BottomNavTab({
       <Icon
         name={tab.icon}
         size={22}
-        color={active ? theme.colors.primary : theme.colors.onSurfaceVariant}
+        color={active ? theme.colors.primary : theme.colors.mutedForeground}
       />
       <AppText variant="label" className={active ? 'text-primary' : 'text-muted-foreground'}>
         {tab.label}
