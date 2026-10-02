@@ -121,38 +121,18 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   }, [product.ownerUsername, router]);
 
   const handleImageError = useCallback(() => setHadError(true), []);
-  // The press target stops short of the owner link, so its tint is drawn on the
-  // whole card instead (a tint on the target alone showed as an inset rectangle).
-  const [hovered, setHovered] = useState(false);
-  const [pressed, setPressed] = useState(false);
-  const hoverIn = useCallback(() => setHovered(true), []);
-  const hoverOut = useCallback(() => setHovered(false), []);
-  const pressIn = useCallback(() => setPressed(true), []);
-  const pressOut = useCallback(() => setPressed(false), []);
-  const tinted = enabled && (hovered || pressed);
+  const { tinted, handlers: tintHandlers } = useCardTint(enabled);
 
   return (
     // The press target must not wrap the owner link (axe `nested-interactive`).
     // `grow` fills the grid cell, which the row stretches to its tallest card,
     // so cards side by side share one height.
     <Card className="mx-2.5 my-1.5 grow">
-      <View
-        aria-hidden
-        pointerEvents="none"
-        testID="product-card-tint"
-        className={cn(
-          'absolute inset-0 rounded-lg',
-          tinted ? 'bg-primary/12' : 'bg-transparent',
-          PRESS_FADE,
-        )}
-      />
+      <CardTint tinted={tinted} />
       <View className="p-3">
         <Pressable
           onPress={enabled ? navigateToProduct : undefined}
-          onHoverIn={hoverIn}
-          onHoverOut={hoverOut}
-          onPressIn={pressIn}
-          onPressOut={pressOut}
+          {...tintHandlers}
           disabled={!enabled}
           accessibilityRole={enabled ? 'button' : undefined}
           className="flex-row items-center rounded-md"
@@ -263,6 +243,38 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
       </View>
     </Card>
   );
+}
+
+function CardTint({ tinted }: { tinted: boolean }) {
+  return (
+    <View
+      aria-hidden
+      pointerEvents="none"
+      testID="product-card-tint"
+      className={cn(
+        'absolute inset-0 rounded-lg',
+        tinted ? 'bg-primary/12' : 'bg-transparent',
+        PRESS_FADE,
+      )}
+    />
+  );
+}
+
+// The press target stops short of the owner link, so its tint is drawn on the
+// whole card instead (a tint on the target alone showed as an inset rectangle).
+function useCardTint(enabled: boolean) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const handlers = useMemo(
+    () => ({
+      onHoverIn: () => setHovered(true),
+      onHoverOut: () => setHovered(false),
+      onPressIn: () => setPressed(true),
+      onPressOut: () => setPressed(false),
+    }),
+    [],
+  );
+  return { tinted: enabled && (hovered || pressed), handlers };
 }
 
 const ProductCard = memo(ProductCardComponent);

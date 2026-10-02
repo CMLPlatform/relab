@@ -184,6 +184,9 @@ jest.mock('@/components/product/detail/ProductPhysicalProperties', () =>
 );
 jest.mock('@/components/product/detail/ProductTags', () => mockCreateSectionStub('ProductTags'));
 jest.mock('@/components/product/detail/ProductType', () => mockCreateSectionStub('ProductType'));
+jest.mock('@/components/product/detail/OverviewFacts', () => ({
+  OverviewFacts: mockCreateSectionStub('OverviewFacts'),
+}));
 jest.mock('@/components/product/ProductVideo', () => mockCreateSectionStub('ProductVideo'));
 
 describe('ProductPage state handling', () => {
@@ -707,9 +710,10 @@ describe('Section layout', () => {
     expect(indexOf(fullProduct.name)).toBeGreaterThan(indexOf('ProductImageGallery'));
     expect(indexOf('Overview')).toBeGreaterThan(indexOf(fullProduct.name));
     expect(indexOf(`Description:${fullProduct.name}`)).toBeGreaterThan(indexOf('Overview'));
-    expect(indexOf('ProductTags')).toBeGreaterThan(indexOf(`Description:${fullProduct.name}`));
-    expect(indexOf('ProductType')).toBeGreaterThan(indexOf('ProductTags'));
-    expect(indexOf('Components')).toBeGreaterThan(indexOf('ProductType'));
+    // View mode states brand, model and type in one spec row; the chips and type card are edit controls.
+    expect(indexOf('OverviewFacts')).toBeGreaterThan(indexOf(`Description:${fullProduct.name}`));
+    expect(indexOf('ProductTags')).toBe(-1);
+    expect(indexOf('Components')).toBeGreaterThan(indexOf('OverviewFacts'));
     expect(indexOf('ProductComponents')).toBeGreaterThan(indexOf('Components'));
     // Measurements and circularity notes share the Properties section; the
     // metadata block is a footer after the last section, not a section itself.

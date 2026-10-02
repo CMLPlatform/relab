@@ -13,8 +13,6 @@ jest.mock('@/features/products/pendingTypeSelection', () => ({
   setPendingTypeSelection: jest.fn(),
 }));
 
-const VIEW_ALL_LABEL_PATTERN = /View all products of type/;
-
 const mockPush = jest.fn();
 const mockSetParams = jest.fn();
 const mockedLoadCPV = jest.mocked(loadCPV);

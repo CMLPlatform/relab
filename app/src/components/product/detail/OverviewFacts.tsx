@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
@@ -66,10 +67,10 @@ export function OverviewFacts({ product }: { product: Product }) {
   }
 
   const typeName = product.productTypeName;
-  const onViewAllOfType = () => {
-    // Filters the list by type name, the value screenData.ts's `types` param reads.
+  // Filters the list by type name, the value screenData.ts's `types` param reads.
+  const onViewAllOfType = useCallback(() => {
     if (typeName) router.push({ pathname: '/products', params: { types: typeName } });
-  };
+  }, [router, typeName]);
 
   return (
     <View className="my-3 gap-1">

@@ -45,7 +45,7 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
       {isMd ? browse : null}
       <AuthScreen>
         <View className="gap-3">
-          {isMd ? null : browse}
+          {isMd === false ? browse : null}
           {children}
         </View>
       </AuthScreen>
