@@ -7,6 +7,8 @@ import { useEffectiveColorScheme } from '@/context/themeMode';
 export function StaticBackground({ scrim }: { scrim?: string } = {}) {
   const colorScheme = useEffectiveColorScheme();
 
+  // TODO: re-encode bg-light/bg-dark to WebP at their source in the repo-root assets/images
+  // (copied here by scripts/sync_brand_assets.py) to cut roughly 200 KB.
   const image =
     colorScheme === 'light'
       ? require('@/assets/images/bg-light.jpg')

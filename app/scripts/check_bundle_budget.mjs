@@ -22,6 +22,9 @@ const DIST = new URL('../dist/', import.meta.url).pathname;
 // The budget is the measurement plus roughly 5%: enough that a dependency bump does not
 // cry wolf, tight enough that a new library on the first-load path does. When it fails,
 // either justify the new bytes in the commit or split the import.
+//
+// TODO: __common's first-load weight is dominated by reanimated, zod, gesture-handler and
+// react-hook-form; taking zod and react-hook-form off the eager path is the next lever.
 const BUDGET_BYTES = 875 * 1024;
 
 const SCRIPT_TAG = /<script[^>]+src="([^"]+)"/g;
