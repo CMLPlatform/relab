@@ -37,11 +37,8 @@ case "$action" in
         git fetch --quiet origin && git pull --ff-only && git log --oneline -1
         ;;
     tag)
-        # The pattern is repeated from require_image_tag so a bad argument never reaches just.
-        [[ "${args[0]:-}" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
-            echo "remote_deploy: tag needs an image tag like 0.4.0 or sha-5b099f3" >&2
-            exit 2
-        }
+        # Checked here too so a bad argument never reaches just.
+        require_image_tag "${args[0]:-}"
         exec just stack "$env_name" tag YES "${args[0]}"
         ;;
     up)
@@ -58,10 +55,7 @@ case "$action" in
         exec just stack "$env_name" migrate YES
         ;;
     rollback)
-        [[ "${args[0]:-}" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
-            echo "remote_deploy: rollback needs an image tag like 0.4.0 or sha-5b099f3" >&2
-            exit 2
-        }
+        require_image_tag "${args[0]:-}"
         # The alembic target is as dangerous as the tag and was not checked: `base`
         # downgrades through every revision, dropping every table. Only a concrete
         # revision id or a relative step may come over the key. Going to `base` is done
