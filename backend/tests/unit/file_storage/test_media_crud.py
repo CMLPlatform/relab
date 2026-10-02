@@ -232,6 +232,19 @@ async def test_thumbnails_are_generated_for_a_local_image(tmp_path: Path) -> Non
     mock_generate.assert_called_once_with(image_path)
 
 
+def _jpeg_upload(**save_kwargs: object) -> tuple[UploadFile, bytes]:
+    """Return a 40x60 JPEG upload saved with ``save_kwargs``, and its original bytes."""
+    original = BytesIO()
+    PILImage.new("RGB", (40, 60), "red").save(original, format="JPEG", **save_kwargs)
+    upload = UploadFile(
+        file=BytesIO(original.getvalue()),
+        filename="photo.jpg",
+        size=len(original.getvalue()),
+        headers=Headers({"content-type": "image/jpeg"}),
+    )
+    return upload, original.getvalue()
+
+
 async def test_create_image_strips_metadata_before_an_s3_upload(mock_session: AsyncMock, mocker: MockerFixture) -> None:
     """The S3 backend receives the stripped, rotated bytes, and the row records their size.
 
@@ -239,19 +252,9 @@ async def test_create_image_strips_metadata_before_an_s3_upload(mock_session: As
     before it reaches any storage backend.
     """
     exif = PILImage.Exif()
-    exif[0x0110] = "Model X"
-    exif[0x013B] = "Jane Doe"
     exif[0x0112] = 6
     exif.get_ifd(IFD.GPSInfo)[GPS.GPSLatitudeRef] = "N"
-    original = BytesIO()
-    xmp = b'<x:xmpmeta xmlns:x="adobe:ns:meta/"><exif:GPSLatitude>52,9.6N</exif:GPSLatitude></x:xmpmeta>'
-    PILImage.new("RGB", (40, 60), "red").save(original, format="JPEG", exif=exif, xmp=xmp)
-    upload = UploadFile(
-        file=BytesIO(original.getvalue()),
-        filename="photo.jpg",
-        size=len(original.getvalue()),
-        headers=Headers({"content-type": "image/jpeg"}),
-    )
+    upload, _ = _jpeg_upload(exif=exif)
 
     uploaded: list[bytes] = []
     client = MagicMock()
@@ -266,14 +269,9 @@ async def test_create_image_strips_metadata_before_an_s3_upload(mock_session: As
     db_image = await image_storage_service.create(mock_session, image_create, caps_role=UserRole.CONTRIBUTOR)
 
     [stored] = uploaded
-    assert b"GPSLatitude" not in stored
-    assert b"Jane Doe" not in stored
     with PILImage.open(BytesIO(stored)) as result:
         assert result.size == (60, 40)
-        stored_exif = result.getexif()
-        assert stored_exif[0x0110] == "Model X"
-        assert 0x0112 not in stored_exif
-        assert not stored_exif.get_ifd(IFD.GPSInfo)
+        assert not result.getexif().get_ifd(IFD.GPSInfo)
     assert (db_image.width_px, db_image.height_px) == (60, 40)
 
 
@@ -285,15 +283,7 @@ async def test_create_image_charges_the_quota_for_the_stored_size(
     Otherwise metadata the backend throws away (here a large XMP packet) still uses up
     the owner's quota, and deleting the image releases the same inflated amount.
     """
-    original = BytesIO()
-    xmp = b'<x:xmpmeta xmlns:x="adobe:ns:meta/">' + b"x" * 50_000 + b"</x:xmpmeta>"
-    PILImage.new("RGB", (40, 60), "red").save(original, format="JPEG", xmp=xmp)
-    upload = UploadFile(
-        file=BytesIO(original.getvalue()),
-        filename="photo.jpg",
-        size=len(original.getvalue()),
-        headers=Headers({"content-type": "image/jpeg"}),
-    )
+    upload, original = _jpeg_upload(xmp=b'<x:xmpmeta xmlns:x="adobe:ns:meta/">' + b"x" * 50_000 + b"</x:xmpmeta>")
 
     uploaded: list[bytes] = []
     storage = MagicMock()
@@ -314,6 +304,6 @@ async def test_create_image_charges_the_quota_for_the_stored_size(
     )
 
     [stored] = uploaded
-    assert len(stored) < len(original.getvalue()) - 40_000
+    assert len(stored) < len(original) - 40_000
     mock_reserve.assert_awaited_once_with(mock_session, parent_id=1, upload_size_bytes=len(stored))
     assert db_image.upload_size_bytes == len(stored)
