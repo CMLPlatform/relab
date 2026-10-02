@@ -19,7 +19,7 @@ import { StaticBackground } from '@/components/base/StaticBackground';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
-import { PRODUCT_GRID_INITIAL_ROWS } from '@/features/products/productGridColumns';
+import { PRODUCT_GRID_WINDOWING } from '@/features/products/productGridColumns';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
@@ -203,7 +203,7 @@ export function ProductsListContent({
     >
       <FlatList
         numColumns={numColumns}
-        initialNumToRender={PRODUCT_GRID_INITIAL_ROWS}
+        {...PRODUCT_GRID_WINDOWING}
         // Detaching off-screen views is a native optimisation; on web it would pull
         // cards out of the DOM that find-in-page and screen readers still expect.
         removeClippedSubviews={Platform.OS !== 'web'}

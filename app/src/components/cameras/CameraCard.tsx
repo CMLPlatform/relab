@@ -78,6 +78,10 @@ function CameraCardComponent({
             style={styles.thumbnail}
             contentFit="cover"
             transition={150}
+            // The 5s poll re-versions the URL (?v=); caching keeps the last frame on
+            // remount, and the key stops a recycled cell flashing another camera.
+            cachePolicy="memory-disk"
+            recyclingKey={String(camera.id)}
             onError={handleThumbnailError}
           />
         ) : (

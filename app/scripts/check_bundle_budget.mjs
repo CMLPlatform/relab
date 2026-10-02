@@ -19,6 +19,11 @@ const DIST = new URL('../dist/', import.meta.url).pathname;
 // culori and the lucide icon set, all reachable from the root layout) and entry is
 // 319.9 KB.
 //
+// NOTE: culori is not the app's: Uniwind's web runtime parses colours with it
+// (uniwind/core/web/webUtils), so it stays until Uniwind drops it. Icons are already
+// imported one module each from `lucide-react-native/icons/*` (Icon.tsx); the barrel
+// is only a type import.
+//
 // The budget is the measurement plus roughly 5%: enough that a dependency bump does not
 // cry wolf, tight enough that a new library on the first-load path does. When it fails,
 // either justify the new bytes in the commit or split the import.

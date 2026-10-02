@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { PixelRatio, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
@@ -9,10 +9,14 @@ import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
 import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS, MIN_TAP_TARGET, radius, WEB_FOCUS_RING } from '@/constants';
+import { pickThumbnailUrl } from '@/services/api/media';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { cn } from '@/utils/cn';
 import { getProfileHref } from '@/utils/router/profiles';
+
+/** The `w-20 h-20` thumbnail slot, in points. */
+const THUMBNAIL_PT = 80;
 
 // undefined locale defers to the device's own locale instead of hard-coding en-US.
 const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
@@ -71,12 +75,26 @@ interface Props {
   showOwner?: boolean;
 }
 
+/**
+ * The narrowest derivative that fills the 80pt slot at this density; `thumbnailUrl`
+ * (the smallest, list-size one) when the API listed none.
+ */
+function useThumbnailSource({ thumbnailUrl, thumbnailUrls }: Product) {
+  return useMemo(
+    () => ({
+      uri: pickThumbnailUrl(thumbnailUrls ?? {}, THUMBNAIL_PT * PixelRatio.get()) ?? thumbnailUrl,
+    }),
+    [thumbnailUrls, thumbnailUrl],
+  );
+}
+
 function ProductCardComponent({ product, enabled = true, showOwner = false }: Props) {
   const router = useRouter();
   const theme = useAppTheme();
   const [hadError, setHadError] = useState(false);
 
   const hasThumbnail = !hadError && !!product.thumbnailUrl;
+  const thumbnailSource = useThumbnailSource(product);
   const detailList = useMemo(
     () => [product.brand, product.model, product.productTypeName].filter(Boolean),
     [product.brand, product.model, product.productTypeName],
@@ -127,7 +145,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               >
                 <Image
                   accessibilityIgnoresInvertColors
-                  source={{ uri: product.thumbnailUrl }}
+                  source={thumbnailSource}
                   style={styles.thumbnailImage}
                   contentFit="cover"
                   transition={IMAGE_FADE_MS}

@@ -20,3 +20,16 @@ export function productGridColumns(windowWidth: number): number {
  * there is no getItemLayout.
  */
 export const PRODUCT_GRID_INITIAL_ROWS = 4;
+
+/**
+ * Windowing for the product grids. A batch is one first screen of rows, so a
+ * scroll catches up in small steps instead of FlatList's default ten rows of
+ * cards (thirty on three columns) per frame. The window keeps five screens
+ * either side mounted, down from the default ten: cards stay in the DOM for
+ * find-in-page a good way past the viewport, at half the mounted images.
+ */
+export const PRODUCT_GRID_WINDOWING = {
+  initialNumToRender: PRODUCT_GRID_INITIAL_ROWS,
+  maxToRenderPerBatch: PRODUCT_GRID_INITIAL_ROWS,
+  windowSize: 11,
+} as const;

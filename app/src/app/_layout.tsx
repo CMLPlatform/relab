@@ -41,7 +41,7 @@ import {
   saveProductMutationFn,
 } from '@/features/products/queries';
 import { registerNativeOnlineListener } from '@/services/nativeOnline';
-import { shouldDehydrateQuery } from '@/services/persistedQueryCache';
+import { serializePersistedClient, shouldDehydrateQuery } from '@/services/persistedQueryCache';
 import { QUERY_CACHE_STORAGE_KEY } from '@/services/storage';
 import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { createNavigationThemes, getAppTheme } from '@/theme/themes';
@@ -104,6 +104,7 @@ const persister = createAsyncStoragePersister({
   key: QUERY_CACHE_STORAGE_KEY,
   // Drop the oldest query when a persisted write fails (storage quota).
   retry: removeOldestQuery,
+  serialize: serializePersistedClient,
   throttleTime: 5000,
 });
 

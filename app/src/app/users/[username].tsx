@@ -21,10 +21,7 @@ import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { PageContainer } from '@/components/base/PageContainer';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
-import {
-  PRODUCT_GRID_INITIAL_ROWS,
-  productGridColumns,
-} from '@/features/products/productGridColumns';
+import { PRODUCT_GRID_WINDOWING, productGridColumns } from '@/features/products/productGridColumns';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { useUserProducts } from '@/features/profile/useUserProducts';
 import type { PublicProfileView } from '@/services/api/profiles';
@@ -211,7 +208,7 @@ function ProfileProductList({ username, header }: { username: string; header: Re
       data={items}
       keyExtractor={productKeyExtractor}
       renderItem={renderProduct}
-      initialNumToRender={PRODUCT_GRID_INITIAL_ROWS}
+      {...PRODUCT_GRID_WINDOWING}
       removeClippedSubviews={Platform.OS !== 'web'}
       contentContainerClassName="flex-grow py-4"
       ListHeaderComponent={listHeader}
