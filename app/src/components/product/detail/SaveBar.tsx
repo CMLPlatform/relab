@@ -1,11 +1,23 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { View, type ViewStyle } from 'react-native';
-import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeIn,
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
-import { getImageUploadProgress, subscribeToImageUploadProgress } from '@/services/api/saving';
+import {
+  getImageUploadProgress,
+  type ImageUploadProgress,
+  subscribeToImageUploadProgress,
+} from '@/services/api/saving';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { visuallyHidden } from '@/utils/a11y';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
@@ -133,23 +145,52 @@ export function SaveBar({
           </AppButton>
         </Animated.View>
       ) : null}
-      <AppButton
-        variant="primary"
-        onPress={onPrimaryButtonPress}
-        loading={isSaving && !isPaused}
-        disabled={isSaving || blockedByValidation}
-      >
-        {/* Fields save on blur, so a clean edit form only needs closing. */}
-        {isQueued
-          ? QUEUED_OFFLINE_LABEL
-          : uploadingPhotos
-            ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
-            : editMode
-              ? isDirty
-                ? `Save ${titleLabel}`
-                : 'Done'
-              : `Edit ${titleLabel}`}
-      </AppButton>
+      <View>
+        <AppButton
+          variant="primary"
+          onPress={onPrimaryButtonPress}
+          loading={isSaving && !isPaused}
+          disabled={isSaving || blockedByValidation}
+        >
+          {/* Fields save on blur, so a clean edit form only needs closing. */}
+          {isQueued
+            ? QUEUED_OFFLINE_LABEL
+            : uploadingPhotos
+              ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
+              : editMode
+                ? isDirty
+                  ? `Save ${titleLabel}`
+                  : 'Done'
+                : `Edit ${titleLabel}`}
+        </AppButton>
+        {uploadingPhotos ? <UploadProgressBar progress={uploadingPhotos} /> : null}
+      </View>
+    </View>
+  );
+}
+
+const PROGRESS_STEP = {
+  duration: 300,
+  easing: Easing.bezier(0.16, 1, 0.3, 1),
+  reduceMotion: ReduceMotion.System,
+};
+
+/** Hairline under the save button, filled by the photos already uploaded. */
+function UploadProgressBar({ progress }: { progress: ImageUploadProgress }) {
+  // `current` is the photo in flight, so the ones before it are done.
+  const done = (progress.current - 1) / progress.total;
+  const fill = useSharedValue(0);
+  useEffect(() => {
+    fill.value = withTiming(done, PROGRESS_STEP);
+  }, [done, fill]);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
+  const { colors } = useAppTheme();
+
+  return (
+    // Decorative: the button label and the status region carry the count.
+    <View aria-hidden testID="upload-progress" className="mt-1 h-0.5 overflow-hidden bg-primary/12">
+      {/* Animated.View ignores className, so the fill is styled inline. */}
+      <Animated.View style={[{ height: '100%', backgroundColor: colors.primary }, fillStyle]} />
     </View>
   );
 }

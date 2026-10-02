@@ -2,7 +2,7 @@ import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { AppButton } from './AppButton';
-import { Icon } from './Icon';
+import { DisclosureChevron } from './DisclosureChevron';
 import { Text } from './ui/text';
 
 type DisclosureRowProps = {
@@ -27,8 +27,8 @@ export function DisclosureRow({ label, expanded, onPress, className }: Disclosur
       className={cn('self-start px-2', className)}
     >
       <Text>{label}</Text>
-      <Icon
-        name={expanded ? 'chevron-down' : 'chevron-right'}
+      <DisclosureChevron
+        expanded={expanded}
         size="sm"
         color={VARIANT_FOREGROUND_COLOR.ghost(colors)}
       />

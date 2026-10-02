@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { type ReactNode, useCallback } from 'react';
 import { Pressable, View } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { PRESS_TINT } from '@/components/base/pressFeedback';
@@ -63,7 +64,10 @@ function TrailCrumb({
   }, [router, crumb.role, crumb.id]);
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+    <Animated.View
+      entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+    >
       {/* The breadcrumb is the app's structural spine and was the one control
           the tap-target sweep missed: 13px text with `hitSlop={6}`, which is
           invisible to the DOM on web, and no role, so assistive tech announced
@@ -95,6 +99,6 @@ function TrailCrumb({
         </AppText>
       </Pressable>
       <Icon name="chevron-right" size="sm" color={iconColor} />
-    </View>
+    </Animated.View>
   );
 }

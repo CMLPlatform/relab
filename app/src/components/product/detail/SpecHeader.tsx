@@ -1,5 +1,6 @@
 import { useCallback, useId, useState } from 'react';
 import { View } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { FormFieldError } from '@/components/base/FormField';
 import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
@@ -107,10 +108,15 @@ export function SpecHeader({
       )}
       {saveStatus ? (
         // Not a live region: DocumentChrome already announces "Saved", and
-        // the queued state is toasted.
-        <AppText variant="data" className="text-manila" testID="save-status">
-          {saveStatus}
-        </AppText>
+        // the queued state is toasted. Keyed so each new status fades in rather than swapping in place.
+        <Animated.View
+          key={saveStatus}
+          entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
+        >
+          <AppText variant="data" className="text-manila" testID="save-status">
+            {saveStatus}
+          </AppText>
+        </Animated.View>
       ) : null}
       {identity ? (
         <AppText variant="body" className="text-muted-foreground">

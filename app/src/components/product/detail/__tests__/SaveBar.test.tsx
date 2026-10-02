@@ -185,6 +185,7 @@ test('shows per-photo progress while photos upload mid-save', async () => {
   );
   // Once on the button, once in the polite status region.
   expect(screen.getAllByText('Uploading 2 of 5…')).toHaveLength(2);
+  expect(screen.getByTestId('upload-progress', { includeHiddenElements: true })).toBeTruthy();
 });
 
 test('ignores upload progress while the save is paused offline', async () => {
@@ -204,6 +205,7 @@ test('ignores upload progress while the save is paused offline', async () => {
   );
   expect(screen.getByText('Queued — sends when online')).toBeTruthy();
   expect(screen.queryByText('Uploading 2 of 5…')).toBeNull();
+  expect(screen.queryByTestId('upload-progress', { includeHiddenElements: true })).toBeNull();
 });
 
 test('shows the loading spinner while actually saving (not paused)', async () => {

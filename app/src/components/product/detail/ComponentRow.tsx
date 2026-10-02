@@ -4,7 +4,9 @@ import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
+import { DisclosureChevron } from '@/components/base/DisclosureChevron';
 import { ErrorState } from '@/components/base/ErrorState';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -148,16 +150,28 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
               WEB_FOCUS_RING,
             )}
           >
-            <Icon
-              name={expanded ? 'chevron-down' : 'chevron-right'}
+            <DisclosureChevron
+              expanded={expanded}
               size={20}
               color={palette[theme.scheme].mutedForeground}
             />
           </Pressable>
         ) : null}
       </View>
-      {expandedBody ? <View className="pl-6">{expandedBody}</View> : null}
+      {expandedBody ? <ChildrenReveal>{expandedBody}</ChildrenReveal> : null}
     </View>
+  );
+}
+
+/** Drops in from the row it belongs to, so the new rows read as its children. */
+function ChildrenReveal({ children }: { children: ReactNode }) {
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
+      exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
+    >
+      <View className="pl-6">{children}</View>
+    </Animated.View>
   );
 }
 

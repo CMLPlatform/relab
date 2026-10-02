@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
+import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { DisclosureRow } from '@/components/base/DisclosureRow';
@@ -94,14 +95,28 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
           This {label} has no subcomponents.
         </AppText>
       )}
-      {visibleComponents.map((component) => (
-        <ComponentRow
-          key={component.id}
-          component={component}
-          enabled={!editMode}
-          onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
-        />
-      ))}
+      {visibleComponents.map((component, index) => {
+        const row = (
+          <ComponentRow
+            key={component.id}
+            component={component}
+            enabled={!editMode}
+            onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
+          />
+        );
+        // Rows revealed by "Show more" fade in below the ones already there.
+        return collapsible && index >= VISIBLE_WHEN_COLLAPSED ? (
+          <Animated.View
+            key={component.id}
+            entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
+            exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
+          >
+            {row}
+          </Animated.View>
+        ) : (
+          row
+        );
+      })}
       {collapsible && (
         <DisclosureRow
           label={
