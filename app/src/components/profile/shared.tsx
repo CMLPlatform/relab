@@ -1,9 +1,10 @@
 import type { RefObject } from 'react';
-import { Pressable, type TextStyle, View } from 'react-native';
+import { Platform, Pressable, type TextStyle, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
+import { cn } from '@/utils/cn';
 
 export type OAuthAccount = {
   account_email?: string | null;
@@ -35,7 +36,10 @@ export function ProfileAction({
   return (
     <Pressable
       ref={triggerRef}
-      className="min-h-11 flex-row items-center justify-between px-4 py-2.5"
+      className={cn(
+        'min-h-11 flex-row items-center justify-between px-4 py-2.5 active:bg-primary/12',
+        Platform.select({ web: 'hover:bg-primary/12' }),
+      )}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={title}
