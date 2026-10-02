@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/theme/appThemeContext';
@@ -39,25 +39,50 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   } | null>(null);
   const [dialogVersion, setDialogVersion] = useState(0);
 
-  const alert = useCallback<DialogContextType['alert']>((opts: DialogOptions) => {
-    setOptions({ ...opts, input: false });
+  // One dialog at a time; one raised while another is open waits its turn, so
+  // a burst of failure alerts (several queued saves failing on reconnect)
+  // shows each in order instead of keeping only the last.
+  const openRef = useRef(false);
+  const pendingRef = useRef<DialogOptions[]>([]);
+
+  const show = useCallback((opts: DialogOptions) => {
+    openRef.current = true;
+    setOptions(opts);
     setVisible(true);
     setDialogVersion((version) => version + 1);
   }, []);
 
-  const input = useCallback<DialogContextType['input']>((opts: DialogOptions) => {
-    setOptions({ ...opts, input: true });
-    setVisible(true);
-    setDialogVersion((version) => version + 1);
-  }, []);
+  const open = useCallback(
+    (opts: DialogOptions) => {
+      if (openRef.current) pendingRef.current.push(opts);
+      else show(opts);
+    },
+    [show],
+  );
+
+  const alert = useCallback<DialogContextType['alert']>(
+    (opts: DialogOptions) => open({ ...opts, input: false }),
+    [open],
+  );
+
+  const input = useCallback<DialogContextType['input']>(
+    (opts: DialogOptions) => open({ ...opts, input: true }),
+    [open],
+  );
 
   const toast = useCallback<DialogContextType['toast']>((message: string, action?: ToastAction) => {
     setToastState({ message, action });
   }, []);
 
   const clear = useCallback(() => {
+    const next = pendingRef.current.shift();
+    if (next) {
+      show(next);
+      return;
+    }
+    openRef.current = false;
     setVisible(false);
-  }, []);
+  }, [show]);
 
   const dismissToast = useCallback(() => {
     setToastState(null);

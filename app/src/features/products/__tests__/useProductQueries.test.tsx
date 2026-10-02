@@ -5,7 +5,7 @@ import {
   QueryClientProvider,
   useInfiniteQuery,
 } from '@tanstack/react-query';
-import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { DialogContext } from '@/components/base/dialogContext';
 import {
@@ -30,6 +30,7 @@ import {
 import { searchProductBrands, searchProductTypes } from '@/services/api/productTypes';
 import { deleteProduct, MediaSyncError, saveProduct } from '@/services/api/saving';
 import { baseProduct } from '@/test-utils/fixtures';
+import { renderWithProviders } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 type ProductsModule = typeof import('@/services/api/products');
@@ -711,6 +712,29 @@ describe('useProductQueries', () => {
         message: expect.stringContaining('"Kettle" was not created.'),
       }),
     );
+  });
+
+  it('shows every restored create failure, one after another', async () => {
+    await renderWithProviders(<ResumedSaveNotice />, { withDialog: true });
+    const onError = onResumedSaveError(queryClient);
+    const variables = (name: string) => ({
+      product: { ...baseProduct, id: undefined, name },
+      originalImages: [],
+      originalVideos: [],
+    });
+
+    await act(async () => {
+      onError(new ApiError('Unauthorized', 401), variables('Kettle'));
+      onError(new ApiError('Unauthorized', 401), variables('Toaster'));
+    });
+
+    expect(screen.getByText('"Kettle" was not created', { exact: false })).toBeOnTheScreen();
+    await act(async () => {
+      fireEvent.press(screen.getByText('OK'));
+    });
+    expect(
+      await screen.findByText('"Toaster" was not created', { exact: false }),
+    ).toBeOnTheScreen();
   });
 
   it('alerts when a restored save landed but its photos failed', async () => {

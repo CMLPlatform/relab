@@ -269,6 +269,29 @@ describe('DialogProvider', () => {
     expect(screen.getByText('Second Title')).toBeOnTheScreen();
   });
 
+  // Several queued creates can fail in one reconnect; each failure alert must
+  // be seen, not overwritten by the next.
+  it('queues an alert raised while another is open, and shows it after the first closes', async () => {
+    function TwoAlerts() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => {
+        dialog.alert({ title: 'First failure', buttons: [{ text: 'OK' }] });
+        dialog.alert({ title: 'Second failure', buttons: [{ text: 'Dismiss' }] });
+      });
+    }
+
+    await renderWithProviders(<TwoAlerts />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+
+    expect(screen.getByText('First failure')).toBeOnTheScreen();
+    expect(screen.queryByText('Second failure')).toBeNull();
+
+    await user.press(screen.getByText('OK'));
+
+    expect(await screen.findByText('Second failure')).toBeOnTheScreen();
+    expect(screen.queryByText('First failure')).toBeNull();
+  });
+
   it('pressing a button with no onPress closes the dialog without throwing', async () => {
     function Test() {
       const dialog = useDialog();
