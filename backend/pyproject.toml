@@ -117,6 +117,9 @@
     "dirty-equals>=0.8.0", # Flexible assertions for dynamic data
     "pytest-mock>=3.14.0", # Better mocking with cleaner pytest integration
   ]
+mutation = [
+    "mutmut>=3.8.0",
+]
 
 ### Tool configuration
 [tool.alembic]
@@ -289,3 +292,13 @@
 
   [tool.uv.exclude-newer-package]
     relab-rpi-cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay
+
+[tool.mutmut]
+  # Scheduled weekly in .github/workflows/ops.yml; run locally with `just mutation`.
+  also_copy                          = [".env.test", "Dockerfile", "alembic", "data/seed", "scripts", "tests"]
+  # Script tests read repo-root files outside the mutants copy, and scripts are not mutated.
+  pytest_add_cli_args_test_selection = ["tests/unit", "tests/integration", "--ignore=tests/unit/scripts"]
+  # Log calls only change diagnostics; their mutants would all survive.
+  do_not_mutate_patterns             = ['^\s*(logger|logging)\.\w+\(']
+  do_not_mutate                      = ["app/__init__.py", "app/__version__.py", "app/main.py"]
+  source_paths                       = ["app"]

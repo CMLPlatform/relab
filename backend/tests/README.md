@@ -50,3 +50,11 @@ camera setup -> record -> persist. Keep them sparse; they are slower than the ot
 - Break what a new test covers and watch it fail before trusting it.
 - To find gaps, replace a guard with `if False:` and run `tests/unit tests/integration`. One that
   breaks nothing is untested, or covered only by an assertion another path also satisfies.
+
+## Mutation testing
+
+`just mutation` runs mutmut over `app/` against one throwaway Postgres; the Ops workflow runs it
+weekly and uploads the survivor list. It never fails on survivors. It lists the functions with more
+survivors than `tests/mutation-baseline.txt`: add the missing assertion, or rebaseline with
+`just mutation-baseline` when the survivor is deliberate (a guard for a state that cannot occur).
+Pass mutant globs to narrow a local run: `just mutation 'app.core.images*'`.
