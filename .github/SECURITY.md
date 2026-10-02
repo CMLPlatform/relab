@@ -16,8 +16,6 @@ Instead, email [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl) with:
 - For confirmed vulnerabilities, we coordinate a fix and a disclosure timeline with the reporter
   where practical.
 
-Include enough detail for us to reproduce the problem.
-
 ## Security Baseline
 
 Relab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the
@@ -25,9 +23,10 @@ Relab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-securi
 lens for product decisions. Keep controls simple, reviewable, and documented near the behavior they
 protect.
 
-For the deployed security posture, trust-boundary model, egress policy, browser runtime policy, and
-supply-chain artifact posture, see
-[Security and hardening](https://docs.cml-relab.org/operations/security/).
+[Security and hardening](https://docs.cml-relab.org/operations/security/) is the reference for the
+deployed security posture: assets and data classes, account privileges, the edge and application
+rate limits, the trust boundaries, the egress policy, the browser runtime policy, and the supply
+chain. This page holds what a reviewer of a change needs on top of it.
 
 Review security-sensitive changes against this baseline:
 
@@ -44,11 +43,7 @@ Review security-sensitive changes against this baseline:
 Security-sensitive areas:
 
 - authentication and OAuth
-- rate limits: anonymous requests are keyed per client IP. Read, write, and upload limits key a
-  request that carries a live access token per user instead, with a budget sized for a room
-  sharing one account and one IP.
-  - The token only selects the bucket. An unknown or expired token falls back to the IP bucket, so
-    rotating forged tokens never buys a fresh budget.
+- rate limits (the buckets and numbers are in the security reference)
   - Password login is limited per IP and by failed attempts per account, so a shared account is
     not locked by use while guessing stays capped per account.
   - The MFA login challenge and every signed-in re-authentication (account deletion, email and
@@ -92,33 +87,14 @@ Security-sensitive areas:
   Environment that holds one requires a reviewer; in prod that reviewer is also the release
   gate. Hosts check image provenance with `just images-verify` before pulling a tag.
 
-Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files,
-OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup
-material, and runtime secrets.
-
 The product/component catalog and its research content are world-readable; the platform exists to
 publish that data. `profile_visibility` hides owner identity attribution only. It is not a control
 over the research content and must never be treated as one.
 
-Account privileges are three independent things; conflating any two of them is a privilege
-escalation:
-
-- `is_verified` gates whether an account may create records at all.
-- `is_superuser` grants the `/admin` routes and moderation of other contributors' products
-  (correcting and deleting, never adding content). Every superuser power needs TOTP MFA enrolled
-  on the account (`User.has_admin_access`): the admin routes refuse a superuser without it, and
-  off them such an account is treated as an ordinary user. Every superuser also holds the `lab`
-  tier, so an administrator can exercise every upload path on their own products: the
-  `ck_user_superuser_is_lab` constraint enforces it, and the role route refuses to demote a
-  superuser.
-- `role` (`contributor` by default, `lab`) is the contributor tier. It gates non-image
-  research-file upload and selects the upload quota tier, charged to the product owner, and the
-  per-image size and pixel caps, which follow the uploader so the app can fit photos to them.
-
-Only a superuser assigns roles, through `PUT /v1/admin/users/{user_id}/role`, which records an
-audit event. Keep `role` off `UserUpdate`: fastapi-users' safe update path strips a fixed set of
-privileged fields, so any new field on that schema flows through self-service `PATCH /users/me`.
-New and backfilled accounts start at `contributor`, so the tier fails closed.
+`is_verified`, `is_superuser`, and `role` are three independent account privileges; the security
+reference defines each. Conflating any two of them is a privilege escalation. Keep `role` off
+`UserUpdate`: fastapi-users' safe update path strips a fixed set of privileged fields, so any new
+field on that schema flows through self-service `PATCH /users/me`.
 
 ## Automated Checks
 
