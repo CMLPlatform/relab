@@ -10,17 +10,16 @@ To use Relab without any local setup, open [app.cml-relab.org](https://app.cml-r
 ## Self-hosting
 
 This page covers running the stack yourself: for evaluation, institutional deployment, offline
-use, or local development. For contributor workflow and tooling policy, see
+use, or local development. For contributor workflow and tooling, see
 [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md).
 
 ### Prerequisites
 
 - [Docker Desktop](https://docs.docker.com/get-started/get-docker/)
-- [`just`](https://just.systems/man/en/) is optional but recommended
-- Contributing code additionally requires [`uv`](https://docs.astral.sh/uv/), Node and pnpm at the
-  versions pinned in `.node-version` and `package.json`. See step 2 below and
-  [CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md)
-- PostgreSQL 18 when using an external database; the bundled compose stack ships it.
+- [`just`](https://just.systems/man/en/), optional but recommended
+- To change code: [`uv`](https://docs.astral.sh/uv/), and Node and pnpm at the versions pinned in
+  `.node-version` and `package.json`
+- PostgreSQL 18, only for an external database; the bundled Compose stack includes it
 
 ## Local Docker setup
 
@@ -43,9 +42,9 @@ use, or local development. For contributor workflow and tooling policy, see
    just deploy-secrets-template dev
    ```
 
-   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email,
-   or bootstrap settings. Replace values under `secrets/dev/` only when you need real local
-   credentials for integrations.
+   Runtime secrets live in the gitignored `secrets/dev/`; replace a value there only when you need
+   a real credential for an integration. For backend-only overrides such as OAuth, email, or the
+   bootstrap superuser, create `backend/.env.dev`:
 
    ```text title="backend/.env.dev"
    GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id
@@ -58,16 +57,15 @@ use, or local development. For contributor workflow and tooling policy, see
    BOOTSTRAP_SUPERUSER_EMAIL=you@example.com
    ```
 
-1. Start the containerized database/cache and run the first migration pass.
+1. Start the database and cache, then run the migrations.
 
    ```bash
    just dev-db
    just dev-migrate
    ```
 
-   To seed sample data during migrations, run `SEED_DUMMY_DATA=true just dev-migrate`.
-
-   If you also need CPV or HS taxonomy seeding in the migration container:
+   To seed sample data, run `SEED_DUMMY_DATA=true just dev-migrate`. To seed the CPV or HS
+   taxonomies too:
 
    ```bash
    BACKEND_MIGRATIONS_INCLUDE_TAXONOMY_SEED_DEPS=true just dev-migrate
@@ -79,7 +77,7 @@ use, or local development. For contributor workflow and tooling policy, see
    just dev
    ```
 
-   If you do not want file watching, use `just dev-up` instead.
+   `just dev-up` starts the stack without file watching.
 
 1. Open the local services.
 
@@ -94,22 +92,21 @@ use, or local development. For contributor workflow and tooling policy, see
    curl http://127.0.0.1:8010/health
    ```
 
-1. Run checks if needed.
+1. To run the checks:
 
    ```bash
    just ci
-   just test
    ```
 
 ## Production and staging deployment
 
-The stack runs on one host behind a Cloudflare Tunnel, so the host needs no public ports. Deploys
-are three commands on the server: pull the repo, pick a published image tag, start the stack. They can be run there, or
-sent from another machine over an ssh key whose forced command is `scripts/remote_deploy.sh`, which
-allows exactly those steps and nothing else (see `deploy/DEPLOY-PROD.md` Part 1.6). Every command
-runs as `just stack <prod|staging> <command>`, and a state-changing command takes `YES` to confirm
-which host it acts on. [Deployment and operations](/operations/deployment/) describes
-the topology these steps produce.
+The stack runs on one host behind a Cloudflare Tunnel, so the host needs no public ports. A deploy
+is three commands on the server: pull the repository, pick a published image tag, start the stack.
+You can also send them from another machine over an ssh key whose forced command is
+`scripts/remote_deploy.sh`, which allows those steps and nothing else (see `deploy/DEPLOY-PROD.md`
+Part 1.6). Every command runs as `just stack <prod|staging> <command>`. A command that changes state
+takes `YES` to confirm which host it acts on. [Deployment and operations](/operations/deployment/)
+describes the topology these steps produce.
 
 1. Create a Cloudflare Tunnel, one of two ways.
 
@@ -118,13 +115,12 @@ the topology these steps produce.
      hostnames are Workers Custom Domains instead (step 5).
 
    - **With OpenTofu:** `infra/cloudflare/` manages the DNS records, the tunnels, and the ingress
-     rules. Export the credentials, then plan and apply per environment:
+     rules. Its
+     [README](https://github.com/CMLPlatform/relab/blob/main/infra/cloudflare/README.md) lists the
+     credentials, the API token scopes, and the state encryption passphrase. With those exported,
+     plan and apply per environment:
 
      ```bash
-     export CLOUDFLARE_API_TOKEN='...'
-     export TF_VAR_cloudflare_account_id='...'
-     export TF_VAR_cloudflare_zone_id='...'
-     export TF_VAR_cloudflare_zone_name='example.org'
      just cloudflare-check
      just cloudflare-plan prod
      just cloudflare-apply prod       # plans and saves it; review the diff
@@ -132,14 +128,12 @@ the topology these steps produce.
      ```
 
      :::danger
-     Only apply against a greenfield zone, or after importing the existing DNS records, tunnels,
-     and rulesets into OpenTofu state. Applying against a hand-configured zone duplicates DNS
-     records, creates a second tunnel whose token does not match `CLOUDFLARE_TUNNEL_TOKEN`, and
-     can overwrite existing rulesets, since each Cloudflare phase allows one ruleset per zone.
+     Apply only against a new zone, or after you import the existing DNS records, tunnels, and
+     rulesets into OpenTofu state (see the README's import workflow). Otherwise the apply
+     duplicates DNS records and creates a second tunnel whose token does not match
+     `CLOUDFLARE_TUNNEL_TOKEN`. It can also overwrite existing rulesets, because each Cloudflare
+     phase allows one ruleset per zone.
      :::
-
-     Keep prod and staging state separate. Do not commit Cloudflare tokens, tunnel tokens, or
-     state files.
 
    Either way, copy the tunnel token for the next step.
 
@@ -169,11 +163,11 @@ the topology these steps produce.
    - `MALWARE_SCAN_ENABLED`: `true` starts ClamAV with the stack, see step 6.
 
    Upload quotas: `MAX_UPLOAD_FILES_PER_USER` and `MAX_UPLOAD_BYTES_PER_USER_MB` cap `contributor`
-   accounts; the `*_LAB_USER*` pair caps `lab` accounts and must not be lower. The quota counts
-   existing rows, so on a host with existing data raise the limits before the first start; an owner
-   already above the limit cannot upload at all. Every account starts as `contributor`; a superuser
-   promotes lab members with
-   `PUT /v1/admin/users/{user_id}/role` and body `{"role": "lab"}`.
+   accounts. The `*_LAB_USER*` pair caps `lab` accounts and must not be lower. The quota counts
+   existing rows, so on a host with existing data, raise the limits before the first start: an
+   owner already above the limit cannot upload at all. Every account starts as `contributor`. A
+   superuser promotes lab members with `PUT /v1/admin/users/{user_id}/role` and the body
+   `{"role": "lab"}`.
 
    Per-image caps: `MAX_IMAGE_UPLOAD_SIZE_MB` and `MAX_IMAGE_UPLOAD_PIXELS` cap `contributor`
    images (10 MB, 12.6 MP); `MAX_IMAGE_UPLOAD_SIZE_LAB_MB` and `MAX_IMAGE_UPLOAD_PIXELS_LAB` cap
@@ -200,10 +194,10 @@ the topology these steps produce.
 
 1. Publish the images.
 
-   The hosts pull their images from GHCR instead of building them, and the landing page and docs
-   are served by Cloudflare Workers. The backend images work for any deployment, but the app,
-   landing page and docs bake their public URLs in at build time, so a deployment on another domain
-   publishes its own from a fork:
+   The hosts pull their images from GHCR instead of building them, and Cloudflare Workers serve
+   the landing page and docs. The backend images work for any deployment. The app, landing page,
+   and docs bake their public URLs in at build time, so a deployment on another domain publishes
+   its own from a fork:
 
    - In the fork's settings, create a GitHub Environment named `prod` (and `staging` if you run
      one) with the variables `API_PUBLIC_URL`, `APP_PUBLIC_URL`, `SITE_PUBLIC_URL` and
@@ -233,13 +227,13 @@ the topology these steps produce.
 
 1. Start the stack.
 
-   The `migrations` profile runs the migrator first and starts the API only after it exits 0, so
-   use it on every start that may carry schema changes, including the first.
+   The `migrations` profile runs the migrator first and starts the API only after it exits 0. Use
+   it on every start that may carry schema changes, including the first.
 
-   ClamAV upload scanning is on by default (`MALWARE_SCAN_ENABLED=true` in `.env.example`), and
-   `up` starts the scanner whenever that setting is not `false`. ClamAV needs roughly 3-4 GiB of
-   extra RAM. Its signature database persists in the `clamav_db` volume; the first boot with an
-   empty volume takes several minutes to download it.
+   ClamAV upload scanning is on by default (`MALWARE_SCAN_ENABLED=true` in `.env.example`): `up`
+   starts the scanner unless that setting is `false`. ClamAV needs about 3–4 GiB of extra RAM. Its
+   signature database persists in the `clamav_db` volume; the first boot with an empty volume takes
+   several minutes to download it.
 
    ```bash
    just stack prod up YES migrations
@@ -256,38 +250,49 @@ the topology these steps produce.
 
 1. Verify.
 
-   `/live` on the API is the shallow process check Compose uses; `/health` also checks PostgreSQL
-   and Redis. Then log in as the bootstrap superuser, enrol two-factor authentication in the account
-   settings (the `/admin` routes refuse a superuser without it), and try one upload.
+   `/live` on the API is the shallow process check that Compose uses; `/health` also checks
+   PostgreSQL and Redis. Log in as the bootstrap superuser and enrol two-factor authentication in
+   the account settings: the `/admin` routes refuse a superuser without it. Then try one upload.
 
    ```bash
    just stack prod logs
    ```
 
-1. Upgrade later with the same commands: pull a known-good revision, `just stack prod tag YES <tag>`,
-   then `just stack prod up YES migrations`. A failed migration does not leave the old API
-   serving: `up` exits non-zero naming the migrator, with the new API either not started or running
-   on the unfinished schema, so fix forward or roll back. If the
-   migrator stops on an unresolvable revision, the database's `alembic_version` predates the
-   2026-09-08 flatten: bring the host to `a9c2e4f60b18` on a release from before the flatten, or
-   restore from backup, before continuing. To return to
-   the previous release, `just stack prod rollback YES <tag>` pulls that release's images and
-   restarts on them; add the previous alembic revision to downgrade the schema too
-   (revisions before `a9c2e4f60b18` were flattened away and cannot be targeted), which the recipe
-   allows only when no migration in between dropped or rewrote data. `just stack prod down YES` stops
-   the stack.
+1. Upgrade later with the same commands: pull a known-good revision, run
+   `just stack prod tag YES <tag>`, then `just stack prod up YES migrations`.
 
-   Before starting anything, `up` probes the three mounts the stack writes to, each as the service
-   that writes it: the `user_uploads` and `restic_cache` volumes, and the restic bind mount. It
-   refuses to start when one is not writable by UID 65532, because reads and `stat` still succeed on
-   a wrongly-owned mount and only the writes fail. Docker sets a named volume's ownership when it first creates the volume and
-   never again, so a host whose volumes were created by a release that ran as a different UID needs a
-   one-time chown, with the stack down:
+   A failed migration does not leave the old API serving. `up` exits non-zero and names the
+   migrator; the new API is either not started or running on the unfinished schema. Fix forward or
+   roll back:
 
    ```bash
-   env=prod                        # or staging
+   just stack prod rollback YES <tag>              # earlier release's images, current schema
+   just stack prod rollback YES <tag> <revision>   # also downgrade the schema to <revision>
+   ```
+
+   The schema downgrade runs only when no migration in the range dropped or rewrote data. The
+   migration history was flattened into `a9c2e4f60b18` on 2026-09-08, so older revisions cannot be
+   targeted. If the migrator stops on an unresolvable revision, the database predates that flatten:
+   bring it to `a9c2e4f60b18` on a release from before the flatten, or restore from backup.
+   `deploy/DEPLOY-PROD.md` Part 3 covers recovery in detail. `just stack prod down YES` stops the
+   stack.
+
+   Before it starts anything, `up` checks that UID 65532 can write the three mounts the stack
+   writes to: the `user_uploads` and `restic_cache` volumes and the restic bind mount. Reads and
+   `stat` still succeed on a wrongly-owned mount, so without this check only uploads and backups
+   would fail. Docker sets a named volume's ownership only when it creates the volume. A host whose
+   volumes were created by a release that ran as a different UID needs a one-time chown.
+
+   Take the safety backup before `down`: a manual backup does not start PostgreSQL. Switch the tag
+   first, so the backup runs on the new image:
+
+   ```bash
+   env=prod                          # or staging
+   just stack "$env" tag YES <tag>
+   sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"   # a host bind: safe with the stack up
+   just backup "$env" manual         # tagged, so retention cannot expire it
    just stack "$env" down YES
-   sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
+   # Run as uid 0 in a container, so the host needs no knowledge of where Docker keeps volumes.
    for volume in user_uploads restic_cache; do
        docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
            busybox chown -R 65532:65532 /mnt
@@ -297,13 +302,13 @@ the topology these steps produce.
 
 ### First backup
 
-The backup container runs as UID 65532. Create the restic directory before the first backup — the
-service refuses to start if it's missing (`create_host_path: false`), rather than let Docker create
-an empty one indistinguishable from a real mount.
+The backup container runs as UID 65532. Create the restic directory before the first backup. The
+service refuses to start without it (`create_host_path: false`), so Docker cannot create an empty
+directory that looks like a real mount.
 
-Creating the restic repository is a separate, one-time step. Backup runs never create one — see
-"Backup repository" in `deploy/DEPLOY-PROD.md` for why, and do not run `backup-init` against a host
-that already has backups.
+Creating the restic repository is a separate, one-time step: backup runs never create one.
+"Backup repository" in `deploy/DEPLOY-PROD.md` explains why. Do not run `backup-init` on a host that
+already has backups.
 
 ```bash
 mkdir -p "${BACKUP_HOST_DIR:-./backups}/restic"
@@ -314,16 +319,19 @@ just restore-check prod   # restores that snapshot: DB into a scratch container,
 ```
 
 The repository is encrypted with `secrets/prod/restic_password`. Never rotate it: every later
-snapshot depends on it. Before anything destructive, take a tagged backup with
-`just backup prod manual`; the `manual` tag is exempt from retention.
+snapshot depends on it.
+
+Before anything destructive, take a tagged backup with `just backup prod manual`. The `manual` tag
+is exempt from retention. An untagged copy is not safe: as snapshots age, retention keeps only the
+newest one per calendar day, so it can expire the same day.
 
 ### Scheduling backups
 
 Starting the stack does **not** schedule backups. A systemd timer on the host runs the one-shot
-backup service every hour; a second daily timer does repository upkeep (retention, integrity check,
-offsite copy). Install all four scheduled jobs (backup, backup-maintenance, watchdog, restore-check)
-once per environment. The installer renders the committed units with this host's checkout path,
-deploy user, and `just` location, then enables the timers:
+backup service every hour. A second, daily timer does repository upkeep: retention, the integrity
+check, and the offsite copy. Install all four scheduled jobs (backup, backup-maintenance, watchdog,
+restore-check) once per environment. The installer renders the committed units with this host's
+checkout path, deploy user, and `just` location, then enables the timers:
 
 ```bash
 just timers-render                        # inspect what will be installed
@@ -332,24 +340,25 @@ systemctl list-timers 'relab-*@staging.timer'   # confirm NEXT times are schedul
 ```
 
 The installer also seeds `/etc/relab/relab.env` with empty `PING_*` URLs. Fill in `PING_WATCHDOG`
-with a [healthchecks.io](https://healthchecks.io) check URL; the hourly watchdog reports every other
-job's state through it, and the other three are optional per-job checks. Until you do, job failures
-are invisible outside the host, and `just watchdog <env>` keeps saying so. With a dedicated deploy
-user, run the installer from an account with sudo as `RELAB_UNIT_USER=<user> just timers-install <env>`.
+with a [healthchecks.io](https://healthchecks.io) check URL. The hourly watchdog reports every other
+job's state through it; the other three URLs are optional per-job checks. Until you fill it in, job
+failures are invisible outside the host, and `just watchdog <env>` reports that. So does a host
+without the timers.
 
-Without the timers there are no recurring backups; `just watchdog <env>` reports that.
+With a dedicated deploy user, run the installer from an account with sudo:
+`RELAB_UNIT_USER=<user> just timers-install <env>`.
 
 ### Optional WebDAV offsite backups
 
-The offsite path is a second restic repository copied from the local one, over restic's rclone
-backend.
+The offsite copy is a second restic repository, copied from the local one over restic's rclone
+backend. Do not mirror the repository directory with rsync or rclone yourself.
 
 1. Write `secrets/<env>/rclone.conf` with exactly one WebDAV remote. The remote's root is the
-   repository; the backup uses it as `rclone:<remote>:` with no path. `just deploy-secrets-check`
+   repository: the backup uses it as `rclone:<remote>:`, with no path. `just deploy-secrets-check`
    warns while the file still holds the placeholder.
 
-   The daily maintenance job then copies snapshots offsite, initializing the offsite repository on
-   first run.
+   The daily maintenance job then copies snapshots offsite. It creates the offsite repository on
+   its first run.
 
 1. To copy snapshots on demand, for example right after a one-off local backup:
 
@@ -359,30 +368,23 @@ backend.
 
 ### Optional: central telemetry
 
-Prod and staging can ship to a central monitoring stack (Grafana + Loki + Tempo + Prometheus):
+Prod and staging can ship to a central monitoring stack (Grafana, Loki, Tempo, and Prometheus).
+Set `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTLP_AUTH_TOKEN`, and `TELEMETRY_EDGE_KEY` in the host's root
+`.env`; your monitoring operator supplies them. `just stack <env> up` then includes
+`compose.telemetry.yml`. Hosts without the endpoint ship nothing, and `docker logs` stays the only
+log path.
 
-1. Set `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTLP_AUTH_TOKEN` and `TELEMETRY_EDGE_KEY` in the host's root
-   `.env`; your monitoring operator supplies them (`.env.example` describes each). This turns on
-   the backend's OpenTelemetry exporter and a Grafana Alloy agent that forwards every other
-   container's stdout over the same OTLP endpoint.
-
-1. `just stack <env> up` includes `compose.telemetry.yml` when the endpoint is non-empty. Hosts
-   without it ship nothing; `docker logs` stays the only log path.
-
-See [Deployment and operations](/operations/deployment/#telemetry) for what each variable does
-and how Alloy is sandboxed.
+[Deployment and operations](/operations/deployment/#telemetry) describes each variable and how the
+Alloy agent is sandboxed.
 
 ## Raspberry Pi camera plugin
 
 For camera-assisted capture, install the
-[Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
-
-The RPi connects outbound to the backend over a WebSocket relay, so it needs no public IP or port
-forwarding. To pair automatically, set `PAIRING_BACKEND_URL` on the RPi, boot it, and enter the
-displayed pairing code in the app. On a headless Pi, read the code from its local `/setup` page or
-from the `PAIRING READY` log line over SSH, `docker compose logs`, or `journalctl`. See the
-[plugin install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md),
-the [platform camera guide](/user-guides/rpi-cam/), and the [API reference](/api-reference/).
+[Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin) with its
+[install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md). The
+Pi connects outbound to the backend over a WebSocket relay, so it needs no public IP or port
+forwarding. Set `PAIRING_BACKEND_URL` on the Pi, then pair it as the
+[platform camera guide](/user-guides/rpi-cam/) describes.
 
 ## Need help?
 

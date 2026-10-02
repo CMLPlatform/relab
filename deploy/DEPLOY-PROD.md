@@ -1,8 +1,9 @@
 # Operating the production host
 
 What is specific to the CML production host: one-time host setup, the routine release loop, and
-recovery. The generic procedure (env files, secrets, first start, timers, offsite, telemetry) is the
-install guide, `docs/src/content/docs/operations/install.md`; this file does not repeat it.
+recovery. The generic procedure (env files, secrets, first start, upgrades, timers, offsite,
+telemetry) is in the install guide, `docs/src/content/docs/operations/install.md`. This file does not
+repeat it.
 
 Staging equivalent: [DEPLOY-STAGING.md](DEPLOY-STAGING.md). Rehearse there first.
 
@@ -16,9 +17,10 @@ alert.
 ### 1.0 Docker daemon log rotation (fallback)
 
 The Compose files cap every stack service's logs (`max-size: 10m`, `max-file: 3`). Set the same
-defaults host-wide so a container started outside the stack (a debug `docker run`, a second project)
-cannot fill the disk either. Merge into `/etc/docker/daemon.json` (add the key to an existing
-file, do not replace it), then restart dockerd in a maintenance moment. Daemon defaults apply only to containers created afterwards:
+defaults host-wide, so a container started outside the stack (a debug `docker run`, a second
+project) cannot fill the disk either. Merge these keys into `/etc/docker/daemon.json`; do not replace
+an existing file. Then restart dockerd in a maintenance window. Daemon defaults apply only to
+containers created afterwards:
 
 ```json
 "log-driver": "json-file",
@@ -30,15 +32,9 @@ Skipping this loses nothing for the stack itself; the compose caps stay authorit
 ### 1.1 Backup repository
 
 Follow "First backup" in the install guide (`mkdir`/`chown 65532`, `just backup-init prod`,
-`just backup prod`, `just restore-check prod`).
+`just backup prod`, `just restore-check prod`). **The repository is never created automatically.**
 
-**The repository is never created automatically.** Create it once, before the first backup:
-
-```bash
-just backup-init prod
-```
-
-That also stamps the uploads volume with `.relab-volume`, naming its environment. A backup then
+`backup-init` also stamps the uploads volume with `.relab-volume`, naming its environment. A backup then
 refuses to run if the marker is missing or wrong: a deleted volume returns silently empty and the
 API refills it at startup, so existence alone proves nothing about the data inside. Do not re-run
 `backup-init` to silence this — it fails against an existing repository.
@@ -134,9 +130,8 @@ had a backup.
 would share a restic directory. It fails closed, but only one of them gets backups. Give each host a
 single environment.
 
-**Before anything destructive, take a tagged backup:** `just backup prod manual`. Retention keeps
-only the newest snapshot per calendar day once snapshots age, so an untagged safety copy can expire
-the same day it was taken.
+**Before anything destructive, take a tagged backup:** `just backup prod manual` (see "First
+backup" in the install guide for why the tag matters).
 
 ### 1.2 Scheduled jobs
 
@@ -144,9 +139,9 @@ the same day it was taken.
 just timers-install prod      # render, install, enable, start (prompts for sudo; not `sudo just`)
 ```
 
-The units run as whoever runs that command. On a host with a dedicated, sudo-less deploy user,
-run it from an account that has sudo and name the deploy user; the units then run as it, own
-`/etc/relab/relab.env`, and find its per-user `uv` through the rendered `PATH`:
+The units run as whoever runs that command. On a host with a dedicated, sudo-less deploy user
+(1.6), run it from an account that has sudo and name the deploy user. The units then run as that
+user, it owns `/etc/relab/relab.env`, and the rendered `PATH` finds its per-user `uv`:
 
 ```bash
 RELAB_UNIT_USER=relab just timers-install prod
@@ -313,12 +308,11 @@ ______________________________________________________________________
 The host runs prod from a checkout nobody edits, as a sudo-less account, and is only ever *reached*
 from the operator's machine; credentials and working trees stay there.
 
-**Run recipes as that account: `sudo -u relab just <recipe> prod`.** Plain `sudo just` runs as root,
-which git refuses against a checkout `relab` owns — the watchdog's drift check then reports the
-directory as not a checkout at all. `just timers-install` is the one exception and inverts the rule:
-it refuses to run as root and calls `sudo` itself, so run it from your own sudo-capable account as
-`RELAB_UNIT_USER=relab just timers-install prod`. `sudo -u relab` fails there, because `relab` is a
-system account with no password to answer that inner prompt.
+**Run recipes as that account: `sudo -u relab just <recipe> prod`.** Plain `sudo just` runs as
+root, and git refuses a checkout that `relab` owns: the watchdog's drift check then reports the
+directory as not a checkout at all. `just timers-install` is the one exception (1.2). It refuses to
+run as root and calls `sudo` itself, and `relab` is a system account with no password to answer
+that prompt.
 
 ```bash
 sudo useradd --system --create-home --home-dir /var/lib/relab --shell /bin/bash --groups docker relab
@@ -368,73 +362,45 @@ prints the allow-list. On the host itself the steps are `git pull --ff-only`, `j
 YES <tag>`, `just stack prod up YES migrations` as the deploy user; run `just images-verify prod
 <tag>` on the dev host first.
 
-The images come from the release: publishing it on GitHub starts `release.yml`, which publishes
-them to GHCR (`publish-images.yml`), so wait for that run to finish. `tag` pulls every image before it writes
-`IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. `up` never pulls: it
-runs the images `tag` pulled, so a tag moved on GHCR afterwards cannot reach the host on a restart.
-`images-verify` checks each image's build provenance; it reads the images from GHCR with Docker's
-credentials, so they must be public (or `docker login ghcr.io` first). To try a commit before a
-release, run the Publish Images workflow on it by hand and use its `sha-<short sha>` tag.
+The images come from the release. Publishing it on GitHub starts `release.yml`, which publishes
+them to GHCR (`publish-images.yml`); wait for that run to finish. `tag` pulls every image before it
+writes `IMAGE_TAG`, so an unpublished tag stops there with the stack untouched. `up` never pulls: it
+runs the images that `tag` pulled, so a tag moved on GHCR afterwards cannot reach the host on a
+restart. `images-verify` checks each image's build provenance. It reads the images from GHCR with
+Docker's credentials, so they must be public (or run `docker login ghcr.io` first). To try a commit
+before a release, run the Publish Images workflow on it by hand and use its `sha-<short sha>` tag.
 
 The landing page and docs are not on this host: the same release deploys them to Cloudflare
-Workers (`deploy-sites.yml`). Staging's go first; prod's wait in the release run until you approve
-them, so check staging before you do. Prod is never rebuilt unattended: to show a changed
-featured product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment), run
-Deploy Sites by hand for `prod` on `main` and approve it. Staging rebuilds weekly on its own.
+Workers (`deploy-sites.yml`). Staging's go first. Prod's wait in the release run until you approve
+them, so check staging before you do. Prod is never rebuilt unattended. To show a changed featured
+product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment), run Deploy Sites by
+hand for `prod` on `main` and approve it. Staging rebuilds weekly on its own.
 
-The `migrations` profile is the routine path: the API waits for the migrator to finish before it
-starts. A failed migration does not leave the old API serving: `up` has already replaced it, so the
-new API either stays in `Created` or, when the migrator ran and exited non-zero, starts on the
-unfinished schema. `up` exits non-zero and names the migrator in both cases; fix forward or roll
-back (Part 3). Without the profile you get a two-step that briefly serves against the old schema,
-acceptable during a planned outage, not for a routine release.
+The install guide's upgrade step covers what a failed migration does and the 2026-09-08 flatten.
+Without the `migrations` profile, the API briefly serves against the old schema: acceptable during a
+planned outage, not for a routine release.
 
-A migrator that stops on an unresolvable revision means the database's `alembic_version` predates
-the 2026-09-08 flatten: nothing is corrupted, but the chain no longer contains that id. Bring the
-host to `a9c2e4f60b18` on a release from before the flatten, or restore from backup, then re-run.
-
-`up` adds the `scanning` profile itself unless `MALWARE_SCAN_ENABLED=false` in the root `.env`.
+Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately in
+`infra/cloudflare/`. The tunnel's ingress rules live there, so a renamed Compose service needs a
+plan and apply, not a dashboard edit.
 
 ### Releases that need a window
 
 Three things stretch a release beyond the time the commands take.
 
 **A backfill migration holds the API down for its whole duration.** The `migrations` profile gates
-the API on `service_completed_successfully`, so a release whose migrator backfills existing rows
+the API on `service_completed_successfully`. A release whose migrator backfills existing rows
 (regenerating derivatives, recomputing a column) keeps `api` and the tunnel in `Created` until it
 finishes, however long that is. Check for one before you start: run `alembic history` as above, and
-read what the migrator does, not just whether it exists. Announce the window from what you find
+read what the migrator does, not only whether it exists. Announce the window from what you find
 there, not from the first 100% CPU reading during the release.
 
-**A snapshot needs the stack up, and must precede the checkout.** `just backup <env> manual` runs
-with `--no-deps` on purpose: the timer must never start postgres as a side effect. So the safety
-snapshot cannot be taken after `down`. Any change to what the containers run as (a uid change, an
-ownership change) takes effect the moment the checkout moves, because the Compose `user:` pin
-overrides the image's own `USER`. Between checkout and the matching `chown`, every backup run
-fails. Docker seeds a named volume's ownership only when it first creates the volume, so a volume
-carried over from an earlier release keeps that release's uid however many times you rebuild. The
-order that works:
-
-```bash
-env=prod                          # or staging
-just stack "$env" tag YES <tag>   # safe with the stack up; the snapshot then runs on the new image
-# The restic repository is a host bind, so it can be chowned with the stack still up.
-sudo chown -R 65532:65532 "${BACKUP_HOST_DIR:-./backups}"
-just backup "$env" manual         # tagged, so retention cannot expire your rollback
-just stack "$env" down YES
-# The named volumes a running service would have been writing. Run as uid 0 inside the
-# image so the host needs no knowledge of where Docker keeps the volume.
-for volume in user_uploads restic_cache; do
-    docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
-        busybox chown -R 65532:65532 /mnt
-done
-just stack "$env" up YES migrations
-```
-
-`up` probes those three mounts as the services that write them before it starts anything, and
-refuses to continue when one is unwritable, naming the volume and the command above. Reads and
-`stat` succeed on a wrongly-owned volume, so without that probe the deploy reports success and
-only uploads and backups fail.
+**A change to the containers' uid needs a chown, in a fixed order.** The Compose `user:` pin
+overrides the image's own `USER`, so the change takes effect as soon as the checkout moves, and
+every backup fails until the matching `chown`. The safety snapshot cannot run after `down`, because
+`just backup <env> manual` runs with `--no-deps`: the timer must never start PostgreSQL as a side
+effect. The install guide's upgrade step has the commands in the order that works. `up` refuses to
+start while a mount is unwritable and names the volume.
 
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
 stopping the watchdog too, or it pages mid-window. A stopped watchdog cannot then tell you the
@@ -450,7 +416,7 @@ ssh relab-prod status
 ssh relab-prod logs 10m     # non-following; `just stack prod logs` on the host follows
 ```
 
-Then exercise by hand what automation cannot: one upload, one OAuth login, one product page.
+Then test by hand what automation cannot: one upload, one OAuth login, one product page.
 
 ______________________________________________________________________
 
@@ -470,13 +436,16 @@ just stack prod rollback YES <tag> <alembic-revision> # also downgrade the schem
 ```
 
 With a revision, the recipe first checks that no migration in the range dropped or rewrote data
-(`scripts.maintenance.downgrade_safety`); a downgrade would re-create such objects empty, so it
-refuses and points at the backup instead. Then it stops the API, runs `alembic downgrade` with the
-current release's migrator, writes the earlier tag to `IMAGE_TAG`, and starts the stack. The
-earlier tag's images are pulled before any of that, so a missing tag changes nothing. Find the revision with `cd backend && uv run alembic history`.
+(`scripts.maintenance.downgrade_safety`). A downgrade would re-create such objects empty, so the
+recipe refuses and points at the backup instead. A migration whose destructive statement is harmless
+declares `ROLLBACK_SAFE = True`; without it the check fails closed, including on dynamic SQL it
+cannot read.
 
-History was flattened at `a9c2e4f60b18` on 2026-09-08; revisions older than that no
-longer resolve, so a schema rollback can only target that id or a newer one.
+The recipe then stops the API, runs `alembic downgrade` with the current release's migrator, writes
+the earlier tag to `IMAGE_TAG`, and starts the stack. It pulls the earlier tag's images before any of
+that, so a missing tag changes nothing. Find the revision with `cd backend && uv run alembic
+history`. History was flattened at `a9c2e4f60b18` on 2026-09-08, so a schema rollback can only
+target that id or a newer one.
 
 **A rollback across a dropped column needs the revision form.** Code from before the drop still
 reads the column, so a code-only rollback leaves it failing on every query that touches it.
@@ -490,10 +459,6 @@ If the downgrade itself fails, the rollback stops before switching images and sa
 stopped, `IMAGE_TAG` still names the release you were leaving, and the schema sits at the last
 revision that downgraded. `just stack prod up YES migrations` returns to that release; the printed
 `rollback` line retries once the error is fixed.
-
-A migration whose destructive
-statement is harmless declares `ROLLBACK_SAFE = True`; without it the check fails closed, including
-on dynamic SQL it cannot read.
 
 Otherwise the backup is the recovery path:
 
@@ -557,7 +522,3 @@ just stack prod migrate YES
 
 The watchdog's schema-drift check (1.4) reports both states, so neither should reach a deploy
 unnoticed again.
-
-Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately
-(`infra/cloudflare/`, prod workspace adopted 2026-09-08); the tunnel's ingress rules live there,
-so a renamed Compose service needs a plan and apply, not a dashboard edit.

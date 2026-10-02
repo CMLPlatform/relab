@@ -1,23 +1,23 @@
 # Deploy documentation
 
-Two runbooks, one per host, both covering the routine release loop.
+Runbooks for operating *this* deployment, one per host. Each covers first-time host setup, the
+routine release loop, and recovery:
 
-|                        | **Production**                     | **Staging**                            |
-| ---------------------- | ---------------------------------- | -------------------------------------- |
-| **Routine release**    | [DEPLOY-PROD.md](DEPLOY-PROD.md)   | [DEPLOY-STAGING.md](DEPLOY-STAGING.md) |
+- [DEPLOY-PROD.md](DEPLOY-PROD.md): production
+- [DEPLOY-STAGING.md](DEPLOY-STAGING.md): staging
 
-[CMLPlatform/monitoring](https://github.com/CMLPlatform/monitoring) owns the monitoring
-architecture: its ADR 0002 records the hub-and-spoke design and `templates/README.md` how a project
-onboards. Relab is one spoke; the Relab-specific parts live in the `DEPLOY-*` runbooks.
-
-`DEPLOY-*` is permanent: first-time host setup, the routine release loop, and recovery. Start there
-for anything you do more than once.
-
-The one-time cutover runbooks are gone: staging moved on 2026-09-06 and prod on 2026-09-08. The
-history is in git (`git log -- deploy/CUTOVER-PROD.md`) if a step ever needs re-reading.
+Public self-hosting documentation is the install guide in the docs subrepo
+(`docs/src/content/docs/operations/install.md`); the runbooks link to it rather than repeat it.
 
 Rehearse on staging before prod. The two hosts share `compose.deploy.yaml`, so a step that has only
 ever run on prod has never been tested.
+
+[CMLPlatform/monitoring](https://github.com/CMLPlatform/monitoring) owns the monitoring
+architecture: its ADR 0002 records the hub-and-spoke design, and its `templates/README.md` describes
+how a project onboards. Relab is one spoke; the Relab-specific parts live in the runbooks.
+
+The one-time cutover runbooks were removed after staging moved on 2026-09-06 and prod on 2026-09-08.
+`git log -- deploy/CUTOVER-PROD.md` finds them.
 
 ## Also here
 
@@ -27,8 +27,12 @@ ever run on prod has never been tested.
 - `alloy/`: the Grafana Alloy agent config that ships container logs and host metrics to the
   central collector. Loaded by `compose.telemetry.yml`, which the deploy recipes include when
   `OTEL_EXPORTER_OTLP_ENDPOINT` is set.
-- `env/`: committed, non-secret, per-environment Compose variables. Host-local operator inputs live
-  in the gitignored root `.env`; runtime secrets live in `secrets/<env>/`.
+- `env/variables.toml`: the committed runtime secret inventory, names only (`just env-inventory`
+  prints it). Host-local operator inputs live in the gitignored root `.env`; the secret values live
+  in the gitignored `secrets/<env>/`.
+- `postgres/initdb/provision.sh`: creates the database roles, sets table ownership, and installs
+  the superuser-only extensions. It runs on an empty volume and again on every
+  `just stack <env> up`.
 
 Four files are **vendored** from [CMLPlatform/monitoring](https://github.com/CMLPlatform/monitoring)
 and must stay byte-identical to it. Everything project-specific arrives as an environment variable;
@@ -47,6 +51,3 @@ Vendored at **`v0.3.0`**. Update that tag in the same commit that re-vendors:
 git -C ../monitoring checkout v0.3.0    # or the newer tag being adopted
 diff -u ../monitoring/templates/compose.telemetry.yml compose.telemetry.yml
 ```
-
-Public self-hosting documentation lives in the docs subrepo (`docs/src/content/docs/operations/`).
-The runbooks here are for operating *this* deployment.
