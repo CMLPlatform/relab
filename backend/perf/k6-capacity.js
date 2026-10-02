@@ -6,9 +6,9 @@
 // writes; PERF_CAPACITY_MODE=login runs logins only, to find the password-hashing
 // ceiling on its own.
 import http from "k6/http";
-import { check } from "k6";
 import exec from "k6/execution";
 import {
+  bearerLogin,
   imageUploadWrite,
   productComponentsRead,
   productCreateWrite,
@@ -34,15 +34,7 @@ const email = (i) => `capacity-${i}@example.com`;
 // Round-robin over the accounts by iteration: spreads logins evenly with no RNG.
 const nextUser = () => 1 + (exec.scenario.iterationInTest % userCount);
 
-function login(i) {
-  const response = http.post(
-    `${baseUrl}/v1/auth/bearer/login`,
-    { username: email(i), password },
-    { tags: { scenario: "bearer_login" } },
-  );
-  check(response, { "bearer login returned 200": (res) => res.status === 200 });
-  return response;
-}
+const login = (i) => bearerLogin(email(i), password);
 
 function pick(list) {
   return list[Math.floor(Math.random() * list.length)];

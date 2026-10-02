@@ -39,6 +39,24 @@ function stage(rate, preAllocatedVUs) {
   return scenario;
 }
 
+// The thresholds a run must meet. `gate` registers a scenario's two: under 1% failed
+// requests, and a p95 latency ceiling in ms when given one. `just _perf-thresholds-apply`
+// rewrites those ceilings in place, so keep each a literal number.
+const thresholds = {
+  // An open-model run that cannot start its iterations on time is a saturated
+  // server, not a fast one; without this the suite would report the shortfall
+  // as healthy latency.
+  dropped_iterations: ["count<1"],
+  checks: ["rate==1.00"],
+};
+
+function gate(scenario, p95) {
+  thresholds[`http_req_failed{scenario:${scenario}}`] = ["rate<0.01"];
+  if (p95 !== undefined) {
+    thresholds[`http_req_duration{scenario:${scenario}}`] = [`p(95)<${p95}`];
+  }
+}
+
 const scenarios = {
   live_probe: { ...stage(Number(__ENV.PERF_LIVE_RATE || 20), 10), exec: "liveProbe" },
   product_list_read: { ...stage(Number(__ENV.PERF_PRODUCT_LIST_RATE || 10), 20), exec: "productListRead" },
@@ -80,36 +98,21 @@ const uploadImages = [
 // by measuring the resize path directly, where there is no network or runner noise.
 const UPLOAD_THRESHOLDS_MS = { small: 200, medium: 320, large: 400 };
 
-const thresholds = {
-  "http_req_failed{scenario:live_probe}": ["rate<0.01"],
-  "http_req_duration{scenario:live_probe}": ["p(95)<100"],
-  "http_req_failed{scenario:product_list_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_list_read}": ["p(95)<300"],
-  "http_req_failed{scenario:product_search_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_search_read}": ["p(95)<400"],
-  "http_req_failed{scenario:product_detail_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_detail_read}": ["p(95)<200"],
-  "http_req_failed{scenario:product_components_read}": ["rate<0.01"],
-  "http_req_duration{scenario:product_components_read}": ["p(95)<200"],
-  "http_req_failed{scenario:reference_data_read}": ["rate<0.01"],
-  "http_req_duration{scenario:reference_data_read}": ["p(95)<100"],
-  // An open-model run that cannot start its iterations on time is a saturated
-  // server, not a fast one; without this the suite would report the shortfall
-  // as healthy latency.
-  dropped_iterations: ["count<1"],
-  checks: ["rate==1.00"],
-};
+gate("live_probe", 100);
+gate("product_list_read", 300);
+gate("product_search_read", 400);
+gate("product_detail_read", 200);
+gate("product_components_read", 200);
+gate("reference_data_read", 100);
 
 if (loginEmail && loginPassword) {
-  scenarios.bearer_login = { ...stage(Number(__ENV.PERF_LOGIN_RATE || 2), 10), exec: "bearerLogin" };
-  thresholds["http_req_failed{scenario:bearer_login}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:bearer_login}"] = ["p(95)<500"];
+  scenarios.bearer_login = { ...stage(Number(__ENV.PERF_LOGIN_RATE || 2), 10), exec: "perfUserLogin" };
+  gate("bearer_login", 500);
 }
 
 if (mediaUrl) {
   scenarios.media_url_read = { ...stage(Number(__ENV.PERF_MEDIA_RATE || 10), 10), exec: "mediaUrlRead" };
-  thresholds["http_req_failed{scenario:media_url_read}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:media_url_read}"] = ["p(95)<100"];
+  gate("media_url_read", 100);
 }
 
 // Registered after every read stage on purpose: this one inserts rows, and the
@@ -117,8 +120,7 @@ if (mediaUrl) {
 // underneath them.
 if (loginEmail && loginPassword) {
   scenarios.product_create_write = { ...stage(Number(__ENV.PERF_CREATE_RATE || 5), 10), exec: "productCreateWrite" };
-  thresholds["http_req_failed{scenario:product_create_write}"] = ["rate<0.01"];
-  thresholds["http_req_duration{scenario:product_create_write}"] = ["p(95)<300"];
+  gate("product_create_write", 300);
 
   // Last of all: an upload decodes the image and writes derivatives, so it is
   // both the slowest write and the one that leaves the most behind. Iterations
@@ -129,7 +131,7 @@ if (loginEmail && loginPassword) {
   // fixture that skipped the widest derivative. The figures below come from the
   // CI stack with per-size headroom over the measured p95.
   scenarios.image_upload_write = { ...stage(Number(__ENV.PERF_UPLOAD_RATE || 3), 10), exec: "imageUploadWrite" };
-  thresholds["http_req_failed{scenario:image_upload_write}"] = ["rate<0.01"];
+  gate("image_upload_write");
   for (const { size } of uploadImages) {
     thresholds[`http_req_duration{upload_size:${size}}`] = [`p(95)<${UPLOAD_THRESHOLDS_MS[size]}`];
   }
@@ -167,23 +169,19 @@ if (loginEmail && loginPassword) {
     maxDuration: `${rpiCamDeviceSeconds + gapSeconds}s`,
     exec: "rpiCamDevice",
   };
-  for (const scenario of ["rpi_cam_telemetry_relay", "rpi_cam_hls_relay", "rpi_cam_capture"]) {
-    thresholds[`http_req_failed{scenario:${scenario}}`] = ["rate<0.01"];
-  }
   // Roughly 5x the worse of two isolated CI-stack runs (p95 22 / 23 / 125 ms),
   // rounded up to 100.
-  thresholds["http_req_duration{scenario:rpi_cam_telemetry_relay}"] = ["p(95)<200"];
-  thresholds["http_req_duration{scenario:rpi_cam_hls_relay}"] = ["p(95)<200"];
-  thresholds["http_req_duration{scenario:rpi_cam_capture}"] = ["p(95)<700"];
+  gate("rpi_cam_telemetry_relay", 200);
+  gate("rpi_cam_hls_relay", 200);
+  gate("rpi_cam_capture", 700);
 
   // Device-side HTTP, no socket: the Pi's thumbnail worker posting a preview frame.
   scenarios.rpi_cam_preview_upload = {
     ...stage(Number(__ENV.PERF_RPI_CAM_PREVIEW_RATE || 3), 10),
     exec: "rpiCamPreviewUpload",
   };
-  thresholds["http_req_failed{scenario:rpi_cam_preview_upload}"] = ["rate<0.01"];
   // Measured p95 20-25 ms in two isolated CI-stack runs; roughly 5x, rounded up to 100.
-  thresholds["http_req_duration{scenario:rpi_cam_preview_upload}"] = ["p(95)<200"];
+  gate("rpi_cam_preview_upload", 200);
 }
 
 export const options = {
@@ -439,13 +437,11 @@ export function productListRead() {
   });
 }
 
-export function bearerLogin() {
+// Shared with the capacity probe, which logs in as many accounts.
+export function bearerLogin(email, password) {
   const response = http.post(
     `${baseUrl}/v1/auth/bearer/login`,
-    {
-      username: loginEmail,
-      password: loginPassword,
-    },
+    { username: email, password },
     {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       tags: { scenario: "bearer_login" },
@@ -456,6 +452,11 @@ export function bearerLogin() {
     "bearer login returned 200": (res) => res.status === 200,
     "bearer login returned token": (res) => Boolean(res.json("access_token")),
   });
+  return response;
+}
+
+export function perfUserLogin() {
+  bearerLogin(loginEmail, loginPassword);
 }
 
 export function mediaUrlRead() {
