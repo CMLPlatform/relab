@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { useShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
 import { isDialogOpen, isPlainShortcut, isTypingTarget } from '@/utils/keyboardShortcuts';
@@ -36,6 +36,14 @@ export function useProductEditShortcuts({
   // key shortcuts, so SC 2.1.4 does not cover them and turning them off would
   // cost an editor its save and exit keys for nothing.
   const shortcutsEnabled = useShortcutsEnabled();
+  // Holds the latest render's save, so a save scheduled below sees the text a
+  // field committed after the keypress.
+  const saveRef = useRef(() => {});
+  useLayoutEffect(() => {
+    saveRef.current = () => {
+      if (canSave) onSave();
+    };
+  });
   useFocusEffect(
     useCallback(() => {
       if (Platform.OS !== 'web') return;
@@ -56,7 +64,10 @@ export function useProductEditShortcuts({
           // Always swallow it: the browser's own save dialog is never what a
           // user pressing Cmd+S on a form wants.
           event.preventDefault();
-          if (canSave) onSave();
+          // Text fields commit on blur, which the FAB gets from the pointer press.
+          // Blur the focused one, then save once React has rendered its commit.
+          (document.activeElement as HTMLElement | null)?.blur?.();
+          setTimeout(() => saveRef.current(), 0);
           return;
         }
         if (event.key !== 'Escape') return;
@@ -65,6 +76,6 @@ export function useProductEditShortcuts({
       };
       window.addEventListener('keydown', onKey);
       return () => window.removeEventListener('keydown', onKey);
-    }, [editMode, shortcutsEnabled, canModerate, canSave, onEdit, onSave, onExit]),
+    }, [editMode, shortcutsEnabled, canModerate, onEdit, onExit]),
   );
 }

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, renderHook } from '@testing-library/react-native';
 import { useFocusEffect } from 'expo-router';
-import { type EffectCallback, useEffect } from 'react';
+import { type EffectCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { useProductEditShortcuts } from '@/features/products/useProductEditShortcuts';
 import { setShortcutsEnabled } from '@/hooks/useShortcutsEnabled';
@@ -156,10 +156,44 @@ describe('useProductEditShortcuts', () => {
     let preventDefault = jest.fn();
     await act(() => {
       preventDefault = press({ key: 's', metaKey: true });
+      jest.runOnlyPendingTimers();
     });
 
     expect(onSave).toHaveBeenCalled();
     expect(preventDefault).toHaveBeenCalled();
+  });
+
+  // Regression: text fields commit on blur, and Cmd+S fired while the caret was
+  // still in one, so the save went out without the text just typed there.
+  it('commits the focused field before saving on Cmd/Ctrl+S', async () => {
+    const saved: string[] = [];
+    let commit: (text: string) => void = () => {};
+    await renderHook(() => {
+      const [description, setDescription] = useState('old');
+      commit = setDescription;
+      useProductEditShortcuts({
+        editMode: true,
+        canModerate: true,
+        canSave: true,
+        onEdit,
+        onSave: () => saved.push(description),
+        onExit,
+      });
+    });
+    // The field holds "typed" as a draft and commits it on blur, like ProductDescription.
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { querySelector: () => null, activeElement: { blur: () => commit('typed') } },
+    });
+
+    await act(() => {
+      press({ key: 's', metaKey: true });
+    });
+    await act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(saved).toEqual(['typed']);
   });
 
   it('swallows Cmd+S but does not save an invalid form', async () => {
@@ -168,6 +202,7 @@ describe('useProductEditShortcuts', () => {
     let preventDefault = jest.fn();
     await act(() => {
       preventDefault = press({ key: 's', ctrlKey: true });
+      jest.runOnlyPendingTimers();
     });
 
     expect(onSave).not.toHaveBeenCalled();
@@ -181,6 +216,7 @@ describe('useProductEditShortcuts', () => {
 
     press({ key: 's', metaKey: true });
     press({ key: 'Escape' });
+    jest.runOnlyPendingTimers();
 
     expect(onSave).toHaveBeenCalled();
     expect(onExit).toHaveBeenCalled();
