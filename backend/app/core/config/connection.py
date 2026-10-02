@@ -10,7 +10,7 @@ from pydantic import AliasChoices, Field, PostgresDsn, RedisDsn, SecretStr
 from pydantic_settings import SettingsConfigDict
 from sqlalchemy.engine import URL
 
-from app.core.env import RelabBaseSettings
+from app.core.env import RelabBaseSettings, is_production_like_environment
 
 DATABASE_DRIVER_PSYCOPG = "psycopg"
 DATABASE_DRIVER_ASYNCPG = "asyncpg"
@@ -77,7 +77,14 @@ class DatabaseSettings(RelabBaseSettings):
 
     @cached_property
     def sync_migration_url(self) -> str:
-        """Sync database URL for the migration role."""
+        """Sync database URL for the migration role.
+
+        Only the migrator mounts the migration password, so the startup checks
+        cannot require it; fail here instead, where the URL is first needed.
+        """
+        if not self.migration_password.get_secret_value() and is_production_like_environment():
+            msg = "DATABASE_MIGRATION_PASSWORD must not be empty in production"
+            raise ValueError(msg)
         return self.build_database_url(
             DATABASE_DRIVER_PSYCOPG,
             self.postgres_db,
@@ -99,17 +106,15 @@ class DatabaseSettings(RelabBaseSettings):
         return {"ssl": ssl.create_default_context(cafile=cafile)}
 
     def role_security_errors(self) -> list[str]:
-        """Collect least-privilege database role validation errors."""
+        """Collect least-privilege database role validation errors.
+
+        Only the app password is required: each service mounts just the role
+        passwords it uses, and the migration URL checks its own password.
+        """
         errors: list[str] = []
 
-        role_passwords = {
-            "DATABASE_APP_PASSWORD": self.app_password,
-            "DATABASE_MIGRATION_PASSWORD": self.migration_password,
-            "DATABASE_BACKUP_PASSWORD": self.backup_password,
-        }
-        for name, value in role_passwords.items():
-            if not value.get_secret_value():
-                errors.append(f"{name} must not be empty in production")
+        if not self.app_password.get_secret_value():
+            errors.append("DATABASE_APP_PASSWORD must not be empty in production")
 
         bootstrap_user = self.postgres_user.casefold()
         role_users = {

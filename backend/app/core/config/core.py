@@ -351,9 +351,6 @@ class CoreSettings(RelabBaseSettings):
         if not self.redis.password.get_secret_value():
             errors.append("REDIS_PASSWORD must not be empty in production")
 
-        if not self.bootstrap_superuser_password.get_secret_value():
-            errors.append("BOOTSTRAP_SUPERUSER_PASSWORD must not be empty in production")
-
         if self.bootstrap_superuser_email == DEFAULT_BOOTSTRAP_SUPERUSER_EMAIL:
             errors.append("BOOTSTRAP_SUPERUSER_EMAIL must not be the default placeholder in production")
 

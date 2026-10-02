@@ -136,7 +136,7 @@ Access control, not application-level encryption, protects most Relab data. Pass
 
 `DATA_ENCRYPTION_KEY` encrypts only values the backend must recover later, such as OAuth provider tokens and active YouTube broadcast keys. `CACHE_SIGNING_SECRET` signs cache payloads and `OAUTH_STATE_SECRET` signs OAuth state; each key has one purpose.
 
-Backend app secrets, database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`, never in committed files or backend env files. The rendered Compose overlays declare the required files.
+Backend app secrets, database role passwords, the Redis password, the restic repository password, and optional rclone config live in gitignored Compose secret files under `secrets/<env>/`, never in committed files or backend env files. The rendered Compose overlays declare the required files, and each service mounts only the ones its process reads: the API does not get the migration or backup role password or the bootstrap superuser password.
 
 The application, migration, and backup roles are separate PostgreSQL users; the application role does not own the schema. `just stack prod up` and `just stack staging up` run `deploy/postgres/initdb/provision.sh` against the live database before starting the API: it creates the roles, transfers table ownership to the migration role, and installs the superuser-only extensions. The same script runs from `/docker-entrypoint-initdb.d` on an empty volume, so an existing volume needs no rebuild.
 
