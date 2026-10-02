@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
+import { type ReactNode, useCallback } from 'react';
 import {
   ActivityIndicator,
   type DimensionValue,
+  FlatList,
+  Platform,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -16,12 +19,17 @@ import { Icon, type IconName } from '@/components/base/Icon';
 import { PageContainer } from '@/components/base/PageContainer';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
-import { productGridColumns } from '@/features/products/productGridColumns';
+import {
+  PRODUCT_GRID_INITIAL_ROWS,
+  productGridColumns,
+} from '@/features/products/productGridColumns';
 import { usePublicProfileScreen } from '@/features/profile/usePublicProfileScreen';
 import { useUserProducts } from '@/features/profile/useUserProducts';
+import type { PublicProfileView } from '@/services/api/profiles';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { memoizeByTheme } from '@/theme/memoizeByTheme';
 import type { AppTheme } from '@/theme/types';
+import type { Product } from '@/types/Product';
 import { heading } from '@/utils/a11y';
 
 // Local to this screen; unrelated to the HeroStats StatCard in components/profile.
@@ -51,9 +59,69 @@ function ProfileStatCard({
   );
 }
 
-// Plain grid inside the page ScrollView: the products-screen FlatList owns its
-// own scroll, pull-to-refresh, and bottom-nav insets, none of which fit here.
-function UserProducts({ username }: { username: string }) {
+function ProfileSummary({ profile }: { profile: PublicProfileView }) {
+  const theme = useAppTheme();
+  const styles = createStyles(theme);
+  return (
+    <View className="mt-8 items-center">
+      <View className="items-center mb-12">
+        <View className="w-[120px] h-[120px] rounded-full justify-center items-center mb-6 bg-primary/12">
+          <AppText variant="body" className="font-bold" style={styles.avatarText}>
+            {profile.username.substring(0, 2).toUpperCase()}
+          </AppText>
+        </View>
+        <AppText variant="display" className="font-extrabold mb-2" {...heading(1)}>
+          {profile.username}
+        </AppText>
+        {profile.created_at ? (
+          <AppText variant="caption" className="text-muted-foreground">
+            Joined{' '}
+            {new Date(profile.created_at).toLocaleDateString(undefined, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </AppText>
+        ) : null}
+      </View>
+
+      <View className="w-full flex-row justify-center gap-4 flex-wrap">
+        {(
+          [
+            {
+              icon: 'weight',
+              color: theme.colors.secondary,
+              value: profile.total_weight_kg,
+              label: 'Total kg',
+            },
+            {
+              icon: 'images',
+              color: theme.tokens.status.success,
+              value: profile.image_count,
+              label: 'Photos',
+            },
+            {
+              icon: 'tag',
+              color: theme.tokens.status.warning,
+              // Unset, not a penalty (PRODUCT.md): a dash, never "None".
+              value: profile.top_category || '—',
+              label: 'Top category',
+            },
+          ] as const
+        ).map((stat) => (
+          <ProfileStatCard key={stat.label} {...stat} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+const productKeyExtractor = (product: Product) => String(product.id);
+
+// The profile scrolls as the header of a virtualized product grid, so a profile with
+// hundreds of products mounts only the cards near the viewport. No pull-to-refresh or
+// bottom-nav inset: those belong to the products tab, not to a pushed profile.
+function ProfileProductList({ username, header }: { username: string; header: ReactNode }) {
   const { width } = useWindowDimensions();
   const numColumns = productGridColumns(width);
   const { items, total, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, loadMore } =
@@ -61,40 +129,59 @@ function UserProducts({ username }: { username: string }) {
   // A failed next page keeps the items already shown; only an empty list becomes an error.
   const failed = isError && items.length === 0;
 
-  return (
-    <View className="w-full mt-12" testID="user-products">
-      <AppText variant="eyebrow" className="mb-3" {...heading(2)}>
-        {isLoading || failed ? 'Products' : `Products · ${total}`}
-      </AppText>
-      {isLoading ? (
-        <ProductCardSkeleton />
-      ) : failed ? (
-        <ErrorState message="Couldn't load products." onRetry={refetch} />
-      ) : items.length === 0 ? (
-        <AppText className="text-muted-foreground">No public products yet</AppText>
+  const renderProduct = useCallback(
+    ({ item }: { item: Product }) => (
+      <View style={{ width: `${100 / numColumns}%` as DimensionValue }}>
+        <ProductCard product={item} />
+      </View>
+    ),
+    [numColumns],
+  );
+
+  const listHeader = (
+    <>
+      {header}
+      <View className="w-full mt-12" testID="user-products">
+        <AppText variant="eyebrow" className="mb-3" {...heading(2)}>
+          {isLoading || failed ? 'Products' : `Products · ${total}`}
+        </AppText>
+        {isLoading ? (
+          <ProductCardSkeleton />
+        ) : failed ? (
+          <ErrorState message="Couldn't load products." onRetry={refetch} />
+        ) : items.length === 0 ? (
+          <AppText className="text-muted-foreground">No public products yet</AppText>
+        ) : null}
+      </View>
+    </>
+  );
+
+  const listFooter = hasNextPage ? (
+    <View className="items-center py-4" accessibilityLiveRegion="polite">
+      {isFetchingNextPage ? (
+        <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
       ) : (
-        <View className="flex-row flex-wrap">
-          {/* TODO: switch to the products-screen FlatList (profile as ListHeaderComponent) if a
-              profile can reach hundreds of products; "Load more" grows this list unvirtualized. */}
-          {items.map((product) => (
-            <View key={product.id} style={{ width: `${100 / numColumns}%` as DimensionValue }}>
-              <ProductCard product={product} />
-            </View>
-          ))}
-        </View>
+        <AppButton variant="outline" onPress={loadMore} accessibilityLabel="Load more products">
+          Load more
+        </AppButton>
       )}
-      {hasNextPage ? (
-        <View className="items-center py-4" accessibilityLiveRegion="polite">
-          {isFetchingNextPage ? (
-            <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
-          ) : (
-            <AppButton variant="outline" onPress={loadMore} accessibilityLabel="Load more products">
-              Load more
-            </AppButton>
-          )}
-        </View>
-      ) : null}
     </View>
+  ) : null;
+
+  return (
+    <FlatList
+      // numColumns cannot change on a mounted FlatList.
+      key={numColumns}
+      numColumns={numColumns}
+      data={items}
+      keyExtractor={productKeyExtractor}
+      renderItem={renderProduct}
+      initialNumToRender={PRODUCT_GRID_INITIAL_ROWS}
+      removeClippedSubviews={Platform.OS !== 'web'}
+      contentContainerClassName="flex-grow py-4"
+      ListHeaderComponent={listHeader}
+      ListFooterComponent={listFooter}
+    />
   );
 }
 
@@ -130,83 +217,35 @@ export default function UserProfileScreen() {
           ),
         }}
       />
-      <ScrollView contentContainerClassName="flex-grow py-4">
-        <PageContainer entryFocusReady={!loading}>
-          {loading ? (
-            <View className="flex-1 justify-center items-center mt-16">
-              <ActivityIndicator
-                testID="activity-indicator"
-                size="large"
-                color={theme.colors.primary}
+      <PageContainer entryFocusReady={!loading}>
+        {!(loading || hasError) && profile ? (
+          <ProfileProductList
+            username={profile.username}
+            header={<ProfileSummary profile={profile} />}
+          />
+        ) : (
+          <ScrollView contentContainerClassName="flex-grow py-4">
+            {loading ? (
+              <View className="flex-1 justify-center items-center mt-16">
+                <ActivityIndicator
+                  testID="activity-indicator"
+                  size="large"
+                  color={theme.colors.primary}
+                />
+              </View>
+            ) : null}
+
+            {hasError ? (
+              <ErrorState
+                icon="user-x"
+                title="Couldn't load profile"
+                message={errorMessage ?? "Couldn't load profile."}
+                onRetry={onRetry}
               />
-            </View>
-          ) : null}
-
-          {hasError ? (
-            <ErrorState
-              icon="user-x"
-              title="Couldn't load profile"
-              message={errorMessage ?? "Couldn't load profile."}
-              onRetry={onRetry}
-            />
-          ) : null}
-
-          {!(loading || hasError) && profile ? (
-            <View className="mt-8 items-center">
-              <View className="items-center mb-12">
-                <View className="w-[120px] h-[120px] rounded-full justify-center items-center mb-6 bg-primary/12">
-                  <AppText variant="body" className="font-bold" style={styles.avatarText}>
-                    {profile.username.substring(0, 2).toUpperCase()}
-                  </AppText>
-                </View>
-                <AppText variant="display" className="font-extrabold mb-2" {...heading(1)}>
-                  {profile.username}
-                </AppText>
-                {profile.created_at ? (
-                  <AppText variant="caption" className="text-muted-foreground">
-                    Joined{' '}
-                    {new Date(profile.created_at).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
-                  </AppText>
-                ) : null}
-              </View>
-
-              <View className="w-full flex-row justify-center gap-4 flex-wrap">
-                {(
-                  [
-                    {
-                      icon: 'weight',
-                      color: theme.colors.secondary,
-                      value: profile.total_weight_kg,
-                      label: 'Total kg',
-                    },
-                    {
-                      icon: 'images',
-                      color: theme.tokens.status.success,
-                      value: profile.image_count,
-                      label: 'Photos',
-                    },
-                    {
-                      icon: 'tag',
-                      color: theme.tokens.status.warning,
-                      // Unset, not a penalty (PRODUCT.md): a dash, never "None".
-                      value: profile.top_category || '—',
-                      label: 'Top category',
-                    },
-                  ] as const
-                ).map((stat) => (
-                  <ProfileStatCard key={stat.label} {...stat} />
-                ))}
-              </View>
-
-              <UserProducts username={profile.username} />
-            </View>
-          ) : null}
-        </PageContainer>
-      </ScrollView>
+            ) : null}
+          </ScrollView>
+        )}
+      </PageContainer>
     </>
   );
 }

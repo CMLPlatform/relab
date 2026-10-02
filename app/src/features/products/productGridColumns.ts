@@ -12,3 +12,11 @@ export function productGridColumns(windowWidth: number): number {
   const contentWidth = Math.min(windowWidth, MAX_CONTENT_WIDTH) - gutter;
   return contentWidth < 1000 ? 2 : 3;
 }
+
+/**
+ * Rows a product grid renders before its first scroll. FlatList counts rows, not
+ * cards, once numColumns > 1; four rows covers the first screen at every column
+ * count, and the rest of a page renders in later batches. Rows vary in height, so
+ * there is no getItemLayout.
+ */
+export const PRODUCT_GRID_INITIAL_ROWS = 4;

@@ -18,6 +18,7 @@ import { StaticBackground } from '@/components/base/StaticBackground';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
+import { PRODUCT_GRID_INITIAL_ROWS } from '@/features/products/productGridColumns';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
@@ -198,10 +199,12 @@ export function ProductsListContent({
       entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
       key={numColumns}
     >
-      {/* TODO: set initialNumToRender to about numColumns * 3 (and removeClippedSubviews on
-          native) if the first page ever renders slowly; rows vary in height, so no getItemLayout. */}
       <FlatList
         numColumns={numColumns}
+        initialNumToRender={PRODUCT_GRID_INITIAL_ROWS}
+        // Detaching off-screen views is a native optimisation; on web it would pull
+        // cards out of the DOM that find-in-page and screen readers still expect.
+        removeClippedSubviews={Platform.OS !== 'web'}
         onScroll={onScroll}
         scrollEventThrottle={16}
         refreshControl={<RefreshControl refreshing={userRefreshing} onRefresh={handleRefresh} />}

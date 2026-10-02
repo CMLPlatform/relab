@@ -80,6 +80,35 @@ describe('UserProfileScreen', () => {
     expect(screen.queryByLabelText('Load more products')).toBeNull();
   });
 
+  // A prolific profile must not mount every card it has loaded: the grid is a
+  // virtualized list under the profile, and "Load more" appends the next page.
+  it('renders a long product list lazily and appends the next page on Load more', async () => {
+    (useGlobalSearchParams as jest.Mock).mockReturnValue({ username: 'alice' });
+    mockGetPublicProfile.mockResolvedValue(profileFixture);
+    const page = (n: number) =>
+      Array.from({ length: 24 }, (_, i) => ({
+        id: (n - 1) * 24 + i + 1,
+        name: `Part ${(n - 1) * 24 + i + 1}`,
+        owner_username: 'alice',
+      }));
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        const n = Number(new URL(request.url).searchParams.get('page') ?? '1');
+        return HttpResponse.json({ items: page(n), total: 48, page: n, size: 24, pages: 2 });
+      }),
+    );
+    await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+
+    await waitFor(() => expect(screen.getByText('Products · 48')).toBeOnTheScreen());
+    expect(screen.getByText('Part 1')).toBeOnTheScreen();
+    expect(screen.queryByText('Part 24')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Load more products'));
+
+    await waitFor(() => expect(screen.queryByLabelText('Load more products')).toBeNull());
+    expect(screen.getByText('Products · 48')).toBeOnTheScreen();
+  });
+
   it('shows an empty state when the user has no public products', async () => {
     mockGetPublicProfile.mockResolvedValue(profileFixture);
     server.use(
