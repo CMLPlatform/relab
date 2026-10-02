@@ -10,6 +10,9 @@ export const authRuntime = {
   // response can't clobber fresher data (last-started-wins).
   getUserSequence: 0,
   explicitlyLoggedOut: false,
+  // Set by a sign-out the user confirmed in LogoutConfirm, which already warned
+  // about queued saves; AuthProvider skips its own notice and clears it.
+  signOutConfirmed: false,
   authGeneration: 0,
 };
 
@@ -20,5 +23,6 @@ export function resetAuthRuntimeForTests() {
   authRuntime.getUserPromise = null;
   authRuntime.getUserSequence = 0;
   authRuntime.explicitlyLoggedOut = false;
+  authRuntime.signOutConfirmed = false;
   authRuntime.authGeneration = 0;
 }

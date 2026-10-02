@@ -85,5 +85,38 @@ describe('LogoutConfirm', () => {
       expect(screen.getByText('Sign out anyway')).toBeOnTheScreen();
       expect(screen.getByText('Cancel')).toBeOnTheScreen();
     });
+
+    it('keeps the warning while it fades out after the queue drains', async () => {
+      // Hold the exit open: withTiming never reports finished, so the dialog stays mounted.
+      const timing = jest
+        .spyOn(
+          jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated'),
+          'withTiming',
+        )
+        .mockImplementation(((to: number) => to) as never);
+      const tree = (visible: boolean) => (
+        <>
+          <QueuedItem />
+          <LogoutConfirm visible={visible} onDismiss={jest.fn()} onConfirm={jest.fn()} />
+        </>
+      );
+      try {
+        await act(() => onlineManager.setOnline(false));
+        await renderWithProviders(tree(true), { withDialog: true });
+        await screen.findByText('Sign out anyway');
+
+        await screen.rerender(tree(false));
+        // Back online, the item resumes and is no longer waiting; the cache
+        // notifies on its next (fake) tick.
+        await act(() => onlineManager.setOnline(true));
+        await act(async () => {
+          jest.runOnlyPendingTimers();
+        });
+
+        expect(screen.getByText('Sign out anyway')).toBeOnTheScreen();
+      } finally {
+        timing.mockRestore();
+      }
+    });
   });
 });

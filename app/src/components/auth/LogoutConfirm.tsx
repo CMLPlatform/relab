@@ -1,5 +1,5 @@
 import { useIsMutating } from '@tanstack/react-query';
-import type { RefObject } from 'react';
+import { type RefObject, useState } from 'react';
 import { View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -20,7 +20,12 @@ export default function LogoutConfirm({
 }) {
   // Sign-out clears the query client, and with it any save or create still
   // queued offline. Say so before it happens.
-  const queued = useIsMutating({ predicate: (mutation) => mutation.state.isPaused });
+  const live = useIsMutating({ predicate: (mutation) => mutation.state.isPaused });
+  // Frozen while closing: confirming clears the queue mid-fade, and the copy
+  // must not flip to the no-queue wording on its way out.
+  const [shown, setShown] = useState(live);
+  if (visible && shown !== live) setShown(live);
+  const queued = visible ? live : shown;
   return (
     <AppDialog
       visible={visible}
