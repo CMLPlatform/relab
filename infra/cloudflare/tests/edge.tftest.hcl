@@ -143,16 +143,36 @@ run "prod_gates_publishes_and_release_tags" {
     environment = "prod"
   }
 
+  # These values are the release policy itself, so a change to them must fail here too.
   assert {
-    condition     = length(github_repository_environment_deployment_policy.main) == 1 && length(github_repository_environment_deployment_policy.release_tag) == 1
-    error_message = "prod must accept a publish only from main or a release tag."
+    condition     = github_repository_environment_deployment_policy.main[0].branch_pattern == "main"
+    error_message = "prod URLs must only be baked into images built from main."
+  }
+
+  assert {
+    condition     = github_repository_environment_deployment_policy.release_tag[0].tag_pattern == "v*"
+    error_message = "release.yml runs on the release tag, so prod must accept v* tags."
   }
 
   # Hosts deploy images by tag, so a tag anyone with write access can move is a deploy
   # anyone with write access can trigger.
   assert {
-    condition     = length(github_repository_ruleset.release_tags) == 1
-    error_message = "prod must own the release-tag ruleset."
+    condition     = github_repository_ruleset.release_tags[0].conditions[0].ref_name[0].include == tolist(["refs/tags/v*"])
+    error_message = "the release-tag ruleset must cover v* tags."
+  }
+
+  assert {
+    condition = alltrue([
+      github_repository_ruleset.release_tags[0].rules[0].creation,
+      github_repository_ruleset.release_tags[0].rules[0].update,
+      github_repository_ruleset.release_tags[0].rules[0].deletion,
+    ])
+    error_message = "v* tags must be restricted on create, update and delete."
+  }
+
+  assert {
+    condition     = toset([for actor in github_repository_ruleset.release_tags[0].bypass_actors : actor.actor_id]) == toset([2, 5])
+    error_message = "only maintainers and admins may bypass the release-tag ruleset."
   }
 
   # The reviewer is the release gate; the username must resolve to its user id.

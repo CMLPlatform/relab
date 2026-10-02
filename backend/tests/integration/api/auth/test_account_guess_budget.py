@@ -11,7 +11,9 @@ from typing import TYPE_CHECKING, Any
 import pyotp
 import pytest
 from fastapi import status
+from sqlalchemy import select
 
+from app.api.auth.models import User
 from app.api.auth.services import mfa_service
 
 from .shared import TEST_PASSWORD, create_password_user, link_google, login_bearer
@@ -20,7 +22,6 @@ if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from app.api.auth.models import User
 
 pytestmark = [pytest.mark.api, pytest.mark.usefixtures("fresh_guess_budget")]
 
@@ -81,6 +82,9 @@ async def test_wrong_guesses_are_limited_per_account(
     statuses = [(await api_client.request(method, path, json=body, headers=headers)).status_code for _ in range(4)]
 
     assert statuses == [status.HTTP_403_FORBIDDEN] * 3 + [status.HTTP_429_TOO_MANY_REQUESTS]
+    if route == "account deletion":
+        # A refused step-up must never reach the irreversible erase.
+        assert (await db_session.execute(select(User.id).where(User.id == user.id))).first() is not None
 
 
 @pytest.mark.parametrize("route", [route for route in ROUTES if route not in {"mfa disable", "recovery codes"}])
