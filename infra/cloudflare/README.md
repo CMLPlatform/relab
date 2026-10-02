@@ -11,6 +11,9 @@ This directory manages Relab's **per-environment** Cloudflare edge with OpenTofu
   which `publish-images.yml` bakes into the www, app and docs images. They derive from the same
   hostname map as the DNS records, so a domain change reaches the images with the same apply.
   Prod accepts publishes from `main` only.
+- the `release tags` repository ruleset (prod workspace only, since it is repository-wide): only
+  repository admins and maintainers may create, move or delete a `v*` tag, the ref release images
+  are built from and `images-verify` checks them against
 
 Zone-global configuration (TLS settings and the three entrypoint rulesets) lives in
 [`../cloudflare-zone`](../cloudflare-zone). See "Why two roots" below.
@@ -138,8 +141,9 @@ export GITHUB_TOKEN="$(gh auth token)"     # the GitHub Environment, see below
 
 The GitHub token needs admin rights on the repository, since it manages an Environment.
 `gh auth token` has them when your account is a repository admin. The narrower option is a
-fine-grained token for this repository alone, with **Administration** (the Environment and its
-branch policy) and **Environments** (its variables) set to read and write. `FEATURED_PRODUCT_ID` is left to the Environment's
+fine-grained token for this repository alone, with **Administration** (the Environment, its
+branch policy and the release-tag ruleset) and **Environments** (its variables) set to read and
+write. `FEATURED_PRODUCT_ID` is left to the Environment's
 settings page: it is a content choice, not an edge setting.
 
 Keep them in one file outside the repo and source it; a half-set environment is the most common way

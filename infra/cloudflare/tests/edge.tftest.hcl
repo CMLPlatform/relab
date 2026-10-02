@@ -205,3 +205,45 @@ run "an_environment_without_a_reviewer_is_refused" {
 
   expect_failures = [github_repository_environment.publish]
 }
+
+run "prod_restricts_release_tags" {
+  command = plan
+
+  variables {
+    environment = "prod"
+  }
+
+  # Hosts deploy images by tag, so a tag anyone with write access can move is a deploy
+  # anyone with write access can trigger.
+  assert {
+    condition     = github_repository_ruleset.release_tags[0].conditions[0].ref_name[0].include == tolist(["refs/tags/v*"])
+    error_message = "the release-tag ruleset must cover v* tags."
+  }
+
+  assert {
+    condition = alltrue([
+      github_repository_ruleset.release_tags[0].rules[0].creation,
+      github_repository_ruleset.release_tags[0].rules[0].update,
+      github_repository_ruleset.release_tags[0].rules[0].deletion,
+    ])
+    error_message = "v* tags must be restricted on create, update and delete."
+  }
+
+  assert {
+    condition     = toset([for actor in github_repository_ruleset.release_tags[0].bypass_actors : actor.actor_id]) == toset([2, 5])
+    error_message = "only maintainers and admins may bypass the release-tag ruleset."
+  }
+}
+
+run "staging_leaves_the_repository_ruleset_to_prod" {
+  command = plan
+
+  variables {
+    environment = "staging"
+  }
+
+  assert {
+    condition     = length(github_repository_ruleset.release_tags) == 0
+    error_message = "the repository-wide ruleset belongs to one workspace only."
+  }
+}
