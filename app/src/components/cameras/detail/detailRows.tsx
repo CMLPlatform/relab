@@ -40,7 +40,8 @@ export function DetailRow({
 
   return (
     <View className="flex-row items-center gap-2 py-2.5">
-      <AppText variant="label" className="w-[100px] opacity-55">
+      {/* A 100px column that grows with large text, capped so the value keeps room. */}
+      <AppText variant="label" className="min-w-[100px] max-w-[40%] opacity-55">
         {label}
       </AppText>
       <AppText

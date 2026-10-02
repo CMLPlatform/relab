@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import Head from 'expo-router/head';
 import { type RefObject, useCallback, useRef } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Animated, { ReduceMotion, ZoomIn } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -77,7 +78,12 @@ export default function AddCameraScreen() {
       <Head>
         <title>Add camera · Relab</title>
       </Head>
-      <ScrollView contentContainerClassName="pt-4 pb-12" keyboardShouldPersistTaps="handled">
+      {/* Keyboard-aware like the capture screen: the description field and Pair
+          stay reachable above the on-screen keyboard. */}
+      <KeyboardAwareScrollView
+        contentContainerClassName="pt-4 pb-12"
+        keyboardShouldPersistTaps="handled"
+      >
         <PageContainer>
           {isLg ? (
             <PageHeaderRow title="Add camera" onBack={goToCameras} />
@@ -173,7 +179,7 @@ export default function AddCameraScreen() {
             />
           </View>
         </PageContainer>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </>
   );
 }

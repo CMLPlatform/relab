@@ -14,6 +14,8 @@ const mockDialogApi = {
 };
 
 jest.mock('expo-router', () => ({
+  // The toast reads it to clear BottomNav.
+  useSegments: () => [],
   useLocalSearchParams: jest.fn(),
   useRouter: jest.fn(),
 }));

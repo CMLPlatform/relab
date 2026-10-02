@@ -3,7 +3,13 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { createRef } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDialog } from '@/components/base/dialogContext';
+import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { mockPlatform, renderWithProviders, restorePlatform, setupUser } from '@/test-utils/index';
+
+jest.mock('@/components/base/useBottomNav', () => ({
+  ...jest.requireActual<object>('@/components/base/useBottomNav'),
+  useBottomNavVisible: jest.fn(() => false),
+}));
 
 function renderAlertTrigger(onPress: () => void) {
   return (
@@ -368,6 +374,19 @@ describe('DialogProvider', () => {
 
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.queryByText('Discard changes?')).toBeNull();
+  });
+
+  it('floats the toast above BottomNav when the bar is showing', async () => {
+    jest.mocked(useBottomNavVisible).mockReturnValue(true);
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    expect(StyleSheet.flatten(screen.getByTestId('toast-container').props.style).bottom).toBe(
+      24 + BOTTOM_NAV_CLEARANCE,
+    );
+    jest.mocked(useBottomNavVisible).mockReturnValue(false);
   });
 
   it('toast() auto-dismisses after its duration and announces via aria-live without a Modal', async () => {

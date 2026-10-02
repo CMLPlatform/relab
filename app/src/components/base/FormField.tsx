@@ -35,9 +35,10 @@ export function FormFieldError({
       nativeID={errorId}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      // Capped so error text stays legible instead of clipping inside
-      // fixed-height helper slots at large OS text-scale settings.
-      maxFontSizeMultiplier={1.5}
+      // The app-wide 2x Dynamic Type cap: both helper slots (reserveSpace
+      // here, NewAccountSections' helperSlot) are minHeight, so a scaled
+      // error grows its slot instead of clipping.
+      maxFontSizeMultiplier={2}
       // The caption step's 18px line height is HELPER_SLOT_MIN_HEIGHT.
       style={[{ color: theme.tokens.status.danger }, theme.tokens.type.caption, style]}
     >

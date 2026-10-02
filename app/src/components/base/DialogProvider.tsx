@@ -1,6 +1,15 @@
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { useInverseSurface } from '@/theme/inverseSurface';
 import { heading } from '@/utils/a11y';
@@ -19,6 +28,7 @@ import {
 import { dialogActionsStyle, dialogTitleStyle } from './dialogStyles';
 import { OverlaySurface } from './OverlaySurface';
 import { TextInput } from './TextInput';
+import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from './useBottomNav';
 
 // Within WCAG's 3-5s auto-dismiss guidance for transient toasts.
 const TOAST_DURATION_MS = 4000;
@@ -250,6 +260,9 @@ function DialogActionButton({
 }
 
 /** Transient feedback. A plain overlay View, not a Modal: aria-live without a focus trap. */
+// bottom-6: the toast's own gap above whatever it clears.
+const TOAST_BOTTOM_GAP = 24;
+
 function Toast({
   state,
   onDismiss,
@@ -297,12 +310,21 @@ function Toast({
     return () => clearTimeout(timer);
   }, [state, onDismiss, held]);
 
+  // Same stacking as ActiveStreamBanner: above the home indicator, and above
+  // BottomNav wherever it renders.
+  // The context, not useSafeAreaInsets(): the provider sits above every
+  // screen, but DialogProvider also mounts in isolation, where it is absent.
+  const insetBottom = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const bottomNavVisible = useBottomNavVisible();
+  const bottom = TOAST_BOTTOM_GAP + insetBottom + (bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0);
+
   // The status region stays mounted while there is no message: assistive tech
   // only announces changes to a region it has already seen.
   return (
     <View
-      className="absolute bottom-6 left-0 right-0 items-center"
-      style={styles.toastContainer}
+      testID="toast-container"
+      className="absolute left-0 right-0 items-center"
+      style={[styles.toastContainer, { bottom }]}
       pointerEvents="box-none"
       // NOTE: exiting Animated.View must outlive this non-animated wrapper; without
       // collapsable={false} view flattening can drop the wrapper before the exit plays.

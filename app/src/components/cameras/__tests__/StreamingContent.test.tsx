@@ -24,6 +24,8 @@ jest.mock('@/services/externalLinks', () => ({
 const openExternalUrlMock = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>;
 
 jest.mock('expo-router', () => ({
+  // The toast reads it to clear BottomNav.
+  useSegments: () => [],
   useRouter: () => ({ navigate: mockNavigate }),
 }));
 

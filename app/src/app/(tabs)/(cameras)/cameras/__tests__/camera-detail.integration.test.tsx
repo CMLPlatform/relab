@@ -15,6 +15,8 @@ const mockUpdateMutate = jest.fn();
 const mockDeleteMutate = jest.fn<(_id: string, options?: { onSuccess?: () => void }) => void>();
 
 jest.mock('expo-router', () => ({
+  // The toast reads it to clear BottomNav.
+  useSegments: () => [],
   useLocalSearchParams: jest.fn(),
   useNavigation: jest.fn(),
   useRouter: jest.fn(),

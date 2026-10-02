@@ -39,6 +39,8 @@ const styles = StyleSheet.create({
   metaLine: {
     height: 14,
     width: 140,
+    // Never wider than the narrow row it stands in for.
+    maxWidth: '60%',
     borderRadius: radius.control,
   },
   thumbnail: {

@@ -53,6 +53,8 @@ const mockYoutubeIntegrationState = {
 };
 
 jest.mock('expo-router', () => ({
+  // The toast reads it to clear BottomNav.
+  useSegments: () => [],
   useRouter: () => ({
     replace: mockReplace,
   }),

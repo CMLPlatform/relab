@@ -37,6 +37,8 @@ jest.mock('expo-router', () => {
       replace: jest.fn(),
     })),
     usePathname: jest.fn(() => '/products'),
+    // The toast reads it to clear BottomNav.
+    useSegments: () => [],
     Stack: StackMock,
   };
 });
