@@ -46,7 +46,7 @@ textarea:focus-visible,
 /* prefers-reduced-motion for every CSS transition the primitives carry
  * (`transition-colors`, `transition-transform`, ...): state changes snap
  * instead of easing. Reanimated motion honours the same setting through
- * `ReduceMotion.System`; RN Modals switch `animationType` to 'none'.
+ * `ReduceMotion.System` (useModalPresence drives every Modal's fade).
  * Unlayered, so it outranks the `@layer utilities` transition classes. */
 @media (prefers-reduced-motion: reduce) {
   *,

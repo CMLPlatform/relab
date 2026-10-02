@@ -174,7 +174,7 @@ live = manila.
 small data labels, live/status pills, strategy tags. **Accent is for small text, never for
 mass.** It never fills a button, never drives a hover or pressed state, and never paints bars,
 big figures, or large areas. Interaction is always primary blue. *Mirrors
-assets/DESIGN.md:167-184 — change it there first.* In this app, data-label manila is spelled
+assets/DESIGN.md:165-182 — change it there first.* In this app, data-label manila is spelled
 `text-manila` in a className and `tokens.text.data` in a style object or an SVG fill.
 
 **The One Tint Rule.** `tokens.surface.accent` (primary at 12%) is the single selected/tinted
@@ -218,14 +218,14 @@ system without shipping the typeface.
 
 **The System-Font Rule.** The app stays on platform system fonts (native feel, Dynamic Type
 support, zero load cost). It adopts the brand's scale and palette, not its typeface. www and docs
-use IBM Plex; do not "unify" this. *Mirrors assets/DESIGN.md:33-35 — change it there first.*
+use IBM Plex; do not "unify" this. *Mirrors assets/DESIGN.md:31-34 — change it there first.*
 
 Dynamic Type is capped at 2x on **every** text primitive: both `AppText` and `ui/text` apply the
 cap by default. `ui/text` renders every button label plus HeroStats, ComponentRow, GoLiveDialog
 and ProductDelete.
 
 **The Eyebrow-Is-A-Datum Rule.** `eyebrow` labels a **value inside a compact tag**. It is not a
-kicker above a heading; www and docs carry none. *Mirrors assets/DESIGN.md:169-173 —
+kicker above a heading; www and docs carry none. *Mirrors assets/DESIGN.md:166-171 —
 change it there first.*
 
 **The Ramp Rule.** Every text size comes from the eight variants above. An inline `fontSize:`
@@ -277,7 +277,7 @@ muted.
 **The One Tier Rule.** There is exactly one shadow. Inline surfaces get a hairline and no
 shadow; floating surfaces get `elevation.overlay`. A second elevation tier, a coloured glow, or a
 shadow stacked on an already-floating element is a defect. *Mirrors
-assets/DESIGN.md:119-127 — change it there first.*
+assets/DESIGN.md:117-126 — change it there first.*
 
 ## Shapes
 
@@ -296,7 +296,7 @@ All four map through `src/constants.ts:42`. Use the token, never a literal.
 ### Named Rules
 
 **The True-Pill Rule.** `radius.full` is for avatars and genuine pills only. A 44×44 icon button
-with `rounded-full` is not a pill. *Mirrors assets/DESIGN.md:111-114 —
+with `rounded-full` is not a pill. *Mirrors assets/DESIGN.md:112 —
 change it there first.*
 
 ## Components
@@ -366,6 +366,32 @@ tint over it (`absolute inset-0 bg-primary/12`) rather than replacing the fill. 
 drops the tint. The live-stream banner, on the inverse ground, takes the inverse ink at 12%.
 Never dim on press: opacity is for disabled, never for pressed.
 
+### Motion
+
+Motion says where something came from or went; it never decorates. Entrances run 150–300ms
+with an ease-out, exits are plain fades shorter than their entrance, and every animation honours
+`prefers-reduced-motion`. *Mirrors assets/DESIGN.md:135-138 — change it there first.*
+
+- **Overlays** (AppDialog, Menu, FilterSelectionModal, InfoTooltip, the lightbox) render an RN
+  `Modal` with `animationType="none"` and run their own fade through `useModalPresence`
+  (`src/hooks/useModalPresence.ts`): 200ms in, 150ms out, `ReduceMotion.System`. The hook keeps
+  the Modal mounted through the exit, and while closing the content takes no input:
+  `pointerEvents` off `visible` for pointers, and on an overlay with actions a
+  `swallowKey` key-capture handler on the same wrapper plus an `onRequestClose` that ignores a
+  second Escape, so a second tap or Enter cannot repeat an action. Pass `mounted`, not
+  `visible`, to `useReturnFocus`: the Modal's focus trap holds focus until it really closes.
+- **Rows** in a short, non-virtualized list take `ROW_ENTER` / `ROW_EXIT` / `ROW_MOVE` from
+  `src/components/base/rowMotion.ts` (200ms fade in, 150ms fade out, neighbours slide 200ms).
+  Wrap the list in `<LayoutAnimationConfig skipEntering skipExiting>` so rows already there on
+  mount do not fade in and leaving the screen does not play every row's exit.
+- **The lightbox** is the one focal moment, with its own `useModalPresence` timing: the photo
+  grows from 96% with a 250ms settle and closes in 150ms. It is also the one sanctioned
+  `ReduceMotion.Never`: under reduced motion it keeps the fade and drops only the scale, an
+  opacity-only path, so the photo still arrives instead of snapping in.
+- **CSS transitions** (the 120ms press fade, `transition-colors`) snap under
+  `prefers-reduced-motion`: an unlayered rule in `global.css` sets `transition-duration: 0s` on
+  every element, outranking the `@layer utilities` transition classes.
+
 ### Errors and loading
 
 - **Errors:** one idiom, `ErrorState`. Full-height when the whole screen failed; `compact` for an
@@ -422,7 +448,9 @@ tracked label on a tinted fill).
   a button label is one string.
 - **Do** pair every colour-carried meaning with a second signal: an icon, a border, or text.
 - **Do** apply `MIN_TAP_TARGET` (44) to every interactive control, including icon-only ones.
-- **Do** pass `ReduceMotion.System` on every Reanimated animation.
+- **Do** pass `ReduceMotion.System` on every Reanimated animation. The one exception is the
+  lightbox's `ReduceMotion.Never`, which keeps an opacity-only path under reduced motion (see
+  Motion).
 - **Do** keep entrance motion in the 150–300ms band, with exits shorter.
 - **Do** comment any departure from a token, naming what it departs from.
 
