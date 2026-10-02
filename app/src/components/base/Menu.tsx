@@ -5,11 +5,13 @@ import Animated, { Easing, FadeInDown, FadeInUp, ReduceMotion } from 'react-nati
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
-import { useModalPresence } from '@/hooks/useModalPresence';
+import { swallowKey, useModalPresence } from '@/hooks/useModalPresence';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition, nextMenuIndex } from './menuPosition';
 import { PRESS_FADE, type PressState, pressFill } from './pressFeedback';
+
+const NOOP = () => {};
 
 // Swallow presses so tapping an item does not fall through to the backdrop.
 function stopPropagation(e: { stopPropagation: () => void }) {
@@ -24,10 +26,12 @@ function stopPropagation(e: { stopPropagation: () => void }) {
  * Escape is the Modal's own `onRequestClose`. Native screen readers swipe
  * between items, so this is web-only.
  */
-function useWebMenuKeyboard(popover: HTMLElement | null, onDismiss: () => void) {
+function useWebMenuKeyboard(popover: HTMLElement | null, visible: boolean, onDismiss: () => void) {
   // An effect event, so a caller's inline onDismiss does not re-run the effect and refocus the first item.
   const dismiss = useEffectEvent(onDismiss);
   useEffect(() => {
+    // Closing: the popover stays mounted through its exit, but its keys are done.
+    if (!visible) return;
     // A host node without DOM methods is a test renderer under a mocked web platform.
     if (!popover || typeof popover.querySelectorAll !== 'function') return;
     // biome-ignore lint/security/noSecrets: an ARIA attribute selector, not a secret.
@@ -77,7 +81,7 @@ function useWebMenuKeyboard(popover: HTMLElement | null, onDismiss: () => void) 
       popover.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [popover]);
+  }, [popover, visible]);
 }
 
 type MenuProps = {
@@ -107,7 +111,9 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
   // State, not a ref: the Modal mounts its content a render after `visible`
   // flips, and the keyboard hook has to run once the popover exists.
   const [popover, setPopover] = useState<HTMLElement | null>(null);
-  useWebMenuKeyboard(popover, onDismiss);
+  useWebMenuKeyboard(popover, visible, onDismiss);
+  // A second Escape during the exit must not dismiss again.
+  const handleRequestClose = visible ? onDismiss : NOOP;
 
   useEffect(() => {
     if (!visible) return;
@@ -134,12 +140,15 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
         visible={mounted}
         transparent
         animationType="none"
-        onRequestClose={onDismiss}
+        onRequestClose={handleRequestClose}
         aria-label="Menu"
       >
         <Animated.View
           style={[StyleSheet.absoluteFill, fadeStyle]}
           pointerEvents={visible ? 'auto' : 'none'}
+          // Focus stays on the chosen item through the exit; Enter there must not run it again.
+          // Spread: RN's TypeScript types omit onKeyDownCapture; RN-Web and native both take it.
+          {...{ onKeyDownCapture: visible ? undefined : swallowKey }}
         >
           {/* Scrim and wrapper are not controls: see AppDialog. */}
           <Pressable

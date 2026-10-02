@@ -130,6 +130,38 @@ describe('Menu', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it('takes no Escape and no keys while it fades out', async () => {
+    // Hold the exit open: withTiming never reports finished, so the popover stays mounted.
+    const timing = jest
+      .spyOn(
+        jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated'),
+        'withTiming',
+      )
+      .mockImplementation(((to: number) => to) as never);
+    const onDismiss = jest.fn();
+    const menu = (visible: boolean) => (
+      <Menu visible={visible} onDismiss={onDismiss} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>
+    );
+    try {
+      await render(menu(true));
+      await screen.rerender(menu(false));
+      expect(screen.getByText('A-Z')).toBeOnTheScreen();
+
+      const [modal] = queryAllHostsByProps({ animationType: 'none' });
+      modal?.props.onRequestClose();
+      expect(onDismiss).not.toHaveBeenCalled();
+
+      const [guard] = queryAllHostsByProps({ pointerEvents: 'none' });
+      const key = { preventDefault: jest.fn(), stopPropagation: jest.fn() };
+      guard?.props.onKeyDownCapture(key);
+      expect(key.stopPropagation).toHaveBeenCalled();
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
   it('keeps the scrim and wrapper out of the accessibility tree and names the menu', async () => {
     await render(
       <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>

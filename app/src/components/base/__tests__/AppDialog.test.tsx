@@ -77,6 +77,39 @@ describe('AppDialog', () => {
     }
   });
 
+  it('takes no Escape and no keys while it fades out', async () => {
+    // Hold the exit open: withTiming never reports finished, so the body stays mounted.
+    const timing = jest
+      .spyOn(
+        jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated'),
+        'withTiming',
+      )
+      .mockImplementation(((to: number) => to) as never);
+    const onDismiss = jest.fn();
+    const dialog = (visible: boolean) => (
+      <AppDialog visible={visible} onDismiss={onDismiss} accessibilityLabel="Closing">
+        <Text>Body</Text>
+      </AppDialog>
+    );
+    try {
+      await renderWithProviders(dialog(true));
+      await screen.rerender(dialog(false));
+      expect(screen.getByText('Body')).toBeOnTheScreen();
+
+      const [modal] = queryAllHostsByProps({ animationType: 'none' });
+      modal?.props.onRequestClose();
+      expect(onDismiss).not.toHaveBeenCalled();
+
+      const [guard] = queryAllHostsByProps({ pointerEvents: 'none' });
+      const key = { preventDefault: jest.fn(), stopPropagation: jest.fn() };
+      guard?.props.onKeyDownCapture(key);
+      expect(key.stopPropagation).toHaveBeenCalled();
+      expect(key.preventDefault).toHaveBeenCalled();
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
   it('scrolls its children inside a keyboard-avoiding view', async () => {
     await renderWithProviders(
       <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Tall">

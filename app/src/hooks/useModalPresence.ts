@@ -22,10 +22,12 @@ const OVERLAY_TIMING: PresenceTiming = {
  * (react-native-web's fade runs 300ms each way, so a close was as slow as an open).
  * Render `<Modal visible={mounted} animationType="none">` with its content in an
  * Animated.View styled by `fadeStyle`; `progress` (0 closed, 1 open) drives any
- * further styles. While closing, keep the content from taking presses
- * (`pointerEvents` off `visible`), so a second tap cannot repeat an action. Pass
- * `mounted`, not `visible`, to useReturnFocus: the Modal's focus trap holds focus
- * until it really closes.
+ * further styles. While closing, keep the content from taking input, so a second
+ * tap or keypress cannot repeat an action: `pointerEvents` off `visible` for
+ * pointers, `onKeyDownCapture={visible ? undefined : swallowKey}` on the same
+ * wrapper for keys (focus stays on the pressed control until unmount), and an
+ * `onRequestClose` that ignores a second Escape. Pass `mounted`, not `visible`,
+ * to useReturnFocus: the Modal's focus trap holds focus until it really closes.
  */
 export function useModalPresence(visible: boolean, timing: PresenceTiming = OVERLAY_TIMING) {
   const [mounted, setMounted] = useState(visible);
@@ -45,4 +47,10 @@ export function useModalPresence(visible: boolean, timing: PresenceTiming = OVER
 
   const fadeStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
   return { mounted, progress, fadeStyle };
+}
+
+/** Stops a key before it reaches a focused control inside a closing overlay. */
+export function swallowKey(event: { preventDefault: () => void; stopPropagation: () => void }) {
+  event.preventDefault();
+  event.stopPropagation();
 }

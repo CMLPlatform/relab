@@ -150,9 +150,12 @@ function DialogBody({
   );
 
   // Every action (on-screen press, keyboard return) routes through here, so the
-  // disabled gate lives here rather than at each entry point.
+  // disabled and closing gates live here rather than at each entry point.
   const handleClose = useCallback(
     (btn?: DialogButton) => {
+      // The body stays mounted through its exit with the input already cleared; a
+      // second Enter in that window would hand onPress an empty value.
+      if (!visible) return;
       if (btn && isButtonDisabled(btn)) {
         return;
       }
@@ -162,7 +165,7 @@ function DialogBody({
       setInputValue('');
       onDismiss();
     },
-    [inputValue, isButtonDisabled, onDismiss, options.input],
+    [inputValue, isButtonDisabled, onDismiss, options.input, visible],
   );
 
   const buttons = useMemo(() => options.buttons ?? [{ text: 'OK' }], [options.buttons]);

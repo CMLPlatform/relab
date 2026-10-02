@@ -204,6 +204,42 @@ describe('DialogProvider', () => {
     expect(onSubmit).toHaveBeenCalledWith('hello');
   });
 
+  it('a second Enter during the closing fade does not re-run the action with an empty value', async () => {
+    // Hold the exit open: withTiming never reports finished, so the body stays mounted.
+    const timing = jest
+      .spyOn(
+        jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated'),
+        'withTiming',
+      )
+      .mockImplementation(((to: number) => to) as never);
+    const onSubmit = jest.fn();
+
+    function InputSubmitTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() =>
+        dialog.input({
+          title: 'Enter Name',
+          placeholder: 'Your name',
+          buttons: [{ text: 'Cancel' }, { text: 'OK', onPress: onSubmit }],
+        }),
+      );
+    }
+
+    try {
+      await renderWithProviders(<InputSubmitTest />, { withDialog: true });
+      await user.press(screen.getByTestId('trigger'));
+      await user.type(screen.getByPlaceholderText('Your name'), 'hello');
+      await fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
+      // Still mounted mid-fade; a second Enter lands on the cleared field.
+      await fireEvent(screen.getByPlaceholderText('Your name'), 'submitEditing');
+
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(onSubmit).toHaveBeenCalledWith('hello');
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
   it('submitEditing does not fire the primary action while it is disabled', async () => {
     const onSubmit = jest.fn();
 

@@ -2,7 +2,7 @@ import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, type View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Animated, { Easing, FadeInUp, ReduceMotion } from 'react-native-reanimated';
-import { useModalPresence } from '@/hooks/useModalPresence';
+import { swallowKey, useModalPresence } from '@/hooks/useModalPresence';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { OverlaySurface } from './OverlaySurface';
@@ -44,7 +44,9 @@ export function AppDialog({
   children,
 }: AppDialogProps) {
   const theme = useAppTheme();
-  const handleDismiss = dismissable ? onDismiss : undefined;
+  // A closing dialog stays mounted through its exit; a second Escape or backdrop
+  // press in that window must not dismiss again.
+  const handleDismiss = dismissable && visible ? onDismiss : undefined;
   const { mounted, fadeStyle } = useModalPresence(visible);
   // Every dialog inherits return-focus on close; triggerRef is optional and
   // only needed for native screen-reader focus restore (web works without it).
@@ -64,7 +66,13 @@ export function AppDialog({
           from reaching it. Neither is a control: assistive tech dismisses the
           dialog with its own buttons or the system back gesture, and a
           full-screen unlabelled button would swallow the card it contains. */}
-      <Animated.View style={[styles.fill, fadeStyle]} pointerEvents={visible ? 'auto' : 'none'}>
+      <Animated.View
+        style={[styles.fill, fadeStyle]}
+        pointerEvents={visible ? 'auto' : 'none'}
+        // Focus stays on the pressed button through the exit; Enter there must not press it again.
+        // Spread: RN's TypeScript types omit onKeyDownCapture; RN-Web and native both take it.
+        {...{ onKeyDownCapture: visible ? undefined : swallowKey }}
+      >
         <Pressable
           accessible={false}
           tabIndex={-1}
