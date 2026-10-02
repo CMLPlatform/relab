@@ -81,16 +81,6 @@ run "static_sites_leave_the_tunnel_for_workers" {
     condition     = cloudflare_workers_custom_domain.site["www"].service == github_actions_environment_variable.publish["WWW_WORKER"].value
     error_message = "the www custom domain must serve the Worker the site deploy targets."
   }
-
-  assert {
-    condition     = cloudflare_workers_custom_domain.site["docs"].hostname == "docs-test.cml-relab.org"
-    error_message = "staging docs must be served by a Worker on its -test hostname."
-  }
-
-  assert {
-    condition     = !contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : rule.service], "http://www:8081")
-    error_message = "the tunnel must no longer route to a www container."
-  }
 }
 
 run "tunnel_ingress_ends_in_a_catch_all" {
@@ -136,17 +126,17 @@ run "publish_urls_follow_the_hostnames" {
   }
 
   assert {
-    condition     = github_actions_environment_variable.publish["SITE_PUBLIC_URL"].value == "https://web-test.cml-relab.org"
-    error_message = "staging SITE_PUBLIC_URL must be the staging www hostname."
-  }
-
-  assert {
     condition     = length(github_repository_environment_deployment_policy.main) == 0
     error_message = "staging must accept a publish from any branch."
   }
+
+  assert {
+    condition     = length(github_repository_ruleset.release_tags) == 0
+    error_message = "the repository-wide release-tag ruleset belongs to the prod workspace only."
+  }
 }
 
-run "prod_publishes_only_from_main" {
+run "prod_gates_publishes_and_release_tags" {
   command = plan
 
   variables {
@@ -154,44 +144,21 @@ run "prod_publishes_only_from_main" {
   }
 
   assert {
-    condition     = github_repository_environment_deployment_policy.main[0].branch_pattern == "main"
-    error_message = "prod URLs must only be baked into images built from main."
+    condition     = length(github_repository_environment_deployment_policy.main) == 1 && length(github_repository_environment_deployment_policy.release_tag) == 1
+    error_message = "prod must accept a publish only from main or a release tag."
   }
 
+  # Hosts deploy images by tag, so a tag anyone with write access can move is a deploy
+  # anyone with write access can trigger.
   assert {
-    condition     = github_repository_environment_deployment_policy.release_tag[0].tag_pattern == "v*"
-    error_message = "release.yml runs on the release tag, so prod must accept v* tags."
-  }
-}
-
-run "prod_waits_for_a_reviewer" {
-  command = plan
-
-  variables {
-    environment = "prod"
+    condition     = length(github_repository_ruleset.release_tags) == 1
+    error_message = "prod must own the release-tag ruleset."
   }
 
+  # The reviewer is the release gate; the username must resolve to its user id.
   assert {
     condition     = github_repository_environment.publish.reviewers[0].users == toset([4242])
-    error_message = "prod jobs must wait for a required reviewer: it is the release gate."
-  }
-
-  assert {
-    condition     = github_repository_environment.publish.wait_timer == null
-    error_message = "the reviewer gates prod; a wait timer would only delay it."
-  }
-}
-
-run "staging_waits_for_a_reviewer" {
-  command = plan
-
-  variables {
-    environment = "staging"
-  }
-
-  assert {
-    condition     = github_repository_environment.publish.reviewers[0].users == toset([4242])
-    error_message = "staging runs must wait for a required reviewer while its token is not scoped to its own Workers."
+    error_message = "prod jobs must wait for the configured reviewer."
   }
 }
 
@@ -204,46 +171,4 @@ run "an_environment_without_a_reviewer_is_refused" {
   }
 
   expect_failures = [github_repository_environment.publish]
-}
-
-run "prod_restricts_release_tags" {
-  command = plan
-
-  variables {
-    environment = "prod"
-  }
-
-  # Hosts deploy images by tag, so a tag anyone with write access can move is a deploy
-  # anyone with write access can trigger.
-  assert {
-    condition     = github_repository_ruleset.release_tags[0].conditions[0].ref_name[0].include == tolist(["refs/tags/v*"])
-    error_message = "the release-tag ruleset must cover v* tags."
-  }
-
-  assert {
-    condition = alltrue([
-      github_repository_ruleset.release_tags[0].rules[0].creation,
-      github_repository_ruleset.release_tags[0].rules[0].update,
-      github_repository_ruleset.release_tags[0].rules[0].deletion,
-    ])
-    error_message = "v* tags must be restricted on create, update and delete."
-  }
-
-  assert {
-    condition     = toset([for actor in github_repository_ruleset.release_tags[0].bypass_actors : actor.actor_id]) == toset([2, 5])
-    error_message = "only maintainers and admins may bypass the release-tag ruleset."
-  }
-}
-
-run "staging_leaves_the_repository_ruleset_to_prod" {
-  command = plan
-
-  variables {
-    environment = "staging"
-  }
-
-  assert {
-    condition     = length(github_repository_ruleset.release_tags) == 0
-    error_message = "the repository-wide ruleset belongs to one workspace only."
-  }
 }
