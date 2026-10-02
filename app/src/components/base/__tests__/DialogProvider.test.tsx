@@ -292,6 +292,31 @@ describe('DialogProvider', () => {
     expect(screen.queryByText('First failure')).toBeNull();
   });
 
+  // A second OK press can reach the closing dialog before it re-renders; it
+  // must not also dismiss the next queued dialog unseen.
+  it('ignores a second dismiss from a dialog that already closed', async () => {
+    function ThreeAlerts() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => {
+        dialog.alert({ title: 'First failure', buttons: [{ text: 'OK' }] });
+        dialog.alert({ title: 'Second failure', buttons: [{ text: 'Next' }] });
+        dialog.alert({ title: 'Third failure', buttons: [{ text: 'Done' }] });
+      });
+    }
+
+    await renderWithProviders(<ThreeAlerts />, { withDialog: true });
+    await user.press(screen.getByTestId('trigger'));
+
+    const ok = screen.getByText('OK');
+    await act(async () => {
+      fireEvent.press(ok);
+      fireEvent.press(ok);
+    });
+
+    expect(await screen.findByText('Second failure')).toBeOnTheScreen();
+    expect(screen.queryByText('Third failure')).toBeNull();
+  });
+
   it('pressing a button with no onPress closes the dialog without throwing', async () => {
     function Test() {
       const dialog = useDialog();

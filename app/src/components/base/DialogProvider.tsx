@@ -44,12 +44,16 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   // shows each in order instead of keeping only the last.
   const openRef = useRef(false);
   const pendingRef = useRef<DialogOptions[]>([]);
+  // Mirrors dialogVersion synchronously, so a dismiss from a dialog that has
+  // already closed (a second press before re-render) can be told apart.
+  const versionRef = useRef(0);
 
   const show = useCallback((opts: DialogOptions) => {
     openRef.current = true;
+    versionRef.current += 1;
     setOptions(opts);
     setVisible(true);
-    setDialogVersion((version) => version + 1);
+    setDialogVersion(versionRef.current);
   }, []);
 
   const open = useCallback(
@@ -74,15 +78,20 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     setToastState({ message, action });
   }, []);
 
-  const clear = useCallback(() => {
-    const next = pendingRef.current.shift();
-    if (next) {
-      show(next);
-      return;
-    }
-    openRef.current = false;
-    setVisible(false);
-  }, [show]);
+  const clear = useCallback(
+    (version: number) => {
+      if (!openRef.current || version !== versionRef.current) return;
+      const next = pendingRef.current.shift();
+      if (next) {
+        show(next);
+        return;
+      }
+      openRef.current = false;
+      setVisible(false);
+    },
+    [show],
+  );
+  const dismissDialog = useCallback(() => clear(dialogVersion), [clear, dialogVersion]);
 
   const dismissToast = useCallback(() => {
     setToastState(null);
@@ -96,7 +105,12 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
       {/* key remounts the body per dialog so the input resets to its defaultValue. */}
       {options ? (
-        <DialogBody key={dialogVersion} options={options} visible={visible} onDismiss={clear} />
+        <DialogBody
+          key={dialogVersion}
+          options={options}
+          visible={visible}
+          onDismiss={dismissDialog}
+        />
       ) : null}
       <Toast state={toastState} onDismiss={dismissToast} />
     </DialogContext.Provider>
