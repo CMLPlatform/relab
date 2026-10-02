@@ -9,8 +9,9 @@ import {
 } from 'react-native';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { cn } from '@/utils/cn';
 import { Icon, type IconName } from './Icon';
-import { type PressState, pressFill } from './pressFeedback';
+import { PRESS_FADE, type PressState, pressFill } from './pressFeedback';
 
 // `onPress`/`disabled`/`accessibilityState` stay controlled here so the loading
 // behavior cannot be clobbered; the rest passes through.
@@ -36,6 +37,7 @@ export function IconButton({
   loading = false,
   style,
   testID,
+  className,
   ...rest
 }: IconButtonProps) {
   const theme = useAppTheme();
@@ -61,8 +63,7 @@ export function IconButton({
       aria-busy={loading}
       aria-disabled={loading}
       hitSlop={8}
-      // NOTE: never give a Pressable both a className and a function `style`:
-      // the bridge merges them into an array and Pressable then drops the function.
+      className={cn(PRESS_FADE, className)}
       style={pressableStyle}
     >
       {loading ? (

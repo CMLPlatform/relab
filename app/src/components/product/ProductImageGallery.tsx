@@ -34,8 +34,7 @@ export default function ProductImageGallery({
   canEdit = true,
   onImagesChange,
 }: Props) {
-  // Pages are as wide as the strip, which is narrower than the window once the
-  // detail screen insets it into the content column.
+  // Pages match the strip, narrower than the window once inset into the column.
   const [layoutWidth, setLayoutWidth] = useState<number>();
   const onLayout = useCallback(
     (event: LayoutChangeEvent) => setLayoutWidth(event.nativeEvent.layout.width),

@@ -14,7 +14,7 @@ import { MIN_TAP_TARGET } from '@/constants';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition, nextMenuIndex } from './menuPosition';
-import { type PressState, pressFill } from './pressFeedback';
+import { PRESS_FADE, type PressState, pressFill } from './pressFeedback';
 
 // Swallow presses so tapping an item does not fall through to the backdrop.
 function stopPropagation(e: { stopPropagation: () => void }) {
@@ -194,16 +194,13 @@ function MenuItem({
 }) {
   const theme = useAppTheme();
   const pressableStyle = useCallback(
-    (state: PressState) => [
-      // No className on this Pressable: it would drop this function (see IconButton.tsx).
-      styles.item,
-      pressFill(state, theme.tokens.surface.accent),
-    ],
+    (state: PressState) => [styles.item, pressFill(state, theme.tokens.surface.accent)],
     [theme.tokens.surface.accent],
   );
   return (
     <Pressable
       onPress={onPress}
+      className={PRESS_FADE}
       // NOTE: menuitemradio is a valid ARIA role that react-native-web passes through but RN's
       // types omit, and Android's native role enum rejects it (the view manager throws). Native
       // keeps menuitem and carries the choice state in aria-checked -> accessibilityState.checked.

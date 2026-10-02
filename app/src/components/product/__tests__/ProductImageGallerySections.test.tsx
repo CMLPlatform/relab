@@ -179,7 +179,6 @@ describe('product gallery section components', () => {
     expect(selected.props['aria-pressed']).toBe(true);
     expect(selected).toBeSelected();
     expect(other.props['aria-pressed']).toBe(false);
-    // A className plus a function style would drop the border (see IconButton.tsx).
     expect(StyleSheet.flatten(selected.props.style).borderColor).not.toBe('transparent');
     expect(StyleSheet.flatten(other.props.style).borderColor).toBe('transparent');
   });

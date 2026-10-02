@@ -15,9 +15,6 @@ import { useAppTheme } from '@/theme/appThemeContext';
 import { LivePreview } from './LivePreview';
 import { showStreamStopFailed } from './streamingFeedback';
 
-// Set as a style rather than a `tabular-nums` className: font-variant-numeric has no
-// className path through the RN style bridge, so the utility compiles to nothing.
-
 interface StreamingContentProps {
   session: StreamSession;
   /** Called after a successful stop or after navigating to the product page. */

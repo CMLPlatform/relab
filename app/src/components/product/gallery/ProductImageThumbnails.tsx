@@ -111,8 +111,6 @@ const ThumbnailItem = memo(function ThumbnailItem({
     onScrollToIndex(index);
   }, [onSelectIndex, onScrollToIndex, index]);
 
-  // NOTE: a static style, not a function: with a className the bridge drops a
-  // function style (see IconButton.tsx), which hid the selected border.
   const borderStyle = useMemo(
     () => ({ borderColor: selected ? selectedBorderColor : 'transparent' }),
     [selected, selectedBorderColor],

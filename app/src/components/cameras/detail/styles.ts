@@ -18,8 +18,6 @@ export type EffectiveConnection = Pick<
 
 // Only what has no className equivalent stays here.
 export const cameraDetailStyles = StyleSheet.create({
-  // IconButton ignores/overwrites a caller className (see IconButton.tsx),
-  // so this stays a style prop.
   iconButton: {
     margin: 0,
   },

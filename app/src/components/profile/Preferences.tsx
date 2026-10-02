@@ -208,7 +208,11 @@ function VisibilityOption({
 
   return (
     <Pressable
-      className={cn('my-0.5 flex-row items-center gap-3 rounded-lg px-4 py-3', PRESS_TINT)}
+      // No hover tint while saving: the row is disabled then.
+      className={cn(
+        'my-0.5 flex-row items-center gap-3 rounded-lg px-4 py-3',
+        !saving && PRESS_TINT,
+      )}
       style={isActive ? styles.visibilityOptionActive : undefined}
       onPress={handlePress}
       disabled={saving}

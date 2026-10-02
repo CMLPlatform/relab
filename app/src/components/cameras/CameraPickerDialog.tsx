@@ -114,7 +114,11 @@ function CameraPickerRow({
       onPress={handleSelect}
       disabled={!isReachable}
       accessibilityRole="button"
-      className={cn('flex-row items-center gap-3 rounded-lg border border-border p-3', PRESS_TINT)}
+      // A disabled (offline) row must not tint on web hover.
+      className={cn(
+        'flex-row items-center gap-3 rounded-lg border border-border p-3',
+        isReachable && PRESS_TINT,
+      )}
       style={{ opacity: isReachable ? 1 : 0.4 }}
     >
       <View

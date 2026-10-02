@@ -358,7 +358,11 @@ One press language. Filled controls (primary, tonal, the chip value segment) pre
 bare icon buttons) takes the One Tint, `bg-primary/12`, on press and on web hover, with a 120ms
 colour fade on web. Take it from `src/components/base/pressFeedback.ts`: `PRESS_TINT` as a
 className, or `pressFill()` as a style where a Pressable keeps a function `style` or the tint has
-to lie over a photo or card. Never dim on press: opacity is for disabled, never for pressed.
+to lie over a photo or card. A Pressable that keeps a function `style` takes `PRESS_FADE` as
+its className for the same 120ms fade; Uniwind keeps both. On a tinted or sunken fill, lay the
+tint over it (`absolute inset-0 bg-primary/12`) rather than replacing the fill. A disabled row
+drops the tint. The live-stream banner, on the inverse ground, takes the inverse ink at 12%.
+Never dim on press: opacity is for disabled, never for pressed.
 
 ### Errors and loading
 

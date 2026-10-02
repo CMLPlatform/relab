@@ -11,8 +11,10 @@ import {
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getStatusTone } from '@/theme/color';
+import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { PRESS_FADE } from './pressFeedback';
 
 interface Props extends PressableProps {
   children?: string;
@@ -62,7 +64,7 @@ export const Chip = ({
         </AppText>
       ) : null}
       <View
-        className="flex-row items-center gap-1.5 rounded-md px-3 py-2"
+        className={cn('flex-row items-center gap-1.5 rounded-md px-3 py-2', PRESS_FADE)}
         style={{
           backgroundColor: error
             ? getStatusTone(danger)

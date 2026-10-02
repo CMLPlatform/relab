@@ -12,6 +12,7 @@ import { AppText } from '@/components/base/AppText';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { Icon, type IconName } from './Icon';
+import { PRESS_FADE } from './pressFeedback';
 
 // onPress/disabled/accessibilityState stay controlled here so the blocked
 // behavior cannot be clobbered; the rest passes through.
@@ -70,7 +71,7 @@ export function Fab({
 
   const pressableStyle = useCallback(
     ({ pressed }: { pressed: boolean }) => [
-      // First so callers can override. No className: it would drop this function (see IconButton.tsx).
+      // First so callers can override.
       styles.base,
       theme.tokens.elevation.overlay,
       { backgroundColor: pressed && !disabled ? theme.colors.primaryStrong : theme.colors.primary },
@@ -97,6 +98,7 @@ export function Fab({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
+      className={PRESS_FADE}
       style={pressableStyle}
     >
       {typeof icon === 'function' ? (

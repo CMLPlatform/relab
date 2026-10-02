@@ -6,7 +6,7 @@ import { useDialog } from '@/components/base/dialogContext';
 import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
-import { type PressState, pressFill } from '@/components/base/pressFeedback';
+import { PRESS_FADE, type PressState, pressFill } from '@/components/base/pressFeedback';
 import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
 import { MIN_TAP_TARGET } from '@/constants';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
@@ -233,7 +233,6 @@ function StepButton({
   const { colors } = useAppTheme();
   const style = useCallback(
     (state: PressState) => [
-      // No className on this Pressable: it would drop this function (see IconButton.tsx).
       styles.iconSlot,
       // On the chip's solid-primary value segment: a filled control, so primary-strong.
       disabled ? { opacity: 0.4 } : pressFill(state, colors.primaryStrong),
@@ -245,6 +244,7 @@ function StepButton({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      className={PRESS_FADE}
       style={style}
       accessibilityRole="button"
       accessibilityLabel={label}

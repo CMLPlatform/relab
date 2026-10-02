@@ -48,8 +48,7 @@ describe('IconButton', () => {
 
   it('meets the 44px a11y tap-target floor', async () => {
     await render(<IconButton icon="x" onPress={jest.fn()} accessibilityLabel="Close" />);
-    // Resolved through the state callback: the floor lives in the style
-    // function, never in a className (mixing the two drops the function).
+    // Resolved through the state callback: the floor lives in the style function.
     const style = StyleSheet.flatten(screen.getByRole('button').props.style);
     expect(style.minWidth).toBe(MIN_TAP_TARGET);
     expect(style.minHeight).toBe(MIN_TAP_TARGET);

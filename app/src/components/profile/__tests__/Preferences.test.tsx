@@ -45,4 +45,26 @@ describe('preferences radios', () => {
       checked: false,
     });
   });
+
+  // A disabled row must not answer hover: the tint promises a press that cannot land.
+  it('drops the press tint from the visibility rows while saving', async () => {
+    const profile = mockUser({ preferences: { profile_visibility: 'community' } });
+    const { rerender } = await renderWithProviders(
+      <ProfileVisibilitySection
+        profile={profile}
+        visibilitySaving
+        onChangeVisibility={jest.fn()}
+      />,
+    );
+    expect(screen.getByLabelText('Public').props.className).not.toContain('hover:bg-primary/12');
+
+    await rerender(
+      <ProfileVisibilitySection
+        profile={profile}
+        visibilitySaving={false}
+        onChangeVisibility={jest.fn()}
+      />,
+    );
+    expect(screen.getByLabelText('Public').props.className).toContain('hover:bg-primary/12');
+  });
 });

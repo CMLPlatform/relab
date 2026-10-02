@@ -11,7 +11,6 @@ export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
     row: {
       gap: 10,
     },
-    // Mixing a className with a function style drops the function (see IconButton.tsx).
     cellPressable: {
       borderRadius: radius.card,
     },
