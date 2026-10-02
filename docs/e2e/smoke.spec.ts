@@ -47,6 +47,7 @@ test('pages run under the built CSP without violations', async ({ page }) => {
   });
 
   for (const path of ['/', '/architecture/system-design/', '/api/public/']) {
+    // biome-ignore lint/performance/noAwaitInLoops: one page, so each route loads after the last.
     await page.goto(path);
     await page.waitForLoadState('networkidle');
   }
