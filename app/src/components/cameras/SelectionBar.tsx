@@ -51,9 +51,7 @@ export function SelectionBar({
         disabled={!canCapture}
       >
         <Icon name="images" size={16} color={theme.colors.onPrimary} />
-        <AppText style={{ color: theme.colors.onPrimary }}>
-          {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
-        </AppText>
+        {isCapturing ? 'Capturing…' : `Capture ${selectedCount}`}
       </AppButton>
     </View>
   );

@@ -2,7 +2,6 @@ import type { RefObject } from 'react';
 import { useCallback } from 'react';
 import { type TextInput, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
-import { AppText } from '@/components/base/AppText';
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { Icon } from '@/components/base/Icon';
 import { Searchbar } from '@/components/base/Searchbar';
@@ -68,9 +67,7 @@ export function ProductsSearchToolbar({
         aria-expanded={filtersExpanded}
       >
         <Icon name="sliders-horizontal" size="sm" color={filterForeground} />
-        <AppText variant="caption" style={{ color: filterForeground }}>
-          Filters
-        </AppText>
+        Filters
       </AppButton>
     </View>
   );

@@ -78,7 +78,7 @@ export function CameraPickerDialog({
       <View className="mt-4 flex-row items-center justify-end gap-1">
         <AppButton variant="ghost" onPress={handleManage}>
           <Icon name="settings" size={16} color={theme.colors.onSurface} />
-          <AppText style={{ color: theme.colors.onSurface }}>Manage</AppText>
+          Manage
         </AppButton>
         <View className="flex-1" />
         <AppButton variant="ghost" onPress={onDismiss}>

@@ -393,7 +393,7 @@ function GoLiveCTA({
         className={`mx-3.5 mb-2 ${ready ? '' : 'opacity-50'}`}
       >
         <Icon name="youtube" size={18} color={theme.colors.onSurface} />
-        <AppText style={{ color: theme.colors.onSurface }}>Go Live</AppText>
+        Go Live
       </AppButton>
     </View>
   );

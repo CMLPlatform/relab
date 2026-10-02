@@ -82,7 +82,7 @@ export function ProductsWelcomeCard({
           ) : (
             <AppButton variant="tonal" onPress={onGoToProfile}>
               <Icon name="mail-check" size={18} color={theme.colors.primary} />
-              <AppText>Verify email</AppText>
+              Verify email
             </AppButton>
           )}
           <AppButton variant="ghost" onPress={onDismiss}>

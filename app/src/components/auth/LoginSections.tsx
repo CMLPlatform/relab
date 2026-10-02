@@ -34,7 +34,7 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
         style={{ backgroundColor: theme.tokens.overlay.page }}
       >
         <Icon name="arrow-left" size={16} color={theme.colors.onSurface} />
-        <AppText className="text-foreground">Browse</AppText>
+        Browse
       </AppButton>
 
       <AuthScreen>
@@ -200,11 +200,11 @@ export function LoginOAuthSection({ onGoogle, onGithub }: LoginOAuthSectionProps
     <>
       <AppButton variant="outline" className="w-full" onPress={onGoogle}>
         <Icon name="google" size="sm" color={theme.colors.onSurface} />
-        <AppText className="text-foreground">Continue with Google</AppText>
+        Continue with Google
       </AppButton>
       <AppButton variant="outline" className="w-full" onPress={onGithub}>
         <Icon name="github" size="sm" color={theme.colors.onSurface} />
-        <AppText className="text-foreground">Continue with GitHub</AppText>
+        Continue with GitHub
       </AppButton>
     </>
   );

@@ -162,7 +162,7 @@ export default function AddCameraScreen() {
                 className="mt-2"
               >
                 <Icon name="link" size={18} color={theme.colors.onPrimary} />
-                <AppText className="text-primary-foreground">Pair camera</AppText>
+                Pair camera
               </AppButton>
             </View>
 
