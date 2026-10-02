@@ -111,7 +111,7 @@ The Expo web app requires inline and eval-style first-party script support in th
 
 ## Supply chain
 
-GitHub Dependency Review and Dependency Graph gate dependency changes; Renovate opens update PRs. `just audit` runs a full-tree vulnerability sweep. When an upstream package pins a vulnerable transitive version, a scoped `overrides:` entry in `pnpm-workspace.yaml` lifts it; `just overrides-check` runs weekly and flags any override the tree no longer needs.
+GitHub Dependency Review and Dependency Graph gate dependency changes; Renovate opens update PRs. `just audit` runs a full-tree vulnerability sweep. When an upstream package pins a vulnerable transitive version, a scoped `overrides:` entry in `pnpm-workspace.yaml` lifts it; each entry names the parent package to watch and is dropped once that parent moves past the vulnerable version.
 
 The security workflow builds deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days. Release automation builds the deployable images, scans them with Trivy before pushing them to GHCR, attests each image's SPDX SBOM against its digest, and uploads the SBOM files and their attestation bundles with the GitHub release. The deploy hosts pull those images and never build their own.
 
