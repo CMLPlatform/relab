@@ -5,3 +5,8 @@ export const loadLightbox = (): Promise<{ default: typeof ProductImageLightbox }
   import('@/components/product/gallery/ProductImageLightbox').then((m) => ({
     default: m.ProductImageLightbox,
   }));
+
+// NOTE: prefetch only; the lazy() path surfaces real load failures, so swallow them here.
+export const prefetchLightbox = () => {
+  void loadLightbox().catch(() => {});
+};

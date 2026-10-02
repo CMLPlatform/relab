@@ -6,7 +6,7 @@ import { Icon, type IconName } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { loadLightbox } from './lightboxChunk';
+import { prefetchLightbox } from './lightboxChunk';
 import {
   GalleryFlatList,
   type GalleryItem,
@@ -287,8 +287,8 @@ const GalleryImageItem = memo(function GalleryImageItem({
     <Pressable
       onPress={handlePress}
       // Start the lightbox chunk before the click lands so the first open is not dead air.
-      onPressIn={loadLightbox}
-      onHoverIn={loadLightbox}
+      onPressIn={prefetchLightbox}
+      onHoverIn={prefetchLightbox}
       accessibilityRole="button"
       accessibilityLabel={`View ${altText}`}
     >
