@@ -16,7 +16,7 @@ from app.api.auth.roles import UserRole
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.file_storage.crud import support_services
 from app.api.file_storage.crud.support_services import file_storage_service, image_storage_service
-from app.api.file_storage.exceptions import ModelFileNotFoundError, UploadTooLargeError
+from app.api.file_storage.exceptions import UploadTooLargeError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.models.storage_s3 import S3Storage
 from app.api.file_storage.schemas import FileCreate, ImageCreateInternal
@@ -196,18 +196,14 @@ async def test_create_image_uses_configured_upload_size_limit(
         await image_storage_service.create(mock_session, image_create, caps_role=UserRole.CONTRIBUTOR)
 
 
-async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_session: AsyncMock) -> None:
-    """Cleans up derived image files when the original file record is missing."""
+async def test_delete_image_removes_the_row_and_its_stored_files(mock_session: AsyncMock) -> None:
+    """Deleting an image drops the row and its original and derived files."""
     image_id = uuid4()
     mock_db_image = MagicMock(spec=Image)
     mock_db_image.file.path = FAKE_IMAGE_PATH
-    mock_session.get.return_value = mock_db_image
 
     with (
-        patch(
-            "app.api.file_storage.crud.support_services.require_locked_model",
-            side_effect=ModelFileNotFoundError(Image, image_id),
-        ),
+        patch("app.api.file_storage.crud.support_services.require_locked_model", return_value=mock_db_image),
         patch(
             "app.api.file_storage.crud.support_services.delete_image_from_storage",
             new=AsyncMock(),
@@ -220,7 +216,7 @@ async def test_delete_image_cleans_thumbnails_when_original_is_missing(mock_sess
     mock_delete_image.assert_awaited_once_with(mock_db_image)
 
 
-async def test_thumbnails_are_generated_for_a_local_image(mock_session: AsyncMock, tmp_path: Path) -> None:
+async def test_thumbnails_are_generated_for_a_local_image(tmp_path: Path) -> None:
     """A filesystem-stored image gets the full default thumbnail set before the response."""
     image_path = tmp_path / "shot.png"
     PILImage.new("RGB", (2001, 1234), color="red").save(image_path)
@@ -230,7 +226,7 @@ async def test_thumbnails_are_generated_for_a_local_image(mock_session: AsyncMoc
         patch.object(support_services, "stored_file_path", return_value=image_path),
         patch.object(support_services, "generate_thumbnails") as mock_generate,
     ):
-        await support_services._generate_image_thumbnails(mock_session, db_image)
+        await support_services._generate_image_thumbnails(db_image)
 
     # Called with no widths, so the upload generates the full default set inline.
     mock_generate.assert_called_once_with(image_path)

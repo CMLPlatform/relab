@@ -16,8 +16,6 @@ from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.query import require_locked_model, require_model
 from app.api.common.exceptions import BadRequestError
-from app.api.common.models.base import Base
-from app.api.file_storage.exceptions import ModelFileNotFoundError, StorageFileNotFoundError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.models.storage_resolver import _get_file_storage, _get_image_storage
 from app.api.file_storage.parents import parent_model_for_type
@@ -35,7 +33,6 @@ from app.api.file_storage.upload_quota import (
 from app.api.file_storage.upload_security import scan_upload_or_raise
 from app.core.config.core import settings
 from app.core.images import generate_thumbnails, image_resize_limiter, process_image_for_storage
-from app.core.logging import sanitize_log_value
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, stored_file_path
 from .support_types import StorageCreateSchema, StorageModel
@@ -62,48 +59,25 @@ async def ensure_parent_exists(db: AsyncSession, parent_type: MediaParentType, p
     await require_model(db, parent_model, parent_id)
 
 
-async def get_optional_storage_item[StorageModelT: StorageModel](
-    db: AsyncSession,
-    model: type[StorageModelT],
-    item_id: UUID4,
-) -> StorageModelT | None:
-    """Return a storage item directly from SQLAlchemy or None when missing."""
-    return await db.get(model, item_id)
-
-
-def ensure_storage_item_found[StorageModelT: StorageModel](
-    model: type[StorageModelT],
-    item_id: UUID4,
-    db_item: StorageModelT | None,
-) -> StorageModelT:
-    """Raise the standard not-found error when a storage item is missing."""
-    if db_item is None:
-        raise ModelNotFoundError(model, item_id)
-    return db_item
-
-
 async def get_parent_owned_storage_item[StorageModelT: StorageModel](
     db: AsyncSession,
     *,
-    parent_model: type[Base],
     model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
     parent_type: MediaParentType,
 ) -> StorageModelT:
     """Fetch a storage item and verify that it belongs to the scoped parent."""
-    await require_model(db, parent_model, parent_id)
-    try:
-        statement = select(model).where(
-            model.id == item_id,
-            model.parent_id == parent_id,
-            model.parent_type == parent_type,
-        )
-        db_item = (await db.execute(statement)).scalars().unique().one_or_none()
-    except (StorageFileNotFoundError, ModelFileNotFoundError) as e:
-        raise ModelFileNotFoundError(model, item_id, details=str(e)) from e
-
-    return ensure_storage_item_found(model, item_id, db_item)
+    await ensure_parent_exists(db, parent_type, parent_id)
+    statement = select(model).where(
+        model.id == item_id,
+        model.parent_id == parent_id,
+        model.parent_type == parent_type,
+    )
+    db_item = (await db.execute(statement)).scalars().unique().one_or_none()
+    if db_item is None:
+        raise ModelNotFoundError(model, item_id)
+    return db_item
 
 
 def parent_media_select[StorageModelT: StorageModel](
@@ -153,11 +127,11 @@ async def _process_image_upload(upload_file: UploadFile) -> dict[str, Any]:
     return {"width_px": width_px, "height_px": height_px}
 
 
-async def _generate_image_thumbnails(_db: AsyncSession, db_image: Image) -> Image:
+async def _generate_image_thumbnails(db_image: Image) -> None:
     """Generate the thumbnail set for a locally stored image."""
     image_path = stored_file_path(db_image)
     if image_path is None:
-        return db_image
+        return
 
     # Every width is generated here, before the response, so nothing is left for later:
     # image size is capped per role (at most MAX_IMAGE_PIXELS) and JPEGs decode through `draft`, which
@@ -169,30 +143,16 @@ async def _generate_image_thumbnails(_db: AsyncSession, db_image: Image) -> Imag
     except ValueError, OSError:
         logger.warning("Thumbnail generation failed for image %s, skipping", db_image.id, exc_info=True)
 
-    return db_image
-
 
 @dataclass
 class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
-    """Create/delete operations on one kind of stored media.
-
-    ``after_create`` runs *after* ``create()`` has committed and refreshed the item, so
-    a hook that writes to it is in a fresh transaction that nothing else closes and must
-    commit it itself. A flush alone is rolled back at session teardown. The UPDATE fires
-    the server-side ``onupdate`` on ``updated_at``, which expires that attribute, so
-    follow the commit with ``await db.refresh(item)`` or serializing the response raises
-    ``MissingGreenlet``.
-    """
+    """Create/delete operations on one kind of stored media."""
 
     model: type[StorageModelT]
     get_storage: Callable[[], BaseStorage]
     # Checks the upload's metadata, size and content against the caps of the uploader's
     # tier, and returns its size in bytes.
     validate_upload: Callable[[CreateSchemaT, UserRole], Awaitable[int]]
-    # Rewrites the validated upload before any storage backend receives it, and returns
-    # extra column values for the new row.
-    prepare_upload: Callable[[UploadFile], Awaitable[dict[str, Any]]] | None = None
-    after_create: Callable[[AsyncSession, StorageModelT], Awaitable[StorageModelT]] | None = None
 
     async def create(
         self,
@@ -216,8 +176,9 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         upload_size_bytes = await self.validate_upload(payload, caps_role)
         await scan_upload_or_raise(payload.file)
         extra_fields: dict[str, Any] = {}
-        if self.prepare_upload is not None:
-            extra_fields = await self.prepare_upload(payload.file)
+        if self.model is Image:
+            # Images are rewritten before any storage backend receives them.
+            extra_fields = await _process_image_upload(payload.file)
             # The caps above apply to what was sent; the quota and the row count what is stored.
             upload_size_bytes = await to_thread.run_sync(measure_file_size, payload.file.file)
         payload.file, file_id, original_filename, stored_filename = process_uploadfile_name(payload.file)
@@ -240,24 +201,13 @@ class StoredMediaService[StorageModelT: StorageModel, CreateSchemaT: StorageCrea
         db.add(db_item)
         await db.commit()
         await db.refresh(db_item)
-        if self.after_create is None:
-            return db_item
-        return await self.after_create(db, db_item)
+        if isinstance(db_item, Image):
+            await _generate_image_thumbnails(db_item)
+        return db_item
 
     async def delete(self, db: AsyncSession, item_id: UUID4) -> None:
         """Delete a file-backed model and best-effort clean up its storage file."""
-        try:
-            db_item = await require_locked_model(db, self.model, item_id)
-        except (StorageFileNotFoundError, ModelFileNotFoundError) as e:
-            maybe_item = await get_optional_storage_item(db, self.model, item_id)
-            db_item = ensure_storage_item_found(self.model, item_id, maybe_item)
-            logger.warning(
-                "%s %s not found in storage: %s. Deleting database row only.",
-                sanitize_log_value(self.model.__name__),
-                sanitize_log_value(item_id),
-                sanitize_log_value(e),
-            )
-
+        db_item = await require_locked_model(db, self.model, item_id)
         await db.delete(db_item)
         await release_product_upload_quota_for_media(db, db_item)
         await db.commit()
@@ -295,6 +245,4 @@ image_storage_service: StoredMediaService[Image, ImageCreateFromForm | ImageCrea
     model=Image,
     get_storage=_get_image_storage,
     validate_upload=_validate_image_upload,
-    prepare_upload=_process_image_upload,
-    after_create=_generate_image_thumbnails,
 )

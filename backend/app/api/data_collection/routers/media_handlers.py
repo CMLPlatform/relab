@@ -15,6 +15,7 @@ from app.api.common.form_json import parse_optional_json_object
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.parent_media import (
+    ParentMedia,
     create_parent_media,
     delete_parent_media,
     get_parent_media,
@@ -40,6 +41,10 @@ if TYPE_CHECKING:
 
     from app.api.auth.models import User
     from app.api.file_storage.filters import FileFilter, ImageFilter
+
+
+_PRODUCT_FILES = ParentMedia(MediaParentType.PRODUCT, file_storage_service)
+_PRODUCT_IMAGES = ParentMedia(MediaParentType.PRODUCT, image_storage_service)
 
 
 def _product_file_create(parent_id: int, *, file: UploadFile, description: str | None) -> FileCreate:
@@ -92,14 +97,7 @@ async def handle_list_files(
 
 async def handle_get_file(session: AsyncSession, parent_id: int, file_id: UUID4) -> FileReadWithinParent:
     """Fetch a single file attached to the given parent."""
-    item = await get_parent_media(
-        session,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=File,
-        parent_id=parent_id,
-        item_id=file_id,
-    )
+    item = await get_parent_media(session, _PRODUCT_FILES, parent_id=parent_id, item_id=file_id)
     return FileReadWithinParent.model_validate(item)
 
 
@@ -109,9 +107,8 @@ async def handle_upload_file(
     """Attach a new file to the given parent."""
     item = await create_parent_media(
         session,
+        _PRODUCT_FILES,
         parent_id=parent_id,
-        parent_type=MediaParentType.PRODUCT,
-        storage_service=file_storage_service,
         item_data=_product_file_create(parent_id, file=file, description=description),
         caps_role=current_user.role,
         quota_user_id=current_user.id,
@@ -121,15 +118,7 @@ async def handle_upload_file(
 
 async def handle_delete_file(session: AsyncSession, parent_id: int, file_id: UUID4) -> None:
     """Detach and delete a file from the given parent."""
-    await delete_parent_media(
-        session,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=File,
-        parent_id=parent_id,
-        item_id=file_id,
-        storage_service=file_storage_service,
-    )
+    await delete_parent_media(session, _PRODUCT_FILES, parent_id=parent_id, item_id=file_id)
 
 
 ### Image handlers ###
@@ -156,14 +145,7 @@ async def handle_list_images(
 
 async def handle_get_image(session: AsyncSession, parent_id: int, image_id: UUID4) -> ImageReadWithinParent:
     """Fetch a single image attached to the given parent."""
-    item = await get_parent_media(
-        session,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=Image,
-        parent_id=parent_id,
-        item_id=image_id,
-    )
+    item = await get_parent_media(session, _PRODUCT_IMAGES, parent_id=parent_id, item_id=image_id)
     return ImageReadWithinParent.model_validate(item)
 
 
@@ -186,9 +168,8 @@ async def handle_upload_image(
     db_product = await session.get(Product, parent_id)
     item = await create_parent_media(
         session,
+        _PRODUCT_IMAGES,
         parent_id=parent_id,
-        parent_type=MediaParentType.PRODUCT,
-        storage_service=image_storage_service,
         item_data=_product_image_create(
             parent_id,
             file=file,
@@ -211,15 +192,7 @@ async def handle_delete_image(session: AsyncSession, parent_id: int, image_id: U
     resolves correctly for either role.
     """
     product = await session.get(Product, parent_id)
-    await delete_parent_media(
-        session,
-        parent_model=Product,
-        parent_type=MediaParentType.PRODUCT,
-        storage_model=Image,
-        parent_id=parent_id,
-        item_id=image_id,
-        storage_service=image_storage_service,
-    )
+    await delete_parent_media(session, _PRODUCT_IMAGES, parent_id=parent_id, item_id=image_id)
     if product and product.owner_id is not None:
         await recompute_user_profile_stats(session, product.owner_id)
         await session.commit()

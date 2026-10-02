@@ -10,11 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.crud.filtering import SUB_RESOURCE_LIMIT, BaseFilterSet
 from app.api.common.exceptions import BadRequestError
-from app.api.common.models.base import Base
 from app.api.file_storage.exceptions import (
     StorageFileNotFoundError,
 )
 from app.api.file_storage.models import Image, MediaParentType
+from app.api.file_storage.parents import parent_model_for_type
 from app.core.logging import sanitize_log_value
 
 from .support_paths import delete_file_from_storage, delete_image_from_storage, storage_item_exists
@@ -32,6 +32,19 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class ParentMedia[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
+    """Which parent type and storage kind a set of parent-scoped media operations targets."""
+
+    parent_type: MediaParentType
+    storage_service: StoredMediaService[StorageModelT, CreateSchemaT]
+
+    @property
+    def storage_model(self) -> type[StorageModelT]:
+        """The ORM model the storage service persists."""
+        return self.storage_service.model
+
+
 def validate_parent_media_scope[CreateSchemaT: StorageCreateSchema](
     *,
     parent_id: int,
@@ -47,20 +60,18 @@ def validate_parent_media_scope[CreateSchemaT: StorageCreateSchema](
         raise BadRequestError(msg)
 
 
-async def list_parent_media[StorageModelT: StorageModel](
+async def list_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
     db: AsyncSession,
+    media: ParentMedia[StorageModelT, CreateSchemaT],
     *,
-    parent_model: type[Base],
-    parent_type: MediaParentType,
-    storage_model: type[StorageModelT],
     parent_id: int,
     filter_params: BaseFilterSet | None = None,
 ) -> list[StorageModelT]:
     """Get all storage items for a parent, excluding items with missing files."""
     items = await list_parent_storage_items(
         db,
-        model=storage_model,
-        parent_type=parent_type,
+        model=media.storage_model,
+        parent_type=media.parent_type,
         parent_id=parent_id,
         filter_params=filter_params,
         limit=SUB_RESOURCE_LIMIT,
@@ -71,30 +82,27 @@ async def list_parent_media[StorageModelT: StorageModel](
         logger.warning(
             "%d %s(s) for %s %s have missing files in storage and will be excluded from the response.",
             missing,
-            sanitize_log_value(storage_model.__name__),
-            sanitize_log_value(parent_model.__name__),
+            sanitize_log_value(media.storage_model.__name__),
+            sanitize_log_value(parent_model_for_type(media.parent_type).__name__),
             sanitize_log_value(parent_id),
         )
     return valid_items
 
 
-async def get_parent_media[StorageModelT: StorageModel](
+async def get_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
     db: AsyncSession,
+    media: ParentMedia[StorageModelT, CreateSchemaT],
     *,
-    parent_model: type[Base],
-    parent_type: MediaParentType,
-    storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
 ) -> StorageModelT:
     """Get one storage item for a parent, raising when the file is missing."""
     db_item = await get_parent_owned_storage_item(
         db,
-        parent_model=parent_model,
-        model=storage_model,
+        model=media.storage_model,
         parent_id=parent_id,
         item_id=item_id,
-        parent_type=parent_type,
+        parent_type=media.parent_type,
     )
 
     if not storage_item_exists(db_item):
@@ -105,39 +113,34 @@ async def get_parent_media[StorageModelT: StorageModel](
 
 async def create_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
     db: AsyncSession,
+    media: ParentMedia[StorageModelT, CreateSchemaT],
     *,
     parent_id: int,
-    parent_type: MediaParentType,
-    storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
     item_data: CreateSchemaT,
     caps_role: UserRole,
     quota_user_id: UUID | None = None,
 ) -> StorageModelT:
     """Create a new parent-scoped storage item."""
-    validate_parent_media_scope(parent_id=parent_id, parent_type=parent_type, item_data=item_data)
-    return await storage_service.create(db, item_data, caps_role=caps_role, quota_user_id=quota_user_id)
+    validate_parent_media_scope(parent_id=parent_id, parent_type=media.parent_type, item_data=item_data)
+    return await media.storage_service.create(db, item_data, caps_role=caps_role, quota_user_id=quota_user_id)
 
 
 async def delete_parent_media[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema](
     db: AsyncSession,
+    media: ParentMedia[StorageModelT, CreateSchemaT],
     *,
-    parent_model: type[Base],
-    parent_type: MediaParentType,
-    storage_model: type[StorageModelT],
     parent_id: int,
     item_id: UUID4,
-    storage_service: StoredMediaService[StorageModelT, CreateSchemaT],
 ) -> None:
     """Delete one storage item from a parent."""
     await get_parent_owned_storage_item(
         db,
-        parent_model=parent_model,
-        model=storage_model,
+        model=media.storage_model,
         parent_id=parent_id,
         item_id=item_id,
-        parent_type=parent_type,
+        parent_type=media.parent_type,
     )
-    await storage_service.delete(db, item_id)
+    await media.storage_service.delete(db, item_id)
 
 
 async def delete_all_parent_media[StorageModelT: StorageModel](
@@ -185,13 +188,3 @@ async def unlink_stored_media[StorageModelT: StorageModel](pending: list[Storage
                 await delete_file_from_storage(item)
         except OSError:
             logger.warning("Storage cleanup failed for an already-deleted %s row.", type(item).__name__, exc_info=True)
-
-
-@dataclass(frozen=True)
-class ParentMedia[StorageModelT: StorageModel, CreateSchemaT: StorageCreateSchema]:
-    """Which parent and storage kind a set of parent-scoped media operations targets."""
-
-    parent_model: type[Base]
-    parent_type: MediaParentType
-    storage_model: type[StorageModelT]
-    storage_service: StoredMediaService[StorageModelT, CreateSchemaT]
