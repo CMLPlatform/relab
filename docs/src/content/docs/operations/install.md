@@ -210,8 +210,9 @@ the topology these steps produce.
      `DOCS_PUBLIC_URL`, plus the optional `FEATURED_PRODUCT_ID` for the landing page hero. If you
      run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you,
      along with the Worker names and your Cloudflare account ID.
-   - Add a `CLOUDFLARE_API_TOKEN` secret to each Environment: an account API token with
-     **Workers Scripts: Edit** and nothing else. It can deploy every Worker in the account, so
+   - Add a `CLOUDFLARE_API_TOKEN` secret to each Environment: an account API token with the
+     **Workers Editor** role and nothing else. Granted on all Workers, it can deploy every Worker
+     in the account, so
      give the `staging` Environment a required reviewer (`infra/cloudflare` does, and refuses to
      apply staging without one).
    - Run the Deploy Sites workflow for each environment before the `infra/cloudflare` apply that

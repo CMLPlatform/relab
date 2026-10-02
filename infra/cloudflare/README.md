@@ -180,12 +180,25 @@ root writes, so the Environment goes first:
 
    ```bash
    tofu -chdir=infra/cloudflare workspace select <env>
-   tofu -chdir=infra/cloudflare apply -var=environment=<env> -target=github_actions_environment_variable.publish
+   tofu -chdir=infra/cloudflare apply -var=environment=<env> \
+     -target=github_actions_environment_variable.publish \
+     -target=github_repository_environment_deployment_policy.release_tag
    ```
 
+   An Environment, variable or branch policy made by hand before this root managed it makes the
+   apply fail with "already exists". Import each one first, for example:
+
+   ```bash
+   tofu -chdir=infra/cloudflare import -var=environment=<env> github_repository_environment.publish relab:<env>
+   tofu -chdir=infra/cloudflare import -var=environment=<env> \
+     'github_actions_environment_variable.publish["API_PUBLIC_URL"]' relab:<env>:API_PUBLIC_URL
+   ```
+
+   A branch policy imports as `relab:<env>:<policy id>`; `gh api
+   repos/<owner>/relab/environments/<env>/deployment-branch-policies` lists the ids.
 1. Run the Deploy Sites workflow for the environment (Actions -> Deploy Sites -> Run workflow).
-   It needs the `CLOUDFLARE_API_TOKEN` Environment secret, an account token with **Workers
-   Scripts: Edit** alone.
+   It needs the `CLOUDFLARE_API_TOKEN` Environment secret, an account token with the **Workers
+   Editor** role and nothing else.
 1. `just cloudflare-apply <env>`: expect the two tunnel records destroyed, the tunnel config
    updated, and two custom domains created. Then `just cloudflare-apply <env> YES`.
 1. `curl -sI https://<hostname>/` returns 200 with the site's `content-security-policy`.
@@ -203,8 +216,9 @@ zone policy rows: the tunnel is an account resource, everything else is scoped t
 | ----------------------- | ------------------------------------- | ------ | ------------------------------------------------ |
 | Account (Relab account) | Cloudflare Tunnel                     | Edit   | `cloudflare_zero_trust_tunnel_cloudflared`       |
 | Account (Relab account) | Cloudflare One Connector: cloudflared | Edit   | `..._tunnel_cloudflared_config` ingress rules    |
-| Account (Relab account) | Workers Scripts                       | Edit   | `cloudflare_workers_custom_domain`               |
+| Account (Relab account) | Workers (all Workers)                 | Editor | `cloudflare_workers_custom_domain`               |
 | Zone (`cml-relab.org`)  | DNS                                   | Edit   | `cloudflare_dns_record`                          |
+| Zone (`cml-relab.org`)  | Workers Routes                        | Edit   | `cloudflare_workers_custom_domain`               |
 | Zone (`cml-relab.org`)  | Zone Settings                         | Edit   | `cloudflare_zone_setting`                        |
 | Zone (`cml-relab.org`)  | Zone WAF                              | Edit   | `http_ratelimit`, `http_request_firewall_custom` |
 | Zone (`cml-relab.org`)  | Cache Rules                           | Edit   | `http_request_cache_settings`                    |
@@ -214,6 +228,10 @@ Some accounts still label the tunnel permission **Argo Tunnel (Legacy)**; it is 
 ("create and delete Cloudflare Tunnels"). Do not substitute Cloudflare One Networks, which covers
 WARP routes and virtual networks that this config does not use.
 
+The Workers row is the **Editor** role on the Workers product, which replaces the legacy
+**Workers Scripts: Edit**. Grant it on all Workers: Custom Domains do not accept a role limited to
+selected Workers, and creating one also needs **Workers Routes: Edit** on the zone.
+
 Grant nothing else. Bot Management, Access, Page Rules, Cache Purge, Zone DNS Settings, and a
 blanket Zone Write are not used here. Scope the zone row to `cml-relab.org` alone, and set an
 expiry.
@@ -222,6 +240,15 @@ Verify before the first plan:
 
 ```bash
 curl -s https://api.cloudflare.com/client/v4/user/tokens/verify \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq .
+```
+
+That endpoint knows only user tokens (**My Profile -> API Tokens**). An account-owned token
+(**Manage Account -> Account API Tokens**) answers `Invalid API Token` there; verify it at the
+account instead:
+
+```bash
+curl -s "https://api.cloudflare.com/client/v4/accounts/$TF_VAR_cloudflare_account_id/tokens/verify" \
   -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq .
 ```
 
