@@ -82,6 +82,7 @@ export function OtpInput({
       </View>
       <TextInput
         ref={inputRef}
+        maxFontSizeMultiplier={2}
         className="absolute inset-0 opacity-0"
         style={styles.hiddenInput}
         value={value}

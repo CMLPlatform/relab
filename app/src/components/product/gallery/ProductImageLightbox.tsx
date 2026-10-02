@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { Easing, ReduceMotion, ZoomIn } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -65,6 +66,7 @@ export function ProductImageLightbox({
 }: Props) {
   const theme = useAppTheme();
   const styles = createStyles(theme);
+  const insets = useSafeAreaInsets();
   // Reactive: a non-subscribing read measured against the pre-rotation screen.
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [isZoomed, setIsZoomed] = useState(false);
@@ -247,8 +249,12 @@ export function ProductImageLightbox({
   const goPrev = useCallback(() => navigateBy(-1), [navigateBy]);
   const goNext = useCallback(() => navigateBy(1), [navigateBy]);
   const closeButtonStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [styles.closeButton, pressed && { opacity: 0.7 }],
-    [styles],
+    ({ pressed }: { pressed: boolean }) => [
+      styles.closeButton,
+      { top: insets.top + 8 },
+      pressed && { opacity: 0.7 },
+    ],
+    [styles, insets.top],
   );
 
   if (!visible) return null;
@@ -275,7 +281,7 @@ export function ProductImageLightbox({
             hitSlop={20}
             accessibilityRole="button"
             accessibilityLabel="Close lightbox"
-            className="absolute top-10 right-5 z-10 rounded-md w-11 h-11 justify-center items-center"
+            className="absolute right-5 z-10 rounded-md w-11 h-11 justify-center items-center"
             style={closeButtonStyle}
           >
             <Icon name="x" size={28} color={theme.tokens.text.onMedia} />

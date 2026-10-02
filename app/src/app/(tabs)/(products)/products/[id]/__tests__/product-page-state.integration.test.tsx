@@ -133,6 +133,8 @@ jest.mock('react-native-keyboard-controller', () => {
   const { ScrollView } = jest.requireActual<typeof import('react-native')>('react-native');
 
   return {
+    // AppDialog wraps its body in this; a passthrough is enough here.
+    KeyboardAvoidingView: ({ children }: { children?: ReactNode }) => children,
     KeyboardAwareScrollView: ({
       children,
       ...props

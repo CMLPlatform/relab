@@ -1,9 +1,22 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import { screen } from '@testing-library/react-native';
+import { screen, within } from '@testing-library/react-native';
 import { createRef } from 'react';
 import { AccessibilityInfo, Text, View } from 'react-native';
 import { AppDialog } from '@/components/base/AppDialog';
-import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
+import {
+  getHostByType,
+  mockPlatform,
+  renderWithProviders,
+  restorePlatform,
+} from '@/test-utils/index';
+
+// The library mock renders KeyboardAvoidingView as a bare View; mark it so the test can find it.
+jest.mock('react-native-keyboard-controller', () => {
+  const { View } = require('react-native');
+  return {
+    KeyboardAvoidingView: (props: object) => <View testID="kav" {...props} />,
+  };
+});
 
 // The web branch of useReturnFocus reads document.activeElement; the RN test
 // environment has no DOM, so stub the one property it touches.
@@ -20,6 +33,16 @@ afterEach(() => {
 });
 
 describe('AppDialog', () => {
+  it('scrolls its children inside a keyboard-avoiding view', async () => {
+    await renderWithProviders(
+      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Tall">
+        <Text>Body</Text>
+      </AppDialog>,
+    );
+    expect(within(screen.getByTestId('kav')).getByText('Body')).toBeOnTheScreen();
+    expect(getHostByType('RCTScrollView')).toBeTruthy();
+  });
+
   it('names the dialog for assistive tech', async () => {
     mockPlatform('web');
     // Without this the Modal renders role="dialog" + aria-modal with no accessible name,

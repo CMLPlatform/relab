@@ -8,6 +8,7 @@ function Input({
 }: React.ComponentProps<typeof TextInput> & React.RefAttributes<TextInput>) {
   return (
     <TextInput
+      maxFontSizeMultiplier={2}
       className={cn(
         'dark:bg-input/30 border-input bg-background text-foreground flex min-h-11 w-full min-w-0 flex-row items-center rounded-md border px-3 py-1 text-base leading-5',
         props.editable === false &&

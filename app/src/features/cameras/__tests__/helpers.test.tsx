@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, renderHook, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
-import { getCameraGridColumns, setCamerasHeaderOptions } from '@/features/cameras/helpers';
+import { setCamerasHeaderOptions, useCameraScreenData } from '@/features/cameras/helpers';
 
 type Options = {
   title: string;
@@ -88,9 +88,12 @@ describe('setCamerasHeaderOptions — back target', () => {
   });
 });
 
-describe('getCameraGridColumns', () => {
-  it('widens the grid on desktop', () => {
-    expect(getCameraGridColumns(true)).toBe(3);
-    expect(getCameraGridColumns(false)).toBe(2);
+describe('useCameraScreenData', () => {
+  it('derives the grid columns from the window width', async () => {
+    const args = { cameras: [], isCameraReachable: () => true };
+    const narrow = await renderHook(() => useCameraScreenData({ ...args, width: 320 }));
+    const wide = await renderHook(() => useCameraScreenData({ ...args, width: 600 }));
+    expect(narrow.result.current.numColumns).toBe(1);
+    expect(wide.result.current.numColumns).toBe(2);
   });
 });

@@ -45,7 +45,7 @@ export function DetailRow({
       </AppText>
       <AppText
         selectable
-        numberOfLines={1}
+        numberOfLines={label === 'Name' ? 1 : undefined}
         className="flex-1"
         style={[{ color: theme.colors.onSurface }, mono ? styles.monoDetail : null]}
       >

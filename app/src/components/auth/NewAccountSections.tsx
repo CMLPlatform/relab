@@ -2,6 +2,8 @@ import { type ComponentProps, type ReactNode, useCallback } from 'react';
 import type { Control, ControllerRenderProps, FieldErrors } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
@@ -18,16 +20,16 @@ import { useAppTheme } from '@/theme/appThemeContext';
 import { getStatusTone } from '@/theme/color';
 import { describedBy } from '@/utils/a11y';
 
-// Fixed-height slots so nothing moves as the error message comes and goes.
-// MAX_FONT_SCALE keeps the label from clipping against the slot.
+// Minimum-height slots so nothing moves as the error message comes and goes; they grow
+// with large text instead of clipping. MAX_FONT_SCALE bounds that growth.
 const LABEL_ROW_HEIGHT = 16;
-const MAX_FONT_SCALE = 1.5;
+const MAX_FONT_SCALE = 2;
 const INPUT_ROW_HEIGHT = 48;
 const HELPER_SLOT_HEIGHT = 18;
 const ACTION_ROW_HEIGHT = 44;
 const CARD_PADDING = 16;
 const CARD_GAP = 6;
-const CARD_HEIGHT =
+const CARD_MIN_HEIGHT =
   CARD_PADDING * 2 +
   LABEL_ROW_HEIGHT +
   INPUT_ROW_HEIGHT +
@@ -38,6 +40,9 @@ const CARD_HEIGHT =
 const CARD_MAX_WIDTH = 380;
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   step: {
     maxWidth: CARD_MAX_WIDTH,
   },
@@ -47,7 +52,7 @@ const styles = StyleSheet.create({
     // NOTE: hero stack line 1, between display (38) and the 64px name.
     fontSize: 40,
   },
-  // Fits the card's measure; the fixed-height slot truncates a long username.
+  // Fits the card's measure; the name slot truncates a long username.
   brandText: {
     // NOTE: hero stack line 2; the ramp tops out at display (38).
     fontSize: 64,
@@ -60,27 +65,27 @@ const styles = StyleSheet.create({
     // NOTE: hero stack line 3, between title (24) and display (38).
     fontSize: 31,
   },
-  // Fixed height so all three steps are the same size.
+  // Same minimum height on all three steps; grows with large text.
   card: {
     borderWidth: StyleSheet.hairlineWidth,
-    height: CARD_HEIGHT,
+    minHeight: CARD_MIN_HEIGHT,
     padding: CARD_PADDING,
     gap: CARD_GAP,
   },
   label: {
-    height: LABEL_ROW_HEIGHT,
+    minHeight: LABEL_ROW_HEIGHT,
     // NOTE: sized to LABEL_ROW_HEIGHT (16) in the CARD_HEIGHT math; caption's 18px line does not fit.
     fontSize: 12,
   },
   inputRow: {
-    height: INPUT_ROW_HEIGHT,
+    minHeight: INPUT_ROW_HEIGHT,
   },
   helperSlot: {
-    height: HELPER_SLOT_HEIGHT,
+    minHeight: HELPER_SLOT_HEIGHT,
   },
   // The primary action gets its own row so "Create account" does not overflow.
   actionRow: {
-    height: ACTION_ROW_HEIGHT,
+    minHeight: ACTION_ROW_HEIGHT,
   },
   scroll: {
     paddingBottom: 120,
@@ -193,12 +198,16 @@ function NewAccountStep({
   return (
     // One column so the headline starts at the card's left edge.
     <View className="w-full self-center" style={styles.step}>
-      <Text className="mt-20" style={[styles.welcomeText, { color: headlineColor }]}>
+      <Text
+        className="mt-20"
+        style={[styles.welcomeText, { color: headlineColor }]}
+        maxFontSizeMultiplier={MAX_FONT_SCALE}
+      >
         {lines[0]}
       </Text>
-      {/* Fixed height: the mark and the 80px name measure differently, and without
+      {/* Minimum height: the mark and the 80px name measure differently, and without
           this the card sat 22px lower on step one than on the rest. */}
-      <View className="h-24 justify-center">
+      <View className="min-h-24 justify-center">
         {brandLogo ? (
           <BrandWordmark style={styles.brandLogo} />
         ) : (
@@ -207,12 +216,17 @@ function NewAccountStep({
             style={[styles.brandText, { color: headlineColor }]}
             numberOfLines={1}
             ellipsizeMode="tail"
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
           >
             {lines[1]}
           </Text>
         )}
       </View>
-      <Text className="mt-20 mb-10" style={[styles.questionText, { color: headlineColor }]}>
+      <Text
+        className="mt-20 mb-10"
+        style={[styles.questionText, { color: headlineColor }]}
+        maxFontSizeMultiplier={MAX_FONT_SCALE}
+      >
         {lines[2]}
       </Text>
       <View
@@ -243,7 +257,7 @@ function NewAccountStep({
           <View className="flex-1 justify-center">
             {back ? (
               <Pressable
-                className="flex-row items-center self-start"
+                className="flex-row items-center self-start min-h-11"
                 onPress={back.onPress}
                 accessibilityRole="button"
                 accessibilityLabel={back.accessibilityLabel}
@@ -389,8 +403,10 @@ type NewAccountLayoutProps = {
 
 export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
   const theme = useAppTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <View className="flex-1">
+    // The keyboard-controller KeyboardAvoidingView AuthScreen uses, so the focused field stays visible.
+    <KeyboardAvoidingView behavior="padding" style={styles.flex}>
       <ScrollView
         contentContainerClassName="flex-grow p-5 items-center"
         contentContainerStyle={styles.scroll}
@@ -404,7 +420,7 @@ export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayo
 
       {/* On a card, not bare over the photo: the hero scrim is light by design
           and the backdrop's densest area sits right behind this footer. */}
-      <View className="absolute bottom-5 left-5 right-5 items-center">
+      <View className="absolute left-5 right-5 items-center" style={{ bottom: insets.bottom + 20 }}>
         <View
           className="rounded-lg py-2 px-4 items-center gap-1 w-full"
           style={[
@@ -421,6 +437,6 @@ export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayo
           </AppButton>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

@@ -53,15 +53,14 @@ export default function ResetPasswordScreen() {
                     editable={!isSubmitting}
                     placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
                     accessibilityLabel="New password"
-                    style={{ paddingRight: 40 }}
+                    style={{ paddingRight: 44 }}
                   />
                   <Pressable
                     onPress={toggleShowPassword}
                     accessibilityRole="button"
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                    // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).
-                    hitSlop={12}
-                    style={{ position: 'absolute', top: 10, right: 12 }}
+                    className="min-w-11 min-h-11 items-center justify-center"
+                    style={{ position: 'absolute', top: 0, right: 0 }}
                   >
                     <Icon
                       name={showPassword ? 'eye-off' : 'eye'}

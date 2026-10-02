@@ -2,16 +2,15 @@ import type { ImperativeRouter, NativeStackHeaderBackProps } from 'expo-router';
 import { createElement } from 'react';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 
-const DESKTOP_COLUMNS = 3;
-const MOBILE_COLUMNS = 2;
+import { productGridColumns } from '@/features/products/productGridColumns';
 
 export function useCameraScreenData<T extends { id: string }>({
   cameras,
-  isDesktop,
+  width,
   isCameraReachable,
 }: {
   cameras: T[] | undefined;
-  isDesktop: boolean;
+  width: number;
   isCameraReachable: (camera: T) => boolean;
 }) {
   const rows = cameras ?? [];
@@ -21,12 +20,8 @@ export function useCameraScreenData<T extends { id: string }>({
     rows,
     onlineCameras,
     onlineCount: onlineCameras.length,
-    numColumns: getCameraGridColumns(isDesktop),
+    numColumns: productGridColumns(width),
   };
-}
-
-export function getCameraGridColumns(isDesktop: boolean) {
-  return isDesktop ? DESKTOP_COLUMNS : MOBILE_COLUMNS;
 }
 
 export function setCamerasHeaderOptions({

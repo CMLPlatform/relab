@@ -6,6 +6,17 @@ import { MIN_TAP_TARGET, radius } from '@/constants';
 import { getAppTheme } from '@/theme/themes';
 
 describe('Fab', () => {
+  it('sizes the label to its content, capped, not a fixed width', async () => {
+    await render(
+      <Fab icon="plus" label="New" extended onPress={jest.fn()} accessibilityLabel="a" />,
+    );
+    let clip = screen.getByText('New').parent;
+    while (clip && StyleSheet.flatten(clip.props.style)?.overflow !== 'hidden') clip = clip.parent;
+    const style = StyleSheet.flatten(clip?.props.style);
+    expect(style.width).toBeUndefined();
+    expect(style.maxWidth).toBe(240);
+  });
+
   it('renders the label when extended', async () => {
     await render(
       <Fab icon="plus" label="New product" extended onPress={jest.fn()} accessibilityLabel="a" />,

@@ -32,8 +32,8 @@ type FabProps = Omit<
 };
 
 const ANIMATION_DURATION = 200;
-// NOTE: fixed cap instead of a measured label width; labels are short.
 const LABEL_MAX_WIDTH = 240;
+const LABEL_SLIDE = 12;
 
 /** FAB with extend/collapse label. Extending animates; collapsing unmounts immediately. */
 export function Fab({
@@ -61,9 +61,11 @@ export function Fab({
       : 0;
   }, [extended, progress]);
 
+  // Transform and opacity only: the label's width follows its content, so large text and
+  // long translations are never clipped.
   const labelStyle = useAnimatedStyle(() => ({
-    width: progress.value * LABEL_MAX_WIDTH,
     opacity: progress.value,
+    transform: [{ translateX: (1 - progress.value) * -LABEL_SLIDE }],
   }));
 
   const pressableStyle = useCallback(
@@ -128,6 +130,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   labelClip: {
+    maxWidth: LABEL_MAX_WIDTH,
     overflow: 'hidden',
   },
 });

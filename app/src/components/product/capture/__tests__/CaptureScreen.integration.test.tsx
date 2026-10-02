@@ -1,5 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { CaptureScreen } from '@/components/product/capture/CaptureScreen';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
@@ -85,6 +85,8 @@ jest.mock('react-native-keyboard-controller', () => {
   const mockReact = jest.requireActual<typeof import('react')>('react');
   const { ScrollView } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
+    // AppDialog wraps its body in this; a passthrough is enough here.
+    KeyboardAvoidingView: ({ children }: { children?: ReactNode }) => children,
     KeyboardAwareScrollView: ({
       children,
       ...props
@@ -153,6 +155,15 @@ describe('CaptureScreen', () => {
     expect(screen.getByText('Create & add another')).toBeOnTheScreen();
     expect(screen.queryByText('Physical properties')).toBeNull();
     expect(screen.queryByText('Component of:', { exact: false })).toBeNull();
+  });
+
+  it('lets the two Create buttons wrap instead of overflowing a 320px screen', async () => {
+    await renderCapture({ entityRole: 'product' });
+
+    let row = screen.getByText('Create product').parent;
+    while (row && !String(row.props.className ?? '').includes('flex-wrap')) row = row.parent;
+    expect(row).toBeTruthy();
+    if (row) expect(within(row).getByText('Create & add another')).toBeOnTheScreen();
   });
 
   // TDD for the offline-queued acknowledgment: a paused save mutation shows a

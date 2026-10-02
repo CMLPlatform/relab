@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { useCallback } from 'react';
-import type { FocusEvent } from 'react-native';
+import { useCallback, useEffect, useRef } from 'react';
+import type { FocusEvent, LayoutChangeEvent } from 'react-native';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { WEB_FOCUS_RING } from '@/constants';
 import { cn } from '@/utils/cn';
@@ -14,18 +14,27 @@ function scrollFocusedChipIntoView(event: FocusEvent) {
   chip.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
 }
 
+const CHIP_SCROLL_INSET = 24;
+
 function SectionNavItem({
   section,
   active,
   onPress,
+  onItemLayout,
 }: {
   section: { key: SectionKey; label: string };
   active: boolean;
   onPress: (key: SectionKey) => void;
+  onItemLayout?: (key: SectionKey, x: number) => void;
 }) {
+  const onLayout = useCallback(
+    (event: LayoutChangeEvent) => onItemLayout?.(section.key, event.nativeEvent.layout.x),
+    [onItemLayout, section.key],
+  );
   const handlePress = useCallback(() => onPress(section.key), [onPress, section.key]);
   return (
     <Pressable
+      onLayout={onLayout}
       onPress={handlePress}
       onFocus={Platform.OS === 'web' ? scrollFocusedChipIntoView : undefined}
       accessibilityRole="button"
@@ -61,12 +70,25 @@ function SectionNav({
   onPress: (key: SectionKey) => void;
   orientation: 'chips' | 'outline';
 }) {
+  const scrollRef = useRef<ScrollView>(null);
+  const chipX = useRef(new Map<SectionKey, number>());
+  const handleItemLayout = useCallback((key: SectionKey, x: number) => {
+    chipX.current.set(key, x);
+  }, []);
+  // Keep the active chip in view as the reader scrolls the page, on every platform.
+  useEffect(() => {
+    const x = chipX.current.get(activeKey);
+    if (x !== undefined)
+      scrollRef.current?.scrollTo({ x: Math.max(0, x - CHIP_SCROLL_INSET), animated: true });
+  }, [activeKey]);
+
   const items = sections.map((section) => (
     <SectionNavItem
       key={section.key}
       section={section}
       active={section.key === activeKey}
       onPress={onPress}
+      onItemLayout={handleItemLayout}
     />
   ));
 
@@ -77,7 +99,7 @@ function SectionNav({
   // fifth). The scrollbar stays visible so the overflow is never hidden, and
   // focusing an off-screen chip scrolls it into view.
   return (
-    <ScrollView horizontal className="flex-grow-0">
+    <ScrollView ref={scrollRef} horizontal className="flex-grow-0">
       <View className="flex-row gap-1 px-3 py-1">{items}</View>
     </ScrollView>
   );

@@ -51,7 +51,7 @@ export function Searchbar({
         {...rest}
         // Inset via className, not `style`: on web a `style` padding loses to
         // the primitive's own `px-3` on source order; `cn` merges instead.
-        className="pl-10 pr-10"
+        className="pl-10 pr-11"
       />
       {loading ? (
         <ActivityIndicator
@@ -64,9 +64,7 @@ export function Searchbar({
           onPress={handleClear}
           accessibilityRole="button"
           accessibilityLabel="Clear search"
-          // 20px glyph + 12px hitSlop/side = 44px tap target (a11y floor).
-          hitSlop={12}
-          className="absolute right-3"
+          className="absolute right-0 min-w-11 min-h-11 items-center justify-center"
         >
           <Icon name="x" size="md" color={theme.colors.onSurfaceVariant} />
         </Pressable>

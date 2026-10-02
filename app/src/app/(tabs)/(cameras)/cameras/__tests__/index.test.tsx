@@ -10,7 +10,6 @@ const mockUseAuth = jest.fn();
 const mockUseCamerasQuery = jest.fn();
 const mockUseLocalConnection = jest.fn();
 const mockCaptureMutate = jest.fn();
-const mockUseBreakpoint = jest.fn(() => ({ isMd: false, isLg: false }));
 
 jest.mock('@/context/auth', () => ({
   useAuth: () => mockUseAuth(),
@@ -26,10 +25,6 @@ jest.mock('@/features/cameras/rpi/hooks', () => ({
 
 jest.mock('@/features/cameras/local-connection/useLocalConnection', () => ({
   useLocalConnection: (...args: unknown[]) => mockUseLocalConnection(...args),
-}));
-
-jest.mock('@/hooks/useBreakpoint', () => ({
-  useBreakpoint: () => mockUseBreakpoint(),
 }));
 
 jest.mock('@/components/base/CenteredSpinner', () => {
@@ -98,7 +93,6 @@ describe('CamerasScreen', () => {
       mode: 'relay',
       localBaseUrl: null,
     });
-    mockUseBreakpoint.mockReturnValue({ isMd: false, isLg: false });
   });
 
   it('shows an empty state and lets the user navigate to add a camera', async () => {

@@ -1,5 +1,6 @@
 import type { ReactNode, RefObject } from 'react';
-import { Modal, Pressable, StyleSheet, type View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, type View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Animated, { Easing, FadeInUp, ReduceMotion } from 'react-native-reanimated';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
@@ -73,15 +74,24 @@ export function AppDialog({
           className="w-full"
           style={styles.dialogWrapper}
         >
-          <Animated.View
-            entering={FadeInUp.duration(200)
-              .easing(Easing.out(Easing.quad))
-              .reduceMotion(ReduceMotion.System)}
-          >
-            <OverlaySurface className="p-4" style={theme.tokens.elevation.overlay} tone="surface">
-              {children}
-            </OverlaySurface>
-          </Animated.View>
+          <KeyboardAvoidingView behavior="padding" style={styles.shrink}>
+            <Animated.View
+              style={styles.shrink}
+              entering={FadeInUp.duration(200)
+                .easing(Easing.out(Easing.quad))
+                .reduceMotion(ReduceMotion.System)}
+            >
+              <OverlaySurface
+                className="p-4"
+                style={[theme.tokens.elevation.overlay, styles.shrink]}
+                tone="surface"
+              >
+                <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
+                  {children}
+                </ScrollView>
+              </OverlaySurface>
+            </Animated.View>
+          </KeyboardAvoidingView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -92,5 +102,8 @@ const styles = StyleSheet.create({
   dialogWrapper: {
     maxWidth: 480,
     maxHeight: '85%',
+  },
+  shrink: {
+    flexShrink: 1,
   },
 });

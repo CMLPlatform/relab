@@ -11,6 +11,13 @@ jest.mock('@/context/themeMode', () => ({
 }));
 
 describe('<TextInput />', () => {
+  it('caps font scaling at 2x by default and lets callers override', async () => {
+    await renderWithProviders(<TextInput testID="a" />);
+    expect(screen.getByTestId('a').props.maxFontSizeMultiplier).toBe(2);
+    await renderWithProviders(<TextInput testID="b" maxFontSizeMultiplier={1} />);
+    expect(screen.getByTestId('b').props.maxFontSizeMultiplier).toBe(1);
+  });
+
   it('renders placeholder correctly', async () => {
     await renderWithProviders(<TextInput placeholder="Enter text" />);
     expect(screen.getByPlaceholderText('Enter text')).toBeOnTheScreen();

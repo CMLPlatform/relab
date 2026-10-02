@@ -32,7 +32,7 @@ export function DocsLink({
       onPress={open}
       accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
-      className={`${className ?? 'justify-center py-2'} ${WEB_FOCUS_RING}`}
+      className={`min-h-11 justify-center ${className ?? 'py-2'} ${WEB_FOCUS_RING}`}
     >
       <AppText variant="caption" className="text-primary underline">
         {children}

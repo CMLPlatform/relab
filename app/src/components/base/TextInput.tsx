@@ -46,6 +46,7 @@ export function TextInput({
         style,
       ]}
       placeholderTextColor={theme.colors.onSurfaceVariant}
+      maxFontSizeMultiplier={2}
       {...props}
     >
       {children}

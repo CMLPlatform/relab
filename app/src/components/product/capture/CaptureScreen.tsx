@@ -193,7 +193,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
               <AmountStepper value={amount} onChange={setAmount} label="How many of these" />
             ) : null}
 
-            <View className="flex-row gap-3">
+            <View className="flex-row flex-wrap gap-3">
               <AppButton
                 variant="primary"
                 disabled={!canCreate}

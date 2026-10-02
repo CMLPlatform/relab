@@ -192,7 +192,8 @@ function AmountChip({
             onBlur={commitDraft}
             onSubmitEditing={commitDraft}
             keyboardType="numeric"
-            className="text-primary-foreground w-9 text-center py-2 px-0"
+            maxFontSizeMultiplier={2}
+            className="text-primary-foreground min-w-9 text-center py-2 px-1"
             style={amountStyles.input}
             accessibilityLabel="Amount"
             accessibilityHint="Enter a whole number from 1 to 10000. Relab corrects a value outside that range."
