@@ -24,9 +24,8 @@ locals {
   ])
 
   # The telemetry ingress host is owned by CMLPlatform/monitoring, not by either Relab
-  # environment, so it is absent from the route map. That repo publishes `grafana.` and
-  # `otel.` in this zone. The ingestion host was renamed from `otlp.` to `otel.` on
-  # 2026-09-05; this expression must track the name or the skip stops matching.
+  # environment, so it is absent from the route map. This expression must track the
+  # ingestion host's name, or the skip stops matching.
   telemetry_ingress_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [
     "otel.${local.cloudflare_zone}",
   ]))}}"

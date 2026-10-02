@@ -79,6 +79,7 @@ ROUTES = {
     "mfa confirm": ("POST", "/v1/auth/mfa/totp/confirm", None),
     "mfa disable": ("POST", "/v1/auth/mfa/totp/disable", {"code": WRONG_CODE}),
     "recovery codes": ("POST", "/v1/auth/mfa/recovery-codes/regenerate", {"code": WRONG_CODE}),
+    "account deletion": ("DELETE", "/v1/users/me", {"current_password": WRONG_PASSWORD}),
 }
 
 
@@ -100,6 +101,55 @@ async def test_wrong_guesses_are_limited_per_account(
         statuses = [(await api_client.request(method, path, json=body, headers=headers)).status_code for _ in range(4)]
 
     assert statuses == [status.HTTP_403_FORBIDDEN] * 3 + [status.HTTP_429_TOO_MANY_REQUESTS]
+
+
+@pytest.mark.parametrize("route", [route for route in ROUTES if route not in {"mfa disable", "recovery codes"}])
+async def test_a_request_without_the_password_costs_nothing(
+    api_client: AsyncClient, db_session: AsyncSession, route: str
+) -> None:
+    """A probe that sends no password is refused before the budget, so all three guesses remain."""
+    method, path, body = ROUTES[route]
+    user, headers = await _signed_in(api_client, db_session, f"probe_{route.replace(' ', '_')}")
+    if route == "social unlink":
+        await _link_google(db_session, user)
+
+    with patch(BUDGET, new=Limiter(storage_uri="memory://")):
+        if body is None:
+            body = await _start_totp_setup(api_client, headers)
+        password_field = "password" if route == "mfa confirm" else "current_password"
+        probe = {key: value for key, value in body.items() if key != password_field}
+        statuses = [(await api_client.request(method, path, json=probe, headers=headers)).status_code]
+        statuses += [(await api_client.request(method, path, json=body, headers=headers)).status_code for _ in range(4)]
+
+    assert statuses == [status.HTTP_400_BAD_REQUEST] + [status.HTTP_403_FORBIDDEN] * 3 + [
+        status.HTTP_429_TOO_MANY_REQUESTS
+    ]
+
+
+@pytest.mark.parametrize("route", ["social link", "social unlink", "account deletion"])
+async def test_a_request_without_the_mfa_code_costs_nothing(
+    api_client: AsyncClient, db_session: AsyncSession, route: str
+) -> None:
+    """With MFA on, a request with the right password but no code is refused before the budget."""
+    method, path, _body = ROUTES[route]
+    user, headers = await _signed_in(api_client, db_session, f"code_probe_{route.replace(' ', '_')}")
+    if route == "social unlink":
+        await _link_google(db_session, user)
+    await _enrol_mfa(db_session, user)
+    probe = {"current_password": TEST_PASSWORD}
+
+    with patch(BUDGET, new=Limiter(storage_uri="memory://")):
+        statuses = [(await api_client.request(method, path, json=probe, headers=headers)).status_code]
+        statuses += [
+            (
+                await api_client.request(method, path, json={**probe, "mfa_code": WRONG_CODE}, headers=headers)
+            ).status_code
+            for _ in range(4)
+        ]
+
+    assert statuses == [status.HTTP_400_BAD_REQUEST] + [status.HTTP_403_FORBIDDEN] * 3 + [
+        status.HTTP_429_TOO_MANY_REQUESTS
+    ]
 
 
 async def test_the_budget_is_shared_across_routes(api_client: AsyncClient, db_session: AsyncSession) -> None:

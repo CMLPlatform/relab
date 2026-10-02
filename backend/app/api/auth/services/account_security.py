@@ -9,6 +9,7 @@ from app.api.auth.exceptions import RecentSignInRequiredError
 from app.api.auth.models import User
 from app.api.auth.schemas import UserUpdate
 from app.api.auth.services import refresh_token_service
+from app.api.auth.services.rate_limiter import account_guess_budget
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.runtime import require_connection_redis
 
@@ -48,7 +49,7 @@ def verify_current_password(*, password_helper: PasswordHelperProtocol, password
         )
 
 
-def require_current_password_for_sensitive_update(
+async def require_current_password_for_sensitive_update(
     *,
     password_helper: PasswordHelperProtocol,
     user_update: UserUpdate,
@@ -65,11 +66,32 @@ def require_current_password_for_sensitive_update(
             detail="Current password is required for this account update.",
         )
 
-    verify_current_password(
-        password_helper=password_helper,
-        password=user_update.current_password.get_secret_value(),
-        user=user,
-    )
+    async with account_guess_budget(user.id):
+        verify_current_password(
+            password_helper=password_helper,
+            password=user_update.current_password.get_secret_value(),
+            user=user,
+        )
+
+
+def require_step_up_fields(user: User, *, current_password: str | None, mfa_code: str | None, action: str) -> None:
+    """Reject a step-up that lacks a credential the account needs, before any guess is charged.
+
+    Run it ahead of ``account_guess_budget``: a request without the credential verifies
+    nothing, and the app probes the link flow without a password to learn whether one is
+    needed. ``require_step_up_password`` and ``require_mfa_step_up`` repeat these checks,
+    so a caller that skips this still fails closed, only at the cost of a guess.
+    """
+    if user.has_usable_password and not current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Current password is required to {action}.",
+        )
+    if user.mfa_enabled and not mfa_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Authentication code is required to {action}.",
+        )
 
 
 def require_step_up_password(

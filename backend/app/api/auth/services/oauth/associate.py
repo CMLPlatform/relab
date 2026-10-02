@@ -18,7 +18,11 @@ from app.api.auth.exceptions import (
 )
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.schemas import OAuthStepUpRequest
-from app.api.auth.services.account_security import require_recent_sign_in, require_step_up_password
+from app.api.auth.services.account_security import (
+    require_recent_sign_in,
+    require_step_up_fields,
+    require_step_up_password,
+)
 from app.api.auth.services.email.service import send_oauth_link_changed_notification
 from app.api.auth.services.mfa_flow import require_mfa_step_up
 from app.api.auth.services.oauth.base import (
@@ -127,17 +131,19 @@ def build_oauth_associate_router(
         # Every provider, the YouTube data-scope client included: the link is stored
         # under ``oauth_client.name`` ("google" for both), which login matches on, so any
         # association grants sign-in.
+        current_password = payload.current_password.get_secret_value() if payload and payload.current_password else None
+        mfa_code = payload.mfa_code if payload else None
+        # The app probes without a password to learn whether one is needed; that costs no guess.
+        require_step_up_fields(user, current_password=current_password, mfa_code=mfa_code, action="link a social login")
         async with account_guess_budget(user.id):
             require_step_up_password(
                 password_helper=user_manager.password_helper,
                 user=user,
-                current_password=(
-                    payload.current_password.get_secret_value() if payload and payload.current_password else None
-                ),
+                current_password=current_password,
                 action="link a social login",
             )
             await require_mfa_step_up(
-                payload.mfa_code if payload else None,
+                mfa_code,
                 user=user,
                 redis=redis,
                 action="link a social login",

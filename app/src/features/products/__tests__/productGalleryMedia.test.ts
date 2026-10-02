@@ -86,10 +86,20 @@ describe('useProductGalleryMedia', () => {
     expect(result.current.items[0].originalUrl).toBe('https://cdn.test/original.jpg');
   });
 
+  it('gives the lightbox the widest derivative when it nearly covers a 3x screen', async () => {
+    onScreen(430, 932, 3); // The lightbox needs 2796px; the 2560 is within tolerance.
+    const { result } = await renderHook(() =>
+      useProductGalleryMedia(product({ ...DERIVATIVES, 2560: 'https://cdn.test/a_2560.webp' })),
+    );
+
+    expect(result.current.items[0].mediumUrl).toBe('https://cdn.test/a_1600.webp');
+    expect(result.current.items[0].largeUrl).toBe('https://cdn.test/a_2560.webp');
+  });
+
   it('falls back to the original rather than stretching the widest derivative when nothing is wide enough', async () => {
     // A 1200px original publishes only {200, 800}; a 390pt @3x pager needs 1170.
-    // pickThumbnailUrl declines to upscale, so both tiers fall back to mediumUrl/largeUrl's
-    // own default, which is the original.
+    // The 800 is under three quarters of that, so both tiers fall back to
+    // mediumUrl/largeUrl's own default, which is the original.
     onScreen(390, 844, 3);
     const { result } = await renderHook(() =>
       useProductGalleryMedia(product({ 200: DERIVATIVES[200], 800: DERIVATIVES[800] })),
