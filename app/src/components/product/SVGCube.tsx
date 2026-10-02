@@ -4,6 +4,7 @@ import Animated, {
   ReduceMotion,
   useAnimatedProps,
   useSharedValue,
+  withDelay,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { G, Rect, Text as SvgText } from 'react-native-svg';
@@ -32,11 +33,14 @@ const COMPACT_SVG_HEIGHT = 132;
 const NORMAL_X = Math.sin(Math.PI / 6);
 const NORMAL_Y = Math.cos(Math.PI / 6);
 
-const TIMING = {
-  duration: 200,
-  easing: Easing.out(Easing.quad),
-  reduceMotion: ReduceMotion.System,
-};
+// Exponential settle: fast off the mark, no overshoot on a measured drawing.
+const SETTLE = Easing.bezier(0.16, 1, 0.3, 1);
+const TIMING = { duration: 280, easing: SETTLE, reduceMotion: ReduceMotion.System };
+/** First appearance: the footprint lies flat, then the solid rises to its height. */
+const EXTRUDE = { duration: 560, easing: SETTLE, reduceMotion: ReduceMotion.System };
+/** Labels land as the extrusion settles, not before the edges they measure. */
+const LABEL_DELAY = 300;
+const LABEL_FADE = { duration: 240, easing: SETTLE, reduceMotion: ReduceMotion.System };
 
 /** Marks a face whose shape is inferred rather than measured. */
 const UNCERTAIN_DASH = '5 4';
@@ -82,17 +86,22 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
   const layout = cubeLayout(width, height, depth);
 
   const w = useSharedValue(layout.w);
-  const h = useSharedValue(layout.h);
   const d = useSharedValue(layout.d);
   const tx = useSharedValue(layout.tx);
-  const ty = useSharedValue(layout.ty);
+  // Mounts flat: zero height, with the group lowered by h so the base edge
+  // already sits where it will end. h and ty share one curve, so it stays put.
+  const h = useSharedValue(0);
+  const ty = useSharedValue(layout.ty + layout.h);
+  const labelOpacity = useSharedValue(0);
 
   // withTiming retargets mid-flight, so typing 1 -> 10 -> 100 does not queue.
-  // The mount run is skipped: withTiming to an equal target still burns 200ms.
   const mounted = useRef(false);
   useEffect(() => {
     if (!mounted.current) {
       mounted.current = true;
+      h.value = withTiming(layout.h, EXTRUDE);
+      ty.value = withTiming(layout.ty, EXTRUDE);
+      labelOpacity.value = withDelay(LABEL_DELAY, withTiming(1, LABEL_FADE), ReduceMotion.System);
       return;
     }
     w.value = withTiming(layout.w, TIMING);
@@ -100,7 +109,7 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
     d.value = withTiming(layout.d, TIMING);
     tx.value = withTiming(layout.tx, TIMING);
     ty.value = withTiming(layout.ty, TIMING);
-  }, [layout.w, layout.h, layout.d, layout.tx, layout.ty, w, h, d, tx, ty]);
+  }, [layout.w, layout.h, layout.d, layout.tx, layout.ty, w, h, d, tx, ty, labelOpacity]);
 
   // Column-major matrix per face; only the translation animates. Numeric
   // values avoid the transform shorthand props react-native-svg 15 deprecates.
@@ -122,14 +131,20 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
 
   // Labels sit one gap along the outward normal of the edge they measure.
   const widthLabel = useAnimatedProps(() => ({
+    opacity: labelOpacity.value,
     x: w.value / 2 - LABEL_GAP * NORMAL_X,
     y: h.value + (ISO * w.value) / 2 + LABEL_GAP * NORMAL_Y,
   }));
   const depthLabel = useAnimatedProps(() => ({
+    opacity: labelOpacity.value,
     x: w.value + d.value / 2 + LABEL_GAP * NORMAL_X,
     y: h.value + ISO * w.value - (ISO * d.value) / 2 + LABEL_GAP * NORMAL_Y,
   }));
-  const heightLabel = useAnimatedProps(() => ({ x: -LABEL_GAP, y: h.value / 2 }));
+  const heightLabel = useAnimatedProps(() => ({
+    opacity: labelOpacity.value,
+    x: -LABEL_GAP,
+    y: h.value / 2,
+  }));
 
   // One hue at three luminances reads as a lit solid. The ramp flips with the
   // scheme so the top face stays brightest.
@@ -146,8 +161,10 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
     stroke: theme.colors.outline,
     strokeDasharray: certain ? undefined : UNCERTAIN_DASH,
   });
+  // Measurements are data: manila, monospace (DESIGN.md Data-Label Rule).
   const label = {
-    fill: theme.colors.mutedForeground,
+    fill: theme.tokens.status.live,
+    fontFamily: theme.tokens.type.data.fontFamily,
     fontSize: FONT_SIZE,
     alignmentBaseline: 'middle',
   } as const;
