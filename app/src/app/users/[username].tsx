@@ -13,12 +13,11 @@ import {
 } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
-import { Card } from '@/components/base/Card';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
-import { Icon, type IconName } from '@/components/base/Icon';
 import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { PageContainer } from '@/components/base/PageContainer';
+import { SpecFacts } from '@/components/base/SpecFacts';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import { PRODUCT_GRID_WINDOWING, productGridColumns } from '@/features/products/productGridColumns';
@@ -31,33 +30,6 @@ import type { AppTheme } from '@/theme/types';
 import type { Product } from '@/types/Product';
 import { heading } from '@/utils/a11y';
 import { getErrorMessage } from '@/utils/errors';
-
-// Local to this screen; unrelated to the HeroStats StatCard in components/profile.
-function ProfileStatCard({
-  icon,
-  color,
-  value,
-  label,
-}: {
-  icon: IconName;
-  color: string;
-  value: string | number;
-  label: string;
-}) {
-  return (
-    <Card className="flex-1 min-w-[140px] max-w-[200px] items-center">
-      <View className="items-center py-4">
-        <Icon name={icon} size={32} color={color} />
-        <AppText variant="heading" className="mt-3 mb-1 font-bold" numberOfLines={1}>
-          {value}
-        </AppText>
-        <AppText variant="eyebrow" className="text-center">
-          {label}
-        </AppText>
-      </View>
-    </Card>
-  );
-}
 
 function ProfileSummary({ profile }: { profile: PublicProfileView }) {
   const theme = useAppTheme();
@@ -85,32 +57,16 @@ function ProfileSummary({ profile }: { profile: PublicProfileView }) {
         ) : null}
       </View>
 
-      <View className="w-full flex-row justify-center gap-4 flex-wrap">
-        {(
-          [
-            {
-              icon: 'weight',
-              color: theme.colors.secondary,
-              value: profile.total_weight_kg,
-              label: 'Total kg',
-            },
-            {
-              icon: 'images',
-              color: theme.tokens.status.success,
-              value: profile.image_count,
-              label: 'Photos',
-            },
-            {
-              icon: 'tag',
-              color: theme.tokens.status.warning,
-              // Unset, not a penalty (PRODUCT.md): a dash, never "None".
-              value: profile.top_category || '—',
-              label: 'Top category',
-            },
-          ] as const
-        ).map((stat) => (
-          <ProfileStatCard key={stat.label} {...stat} />
-        ))}
+      {/* The Spec Row, as on the account screen; centred under the centred identity. */}
+      <View className="self-center">
+        <SpecFacts
+          facts={[
+            { label: 'Weight', value: `${profile.total_weight_kg} kg` },
+            { label: 'Photos', value: String(profile.image_count) },
+            // Unset, not a penalty (PRODUCT.md): a dash, never "None".
+            { label: 'Top category', value: profile.top_category || '—' },
+          ]}
+        />
       </View>
     </View>
   );

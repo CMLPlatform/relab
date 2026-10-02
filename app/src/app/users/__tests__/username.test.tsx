@@ -59,12 +59,12 @@ describe('UserProfileScreen', () => {
 
     // Avatar initials
     expect(screen.getByText('AL')).toBeOnTheScreen();
-    // Stats
-    expect(screen.getByText('5.5')).toBeOnTheScreen();
+    // Stats, as a spec row with the unit on the value
+    expect(screen.getByText('5.5 kg')).toBeOnTheScreen();
     expect(screen.getByText('7')).toBeOnTheScreen();
     expect(screen.getByText('Electronics')).toBeOnTheScreen();
     // Labels
-    expect(screen.getByText('Total kg')).toBeOnTheScreen();
+    expect(screen.getByText('Weight')).toBeOnTheScreen();
     expect(screen.getByText('Photos')).toBeOnTheScreen();
     expect(screen.getByText('Top category')).toBeOnTheScreen();
   });
@@ -223,7 +223,7 @@ describe('UserProfileScreen', () => {
     // The loading state stays true since setLoading(false) is in finally of the skipped block
     // Wait a tick so useEffect fires
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
-    expect(screen.queryByText('Total kg')).toBeNull();
+    expect(screen.queryByText('Top category')).toBeNull();
   });
 
   it('does not call getPublicProfile when username is an array', async () => {
@@ -232,7 +232,7 @@ describe('UserProfileScreen', () => {
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(mockGetPublicProfile).not.toHaveBeenCalled());
-    expect(screen.queryByText('Total kg')).toBeNull();
+    expect(screen.queryByText('Top category')).toBeNull();
   });
 
   it('re-fetches the profile when the error state’s Retry action is pressed', async () => {

@@ -405,8 +405,9 @@ sanctioned manila fill in the app.
 Monospace value, manila eyebrow label, hairline separator. This is the app's most characteristic
 pattern. `SpecFacts` (`src/components/base/SpecFacts.tsx`) is the one implementation: facts sit
 left-aligned under a hairline and wrap onto more lines at narrow widths. Every read-only set of
-facts uses it: the product spec-sheet header, view-mode brand, model, amount and type, the
-account's record counts. An unset value is a
+facts uses it: the product spec-sheet header, the view-mode Overview (brand, model, amount and
+type in one row, the type's description under it), and the account's and a public profile's
+record counts. A fact still resolving keeps its label and pulses its value, so nothing pops in. An unset value is a
 neutral "—", never an error. Don't render facts as hero-metric tiles (a centred number over a
 tracked label on a tinted fill).
 
