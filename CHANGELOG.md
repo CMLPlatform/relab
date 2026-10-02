@@ -7,6 +7,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+
+- On the web app, tinted backgrounds, hover and pressed colours, placeholder text and the red
+  outline on invalid fields show again
+
 ## [0.4.0] - 2026-10-02
 
 **Upgrading from 0.3:** deploy hosts now pull published images, and the landing page and docs
