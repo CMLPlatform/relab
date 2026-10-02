@@ -174,7 +174,8 @@ live = manila.
 small data labels, live/status pills, strategy tags. **Accent is for small text, never for
 mass.** It never fills a button, never drives a hover or pressed state, and never paints bars,
 big figures, or large areas. Interaction is always primary blue. *Mirrors
-assets/DESIGN.md:167-184 — change it there first.*
+assets/DESIGN.md:167-184 — change it there first.* In this app, data-label manila is spelled
+`text-manila` in a className and `tokens.text.data` in a style object or an SVG fill.
 
 **The One Tint Rule.** `tokens.surface.accent` (primary at 12%) is the single selected/tinted
 fill: chips, history rows, toggles, active nav. The Tailwind spelling is `bg-primary/12`.

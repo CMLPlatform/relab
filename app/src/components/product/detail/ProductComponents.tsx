@@ -22,6 +22,8 @@ interface Props {
 const VISIBLE_WHEN_COLLAPSED = 5;
 /** Lists up to this many rows in full; beyond it, the first five plus a disclosure. */
 const COLLAPSE_ABOVE = 8;
+const ROW_ENTER = FadeIn.duration(200).reduceMotion(ReduceMotion.System);
+const ROW_EXIT = FadeOut.duration(150).reduceMotion(ReduceMotion.System);
 
 export default function ProductComponents({ product, editMode, canEdit }: Props) {
   const router = useRouter();
@@ -95,28 +97,22 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
           This {label} has no subcomponents.
         </AppText>
       )}
-      {visibleComponents.map((component, index) => {
-        const row = (
+      {visibleComponents.map((component, index) => (
+        // Always the same wrapper, so a row keeps its identity (and its
+        // expanded state) when "Show more" changes which rows are past the fold.
+        <Animated.View
+          key={component.id}
+          // Rows revealed by "Show more" fade in below the ones already there.
+          entering={collapsible && index >= VISIBLE_WHEN_COLLAPSED ? ROW_ENTER : undefined}
+          exiting={collapsible && index >= VISIBLE_WHEN_COLLAPSED ? ROW_EXIT : undefined}
+        >
           <ComponentRow
-            key={component.id}
             component={component}
             enabled={!editMode}
             onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
           />
-        );
-        // Rows revealed by "Show more" fade in below the ones already there.
-        return collapsible && index >= VISIBLE_WHEN_COLLAPSED ? (
-          <Animated.View
-            key={component.id}
-            entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
-            exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
-          >
-            {row}
-          </Animated.View>
-        ) : (
-          row
-        );
-      })}
+        </Animated.View>
+      ))}
       {collapsible && (
         <DisclosureRow
           label={

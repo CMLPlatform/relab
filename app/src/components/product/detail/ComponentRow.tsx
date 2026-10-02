@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
-import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import Animated, { FadeInUp, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { DisclosureChevron } from '@/components/base/DisclosureChevron';
 import { ErrorState } from '@/components/base/ErrorState';
@@ -163,11 +163,16 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
   );
 }
 
-/** Drops in from the row it belongs to, so the new rows read as its children. */
+// Starts 8px up, under the row it hangs from, and drops into place.
+const CHILDREN_ENTER = FadeInUp.duration(200)
+  .withInitialValues({ transform: [{ translateY: -8 }] })
+  .reduceMotion(ReduceMotion.System);
+
+/** Drops down out of the row it belongs to, so the new rows read as its children. */
 function ChildrenReveal({ children }: { children: ReactNode }) {
   return (
     <Animated.View
-      entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
+      entering={CHILDREN_ENTER}
       exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
     >
       <View className="pl-6">{children}</View>

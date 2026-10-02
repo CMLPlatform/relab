@@ -175,22 +175,36 @@ const PROGRESS_STEP = {
   reduceMotion: ReduceMotion.System,
 };
 
-/** Hairline under the save button, filled by the photos already uploaded. */
+/**
+ * Hairline under the save button, filled by the photos already uploaded. It never
+ * reaches full: `current` is the photo in flight, and the bar unmounts once the
+ * last one lands.
+ */
 function UploadProgressBar({ progress }: { progress: ImageUploadProgress }) {
-  // `current` is the photo in flight, so the ones before it are done.
   const done = (progress.current - 1) / progress.total;
   const fill = useSharedValue(0);
   useEffect(() => {
     fill.value = withTiming(done, PROGRESS_STEP);
   }, [done, fill]);
-  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
+  // A full-width fill scaled from its left edge: a transform, not a width.
+  const fillStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: fill.value }] }));
   const { colors } = useAppTheme();
 
   return (
     // Decorative: the button label and the status region carry the count.
-    <View aria-hidden testID="upload-progress" className="mt-1 h-0.5 overflow-hidden bg-primary/12">
+    // Absolute, just below the button, so it appears without pushing the bar taller.
+    <View
+      aria-hidden
+      testID="upload-progress"
+      className="absolute -bottom-1.5 left-0 right-0 h-0.5 overflow-hidden bg-primary/12"
+    >
       {/* Animated.View ignores className, so the fill is styled inline. */}
-      <Animated.View style={[{ height: '100%', backgroundColor: colors.primary }, fillStyle]} />
+      <Animated.View
+        style={[
+          { height: '100%', backgroundColor: colors.primary, transformOrigin: 'left' },
+          fillStyle,
+        ]}
+      />
     </View>
   );
 }
