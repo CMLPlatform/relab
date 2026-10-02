@@ -22,11 +22,13 @@ function BottomNavTab({
   const handlePress = useCallback(() => onPress(tab.key), [onPress, tab.key]);
   return (
     <Pressable
-      accessibilityRole="tab"
+      // Links to destinations, like TopNav: a tab role promises an in-page tabpanel.
+      accessibilityRole="link"
       accessibilityLabel={tab.label}
-      // aria-*, not accessibilityState: react-native-web reads only the aria props,
-      // while RN folds them back into accessibilityState for native.
-      aria-selected={active}
+      aria-current={active ? 'page' : undefined}
+      // Native screen readers read `selected`; on web it would become
+      // aria-selected, which a link does not allow.
+      accessibilityState={Platform.OS === 'web' ? undefined : { selected: active }}
       onPress={handlePress}
       style={{ minHeight: MIN_TAP_TARGET }}
       className={cn(
@@ -83,7 +85,6 @@ export function BottomNav({ state, navigation }: BottomTabBarProps) {
       <View
         className="flex-row border-t border-border bg-background"
         style={{ paddingBottom: insets.bottom }}
-        accessibilityRole="tablist"
       >
         {tabs.map((tab) => (
           <BottomNavTab

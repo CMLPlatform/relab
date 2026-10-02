@@ -16,6 +16,7 @@ import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { ErrorState } from '@/components/base/ErrorState';
 import { Icon, type IconName } from '@/components/base/Icon';
+import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { PageContainer } from '@/components/base/PageContainer';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
@@ -158,6 +159,10 @@ function ProfileProductList({ username, header }: { username: string; header: Re
 
   const listFooter = hasNextPage ? (
     <View className="items-center py-4" accessibilityLiveRegion="polite">
+      <IosAnnouncement
+        text={isFetchingNextPage ? 'Loading more products' : undefined}
+        skipInitial
+      />
       {isFetchingNextPage ? (
         <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
       ) : (

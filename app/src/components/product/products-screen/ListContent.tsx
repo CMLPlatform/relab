@@ -14,6 +14,7 @@ import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import ProductCard from '@/components/product/ProductCard';
@@ -74,6 +75,7 @@ function ProductsListFooter({
   return (
     // Live region: "Load more" keeps focus, so appended cards are otherwise silent.
     <View className="items-center gap-2 py-4" accessibilityLiveRegion="polite">
+      <IosAnnouncement text={`${productCount} of ${total} products`} skipInitial />
       {isFetchingNextPage ? (
         <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
       ) : hasNextPage ? (

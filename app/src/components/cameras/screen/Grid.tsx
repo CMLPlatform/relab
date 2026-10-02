@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
+import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { MutedText } from '@/components/base/MutedText';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { CameraCard } from '@/components/cameras/CameraCard';
@@ -90,11 +91,12 @@ export function CamerasGrid({
       contentContainerClassName={`gap-2.5 p-3 pb-[88px]${rows.length === 0 ? ' flex-1' : ''}`}
       columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
       ListHeaderComponent={
-        hint ? (
-          <MutedText className="pb-1" accessibilityLiveRegion="polite">
-            {hint}
-          </MutedText>
-        ) : null
+        // Mounted even without a hint: a live region only announces changes
+        // to content it has already seen.
+        <View accessibilityLiveRegion="polite">
+          <IosAnnouncement text={hint} skipInitial />
+          {hint ? <MutedText className="pb-1">{hint}</MutedText> : null}
+        </View>
       }
       ListEmptyComponent={
         <View className="flex-1 items-center justify-center p-8" testID="cameras-empty-state">

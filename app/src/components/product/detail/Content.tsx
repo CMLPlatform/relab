@@ -153,11 +153,8 @@ export function ProductPageContent({
               testID="editing-others-product-notice"
               className="rounded-lg border border-border bg-muted px-4 py-2"
             >
-              <AppText
-                variant="caption"
-                accessibilityLiveRegion="polite"
-                className="text-muted-foreground"
-              >
+              {/* Static notice shown with edit mode, not a status change: no live region. */}
+              <AppText variant="caption" className="text-muted-foreground">
                 You are moderating someone else's product. You can correct details or remove
                 content.
               </AppText>

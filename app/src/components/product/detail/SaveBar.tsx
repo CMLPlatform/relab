@@ -1,8 +1,9 @@
-import { useEffect, useSyncExternalStore } from 'react';
-import { AccessibilityInfo, Platform, View, type ViewStyle } from 'react-native';
+import { useSyncExternalStore } from 'react';
+import { View, type ViewStyle } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
+import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { getImageUploadProgress, subscribeToImageUploadProgress } from '@/services/api/saving';
 import { visuallyHidden } from '@/utils/a11y';
@@ -151,14 +152,6 @@ export function SaveBar({
       </AppButton>
     </View>
   );
-}
-
-/** VoiceOver ignores accessibilityLiveRegion; announce the region's text explicitly. */
-function IosAnnouncement({ text }: { text?: string }) {
-  useEffect(() => {
-    if (text && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(text);
-  }, [text]);
-  return null;
 }
 
 // 24px = right-6/bottom-6; getFloatingPosition() docks to the viewport ('fixed' on web).
