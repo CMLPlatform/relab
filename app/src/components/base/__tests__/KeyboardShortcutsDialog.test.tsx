@@ -60,7 +60,7 @@ describe('KeyboardShortcutsDialog', () => {
     expect(screen.getByText('Products list')).toBeOnTheScreen();
     expect(screen.getByText('New product')).toBeOnTheScreen();
     expect(screen.getByText('Product page')).toBeOnTheScreen();
-    expect(screen.getByText('Leave edit mode')).toBeOnTheScreen();
+    expect(screen.getByText('Leave page')).toBeOnTheScreen();
   });
 
   it('ignores "?" typed into a field', async () => {
