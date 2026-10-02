@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react-native';
 import type { RefObject } from 'react';
-import { AccessibilityInfo, type View } from 'react-native';
+import { AccessibilityInfo, Platform, type View } from 'react-native';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 
 const trigger = {} as View;
@@ -46,5 +46,29 @@ describe('useReturnFocus', () => {
     await rerender({ visible: false });
 
     expect(sendEvent).not.toHaveBeenCalled();
+  });
+});
+
+describe('useReturnFocus on web', () => {
+  const originalOS = Platform.OS;
+  afterEach(() => {
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: originalOS });
+    Reflect.deleteProperty(globalThis, 'document');
+  });
+
+  it('returns focus when the overlay first mounts already open', async () => {
+    const opener = { isConnected: true, focus: jest.fn() };
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'web' });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: { activeElement: opener },
+    });
+
+    const { rerender } = await renderReturnFocus(true, { current: null });
+    expect(opener.focus).not.toHaveBeenCalled();
+
+    await rerender({ visible: false });
+
+    expect(opener.focus).toHaveBeenCalledTimes(1);
   });
 });

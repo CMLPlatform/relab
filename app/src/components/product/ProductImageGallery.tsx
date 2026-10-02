@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useRef } from 'react';
 import { View } from 'react-native';
+import { loadLightbox } from '@/components/product/gallery/lightboxChunk';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
 import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
 import { ProductImagePlaceholder } from '@/components/product/gallery/ProductImagePlaceholder';
@@ -10,11 +11,7 @@ import type { Product } from '@/types/Product';
 
 // NOTE: the lightbox (gestures, zoom) and the Pi preview (video player) are heavy and
 // opened rarely, so each loads on first open instead of with every product page.
-const ProductImageLightbox = lazy(() =>
-  import('@/components/product/gallery/ProductImageLightbox').then((m) => ({
-    default: m.ProductImageLightbox,
-  })),
-);
+const ProductImageLightbox = lazy(loadLightbox);
 const ProductImageCameraDialogs = lazy(() =>
   import('@/components/product/gallery/ProductImageCameraDialogs').then((m) => ({
     default: m.ProductImageCameraDialogs,
