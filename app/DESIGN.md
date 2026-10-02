@@ -358,16 +358,13 @@ change it there first.*
 
 ### Press feedback
 
-One press language. Filled controls (primary, tonal, the chip value segment) press and hover to
-`primary-strong`. Everything else that responds to touch (rows, cards, list items, inline links,
-bare icon buttons) takes the One Tint, `bg-primary/12`, on press and on web hover, with a 120ms
-colour fade on web. Take it from `src/components/base/pressFeedback.ts`: `PRESS_TINT` as a
-className, or `pressFill()` as a style where a Pressable keeps a function `style` or the tint has
-to lie over a photo or card. A Pressable that keeps a function `style` takes `PRESS_FADE` as
-its className for the same 120ms fade; Uniwind keeps both. On a tinted or sunken fill, lay the
-tint over it (`absolute inset-0 bg-primary/12`) rather than replacing the fill. A disabled row
-drops the tint. The live-stream banner, on the inverse ground, takes the inverse ink at 12%.
-Never dim on press: opacity is for disabled, never for pressed.
+One press language, implemented in `src/components/base/pressFeedback.ts`:
+
+- Filled controls (primary, tonal, the chip value segment) press and hover to `primary-strong`.
+- Everything else that responds to touch (rows, cards, links, bare icon buttons) takes the One
+  Tint, `bg-primary/12`, on press and on web hover, drawn by `PressOverlay`. On a tinted fill,
+  lay the tint over it.
+- A disabled control drops the tint. Never dim on press: opacity is for disabled only.
 
 ### Motion
 
@@ -375,25 +372,12 @@ Motion says where something came from or went; it never decorates. Entrances run
 with an ease-out, exits are plain fades shorter than their entrance, and every animation honours
 `prefers-reduced-motion`. *Mirrors assets/DESIGN.md:135-138 — change it there first.*
 
-- **Overlays** (AppDialog, Menu, FilterSelectionModal, InfoTooltip, the lightbox) render an RN
-  `Modal` with `animationType="none"` and run their own fade through `useModalPresence`
-  (`src/hooks/useModalPresence.ts`): 200ms in, 150ms out, `ReduceMotion.System`. The hook keeps
-  the Modal mounted through the exit, and while closing the content takes no input:
-  `pointerEvents` off `visible` for pointers, and on an overlay with actions a
-  `swallowKey` key-capture handler on the same wrapper plus an `onRequestClose` that ignores a
-  second Escape, so a second tap or Enter cannot repeat an action. Pass `mounted`, not
-  `visible`, to `useReturnFocus`: the Modal's focus trap holds focus until it really closes.
-- **Rows** in a short, non-virtualized list take `ROW_ENTER` / `ROW_EXIT` / `ROW_MOVE` from
-  `src/components/base/rowMotion.ts` (200ms fade in, 150ms fade out, neighbours slide 200ms).
-  Wrap the list in `<LayoutAnimationConfig skipEntering skipExiting>` so rows already there on
-  mount do not fade in and leaving the screen does not play every row's exit.
-- **The lightbox** is the one focal moment, with its own `useModalPresence` timing: the photo
-  grows from 96% with a 250ms settle and closes in 150ms. It is also the one sanctioned
-  `ReduceMotion.Never`: under reduced motion it keeps the fade and drops only the scale, an
-  opacity-only path, so the photo still arrives instead of snapping in.
-- **CSS transitions** (the 120ms press fade, `transition-colors`) snap under
-  `prefers-reduced-motion`: an unlayered rule in `global.css` sets `transition-duration: 0s` on
-  every element, outranking the `@layer utilities` transition classes.
+- **Overlays** fade through `src/hooks/useModalPresence.ts` and take no input while closing.
+- **Rows** in a short, non-virtualized list use the shared timings in
+  `src/components/base/motion.ts`; rows present on mount do not animate.
+- **The lightbox** is the one focal moment and the one `ReduceMotion.Never`: under reduced
+  motion it keeps the fade and drops the scale.
+- **CSS transitions** snap under `prefers-reduced-motion` (see `global.css`).
 
 ### Errors and loading
 
