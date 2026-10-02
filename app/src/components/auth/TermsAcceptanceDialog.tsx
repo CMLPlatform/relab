@@ -43,14 +43,14 @@ export function TermsAcceptanceDialog() {
       <View style={dialogActionsStyle}>
         {termsUrl ? (
           <AppButton variant="ghost" onPress={openTerms}>
-            <AppText variant="body">Read terms</AppText>
+            Read terms
           </AppButton>
         ) : null}
         <AppButton variant="ghost" onPress={dismiss}>
-          <AppText variant="body">Not now</AppText>
+          Not now
         </AppButton>
         <AppButton onPress={onAccept} disabled={isAccepting}>
-          <AppText variant="body">{isAccepting ? 'Saving…' : 'Accept'}</AppText>
+          {isAccepting ? 'Saving…' : 'Accept'}
         </AppButton>
       </View>
     </AppDialog>

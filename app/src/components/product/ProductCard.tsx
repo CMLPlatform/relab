@@ -7,7 +7,7 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
-import { IMAGE_FADE_MS, MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
+import { IMAGE_FADE_MS, MIN_TAP_TARGET, radius, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { getProfileHref } from '@/utils/router/profiles';
@@ -143,7 +143,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
               <ImagePlaceholder
                 width={80}
                 height={80}
-                borderRadius={8}
+                borderRadius={radius.card}
                 testID="product-thumbnail"
               />
             )}

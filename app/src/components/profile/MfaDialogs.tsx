@@ -386,6 +386,7 @@ function RecoveryCodesDialog({
 
 const createMfaDialogStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
+    // NOTE: the QR frame stays white in both schemes; scanners need the light quiet zone.
     qrFrame: {
       backgroundColor: '#ffffff',
     },

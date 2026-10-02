@@ -71,12 +71,17 @@ export function Fab({
       // First so callers can override. No className: it would drop this function (see IconButton.tsx).
       styles.base,
       theme.tokens.elevation.overlay,
-      { backgroundColor: theme.colors.primary },
+      { backgroundColor: pressed && !disabled ? theme.colors.primaryStrong : theme.colors.primary },
       disabled && styles.disabled,
-      pressed && !disabled && styles.pressed,
       style,
     ],
-    [theme.tokens.elevation.overlay, theme.colors.primary, disabled, style],
+    [
+      theme.tokens.elevation.overlay,
+      theme.colors.primary,
+      theme.colors.primaryStrong,
+      disabled,
+      style,
+    ],
   );
 
   if (!visible) return null;
@@ -121,9 +126,6 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
-  },
-  pressed: {
-    opacity: 0.85,
   },
   labelClip: {
     overflow: 'hidden',

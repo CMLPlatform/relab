@@ -24,7 +24,7 @@ const buttonVariants = cva(
           Platform.select({ web: 'hover:bg-primary-strong' }),
         ),
         destructive: cn(
-          'bg-destructive active:bg-destructive/90 dark:bg-destructive/60',
+          'bg-destructive active:bg-destructive/90',
           Platform.select({
             web: 'hover:bg-destructive/90',
           }),
@@ -37,8 +37,8 @@ const buttonVariants = cva(
         ),
         // Soft-primary fill: low-emphasis-but-filled CTA (flat, no shadow).
         tonal: cn(
-          'bg-primary/12 active:bg-primary/20',
-          Platform.select({ web: 'hover:bg-primary/20' }),
+          'bg-primary/12 active:bg-primary-strong',
+          Platform.select({ web: 'hover:bg-primary-strong' }),
         ),
         ghost: cn('active:bg-primary/12', Platform.select({ web: 'hover:bg-primary/12' })),
       },
@@ -51,6 +51,7 @@ const buttonVariants = cva(
 
 const buttonTextVariants = cva(
   cn(
+    // NOTE: text-sm is the vendored button size; relabelling every button to the label ramp step is out of scope.
     'text-foreground text-sm font-medium',
     Platform.select({ web: 'pointer-events-none transition-colors' }),
   ),
@@ -58,12 +59,15 @@ const buttonTextVariants = cva(
     variants: {
       variant: {
         primary: 'text-primary-foreground',
-        destructive: 'text-white',
+        destructive: 'text-destructive-foreground',
         outline: cn(
           'group-active:text-primary',
           Platform.select({ web: 'group-hover:text-primary' }),
         ),
-        tonal: 'text-primary',
+        tonal: cn(
+          'text-primary group-active:text-primary-foreground',
+          Platform.select({ web: 'group-hover:text-primary-foreground' }),
+        ),
         ghost: cn(
           'group-active:text-primary',
           Platform.select({ web: 'group-hover:text-primary' }),

@@ -46,7 +46,6 @@ export const Chip = ({
         // No className on this Pressable: it would drop this function (see IconButton.tsx).
         styles.base,
         { backgroundColor: theme.tokens.surface.accent },
-        state.pressed && { opacity: 0.5 },
         resolvedStyle,
       ];
     },
@@ -59,7 +58,7 @@ export const Chip = ({
     accessibilityLabel ??
     (title ? `${title}: ${children ?? ''}${error ? ', required' : ''}` : undefined);
 
-  const content = (
+  const renderContent = (pressed: boolean) => (
     <>
       {title ? (
         <AppText
@@ -73,7 +72,11 @@ export const Chip = ({
       <View
         className="flex-row items-center gap-1.5 rounded-md px-3 py-2"
         style={{
-          backgroundColor: error ? getStatusTone(danger) : theme.colors.primary,
+          backgroundColor: error
+            ? getStatusTone(danger)
+            : pressed
+              ? theme.colors.primaryStrong
+              : theme.colors.primary,
           borderColor: error ? danger : undefined,
           borderWidth: error ? 1 : 0,
         }}
@@ -105,7 +108,7 @@ export const Chip = ({
         accessibilityLabel={composedLabel}
         style={[styles.base, { backgroundColor: theme.tokens.surface.accent }]}
       >
-        {content}
+        {renderContent(false)}
       </View>
     );
   }
@@ -119,7 +122,7 @@ export const Chip = ({
       accessibilityState={accessibilityState ?? (disabled ? { disabled } : undefined)}
       {...props}
     >
-      {content}
+      {({ pressed }) => renderContent(pressed)}
     </Pressable>
   );
 };

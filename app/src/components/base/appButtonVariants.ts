@@ -9,5 +9,5 @@ export const VARIANT_FOREGROUND_COLOR: Record<AppButtonVariant, (colors: AppColo
   tonal: (colors) => colors.primary,
   outline: (colors) => colors.onSurface,
   ghost: (colors) => colors.onSurface,
-  destructive: () => '#FFFFFF', // buttonTextVariants hard-codes text-white for destructive
+  destructive: (colors) => colors.onError,
 };

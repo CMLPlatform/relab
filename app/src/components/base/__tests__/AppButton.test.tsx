@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { Text } from '@/components/base/ui/text';
+import { queryAllHostsByType } from '@/test-utils/index';
+import { lightTheme } from '@/theme/themes';
 
 // react-native's own Platform.select (Platform.ios.js) hardcodes 'ios'/'native'
 // key checks and ignores Platform.OS, and the vendored ui/button.tsx computes
@@ -43,9 +45,20 @@ test('primary variant label uses the primary-foreground text color', async () =>
   );
 });
 
-test('destructive variant label uses the white text color', async () => {
+test('destructive variant label uses the destructive-foreground text color', async () => {
   await render(<AppButton variant="destructive">Delete</AppButton>);
-  expect(screen.getByText('Delete').props.className).toEqual(expect.stringContaining('text-white'));
+  expect(screen.getByText('Delete').props.className).toEqual(
+    expect.stringContaining('text-destructive-foreground'),
+  );
+});
+
+test('destructive loading spinner uses the onError color', async () => {
+  await render(
+    <AppButton variant="destructive" loading>
+      Delete
+    </AppButton>,
+  );
+  expect(queryAllHostsByType('ActivityIndicator')[0].props.color).toBe(lightTheme.colors.onError);
 });
 
 test('tonal variant uses the soft-primary fill and primary text color', async () => {
@@ -53,8 +66,11 @@ test('tonal variant uses the soft-primary fill and primary text color', async ()
   expect(screen.getByRole('button').props.className).toEqual(
     expect.stringContaining('bg-primary/12'),
   );
+  expect(screen.getByRole('button').props.className).toEqual(
+    expect.stringContaining('active:bg-primary-strong'),
+  );
   expect(screen.getByText('Sign in').props.className).toEqual(
-    expect.stringContaining('text-primary'),
+    expect.stringContaining('group-active:text-primary-foreground'),
   );
 });
 

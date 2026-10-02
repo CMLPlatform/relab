@@ -30,6 +30,7 @@ const badgeVariants = cva(
   },
 );
 
+// NOTE: text-xs is the vendored badge size; mapping it to the caption step is out of scope here.
 const badgeTextVariants = cva('text-xs font-medium', {
   variants: {
     variant: {

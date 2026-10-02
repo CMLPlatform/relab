@@ -79,7 +79,7 @@ export function StreamingContent({
       <View className="flex-row gap-2 px-4 pt-1">
         <AppButton variant="outline" onPress={handleWatch} className="flex-1">
           <Icon name="external-link" size={16} color={theme.colors.onSurface} />
-          <AppText style={{ color: theme.colors.onSurface }}>Watch on YouTube</AppText>
+          Watch on YouTube
         </AppButton>
         <AppButton
           variant="destructive"
@@ -95,7 +95,7 @@ export function StreamingContent({
       {/* Product link (sheet mode only) */}
       {showProductLink ? (
         <AppButton variant="ghost" onPress={handleGoToProduct} className="self-start ml-2 mt-0.5">
-          <AppText style={{ color: theme.colors.onSurface }}>Go to {session.productName}</AppText>
+          {`Go to ${session.productName}`}
           <Icon name="chevron-right" size={16} color={theme.colors.onSurface} />
         </AppButton>
       ) : null}

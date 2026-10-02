@@ -13,7 +13,7 @@ function truncateUsername(username: string) {
 }
 
 // backgroundColor/color stay inline: theme-dependent values with no CSS var.
-const PILL_CLASS_NAME = `mr-4 flex-row items-center gap-1.5 rounded-[6px] px-3 py-1.5 ${WEB_FOCUS_RING}`;
+const PILL_CLASS_NAME = `mr-4 flex-row items-center gap-1.5 rounded-md px-3 py-1.5 ${WEB_FOCUS_RING}`;
 const PILL_TEXT_CLASS_NAME = 'text-[14px] font-semibold';
 
 export function HeaderRightPill() {

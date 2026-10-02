@@ -5,6 +5,8 @@ export type AppScheme = 'light' | 'dark';
 export type AppColorScale = {
   primary: string;
   onPrimary: string;
+  /** Pressed/hover fill for primary surfaces (Primary-Strong Rule). */
+  primaryStrong: string;
   secondary: string;
   error: string;
   onError: string;

@@ -1,11 +1,11 @@
 import { Platform } from 'react-native';
 import { alpha } from './color';
+import { palette } from './palette.generated';
 import { designTokens } from './tokens.generated';
 import type { AppColorScale, AppScheme, AppTokens } from './types';
 
 const SEMANTIC_COLORS = {
   light: {
-    live: '#8F6212', // manila; DESIGN.md assigns live indicators to the accent
     success: '#2E7D32',
     warning: '#A05A00',
     info: '#1565C0',
@@ -14,7 +14,6 @@ const SEMANTIC_COLORS = {
     onStatus: '#FFFFFF',
   },
   dark: {
-    live: '#E3B95C',
     success: '#7BC67E',
     warning: '#FFB74D',
     info: '#90CAF9',
@@ -27,6 +26,7 @@ const SEMANTIC_COLORS = {
 export function createTokens(scheme: AppScheme, colors: AppColorScale): AppTokens {
   const isDark = scheme === 'dark';
   const semantic = SEMANTIC_COLORS[scheme];
+  const p = palette[scheme];
 
   return {
     status: {
@@ -35,7 +35,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       danger: colors.error,
       info: semantic.info,
       offline: semantic.offline,
-      live: semantic.live,
+      live: p.accent, // manila; DESIGN.md assigns live indicators to the accent
       onStatus: semantic.onStatus,
     },
     overlay: {
@@ -57,9 +57,9 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       overlay: designTokens.rn.shadowOverlay[scheme],
     },
     border: {
-      subtle: 'rgba(128,128,128,0.2)',
-      strong: 'rgba(128,128,128,0.5)',
-      selected: semantic.info,
+      subtle: p.border,
+      strong: p.input,
+      selected: colors.primary,
     },
     text: {
       link: semantic.link,
@@ -70,7 +70,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       onMedia: '#fff',
     },
     surface: {
-      sunken: isDark ? '#1a1a1a' : colors.surfaceVariant,
+      sunken: isDark ? colors.card : colors.surfaceVariant,
       accent: alpha(colors.primary, 0.12),
       // Translucent panel behind auth controls: opaque enough to keep labels
       // legible over a photo while a hint of the image still shows through.

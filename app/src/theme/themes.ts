@@ -17,6 +17,7 @@ function createThemeColors(isDark: boolean) {
   return {
     primary: rgb(p.primary),
     onPrimary: rgb(p.primaryForeground),
+    primaryStrong: rgb(p.primaryStrong),
     secondary: rgb(p.secondary),
     error: rgb(p.destructive),
     onError: rgb(p.destructiveForeground),
@@ -29,6 +30,7 @@ function createThemeColors(isDark: boolean) {
     outline: rgb(p.input),
     shadow: 'rgb(0, 0, 0)',
     scrim: 'rgb(0, 0, 0)',
+    // NOTE: inverse pair is hard-coded; the palette has no inverse role (see inverseSurface.ts).
     inverseSurface: isDark ? 'rgb(226, 230, 238)' : 'rgb(47, 48, 54)',
     inverseOnSurface: isDark ? 'rgb(47, 48, 54)' : 'rgb(240, 243, 249)',
     card: rgb(p.card),

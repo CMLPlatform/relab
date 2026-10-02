@@ -5,6 +5,7 @@ import { Fab } from '@/components/base/Fab';
 import { Icon } from '@/components/base/Icon';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { getStatusTone } from '@/theme/color';
 import { getErrorMessage } from '@/utils/errors';
 import { PRODUCTS_FAB_EDGE_GAP, productsScreenStyles as styles } from './shared';
 
@@ -31,11 +32,14 @@ export function ProductsErrorBanner({ error, onRetry }: ProductsErrorBannerProps
   if (!error) return null;
 
   return (
-    <View className="flex-row items-center gap-3 rounded-lg p-4 bg-destructive/10">
+    <View
+      className="flex-row items-center gap-3 rounded-md p-4"
+      style={{ backgroundColor: getStatusTone(theme.tokens.status.danger) }}
+    >
       <Icon name="circle-alert" size="lg" color={theme.colors.error} />
       <View className="flex-1">
         <AppText className="font-bold text-destructive">Couldn't load products</AppText>
-        <AppText variant="caption" className="opacity-80 text-destructive">
+        <AppText variant="caption" className="text-destructive">
           {getErrorMessage(error, 'Something went wrong loading products.')}
         </AppText>
       </View>

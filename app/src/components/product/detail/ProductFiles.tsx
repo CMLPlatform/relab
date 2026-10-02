@@ -67,7 +67,7 @@ export default function ProductFiles({ product, editMode }: Props) {
           disabled={isUploading}
           onPress={pickAndUpload}
         >
-          <AppText variant="body">{isUploading ? 'Uploading…' : 'Add research file'}</AppText>
+          {isUploading ? 'Uploading…' : 'Add research file'}
         </AppButton>
       ) : null}
     </View>
