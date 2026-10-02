@@ -9,6 +9,7 @@ import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { describedBy, requiredField } from '@/utils/a11y';
@@ -20,6 +21,20 @@ type LoginLayoutProps = {
 
 export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
   const theme = useAppTheme();
+  // Below md the island fills the screen, so a corner-pinned button lands on the
+  // card; there it sits in the flow above the island instead.
+  const { isMd } = useBreakpoint();
+  const browse = (
+    <AppButton
+      variant="ghost"
+      onPress={onBrowse}
+      className={isMd ? 'self-start absolute top-4 left-2 z-10' : 'self-start'}
+      style={{ backgroundColor: theme.tokens.overlay.page }}
+    >
+      <Icon name="arrow-left" size={16} color={theme.colors.onSurface} />
+      Browse
+    </AppButton>
+  );
   return (
     <View className="flex-1">
       {/* Carries its own ground. As a bare ghost button it sat directly on the
@@ -27,20 +42,12 @@ export function LoginLayout({ children, onBrowse }: LoginLayoutProps) {
           3.55:1 in dark at 1440; the contrast varies with whatever part of the
           image lands under the glyphs, so it passes at some widths and fails at
           others. `overlay.page` is the near-opaque page tone in both schemes. */}
-      <AppButton
-        variant="ghost"
-        onPress={onBrowse}
-        className="self-start absolute top-4 left-2 z-10"
-        style={{ backgroundColor: theme.tokens.overlay.page }}
-      >
-        <Icon name="arrow-left" size={16} color={theme.colors.onSurface} />
-        Browse
-      </AppButton>
-
+      {isMd ? browse : null}
       <AuthScreen>
-        {/* pt-12 clears the absolutely placed Browse button when the island is taller
-            than the viewport and starts at the top instead of the centre. */}
-        <View className="gap-3 pt-12">{children}</View>
+        <View className="gap-3">
+          {isMd ? null : browse}
+          {children}
+        </View>
       </AuthScreen>
     </View>
   );
@@ -61,12 +68,10 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** The wordmark at the head of the auth card: on the card's opaque ground, never on the photo. */
 export function LoginBrandHero() {
-  // Its own paper ground: the scrim's centre band is narrower than the mark at phone
-  // width, and the flat auth scrim is too light, so busy photo detail sat behind
-  // the wordmark. Opaque, like the card under it, in both schemes.
   return (
-    <View className="py-3 px-[18px] mb-1 rounded-lg bg-background">
+    <View className="items-center pt-2 pb-3">
       <BrandWordmark style={styles.brandLogo} />
     </View>
   );
@@ -238,7 +243,9 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
   },
+  // A mark, not a banner: capped so the card reads as one panel.
   brandLogo: {
-    width: '100%',
+    width: 220,
+    maxWidth: '100%',
   },
 });

@@ -27,8 +27,8 @@ export default function Login() {
         <title>Sign in · Relab</title>
       </Head>
       <LoginLayout onBrowse={actions.browseProducts}>
-        <LoginBrandHero />
         <LoginCard>
+          <LoginBrandHero />
           <LoginFormSection
             control={form.control}
             emailRef={form.emailRef}
