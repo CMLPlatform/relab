@@ -27,7 +27,7 @@ args=("${words[@]:1}")
 . scripts/deploy_ops.sh
 env_name="$(dotenv_value ENVIRONMENT)"
 [[ "$env_name" == prod || "$env_name" == staging ]] || {
-    echo "remote_deploy: root .env names no deployable ENVIRONMENT" >&2
+    echo "error: root .env names no deployable ENVIRONMENT" >&2
     exit 2
 }
 
@@ -45,7 +45,7 @@ case "$action" in
         # `migrations` is the routine profile; anything else must be a known profile name.
         for profile in "${args[@]}"; do
             [[ "$profile" =~ ^(migrations|backups)$ ]] || {
-                echo "remote_deploy: unknown profile '$profile'" >&2
+                echo "error: unknown profile '$profile'" >&2
                 exit 2
             }
         done
@@ -61,7 +61,7 @@ case "$action" in
         # revision id or a relative step may come over the key. Going to `base` is done
         # at the host's own console, never over a key.
         [[ "${args[1]:-}" =~ ^([0-9a-f]{7,40}|-[0-9]+)?$ ]] || {
-            echo "remote_deploy: rollback revision must be a revision id or a -N step" >&2
+            echo "error: rollback revision must be a revision id or a -N step" >&2
             exit 2
         }
         exec just stack "$env_name" rollback YES "${args[0]}" "${args[1]:-}"
@@ -83,7 +83,7 @@ case "$action" in
         echo "usage: ssh <deploy-host> {pull|tag <tag>|up [migrations|backups]|migrate|rollback <tag> [<rev>]|backup|watchdog|logs [<since>]|status}"
         ;;
     *)
-        echo "remote_deploy: '$action' is not allowed" >&2
+        echo "error: '$action' is not allowed" >&2
         exit 2
         ;;
 esac
