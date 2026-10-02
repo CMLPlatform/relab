@@ -105,7 +105,7 @@ export default function CategorySelection() {
               Type a name (e.g. laptop) to search every category, or browse below. Tap a category to
               select it as the type.
             </AppText>
-            <InfoTooltip title="Product types come from CPV, a standard list of product categories. Pick the closest match. Relab uses it for filtering and for the research statistics." />
+            <InfoTooltip title="Product types come from CPV, a standard list of product categories. Pick the most specific category you're sure of. A broader one is fine. Relab uses it for filtering and for the research statistics." />
           </View>
           {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
         </View>

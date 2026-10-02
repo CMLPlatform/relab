@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import type { View } from 'react-native';
+import { Platform, type View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { VARIANT_FOREGROUND_COLOR } from '@/components/base/appButtonVariants';
 import { useDialog } from '@/components/base/dialogContext';
@@ -43,7 +43,7 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
             ? productsExportUrl(query ?? {}, format)
             : productExportUrl(productId, format),
         );
-        dialog.toast('Export downloaded');
+        dialog.toast(Platform.OS === 'web' ? 'Export downloaded' : 'Export opened in your browser');
       } catch (error) {
         dialog.alert({
           title: 'Export failed',

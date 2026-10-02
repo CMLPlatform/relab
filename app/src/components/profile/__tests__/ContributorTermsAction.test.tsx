@@ -18,7 +18,7 @@ jest.mock('@/services/externalLinks', () => ({
   openExternalUrl: jest.fn(),
 }));
 
-const EXCLUDED_FROM_DATASETS = /stay out of published datasets/;
+const EXCLUDED_FROM_DATASETS = /stay out of any published dataset/;
 
 function signedInWith(termsAcceptanceRequired: boolean) {
   mockUseAuth.mockReturnValue({

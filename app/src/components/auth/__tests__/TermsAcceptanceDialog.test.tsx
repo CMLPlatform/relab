@@ -78,6 +78,8 @@ describe('TermsAcceptanceDialog', () => {
     await renderWithProviders(<TermsAcceptanceDialog />, { withDialog: true });
 
     expect(screen.getByText('Contributor terms')).toBeTruthy();
+    expect(screen.getByText('plans to publish', { exact: false })).toBeTruthy();
+    expect(screen.queryByText('publishes curated datasets', { exact: false })).toBeNull();
     expect(screen.getByText('Accept')).toBeTruthy();
   });
 

@@ -32,12 +32,12 @@ export function TermsAcceptanceDialog() {
       </AppText>
       <View className="gap-3">
         <AppText variant="body">
-          Relab publishes curated datasets of the records contributed to it. Your records can only
-          be included if you accept the contributor terms.
+          Relab plans to publish curated datasets of the records contributed to it. Your records can
+          only be included if you accept the contributor terms.
         </AppText>
         <AppText variant="body" className="text-muted-foreground">
           Nothing changes if you decline — you keep full access to Relab, and your records stay out
-          of published datasets. You can accept later from your account screen.
+          of any published dataset. You can accept later from your account screen.
         </AppText>
       </View>
       <View style={dialogActionsStyle}>

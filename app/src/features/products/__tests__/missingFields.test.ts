@@ -41,10 +41,23 @@ describe('missingFields', () => {
     expect(missingFields(product).map((f) => f.id)).toEqual(['weight']);
   });
 
-  it('flags missing dimensions as one item when any of width/height/depth is missing', () => {
+  it('counts dimensions as recorded when any of width/height/depth is set', () => {
     const product = {
       ...completeBaseProduct(),
       physicalProperties: { ...completeBaseProduct().physicalProperties, depth: undefined },
+    };
+    expect(missingFields(product).map((f) => f.id)).toEqual([]);
+  });
+
+  it('flags dimensions only when width, height and depth are all unset', () => {
+    const product = {
+      ...completeBaseProduct(),
+      physicalProperties: {
+        ...completeBaseProduct().physicalProperties,
+        width: undefined,
+        height: undefined,
+        depth: undefined,
+      },
     };
     expect(missingFields(product).map((f) => f.id)).toEqual(['dimensions']);
   });

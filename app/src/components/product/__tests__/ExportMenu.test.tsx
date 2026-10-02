@@ -45,7 +45,7 @@ describe('ExportMenu', () => {
     await waitFor(() => expect(openUrlMock).toHaveBeenCalledTimes(1));
     expect(requested?.href).toBe(`${API_URL}/products/7/export?format=csv`);
     expect(openUrlMock).toHaveBeenCalledWith(`${API_URL}/products/7/export?format=csv`);
-    expect(await screen.findByText('Export downloaded')).toBeOnTheScreen();
+    expect(await screen.findByText('Export opened in your browser')).toBeOnTheScreen();
   });
 
   it("shows the server's reason when the export is refused", async () => {

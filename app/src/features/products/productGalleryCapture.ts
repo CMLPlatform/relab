@@ -33,9 +33,9 @@ export function useProductGalleryCaptureState({
   const { data: rpiCameras, isLoading: rpiCamerasLoading } = useCamerasQuery(true, {
     enabled: rpiEnabled && editMode,
   });
-  const showRpiButton = rpiEnabled;
+  // NOTE: a draft has no product to attach a capture to, so the button waits for the first save.
+  const showRpiButton = rpiEnabled && productId !== null;
   const hasCamerasConfigured = hasRpiCamerasConfigured(rpiCameras?.length);
-  const isNewProduct = productId === null;
 
   return {
     router,
@@ -45,7 +45,6 @@ export function useProductGalleryCaptureState({
     rpiCamerasLoading,
     showRpiButton,
     hasCamerasConfigured,
-    isNewProduct,
   };
 }
 
@@ -61,14 +60,6 @@ export function useProductGalleryCaptureActions({
   const [isCapturing, setIsCapturing] = useState(false);
 
   const handleRpiCapture = useCallback(() => {
-    if (captureState.isNewProduct) {
-      captureState.feedback.alert({
-        title: 'Save required',
-        message: 'Save this product before you capture from an RPi camera.',
-        buttons: [{ text: 'OK' }],
-      });
-      return;
-    }
     if (captureState.rpiCamerasLoading) return;
     if (!captureState.hasCamerasConfigured) {
       captureState.router.navigate('/cameras');
