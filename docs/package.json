@@ -20,7 +20,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:ci": "pnpm run test && pnpm run build && pnpm run test:e2e && pnpm run test:links",
-    "test:links": "linkinator ./dist --silent --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl' --skip 'doi.org'"
+    "test:links": "linkinator ./dist --verbosity error --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl' --skip 'doi.org'"
   },
   "dependencies": {
     "@astrojs/starlight": "0.42.4",
