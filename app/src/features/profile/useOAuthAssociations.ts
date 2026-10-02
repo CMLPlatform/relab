@@ -49,6 +49,24 @@ async function withStepUp(
   onError: (error: unknown) => void,
   mfaEnabled: boolean,
 ): Promise<void> {
+  const ask = (title: string, placeholder: string, onValue: (value: string) => void) =>
+    dialog.input({
+      title,
+      message,
+      placeholder,
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          disabled: (value) => !value?.trim(),
+          onPress: (value) => {
+            // Passwords keep their spaces; only an all-blank value is refused.
+            if (value?.trim()) onValue(value);
+          },
+        },
+      ],
+    });
+
   const run = async (stepUp: StepUp) => {
     try {
       await action(stepUp);
@@ -57,21 +75,8 @@ async function withStepUp(
         onError(error);
         return;
       }
-      dialog.input({
-        title: 'Confirm your password',
-        message,
-        placeholder: 'Current password',
-        buttons: [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Continue',
-            disabled: (value) => !value?.trim(),
-            onPress: (currentPassword) => {
-              if (!currentPassword?.trim()) return;
-              void action({ ...stepUp, currentPassword }).catch(onError);
-            },
-          },
-        ],
+      ask('Confirm your password', 'Current password', (currentPassword) => {
+        void action({ ...stepUp, currentPassword }).catch(onError);
       });
     }
   };
@@ -80,21 +85,8 @@ async function withStepUp(
     await run({});
     return;
   }
-  dialog.input({
-    title: 'Enter your authentication code',
-    message,
-    placeholder: 'Authenticator or recovery code',
-    buttons: [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Continue',
-        disabled: (value) => !value?.trim(),
-        onPress: (mfaCode) => {
-          if (!mfaCode?.trim()) return;
-          void run({ mfaCode: mfaCode.trim() });
-        },
-      },
-    ],
+  ask('Enter your authentication code', 'Authenticator or recovery code', (mfaCode) => {
+    void run({ mfaCode: mfaCode.trim() });
   });
 }
 

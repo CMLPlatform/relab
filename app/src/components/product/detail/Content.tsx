@@ -1,5 +1,5 @@
 import type { ComponentProps, RefObject } from 'react';
-import { useCallback, useContext, useMemo } from 'react';
+import { useCallback, useContext } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
 import {
@@ -93,17 +93,6 @@ export function ProductPageContent({
   } = useAnchoredSectionNav(outerNav);
 
   const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
-  // A missing-field link into a section that view mode collapses (e.g. an
-  // empty Overview) has nothing to scroll to; entering edit mode is what
-  // actually shows it, same as the add-row every other empty section gets.
-  const shownSectionKeys = useMemo(() => {
-    const sectionCtx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
-    return new Set(
-      guardedSections({ isProductComponent, isLab })
-        .filter((section) => isSectionShown(section, product, sectionCtx))
-        .map((section) => section.key),
-    );
-  }, [canEdit, editMode, hasResearchFiles, isLab, isProductComponent, mediaStreamable, product]);
 
   const missing = ownedByMe ? missingFields(product) : [];
   const onPressMissingField = useCallback(
@@ -112,13 +101,30 @@ export function ProductPageContent({
         scrollRef.current?.scrollTo({ y: 0, animated: true });
         return;
       }
-      if (!editMode && !shownSectionKeys.has(field.target)) {
+      // A section that view mode collapses (e.g. an empty Overview) has nothing to
+      // scroll to; edit mode is what shows it.
+      const sectionCtx = { mediaStreamable, hasResearchFiles, editMode, canEdit };
+      const rendered = guardedSections({ isProductComponent, isLab }).some(
+        (section) => section.key === field.target && isSectionShown(section, product, sectionCtx),
+      );
+      if (!editMode && !rendered) {
         enterEditMode();
         return;
       }
       anchoredNav?.scrollTo(field.target);
     },
-    [anchoredNav, editMode, enterEditMode, scrollRef, shownSectionKeys],
+    [
+      anchoredNav,
+      canEdit,
+      editMode,
+      enterEditMode,
+      hasResearchFiles,
+      isLab,
+      isProductComponent,
+      mediaStreamable,
+      product,
+      scrollRef,
+    ],
   );
 
   const sectionProps: SectionRenderProps = {
