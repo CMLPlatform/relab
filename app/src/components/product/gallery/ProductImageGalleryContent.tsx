@@ -96,6 +96,8 @@ function EditModeOverlay({
               ref={rpiTriggerRef}
               onPress={onRpiCapture}
               disabled={isCapturing || rpiCamerasLoading}
+              accessibilityRole="button"
+              aria-busy={isCapturing}
               accessibilityLabel={
                 hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
               }

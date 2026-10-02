@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
 import { AppButton } from './AppButton';
@@ -77,13 +78,20 @@ function FilterModalShell({
   footer,
 }: ShellProps) {
   const theme = useAppTheme();
+  useReturnFocus(visible);
 
   // Always show selected values at the top, even if not in the current search results.
   const selectedNotInResults = selectedValues.filter((v) => !items.includes(v));
   const visibleItems = [...selectedNotInResults, ...items];
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onDismiss}
+      aria-label={title}
+    >
       {/* Scrim and card wrapper, neither of them a control: see AppDialog. */}
       <Pressable
         accessible={false}
@@ -105,7 +113,7 @@ function FilterModalShell({
               placeholder={searchPlaceholder}
               value={searchQuery}
               onChangeText={onSearchChange}
-              accessibilityRole="search"
+              accessibilityLabel={searchPlaceholder}
               className="mb-4 border px-2 py-2"
               style={{ borderColor: theme.colors.outline }}
             />

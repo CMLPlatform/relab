@@ -19,7 +19,13 @@ export function StreamingSheet({ visible, onDismiss, session }: StreamingSheetPr
   if (!(visible && session)) return null;
 
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={onDismiss}>
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      onRequestClose={onDismiss}
+      aria-label={`Live stream: ${session.cameraName}`}
+    >
       <Pressable
         className="absolute inset-0"
         style={{ backgroundColor: theme.tokens.overlay.scrim }}

@@ -80,7 +80,7 @@ describe('Menu', () => {
         <Menu.Item title="A-Z" onPress={jest.fn()} />
       </Menu>,
     );
-    expect(screen.getByRole('menu')).toBeOnTheScreen();
+    expect(screen.getByTestId('menu-popover').props.accessibilityRole).toBe('menu');
   });
 
   it('fires onPress and does not dismiss via the item press itself', async () => {
@@ -102,7 +102,21 @@ describe('Menu', () => {
         <Menu.Item title="A-Z" onPress={jest.fn()} />
       </Menu>,
     );
-    await fireEvent.press(screen.getByLabelText('Dismiss menu'));
+    await fireEvent.press(screen.getByTestId('menu-scrim'));
     expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the scrim and wrapper out of the accessibility tree and names the menu', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-scrim').props.accessible).toBe(false);
+    // accessible=false keeps the items reachable on iOS; RNTL then hides the node from role queries.
+    expect(screen.getByTestId('menu-popover').props.accessible).toBe(false);
+    expect(
+      screen.getByRole('menuitem', { name: 'A-Z', includeHiddenElements: false }),
+    ).toBeOnTheScreen();
   });
 });

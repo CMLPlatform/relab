@@ -260,6 +260,7 @@ export function ProductImageLightbox({
       animationType="fade"
       onRequestClose={handleClose}
       statusBarTranslucent={true}
+      aria-label="Image gallery"
     >
       <GestureHandlerRootView style={styles.root}>
         <Animated.View

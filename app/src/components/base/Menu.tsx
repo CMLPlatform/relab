@@ -59,11 +59,19 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
       <View ref={anchorRef} collapsable={false}>
         {anchor}
       </View>
-      <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={onDismiss}
+        aria-label="Menu"
+      >
+        {/* Scrim and wrapper are not controls: see AppDialog. */}
         <Pressable
+          accessible={false}
+          testID="menu-scrim"
           style={StyleSheet.absoluteFill}
           onPress={onDismiss}
-          accessibilityLabel="Dismiss menu"
         >
           <Animated.View
             entering={('bottom' in position ? FadeInUp : FadeInDown)
@@ -73,8 +81,13 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
             style={[styles.content, position]}
           >
             <Pressable
+              // Not accessible: a focusable group would hide the items from VoiceOver.
+              // The role still reaches the DOM on web; the Modal carries the name.
+              accessible={false}
+              testID="menu-popover"
               onPress={stopPropagation}
               accessibilityRole="menu"
+              aria-label="Menu"
               // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
               className="rounded-xl bg-background py-1"
               style={theme.tokens.elevation.overlay}

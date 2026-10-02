@@ -1,4 +1,4 @@
-// NOTE: hand-rolled on purpose; carries 1.5s auto-dismiss and mobile-web full-screen modal variant.
+// NOTE: hand-rolled on purpose; carries the mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
@@ -24,14 +24,15 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   // Both variants float over content, so they take the single overlay tier.
   const tooltipShadowStyle = theme.tokens.elevation.overlay;
 
-  // Settings
-  const exitDelay = 1500; // milliseconds
-
+  const toggle = useCallback(() => setVisible((v) => !v), []);
+  // Escape closes the bubble on web (WCAG 1.4.13).
   useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(() => setVisible(false), exitDelay);
-      return () => clearTimeout(timer);
-    }
+    if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setVisible(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
   }, [visible]);
 
   if (getIsMobileWeb()) {
@@ -55,13 +56,15 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
         </Pressable>
 
         <Modal visible={visible} transparent animationType="fade" onRequestClose={hide}>
+          {/* Scrim is a sibling of the text, not its parent: a button would swallow the
+              tooltip into one "Dismiss" control. Not a control itself (see AppDialog). */}
           <Pressable
-            className="flex-1 items-center justify-center"
-            style={{ backgroundColor: theme.tokens.overlay.scrim }}
+            accessible={false}
+            testID="tooltip-scrim"
+            style={[StyleSheet.absoluteFill, { backgroundColor: theme.tokens.overlay.scrim }]}
             onPress={hide}
-            accessibilityRole="button"
-            accessibilityLabel="Dismiss"
-          >
+          />
+          <View className="flex-1 items-center justify-center" pointerEvents="box-none">
             <OverlaySurface
               className="py-3 px-4"
               style={[styles.tooltip, tooltipShadowStyle, { backgroundColor: inverse.background }]}
@@ -71,7 +74,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
                 {title}
               </AppText>
             </OverlaySurface>
-          </Pressable>
+          </View>
         </Modal>
       </View>
     );
@@ -81,7 +84,8 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   return (
     <View className="self-start">
       <Pressable
-        onPress={show}
+        onPress={toggle}
+        onBlur={hide}
         onHoverIn={Platform.OS === 'web' ? show : undefined}
         onHoverOut={Platform.OS === 'web' ? hide : undefined}
         className={`p-2 ${WEB_FOCUS_RING}`}

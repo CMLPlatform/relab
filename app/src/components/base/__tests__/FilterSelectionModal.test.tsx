@@ -4,7 +4,10 @@ import type React from 'react';
 import FilterSelectionModal, {
   SingleSelectFilterModal,
 } from '@/components/base/FilterSelectionModal';
+import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { renderWithProviders, setupUser } from '@/test-utils/index';
+
+jest.mock('@/hooks/useReturnFocus', () => ({ useReturnFocus: jest.fn() }));
 
 type MultiProps = React.ComponentProps<typeof FilterSelectionModal>;
 type SingleProps = React.ComponentProps<typeof SingleSelectFilterModal>;
@@ -45,6 +48,22 @@ const renderSingle = async (props: Partial<SingleProps>) =>
 
 describe('FilterSelectionModal', () => {
   const user = setupUser();
+
+  it('labels the search input instead of giving it role=search', async () => {
+    await renderMulti({ searchPlaceholder: 'Search tags' });
+
+    const input = screen.getByPlaceholderText('Search tags');
+    expect(input.props.accessibilityLabel).toBe('Search tags');
+    expect(input.props.role).not.toBe('search');
+    expect(input.props.accessibilityRole).not.toBe('search');
+  });
+
+  it('names the dialog and returns focus on close', async () => {
+    await renderMulti({ title: 'Pick tags' });
+
+    expect(screen.getByLabelText('Pick tags', { exact: true })).toBeOnTheScreen();
+    expect(useReturnFocus).toHaveBeenCalledWith(true);
+  });
 
   it('shows a loading indicator while items are being fetched', async () => {
     await renderMulti({ title: 'Pick one', items: [], isLoading: true });

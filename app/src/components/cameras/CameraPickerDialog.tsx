@@ -109,6 +109,7 @@ function CameraPickerRow({
   return (
     <Pressable
       onPress={handleSelect}
+      disabled={!isReachable}
       accessibilityRole="button"
       className="flex-row items-center gap-3 rounded-lg border border-border p-3"
       style={{ opacity: isReachable ? 1 : 0.4 }}
