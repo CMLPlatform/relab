@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { fireEvent, screen } from '@testing-library/react-native';
+import { screen, within } from '@testing-library/react-native';
+import { Text } from 'react-native';
 import { NewAccountLayout, PrivacyPolicy } from '@/components/auth/NewAccountSections';
 import { openExternalUrl } from '@/services/externalLinks';
 import { getHostByType, renderWithProviders, setupUser } from '@/test-utils/index';
@@ -51,17 +52,16 @@ describe('PrivacyPolicy', () => {
 });
 
 describe('NewAccountLayout', () => {
-  it('pads the content for the measured footer and the bottom inset', async () => {
+  it('keeps the footer in the scroll flow after the form, clear of the bottom inset', async () => {
     await renderWithProviders(
-      <NewAccountLayout onNavigateToLogin={jest.fn()}>{null}</NewAccountLayout>,
+      <NewAccountLayout onNavigateToLogin={jest.fn()}>
+        <Text>Form</Text>
+      </NewAccountLayout>,
     );
-    const padding = () => getHostByType('RCTScrollView').props.contentContainerStyle.paddingBottom;
-    // Before layout: the old fixed value plus the inset.
-    expect(padding()).toBe(100 + 34 + 20);
-
-    await fireEvent(screen.getByTestId('signup-footer'), 'layout', {
-      nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 160 } },
-    });
-    expect(padding()).toBe(160 + 34 + 20);
+    const scroll = getHostByType('RCTScrollView');
+    expect(scroll.props.contentContainerStyle.paddingBottom).toBe(34 + 20);
+    // Inside the ScrollView and after the form, so a short screen scrolls to it
+    // instead of the footer covering the step's actions.
+    expect(within(scroll).getByTestId('signup-footer')).toBeOnTheScreen();
   });
 });
