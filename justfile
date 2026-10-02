@@ -528,15 +528,15 @@ stack env command *args:
 # A release is two steps with a PR between them:
 #
 #   just release-prep 0.4.0      branch release/v0.4.0 from origin/main, bump every version
-#                                file and draft the CHANGELOG section from the commits
-#   (rewrite the section, commit, open a PR and merge it)
+#                                file and turn CHANGELOG.md's Unreleased into [0.4.0]
+#   (write the section, commit, open a PR and merge it)
 #   just release-publish 0.4.0   draft the GitHub release from that CHANGELOG section
 #
 # Publishing the draft on GitHub creates the tag and starts release.yml, which publishes
 # the images and deploys the sites. Add upgrade notes to the draft before publishing.
 
 [group('release')]
-[doc('Branch a release from origin/main, bump its version and draft its CHANGELOG section')]
+[doc('Branch a release from origin/main, bump its version and open its CHANGELOG section')]
 release-prep version:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -545,10 +545,18 @@ release-prep version:
     [[ -z "$(git status --porcelain)" ]] || { echo "the working tree has changes; commit or stash them first" >&2; exit 1; }
     git fetch --quiet origin main --tags
     git switch --create "release/v$version" origin/main
+    previous="$(git describe --tags --abbrev=0 --match 'v*' origin/main)"
+    today="$(date +%F)"
     uv run cz bump --files-only --yes "$version"
-    sed -i -E "s/^date-released: .*/date-released: $(date +%F)/" CITATION.cff
+    sed -i -E "s/^date-released: .*/date-released: $today/" CITATION.cff
+    # Keep a Changelog: what accumulated under Unreleased becomes this version, under a
+    # fresh, empty Unreleased, and the compare links move along.
+    sed -i "0,/^## \[Unreleased\]$/s//## [Unreleased]\n\n## [$version] - $today/" CHANGELOG.md
+    sed -i -E "s#^\[Unreleased\]: (.*)/compare/v[0-9.]+\.\.\.HEAD\$#[Unreleased]: \1/compare/v$version...HEAD\n[$version]: \1/compare/$previous...v$version#" CHANGELOG.md
     git status --short
-    echo "Rewrite the v$version section at the top of CHANGELOG.md, then commit and open a PR."
+    echo "Commits since $previous, to write the [$version] section from:"
+    git log --format='  %s' "$previous..origin/main"
+    echo "Write the [$version] section of CHANGELOG.md, then commit and open a PR."
 
 [group('release')]
 [doc('Draft the GitHub release for a merged version from its CHANGELOG section')]
@@ -564,9 +572,9 @@ release-publish version:
         exit 1
     }
     # The section between this version's heading and the next one, heading excluded.
-    notes="$(git show origin/main:CHANGELOG.md | awk -v v="## v$version" '
+    notes="$(git show origin/main:CHANGELOG.md | awk -v v="## [$version]" '
         index($0, v) == 1 { found = 1; next }
-        found && /^## v/ { exit }
+        found && /^## \[/ { exit }
         found { print }')"
     [[ -n "${notes//[[:space:]]/}" ]] || { echo "CHANGELOG.md on origin/main has no v$version section" >&2; exit 1; }
     gh release create "v$version" --draft --target "$(git rev-parse origin/main)" \
