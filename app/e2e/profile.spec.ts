@@ -147,7 +147,8 @@ test.describe('Profile: logout dialog', () => {
     tag: ['@cross-browser', '@auth'],
   }, async ({ page }) => {
     await loginAndGoToProfile(page);
-    await page.getByRole('button', { name: 'Sign out', exact: true }).first().click();
+    // Profile rows are named "title, subtitle"; a bare "Sign out" is only the dialog's button.
+    await page.getByRole('button', { name: 'Sign out, Switch to another account' }).click();
     await expect(page.getByText('Are you sure you want to sign out?')).toBeVisible({
       timeout: 5_000,
     });
