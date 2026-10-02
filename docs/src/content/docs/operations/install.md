@@ -212,9 +212,8 @@ the topology these steps produce.
      along with the Worker names and your Cloudflare account ID.
    - Add a `CLOUDFLARE_API_TOKEN` secret to each Environment: an account API token with the
      **Workers Editor** role and nothing else. Granted on all Workers, it can deploy every Worker
-     in the account, so
-     give the `staging` Environment a required reviewer (`infra/cloudflare` does, and refuses to
-     apply staging without one).
+     in the account, so give both Environments a required reviewer (`infra/cloudflare` does, and
+     refuses to apply without one). In prod the reviewer is also the release gate.
    - Run the Deploy Sites workflow for each environment before the `infra/cloudflare` apply that
      gives the Workers their hostnames; `infra/cloudflare/README.md` lists the order.
    - Without Cloudflare, `pnpm run build` in `www/` and `docs/` gives a static `dist/` for any

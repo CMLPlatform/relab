@@ -14,9 +14,9 @@ mock_provider "github" {
 }
 
 variables {
-  cloudflare_account_id    = "00000000000000000000000000000000"
-  cloudflare_zone_id       = "11111111111111111111111111111111"
-  github_staging_reviewers = ["staging-reviewer"]
+  cloudflare_account_id = "00000000000000000000000000000000"
+  cloudflare_zone_id    = "11111111111111111111111111111111"
+  github_reviewers      = ["reviewer"]
 }
 
 run "staging_serves_only_test_subdomains" {
@@ -159,13 +159,26 @@ run "prod_publishes_only_from_main" {
   }
 
   assert {
-    condition     = github_repository_environment.publish.wait_timer == 15
-    error_message = "prod jobs must keep their 15-minute wait timer."
+    condition     = github_repository_environment_deployment_policy.release_tag[0].tag_pattern == "v*"
+    error_message = "release.yml runs on the release tag, so prod must accept v* tags."
+  }
+}
+
+run "prod_waits_for_a_reviewer" {
+  command = plan
+
+  variables {
+    environment = "prod"
   }
 
   assert {
-    condition     = github_repository_environment_deployment_policy.release_tag[0].tag_pattern == "v*"
-    error_message = "release.yml runs on the release tag, so prod must accept v* tags."
+    condition     = github_repository_environment.publish.reviewers[0].users == toset([4242])
+    error_message = "prod jobs must wait for a required reviewer: it is the release gate."
+  }
+
+  assert {
+    condition     = github_repository_environment.publish.wait_timer == null
+    error_message = "the reviewer gates prod; a wait timer would only delay it."
   }
 }
 
@@ -178,31 +191,17 @@ run "staging_waits_for_a_reviewer" {
 
   assert {
     condition     = github_repository_environment.publish.reviewers[0].users == toset([4242])
-    error_message = "staging runs must wait for a required reviewer."
+    error_message = "staging runs must wait for a required reviewer while its token reaches prod's Workers."
   }
 }
 
-run "staging_without_a_reviewer_is_refused" {
+run "an_environment_without_a_reviewer_is_refused" {
   command = plan
 
   variables {
-    environment              = "staging"
-    github_staging_reviewers = []
+    environment      = "prod"
+    github_reviewers = []
   }
 
   expect_failures = [github_repository_environment.publish]
-}
-
-run "prod_has_no_reviewer" {
-  command = plan
-
-  variables {
-    environment              = "prod"
-    github_staging_reviewers = []
-  }
-
-  assert {
-    condition     = length(github_repository_environment.publish.reviewers) == 0
-    error_message = "prod deploys from release.yml unattended; it must not wait for a reviewer."
-  }
 }

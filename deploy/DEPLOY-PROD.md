@@ -376,9 +376,10 @@ login (`gh auth refresh -s read:packages`). To try a commit before a release, ru
 Images workflow on it by hand and use its `sha-<short sha>` tag.
 
 The landing page and docs are not on this host: the same release deploys them to Cloudflare
-Workers (`deploy-sites.yml`), with no step here. They rebuild weekly from the latest release, so a
-changed featured product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment)
-shows within a week; run Deploy Sites by hand on `main` for it to show now.
+Workers (`deploy-sites.yml`). Staging's go first; prod's wait in the release run until you approve
+them, so check staging before you do. Prod is never rebuilt unattended: to show a changed
+featured product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment), run
+Deploy Sites by hand for `prod` on `main` and approve it. Staging rebuilds weekly on its own.
 
 The `migrations` profile is the routine path: the API waits for the migrator to exit 0, so a failed
 migration leaves the old API serving. Without it you get a two-step that briefly serves against the

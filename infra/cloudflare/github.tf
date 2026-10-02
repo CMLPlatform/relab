@@ -26,12 +26,7 @@ resource "github_repository_environment" "publish" {
   repository  = var.github_repository
   environment = var.environment
 
-  # Prod jobs wait 15 minutes before they start: time to cancel a release published by
-  # mistake before its images and sites go out.
-  wait_timer = var.environment == "prod" ? 15 : null
-
-  # Prod URLs are baked in only from main (a manual publish, the weekly site rebuild) or
-  # a release tag, which is the ref release.yml runs on. Staging stays open so a manual
+  # Prod URLs are baked in only from main (a manual publish) or a release tag, which is the ref release.yml runs on. Staging stays open so a manual
   # publish of any branch can be tried there.
   dynamic "deployment_branch_policy" {
     for_each = var.environment == "prod" ? [1] : []
@@ -41,25 +36,26 @@ resource "github_repository_environment" "publish" {
     }
   }
 
-  # Open to any branch, staging instead waits for a person: its CLOUDFLARE_API_TOKEN
-  # (the Workers Editor role on all Workers) could deploy prod's Workers too.
-  dynamic "reviewers" {
-    for_each = var.environment == "staging" ? [1] : []
-    content {
-      users = [for user in data.github_user.staging_reviewer : user.id]
-    }
+  # Every job in either Environment waits for a person. In prod that is the release gate:
+  # a release deploys staging's sites, and prod's follow once someone has checked
+  # staging and approved. Staging needs it while its CLOUDFLARE_API_TOKEN holds the
+  # Workers Editor role on all Workers, which reaches prod's Workers too.
+  # TODO: drop staging's reviewer once each Environment's token is limited to its own
+  # Workers.
+  reviewers {
+    users = [for user in data.github_user.reviewer : user.id]
   }
 
   lifecycle {
     precondition {
-      condition     = var.environment != "staging" || length(var.github_staging_reviewers) > 0
-      error_message = "staging needs at least one required reviewer: set TF_VAR_github_staging_reviewers."
+      condition     = length(var.github_reviewers) > 0
+      error_message = "an Environment needs at least one required reviewer: set TF_VAR_github_reviewers."
     }
   }
 }
 
-data "github_user" "staging_reviewer" {
-  for_each = toset(var.environment == "staging" ? var.github_staging_reviewers : [])
+data "github_user" "reviewer" {
+  for_each = toset(var.github_reviewers)
   username = each.value
 }
 
