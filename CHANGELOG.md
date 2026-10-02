@@ -11,6 +11,7 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - On the web app, tinted backgrounds, hover and pressed colours, placeholder text and the red
   outline on invalid fields show again
+- Rows on the profile screen, such as "Delete account?", now tint when hovered or pressed
 - The API reference pages no longer request fonts that the docs site's content
   security policy blocks.
 
