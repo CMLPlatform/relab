@@ -484,3 +484,32 @@ def test_a_second_migrator_queues_behind_the_advisory_lock(
     queued.join(timeout=60)
     assert not failures, failures
     assert migration_helper.current_revision() is not None
+
+
+@pytest.mark.migration
+def test_legacy_usernames_are_lowercased_unless_taken(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """Every username lookup lowercases its input, so a mixed-case stored name is unreachable.
+
+    A name whose lowercase form another account holds stays as is instead of failing the
+    unique index and blocking the deploy.
+    """
+    try:
+        command.downgrade(relab_alembic_config, "d7a3f9c1e2b4")
+        migration_helper.execute_sql(
+            'INSERT INTO "user" (id, email, email_canonical, hashed_password, is_active, is_superuser,'
+            " is_verified, mfa_enabled, username)"
+            " SELECT gen_random_uuid(), name || '@example.com', name || '@example.com', 'x', true, false, true,"
+            " false, name FROM unnest(ARRAY['Legacy_Mixed', 'Taken_Name', 'taken_name']) AS name"
+        )
+        command.upgrade(relab_alembic_config, "f1b8d2a6c3e9")
+
+        rows = migration_helper.execute_sql(
+            "SELECT username FROM \"user\" WHERE email LIKE '%@example.com' AND lower(username) IN "
+            "('legacy_mixed', 'taken_name')"
+        )
+        assert sorted(row[0] for row in rows) == ["Taken_Name", "legacy_mixed", "taken_name"]
+    finally:
+        migration_helper.execute_sql("DELETE FROM \"user\" WHERE lower(username) IN ('legacy_mixed', 'taken_name')")
+        command.upgrade(relab_alembic_config, "head")
