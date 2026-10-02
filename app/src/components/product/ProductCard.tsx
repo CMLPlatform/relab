@@ -108,7 +108,9 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 
   return (
     // The press target must not wrap the owner link (axe `nested-interactive`).
-    <Card className="mx-2.5 my-1.5">
+    // `grow` fills the grid cell, which the row stretches to its tallest card,
+    // so cards side by side share one height.
+    <Card className="mx-2.5 my-1.5 grow">
       <View className="p-3">
         <Pressable
           onPress={enabled ? navigateToProduct : undefined}
@@ -149,7 +151,8 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
 
           {/* Content */}
           <View className="flex-1">
-            <AppText variant="heading" className="mb-0.5 font-bold">
+            {/* Two lines at most, so a long name cannot stretch a whole grid row. */}
+            <AppText variant="heading" className="mb-0.5 font-bold" numberOfLines={2}>
               {product.name || 'Unnamed Product'}
             </AppText>
             <MutedText

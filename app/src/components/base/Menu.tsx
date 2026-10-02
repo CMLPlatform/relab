@@ -1,7 +1,7 @@
 import type { ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { Easing, FadeInDown, ReduceMotion } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, FadeInUp, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
@@ -35,7 +35,7 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
   const theme = useAppTheme();
   useReturnFocus(visible, triggerRef);
   const anchorRef = useRef<View>(null);
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [position, setPosition] = useState<MenuPosition>({ top: 0, left: 0 });
 
   useEffect(() => {
@@ -48,10 +48,11 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
           anchorWidth: width,
           anchorHeight: height,
           windowWidth,
+          windowHeight,
         }),
       );
     });
-  }, [visible, windowWidth]);
+  }, [visible, windowWidth, windowHeight]);
 
   return (
     <>
@@ -65,7 +66,8 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
           accessibilityLabel="Dismiss menu"
         >
           <Animated.View
-            entering={FadeInDown.duration(150)
+            entering={('bottom' in position ? FadeInUp : FadeInDown)
+              .duration(150)
               .easing(Easing.out(Easing.quad))
               .reduceMotion(ReduceMotion.System)}
             style={[styles.content, position]}
