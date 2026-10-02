@@ -9,6 +9,7 @@ from app.api.auth.profile_stats import ProfileStatsData, store_profile_stats
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.queries import IS_TEARDOWN, product_category_counts_stmt
 from app.api.file_storage.models import Image, MediaParentType
+from app.api.reference_data.models import ProductType
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,3 +53,11 @@ async def recompute_user_profile_stats(session: AsyncSession, user_id: UUID4) ->
     stats = await compute_profile_stats(session, user_id)
     await store_profile_stats(session, user_id, stats)
     return stats
+
+
+async def top_category_label(session: AsyncSession, name: str | None) -> str | None:
+    """Readable label for a top category: CPV types keep their code in name and the label in description."""
+    if not (name and name.startswith("CPV:")):
+        return name
+    label = (await session.execute(select(ProductType.description).where(ProductType.name == name))).scalars().first()
+    return label or name
