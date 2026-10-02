@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
-import { lazy, memo, type ReactNode, Suspense, useCallback, useEffect } from 'react';
+import { memo, type ReactNode, useCallback, useEffect } from 'react';
 import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -21,6 +21,8 @@ import { z } from 'zod';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { KeyboardShortcutsDialog } from '@/components/base/KeyboardShortcutsDialog';
+import { LazyBoundary } from '@/components/base/LazyBoundary';
+import { lazyWithRetry } from '@/components/base/lazyWithRetry';
 import { OfflineBanner } from '@/components/base/OfflineBanner';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { TopNav } from '@/components/base/TopNav';
@@ -47,7 +49,7 @@ import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/bac
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
 
 // NOTE: the prompt is rare, so its dialog loads only once an account owes acceptance.
-const TermsAcceptanceDialog = lazy(() =>
+const TermsAcceptanceDialog = lazyWithRetry(() =>
   import('@/components/auth/TermsAcceptanceDialog').then((m) => ({
     default: m.TermsAcceptanceDialog,
   })),
@@ -57,9 +59,10 @@ function TermsPrompt() {
   const { shouldPrompt } = useTermsAcceptance();
   if (!shouldPrompt) return null;
   return (
-    <Suspense fallback={null}>
+    // NOTE: a failed load skips the prompt this session; the next app start asks again.
+    <LazyBoundary>
       <TermsAcceptanceDialog />
-    </Suspense>
+    </LazyBoundary>
   );
 }
 

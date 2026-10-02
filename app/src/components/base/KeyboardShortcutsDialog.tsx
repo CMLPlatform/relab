@@ -1,11 +1,17 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Platform } from 'react-native';
-import { openShortcutsOverlay, useShortcutsOverlayOpen } from '@/hooks/useShortcutsOverlay';
+import {
+  closeShortcutsOverlay,
+  openShortcutsOverlay,
+  useShortcutsOverlayOpen,
+} from '@/hooks/useShortcutsOverlay';
 import { isPlainShortcut } from '@/utils/keyboardShortcuts';
 import type { ShortcutGroupSpec } from './KeyboardShortcutsPanel';
+import { LazyBoundary } from './LazyBoundary';
+import { lazyWithRetry } from './lazyWithRetry';
 
 // NOTE: the panel loads on first open; only the "?" listener ships with the shell.
-const KeyboardShortcutsPanel = lazy(() =>
+const KeyboardShortcutsPanel = lazyWithRetry(() =>
   import('./KeyboardShortcutsPanel').then((m) => ({ default: m.KeyboardShortcutsPanel })),
 );
 
@@ -39,8 +45,9 @@ export function KeyboardShortcutsDialog({ groups }: { groups: ShortcutGroupSpec[
   if (Platform.OS !== 'web' || !visible) return null;
 
   return (
-    <Suspense fallback={null}>
+    // Unmounts on close, so the next open starts a fresh boundary and retries.
+    <LazyBoundary onError={closeShortcutsOverlay}>
       <KeyboardShortcutsPanel groups={groups} />
-    </Suspense>
+    </LazyBoundary>
   );
 }
