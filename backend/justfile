@@ -89,8 +89,13 @@ mutation *mutants:
     TEST_POSTGRES_PORT=$(docker port "$container" 5432/tcp | head -1 | cut -d: -f2)
     export TEST_POSTGRES_PORT
     # TCP only answers once initdb's socket-only server has handed over.
-    until docker exec "$container" pg_isready -h 127.0.0.1 -U postgres -q; do sleep 1; done
-    uv run mutmut run {{ mutants }}
+    for _ in $(seq 60); do
+        docker exec "$container" pg_isready -h 127.0.0.1 -U postgres -q && break
+        sleep 1
+    done
+    docker exec "$container" pg_isready -h 127.0.0.1 -U postgres -q
+    # Low priority on half the cores by default, so a dev machine stays usable.
+    nice -n 10 uv run mutmut run --max-children "${MUTMUT_JOBS:-$(( ($(nproc) + 1) / 2 ))}" {{ mutants }}
     mkdir -p reports/mutation
     uv run mutmut results | sed -n 's/^ *\(.*\): survived$/\1/p' | sort > reports/mutation/survivors.txt
     # Mutant numbers shift whenever a function changes, so compare survivor counts per function.
@@ -100,7 +105,8 @@ mutation *mutants:
     echo "$(wc -l < reports/mutation/survivors.txt) survivors; functions above baseline:"
     cat reports/mutation/new-survivors.txt
 
-# Rebaseline after triaging the survivors that `just mutation` reported
+# Rebaseline after triaging survivors. Only from a full run (or the Ops artifact):
+# it replaces the whole file, so a narrowed run would drop every other function.
 mutation-baseline:
     sed 's/__mutmut_[0-9]*$//' reports/mutation/survivors.txt | sort | uniq -c | awk '{ print $1, $2 }' > tests/mutation-baseline.txt
 

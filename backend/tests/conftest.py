@@ -86,11 +86,7 @@ def _absorb_shared_container_coords(config: pytest.Config) -> None:
     """Reuse the controller's shared Postgres container on an xdist worker."""
     global _external_container
     workerinput = _worker_input(config)
-    os.environ["DATABASE_HOST"] = workerinput["relab_db_host"]
-    os.environ["DATABASE_PORT"] = workerinput["relab_db_port"]
-    os.environ["POSTGRES_USER"] = "postgres"
-    os.environ["POSTGRES_PASSWORD"] = "postgres"  # Test-password only
-    os.environ["POSTGRES_DB"] = "postgres"
+    _publish_postgres_coords(workerinput["relab_db_host"], workerinput["relab_db_port"])
     _external_container = True
 
 

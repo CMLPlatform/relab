@@ -57,4 +57,11 @@ camera setup -> record -> persist. Keep them sparse; they are slower than the ot
 weekly and uploads the survivor list. It never fails on survivors. It lists the functions with more
 survivors than `tests/mutation-baseline.txt`: add the missing assertion, or rebaseline with
 `just mutation-baseline` when the survivor is deliberate (a guard for a state that cannot occur).
-Pass mutant globs to narrow a local run: `just mutation 'app.core.images*'`.
+A full run is heavy, so leave it to the Ops job; locally it runs at low priority on half the cores
+(set `MUTMUT_JOBS` to change that). Pass mutant globs to narrow a local run:
+`just mutation 'app.core.images*'`. Results are cached in
+`mutants/`: after adding an assertion, rerun with that function's glob or delete `mutants/`, or the
+old verdict stands. Rebaseline only from a full run or the Ops artifact, since it replaces the file.
+
+Log calls are not mutated, but only on the call's first line: the argument lines of a multi-line
+call still are, and their survivors belong in the baseline.

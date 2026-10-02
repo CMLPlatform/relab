@@ -139,7 +139,7 @@ jobs:
       - name: Run mutation testing
         working-directory: repo/backend
         run: |
-          just mutation
+          MUTMUT_JOBS="$(nproc)" just mutation
           {
             echo "### Mutation testing"
             echo "$(wc -l < reports/mutation/survivors.txt) survivors"
