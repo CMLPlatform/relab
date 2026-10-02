@@ -5,7 +5,6 @@ import type { ReactElement, ReactNode } from 'react';
 import type { Text as RNText } from 'react-native';
 import ProductPage from '@/app/(tabs)/(products)/products/[id]';
 import { ProductDetailScreen } from '@/components/product/detail/ProductDetailScreen';
-import { useBaseProductQuery } from '@/features/products/queries';
 import { useAncestorTrail } from '@/features/products/useAncestorTrail';
 import { useProductForm } from '@/features/products/useProductForm';
 import { ProductNotFoundError } from '@/services/api/products';
@@ -17,7 +16,6 @@ const LONG_PRODUCT_NAME_PATTERN = /A very long product name/;
 const LONG_PRODUCT_NAME_PREFIX_PATTERN = /^A very long product name/;
 
 const mockUseProductForm = jest.mocked(useProductForm);
-const mockUseBaseProductQuery = jest.mocked(useBaseProductQuery);
 const mockUseAncestorTrail = jest.mocked(useAncestorTrail);
 const mockUseAuth = jest.fn();
 const mockSetOptions = jest.fn();
@@ -69,11 +67,6 @@ jest.mock('@/context/auth', () => ({
 
 jest.mock('@/features/products/useProductForm', () => ({
   useProductForm: jest.fn(),
-}));
-
-jest.mock('@/features/products/queries', () => ({
-  useBaseProductQuery: jest.fn(),
-  useComponentQuery: jest.fn(),
 }));
 
 jest.mock('@/features/products/useAncestorTrail', () => ({
@@ -220,12 +213,6 @@ describe('ProductPage state handling', () => {
     });
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
-    } as never);
-    mockUseBaseProductQuery.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: false,
-      error: null,
     } as never);
     mockUseAncestorTrail.mockReturnValue({ ancestors: [], isLoading: false });
   });
@@ -390,12 +377,6 @@ describe('ProductPage state handling', () => {
         parentID: 17,
       },
       isProductComponent: true,
-    } as never);
-    mockUseBaseProductQuery.mockReturnValue({
-      data: { ...baseProduct, id: 17, name: longParentName },
-      isLoading: false,
-      isError: false,
-      error: null,
     } as never);
     mockUseAncestorTrail.mockReturnValue({
       ancestors: [{ id: 17, name: longParentName, role: 'product' }],
@@ -674,12 +655,6 @@ describe('Section layout', () => {
       setParams: jest.fn(),
       dismissTo: jest.fn(),
     });
-    mockUseBaseProductQuery.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: false,
-      error: null,
-    } as never);
     mockUseAncestorTrail.mockReturnValue({ ancestors: [], isLoading: false });
   });
 

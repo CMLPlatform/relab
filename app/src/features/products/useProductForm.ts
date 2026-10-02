@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { onlineManager } from '@tanstack/react-query';
+import { onlineManager, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { type RefObject, useEffect, useRef } from 'react';
 import {
@@ -11,6 +11,7 @@ import {
 } from 'react-hook-form';
 import { useDialog } from '@/components/base/dialogContext';
 import type { SectionKey } from '@/components/base/SectionNavContext';
+import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
@@ -22,8 +23,6 @@ import type { AmountDraftFlush } from './amountDraftFlush';
 import {
   type ProductRole,
   QUEUED_OFFLINE_LABEL,
-  useBaseProductQuery,
-  useComponentQuery,
   useDeleteProductMutation,
   useSaveProductMutation,
 } from './queries';
@@ -355,8 +354,8 @@ export function useProductForm(id: string | undefined, options: UseProductFormOp
 
   // Only the role's endpoint is enabled; with no id, neither is.
   const isBaseRole = options.role === 'product';
-  const baseQuery = useBaseProductQuery(isBaseRole ? numericId : undefined);
-  const componentQuery = useComponentQuery(!isBaseRole ? numericId : undefined);
+  const baseQuery = useQuery(baseProductQueryOptions(isBaseRole ? numericId : undefined));
+  const componentQuery = useQuery(componentQueryOptions(!isBaseRole ? numericId : undefined));
   const activeQuery = isBaseRole ? baseQuery : componentQuery;
   const { data: serverProduct, isLoading, isError, error, refetch } = activeQuery;
 

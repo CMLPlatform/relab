@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { type JSX, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
@@ -10,7 +11,7 @@ import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { PRESS_FADE, type PressState, pressFill } from '@/components/base/pressFeedback';
 import { MIN_TAP_TARGET } from '@/constants';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
-import { useSearchBrandsQuery } from '@/features/products/queries';
+import { brandsSearchQueryOptions } from '@/features/products/queries';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 
@@ -39,7 +40,9 @@ export default function ProductTags({
   const [brandModalVisible, setBrandModalVisible] = useState(false);
   const [brandSearch, setBrandSearch] = useState('');
 
-  const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(brandSearch);
+  const { data: brandResults, isLoading: brandsLoading } = useQuery(
+    brandsSearchQueryOptions(brandSearch),
+  );
 
   const closeBrandModal = useCallback(() => setBrandModalVisible(false), []);
   const handleBrandSelection = useCallback(

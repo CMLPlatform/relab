@@ -78,7 +78,7 @@ describe('useCaptureEntity', () => {
 
     let savedId: number | undefined;
     await act(async () => {
-      savedId = await result.current.create();
+      savedId = (await result.current.create())?.id;
     });
 
     expect(savedId).toBe(42);
@@ -174,7 +174,7 @@ describe('useCaptureEntity', () => {
 
     let savedId: number | undefined;
     await act(async () => {
-      savedId = await result.current.create();
+      savedId = (await result.current.create())?.id;
     });
 
     expect(savedId).toBeUndefined();
@@ -197,7 +197,7 @@ describe('useCaptureEntity', () => {
 
     let savedId: number | undefined;
     await act(async () => {
-      savedId = await result.current.create();
+      savedId = (await result.current.create())?.id;
     });
 
     expect(savedId).toBe(42);
@@ -270,11 +270,11 @@ describe('useCaptureEntity', () => {
     let firstResult: number | undefined;
     let secondResult: number | undefined;
     await act(async () => {
-      const first = result.current.create().then((id) => {
-        firstResult = id;
+      const first = result.current.create().then((r) => {
+        firstResult = r?.id;
       });
-      const second = result.current.create().then((id) => {
-        secondResult = id;
+      const second = result.current.create().then((r) => {
+        secondResult = r?.id;
       });
       resolveMutate?.(42);
       await Promise.all([first, second]);
@@ -427,7 +427,7 @@ describe('useCaptureEntity', () => {
       let created: number | undefined = -1;
       await act(async () => {
         await stale.createAndAddAnother();
-        created = await stale.create();
+        created = (await stale.create())?.id;
       });
 
       expect(created).toBeUndefined();

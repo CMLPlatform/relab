@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useDebounce } from 'use-debounce';
@@ -6,10 +7,10 @@ import { useAuth } from '@/context/auth';
 import { productTypeLabelMap } from '@/services/api/productTypes';
 import { createProductAction, useProductsActions } from './actions';
 import {
+  brandsSearchQueryOptions,
   productsListQuery,
-  useProductTypeLabelsQuery,
-  useSearchBrandsQuery,
-  useSearchProductTypesQuery,
+  productTypeLabelsQueryOptions,
+  productTypesSearchQueryOptions,
 } from './queries';
 import {
   normalizeProductsParams,
@@ -78,15 +79,15 @@ export function useProductsScreen() {
     updateParams,
   });
 
-  const { data: brandResults, isLoading: brandsLoading } = useSearchBrandsQuery(
-    filterUi.brandSearch,
+  const { data: brandResults, isLoading: brandsLoading } = useQuery(
+    brandsSearchQueryOptions(filterUi.brandSearch),
   );
-  const { data: typeOptions, isLoading: typesLoading } = useSearchProductTypesQuery(
-    filterUi.typeSearch,
+  const { data: typeOptions, isLoading: typesLoading } = useQuery(
+    productTypesSearchQueryOptions(filterUi.typeSearch),
   );
   // Selections are stored by `name`; only the label shown differs. Selected
   // names are resolved separately because they arrive from the URL.
-  const { data: selectedTypeOptions } = useProductTypeLabelsQuery(activeProductTypes);
+  const { data: selectedTypeOptions } = useQuery(productTypeLabelsQueryOptions(activeProductTypes));
   const typeResults = useMemo(() => (typeOptions ?? []).map((type) => type.name), [typeOptions]);
   const typeLabels = useMemo(
     () => ({

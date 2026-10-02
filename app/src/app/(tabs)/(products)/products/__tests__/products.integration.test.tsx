@@ -179,8 +179,6 @@ jest.mock('@/components/product/ProductCardSkeleton', () => {
 // Controlled query state. Brand/type search stay mocked (they're irrelevant to
 // this file's scope); the products list itself now flows through the real
 // useInfiniteQuery + productsInfiniteQueryOptions, hitting MSW like the app does.
-const mockUseBrandsQuery = jest.fn();
-const mockUseProductTypesQuery = jest.fn();
 const mockSetParams = jest.fn();
 const mockPush = jest.fn();
 const mockNavigate = jest.fn();
@@ -195,8 +193,16 @@ jest.mock('@/features/products/queries', () => {
     // Wrapped in jest.fn so tests can inspect call args (e.g. the sort/search
     // params sent through) while still exercising the real fetch pipeline.
     productsInfiniteQueryOptions: jest.fn(actual.productsInfiniteQueryOptions),
-    useSearchBrandsQuery: (...args: unknown[]) => mockUseBrandsQuery(...args),
-    useSearchProductTypesQuery: (...args: unknown[]) => mockUseProductTypesQuery(...args),
+    brandsSearchQueryOptions: (search: string) => ({
+      ...actual.brandsSearchQueryOptions(search),
+      queryFn: async () => [],
+      initialData: [],
+    }),
+    productTypesSearchQueryOptions: (search: string) => ({
+      ...actual.productTypesSearchQueryOptions(search),
+      queryFn: async () => [],
+      initialData: [],
+    }),
     DEFAULT_PRODUCT_SORT: ['-created_at'],
     PRODUCT_SORT_OPTIONS: [
       { label: 'Relevance', value: [] },
@@ -235,8 +241,6 @@ beforeEach(async () => {
     setParams: mockSetParams,
   });
   (useLocalSearchParams as jest.Mock).mockReturnValue({});
-  mockUseBrandsQuery.mockReturnValue({ data: [], isLoading: false });
-  mockUseProductTypesQuery.mockReturnValue({ data: [], isLoading: false });
   mockDialogApi.alert.mockReset();
   mockDialogApi.input.mockReset();
   mockDialogApi.toast.mockReset();

@@ -11,12 +11,16 @@ const MODEL_PATTERN = /X100/;
 const AMOUNT_RANGE_HINT_PATTERN = /1 to 10000/;
 const REQUIRED_LABEL_PATTERN = /required/i;
 
-jest.mock('@/features/products/queries', () => ({
-  useSearchBrandsQuery: jest.fn(() => ({
-    data: ['Apple', 'Samsung', 'Sony'],
-    isLoading: false,
-  })),
-}));
+jest.mock('@/features/products/queries', () => {
+  const brands = ['Apple', 'Samsung', 'Sony'];
+  return {
+    brandsSearchQueryOptions: (search: string) => ({
+      queryKey: ['brands', 'search', search],
+      queryFn: async () => brands,
+      initialData: brands,
+    }),
+  };
+});
 
 const baseProduct: Product = { ..._base, brand: 'CircularTech', model: 'X100' };
 

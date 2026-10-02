@@ -90,7 +90,7 @@ export function SaveBar({
   const uploadingText = uploadingPhotos
     ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
     : null;
-  const showsSummary = needsAttention || (blockedByValidation && Boolean(validationError));
+  const showsSummary = needsAttention || showsMessage;
   const attentionText = needsAttention
     ? `${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`
     : null;
@@ -135,7 +135,7 @@ export function SaveBar({
             // Same for the attention summary: the ghost button shows it, the region speaks it.
             <AppText style={visuallyHidden}>{attentionText}</AppText>
           ) : null}
-          {blockedByValidation && validationError ? (
+          {showsMessage ? (
             <Animated.View
               testID="save-bar-validation-error"
               entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
@@ -166,13 +166,8 @@ export function SaveBar({
             {/* Fields save on blur, so a clean edit form only needs closing. */}
             {isQueued
               ? QUEUED_OFFLINE_LABEL
-              : uploadingPhotos
-                ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
-                : editMode
-                  ? isDirty
-                    ? `Save ${titleLabel}`
-                    : 'Done'
-                  : `Edit ${titleLabel}`}
+              : (uploadingText ??
+                (editMode ? (isDirty ? `Save ${titleLabel}` : 'Done') : `Edit ${titleLabel}`))}
           </AppButton>
           {uploadingPhotos ? <UploadProgressBar progress={uploadingPhotos} /> : null}
         </View>

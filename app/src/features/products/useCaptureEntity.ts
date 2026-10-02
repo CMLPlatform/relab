@@ -16,15 +16,27 @@ export type UseCaptureEntityOptions = {
   parentRole?: 'product' | 'component';
 };
 
+type CreateResult = { id: number; partial: boolean };
+
 /** State + save flow for the capture-first creation screen. No react-hook-form: three fields. */
 export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntityOptions) {
   const feedback = useAppFeedback();
   const saveMutation = useSaveProductMutation();
 
-  const queuedToastShownRef = useQueuedOfflineToast(saveMutation.isPaused, feedback);
-
   const { resetForNextDraft, isStaleDraft, ...fields } = useCaptureFields();
   const { name, typeID, amount, images } = fields;
+
+  // Announces the queued-offline state once per pause. Set when
+  // createAndAddAnother already named the queued item in its own toast.
+  const queuedToastShownRef = useRef(false);
+  useEffect(() => {
+    if (!saveMutation.isPaused) {
+      queuedToastShownRef.current = false;
+      return;
+    }
+    if (queuedToastShownRef.current) return;
+    feedback.toast(QUEUED_OFFLINE_LABEL);
+  }, [saveMutation.isPaused, feedback]);
 
   // Not saveMutation.isPending: a create queued offline stays pending while the next draft is captured.
   const [isCreating, setIsCreating] = useState(false);
@@ -52,7 +64,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
     };
   };
 
-  const performCreate = async (): Promise<{ id: number; partial: boolean } | undefined> => {
+  const create = async (): Promise<CreateResult | undefined> => {
     if (inFlightRef.current || isStaleDraft()) return undefined;
     inFlightRef.current = true;
     setIsCreating(true);
@@ -64,9 +76,7 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
         idempotencyKeyRef.current = null;
         return { id, partial: false };
       } catch (err) {
-        // saveNewProduct() POSTs, sets draft.id, then uploads images; a rejection
-        // with draft.id already set means only the upload failed.
-        if (typeof draft.id === 'number') {
+        if (onlyUploadFailed(draft)) {
           // The record landed, so the key has done its job.
           idempotencyKeyRef.current = null;
           feedback.error('Created, but some photos failed to upload.', 'Upload failed');
@@ -99,19 +109,12 @@ export function useCaptureEntity({ role, parentID, parentRole }: UseCaptureEntit
     return true;
   };
 
-  const create = async (): Promise<number | undefined> => {
-    const result = await performCreate();
-    return result?.id;
-  };
-
-  const createAndAddAnother = async (): Promise<
-    { id: number; partial: boolean } | 'queued' | undefined
-  > => {
+  const createAndAddAnother = async (): Promise<CreateResult | 'queued' | undefined> => {
     const savedName = trimmedName;
     if (!onlineManager.isOnline() && !inFlightRef.current) {
       return queueAndContinue(savedName) ? 'queued' : undefined;
     }
-    const result = await performCreate();
+    const result = await create();
     // Partial success (record created, upload failed): do not toast success
     // or reset the form, which would discard the photos that failed.
     if (result === undefined || result.partial) return result;
@@ -164,19 +167,12 @@ function useCaptureFields() {
   };
 }
 
-/** Announces the queued-offline state once per pause, unless the caller already named the item. */
-function useQueuedOfflineToast(isPaused: boolean, feedback: ReturnType<typeof useAppFeedback>) {
-  // Set when createAndAddAnother already named the queued item in its own toast.
-  const shownRef = useRef(false);
-  useEffect(() => {
-    if (!isPaused) {
-      shownRef.current = false;
-      return;
-    }
-    if (shownRef.current) return;
-    feedback.toast(QUEUED_OFFLINE_LABEL);
-  }, [isPaused, feedback]);
-  return shownRef;
+/**
+ * saveNewProduct() POSTs, sets draft.id, then uploads images: a rejection with
+ * draft.id already set means the record landed and only the upload failed.
+ */
+function onlyUploadFailed(draft: Product): draft is Product & { id: number } {
+  return typeof draft.id === 'number';
 }
 
 function draftProduct(
@@ -208,9 +204,7 @@ async function reportQueuedCreate(
   try {
     await created;
   } catch (err) {
-    // saveNewProduct() sets draft.id once the POST lands; a later rejection
-    // means only the photo upload failed.
-    if (typeof draft.id === 'number') {
+    if (onlyUploadFailed(draft)) {
       feedback.error(
         `"${name}" was created, but some photos failed to upload. Open it to add them again.`,
         'Upload failed',

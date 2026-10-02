@@ -105,9 +105,9 @@ export function useCaptureScreen({ role, parentID, parentRole }: UseCaptureEntit
   };
 
   const handleCreate = async () => {
-    const savedId = await create();
-    if (savedId === undefined) return;
-    goToSaved(savedId);
+    const result = await create();
+    if (result === undefined) return;
+    goToSaved(result.id);
   };
 
   // Returns whether the screen stayed put with a freshly reset form.

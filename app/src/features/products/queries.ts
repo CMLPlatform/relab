@@ -3,7 +3,6 @@ import {
   type QueryClient,
   queryOptions,
   useMutation,
-  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -147,28 +146,6 @@ export const productTypeLabelsQueryOptions = (names: string[]) => {
     staleTime: 10 * 60_000,
   });
 };
-
-// ─── Hooks ─────────────────────────────────────────────────────────────────────
-
-export function useBaseProductQuery(id: number | undefined) {
-  return useQuery(baseProductQueryOptions(id));
-}
-
-export function useComponentQuery(id: number | undefined) {
-  return useQuery(componentQueryOptions(id));
-}
-
-export function useSearchBrandsQuery(search: string) {
-  return useQuery(brandsSearchQueryOptions(search));
-}
-
-export function useSearchProductTypesQuery(search: string) {
-  return useQuery(productTypesSearchQueryOptions(search));
-}
-
-export function useProductTypeLabelsQuery(names: string[]) {
-  return useQuery(productTypeLabelsQueryOptions(names));
-}
 
 // ─── Save / delete mutations ───────────────────────────────────────────────────
 

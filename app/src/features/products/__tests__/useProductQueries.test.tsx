@@ -3,22 +3,23 @@ import {
   onlineManager,
   QueryClient,
   QueryClientProvider,
+  type UseQueryResult,
   useInfiniteQuery,
+  useQuery,
 } from '@tanstack/react-query';
 import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { DialogContext } from '@/components/base/dialogContext';
+import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import {
+  brandsSearchQueryOptions,
   onResumedSaveError,
   productsInfiniteQueryOptions,
+  productTypesSearchQueryOptions,
   ResumedSaveNotice,
-  useBaseProductQuery,
-  useComponentQuery,
   useDeleteProductMutation,
   userProductsInfiniteQueryOptions,
   useSaveProductMutation,
-  useSearchBrandsQuery,
-  useSearchProductTypesQuery,
 } from '@/features/products/queries';
 import { ApiError } from '@/services/api/errors';
 import {
@@ -290,21 +291,21 @@ describe('useProductQueries', () => {
     mockedSearchBrands.mockResolvedValue([]);
     mockedSearchProductTypes.mockResolvedValue([]);
 
-    await renderHook(() => useSearchBrandsQuery(''), { wrapper });
-    await renderHook(() => useSearchProductTypesQuery(''), { wrapper });
+    await renderHook(() => useQuery(brandsSearchQueryOptions('')), { wrapper });
+    await renderHook(() => useQuery(productTypesSearchQueryOptions('')), { wrapper });
 
     await waitFor(() => expect(searchProductBrands).toHaveBeenCalled());
     expect(searchProductBrands).toHaveBeenCalledWith(undefined, 1, 50);
     expect(searchProductTypes).toHaveBeenCalledWith(undefined, 1, 50);
   });
 
-  it('useBaseProductQuery calls getBaseProduct and respects enabled state', async () => {
+  it('baseProductQueryOptions calls getBaseProduct and respects enabled state', async () => {
     mockedGetBaseProduct.mockResolvedValue(existingProduct);
 
     const { result, rerender } = await renderHook<
-      ReturnType<typeof useBaseProductQuery>,
+      UseQueryResult<Product, unknown>,
       { id: number | undefined }
-    >(({ id }: { id: number | undefined }) => useBaseProductQuery(id), {
+    >(({ id }: { id: number | undefined }) => useQuery(baseProductQueryOptions(id)), {
       wrapper,
       initialProps: { id: undefined },
     });
@@ -318,13 +319,13 @@ describe('useProductQueries', () => {
     expect(getBaseProduct).toHaveBeenCalledWith(123);
   });
 
-  it('useComponentQuery calls getComponent and respects enabled state', async () => {
+  it('componentQueryOptions calls getComponent and respects enabled state', async () => {
     mockedGetComponent.mockResolvedValue(existingProduct);
 
     const { result, rerender } = await renderHook<
-      ReturnType<typeof useComponentQuery>,
+      UseQueryResult<Product, unknown>,
       { id: number | undefined }
-    >(({ id }: { id: number | undefined }) => useComponentQuery(id), {
+    >(({ id }: { id: number | undefined }) => useQuery(componentQueryOptions(id)), {
       wrapper,
       initialProps: { id: undefined },
     });
@@ -338,10 +339,10 @@ describe('useProductQueries', () => {
     expect(getComponent).toHaveBeenCalledWith(77);
   });
 
-  it('useBaseProductQuery does not retry when the product is missing', async () => {
+  it('baseProductQueryOptions does not retry when the product is missing', async () => {
     mockedGetBaseProduct.mockRejectedValue(new ProductNotFoundError(123));
 
-    const { result } = await renderHook(() => useBaseProductQuery(123), { wrapper });
+    const { result } = await renderHook(() => useQuery(baseProductQueryOptions(123)), { wrapper });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(getBaseProduct).toHaveBeenCalledTimes(1);
