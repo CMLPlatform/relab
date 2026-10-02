@@ -27,7 +27,7 @@ async def test_parallel_guesses_cannot_race_past_the_budget() -> None:
             async with account_guess_budget(user_id):
                 await wrong_code(n)
         except MfaCodeInvalidError, RateLimitExceededError:
-            pass
+            pass  # Both outcomes are expected; the test counts the checks that ran.
 
     async with anyio.create_task_group() as tg:
         for n in range(10):
