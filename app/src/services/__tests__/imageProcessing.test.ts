@@ -50,17 +50,21 @@ describe('processImage', () => {
     global.fetch = originalFetch;
   });
 
-  it('returns a photo within the caps untouched, at full resolution', async () => {
-    const asset = { uri: 'file://12mp.jpg', width: 4000, height: 3000, fileSize: 5 * MB };
-
-    await expect(processImage(asset, CONTRIBUTOR)).resolves.toBe('file://12mp.jpg');
-    expect(mockManipulate).not.toHaveBeenCalled();
-  });
-
-  it('keeps a 24 MP original untouched for a lab account', async () => {
-    const asset = { uri: 'file://24mp.jpg', width: 6000, height: 4000, fileSize: 12 * MB };
-
-    await expect(processImage(asset, LAB)).resolves.toBe('file://24mp.jpg');
+  it.each([
+    [
+      'a photo within the caps, at full resolution',
+      { uri: 'file://12mp.jpg', width: 4000, height: 3000, fileSize: 5 * MB },
+      CONTRIBUTOR,
+    ],
+    [
+      'a 24 MP original for a lab account',
+      { uri: 'file://24mp.jpg', width: 6000, height: 4000, fileSize: 12 * MB },
+      LAB,
+    ],
+    // Unknown dimensions and size are left to the server check.
+    ['a photo with unknown dimensions and size', { uri: 'file://unknown.jpg' }, CONTRIBUTOR],
+  ])('returns %s untouched', async (_label, asset, caps) => {
+    await expect(processImage(asset, caps)).resolves.toBe(asset.uri);
     expect(mockManipulate).not.toHaveBeenCalled();
   });
 
@@ -117,13 +121,6 @@ describe('processImage', () => {
 
     await expect(processImage(asset, CONTRIBUTOR)).resolves.toBeNull();
     expect(mockSaveAsync).toHaveBeenCalledTimes(3);
-  });
-
-  it('leaves a photo with unknown dimensions and size to the server check', async () => {
-    await expect(processImage({ uri: 'file://unknown.jpg' }, CONTRIBUTOR)).resolves.toBe(
-      'file://unknown.jpg',
-    );
-    expect(mockManipulate).not.toHaveBeenCalled();
   });
 
   it('returns null when the manipulator fails', async () => {
