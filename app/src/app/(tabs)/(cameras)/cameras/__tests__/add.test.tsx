@@ -20,7 +20,7 @@ jest.mock('@/features/cameras/rpi/hooks', () => ({
 describe('AddCameraScreen', () => {
   const mockPush = jest.fn();
   const mockReplace = jest.fn();
-  const claimMutate = jest.fn();
+  const claimMutate = jest.fn<(body: unknown) => Promise<unknown>>();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -35,8 +35,9 @@ describe('AddCameraScreen', () => {
       user: { id: 'user-1', email: 'test@example.com' },
     });
 
+    claimMutate.mockResolvedValue({});
     mockUseClaimPairingMutation.mockReturnValue({
-      mutate: claimMutate,
+      mutateAsync: claimMutate,
       isPending: false,
     });
   });
@@ -54,21 +55,41 @@ describe('AddCameraScreen', () => {
     await fireEvent.press(screen.getByText('Pair camera'));
 
     await waitFor(() =>
-      expect(claimMutate).toHaveBeenCalledWith(
-        {
-          code: 'AB12CD',
-          camera_name: 'Workbench Camera',
-          description: 'Bench setup',
-        },
-        expect.objectContaining({
-          onSuccess: expect.any(Function),
-          onError: expect.any(Function),
-        }),
-      ),
+      expect(claimMutate).toHaveBeenCalledWith({
+        code: 'AB12CD',
+        camera_name: 'Workbench Camera',
+        description: 'Bench setup',
+      }),
     );
   });
 
+  it('sends one claim when Pair camera is pressed twice quickly', async () => {
+    let release: () => void = () => {};
+    claimMutate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({});
+        }),
+    );
+    await renderWithProviders(<AddCameraScreen />, { withDialog: true });
+
+    await fireEvent.changeText(screen.getByLabelText('Pairing code'), 'AB12CD');
+    await fireEvent.changeText(screen.getByLabelText('Camera name, required'), 'Test Camera');
+    const pair = screen.getByText('Pair camera');
+    await act(async () => {
+      fireEvent.press(pair);
+      fireEvent.press(pair);
+    });
+
+    await waitFor(() => expect(claimMutate).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      release();
+    });
+    expect(claimMutate).toHaveBeenCalledTimes(1);
+  });
+
   it('alerts on pairing error', async () => {
+    claimMutate.mockRejectedValue(new Error('pairing failed'));
     await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
@@ -77,13 +98,6 @@ describe('AddCameraScreen', () => {
     await fireEvent.changeText(cameraNameInput, 'Test Camera');
     await fireEvent.press(screen.getByText('Pair camera'));
 
-    await waitFor(() => expect(claimMutate).toHaveBeenCalled());
-    const pairOnError = (
-      claimMutate.mock.calls[0]?.[1] as { onError?: (err: unknown) => void } | undefined
-    )?.onError;
-    await act(async () => {
-      pairOnError?.(new Error('pairing failed'));
-    });
     expect(await screen.findByText('pairing failed')).toBeOnTheScreen();
   });
 
@@ -95,13 +109,6 @@ describe('AddCameraScreen', () => {
     await fireEvent.changeText(pairingCodeInput, 'AB12CD');
     await fireEvent.changeText(cameraNameInput, 'Test Camera');
     await fireEvent.press(screen.getByText('Pair camera'));
-
-    await waitFor(() => expect(claimMutate).toHaveBeenCalled());
-    const onSuccess = (claimMutate.mock.calls[0]?.[1] as { onSuccess?: () => void } | undefined)
-      ?.onSuccess;
-    await act(async () => {
-      onSuccess?.();
-    });
 
     expect(await screen.findByText('Camera paired')).toBeOnTheScreen();
 
