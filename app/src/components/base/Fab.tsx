@@ -61,8 +61,8 @@ export function Fab({
       : 0;
   }, [extended, progress]);
 
-  // Transform and opacity only: the label's width follows its content, so large text and
-  // long translations are never clipped.
+  // Transform and opacity only: the label is sized to content up to 240, then
+  // truncated, so large text is not clipped by an animated width.
   const labelStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
     transform: [{ translateX: (1 - progress.value) * -LABEL_SLIDE }],

@@ -174,6 +174,7 @@ jest.mock('react-native-reanimated', () => {
     LinearTransition: mockCreateAnimationBuilder(),
     __esModule: true,
     default: AnimatedComponent,
+    useReducedMotion: () => false,
     useAnimatedStyle: mockCreateAnimatedStyleHook(),
     useAnimatedProps: mockCreateAnimatedPropsHook(),
     useSharedValue: (initialValue: unknown) => mockCreateSharedValue(initialValue, noopFn),

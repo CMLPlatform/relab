@@ -1,6 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { screen } from '@testing-library/react-native';
 import { TextInput } from '@/components/base/TextInput';
+import { Input } from '@/components/base/ui/input';
 import { radius } from '@/constants';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 import { renderWithProviders } from '@/test-utils/index';
@@ -11,6 +12,11 @@ jest.mock('@/context/themeMode', () => ({
 }));
 
 describe('<TextInput />', () => {
+  it('caps font scaling at 2x on the ui Input too', async () => {
+    await renderWithProviders(<Input testID="ui" />);
+    expect(screen.getByTestId('ui').props.maxFontSizeMultiplier).toBe(2);
+  });
+
   it('caps font scaling at 2x by default and lets callers override', async () => {
     await renderWithProviders(<TextInput testID="a" />);
     expect(screen.getByTestId('a').props.maxFontSizeMultiplier).toBe(2);

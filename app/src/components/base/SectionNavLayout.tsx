@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef } from 'react';
 import type { FocusEvent, LayoutChangeEvent } from 'react-native';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { WEB_FOCUS_RING } from '@/constants';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
@@ -70,6 +71,7 @@ function SectionNav({
   onPress: (key: SectionKey) => void;
   orientation: 'chips' | 'outline';
 }) {
+  const reduceMotion = useReducedMotion();
   const scrollRef = useRef<ScrollView>(null);
   const chipX = useRef(new Map<SectionKey, number>());
   const handleItemLayout = useCallback((key: SectionKey, x: number) => {
@@ -79,8 +81,11 @@ function SectionNav({
   useEffect(() => {
     const x = chipX.current.get(activeKey);
     if (x !== undefined)
-      scrollRef.current?.scrollTo({ x: Math.max(0, x - CHIP_SCROLL_INSET), animated: true });
-  }, [activeKey]);
+      scrollRef.current?.scrollTo({
+        x: Math.max(0, x - CHIP_SCROLL_INSET),
+        animated: !reduceMotion,
+      });
+  }, [activeKey, reduceMotion]);
 
   const items = sections.map((section) => (
     <SectionNavItem

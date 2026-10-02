@@ -1,7 +1,14 @@
-import { type ComponentProps, type ReactNode, useCallback } from 'react';
+import { type ComponentProps, type ReactNode, useCallback, useState } from 'react';
 import type { Control, ControllerRenderProps, FieldErrors } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  type LayoutChangeEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton } from '@/components/base/AppButton';
@@ -27,6 +34,8 @@ const MAX_FONT_SCALE = 2;
 const INPUT_ROW_HEIGHT = 48;
 const HELPER_SLOT_HEIGHT = 18;
 const ACTION_ROW_HEIGHT = 44;
+const FOOTER_GAP = 20;
+const FALLBACK_SCROLL_PADDING = 120;
 const CARD_PADDING = 16;
 const CARD_GAP = 6;
 const CARD_MIN_HEIGHT =
@@ -86,9 +95,6 @@ const styles = StyleSheet.create({
   // The primary action gets its own row so "Create account" does not overflow.
   actionRow: {
     minHeight: ACTION_ROW_HEIGHT,
-  },
-  scroll: {
-    paddingBottom: 120,
   },
   footerCard: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -404,12 +410,18 @@ type NewAccountLayoutProps = {
 export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  // Starts at the old fixed value until the footer is measured.
+  const [footerHeight, setFooterHeight] = useState(FALLBACK_SCROLL_PADDING - FOOTER_GAP);
+  const handleFooterLayout = useCallback(
+    (event: LayoutChangeEvent) => setFooterHeight(event.nativeEvent.layout.height),
+    [],
+  );
   return (
     // The keyboard-controller KeyboardAvoidingView AuthScreen uses, so the focused field stays visible.
     <KeyboardAvoidingView behavior="padding" style={styles.flex}>
       <ScrollView
         contentContainerClassName="flex-grow p-5 items-center"
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={{ paddingBottom: footerHeight + insets.bottom + FOOTER_GAP }}
         keyboardShouldPersistTaps="handled"
       >
         {/* An intrinsic cap rather than a breakpoint: the column fills narrow screens
@@ -420,7 +432,12 @@ export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayo
 
       {/* On a card, not bare over the photo: the hero scrim is light by design
           and the backdrop's densest area sits right behind this footer. */}
-      <View className="absolute left-5 right-5 items-center" style={{ bottom: insets.bottom + 20 }}>
+      <View
+        className="absolute left-5 right-5 items-center"
+        style={{ bottom: insets.bottom + FOOTER_GAP }}
+        onLayout={handleFooterLayout}
+        testID="signup-footer"
+      >
         <View
           className="rounded-lg py-2 px-4 items-center gap-1 w-full"
           style={[

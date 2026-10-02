@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { ScrollView } from 'react-native';
 import { SectionNavLayout } from '@/components/base/SectionNavLayout';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
@@ -78,4 +79,24 @@ test('on web, a focused chip scrolls itself into view in the chip row', async ()
     currentTarget: { scrollIntoView },
   });
   expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest', inline: 'nearest' });
+});
+
+test('scrolls the chip row when the active section changes', async () => {
+  const scrollTo = jest.spyOn(ScrollView.prototype, 'scrollTo' as never);
+  const props = { isLg: false, navSections: [...sections], onPressSection: jest.fn() };
+  const { rerender } = await render(
+    <SectionNavLayout {...props} activeKey="overview">
+      {null}
+    </SectionNavLayout>,
+  );
+  await fireEvent(screen.getByLabelText('Components'), 'layout', {
+    nativeEvent: { layout: { x: 200, y: 0, width: 80, height: 44 } },
+  });
+  scrollTo.mockClear();
+  await rerender(
+    <SectionNavLayout {...props} activeKey="components">
+      {null}
+    </SectionNavLayout>,
+  );
+  expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ x: 176 }));
 });
