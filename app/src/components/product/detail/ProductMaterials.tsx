@@ -1,5 +1,7 @@
 import { View } from 'react-native';
+import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
+import { ROW_ENTER, ROW_EXIT, ROW_MOVE } from '@/components/base/rowMotion';
 import { Separator } from '@/components/base/ui/separator';
 import LocalizedFloatInput from '@/components/product/LocalizedFloatInput';
 import type { Product, ProductMaterial } from '@/types/Product';
@@ -35,9 +37,11 @@ export default function ProductMaterials({ product }: Props) {
           {`(${materials.length})`}
         </AppText>
       </View>
-      {materials.map((material) => (
-        <MaterialRow key={material.materialID} material={material} />
-      ))}
+      <LayoutAnimationConfig skipEntering skipExiting>
+        {materials.map((material) => (
+          <MaterialRow key={material.materialID} material={material} />
+        ))}
+      </LayoutAnimationConfig>
       {materials.length === 0 ? (
         <AppText className="mb-2 text-muted-foreground">No materials recorded yet.</AppText>
       ) : null}
@@ -47,7 +51,7 @@ export default function ProductMaterials({ product }: Props) {
 
 function MaterialRow({ material }: { material: ProductMaterial }) {
   return (
-    <View>
+    <Animated.View entering={ROW_ENTER} exiting={ROW_EXIT} layout={ROW_MOVE}>
       <Separator />
       {/* The house spec row: name as the label, the recorded quantity as data. */}
       <LocalizedFloatInput
@@ -61,6 +65,6 @@ function MaterialRow({ material }: { material: ProductMaterial }) {
           ? `Material reference: ${material.source}`
           : 'No reference recorded for this material.'}
       </AppText>
-    </View>
+    </Animated.View>
   );
 }

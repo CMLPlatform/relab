@@ -127,6 +127,34 @@ describe('ProductComponents', () => {
     expect(screen.queryByText('Component 6')).toBeNull();
   });
 
+  it('keeps a row expanded when the list shrinks below the collapse threshold', async () => {
+    const rows = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({
+        ...baseProduct,
+        id: index + 2,
+        role: 'component' as const,
+        parentID: baseProduct.id,
+        name: `Component ${index + 1}`,
+        components: index === 6 ? [{ ...baseProduct, id: 99, name: 'Screw' }] : [],
+      }));
+    const view = (count: number) => (
+      <ProductComponents
+        product={{ ...baseProduct, components: rows(count) }}
+        editMode={false}
+        canEdit
+      />
+    );
+
+    await renderWithProviders(view(9), { withDialog: true });
+    await fireEvent.press(screen.getByRole('button', { name: 'Show 4 more components' }));
+    await fireEvent.press(screen.getByLabelText('Show components of Component 7'));
+    expect(screen.getByText('Screw')).toBeOnTheScreen();
+
+    // Down to eight rows the list stops collapsing; row 7 must not remount and fold up.
+    await screen.rerender(view(8));
+    expect(screen.getByText('Screw')).toBeOnTheScreen();
+  });
+
   it('shows Add component button when owned by me and not in editMode', async () => {
     await renderWithProviders(
       <ProductComponents product={baseProduct} editMode={false} canEdit />,

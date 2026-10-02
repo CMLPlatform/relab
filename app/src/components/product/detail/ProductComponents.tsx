@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
-import Animated, { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { DisclosureRow } from '@/components/base/DisclosureRow';
 import { useDialog } from '@/components/base/dialogContext';
+import { ROW_ENTER, ROW_EXIT, ROW_MOVE } from '@/components/base/rowMotion';
 import { useSaveProductMutation } from '@/features/products/queries';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
@@ -22,8 +23,6 @@ interface Props {
 const VISIBLE_WHEN_COLLAPSED = 5;
 /** Lists up to this many rows in full; beyond it, the first five plus a disclosure. */
 const COLLAPSE_ABOVE = 8;
-const ROW_ENTER = FadeIn.duration(200).reduceMotion(ReduceMotion.System);
-const ROW_EXIT = FadeOut.duration(150).reduceMotion(ReduceMotion.System);
 
 export default function ProductComponents({ product, editMode, canEdit }: Props) {
   const router = useRouter();
@@ -97,22 +96,25 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
           This {label} has no subcomponents.
         </AppText>
       )}
-      {visibleComponents.map((component, index) => (
-        // Always the same wrapper, so a row keeps its identity (and its
-        // expanded state) when "Show more" changes which rows are past the fold.
-        <Animated.View
-          key={component.id}
-          // Rows revealed by "Show more" fade in below the ones already there.
-          entering={collapsible && index >= VISIBLE_WHEN_COLLAPSED ? ROW_ENTER : undefined}
-          exiting={collapsible && index >= VISIBLE_WHEN_COLLAPSED ? ROW_EXIT : undefined}
-        >
-          <ComponentRow
-            component={component}
-            enabled={!editMode}
-            onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
-          />
-        </Animated.View>
-      ))}
+      <LayoutAnimationConfig skipEntering skipExiting>
+        {visibleComponents.map((component) => (
+          // Always the same wrapper, so a row keeps its identity (and its expanded
+          // state) when "Show more" changes which rows are past the fold. Rows
+          // added or revealed fade in; the rest slide to make room.
+          <Animated.View
+            key={component.id}
+            entering={ROW_ENTER}
+            exiting={ROW_EXIT}
+            layout={ROW_MOVE}
+          >
+            <ComponentRow
+              component={component}
+              enabled={!editMode}
+              onDuplicate={editMode && canEdit ? () => duplicate(component) : undefined}
+            />
+          </Animated.View>
+        ))}
+      </LayoutAnimationConfig>
       {collapsible && (
         <DisclosureRow
           label={
