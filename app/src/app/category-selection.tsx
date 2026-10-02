@@ -9,9 +9,11 @@ import {
 } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
+import { ErrorState } from '@/components/base/ErrorState';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { PageContainer } from '@/components/base/PageContainer';
+import { ScreenTitle } from '@/components/base/ScreenTitle';
 import { Searchbar } from '@/components/base/Searchbar';
 import { SignedOutState } from '@/components/base/SignedOutState';
 import CPVCard from '@/components/product/CPVCard';
@@ -24,6 +26,8 @@ export default function CategorySelection() {
   const {
     user,
     cpvClass,
+    loadFailed,
+    retryLoad,
     history,
     filtered,
     commonTypes,
@@ -75,6 +79,8 @@ export default function CategorySelection() {
   // picker is open can leave this screen visible for more than one render.
   if (!user) return <SignedOutState />;
   if (!cpvClass) {
+    if (loadFailed)
+      return <ErrorState message="Couldn't load the category list." onRetry={retryLoad} />;
     return <CenteredSpinner />;
   }
 
@@ -85,6 +91,7 @@ export default function CategorySelection() {
         <title>Select category · Relab</title>
       </Head>
       <PageContainer phoneFullBleed>
+        <ScreenTitle>Select category</ScreenTitle>
         <View className="gap-3 px-4 pt-4">
           <Searchbar
             placeholder="Search"

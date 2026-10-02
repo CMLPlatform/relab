@@ -46,10 +46,25 @@ x-backend-host-overrides: &backend-host-overrides
   MICROSOFT_GRAPH_SENDER_USER: ${MICROSOFT_GRAPH_SENDER_USER:-}
   BOOTSTRAP_SUPERUSER_EMAIL: ${BOOTSTRAP_SUPERUSER_EMAIL:?BOOTSTRAP_SUPERUSER_EMAIL must be set in root .env}
 
-x-backend-runtime-secrets: &backend-runtime-secrets
+# Each backend service mounts only the secrets its process reads.
+x-api-runtime-secrets: &api-runtime-secrets
+  - database_app_password
+  - redis_password
+  - auth_token_secret
+  - oauth_state_secret
+  - cache_signing_secret
+  - data_encryption_key
+  - google_oauth_client_secret
+  - github_oauth_client_secret
+  - smtp_password
+  - microsoft_graph_client_secret
+
+# The migrator loads the full app settings (superuser creation goes through the
+# app's user service), so it needs the api's secrets plus the migration role
+# and the bootstrap superuser password.
+x-migrator-runtime-secrets: &migrator-runtime-secrets
   - database_app_password
   - database_migration_password
-  - database_backup_password
   - redis_password
   - auth_token_secret
   - oauth_state_secret
@@ -74,7 +89,7 @@ services:
     # without a cap one resize burst takes the host down instead of the API.
     # Raise it if real usage shows pressure.
     mem_limit: 6g
-    secrets: *backend-runtime-secrets
+    secrets: *api-runtime-secrets
     tmpfs:
       - /tmp:mode=1777
     environment:
@@ -208,7 +223,7 @@ services:
     logging: *json-logging
     read_only: true
     user: *app-user
-    secrets: *backend-runtime-secrets
+    secrets: *migrator-runtime-secrets
     environment:
       !!merge <<: [*backend-public-origins, *backend-host-overrides]
       ENVIRONMENT: ${ENVIRONMENT:?ENVIRONMENT must be set}

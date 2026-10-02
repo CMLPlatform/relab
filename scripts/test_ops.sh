@@ -416,6 +416,49 @@ assert_eq "a failed migrator is reported when the migrations profile ran it" \
        read the migration error with: docker logs relab_staging-migrator-1" \
     "$(started --profile migrations)"
 
+# A `ps` that fails or lists nothing cannot show the stack started, so it fails the gate
+# rather than passing it with nothing to check.
+# shellcheck disable=SC2317,SC2329 # the stub is called by the code under test
+unlisted() {
+    local ps_exit="$1" out status
+    out="$(
+        run_deploy_compose() { return "$ps_exit"; }
+        DEPLOY_PROFILE_FLAGS=()
+        assert_stack_started staging 2>&1
+    )"
+    status=$?
+    printf '%s|%s' "$status" "$(head -n1 <<<"$out")"
+}
+
+assert_eq "a failing ps fails the start gate" \
+    "1|error: could not list the staging stack's containers after starting it" "$(unlisted 1)"
+assert_eq "an empty ps fails the start gate" \
+    "1|error: could not list the staging stack's containers after starting it" "$(unlisted 0)"
+
+# deploy_ops.sh secret modes: containers run as uid 65532, so a secret only its owner can
+# read is as broken as a world-writable one.
+# shellcheck disable=SC2317,SC2329 # the stub is called by the code under test
+secret_mode() {
+    local dir status
+    dir="$(mktemp -d)"
+    mkdir -p "$dir/secrets/prod"
+    chmod 700 "$dir/secrets/prod"
+    printf 'x' >"$dir/secrets/prod/restic_password"
+    chmod "$1" "$dir/secrets/prod/restic_password"
+    (
+        cd "$dir" || exit 1
+        uv() { echo restic_password; }
+        assert_secret_file_modes prod /dev/null
+    ) >/dev/null 2>&1
+    status=$?
+    rm -rf "$dir"
+    echo "$status"
+}
+
+assert_eq "an owner-only 0600 secret is rejected" 2 "$(secret_mode 600)"
+assert_eq "a world-readable 0644 secret is accepted" 0 "$(secret_mode 644)"
+assert_eq "a group-writable 0664 secret is rejected" 2 "$(secret_mode 664)"
+
 # ---------------------------------------------------------------------------
 # deploy_ops.sh rollback: a failed downgrade must stop the rollback and say what it left
 # behind, not write the earlier tag and start code against a half-downgraded schema.
@@ -780,12 +823,12 @@ assert_eq "file bytes are summed" 3000 "$(uploads_bytes 3000)"
 # aside. cycle_steps stubs this out, so only here is the real call site checked -- guard
 # asked about `user-uploads`, refusal surfaces as EXIT_REFUSED without archiving.
 uploads_step() {
-    local prev_bytes="$1" tmp out status
+    local prev_bytes="$1" backup_exit="${2:-0}" tmp out status
     tmp="$(mktemp -d)"
     mkdir -p "$tmp/uploads/files"
     head -c 4096 /dev/zero >"$tmp/uploads/files/a.bin"
     out="$(
-        UPLOADS_DIR="$tmp/uploads" STUB_ARGS="$tmp/args" STUB_PREV="$prev_bytes" bash -c '
+        UPLOADS_DIR="$tmp/uploads" STUB_ARGS="$tmp/args" STUB_PREV="$prev_bytes" STUB_BACKUP_EXIT="$backup_exit" bash -c '
             set -euo pipefail
             # shellcheck source=/dev/null
             . backend/scripts/backup/backup_relab_restic.sh
@@ -793,6 +836,7 @@ uploads_step() {
             # Arguments go to a file, not stdout: the guard parses stdout as JSON.
             restic() {
                 printf "%s\n" "$*" >>"$STUB_ARGS"
+                [[ "$1" != backup ]] || return "$STUB_BACKUP_EXIT"
                 [[ "$1" != stats ]] || printf %s "{\"total_size\":${STUB_PREV},\"snapshots_count\":1}"
             }
             backup_uploads
@@ -809,6 +853,55 @@ assert_eq "the uploads step archives when the tree held its size" "0|1|1" "$(upl
 # Field 3 is 0: the refusal has to land before the write, not after it.
 assert_eq "a collapsed uploads tree refuses with EXIT_REFUSED and archives nothing" "3|1|0" \
     "$(uploads_step 259672)"
+# restic's own exit 3 means "snapshot written, some files unreadable"; passed through raw
+# it would read as EXIT_REFUSED and RestartPreventExitStatus would suppress the retry.
+assert_eq "a restic exit 3 from the uploads snapshot is a retryable step error" "1|1|1" \
+    "$(uploads_step 4096 3)"
+
+# backup_database through run_cycle, with only the pg_dump and restic binaries stubbed
+# on PATH. run_cycle calls it under `if`, which disables `set -e` inside it, so a failure
+# that is not returned explicitly reads as success, sets did_backup, and prunes.
+# Output: exit status | `restic backup` calls | `forget` calls | dump files left behind.
+db_cycle() {
+    local dump_exit="$1" backup_exit="$2" tmp out status
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/bin" "$tmp/work"
+    cat >"$tmp/bin/pg_dump" <<EOS
+#!/usr/bin/env bash
+for arg; do [[ "\$arg" == --file=* ]] && head -c 4096 /dev/zero >"\${arg#--file=}"; done
+exit $dump_exit
+EOS
+    cat >"$tmp/bin/restic" <<EOS
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >>"$tmp/args"
+case "\$1" in
+    stats) printf %s '{"total_size":4096,"snapshots_count":1}' ;;
+    backup) exit $backup_exit ;;
+esac
+EOS
+    chmod +x "$tmp/bin/pg_dump" "$tmp/bin/restic"
+    touch "$tmp/args"
+    out="$(
+        PATH="$tmp/bin:$PATH" BACKUP_WORK_DIR="$tmp/work" SKIP_UPLOAD_BACKUP=true \
+            POSTGRES_DB=relab DATABASE_BACKUP_USER=backup DATABASE_BACKUP_PASSWORD=x bash -c '
+            set -euo pipefail
+            # shellcheck source=/dev/null
+            . backend/scripts/backup/backup_relab_restic.sh
+            run_cycle auto
+        ' 2>&1
+    )"
+    status=$?
+    printf '%s|%s|%s|%s' "$status" "$(grep -c '^backup ' "$tmp/args")" \
+        "$(grep -c '^forget ' "$tmp/args")" "$(find "$tmp/work" -type f | wc -l)"
+    rm -rf "$tmp"
+}
+
+assert_eq "a database snapshot that succeeds runs maintenance" "0|1|1|0" "$(db_cycle 0 0)"
+assert_eq "a failed pg_dump archives nothing, prunes nothing, and stays retryable" "1|0|0|0" \
+    "$(db_cycle 1 0)"
+assert_eq "a failed restic backup of the dump prunes nothing and stays retryable" "1|1|0|0" \
+    "$(db_cycle 0 1)"
+assert_eq "a restic exit 3 on the dump is a step error, not a refusal" "1|1|0|0" "$(db_cycle 0 3)"
 
 # ---------------------------------------------------------------------------
 # The hourly-vs-daily split: BACKUP_MAINTENANCE decides which steps run. Every step is

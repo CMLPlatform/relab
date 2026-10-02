@@ -6,6 +6,7 @@ beside them: erasing an account reaches into products, media and cameras, so bot
 belong in the application layer.
 """
 
+import logging
 from typing import Annotated
 
 from fastapi import BackgroundTasks, Body, Query, Request, Response, Security, status
@@ -31,6 +32,8 @@ from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.api.common.rate_limiting import limiter
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.core.redis import RedisDep
+
+logger = logging.getLogger(__name__)
 
 router = AdminAPIRouter(prefix="/admin/users", tags=["admin"], dependencies=[Security(current_active_superuser)])
 # Rate-limited like login: per IP here, and per account on failed step-ups in the route.
@@ -122,8 +125,12 @@ async def delete_own_account(
     )
     # NOTE: revoked after the committed erase, unlike the admin route, so a failed erase
     # never signs the user out for nothing. A Redis failure here still leaves no live
-    # session: refresh and access tokens both resolve the user, which no longer exists.
-    await revoke_user_refresh_tokens(user_id, request)
+    # session: refresh and access tokens both resolve the user, which no longer exists,
+    # so a failure is logged and the notification and cookie clearing still go out.
+    try:
+        await revoke_user_refresh_tokens(user_id, request)
+    except Exception:
+        logger.exception("Could not revoke refresh tokens after a self-service account deletion")
     await send_account_deleted_notification(email, username, background_tasks=background_tasks)
     clear_auth_cookies(response)
     response.headers["Clear-Site-Data"] = SESSION_LOGOUT_CLEAR_SITE_DATA

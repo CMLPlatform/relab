@@ -97,6 +97,27 @@ async def test_self_deletion_anonymizes_content_and_erases_the_account(
     assert (await api_client.get(ME, headers=headers)).status_code == status.HTTP_401_UNAUTHORIZED
 
 
+async def test_self_deletion_still_signs_out_when_revoking_sessions_fails(
+    api_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    """The erase has committed, so a Redis failure must not skip the notice or the sign-out."""
+    user = await create_password_user(db_session, email="leaving@example.com", username="leaving_user")
+    user_id = user.id
+    headers, _ = await _login(api_client, user)
+
+    with (
+        patch(f"{ROUTER}.revoke_user_refresh_tokens", new=AsyncMock(side_effect=ConnectionError())),
+        patch(f"{ROUTER}.send_account_deleted_notification", new=AsyncMock()) as notify,
+    ):
+        response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+    notify.assert_awaited_once()
+    assert response.headers["Clear-Site-Data"] == SESSION_LOGOUT_CLEAR_SITE_DATA
+    assert "set-cookie" in response.headers
+
+
 @pytest.mark.parametrize(
     ("body", "expected"),
     [

@@ -141,7 +141,7 @@ class PublicProfileView(UserReadProfile):
     product_count: int = Field(default=0, description="Number of products registered.")
     total_weight_kg: float = Field(default=0.0, description="Aggregate weight of products in kg.")
     image_count: int = Field(default=0, description="Total images uploaded.")
-    top_category: str = Field(default="None", description="Most common product type.")
+    top_category: str | None = Field(default=None, description="Most common product type.")
 
     @classmethod
     def from_profile_stats(
@@ -158,7 +158,7 @@ class PublicProfileView(UserReadProfile):
             product_count=stats.product_count,
             total_weight_kg=stats.total_weight_kg,
             image_count=stats.image_count,
-            top_category=stats.top_category or "None",
+            top_category=stats.top_category,
         )
 
 

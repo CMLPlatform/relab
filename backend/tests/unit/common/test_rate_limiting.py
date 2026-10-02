@@ -179,8 +179,8 @@ async def test_hit_key_limits_explicit_non_request_buckets(limiter: Limiter) -> 
     await limiter.ahit_key("1/minute", "auth:login:account:two")
 
 
-async def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
-    """Rate-limit logs should not include raw identifiers when callers use safe buckets."""
+async def test_limit_exceeded_log_omits_bucket_key(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
+    """Rate-limit logs name the limit, never the bucket key or the identifier behind it."""
     raw_ip = "203.0.113.10"
     safe_key = rate_limit_bucket_key("auth:login:ip", raw_ip)
 
@@ -190,7 +190,8 @@ async def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog:
     with pytest.raises(RateLimitExceededError):
         await limiter.ahit_key("1/minute", safe_key)
 
-    assert "auth:login:ip:" in caplog.text
+    assert "1/minute" in caplog.text
+    assert safe_key not in caplog.text
     assert raw_ip not in caplog.text
 
 
@@ -209,7 +210,7 @@ async def test_hit_key_fails_open_on_redis_error(limiter: Limiter, caplog: pytes
     await limiter.ahit_key("1/minute", "auth:login:account:one")  # must not raise
 
     assert "failing open" in caplog.text
-    assert "auth:login:account:one" in caplog.text
+    assert "auth:login:account:one" not in caplog.text
 
 
 async def test_hit_key_without_consume_only_checks(limiter: Limiter) -> None:

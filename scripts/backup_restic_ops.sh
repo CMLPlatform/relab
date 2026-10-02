@@ -7,6 +7,8 @@ DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"
 # Built by build_migrator_image below; compose names it "<project>-<service>".
 DEPLOY_MIGRATOR_IMAGE="${DEPLOY_MIGRATOR_IMAGE:-relab_test-migrator}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4}"
+# Runs as root on the deploy host for chown/mkdir/rm on bind mounts, so pinned by digest.
+ALPINE_IMAGE="${ALPINE_IMAGE:-alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8}"
 RESTORE_CONTAINER=""
 # Read by restore_cleanup, which runs from an EXIT trap — i.e. after
 # restore_postgres has returned and its locals are gone. Script scope, not local.
@@ -29,7 +31,7 @@ restore_cleanup() {
         docker exec "$RESTORE_PG_CONTAINER" rm -f /tmp/relab-restore.dump >/dev/null 2>&1 || true
     fi
     if [[ -n "$RESTORE_TMP_ROOT" && -d "$RESTORE_TMP_ROOT" ]]; then
-        docker run --rm -v "$RESTORE_TMP_ROOT:/work" --entrypoint chown alpine:3.22 \
+        docker run --rm -v "$RESTORE_TMP_ROOT:/work" --entrypoint chown "$ALPINE_IMAGE" \
             -R "$RESTORE_HOST_UID:$RESTORE_HOST_GID" /work >/dev/null 2>&1 || true
         rm -rf "$RESTORE_TMP_ROOT"
     fi
@@ -175,7 +177,7 @@ verify_postgres_restore() {
 
     mkdir -p "$work_dir/restore"
     # The backup image runs as uid 65532, so the restore bind mount must be writable by it.
-    docker run --rm -v "$work_dir/restore:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
+    docker run --rm -v "$work_dir/restore:/work" --entrypoint chown "$ALPINE_IMAGE" -R 65532:65532 /work
     RESTORE_CONTAINER="${4:-relab_restore_smoke_$(date +%s)_$$}"
     reap_stale_container "$RESTORE_CONTAINER"
 
@@ -235,7 +237,7 @@ docker_smoke_backups() {
         docker rm -fv "$postgres_container" >/dev/null 2>&1 || true
         docker rm -fv "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
         docker network rm "$network" >/dev/null 2>&1 || true
-        docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
+        docker run --rm -v "$tmp_root:/work" --entrypoint chown "$ALPINE_IMAGE" -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
         rm -rf "$tmp_root"
     }
@@ -247,8 +249,8 @@ docker_smoke_backups() {
     printf '[offsite]\ntype = local\n' >"$tmp_root/rclone/rclone.conf"
 
     build_backup_image
-    docker run --rm -v "$tmp_root/restic:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
-    docker run --rm -v "$tmp_root/offsite:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
+    docker run --rm -v "$tmp_root/restic:/work" --entrypoint chown "$ALPINE_IMAGE" -R 65532:65532 /work
+    docker run --rm -v "$tmp_root/offsite:/work" --entrypoint chown "$ALPINE_IMAGE" -R 65532:65532 /work
     docker network create "$network" >/dev/null
     docker run -d --name "$postgres_container" --network "$network" \
         -e POSTGRES_PASSWORD=postgres-password \
@@ -425,7 +427,7 @@ verify_uploads_restore() {
 
     # Created and chowned in a container: the backup image runs as uid 65532, and on a
     # deployed host this user doesn't own BACKUP_HOST_DIR to do it directly.
-    docker run --rm -v "$scratch:/work" --entrypoint sh alpine:3.22 \
+    docker run --rm -v "$scratch:/work" --entrypoint sh "$ALPINE_IMAGE" \
         -c 'rm -rf /work/uploads-restore && mkdir -m 0700 /work/uploads-restore && chown 65532:65532 /work/uploads-restore'
     reap_stale_container "$container"
 
@@ -467,7 +469,7 @@ verify_uploads_restore() {
 # disk; runs in a container because the tree belongs to the backup image's uid.
 # Args: <backup root>.
 remove_restore_scratch() {
-    docker run --rm -v "$1:/backups" --entrypoint rm alpine:3.22 -rf /backups/restore-check \
+    docker run --rm -v "$1:/backups" --entrypoint rm "$ALPINE_IMAGE" -rf /backups/restore-check \
         >/dev/null 2>&1 || true
 }
 
@@ -500,7 +502,7 @@ backup_restore_smoke() {
 
     cleanup() {
         docker rm -fv "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
-        docker run --rm -v "$tmp_root:/work" --entrypoint chown alpine:3.22 -R "$host_uid:$host_gid" /work \
+        docker run --rm -v "$tmp_root:/work" --entrypoint chown "$ALPINE_IMAGE" -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
         rm -rf "$tmp_root"
         remove_restore_scratch "$backup_root"
@@ -513,7 +515,7 @@ backup_restore_smoke() {
 
     # 0700: this is the first decrypted copy of user uploads outside the repository;
     # default 0755 would publish it to every account on the host.
-    docker run --rm -v "$backup_root:/backups" --entrypoint mkdir alpine:3.22 -m 0700 -p /backups/restore-check
+    docker run --rm -v "$backup_root:/backups" --entrypoint mkdir "$ALPINE_IMAGE" -m 0700 -p /backups/restore-check
 
     install -m 0444 "$DEPLOY_RESTIC_PASSWORD_FILE" "$tmp_root/restic_password"
     build_backup_image
@@ -590,7 +592,7 @@ restore_postgres() {
     build_backup_image
     mkdir -p "$tmp_root/restore"
     # The backup image runs as uid 65532, so the restore bind mount must be writable by it.
-    docker run --rm -v "$tmp_root/restore:/work" --entrypoint chown alpine:3.22 -R 65532:65532 /work
+    docker run --rm -v "$tmp_root/restore:/work" --entrypoint chown "$ALPINE_IMAGE" -R 65532:65532 /work
 
     docker run --rm \
         -v "$DEPLOY_RESTIC_REPOSITORY:/restic:ro" \

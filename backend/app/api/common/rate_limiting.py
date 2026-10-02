@@ -84,12 +84,12 @@ class Limiter:
         try:
             allowed = await anyio.to_thread.run_sync(self._limiter.hit if consume else self._limiter.test, parsed, key)
         except RedisError, ConnectionError, TimeoutError, OSError:
-            logger.warning("Rate limiter backend unavailable; failing open for bucket %s", key)
+            logger.warning("Rate limiter backend unavailable; failing open for limit %s", rate_string)
             return
 
         if not allowed:
-            # Safe to log: sensitive dimensions arrive as `prefix:<hmac-digest>`, never raw.
-            logger.info("Rate limit exceeded for bucket %s", key)  # lgtm[py/clear-text-logging-sensitive-data]
+            # Bucket keys stay out of logs: some derive from credentials or account ids.
+            logger.info("Rate limit exceeded for limit %s", rate_string)
             try:
                 stats = await anyio.to_thread.run_sync(self._limiter.get_window_stats, parsed, key)
             except RedisError, ConnectionError, TimeoutError, OSError:

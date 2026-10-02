@@ -19,10 +19,13 @@ export function useCategorySelection() {
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
   const [cpvClass, setCpvClass] = useState<CPVCategory | null>(null);
   const [history, setHistory] = useState<CPVCategory[]>([]);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const { recents, recordRecent } = useRecentCategories();
   // Public aggregate; a failure just hides the shortcut section.
   const { data: topCategories } = useQuery(topCategoriesQueryOptions);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadAttempt is a re-run trigger, not a value read here; retryLoad bumps it to load again.
   useEffect(() => {
     let isMounted = true;
     loadCPV()
@@ -32,11 +35,18 @@ export function useCategorySelection() {
         setCpvClass(data.root);
         setHistory([data.root]);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isMounted) setLoadFailed(true);
+      });
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadAttempt]);
+
+  const retryLoad = () => {
+    setLoadFailed(false);
+    setLoadAttempt((n) => n + 1);
+  };
 
   const selectBranch = (item: CPVCategory) => {
     setHistory((h) => [...h, item]);
@@ -78,6 +88,8 @@ export function useCategorySelection() {
   return {
     user,
     cpvClass,
+    loadFailed,
+    retryLoad,
     history,
     filtered,
     commonTypes,

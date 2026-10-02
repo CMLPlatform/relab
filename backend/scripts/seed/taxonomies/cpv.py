@@ -201,7 +201,8 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
             cpv_code = row["external_id"].rstrip("0")
             cpv_name = row["name"]
 
-            pt = ProductType(name=cpv_name, description=f"CPV: {cpv_code}")
+            # Code in name, label in description: the shape the app's bundled taxonomy uses.
+            pt = ProductType(name=f"CPV: {cpv_code}", description=cpv_name)
             session.add(pt)
             product_types_created += 1
 

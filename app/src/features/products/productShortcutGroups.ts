@@ -24,7 +24,7 @@ export const PRODUCT_SHORTCUT_GROUPS: ShortcutGroupSpec[] = [
     title: 'Product page',
     items: [
       ['e', 'Edit'],
-      ['Esc', 'Leave edit mode'],
+      ['Esc', 'Leave page'],
       [isMac ? '⌘ S' : 'Ctrl + S', 'Save'],
     ],
   },

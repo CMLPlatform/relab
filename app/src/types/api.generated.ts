@@ -5246,9 +5246,8 @@ export interface components {
       /**
        * Top Category
        * @description Most common product type.
-       * @default None
        */
-      top_category: string;
+      top_category?: string | null;
     };
     /**
      * RefreshTokenRequest

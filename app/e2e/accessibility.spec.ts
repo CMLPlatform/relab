@@ -69,6 +69,43 @@ test.describe('Accessibility', () => {
     expect(focusedInMain).toBe(true);
   });
 
+  // Phone width: below lg these screens have no in-page title row, and the
+  // public profile's heading only arrives with its data. Focus must still
+  // land on the screen's h1, not on the unlabelled main column.
+  test('entry focus lands on the screen heading @auth', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await loginAndReachProducts(page, SEEDED_MEMBER);
+    for (const [path, title] of [
+      ['/category-selection', 'Select category'],
+      ['/cameras/add', 'Add camera'],
+      ['/users/bob', 'bob'],
+    ]) {
+      await page.goto(path);
+      await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText(title, {
+        timeout: 15_000,
+      });
+      await expect
+        .poll(() => page.evaluate(() => document.activeElement?.tagName), { message: path })
+        .toBe('H1');
+    }
+  });
+
+  // WCAG 2.2 SC 2.5.8: the switch track is 18px tall, so on web (no hitSlop)
+  // its hit area has to extend past the track to reach 24px.
+  test('switch hit area is at least 24px tall', async ({ page }) => {
+    await reachProductsPage(page);
+    await page.locator('body').press('?');
+    const toggle = page.getByRole('switch', { name: 'Single-key shortcuts' });
+    await expect(toggle).toBeVisible();
+    const hits = await toggle.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const x = r.left + r.width / 2;
+      const midY = r.top + r.height / 2;
+      return [midY - 12, midY + 11.5].map((y) => el.contains(document.elementFromPoint(x, y)));
+    });
+    expect(hits).toEqual([true, true]);
+  });
+
   test('login page is titled', async ({ page }) => {
     await page.goto('/login');
     await expect(page).toHaveTitle('Sign in · Relab');

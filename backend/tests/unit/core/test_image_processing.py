@@ -336,6 +336,18 @@ def test_generate_thumbnails_skips_larger_than_original(tmp_path: Path) -> None:
         assert not thumbnail_path_for(path, w).exists()
 
 
+def test_generate_thumbnails_handles_extreme_aspect_ratios(tmp_path: Path) -> None:
+    """A height that rounds to 0 must clamp to 1 px rather than abort the remaining widths."""
+    path = tmp_path / "panorama.png"
+    PILImage.new("RGB", (10000, 40), color="red").save(path, format="PNG")
+
+    generated = generate_thumbnails(path)
+
+    assert len(generated) == len(THUMBNAIL_WIDTHS)
+    with PILImage.open(thumbnail_path_for(path, min(THUMBNAIL_WIDTHS))) as img:
+        assert img.height == 1
+
+
 def test_generate_thumbnails_custom_widths(large_image: Path) -> None:
     """Should respect custom width tuples."""
     generated = generate_thumbnails(large_image, widths=(300, 600))

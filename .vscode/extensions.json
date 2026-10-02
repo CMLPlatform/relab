@@ -1,12 +1,11 @@
 {
   "recommendations": [
-    "astral-sh.ruff",
+    "charliermarsh.ruff",
     "astral-sh.ty",
     "astro-build.astro-vscode",
     "biomejs.biome",
     "DavidAnson.vscode-markdownlint",
     "ms-python.python",
-    "ms-python.vscode-pylance",
     "ms-vscode-remote.remote-containers"
   ]
 }

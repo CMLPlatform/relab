@@ -14,7 +14,8 @@ import { getSafeRedirectTarget, routeAuthenticatedUser } from './useLoginRedirec
 export function useMfaScreen() {
   const router = useRouter();
   const { refetch } = useAuth();
-  const pending = getPendingMfaLogin();
+  // Read once: the slot is cleared on success, before the route change lands.
+  const [pending] = useState(getPendingMfaLogin);
   const token = pending?.mfaToken;
   const [code, setCode] = useState('');
   const [recoveryCode, setRecoveryCode] = useState('');
@@ -63,7 +64,7 @@ export function useMfaScreen() {
         setSubmitting(false);
       }
     },
-    [activeCode, pending?.redirectTo, refetch, router, token],
+    [activeCode, pending, refetch, router, token],
   );
 
   const submit = useSingleFlight(runSubmit);

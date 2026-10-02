@@ -56,16 +56,20 @@ function ProfileStatCard({
 function UserProducts({ username }: { username: string }) {
   const { width } = useWindowDimensions();
   const numColumns = productGridColumns(width);
-  const { items, total, isLoading, isFetchingNextPage, hasNextPage, loadMore } =
+  const { items, total, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, loadMore } =
     useUserProducts(username);
+  // A failed next page keeps the items already shown; only an empty list becomes an error.
+  const failed = isError && items.length === 0;
 
   return (
     <View className="w-full mt-12" testID="user-products">
       <AppText variant="eyebrow" className="mb-3" {...heading(2)}>
-        {isLoading ? 'Products' : `Products · ${total}`}
+        {isLoading || failed ? 'Products' : `Products · ${total}`}
       </AppText>
       {isLoading ? (
         <ProductCardSkeleton />
+      ) : failed ? (
+        <ErrorState message="Couldn't load products." onRetry={refetch} />
       ) : items.length === 0 ? (
         <AppText className="text-muted-foreground">No public products yet</AppText>
       ) : (
@@ -125,7 +129,7 @@ export default function UserProfileScreen() {
         }}
       />
       <ScrollView contentContainerClassName="flex-grow py-4">
-        <PageContainer>
+        <PageContainer entryFocusReady={!loading}>
           {loading ? (
             <View className="flex-1 justify-center items-center mt-16">
               <ActivityIndicator

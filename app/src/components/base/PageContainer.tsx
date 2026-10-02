@@ -9,20 +9,22 @@ import { useScreenEntryFocus } from '@/hooks/useScreenEntryFocus';
  *
  * The constrained column is the screen's `main` landmark and takes keyboard
  * focus on entry (web). `fullBleed` is a hero/gallery strip beside it, never
- * a second main.
+ * a second main. `entryFocusReady` defers that focus until an async h1 exists.
  */
 export function PageContainer({
   children,
   fullBleed = false,
   phoneFullBleed = false,
   onLayout,
+  entryFocusReady = true,
 }: {
   children: ReactNode;
   fullBleed?: boolean;
   phoneFullBleed?: boolean;
   onLayout?: (event: LayoutChangeEvent) => void;
+  entryFocusReady?: boolean;
 }) {
-  const entryRef = useScreenEntryFocus();
+  const entryRef = useScreenEntryFocus(entryFocusReady);
   if (fullBleed) {
     return (
       <View className="w-full" onLayout={onLayout}>

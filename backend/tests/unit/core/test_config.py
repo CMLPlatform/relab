@@ -563,8 +563,6 @@ def test_production_requires_https_origins(field: str, url: str, message: str) -
         ("migration_user", "postgres", "DATABASE_MIGRATION_USER must not use the bootstrap/admin role"),
         ("backup_user", "postgres", "DATABASE_BACKUP_USER must not use the bootstrap/admin role"),
         ("app_password", SecretStr(""), "DATABASE_APP_PASSWORD must not be empty"),
-        ("migration_password", SecretStr(""), "DATABASE_MIGRATION_PASSWORD must not be empty"),
-        ("backup_password", SecretStr(""), "DATABASE_BACKUP_PASSWORD must not be empty"),
     ],
 )
 def test_production_rejects_unsafe_database_role_settings(field: str, value: str | SecretStr, message: str) -> None:
@@ -575,6 +573,34 @@ def test_production_rejects_unsafe_database_role_settings(field: str, value: str
     overridden = DatabaseSettings(**overrides)
     with pytest.raises(ValidationError, match=message):
         CoreSettings(**_production_core_settings_kwargs(database=overridden))
+
+
+def test_production_accepts_settings_without_unmounted_role_secrets() -> None:
+    """The api starts without the migration, backup, and bootstrap secrets it never mounts."""
+    db = DatabaseSettings(
+        app_password=SecretStr("app-password"),
+        migration_password=SecretStr(""),
+        backup_password=SecretStr(""),
+    )
+    kwargs = _production_core_settings_kwargs(database=db, bootstrap_superuser_password=SecretStr(""))
+
+    settings = CoreSettings(**kwargs)
+
+    assert not settings.database.migration_password.get_secret_value()
+    assert not settings.database.backup_password.get_secret_value()
+    assert not settings.bootstrap_superuser_password.get_secret_value()
+
+
+@pytest.mark.parametrize("environment", ["prod", "staging"])
+def test_production_migration_url_requires_migration_password(
+    environment: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without a migration password the migration URL fails instead of reusing the app password."""
+    monkeypatch.setenv("ENVIRONMENT", environment)
+    db = DatabaseSettings(app_password=SecretStr("app-password"), migration_password=SecretStr(""))
+
+    with pytest.raises(ValueError, match="DATABASE_MIGRATION_PASSWORD must not be empty"):
+        _ = db.sync_migration_url
 
 
 def test_production_rejects_duplicate_database_runtime_roles() -> None:

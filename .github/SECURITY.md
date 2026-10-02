@@ -38,7 +38,8 @@ Review security-sensitive changes against this baseline:
 - Code: authorization, validation, upload checks, browser security headers, and tests live close to
   the behavior they protect.
 - Configuration: secrets, Compose policy, HTTPS, least-privilege database roles, and secure runtime
-  defaults are source-controlled where practical.
+  defaults are source-controlled where practical. Each Compose service mounts only the secret
+  files its process reads.
 
 Security-sensitive areas:
 

@@ -2,7 +2,7 @@
 
 import logging
 from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import BackgroundTasks, status
@@ -116,6 +116,7 @@ async def test_register_duplicate_email_is_not_enumerable(api_client: AsyncClien
         ):
             mock_manager = AsyncMock()
             mock_manager.create.side_effect = UserAlreadyExists()
+            mock_manager.password_helper = MagicMock()
 
             async def get_manager() -> AsyncGenerator[AsyncMock]:
                 yield mock_manager

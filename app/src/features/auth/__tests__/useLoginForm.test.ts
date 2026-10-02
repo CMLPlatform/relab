@@ -12,9 +12,12 @@ jest.mock('@/services/api/auth/authUser', () => ({
   getUser: (...args: unknown[]) => mockGetUser(...args),
 }));
 
+const mockSetError = jest.fn();
+
 jest.mock('react-hook-form', () => ({
   useForm: () => ({
     control: { field: 'control' },
+    setError: (...args: unknown[]) => mockSetError(...args),
     handleSubmit: (handler: (values: { email: string; password: string }) => Promise<void>) => () =>
       handler({ email: 'user@example.com', password: 'correct-horse-battery-staple' }),
   }),
@@ -61,5 +64,25 @@ describe('useLoginForm guards', () => {
     await act(async () => {
       release();
     });
+  });
+
+  // Focusing in the same tick as setError lands before the error text and its
+  // aria-describedby link commit, so the field is announced without the error.
+  it('focuses the password field a frame after flagging a wrong password', async () => {
+    mockLogin.mockImplementation(async () => ({ status: 'invalid_credentials' }));
+    const { result } = await renderHook(() => useLoginForm(makeArgs()));
+    const focus = jest.fn();
+    result.current.passwordRef.current = { focus };
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockSetError).toHaveBeenCalledWith('password', expect.anything());
+    expect(focus).not.toHaveBeenCalled();
+    await act(async () => {
+      jest.advanceTimersByTime(32);
+    });
+    expect(focus).toHaveBeenCalled();
   });
 });

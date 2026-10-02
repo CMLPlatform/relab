@@ -65,6 +65,30 @@ describe('useScreenEntryFocus', () => {
     expect(root.style.outline).toBe('none');
   });
 
+  // A heading that arrives with async data (the public profile) would lose to
+  // the scaffold if focus moved on the first frame.
+  it('waits until the screen is ready before moving focus', async () => {
+    mockPlatform('web');
+    const heading = fakeElement();
+    const root = fakeElement(heading);
+    const { result, rerender } = await renderHook(
+      ({ ready }: { ready: boolean }) => useScreenEntryFocus(ready),
+      { initialProps: { ready: false } },
+    );
+    (result.current as unknown as { current: FakeElement }).current = root;
+    await act(async () => {
+      jest.advanceTimersByTime(32);
+    });
+    expect(root.focus).not.toHaveBeenCalled();
+    expect(heading.focus).not.toHaveBeenCalled();
+
+    await rerender({ ready: true });
+    await act(async () => {
+      jest.advanceTimersByTime(32);
+    });
+    expect(heading.focus).toHaveBeenCalled();
+  });
+
   it('does nothing when the ref was never attached', async () => {
     mockPlatform('web');
 

@@ -5378,10 +5378,16 @@
             "type": "integer"
           },
           "top_category": {
-            "default": "None",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "Most common product type.",
-            "title": "Top Category",
-            "type": "string"
+            "title": "Top Category"
           },
           "total_weight_kg": {
             "default": 0.0,

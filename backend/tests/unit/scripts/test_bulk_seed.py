@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 
 import pytest
 
+from app.api.auth.models import User
 from scripts.seed.bulk_seed import (
     DESCRIPTION_MAX,
     NAME_MAX,
@@ -17,6 +18,7 @@ from scripts.seed.bulk_seed import (
     REFERENCE_MINIMUMS,
     _prepare,
     _target,
+    _uniquify_user,
 )
 from scripts.seed.factories.models import ProductFactory
 
@@ -68,3 +70,13 @@ def test_reference_tables_scale_with_products_but_never_below_a_floor(kind: str)
     """Lookup endpoints page over these, so a handful of rows measures nothing."""
     assert _target(kind, 0) == REFERENCE_MINIMUMS[kind]
     assert _target(kind, 100_000) > REFERENCE_MINIMUMS[kind]
+
+
+def test_uniquified_usernames_never_collide_and_fit_the_limit() -> None:
+    """Appending the bare index made "anna1" + 23 and "anna12" + 3 the same username."""
+    users = [User(email="a@example.com", username=base) for base in ("anna1", "anna12", "x" * 50)]
+    for user, index in zip(users, (23, 3, 7), strict=True):
+        _uniquify_user(user, index)
+
+    assert len({user.username for user in users[:2]}) == 2
+    assert all(len(user.username or "") <= 50 for user in users)

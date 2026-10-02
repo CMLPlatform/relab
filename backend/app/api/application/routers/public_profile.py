@@ -17,7 +17,7 @@ from app.api.auth.schemas import PublicProfileView, normalize_username
 from app.api.auth.services.privacy import can_view_profile
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.data_collection.crud.profile_stats import compute_profile_stats
+from app.api.data_collection.crud.profile_stats import compute_profile_stats, top_category_label
 
 router = PublicAPIRouter(prefix="/profiles", tags=["profiles"])
 
@@ -58,6 +58,8 @@ async def get_public_profile(
         stats = await compute_profile_stats(session, user.id)
     else:
         stats = load_profile_stats(user.profile_stats)
+    # Resolved on read so stored snapshots holding a CPV code show the label too.
+    stats = stats.model_copy(update={"top_category": await top_category_label(session, stats.top_category)})
 
     return PublicProfileView.from_profile_stats(
         username=lookup_username,

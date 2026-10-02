@@ -150,3 +150,19 @@ async def test_public_profile_does_not_resolve_users_without_username(
     response = await api_client.get("/v1/profiles/incomplete-profile")
 
     assert response.status_code == 404
+
+
+async def test_public_profile_shows_the_label_of_a_cpv_top_category(
+    db_session: AsyncSession,
+    api_client: AsyncClient,
+    db_superuser: User,
+) -> None:
+    """A snapshot holding a CPV code reads back as the type's label."""
+    db_session.add(ProductType(name="CPV: 14622", description="Steel"))
+    db_superuser.profile_stats = {"product_count": 1, "top_category": "CPV: 14622"}
+    db_superuser.profile_stats_computed_at = datetime.now(UTC)
+    await db_session.flush()
+
+    response = await api_client.get(f"/v1/profiles/{db_superuser.username}")
+    assert response.status_code == 200
+    assert response.json()["top_category"] == "Steel"

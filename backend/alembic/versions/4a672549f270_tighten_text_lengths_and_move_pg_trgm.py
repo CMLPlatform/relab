@@ -28,9 +28,10 @@
   bound the API has enforced through ``UsernameValue`` for a long time. Widening
   a varchar is metadata-only; the username narrowing scans ``user`` under ACCESS
   EXCLUSIVE, which is fine at the current table size, and ``lock_timeout`` keeps
-  it from queueing behind a long reader. ``downgrade()`` widens both columns back
-  to an unbounded ``VARCHAR`` rather than restoring the old caps, because a
-  narrowing downgrade would fail on any row written since the upgrade.
+  it from queueing behind a long reader. ``downgrade()`` widens ``user.username``
+  back to an unbounded ``VARCHAR``, its pre-upgrade type, and narrows
+  ``video.title`` back to ``VARCHAR(100)``, the length a fresh build declares; that
+  narrowing fails on any title longer than 100 written since the upgrade.
 
 Revision ID: 4a672549f270
 Revises: a9c2e4f60b18

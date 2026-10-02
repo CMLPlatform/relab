@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { useClaimPairingMutation } from '@/features/cameras/rpi/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useSingleFlight } from '@/hooks/useSingleFlight';
 import { ApiError } from '@/services/api/errors';
 import { getErrorMessage } from '@/utils/errors';
 
@@ -41,29 +42,27 @@ export function useAddCameraForm() {
     defaultValues: { pairingCode: '', name: '', description: '' },
   });
 
-  const submit = handleSubmit((values) => {
-    claimMutation.mutate(
-      {
-        code: values.pairingCode,
-        camera_name: values.name.trim(),
-        description: values.description?.trim() || null,
-      },
-      {
-        onSuccess: () => {
-          reset();
-          setPairingSuccess(true);
-        },
-        onError: (err) => {
-          const isCodeMissing = err instanceof ApiError && err.status === 404;
-          feedback.alert({
-            title: 'Pairing failed',
-            message: isCodeMissing ? CODE_NOT_FOUND_MESSAGE : getErrorMessage(err, String(err)),
-            buttons: [{ text: 'OK' }],
-          });
-        },
-      },
-    );
-  });
+  // A double tap would send a second claim for the same single-use code.
+  const submit = useSingleFlight(
+    handleSubmit(async (values) => {
+      try {
+        await claimMutation.mutateAsync({
+          code: values.pairingCode,
+          camera_name: values.name.trim(),
+          description: values.description?.trim() || null,
+        });
+        reset();
+        setPairingSuccess(true);
+      } catch (err) {
+        const isCodeMissing = err instanceof ApiError && err.status === 404;
+        feedback.alert({
+          title: 'Pairing failed',
+          message: isCodeMissing ? CODE_NOT_FOUND_MESSAGE : getErrorMessage(err, String(err)),
+          buttons: [{ text: 'OK' }],
+        });
+      }
+    }),
+  );
 
   const dismissSuccess = () => {
     setPairingSuccess(false);

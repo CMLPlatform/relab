@@ -195,7 +195,7 @@ assert_secret_file_modes() {
             echo "error: $path is mode $mode — group/other-writable secrets are rejected" >&2
             echo "Fix with: chmod 644 $path" >&2
             failed=true
-        elif ((8#$mode & 8#004 == 0)); then
+        elif (((8#$mode & 8#004) == 0)); then
             echo "error: $path is mode $mode — containers run as uid 65532 and cannot read it;" >&2
             echo "run: chmod 700 $dir && chmod 644 $dir/*" >&2
             failed=true
@@ -676,7 +676,15 @@ stack_gate_alerts() {
 # skipped service in, so it is the one state that distinguishes "never started" from
 # "started and then exited", which is what a one-shot service does on success.
 assert_stack_started() {
-    local env="$1" stalled="" service state exit_code migrator_exit=""
+    local env="$1" stalled="" service state exit_code migrator_exit="" listing
+
+    # An empty or failed listing proves nothing started, so it fails the gate too.
+    if ! listing="$(run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" ps -a \
+        --format '{{.Service}} {{.State}} {{.ExitCode}}')" || [[ -z "$listing" ]]; then
+        echo "error: could not list the $env stack's containers after starting it" >&2
+        echo "       inspect with: just stack $env ps" >&2
+        exit 1
+    fi
 
     while read -r service state exit_code; do
         # The migrator is reported on its own; listing it among the services it gated
@@ -690,8 +698,7 @@ assert_stack_started() {
         case "$state" in
             created) stalled="${stalled:+$stalled,}$service" ;;
         esac
-    done < <(run_deploy_compose "$env" "${DEPLOY_PROFILE_FLAGS[@]}" ps -a \
-        --format '{{.Service}} {{.State}} {{.ExitCode}}' 2>/dev/null || true)
+    done <<<"$listing"
 
     stack_gate_alerts "$env" "$migrator_exit" "$stalled" || exit 1
 }
@@ -767,9 +774,12 @@ stack_command() {
             docker rm -f "relab-backup-$env" >/dev/null 2>&1 || true
             # BACKUP_MANUAL tags this run's snapshots `manual`, which retention keeps
             # unconditionally. Set by `just backup <env> manual`, never by the timer.
+            # RESTIC_MIN_DUMP_RATIO passes through only when the caller set it, so the
+            # script's own default applies otherwise.
             run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
                 -e "BACKUP_MANUAL=${BACKUP_MANUAL:-false}" \
                 -e "BACKUP_MAINTENANCE=${BACKUP_MAINTENANCE:-auto}" \
+                -e RESTIC_MIN_DUMP_RATIO \
                 --name "relab-backup-$env" backup
             ;;
         backup-init)

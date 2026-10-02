@@ -5,6 +5,7 @@ import type { View } from 'react-native';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { PageHeaderRow } from '@/components/base/PageHeaderRow';
+import { ScreenTitle } from '@/components/base/ScreenTitle';
 import {
   CameraConnectionCard,
   CameraPreviewSection,
@@ -49,7 +50,11 @@ function CameraDetailContent({
         <title>{`${camera.name || 'Camera'} · Relab`}</title>
       </Head>
       <CameraDetailLayout>
-        {isLg ? <PageHeaderRow title={camera.name || 'Camera'} onBack={goToCameras} /> : null}
+        {isLg ? (
+          <PageHeaderRow title={camera.name || 'Camera'} onBack={goToCameras} />
+        ) : (
+          <ScreenTitle>{camera.name || 'Camera'}</ScreenTitle>
+        )}
         <CameraConnectionCard
           camera={camera}
           effectiveConnection={screen.effectiveConnection}

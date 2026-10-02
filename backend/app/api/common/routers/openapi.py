@@ -1,5 +1,6 @@
 """Utilities for generating canonical and audience-filtered OpenAPI documentation."""
 
+from functools import cache
 from types import MethodType
 from typing import TYPE_CHECKING, Any, cast
 
@@ -155,21 +156,29 @@ def _register_internal_docs(router: APIRouter, app: FastAPI) -> None:
     async def get_openapi_schema(request: Request) -> Response:
         return conditional_json_response(request, app.openapi())
 
+    admin_schema = cache(lambda: _build_admin_openapi(app))
+
     @router.get("/openapi.admin.json")
     async def get_admin_openapi(request: Request) -> Response:
-        return conditional_json_response(request, _build_admin_openapi(app))
+        return conditional_json_response(request, admin_schema())
 
 
 def _register_public_docs(router: APIRouter, app: FastAPI) -> None:
-    """Register public app and device/plugin integration schemas."""
+    """Register public app and device/plugin integration schemas.
+
+    Routes are fixed once the app has started, so each schema is built on its first
+    request and served from memory after that.
+    """
+    public_schema = cache(lambda: build_public_openapi(app))
+    device_schema = cache(lambda: build_device_openapi(app))
 
     @router.get("/openapi.public.json")
     async def get_public_openapi(request: Request) -> Response:
-        return conditional_json_response(request, build_public_openapi(app))
+        return conditional_json_response(request, public_schema())
 
     @router.get("/openapi.device.json")
     async def get_device_openapi(request: Request) -> Response:
-        return conditional_json_response(request, build_device_openapi(app))
+        return conditional_json_response(request, device_schema())
 
 
 def init_openapi_docs(app: FastAPI, *, include_internal_contracts: bool) -> FastAPI:
@@ -177,11 +186,14 @@ def init_openapi_docs(app: FastAPI, *, include_internal_contracts: bool) -> Fast
 
     Overrides app.openapi() so the complete schema is the canonical schema
     for the app (the standard FastAPI integration point for tooling and middleware).
-    The /openapi.json endpoint simply delegates to app.openapi().
+    The /openapi.json endpoint simply delegates to app.openapi(), which caches the
+    schema on ``app.openapi_schema`` like FastAPI's own implementation.
     """
 
     def _canonical_openapi(_: FastAPI) -> dict[str, Any]:
-        return _build_canonical_openapi(app)
+        if app.openapi_schema is None:
+            app.openapi_schema = _build_canonical_openapi(app)
+        return app.openapi_schema
 
     openapi_app = cast("Any", app)
     openapi_app.openapi = MethodType(_canonical_openapi, app)

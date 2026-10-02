@@ -57,10 +57,12 @@ runs:
     - name: Archive coverage report
       if: always()
       # Like the Codecov uploads above, a failed upload loses a convenience copy,
-      # not a test result, so it must not fail the job.
+      # not a test result, so it must not fail the job. A run without coverage
+      # (app pull requests) has no report to archive, which is expected.
       continue-on-error: true
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ci-${{ inputs.flags }}-coverage
         path: ${{ inputs.artifact-path }}
+        if-no-files-found: ignore
         retention-days: 7

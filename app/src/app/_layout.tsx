@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { enableScreens } from 'react-native-screens';
 import { Uniwind } from 'uniwind';
+import { z } from 'zod';
 import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
@@ -57,6 +58,10 @@ if (Platform.OS === 'web') enableScreens();
 // Native has no connectivity listener of its own; without this the queued-offline
 // UI never engages off-web. See src/services/nativeOnline.ts.
 registerNativeOnlineListener();
+
+// The web CSP has no 'unsafe-eval'. Zod probes for eval with `new Function` before
+// its first object parse; jitless skips the probe so it raises no CSP violation.
+z.config({ jitless: true });
 
 const queryClient = new QueryClient({
   defaultOptions: {
