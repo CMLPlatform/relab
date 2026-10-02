@@ -147,6 +147,15 @@ describe('CategorySelection', () => {
     }
   });
 
+  it('shows a retryable error instead of spinning when the category list fails to load', async () => {
+    mockedLoadCPV.mockRejectedValueOnce(new Error('chunk failed'));
+    await renderWithProviders(<CategorySelection />);
+
+    expect(await screen.findByText("Couldn't load the category list.")).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Retry'));
+    expect(await screen.findByText('Agricultural products')).toBeOnTheScreen();
+  });
+
   it('renders root category items initially', async () => {
     await renderWithProviders(<CategorySelection />);
     await waitFor(() => {
