@@ -2,12 +2,13 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useGlobalSearchParams } from 'expo-router';
 import { HttpResponse, http } from 'msw';
 import type { ReactNode } from 'react';
+import { AccessibilityInfo } from 'react-native';
 import UserProfileScreen from '@/app/users/[username]';
 import { API_URL } from '@/config';
 import { ApiError } from '@/services/api/errors';
 import type { PublicProfileView } from '@/services/api/profiles';
 import { getPublicProfile } from '@/services/api/profiles';
-import { renderWithProviders } from '@/test-utils/index';
+import { mockPlatform, renderWithProviders, restorePlatform } from '@/test-utils/index';
 import { server } from '@/test-utils/server';
 
 jest.mock('@/services/api/profiles');
@@ -107,6 +108,40 @@ describe('UserProfileScreen', () => {
 
     await waitFor(() => expect(screen.queryByLabelText('Load more products')).toBeNull());
     expect(screen.getByText('Products · 48')).toBeOnTheScreen();
+  });
+
+  // VoiceOver ignores the footer's live region; the appended count is announced explicitly.
+  it('announces the loaded count on iOS after Load more', async () => {
+    mockPlatform('ios');
+    const announce = jest
+      .spyOn(AccessibilityInfo, 'announceForAccessibility')
+      .mockImplementation(() => {});
+    mockGetPublicProfile.mockResolvedValue(profileFixture);
+    const page = (n: number) =>
+      Array.from({ length: 24 }, (_, i) => ({
+        id: (n - 1) * 24 + i + 1,
+        name: `Part ${(n - 1) * 24 + i + 1}`,
+        owner_username: 'alice',
+      }));
+    server.use(
+      http.get(`${API_URL}/products`, ({ request }) => {
+        const n = Number(new URL(request.url).searchParams.get('page') ?? '1');
+        return HttpResponse.json({ items: page(n), total: 48, page: n, size: 24, pages: 2 });
+      }),
+    );
+    try {
+      await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+      await waitFor(() => expect(screen.getByText('24 of 48 products')).toBeOnTheScreen());
+      expect(announce).not.toHaveBeenCalledWith('24 of 48 products');
+
+      await fireEvent.press(screen.getByLabelText('Load more products'));
+
+      await waitFor(() => expect(announce).toHaveBeenCalledWith('48 of 48 products'));
+      expect(screen.getByText('48 of 48 products')).toBeOnTheScreen();
+    } finally {
+      announce.mockRestore();
+      restorePlatform();
+    }
   });
 
   it('shows an empty state when the user has no public products', async () => {

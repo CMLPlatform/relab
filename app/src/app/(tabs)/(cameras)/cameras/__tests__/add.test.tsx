@@ -42,11 +42,17 @@ describe('AddCameraScreen', () => {
     });
   });
 
+  it('marks the camera name as required, visibly and for assistive tech', async () => {
+    await renderWithProviders(<AddCameraScreen />, { withDialog: true });
+    expect(screen.getByText('(required)')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Camera name').props.accessibilityHint).toBe('Required');
+  });
+
   it('submits the pairing flow with sanitized uppercase codes', async () => {
     await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
-    const cameraNameInput = screen.getByLabelText('Camera name, required');
+    const cameraNameInput = screen.getByLabelText('Camera name');
     const descriptionInput = screen.getByLabelText('Description (optional)');
     await fireEvent.changeText(pairingCodeInput, 'ab-12cd9');
     await fireEvent.changeText(cameraNameInput, 'Workbench Camera');
@@ -74,7 +80,7 @@ describe('AddCameraScreen', () => {
     await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     await fireEvent.changeText(screen.getByLabelText('Pairing code'), 'AB12CD');
-    await fireEvent.changeText(screen.getByLabelText('Camera name, required'), 'Test Camera');
+    await fireEvent.changeText(screen.getByLabelText('Camera name'), 'Test Camera');
     const pair = screen.getByText('Pair camera');
     await act(async () => {
       fireEvent.press(pair);
@@ -93,7 +99,7 @@ describe('AddCameraScreen', () => {
     await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
-    const cameraNameInput = screen.getByLabelText('Camera name, required');
+    const cameraNameInput = screen.getByLabelText('Camera name');
     await fireEvent.changeText(pairingCodeInput, 'AB12CD');
     await fireEvent.changeText(cameraNameInput, 'Test Camera');
     await fireEvent.press(screen.getByText('Pair camera'));
@@ -105,7 +111,7 @@ describe('AddCameraScreen', () => {
     await renderWithProviders(<AddCameraScreen />, { withDialog: true });
 
     const pairingCodeInput = screen.getByLabelText('Pairing code');
-    const cameraNameInput = screen.getByLabelText('Camera name, required');
+    const cameraNameInput = screen.getByLabelText('Camera name');
     await fireEvent.changeText(pairingCodeInput, 'AB12CD');
     await fireEvent.changeText(cameraNameInput, 'Test Camera');
     await fireEvent.press(screen.getByText('Pair camera'));

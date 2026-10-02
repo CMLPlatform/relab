@@ -166,21 +166,25 @@ function ProfileProductList({ username, header }: { username: string; header: Re
     </>
   );
 
-  const listFooter = hasNextPage ? (
-    <View className="items-center py-4" accessibilityLiveRegion="polite">
-      <IosAnnouncement
-        text={isFetchingNextPage ? 'Loading more products' : undefined}
-        skipInitial
-      />
-      {isFetchingNextPage ? (
-        <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
-      ) : (
-        <AppButton variant="outline" onPress={loadMore} accessibilityLabel="Load more products">
-          Load more
-        </AppButton>
-      )}
-    </View>
-  ) : null;
+  // Same footer as the products list: "Load more" keeps focus, so the appended count is
+  // the only cue that new cards arrived.
+  const listFooter =
+    items.length > 0 ? (
+      <View className="items-center gap-2 py-4" accessibilityLiveRegion="polite">
+        <IosAnnouncement text={`${items.length} of ${total} products`} skipInitial />
+        {isFetchingNextPage ? (
+          <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
+        ) : hasNextPage ? (
+          <AppButton variant="outline" onPress={loadMore} accessibilityLabel="Load more products">
+            Load more
+          </AppButton>
+        ) : null}
+        <AppText className="text-muted-foreground">
+          <AppText variant="data">{items.length}</AppText> of{' '}
+          <AppText variant="data">{total}</AppText> products
+        </AppText>
+      </View>
+    ) : null;
 
   return (
     <FlatList

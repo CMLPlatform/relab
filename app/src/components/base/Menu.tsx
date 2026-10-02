@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
@@ -23,10 +23,14 @@ function stopPropagation(e: { stopPropagation: () => void }) {
 /**
  * Web keyboard model for an open menu (WAI-ARIA menu pattern): focus starts
  * on the checked item, else the first; arrows move and wrap; Home/End jump.
+ * Roving tabindex: only the focused item is in the tab order, and Tab closes
+ * the menu (focus returns to the trigger) instead of walking the items.
  * Escape is the Modal's own `onRequestClose`. Native screen readers swipe
  * between items, so this is web-only.
  */
-function useWebMenuKeyboard(popover: HTMLElement | null) {
+function useWebMenuKeyboard(popover: HTMLElement | null, onDismiss: () => void) {
+  // An effect event, so a caller's inline onDismiss does not re-run the effect and refocus the first item.
+  const dismiss = useEffectEvent(onDismiss);
   useEffect(() => {
     // A host node without DOM methods is a test renderer under a mocked web platform.
     if (!popover || typeof popover.querySelectorAll !== 'function') return;
@@ -37,6 +41,13 @@ function useWebMenuKeyboard(popover: HTMLElement | null) {
     // retry per frame (bounded) until the starting item takes focus.
     let frame = 0;
     let raf = 0;
+    // Pointer focus included: whichever item holds focus is the one tab stop.
+    const onFocusIn = (event: FocusEvent) => {
+      const list = items();
+      if (!list.includes(event.target as HTMLElement)) return;
+      for (const item of list) item.tabIndex = item === event.target ? 0 : -1;
+    };
+    popover.addEventListener('focusin', onFocusIn);
     const focusInitial = () => {
       const list = items();
       const target = list.find((item) => item.getAttribute('aria-checked') === 'true') ?? list[0];
@@ -49,6 +60,11 @@ function useWebMenuKeyboard(popover: HTMLElement | null) {
     // On the document, not the popover: until the first item takes focus the
     // Modal's focus trap parks it on the scrim, outside the popover.
     const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        dismiss();
+        return;
+      }
       const list = items();
       const next = nextMenuIndex(
         event.key,
@@ -62,6 +78,7 @@ function useWebMenuKeyboard(popover: HTMLElement | null) {
     document.addEventListener('keydown', onKeyDown);
     return () => {
       cancelAnimationFrame(raf);
+      popover.removeEventListener('focusin', onFocusIn);
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [popover]);
@@ -94,7 +111,7 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
   // State, not a ref: the Modal mounts its content a render after `visible`
   // flips, and the keyboard hook has to run once the popover exists.
   const [popover, setPopover] = useState<HTMLElement | null>(null);
-  useWebMenuKeyboard(popover);
+  useWebMenuKeyboard(popover, onDismiss);
 
   useEffect(() => {
     if (!visible) return;

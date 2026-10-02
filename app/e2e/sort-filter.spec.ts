@@ -91,6 +91,16 @@ test.describe('Sort menu', () => {
       await page.keyboard.press(key);
       await expect.poll(focused, { message: key }).toBe(label);
     }
+    // Roving tabindex: the focused item is the menu's only tab stop.
+    const tabStops = await page.evaluate(() =>
+      Array.from(document.querySelectorAll<HTMLElement>('[role^="menuitem"]')).map(
+        (item) => item.tabIndex,
+      ),
+    );
+    expect(tabStops.filter((index) => index === 0)).toHaveLength(1);
+    // Tab leaves the menu: it closes rather than walking the items.
+    await page.keyboard.press('Tab');
+    await expect(page.locator('[role^="menuitem"]')).toHaveCount(0);
   });
 
   test('selecting "Oldest first" updates the URL sort param', async ({ page }) => {

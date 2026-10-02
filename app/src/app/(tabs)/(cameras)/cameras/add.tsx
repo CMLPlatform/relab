@@ -19,7 +19,7 @@ import { RPI_CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { heading } from '@/utils/a11y';
+import { heading, requiredField } from '@/utils/a11y';
 
 function PairingSuccessDialog({
   visible,
@@ -114,7 +114,7 @@ export default function AddCameraScreen() {
             <Separator className="my-1" />
 
             <AppText variant="label" className="text-muted-foreground -mb-1">
-              Camera name *
+              Camera name <AppText className="text-muted-foreground">(required)</AppText>
             </AppText>
             <ControlledTextField
               control={control}
@@ -122,7 +122,8 @@ export default function AddCameraScreen() {
               maxLength={100}
               autoCapitalize="words"
               placeholder="Camera name"
-              accessibilityLabel="Camera name, required"
+              accessibilityLabel="Camera name"
+              {...requiredField()}
               className="mb-1"
             />
 
