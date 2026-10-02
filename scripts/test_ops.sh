@@ -519,6 +519,31 @@ for unit_job in $(sed -n 's|.*run_scheduled\.sh \([a-z-]*\) %i.*|\1|p' deploy/sy
     )"
 done
 
+# install_timers.sh pins JUST_BIN at render time. A versioned mise or snap path breaks
+# every unit at the next upgrade or snap refresh, so it renders the stable launcher.
+# Args: the versioned binary and the launcher, relative to a temp root; "-" for no launcher.
+rendered_just_bin() {
+    local tmp
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/$(dirname "$1")"
+    printf '#!/bin/sh\n' >"$tmp/$1"
+    chmod +x "$tmp/$1"
+    if [[ "$2" != - ]]; then
+        mkdir -p "$tmp/$(dirname "$2")"
+        cp "$tmp/$1" "$tmp/$2"
+    fi
+    PATH="$tmp/$(dirname "$1"):$PATH" bash scripts/install_timers.sh render \
+        | sed -n "s|^Environment=JUST_BIN=$tmp/||p" | head -n1
+    rm -rf "$tmp"
+}
+
+assert_eq "a mise-installed just renders as its shim" "mise/shims/just" \
+    "$(rendered_just_bin mise/installs/just/1.0.0/just mise/shims/just)"
+assert_eq "a snap-installed just renders as the snap launcher" "snap/bin/just" \
+    "$(rendered_just_bin snap/just/40/bin/just snap/bin/just)"
+assert_eq "without a launcher the resolved path is kept" "mise/installs/just/1.0.0/just" \
+    "$(rendered_just_bin mise/installs/just/1.0.0/just -)"
+
 # ---------------------------------------------------------------------------
 # Offsite repository derivation in backup_relab_restic.sh: the one remote in
 # RCLONE_CONFIG, empty path; nothing when the config is absent, empty, or ambiguous.
