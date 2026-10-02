@@ -1,10 +1,11 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { onlineManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { AuthProvider } from '@/context/AuthProvider';
 import { useAuth } from '@/context/auth';
+import { announceDiscardedQueuedItems } from '@/features/products/queries';
 import { getToken } from '@/services/api/auth/authRefresh';
 import { hasWebSessionFlag } from '@/services/api/auth/authSession';
 import { getUser } from '@/services/api/auth/authUser';
@@ -18,6 +19,10 @@ jest.mock('@/services/api/auth/authSession', () => ({
 }));
 jest.mock('@/services/api/auth/authUser', () => ({
   getUser: jest.fn(),
+}));
+
+jest.mock('@/features/products/queries', () => ({
+  announceDiscardedQueuedItems: jest.fn(),
 }));
 
 const mockedGetToken = jest.mocked(getToken);
@@ -76,6 +81,43 @@ describe('AuthProvider — sign-out cache clearing', () => {
     expect(removeManySpy).toHaveBeenCalledWith(
       expect.arrayContaining(['relab-query-cache', 'relab-recent-categories']),
     );
+  });
+
+  // A session can end with no one at the confirm dialog (expiry, revoked
+  // elsewhere); queued items cleared then must still be reported.
+  it('reports paused queued items the sign-out clear discards', async () => {
+    mockedHasWebSessionFlag.mockReturnValue(false);
+    mockedGetToken.mockResolvedValue('token');
+    mockedGetUser.mockResolvedValueOnce(signedInUser);
+    const queryClient = new QueryClient();
+    function wrapper({ children }: { children: React.ReactNode }) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>{children}</AuthProvider>
+        </QueryClientProvider>
+      );
+    }
+    const { result } = await renderHook(() => useAuth(), { wrapper });
+    await waitFor(() => expect(result.current.user?.id).toBe('u1'));
+
+    onlineManager.setOnline(false);
+    try {
+      for (let i = 0; i < 2; i++) {
+        void queryClient
+          .getMutationCache()
+          .build(queryClient, { mutationFn: () => new Promise<void>(() => {}) })
+          .execute(undefined);
+      }
+      mockedGetUser.mockResolvedValueOnce(undefined);
+      await act(async () => {
+        await result.current.refetch(false);
+      });
+      await waitFor(() => expect(result.current.user).toBeUndefined());
+    } finally {
+      onlineManager.setOnline(true);
+    }
+
+    expect(jest.mocked(announceDiscardedQueuedItems)).toHaveBeenCalledWith(2);
   });
 
   it('does not clear the cache on sign-in (only on sign-out)', async () => {

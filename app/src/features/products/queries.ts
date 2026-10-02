@@ -252,6 +252,15 @@ export function ResumedSaveNotice() {
   return null;
 }
 
+/** Signing out cleared saves or creates still queued offline: say how many were lost. */
+export function announceDiscardedQueuedItems(count: number) {
+  resumedSaveDialog?.alert({
+    title: 'Queued items discarded',
+    message: `${count} ${count === 1 ? 'item' : 'items'} waiting to send ${count === 1 ? 'was' : 'were'} discarded because you were signed out.`,
+    buttons: [{ text: 'OK' }],
+  });
+}
+
 /** Default onError for restored saves: say which item failed and how. */
 export function onResumedSaveError(queryClient: QueryClient) {
   return (error: unknown, { product }: SaveProductVariables) => {
