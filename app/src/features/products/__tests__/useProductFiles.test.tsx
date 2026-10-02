@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
 import { useProductFiles } from '@/features/products/useProductFiles';
+import { ApiError } from '@/services/api/errors';
 import type { Product } from '@/types/Product';
 
 const mockToast = jest.fn();
@@ -115,6 +116,19 @@ describe('useProductFiles', () => {
     expect(mockError).toHaveBeenCalledWith('Upload quota exceeded.', 'Upload failed');
     expect(uploadProductFile).toHaveBeenCalledTimes(2);
     expect(mockToast).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows plain-language copy for a server error on upload', async () => {
+    getDocumentAsync.mockResolvedValueOnce({ canceled: false, assets: [asset('scan.csv')] });
+    uploadProductFile.mockRejectedValueOnce(new ApiError('Traceback ...', 502));
+    const { result } = await renderUseProductFiles();
+
+    await act(() => result.current.pickAndUpload());
+
+    expect(mockError).toHaveBeenCalledWith(
+      'Relab had a problem on its side. Try again in a moment.',
+      'Upload failed',
+    );
   });
 
   it('rejects an unsupported extension and an oversized asset locally', async () => {

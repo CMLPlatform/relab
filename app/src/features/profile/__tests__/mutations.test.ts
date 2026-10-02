@@ -216,6 +216,21 @@ describe('updateProfileUsername', () => {
       'Update failed',
     );
   });
+  it('uses a plain fallback, never "Unknown error", for an empty failure', async () => {
+    mockUpdateUser.mockRejectedValue('nope');
+    const feedback = makeFeedback();
+
+    await updateProfileUsername({
+      username: 'taken',
+      feedback: feedback as never,
+      refetch: makeRefetch(),
+    });
+
+    expect(feedback.error).toHaveBeenCalledWith(
+      'Failed to update username: Try again.',
+      'Update failed',
+    );
+  });
 });
 
 describe('updateProfilePreferenceField', () => {

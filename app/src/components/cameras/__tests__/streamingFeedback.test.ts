@@ -44,7 +44,11 @@ describe('streamingFeedback', () => {
       'Failed to start stream: boom',
       'Stream start failed',
     );
-    expect(feedback.error).toHaveBeenNthCalledWith(2, 'Failed to stop stream: nope', 'Stop failed');
+    expect(feedback.error).toHaveBeenNthCalledWith(
+      2,
+      'Failed to stop stream: Try again.',
+      'Stop failed',
+    );
   });
 
   it('formats a failure to save the stream video', () => {

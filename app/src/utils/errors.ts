@@ -1,7 +1,7 @@
 import { ApiError } from '@/services/api/errors';
 
 /**
- * User-facing text for a failure. Network failures (fetch throws a TypeError) and 5xx
+ * User-facing text for a failure. Network failures (fetch throws a TypeError; any TypeError is treated as a connection failure) and 5xx
  * responses get fixed plain-language copy; every other Error keeps its own message, which
  * is deliberate user-facing copy or a 4xx detail from the server.
  */

@@ -49,22 +49,24 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
 }
 
 /** Shown when the category name could not be loaded: the type ID and a retry link. */
-export function CpvTypeLoadError({ typeID, retry }: { typeID: number; retry: () => void }) {
+export function CpvTypeLoadError({ typeID, retry }: { typeID: number; retry?: () => void }) {
   return (
     <View className="flex-row flex-wrap items-center gap-2">
       <AppText variant="caption" className="text-muted-foreground">
         {`Category ${typeID}`}
       </AppText>
-      <Pressable
-        onPress={retry}
-        accessibilityRole="button"
-        accessibilityLabel="Retry loading category name"
-        className={WEB_FOCUS_RING}
-      >
-        <AppText variant="caption" className="underline">
-          Retry
-        </AppText>
-      </Pressable>
+      {retry ? (
+        <Pressable
+          onPress={retry}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading category name"
+          className={WEB_FOCUS_RING}
+        >
+          <AppText variant="caption" className="underline">
+            Retry
+          </AppText>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

@@ -42,8 +42,15 @@ describe('useCpvType', () => {
 
     mockLoad.mockResolvedValueOnce({ '5': cat } as never);
     await act(async () => {
-      if (result.current.status === 'error') result.current.retry();
+      if (result.current.status === 'error') result.current.retry?.();
     });
     await waitFor(() => expect(result.current.status).toBe('ready'));
+  });
+
+  it('has no retry when the id is absent from the dataset', async () => {
+    mockLoad.mockResolvedValue({} as never);
+    const { result } = await renderHook(() => useCpvType(9));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current).toEqual({ status: 'error' });
   });
 });

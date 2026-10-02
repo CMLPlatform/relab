@@ -13,7 +13,7 @@ export function usePublicProfileScreen() {
   const errorMessage = queryError
     ? queryError instanceof ApiError && queryError.status === 404
       ? 'This profile is private or does not exist.'
-      : getErrorMessage(queryError, String(queryError))
+      : getErrorMessage(queryError, "Couldn't load this profile.")
     : null;
   const onRetry = useCallback(() => {
     void refetch();

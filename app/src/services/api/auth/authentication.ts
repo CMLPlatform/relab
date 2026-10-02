@@ -2,6 +2,7 @@ import { API_URL } from '@/config';
 import { ApiError, throwFromResponse } from '@/services/api/errors';
 import { fetchWithTimeout } from '@/services/api/request';
 import type { User } from '@/types/User';
+import { getErrorMessage } from '@/utils/errors';
 import { logError } from '@/utils/logging';
 import { clearCachedAuthState, fetchWithAuth } from './authRefresh';
 import { authRuntime } from './authRuntime';
@@ -34,7 +35,12 @@ export async function register(
     return { success: true };
   } catch (error) {
     logError('[Register Error]:', error);
-    if (error instanceof ApiError) return { success: false, error: error.message };
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: getErrorMessage(error, 'Registration failed. Please try again.'),
+      };
+    }
     return { success: false, error: 'Network error. Please check your connection and try again.' };
   }
 }

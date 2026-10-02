@@ -13,6 +13,7 @@ import {
   productsExportUrl,
 } from '@/services/api/products';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { getErrorMessage } from '@/utils/errors';
 
 type ExportMenuProps = {
   /** Button text, e.g. "Export" or "Export results". */
@@ -47,7 +48,7 @@ export function ExportMenu({ label, productId, query }: ExportMenuProps) {
       } catch (error) {
         dialog.alert({
           title: 'Export failed',
-          message: error instanceof Error ? error.message : 'Try again later.',
+          message: getErrorMessage(error, 'Try again later.'),
           triggerRef: buttonRef,
         });
       } finally {
