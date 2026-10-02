@@ -315,8 +315,8 @@ class MfaTotpSetupResponse(BaseModel):
     otpauth_uri: str
 
 
-class OAuthStepUpRequest(BaseModel):
-    """Optional step-up body for linking or unlinking a social login.
+class StepUpRequest(BaseModel):
+    """Optional step-up body for a sensitive account change (social login link or unlink, account deletion).
 
     Optional because an OAuth-only account has no usable password to re-assert, and an
     account without MFA has no code; the server decides which the account needs.
@@ -324,7 +324,13 @@ class OAuthStepUpRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    current_password: SecretStr | None = None
+    current_password: SecretStr | None = Field(
+        default=None,
+        description=(
+            "Current account password, to reauthenticate the change. "
+            "Required unless the account has no usable password (OAuth-only)."
+        ),
+    )
     # 6 digits for TOTP, or a longer recovery code (grouped, e.g. "ABCDE-FGHIJ").
     mfa_code: str | None = Field(
         default=None,

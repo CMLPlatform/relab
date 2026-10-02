@@ -1,31 +1,6 @@
-import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import type { MissingField } from '@/features/products/missingFields';
-
-function MissingFieldItem({
-  field,
-  isLast,
-  onPressField,
-}: {
-  field: MissingField;
-  isLast: boolean;
-  onPressField: (field: MissingField) => void;
-}) {
-  const handlePress = useCallback(() => onPressField(field), [field, onPressField]);
-  return (
-    <Pressable
-      onPress={handlePress}
-      accessibilityRole="link"
-      accessibilityLabel={`Jump to ${field.label}`}
-    >
-      <AppText variant="caption" className="text-muted-foreground underline">
-        {field.label}
-        {isLast ? '' : ','}
-      </AppText>
-    </Pressable>
-  );
-}
 
 /**
  * Owner-only "what's left to fill in" line (issue #325). Each item scrolls to
@@ -50,12 +25,18 @@ export function MissingFieldsNotice({
         Missing:
       </AppText>
       {fields.map((field, index) => (
-        <MissingFieldItem
+        <Pressable
           key={field.id}
-          field={field}
-          isLast={index === fields.length - 1}
-          onPressField={onPressField}
-        />
+          // biome-ignore lint/performance/noJsxPropsBind: the handler needs this item's field; the list is a handful of items.
+          onPress={() => onPressField(field)}
+          accessibilityRole="link"
+          accessibilityLabel={`Jump to ${field.label}`}
+        >
+          <AppText variant="caption" className="text-muted-foreground underline">
+            {field.label}
+            {index === fields.length - 1 ? '' : ','}
+          </AppText>
+        </Pressable>
       ))}
     </View>
   );

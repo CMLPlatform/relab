@@ -9,17 +9,17 @@ from fastapi import UploadFile
 from app.api.auth.roles import UserRole
 from app.api.common.crud.exceptions import ModelNotFoundError
 from app.api.common.exceptions import BadRequestError
-from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.parent_media import (
+    ParentMedia,
     create_parent_media,
     delete_parent_media,
     get_parent_media,
     unlink_stored_media,
 )
+from app.api.file_storage.crud.support_services import image_storage_service
 from app.api.file_storage.exceptions import StorageBackendError
 from app.api.file_storage.models import File, Image, MediaParentType
 from app.api.file_storage.schemas import ImageCreateInternal
-from app.api.reference_data.models import Material
 
 TEST_FILE_DESC = "Test file"
 TEST_FILENAME = "test.txt"
@@ -38,9 +38,8 @@ async def test_create_rejects_parent_scope_mismatch(mock_session: AsyncMock) -> 
     with pytest.raises(BadRequestError, match="Parent ID mismatch"):
         await create_parent_media(
             mock_session,
+            ParentMedia(MediaParentType.PRODUCT, MagicMock(create=AsyncMock(), delete=AsyncMock())),
             parent_id=1,
-            parent_type=MediaParentType.PRODUCT,
-            storage_service=MagicMock(create=AsyncMock(), delete=AsyncMock()),
             item_data=image_create,
             caps_role=UserRole.CONTRIBUTOR,
         )
@@ -48,7 +47,7 @@ async def test_create_rejects_parent_scope_mismatch(mock_session: AsyncMock) -> 
 
 async def test_delete_removes_db_record_when_storage_file_is_missing(mock_session: AsyncMock) -> None:
     """Test that deleting an item removes the database record even if the storage file is missing."""
-    storage_service = MagicMock()
+    storage_service = MagicMock(model=Image)
     storage_service.delete = AsyncMock()
     item_id = uuid4()
     db_item = MagicMock(spec=Image)
@@ -59,13 +58,7 @@ async def test_delete_removes_db_record_when_storage_file_is_missing(mock_sessio
         new=AsyncMock(return_value=db_item),
     ):
         await delete_parent_media(
-            mock_session,
-            parent_model=Product,
-            parent_type=MediaParentType.PRODUCT,
-            storage_model=Image,
-            parent_id=1,
-            item_id=item_id,
-            storage_service=storage_service,
+            mock_session, ParentMedia(MediaParentType.PRODUCT, storage_service), parent_id=1, item_id=item_id
         )
 
     storage_service.delete.assert_awaited_once_with(mock_session, item_id)
@@ -84,16 +77,11 @@ async def test_get_by_id_raises_not_found_for_wrong_parent(mock_session: AsyncMo
     mock_session.execute = AsyncMock(return_value=result)
 
     with (
-        patch("app.api.file_storage.crud.support_services.require_model", new=AsyncMock()),
+        patch("app.api.file_storage.crud.support_services.ensure_parent_exists", new=AsyncMock()),
         pytest.raises(ModelNotFoundError, match="not found"),
     ):
         await get_parent_media(
-            mock_session,
-            parent_model=Product,
-            parent_type=MediaParentType.PRODUCT,
-            storage_model=Image,
-            parent_id=1,
-            item_id=item_id,
+            mock_session, ParentMedia(MediaParentType.PRODUCT, image_storage_service), parent_id=1, item_id=item_id
         )
 
 
@@ -110,17 +98,11 @@ async def test_get_by_id_uses_configured_parent_type(mock_session: AsyncMock) ->
         patch("app.api.file_storage.crud.parent_media.storage_item_exists", return_value=True),
     ):
         await get_parent_media(
-            mock_session,
-            parent_model=Material,
-            parent_type=MediaParentType.MATERIAL,
-            storage_model=Image,
-            parent_id=1,
-            item_id=item_id,
+            mock_session, ParentMedia(MediaParentType.MATERIAL, image_storage_service), parent_id=1, item_id=item_id
         )
 
     get_scoped_item.assert_awaited_once_with(
         mock_session,
-        parent_model=Material,
         model=Image,
         parent_id=1,
         item_id=item_id,

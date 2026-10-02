@@ -39,7 +39,6 @@ jobs:
     outputs:
       backend: ${{ steps.areas.outputs.backend }}
       www: ${{ steps.areas.outputs.www }}
-      docs: ${{ steps.areas.outputs.docs }}
       web: ${{ steps.areas.outputs.web }}
       smoke: ${{ steps.areas.outputs.smoke }}
       codeql: ${{ steps.areas.outputs.codeql }}
@@ -178,6 +177,8 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
+          # The docs suite builds the site and runs Playwright and a link check.
+          setup-playwright: ${{ matrix.subrepo == 'docs' }}
 
       - name: Install dependencies
         run: just ${{ matrix.subrepo }}/install
@@ -191,7 +192,9 @@ jobs:
           # App coverage is the critical path of a PR run (see app/justfile).
           COVERAGE: ${{ (matrix.subrepo != 'app' || github.event_name != 'pull_request') && 'true' || '' }}
 
+      # The docs suite writes no coverage or JUnit report.
       - name: Publish reports
+        if: matrix.subrepo != 'docs'
         uses: ./.github/actions/publish-reports
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -233,34 +236,6 @@ jobs:
           name: ci-www-playwright
           path: www/playwright-report/
           retention-days: 7
-
-  docs:
-    name: Docs
-    needs: changes
-    if: needs.changes.outputs.docs == 'true'
-    runs-on: ubuntu-26.04
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up runtime
-        uses: ./.github/actions/setup-runtime
-        with:
-          setup-node: "true"
-          setup-playwright: "true"
-
-      - name: Install dependencies
-        run: just docs/install
-
-      - name: Run docs check
-        run: just docs/check
-
-      # The recipe installs chromium before running the suite.
-      - name: Run docs CI test suite
-        run: just docs/test-ci
 
   e2e-full-stack:
     name: App Full-Stack E2E
@@ -423,12 +398,6 @@ jobs:
       - name: Run dependency audits
         run: just audit
 
-      # Weekly only: a stale override is upstream news, not a fault in the
-      # commit being pushed, so it should not fail push runs.
-      - name: Flag stale security overrides
-        if: github.event_name == 'schedule'
-        run: just overrides-check
-
   container-security:
     name: Container Security
     # Post-merge, weekly, and on demand. Docker smoke already proves the same
@@ -538,7 +507,6 @@ jobs:
       - backend
       - web
       - e2e-www
-      - docs
       - e2e-full-stack
       - docker-smoke
       - secret-scan

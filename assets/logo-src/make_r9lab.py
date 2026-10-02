@@ -32,13 +32,10 @@ ASSETS = HERE.parent
 LIGHT = {"nine": "#1f4c96", "letters": "#16202e", "muted": "#5a6675", "bg": "#f5f7fa"}
 DARK = {"nine": "#8fb8ff", "letters": "#e9eff8", "muted": "#8c99ad", "bg": "#0c1220"}
 
+NINE_FONT = FONTS / "titillium-web-600.woff2"
+LETTER_FONT = FONTS / "ibm-plex-sans-600.woff2"
 # Tuned by eye against the brand palette; re-tune if the font or the scale changes.
-SPEC = {
-    "nine_font": "titillium-web-600.woff2",
-    "letter_font": "ibm-plex-sans-600.woff2",
-    "sx": 1.05,
-    "sy": 0.80,
-}
+NINE_SQUISH = (1.05, 0.80)
 
 RING_STROKE = 75  # per-1000 upm, matches a 600-weight stem
 RING_PAD = 0.10  # ring radius padding, em
@@ -142,42 +139,32 @@ class Composer:
         )
 
 
-def merge(
-    a: tuple[float, float, float, float], b: tuple[float, float, float, float]
-) -> tuple[float, float, float, float]:
-    """Union of two bboxes."""
-    return (min(a[0], b[0]), min(a[1], b[1]), max(a[2], b[2]), max(a[3], b[3]))
+def _letters() -> dict:
+    return load_glyphs(LETTER_FONT, "R9lab" + TAGLINE)
 
 
-def build_set(spec: dict, colors: dict) -> dict[str, str]:
-    """Build the SVG variants (mark, wordmark, logo) for the spec."""
-    nine = load_glyphs(FONTS / spec["nine_font"])
-    letters = load_glyphs(FONTS / spec["letter_font"])
-    base = letters["upm"]
-    nine_kw = {"squish": (spec["sx"], spec["sy"])}
-
-    out = {}
-
-    c = Composer(base)
-    c.glyph(nine, "9", colors["nine"], **nine_kw)
-    out["mark"] = c.svg("Relab mark")
-
-    c = Composer(base)
+def _wordmark(colors: dict, *, ringed: bool = False) -> Composer:
+    """Compose R-9-l-a-b; `ringed` circles the R9 pair."""
+    letters = _letters()
+    c = Composer(letters["upm"])
     c.glyph(letters, "R", colors["letters"])
-    c.glyph(nine, "9", colors["nine"], **nine_kw)
+    c.glyph(load_glyphs(NINE_FONT), "9", colors["nine"], squish=NINE_SQUISH)
+    if ringed:
+        c.ring(tuple(c.bounds), colors["nine"])  # bounds so far: the R9 pair
     for ch in "lab":
         c.glyph(letters, ch, colors["letters"])
-    out["wordmark"] = c.svg("Relab")
+    return c
 
-    c = Composer(base)
-    span = c.glyph(letters, "R", colors["letters"])
-    span = merge(span, c.glyph(nine, "9", colors["nine"], **nine_kw))
-    c.ring(span, colors["nine"])
-    for ch in "lab":
-        c.glyph(letters, ch, colors["letters"])
-    out["logo"] = c.svg("Relab")  # ringed wordmark: the flask successor
 
-    return out
+def build_set(colors: dict) -> dict[str, str]:
+    """Build the SVG variants (mark, wordmark, logo)."""
+    mark = Composer(_letters()["upm"])
+    mark.glyph(load_glyphs(NINE_FONT), "9", colors["nine"], squish=NINE_SQUISH)
+    return {
+        "mark": mark.svg("Relab mark"),
+        "wordmark": _wordmark(colors).svg("Relab"),
+        "logo": _wordmark(colors, ringed=True).svg("Relab"),  # ringed wordmark: the flask successor
+    }
 
 
 def adaptive(svg: str) -> str:
@@ -190,20 +177,11 @@ def adaptive(svg: str) -> str:
     return svg.replace(">", f">{style}", 1)  # inject after the opening <svg> tag
 
 
-def og_svg(spec: dict, colors: dict) -> str:
+def og_svg(colors: dict) -> str:
     """Build a 1200x630 social card: centred wordmark over the tagline."""
-    nine = load_glyphs(FONTS / spec["nine_font"])
-    letters = load_glyphs(FONTS / spec["letter_font"], "R9lab" + TAGLINE)
-    base = letters["upm"]
-    nine_kw = {"squish": (spec["sx"], spec["sy"])}
-
-    wm = Composer(base)
-    wm.glyph(letters, "R", colors["letters"])
-    wm.glyph(nine, "9", colors["nine"], **nine_kw)
-    for ch in "lab":
-        wm.glyph(letters, ch, colors["letters"])
-
-    tag = Composer(base)
+    letters = _letters()
+    wm = _wordmark(colors)
+    tag = Composer(letters["upm"])
     for ch in TAGLINE:
         tag.glyph(letters, ch, colors["muted"])
 
@@ -229,11 +207,11 @@ def main() -> None:
     """
     mark_light = None
     for suffix, colors in (("", LIGHT), ("-dark", DARK)):
-        for variant, svg in build_set(SPEC, colors).items():
+        for variant, svg in build_set(colors).items():
             (ASSETS / f"r9lab-{variant}{suffix}.svg").write_text(svg)
             if variant == "mark" and not suffix:
                 mark_light = svg
-        (ASSETS / f"r9lab-og{suffix}.svg").write_text(og_svg(SPEC, colors))
+        (ASSETS / f"r9lab-og{suffix}.svg").write_text(og_svg(colors))
     (ASSETS / "r9lab-mark-adaptive.svg").write_text(adaptive(mark_light))
     sys.stdout.write("generated assets/r9lab-*.svg\n")
 

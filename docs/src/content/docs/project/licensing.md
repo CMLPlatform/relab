@@ -51,10 +51,8 @@ keeps a release usable for machine-learning work.
 The writing on this docs site and on the main site (pages, guides, explanations, diagrams) is
 CC BY 4.0. Quote it, translate it, teach from it, adapt it; credit Relab and say if you changed it.
 Copyleft obligations are about providing corresponding *source*, which means nothing for a
-paragraph.
-
-**Code samples** are the exception: they are Apache-2.0, the same licence as a client generated
-from the API specification. Creative Commons advises against covering software with a CC licence.
+paragraph. Code samples are the exception: they are Apache-2.0 (see above), because Creative Commons
+advises against covering software with a CC licence.
 
 ## Names and marks
 

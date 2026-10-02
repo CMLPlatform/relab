@@ -60,18 +60,8 @@ MATERIAL_RESOURCE = CategorizedReferenceSpec(
     expected_domains={TaxonomyDomain.MATERIALS},
     category_link_model=CategoryMaterialLink,
     category_link_parent_id=CategoryMaterialLink.material_id,
-    files=ParentMedia(
-        parent_model=Material,
-        parent_type=MediaParentType.MATERIAL,
-        storage_model=File,
-        storage_service=file_storage_service,
-    ),
-    images=ParentMedia(
-        parent_model=Material,
-        parent_type=MediaParentType.MATERIAL,
-        storage_model=Image,
-        storage_service=image_storage_service,
-    ),
+    files=ParentMedia(MediaParentType.MATERIAL, file_storage_service),
+    images=ParentMedia(MediaParentType.MATERIAL, image_storage_service),
 )
 
 PRODUCT_TYPE_RESOURCE = CategorizedReferenceSpec(
@@ -79,18 +69,8 @@ PRODUCT_TYPE_RESOURCE = CategorizedReferenceSpec(
     expected_domains={TaxonomyDomain.PRODUCTS},
     category_link_model=CategoryProductTypeLink,
     category_link_parent_id=CategoryProductTypeLink.product_type_id,
-    files=ParentMedia(
-        parent_model=ProductType,
-        parent_type=MediaParentType.PRODUCT_TYPE,
-        storage_model=File,
-        storage_service=file_storage_service,
-    ),
-    images=ParentMedia(
-        parent_model=ProductType,
-        parent_type=MediaParentType.PRODUCT_TYPE,
-        storage_model=Image,
-        storage_service=image_storage_service,
-    ),
+    files=ParentMedia(MediaParentType.PRODUCT_TYPE, file_storage_service),
+    images=ParentMedia(MediaParentType.PRODUCT_TYPE, image_storage_service),
 )
 
 

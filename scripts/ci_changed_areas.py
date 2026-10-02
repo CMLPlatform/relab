@@ -41,7 +41,7 @@ def changed_areas(event: str, paths: list[str]) -> set[str]:
 
 def outputs(areas: set[str]) -> dict[str, str]:
     """Map areas to the step outputs that ci.yml's job conditions and matrices read."""
-    web = [s for s in ("www", "app") if s in areas]
+    web = [s for s in ("www", "app", "docs") if s in areas]
     smoke = ["docker-smoke-app"] if "app" in areas else []
     codeql = []
     if "backend" in areas:
@@ -54,7 +54,6 @@ def outputs(areas: set[str]) -> dict[str, str]:
     return {
         "backend": str("backend" in areas).lower(),
         "www": str("www" in areas).lower(),
-        "docs": str("docs" in areas).lower(),
         "web": json.dumps(web),
         "smoke": json.dumps(smoke),
         "codeql": json.dumps(codeql),

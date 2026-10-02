@@ -25,7 +25,18 @@ databases, backups, or telemetry.
 
 `prod` and `staging` are separate OpenTofu workspaces with separate tunnels. The
 hostname map they share lives in `hostnames.tf`, which is symlinked into the zone root
-so both read one definition.
+so both read one definition. Current hostnames:
+
+- Production: `cml-relab.org`, `app.cml-relab.org`, `api.cml-relab.org`,
+  `docs.cml-relab.org`
+- Staging: `web-test.cml-relab.org`, `app-test.cml-relab.org`,
+  `api-test.cml-relab.org`, `docs-test.cml-relab.org`
+
+Tunnel origins use plain HTTP inside the private Compose `edge` network.
+
+Change Cloudflare configuration in OpenTofu, not in the dashboard. Use the dashboard for
+inspection, events, and emergency debugging. After an emergency dashboard edit, copy the change back
+into OpenTofu and run a plan before the next apply.
 
 ## Why two roots
 
@@ -78,26 +89,6 @@ rm ../cloudflare-zone/imports.tf
 Run `state rm` before the zone import, or two states briefly claim the same resources. A plan that
 proposes destroying a ruleset means the handover is unfinished. Do not apply it.
 
-Current hostnames:
-
-- Production: `cml-relab.org`, `app.cml-relab.org`, `api.cml-relab.org`,
-  `docs.cml-relab.org`
-- Staging: `web-test.cml-relab.org`, `app-test.cml-relab.org`,
-  `api-test.cml-relab.org`, `docs-test.cml-relab.org`
-
-Zone settings enforce TLS 1.2+, enable TLS 1.3, and redirect HTTP to HTTPS.
-Tunnel origins use plain HTTP inside the private Compose `edge` network.
-
-Rulesets:
-
-- `http_ratelimit`: repo-managed API rate limits.
-- `http_request_cache_settings`: repo-managed cache rules.
-- `http_request_firewall_custom`: repo-managed custom firewall rules.
-
-Change Cloudflare rules in this directory, not in the dashboard. Use the dashboard for inspection,
-events, and emergency debugging. After an emergency dashboard edit, copy the change back into
-OpenTofu and run a plan before the next apply.
-
 ## Commands
 
 Run from the repository root:
@@ -146,8 +137,8 @@ branch policy and the release-tag ruleset) and **Environments** (its variables) 
 write. `FEATURED_PRODUCT_ID` is left to the Environment's
 settings page: it is a content choice, not an edge setting.
 
-Keep them in one file outside the repo and source it; a half-set environment is the most common way
-these commands fail:
+Keep them in one file outside the repository and source it. A half-set environment is the most
+common way these commands fail:
 
 ```bash
 chmod 600 ~/.config/relab-cloudflare.env && . ~/.config/relab-cloudflare.env

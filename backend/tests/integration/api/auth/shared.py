@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import status
 
+from app.api.auth.models import OAuthAccount
 from app.api.auth.services.password_hashing import build_password_helper
 from scripts.seed.factories.models import UserFactory
 
@@ -54,6 +55,20 @@ async def create_password_user(db_session: AsyncSession, *, email: str, username
         hashed_password=hash_test_password(TEST_PASSWORD),
         **overrides,
     )
+
+
+async def link_google(db_session: AsyncSession, user: User, *, account_id: str = "provider-user-123") -> OAuthAccount:
+    """Link a Google sign-in to ``user`` and flush it."""
+    oauth_account = OAuthAccount(
+        user_id=user.id,
+        oauth_name="google",
+        access_token="access-token",  # test fixture value, not a credential
+        account_id=account_id,
+        account_email=user.email,
+    )
+    db_session.add(oauth_account)
+    await db_session.flush()
+    return oauth_account
 
 
 async def login_bearer(api_client: AsyncClient, *, email: str, password: str) -> dict[str, Any]:

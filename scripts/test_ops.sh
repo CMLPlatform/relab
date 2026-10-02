@@ -977,13 +977,13 @@ remote_deploy() {
 
 assert_eq "remote deploy: up forwards the migrations profile with YES" "just stack prod up YES migrations" "$(remote_deploy 'up migrations')"
 assert_eq "remote deploy: tag forwards a release tag with YES" "just stack prod tag YES 0.4.0" "$(remote_deploy 'tag 0.4.0')"
-assert_eq "remote deploy: tag without a tag is refused" "remote_deploy: tag needs an image tag like 0.4.0 or sha-5b099f3" "$(remote_deploy 'tag latest')"
+assert_eq "remote deploy: tag without a tag is refused" "error: expected an image tag like 0.4.0 or sha-5b099f3, got 'latest'" "$(remote_deploy 'tag latest')"
 assert_eq "remote deploy: migrate needs no argument" "just stack prod migrate YES" "$(remote_deploy migrate)"
 assert_eq "remote deploy: rollback takes a tag" "just stack prod rollback YES 0.3.2 " "$(remote_deploy 'rollback 0.3.2')"
-assert_eq "remote deploy: a shell command is refused" "remote_deploy: 'rm' is not allowed" "$(remote_deploy 'rm -rf /')"
-assert_eq "remote deploy: an unknown profile is refused" "remote_deploy: unknown profile 'scanning'" "$(remote_deploy 'up scanning')"
-assert_eq "remote deploy: rollback without a tag is refused" "remote_deploy: rollback needs an image tag like 0.4.0 or sha-5b099f3" "$(remote_deploy 'rollback abc')"
-assert_eq "remote deploy: rollback to base is refused" "remote_deploy: rollback revision must be a revision id or a -N step" "$(remote_deploy 'rollback 0.3.2 base')"
+assert_eq "remote deploy: a shell command is refused" "error: 'rm' is not allowed" "$(remote_deploy 'rm -rf /')"
+assert_eq "remote deploy: an unknown profile is refused" "error: unknown profile 'scanning'" "$(remote_deploy 'up scanning')"
+assert_eq "remote deploy: rollback without a tag is refused" "error: expected an image tag like 0.4.0 or sha-5b099f3, got 'abc'" "$(remote_deploy 'rollback abc')"
+assert_eq "remote deploy: rollback to base is refused" "error: rollback revision must be a revision id or a -N step" "$(remote_deploy 'rollback 0.3.2 base')"
 assert_eq "remote deploy: rollback to a revision id is allowed" "just stack prod rollback YES 0.3.2 4a672549f270" "$(remote_deploy 'rollback 0.3.2 4a672549f270')"
 assert_eq "remote deploy: rollback one step is allowed" "just stack prod rollback YES 0.3.2 -1" "$(remote_deploy 'rollback 0.3.2 -1')"
 

@@ -605,6 +605,26 @@ describe('ProductPage state handling', () => {
     expect(baseFormReturn.saveAndExit).not.toHaveBeenCalled();
   });
 
+  // The screen raises the moderation notice only while editing; viewing
+  // someone else's product is ordinary browsing.
+  it.each([
+    [true, 'shows'],
+    [false, 'hides'],
+  ])("with editMode %s, %s the notice on someone else's product", async (editMode, _verb) => {
+    mockUseProductForm.mockReturnValue({
+      ...baseFormReturn,
+      product: { ...baseProduct, id: 42, ownedBy: 'someone-else' },
+      editMode,
+    } as never);
+
+    await renderWithProviders(<ProductPage />, { withDialog: true });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('product-scroll')).toBeOnTheScreen();
+    });
+    expect(screen.queryByTestId('editing-others-product-notice') !== null).toBe(editMode);
+  });
+
   it('collapses the FAB when the product list is scrolled', async () => {
     await renderWithProviders(<ProductPage />, { withDialog: true });
 

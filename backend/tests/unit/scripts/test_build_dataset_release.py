@@ -203,7 +203,8 @@ def test_exif_violations_accepts_a_processed_photograph(tmp_path) -> None:
     back, and that pointer is structure rather than payload.
     """
     path = _write_photo(tmp_path / "photo.jpg")
-    process_image_for_storage(path)
+    with path.open("r+b") as image:
+        process_image_for_storage(image)
     assert exif_violations(path) == []
 
 

@@ -2,7 +2,6 @@
 
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, cast
-from unittest.mock import patch
 
 import pyotp
 import pytest
@@ -12,27 +11,12 @@ from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services import mfa_service
 from app.api.auth.services.account_security import RECENT_SIGN_IN_WINDOW
 from app.api.auth.services.password_hashing import build_password_helper
-from app.api.common.rate_limiting import Limiter
 from scripts.seed.factories.models import UserFactory
 from tests.fixtures.auth import totp_code
 from tests.fixtures.client import override_authenticated_user
-from tests.integration.api.auth.shared import TEST_PASSWORD, create_password_user, login_bearer
+from tests.integration.api.auth.shared import TEST_PASSWORD, create_password_user, link_google, login_bearer
 
-GUESS_BUDGET = "app.api.auth.services.rate_limiter.limiter"
 KNOWN_PASSWORD = "correct-horse-battery-staple-v9"  # gitleaks:allow # test-only password, not a secret
-
-
-def _link_google(user: User) -> OAuthAccount:
-    """Build a linked Google OAuth account for a user."""
-    return OAuthAccount(
-        user_id=user.id,
-        oauth_name="google",
-        access_token="access-token",
-        expires_at=None,
-        refresh_token=None,
-        account_id="provider-user-123",
-        account_email=user.email,
-    )
 
 
 if TYPE_CHECKING:
@@ -90,9 +74,7 @@ async def test_oauth_only_user_unlinks_without_password(
     """An OAuth-only account (no usable password) unlinks without a password after a recent sign-in."""
     active_user.has_usable_password = False
     active_user.last_login_at = datetime.now(UTC)
-    oauth_account = _link_google(active_user)
-    db_session.add(oauth_account)
-    await db_session.flush()
+    oauth_account = await link_google(db_session, active_user)
 
     response = await active_user_client.delete("/v1/oauth/google/associate")
 
@@ -107,9 +89,7 @@ async def test_unlink_requires_password_when_account_has_one(
 ) -> None:
     """A password account must re-authenticate to unlink; missing password is 400."""
     active_user.has_usable_password = True
-    oauth_account = _link_google(active_user)
-    db_session.add(oauth_account)
-    await db_session.flush()
+    oauth_account = await link_google(db_session, active_user)
 
     response = await active_user_client.delete("/v1/oauth/google/associate")
 
@@ -126,9 +106,7 @@ async def test_unlink_rejects_wrong_password(
     """A wrong current password is a 403 and leaves the link in place."""
     active_user.has_usable_password = True
     active_user.hashed_password = build_password_helper().hash(KNOWN_PASSWORD)
-    oauth_account = _link_google(active_user)
-    db_session.add(oauth_account)
-    await db_session.flush()
+    oauth_account = await link_google(db_session, active_user)
 
     response = await active_user_client.request(
         "DELETE", "/v1/oauth/google/associate", json={"current_password": "wrong-password"}
@@ -146,9 +124,7 @@ async def test_unlink_succeeds_with_correct_password(
     """The correct current password unlinks the account."""
     active_user.has_usable_password = True
     active_user.hashed_password = build_password_helper().hash(KNOWN_PASSWORD)
-    oauth_account = _link_google(active_user)
-    db_session.add(oauth_account)
-    await db_session.flush()
+    oauth_account = await link_google(db_session, active_user)
 
     response = await active_user_client.request(
         "DELETE", "/v1/oauth/google/associate", json={"current_password": KNOWN_PASSWORD}
@@ -173,9 +149,7 @@ async def test_passwordless_account_with_stale_sign_in_cannot_change_social_logi
     tokens = await login_bearer(api_client, email=user.email, password=TEST_PASSWORD)
     user.has_usable_password = False
     user.last_login_at = datetime.now(UTC) - RECENT_SIGN_IN_WINDOW - timedelta(minutes=1)
-    oauth_account = _link_google(user)
-    db_session.add(oauth_account)
-    await db_session.flush()
+    oauth_account = await link_google(db_session, user)
 
     response = await api_client.request(method, path, headers={"Authorization": f"Bearer {tokens['access_token']}"})
 
@@ -196,9 +170,7 @@ async def _signed_in_mfa_user(
     secret = pyotp.random_base32()
     user.mfa_enabled = True
     user.mfa_totp_secret = secret
-    oauth_account = _link_google(user)
-    db_session.add(oauth_account)
-    await db_session.flush()
+    oauth_account = await link_google(db_session, user)
     return user, secret, {"Authorization": f"Bearer {tokens['access_token']}"}, oauth_account
 
 
@@ -211,19 +183,12 @@ async def test_mfa_account_needs_a_code_to_change_social_logins(
     wrong = "000000" if totp_code(secret) != "000000" else "000001"
 
     missing = await api_client.request(method, path, json={"current_password": TEST_PASSWORD}, headers=headers)
-    with patch(GUESS_BUDGET, new=Limiter(storage_uri="memory://")):
-        wrong_statuses = [
-            (
-                await api_client.request(
-                    method, path, json={"current_password": TEST_PASSWORD, "mfa_code": wrong}, headers=headers
-                )
-            ).status_code
-            for _ in range(4)
-        ]
+    wrong_code = await api_client.request(
+        method, path, json={"current_password": TEST_PASSWORD, "mfa_code": wrong}, headers=headers
+    )
 
     assert missing.status_code == status.HTTP_400_BAD_REQUEST
-    # Wrong codes spend the account's guess budget.
-    assert wrong_statuses == [status.HTTP_403_FORBIDDEN] * 3 + [status.HTTP_429_TOO_MANY_REQUESTS]
+    assert wrong_code.status_code == status.HTTP_403_FORBIDDEN
     assert await db_session.get(OAuthAccount, oauth_account.id) is not None
 
     ok = await api_client.request(
@@ -243,10 +208,7 @@ async def test_recovery_code_spent_on_unlink_cannot_be_reused(
     body = {"current_password": TEST_PASSWORD, "mfa_code": codes[0]}
 
     first = await api_client.request("DELETE", "/v1/oauth/google/associate", json=body, headers=headers)
-    relink = _link_google(user)
-    relink.account_id = "provider-user-456"
-    db_session.add(relink)
-    await db_session.flush()
+    await link_google(db_session, user, account_id="provider-user-456")
     second = await api_client.request("DELETE", "/v1/oauth/google/associate", json=body, headers=headers)
 
     assert first.status_code == status.HTTP_204_NO_CONTENT

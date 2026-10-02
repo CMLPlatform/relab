@@ -1,5 +1,5 @@
 import type { ComponentProps, RefObject } from 'react';
-import { useCallback, useContext } from 'react';
+import { useContext } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
 import {
@@ -95,37 +95,22 @@ export function ProductPageContent({
   const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
 
   const missing = ownedByMe ? missingFields(product) : [];
-  const onPressMissingField = useCallback(
-    (field: MissingField) => {
-      if (field.target === 'gallery') {
-        scrollRef.current?.scrollTo({ y: 0, animated: true });
-        return;
-      }
-      // A section that view mode collapses (e.g. an empty Overview) has nothing to
-      // scroll to; edit mode is what shows it.
-      const sectionCtx = { mediaStreamable, hasResearchFiles, editMode, canEdit };
-      const rendered = guardedSections({ isProductComponent, isLab }).some(
-        (section) => section.key === field.target && isSectionShown(section, product, sectionCtx),
-      );
-      if (!editMode && !rendered) {
-        enterEditMode();
-        return;
-      }
-      anchoredNav?.scrollTo(field.target);
-    },
-    [
-      anchoredNav,
-      canEdit,
-      editMode,
-      enterEditMode,
-      hasResearchFiles,
-      isLab,
-      isProductComponent,
-      mediaStreamable,
-      product,
-      scrollRef,
-    ],
+  const shownSections = guardedSections({ isProductComponent, isLab }).filter((section) =>
+    isSectionShown(section, product, ctx),
   );
+  const onPressMissingField = (field: MissingField) => {
+    if (field.target === 'gallery') {
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
+    }
+    // A section that view mode collapses (e.g. an empty Overview) has nothing to
+    // scroll to; edit mode is what shows it.
+    if (!editMode && !shownSections.some((section) => section.key === field.target)) {
+      enterEditMode();
+      return;
+    }
+    anchoredNav?.scrollTo(field.target);
+  };
 
   const sectionProps: SectionRenderProps = {
     product,
@@ -184,24 +169,26 @@ export function ProductPageContent({
             saveStatus={saveStatus}
             onNameChange={onProductNameChange}
           />
-          <MissingFieldsNotice fields={missing} onPressField={onPressMissingField} />
+          <MissingFieldsNotice
+            fields={missing}
+            // biome-ignore lint/performance/noJsxPropsBind: `missing` is a new array every render, so a stable handler would not save a rerender.
+            onPressField={onPressMissingField}
+          />
           <SectionNavContext.Provider value={anchoredNav}>
-            {guardedSections({ isProductComponent, isLab })
-              .filter((section) => isSectionShown(section, product, ctx))
-              .map((section) => (
-                <Section
-                  key={section.key}
-                  title={section.label}
-                  sectionKey={section.key}
-                  isEmpty={section.isEmpty(product, ctx)}
-                  editMode={editMode}
-                  addLabel={section.addLabel}
-                  titleSuffix={section.titleSuffix?.(product)}
-                  tooltip={section.tooltip?.(product, editMode)}
-                >
-                  {section.render(sectionProps)}
-                </Section>
-              ))}
+            {shownSections.map((section) => (
+              <Section
+                key={section.key}
+                title={section.label}
+                sectionKey={section.key}
+                isEmpty={section.isEmpty(product, ctx)}
+                editMode={editMode}
+                addLabel={section.addLabel}
+                titleSuffix={section.titleSuffix?.(product)}
+                tooltip={section.tooltip?.(product, editMode)}
+              >
+                {section.render(sectionProps)}
+              </Section>
+            ))}
           </SectionNavContext.Provider>
           {/* Record metadata (dates, owner, id) is a footer, not a chunk of
               the record; keeping it out of the nav is what lets the chips

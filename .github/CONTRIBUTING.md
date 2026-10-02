@@ -20,46 +20,14 @@ By participating, you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Devcontainer Setup
 
-The recommended path if you use VS Code.
-
-### Requirements
-
-- [VS Code](https://code.visualstudio.com/)
-- [Docker Desktop](https://docs.docker.com/get-docker/)
-- [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-
-### First-Time Setup
+The recommended path if you use VS Code. You need
+[VS Code](https://code.visualstudio.com/), [Docker Desktop](https://docs.docker.com/get-docker/),
+and the
+[Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
 
 1. Clone the repository.
-
-1. Create local backend secret files.
-
-   ```bash
-   just deploy-secrets-template dev
-   ```
-
-   Create `backend/.env.dev` only when you need backend-only local overrides such as OAuth, email,
-   or bootstrap settings. Runtime secrets live in gitignored files under `secrets/dev/`. Local
-   PostgreSQL and Redis run through Docker Compose.
-
-1. Reopen the repo in the `relab-fullstack` devcontainer.
-
-1. Run the standard bootstrap path.
-
-   ```bash
-   just setup
-   just dev-db
-   just dev-migrate
-   just dev
-   ```
-
-1. Run the standard checks when you want to verify the repo state.
-
-   ```bash
-   just ci
-   ```
-
-### Available Configurations
+1. Reopen it in the `relab-fullstack` devcontainer.
+1. Follow [Docker Development](#docker-development) from inside the container.
 
 | Configuration     | Purpose                                            |
 | ----------------- | -------------------------------------------------- |
@@ -69,72 +37,15 @@ The recommended path if you use VS Code.
 | `relab-www`       | focused public site work                           |
 | `relab-docs`      | focused docs work                                  |
 
-### Forwarded Ports
-
-- API: <http://127.0.0.1:8010>
-- App frontend: <http://127.0.0.1:8011>
-- Docs: <http://127.0.0.1:8012>
-- Landing site: <http://127.0.0.1:8013>
-- PostgreSQL: `5432`
-- Redis: `6379`
+The dev stack publishes the API on <http://127.0.0.1:8010>, the app on 8011, the docs on 8012, and
+the landing site on 8013, plus PostgreSQL on `5432` and Redis on `6379`, all on localhost.
 
 ## Docker Development
 
-Runs the full stack without configuring each subrepo.
-
-1. Create local backend secret files.
-
-   ```bash
-   just deploy-secrets-template dev
-   ```
-
-   `backend/.env.dev` is optional backend-app-only local configuration. Root `.env` is for deploy
-   hosts, and runtime secrets live in `secrets/dev/`. A typical override file only contains
-   integration-facing values:
-
-   ```text
-   GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id
-   GITHUB_OAUTH_CLIENT_ID=github-oauth-client-id
-   EMAIL_PROVIDER=smtp
-   SMTP_HOST=smtp.example.com
-   SMTP_USERNAME=you@example.com
-   EMAIL_FROM=Your Name <you@example.com>
-   EMAIL_REPLY_TO=you@example.com
-   BOOTSTRAP_SUPERUSER_EMAIL=you@example.com
-   ```
-
-1. Install local tooling.
-
-   ```bash
-   just setup
-   ```
-
-1. Start the containerized database and cache.
-
-   ```bash
-   just dev-db
-   ```
-
-1. Run migrations.
-
-   ```bash
-   just dev-migrate
-   ```
-
-1. Start the stack with file watching.
-
-   ```bash
-   just dev
-   ```
-
-### Local Service URLs
-
-The services run on the same URLs as the [forwarded ports](#forwarded-ports) above.
-
-Docker development ports bind to localhost. To test the Expo app from another device over your
-LAN, run `just dev` from `app/` instead of using the Docker app service.
-
-### Useful Commands
+Runs the full stack without configuring each subrepo. Follow
+[Local Docker setup](https://docs.cml-relab.org/operations/install/#local-docker-setup) in the
+install guide: it covers the secret files, the optional `backend/.env.dev`, migrations, and the
+service URLs. Then:
 
 ```bash
 just dev-up       # start without file watching
@@ -144,18 +55,9 @@ just dev-down     # stop containers
 
 ## Local Development
 
-Work on one subrepo without Docker.
-
-### Root Setup
-
-Install:
-
-- [Git](https://git-scm.com/)
-- [uv](https://docs.astral.sh/uv/getting-started/installation)
-- [just](https://just.systems/man/en/) recommended
-- Node.js (version from `.tool-versions`) for the frontend subrepos
-
-Then run:
+Work on one subrepo without Docker. Install [Git](https://git-scm.com/),
+[uv](https://docs.astral.sh/uv/getting-started/installation), [just](https://just.systems/man/en/),
+and, for the frontend subrepos, Node.js at the version in `.node-version`. Then:
 
 ```bash
 git clone https://github.com/CMLPlatform/relab
@@ -163,21 +65,9 @@ cd relab
 just setup
 ```
 
-## Task Runner
-
-The repo uses [`just`](https://just.systems) as the common task runner.
-
-From the repo root:
-
-```bash
-just setup
-just ci
-just test
-just test-integration
-just security
-```
-
-Use `just --list` in any directory to see what is available there.
+Each subrepo README has its own quick start: [backend](../backend/README.md), [app](../app/README.md),
+[www](../www/README.md), and [docs](../docs/README.md). Run `just --list` in any directory to see its
+recipes.
 
 ## Tooling and Configuration
 
@@ -188,13 +78,13 @@ them current through the `repo-tooling` group.
 | Tool             | Pinned in                    | Read by                            |
 | ---------------- | ---------------------------- | ---------------------------------- |
 | Node.js          | `.node-version`              | `fnm` locally, CI setup            |
-| pnpm             | `package.json` packageManager | Corepack locally, CI setup        |
+| pnpm             | `package.json` packageManager | standalone pnpm locally, CI setup |
 | Python, uv, just | `.tool-versions`             | CI setup (uv manages Python)       |
 
-Node 25 dropped bundled Corepack, and `.node-version` pins a newer one, so a fresh install has
-no `pnpm` on PATH: `corepack enable` under that Node fails too. Install pnpm standalone
-(`curl -fsSL https://get.pnpm.io/install.sh | sh -`) and it reads the pinned `packageManager`
-version from `package.json` as usual.
+Node 25 dropped the bundled Corepack, and `.node-version` pins a newer Node, so a fresh install has
+no `pnpm` on PATH and `corepack enable` fails. Install pnpm standalone
+(`curl -fsSL https://get.pnpm.io/install.sh | sh -`); it reads the pinned `packageManager` version
+from `package.json`.
 
 Do not duplicate exact versions in docs unless a manifest or generated file requires it.
 
@@ -236,7 +126,7 @@ To run one test file or pattern, pass it through: `just backend/test tests/unit/
 `just app/test src/hooks`, or `just www/test src/lib`.
 
 For cross-repo or policy changes, also run `just ci` from the root. The root recipes form one
-ladder, cheapest first, each rung including the ones above it:
+ladder, cheapest first:
 
 | Recipe         | What it runs                                                                |
 | -------------- | --------------------------------------------------------------------------- |
@@ -247,12 +137,13 @@ ladder, cheapest first, each rung including the ones above it:
 | `just ci-full` | everything GitHub Actions runs: `ci` plus `audit`, `cloudflare-check`, `docker-smoke`, `test-e2e` |
 
 Pull requests also run `cloudflare-check`, the www E2E suite, and `docker-smoke`, so a green
-`just ci` can still leave a red PR check; `just ci-full` covers them. On a pull request, the subrepo
-jobs, their Docker smoke legs, and CodeQL languages run only for the subrepos the diff touches
-(`scripts/ci_changed_areas.py`); a change outside the four subrepos runs everything, as do pushes to
-`main`. It takes tens of minutes and
-needs Docker. Only CodeQL, Trivy, Scorecard, and dependency
-review stay GitHub-only; they scan built images or the repository itself and run on every push.
+`just ci` can still leave a red PR check. `just ci-full` covers them; it takes tens of minutes and
+needs Docker. Only CodeQL, Trivy, Scorecard, and dependency review stay GitHub-only: they scan built
+images or the repository itself.
+
+On a pull request, the subrepo jobs, their Docker smoke legs, and the CodeQL languages run only for
+the subrepos the diff touches (`scripts/ci_changed_areas.py`). A change outside the four subrepos
+runs everything, as does a push to `main`.
 
 ### Accessibility
 
@@ -290,61 +181,11 @@ Docker smoke already proves the images build, and base-image advisories move fas
 rebuild. After a merge a finding is reported without failing the run; the weekly and manual runs
 fail on it. Run `just security` before marking a pull request ready to get that signal early.
 
-## Backend Setup
+## Backend Development
 
-The backend lives in `backend/`.
-
-### Requirements
-
-- `uv`
-- Docker Compose for local PostgreSQL and Redis
-
-### Setup
-
-```bash
-cd backend
-uv sync --all-groups --frozen
-cd ..
-just deploy-secrets-template dev
-just dev-db
-just dev-migrate
-cd backend
-just dev
-```
-
-`ENVIRONMENT` is required; the backend fails fast if it is unset. `just dev` does not export it, so
-set `ENVIRONMENT=dev` in `backend/.env.dev` or export it in your shell before running `just dev`.
-
-The API is available at <http://127.0.0.1:8010>. Use `SEED_DUMMY_DATA=true just dev-migrate` when
-you want sample data. Create `backend/.env.dev` only when you need backend-only local overrides such
-as OAuth, email, or bootstrap settings.
-
-- Public API reference: <http://127.0.0.1:8012/api/public/>
-- Device API reference: <http://127.0.0.1:8012/api/device/>
-- Development/testing-only JSON contracts: <http://127.0.0.1:8010/openapi.json> and
-  <http://127.0.0.1:8010/openapi.admin.json>
-
-### OpenAPI Examples
-
-Keep examples centralized and predictable:
-
-- Domain-specific examples go in `examples.py` (e.g., `backend/app/api/data_collection/examples.py`)
-- Cross-domain examples go in `backend/app/api/common/openapi_examples.py`
-- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for
-  FastAPI named maps
-- In routers, pass examples via `openapi_examples=...` parameter
-- Update `backend/tests/integration/api/test_openapi_endpoints.py` when changing examples
-
-### Backend Test Architecture
-
-The backend suite is organized by execution cost:
-
-| Tier            | Path                               | When to use                                                             |
-| --------------- | ---------------------------------- | ----------------------------------------------------------------------- |
-| unit            | `backend/tests/unit/`              | pure logic with mocks/stubs only, no database or app lifespan           |
-| integration/db  | `backend/tests/integration/db/`    | behavior that depends on SQLAlchemy queries, migrations, or constraints |
-| integration/api | `backend/tests/integration/api/`   | HTTP behavior tested against the ASGI app; one behavior per test        |
-| flows           | `backend/tests/integration/flows/` | full multi-step cross-boundary scenarios                                |
+[backend/README.md](../backend/README.md) has the backend quick start, the migration commands, and
+the email templates. [backend/tests/README.md](../backend/tests/README.md) describes the test tiers
+and their fixtures:
 
 ```bash
 cd backend
@@ -355,61 +196,55 @@ just test-flows
 just test-ci
 ```
 
-Standard fixture names: `db_session`, `db_user`, `db_superuser`, `api_client`, `api_client_user`,
-`api_client_superuser`, `redis_client`.
+### OpenAPI Examples
 
-## Frontend Setup
+- Domain-specific examples go in `examples.py` (e.g., `backend/app/api/data_collection/examples.py`)
+- Cross-domain examples go in `backend/app/api/common/openapi_examples.py`
+- Use `*_EXAMPLE` for single payloads, `*_EXAMPLES` for schema lists, `*_OPENAPI_EXAMPLES` for
+  FastAPI named maps
+- In routers, pass examples via `openapi_examples=...` parameter
+- Update `backend/tests/integration/api/test_openapi_endpoints.py` when changing examples
 
-### `app`
+After backend API changes, run `just app/codegen` to regenerate the app's TypeScript types.
 
-```bash
-cd app
-pnpm install --frozen-lockfile
-just dev
-```
+### Schema Changes
 
-The Expo dev server runs on <http://127.0.0.1:8011>.
+Drop or rename a column one release after the code stops reading it, never in the same release.
+A code-only rollback runs the previous release's images against the current schema, so that schema
+must still hold everything the previous release reads. When a release does drop something the
+previous one reads, its upgrade notes and the rollback section of
+[deploy/DEPLOY-PROD.md](../deploy/DEPLOY-PROD.md) must name the revision a rollback has to
+downgrade to.
 
-If you are using a physical device or a non-default backend URL, create `app/.env.local` and set
-`EXPO_PUBLIC_API_URL`.
+The chain was flattened once, on 2026-09-08, into the single revision `a9c2e4f60b18`. Write new
+revisions on top of it as usual. A future flatten repeats the same recipe:
 
-To enable Google OAuth on web, set `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` in your env file to the web
-client ID from Google Cloud Console. The authorized redirect URI for your environment must also be
-registered there (e.g. `http://127.0.0.1:8011/login` for local dev).
+1. Keep the current head's revision id, so deployed databases stay at a revision that still
+   resolves.
+1. Replace the chain below it with one revision that builds the schema from scratch.
+1. Prove the result with a `pg_dump --schema-only` diff between a database built from the old chain
+   and one built from the new revision.
+1. Drop the data migrations rather than folding them in: a fresh build has no rows for them to
+   touch.
 
-### Regenerating API types
+## Frontend Development
 
-After backend API changes, regenerate the TypeScript types from the OpenAPI schema:
+- `app` uses Biome, ESLint for the React and accessibility rules, and TypeScript
+- `www` uses Biome and Astro validation
+- follow the existing folder structure and naming patterns
+- prefer consistency with the current UI and component patterns over novelty
 
-```bash
-cd app
-just codegen   # regenerate and redact embedded JWT examples
-```
+When adding a new public-facing page to `www`, add at least one browser test. When adding app
+behavior in `app`, add Jest coverage for the new logic or screen behavior. The
+[app](../app/README.md) and [www](../www/README.md) READMEs list their test commands.
 
-See [app/README.md](../app/README.md) for more options.
+## Docs Development
 
-### `www`
+- write plainly
+- avoid hype, filler, and brittle implementation detail
+- prefer Markdown and Mermaid over custom HTML
 
-```bash
-cd www
-pnpm install --frozen-lockfile
-just dev
-```
-
-The Astro dev server runs on <http://127.0.0.1:8013>. Use the numeric loopback host through VS Code
-Remote port forwarding; Firefox can be unreliable with forwarded `localhost` URLs.
-
-## Docs Setup
-
-### Docs Development
-
-```bash
-cd docs
-pnpm install --frozen-lockfile
-just dev
-```
-
-The docs site runs on <http://127.0.0.1:8012>.
+Before opening a docs pull request, run `just fix` and `just check` in `docs/`.
 
 ## Development Workflow
 
@@ -455,81 +290,6 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 1. Publish the draft. That creates the `v0.4.0` tag and starts `release.yml`, which publishes the
    images to GHCR and deploys the sites. Every job in the `staging` and `prod` GitHub Environments
    waits for a required reviewer: approve staging, check it, then approve prod.
-
-## Backend Development
-
-For code style, test commands, migration workflow, and email templates, see
-[backend/README.md](../backend/README.md).
-
-Drop or rename a column one release after the code stops reading it, never in the same release.
-A code-only rollback runs the previous release's images against the current schema, so that schema
-must still hold everything the previous release reads. When a release does drop something the
-previous one reads, its upgrade notes and the rollback section of
-[deploy/DEPLOY-PROD.md](../deploy/DEPLOY-PROD.md) must name the revision a rollback has to
-downgrade to.
-
-The chain was flattened once, on 2026-09-08, into the single revision `a9c2e4f60b18`.
-Write new revisions on top of it as usual. A future flatten repeats the same recipe: keep the
-current head's revision id so deployed databases stay at a revision that still resolves, replace
-the chain below it with one revision that builds the schema from scratch, prove the result with a
-`pg_dump --schema-only` diff between a database built from the old chain and one built from the
-new revision, and drop the data migrations rather than folding them in: a fresh build has no rows
-for them to touch.
-
-## Frontend Development
-
-### Frontend Code Style
-
-- `app` uses Expo linting and TypeScript-based tooling
-- `www` uses Biome and Astro validation
-- follow the existing folder structure and naming patterns
-- prefer consistency with the current UI and component patterns over novelty
-
-### Frontend Testing
-
-For `app`:
-
-```bash
-cd app
-just test
-just test-ci
-just check
-```
-
-For `www`:
-
-```bash
-cd www
-just test
-just test-ci
-just test-e2e
-just check
-```
-
-When adding a new public-facing page to `www`, add at least one browser test. When adding app
-behavior in `app`, add Jest coverage for the new logic or screen behavior.
-
-## Docs Development
-
-### Documentation Style
-
-- write plainly
-- avoid hype, filler, and brittle implementation detail
-- prefer Markdown and Mermaid over custom HTML
-
-Before opening a docs-focused PR:
-
-```bash
-cd docs
-just check
-```
-
-To apply formatting:
-
-```bash
-cd docs
-just fix
-```
 
 ## License
 

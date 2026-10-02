@@ -2,15 +2,19 @@
 
 import time
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pyotp
 import pytest
 
 from app.api.auth.roles import UserRole
 from app.api.auth.services.mfa_service import TOTP_DIGITS, TOTP_PERIOD_SECONDS
+from app.api.common.rate_limiting import Limiter
 from scripts.seed.factories.models import UserFactory
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
@@ -55,6 +59,13 @@ async def db_lab_user(db_session: AsyncSession) -> User:
         role=UserRole.LAB,
         refresh_instance=True,
     )
+
+
+@pytest.fixture
+def fresh_guess_budget() -> Iterator[None]:
+    """Give the per-account guess budget an empty in-memory limiter, enabled even where the client disables limits."""
+    with patch("app.api.auth.services.rate_limiter.limiter", new=Limiter(storage_uri="memory://")):
+        yield
 
 
 def totp_code(secret: str, *, for_time: int | None = None) -> str:

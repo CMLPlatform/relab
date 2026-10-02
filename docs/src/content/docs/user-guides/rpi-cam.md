@@ -47,8 +47,7 @@ Use this when automatic pairing is unavailable.
 
 ### Verify the registration
 
-- Open the camera detail screen in the app and check the connection status.
-- The status indicator should show "Online".
+- Open the camera detail screen in the app and check that the status shows "Online".
 - Run a test capture before relying on the setup for real product documentation.
 
 ## Using cameras during documentation
@@ -70,7 +69,6 @@ From the camera detail screen you can:
 
 ## Practical advice
 
-- Test the full setup before documenting a real product.
 - Name cameras after their physical workstation.
 - Keep device configuration notes outside the platform as well.
 
@@ -83,8 +81,3 @@ From the camera detail screen you can:
 - Look at the RPi plugin logs for WebSocket connection errors.
 - If the camera was intentionally unpaired or re-paired, confirm the current relay credentials are
   present on the Pi.
-
-## Device setup
-
-For device installation, deployment, and hardware details, see the
-[RPi camera plugin documentation](https://github.com/CMLPlatform/relab-rpi-cam-plugin).

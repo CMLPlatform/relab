@@ -5,13 +5,11 @@ import logging
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-import anyio
 import httpx
 import pytest
 from fastapi import FastAPI, Request
 from httpx import ASGITransport
 from redis.exceptions import ConnectionError as RedisConnectionError
-from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from app.api.auth.services.access_token_store import ACCESS_TOKEN_KEY_PREFIX, request_access_token_owner_id
 from app.api.common.rate_limiting import (
@@ -75,13 +73,13 @@ def test_sets_retry_after_from_the_window_reset() -> None:
     assert resp.headers["retry-after"] == "42"
 
 
-def test_hit_key_reports_seconds_until_the_window_resets() -> None:
+async def test_hit_key_reports_seconds_until_the_window_resets() -> None:
     """The rejection carries the time left in the current window, at least one second."""
     limiter = Limiter(storage_uri="memory://")
-    limiter.hit_key("1/minute", "bucket")
+    await limiter.ahit_key("1/minute", "bucket")
 
     with pytest.raises(RateLimitExceededError) as exc_info:
-        limiter.hit_key("1/minute", "bucket")
+        await limiter.ahit_key("1/minute", "bucket")
 
     assert exc_info.value.retry_after is not None
     assert 1 <= exc_info.value.retry_after <= 60
@@ -140,15 +138,6 @@ def limiter() -> Limiter:
     return Limiter(storage_uri="memory://")
 
 
-async def test_dependency_allows_requests_under_limit(limiter: Limiter) -> None:
-    """Requests within the defined limit should be allowed to proceed."""
-    check = limiter.dependency("5/minute").dependency
-    assert check is not None
-    req = _make_request()
-    for _ in range(5):
-        await check(req)
-
-
 async def test_dependency_raises_when_limit_exceeded(limiter: Limiter) -> None:
     """Requests beyond the defined limit should raise RateLimitExceededError."""
     check = limiter.dependency("2/minute").dependency
@@ -180,32 +169,32 @@ async def test_different_client_ips_have_separate_limits(limiter: Limiter) -> No
     await check(_make_request("203.0.113.2"))
 
 
-def test_hit_key_limits_explicit_non_request_buckets(limiter: Limiter) -> None:
+async def test_hit_key_limits_explicit_non_request_buckets(limiter: Limiter) -> None:
     """Explicit buckets support small auth-service checks without endpoint introspection."""
-    limiter.hit_key("1/minute", "auth:login:account:one")
+    await limiter.ahit_key("1/minute", "auth:login:account:one")
 
     with pytest.raises(RateLimitExceededError):
-        limiter.hit_key("1/minute", "auth:login:account:one")
+        await limiter.ahit_key("1/minute", "auth:login:account:one")
 
-    limiter.hit_key("1/minute", "auth:login:account:two")
+    await limiter.ahit_key("1/minute", "auth:login:account:two")
 
 
-def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
+async def test_limit_exceeded_log_uses_safe_bucket_key(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
     """Rate-limit logs should not include raw identifiers when callers use safe buckets."""
     raw_ip = "203.0.113.10"
     safe_key = rate_limit_bucket_key("auth:login:ip", raw_ip)
 
     caplog.set_level(logging.INFO, logger="app.api.common.rate_limiting")
-    limiter.hit_key("1/minute", safe_key)
+    await limiter.ahit_key("1/minute", safe_key)
 
     with pytest.raises(RateLimitExceededError):
-        limiter.hit_key("1/minute", safe_key)
+        await limiter.ahit_key("1/minute", safe_key)
 
     assert "auth:login:ip:" in caplog.text
     assert raw_ip not in caplog.text
 
 
-def test_hit_key_fails_open_on_redis_error(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
+async def test_hit_key_fails_open_on_redis_error(limiter: Limiter, caplog: pytest.LogCaptureFixture) -> None:
     """A Redis outage must fail open, not lock every caller out of auth endpoints."""
 
     class _RaisingStrategy:
@@ -217,46 +206,20 @@ def test_hit_key_fails_open_on_redis_error(limiter: Limiter, caplog: pytest.LogC
     limiter._limiter = _RaisingStrategy()  # ty: ignore[invalid-assignment]
 
     caplog.set_level(logging.WARNING, logger="app.api.common.rate_limiting")
-    limiter.hit_key("1/minute", "auth:login:account:one")  # must not raise
+    await limiter.ahit_key("1/minute", "auth:login:account:one")  # must not raise
 
     assert "failing open" in caplog.text
     assert "auth:login:account:one" in caplog.text
 
 
-def test_ahit_key_fails_open_on_redis_error(limiter: Limiter) -> None:
-    """The async entrypoint must fail open too, since it delegates to hit_key."""
-
-    class _RaisingStrategy:
-        def hit(self, *_args: object, **_kwargs: object) -> bool:
-            msg = "redis timed out"
-            raise RedisTimeoutError(msg)
-
-    # A minimal stand-in for the real strategy: only the failure path matters here.
-    limiter._limiter = _RaisingStrategy()  # ty: ignore[invalid-assignment]
-
-    anyio.run(limiter.ahit_key, "1/minute", "auth:login:account:two")  # must not raise
-
-
-async def test_dependency_limits_request_buckets(limiter: Limiter) -> None:
-    """FastAPI route dependencies should enforce request-scoped limits without wrapping endpoints."""
-    dependency = limiter.dependency("1/minute")
-    check = dependency.dependency
-    assert check is not None
-    req = _make_request()
-
-    await check(req)
-    with pytest.raises(RateLimitExceededError):
-        await check(req)
-
-
-def test_hit_key_without_consume_only_checks(limiter: Limiter) -> None:
+async def test_hit_key_without_consume_only_checks(limiter: Limiter) -> None:
     """consume=False reports an exhausted bucket but never spends from it."""
     for _ in range(5):
-        limiter.hit_key("1/minute", "auth:login:account:one", consume=False)
-    limiter.hit_key("1/minute", "auth:login:account:one")
+        await limiter.ahit_key("1/minute", "auth:login:account:one", consume=False)
+    await limiter.ahit_key("1/minute", "auth:login:account:one")
 
     with pytest.raises(RateLimitExceededError):
-        limiter.hit_key("1/minute", "auth:login:account:one", consume=False)
+        await limiter.ahit_key("1/minute", "auth:login:account:one", consume=False)
 
 
 # ---------------------------------------------------------------------------
@@ -296,29 +259,25 @@ async def _statuses(client: httpx.AsyncClient, count: int, headers: dict[str, st
     return [(await client.get("/limited", headers=headers)).status_code for _ in range(count)]
 
 
-async def test_signed_in_requests_use_the_per_user_budget(keyed_client: httpx.AsyncClient, redis_client: Redis) -> None:
-    """A valid bearer token is counted in the user's bucket at the per-user rate."""
-    bearer = {"Authorization": f"Bearer {await _issue_token(redis_client, 'user-a')}"}
+@pytest.mark.parametrize("credential", ["bearer", "cookie"])
+async def test_signed_in_requests_use_the_per_user_budget(
+    keyed_client: httpx.AsyncClient, redis_client: Redis, credential: str
+) -> None:
+    """A bearer token or session cookie is counted in its user's bucket at the per-user rate."""
 
-    assert await _statuses(keyed_client, 5, bearer) == [200, 200, 200, 200, 429]
-    # The user's traffic never touched the IP bucket.
+    async def sign_in(user_id: str) -> dict[str, str]:
+        token = await _issue_token(redis_client, user_id)
+        if credential == "cookie":
+            keyed_client.cookies.set(AUTH_COOKIE_NAME, token)
+            return {}
+        return {"Authorization": f"Bearer {token}"}
+
+    assert await _statuses(keyed_client, 5, await sign_in("user-a")) == [200, 200, 200, 200, 429]
+    # A second user behind the same IP gets a budget of its own.
+    assert await _statuses(keyed_client, 4, await sign_in("user-b")) == [200, 200, 200, 200]
+    # Neither user's traffic touched the IP bucket.
+    keyed_client.cookies.clear()
     assert await _statuses(keyed_client, 2) == [200, 200]
-
-
-async def test_session_cookie_is_keyed_per_user(keyed_client: httpx.AsyncClient, redis_client: Redis) -> None:
-    """Browser sessions resolve through the auth cookie the same way bearer tokens do."""
-    keyed_client.cookies.set(AUTH_COOKIE_NAME, await _issue_token(redis_client, "user-a"))
-
-    assert await _statuses(keyed_client, 5) == [200, 200, 200, 200, 429]
-
-
-async def test_two_users_on_one_ip_do_not_share_a_bucket(keyed_client: httpx.AsyncClient, redis_client: Redis) -> None:
-    """Two signed-in users behind the same IP each get their own budget."""
-    user_a = {"Authorization": f"Bearer {await _issue_token(redis_client, 'user-a')}"}
-    user_b = {"Authorization": f"Bearer {await _issue_token(redis_client, 'user-b')}"}
-
-    assert await _statuses(keyed_client, 5, user_a) == [200, 200, 200, 200, 429]
-    assert await _statuses(keyed_client, 4, user_b) == [200, 200, 200, 200]
 
 
 async def test_anonymous_requests_stay_per_ip(keyed_client: httpx.AsyncClient) -> None:

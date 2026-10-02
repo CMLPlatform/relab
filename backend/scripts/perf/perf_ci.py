@@ -48,9 +48,11 @@ def _has_scenario(metrics: dict[str, Any], scenario: str) -> bool:
 
 
 def _threshold_pattern(scenario: str) -> str:
-    # Matches both styles the script uses: `"metric{...}": ["p(95)<N"]` in the
-    # literal and `thresholds["metric{...}"] = ["p(95)<N"]` for gated scenarios.
-    return rf'({_latency_metric(scenario)}\{{scenario:{scenario}\}}"(?:\]? =|:) \["p\(95\)<)(\d+)("\])'
+    # HTTP scenarios set their ceiling through `gate("scenario", N)`; the others assign
+    # `thresholds["metric{scenario:...}"] = ["p(95)<N"]` directly.
+    if scenario in SCENARIO_METRICS:
+        return rf'({SCENARIO_METRICS[scenario]}\{{scenario:{scenario}\}}"\] = \["p\(95\)<)(\d+)("\])'
+    return rf'(gate\("{scenario}", )(\d+)(\))'
 
 
 # --- threshold refresh ------------------------------------------------------

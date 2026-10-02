@@ -1,58 +1,39 @@
 # Relab Backups
 
-One restic-based workflow serves production and staging. The backup container creates:
+One restic-based workflow serves production and staging. Each backup run creates:
 
-- a logical PostgreSQL dump with `pg_dump` using `DATABASE_BACKUP_USER`
-- a restic snapshot of that dump tagged `postgres`
-- a restic snapshot of uploaded files tagged `user-uploads`
+- a logical PostgreSQL dump with `pg_dump`, as `DATABASE_BACKUP_USER`
+- a restic snapshot of that dump, tagged `postgres`
+- a restic snapshot of the uploaded files, tagged `user-uploads`
 
-The restic repository is encrypted with `RESTIC_PASSWORD` / `RESTIC_PASSWORD_FILE`.
+The restic repository lives under `$BACKUP_HOST_DIR/restic` and is encrypted with `RESTIC_PASSWORD`
+or `RESTIC_PASSWORD_FILE`.
 
-## Runtime
+## Running backups
 
-The deploy overlay exposes the `relab-backup` service behind the `backups` profile:
+`just stack <env> up` does not start backups. The `backup` service in `compose.deploy.yaml` is a
+one-shot container that a systemd timer runs every hour (`just timers-install <env>`). To run one
+cycle now:
 
 ```bash
-just stack prod up YES backups
-just stack staging up YES backups
+just backup prod
 ```
 
-Backups are stored under:
+The Compose service reads `BACKUP_HOST_DIR` from the root `.env` (default `./backups`). Shell helpers
+such as `just restore-check` read exported environment variables instead, so export
+`BACKUP_HOST_DIR` first for a non-default path.
 
-```text
-$BACKUP_HOST_DIR/restic
-```
-
-The Compose service reads `BACKUP_HOST_DIR` from the root `.env` (default `./backups`). Shell
-helpers such as `just restore-check` read exported environment variables instead; export
-`BACKUP_HOST_DIR` first for a non-default path. Never put real secrets under `deploy/`.
-
-## Required Secrets
-
-Run `just deploy-secrets-template prod` (or `staging`) to create the missing secret files, then
-replace the placeholder values. `just deploy-secrets-check` verifies that rendered Compose secrets
-point at the expected `secrets/<env>/` files.
-
-## Restore Smoke Test
-
-From the repo root, restore the latest database dump into a disposable Postgres container:
+## Restore check
 
 ```bash
 just restore-check prod
 ```
 
-This restores the latest `postgres` snapshot with `pg_restore` and verifies `SELECT 1` plus the
-`public.alembic_version` table.
+This restores the latest `postgres` snapshot into a disposable PostgreSQL container and checks that
+it loads at the expected Alembic head. It also restores the latest `user-uploads` snapshot into a
+scratch directory and checks that it holds files.
 
-## Optional Offsite Copy
+## Setup, secrets, and offsite copies
 
-The local restic repository is the primary restore point. Write one rclone remote into
-`secrets/<env>/rclone.conf` and the maintenance run copies snapshots to `rclone:<remote>:`; on
-demand:
-
-```bash
-just backup-offsite-copy staging
-```
-
-Do not mirror the raw repository directory with rsync or rclone. Use `restic copy`; rclone is only
-restic's transport.
+The install guide (`docs/src/content/docs/operations/install.md`) covers the first backup, the
+secret files, the timers, and the optional offsite copy.

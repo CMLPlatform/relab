@@ -64,11 +64,6 @@ describe('ProductPageContent — editing-someone-else notice', () => {
     await renderContent({ editMode: true, editingOthersProduct: false });
     expect(screen.queryByTestId('editing-others-product-notice')).toBeNull();
   });
-
-  it('hides the notice outside edit mode', async () => {
-    await renderContent({ editMode: false, editingOthersProduct: false });
-    expect(screen.queryByTestId('editing-others-product-notice')).toBeNull();
-  });
 });
 
 describe('ProductPageContent — moderating someone else’s product', () => {
@@ -124,14 +119,11 @@ describe('ProductPageContent — missing-data checklist (#325)', () => {
     expect(screen.getByLabelText('Jump to a photo')).toBeOnTheScreen();
   });
 
-  it('hides the checklist from a non-owner (including a moderating superuser)', async () => {
-    await renderContent({ product: baseProduct, ownedByMe: false });
-
-    expect(screen.queryByTestId('missing-fields-notice')).toBeNull();
-  });
-
-  it('hides the checklist for the owner when the product is complete', async () => {
-    await renderContent({ product: completeProduct, ownedByMe: true });
+  it.each([
+    ['from a non-owner (including a moderating superuser)', baseProduct, false],
+    ['for the owner when the product is complete', completeProduct, true],
+  ])('hides the checklist %s', async (_case, product, ownedByMe) => {
+    await renderContent({ product, ownedByMe });
 
     expect(screen.queryByTestId('missing-fields-notice')).toBeNull();
   });

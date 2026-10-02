@@ -42,10 +42,12 @@ Protection requirements:
 Three independent attributes decide what an account may do; each is enforced separately:
 
 - `is_verified`: whether the account may create records at all.
-- `is_superuser`: access to the `/admin` routes, and moderating any contributor's products: a superuser can correct the details of and delete any contributor's products and media, but cannot add content to them (no uploads, components or materials). Every such action is audited. Every superuser power, the `/admin` routes included, needs TOTP MFA enrolled on the account; without it a superuser is refused on `/admin` and treated as an ordinary user elsewhere. Superusers always hold the `lab` tier.
-- `role`: the contributor tier, `contributor` (default) or `lab`. It gates non-image research-file upload and selects the upload quota tier.
+- `is_superuser`: access to the `/admin` routes, and moderating any contributor's products: a superuser can correct the details of and delete any contributor's products and media, but cannot add content to them (no uploads, components or materials). Every such action is audited. Every superuser power, the `/admin` routes included, needs TOTP MFA enrolled on the account (`User.has_admin_access`); without it a superuser is refused on `/admin` and treated as an ordinary user elsewhere. Superusers always hold the `lab` tier, so an administrator can exercise every upload path: the `ck_user_superuser_is_lab` constraint enforces it, and the role route refuses to demote a superuser.
+- `role`: the contributor tier, `contributor` (default) or `lab`. It gates non-image research-file upload and selects the upload quota tier, which is charged to the product owner. It also selects the per-image size and pixel caps, which follow the uploader so the app can fit photos to them.
 
-Only a superuser sets roles, through `PUT /v1/admin/users/{user_id}/role`; every change is audit-logged. The self-service update schema has no `role` field, so `PATCH /users/me` cannot reach it. New accounts, and every account backfilled when roles were introduced, start at `contributor`.
+Treating any two of these as one is a privilege escalation.
+
+Only a superuser sets roles, through `PUT /v1/admin/users/{user_id}/role`; every change is audit-logged. The self-service update schema has no `role` field, so `PATCH /users/me` cannot reach it. New accounts, and every account backfilled when roles were introduced, start at `contributor`, so the tier fails closed.
 
 Clients hide affordances the role cannot use (the app renders its research-file block for lab accounts only), but the route dependency is the control: it refuses the request whatever the client displayed.
 
@@ -61,7 +63,7 @@ The catch-all exception handler logs internal details and stack traces for opera
 
 ## Inbound edge
 
-Production and staging are HTTPS-only behind Cloudflare Tunnel. `infra/cloudflare/` holds the per-environment DNS records, public hostnames, tunnel ingress rules, and the Workers custom domains of the landing page and docs; `infra/cloudflare-zone/` holds the zone-wide TLS minimums, HTTPS redirects, and rulesets. Edge rate limiting covers the authentication endpoints only. Upload and RPi camera limits live in the application's Redis-backed limiters, which fail open when Redis is unreachable; the per-user upload quota is then the remaining bound.
+Production and staging are HTTPS-only behind Cloudflare Tunnel. `infra/cloudflare/` holds the per-environment DNS records, public hostnames, tunnel ingress rules, and the Workers custom domains of the landing page and docs; `infra/cloudflare-zone/` holds the zone-wide TLS minimums, HTTPS redirects, and rulesets. The edge rules rate-limit `/v1/auth/*` per client IP, challenge authentication calls from high-risk countries, and block admin calls from them. Edge rate limiting covers the authentication endpoints only. Upload and RPi camera limits live in the application's Redis-backed limiters, which fail open when Redis is unreachable; the per-user upload quota is then the remaining bound.
 
 The application's read, write, and upload limits key anonymous requests per client IP (300, 120, and 30 a minute). A request carrying a live access token is keyed per user instead, at 1500, 600, and 300 a minute: a workshop of about 50 people often shares one demo account behind one IP, so a single user bucket has to carry the room. The token only selects the bucket; an unknown or expired token falls back to the IP bucket. The limits are the `API_*_RATE_LIMIT` and `API_*_RATE_LIMIT_PER_USER` settings. Signed-in exports also count against a per-IP ceiling (`API_EXPORT_RATE_LIMIT_SIGNED_IN_PER_IP`, 90 a minute), so throwaway accounts on one IP cannot each claim a fresh export budget. A `429` from these limiters carries `Retry-After` with the seconds left in the current window. The edge rule still counts every `/v1/auth/` request per IP (10 per 10 seconds), so a room signing in within the same few seconds sees brief 429s from the edge and succeeds on retry.
 
@@ -69,14 +71,7 @@ Unknown tunnel hostnames fall through to a final `http_status:404` rule. Compose
 
 ## Network boundaries
 
-Compose networks segment the deploy stack:
-
-- public-facing services use the `edge` network
-- PostgreSQL, Redis, migrations, and backups use the internal `data` network
-- ClamAV scanning uses the private `scanning` network
-- only the API bridges the networks it needs
-
-PostgreSQL and Redis publish no host ports in prod or staging. The defaults are `DATABASE_TLS=false` and `REDIS_TLS=false`. If either service moves to an external host, managed service, or other untrusted network, set `DATABASE_TLS=true` or `REDIS_TLS=true`, and set the matching CA file variable for a private CA.
+Compose networks segment the deploy stack: public-facing services on `edge`, data services on the internal `data` network, and ClamAV on the private `scanning` network. Only the API bridges them, and no service publishes a host port in prod or staging. [Deployment and operations](/operations/deployment/#network-segmentation-policy) has the per-service table and the database and Redis TLS settings.
 
 ## Backend egress
 
@@ -86,7 +81,7 @@ Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with 
 
 ## Denial-of-service controls
 
-Cloudflare handles volumetric attacks. Source-controlled edge rules rate-limit `/v1/auth/*` per client IP, challenge authentication calls from high-risk countries, and block admin calls from them. Uploads, RPi camera traffic, and WebSocket connections are bounded by the application, as below.
+Cloudflare handles volumetric attacks, and the source-controlled edge rules cover authentication and admin calls ([Inbound edge](#inbound-edge)). The application bounds uploads, RPi camera traffic, and WebSocket connections, as below.
 
 The expensive paths are media uploads, image processing and thumbnails, malware scanning, file cleanup, backups, OpenAPI generation, YouTube API calls, and RPi camera relay and HLS traffic. The backend bounds them with JSON streaming limits, multipart upload caps, file format allowlists, user upload quotas, Redis-backed route rate limits, image worker limits, ClamAV scan timeouts, bounded outbound HTTP timeouts and retries, WebSocket authentication and frame limits, and relay commands that fast-fail for cameras without a live heartbeat.
 
@@ -111,7 +106,7 @@ The Expo web app requires inline and eval-style first-party script support in th
 
 ## Supply chain
 
-GitHub Dependency Review and Dependency Graph gate dependency changes; Renovate opens update PRs. `just audit` runs a full-tree vulnerability sweep. When an upstream package pins a vulnerable transitive version, a scoped `overrides:` entry in `pnpm-workspace.yaml` lifts it; `just overrides-check` runs weekly and flags any override the tree no longer needs.
+GitHub Dependency Review and Dependency Graph gate dependency changes; Renovate opens update PRs. `just audit` runs a full-tree vulnerability sweep. When an upstream package pins a vulnerable transitive version, a scoped `overrides:` entry in `pnpm-workspace.yaml` lifts it; each entry names the parent package to watch and is dropped once that parent moves past the vulnerable version.
 
 The security workflow builds deployable Compose images, scans them with Trivy, and stores SPDX JSON SBOM artifacts for 90 days. Release automation builds the deployable images, scans them with Trivy before pushing them to GHCR, attests each image's SPDX SBOM against its digest, and uploads the SBOM files and their attestation bundles with the GitHub release. The deploy hosts pull those images and never build their own.
 

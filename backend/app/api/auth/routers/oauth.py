@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import BackgroundTasks, Body, Depends, status
 
 from app.api.auth.dependencies import CurrentActiveUserDep, UserManagerDep
-from app.api.auth.schemas import OAuthStepUpRequest
+from app.api.auth.schemas import StepUpRequest
 from app.api.auth.services.oauth import accounts as oauth_accounts
 from app.api.auth.services.oauth.routes import (
     PUBLIC_OAUTH_CALLBACK_PREFIX,
@@ -29,7 +29,7 @@ async def remove_oauth_association(
     user_manager: UserManagerDep,
     background_tasks: BackgroundTasks,
     redis: RedisDep,
-    payload: Annotated[OAuthStepUpRequest | None, Body()] = None,
+    payload: Annotated[StepUpRequest | None, Body()] = None,
 ) -> None:
     """Remove a linked OAuth account (password and MFA step-up where the account has them)."""
     current_password = payload.current_password.get_secret_value() if payload and payload.current_password else None

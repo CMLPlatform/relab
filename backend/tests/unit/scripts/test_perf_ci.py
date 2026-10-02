@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 
 def test_apply_thresholds_rewrites_both_threshold_styles(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Literal and gated thresholds are refreshed, including the WebSocket connect metric."""
+    """Gated and directly assigned thresholds are refreshed, including the WebSocket connect metric."""
     summary = tmp_path / "summary.json"
     summary.write_text(
         json.dumps(
@@ -27,8 +27,8 @@ def test_apply_thresholds_rewrites_both_threshold_styles(tmp_path: Path, monkeyp
     )
     target = tmp_path / "k6-baseline.js"
     target.write_text(
-        '  "http_req_duration{scenario:live_probe}": ["p(95)<100"],\n'
-        'thresholds["http_req_duration{scenario:rpi_cam_telemetry_relay}"] = ["p(95)<100"];\n'
+        'gate("live_probe", 100);\n'
+        '  gate("rpi_cam_telemetry_relay", 100);\n'
         'thresholds["ws_connecting{scenario:rpi_cam_ws_connect}"] = ["p(95)<100"];\n'
     )
     monkeypatch.setattr(perf_ci, "SUMMARY_PATH", summary)
@@ -37,7 +37,7 @@ def test_apply_thresholds_rewrites_both_threshold_styles(tmp_path: Path, monkeyp
     perf_ci.apply_thresholds(5.0)
 
     assert target.read_text() == (
-        '  "http_req_duration{scenario:live_probe}": ["p(95)<100"],\n'
-        'thresholds["http_req_duration{scenario:rpi_cam_telemetry_relay}"] = ["p(95)<200"];\n'
+        'gate("live_probe", 100);\n'
+        '  gate("rpi_cam_telemetry_relay", 200);\n'
         'thresholds["ws_connecting{scenario:rpi_cam_ws_connect}"] = ["p(95)<800"];\n'
     )

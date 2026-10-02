@@ -117,9 +117,8 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
     ) -> FileReadWithinParent:
         item = await create_parent_media(
             session,
+            spec.files,
             parent_id=item_id,
-            parent_type=spec.files.parent_type,
-            storage_service=spec.files.storage_service,
             # Superuser-only routes, and every superuser holds the lab tier.
             caps_role=UserRole.LAB,
             item_data=FileCreate(
@@ -136,15 +135,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         file_id: Annotated[UUID4, Path(description="ID of the file")],
         session: AsyncSessionDep,
     ) -> None:
-        await delete_parent_media(
-            session,
-            parent_model=spec.files.parent_model,
-            parent_type=spec.files.parent_type,
-            storage_model=spec.files.storage_model,
-            parent_id=item_id,
-            item_id=file_id,
-            storage_service=spec.files.storage_service,
-        )
+        await delete_parent_media(session, spec.files, parent_id=item_id, item_id=file_id)
 
     async def upload_image(
         item_id: media_id_path,
@@ -162,9 +153,8 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
     ) -> ImageReadWithinParent:
         item = await create_parent_media(
             session,
+            spec.images,
             parent_id=item_id,
-            parent_type=spec.images.parent_type,
-            storage_service=spec.images.storage_service,
             # Superuser-only routes, and every superuser holds the lab tier.
             caps_role=UserRole.LAB,
             item_data=reference_image_create(
@@ -182,15 +172,7 @@ def build_categorized_admin_router(  # noqa: C901 # linear factory: nine small e
         image_id: Annotated[UUID4, Path(description="ID of the image")],
         session: AsyncSessionDep,
     ) -> None:
-        await delete_parent_media(
-            session,
-            parent_model=spec.images.parent_model,
-            parent_type=spec.images.parent_type,
-            storage_model=spec.images.storage_model,
-            parent_id=item_id,
-            item_id=image_id,
-            storage_service=spec.images.storage_service,
-        )
+        await delete_parent_media(session, spec.images, parent_id=item_id, item_id=image_id)
 
     # Register with per-resource names/docstrings so operation ids (and thus
     # generated client method names) match the previous hand-written routers.

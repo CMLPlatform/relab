@@ -17,14 +17,9 @@ from app.api.auth.exceptions import (
     OAuthInvalidStateError,
 )
 from app.api.auth.models import OAuthAccount, User
-from app.api.auth.schemas import OAuthStepUpRequest
-from app.api.auth.services.account_security import (
-    require_recent_sign_in,
-    require_step_up_fields,
-    require_step_up_password,
-)
+from app.api.auth.schemas import StepUpRequest
 from app.api.auth.services.email.service import send_oauth_link_changed_notification
-from app.api.auth.services.mfa_flow import require_mfa_step_up
+from app.api.auth.services.mfa_flow import require_step_up
 from app.api.auth.services.oauth.base import (
     OAuthFlowConfig,
     authorize_callback_dependency,
@@ -32,7 +27,6 @@ from app.api.auth.services.oauth.base import (
     create_oauth_result_redirect,
     verify_oauth_state,
 )
-from app.api.auth.services.rate_limiter import account_guess_budget
 from app.api.auth.services.user_manager import UserManager, fastapi_user_manager
 from app.core.redis import RedisDep
 
@@ -126,7 +120,7 @@ def build_oauth_associate_router(
         user: Annotated[User, Depends(get_current_active_user)],
         user_manager: Annotated[UserManager, Depends(fastapi_user_manager.get_user_manager)],
         redis: RedisDep,
-        payload: Annotated[OAuthStepUpRequest | None, Body()] = None,
+        payload: Annotated[StepUpRequest | None, Body()] = None,
     ) -> OAuth2AuthorizeResponse:
         # Every provider, the YouTube data-scope client included: the link is stored
         # under ``oauth_client.name`` ("google" for both), which login matches on, so any
@@ -134,22 +128,14 @@ def build_oauth_associate_router(
         current_password = payload.current_password.get_secret_value() if payload and payload.current_password else None
         mfa_code = payload.mfa_code if payload else None
         # The app probes without a password to learn whether one is needed; that costs no guess.
-        require_step_up_fields(user, current_password=current_password, mfa_code=mfa_code, action="link a social login")
-        async with account_guess_budget(user.id):
-            require_step_up_password(
-                password_helper=user_manager.password_helper,
-                user=user,
-                current_password=current_password,
-                action="link a social login",
-            )
-            await require_mfa_step_up(
-                mfa_code,
-                user=user,
-                redis=redis,
-                action="link a social login",
-                user_manager=user_manager,
-            )
-        require_recent_sign_in(user)
+        await require_step_up(
+            user,
+            user_manager=user_manager,
+            redis=redis,
+            current_password=current_password,
+            mfa_code=mfa_code,
+            action="link a social login",
+        )
         return await build_authorize_response(
             config,
             request,

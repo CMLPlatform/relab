@@ -13,16 +13,14 @@ WRANGLER_SEND_METRICS=false pnpm exec wrangler dev --ip 127.0.0.1 --port "$port"
 server=$!
 trap 'kill "$server" 2>/dev/null || true; rm -f "$log"' EXIT
 
-for _ in $(seq 60); do
-    curl -sf -o /dev/null "$url/" && break
-    sleep 1
-done
-
 fail() {
     echo "check_site_headers: $1" >&2
     cat "$log" >&2
     exit 1
 }
+
+curl -sf --retry 60 --retry-delay 1 --retry-connrefused -o /dev/null "$url/" \
+    || fail "wrangler dev did not answer on $url within a minute"
 
 require_headers() {
     local path="$1" status="$2" headers

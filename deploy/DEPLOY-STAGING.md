@@ -1,7 +1,5 @@
 # Operating the staging host
 
-Everything needed to run staging.
-
 Staging shares `compose.deploy.yaml` with production, so this doubles as the rehearsal for
 [DEPLOY-PROD.md](DEPLOY-PROD.md): a step that has only ever run on prod has never been tested.
 
@@ -16,13 +14,12 @@ Then fill in `PING_WATCHDOG` in `/etc/relab/relab.env` with staging's own health
 Do not reuse prod's: a shared check cannot tell you which host went quiet. See
 [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.2.
 
-Set telemetry the same way as prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5):
-`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTLP_AUTH_TOKEN`, `TELEMETRY_EDGE_KEY` and
-`OTEL_EXPORTER_OTLP_PROTOCOL` in the root `.env`. Staging and prod may share the collector; the
-`env` resource attribute, which Compose derives from `ENVIRONMENT`, separates them.
+Set telemetry the same way as prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5). Staging and prod
+may share the collector; the `env` resource attribute, which Compose derives from `ENVIRONMENT`,
+separates them.
 
-Staging needs **its own** `./bootstrap.sh relab staging` run on the monitoring host. Prod's rule
-matches `env="prod"` and will not notice staging going quiet. Run it in the same change that turns
+Staging needs **its own** `./bootstrap.sh relab staging` run on the monitoring host: prod's rule
+matches `env="prod"` and does not notice staging going quiet. Run it in the same change that turns
 telemetry on; this host cannot tell you the rule is missing.
 
 Staging's `rclone.conf` defines one remote, `surfdrive_staging`, a SURFdrive share link scoped to
@@ -42,10 +39,10 @@ just stack staging up YES migrations
 
 The images come from GHCR: a release publishes them, and running the Publish Images workflow by
 hand on any commit publishes that commit as `sha-<short sha>`. Check the tag's provenance from the
-dev host before `tag` pulls it: `just images-verify staging <tag>`. With a restricted deploy key
-set up as for prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.6), `just deploy staging <tag>` on
-the dev host does the check and the `tag` step in one go (`RELAB_DEPLOY_HOST` names the ssh alias
-when it is not `relab-staging`).
+dev host before `tag` pulls it: `just images-verify staging <tag>`. With a restricted deploy key set
+up as for prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.6), `just deploy staging <tag>` on the dev
+host runs the check and the `tag` step together. `RELAB_DEPLOY_HOST` names the ssh alias when it is
+not `relab-staging`.
 
 ClamAV starts unless `MALWARE_SCAN_ENABLED=false` in the root `.env`. It needs 3–4 GiB; staging can
 run without it if the host is short on RAM.

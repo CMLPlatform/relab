@@ -13,12 +13,13 @@ import { useAppTheme } from '@/theme/appThemeContext';
 import type { CPVCategory } from '@/types/CPVCategory';
 import { entityLabel, type Product, typeRowLabels } from '@/types/Product';
 
+const linkStyle = ({ pressed }: PressableStateCallbackType) => [
+  styles.link,
+  pressed && { opacity: 0.5 },
+];
+
 function ViewProductsOfTypeLink({ typeName, onPress }: { typeName: string; onPress: () => void }) {
   const { colors } = useAppTheme();
-  const linkStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [styles.link, pressed && { opacity: 0.5 }],
-    [],
-  );
 
   return (
     <Pressable

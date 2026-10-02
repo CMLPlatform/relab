@@ -2,14 +2,9 @@ import elkLayouts from '@mermaid-js/layout-elk';
 
 let mermaidRenderPromise: Promise<void> | undefined;
 let activeMermaidTheme = '';
-let mermaidModulePromise: Promise<typeof import('mermaid')> | undefined;
-let mermaidLayoutsRegistered = false;
+let mermaidPromise: Promise<typeof import('mermaid').default> | undefined;
 const BOM_PATTERN = /^\uFEFF/;
 const TRAILING_WHITESPACE_PATTERN = /[ \t]+$/g;
-
-const reportMermaidError = (error: unknown) => {
-  reportError(error instanceof Error ? error : new Error(String(error)));
-};
 
 /**
  * Give a rendered diagram its natural width so the frame can scroll it.
@@ -100,14 +95,12 @@ const readMermaidSource = (sourceElement: Element) => {
 const getCurrentTheme = () =>
   document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 
-const loadMermaid = async () => {
-  mermaidModulePromise ??= import('mermaid');
-  const mermaid = (await mermaidModulePromise).default;
-  if (!mermaidLayoutsRegistered) {
+const loadMermaid = () => {
+  mermaidPromise ??= import('mermaid').then(({ default: mermaid }) => {
     mermaid.registerLayoutLoaders(elkLayouts);
-    mermaidLayoutsRegistered = true;
-  }
-  return mermaid;
+    return mermaid;
+  });
+  return mermaidPromise;
 };
 
 const ensureMermaidContainers = () => {
@@ -170,7 +163,7 @@ const renderMermaid = async (force = false): Promise<void> => {
     try {
       await mermaid.run({ nodes: diagrams });
     } catch (error) {
-      reportMermaidError(error);
+      reportError(error);
     } finally {
       // Release the reservation: a rendered diagram is usually much shorter than
       // its source block. Cleared even when run() throws, so a failed render
@@ -196,19 +189,14 @@ const bindThemeObserver = () => {
     return;
   }
 
-  const themeObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
-        renderMermaid(true).catch(reportMermaidError);
-      }
-    }
-  });
-
-  themeObserver.observe(document.documentElement, {
+  // attributeFilter limits the records to data-theme changes.
+  new MutationObserver(() => {
+    renderMermaid(true).catch(reportError);
+  }).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-theme'],
   });
 };
 
 bindThemeObserver();
-renderMermaid().catch(reportMermaidError);
+renderMermaid().catch(reportError);

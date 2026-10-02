@@ -46,12 +46,5 @@ async def list_reference_media_reads[StorageT: StorageModel, CreateT: StorageCre
     read_schema: type[ReadT],
 ) -> list[ReadT]:
     """List a parent's media (files or images) and convert each to the given read schema."""
-    items = await list_parent_media(
-        session,
-        parent_model=media.parent_model,
-        parent_type=media.parent_type,
-        storage_model=media.storage_model,
-        parent_id=parent_id,
-        filter_params=item_filter,
-    )
+    items = await list_parent_media(session, media, parent_id=parent_id, filter_params=item_filter)
     return [read_schema.model_validate(item) for item in items]

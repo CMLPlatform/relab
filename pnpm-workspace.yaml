@@ -38,15 +38,14 @@ allowBuilds:
 overrides:
   # Security pins for transitive deps whose parent pins a vulnerable version
   # exactly, so a lockfile refresh cannot lift them. Each names the parent to
-  # watch. `just overrides-check` (weekly in CI) flags any the tree no longer
-  # needs. Tag new security pins with their GHSA so the check covers them.
-  # xcode@3 (via @expo/config-plugins) still requires uuid ^7.
+  # watch; drop the pin once that parent moves past the vulnerable version.
+  # Drop when xcode (via @expo/config-plugins) bumps uuid past ^7.
   "uuid@<11.1.1": ">=11.1.1" # GHSA-w5hq-g745-h8pq
-  # @scalar/json-magic <0.15.2 pins undici 7.24.4.
+  # Drop when @scalar/json-magic bumps undici past 7.24.4 (fixed in 0.15.2).
   "undici@>=7.0.0 <7.29.1": ">=7.29.1 <8" # GHSA-8xcm-r25x-g524, GHSA-rfgv-xxqx-mfg5 and related
-  # @scalar/agent-chat pins ai 6.0.33.
+  # Drop when @scalar/agent-chat bumps ai past 6.0.33.
   "@ai-sdk/provider-utils@>=4.0.0-beta.10 <4.0.33": ">=4.0.33 <5" # GHSA-866g-f22w-33x8
-  # chevrotain@11 (via mermaid) pins lodash-es 4.17.23.
+  # Drop when chevrotain (via mermaid) bumps lodash-es past 4.17.23.
   "lodash-es@<4.18.1": ">=4.18.1 <5" # GHSA-r5fr-rjxr-66jc and GHSA-f23m-r3pf-42rh
   # Carried over from NativeWind, which the app no longer uses, but still
   # earning its place: without it the tree resolves 1.30.1, 1.32.0 and

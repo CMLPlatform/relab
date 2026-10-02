@@ -27,7 +27,7 @@ args=("${words[@]:1}")
 . scripts/deploy_ops.sh
 env_name="$(dotenv_value ENVIRONMENT)"
 [[ "$env_name" == prod || "$env_name" == staging ]] || {
-    echo "remote_deploy: root .env names no deployable ENVIRONMENT" >&2
+    echo "error: root .env names no deployable ENVIRONMENT" >&2
     exit 2
 }
 
@@ -37,18 +37,15 @@ case "$action" in
         git fetch --quiet origin && git pull --ff-only && git log --oneline -1
         ;;
     tag)
-        # The pattern is repeated from require_image_tag so a bad argument never reaches just.
-        [[ "${args[0]:-}" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
-            echo "remote_deploy: tag needs an image tag like 0.4.0 or sha-5b099f3" >&2
-            exit 2
-        }
+        # Checked here too so a bad argument never reaches just.
+        require_image_tag "${args[0]:-}"
         exec just stack "$env_name" tag YES "${args[0]}"
         ;;
     up)
         # `migrations` is the routine profile; anything else must be a known profile name.
         for profile in "${args[@]}"; do
             [[ "$profile" =~ ^(migrations|backups)$ ]] || {
-                echo "remote_deploy: unknown profile '$profile'" >&2
+                echo "error: unknown profile '$profile'" >&2
                 exit 2
             }
         done
@@ -58,16 +55,13 @@ case "$action" in
         exec just stack "$env_name" migrate YES
         ;;
     rollback)
-        [[ "${args[0]:-}" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
-            echo "remote_deploy: rollback needs an image tag like 0.4.0 or sha-5b099f3" >&2
-            exit 2
-        }
+        require_image_tag "${args[0]:-}"
         # The alembic target is as dangerous as the tag and was not checked: `base`
         # downgrades through every revision, dropping every table. Only a concrete
         # revision id or a relative step may come over the key. Going to `base` is done
         # at the host's own console, never over a key.
         [[ "${args[1]:-}" =~ ^([0-9a-f]{7,40}|-[0-9]+)?$ ]] || {
-            echo "remote_deploy: rollback revision must be a revision id or a -N step" >&2
+            echo "error: rollback revision must be a revision id or a -N step" >&2
             exit 2
         }
         exec just stack "$env_name" rollback YES "${args[0]}" "${args[1]:-}"
@@ -89,7 +83,7 @@ case "$action" in
         echo "usage: ssh <deploy-host> {pull|tag <tag>|up [migrations|backups]|migrate|rollback <tag> [<rev>]|backup|watchdog|logs [<since>]|status}"
         ;;
     *)
-        echo "remote_deploy: '$action' is not allowed" >&2
+        echo "error: '$action' is not allowed" >&2
         exit 2
         ;;
 esac

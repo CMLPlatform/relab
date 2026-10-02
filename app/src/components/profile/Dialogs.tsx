@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import type { RefObject } from 'react';
+import type { ComponentProps, RefObject } from 'react';
 import { View } from 'react-native';
 import LogoutConfirm from '@/components/auth/LogoutConfirm';
 import { AppButton } from '@/components/base/AppButton';
@@ -42,6 +42,44 @@ type ProfileDialogsProps = {
   logoutTriggerRef?: RefObject<View | null>;
   deleteAccountTriggerRef?: RefObject<View | null>;
 };
+
+const STEP_UP_INPUT_PROPS = {
+  password: {
+    placeholder: 'Current password',
+    accessibilityLabel: 'Current password',
+    secureTextEntry: true,
+    autoComplete: 'current-password',
+    textContentType: 'password',
+  },
+  mfa: {
+    placeholder: 'Authenticator or recovery code',
+    accessibilityLabel: 'Authentication code',
+    autoCapitalize: 'characters',
+    autoCorrect: false,
+    autoComplete: 'one-time-code',
+    textContentType: 'oneTimeCode',
+  },
+} as const satisfies Record<string, ComponentProps<typeof TextInput>>;
+
+/** A password or authentication-code field that confirms a sensitive account action. */
+function StepUpInput({
+  kind,
+  className,
+  ...props
+}: ComponentProps<typeof TextInput> & {
+  kind: keyof typeof STEP_UP_INPUT_PROPS;
+  className: string;
+}) {
+  const theme = useAppTheme();
+  return (
+    <TextInput
+      {...STEP_UP_INPUT_PROPS[kind]}
+      {...props}
+      className={`border px-2 py-2 ${className}`}
+      style={{ borderColor: theme.colors.outline }}
+    />
+  );
+}
 
 export function ProfileDialogs({
   unlinkDialogVisible,
@@ -88,30 +126,19 @@ export function ProfileDialogs({
           </AppText>
         ) : null}
         {unlinkRequiresPassword ? (
-          <TextInput
+          <StepUpInput
+            kind="password"
             value={unlinkPassword}
             onChangeText={onChangeUnlinkPassword}
-            placeholder="Current password"
-            accessibilityLabel="Current password"
-            secureTextEntry
-            autoComplete="current-password"
-            textContentType="password"
-            className="border px-2 py-2 mt-2"
-            style={{ borderColor: theme.colors.outline }}
+            className="mt-2"
           />
         ) : null}
         {unlinkRequiresMfa ? (
-          <TextInput
+          <StepUpInput
+            kind="mfa"
             value={unlinkMfaCode}
             onChangeText={onChangeUnlinkMfaCode}
-            placeholder="Authenticator or recovery code"
-            accessibilityLabel="Authentication code"
-            autoCapitalize="characters"
-            autoCorrect={false}
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
-            className="border px-2 py-2 mt-2"
-            style={{ borderColor: theme.colors.outline }}
+            className="mt-2"
           />
         ) : null}
         <View style={dialogActionsStyle}>
@@ -154,32 +181,21 @@ export function ProfileDialogs({
           Products and photos you added stay on the platform, without your name.
         </AppText>
         {deleteRequiresPassword ? (
-          <TextInput
+          <StepUpInput
+            kind="password"
             value={deleteDialog.password}
             onChangeText={deleteDialog.setPassword}
-            placeholder="Current password"
-            accessibilityLabel="Current password"
-            secureTextEntry
-            autoComplete="current-password"
-            textContentType="password"
+            className="mt-2.5"
             {...deleteErrorProps}
-            className="border px-2 py-2 mt-2.5"
-            style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
         {deleteRequiresMfa ? (
-          <TextInput
+          <StepUpInput
+            kind="mfa"
             value={deleteDialog.mfaCode}
             onChangeText={deleteDialog.setMfaCode}
-            placeholder="Authenticator or recovery code"
-            accessibilityLabel="Authentication code"
-            autoCapitalize="characters"
-            autoCorrect={false}
-            autoComplete="one-time-code"
-            textContentType="oneTimeCode"
+            className="mt-2.5"
             {...deleteErrorProps}
-            className="border px-2 py-2 mt-2.5"
-            style={{ borderColor: theme.colors.outline }}
           />
         ) : null}
         <FormFieldError errorId="delete-account-error" message={deleteDialog.error ?? undefined} />

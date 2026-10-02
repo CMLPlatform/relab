@@ -17,39 +17,18 @@
 Relab is an open-source research platform for collecting and publicly viewing data on the
 disassembly of durable goods. It is built at
 [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to
-support industrial ecology and circular economy research by generating better primary product data.
+support industrial ecology and circular economy research with better primary product data.
+
+Repairers, refurbishers, dismantlers, and recyclers meet products at the point of failure. Relab
+turns their routine work into structured, openly shared records of what products are made of and
+how they come apart. [Why Relab exists](https://docs.cml-relab.org/project/) sets out the argument.
 
 It combines:
 
 - a FastAPI backend for structured product, media, and user data
 - an Expo / React Native app for authenticated data collection
 - an Astro site for publicly viewing project and dataset information
-- a separate docs site for architecture, workflows, and deployment notes
-
-The platform supports structured data collection during disassembly work and makes that data
-easier to publish, browse, and reuse.
-
-Circular-economy and industrial-ecology research depends on detailed product data: what things are
-made of, how they come apart, which parts matter. That data is scarce, mostly closed, and slow to
-produce. Producers treat it as proprietary, and small expert teams sampling by hand cannot keep pace
-with the products entering the market.
-
-Relab collects it bottom-up:
-
-- repairers, refurbishers, dismantlers, and recyclers contribute data directly
-- they meet products at the point of failure, so they capture as-failed composition, wear, and
-  recoverability that as-designed producer specifications never show
-- collaborative and citizen-science workflows turn routine repair and disassembly into structured
-  observations
-- the records are shared openly, linked to related databases, and reused in later research
-
-Contributors get composition insight, sustainability metrics, and repair or R-strategy guidance
-back. We call this a circular data economy: middle- and end-of-life observations feed back into the
-data infrastructure that research and design rely on.
-
-The long-term goal is an open industrial ecology data commons: data that is collected
-collaboratively, publicly accessible, linkable to other databases, and structured enough for
-machine-learning use.
+- a docs site for users, architecture, and self-hosting
 
 ## Start Here
 
@@ -105,8 +84,6 @@ CI runs axe scans and per-PR a11y lint across `www/`, `docs/`, and `app/`. See
 
 ## Community and Policy
 
-- [Contributing](.github/CONTRIBUTING.md)
-- [Install and self-host](https://docs.cml-relab.org/operations/install/)
 - [Security](.github/SECURITY.md)
 - [Code of Conduct](.github/CODE_OF_CONDUCT.md)
 - [Changelog](CHANGELOG.md)
@@ -115,30 +92,16 @@ CI runs axe scans and per-PR a11y lint across `www/`, `docs/`, and `app/`. See
 
 ## Licensing
 
-Four layers, each under its own licence:
+| What                                                                                          | Licence                                                            |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Platform software: backend, app, www, docs site                                               | [AGPL-3.0-or-later](LICENSE)                                       |
+| API specification: `openapi.public.json`, `openapi.device.json`, and client types built from them | [Apache-2.0](LICENSE-APACHE-2.0)                                   |
+| Site content: the writing on the docs site and on cml-relab.org (code samples are Apache-2.0) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)          |
+| Curated dataset releases                                                                      | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), planned |
 
-| What                                                                                                                                                      | Licence                                                   | Why                                                                                                                                                                                                                                                      |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Platform software: backend, app, www, docs site                                                                                                          | [AGPL-3.0-or-later](LICENSE)                              | Copyleft, including over a network, so a hosted fork stays open.                                                                                                                                                                                         |
-| API specification: the OpenAPI schemas this repository generates (`openapi.public.json`, `openapi.device.json`) and the client types generated from them | [Apache-2.0](LICENSE-APACHE-2.0)                          | An integration surface should not pass copyleft to anyone writing a client or an importer. Includes a patent grant.                                                                                                                                      |
-| Curated dataset releases                                                                                                                                  | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) | One instrument over the database structure and its contents. CC 4.0 licenses the EU *sui generis* database right, so no second licence is needed for the data. Attribution is the whole obligation, which keeps the dataset usable for machine learning. |
-
-Site content (the writing on the docs site and on cml-relab.org) is
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Code samples in the documentation are
-Apache-2.0, because CC licences are not meant for software.
-
-**Relab, the logo and the wordmark are not licensed by any of the above.** No licence here grants
-rights in them, and CC BY says so explicitly (§2(b)(2)). Use the name to refer to this project, not
-to identify your own work as Relab.
-
-The RPi camera plugin's schema (`openapi.rpi-cam.json`) is published here for reference. It is
-fetched verbatim from [relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin)
-and carries that project's licence, currently Apache-2.0.
-
-Two limits that no licence changes. The GDPR governs personal data regardless of the licence: the
-sanitisation applied when building a release, not CC BY, is what makes publication lawful. And CC BY
-grants no trademark rights: teardown photographs show brand marks and model numbers, which the
-licence covers as images without licensing the marks themselves.
+**Relab, the logo, and the wordmark are not licensed by any of the above.** The
+[licensing page](https://docs.cml-relab.org/project/licensing/) explains each choice, the RPi camera
+schema's separate licence, and the limits no licence changes.
 
 ## Contact
 

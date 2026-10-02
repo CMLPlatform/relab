@@ -236,12 +236,6 @@ audit:
     just backend/audit all
     pnpm audit --prod --audit-level moderate
 
-# Security overrides in pnpm-workspace.yaml that no longer change the audit result
-[group('security')]
-[doc('Flag pnpm security overrides that are no longer needed')]
-overrides-check:
-    uv run python scripts/stale_overrides.py
-
 # Canonical security target: secret scanning plus dependency audits
 [group('security')]
 security:
@@ -594,10 +588,8 @@ images-verify env tag:
     env={{ quote(env) }}
     tag={{ quote(tag) }}
     [[ "$env" =~ ^(prod|staging)$ ]] || { echo "env must be prod or staging, got '$env'" >&2; exit 2; }
-    [[ "$tag" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]] || {
-        echo "expected an image tag like 0.4.0 or sha-5b099f3, got '$tag'" >&2
-        exit 2
-    }
+    . scripts/deploy_ops.sh
+    require_image_tag "$tag"
     repo="${GITHUB_REPOSITORY:-CMLPlatform/relab}"
     registry="${IMAGE_REGISTRY:-ghcr.io/cmlplatform}"
     # Staging deliberately accepts a manual publish of any branch. A release publishes
@@ -695,8 +687,7 @@ docker-lint:
     set -uo pipefail
     specs=(
       "app/Dockerfile:."
-      "www/Dockerfile:."
-      "docs/Dockerfile:."
+      "Dockerfile.sites:."
       "backend/Dockerfile:backend"
       "backend/Dockerfile.migrations:backend"
       "backend/Dockerfile.backups:backend"
