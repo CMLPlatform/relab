@@ -1,9 +1,12 @@
 import { useCallback, useState } from 'react';
-import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { radius } from '@/constants';
+import { radius, WEB_FOCUS_RING } from '@/constants';
 import { extractYouTubeVideoId } from '@/services/api/validation/productSchema';
 import { openExternalUrl } from '@/services/externalLinks';
+
+// min-h-11: the 44px tap floor (MIN_TAP_TARGET) on one-line text links.
+const LINK_CLASS_NAME = `min-h-11 justify-center active:opacity-60 ${WEB_FOCUS_RING}`;
 
 const embedContainerStyle = {
   maxWidth: 480,
@@ -23,40 +26,27 @@ export function VideoEmbed({ url, linkColor }: { url: string; linkColor: string 
   const handleLoad = useCallback(() => setLoaded(true), []);
   if (!videoId) {
     return (
-      <TouchableOpacity
-        onPress={handleOpenUrl}
-        accessibilityRole="link"
-        className="min-h-11 justify-center"
-      >
+      <Pressable onPress={handleOpenUrl} accessibilityRole="link" className={LINK_CLASS_NAME}>
         <AppText className="px-3.5 underline" style={{ color: linkColor }}>
           {url}
         </AppText>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
   const embedUri = `https://www.youtube-nocookie.com/embed/${videoId}`;
   if (!loaded) {
     return (
       <View className="flex-row gap-4 my-1">
-        {/* min-h-11: the 44px tap floor (MIN_TAP_TARGET) on one-line text links. */}
-        <TouchableOpacity
-          onPress={handleLoad}
-          accessibilityRole="button"
-          className="min-h-11 justify-center"
-        >
+        <Pressable onPress={handleLoad} accessibilityRole="button" className={LINK_CLASS_NAME}>
           <AppText className="px-3.5 underline" style={{ color: linkColor }}>
             Load video
           </AppText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleOpenUrl}
-          accessibilityRole="link"
-          className="min-h-11 justify-center"
-        >
+        </Pressable>
+        <Pressable onPress={handleOpenUrl} accessibilityRole="link" className={LINK_CLASS_NAME}>
           <AppText className="px-3.5 underline" style={{ color: linkColor }}>
             Open video
           </AppText>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }

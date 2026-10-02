@@ -94,18 +94,27 @@ describe('InfoTooltip component', () => {
     it('stays open when the hovered icon is clicked', async () => {
       await renderWithProviders(<InfoTooltip title={title} />);
       const button = screen.getByRole('button', { name: `Info: ${title}` });
-      await fireEvent(button, 'hoverIn');
+      await fireEvent(button, 'pointerEnter');
       expect(screen.getByText(title)).toBeOnTheScreen();
       await user.press(button);
       expect(screen.getByText(title)).toBeOnTheScreen();
     });
 
-    it('hides on hover-out', async () => {
+    it('hides when the pointer leaves the icon and bubble together', async () => {
+      await renderWithProviders(<InfoTooltip title={title} />);
+      await fireEvent(screen.getByRole('button', { name: `Info: ${title}` }), 'pointerEnter');
+      await fireEvent(screen.getByTestId('info-hover-area'), 'pointerLeave');
+      expect(screen.queryByText(title)).toBeNull();
+    });
+
+    // WCAG 1.4.13: the pointer can move from the icon onto the bubble without
+    // it closing, because both sit inside one hover target.
+    it('stays open while the pointer moves onto the bubble', async () => {
       await renderWithProviders(<InfoTooltip title={title} />);
       const button = screen.getByRole('button', { name: `Info: ${title}` });
-      await fireEvent(button, 'hoverIn');
-      await fireEvent(button, 'hoverOut');
-      expect(screen.queryByText(title)).toBeNull();
+      await fireEvent(button, 'pointerEnter');
+      await fireEvent(screen.getByText(title), 'pointerEnter');
+      expect(screen.getByText(title)).toBeOnTheScreen();
     });
 
     it('hides on Escape', async () => {
@@ -122,7 +131,7 @@ describe('InfoTooltip component', () => {
       });
       try {
         await renderWithProviders(<InfoTooltip title={title} />);
-        await fireEvent(screen.getByRole('button', { name: `Info: ${title}` }), 'hoverIn');
+        await fireEvent(screen.getByRole('button', { name: `Info: ${title}` }), 'pointerEnter');
         expect(screen.getByText(title)).toBeOnTheScreen();
         await act(() => {
           onKeyDown?.({ key: 'Escape' });

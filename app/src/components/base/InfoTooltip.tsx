@@ -1,6 +1,7 @@
 // NOTE: hand-rolled on purpose; carries the mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { useInverseSurface } from '@/theme/inverseSurface';
@@ -19,6 +20,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useAppTheme();
   const inverse = useInverseSurface();
   const [visible, setVisible] = useState(false);
+  const reduceMotion = useReducedMotion();
   const show = useCallback(() => setVisible(true), []);
   const hide = useCallback(() => setVisible(false), []);
   // Both variants float over content, so they take the single overlay tier.
@@ -55,7 +57,12 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           </View>
         </Pressable>
 
-        <Modal visible={visible} transparent animationType="fade" onRequestClose={hide}>
+        <Modal
+          visible={visible}
+          transparent
+          animationType={reduceMotion ? 'none' : 'fade'}
+          onRequestClose={hide}
+        >
           {/* Scrim is a sibling of the text, not its parent: a button would swallow the
               tooltip into one "Dismiss" control. Not a control itself (see AppDialog). */}
           <Pressable
@@ -83,14 +90,20 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
 
   // Native + desktop web: a bubble under the icon on press (native) or hover (web).
   // On web the hover already opened it, so a click must not toggle it shut again;
-  // Escape, blur and hover-out close it there.
+  // Escape, blur and hover-out close it there. The hover target is the wrapper,
+  // which holds icon and bubble edge to edge, so the pointer can move onto the
+  // bubble without closing it (WCAG 1.4.13).
+  const isWeb = Platform.OS === 'web';
   return (
-    <View className="self-start">
+    <View
+      className="self-start"
+      testID="info-hover-area"
+      onPointerEnter={isWeb ? show : undefined}
+      onPointerLeave={isWeb ? hide : undefined}
+    >
       <Pressable
-        onPress={Platform.OS === 'web' ? show : toggle}
+        onPress={isWeb ? show : toggle}
         onBlur={hide}
-        onHoverIn={Platform.OS === 'web' ? show : undefined}
-        onHoverOut={Platform.OS === 'web' ? hide : undefined}
         className={`p-2 ${WEB_FOCUS_RING}`}
         accessibilityRole="button"
         accessibilityLabel={`Info: ${title}`}
@@ -104,7 +117,8 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       </Pressable>
       {visible ? (
         <OverlaySurface
-          className="absolute left-0 z-10 mt-1 px-2 py-1"
+          // No top margin: a gap would sit outside the hover target.
+          className="absolute left-0 z-10 px-2 py-1"
           style={[styles.floating, tooltipShadowStyle, { backgroundColor: inverse.background }]}
           tone="scrim"
         >

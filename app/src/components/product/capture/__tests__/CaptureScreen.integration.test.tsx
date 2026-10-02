@@ -30,6 +30,8 @@ let mockCanGoBack = false;
 let mockIsLg = false;
 
 jest.mock('expo-router', () => ({
+  // The toast reads it to clear BottomNav.
+  useSegments: () => [],
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
   useNavigation: () => ({
     addListener: mockAddListener,
@@ -224,6 +226,14 @@ describe('CaptureScreen', () => {
     await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'Cordless drill');
 
     expect(screen.getByText('Create product')).toBeEnabled();
+  });
+
+  // Name is the one field Create needs; the rest stay unmarked because an
+  // empty observation is valid research data.
+  it('marks only the name as required', async () => {
+    await renderCapture({ entityRole: 'product' });
+    expect(screen.getByText('(required)')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText(NAME_PLACEHOLDER).props.accessibilityHint).toBe('Required');
   });
 
   it('explains the name length while Create is disabled', async () => {

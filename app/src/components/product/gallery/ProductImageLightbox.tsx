@@ -20,7 +20,7 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { Easing, ReduceMotion, ZoomIn } from 'react-native-reanimated';
+import Animated, { Easing, ReduceMotion, useReducedMotion, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
@@ -67,6 +67,7 @@ export function ProductImageLightbox({
   const theme = useAppTheme();
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
+  const reduceMotion = useReducedMotion();
   // Reactive: a non-subscribing read measured against the pre-rotation screen.
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [isZoomed, setIsZoomed] = useState(false);
@@ -263,7 +264,7 @@ export function ProductImageLightbox({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType={reduceMotion ? 'none' : 'fade'}
       onRequestClose={handleClose}
       statusBarTranslucent={true}
       aria-label="Image gallery"

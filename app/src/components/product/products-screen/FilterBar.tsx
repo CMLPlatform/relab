@@ -60,7 +60,8 @@ function FilterChip({
           accessibilityRole="button"
           accessibilityLabel={`Clear ${children} filter`}
           hitSlop={12}
-          className="ml-1 p-1"
+          // hitSlop is native-only; on web the box itself carries the 44 floor.
+          className="min-w-11 items-center justify-center"
           style={{ minHeight: MIN_TAP_TARGET }}
         >
           <Icon name="x" size={14} color={foreground} />

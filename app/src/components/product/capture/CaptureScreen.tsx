@@ -23,7 +23,7 @@ import {
   PRODUCT_NAME_MIN_LENGTH,
 } from '@/services/api/validation/productSchema';
 import { typeRowLabels } from '@/types/Product';
-import { describedBy } from '@/utils/a11y';
+import { describedBy, requiredField } from '@/utils/a11y';
 
 type CaptureScreenProps = {
   // Not `role`: that is a live RN-Web prop that would leak an invalid ARIA role.
@@ -141,7 +141,10 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
               </AppText>
             ) : null}
             <View>
-              <AppText variant="eyebrow">Name</AppText>
+              {/* Name is the only field Create needs; everything else may stay empty. */}
+              <AppText variant="eyebrow">
+                Name <AppText variant="eyebrow">(required)</AppText>
+              </AppText>
               <Input
                 ref={nameInputRef}
                 value={name}
@@ -151,6 +154,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
                 placeholder={role === 'component' ? 'e.g. Battery pack' : 'e.g. Cordless drill'}
                 accessibilityLabel="Name"
                 onSubmitEditing={submitOnEnter}
+                {...requiredField()}
                 {...describedBy(nameHintId, nameTooShort, { invalid: false })}
               />
               {/* Slot stays reserved so the form does not jump once the name is long enough. */}

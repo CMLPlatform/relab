@@ -25,7 +25,7 @@ import {
 import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getStatusTone } from '@/theme/color';
-import { describedBy } from '@/utils/a11y';
+import { describedBy, requiredField } from '@/utils/a11y';
 
 // Minimum-height slots so nothing moves as the error message comes and goes; they grow
 // with large text instead of clipping. MAX_FONT_SCALE bounds that growth.
@@ -69,6 +69,8 @@ const styles = StyleSheet.create({
   // Logo in place of the wordmark on the first step; sized to match brandText.
   brandLogo: {
     width: 200,
+    // Fits a narrow or zoomed card instead of overflowing it.
+    maxWidth: '60%',
   },
   questionText: {
     // NOTE: hero stack line 3, between title (24) and display (38).
@@ -188,6 +190,7 @@ function NewAccountStep({
         onChangeText={onChange}
         autoCapitalize="none"
         accessibilityLabel={label}
+        {...requiredField()}
         {...inputProps}
         {...describedBy(errorId, Boolean(error))}
         className="flex-1 border px-3 py-2.5"
@@ -245,8 +248,9 @@ function NewAccountStep({
           },
         ]}
       >
+        {/* Every step's one field is needed to create the account. */}
         <Text style={[styles.label, { color: mutedColor }]} maxFontSizeMultiplier={MAX_FONT_SCALE}>
-          {label}
+          {label} (required)
         </Text>
         <View className="flex-row items-center" style={styles.inputRow}>
           <Controller control={control} name={field} render={renderInput} />

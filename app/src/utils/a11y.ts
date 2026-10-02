@@ -1,4 +1,4 @@
-import type { TextInputProps, TextProps, ViewStyle } from 'react-native';
+import { Platform, type TextInputProps, type TextProps, type ViewStyle } from 'react-native';
 
 /**
  * Props that associate an input with the `FormFieldError` sharing its `id`
@@ -18,6 +18,19 @@ export function describedBy(
     accessibilityDescribedBy: id,
     ...(invalid ? { 'aria-invalid': true } : {}),
   } as Partial<TextInputProps>;
+}
+
+/**
+ * Marks a field the form cannot submit without (pair it with the visible
+ * "(required)" in the label). Only for fields the form truly needs: an empty
+ * observation is valid research data, so data fields stay unmarked.
+ * react-native-web forwards `aria-required`; native has no required state,
+ * so it gets a spoken hint instead.
+ */
+export function requiredField(): Partial<TextInputProps> {
+  return Platform.OS === 'web'
+    ? ({ 'aria-required': true } as Partial<TextInputProps>)
+    : { accessibilityHint: 'Required' };
 }
 
 /**

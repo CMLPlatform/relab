@@ -12,6 +12,7 @@ import { lazyWithRetry } from './lazyWithRetry';
 
 // NOTE: the panel loads on first open; only the "?" listener ships with the shell.
 const KeyboardShortcutsPanel = lazyWithRetry(() =>
+  // biome-ignore lint/security/noSecrets: a module path, not a secret.
   import('./KeyboardShortcutsPanel').then((m) => ({ default: m.KeyboardShortcutsPanel })),
 );
 

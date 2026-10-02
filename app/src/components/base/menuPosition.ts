@@ -39,3 +39,14 @@ export function getMenuPosition({
     ? { ...vertical, right: Math.max(EDGE_MARGIN, windowWidth - (anchorX + anchorWidth)) }
     : { ...vertical, left: Math.max(EDGE_MARGIN, anchorX) };
 }
+
+const MENU_KEYS = new Set(['ArrowDown', 'ArrowUp', 'Home', 'End']);
+
+/** The item a menu key moves focus to (wrapping), or null for any other key. */
+export function nextMenuIndex(key: string, index: number, count: number): number | null {
+  if (count === 0 || !MENU_KEYS.has(key)) return null;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  if (index < 0) return key === 'ArrowDown' ? 0 : count - 1;
+  return (index + (key === 'ArrowDown' ? 1 : -1) + count) % count;
+}

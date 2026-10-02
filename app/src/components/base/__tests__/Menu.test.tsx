@@ -2,7 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { Menu } from '@/components/base/Menu';
-import { getMenuPosition } from '@/components/base/menuPosition';
+import { getMenuPosition, nextMenuIndex } from '@/components/base/menuPosition';
 import { mockPlatform, queryAllHostsByProps, restorePlatform } from '@/test-utils/index';
 
 describe('getMenuPosition', () => {
@@ -162,5 +162,29 @@ describe('Menu', () => {
     );
     expect(screen.getByTestId('menu-popover').props['aria-label']).toBeUndefined();
     expect(queryAllHostsByProps({ 'aria-label': 'Menu' })).toHaveLength(1);
+  });
+});
+
+describe('nextMenuIndex', () => {
+  it('moves down and up through the items, wrapping at either end', () => {
+    expect(nextMenuIndex('ArrowDown', 0, 3)).toBe(1);
+    expect(nextMenuIndex('ArrowDown', 2, 3)).toBe(0);
+    expect(nextMenuIndex('ArrowUp', 0, 3)).toBe(2);
+    expect(nextMenuIndex('ArrowUp', 2, 3)).toBe(1);
+  });
+
+  it('jumps to the first and last item on Home and End', () => {
+    expect(nextMenuIndex('Home', 1, 3)).toBe(0);
+    expect(nextMenuIndex('End', 1, 3)).toBe(2);
+  });
+
+  it('enters from outside the items at the first or last one', () => {
+    expect(nextMenuIndex('ArrowDown', -1, 3)).toBe(0);
+    expect(nextMenuIndex('ArrowUp', -1, 3)).toBe(2);
+  });
+
+  it('ignores other keys and empty menus', () => {
+    expect(nextMenuIndex('Tab', 0, 3)).toBeNull();
+    expect(nextMenuIndex('ArrowDown', -1, 0)).toBeNull();
   });
 });

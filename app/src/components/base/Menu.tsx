@@ -1,17 +1,70 @@
 import type { ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { Easing, FadeInDown, FadeInUp, ReduceMotion } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeInUp,
+  ReduceMotion,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition } from './menuPosition';
+import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition, nextMenuIndex } from './menuPosition';
 
 // Swallow presses so tapping an item does not fall through to the backdrop.
 function stopPropagation(e: { stopPropagation: () => void }) {
   e.stopPropagation();
+}
+
+/**
+ * Web keyboard model for an open menu (WAI-ARIA menu pattern): focus starts
+ * on the checked item, else the first; arrows move and wrap; Home/End jump.
+ * Escape is the Modal's own `onRequestClose`. Native screen readers swipe
+ * between items, so this is web-only.
+ */
+function useWebMenuKeyboard(popover: HTMLElement | null) {
+  useEffect(() => {
+    // A host node without DOM methods is a test renderer under a mocked web platform.
+    if (!popover || typeof popover.querySelectorAll !== 'function') return;
+    // biome-ignore lint/security/noSecrets: an ARIA attribute selector, not a secret.
+    const items = () => Array.from(popover.querySelectorAll<HTMLElement>('[role^="menuitem"]'));
+    // Reanimated's entering animation holds the popover at visibility:hidden
+    // until its first frame, and focus() on a hidden element does nothing, so
+    // retry per frame (bounded) until the starting item takes focus.
+    let frame = 0;
+    let raf = 0;
+    const focusInitial = () => {
+      const list = items();
+      const target = list.find((item) => item.getAttribute('aria-checked') === 'true') ?? list[0];
+      target?.focus();
+      if (target && document.activeElement !== target && frame++ < 30) {
+        raf = requestAnimationFrame(focusInitial);
+      }
+    };
+    focusInitial();
+    // On the document, not the popover: until the first item takes focus the
+    // Modal's focus trap parks it on the scrim, outside the popover.
+    const onKeyDown = (event: KeyboardEvent) => {
+      const list = items();
+      const next = nextMenuIndex(
+        event.key,
+        list.indexOf(document.activeElement as HTMLElement),
+        list.length,
+      );
+      if (next === null) return;
+      event.preventDefault();
+      list[next]?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [popover]);
 }
 
 type MenuProps = {
@@ -37,6 +90,11 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
   const anchorRef = useRef<View>(null);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [position, setPosition] = useState<MenuPosition>({ top: 0, left: 0 });
+  const reduceMotion = useReducedMotion();
+  // State, not a ref: the Modal mounts its content a render after `visible`
+  // flips, and the keyboard hook has to run once the popover exists.
+  const [popover, setPopover] = useState<HTMLElement | null>(null);
+  useWebMenuKeyboard(popover);
 
   useEffect(() => {
     if (!visible) return;
@@ -62,7 +120,7 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
       <Modal
         visible={visible}
         transparent
-        animationType="fade"
+        animationType={reduceMotion ? 'none' : 'fade'}
         onRequestClose={onDismiss}
         aria-label="Menu"
       >
@@ -82,6 +140,8 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
             style={[styles.content, position]}
           >
             <Pressable
+              // On web the host node is the popover's DOM element.
+              ref={Platform.OS === 'web' ? (setPopover as unknown as React.Ref<View>) : undefined}
               // Not accessible: a focusable group would hide the items from VoiceOver.
               // The role still reaches the DOM on web; the Modal carries the name.
               accessible={false}

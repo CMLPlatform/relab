@@ -94,10 +94,10 @@ export default function LocalizedFloatInput({
     borderRadius: radius.control,
     ...style,
   } as RN.TextStyle;
+  // No inline outline here: an inline style beats the global focus ring in
+  // global.css, and the field would lose its focus indicator.
   const webOnlyInputStyle =
-    Platform.OS === 'web'
-      ? ({ outline: 'none', fieldSizing: 'content' } as unknown as RN.TextStyle)
-      : undefined;
+    Platform.OS === 'web' ? ({ fieldSizing: 'content' } as unknown as RN.TextStyle) : undefined;
 
   const onPress = () => {
     if (editable) {
@@ -144,9 +144,11 @@ export default function LocalizedFloatInput({
       {unit ? (
         <AppText
           variant="label"
+          // minWidth, not width: a fixed box clips "mm³" at large text sizes.
           style={{
             fontWeight: 'bold',
-            width: 30,
+            minWidth: 30,
+            flexShrink: 0,
           }}
         >
           {unit}

@@ -1,5 +1,5 @@
 import { type RefObject, useCallback, useId, useState } from 'react';
-import { Pressable, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
@@ -9,6 +9,7 @@ import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
+import { WEB_FOCUS_RING } from '@/constants';
 import { useProductVideo } from '@/features/products/useProductVideo';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
@@ -165,6 +166,9 @@ export default function ProductVideo({
   );
 }
 
+// Text-link controls under the header: tap floor, press feedback, focus ring.
+const TOGGLE_CLASS_NAME = `mt-1 min-h-11 justify-center active:opacity-60 ${WEB_FOCUS_RING}`;
+
 function VideoHeaderAction({
   editMode,
   showExpandToggle,
@@ -185,14 +189,14 @@ function VideoHeaderAction({
   if (editMode) {
     if (!onAdd) return null;
     return (
-      <TouchableOpacity
+      <Pressable
         onPress={onAdd}
         accessibilityRole="button"
         // min-h-11: the 44px tap floor (MIN_TAP_TARGET) on a one-line text link.
-        className="mt-1 min-h-11 justify-center"
+        className={TOGGLE_CLASS_NAME}
       >
         <AppText style={{ color: linkColor }}>Add video</AppText>
-      </TouchableOpacity>
+      </Pressable>
     );
   }
 
@@ -205,7 +209,7 @@ function VideoHeaderAction({
       onPress={onToggleExpanded}
       accessibilityRole="button"
       aria-expanded={isExpanded}
-      className="mt-1 min-h-11 justify-center"
+      className={TOGGLE_CLASS_NAME}
     >
       <AppText style={{ color: linkColor }}>{isExpanded ? 'Hide' : `Show (${videoCount})`}</AppText>
     </Pressable>

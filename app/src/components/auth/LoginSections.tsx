@@ -11,7 +11,7 @@ import { Icon } from '@/components/base/Icon';
 import { TextInput } from '@/components/base/TextInput';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { describedBy } from '@/utils/a11y';
+import { describedBy, requiredField } from '@/utils/a11y';
 
 type LoginLayoutProps = {
   children: React.ReactNode;
@@ -109,7 +109,9 @@ export function LoginFormSection({
       return (
         // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
-          <AppText variant="label">Email or username</AppText>
+          <AppText variant="label">
+            Email or username <AppText className="text-muted-foreground">(required)</AppText>
+          </AppText>
           <TextInput
             ref={setEmailRef}
             value={value}
@@ -120,6 +122,7 @@ export function LoginFormSection({
             textContentType="username"
             accessibilityLabel="Email or username"
             placeholder="e.g. you@university.edu"
+            {...requiredField()}
             {...describedBy('login-email-error', Boolean(error))}
             className="border px-3 py-2.5"
             style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}
@@ -142,7 +145,9 @@ export function LoginFormSection({
       return (
         // A visible label; the placeholder disappears once the field has a value.
         <View className="gap-1">
-          <AppText variant="label">Password</AppText>
+          <AppText variant="label">
+            Password <AppText className="text-muted-foreground">(required)</AppText>
+          </AppText>
           <TextInput
             ref={setPasswordRef}
             value={value}
@@ -153,6 +158,7 @@ export function LoginFormSection({
             secureTextEntry
             accessibilityLabel="Password"
             onSubmitEditing={onSubmit}
+            {...requiredField()}
             {...describedBy('login-password-error', Boolean(error))}
             className="border px-3 py-2.5"
             style={{ borderColor: error ? theme.tokens.status.danger : theme.colors.outline }}

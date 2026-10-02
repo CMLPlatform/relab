@@ -1,7 +1,12 @@
 import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, type View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import Animated, { Easing, FadeInUp, ReduceMotion } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  FadeInUp,
+  ReduceMotion,
+  useReducedMotion,
+} from 'react-native-reanimated';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { OverlaySurface } from './OverlaySurface';
@@ -44,6 +49,7 @@ export function AppDialog({
 }: AppDialogProps) {
   const theme = useAppTheme();
   const handleDismiss = dismissable ? onDismiss : undefined;
+  const reduceMotion = useReducedMotion();
   // Every dialog inherits return-focus on close; triggerRef is optional and
   // only needed for native screen-reader focus restore (web works without it).
   useReturnFocus(visible, triggerRef);
@@ -52,7 +58,7 @@ export function AppDialog({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType={reduceMotion ? 'none' : 'fade'}
       onRequestClose={handleDismiss ?? NOOP}
       // Lands on the element react-native-web gives role="dialog": Modal spreads its
       // remaining props onto it. RN core treats aria-label the same on native.

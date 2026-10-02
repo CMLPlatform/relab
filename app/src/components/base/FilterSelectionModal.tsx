@@ -1,5 +1,6 @@
 import { type ReactNode, useCallback } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useReducedMotion } from 'react-native-reanimated';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
@@ -78,6 +79,7 @@ function FilterModalShell({
   footer,
 }: ShellProps) {
   const theme = useAppTheme();
+  const reduceMotion = useReducedMotion();
   useReturnFocus(visible);
 
   // Always show selected values at the top, even if not in the current search results.
@@ -88,7 +90,7 @@ function FilterModalShell({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType={reduceMotion ? 'none' : 'fade'}
       onRequestClose={onDismiss}
       aria-label={title}
     >

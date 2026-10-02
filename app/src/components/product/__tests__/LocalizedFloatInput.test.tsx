@@ -1,8 +1,29 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import LocalizedFloatInput from '@/components/product/LocalizedFloatInput';
+import { mockPlatform, restorePlatform } from '@/test-utils';
 
 describe('LocalizedFloatInput', () => {
+  // An inline outline outranks the global :focus-visible ring (global.css),
+  // which left spec fields with no focus indicator at all. The painted ring is
+  // asserted in a browser by e2e/accessibility.spec.ts.
+  it('sets no inline outline on web, so the focus ring can paint', async () => {
+    mockPlatform('web');
+    await render(<LocalizedFloatInput value={1} label="Weight" unit="kg" />);
+    const style = StyleSheet.flatten(screen.getByLabelText('Weight').props.style);
+    restorePlatform();
+    expect(style).not.toHaveProperty('outline');
+    expect(style).not.toHaveProperty('outlineStyle');
+  });
+
+  it('lets a long unit label grow instead of clipping it', async () => {
+    await render(<LocalizedFloatInput value={1} label="Volume" unit="cm³" />);
+    const style = StyleSheet.flatten(screen.getByText('cm³').props.style);
+    expect(style).toMatchObject({ minWidth: 30, flexShrink: 0 });
+    expect(style).not.toHaveProperty('width');
+  });
+
   it('renders with placeholder', async () => {
     await render(<LocalizedFloatInput value={undefined} placeholder="Enter value" />);
     expect(screen.getByPlaceholderText('Enter value')).toBeOnTheScreen();

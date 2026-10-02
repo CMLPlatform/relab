@@ -322,18 +322,24 @@ change it there first.*
   44px minimum height.
 - **Error:** Message rendered by `FormField` with a `nativeID` linked via
   `accessibilityLabelledBy`, so the error is programmatically associated, not merely adjacent.
+- **Required:** only a field the form cannot submit without (sign-in, sign-up, the capture
+  name) shows "(required)" in its label and spreads `requiredField()` from `utils/a11y`. Data
+  fields stay unmarked: an empty observation is valid.
 
 ### Navigation
 
 - **Below `lg`:** stack header plus custom bottom tab bar.
 - **At `lg` (web):** persistent `TopNav`, stack header hidden.
 - **Items:** `min-h-11`, active `bg-primary/12` with blue ink, inactive at 70% opacity, web
-  `focus-visible:ring-2`.
+  `WEB_FOCUS_RING`. Both bars mark destinations as links with `aria-current="page"`, not
+  tabs: a tab promises an in-page panel.
 
 ### Focus indicators
 
 Every interactive control takes `WEB_FOCUS_RING` from `src/constants.ts`:
 `focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring` — a 2px Prussian-blue outline, 2px clear of the control.
+Text fields and role-carrying Pressables get the same outline from `global.css`, so never set an
+inline `outline` on them: an inline style outranks the stylesheet and the ring disappears.
 
 ### Named Rules
 

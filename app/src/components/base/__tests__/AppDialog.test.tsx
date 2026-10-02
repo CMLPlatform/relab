@@ -34,6 +34,31 @@ afterEach(() => {
 });
 
 describe('AppDialog', () => {
+  it('fades in, or appears without motion when reduced motion is on', async () => {
+    const view = await renderWithProviders(
+      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Motion">
+        <Text>Body</Text>
+      </AppDialog>,
+    );
+    expect(queryAllHostsByProps({ animationType: 'fade' })).toHaveLength(1);
+    await view.unmount();
+
+    // The shared setup mocks Reanimated; spy on that mock's hook.
+    const reduced = jest
+      .spyOn(
+        jest.requireMock<typeof import('react-native-reanimated')>('react-native-reanimated'),
+        'useReducedMotion',
+      )
+      .mockReturnValue(true);
+    await renderWithProviders(
+      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Motion">
+        <Text>Body</Text>
+      </AppDialog>,
+    );
+    expect(queryAllHostsByProps({ animationType: 'none' })).toHaveLength(1);
+    reduced.mockRestore();
+  });
+
   it('scrolls its children inside a keyboard-avoiding view', async () => {
     await renderWithProviders(
       <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Tall">
