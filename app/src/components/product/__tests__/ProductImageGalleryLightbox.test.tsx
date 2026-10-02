@@ -353,6 +353,43 @@ describe('ProductImages', () => {
     });
   });
 
+  it('keeps the lightbox mounted until its close tween finishes', async () => {
+    const productWithImages = {
+      ...baseProduct,
+      images: [{ id: '1', url: 'file://photo1.jpg', description: '' }],
+    } as Product;
+    // Hold back completion callbacks so the close tween stays "in flight".
+    const pending: Array<(finished: boolean) => void> = [];
+    const reanimated = jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated');
+    const timing = jest.spyOn(reanimated, 'withTiming').mockImplementation(((
+      value: number,
+      _config: unknown,
+      callback?: (f: boolean) => void,
+    ) => {
+      if (callback) pending.push(callback);
+      return value;
+    }) as never);
+
+    try {
+      await renderWithProviders(<ProductImages product={productWithImages} editMode={false} />, {
+        withDialog: true,
+      });
+      await fireEvent.press(screen.getByText('img:file://photo1.jpg', HIDDEN));
+      await waitFor(() => expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen());
+      pending.length = 0;
+
+      await fireEvent.press(screen.getByLabelText('Close lightbox'));
+      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
+
+      await act(async () => {
+        for (const done of pending) done(true);
+      });
+      expect(screen.queryByLabelText('Close lightbox')).toBeNull();
+    } finally {
+      timing.mockRestore();
+    }
+  });
+
   it('passes the lightbox layout metrics to the modal list and supports arrow navigation', async () => {
     await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,

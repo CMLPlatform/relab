@@ -195,7 +195,12 @@ jest.mock('react-native-reanimated', () => {
     useAnimatedRef: () => ({ current: null }),
     useAnimatedScrollHandler: () => () => {},
     withSpring: (value: number) => value,
-    withTiming: (value: number) => value,
+    // Lands at once and reports it finished, so completion callbacks (unmount
+    // after an exit tween) still run.
+    withTiming: (value: number, _config?: unknown, callback?: (finished: boolean) => void) => {
+      callback?.(true);
+      return value;
+    },
     withDelay: (_: number, value: number) => value,
     withRepeat: (value: number) => value,
     withSequence: (...values: number[]) => values[values.length - 1],

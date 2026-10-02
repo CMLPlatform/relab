@@ -20,8 +20,16 @@ import {
   View,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { Easing, ReduceMotion, useReducedMotion, ZoomIn } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  ReduceMotion,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -50,6 +58,19 @@ const chevronPressableStyle = (state: PressState) => [
   { borderRadius: radius.control },
   pressFill(state, MEDIA_PRESSED_FILL),
 ];
+
+// The focal moment: the photo grows into view with a confident settle, and closing
+// gets out of the way faster than it arrived.
+// NOTE: ReduceMotion.Never departs from the ReduceMotion.System default on
+// purpose. Reduced motion keeps this fade and drops only the scale term (see
+// `photoStyle`), the opacity-only path the motion brief asks for.
+const OPEN = {
+  duration: 250,
+  easing: Easing.bezier(0.16, 1, 0.3, 1),
+  reduceMotion: ReduceMotion.Never,
+};
+const CLOSE = { duration: 150, easing: Easing.in(Easing.quad), reduceMotion: ReduceMotion.Never };
+const CLOSED_SCALE = 0.96;
 
 type Props = {
   visible: boolean;
@@ -86,6 +107,26 @@ export function ProductImageLightbox({
   const isTouchWeb =
     isWeb && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const index = startIndex;
+
+  // `visible` is the request; `shown` keeps the modal mounted through the close tween.
+  const [shown, setShown] = useState(visible);
+  if (visible && !shown) setShown(true);
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    if (visible) {
+      progress.value = withTiming(1, OPEN);
+      return;
+    }
+    // Reopening mid-close retargets the tween, which ends this one unfinished.
+    progress.value = withTiming(0, CLOSE, (finished) => {
+      if (finished) scheduleOnRN(setShown, false);
+    });
+  }, [progress, visible]);
+  // The backdrop and controls fade; only the photo grows, so the edges never show through.
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
+  const photoStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: reduceMotion ? 1 : CLOSED_SCALE + (1 - CLOSED_SCALE) * progress.value }],
+  }));
 
   const clampIndex = useCallback(
     (nextIndex: number) => clampIndexIn(nextIndex, items.length),
@@ -264,25 +305,20 @@ export function ProductImageLightbox({
     [styles, insets.top],
   );
 
-  if (!visible) return null;
+  if (!shown) return null;
 
   return (
     <Modal
-      visible={visible}
+      visible
       transparent
-      animationType={reduceMotion ? 'none' : 'fade'}
+      // The sheet runs its own open and close (OPEN, CLOSE above).
+      animationType="none"
       onRequestClose={handleClose}
       statusBarTranslucent={true}
       aria-label="Image gallery"
     >
-      <GestureHandlerRootView style={styles.root}>
-        <Animated.View
-          style={styles.root}
-          entering={ZoomIn.duration(200)
-            .withInitialValues({ transform: [{ scale: 0.94 }] })
-            .easing(Easing.out(Easing.cubic))
-            .reduceMotion(ReduceMotion.System)}
-        >
+      <GestureHandlerRootView style={styles.gestureRoot}>
+        <Animated.View style={[styles.root, backdropStyle]}>
           <Pressable
             onPress={handleClose}
             hitSlop={20}
@@ -294,27 +330,29 @@ export function ProductImageLightbox({
             <Icon name="x" size={28} color={theme.tokens.text.onMedia} />
           </Pressable>
 
-          <GalleryFlatList
-            ref={setScrollRef}
-            testID="lightbox-pager"
-            data={items}
-            horizontal
-            pagingEnabled
-            disableIntervalMomentum={true}
-            bounces={false}
-            scrollEnabled={!(isZoomed || isTouchWeb)}
-            style={styles.list}
-            snapToInterval={screenWidth}
-            snapToAlignment="center"
-            decelerationRate="fast"
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={galleryItemKeyExtractor}
-            getItemLayout={getItemLayout}
-            onScrollBeginDrag={handleScrollBeginDrag}
-            onScrollEndDrag={handleScrollEnd}
-            onMomentumScrollEnd={handleScrollEnd}
-            renderItem={renderItem}
-          />
+          <Animated.View style={[styles.list, photoStyle]}>
+            <GalleryFlatList
+              ref={setScrollRef}
+              testID="lightbox-pager"
+              data={items}
+              horizontal
+              pagingEnabled
+              disableIntervalMomentum={true}
+              bounces={false}
+              scrollEnabled={!(isZoomed || isTouchWeb)}
+              style={styles.list}
+              snapToInterval={screenWidth}
+              snapToAlignment="center"
+              decelerationRate="fast"
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={galleryItemKeyExtractor}
+              getItemLayout={getItemLayout}
+              onScrollBeginDrag={handleScrollBeginDrag}
+              onScrollEndDrag={handleScrollEnd}
+              onMomentumScrollEnd={handleScrollEnd}
+              renderItem={renderItem}
+            />
+          </Animated.View>
 
           {items.length > 1 ? (
             <View className="absolute bottom-10 w-full items-center">
@@ -438,7 +476,11 @@ const LightboxSlide = memo(function LightboxSlide({
 
 const createStyles = memoizeByTheme((theme: AppTheme) =>
   StyleSheet.create({
-    // GestureHandlerRootView ignores className.
+    // GestureHandlerRootView ignores className. Transparent, so the backdrop
+    // fades with the sheet rather than snapping in under it.
+    gestureRoot: {
+      flex: 1,
+    },
     root: {
       flex: 1,
       backgroundColor: theme.tokens.overlay.media,
