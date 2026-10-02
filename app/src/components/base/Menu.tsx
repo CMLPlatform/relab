@@ -1,6 +1,6 @@
 import type { ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeInDown, FadeInUp, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
@@ -125,8 +125,14 @@ function MenuItem({
   return (
     <Pressable
       onPress={onPress}
-      // NOTE: menuitemradio is a valid ARIA role that react-native-web passes through but RN's types omit.
-      accessibilityRole={(checked === undefined ? 'menuitem' : 'menuitemradio') as 'menuitem'}
+      // NOTE: menuitemradio is a valid ARIA role that react-native-web passes through but RN's
+      // types omit, and Android's native role enum rejects it (the view manager throws). Native
+      // keeps menuitem and carries the choice state in aria-checked -> accessibilityState.checked.
+      accessibilityRole={
+        (Platform.OS === 'web' && checked !== undefined
+          ? 'menuitemradio'
+          : 'menuitem') as 'menuitem'
+      }
       // aria-*, not accessibilityState: only the aria props reach the DOM on web.
       aria-checked={checked}
       style={pressableStyle}

@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { Menu } from '@/components/base/Menu';
 import { getMenuPosition } from '@/components/base/menuPosition';
+import { mockPlatform, restorePlatform } from '@/test-utils/index';
 
 describe('getMenuPosition', () => {
   const anchor = { anchorY: 100, anchorWidth: 40, anchorHeight: 40, windowHeight: 900 };
@@ -81,6 +82,29 @@ describe('Menu', () => {
       </Menu>,
     );
     expect(screen.getByTestId('menu-popover').props.accessibilityRole).toBe('menu');
+  });
+
+  it('uses menuitem natively, where menuitemradio crashes the Android view manager', async () => {
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" checked onPress={jest.fn()} />
+      </Menu>,
+    );
+    const item = screen.getByRole('menuitem');
+    expect(item.props.accessibilityState.checked).toBe(true);
+    expect(screen.queryByRole('menuitemradio')).toBeNull();
+  });
+
+  it('uses menuitemradio on web', async () => {
+    mockPlatform('web');
+    await render(
+      <Menu visible onDismiss={jest.fn()} anchor={<Text>Sort</Text>}>
+        <Menu.Item title="A-Z" checked onPress={jest.fn()} />
+      </Menu>,
+    );
+    expect(screen.getByTestId('menu-popover')).toBeOnTheScreen();
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(1);
+    restorePlatform();
   });
 
   it('fires onPress and does not dismiss via the item press itself', async () => {

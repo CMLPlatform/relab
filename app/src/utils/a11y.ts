@@ -2,19 +2,27 @@ import type { TextInputProps, TextProps, ViewStyle } from 'react-native';
 
 /**
  * Props that associate an input with the `FormFieldError` sharing its `id`
- * and mark it invalid while the error shows.
+ * and, by default, mark it invalid while the error shows. Pass
+ * `{ invalid: false }` for a hint that describes the field without
+ * claiming the value is wrong (e.g. a minimum-length cue before typing).
  * `accessibilityDescribedBy` is not in RN core's `TextInputProps`, but
  * react-native-web forwards it to `aria-describedby`.
  */
-export function describedBy(id: string, hasError: boolean): Partial<TextInputProps> {
-  return (
-    hasError ? { accessibilityDescribedBy: id, 'aria-invalid': true } : {}
-  ) as Partial<TextInputProps>;
+export function describedBy(
+  id: string,
+  hasError: boolean,
+  { invalid = true }: { invalid?: boolean } = {},
+): Partial<TextInputProps> {
+  if (!hasError) return {};
+  return {
+    accessibilityDescribedBy: id,
+    ...(invalid ? { 'aria-invalid': true } : {}),
+  } as Partial<TextInputProps>;
 }
 
 /**
  * Keeps a node in the accessibility tree while taking it off the screen. Not
- * `display: none` or zero opacity alone: both can drop it from the tree.
+ * `display: none` or zero opacity: both can drop it from the tree.
  */
 export const visuallyHidden = {
   position: 'absolute',
@@ -22,7 +30,6 @@ export const visuallyHidden = {
   height: 1,
   margin: -1,
   overflow: 'hidden',
-  opacity: 0,
 } as const satisfies ViewStyle;
 
 /**

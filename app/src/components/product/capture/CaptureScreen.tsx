@@ -165,7 +165,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
                 placeholder={role === 'component' ? 'e.g. Battery pack' : 'e.g. Cordless drill'}
                 accessibilityLabel="Name"
                 onSubmitEditing={submitOnEnter}
-                {...describedBy(nameHintId, nameTooShort)}
+                {...describedBy(nameHintId, nameTooShort, { invalid: false })}
               />
               {/* Slot stays reserved so the form does not jump once the name is long enough. */}
               <AppText

@@ -110,8 +110,13 @@ describe('SpecHeader screen heading in edit mode', () => {
   });
 
   test('names a product without a name "New product"', async () => {
-    await render(<SpecHeader product={{ ...baseProduct, name: '' }} editMode />);
+    await render(<SpecHeader product={{ ...baseProduct, id: undefined, name: '' }} editMode />);
     expect(screen.getByRole('header', { name: 'New product' }).props['aria-level']).toBe(1);
+  });
+
+  test('a name cleared mid-edit on a saved product is still "Editing"', async () => {
+    await render(<SpecHeader product={{ ...baseProduct, name: '' }} editMode />);
+    expect(screen.getByRole('header', { name: 'Editing ' })).toBeOnTheScreen();
   });
 
   test('view mode keeps a single level-1 heading', async () => {

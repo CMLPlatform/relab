@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { useEffect, useSyncExternalStore } from 'react';
+import { AccessibilityInfo, Platform, View, type ViewStyle } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
@@ -72,6 +72,9 @@ export function SaveBar({
   // The card exists to seat the summary text beside the button; a lone button
   // carries its own ground, so the chrome would only frame empty padding.
   const showsMessage = blockedByValidation && Boolean(validationError);
+  const uploadingText = uploadingPhotos
+    ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
+    : null;
   const showsSummary = needsAttention || (blockedByValidation && Boolean(validationError));
   return (
     <View
@@ -94,11 +97,10 @@ export function SaveBar({
         // Out of flow when empty, so it adds no gap beside the button.
         style={showsMessage ? (layout === 'flow' ? flowSummaryStyle : undefined) : visuallyHidden}
       >
-        {uploadingPhotos ? (
+        <IosAnnouncement text={uploadingText ?? (showsMessage ? validationError : undefined)} />
+        {uploadingText ? (
           // The button label carries this visibly; the region makes it heard.
-          <AppText style={visuallyHidden}>
-            {`Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`}
-          </AppText>
+          <AppText style={visuallyHidden}>{uploadingText}</AppText>
         ) : null}
         {blockedByValidation && validationError ? (
           <Animated.View
@@ -140,6 +142,14 @@ export function SaveBar({
       </AppButton>
     </View>
   );
+}
+
+/** VoiceOver ignores accessibilityLiveRegion; announce the region's text explicitly. */
+function IosAnnouncement({ text }: { text?: string }) {
+  useEffect(() => {
+    if (text && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(text);
+  }, [text]);
+  return null;
 }
 
 // 24px = right-6/bottom-6; getFloatingPosition() docks to the viewport ('fixed' on web).

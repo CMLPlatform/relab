@@ -208,6 +208,10 @@ describe('CaptureScreen', () => {
     await renderCapture({ entityRole: 'product' });
 
     expect(screen.getByText('At least 2 characters')).toBeOnTheScreen();
+    // A length cue describes the field; it must not mark an untouched field invalid.
+    const nameInput = screen.getByPlaceholderText(NAME_PLACEHOLDER);
+    expect(nameInput.props.accessibilityDescribedBy).toBeDefined();
+    expect(nameInput.props['aria-invalid']).toBeUndefined();
     await fireEvent.changeText(screen.getByPlaceholderText(NAME_PLACEHOLDER), 'C');
     expect(screen.getByText('At least 2 characters')).toBeOnTheScreen();
 

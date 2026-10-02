@@ -1,9 +1,14 @@
 import { afterEach, expect, jest, test } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
-import { StyleSheet } from 'react-native';
+import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { SaveBar } from '@/components/product/detail/SaveBar';
 import { getImageUploadProgress } from '@/services/api/saving';
-import { queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
+import {
+  mockPlatform,
+  queryAllHostsByType,
+  renderWithProviders,
+  restorePlatform,
+} from '@/test-utils/index';
 
 jest.mock('@/services/api/saving', () => ({
   getImageUploadProgress: jest.fn(() => null),
@@ -430,6 +435,30 @@ test('announces upload progress through a polite status region', async () => {
   const region = screen.getByTestId('save-bar-status');
   expect(region.props.accessibilityLiveRegion).toBe('polite');
   expect(region).toHaveTextContent('Uploading 1 of 3…');
+});
+
+test('announces upload progress on iOS, where live regions do nothing', async () => {
+  mockPlatform('ios');
+  const announce = jest
+    .spyOn(AccessibilityInfo, 'announceForAccessibility')
+    .mockImplementation(() => {});
+  jest.mocked(getImageUploadProgress).mockReturnValue({ current: 1, total: 3 });
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving
+      isPaused={false}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  expect(announce).toHaveBeenCalledWith('Uploading 1 of 3…');
+  announce.mockRestore();
+  restorePlatform();
 });
 
 test('announces the validation message through the status region', async () => {

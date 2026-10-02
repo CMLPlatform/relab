@@ -94,7 +94,7 @@ export function SpecHeader({
         <>
           {/* The name is an input here, so the screen's level-1 heading is not visible. */}
           <AppText style={visuallyHidden} {...heading(1)}>
-            {product.name ? `Editing ${product.name}` : 'New product'}
+            {product.id === undefined ? 'New product' : `Editing ${product.name}`}
           </AppText>
           {/* Keyed per product so a stale draft is dropped on navigation. */}
           <NameField key={product.id} name={product.name} onNameChange={onNameChange} />

@@ -53,7 +53,7 @@ describe('ProductsFilterBar sort chip', () => {
   it('exposes the active sort option as a checked menu radio', async () => {
     await renderFilterBar({ sortMenuVisible: true });
 
-    const options = screen.getAllByRole('menuitemradio');
+    const options = screen.getAllByRole('menuitem');
     expect(options.length).toBeGreaterThan(1);
     const checked = options.filter((option) => option.props.accessibilityState.checked === true);
     expect(checked).toHaveLength(1);

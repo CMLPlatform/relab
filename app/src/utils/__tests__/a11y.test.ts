@@ -9,6 +9,12 @@ describe('describedBy', () => {
     });
   });
 
+  it('describes without marking invalid when asked to', () => {
+    expect(describedBy('hint', true, { invalid: false })).toEqual({
+      accessibilityDescribedBy: 'hint',
+    });
+  });
+
   it('returns no accessibility props when there is no error', () => {
     expect(describedBy('field-error', false)).toEqual({});
   });
