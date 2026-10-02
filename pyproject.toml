@@ -43,7 +43,6 @@
   major_version_zero       = true
   name                     = "cz_conventional_commits"
   tag_format               = "v$version"
-  update_changelog_on_bump = true
   version_files = [
     "app/package.json:\"version\"",
     "app/app.json:\"version\"",

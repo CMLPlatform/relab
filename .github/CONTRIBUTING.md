@@ -282,9 +282,14 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
 ### Releases
 
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/): user-visible
+changes collect under `## [Unreleased]` in the categories Added, Changed, Deprecated, Removed,
+Fixed and Security.
+
 1. `just release-prep 0.4.0` branches `release/v0.4.0` from `origin/main`, bumps every version
-   file, and drafts the version's CHANGELOG section from the commits since the last tag.
-1. Rewrite that section for readers, commit, and open a PR. Its description is yours: put
+   file, turns `Unreleased` into `## [0.4.0] - <date>` with the compare links updated, and
+   prints the commits since the last tag.
+1. Write or finish that section for readers, commit, and open a PR. Its description is yours: put
    one-time upgrade steps there and in the release notes.
 1. After the merge, `just release-publish 0.4.0` drafts the GitHub release from the section.
 1. Publish the draft. That creates the `v0.4.0` tag and starts `release.yml`, which publishes the
