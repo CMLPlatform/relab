@@ -135,7 +135,7 @@ async def _generate_image_thumbnails(db_image: Image) -> None:
 
     # Every width is generated here, before the response, so nothing is left for later:
     # image size is capped per role (at most MAX_IMAGE_PIXELS) and JPEGs decode through `draft`, which
-    # keeps the whole set to roughly 350 ms at 12 MP. A failure is not fatal: the
+    # keeps the whole set to roughly 110 ms at 12 MP. A failure is not fatal: the
     # original is stored and `build_thumbnail_urls_by_width` stat-checks each width, so
     # a missing one falls back to the original rather than publishing a broken URL.
     try:

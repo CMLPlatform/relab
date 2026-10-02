@@ -386,6 +386,32 @@ def test_generate_thumbnails_resizes_non_jpeg_from_the_previous_width(
             assert img.size == (w, int((w / 3001) * 1999))
 
 
+def test_generate_thumbnails_decodes_a_jpeg_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A JPEG is opened and drafted once, then each width resizes from the next larger one.
+
+    `draft` scales only the inverse DCT; the entropy decode runs over the whole file on
+    every open, so re-opening per width would repeat the most expensive step.
+    """
+    path = tmp_path / "large.jpg"
+    PILImage.new("RGB", (4000, 3000), (40, 80, 120)).save(path, format="JPEG")
+    opens: list[object] = []
+    original_open = PILImage.open
+
+    def recording_open(fp: object, *args: object, **kwargs: object) -> PILImage.Image:
+        opens.append(fp)
+        return original_open(fp, *args, **kwargs)  # ty: ignore[invalid-argument-type]
+
+    monkeypatch.setattr(PILImage, "open", recording_open)
+
+    generated = generate_thumbnails(path)
+
+    assert opens == [path]
+    assert generated == [thumbnail_path_for(path, w) for w in THUMBNAIL_WIDTHS]
+    for w in THUMBNAIL_WIDTHS:
+        with original_open(thumbnail_path_for(path, w)) as img:
+            assert img.size == (w, int((w / 4000) * 3000))
+
+
 def test_generate_thumbnails_not_found() -> None:
     """Should raise FileNotFoundError for a missing source image."""
     with pytest.raises(FileNotFoundError):

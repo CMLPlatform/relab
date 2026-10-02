@@ -42,7 +42,9 @@ ALLOWED_IMAGE_MIME_TYPES: frozenset[str] = frozenset(
         "image/webp",
     }
 )
-THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600, 2560)
+# 1600 is the widest: a viewer that needs more, such as a full-screen lightbox on a 3x
+# phone, takes the original instead.
+THUMBNAIL_WIDTHS: tuple[int, ...] = (200, 800, 1600)
 # Pillow pre-reduces by an integer factor before the resample filter runs whenever the
 # source is at least this many times the target. It costs a box-filter pass and saves a
 # much larger LANCZOS one; 2.0 is Pillow's own default for `thumbnail`.
