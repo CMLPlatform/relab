@@ -26,6 +26,10 @@ resource "github_repository_environment" "publish" {
   repository  = var.github_repository
   environment = var.environment
 
+  # Prod jobs wait 15 minutes before they start: time to cancel a release published by
+  # mistake before its images and sites go out.
+  wait_timer = var.environment == "prod" ? 15 : null
+
   # Prod URLs are baked in only from main (a manual publish, the weekly site rebuild) or
   # a release tag, which is the ref release.yml runs on. Staging stays open so a manual
   # publish of any branch can be tried there.

@@ -159,6 +159,11 @@ run "prod_publishes_only_from_main" {
   }
 
   assert {
+    condition     = github_repository_environment.publish.wait_timer == 15
+    error_message = "prod jobs must keep their 15-minute wait timer."
+  }
+
+  assert {
     condition     = github_repository_environment_deployment_policy.release_tag[0].tag_pattern == "v*"
     error_message = "release.yml runs on the release tag, so prod must accept v* tags."
   }

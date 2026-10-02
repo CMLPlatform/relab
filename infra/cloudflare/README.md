@@ -180,9 +180,22 @@ root writes, so the Environment goes first:
 
    ```bash
    tofu -chdir=infra/cloudflare workspace select <env>
-   tofu -chdir=infra/cloudflare apply -var=environment=<env> -target=github_actions_environment_variable.publish
+   tofu -chdir=infra/cloudflare apply -var=environment=<env> \
+     -target=github_actions_environment_variable.publish \
+     -target=github_repository_environment_deployment_policy.release_tag
    ```
 
+   An Environment, variable or branch policy made by hand before this root managed it makes the
+   apply fail with "already exists". Import each one first, for example:
+
+   ```bash
+   tofu -chdir=infra/cloudflare import -var=environment=<env> github_repository_environment.publish relab:<env>
+   tofu -chdir=infra/cloudflare import -var=environment=<env> \
+     'github_actions_environment_variable.publish["API_PUBLIC_URL"]' relab:<env>:API_PUBLIC_URL
+   ```
+
+   A branch policy imports as `relab:<env>:<policy id>`; `gh api
+   repos/<owner>/relab/environments/<env>/deployment-branch-policies` lists the ids.
 1. Run the Deploy Sites workflow for the environment (Actions -> Deploy Sites -> Run workflow).
    It needs the `CLOUDFLARE_API_TOKEN` Environment secret, an account token with the **Workers
    Editor** role and nothing else.
