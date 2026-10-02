@@ -2,15 +2,12 @@
 
 import contextlib
 import io
-import os
-from pathlib import Path
 from typing import IO, TYPE_CHECKING
 
 from PIL import Image as PILImage
-from PIL import ImageOps
 
 from .constants import FORMAT_JPEG, FORMAT_MPO, FORMAT_WEBP
-from .exif import filter_exif, get_exif_orientation
+from .exif import apply_exif_orientation, filter_exif, get_exif_orientation
 from .validation import validate_animation_pixels, validate_image_dimensions
 
 if TYPE_CHECKING:
@@ -54,10 +51,10 @@ def _animation_save_kwargs(img: PILImage.Image) -> dict[str, Any]:
     return kwargs
 
 
-def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tuple[int, int]:
+def process_image_for_storage(image: IO[bytes]) -> tuple[int, int]:
     """Strip metadata from an image and bake in its rotation, rewriting it in place.
 
-    ``image`` is a path or a seekable binary file such as an upload, so the bytes can be
+    ``image`` is a seekable, writable binary file such as an upload, so the bytes can be
     cleaned before any storage backend receives them.
 
     Returns the stored image's ``(width, height)`` in pixels. Read here rather
@@ -65,9 +62,7 @@ def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tupl
     validation below, and the EXIF rotation further down swaps the two, so this
     is the only point that knows the size the file actually ends up with.
     """
-    is_file = not isinstance(image, str | os.PathLike)
-    if is_file:
-        image.seek(0)
+    image.seek(0)
     with PILImage.open(image) as img:
         validate_image_dimensions(img)
         # A JPEG with an embedded secondary image (an HDR gain map, a depth map) opens as
@@ -90,8 +85,7 @@ def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tupl
         # only runs when there is a rotation to apply. NOTE: exif_transpose sees only the
         # first frame, so an animation is stored unrotated rather than flattened.
         if not is_animated and get_exif_orientation(img) not in (None, 1):
-            with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):
-                processed = ImageOps.exif_transpose(img)
+            processed = apply_exif_orientation(img)
 
         # Only allowlisted tags are written back; GPS, MakerNote and serial numbers were never
         # copied. XMP and the comment are blanked explicitly rather than left to each saver's
@@ -113,20 +107,15 @@ def process_image_for_storage(image: str | os.PathLike[str] | IO[bytes]) -> tupl
             validate_animation_pixels(img)
             save_kwargs.update(_animation_save_kwargs(img))
 
-        # Saved inside the `with`: closing the source discards its pixels. A still path is
-        # overwritten in place, which is safe because save() loads the pixels first. A file
-        # is still the open source, and an animation's later frames are read during the
-        # save, so both are encoded to a buffer and copied back below.
-        buffered = is_file or is_animated
+        # Saved inside the `with`: closing the source discards its pixels. The file is still
+        # the open source (an animation's later frames are read during the save), so the
+        # result is encoded to a buffer and copied back below.
         encoded = io.BytesIO()
-        processed.save(encoded if buffered else image, **save_kwargs)
+        processed.save(encoded, **save_kwargs)
         size = processed.size
 
-    if is_file:
-        image.seek(0)
-        image.truncate()
-        image.write(encoded.getbuffer())
-        image.seek(0)
-    elif buffered:
-        Path(image).write_bytes(encoded.getbuffer())
+    image.seek(0)
+    image.truncate()
+    image.write(encoded.getbuffer())
+    image.seek(0)
     return size

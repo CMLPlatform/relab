@@ -2,9 +2,9 @@
 
 import io
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from anyio import Path as AnyIOPath
 from fastapi import UploadFile
 from PIL import Image as PILImage
 from PIL import ImageCms, PngImagePlugin
@@ -25,6 +25,9 @@ from app.core.images import (
     validate_image_file,
     validate_image_mime_type,
 )
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 def _make_jpeg_with_exif(
@@ -58,6 +61,12 @@ def _make_jpeg_with_rich_exif(path: Path, width: int = 40, height: int = 60, ori
     exif.get_ifd(IFD.GPSInfo)[GPS.GPSLatitudeRef] = "N"
     img.save(path, format="JPEG", exif=exif)
     return path
+
+
+def _process(path: Path) -> tuple[int, int]:
+    """Run ``process_image_for_storage`` on a file on disk, rewriting it in place."""
+    with path.open("r+b") as image:
+        return process_image_for_storage(image)
 
 
 def _make_upload_file(content_type: str) -> UploadFile:
@@ -226,45 +235,12 @@ def test_filter_exif_leaves_source_image_untouched(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_process_image_not_found() -> None:
-    """Should raise FileNotFoundError for a missing file."""
-    with pytest.raises(FileNotFoundError):
-        process_image_for_storage(Path("non_existent.jpg"))
-
-
-def test_process_image_accepts_anyio_path(tmp_path: Path) -> None:
-    """Process should work with anyio.Path without touching async exists()."""
-    path = tmp_path / "anyio.jpg"
-    PILImage.new("RGB", (100, 100), color="green").save(path, format="JPEG")
-    async_path = AnyIOPath(str(path))
-
-    process_image_for_storage(async_path)
-
-    with PILImage.open(path) as result:
-        assert result.size == (100, 100)
-
-
 def test_process_image_returns_the_stored_size(tmp_path: Path) -> None:
     """The size is read off the header the validation already parsed, not by a second open."""
     path = tmp_path / "plain.jpg"
     PILImage.new("RGB", (640, 480), color="green").save(path, format="JPEG")
 
-    assert process_image_for_storage(path) == (640, 480)
-
-
-def test_process_image_returns_the_size_after_rotation(tmp_path: Path) -> None:
-    """Orientation 6 rotates a portrait original to landscape on disk.
-
-    The returned size has to describe the file as stored, or every consumer of
-    the recorded dimensions gets the aspect ratio the wrong way round.
-    """
-    path = _make_jpeg_with_exif(tmp_path / "rotated.jpg", 40, 60, orientation=6)
-
-    size = process_image_for_storage(path)
-
-    assert size == (60, 40)
-    with PILImage.open(path) as result:
-        assert result.size == size
+    assert _process(path) == (640, 480)
 
 
 def test_process_image_dimension_guard(tmp_path: Path) -> None:
@@ -273,14 +249,14 @@ def test_process_image_dimension_guard(tmp_path: Path) -> None:
     PILImage.new("RGB", (MAX_IMAGE_DIMENSION + 1, 100)).save(path, format="JPEG")
 
     with pytest.raises(ValueError, match="exceed the maximum"):
-        process_image_for_storage(path)
+        _process(path)
 
 
 def test_process_image_keeps_capture_parameters_and_drops_the_rest(tmp_path: Path) -> None:
     """Stored images keep the capture parameters CV research needs, nothing else."""
     path = _make_jpeg_with_rich_exif(tmp_path / "metadata.jpg")
 
-    process_image_for_storage(path)
+    _process(path)
 
     with PILImage.open(path) as result:
         exif = result.getexif()
@@ -295,39 +271,11 @@ def test_process_image_keeps_capture_parameters_and_drops_the_rest(tmp_path: Pat
     assert b"SecretSoftware" not in stored
 
 
-def test_process_image_applies_orientation_and_strips_tag(tmp_path: Path) -> None:
-    """Orientation should be baked into pixels and the orientation tag removed."""
-    # 100w x 200h tagged orientation 6 → after processing: 200w x 100h, no orientation tag
-    path = _make_jpeg_with_exif(tmp_path / "orient.jpg", 100, 200, orientation=6)
-
-    process_image_for_storage(path)
-
-    with PILImage.open(path) as result:
-        assert result.width == 200
-        assert result.height == 100
-        assert result.getexif().get(0x0112) is None
-
-
-def test_process_image_orientation_survives_preserved_exif(tmp_path: Path) -> None:
-    """Writing preserved tags back must not smuggle the orientation tag along with them.
-
-    A re-written orientation tag would double-rotate the image on the next open.
-    """
-    path = _make_jpeg_with_rich_exif(tmp_path / "oriented_rich.jpg", 40, 60, orientation=6)
-
-    process_image_for_storage(path)
-
-    with PILImage.open(path) as result:
-        assert result.size == (60, 40)
-        assert 0x0112 not in result.getexif()
-        assert result.getexif()[0x0110] == "Model X"
-
-
 def test_process_image_normal_orientation_unchanged(tmp_path: Path) -> None:
     """Images with no orientation issue should preserve their dimensions."""
     path = _make_jpeg_with_exif(tmp_path / "normal.jpg", 400, 200, orientation=1)
 
-    process_image_for_storage(path)
+    _process(path)
 
     with PILImage.open(path) as result:
         assert result.width == 400
@@ -468,7 +416,7 @@ def test_multiframe_gif_without_exif_is_left_untouched(tmp_path: Path) -> None:
     frames[0].save(path, save_all=True, append_images=frames[1:], duration=100, loop=0)
 
     before = path.read_bytes()
-    process_image_for_storage(path)
+    _process(path)
 
     assert path.read_bytes() == before, "GIF was re-encoded despite needing no processing"
     with PILImage.open(path) as reopened:
@@ -505,78 +453,46 @@ def _frame_summary(path: Path) -> tuple[int, list[int], list[tuple[int, ...]]]:
         return img.n_frames, durations, colors  # ty: ignore[unresolved-attribute]
 
 
-def test_animated_webp_metadata_is_stripped_and_frames_kept(tmp_path: Path) -> None:
-    """An animated WebP is re-saved frame by frame without its EXIF or XMP.
+@pytest.mark.parametrize(
+    ("filename", "save_kwargs", "loop"),
+    [
+        # Lossless input must stay lossless, so every pixel comes back exactly.
+        ("animated.webp", {"lossless": True, "exif": _gps_exif(), "xmp": b"<x:xmpmeta>GPS</x:xmpmeta>"}, 3),
+        ("animated.png", {"exif": _gps_exif()}, 2),
+        ("animated.gif", {"comment": b"home address"}, 0),
+    ],
+    ids=["webp", "apng", "gif"],
+)
+def test_animation_metadata_is_stripped_and_frames_kept(
+    tmp_path: Path, filename: str, save_kwargs: dict[str, Any], loop: int
+) -> None:
+    """An animation is re-saved frame by frame without its EXIF, XMP or comment.
 
     Regression: animated originals were never re-saved, so GPS EXIF and XMP survived
-    storage. Lossless input must stay lossless, so every pixel comes back exactly.
+    storage.
     """
-    path = tmp_path / "animated.webp"
+    path = tmp_path / filename
     frames = _animation_frames()
+    if path.suffix == ".gif":
+        frames = [frame.convert("P") for frame in frames]
     frames[0].save(
-        path,
-        save_all=True,
-        append_images=frames[1:],
-        duration=_ANIMATION_DURATIONS,
-        loop=3,
-        lossless=True,
-        exif=_gps_exif(),
-        xmp=b"<x:xmpmeta>GPS</x:xmpmeta>",
+        path, save_all=True, append_images=frames[1:], duration=_ANIMATION_DURATIONS, loop=loop, **save_kwargs
     )
     with PILImage.open(path) as before:
-        assert before.getexif().get_ifd(IFD.GPSInfo)
-        assert before.info.get("xmp")
+        assert before.getexif().get_ifd(IFD.GPSInfo) or before.info.get("comment")
     expected = _frame_summary(path)
 
-    process_image_for_storage(path)
+    _process(path)
 
     with PILImage.open(path) as result:
         assert not result.getexif()
         assert not result.info.get("xmp")
-        assert result.info["loop"] == 3
-    assert _frame_summary(path) == expected
-    assert expected[0] == 3
-    assert expected[2] == list(_ANIMATION_COLORS)
-
-
-def test_apng_gps_exif_is_stripped_and_frames_kept(tmp_path: Path) -> None:
-    """An animated PNG is re-saved frame by frame without its EXIF."""
-    path = tmp_path / "animated.png"
-    frames = _animation_frames()
-    frames[0].save(
-        path, save_all=True, append_images=frames[1:], duration=_ANIMATION_DURATIONS, loop=2, exif=_gps_exif()
-    )
-    with PILImage.open(path) as before:
-        assert before.getexif().get_ifd(IFD.GPSInfo)
-    expected = _frame_summary(path)
-
-    process_image_for_storage(path)
-
-    with PILImage.open(path) as result:
-        assert not result.getexif()
-        assert result.info["loop"] == 2
-    assert _frame_summary(path) == expected
-    assert expected[:2] == (3, _ANIMATION_DURATIONS)
-
-
-def test_animated_gif_comment_is_stripped_and_frames_kept(tmp_path: Path) -> None:
-    """An animated GIF is re-saved frame by frame without its free-text comment."""
-    path = tmp_path / "animated.gif"
-    frames = [PILImage.new("RGB", (48, 48), color).convert("P") for color in _ANIMATION_COLORS]
-    frames[0].save(
-        path, save_all=True, append_images=frames[1:], duration=_ANIMATION_DURATIONS, loop=0, comment=b"home address"
-    )
-    with PILImage.open(path) as before:
-        assert before.info.get("comment")
-    expected = _frame_summary(path)
-
-    process_image_for_storage(path)
-
-    with PILImage.open(path) as result:
         assert not result.info.get("comment")
-        assert result.info["loop"] == 0
+        assert result.info["loop"] == loop
     assert _frame_summary(path) == expected
     assert expected[:2] == (3, _ANIMATION_DURATIONS)
+    if path.suffix != ".gif":  # GIF quantizes to a palette; the others are lossless.
+        assert expected[2] == list(_ANIMATION_COLORS)
 
 
 def _commented_gif(path: Path) -> Path:
@@ -586,25 +502,22 @@ def _commented_gif(path: Path) -> Path:
     return path
 
 
-def test_animation_over_the_frame_total_cap_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize(("max_pixels", "refused"), [(6911, True), (6912, False)], ids=["over", "at"])
+def test_animation_frame_total_cap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, max_pixels: int, *, refused: bool
+) -> None:
     """Re-saving decodes every frame, so the pixel cap applies to all frames combined."""
-    monkeypatch.setattr("app.core.images.validation.MAX_IMAGE_PIXELS", 6911)
+    monkeypatch.setattr("app.core.images.validation.MAX_IMAGE_PIXELS", max_pixels)
     path = _commented_gif(tmp_path / "animated.gif")
     before = path.read_bytes()
 
-    with pytest.raises(ValueError, match="across all frames"):
-        process_image_for_storage(path)
+    if refused:
+        with pytest.raises(ValueError, match="across all frames"):
+            _process(path)
+        assert path.read_bytes() == before
+        return
 
-    assert path.read_bytes() == before
-
-
-def test_animation_at_the_frame_total_cap_is_processed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """An animation whose frames together stay within the cap is cleaned as usual."""
-    monkeypatch.setattr("app.core.images.validation.MAX_IMAGE_PIXELS", 6912)
-    path = _commented_gif(tmp_path / "animated.gif")
-
-    process_image_for_storage(path)
-
+    _process(path)
     with PILImage.open(path) as result:
         assert not result.info.get("comment")
         assert result.n_frames == 3  # ty: ignore[unresolved-attribute]
@@ -616,7 +529,7 @@ def test_lossless_webp_without_exif_is_left_untouched(tmp_path: Path) -> None:
     PILImage.new("RGB", (64, 64), (10, 20, 30)).save(path, format="WEBP", lossless=True)
 
     before = path.read_bytes()
-    process_image_for_storage(path)
+    _process(path)
 
     assert path.read_bytes() == before
 
@@ -645,7 +558,7 @@ def test_process_image_strips_gps_tags(tmp_path: Path) -> None:
     with PILImage.open(path) as before:
         assert bool(before.info.get("exif"))
 
-    process_image_for_storage(path)
+    _process(path)
 
     with PILImage.open(path) as result:
         assert not result.getexif().get_ifd(IFD.GPSInfo)
@@ -662,25 +575,10 @@ def test_process_image_strips_exif_only_exposed_through_getexif(tmp_path: Path) 
         assert not before.info.get("exif")
         assert before.getexif().get(0x013B) == "Jane Doe"
 
-    process_image_for_storage(path)
+    _process(path)
 
     with PILImage.open(path) as result:
         assert 0x013B not in result.getexif()
-
-
-def test_jpeg_with_exif_orientation_is_still_rotated_and_stripped(tmp_path: Path) -> None:
-    """The processing path must still apply rotation and strip EXIF when present."""
-    path = tmp_path / "rotated.jpg"
-    img = PILImage.new("RGB", (40, 60), (90, 90, 90))
-    exif = img.getexif()
-    exif[0x0112] = 6  # orientation: rotate 90°
-    img.save(path, format="JPEG", exif=exif)
-
-    process_image_for_storage(path)
-
-    out = PILImage.open(path)
-    assert out.size == (60, 40)
-    assert 0x0112 not in out.getexif()
 
 
 # ---------------------------------------------------------------------------
@@ -698,7 +596,7 @@ def test_process_image_stores_an_mpo_as_its_primary_jpeg(tmp_path: Path) -> None
         path, format="MPO", save_all=True, append_images=[PILImage.new("L", (32, 24))], exif=exif.tobytes()
     )
 
-    assert process_image_for_storage(path) == (64, 48)
+    assert _process(path) == (64, 48)
 
     with PILImage.open(path) as stored:
         assert stored.format == "JPEG"
@@ -707,24 +605,15 @@ def test_process_image_stores_an_mpo_as_its_primary_jpeg(tmp_path: Path) -> None
         assert not stored.getexif().get_ifd(IFD.GPSInfo)
 
 
-@pytest.mark.parametrize(
-    ("save_kwargs", "secret"),
-    [
-        ({"comment": b"shot at Home Street 1", "exif": PILImage.Exif().tobytes()}, b"Home Street"),
-        # No EXIF at all: the XMP alone has to trigger the re-save.
-        ({"xmp": b"<x:xmpmeta><exif:GPSLatitude>52,9.6N</exif:GPSLatitude></x:xmpmeta>"}, b"GPSLatitude"),
-        ({"comment": b"shot at Home Street 1"}, b"Home Street"),
-    ],
-)
-def test_process_image_drops_comments_and_xmp(tmp_path: Path, save_kwargs: dict[str, object], secret: bytes) -> None:
-    """A JPEG comment is free text and XMP repeats GPS; neither survives storage."""
+def test_process_image_drops_a_jpeg_comment(tmp_path: Path) -> None:
+    """A JPEG comment is free text; it does not survive storage, even with no EXIF to trigger the re-save."""
     path = tmp_path / "photo.jpg"
-    PILImage.new("RGB", (40, 30)).save(path, format="JPEG", **save_kwargs)
-    assert secret in path.read_bytes()
+    PILImage.new("RGB", (40, 30)).save(path, format="JPEG", comment=b"shot at Home Street 1")
+    assert b"Home Street" in path.read_bytes()
 
-    process_image_for_storage(path)
+    _process(path)
 
-    assert secret not in path.read_bytes()
+    assert b"Home Street" not in path.read_bytes()
 
 
 def test_process_image_keeps_the_colour_profile(tmp_path: Path) -> None:
@@ -734,7 +623,7 @@ def test_process_image_keeps_the_colour_profile(tmp_path: Path) -> None:
     with PILImage.open(path) as img:
         img.save(path, format="JPEG", exif=img.info["exif"], icc_profile=icc)
 
-    process_image_for_storage(path)
+    _process(path)
 
     with PILImage.open(path) as stored:
         assert stored.info["icc_profile"] == icc
@@ -747,9 +636,9 @@ def test_process_image_skips_the_transpose_copy_when_upright(tmp_path: Path, mon
     def _fail(_img: object) -> None:
         raise AssertionError
 
-    monkeypatch.setattr("app.core.images.processing.ImageOps.exif_transpose", _fail)
+    monkeypatch.setattr("app.core.images.exif.ImageOps.exif_transpose", _fail)
 
-    assert process_image_for_storage(path) == (40, 30)
+    assert _process(path) == (40, 30)
 
 
 # ---------------------------------------------------------------------------
@@ -788,7 +677,7 @@ def test_process_image_drops_png_text_chunks(tmp_path: Path) -> None:
     with PILImage.open(path) as before:
         assert before.info.keys() >= {"Comment", "Author", "Location"}
 
-    process_image_for_storage(path)
+    _process(path)
 
     stored = path.read_bytes()
     assert b"Home Street" not in stored
@@ -806,7 +695,7 @@ def test_process_image_drops_xmp_and_keeps_the_exif_allowlist(tmp_path: Path, im
     )
     assert b"GPSLatitude" in path.read_bytes()
 
-    process_image_for_storage(path)
+    _process(path)
 
     stored = path.read_bytes()
     assert b"GPSLatitude" not in stored
@@ -816,27 +705,31 @@ def test_process_image_drops_xmp_and_keeps_the_exif_allowlist(tmp_path: Path, im
         assert result.getexif()[0x0110] == "Model X"
 
 
-@pytest.mark.parametrize("image_format", ["PNG", "WEBP"])
+@pytest.mark.parametrize("image_format", ["PNG", "WEBP", "JPEG"])
 def test_process_image_xmp_alone_triggers_the_strip(tmp_path: Path, image_format: str) -> None:
     """With no EXIF at all, an XMP packet on its own still has to be removed."""
     path = tmp_path / f"xmp_only.{image_format.lower()}"
     PILImage.new("RGB", (40, 30)).save(path, format=image_format, **_xmp_kwargs(image_format))
     assert b"GPSLatitude" in path.read_bytes()
 
-    process_image_for_storage(path)
+    _process(path)
 
     assert b"GPSLatitude" not in path.read_bytes()
 
 
-@pytest.mark.parametrize("image_format", ["PNG", "WEBP"])
-def test_process_image_rotates_and_filters_png_and_webp_exif(tmp_path: Path, image_format: str) -> None:
-    """A PNG eXIf chunk or WebP EXIF chunk gets the same allowlist and rotation as a JPEG."""
+@pytest.mark.parametrize("image_format", ["PNG", "WEBP", "JPEG"])
+def test_process_image_rotates_and_filters_exif(tmp_path: Path, image_format: str) -> None:
+    """JPEG EXIF, a PNG eXIf chunk and a WebP EXIF chunk get the same allowlist and rotation.
+
+    The orientation is baked into the pixels and its tag is not written back with the
+    allowlisted ones, or the next open would rotate the image twice.
+    """
     path = tmp_path / f"rotated.{image_format.lower()}"
     PILImage.new("RGB", (40, 60)).save(
         path, format=image_format, exif=_allowlisted_and_personal_exif(orientation=6), lossless=True
     )
 
-    assert process_image_for_storage(path) == (60, 40)
+    assert _process(path) == (60, 40)
 
     assert b"Jane Doe" not in path.read_bytes()
     with PILImage.open(path) as result:
