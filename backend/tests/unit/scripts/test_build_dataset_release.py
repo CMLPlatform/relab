@@ -76,6 +76,9 @@ from scripts.build_dataset_release import (
 if TYPE_CHECKING:
     from typing import Any
 
+# The first Parquet write in a process pays a one-off setup cost; one worker pays it once.
+pytestmark = pytest.mark.xdist_group("dataset_release")
+
 USER_ID = "3f7b2a4e-1c8d-4a3f-9b21-8e6d5c4b3a20"
 OTHER_USER_ID = "9a1c2b3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d"
 

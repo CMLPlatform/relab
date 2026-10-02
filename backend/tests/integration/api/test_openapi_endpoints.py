@@ -7,6 +7,7 @@ from fastapi import APIRouter, FastAPI, status
 from httpx import ASGITransport, AsyncClient
 
 from app.api.common.audiences import AdminAPIRouter, DeviceAPIRouter, PublicAPIRouter
+from app.api.common.routers import openapi as openapi_module
 from app.api.common.routers.openapi import _build_admin_openapi, build_device_openapi, init_openapi_docs
 from app.core.config.core import settings
 from app.core.config.models import Environment
@@ -21,11 +22,21 @@ def assert_paths_present(paths: dict[str, object], expected_paths: set[str]) -> 
     assert expected_paths <= paths.keys()
 
 
+# One worker builds the shared app and its schemas once for the whole module.
+pytestmark = pytest.mark.xdist_group("openapi")
+
+
+@pytest.fixture(scope="module")
+def schema_app() -> FastAPI:
+    """Build the app once: these tests only read its schemas, which it caches."""
+    return create_app()
+
+
 @pytest.fixture
-async def openapi_client(test_app: FastAPI) -> AsyncGenerator[AsyncClient]:
+async def openapi_client(schema_app: FastAPI) -> AsyncGenerator[AsyncClient]:
     """Provide a minimal client for schema tests without full runtime startup."""
     async with AsyncClient(
-        transport=ASGITransport(app=test_app),
+        transport=ASGITransport(app=schema_app),
         base_url="http://test",
         follow_redirects=True,
     ) as client:
@@ -60,6 +71,33 @@ async def test_openapi_registration_can_include_internal_contracts_explicitly() 
 
     assert canonical_schema.status_code == status.HTTP_200_OK
     assert admin_schema.status_code == status.HTTP_200_OK
+
+
+async def test_schemas_are_built_once_per_app(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Routes are fixed after startup, so repeat requests must not rebuild a schema."""
+    builds: list[str] = []
+    real_public = openapi_module.build_public_openapi
+    real_canonical = openapi_module._build_canonical_openapi
+
+    def counting_public(app: FastAPI) -> dict[str, object]:
+        builds.append("public")
+        return real_public(app)
+
+    def counting_canonical(app: FastAPI) -> dict[str, object]:
+        builds.append("canonical")
+        return real_canonical(app)
+
+    monkeypatch.setattr(openapi_module, "build_public_openapi", counting_public)
+    monkeypatch.setattr(openapi_module, "_build_canonical_openapi", counting_canonical)
+    app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
+    init_openapi_docs(app, include_internal_contracts=True)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        for _ in range(2):
+            assert (await client.get("/openapi.public.json")).status_code == status.HTTP_200_OK
+            assert (await client.get("/openapi.json")).status_code == status.HTTP_200_OK
+
+    assert sorted(builds) == ["canonical", "public"]
 
 
 async def test_canonical_openapi_json_can_be_generated(openapi_client: AsyncClient) -> None:

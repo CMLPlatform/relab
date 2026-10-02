@@ -12,6 +12,10 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+# One worker runs the module, so the module-scoped export below is built once.
+pytestmark = pytest.mark.xdist_group("openapi")
+
+
 def _redirect_output_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(export_openapi, "DOCS_SCHEMA_DIR", tmp_path)
     monkeypatch.setattr(export_openapi, "APP_SCHEMA_PATH", tmp_path / "openapi.json")
