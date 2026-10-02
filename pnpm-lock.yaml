@@ -194,7 +194,7 @@ catalogs:
 
 overrides:
   uuid@<11.1.1: '>=11.1.1'
-  undici@>=7.0.0 <7.29.0: '>=7.29.0 <8'
+  undici@>=7.0.0 <7.29.1: '>=7.29.1 <8'
   '@ai-sdk/provider-utils@>=4.0.0-beta.10 <4.0.33': '>=4.0.33 <5'
   lodash-es@<4.18.1: '>=4.18.1 <5'
   lightningcss: 1.33.0
@@ -8848,8 +8848,8 @@ packages:
     resolution: {integrity: sha512-R+RODBqp6i2pPflGdq+xIOUkl+RNfGgHwoinecKu/JCuf2uO06cOKoDbI2P7Dn6KcswdKwrczbU6IYJ6K8X+wg==}
     engines: {node: '>=18.17'}
 
-  undici@7.29.0:
-    resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
+  undici@7.30.0:
+    resolution: {integrity: sha512-dkrQXeHSaoamnItlYbmzG0wFYrM0ZwDxCIg0A7aKjTyyhh9svRzCNFEzV+Vm05/yehjCzjDZ31KXfGEjYSztDQ==}
     engines: {node: '>=20.18.1'}
 
   undici@8.11.2:
@@ -12855,7 +12855,7 @@ snapshots:
     dependencies:
       '@scalar/helpers': 0.15.0
       pathe: 2.0.3
-      undici: 7.29.0
+      undici: 7.30.0
       yaml: 2.9.1
 
   '@scalar/localization@0.2.3(typescript@6.0.3)':
@@ -18184,7 +18184,7 @@ snapshots:
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       sharp: 0.35.4(@types/node@26.6.2)
-      undici: 7.29.0
+      undici: 7.30.0
       workerd: 1.20260923.1
       ws: 8.21.0
       youch: 4.1.0-beta.10
@@ -19833,7 +19833,7 @@ snapshots:
 
   undici@6.29.0: {}
 
-  undici@7.29.0: {}
+  undici@7.30.0: {}
 
   undici@8.11.2: {}
 
