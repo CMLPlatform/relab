@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import type { ShortcutGroupSpec } from '@/components/base/KeyboardShortcutsDialog';
+import type { ShortcutGroupSpec } from '@/components/base/KeyboardShortcutsPanel';
 
 const isMac =
   Platform.OS === 'web' &&

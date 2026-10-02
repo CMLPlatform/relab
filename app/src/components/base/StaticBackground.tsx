@@ -1,5 +1,5 @@
 import { ImageBackground } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useEffectiveColorScheme } from '@/context/themeMode';
 
 // Decorative teardown photo. Only the auth group and empty states mount it;
@@ -17,6 +17,8 @@ export function StaticBackground({ scrim }: { scrim?: string } = {}) {
     <View style={StyleSheet.absoluteFill} aria-hidden pointerEvents="none">
       <ImageBackground
         source={image}
+        // NOTE: decorative, so on web it must not compete with the scripts and data the page needs.
+        priority={Platform.OS === 'web' ? 'low' : undefined}
         style={StyleSheet.absoluteFill}
         // A photograph, not an icon: iOS Smart Invert would render it as a colour negative.
         accessibilityIgnoresInvertColors

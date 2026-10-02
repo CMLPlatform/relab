@@ -178,6 +178,7 @@ jest.mock('react-native-reanimated', () => {
     useAnimatedStyle: mockCreateAnimatedStyleHook(),
     useAnimatedProps: mockCreateAnimatedPropsHook(),
     useSharedValue: (initialValue: unknown) => mockCreateSharedValue(initialValue, noopFn),
+    makeMutable: (initialValue: unknown) => mockCreateSharedValue(initialValue, noopFn),
     useAnimatedSensor: () => ({
       sensor: { value: { pitch: 0, roll: 0, yaw: 0 } },
       unregister: noopFn,

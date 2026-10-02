@@ -1,3 +1,30 @@
+// Jest runs CommonJS without --experimental-vm-modules, so a source `import()` throws.
+// NOTE: tests only; Metro handles `import()` natively and splits the chunk.
+const dynamicImportToRequire = ({ types: t }) => ({
+  visitor: {
+    CallExpression(path) {
+      if (path.node.callee.type !== 'Import') return;
+      path.replaceWith(
+        t.callExpression(
+          t.memberExpression(
+            t.callExpression(
+              t.memberExpression(t.identifier('Promise'), t.identifier('resolve')),
+              [],
+            ),
+            t.identifier('then'),
+          ),
+          [
+            t.arrowFunctionExpression(
+              [],
+              t.callExpression(t.identifier('require'), path.node.arguments),
+            ),
+          ],
+        ),
+      );
+    },
+  },
+});
+
 module.exports = (api) => {
   // Respect explicit Babel/NODE envs, then ENVIRONMENT (used by Docker builds),
   // otherwise default to development.
@@ -12,6 +39,9 @@ module.exports = (api) => {
     presets: ['babel-preset-expo'],
     // React Compiler is useful, but running it during every dev transform slows
     // Metro feedback noticeably on this app. Keep it for production bundles.
-    plugins: isProduction ? [['babel-plugin-react-compiler', { target: '19' }]] : [],
+    plugins: [
+      ...(env === 'test' ? [dynamicImportToRequire] : []),
+      ...(isProduction ? [['babel-plugin-react-compiler', { target: '19' }]] : []),
+    ],
   };
 };

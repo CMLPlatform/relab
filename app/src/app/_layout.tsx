@@ -11,14 +11,13 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, ThemeProvider, usePathname, useRouter } from 'expo-router';
 import { setBackgroundColorAsync } from 'expo-system-ui';
-import { memo, type ReactNode, useCallback, useEffect } from 'react';
+import { lazy, memo, type ReactNode, Suspense, useCallback, useEffect } from 'react';
 import { AppState, type AppStateStatus, Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { enableScreens } from 'react-native-screens';
 import { Uniwind } from 'uniwind';
 import { z } from 'zod';
-import { TermsAcceptanceDialog } from '@/components/auth/TermsAcceptanceDialog';
 import { DialogProvider } from '@/components/base/DialogProvider';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
 import { KeyboardShortcutsDialog } from '@/components/base/KeyboardShortcutsDialog';
@@ -31,6 +30,7 @@ import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { ThemeModeProvider } from '@/context/ThemeModeProvider';
 import { useEffectiveColorScheme } from '@/context/themeMode';
+import { useTermsAcceptance } from '@/features/auth/useTermsAcceptance';
 import { PRODUCT_SHORTCUT_GROUPS } from '@/features/products/productShortcutGroups';
 import {
   onResumedSaveError,
@@ -45,6 +45,23 @@ import { AppThemeProvider } from '@/theme/AppThemeProvider';
 import { createNavigationThemes, getAppTheme } from '@/theme/themes';
 import { type BackgroundOverlay, useBackgroundOverlay } from '@/utils/router/background';
 import { getUsernameOnboardingRedirect } from '@/utils/router/onboarding';
+
+// NOTE: the prompt is rare, so its dialog loads only once an account owes acceptance.
+const TermsAcceptanceDialog = lazy(() =>
+  import('@/components/auth/TermsAcceptanceDialog').then((m) => ({
+    default: m.TermsAcceptanceDialog,
+  })),
+);
+
+function TermsPrompt() {
+  const { shouldPrompt } = useTermsAcceptance();
+  if (!shouldPrompt) return null;
+  return (
+    <Suspense fallback={null}>
+      <TermsAcceptanceDialog />
+    </Suspense>
+  );
+}
 
 // Every navigator here paints its scene transparent so AppBackground shows through
 // (the flat theme background on content screens, the photo + scrim on auth routes).
@@ -269,7 +286,7 @@ function ThemedProviders({ children }: { children: ReactNode }) {
             <DialogProvider>
               {children}
               {/* Needs DialogProvider (toast) and AuthProvider (user flag). */}
-              <TermsAcceptanceDialog />
+              <TermsPrompt />
               <ResumedSaveConflictNotice />
             </DialogProvider>
           </GestureHandlerRootView>
