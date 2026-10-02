@@ -1,8 +1,18 @@
-import { expect, jest, test } from '@jest/globals';
+import { afterEach, expect, jest, test } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { SaveBar } from '@/components/product/detail/SaveBar';
+import { getImageUploadProgress } from '@/services/api/saving';
 import { queryAllHostsByType, renderWithProviders } from '@/test-utils/index';
+
+jest.mock('@/services/api/saving', () => ({
+  getImageUploadProgress: jest.fn(() => null),
+  subscribeToImageUploadProgress: jest.fn(() => () => {}),
+}));
+
+afterEach(() => {
+  jest.mocked(getImageUploadProgress).mockReturnValue(null);
+});
 
 test('flow layout fills available width, wraps content, and is not positioned', async () => {
   await renderWithProviders(
@@ -147,6 +157,45 @@ test('shows a queued label and no spinner while the save mutation is paused offl
   );
   expect(screen.getByText('Queued — sends when online')).toBeTruthy();
   expect(queryAllHostsByType('ActivityIndicator')).toHaveLength(0);
+});
+
+// TDD for #13: photos upload sequentially after the entity PATCH lands, so a
+// multi-photo save gets a progress count instead of sitting behind one mute spinner.
+test('shows per-photo progress while photos upload mid-save', async () => {
+  jest.mocked(getImageUploadProgress).mockReturnValue({ current: 2, total: 5 });
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={true}
+      isPaused={false}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  expect(screen.getByText('Uploading 2 of 5…')).toBeTruthy();
+});
+
+test('ignores upload progress while the save is paused offline', async () => {
+  jest.mocked(getImageUploadProgress).mockReturnValue({ current: 2, total: 5 });
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={true}
+      isPaused={true}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  expect(screen.getByText('Queued — sends when online')).toBeTruthy();
+  expect(screen.queryByText('Uploading 2 of 5…')).toBeNull();
 });
 
 test('shows the loading spinner while actually saving (not paused)', async () => {

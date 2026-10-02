@@ -1,5 +1,5 @@
 import type { ComponentProps, RefObject } from 'react';
-import { useCallback, useContext } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent, ScrollView } from 'react-native';
 import { View } from 'react-native';
 import {
@@ -52,6 +52,9 @@ type ProductPageContentProps = {
   onProductDelete: () => void;
   onGoLivePress: () => void;
   goLiveTriggerRef?: RefObject<View | null>;
+  /** Enters edit mode (the `?edit=1` route param); used to make a missing-field link
+   * useful when its section is currently collapsed out of view mode. */
+  enterEditMode: () => void;
 };
 
 export function ProductPageContent({
@@ -80,6 +83,7 @@ export function ProductPageContent({
   onProductDelete,
   onGoLivePress,
   goLiveTriggerRef,
+  enterEditMode,
 }: ProductPageContentProps) {
   const outerNav = useContext(SectionNavContext);
   const {
@@ -88,6 +92,19 @@ export function ProductPageContent({
     onSectionsWrapperLayout,
   } = useAnchoredSectionNav(outerNav);
 
+  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
+  // A missing-field link into a section that view mode collapses (e.g. an
+  // empty Overview) has nothing to scroll to; entering edit mode is what
+  // actually shows it, same as the add-row every other empty section gets.
+  const shownSectionKeys = useMemo(() => {
+    const sectionCtx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
+    return new Set(
+      guardedSections({ isProductComponent, isLab })
+        .filter((section) => isSectionShown(section, product, sectionCtx))
+        .map((section) => section.key),
+    );
+  }, [canEdit, editMode, hasResearchFiles, isLab, isProductComponent, mediaStreamable, product]);
+
   const missing = ownedByMe ? missingFields(product) : [];
   const onPressMissingField = useCallback(
     (field: MissingField) => {
@@ -95,12 +112,15 @@ export function ProductPageContent({
         scrollRef.current?.scrollTo({ y: 0, animated: true });
         return;
       }
+      if (!editMode && !shownSectionKeys.has(field.target)) {
+        enterEditMode();
+        return;
+      }
       anchoredNav?.scrollTo(field.target);
     },
-    [anchoredNav, scrollRef],
+    [anchoredNav, editMode, enterEditMode, scrollRef, shownSectionKeys],
   );
 
-  const ctx: SectionContext = { mediaStreamable, hasResearchFiles, editMode, canEdit };
   const sectionProps: SectionRenderProps = {
     product,
     editMode,

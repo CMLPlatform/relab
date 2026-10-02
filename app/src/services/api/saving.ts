@@ -107,6 +107,32 @@ export class MediaSyncError extends Error {
   }
 }
 
+export type ImageUploadProgress = { current: number; total: number };
+
+// Image uploads run sequentially inside one in-flight save (saves are
+// themselves serialized, see SAVE_PRODUCT_MUTATION_KEY's scope), so a single
+// module-level value is enough for the UI to show "Uploading N of M" without
+// threading a callback through the mutation (which is persisted, so it cannot
+// carry a function across a dehydrate/rehydrate cycle).
+let imageUploadProgress: ImageUploadProgress | null = null;
+const imageUploadProgressListeners = new Set<() => void>();
+
+function setImageUploadProgress(progress: ImageUploadProgress | null): void {
+  imageUploadProgress = progress;
+  for (const listener of imageUploadProgressListeners) listener();
+}
+
+/** Current image-upload progress for the in-flight save, or null between uploads. */
+export function getImageUploadProgress(): ImageUploadProgress | null {
+  return imageUploadProgress;
+}
+
+/** Subscribe to image-upload progress changes; pair with `getImageUploadProgress` (e.g. via useSyncExternalStore). */
+export function subscribeToImageUploadProgress(listener: () => void): () => void {
+  imageUploadProgressListeners.add(listener);
+  return () => imageUploadProgressListeners.delete(listener);
+}
+
 /** Save a product. For updates, pass the server-state images/videos to diff against. */
 export async function saveProduct(
   product: Product,
@@ -202,9 +228,17 @@ async function updateProductImages(product: Product, originalImages: Product['im
       .map((img) => deleteImage(product, img as { id: string })),
   );
 
-  for (const img of imagesToAdd) {
-    // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose; parallel large uploads overwhelm the server.
-    await addImage(product, img);
+  try {
+    for (let i = 0; i < imagesToAdd.length; i++) {
+      // Only worth announcing once there is a queue; a single upload keeps the plain spinner.
+      if (imagesToAdd.length > 1) {
+        setImageUploadProgress({ current: i + 1, total: imagesToAdd.length });
+      }
+      // biome-ignore lint/performance/noAwaitInLoops: sequential on purpose; parallel large uploads overwhelm the server.
+      await addImage(product, imagesToAdd[i]);
+    }
+  } finally {
+    setImageUploadProgress(null);
   }
 }
 

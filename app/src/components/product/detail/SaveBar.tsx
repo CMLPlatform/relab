@@ -1,8 +1,10 @@
+import { useSyncExternalStore } from 'react';
 import { View, type ViewStyle } from 'react-native';
 import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
+import { getImageUploadProgress, subscribeToImageUploadProgress } from '@/services/api/saving';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
 type SaveBarProps = {
@@ -44,6 +46,11 @@ export function SaveBar({
   onPrimaryPress,
   canModerate,
 }: SaveBarProps) {
+  const uploadProgress = useSyncExternalStore(
+    subscribeToImageUploadProgress,
+    getImageUploadProgress,
+    () => null,
+  );
   if (!canModerate) return null;
   const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
   // Validation only gates a press that would actually save dirty edits, not a
@@ -53,6 +60,9 @@ export function SaveBar({
   const blockedByValidation = wouldSave && !validationValid && !needsAttention;
   // Offline: the mutation is paused, not loading; no spinner.
   const isQueued = isSaving && isPaused;
+  // Photos upload after the entity PATCH lands; worth naming only once there
+  // is more than one in flight (see setImageUploadProgress).
+  const uploadingPhotos = isSaving && !isPaused ? uploadProgress : null;
   // In the needsAttention state the entire press routes to the error summary
   // instead of saving invalid data.
   const onPrimaryButtonPress = needsAttention
@@ -104,11 +114,13 @@ export function SaveBar({
         {/* Fields save on blur, so a clean edit form only needs closing. */}
         {isQueued
           ? QUEUED_OFFLINE_LABEL
-          : editMode
-            ? isDirty
-              ? `Save ${titleLabel}`
-              : 'Done'
-            : `Edit ${titleLabel}`}
+          : uploadingPhotos
+            ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
+            : editMode
+              ? isDirty
+                ? `Save ${titleLabel}`
+                : 'Done'
+              : `Edit ${titleLabel}`}
       </AppButton>
     </View>
   );

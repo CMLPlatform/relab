@@ -86,16 +86,17 @@ describe('useProductGalleryMedia', () => {
     expect(result.current.items[0].originalUrl).toBe('https://cdn.test/original.jpg');
   });
 
-  it('upscales the widest derivative rather than pulling the original when nothing is wide enough', async () => {
+  it('falls back to the original rather than stretching the widest derivative when nothing is wide enough', async () => {
     // A 1200px original publishes only {200, 800}; a 390pt @3x pager needs 1170.
-    // The original is reserved for zooming, so both tiers take the 800.
+    // pickThumbnailUrl declines to upscale, so both tiers fall back to mediumUrl/largeUrl's
+    // own default, which is the original.
     onScreen(390, 844, 3);
     const { result } = await renderHook(() =>
       useProductGalleryMedia(product({ 200: DERIVATIVES[200], 800: DERIVATIVES[800] })),
     );
 
-    expect(result.current.items[0].mediumUrl).toBe(DERIVATIVES[800]);
-    expect(result.current.items[0].largeUrl).toBe(DERIVATIVES[800]);
+    expect(result.current.items[0].mediumUrl).toBe('https://cdn.test/original.jpg');
+    expect(result.current.items[0].largeUrl).toBe('https://cdn.test/original.jpg');
     expect(result.current.items[0].originalUrl).toBe('https://cdn.test/original.jpg');
   });
 
