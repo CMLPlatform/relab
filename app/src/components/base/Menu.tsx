@@ -14,6 +14,7 @@ import { MIN_TAP_TARGET } from '@/constants';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition, nextMenuIndex } from './menuPosition';
+import { type PressState, pressFill } from './pressFeedback';
 
 // Swallow presses so tapping an item does not fall through to the backdrop.
 function stopPropagation(e: { stopPropagation: () => void }) {
@@ -193,12 +194,12 @@ function MenuItem({
 }) {
   const theme = useAppTheme();
   const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
+    (state: PressState) => [
       // No className on this Pressable: it would drop this function (see IconButton.tsx).
       styles.item,
-      pressed && { backgroundColor: theme.colors.muted },
+      pressFill(state, theme.tokens.surface.accent),
     ],
-    [theme.colors.muted],
+    [theme.tokens.surface.accent],
   );
   return (
     <Pressable

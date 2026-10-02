@@ -1,9 +1,8 @@
-import { memo, type RefObject, useCallback, useEffect, useRef } from 'react';
+import { memo, type RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   type AccessibilityActionEvent,
   FlatList,
   Pressable,
-  type PressableStateCallbackType,
   RefreshControl,
   View,
 } from 'react-native';
@@ -11,6 +10,7 @@ import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { MutedText } from '@/components/base/MutedText';
+import type { PressState } from '@/components/base/pressFeedback';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { CameraCard } from '@/components/cameras/CameraCard';
 import {
@@ -151,12 +151,8 @@ const CameraGridCell = memo(function CameraGridCell({
     },
     [onLongPress, camera],
   );
-  const cellStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      styles.cellPressable,
-      pressed ? styles.cellPressed : null,
-      selected ? styles.cellSelected : null,
-    ],
+  const cellStyle = useMemo(
+    () => [styles.cellPressable, selected ? styles.cellSelected : null],
     [styles, selected],
   );
 
@@ -192,7 +188,19 @@ const CameraGridCell = memo(function CameraGridCell({
         aria-pressed={selectionMode ? selected : undefined}
         style={cellStyle}
       >
-        <CameraCard camera={camera} effectiveConnection={effectiveConnection} />
+        {/* The card's own fill hides a background, so the press tint lies over it. */}
+        {({ pressed, hovered }: PressState) => (
+          <>
+            <CameraCard camera={camera} effectiveConnection={effectiveConnection} />
+            {pressed || hovered ? (
+              <View
+                aria-hidden
+                pointerEvents="none"
+                className="absolute inset-0 rounded-lg bg-primary/12"
+              />
+            ) : null}
+          </>
+        )}
       </Pressable>
     </View>
   );

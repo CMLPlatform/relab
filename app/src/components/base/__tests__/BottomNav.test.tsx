@@ -149,10 +149,11 @@ test('a listener that prevents the default press blocks the navigation', async (
   expect(navigate).not.toHaveBeenCalled();
 });
 
-test('tabs carry active-state opacity feedback', async () => {
+test('tabs press to the One Tint, not an opacity dim', async () => {
   await renderBar();
   const className = screen.getByLabelText('Products').props.className as string;
-  expect(className).toEqual(expect.stringContaining('active:opacity-60'));
+  expect(className).toEqual(expect.stringContaining('active:bg-primary/12'));
+  expect(className).not.toEqual(expect.stringContaining('active:opacity'));
 });
 
 test('tabs carry a web focus-visible ring', async () => {

@@ -4,14 +4,21 @@ import { AppText } from '@/components/base/AppText';
 import FilterSelectionModal from '@/components/base/FilterSelectionModal';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { Menu } from '@/components/base/Menu';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { MIN_TAP_TARGET } from '@/constants';
 import type { ProductFilter } from '@/features/products/useProductsScreen';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { cn } from '@/utils/cn';
 import { PRODUCTS_DATE_PRESETS } from './shared';
 
 type FilterChipIcon = IconName;
 
-/** Filter pill: leading icon, label, selected state, optional trailing clear. Chip has no leading icon. */
+/**
+ * Filter pill: leading icon, label, selected state, optional trailing clear.
+ * NOTE: not the base Chip: Chip is a two-segment title/value pill with no toggle
+ * state or trailing clear; this one is a toggle (aria-pressed). It shares Chip's
+ * radius and the press language (PRESS_TINT) instead.
+ */
 function FilterChip({
   icon,
   selected,
@@ -46,7 +53,7 @@ function FilterChip({
         // role=button, so the toggle state goes out as aria-pressed.
         accessibilityState={{ selected }}
         aria-pressed={selected}
-        className="flex-row items-center gap-1.5 py-2"
+        className={cn('flex-row items-center gap-1.5 rounded-md py-2', PRESS_TINT)}
         style={{ minHeight: MIN_TAP_TARGET }}
       >
         <Icon name={icon} size="sm" color={foreground} />
@@ -61,7 +68,7 @@ function FilterChip({
           accessibilityLabel={`Clear ${children} filter`}
           hitSlop={12}
           // hitSlop is native-only; on web the box itself carries the 44 floor.
-          className="min-w-11 items-center justify-center"
+          className={cn('min-w-11 items-center justify-center rounded-md', PRESS_TINT)}
           style={{ minHeight: MIN_TAP_TARGET }}
         >
           <Icon name="x" size={14} color={foreground} />

@@ -7,6 +7,7 @@ import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
+import { PRESS_TINT } from './pressFeedback';
 import { type Tab, tabRouteName, useBottomNavTabs, useBottomNavVisible } from './useBottomNav';
 
 function BottomNavTab({
@@ -32,7 +33,8 @@ function BottomNavTab({
       onPress={handlePress}
       style={{ minHeight: MIN_TAP_TARGET }}
       className={cn(
-        'flex-1 items-center justify-center gap-0.5 py-2 active:opacity-60',
+        'flex-1 items-center justify-center gap-0.5 py-2',
+        PRESS_TINT,
         Platform.select({
           web: cn('cursor-pointer outline-none', WEB_FOCUS_RING),
         }),

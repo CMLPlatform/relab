@@ -6,6 +6,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { WEB_FOCUS_RING } from '@/constants';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
+import { PRESS_TINT } from './pressFeedback';
 import type { SectionKey } from './SectionNavContext';
 
 // Browsers do not reliably scroll a partly visible focused chip into the row's
@@ -48,9 +49,10 @@ function SectionNavItem({
         // px-2 keeps four chips on a 390pt phone; more scroll sideways (see SectionNav).
         'min-h-11 justify-center rounded-md px-2 py-2',
         active ? 'bg-primary/12' : 'opacity-70',
+        PRESS_TINT,
         Platform.select({
           // scroll-mx-3: a chip scrolled into view keeps its focus ring clear of the edge.
-          web: cn('cursor-pointer outline-none hover:opacity-90 scroll-mx-3', WEB_FOCUS_RING),
+          web: cn('cursor-pointer outline-none scroll-mx-3', WEB_FOCUS_RING),
         }),
       )}
     >

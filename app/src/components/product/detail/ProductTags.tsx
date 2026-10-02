@@ -1,11 +1,12 @@
 import { type JSX, useCallback, useContext, useEffect, useState } from 'react';
-import { Pressable, type PressableStateCallbackType, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Chip } from '@/components/base/Chip';
 import { useDialog } from '@/components/base/dialogContext';
 import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
+import { type PressState, pressFill } from '@/components/base/pressFeedback';
 import { MIN_TAP_TARGET } from '@/constants';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
 import { useSearchBrandsQuery } from '@/features/products/queries';
@@ -235,13 +236,15 @@ function StepButton({
   disabled: boolean;
   label: string;
 }) {
+  const { colors } = useAppTheme();
   const style = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
+    (state: PressState) => [
       // No className on this Pressable: it would drop this function (see IconButton.tsx).
       styles.iconSlot,
-      (pressed || disabled) && { opacity: 0.4 },
+      // On the chip's solid-primary value segment: a filled control, so primary-strong.
+      disabled ? { opacity: 0.4 } : pressFill(state, colors.primaryStrong),
     ],
-    [disabled],
+    [disabled, colors.primaryStrong],
   );
 
   return (

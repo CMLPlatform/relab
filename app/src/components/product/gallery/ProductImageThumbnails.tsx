@@ -3,6 +3,7 @@ import { memo, useCallback, useMemo } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import type { PressState } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import {
@@ -126,23 +127,30 @@ const ThumbnailItem = memo(function ThumbnailItem({
       accessibilityState={{ selected }}
       // aria-selected is invalid on role=button; the toggle state goes out as aria-pressed.
       aria-pressed={selected}
-      className="mr-2 overflow-hidden rounded-md border-2 active:opacity-70"
+      className="mr-2 overflow-hidden rounded-md border-2"
       style={borderStyle}
     >
-      {uri ? (
-        // Decorative: the Pressable carries the label. expo-image drops an empty
-        // alt, so hide the subtree.
-        <View aria-hidden>
-          <Image
-            accessibilityIgnoresInvertColors
-            source={{ uri }}
-            style={{ width: 60, height: 60 }}
-            transition={IMAGE_FADE_MS}
-            cachePolicy="memory-disk"
-          />
-        </View>
-      ) : (
-        <ImagePlaceholder width={60} height={60} borderRadius={0} />
+      {({ pressed, hovered }: PressState) => (
+        <>
+          {uri ? (
+            // Decorative: the Pressable carries the label. expo-image drops an empty
+            // alt, so hide the subtree.
+            <View aria-hidden>
+              <Image
+                accessibilityIgnoresInvertColors
+                source={{ uri }}
+                style={{ width: 60, height: 60 }}
+                transition={IMAGE_FADE_MS}
+                cachePolicy="memory-disk"
+              />
+            </View>
+          ) : (
+            <ImagePlaceholder width={60} height={60} borderRadius={0} />
+          )}
+          {pressed || hovered ? (
+            <View aria-hidden pointerEvents="none" className="absolute inset-0 bg-primary/12" />
+          ) : null}
+        </>
       )}
     </Pressable>
   );

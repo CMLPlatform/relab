@@ -7,6 +7,7 @@ import { useDialog } from '@/components/base/dialogContext';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
 import { IconButton } from '@/components/base/IconButton';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { TextInput } from '@/components/base/TextInput';
 import { StreamingContent } from '@/components/cameras/StreamingContent';
 import { WEB_FOCUS_RING } from '@/constants';
@@ -14,6 +15,7 @@ import { useProductVideo } from '@/features/products/useProductVideo';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
 import { describedBy } from '@/utils/a11y';
+import { cn } from '@/utils/cn';
 import { isHttpUrl } from '@/utils/urlSafety';
 import { VideoEmbed } from './ProductVideoEmbed';
 
@@ -167,7 +169,7 @@ export default function ProductVideo({
 }
 
 // Text-link controls under the header: tap floor, press feedback, focus ring.
-const TOGGLE_CLASS_NAME = `mt-1 min-h-11 justify-center active:opacity-60 ${WEB_FOCUS_RING}`;
+const TOGGLE_CLASS_NAME = cn('mt-1 min-h-11 justify-center rounded-md', PRESS_TINT, WEB_FOCUS_RING);
 
 function VideoHeaderAction({
   editMode,

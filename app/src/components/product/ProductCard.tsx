@@ -7,9 +7,11 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { MutedText } from '@/components/base/MutedText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS, MIN_TAP_TARGET, radius, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
+import { cn } from '@/utils/cn';
 import { getProfileHref } from '@/utils/router/profiles';
 
 // undefined locale defers to the device's own locale instead of hard-coding en-US.
@@ -101,10 +103,6 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
   }, [product.ownerUsername, router]);
 
   const handleImageError = useCallback(() => setHadError(true), []);
-  const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => (pressed && enabled ? styles.pressed : undefined),
-    [enabled],
-  );
 
   return (
     // The press target must not wrap the owner link (axe `nested-interactive`).
@@ -116,8 +114,7 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
           onPress={enabled ? navigateToProduct : undefined}
           disabled={!enabled}
           accessibilityRole={enabled ? 'button' : undefined}
-          style={pressableStyle}
-          className="flex-row items-center"
+          className={cn('flex-row items-center rounded-md', enabled && PRESS_TINT)}
         >
           <View className="mr-4">
             {hasThumbnail ? (
@@ -196,7 +193,11 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
                 accessibilityLabel={
                   ownerLabel === 'you' ? 'View your profile' : `View ${ownerLabel}'s profile`
                 }
-                className={`flex-row items-center gap-1 pr-2 ${WEB_FOCUS_RING}`}
+                className={cn(
+                  'flex-row items-center gap-1 rounded-md pr-2',
+                  PRESS_TINT,
+                  WEB_FOCUS_RING,
+                )}
                 style={styles.ownerLink}
               >
                 <Icon name="user" size={12} color={theme.colors.mutedForeground} />
@@ -228,9 +229,6 @@ const ProductCard = memo(ProductCardComponent);
 export default ProductCard;
 
 const styles = StyleSheet.create({
-  pressed: {
-    opacity: 0.7,
-  },
   // The 44px touch floor lives on the link, via padding that the negative
   // margin lets overlap the row; `minHeight` on the row cost ~40% of the
   // records visible per screen.

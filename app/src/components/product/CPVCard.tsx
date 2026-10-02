@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { AccessibilityInfo, Platform, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { WEB_FOCUS_RING } from '@/constants';
 import type { CPVCategory } from '@/types/CPVCategory';
+import { cn } from '@/utils/cn';
 
 interface Props {
   CPV: Pick<CPVCategory, 'name' | 'description'>;
@@ -23,7 +25,7 @@ export default function CPVCard({ CPV, onPress, actionElement }: Props) {
         disabled={!onPress}
         accessibilityRole={onPress ? 'button' : undefined}
         accessibilityLabel={onPress ? `${CPV.name}, ${CPV.description}` : undefined}
-        className={`flex-1 ${onPress ? 'active:opacity-50' : ''} ${WEB_FOCUS_RING}`}
+        className={cn('flex-1', onPress && PRESS_TINT, WEB_FOCUS_RING)}
       >
         <View className="p-3 gap-0.5">
           <AppText
@@ -69,7 +71,7 @@ export function CpvTypeLoadError({ typeID, retry }: { typeID: number; retry?: ()
           accessibilityRole="button"
           accessibilityLabel="Retry loading category name"
           // min-h-11: the 44px tap floor; the caption alone is ~16px tall.
-          className={`min-h-11 justify-center ${WEB_FOCUS_RING}`}
+          className={cn('min-h-11 justify-center rounded-md', PRESS_TINT, WEB_FOCUS_RING)}
         >
           <AppText variant="caption" className="underline">
             Retry

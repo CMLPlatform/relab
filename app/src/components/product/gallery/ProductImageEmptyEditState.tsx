@@ -2,6 +2,7 @@ import { type RefObject, useCallback } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
+import { type PressState, pressFill } from '@/components/base/pressFeedback';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import { createGalleryStyles } from './styles';
@@ -32,12 +33,12 @@ export function ProductImageEmptyEditState({
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
   const rpiCardStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
+    (state: PressState) => [
       styles.emptyActionCard,
       { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
-      pressed && { opacity: 0.85 },
+      pressFill(state, theme.tokens.surface.accent),
     ],
-    [styles, isCapturing, rpiCamerasLoading],
+    [styles, isCapturing, rpiCamerasLoading, theme.tokens.surface.accent],
   );
   return (
     <View testID="empty-gallery-actions" className="min-h-28 flex-row items-stretch gap-2">
@@ -97,8 +98,8 @@ function EmptyActionCard({
   const theme = useAppTheme();
   const styles = createGalleryStyles(theme);
   const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [styles.emptyActionCard, pressed && { opacity: 0.85 }],
-    [styles],
+    (state: PressState) => [styles.emptyActionCard, pressFill(state, theme.tokens.surface.accent)],
+    [styles, theme.tokens.surface.accent],
   );
   return (
     <Pressable

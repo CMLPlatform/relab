@@ -16,6 +16,7 @@ import { AppText } from '@/components/base/AppText';
 import { BrandWordmark } from '@/components/base/BrandWordmark';
 import { FormFieldError } from '@/components/base/FormField';
 import { Icon } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
 import {
@@ -26,6 +27,7 @@ import { openExternalUrl } from '@/services/externalLinks';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getStatusTone } from '@/theme/color';
 import { describedBy, requiredField } from '@/utils/a11y';
+import { cn } from '@/utils/cn';
 
 // Minimum-height slots so nothing moves as the error message comes and goes; they grow
 // with large text instead of clipping. MAX_FONT_SCALE bounds that growth.
@@ -267,7 +269,7 @@ function NewAccountStep({
           <View className="flex-1 justify-center">
             {back ? (
               <Pressable
-                className="flex-row items-center self-start min-h-11"
+                className={cn('min-h-11 flex-row items-center self-start rounded-md', PRESS_TINT)}
                 onPress={back.onPress}
                 accessibilityRole="button"
                 accessibilityLabel={back.accessibilityLabel}

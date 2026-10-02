@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { radius, WEB_FOCUS_RING } from '@/constants';
 import { extractYouTubeVideoId } from '@/services/api/validation/productSchema';
 import { openExternalUrl } from '@/services/externalLinks';
+import { cn } from '@/utils/cn';
 
 // min-h-11: the 44px tap floor (MIN_TAP_TARGET) on one-line text links.
-const LINK_CLASS_NAME = `min-h-11 justify-center active:opacity-60 ${WEB_FOCUS_RING}`;
+const LINK_CLASS_NAME = cn('min-h-11 justify-center rounded-md', PRESS_TINT, WEB_FOCUS_RING);
 
 const embedContainerStyle = {
   maxWidth: 480,

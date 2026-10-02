@@ -1,28 +1,25 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback } from 'react';
-import { Pressable, type PressableStateCallbackType, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Icon } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import CPVCard, { CpvTypeLoadError } from '@/components/product/CPVCard';
-import { MIN_TAP_TARGET } from '@/constants';
+import { MIN_TAP_TARGET, radius } from '@/constants';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
 import { useCpvType } from '@/features/products/useCpvType';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { entityLabel, type Product, typeRowLabels } from '@/types/Product';
-
-const linkStyle = ({ pressed }: PressableStateCallbackType) => [
-  styles.link,
-  pressed && { opacity: 0.5 },
-];
 
 function ViewProductsOfTypeLink({ typeName, onPress }: { typeName: string; onPress: () => void }) {
   const { colors } = useAppTheme();
 
   return (
     <Pressable
-      style={linkStyle}
+      className={PRESS_TINT}
+      style={styles.link}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`View all products of type ${typeName}`}
@@ -140,6 +137,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 5,
     paddingHorizontal: 12,
-    backgroundColor: 'transparent',
+    borderRadius: radius.control,
   },
 });

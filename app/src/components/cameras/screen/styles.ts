@@ -15,9 +15,6 @@ export const createCameraScreenStyles = memoizeByTheme((theme: AppTheme) => {
     cellPressable: {
       borderRadius: radius.card,
     },
-    cellPressed: {
-      opacity: 0.9,
-    },
     cellSelected: {
       borderWidth: 3,
       borderColor: theme.tokens.border.selected,

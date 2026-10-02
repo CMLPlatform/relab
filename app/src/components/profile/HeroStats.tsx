@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
-import { Icon } from '@/components/base/Icon';
+import { IconButton } from '@/components/base/IconButton';
 import { Skeleton } from '@/components/base/Skeleton';
 import { Badge } from '@/components/base/ui/badge';
 import { Text } from '@/components/base/ui/text';
@@ -21,7 +21,6 @@ type ProfileHeroProps = {
 
 /** Account page header: identity block in the same spec-sheet voice as the product SpecHeader. */
 export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }: ProfileHeroProps) {
-  const theme = useAppTheme();
   return (
     <View className="gap-2 px-4 py-3">
       {/* A greeting, not a tag value: caption, not eyebrow (DESIGN.md Eyebrow-Is-A-Datum). */}
@@ -41,15 +40,13 @@ export function ProfileHero({ profile, onEditUsername, usernameEditTriggerRef }:
         >
           {profile.username}
         </AppText>
-        <Pressable
+        <IconButton
           ref={usernameEditTriggerRef}
+          icon="pencil"
+          size={18}
           onPress={onEditUsername}
-          accessibilityRole="button"
           accessibilityLabel="Edit username"
-          className="h-11 w-11 items-center justify-center"
-        >
-          <Icon name="pencil" size={18} color={theme.colors.onBackground} />
-        </Pressable>
+        />
       </View>
 
       <AppText variant="body" className="text-muted-foreground">

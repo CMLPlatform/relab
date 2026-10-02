@@ -8,10 +8,12 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { ControlledTextField } from '@/components/base/ControlledTextField';
 import { Icon } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { useResetPassword } from '@/features/auth/usePasswordReset';
 import { useSensitiveAuthToken } from '@/features/auth/useSensitiveAuthToken';
 import { PASSWORD_MIN_LENGTH } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { cn } from '@/utils/cn';
 
 export default function ResetPasswordScreen() {
   const theme = useAppTheme();
@@ -59,7 +61,10 @@ export default function ResetPasswordScreen() {
                     onPress={toggleShowPassword}
                     accessibilityRole="button"
                     accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                    className="min-w-11 min-h-11 items-center justify-center"
+                    className={cn(
+                      'min-h-11 min-w-11 items-center justify-center rounded-md',
+                      PRESS_TINT,
+                    )}
                     style={{ position: 'absolute', top: 0, right: 0 }}
                   >
                     <Icon

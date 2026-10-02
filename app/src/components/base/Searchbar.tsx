@@ -10,7 +10,9 @@ import {
 } from 'react-native';
 import { Input } from '@/components/base/ui/input';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { cn } from '@/utils/cn';
 import { Icon } from './Icon';
+import { PRESS_TINT } from './pressFeedback';
 
 type SearchbarProps = Omit<
   ComponentProps<typeof Input>,
@@ -64,7 +66,10 @@ export function Searchbar({
           onPress={handleClear}
           accessibilityRole="button"
           accessibilityLabel="Clear search"
-          className="absolute right-0 min-w-11 min-h-11 items-center justify-center"
+          className={cn(
+            'absolute right-0 min-h-11 min-w-11 items-center justify-center rounded-md',
+            PRESS_TINT,
+          )}
         >
           <Icon name="x" size="md" color={theme.colors.mutedForeground} />
         </Pressable>

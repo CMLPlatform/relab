@@ -1,6 +1,8 @@
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import type { MissingField } from '@/features/products/missingFields';
+import { cn } from '@/utils/cn';
 
 /**
  * Owner-only "what's left to fill in" line (issue #325). Each item scrolls to
@@ -29,7 +31,7 @@ export function MissingFieldsNotice({
           key={field.id}
           // biome-ignore lint/performance/noJsxPropsBind: the handler needs this item's field; the list is a handful of items.
           onPress={() => onPressField(field)}
-          className="min-h-11 justify-center"
+          className={cn('min-h-11 justify-center rounded-md', PRESS_TINT)}
           accessibilityRole="link"
           accessibilityLabel={`Jump to ${field.label}`}
         >

@@ -7,6 +7,7 @@ import { AppText } from '@/components/base/AppText';
 import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
 import {
   resolveEffectiveCameraConnection,
@@ -16,6 +17,7 @@ import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import { heading } from '@/utils/a11y';
+import { cn } from '@/utils/cn';
 
 interface CameraPickerDialogProps {
   visible: boolean;
@@ -111,7 +113,7 @@ function CameraPickerRow({
       onPress={handleSelect}
       disabled={!isReachable}
       accessibilityRole="button"
-      className="flex-row items-center gap-3 rounded-lg border border-border p-3"
+      className={cn('flex-row items-center gap-3 rounded-lg border border-border p-3', PRESS_TINT)}
       style={{ opacity: isReachable ? 1 : 0.4 }}
     >
       <View

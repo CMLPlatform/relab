@@ -2,8 +2,10 @@ import { useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { entityLabelTitle, type Product } from '@/types/Product';
+import { cn } from '@/utils/cn';
 import { getProfileHref } from '@/utils/router/profiles';
 
 interface Props {
@@ -48,7 +50,7 @@ export default function ProductMetaData({ product }: Props) {
             onPress={openOwner}
             accessibilityRole="link"
             accessibilityLabel={`View ${product.ownerUsername}'s profile`}
-            className={`justify-center ${WEB_FOCUS_RING}`}
+            className={cn('justify-center rounded-md', PRESS_TINT, WEB_FOCUS_RING)}
             style={styles.ownerLink}
           >
             <AppText variant="data" className="text-primary underline">

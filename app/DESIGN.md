@@ -336,6 +336,15 @@ change it there first.*
   `WEB_FOCUS_RING`. Both bars mark destinations as links with `aria-current="page"`, not
   tabs: a tab promises an in-page panel.
 
+### Press feedback
+
+One press language. Filled controls (primary, tonal, the chip value segment) press and hover to
+`primary-strong`. Everything else that responds to touch (rows, cards, list items, inline links,
+bare icon buttons) takes the One Tint, `bg-primary/12`, on press and on web hover, with a 120ms
+colour fade on web. Take it from `src/components/base/pressFeedback.ts`: `PRESS_TINT` as a
+className, or `pressFill()` as a style where a Pressable keeps a function `style` or the tint has
+to lie over a photo or card. Never dim on press: opacity is for disabled, never for pressed.
+
 ### Focus indicators
 
 Every interactive control takes `WEB_FOCUS_RING` from `src/constants.ts`:

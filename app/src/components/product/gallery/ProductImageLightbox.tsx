@@ -25,7 +25,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { type PressState, pressFill } from '@/components/base/pressFeedback';
 import ZoomableImage, { type ZoomableImageHandle } from '@/components/product/ZoomableImage';
+import { radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { memoizeByTheme } from '@/theme/memoizeByTheme';
 import type { AppTheme } from '@/theme/types';
@@ -42,8 +44,12 @@ import {
   type ScrollEvent,
   scrollListToIndex,
 } from './shared';
+import { MEDIA_PRESSED_FILL } from './styles';
 
-const chevronPressableStyle = ({ pressed }: { pressed: boolean }) => pressed && { opacity: 0.7 };
+const chevronPressableStyle = (state: PressState) => [
+  { borderRadius: radius.control },
+  pressFill(state, MEDIA_PRESSED_FILL),
+];
 
 type Props = {
   visible: boolean;
@@ -250,10 +256,10 @@ export function ProductImageLightbox({
   const goPrev = useCallback(() => navigateBy(-1), [navigateBy]);
   const goNext = useCallback(() => navigateBy(1), [navigateBy]);
   const closeButtonStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
+    (state: PressState) => [
       styles.closeButton,
       { top: insets.top + 8 },
-      pressed && { opacity: 0.7 },
+      pressFill(state, MEDIA_PRESSED_FILL),
     ],
     [styles, insets.top],
   );

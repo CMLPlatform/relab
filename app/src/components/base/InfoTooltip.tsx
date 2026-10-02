@@ -5,9 +5,11 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { useInverseSurface } from '@/theme/inverseSurface';
+import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
 import { OverlaySurface } from './OverlaySurface';
+import { PRESS_TINT } from './pressFeedback';
 
 const MOBILE_USER_AGENT_PATTERN = /iPhone|iPad|iPod|Android/i;
 
@@ -42,7 +44,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       <View>
         <Pressable
           onPress={show}
-          className={`p-2 ${WEB_FOCUS_RING}`}
+          className={cn('rounded-md p-2', PRESS_TINT, WEB_FOCUS_RING)}
           testID="info-pressable"
           accessibilityRole="button"
           accessibilityLabel={`Info: ${title}`}
@@ -104,7 +106,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
       <Pressable
         onPress={isWeb ? show : toggle}
         onBlur={hide}
-        className={`p-2 ${WEB_FOCUS_RING}`}
+        className={cn('rounded-md p-2', PRESS_TINT, WEB_FOCUS_RING)}
         accessibilityRole="button"
         accessibilityLabel={`Info: ${title}`}
         // See above: the box carries the 44px floor; hitSlop is native-only.

@@ -3,8 +3,10 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
+import { cn } from '@/utils/cn';
 import { createLivePreviewStyles } from './styles';
 
 export function PreviewShell({
@@ -64,7 +66,7 @@ export function PreviewErrorOverlay({
       <Pressable
         onPress={onRetry}
         accessibilityRole="button"
-        className="min-h-11 items-center justify-center"
+        className={cn('min-h-11 items-center justify-center rounded-md px-2', PRESS_TINT)}
       >
         <AppText className="mt-1 text-primary-foreground underline">Tap to retry</AppText>
       </Pressable>

@@ -1,18 +1,13 @@
 import Head from 'expo-router/head';
 import { useCallback } from 'react';
-import {
-  FlatList,
-  Pressable,
-  type PressableStateCallbackType,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { PageContainer } from '@/components/base/PageContainer';
+import { PRESS_TINT, type PressState, pressFill } from '@/components/base/pressFeedback';
 import { ScreenTitle } from '@/components/base/ScreenTitle';
 import { Searchbar } from '@/components/base/Searchbar';
 import { SignedOutState } from '@/components/base/SignedOutState';
@@ -166,14 +161,15 @@ function RecentCategoryCard({
 
 function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: () => void }) {
   const { colors, tokens } = useAppTheme();
+  // A tinted (tonal) control: pressed and hovered it fills primary-strong with
+  // primary-foreground ink, as the tonal button does.
   const historyStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [
-      // No className on this Pressable: it would drop this function (see IconButton.tsx).
+    (state: PressState) => [
       styles.history,
       { backgroundColor: tokens.surface.accent },
-      pressed && { opacity: 0.5 },
+      pressFill(state, colors.primaryStrong),
     ],
-    [tokens],
+    [tokens, colors.primaryStrong],
   );
   return (
     <Pressable
@@ -182,25 +178,28 @@ function CPVHistory({ history, onPress }: { history: CPVCategory[]; onPress?: ()
       accessibilityRole="button"
       accessibilityLabel="Go back to parent category"
     >
-      <Icon size="md" name="chevron-left" color={colors.primary} />
-      <AppText
-        numberOfLines={2}
-        ellipsizeMode={'tail'}
-        className="shrink"
-        style={{ color: colors.primary }}
-      >
-        {history.at(-1)?.description}
-      </AppText>
+      {(state: PressState) => {
+        const ink = state.pressed || state.hovered ? colors.onPrimary : colors.primary;
+        return (
+          <>
+            <Icon size="md" name="chevron-left" color={ink} />
+            <AppText
+              numberOfLines={2}
+              ellipsizeMode={'tail'}
+              className="shrink"
+              style={{ color: ink }}
+            >
+              {history.at(-1)?.description}
+            </AppText>
+          </>
+        );
+      }}
     </Pressable>
   );
 }
 
 function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
   const { colors } = useAppTheme();
-  const linkStyle = useCallback(
-    ({ pressed }: PressableStateCallbackType) => [styles.link, pressed && { opacity: 0.5 }],
-    [],
-  );
 
   if (CPV.directChildren.length <= 0) {
     return <View style={{ height: MIN_TAP_TARGET }} />;
@@ -208,7 +207,8 @@ function CPVLink({ CPV, onPress }: { CPV: CPVCategory; onPress?: () => void }) {
 
   return (
     <Pressable
-      style={linkStyle}
+      className={PRESS_TINT}
+      style={styles.link}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={`Browse ${CPV.directChildren.length} subcategories`}
@@ -240,6 +240,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     gap: 5,
     paddingHorizontal: 12,
-    backgroundColor: 'transparent',
+    borderRadius: radius.control,
   },
 });
