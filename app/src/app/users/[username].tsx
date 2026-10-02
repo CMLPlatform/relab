@@ -14,6 +14,7 @@ import {
 import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { IosAnnouncement } from '@/components/base/IosAnnouncement';
@@ -32,6 +33,7 @@ import { memoizeByTheme } from '@/theme/memoizeByTheme';
 import type { AppTheme } from '@/theme/types';
 import type { Product } from '@/types/Product';
 import { heading } from '@/utils/a11y';
+import { getErrorMessage } from '@/utils/errors';
 
 // Local to this screen; unrelated to the HeroStats StatCard in components/profile.
 function ProfileStatCard({
@@ -125,8 +127,17 @@ const productKeyExtractor = (product: Product) => String(product.id);
 function ProfileProductList({ username, header }: { username: string; header: ReactNode }) {
   const { width } = useWindowDimensions();
   const numColumns = productGridColumns(width);
-  const { items, total, isLoading, isError, refetch, isFetchingNextPage, hasNextPage, loadMore } =
-    useUserProducts(username);
+  const {
+    items,
+    total,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetchingNextPage,
+    hasNextPage,
+    loadMore,
+  } = useUserProducts(username);
   // A failed next page keeps the items already shown; only an empty list becomes an error.
   const failed = isError && items.length === 0;
 
@@ -158,7 +169,13 @@ function ProfileProductList({ username, header }: { username: string; header: Re
         {isLoading ? (
           <ProductCardSkeleton />
         ) : failed ? (
-          <ErrorState message="Couldn't load products." onRetry={refetch} />
+          <ErrorState
+            compact
+            title="Couldn't load products"
+            message={getErrorMessage(error, 'Check your connection and try again.')}
+            onRetry={refetch}
+            actionAccessibilityLabel="Retry loading products"
+          />
         ) : items.length === 0 ? (
           <AppText className="text-muted-foreground">No public products yet</AppText>
         ) : null}
@@ -243,15 +260,7 @@ export default function UserProfileScreen() {
           />
         ) : (
           <ScrollView contentContainerClassName="flex-grow py-4">
-            {loading ? (
-              <View className="flex-1 justify-center items-center mt-16">
-                <ActivityIndicator
-                  testID="activity-indicator"
-                  size="large"
-                  color={theme.colors.primary}
-                />
-              </View>
-            ) : null}
+            {loading ? <CenteredSpinner /> : null}
 
             {hasError ? (
               <ErrorState

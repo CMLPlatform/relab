@@ -345,6 +345,16 @@ colour fade on web. Take it from `src/components/base/pressFeedback.ts`: `PRESS_
 className, or `pressFill()` as a style where a Pressable keeps a function `style` or the tint has
 to lie over a photo or card. Never dim on press: opacity is for disabled, never for pressed.
 
+### Errors and loading
+
+- **Errors:** one idiom, `ErrorState`. Full-height when the whole screen failed; `compact` for an
+  inline failure inside loaded content (a list header, an expanded row). The title names the
+  problem, the message names the recovery (`getErrorMessage()` maps the failure; its fallback
+  says what to do), and the one action retries.
+- **Loading:** a skeleton where the content's shape is known (lists, detail screens); a spinner
+  for actions (saving, load more, capture) and for waits whose shape is unknown. A screen-level
+  spinner is `CenteredSpinner`; an action's spinner sits in or beside its control.
+
 ### Focus indicators
 
 Every interactive control takes `WEB_FOCUS_RING` from `src/constants.ts`:

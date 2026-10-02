@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { type RefObject, useCallback, useMemo } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { AppButton } from '@/components/base/AppButton';
 import { AppDialog } from '@/components/base/AppDialog';
 import { AppText } from '@/components/base/AppText';
+import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
@@ -67,7 +68,7 @@ export function CameraPickerDialog({
       </AppText>
       <View className="gap-2">
         {isLoading ? (
-          <ActivityIndicator className="p-4" />
+          <CenteredSpinner />
         ) : sorted.length === 0 ? (
           <View className="items-center gap-2 p-4">
             <Icon name="camera-off" size={32} color={palette[theme.scheme].mutedForeground} />

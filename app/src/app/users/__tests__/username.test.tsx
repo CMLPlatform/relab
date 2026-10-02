@@ -47,7 +47,7 @@ describe('UserProfileScreen', () => {
   it('shows loading spinner while the profile is being fetched', async () => {
     mockGetPublicProfile.mockReturnValue(new Promise(() => {})); // never resolves
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
-    await waitFor(() => expect(screen.getByTestId('activity-indicator')).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByRole('progressbar')).toBeOnTheScreen());
     expect(screen.queryByText('alice')).toBeNull();
   });
 
@@ -189,7 +189,7 @@ describe('UserProfileScreen', () => {
     );
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
-    await waitFor(() => expect(screen.getByText("Couldn't load products.")).toBeOnTheScreen());
+    await waitFor(() => expect(screen.getByText("Couldn't load products")).toBeOnTheScreen());
     expect(screen.queryByText('No public products yet')).toBeNull();
 
     await fireEvent.press(screen.getByText('Retry'));
@@ -202,7 +202,7 @@ describe('UserProfileScreen', () => {
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
 
     await waitFor(() => expect(screen.getByText('Network error')).toBeOnTheScreen());
-    expect(screen.queryByTestId('activity-indicator')).toBeNull();
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
   it('shows friendly privacy message for a 404 error', async () => {

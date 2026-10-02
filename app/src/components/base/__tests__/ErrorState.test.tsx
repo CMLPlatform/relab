@@ -23,3 +23,20 @@ test('never de-emphasizes the error message', async () => {
   const className = screen.getByText('Something went wrong.').props.className as string;
   expect(className).not.toEqual(expect.stringContaining('opacity'));
 });
+
+test('compact: an inline row with a named retry, announced as it appears', async () => {
+  const onRetry = jest.fn();
+  await renderWithProviders(
+    <ErrorState
+      compact
+      title="Couldn't load components"
+      message="Check your connection and try again."
+      onRetry={onRetry}
+      actionAccessibilityLabel="Retry loading components"
+    />,
+  );
+  expect(screen.getByTestId('error-state').props.accessibilityLiveRegion).toBe('polite');
+  expect(screen.getByText("Couldn't load components")).toBeOnTheScreen();
+  await fireEvent.press(screen.getByLabelText('Retry loading components'));
+  expect(onRetry).toHaveBeenCalled();
+});

@@ -5,14 +5,18 @@ import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
+import { ErrorState } from '@/components/base/ErrorState';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { Badge } from '@/components/base/ui/badge';
 import { IMAGE_FADE_MS, radius, WEB_FOCUS_RING } from '@/constants';
 import { componentQueryOptions } from '@/features/product-entity/queries';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import type { Product } from '@/types/Product';
+import { cn } from '@/utils/cn';
+import { getErrorMessage } from '@/utils/errors';
 
 interface Props {
   component: Product;
@@ -53,42 +57,17 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
   const retry = useCallback(() => void query.refetch(), [query]);
   const toggleExpanded = useCallback(() => setExpanded((current) => !current), []);
 
-  let expandedBody: ReactNode = null;
-  if (expanded && canExpand) {
-    if (children && children.length > 0) {
-      expandedBody = children.map((child) => (
-        <ComponentRow key={child.id} component={child} enabled={enabled} nested={true} />
-      ));
-    } else if (fetchedEmpty) {
-      expandedBody = (
-        <View className="min-h-11 justify-center">
-          <AppText variant="label" className="text-muted-foreground">
-            No subcomponents
-          </AppText>
-        </View>
-      );
-    } else if (query.isError) {
-      expandedBody = (
-        <Pressable
-          accessibilityRole="button"
-          onPress={retry}
-          className={`min-h-11 justify-center ${WEB_FOCUS_RING}`}
-        >
-          <AppText variant="label" className="text-muted-foreground">
-            Couldn't load components — tap to retry
-          </AppText>
-        </Pressable>
-      );
-    } else {
-      expandedBody = (
-        <View className="min-h-11 justify-center">
-          <AppText variant="label" className="text-muted-foreground">
-            Loading components…
-          </AppText>
-        </View>
-      );
-    }
-  }
+  const expandedBody =
+    expanded && canExpand ? (
+      <ExpandedBody
+        items={children}
+        enabled={enabled}
+        fetchedEmpty={fetchedEmpty}
+        isError={query.isError}
+        error={query.error}
+        onRetry={retry}
+      />
+    ) : null;
 
   return (
     <View>
@@ -97,7 +76,11 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
           accessibilityRole="button"
           disabled={!enabled}
           onPress={navigate}
-          className={`min-h-11 flex-1 flex-row items-center gap-3 py-1.5 ${WEB_FOCUS_RING}`}
+          className={cn(
+            'min-h-11 flex-1 flex-row items-center gap-3 rounded-md py-1.5',
+            enabled && PRESS_TINT,
+            WEB_FOCUS_RING,
+          )}
         >
           {component.thumbnailUrl ? (
             // Decorative: the row button carries the name. expo-image drops an
@@ -143,7 +126,11 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
             accessibilityRole="button"
             accessibilityLabel={`Duplicate ${displayName}`}
             onPress={onDuplicate}
-            className={`h-11 w-11 items-center justify-center ${WEB_FOCUS_RING}`}
+            className={cn(
+              'h-11 w-11 items-center justify-center rounded-md',
+              PRESS_TINT,
+              WEB_FOCUS_RING,
+            )}
           >
             <Icon name="copy" size={20} color={palette[theme.scheme].mutedForeground} />
           </Pressable>
@@ -155,7 +142,11 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
             // aria-*, not accessibilityState: only the aria props reach the DOM on web.
             aria-expanded={expanded}
             onPress={toggleExpanded}
-            className={`h-11 w-11 items-center justify-center ${WEB_FOCUS_RING}`}
+            className={cn(
+              'h-11 w-11 items-center justify-center rounded-md',
+              PRESS_TINT,
+              WEB_FOCUS_RING,
+            )}
           >
             <Icon
               name={expanded ? 'chevron-down' : 'chevron-right'}
@@ -168,4 +159,50 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
       {expandedBody ? <View className="pl-6">{expandedBody}</View> : null}
     </View>
   );
+}
+
+function ExpandedNote({ text }: { text: string }) {
+  return (
+    <View className="min-h-11 justify-center">
+      <AppText variant="label" className="text-muted-foreground">
+        {text}
+      </AppText>
+    </View>
+  );
+}
+
+/** The rows under an expanded component: its children, or why there are none yet. */
+function ExpandedBody({
+  items,
+  enabled,
+  fetchedEmpty,
+  isError,
+  error,
+  onRetry,
+}: {
+  items: Product['components'];
+  enabled: boolean;
+  fetchedEmpty: boolean;
+  isError: boolean;
+  error: unknown;
+  onRetry: () => void;
+}): ReactNode {
+  if (items && items.length > 0) {
+    return items.map((child) => (
+      <ComponentRow key={child.id} component={child} enabled={enabled} nested={true} />
+    ));
+  }
+  if (fetchedEmpty) return <ExpandedNote text="No subcomponents" />;
+  if (isError) {
+    return (
+      <ErrorState
+        compact
+        title="Couldn't load components"
+        message={getErrorMessage(error, 'Check your connection and try again.')}
+        onRetry={onRetry}
+        actionAccessibilityLabel="Retry loading components"
+      />
+    );
+  }
+  return <ExpandedNote text="Loading components…" />;
 }

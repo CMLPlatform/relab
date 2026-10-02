@@ -1,11 +1,12 @@
 import { type ReactNode, useCallback } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
 import { AppButton } from './AppButton';
 import { AppText } from './AppText';
+import { CenteredSpinner } from './CenteredSpinner';
 import { Chip } from './Chip';
 import { OverlaySurface } from './OverlaySurface';
 import { TextInput } from './TextInput';
@@ -122,15 +123,7 @@ function FilterModalShell({
               style={{ borderColor: theme.colors.outline }}
             />
             {isLoading ? (
-              <View
-                className="items-center py-6"
-                accessible
-                accessibilityRole="progressbar"
-                // aria-*, not accessibilityState: only the aria props reach the DOM on web.
-                aria-busy
-              >
-                <ActivityIndicator color={theme.colors.primary} />
-              </View>
+              <CenteredSpinner />
             ) : visibleItems.length === 0 && !addNewChip ? (
               <AppText className="pb-2 text-muted-foreground">No results</AppText>
             ) : (
