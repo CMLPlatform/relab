@@ -47,7 +47,7 @@ def test_backend_only_outputs() -> None:
 
 def test_everything_outputs_every_job() -> None:
     out = outputs(EVERYTHING)
-    assert json.loads(out["web"]) == ["www", "app"]
+    assert json.loads(out["web"]) == ["www", "app", "docs"]
     assert json.loads(out["smoke"]) == [
         "docker-smoke-app",
         "docker-orchestration-smoke",
