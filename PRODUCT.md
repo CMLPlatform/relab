@@ -26,7 +26,7 @@ not an automated computer-vision pipeline, not an elastic cloud platform.
 
 ## Platform
 
-web. Web ships. `build` is `expo export -p web`, E2E runs Playwright against that export, and the
+web (shipped). `build` is `expo export -p web`, E2E runs Playwright against that export, and the
 deployed surface is `app.cml-relab.org` behind Caddy.
 
 Native iOS and Android are configured in `app/app.json` but this repo's tooling does not build or
@@ -125,11 +125,12 @@ enough to contribute usefully. The Pi rig only pays off for repeatable imagery a
 No surface may present it as a prerequisite.
 
 **Uploads.** Images in the gallery: jpeg, png, webp, gif, bmp; the app converts anything else (HEIC)
-to JPEG. Research files (lab-only, edit mode only) go in the separate "Files" section, on base
-products and components. Per-image size and pixel caps follow the uploader's role (contributor 10 MB / 12.6 MP, lab
-20 MB / 24 MP) and are enforced on the server; the app reads them from `/users/me` and uploads a
-photo at full resolution unless it has to shrink to fit. The backend rejects
-an upload unless extension, declared MIME type, and sniffed content agree. Uploads are sequential. Quotas are tiered by role (contributor 1,000 files / 3 GB; lab 20,000 files / 50 GB) and
+to JPEG. Research files (lab-only, edit mode only) go in the separate "Research files" section, on
+base products and components. Per-image size and pixel caps follow the uploader's role (contributor
+10 MB / 12.6 MP, lab 20 MB / 24 MP) and are enforced on the server; the app reads them from
+`/users/me` and uploads a photo at full resolution unless it has to shrink to fit. The backend
+rejects an upload unless extension, declared MIME type, and sniffed content agree. Uploads are
+sequential. Quotas are tiered by role (contributor 1,000 files / 3 GB; lab 20,000 files / 50 GB) and
 `/users/me` reports limits and usage. There is no per-product limit.
 
 **Idempotency.** Creates carry an `Idempotency-Key` minted once per draft, so a retry, a rehydrated
@@ -151,7 +152,7 @@ Recorded so nobody assumes them into existence:
 
 - **Video is URL-only.** `Product.videos` holds links. Self-hosted video is deferred, roughly a year
   out. Do not design upload affordances for it.
-- **Non-image file upload is lab-only**, in a separate "Files" section, edit mode only, allowed on
+- **Non-image file upload is lab-only**, in a separate "Research files" section, edit mode only, allowed on
   base products and components. No general-purpose upload affordance exists outside it.
 - **No localization.** All copy is hardcoded English. This becomes a real barrier at the repair-café
   stage and is currently unplanned.
