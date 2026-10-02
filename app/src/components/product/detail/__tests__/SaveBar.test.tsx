@@ -37,8 +37,9 @@ test('flow layout fills available width, wraps content, and is not positioned', 
   );
 
   const style = StyleSheet.flatten(screen.getByTestId('save-bar-dock').props.style);
-  expect(style).toEqual(
-    expect.objectContaining({ width: '100%', flexWrap: 'wrap', marginBottom: 60 }),
+  expect(style).toEqual(expect.objectContaining({ width: '100%', marginBottom: 60 }));
+  expect(StyleSheet.flatten(screen.getByTestId('save-bar-row').props.style)).toEqual(
+    expect.objectContaining({ flexWrap: 'wrap' }),
   );
   expect(style.position).toBeUndefined();
   expect(style.right).toBeUndefined();

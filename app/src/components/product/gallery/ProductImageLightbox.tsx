@@ -25,17 +25,15 @@ import Animated, {
   ReduceMotion,
   useAnimatedStyle,
   useReducedMotion,
-  useSharedValue,
-  withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
 import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
 import { type PressState, pressFill } from '@/components/base/pressFeedback';
 import ZoomableImage, { type ZoomableImageHandle } from '@/components/product/ZoomableImage';
 import { radius } from '@/constants';
+import { type PresenceTiming, useModalPresence } from '@/hooks/useModalPresence';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { memoizeByTheme } from '@/theme/memoizeByTheme';
 import type { AppTheme } from '@/theme/types';
@@ -64,12 +62,10 @@ const chevronPressableStyle = (state: PressState) => [
 // NOTE: ReduceMotion.Never departs from the ReduceMotion.System default on
 // purpose. Reduced motion keeps this fade and drops only the scale term (see
 // `photoStyle`), the opacity-only path the motion brief asks for.
-const OPEN = {
-  duration: 250,
-  easing: Easing.bezier(0.16, 1, 0.3, 1),
-  reduceMotion: ReduceMotion.Never,
+const LIGHTBOX_TIMING: PresenceTiming = {
+  open: { duration: 250, easing: Easing.bezier(0.16, 1, 0.3, 1), reduceMotion: ReduceMotion.Never },
+  close: { duration: 150, easing: Easing.in(Easing.quad), reduceMotion: ReduceMotion.Never },
 };
-const CLOSE = { duration: 150, easing: Easing.in(Easing.quad), reduceMotion: ReduceMotion.Never };
 const CLOSED_SCALE = 0.96;
 
 type Props = {
@@ -108,22 +104,8 @@ export function ProductImageLightbox({
     isWeb && typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   const index = startIndex;
 
-  // `visible` is the request; `shown` keeps the modal mounted through the close tween.
-  const [shown, setShown] = useState(visible);
-  if (visible && !shown) setShown(true);
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    if (visible) {
-      progress.value = withTiming(1, OPEN);
-      return;
-    }
-    // Reopening mid-close retargets the tween, which ends this one unfinished.
-    progress.value = withTiming(0, CLOSE, (finished) => {
-      if (finished) scheduleOnRN(setShown, false);
-    });
-  }, [progress, visible]);
+  const { mounted, progress, fadeStyle } = useModalPresence(visible, LIGHTBOX_TIMING);
   // The backdrop and controls fade; only the photo grows, so the edges never show through.
-  const backdropStyle = useAnimatedStyle(() => ({ opacity: progress.value }));
   const photoStyle = useAnimatedStyle(() => ({
     transform: [{ scale: reduceMotion ? 1 : CLOSED_SCALE + (1 - CLOSED_SCALE) * progress.value }],
   }));
@@ -305,20 +287,20 @@ export function ProductImageLightbox({
     [styles, insets.top],
   );
 
-  if (!shown) return null;
+  if (!mounted) return null;
 
   return (
     <Modal
       visible
       transparent
-      // The sheet runs its own open and close (OPEN, CLOSE above).
+      // The sheet runs its own open and close (LIGHTBOX_TIMING).
       animationType="none"
       onRequestClose={handleClose}
       statusBarTranslucent={true}
       aria-label="Image gallery"
     >
       <GestureHandlerRootView style={styles.gestureRoot}>
-        <Animated.View style={[styles.root, backdropStyle]}>
+        <Animated.View style={[styles.root, fadeStyle]} pointerEvents={visible ? 'auto' : 'none'}>
           <Pressable
             onPress={handleClose}
             hitSlop={20}

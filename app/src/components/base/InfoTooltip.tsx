@@ -1,8 +1,9 @@
 // NOTE: hand-rolled on purpose; carries the mobile-web full-screen modal variant.
 import { type JSX, useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
+import { useModalPresence } from '@/hooks/useModalPresence';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { useInverseSurface } from '@/theme/inverseSurface';
 import { cn } from '@/utils/cn';
@@ -22,7 +23,7 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
   const theme = useAppTheme();
   const inverse = useInverseSurface();
   const [visible, setVisible] = useState(false);
-  const reduceMotion = useReducedMotion();
+  const { mounted, fadeStyle } = useModalPresence(visible);
   const show = useCallback(() => setVisible(true), []);
   const hide = useCallback(() => setVisible(false), []);
   // Both variants float over content, so they take the single overlay tier.
@@ -59,32 +60,36 @@ export const InfoTooltip = ({ title }: { title: string }): JSX.Element => {
           </View>
         </Pressable>
 
-        <Modal
-          visible={visible}
-          transparent
-          animationType={reduceMotion ? 'none' : 'fade'}
-          onRequestClose={hide}
-        >
-          {/* Scrim is a sibling of the text, not its parent: a button would swallow the
+        <Modal visible={mounted} transparent animationType="none" onRequestClose={hide}>
+          <Animated.View
+            style={[StyleSheet.absoluteFill, fadeStyle]}
+            pointerEvents={visible ? 'auto' : 'none'}
+          >
+            {/* Scrim is a sibling of the text, not its parent: a button would swallow the
               tooltip into one "Dismiss" control. Not a control itself (see AppDialog). */}
-          <Pressable
-            accessible={false}
-            tabIndex={-1}
-            testID="tooltip-scrim"
-            style={[StyleSheet.absoluteFill, { backgroundColor: theme.tokens.overlay.scrim }]}
-            onPress={hide}
-          />
-          <View className="flex-1 items-center justify-center" pointerEvents="box-none">
-            <OverlaySurface
-              className="py-3 px-4"
-              style={[styles.tooltip, tooltipShadowStyle, { backgroundColor: inverse.background }]}
-              tone="scrim"
-            >
-              <AppText variant="body" style={{ color: inverse.foreground }}>
-                {title}
-              </AppText>
-            </OverlaySurface>
-          </View>
+            <Pressable
+              accessible={false}
+              tabIndex={-1}
+              testID="tooltip-scrim"
+              style={[StyleSheet.absoluteFill, { backgroundColor: theme.tokens.overlay.scrim }]}
+              onPress={hide}
+            />
+            <View className="flex-1 items-center justify-center" pointerEvents="box-none">
+              <OverlaySurface
+                className="py-3 px-4"
+                style={[
+                  styles.tooltip,
+                  tooltipShadowStyle,
+                  { backgroundColor: inverse.background },
+                ]}
+                tone="scrim"
+              >
+                <AppText variant="body" style={{ color: inverse.foreground }}>
+                  {title}
+                </AppText>
+              </OverlaySurface>
+            </View>
+          </Animated.View>
         </Modal>
       </View>
     );

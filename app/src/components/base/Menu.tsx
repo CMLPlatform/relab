@@ -1,16 +1,11 @@
 import type { ReactNode, RefObject } from 'react';
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  FadeInDown,
-  FadeInUp,
-  ReduceMotion,
-  useReducedMotion,
-} from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, FadeInUp, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import { MIN_TAP_TARGET } from '@/constants';
+import { useModalPresence } from '@/hooks/useModalPresence';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { getMenuPosition, MENU_MIN_WIDTH, type MenuPosition, nextMenuIndex } from './menuPosition';
@@ -104,11 +99,11 @@ type MenuProps = {
  */
 export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuProps) {
   const theme = useAppTheme();
-  useReturnFocus(visible, triggerRef);
+  const { mounted, fadeStyle } = useModalPresence(visible);
+  useReturnFocus(mounted, triggerRef);
   const anchorRef = useRef<View>(null);
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [position, setPosition] = useState<MenuPosition>({ top: 0, left: 0 });
-  const reduceMotion = useReducedMotion();
   // State, not a ref: the Modal mounts its content a render after `visible`
   // flips, and the keyboard hook has to run once the popover exists.
   const [popover, setPopover] = useState<HTMLElement | null>(null);
@@ -136,45 +131,50 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
         {anchor}
       </View>
       <Modal
-        visible={visible}
+        visible={mounted}
         transparent
-        animationType={reduceMotion ? 'none' : 'fade'}
+        animationType="none"
         onRequestClose={onDismiss}
         aria-label="Menu"
       >
-        {/* Scrim and wrapper are not controls: see AppDialog. */}
-        <Pressable
-          accessible={false}
-          tabIndex={-1}
-          testID="menu-scrim"
-          style={StyleSheet.absoluteFill}
-          onPress={onDismiss}
+        <Animated.View
+          style={[StyleSheet.absoluteFill, fadeStyle]}
+          pointerEvents={visible ? 'auto' : 'none'}
         >
-          <Animated.View
-            entering={('bottom' in position ? FadeInUp : FadeInDown)
-              .duration(150)
-              .easing(Easing.out(Easing.quad))
-              .reduceMotion(ReduceMotion.System)}
-            style={[styles.content, position]}
+          {/* Scrim and wrapper are not controls: see AppDialog. */}
+          <Pressable
+            accessible={false}
+            tabIndex={-1}
+            testID="menu-scrim"
+            style={StyleSheet.absoluteFill}
+            onPress={onDismiss}
           >
-            <Pressable
-              // On web the host node is the popover's DOM element.
-              ref={Platform.OS === 'web' ? (setPopover as unknown as React.Ref<View>) : undefined}
-              // Not accessible: a focusable group would hide the items from VoiceOver.
-              // The role still reaches the DOM on web; the Modal carries the name.
-              accessible={false}
-              tabIndex={-1}
-              testID="menu-popover"
-              onPress={stopPropagation}
-              accessibilityRole="menu"
-              // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
-              className="rounded-xl bg-background py-1"
-              style={theme.tokens.elevation.overlay}
+            <Animated.View
+              entering={('bottom' in position ? FadeInUp : FadeInDown)
+                .duration(150)
+                .easing(Easing.out(Easing.quad))
+                .reduceMotion(ReduceMotion.System)}
+              style={[styles.content, position]}
             >
-              {children}
-            </Pressable>
-          </Animated.View>
-        </Pressable>
+              <Pressable
+                // On web the host node is the popover's DOM element.
+                ref={Platform.OS === 'web' ? (setPopover as unknown as React.Ref<View>) : undefined}
+                // Not accessible: a focusable group would hide the items from VoiceOver.
+                // The role still reaches the DOM on web; the Modal carries the name.
+                accessible={false}
+                tabIndex={-1}
+                testID="menu-popover"
+                onPress={stopPropagation}
+                accessibilityRole="menu"
+                // Floating tier: page ground plus shadow-overlay, like AppDialog's surface.
+                className="rounded-xl bg-background py-1"
+                style={theme.tokens.elevation.overlay}
+              >
+                {children}
+              </Pressable>
+            </Animated.View>
+          </Pressable>
+        </Animated.View>
       </Modal>
     </>
   );

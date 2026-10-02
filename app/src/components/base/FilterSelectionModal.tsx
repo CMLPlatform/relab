@@ -1,6 +1,7 @@
 import { type ReactNode, useCallback } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useReducedMotion } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+import { useModalPresence } from '@/hooks/useModalPresence';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
@@ -80,8 +81,8 @@ function FilterModalShell({
   footer,
 }: ShellProps) {
   const theme = useAppTheme();
-  const reduceMotion = useReducedMotion();
-  useReturnFocus(visible);
+  const { mounted, fadeStyle } = useModalPresence(visible);
+  useReturnFocus(mounted);
 
   // Always show selected values at the top, even if not in the current search results.
   const selectedNotInResults = selectedValues.filter((v) => !items.includes(v));
@@ -89,74 +90,76 @@ function FilterModalShell({
 
   return (
     <Modal
-      visible={visible}
+      visible={mounted}
       transparent
-      animationType={reduceMotion ? 'none' : 'fade'}
+      animationType="none"
       onRequestClose={onDismiss}
       aria-label={title}
     >
-      {/* Scrim and card wrapper, neither of them a control: see AppDialog. */}
-      <Pressable
-        accessible={false}
-        tabIndex={-1}
-        className="flex-1 items-center justify-center p-4"
-        style={{ backgroundColor: theme.tokens.overlay.scrim }}
-        onPress={onDismiss}
-      >
+      <Animated.View style={[styles.fill, fadeStyle]} pointerEvents={visible ? 'auto' : 'none'}>
+        {/* Scrim and card wrapper, neither of them a control: see AppDialog. */}
         <Pressable
           accessible={false}
           tabIndex={-1}
-          onPress={stopPropagation}
-          className="w-full"
-          style={styles.dialogWrapper}
+          className="flex-1 items-center justify-center p-4"
+          style={{ backgroundColor: theme.tokens.overlay.scrim }}
+          onPress={onDismiss}
         >
-          <OverlaySurface className="p-4" tone="surface">
-            <AppText variant="title" {...heading(2)} className="mb-2 font-semibold">
-              {title}
-            </AppText>
-            <TextInput
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-              accessibilityLabel={searchPlaceholder}
-              className="mb-4 border px-2 py-2"
-              style={{ borderColor: theme.colors.outline }}
-            />
-            {isLoading ? (
-              <CenteredSpinner />
-            ) : visibleItems.length === 0 && !addNewChip ? (
-              <AppText className="pb-2 text-muted-foreground">No results</AppText>
-            ) : (
-              <ScrollView style={styles.scroll}>
-                <View className="flex-row flex-wrap gap-2 pb-2">
-                  {addNewChip ? (
-                    // NOTE: Chip's icon prop renders inside the same AppText node
-                    // as the label, which breaks exact getByText(searchQuery) matches
-                    // in callers/tests.
-                    <Chip
-                      key="__new__"
-                      onPress={addNewChip.onPress}
-                      accessibilityLabel={`Add "${addNewChip.label}"`}
-                    >
-                      {addNewChip.label}
-                    </Chip>
-                  ) : null}
-                  {visibleItems.map((item) => (
-                    <SelectableChip
-                      key={item}
-                      item={item}
-                      label={labels?.[item]}
-                      selected={selectedValues.includes(item)}
-                      onToggle={onToggle}
-                    />
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-            <View className="mt-2 flex-row justify-end gap-1">{footer}</View>
-          </OverlaySurface>
+          <Pressable
+            accessible={false}
+            tabIndex={-1}
+            onPress={stopPropagation}
+            className="w-full"
+            style={styles.dialogWrapper}
+          >
+            <OverlaySurface className="p-4" tone="surface">
+              <AppText variant="title" {...heading(2)} className="mb-2 font-semibold">
+                {title}
+              </AppText>
+              <TextInput
+                placeholder={searchPlaceholder}
+                value={searchQuery}
+                onChangeText={onSearchChange}
+                accessibilityLabel={searchPlaceholder}
+                className="mb-4 border px-2 py-2"
+                style={{ borderColor: theme.colors.outline }}
+              />
+              {isLoading ? (
+                <CenteredSpinner />
+              ) : visibleItems.length === 0 && !addNewChip ? (
+                <AppText className="pb-2 text-muted-foreground">No results</AppText>
+              ) : (
+                <ScrollView style={styles.scroll}>
+                  <View className="flex-row flex-wrap gap-2 pb-2">
+                    {addNewChip ? (
+                      // NOTE: Chip's icon prop renders inside the same AppText node
+                      // as the label, which breaks exact getByText(searchQuery) matches
+                      // in callers/tests.
+                      <Chip
+                        key="__new__"
+                        onPress={addNewChip.onPress}
+                        accessibilityLabel={`Add "${addNewChip.label}"`}
+                      >
+                        {addNewChip.label}
+                      </Chip>
+                    ) : null}
+                    {visibleItems.map((item) => (
+                      <SelectableChip
+                        key={item}
+                        item={item}
+                        label={labels?.[item]}
+                        selected={selectedValues.includes(item)}
+                        onToggle={onToggle}
+                      />
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+              <View className="mt-2 flex-row justify-end gap-1">{footer}</View>
+            </OverlaySurface>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </Animated.View>
     </Modal>
   );
 }
@@ -310,6 +313,9 @@ export function SingleSelectFilterModal({
 }
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   dialogWrapper: {
     maxWidth: 480,
     maxHeight: '85%',

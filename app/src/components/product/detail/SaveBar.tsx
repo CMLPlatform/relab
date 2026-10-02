@@ -3,6 +3,8 @@ import { View, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
+  FadeInDown,
+  FadeOut,
   ReduceMotion,
   useAnimatedStyle,
   useSharedValue,
@@ -93,81 +95,97 @@ export function SaveBar({
     ? `${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`
     : null;
   return (
-    <View
+    // The dock itself animates: a transform on a wrapper would re-anchor its
+    // `position: fixed` to that wrapper for the length of the slide.
+    <Animated.View
       testID="save-bar-dock"
+      entering={DOCK_ENTER}
+      exiting={DOCK_EXIT}
       style={
         layout === 'flow'
           ? [flowStyle, { marginBottom: bottomOffset }]
           : [floatingStyle, { bottom: DOCK_BOTTOM + bottomOffset }]
       }
-      className={`flex-row items-center justify-end gap-3${showsSummary ? ' rounded-lg border border-border bg-background px-4 py-2' : ''}`}
     >
-      {/* NOTE: hand-rolled English plural. Swap it for
+      {/* Animated.View ignores className, so the row and its card sit one level in. */}
+      <View
+        testID="save-bar-row"
+        style={layout === 'flow' ? flowRowStyle : undefined}
+        className={`flex-row items-center justify-end gap-3${showsSummary ? ' rounded-lg border border-border bg-background px-4 py-2' : ''}`}
+      >
+        {/* NOTE: hand-rolled English plural. Swap it for
           Intl.PluralRules('en') behind a shared helper when the app gains a
           second locale; there is nothing to share until then. */}
-      {/* Mounted even when empty: assistive tech only announces changes to a region it has seen. */}
-      <View
-        testID="save-bar-status"
-        role="status"
-        accessibilityLiveRegion="polite"
-        // Out of flow when empty, so it adds no gap beside the button.
-        style={showsMessage ? (layout === 'flow' ? flowSummaryStyle : undefined) : visuallyHidden}
-      >
-        <IosAnnouncement
-          text={uploadingText ?? attentionText ?? (showsMessage ? validationError : undefined)}
-        />
-        {uploadingText ? (
-          // The button label carries this visibly; the region makes it heard.
-          <AppText style={visuallyHidden}>{uploadingText}</AppText>
-        ) : null}
-        {attentionText ? (
-          // Same for the attention summary: the ghost button shows it, the region speaks it.
-          <AppText style={visuallyHidden}>{attentionText}</AppText>
-        ) : null}
-        {blockedByValidation && validationError ? (
+        {/* Mounted even when empty: assistive tech only announces changes to a region it has seen. */}
+        <View
+          testID="save-bar-status"
+          role="status"
+          accessibilityLiveRegion="polite"
+          // Out of flow when empty, so it adds no gap beside the button.
+          style={showsMessage ? (layout === 'flow' ? flowSummaryStyle : undefined) : visuallyHidden}
+        >
+          <IosAnnouncement
+            text={uploadingText ?? attentionText ?? (showsMessage ? validationError : undefined)}
+          />
+          {uploadingText ? (
+            // The button label carries this visibly; the region makes it heard.
+            <AppText style={visuallyHidden}>{uploadingText}</AppText>
+          ) : null}
+          {attentionText ? (
+            // Same for the attention summary: the ghost button shows it, the region speaks it.
+            <AppText style={visuallyHidden}>{attentionText}</AppText>
+          ) : null}
+          {blockedByValidation && validationError ? (
+            <Animated.View
+              testID="save-bar-validation-error"
+              entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+            >
+              <AppText variant="label" className="text-destructive">
+                {validationError}
+              </AppText>
+            </Animated.View>
+          ) : null}
+        </View>
+        {needsAttention ? (
           <Animated.View
-            testID="save-bar-validation-error"
             entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+            style={layout === 'flow' ? flowSummaryStyle : undefined}
           >
-            <AppText variant="label" className="text-destructive">
-              {validationError}
-            </AppText>
+            <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
+              {attentionText}
+            </AppButton>
           </Animated.View>
         ) : null}
-      </View>
-      {needsAttention ? (
-        <Animated.View
-          entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
-          style={layout === 'flow' ? flowSummaryStyle : undefined}
-        >
-          <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
-            {attentionText}
+        <View>
+          <AppButton
+            variant="primary"
+            onPress={onPrimaryButtonPress}
+            loading={isSaving && !isPaused}
+            disabled={isSaving || blockedByValidation}
+          >
+            {/* Fields save on blur, so a clean edit form only needs closing. */}
+            {isQueued
+              ? QUEUED_OFFLINE_LABEL
+              : uploadingPhotos
+                ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
+                : editMode
+                  ? isDirty
+                    ? `Save ${titleLabel}`
+                    : 'Done'
+                  : `Edit ${titleLabel}`}
           </AppButton>
-        </Animated.View>
-      ) : null}
-      <View>
-        <AppButton
-          variant="primary"
-          onPress={onPrimaryButtonPress}
-          loading={isSaving && !isPaused}
-          disabled={isSaving || blockedByValidation}
-        >
-          {/* Fields save on blur, so a clean edit form only needs closing. */}
-          {isQueued
-            ? QUEUED_OFFLINE_LABEL
-            : uploadingPhotos
-              ? `Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`
-              : editMode
-                ? isDirty
-                  ? `Save ${titleLabel}`
-                  : 'Done'
-                : `Edit ${titleLabel}`}
-        </AppButton>
-        {uploadingPhotos ? <UploadProgressBar progress={uploadingPhotos} /> : null}
+          {uploadingPhotos ? <UploadProgressBar progress={uploadingPhotos} /> : null}
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
+
+// Rises 12px into place as edit mode begins; leaves faster, by fading.
+const DOCK_ENTER = FadeInDown.duration(200)
+  .withInitialValues({ transform: [{ translateY: 12 }] })
+  .reduceMotion(ReduceMotion.System);
+const DOCK_EXIT = FadeOut.duration(150).reduceMotion(ReduceMotion.System);
 
 const PROGRESS_STEP = {
   duration: 300,
@@ -218,6 +236,9 @@ const floatingStyle: ViewStyle = {
 
 const flowStyle: ViewStyle = {
   width: '100%',
+};
+
+const flowRowStyle: ViewStyle = {
   flexWrap: 'wrap',
 };
 

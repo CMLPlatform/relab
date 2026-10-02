@@ -1,5 +1,5 @@
 import Head from 'expo-router/head';
-import { useCallback, useRef } from 'react';
+import { type ReactNode, useCallback, useRef, useState } from 'react';
 import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   type View,
 } from 'react-native';
+import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { PageHeaderRow } from '@/components/base/PageHeaderRow';
 import type { SectionKey } from '@/components/base/SectionNavContext';
@@ -105,6 +106,27 @@ function renderScreenGuard({
   return null;
 }
 
+const CONTENT_ENTER = FadeIn.duration(200).reduceMotion(ReduceMotion.System);
+
+/**
+ * The screen guard, plus whether one has been on screen: content that replaces a
+ * skeleton or error fades in rather than cutting; a cached record is simply there.
+ */
+function useScreenGuard(args: Parameters<typeof renderScreenGuard>[0]) {
+  const guard = renderScreenGuard(args);
+  const [replacesGuard, setReplacesGuard] = useState(false);
+  if (guard && !replacesGuard) setReplacesGuard(true);
+  return { guard, replacesGuard };
+}
+
+function ContentHandover({ fade, children }: { fade: boolean; children: ReactNode }) {
+  return (
+    <Animated.View style={styles.fill} entering={fade ? CONTENT_ENTER : undefined}>
+      {children}
+    </Animated.View>
+  );
+}
+
 export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFormOptions }) {
   const { theme, screen, editing, streaming, capabilities, actions, amountFlushRef } =
     useProductPageScreen(formOptions);
@@ -139,7 +161,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
     [editing, nav],
   );
 
-  const guard = renderScreenGuard({
+  const { guard, replacesGuard } = useScreenGuard({
     screen,
     formOptions,
     theme,
@@ -197,7 +219,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
           activeKey={nav.activeKey}
           onPressSection={nav.scrollTo}
         >
-          {content}
+          <ContentHandover fade={replacesGuard}>{content}</ContentHandover>
         </SectionNavLayout>
         <ProductFabControls
           entityRole={screen.product.role}
@@ -225,6 +247,7 @@ export function ProductDetailScreen({ formOptions }: { formOptions: UseProductFo
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   // Off-canvas for sighted users, present for assistive tech.
   srOnly: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0 },
 });

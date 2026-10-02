@@ -1,12 +1,8 @@
 import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, type View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import Animated, {
-  Easing,
-  FadeInUp,
-  ReduceMotion,
-  useReducedMotion,
-} from 'react-native-reanimated';
+import Animated, { Easing, FadeInUp, ReduceMotion } from 'react-native-reanimated';
+import { useModalPresence } from '@/hooks/useModalPresence';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { OverlaySurface } from './OverlaySurface';
@@ -49,16 +45,16 @@ export function AppDialog({
 }: AppDialogProps) {
   const theme = useAppTheme();
   const handleDismiss = dismissable ? onDismiss : undefined;
-  const reduceMotion = useReducedMotion();
+  const { mounted, fadeStyle } = useModalPresence(visible);
   // Every dialog inherits return-focus on close; triggerRef is optional and
   // only needed for native screen-reader focus restore (web works without it).
-  useReturnFocus(visible, triggerRef);
+  useReturnFocus(mounted, triggerRef);
 
   return (
     <Modal
-      visible={visible}
+      visible={mounted}
       transparent
-      animationType={reduceMotion ? 'none' : 'fade'}
+      animationType="none"
       onRequestClose={handleDismiss ?? NOOP}
       // Lands on the element react-native-web gives role="dialog": Modal spreads its
       // remaining props onto it. RN core treats aria-label the same on native.
@@ -68,45 +64,50 @@ export function AppDialog({
           from reaching it. Neither is a control: assistive tech dismisses the
           dialog with its own buttons or the system back gesture, and a
           full-screen unlabelled button would swallow the card it contains. */}
-      <Pressable
-        accessible={false}
-        tabIndex={-1}
-        className="flex-1 items-center justify-center p-4"
-        style={{ backgroundColor: theme.tokens.overlay.scrim }}
-        onPress={handleDismiss}
-      >
+      <Animated.View style={[styles.fill, fadeStyle]} pointerEvents={visible ? 'auto' : 'none'}>
         <Pressable
           accessible={false}
           tabIndex={-1}
-          onPress={stopPropagation}
-          className="w-full"
-          style={styles.dialogWrapper}
+          className="flex-1 items-center justify-center p-4"
+          style={{ backgroundColor: theme.tokens.overlay.scrim }}
+          onPress={handleDismiss}
         >
-          <KeyboardAvoidingView behavior="padding" style={styles.shrink}>
-            <Animated.View
-              style={styles.shrink}
-              entering={FadeInUp.duration(200)
-                .easing(Easing.out(Easing.quad))
-                .reduceMotion(ReduceMotion.System)}
-            >
-              <OverlaySurface
-                className="p-4"
-                style={[theme.tokens.elevation.overlay, styles.shrink]}
-                tone="surface"
+          <Pressable
+            accessible={false}
+            tabIndex={-1}
+            onPress={stopPropagation}
+            className="w-full"
+            style={styles.dialogWrapper}
+          >
+            <KeyboardAvoidingView behavior="padding" style={styles.shrink}>
+              <Animated.View
+                style={styles.shrink}
+                entering={FadeInUp.duration(200)
+                  .easing(Easing.out(Easing.quad))
+                  .reduceMotion(ReduceMotion.System)}
               >
-                <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
-                  {children}
-                </ScrollView>
-              </OverlaySurface>
-            </Animated.View>
-          </KeyboardAvoidingView>
+                <OverlaySurface
+                  className="p-4"
+                  style={[theme.tokens.elevation.overlay, styles.shrink]}
+                  tone="surface"
+                >
+                  <ScrollView keyboardShouldPersistTaps="handled" bounces={false}>
+                    {children}
+                  </ScrollView>
+                </OverlaySurface>
+              </Animated.View>
+            </KeyboardAvoidingView>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </Animated.View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   dialogWrapper: {
     maxWidth: 480,
     maxHeight: '85%',

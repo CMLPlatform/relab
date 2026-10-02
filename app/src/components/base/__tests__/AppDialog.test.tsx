@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
-import { screen, within } from '@testing-library/react-native';
+import { act, screen, within } from '@testing-library/react-native';
 import { createRef } from 'react';
 import { AccessibilityInfo, Text, View } from 'react-native';
 import { AppDialog } from '@/components/base/AppDialog';
@@ -34,29 +34,47 @@ afterEach(() => {
 });
 
 describe('AppDialog', () => {
-  it('fades in, or appears without motion when reduced motion is on', async () => {
-    const view = await renderWithProviders(
-      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Motion">
-        <Text>Body</Text>
-      </AppDialog>,
-    );
-    expect(queryAllHostsByProps({ animationType: 'fade' })).toHaveLength(1);
-    await view.unmount();
-
-    // The shared setup mocks Reanimated; spy on that mock's hook.
-    const reduced = jest
+  it('fades in over 200ms and out over 150ms, staying mounted until the fade lands', async () => {
+    // The shared setup mocks Reanimated; hold back withTiming's completion callbacks.
+    const calls: Array<{ to: number; duration?: number; reduceMotion?: string }> = [];
+    const pending: Array<(finished: boolean) => void> = [];
+    const timing = jest
       .spyOn(
-        jest.requireMock<typeof import('react-native-reanimated')>('react-native-reanimated'),
-        'useReducedMotion',
+        jest.requireMock<{ withTiming: () => unknown }>('react-native-reanimated'),
+        'withTiming',
       )
-      .mockReturnValue(true);
-    await renderWithProviders(
-      <AppDialog visible onDismiss={jest.fn()} accessibilityLabel="Motion">
+      .mockImplementation(((
+        to: number,
+        config: { duration?: number; reduceMotion?: string },
+        callback?: (finished: boolean) => void,
+      ) => {
+        calls.push({ to, duration: config.duration, reduceMotion: config.reduceMotion });
+        if (callback) pending.push(callback);
+        return to;
+      }) as never);
+    const dialog = (visible: boolean) => (
+      <AppDialog visible={visible} onDismiss={jest.fn()} accessibilityLabel="Motion">
         <Text>Body</Text>
-      </AppDialog>,
+      </AppDialog>
     );
-    expect(queryAllHostsByProps({ animationType: 'none' })).toHaveLength(1);
-    reduced.mockRestore();
+
+    try {
+      await renderWithProviders(dialog(true));
+      // The Modal's own fade is off; the content runs its own.
+      expect(queryAllHostsByProps({ animationType: 'none' })).toHaveLength(1);
+      expect(calls).toEqual([{ to: 1, duration: 200, reduceMotion: 'system' }]);
+
+      await screen.rerender(dialog(false));
+      expect(calls.at(-1)).toEqual({ to: 0, duration: 150, reduceMotion: 'system' });
+      expect(screen.getByText('Body')).toBeOnTheScreen();
+
+      await act(async () => {
+        for (const done of pending) done(true);
+      });
+      expect(screen.queryByText('Body')).toBeNull();
+    } finally {
+      timing.mockRestore();
+    }
   });
 
   it('scrolls its children inside a keyboard-avoiding view', async () => {
