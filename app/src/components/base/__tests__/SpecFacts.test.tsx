@@ -22,10 +22,9 @@ test('renders nothing for empty facts', async () => {
 test('keeps the labels and pulses each value while loading', async () => {
   await render(
     <SpecFacts
-      loading
       facts={[
-        { label: 'Products', value: '0' },
-        { label: 'Top category', value: '—' },
+        { label: 'Products', value: '0', loading: true },
+        { label: 'Top category', value: '—', loading: true },
       ]}
     />,
   );

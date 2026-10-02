@@ -7,7 +7,6 @@ import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal'
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { PRESS_FADE, type PressState, pressFill } from '@/components/base/pressFeedback';
-import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
 import { MIN_TAP_TARGET } from '@/constants';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
 import { useSearchBrandsQuery } from '@/features/products/queries';
@@ -16,16 +15,15 @@ import type { Product } from '@/types/Product';
 
 interface Props {
   product: Product;
-  editMode: boolean;
   onBrandChange?: (newBrand: string) => void;
   onModelChange?: (newModel: string) => void;
   onAmountChange?: (newAmount: number) => void;
   isComponent?: boolean;
 }
 
+/** Edit-mode brand, model and amount controls; view mode states them in OverviewFacts. */
 export default function ProductTags({
   product,
-  editMode,
   onBrandChange,
   onModelChange,
   onAmountChange,
@@ -66,21 +64,6 @@ export default function ProductTags({
       ],
     });
   };
-
-  // View mode states facts, so it uses the Spec Row: a chip is an edit control,
-  // and a solid-blue segment that does nothing on press reads as a broken button.
-  if (!editMode) {
-    const facts: SpecFact[] = [
-      { label: 'Brand', value: product.brand || '—' },
-      { label: 'Model', value: product.model || '—' },
-    ];
-    if (isComponent) facts.push({ label: 'Amount', value: String(product.amountInParent ?? 1) });
-    return (
-      <View className="my-3">
-        <SpecFacts facts={facts} />
-      </View>
-    );
-  }
 
   return (
     <View className="my-3 gap-2.5 flex-row flex-wrap">

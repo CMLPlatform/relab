@@ -7,16 +7,17 @@ import { useAppTheme } from '@/theme/appThemeContext';
 
 const VALUE_ENTER = FadeIn.duration(200).reduceMotion(ReduceMotion.System);
 
-export type SpecFact = { label: string; value: string };
+/** `loading` keeps the label and pulses the value until it resolves. */
+export type SpecFact = { label: string; value: string; loading?: boolean };
 
 /**
  * The Spec Row (DESIGN.md, Signature): manila eyebrow labels over mono `data`
  * values, left-aligned under a hairline, wrapping onto more lines when narrow.
- * Read-only facts use it everywhere: the spec-sheet header, the account
- * identity, and view-mode brand and model. Hides itself when empty; `loading`
- * keeps the labels and pulses each value.
+ * Every read-only set of facts uses it: the product spec-sheet header, the
+ * view-mode Overview (brand, model, amount, type), the account's record counts
+ * and a public profile's. Hides itself when empty.
  */
-export function SpecFacts({ facts, loading = false }: { facts: SpecFact[]; loading?: boolean }) {
+export function SpecFacts({ facts }: { facts: SpecFact[] }) {
   const { colors } = useAppTheme();
   if (facts.length === 0) return null;
   return (
@@ -24,20 +25,20 @@ export function SpecFacts({ facts, loading = false }: { facts: SpecFact[]; loadi
     // that replaces its skeleton fades in.
     <LayoutAnimationConfig skipEntering>
       <View className="flex-row flex-wrap gap-x-6 gap-y-2 border-t border-border pt-3">
-        {facts.map((fact) => (
+        {facts.map(({ label, value, loading }) => (
           // One screen-reader stop per fact on native ("Weight: 1600 g"), not two.
           // Not on web: an aria-label on a role-less div is prohibited ARIA, and the
           // label and value already read in order there.
           <View
-            key={fact.label}
+            key={label}
             className="shrink"
             accessible={Platform.OS !== 'web'}
             accessibilityLabel={
-              Platform.OS === 'web' ? undefined : `${fact.label}: ${loading ? '…' : fact.value}`
+              Platform.OS === 'web' ? undefined : `${label}: ${loading ? '…' : value}`
             }
           >
             <AppText variant="eyebrow" className="text-manila">
-              {fact.label}
+              {label}
             </AppText>
             {loading ? (
               <Skeleton
@@ -46,7 +47,7 @@ export function SpecFacts({ facts, loading = false }: { facts: SpecFact[]; loadi
               />
             ) : (
               <Animated.View entering={VALUE_ENTER}>
-                <AppText variant="data">{fact.value}</AppText>
+                <AppText variant="data">{value}</AppText>
               </Animated.View>
             )}
           </View>

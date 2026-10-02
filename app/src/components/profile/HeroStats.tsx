@@ -85,13 +85,12 @@ type ProfileStatsSectionProps = {
 export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSectionProps) {
   return (
     <SpecFacts
-      loading={statsLoading}
       facts={[
         { label: 'Products', value: String(ownStats?.product_count ?? 0) },
         { label: 'Photos', value: String(ownStats?.image_count ?? 0) },
         { label: 'Weight', value: `${ownStats?.total_weight_kg ?? 0} kg` },
         { label: 'Top category', value: ownStats?.top_category || '—' },
-      ]}
+      ].map((fact) => ({ ...fact, loading: statsLoading }))}
     />
   );
 }
