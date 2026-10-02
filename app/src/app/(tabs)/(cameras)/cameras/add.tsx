@@ -19,6 +19,7 @@ import { RPI_CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme/appThemeContext';
+import { MONO_FONT_FAMILY } from '@/theme/tokens';
 import { heading, requiredField } from '@/utils/a11y';
 
 function PairingSuccessDialog({
@@ -108,7 +109,7 @@ export default function AddCameraScreen() {
               className="mb-1 text-center"
               // NOTE: enlarged monospace entry field for a 6-character pairing
               // code: no ramp step targets an oversized input glyph.
-              style={{ fontFamily: 'monospace', fontSize: 20 }}
+              style={{ fontFamily: MONO_FONT_FAMILY, fontSize: 20 }}
             />
 
             <Separator className="my-1" />

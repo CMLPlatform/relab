@@ -192,8 +192,10 @@ shade (`#143567` light / `#BAD3FF` dark), not alpha on the primary. In Tailwind:
 
 **Display / UI Font:** platform system font (San Francisco on iOS, Roboto on Android, system UI
 stack on web)
-**Data / Label Font:** platform monospace (Menlo on iOS, `monospace` elsewhere), with
-`font-variant: tabular-nums`
+**Data / Label Font:** platform monospace (Menlo on iOS, `monospace` on Android, and on web the
+stack `ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace`), with
+`font-variant: tabular-nums`. Take it from `MONO_FONT_FAMILY` in `src/theme/tokens.ts`; a bare
+`monospace` on web falls to Courier New on Windows.
 
 **Character:** Neutral and native. The app borrows the scale and palette of the brand's IBM Plex
 system without shipping the typeface.

@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { CameraConnectionStatus } from '@/services/api/rpiCamera/shared';
+import { MONO_FONT_FAMILY } from '@/theme/tokens';
 
 export const STATUS_LABEL: Record<CameraConnectionStatus, string> = {
   online: 'Online',
@@ -22,9 +23,8 @@ export const cameraDetailStyles = StyleSheet.create({
   iconButton: {
     margin: 0,
   },
-  // font-mono pulls a web font stack; 'monospace' keeps RN's platform font.
   monoDetail: {
-    fontFamily: 'monospace',
+    fontFamily: MONO_FONT_FAMILY,
     // NOTE: caption size (13/18) on a mono face; no mono-13 step exists.
     fontSize: 13,
     lineHeight: 18,

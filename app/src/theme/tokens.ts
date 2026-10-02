@@ -23,6 +23,16 @@ const SEMANTIC_COLORS = {
   },
 } as const;
 
+/**
+ * The `data` face. Web gets a named stack: the bare generic `monospace` resolves
+ * to Courier New on Windows and DejaVu Sans Mono on Linux.
+ */
+export const MONO_FONT_FAMILY = Platform.select({
+  ios: 'Menlo',
+  android: 'monospace',
+  default: 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace',
+});
+
 export function createTokens(scheme: AppScheme, colors: AppColorScale): AppTokens {
   const isDark = scheme === 'dark';
   const semantic = SEMANTIC_COLORS[scheme];
@@ -100,7 +110,7 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       data: {
         fontSize: designTokens.type.data.size,
         lineHeight: designTokens.type.data.line,
-        fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+        fontFamily: MONO_FONT_FAMILY,
         fontVariant: ['tabular-nums'] as const,
       },
     },
