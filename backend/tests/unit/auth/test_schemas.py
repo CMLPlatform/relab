@@ -5,8 +5,9 @@ import uuid
 import pytest
 from pydantic import ValidationError
 
+from app.api.auth.profile_stats import ProfileStatsData
 from app.api.auth.roles import UserRole
-from app.api.auth.schemas import RefreshTokenRequest, UserRead, UserRegister, UserUpdate
+from app.api.auth.schemas import PublicProfileView, RefreshTokenRequest, UserRead, UserRegister, UserUpdate
 
 VALID_PASSWORD = "correct-horse-battery-staple-v42"
 
@@ -117,3 +118,10 @@ def test_user_read_defaults_to_the_contributor_tier() -> None:
     user = UserRead(id=uuid.uuid4(), email="test@example.com", is_active=True, is_superuser=False, is_verified=False)
 
     assert user.role == UserRole.CONTRIBUTOR
+
+
+def test_public_profile_without_products_has_no_top_category() -> None:
+    """No products means no category: null, never the literal string "None"."""
+    view = PublicProfileView.from_profile_stats(username="alice", created_at=None, stats=ProfileStatsData())
+
+    assert view.top_category is None
