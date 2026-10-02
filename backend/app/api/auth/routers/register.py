@@ -1,7 +1,9 @@
 """Custom registration router for user creation with proper exception handling."""
 
 import logging
+from contextlib import suppress
 
+from anyio import to_thread
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi_users.exceptions import InvalidPasswordException, UserAlreadyExists
 from pydantic import BaseModel, Field
@@ -17,7 +19,7 @@ from app.api.auth.schemas import UserRegister
 from app.api.auth.services.email.service import email_log_token, send_existing_account_notification
 from app.api.auth.services.rate_limiter import REGISTER_RATE_LIMIT
 from app.api.common.exceptions import APIError
-from app.api.common.rate_limiting import limiter
+from app.api.common.rate_limiting import RateLimitExceededError, limiter, rate_limit_bucket_key
 from app.api.common.routers.dependencies import background_tasks_from
 
 logger = logging.getLogger(__name__)
@@ -66,9 +68,16 @@ async def register(
         logger.info("User %s registered successfully", email_log_token(user.email))
 
     except UserAlreadyExists:
-        # Never reveal that an email is registered: notify the address and return the
-        # same accepted response as a fresh signup.
-        await send_existing_account_notification(user_create.email, background_tasks_from(request))
+        # Never reveal that an email is registered: pay for the hash a fresh signup pays,
+        # notify the address and return the same accepted response.
+        await to_thread.run_sync(user_manager.password_helper.hash, user_create.password)
+        # A spent per-address budget skips the email silently, so repeated signups cannot
+        # flood one inbox and the response stays the same.
+        with suppress(RateLimitExceededError):
+            await limiter.ahit_key(
+                REGISTER_RATE_LIMIT, rate_limit_bucket_key("auth:register:account", str(user_create.email))
+            )
+            await send_existing_account_notification(user_create.email, background_tasks_from(request))
         logger.info("Registration attempted for existing email %s", email_log_token(user_create.email))
 
     except InvalidPasswordException as e:
