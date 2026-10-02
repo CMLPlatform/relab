@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius } from '@/constants';
@@ -19,7 +19,17 @@ export function SpecFacts({ facts, loading = false }: { facts: SpecFact[]; loadi
   return (
     <View className="flex-row flex-wrap gap-x-6 gap-y-2 border-t border-border pt-3">
       {facts.map((fact) => (
-        <View key={fact.label} className="shrink">
+        // One screen-reader stop per fact on native ("Weight: 1600 g"), not two.
+        // Not on web: an aria-label on a role-less div is prohibited ARIA, and the
+        // label and value already read in order there.
+        <View
+          key={fact.label}
+          className="shrink"
+          accessible={Platform.OS !== 'web'}
+          accessibilityLabel={
+            Platform.OS === 'web' ? undefined : `${fact.label}: ${loading ? '…' : fact.value}`
+          }
+        >
           <AppText variant="eyebrow" className="text-manila">
             {fact.label}
           </AppText>

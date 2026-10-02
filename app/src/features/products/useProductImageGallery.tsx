@@ -84,12 +84,15 @@ export function useProductImageGallery({
   product,
   editMode,
   onImagesChange,
+  layoutWidth,
 }: {
   product: Product;
   editMode: boolean;
   onImagesChange?: (images: { url: string; description: string; id?: string }[]) => void;
+  /** The gallery's measured width; see useProductGalleryMedia. */
+  layoutWidth?: number;
 }) {
-  const media = useProductGalleryMedia(product);
+  const media = useProductGalleryMedia(product, layoutWidth);
   const productId = typeof product.id === 'number' ? product.id : null;
   const captureState = useProductGalleryCaptureState({ productId, editMode });
   const viewerState = useProductGalleryViewer({

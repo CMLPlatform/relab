@@ -6,6 +6,7 @@ import { AppText } from '@/components/base/AppText';
 import DetailSectionHeader from '@/components/base/DetailSectionHeader';
 import { Icon } from '@/components/base/Icon';
 import { PRESS_TINT } from '@/components/base/pressFeedback';
+import { SpecFacts } from '@/components/base/SpecFacts';
 import CPVCard, { CpvTypeLoadError } from '@/components/product/CPVCard';
 import { MIN_TAP_TARGET, radius } from '@/constants';
 import { takePendingTypeSelection } from '@/features/products/pendingTypeSelection';
@@ -63,10 +64,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
   );
 
   // Callback
-  const onTypeSelectionStart = () => {
-    if (!editMode) return;
-    router.push('/category-selection');
-  };
+  const onTypeSelectionStart = () => router.push('/category-selection');
 
   // Filters the products list by this type's name — the same value the list
   // reads back via screenData.ts's `types` param.
@@ -104,7 +102,29 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
     );
   }
 
-  // Render
+  // View mode: a flat spec block, not a card inside the Overview card. Edit
+  // mode keeps the CPVCard, because there the card is the control that opens
+  // the picker.
+  if (!editMode) {
+    if (cpvType.status === 'error') {
+      return <CpvTypeLoadError typeID={product.productTypeID} retry={cpvType.retry} />;
+    }
+    if (cpvType.status !== 'ready') return null;
+    return (
+      <View className="gap-1">
+        <SpecFacts facts={[{ label: labels.title, value: cpvType.type.name }]} />
+        <View className="flex-row items-center gap-2">
+          <AppText variant="caption" className="flex-1 text-muted-foreground">
+            {cpvType.type.description}
+          </AppText>
+          {product.productTypeName ? (
+            <ViewProductsOfTypeLink typeName={product.productTypeName} onPress={onViewAllOfType} />
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View>
       {header}
@@ -112,18 +132,7 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
         <CpvTypeLoadError typeID={product.productTypeID} retry={cpvType.retry} />
       ) : null}
       {cpvType.status === 'ready' ? (
-        <CPVCard
-          CPV={cpvType.type}
-          onPress={editMode ? onTypeSelectionStart : undefined}
-          actionElement={
-            !editMode && product.productTypeName ? (
-              <ViewProductsOfTypeLink
-                typeName={product.productTypeName}
-                onPress={onViewAllOfType}
-              />
-            ) : undefined
-          }
-        />
+        <CPVCard CPV={cpvType.type} onPress={onTypeSelectionStart} />
       ) : null}
     </View>
   );

@@ -19,8 +19,6 @@ interface Props extends PressableProps {
   title?: string;
   icon?: React.ReactNode;
   error?: boolean;
-  /** Displays a value with no action: no button role, not in the tab order. */
-  readOnly?: boolean;
 }
 
 export const Chip = ({
@@ -33,7 +31,6 @@ export const Chip = ({
   accessibilityLabel,
   accessibilityRole = 'button',
   accessibilityState,
-  readOnly = false,
   ...props
 }: Props) => {
   const theme = useAppTheme();
@@ -42,12 +39,7 @@ export const Chip = ({
   const resolveStyle = useCallback(
     (state: PressableStateCallbackType) => {
       const resolvedStyle = typeof style === 'function' ? style(state) : style;
-      return [
-        // No className on this Pressable: it would drop this function (see IconButton.tsx).
-        styles.base,
-        { backgroundColor: theme.tokens.surface.accent },
-        resolvedStyle,
-      ];
+      return [styles.base, { backgroundColor: theme.tokens.surface.accent }, resolvedStyle];
     },
     [style, theme],
   );
@@ -95,23 +87,6 @@ export const Chip = ({
       </View>
     </>
   );
-
-  // A value with nothing to do on press is not a button: a focusable control
-  // that does nothing costs a keyboard stop and misstates its role (WCAG 4.1.2).
-  // A named group keeps title and value one screen-reader stop, not two.
-  if (readOnly) {
-    return (
-      <View
-        testID={props.testID}
-        accessible
-        role="group"
-        accessibilityLabel={composedLabel}
-        style={[styles.base, { backgroundColor: theme.tokens.surface.accent }]}
-      >
-        {renderContent(false)}
-      </View>
-    );
-  }
 
   return (
     <Pressable

@@ -7,6 +7,7 @@ import { SingleSelectFilterModal } from '@/components/base/FilterSelectionModal'
 import { Icon } from '@/components/base/Icon';
 import { InfoTooltip } from '@/components/base/InfoTooltip';
 import { type PressState, pressFill } from '@/components/base/pressFeedback';
+import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
 import { MIN_TAP_TARGET } from '@/constants';
 import { AmountDraftFlushContext } from '@/features/products/amountDraftFlush';
 import { useSearchBrandsQuery } from '@/features/products/queries';
@@ -47,13 +48,9 @@ export default function ProductTags({
     [onBrandChange],
   );
 
-  const onEditBrand = () => {
-    if (!editMode) return;
-    setBrandModalVisible(true);
-  };
+  const onEditBrand = () => setBrandModalVisible(true);
 
   const onEditModel = () => {
-    if (!editMode) return;
     dialog.input({
       title: 'Set model',
       placeholder: 'Model name',
@@ -70,27 +67,38 @@ export default function ProductTags({
     });
   };
 
+  // View mode states facts, so it uses the Spec Row: a chip is an edit control,
+  // and a solid-blue segment that does nothing on press reads as a broken button.
+  if (!editMode) {
+    const facts: SpecFact[] = [
+      { label: 'Brand', value: product.brand || '—' },
+      { label: 'Model', value: product.model || '—' },
+    ];
+    if (isComponent) facts.push({ label: 'Amount', value: String(product.amountInParent ?? 1) });
+    return (
+      <View className="my-3">
+        <SpecFacts facts={facts} />
+      </View>
+    );
+  }
+
   return (
     <View className="my-3 gap-2.5 flex-row flex-wrap">
       <Chip
         title={'Brand'}
-        readOnly={!editMode}
         onPress={onEditBrand}
-        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
+        icon={<Icon name="pencil" color={theme.colors.onPrimary} />}
       >
         {product.brand ?? 'Not recorded'}
       </Chip>
       <Chip
         title={'Model'}
-        readOnly={!editMode}
         onPress={onEditModel}
-        icon={editMode && <Icon name="pencil" color={theme.colors.onPrimary} />}
+        icon={<Icon name="pencil" color={theme.colors.onPrimary} />}
       >
         {product.model ?? 'Not recorded'}
       </Chip>
-      {isComponent ? (
-        <AmountChip product={product} editMode={editMode} onAmountChange={onAmountChange} />
-      ) : null}
+      {isComponent ? <AmountChip product={product} onAmountChange={onAmountChange} /> : null}
 
       <SingleSelectFilterModal
         visible={brandModalVisible}
@@ -108,13 +116,12 @@ export default function ProductTags({
   );
 }
 
+/** Edit-mode amount stepper; view mode states the amount as a spec fact. */
 function AmountChip({
   product,
-  editMode,
   onAmountChange,
 }: {
   product: Product;
-  editMode: boolean;
   onAmountChange?: (n: number) => void;
 }): JSX.Element {
   const { colors, tokens } = useAppTheme();
@@ -178,47 +185,34 @@ function AmountChip({
         </AppText>
         <InfoTooltip title="How many of this component the parent contains" />
       </View>
-      {editMode ? (
-        <View className="bg-primary flex-row items-center rounded-md overflow-hidden">
-          <StepButton
-            icon="minus"
-            color={colors.onPrimary}
-            onPress={decrease}
-            disabled={effectiveAmount <= 1}
-            label="Decrease amount"
-          />
-          <TextInput
-            value={inputValue}
-            onChangeText={handleTextChange}
-            onBlur={commitDraft}
-            onSubmitEditing={commitDraft}
-            keyboardType="numeric"
-            maxFontSizeMultiplier={2}
-            className="text-primary-foreground min-w-9 text-center py-2 px-1"
-            style={amountStyles.input}
-            accessibilityLabel="Amount"
-            accessibilityHint="Enter a whole number from 1 to 10000. Relab corrects a value outside that range."
-          />
-          <StepButton
-            icon="plus"
-            color={colors.onPrimary}
-            onPress={increase}
-            disabled={effectiveAmount >= 10000}
-            label="Increase amount"
-          />
-        </View>
-      ) : (
-        // Full chip height, like Brand and Model's value segment beside it.
-        <View className="bg-primary self-stretch justify-center rounded-md px-3">
-          <AppText
-            variant="data"
-            className="text-primary-foreground"
-            style={amountStyles.valueText}
-          >
-            {String(amount)}
-          </AppText>
-        </View>
-      )}
+      <View className="bg-primary flex-row items-center rounded-md overflow-hidden">
+        <StepButton
+          icon="minus"
+          color={colors.onPrimary}
+          onPress={decrease}
+          disabled={effectiveAmount <= 1}
+          label="Decrease amount"
+        />
+        <TextInput
+          value={inputValue}
+          onChangeText={handleTextChange}
+          onBlur={commitDraft}
+          onSubmitEditing={commitDraft}
+          keyboardType="numeric"
+          maxFontSizeMultiplier={2}
+          className="text-primary-foreground min-w-9 text-center py-2 px-1"
+          style={amountStyles.input}
+          accessibilityLabel="Amount"
+          accessibilityHint="Enter a whole number from 1 to 10000. Relab corrects a value outside that range."
+        />
+        <StepButton
+          icon="plus"
+          color={colors.onPrimary}
+          onPress={increase}
+          disabled={effectiveAmount >= 10000}
+          label="Increase amount"
+        />
+      </View>
     </View>
   );
 }
@@ -260,10 +254,10 @@ function StepButton({
   );
 }
 
-// NOTE: 13/500 is Chip's own face (the label step, font-medium), shared by title,
-// value and input so the Amount chip reads at the same size as Brand and Model.
+// NOTE: 13/500 is Chip's own face (the label step, font-medium), shared by title
+// and input so the Amount chip reads at the same size as Brand and Model.
 const amountText = { fontWeight: '500', fontSize: 13 } as const;
-const amountStyles = { titleText: amountText, valueText: amountText, input: amountText };
+const amountStyles = { titleText: amountText, input: amountText };
 
 const styles = {
   iconSlot: {

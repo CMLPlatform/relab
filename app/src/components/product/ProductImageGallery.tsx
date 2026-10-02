@@ -1,5 +1,5 @@
-import { useCallback, useRef } from 'react';
-import { View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { type LayoutChangeEvent, View } from 'react-native';
 import { LazyBoundary } from '@/components/base/LazyBoundary';
 import { lazyWithRetry } from '@/components/base/lazyWithRetry';
 import { loadLightbox } from '@/components/product/gallery/lightboxChunk';
@@ -34,10 +34,18 @@ export default function ProductImageGallery({
   canEdit = true,
   onImagesChange,
 }: Props) {
+  // Pages are as wide as the strip, which is narrower than the window once the
+  // detail screen insets it into the content column.
+  const [layoutWidth, setLayoutWidth] = useState<number>();
+  const onLayout = useCallback(
+    (event: LayoutChangeEvent) => setLayoutWidth(event.nativeEvent.layout.width),
+    [],
+  );
   const { media, viewer, capture, actions } = useProductImageGallery({
     product,
     editMode,
     onImagesChange,
+    layoutWidth,
   });
   const handleTakePhoto = async () => actions.takePhoto();
   const handlePickImage = async () => actions.pickImage();
@@ -56,11 +64,15 @@ export default function ProductImageGallery({
   }, [actions]);
 
   if (media.imageCount === 0 && !(editMode && canEdit)) {
-    return <ProductImagePlaceholder width={media.width} />;
+    return (
+      <View onLayout={onLayout}>
+        <ProductImagePlaceholder width={media.width} />
+      </View>
+    );
   }
 
   return (
-    <View className="mb-4">
+    <View className="mb-4" onLayout={onLayout}>
       {media.imageCount > 0 ? (
         <ProductImageGalleryContent
           width={media.width}

@@ -138,15 +138,18 @@ export function ProductPageContent({
       onScroll={onScroll}
       scrollEventThrottle={16}
     >
-      <PageContainer fullBleed>
-        <ProductImageGallery
-          product={product}
-          editMode={editMode}
-          canEdit={canEdit}
-          onImagesChange={onImagesChange}
-        />
-      </PageContainer>
       <PageContainer onLayout={onPageContainerLayout}>
+        {/* Full bleed on a phone (cancelling the base px-4 gutter); from md up the
+            photo keeps the content column's edges, so it, the title and the
+            section cards start on one line. */}
+        <View className="-mx-4 mb-4 md:mx-0">
+          <ProductImageGallery
+            product={product}
+            editMode={editMode}
+            canEdit={canEdit}
+            onImagesChange={onImagesChange}
+          />
+        </View>
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>
           {editingOthersProduct ? (
             <View

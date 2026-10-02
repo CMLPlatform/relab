@@ -182,6 +182,15 @@ describe('ProductType', () => {
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
+  // No card nested in the Overview card: view mode states the type as a spec fact.
+  it('states the type as a spec fact in view mode, with no pickable card', async () => {
+    const product = { ...baseProduct, productTypeID: 1 };
+    await renderWithProviders(<ProductType product={product} editMode={false} />);
+    expect(await screen.findByLabelText('Product type: 03000000-1')).toBeOnTheScreen();
+    expect(screen.getByText('Agricultural products')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: '03000000-1, Agricultural products' })).toBeNull();
+  });
+
   it('does not navigate when not in editMode', async () => {
     const product = { ...baseProduct, productTypeID: 1 };
     await renderWithProviders(<ProductType product={product} editMode={false} />);

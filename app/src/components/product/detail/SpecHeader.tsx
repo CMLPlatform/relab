@@ -89,7 +89,8 @@ export function SpecHeader({
     .join(' · ');
 
   return (
-    <View className="gap-2 px-4 py-3">
+    // No horizontal padding: the title shares the section cards' left edge.
+    <View className="gap-2 py-3">
       {editMode ? (
         <>
           {/* The name is an input here, so the screen's level-1 heading is not visible. */}

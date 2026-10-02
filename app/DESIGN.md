@@ -234,6 +234,9 @@ is a defect unless it carries a comment naming the reason no ramp step fits.
 
 `PageContainer` is the scaffold: a max-width column with gutters that widen at `md` (768) and
 `lg` (1024), plus `fullBleed` and `phoneFullBleed` escape hatches for galleries and hero media.
+On a detail screen the photo strip, the title block and the section cards share one left edge: the
+strip sits inside the column and cancels the phone gutter (`-mx-4 md:mx-0`), so it is full bleed
+only on a phone. Cards inside a section card are a defect; flatten a sub-block to a hairline.
 
 Breakpoints are web-only: `useBreakpoint()` gates `isMd`/`isLg` on `Platform.OS === 'web'`, so a
 native tablet reads as phone-tier.
@@ -310,6 +313,9 @@ change it there first.*
 
 ### Chips
 
+- **Edit-mode controls only.** A chip is a button that edits its value. Read-only values (view-mode
+  brand, model, amount and type) are Spec Row facts, never a chip with nothing to do on press: a
+  solid-blue segment reads as a button.
 - **Style:** Two segments — a title segment in blue on `surface.accent`, and a value segment on solid
   primary with white ink (pressed: `primary-strong`, as the FAB). 6px radius, 44px minimum height.
 - **Error:** Danger-tinted fill **plus** a border **plus** an alert icon **plus** ", required"
@@ -387,7 +393,8 @@ sanctioned manila fill in the app.
 Monospace value, manila eyebrow label, hairline separator. This is the app's most characteristic
 pattern. `SpecFacts` (`src/components/base/SpecFacts.tsx`) is the one implementation: facts sit
 left-aligned under a hairline and wrap onto more lines at narrow widths. Every read-only set of
-facts uses it: the product spec-sheet header, the account's record counts. An unset value is a
+facts uses it: the product spec-sheet header, view-mode brand, model, amount and type, the
+account's record counts. An unset value is a
 neutral "—", never an error. Don't render facts as hero-metric tiles (a centred number over a
 tracked label on a tinted fill).
 

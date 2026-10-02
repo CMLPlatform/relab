@@ -38,20 +38,29 @@ describe('ProductTags', () => {
     expect(screen.getByText(MODEL_PATTERN)).toBeOnTheScreen();
   });
 
-  it("renders 'Not recorded' when brand is missing, without an error state", async () => {
+  it('renders a missing brand as a neutral dash, without an error state', async () => {
     const product = { ...baseProduct, brand: undefined };
     await renderWithProviders(<ProductTags product={product} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Brand: —')).toBeOnTheScreen();
   });
 
-  it("renders 'Not recorded' when model is missing, without an error state", async () => {
+  it('renders a missing model as a neutral dash, without an error state', async () => {
     const product = { ...baseProduct, model: undefined };
     await renderWithProviders(<ProductTags product={product} editMode={false} />, {
       withDialog: true,
     });
-    expect(screen.getAllByText('Not recorded').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Model: —')).toBeOnTheScreen();
+  });
+
+  it('states brand and model as spec facts in view mode: label and value, one stop each', async () => {
+    await renderWithProviders(<ProductTags product={baseProduct} editMode={false} />, {
+      withDialog: true,
+    });
+    expect(screen.getByLabelText('Brand: CircularTech')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Model: X100')).toBeOnTheScreen();
+    expect(screen.queryByRole('button')).toBeNull();
   });
 
   it('opens brand selection modal on brand chip press in editMode', async () => {
