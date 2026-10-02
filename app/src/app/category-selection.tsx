@@ -80,9 +80,7 @@ export default function CategorySelection() {
   if (!user) return <SignedOutState />;
   if (!cpvClass) {
     if (loadFailed)
-      return (
-        <ErrorState message="Couldn't load the category list." onRetry={() => void retryLoad()} />
-      );
+      return <ErrorState message="Couldn't load the category list." onRetry={retryLoad} />;
     return <CenteredSpinner />;
   }
 

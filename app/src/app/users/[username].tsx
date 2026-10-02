@@ -69,7 +69,7 @@ function UserProducts({ username }: { username: string }) {
       {isLoading ? (
         <ProductCardSkeleton />
       ) : failed ? (
-        <ErrorState message="Couldn't load products." onRetry={() => void refetch()} />
+        <ErrorState message="Couldn't load products." onRetry={refetch} />
       ) : items.length === 0 ? (
         <AppText className="text-muted-foreground">No public products yet</AppText>
       ) : (
