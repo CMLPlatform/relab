@@ -37,7 +37,7 @@ applied last would overwrite the other's rules. The roots are split by scope:
 
 The zone rulesets match **both** environments' api hosts.
 
-### One-time: completing the split (done on the staging host, 2026-08-20)
+### One-time: completing the split
 
 An edge workspace applied before the split can still hold the three zone settings and the three
 rulesets that now belong to the zone root. A plan for such a workspace destroys the live rate-limit
@@ -164,8 +164,8 @@ export TF_VAR_github_reviewers='["<your-github-login>"]'
 
 Every job in either GitHub Environment waits for one of these reviewers. In prod that is the
 release gate: a release deploys staging's sites, and prod's follow once you have checked staging
-and approved. Staging needs it because it accepts a run from any branch while its
-`CLOUDFLARE_API_TOKEN` can deploy every Worker in the account, prod's included.
+and approved. Staging needs it because it accepts a run from any branch, and a
+`CLOUDFLARE_API_TOKEN` granted on all Workers is not scoped to one environment.
 
 Do not commit tokens, tunnel tokens, or state files.
 

@@ -580,7 +580,8 @@ release-publish version:
 # Check a published tag's build provenance from the dev host, before
 # `ssh relab-<env> tag <tag>` makes a host pull it: every image must have been built by
 # this repository's publish-images.yml on a GitHub-hosted runner, and a prod image
-# from its release tag (or from main, for a `sha-` tag). gh needs `read:packages` (`gh auth refresh -s read:packages`).
+# from its release tag (or from main, for a `sha-` tag). gh reads the image from GHCR with
+# Docker's credentials, so the packages must be public or `docker login ghcr.io` done.
 # NOTE: checks what the tag points at now; a tag moved between this check and the
 # host's pull is not caught. Pin image digests in compose.deploy.yaml if it matters.
 [group('deploy')]

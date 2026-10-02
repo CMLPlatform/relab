@@ -211,8 +211,8 @@ the topology these steps produce.
      run `infra/cloudflare` for your edge, it creates the Environment and the four URLs for you,
      along with the Worker names and your Cloudflare account ID.
    - Add a `CLOUDFLARE_API_TOKEN` secret to each Environment: an account API token with the
-     **Workers Editor** role and nothing else. Granted on all Workers, it can deploy every Worker
-     in the account, so give both Environments a required reviewer (`infra/cloudflare` does, and
+     **Workers Editor** role and nothing else. A token granted on all Workers is not scoped to one
+     environment, so give both Environments a required reviewer (`infra/cloudflare` does, and
      refuses to apply without one). In prod the reviewer is also the release gate.
    - Run the Deploy Sites workflow for each environment before the `infra/cloudflare` apply that
      gives the Workers their hostnames; `infra/cloudflare/README.md` lists the order.

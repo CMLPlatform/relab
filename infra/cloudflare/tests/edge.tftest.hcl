@@ -191,7 +191,7 @@ run "staging_waits_for_a_reviewer" {
 
   assert {
     condition     = github_repository_environment.publish.reviewers[0].users == toset([4242])
-    error_message = "staging runs must wait for a required reviewer while its token reaches prod's Workers."
+    error_message = "staging runs must wait for a required reviewer while its token is not scoped to its own Workers."
   }
 }
 
