@@ -51,7 +51,10 @@ def generate_thumbnails(image_path: Path, widths: tuple[int, ...] = THUMBNAIL_WI
         original_width, original_height = probe.size
         drafts = probe.format == FORMAT_JPEG
 
-    targets = [(width, int((width / original_width) * original_height)) for width in widths if width < original_width]
+    # A very wide image would round some heights to 0, which Pillow refuses.
+    targets = [
+        (width, max(1, int((width / original_width) * original_height))) for width in widths if width < original_width
+    ]
     if not targets:
         return []
 
