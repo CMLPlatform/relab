@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import httpx
 import pandas as pd
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from app.api.reference_data.models import (
     Category,
@@ -188,7 +188,9 @@ def seed_product_types(excel_path: Path = EXCEL_PATH) -> None:
     logger.info("Starting %s %s seeding...", TAXONOMY_NAME, TAXONOMY_VERSION)
 
     with sync_session_context() as session:
-        existing_cpv = session.execute(select(ProductType).where(ProductType.name.startswith("CPV:"))).scalars().first()
+        # Older installs stored the "CPV:" prefix in name, newer ones in description.
+        cpv_prefix = or_(ProductType.name.startswith("CPV:"), ProductType.description.startswith("CPV:"))
+        existing_cpv = session.execute(select(ProductType).where(cpv_prefix)).scalars().first()
         if existing_cpv:
             logger.info("CPV product types already exist, skipping seeding")
             return
