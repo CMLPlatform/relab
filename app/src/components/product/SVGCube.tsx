@@ -163,7 +163,7 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
   });
   // Measurements are data: manila, monospace (DESIGN.md Data-Label Rule).
   const label = {
-    fill: theme.tokens.status.live,
+    fill: theme.tokens.text.data,
     fontFamily: theme.tokens.type.data.fontFamily,
     fontSize: FONT_SIZE,
     alignmentBaseline: 'middle',

@@ -59,6 +59,7 @@ export type AppTokens = {
     link: string;
     inverseMuted: string;
     onMedia: string;
+    data: string;
   };
   surface: {
     sunken: string;

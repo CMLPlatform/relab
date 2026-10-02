@@ -78,6 +78,8 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       // Always-light content for elements placed on overlay.media (a dark scrim),
       // regardless of app theme; the scrim is dark in both schemes.
       onMedia: '#fff',
+      /** Manila data labels: measurements, IDs, counts (DESIGN.md Data-Label Rule). */
+      data: p.accent, // manila
     },
     surface: {
       sunken: isDark ? colors.card : colors.muted,
