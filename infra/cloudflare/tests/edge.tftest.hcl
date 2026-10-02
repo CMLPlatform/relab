@@ -134,6 +134,11 @@ run "publish_urls_follow_the_hostnames" {
     condition     = length(github_repository_ruleset.release_tags) == 0
     error_message = "the repository-wide release-tag ruleset belongs to the prod workspace only."
   }
+
+  assert {
+    condition     = github_repository_environment.publish.reviewers[0].users == toset([4242])
+    error_message = "staging runs must wait for a required reviewer while its token is not scoped to its own Workers."
+  }
 }
 
 run "prod_gates_publishes_and_release_tags" {
