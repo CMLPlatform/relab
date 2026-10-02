@@ -44,9 +44,10 @@ function SectionNavItem({
       onFocus={Platform.OS === 'web' ? scrollFocusedChipIntoView : undefined}
       accessibilityRole="button"
       accessibilityLabel={section.label}
-      // aria-current reaches the DOM on web but RN has no native mapping for it;
-      // accessibilityState (ignored on web) carries the cue to VoiceOver/TalkBack.
-      aria-current={active ? 'page' : undefined}
+      // "location", not "page": these scroll to a section of this page. aria-current
+      // reaches the DOM on web but RN has no native mapping for it; accessibilityState
+      // (ignored on web) carries the cue to VoiceOver/TalkBack.
+      aria-current={active ? 'location' : undefined}
       accessibilityState={{ selected: active }}
       className={cn(
         // px-2 keeps four chips on a 390pt phone; more scroll sideways (see SectionNav).

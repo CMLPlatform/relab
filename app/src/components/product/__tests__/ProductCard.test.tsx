@@ -34,9 +34,9 @@ describe('ProductCard', () => {
       screen.getByTestId('product-card-tint', { includeHiddenElements: true }).props
         .className as string;
     expect(tintClass()).toContain('bg-transparent');
-    await fireEvent(screen.getByRole('button'), 'pressIn');
+    await fireEvent(screen.getByRole('link'), 'pressIn');
     expect(tintClass()).toContain('bg-primary/12');
-    await fireEvent(screen.getByRole('button'), 'pressOut');
+    await fireEvent(screen.getByRole('link'), 'pressOut');
     expect(tintClass()).toContain('bg-transparent');
   });
 

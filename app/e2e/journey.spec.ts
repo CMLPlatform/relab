@@ -103,7 +103,7 @@ test('an ordinary member can create, populate and publish a product', async ({ p
 
   await page.getByRole('button', { name: BACK_CONTROL_NAME_PATTERN }).click();
   await expect(page).toHaveURL(SAVED_PRODUCT_URL_PATTERN, { timeout: 15_000 });
-  await expect(page.getByRole('button', { name: componentName, exact: true })).toBeVisible({
+  await expect(page.getByRole('link', { name: componentName, exact: true })).toBeVisible({
     timeout: 15_000,
   });
 

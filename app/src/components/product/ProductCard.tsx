@@ -134,7 +134,8 @@ function ProductCardComponent({ product, enabled = true, showOwner = false }: Pr
           onPress={enabled ? navigateToProduct : undefined}
           {...tintHandlers}
           disabled={!enabled}
-          accessibilityRole={enabled ? 'button' : undefined}
+          // Opens the product: a link, not an action on this page.
+          accessibilityRole={enabled ? 'link' : undefined}
           className="flex-row items-center rounded-md"
         >
           <View className="mr-4">

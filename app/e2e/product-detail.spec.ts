@@ -425,7 +425,7 @@ test.describe('Product detail: components', () => {
     // holds the link rather than the name merely appearing somewhere.
     // exact: the row sits beside a "Show components of <name>" expander, whose
     // accessible name also contains the component's.
-    await expect(page.getByRole('button', { name: componentName, exact: true })).toBeVisible({
+    await expect(page.getByRole('link', { name: componentName, exact: true })).toBeVisible({
       timeout: 15_000,
     });
   });

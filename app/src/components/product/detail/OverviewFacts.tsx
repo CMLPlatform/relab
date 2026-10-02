@@ -19,7 +19,8 @@ function ViewProductsOfTypeLink({ typeName, onPress }: { typeName: string; onPre
       className={PRESS_TINT}
       style={styles.link}
       onPress={onPress}
-      accessibilityRole="button"
+      // Navigates to the filtered list: a link, not an action on this page.
+      accessibilityRole="link"
       accessibilityLabel={`View all products of type ${typeName}`}
     >
       <AppText variant="caption" className="text-right" style={{ color: colors.primary }}>

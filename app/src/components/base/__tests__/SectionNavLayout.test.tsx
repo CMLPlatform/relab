@@ -40,7 +40,7 @@ test('marks the active item for accessibility', async () => {
     </SectionNavLayout>,
   );
   expect(screen.getByText('Components').parent).toBeTruthy();
-  expect(screen.getByLabelText('Components').props['aria-current']).toBe('page');
+  expect(screen.getByLabelText('Components').props['aria-current']).toBe('location');
   expect(screen.getByLabelText('Overview').props['aria-current']).toBeUndefined();
   // aria-current has no native mapping; selected carries the cue to screen readers.
   expect(screen.getByRole('button', { name: 'Components', selected: true })).toBeOnTheScreen();

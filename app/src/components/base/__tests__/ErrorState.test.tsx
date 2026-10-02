@@ -36,6 +36,11 @@ test('compact: an inline row with a named retry, announced as it appears', async
     />,
   );
   expect(screen.getByTestId('error-state').props.accessibilityLiveRegion).toBe('polite');
+  // A hairline-top row, not a nested card: no fill, no radius.
+  const classes: string[] = screen.getByTestId('error-state').props.className.split(' ');
+  expect(classes).toEqual(expect.arrayContaining(['border-t', 'border-border']));
+  expect(classes).not.toContain('bg-card');
+  expect(classes.some((c) => c.startsWith('rounded'))).toBe(false);
   expect(screen.getByText("Couldn't load components")).toBeOnTheScreen();
   await fireEvent.press(screen.getByLabelText('Retry loading components'));
   expect(onRetry).toHaveBeenCalled();

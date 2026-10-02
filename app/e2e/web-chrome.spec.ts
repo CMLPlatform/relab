@@ -77,7 +77,7 @@ test.describe('Top nav (>=lg)', () => {
 
     // HeaderRightPill is rendered once by TopNav and once (conditionally) by
     // the products stack header; hideForTopNav should keep exactly one alive.
-    await expect(page.getByRole('button', { name: HEADER_PILL_NAME })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: HEADER_PILL_NAME })).toHaveCount(1);
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
   });
 });
@@ -92,6 +92,6 @@ test.describe('Top nav (phone)', () => {
     // The stack header still shows the wordmark and the header pill, exactly
     // once, from the stack header alone (TopNav renders null below lg).
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
-    await expect(page.getByRole('button', { name: HEADER_PILL_NAME })).toHaveCount(1);
+    await expect(page.getByRole('link', { name: HEADER_PILL_NAME })).toHaveCount(1);
   });
 });

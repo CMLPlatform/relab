@@ -14,7 +14,7 @@ import { getStatusTone } from '@/theme/color';
 import { cn } from '@/utils/cn';
 import { AppText } from './AppText';
 import { Icon } from './Icon';
-import { PRESS_FADE } from './pressFeedback';
+import { PRESS_FADE, type PressState } from './pressFeedback';
 
 interface Props extends PressableProps {
   children?: string;
@@ -52,7 +52,9 @@ export const Chip = ({
     accessibilityLabel ??
     (title ? `${title}: ${children ?? ''}${error ? ', required' : ''}` : undefined);
 
-  const renderContent = (pressed: boolean) => (
+  // `active` is pressed or (web) hovered: the filled value segment takes
+  // primary-strong for both (Primary-Strong Rule).
+  const renderContent = (active: boolean) => (
     <>
       {title ? (
         <AppText
@@ -68,7 +70,7 @@ export const Chip = ({
         style={{
           backgroundColor: error
             ? getStatusTone(danger)
-            : pressed
+            : active
               ? theme.colors.primaryStrong
               : theme.colors.primary,
           borderColor: error ? danger : undefined,
@@ -99,7 +101,7 @@ export const Chip = ({
       accessibilityState={accessibilityState ?? (disabled ? { disabled } : undefined)}
       {...props}
     >
-      {({ pressed }) => renderContent(pressed)}
+      {({ pressed, hovered }: PressState) => renderContent(pressed || Boolean(hovered))}
     </Pressable>
   );
 };

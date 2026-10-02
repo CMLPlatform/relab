@@ -112,7 +112,7 @@ export function TopNav() {
     >
       <Pressable
         onPress={goToProducts}
-        accessibilityRole="button"
+        accessibilityRole="link"
         accessibilityLabel="Relab, go to products"
         className={cn(
           'min-h-11 justify-center rounded-md',

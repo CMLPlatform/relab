@@ -75,7 +75,8 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
     <View>
       <View className="flex-row items-center">
         <Pressable
-          accessibilityRole="button"
+          // Opens the component: a link, not an action on this page.
+          accessibilityRole="link"
           disabled={!enabled}
           onPress={navigate}
           className={cn(

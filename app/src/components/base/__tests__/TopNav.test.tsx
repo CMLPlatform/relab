@@ -1,6 +1,7 @@
 import { act, fireEvent, render, renderHook, screen } from '@testing-library/react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { TopNav } from '@/components/base/TopNav';
+import { useAuth } from '@/context/auth';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { closeShortcutsOverlay, useShortcutsOverlayOpen } from '@/hooks/useShortcutsOverlay';
 import { mockPlatform, restorePlatform } from '@/test-utils/index';
@@ -58,6 +59,22 @@ test('sets destination labels in untracked body type', async () => {
   const label = screen.getByText('Products');
   expect(label).toHaveStyle({ fontSize: 16 });
   expect(label).not.toHaveStyle({ letterSpacing: expect.any(Number) });
+});
+
+test('marks the account pill as the current page on /account', async () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  (usePathname as jest.Mock).mockReturnValue('/account');
+  (useAuth as jest.Mock).mockReturnValueOnce({ user: { username: 'tester' } });
+  await render(<TopNav />);
+  const pill = screen.getByRole('link', { name: 'Account: tester' });
+  expect(pill.props['aria-current']).toBe('page');
+});
+
+test('the sign-in pill and the brand are links, not buttons', async () => {
+  (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
+  await render(<TopNav />);
+  expect(screen.getByRole('link', { name: 'Sign in' }).props['aria-current']).toBeUndefined();
+  expect(screen.getByRole('link', { name: 'Relab, go to products' })).toBeOnTheScreen();
 });
 
 test('marks the active destination from the pathname', async () => {

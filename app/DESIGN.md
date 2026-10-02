@@ -397,7 +397,8 @@ with an ease-out, exits are plain fades shorter than their entrance, and every a
 ### Errors and loading
 
 - **Errors:** one idiom, `ErrorState`. Full-height when the whole screen failed; `compact` for an
-  inline failure inside loaded content (a list header, an expanded row). The title names the
+  inline failure inside loaded content (a list header, an expanded row), drawn as a hairline-top
+  row with no fill or radius so it never nests a card in a card. The title names the
   problem, the message names the recovery (`getErrorMessage()` maps the failure; its fallback
   says what to do), and the one action retries.
 - **Loading:** a skeleton where the content's shape is known (lists, detail screens); a spinner

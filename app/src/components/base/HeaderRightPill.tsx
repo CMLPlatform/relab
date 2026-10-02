@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable } from 'react-native';
 import { MIN_TAP_TARGET, WEB_FOCUS_RING } from '@/constants';
@@ -21,11 +21,14 @@ function Pill({
   label,
   accessibilityLabel,
   withIcon,
+  current = false,
   onPress,
 }: {
   label: string;
   accessibilityLabel: string;
   withIcon: boolean;
+  /** The pill's destination is the screen on show (TopNav at lg, on /account). */
+  current?: boolean;
   onPress: () => void;
 }) {
   const theme = useAppTheme();
@@ -44,8 +47,11 @@ function Pill({
       style={pillStyle}
       // ~32px pill + 6px hitSlop/side = 44px tap target (a11y floor).
       hitSlop={6}
-      accessibilityRole="button"
+      // Goes to the account or sign-in screen: a link, like TopNav's destinations.
+      accessibilityRole="link"
       accessibilityLabel={accessibilityLabel}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-current={current ? 'page' : undefined}
     >
       {(state: PressState) => {
         const ink = state.pressed || state.hovered ? theme.colors.onPrimary : theme.colors.primary;
@@ -70,6 +76,7 @@ function Pill({
 export function HeaderRightPill() {
   const { user } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const needsOnboarding = user ? needsUsernameOnboarding(user) : false;
 
   const goToAccount = useCallback(() => {
@@ -86,6 +93,7 @@ export function HeaderRightPill() {
         label={username}
         accessibilityLabel={needsOnboarding ? 'Complete profile' : `Account: ${username}`}
         withIcon
+        current={!needsOnboarding && pathname === '/account'}
         onPress={goToAccount}
       />
     );

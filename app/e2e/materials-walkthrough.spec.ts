@@ -76,7 +76,7 @@ test.describe('Product → component → material → evidence', () => {
     // is clicked as the button it is, without `force`: the lazy child fetch
     // reflows it, and skipping the stability wait clicks into the gap.
     await page
-      .getByRole('button', { name: new RegExp(`^${SEEDED_SUBASSEMBLY}`) })
+      .getByRole('link', { name: new RegExp(`^${SEEDED_SUBASSEMBLY}`) })
       .first()
       .click();
     await expect(page).toHaveURL(COMPONENT_DETAIL_URL_PATTERN, { timeout: 15_000 });

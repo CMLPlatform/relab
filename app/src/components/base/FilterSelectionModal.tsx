@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { useModalPresence } from '@/hooks/useModalPresence';
+import { swallowKey, useModalPresence } from '@/hooks/useModalPresence';
 import { useReturnFocus } from '@/hooks/useReturnFocus';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { heading } from '@/utils/a11y';
@@ -96,7 +96,13 @@ function FilterModalShell({
       onRequestClose={onDismiss}
       aria-label={title}
     >
-      <Animated.View style={[styles.fill, fadeStyle]} pointerEvents={visible ? 'auto' : 'none'}>
+      <Animated.View
+        style={[styles.fill, fadeStyle]}
+        pointerEvents={visible ? 'auto' : 'none'}
+        // Focus stays on the last chip through the exit; Enter there must not toggle it again.
+        // Spread: RN's TypeScript types omit onKeyDownCapture; RN-Web and native both take it.
+        {...{ onKeyDownCapture: visible ? undefined : swallowKey }}
+      >
         {/* Scrim and card wrapper, neither of them a control: see AppDialog. */}
         <Pressable
           accessible={false}
@@ -112,7 +118,8 @@ function FilterModalShell({
             className="w-full"
             style={styles.dialogWrapper}
           >
-            <OverlaySurface className="p-4" tone="surface">
+            {/* Floats over the page, so it takes the one overlay shadow, like AppDialog. */}
+            <OverlaySurface className="p-4" style={theme.tokens.elevation.overlay} tone="surface">
               <AppText variant="title" {...heading(2)} className="mb-2 font-semibold">
                 {title}
               </AppText>

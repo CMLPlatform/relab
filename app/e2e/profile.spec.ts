@@ -43,7 +43,7 @@ test.describe('Profile: access', () => {
     await expect(page).toHaveURL(ONBOARDING_OR_PRODUCTS_URL_PATTERN, { timeout: 30_000 });
     await finishOnboardingIfVisible(page);
     // Once authenticated, the header pill switches from "Sign in" to the username
-    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).not.toBeVisible({
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).not.toBeVisible({
       timeout: 5_000,
     });
     // The header also shows the email address as part of the identity in the profile page,
@@ -154,7 +154,7 @@ test.describe('Profile: logout dialog', () => {
     await page.getByRole('button', { name: 'Sign out', exact: true }).last().click();
     await expect(page).toHaveURL(PRODUCTS_URL_PATTERN, { timeout: 15_000 });
     // The header should now show "Sign in" instead of the username
-    await expect(page.getByRole('button', { name: 'Sign in', exact: true })).toBeVisible({
+    await expect(page.getByRole('link', { name: 'Sign in', exact: true })).toBeVisible({
       timeout: 5_000,
     });
   });

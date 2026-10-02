@@ -14,7 +14,7 @@ type Props = {
   /** Names the action when the label alone is ambiguous on the page ("Retry loading products"). */
   actionAccessibilityLabel?: string;
   iconColor?: string;
-  /** Inline row inside a list or section, announced as it appears, instead of filling the screen. */
+  /** Hairline-top row inside a list or section, announced as it appears, instead of filling the screen. */
   compact?: boolean;
 };
 
@@ -39,7 +39,9 @@ export function ErrorState({
       <View
         testID="error-state"
         accessibilityLiveRegion="polite"
-        className="flex-row flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3"
+        // A hairline-top row, not a card: it sits inside cards and expanded rows,
+        // and a card in a card is a defect (DESIGN.md Layout).
+        className="flex-row flex-wrap items-center gap-3 border-t border-border pt-3"
       >
         <IosAnnouncement text={title ? `${title}. ${message}` : message} />
         <Icon name={icon} size="lg" color={iconColor ?? theme.colors.error} />
