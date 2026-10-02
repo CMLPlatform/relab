@@ -316,6 +316,9 @@ change it there first.*
   hairline border and muted ink at 60% (`text-muted-foreground/60`); hover and pressed repeat
   it. Same size and place, plainly inert in both schemes, never an opacity fade and never a
   solid grey that reads as an enabled neutral button.
+
+### Chips
+
 - **Edit-mode controls only.** A chip is a button that edits its value. Read-only values (view-mode
   brand, model, amount and type) are Spec Row facts, never a chip with nothing to do on press: a
   solid-blue segment reads as a button.
