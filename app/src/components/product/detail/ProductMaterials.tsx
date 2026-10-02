@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
-import { ROW_ENTER, ROW_EXIT, ROW_MOVE } from '@/components/base/rowMotion';
+import { FADE_ENTER, FADE_EXIT, ROW_MOVE } from '@/components/base/motion';
 import { Separator } from '@/components/base/ui/separator';
 import LocalizedFloatInput from '@/components/product/LocalizedFloatInput';
 import type { Product, ProductMaterial } from '@/types/Product';
@@ -51,7 +51,7 @@ export default function ProductMaterials({ product }: Props) {
 
 function MaterialRow({ material }: { material: ProductMaterial }) {
   return (
-    <Animated.View entering={ROW_ENTER} exiting={ROW_EXIT} layout={ROW_MOVE}>
+    <Animated.View entering={FADE_ENTER} exiting={FADE_EXIT} layout={ROW_MOVE}>
       <Separator />
       {/* The house spec row: name as the label, the recorded quantity as data. */}
       <LocalizedFloatInput

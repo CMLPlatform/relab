@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, type StyleProp, View, type ViewStyle } fr
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { PressOverlay } from '@/components/base/PressOverlay';
 import { type PressState, pressFill } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
@@ -295,7 +296,7 @@ const GalleryImageItem = memo(function GalleryImageItem({
       accessibilityLabel={`View ${altText}`}
     >
       {/* The photo hides a background fill, so the press tint lies over it. */}
-      {({ pressed, hovered }: PressState) => (
+      {(state: PressState) => (
         <>
           {uri ? (
             // Decorative: the Pressable carries the label. expo-image drops an empty
@@ -317,9 +318,7 @@ const GalleryImageItem = memo(function GalleryImageItem({
           ) : (
             <ImagePlaceholder width={width} height={IMAGE_HEIGHT} borderRadius={0} />
           )}
-          {pressed || hovered ? (
-            <View aria-hidden pointerEvents="none" className="absolute inset-0 bg-primary/12" />
-          ) : null}
+          <PressOverlay {...state} />
         </>
       )}
     </Pressable>

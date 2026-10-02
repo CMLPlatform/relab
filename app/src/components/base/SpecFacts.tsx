@@ -1,11 +1,10 @@
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, LayoutAnimationConfig, ReduceMotion } from 'react-native-reanimated';
+import Animated, { LayoutAnimationConfig } from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
+import { FADE_ENTER } from '@/components/base/motion';
 import { Skeleton } from '@/components/base/Skeleton';
 import { radius } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
-
-const VALUE_ENTER = FadeIn.duration(200).reduceMotion(ReduceMotion.System);
 
 /** `loading` keeps the label and pulses the value until it resolves. */
 export type SpecFact = { label: string; value: string; loading?: boolean };
@@ -46,7 +45,7 @@ export function SpecFacts({ facts }: { facts: SpecFact[] }) {
                 style={[styles.valueSkeleton, { backgroundColor: colors.muted }]}
               />
             ) : (
-              <Animated.View entering={VALUE_ENTER}>
+              <Animated.View entering={FADE_ENTER}>
                 <AppText variant="data">{value}</AppText>
               </Animated.View>
             )}

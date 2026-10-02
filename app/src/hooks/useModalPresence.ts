@@ -8,13 +8,14 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { ENTER_MS, EXIT_MS } from '@/components/base/motion';
 
 export type PresenceTiming = { open: WithTimingConfig; close: WithTimingConfig };
 
-/** Overlays fade in over 200ms and out over 150ms: exits are quicker than entrances. */
+/** Overlays fade in and out at the shared enter and exit timings. */
 const OVERLAY_TIMING: PresenceTiming = {
-  open: { duration: 200, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.System },
-  close: { duration: 150, easing: Easing.in(Easing.quad), reduceMotion: ReduceMotion.System },
+  open: { duration: ENTER_MS, easing: Easing.out(Easing.quad), reduceMotion: ReduceMotion.System },
+  close: { duration: EXIT_MS, easing: Easing.in(Easing.quad), reduceMotion: ReduceMotion.System },
 };
 
 /**

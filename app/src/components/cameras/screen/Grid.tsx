@@ -10,6 +10,7 @@ import { AppText } from '@/components/base/AppText';
 import { Icon } from '@/components/base/Icon';
 import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { MutedText } from '@/components/base/MutedText';
+import { PressOverlay } from '@/components/base/PressOverlay';
 import type { PressState } from '@/components/base/pressFeedback';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { CameraCard } from '@/components/cameras/CameraCard';
@@ -189,16 +190,10 @@ const CameraGridCell = memo(function CameraGridCell({
         style={cellStyle}
       >
         {/* The card's own fill hides a background, so the press tint lies over it. */}
-        {({ pressed, hovered }: PressState) => (
+        {(state: PressState) => (
           <>
             <CameraCard camera={camera} effectiveConnection={effectiveConnection} />
-            {pressed || hovered ? (
-              <View
-                aria-hidden
-                pointerEvents="none"
-                className="absolute inset-0 rounded-lg bg-primary/12"
-              />
-            ) : null}
+            <PressOverlay {...state} className="rounded-lg" />
           </>
         )}
       </Pressable>

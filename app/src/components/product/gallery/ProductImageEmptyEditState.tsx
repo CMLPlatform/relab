@@ -2,6 +2,7 @@ import type { RefObject } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { AppText } from '@/components/base/AppText';
 import { Icon, type IconName } from '@/components/base/Icon';
+import { PressOverlay } from '@/components/base/PressOverlay';
 import type { PressState } from '@/components/base/pressFeedback';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
@@ -76,7 +77,7 @@ export function ProductImageEmptyEditState({
               <AppText variant="caption" className="text-center text-muted-foreground">
                 {hasCamerasConfigured ? 'RPi Camera' : 'Connect camera'}
               </AppText>
-              <PressOverlay {...state} />
+              <PressOverlay {...state} className="rounded-md" />
             </>
           )}
         </Pressable>
@@ -112,18 +113,9 @@ function EmptyActionCard({
           <AppText variant="caption" className="text-center text-muted-foreground">
             {label}
           </AppText>
-          <PressOverlay {...state} />
+          <PressOverlay {...state} className="rounded-md" />
         </>
       )}
     </Pressable>
-  );
-}
-
-// The One Tint laid over the sunken fill, as on a gallery photo: swapping the fill
-// for the tint made the card lighter on press, not darker, and nearly invisible.
-function PressOverlay({ pressed, hovered }: PressState) {
-  if (!(pressed || hovered)) return null;
-  return (
-    <View aria-hidden pointerEvents="none" className="absolute inset-0 rounded-md bg-primary/12" />
   );
 }

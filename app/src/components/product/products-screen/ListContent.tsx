@@ -2,7 +2,6 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type PropsWithChildren, useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   type DimensionValue,
   FlatList,
   type FlatListProps,
@@ -10,13 +9,13 @@ import {
   RefreshControl,
   View,
 } from 'react-native';
-import Animated, { FadeIn, ReduceMotion } from 'react-native-reanimated';
-import { AppButton } from '@/components/base/AppButton';
+import Animated from 'react-native-reanimated';
 import { AppText } from '@/components/base/AppText';
 import { Card } from '@/components/base/Card';
-import { IosAnnouncement } from '@/components/base/IosAnnouncement';
+import { FADE_ENTER } from '@/components/base/motion';
 import { StaticBackground } from '@/components/base/StaticBackground';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
+import { LoadMoreFooter } from '@/components/product/LoadMoreFooter';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import { PRODUCT_GRID_WINDOWING } from '@/features/products/productGridColumns';
@@ -54,40 +53,6 @@ function useProductsListBottomInset(): number {
   return (
     PRODUCTS_LIST_FAB_CLEARANCE +
     (Platform.OS === 'web' && bottomNavVisible ? BOTTOM_NAV_CLEARANCE : 0)
-  );
-}
-
-function ProductsListFooter({
-  hasNextPage,
-  isFetchingNextPage,
-  productCount,
-  total,
-  onLoadMore,
-}: {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  productCount: number;
-  total: number;
-  onLoadMore: () => void;
-}) {
-  if (productCount === 0) return null;
-
-  return (
-    // Live region: "Load more" keeps focus, so appended cards are otherwise silent.
-    <View className="items-center gap-2 py-4" accessibilityLiveRegion="polite">
-      <IosAnnouncement text={`${productCount} of ${total} products`} skipInitial />
-      {isFetchingNextPage ? (
-        <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
-      ) : hasNextPage ? (
-        <AppButton variant="outline" onPress={onLoadMore} accessibilityLabel="Load more products">
-          Load more
-        </AppButton>
-      ) : null}
-      <AppText className="text-muted-foreground">
-        <AppText variant="data">{productCount}</AppText> of{' '}
-        <AppText variant="data">{total}</AppText> products
-      </AppText>
-    </View>
   );
 }
 
@@ -166,11 +131,11 @@ export function ProductsListContent({
 
   const listFooter = useMemo(
     () => (
-      <ProductsListFooter
+      <LoadMoreFooter
+        count={products.length}
+        total={total}
         hasNextPage={hasNextPage}
         isFetchingNextPage={isFetchingNextPage}
-        productCount={products.length}
-        total={total}
         onLoadMore={onFetchNextPage}
       />
     ),
@@ -198,7 +163,7 @@ export function ProductsListContent({
     <Animated.View
       testID="products-list-fade"
       style={styles.listFadeWrapper}
-      entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
+      entering={FADE_ENTER}
       key={numColumns}
     >
       <FlatList

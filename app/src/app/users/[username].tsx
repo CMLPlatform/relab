@@ -2,7 +2,6 @@ import { Stack } from 'expo-router';
 import Head from 'expo-router/head';
 import { type ReactNode, useCallback } from 'react';
 import {
-  ActivityIndicator,
   type DimensionValue,
   FlatList,
   Platform,
@@ -11,13 +10,12 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
-import { IosAnnouncement } from '@/components/base/IosAnnouncement';
 import { PageContainer } from '@/components/base/PageContainer';
 import { SpecFacts } from '@/components/base/SpecFacts';
+import { LoadMoreFooter } from '@/components/product/LoadMoreFooter';
 import ProductCard from '@/components/product/ProductCard';
 import ProductCardSkeleton from '@/components/product/ProductCardSkeleton';
 import { PRODUCT_GRID_WINDOWING, productGridColumns } from '@/features/products/productGridColumns';
@@ -136,25 +134,15 @@ function ProfileProductList({ username, header }: { username: string; header: Re
     </>
   );
 
-  // Same footer as the products list: "Load more" keeps focus, so the appended count is
-  // the only cue that new cards arrived.
-  const listFooter =
-    items.length > 0 ? (
-      <View className="items-center gap-2 py-4" accessibilityLiveRegion="polite">
-        <IosAnnouncement text={`${items.length} of ${total} products`} skipInitial />
-        {isFetchingNextPage ? (
-          <ActivityIndicator size="small" accessibilityLabel="Loading more products" />
-        ) : hasNextPage ? (
-          <AppButton variant="outline" onPress={loadMore} accessibilityLabel="Load more products">
-            Load more
-          </AppButton>
-        ) : null}
-        <AppText className="text-muted-foreground">
-          <AppText variant="data">{items.length}</AppText> of{' '}
-          <AppText variant="data">{total}</AppText> products
-        </AppText>
-      </View>
-    ) : null;
+  const listFooter = (
+    <LoadMoreFooter
+      count={items.length}
+      total={total}
+      hasNextPage={hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
+      onLoadMore={loadMore}
+    />
+  );
 
   return (
     <FlatList

@@ -1,9 +1,11 @@
 import { usePathname } from 'expo-router';
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from '@/components/base/AppText';
+import { ENTER_MS, FADE_EXIT } from '@/components/base/motion';
+import { PressOverlay } from '@/components/base/PressOverlay';
 import type { PressState } from '@/components/base/pressFeedback';
 import { BOTTOM_NAV_CLEARANCE, useBottomNavVisible } from '@/components/base/useBottomNav';
 import { useStreamSession } from '@/context/streamSession';
@@ -88,8 +90,8 @@ export function ActiveStreamBanner() {
         collapsable={false}
       >
         <Animated.View
-          entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
-          exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
+          entering={FadeInDown.duration(ENTER_MS).reduceMotion(ReduceMotion.System)}
+          exiting={FADE_EXIT}
         >
           <Pressable
             ref={bannerRef}
@@ -106,7 +108,7 @@ export function ActiveStreamBanner() {
             accessibilityRole="button"
             accessibilityLabel="Manage live stream"
           >
-            {({ pressed, hovered }: PressState) => (
+            {(state: PressState) => (
               <>
                 <View
                   className="h-2 w-2 rounded-full"
@@ -127,14 +129,11 @@ export function ActiveStreamBanner() {
                     ground, the One Tint's recipe in the banner's own polarity. Prussian
                     blue at 12% vanishes on the dark light-scheme ground, and the banner
                     is not a filled blue control, so primary-strong does not apply. */}
-                {pressed || hovered ? (
-                  <View
-                    aria-hidden
-                    pointerEvents="none"
-                    className="absolute inset-0 rounded-xl"
-                    style={{ backgroundColor: alpha(inverse.foreground, 0.12) }}
-                  />
-                ) : null}
+                <PressOverlay
+                  {...state}
+                  className="rounded-xl"
+                  color={alpha(inverse.foreground, 0.12)}
+                />
               </>
             )}
           </Pressable>

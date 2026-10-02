@@ -1,8 +1,10 @@
 import { Image } from 'expo-image';
 import { memo, useCallback, useMemo } from 'react';
 import { Platform, Pressable, View } from 'react-native';
-import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
+import { ROW_MOVE } from '@/components/base/motion';
+import { PressOverlay } from '@/components/base/PressOverlay';
 import type { PressState } from '@/components/base/pressFeedback';
 import { IMAGE_FADE_MS } from '@/constants';
 import { useAppTheme } from '@/theme/appThemeContext';
@@ -82,7 +84,7 @@ export function ProductImageThumbnails({
           showsHorizontalScrollIndicator={false}
           keyExtractor={galleryItemKeyExtractor}
           renderItem={renderItem}
-          itemLayoutAnimation={LinearTransition.duration(200).reduceMotion(ReduceMotion.System)}
+          itemLayoutAnimation={ROW_MOVE}
         />
       )}
     </View>
@@ -128,7 +130,7 @@ const ThumbnailItem = memo(function ThumbnailItem({
       className="mr-2 overflow-hidden rounded-md border-2"
       style={borderStyle}
     >
-      {({ pressed, hovered }: PressState) => (
+      {(state: PressState) => (
         <>
           {uri ? (
             // Decorative: the Pressable carries the label. expo-image drops an empty
@@ -145,9 +147,7 @@ const ThumbnailItem = memo(function ThumbnailItem({
           ) : (
             <ImagePlaceholder width={60} height={60} borderRadius={0} />
           )}
-          {pressed || hovered ? (
-            <View aria-hidden pointerEvents="none" className="absolute inset-0 bg-primary/12" />
-          ) : null}
+          <PressOverlay {...state} />
         </>
       )}
     </Pressable>

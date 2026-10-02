@@ -8,14 +8,13 @@ import type { PressableStateCallbackType } from 'react-native';
  */
 // NOTE: not gated on Platform.OS: native has no hover state and ignores the
 // hover and transition utilities, and one string keeps every caller the same.
-export const PRESS_TINT =
-  'active:bg-primary/12 hover:bg-primary/12 transition-colors duration-120 motion-reduce:transition-none';
+export const PRESS_TINT = 'active:bg-primary/12 hover:bg-primary/12 transition-colors duration-120';
 
 /**
  * The 120ms colour fade alone, for a Pressable whose fill comes from `pressFill()`
  * in a function `style`; Uniwind keeps both. Web only in effect.
  */
-export const PRESS_FADE = 'transition-colors duration-120 motion-reduce:transition-none';
+export const PRESS_FADE = 'transition-colors duration-120';
 
 /** Pressable state; `hovered` is only ever true on web. */
 export type PressState = Pick<PressableStateCallbackType, 'pressed'> & { hovered?: boolean };
