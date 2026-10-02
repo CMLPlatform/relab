@@ -20,7 +20,7 @@ import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAdd
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { MONO_FONT_FAMILY } from '@/theme/tokens';
-import { heading, requiredField } from '@/utils/a11y';
+import { heading } from '@/utils/a11y';
 
 function PairingSuccessDialog({
   visible,
@@ -114,34 +114,25 @@ export default function AddCameraScreen() {
 
             <Separator className="my-1" />
 
-            <AppText variant="label" className="text-muted-foreground -mb-1">
-              Camera name{' '}
-              <AppText variant="label" className="text-muted-foreground">
-                (required)
-              </AppText>
-            </AppText>
             <ControlledTextField
               control={control}
               name="name"
+              label="Camera name"
+              required
               maxLength={100}
               autoCapitalize="words"
               placeholder="Camera name"
-              accessibilityLabel="Camera name"
-              {...requiredField()}
               className="mb-1"
             />
 
-            <AppText variant="label" className="text-muted-foreground -mb-1">
-              Description (optional)
-            </AppText>
             <ControlledTextField
               control={control}
               name="description"
+              label="Description (optional)"
               maxLength={500}
               multiline
               numberOfLines={2}
               placeholder="Description (optional)"
-              accessibilityLabel="Description (optional)"
               className="mb-1"
             />
 
