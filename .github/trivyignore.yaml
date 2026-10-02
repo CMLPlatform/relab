@@ -4,16 +4,17 @@
 # explicitly. Every entry must include an expiry and a clear statement.
 vulnerabilities:
   # The caddy:2-alpine binary is built against Go 1.26.3; these need 1.26.4+,
-  # which upstream had not shipped when reviewed on 2026-07-13. Re-check
+  # which upstream had not shipped when reviewed on 2026-07-13, nor when re-checked
+  # on 2026-10-02 (caddy v2.11.4, the pinned digest is still the latest). Re-check
   # whenever the caddy:2-alpine digest is bumped.
   - id: CVE-2026-27145
-    expired_at: 2026-10-01
+    expired_at: 2026-11-01
     statement: Go stdlib DoS; fixed in Go 1.26.4, no caddy release built with it yet.
   - id: CVE-2026-39822
-    expired_at: 2026-10-01
+    expired_at: 2026-11-01
     statement: Go os.Root symlink traversal; caddy serves a fixed static /srv root, no user-controlled paths.
   - id: CVE-2026-42504
-    expired_at: 2026-10-01
+    expired_at: 2026-11-01
     statement: Go MIME header DoS; fixed in Go 1.26.4, no caddy release built with it yet.
 
   # The same caddy:2-alpine binary, re-scanned on 2026-09-01: still Go 1.26.3 with
