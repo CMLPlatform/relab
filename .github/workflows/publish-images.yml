@@ -144,12 +144,15 @@ jobs:
 
       # Build provenance for the pushed digest: what `just images-verify` checks
       # before a host pulls the tag (the workflow, repository and ref that built it).
+      # No storage record: that registers the image with the organization's linked
+      # artifacts, which nothing here reads and which needs artifact-metadata: write.
       - name: Attest image provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-name: ${{ steps.meta.outputs.name }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+          create-storage-record: false
 
       - name: Attest image SBOM
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
@@ -158,6 +161,7 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           sbom-path: ${{ steps.meta.outputs.sbom }}
           push-to-registry: true
+          create-storage-record: false
 
       - name: Keep the SBOM for the release
         if: inputs.tag_name != ''
