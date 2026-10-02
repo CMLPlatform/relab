@@ -169,6 +169,7 @@ test.describe('Product detail: phone chunking', () => {
     const all = await chips.all();
     await all[0].focus();
     for (const [index, chip] of all.entries()) {
+      // biome-ignore lint/performance/noAwaitInLoops: sequential: each Tab must land before the next is pressed.
       if (index > 0) await page.keyboard.press('Tab');
       await expect(chip).toBeFocused();
       await expect

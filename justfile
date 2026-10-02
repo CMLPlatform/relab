@@ -18,6 +18,9 @@ cloudflare_zone_dir := "infra/cloudflare-zone"
 cloudflare_plan_dir := justfile_directory() / ".tofu-plans"
 cloudflare_plan_max_age_minutes := "20"
 
+# Editors activate backend/.venv in their terminals; root uv commands use the root .venv.
+unexport VIRTUAL_ENV
+
 # Subrepos that mirror the root quality / test / audit / clean recipes.
 subrepos := "backend docs www app"
 # Subset of subrepos that implement test-unit / test-integration.
