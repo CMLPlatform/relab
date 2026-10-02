@@ -217,6 +217,25 @@ async def test_update_product_without_changes_ignores_the_version(
     assert response.json()["version"] == 1
 
 
+async def test_update_product_without_changes_under_autoflush(
+    api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
+) -> None:
+    """A no-op PATCH (a photo-only Save) still answers with the product under the app's autoflush.
+
+    The app's sessions autoflush, the test session does not. Flushing the unchanged row
+    expires its first-image column, and reading that back while building the response
+    would be lazy IO outside the async context.
+    """
+    db_session.sync_session.autoflush = True
+
+    response = await api_client_superuser.patch(
+        f"/v1/products/{setup_product.id}", json={"name": setup_product.name}, headers=IF_MATCH_FRESH
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["version"] == 1
+
+
 async def test_update_product_compares_against_the_locked_row(
     api_client_superuser: AsyncClient, db_session: AsyncSession, setup_product: Product
 ) -> None:
