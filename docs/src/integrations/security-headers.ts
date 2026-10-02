@@ -1,4 +1,5 @@
-import { writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import type { AstroIntegration } from 'astro';
 
 /**
@@ -12,26 +13,27 @@ import type { AstroIntegration } from 'astro';
  * included) with 405. A Worker script added later must keep that refusal.
  *
  * `apiOrigin` lets the API reference pages fetch the live OpenAPI document.
+ * `scriptHashes` allow the inline scripts the build emitted, Starlight's among them.
  */
-export function headersFile(apiOrigin: string | null): string {
+export function headersFile(apiOrigin: string | null, scriptHashes: string[]): string {
   const api = apiOrigin ? ` ${apiOrigin}` : '';
-  // Starlight still emits inline page styles and scripts; the report-only policy
-  // tracks the stricter target before it is enforced. Any HTTPS page may embed
-  // the docs (in slides, say): they have no forms or sessions to clickjack.
-  const policy = (script: string, style: string) =>
-    [
-      "default-src 'self'",
-      `script-src ${script}`,
-      `style-src ${style}`,
-      "img-src 'self' data:",
-      `connect-src 'self'${api}`,
-      "font-src 'self' data:",
-      "frame-src 'none'",
-      'frame-ancestors https:',
-      "object-src 'none'",
-      "base-uri 'none'",
-      "form-action 'self'",
-    ].join('; ');
+  const hashes = scriptHashes.map((hash) => ` '${hash}'`).join('');
+  // Starlight still sets inline styles, so style-src keeps 'unsafe-inline'. Any
+  // HTTPS page may embed the docs (in slides, say): they have no forms or
+  // sessions to clickjack.
+  const policy = [
+    "default-src 'self'",
+    `script-src 'self'${hashes}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    `connect-src 'self'${api}`,
+    "font-src 'self' data:",
+    "frame-src 'none'",
+    'frame-ancestors https:',
+    "object-src 'none'",
+    "base-uri 'none'",
+    "form-action 'self'",
+  ].join('; ');
 
   return [
     '/*',
@@ -40,8 +42,7 @@ export function headersFile(apiOrigin: string | null): string {
     '  Referrer-Policy: no-referrer',
     '  Cross-Origin-Opener-Policy: same-origin',
     '  Cross-Origin-Resource-Policy: same-site',
-    `  Content-Security-Policy: ${policy("'self' 'unsafe-inline'", "'self' 'unsafe-inline'")}`,
-    `  Content-Security-Policy-Report-Only: ${policy("'self'", "'self'")}`,
+    `  Content-Security-Policy: ${policy}`,
     '',
     // Content-hashed: a changed file is a new URL.
     '/_astro/*',
@@ -62,6 +63,19 @@ export function headersFile(apiOrigin: string | null): string {
   ].join('\n');
 }
 
+const INLINE_SCRIPT = /<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/g;
+
+/** The sorted, distinct CSP hashes of every inline script in the given HTML pages. */
+export function inlineScriptHashes(pages: string[]): string[] {
+  const hashes = new Set<string>();
+  for (const html of pages) {
+    for (const [, body] of html.matchAll(INLINE_SCRIPT)) {
+      if (body) hashes.add(`sha256-${createHash('sha256').update(body).digest('base64')}`);
+    }
+  }
+  return [...hashes].sort();
+}
+
 /** Write `dist/_headers` after the build; `apiUrl` is the build's PUBLIC_BACKEND_API_URL. */
 export function securityHeaders(apiUrl: string | undefined): AstroIntegration {
   const origin = apiUrl?.trim() ? new URL(apiUrl.trim()).origin : null;
@@ -69,7 +83,11 @@ export function securityHeaders(apiUrl: string | undefined): AstroIntegration {
     name: 'relab:security-headers',
     hooks: {
       'astro:build:done': async ({ dir }) => {
-        await writeFile(new URL('_headers', dir), headersFile(origin));
+        const files = await readdir(dir, { recursive: true });
+        const pages = await Promise.all(
+          files.filter((f) => f.endsWith('.html')).map((f) => readFile(new URL(f, dir), 'utf8')),
+        );
+        await writeFile(new URL('_headers', dir), headersFile(origin, inlineScriptHashes(pages)));
       },
     },
   };

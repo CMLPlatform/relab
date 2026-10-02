@@ -102,7 +102,7 @@ Browser code is bundled and served first-party. Biome and CI checks block remote
 
 The one exception is product video embedding from `https://www.youtube-nocookie.com`, constrained by CSP and iframe/WebView controls. Any new third-party runtime script must be reviewed, documented, CSP-allowlisted, and tested.
 
-The Expo web app and the public website enforce `script-src 'self'`: no inline script and no eval. The docs still allow inline script for Starlight's page scripts and track the stricter policy in report-only mode, an ASVS V3 L3 exception. Inline styles stay allowed on all three; all browser origins enforce `object-src`, `base-uri`, and referrer suppression. The API forbids framing (`frame-ancestors 'none'`). The app, docs, and public website allow embedding from any HTTPS page: the docs and website have no sessions, and the app's `SameSite=Lax` session cookies are never sent to a cross-site frame, so an embedded app always runs signed out and its sign-in screens point to a new tab instead.
+The Expo web app and the public website enforce `script-src 'self'`: no inline script and no eval. The docs enforce `script-src 'self'` plus the build-time hash of each inline Starlight script, and no eval. Inline styles stay allowed on all three; all browser origins enforce `object-src`, `base-uri`, and referrer suppression. The API forbids framing (`frame-ancestors 'none'`). The app, docs, and public website allow embedding from any HTTPS page: the docs and website have no sessions, and the app's `SameSite=Lax` session cookies are never sent to a cross-site frame, so an embedded app always runs signed out and its sign-in screens point to a new tab instead.
 
 ## Supply chain
 
