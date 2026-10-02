@@ -74,6 +74,8 @@ function UserProducts({ username }: { username: string }) {
         <AppText className="text-muted-foreground">No public products yet</AppText>
       ) : (
         <View className="flex-row flex-wrap">
+          {/* TODO: switch to the products-screen FlatList (profile as ListHeaderComponent) if a
+              profile can reach hundreds of products; "Load more" grows this list unvirtualized. */}
           {items.map((product) => (
             <View key={product.id} style={{ width: `${100 / numColumns}%` as DimensionValue }}>
               <ProductCard product={product} />

@@ -198,6 +198,8 @@ export function ProductsListContent({
       entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
       key={numColumns}
     >
+      {/* TODO: set initialNumToRender to about numColumns * 3 (and removeClippedSubviews on
+          native) if the first page ever renders slowly; rows vary in height, so no getItemLayout. */}
       <FlatList
         numColumns={numColumns}
         onScroll={onScroll}
