@@ -87,10 +87,10 @@ Security-sensitive areas:
 - RPi camera device APIs and WebSocket relay
 - backups, secrets, logs, and telemetry
 - release and security artifacts: the GHCR images the hosts pull, and the landing page and docs
-  deploy, whose Cloudflare API token is a GitHub Environment secret holding only the Workers
-  Editor role. A token granted on all Workers is not scoped to one environment, so every
-  Environment that holds one requires a reviewer; in prod that reviewer is also the release gate. Hosts check image
-  provenance with `just images-verify` before pulling a tag.
+  deploy, whose Cloudflare API token is a GitHub Environment secret holding only Workers
+  Scripts: Edit. A token granted on all Workers is not scoped to one environment, so every
+  Environment that holds one requires a reviewer; in prod that reviewer is also the release
+  gate. Hosts check image provenance with `just images-verify` before pulling a tag.
 
 Valuable assets include accounts, profile/privacy settings, research records, uploaded media/files,
 OAuth and YouTube tokens, RPi camera credentials, refresh-token state, database dumps, backup
