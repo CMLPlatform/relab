@@ -92,6 +92,47 @@ describe('UserProfileScreen', () => {
     await waitFor(() => expect(screen.getByText('No public products yet')).toBeOnTheScreen());
   });
 
+  it('shows a dash for the top category of a profile with no products', async () => {
+    mockGetPublicProfile.mockResolvedValue({
+      ...profileFixture,
+      product_count: 0,
+      total_weight_kg: 0,
+      image_count: 0,
+      // The API sends null when there is no product to rank.
+      top_category: null as unknown as string,
+    });
+    server.use(
+      http.get(`${API_URL}/products`, () =>
+        HttpResponse.json({ items: [], total: 0, page: 1, size: 24, pages: 0 }),
+      ),
+    );
+    await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+
+    await waitFor(() => expect(screen.getByText('Top category')).toBeOnTheScreen());
+    expect(screen.getByText('—')).toBeOnTheScreen();
+  });
+
+  it('shows an error with retry, not the empty state, when products fail to load', async () => {
+    mockGetPublicProfile.mockResolvedValue(profileFixture);
+    let calls = 0;
+    server.use(
+      http.get(`${API_URL}/products`, () => {
+        calls += 1;
+        return calls === 1
+          ? HttpResponse.json({ detail: 'boom' }, { status: 503 })
+          : HttpResponse.json({ items: [], total: 0, page: 1, size: 24, pages: 0 });
+      }),
+    );
+    await renderWithProviders(<UserProfileScreen />, { withAuth: true });
+
+    await waitFor(() => expect(screen.getByText("Couldn't load products.")).toBeOnTheScreen());
+    expect(screen.queryByText('No public products yet')).toBeNull();
+
+    await fireEvent.press(screen.getByText('Retry'));
+
+    await waitFor(() => expect(screen.getByText('No public products yet')).toBeOnTheScreen());
+  });
+
   it('shows generic error message when fetch fails', async () => {
     mockGetPublicProfile.mockRejectedValue(new Error('Network error'));
     await renderWithProviders(<UserProfileScreen />, { withAuth: true });
