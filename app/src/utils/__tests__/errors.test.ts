@@ -1,10 +1,17 @@
 import { describe, expect, it } from '@jest/globals';
 import { ApiError, throwFromResponse } from '@/services/api/errors';
+import { TimeoutError } from '@/services/api/request';
 import { getErrorMessage } from '@/utils/errors';
 
 describe('getErrorMessage', () => {
   it('maps a network TypeError to a plain-language message', () => {
     expect(getErrorMessage(new TypeError('Failed to fetch'), 'fb')).toBe(
+      "Can't reach Relab. Check your connection and try again.",
+    );
+  });
+
+  it('maps a request timeout to the connection message, not its millisecond detail', () => {
+    expect(getErrorMessage(new TimeoutError(30_000), 'fb')).toBe(
       "Can't reach Relab. Check your connection and try again.",
     );
   });

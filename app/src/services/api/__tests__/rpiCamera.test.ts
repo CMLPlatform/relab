@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
+import { TimeoutError } from '@/services/api/request';
 import { buildLocalHlsUrl, fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
 import {
   deleteCamera,
@@ -8,8 +9,13 @@ import {
   fetchCameraTelemetry,
   updateCamera,
 } from '@/services/api/rpiCamera/cameras';
-import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera/capture';
+import {
+  captureImageFromCamera,
+  captureImageLocally,
+  LOCAL_CAMERA_UNREACHABLE_MESSAGE,
+} from '@/services/api/rpiCamera/capture';
 import { claimPairingCode } from '@/services/api/rpiCamera/pairing';
+import { getErrorMessage } from '@/utils/errors';
 
 jest.mock('@/services/api/auth/authRefresh', () => ({
   fetchWithAuth: jest.fn(),
@@ -343,6 +349,20 @@ describe('rpiCamera API service', () => {
     await expect(captureImageLocally('http://192.168.7.1:8018', 'local-key', 42)).rejects.toThrow(
       'no image id',
     );
+
+    fetchSpy.mockRestore();
+  });
+
+  it.each([
+    ['a network TypeError', new TypeError('Failed to fetch')],
+    ['a timeout', new TimeoutError(10_000)],
+  ])('names the camera, not Relab, when the local capture hits %s', async (_name, failure) => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockRejectedValueOnce(failure);
+
+    const error = await captureImageLocally('http://192.168.7.1:8018', 'local-key', 42).catch(
+      (e: unknown) => e,
+    );
+    expect(getErrorMessage(error, 'fb')).toBe(LOCAL_CAMERA_UNREACHABLE_MESSAGE);
 
     fetchSpy.mockRestore();
   });

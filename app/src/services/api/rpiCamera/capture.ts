@@ -1,6 +1,6 @@
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
 import { throwFromResponse } from '@/services/api/errors';
-import { createRequestId, fetchWithTimeout } from '@/services/api/request';
+import { createRequestId, fetchWithTimeout, TimeoutError } from '@/services/api/request';
 import { isSafeImageUrl, stripTrailingSlash } from '@/utils/urlSafety';
 import type { CapturedImage } from './shared';
 import { CAMERA_BASE } from './shared';
@@ -46,6 +46,9 @@ export async function captureImageFromCamera(
   };
 }
 
+export const LOCAL_CAMERA_UNREACHABLE_MESSAGE =
+  "Can't reach the camera on this network. Check it is on and on the same network.";
+
 export async function captureImageLocally(
   localBaseUrl: string,
   localApiKey: string,
@@ -54,18 +57,28 @@ export async function captureImageLocally(
   // Bounded: capture-all awaits every camera, so a half-open LAN socket here
   // would stall the whole mutation. `redirect: 'error'` keeps the device key from
   // following a redirect off the validated LAN host.
-  const resp = await fetchWithTimeout(`${stripTrailingSlash(localBaseUrl)}/captures`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'X-API-Key': localApiKey,
-      'X-Request-ID': createRequestId(),
-    },
-    body: JSON.stringify({ product_id: productId }),
-    timeoutMs: LOCAL_CAPTURE_TIMEOUT_MS,
-    redirect: 'error',
-  });
+  let resp: Response;
+  try {
+    resp = await fetchWithTimeout(`${stripTrailingSlash(localBaseUrl)}/captures`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-API-Key': localApiKey,
+        'X-Request-ID': createRequestId(),
+      },
+      body: JSON.stringify({ product_id: productId }),
+      timeoutMs: LOCAL_CAPTURE_TIMEOUT_MS,
+      redirect: 'error',
+    });
+  } catch (error) {
+    // A dead LAN address, mixed content or CORS all surface as a TypeError (or a
+    // timeout), which getErrorMessage would otherwise blame on Relab's server.
+    if (error instanceof TypeError || error instanceof TimeoutError) {
+      throw new Error(LOCAL_CAMERA_UNREACHABLE_MESSAGE, { cause: error });
+    }
+    throw error;
+  }
   if (!resp.ok) await throwFromResponse(resp, 'Local capture failed');
   const data = await resp.json();
   // status 'queued' means the Pi stored the frame but hasn't uploaded it yet, so
