@@ -294,10 +294,12 @@ function VideoRow({
   return (
     <View className="mb-4 flex-row items-center">
       <View className="flex-1">
+        {editMode ? <AppText variant="label">Video title</AppText> : null}
         <TextInput
           className="px-3.5"
           style={[tokens.type.heading, styles.titleInput, { color: textColor }]}
           placeholder="Title"
+          accessibilityLabel="Video title"
           value={video.title}
           onChangeText={handleTitleChange}
           editable={editMode}
@@ -307,10 +309,12 @@ function VideoRow({
         <FormFieldError errorId={titleErrorId} message={titleError} />
         {editMode ? (
           <>
+            <AppText variant="label">Video URL</AppText>
             <TextInput
               className="px-3.5"
               style={[tokens.type.body, { color: textColor }]}
               placeholder="Video URL"
+              accessibilityLabel="Video URL"
               value={video.url}
               onChangeText={handleUrlChange}
               errorOnEmpty
@@ -323,6 +327,7 @@ function VideoRow({
         ) : (
           <VideoEmbed url={video.url} linkColor={linkColor} />
         )}
+        {editMode ? <AppText variant="label">Video description</AppText> : null}
         {editMode || video.description ? (
           <TextInput
             className="px-3.5"

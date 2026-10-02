@@ -1,5 +1,5 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { useInverseSurface } from '@/theme/inverseSurface';
@@ -221,6 +221,12 @@ function Toast({
   const inverse = useInverseSurface();
   const message = state?.message ?? null;
   const action = state?.action;
+  // WCAG 2.2.1: a toast the reader is pointing at or tabbed into must not leave.
+  // Keyed to the toast it was set for, so a new toast starts unheld.
+  const [heldState, setHeldState] = useState<typeof state>(null);
+  const held = state !== null && heldState === state;
+  const hold = useCallback(() => setHeldState(state), [state]);
+  const release = useCallback(() => setHeldState(null), []);
 
   // Dismiss first: the action may raise a toast of its own, and these two state
   // updates batch in call order, so dismissing afterwards would swallow it.
@@ -233,18 +239,22 @@ function Toast({
   // mints a new object, so a repeated identical message still restarts the
   // timer (and re-announces on iOS; Android's live region ignores equal text).
   useEffect(() => {
-    if (!state) return;
     // accessibilityLiveRegion is Android-only; VoiceOver needs an explicit announcement.
-    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(state.message);
+    if (state && Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(state.message);
+  }, [state]);
+
+  useEffect(() => {
+    // NOTE: resuming restarts the full timer rather than counting down the remainder.
+    if (!state || held) return;
     const timer = setTimeout(
       onDismiss,
       state.action ? ACTION_TOAST_DURATION_MS : TOAST_DURATION_MS,
     );
     return () => clearTimeout(timer);
-  }, [state, onDismiss]);
+  }, [state, onDismiss, held]);
 
-  if (!message) return null;
-
+  // The status region stays mounted while there is no message: assistive tech
+  // only announces changes to a region it has already seen.
   return (
     <View
       className="absolute bottom-6 left-0 right-0 items-center"
@@ -254,34 +264,46 @@ function Toast({
       // collapsable={false} view flattening can drop the wrapper before the exit plays.
       collapsable={false}
     >
-      <Animated.View
-        entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
-        exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
-      >
-        <OverlaySurface
-          className={cn('flex-row items-center gap-3 px-4', action ? 'py-1' : 'py-2')}
-          style={[styles.toast, { backgroundColor: inverse.background }]}
-          tone="scrim"
-        >
-          <AppText
-            variant="body"
-            accessibilityLiveRegion="polite"
-            // Only shrink when sharing the row: alone, the toast hugs its message.
-            className={action ? 'flex-1' : undefined}
-            style={{ color: inverse.foreground }}
+      <View testID="toast-live-region" role="status" accessibilityLiveRegion="polite">
+        {message ? (
+          <Animated.View
+            entering={FadeInDown.duration(200).reduceMotion(ReduceMotion.System)}
+            exiting={FadeOut.duration(150).reduceMotion(ReduceMotion.System)}
           >
-            {message}
-          </AppText>
-          {action ? (
-            // Ink from useInverseSurface (Inverse-Pair Rule), not the variant's own foreground.
-            <AppButton variant="ghost" className="-mr-2 px-2" onPress={handleAction}>
-              <AppText variant="label" style={{ color: inverse.foreground }}>
-                {action.label}
-              </AppText>
-            </AppButton>
-          ) : null}
-        </OverlaySurface>
-      </Animated.View>
+            <Pressable
+              testID="toast-hold-area"
+              accessible={false}
+              onHoverIn={hold}
+              onHoverOut={release}
+              onFocus={hold}
+              onBlur={release}
+            >
+              <OverlaySurface
+                className={cn('flex-row items-center gap-3 px-4', action ? 'py-1' : 'py-2')}
+                style={[styles.toast, { backgroundColor: inverse.background }]}
+                tone="scrim"
+              >
+                <AppText
+                  variant="body"
+                  // Only shrink when sharing the row: alone, the toast hugs its message.
+                  className={action ? 'flex-1' : undefined}
+                  style={{ color: inverse.foreground }}
+                >
+                  {message}
+                </AppText>
+                {action ? (
+                  // Ink from useInverseSurface (Inverse-Pair Rule), not the variant's own foreground.
+                  <AppButton variant="ghost" className="-mr-2 px-2" onPress={handleAction}>
+                    <AppText variant="label" style={{ color: inverse.foreground }}>
+                      {action.label}
+                    </AppText>
+                  </AppButton>
+                ) : null}
+              </OverlaySurface>
+            </Pressable>
+          </Animated.View>
+        ) : null}
+      </View>
     </View>
   );
 }

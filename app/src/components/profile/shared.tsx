@@ -38,7 +38,7 @@ export function ProfileAction({
       className="min-h-11 flex-row items-center justify-between px-4 py-2.5"
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={title}
+      accessibilityLabel={subtitle ? `${title}, ${subtitle}` : title}
     >
       <View className="flex-1 flex-row items-center gap-3">
         {icon ? (

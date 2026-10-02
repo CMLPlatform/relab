@@ -35,8 +35,10 @@ function TopNavDestinationItem({
   return (
     <Pressable
       onPress={handlePress}
-      accessibilityRole="button"
-      accessibilityLabel={active ? `${destination.label}, current page` : destination.label}
+      accessibilityRole="link"
+      accessibilityLabel={destination.label}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-current={active ? 'page' : undefined}
       className={cn(
         'min-h-11 justify-center rounded-md px-4 py-2',
         active ? 'bg-primary/12' : 'opacity-70',

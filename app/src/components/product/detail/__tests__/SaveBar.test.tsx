@@ -176,7 +176,8 @@ test('shows per-photo progress while photos upload mid-save', async () => {
       onPrimaryPress={jest.fn()}
     />,
   );
-  expect(screen.getByText('Uploading 2 of 5…')).toBeTruthy();
+  // Once on the button, once in the polite status region.
+  expect(screen.getAllByText('Uploading 2 of 5…')).toHaveLength(2);
 });
 
 test('ignores upload progress while the save is paused offline', async () => {
@@ -403,12 +404,65 @@ test('gives the inline validation error its own row in flow layout only', async 
   };
 
   const flow = await renderWithProviders(<SaveBar layout="flow" {...props} />);
-  expect(StyleSheet.flatten(flow.getByTestId('save-bar-validation-error').props.style)).toEqual(
+  expect(StyleSheet.flatten(flow.getByTestId('save-bar-status').props.style)).toEqual(
     expect.objectContaining({ flexBasis: '100%' }),
   );
 
   const floating = await renderWithProviders(<SaveBar {...props} />);
-  expect(
-    StyleSheet.flatten(floating.getByTestId('save-bar-validation-error').props.style),
-  ).toBeUndefined();
+  expect(StyleSheet.flatten(floating.getByTestId('save-bar-status').props.style)).toBeUndefined();
+});
+
+test('announces upload progress through a polite status region', async () => {
+  jest.mocked(getImageUploadProgress).mockReturnValue({ current: 1, total: 3 });
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving
+      isPaused={false}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  const region = screen.getByTestId('save-bar-status');
+  expect(region.props.accessibilityLiveRegion).toBe('polite');
+  expect(region).toHaveTextContent('Uploading 1 of 3…');
+});
+
+test('announces the validation message through the status region', async () => {
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode
+      isDirty
+      isSaving={false}
+      isPaused={false}
+      validationValid={false}
+      validationError="Name is required"
+      onPrimaryPress={jest.fn()}
+      canModerate
+    />,
+  );
+  expect(screen.getByTestId('save-bar-status')).toHaveTextContent('Name is required');
+});
+
+test('keeps the status region mounted and empty when there is nothing to say', async () => {
+  await renderWithProviders(
+    <SaveBar
+      bottomOffset={0}
+      entityRole="product"
+      editMode={false}
+      isDirty={false}
+      isSaving={false}
+      isPaused={false}
+      validationValid
+      canModerate
+      onPrimaryPress={jest.fn()}
+    />,
+  );
+  expect(screen.getByTestId('save-bar-status')).toHaveTextContent('');
 });

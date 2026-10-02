@@ -2,8 +2,11 @@ import { describe, expect, it } from '@jest/globals';
 import { describedBy, heading } from '@/utils/a11y';
 
 describe('describedBy', () => {
-  it('returns accessibilityDescribedBy pointing at the id when there is an error', () => {
-    expect(describedBy('field-error', true)).toEqual({ accessibilityDescribedBy: 'field-error' });
+  it('returns accessibilityDescribedBy and aria-invalid when there is an error', () => {
+    expect(describedBy('field-error', true)).toEqual({
+      accessibilityDescribedBy: 'field-error',
+      'aria-invalid': true,
+    });
   });
 
   it('returns no accessibility props when there is no error', () => {

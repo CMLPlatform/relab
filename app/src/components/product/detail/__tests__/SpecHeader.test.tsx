@@ -101,3 +101,21 @@ test('renders no status line without one', async () => {
   await render(<SpecHeader product={baseProduct} />);
   expect(screen.queryByTestId('save-status')).toBeNull();
 });
+
+describe('SpecHeader screen heading in edit mode', () => {
+  test('names the screen "Editing <name>" with a level-1 heading', async () => {
+    await render(<SpecHeader product={{ ...baseProduct, name: 'Kettle' }} editMode />);
+    const h1 = screen.getByRole('header', { name: 'Editing Kettle' });
+    expect(h1.props['aria-level']).toBe(1);
+  });
+
+  test('names a product without a name "New product"', async () => {
+    await render(<SpecHeader product={{ ...baseProduct, name: '' }} editMode />);
+    expect(screen.getByRole('header', { name: 'New product' }).props['aria-level']).toBe(1);
+  });
+
+  test('view mode keeps a single level-1 heading', async () => {
+    await render(<SpecHeader product={{ ...baseProduct, name: 'Kettle' }} />);
+    expect(screen.getAllByRole('header')).toHaveLength(1);
+  });
+});

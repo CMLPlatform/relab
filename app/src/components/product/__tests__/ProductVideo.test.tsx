@@ -116,6 +116,19 @@ describe('ProductVideo', () => {
     expect(screen.getByPlaceholderText('Video URL')).toBeOnTheScreen();
   });
 
+  it('labels the edit inputs with visible text that is also their accessible name', async () => {
+    const productWithVideo: Product = {
+      ...baseProduct,
+      videos: [{ id: 1, url: 'https://youtube.com/watch?v=abc', title: 'Demo', description: '' }],
+    };
+
+    await renderProductVideo({ product: productWithVideo, editMode: true });
+    expect(screen.getByText('Video title')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText('Title')).toHaveAccessibleName('Video title');
+    expect(screen.getByText('Video URL')).toBeOnTheScreen();
+    expect(screen.getByPlaceholderText('Video URL')).toHaveAccessibleName('Video URL');
+  });
+
   it('calls onVideoChange when a title field is updated', async () => {
     const onVideoChange = jest.fn();
     const productWithVideo: Product = {

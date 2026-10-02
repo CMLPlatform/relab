@@ -61,7 +61,11 @@ export function PreviewErrorOverlay({
     <View className="absolute inset-0 items-center justify-center gap-2" style={styles.overlay}>
       <Icon name="video-off" size={32} color={palette[theme.scheme].mutedForeground} />
       <AppText className="text-center text-primary-foreground">{message}</AppText>
-      <Pressable onPress={onRetry} accessibilityRole="button">
+      <Pressable
+        onPress={onRetry}
+        accessibilityRole="button"
+        className="min-h-11 items-center justify-center"
+      >
         <AppText className="mt-1 text-primary-foreground underline">Tap to retry</AppText>
       </Pressable>
     </View>

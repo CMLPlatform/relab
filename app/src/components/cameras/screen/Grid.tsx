@@ -1,5 +1,6 @@
 import { memo, type RefObject, useCallback, useEffect, useRef } from 'react';
 import {
+  type AccessibilityActionEvent,
   FlatList,
   Pressable,
   type PressableStateCallbackType,
@@ -33,6 +34,9 @@ type CamerasGridProps = {
   /** Return-focus target for GoLiveDialog: the tapped cell (see AppDialog's `triggerRef`). */
   streamTriggerRef?: RefObject<View | null>;
 };
+
+const LONG_PRESS_ACTION = { name: 'longpress', label: 'Select' } as const;
+const CELL_ACTIONS = [LONG_PRESS_ACTION];
 
 export function CamerasGrid({
   rows,
@@ -124,6 +128,13 @@ const CameraGridCell = memo(function CameraGridCell({
     onPress(camera);
   }, [onPress, camera, streamTriggerRef]);
   const handleLongPress = useCallback(() => onLongPress(camera), [onLongPress, camera]);
+  // A long press has no screen-reader gesture; this exposes it as a rotor action.
+  const handleAccessibilityAction = useCallback(
+    (event: AccessibilityActionEvent) => {
+      if (event.nativeEvent.actionName === LONG_PRESS_ACTION.name) onLongPress(camera);
+    },
+    [onLongPress, camera],
+  );
   const cellStyle = useCallback(
     ({ pressed }: PressableStateCallbackType) => [
       styles.cellPressable,
@@ -151,11 +162,17 @@ const CameraGridCell = memo(function CameraGridCell({
     <View className="flex-1">
       <Pressable
         ref={cellRef}
+        testID={`camera-cell-${camera.id}`}
         onPress={handlePress}
         onLongPress={handleLongPress}
         delayLongPress={350}
         // The name comes from CameraCard's own label inside.
         accessibilityRole="button"
+        accessibilityActions={CELL_ACTIONS}
+        onAccessibilityAction={handleAccessibilityAction}
+        accessibilityState={{ selected }}
+        // aria-selected is invalid on role=button; the toggle state goes out as aria-pressed.
+        aria-pressed={selected}
         style={cellStyle}
       >
         <CameraCard camera={camera} effectiveConnection={effectiveConnection} />

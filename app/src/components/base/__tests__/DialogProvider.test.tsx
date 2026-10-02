@@ -334,7 +334,7 @@ describe('DialogProvider', () => {
 
     const toastText = screen.getByText('Saved');
     expect(toastText).toBeOnTheScreen();
-    expect(toastText).toHaveProp('accessibilityLiveRegion', 'polite');
+    expect(screen.getByTestId('toast-live-region')).toHaveProp('accessibilityLiveRegion', 'polite');
 
     // A toast must not steal focus or block the rest of the screen: the
     // trigger stays pressable while the toast is showing.
@@ -347,6 +347,59 @@ describe('DialogProvider', () => {
 
     await waitFor(() => {
       expect(screen.queryByText('Saved')).toBeNull();
+    });
+  });
+
+  it('keeps the status region mounted and empty while there is no toast', async () => {
+    await renderWithProviders(<View />, { withDialog: true });
+
+    const region = screen.getByTestId('toast-live-region');
+    expect(region.props.role).toBe('status');
+    expect(region.props.accessibilityLiveRegion).toBe('polite');
+    expect(region.children).toHaveLength(0);
+  });
+
+  it('showing a toast changes only the text inside the same status region', async () => {
+    function ToastTest() {
+      const dialog = useDialog();
+      return renderAlertTrigger(() => dialog.toast('Saved'));
+    }
+    await renderWithProviders(<ToastTest />, { withDialog: true });
+    const before = screen.getByTestId('toast-live-region');
+
+    await user.press(screen.getByTestId('trigger'));
+
+    expect(screen.getByTestId('toast-live-region')).toBe(before);
+    expect(before).toContainElement(screen.getByText('Saved'));
+  });
+
+  describe.each([
+    ['focus', 'focus', 'blur'],
+    ['hover', 'hoverIn', 'hoverOut'],
+  ])('an Undo toast under %s', (_name, enter, leave) => {
+    it('stays past its duration until released', async () => {
+      function ToastTest() {
+        const dialog = useDialog();
+        return renderAlertTrigger(() =>
+          dialog.toast('Photo removed', { label: 'Undo', onPress: () => {} }),
+        );
+      }
+      await renderWithProviders(<ToastTest />, { withDialog: true });
+      await user.press(screen.getByTestId('trigger'));
+
+      await fireEvent(screen.getByTestId('toast-hold-area'), enter);
+      await act(() => {
+        jest.advanceTimersByTime(9000);
+      });
+      expect(screen.getByText('Photo removed')).toBeOnTheScreen();
+
+      await fireEvent(screen.getByTestId('toast-hold-area'), leave);
+      await act(() => {
+        jest.advanceTimersByTime(9000);
+      });
+      await waitFor(() => {
+        expect(screen.queryByText('Photo removed')).toBeNull();
+      });
     });
   });
 

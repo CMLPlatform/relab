@@ -311,14 +311,14 @@ describe('ProfileTab', () => {
   describe('logout flow', () => {
     it('opens the logout dialog when Logout is pressed', async () => {
       const { findByLabelText, findByText } = await renderProfile();
-      await fireEvent.press(await findByLabelText('Sign out'));
+      await fireEvent.press(await findByLabelText('Sign out, Switch to another account'));
       expect(await findByText('Are you sure you want to sign out?')).toBeTruthy();
     });
 
     it('calls logout and triggers refetch on confirm', async () => {
       const { findByLabelText, findAllByText } = await renderProfile();
       // Open the logout dialog
-      await fireEvent.press(await findByLabelText('Sign out'));
+      await fireEvent.press(await findByLabelText('Sign out, Switch to another account'));
       // The dialog renders a second "Sign out" button (the confirm button)
       const logoutButtons = await findAllByText('Sign out');
       await act(async () => {
@@ -487,8 +487,12 @@ describe('ProfileTab', () => {
     it('offers only enrolment while two-step verification is off', async () => {
       const { findByLabelText, queryByLabelText } = await renderProfile();
 
-      expect(await findByLabelText('Two-step verification')).toBeTruthy();
-      expect(queryByLabelText('Turn off two-step verification')).toBeNull();
+      expect(
+        await findByLabelText('Two-step verification, Protect logins with an authenticator app'),
+      ).toBeTruthy();
+      expect(
+        queryByLabelText('Turn off two-step verification, Sign in with just your password'),
+      ).toBeNull();
     });
 
     it('offers the manage actions once two-step verification is on', async () => {
@@ -501,9 +505,15 @@ describe('ProfileTab', () => {
       const { findByLabelText, findByText } = await renderProfile();
 
       expect(await findByText('On — you enter a code at login')).toBeTruthy();
-      expect(await findByLabelText('Generate new recovery codes')).toBeTruthy();
-      expect(await findByLabelText('Reset authenticator key')).toBeTruthy();
-      expect(await findByLabelText('Turn off two-step verification')).toBeTruthy();
+      expect(
+        await findByLabelText('Generate new recovery codes, Replace your saved backup codes'),
+      ).toBeTruthy();
+      expect(
+        await findByLabelText('Reset authenticator key, Swap to a new authenticator app'),
+      ).toBeTruthy();
+      expect(
+        await findByLabelText('Turn off two-step verification, Sign in with just your password'),
+      ).toBeTruthy();
     });
   });
 
@@ -511,7 +521,7 @@ describe('ProfileTab', () => {
     it('hides the camera and YouTube rows while the RPi integration is off', async () => {
       const { queryByLabelText, queryByText } = await renderProfile();
 
-      expect(queryByLabelText('Manage cameras')).toBeNull();
+      expect(queryByLabelText('Manage cameras, Add, edit, or remove connected cameras')).toBeNull();
       expect(queryByText('YouTube Live')).toBeNull();
     });
 
@@ -525,7 +535,9 @@ describe('ProfileTab', () => {
       const { findByLabelText, findByText } = await renderProfile();
 
       expect(await findByText('YouTube Live')).toBeTruthy();
-      await fireEvent.press(await findByLabelText('Manage cameras'));
+      await fireEvent.press(
+        await findByLabelText('Manage cameras, Add, edit, or remove connected cameras'),
+      );
       expect(mockRouterNavigate).toHaveBeenCalledWith('/cameras');
     });
   });
@@ -547,7 +559,7 @@ describe('ProfileTab', () => {
       });
 
       const { findByLabelText, findByText } = await renderProfile();
-      await fireEvent.press(await findByLabelText('Unlink Google'));
+      await fireEvent.press(await findByLabelText('Unlink Google, Connected as g@example.com'));
       expect(await findByText('Unlink account')).toBeTruthy();
     });
   });

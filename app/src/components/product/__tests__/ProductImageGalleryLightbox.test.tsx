@@ -264,6 +264,9 @@ describe('ProductImages', () => {
     expect(screen.getByLabelText('Previous image')).toBeOnTheScreen();
     expect(screen.getByLabelText('Next image')).toBeOnTheScreen();
 
+    expect(screen.getByRole('button', { name: 'Previous image' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Next image' })).toBeOnTheScreen();
+
     await fireEvent.press(screen.getByLabelText('Next image'));
 
     await waitFor(() => {
@@ -323,7 +326,7 @@ describe('ProductImages', () => {
     await fireEvent.press(imgs[0]);
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Close lightbox')).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Close lightbox' })).toBeOnTheScreen();
     });
   });
 

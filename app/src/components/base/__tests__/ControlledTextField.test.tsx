@@ -30,3 +30,12 @@ test('renders label, propagates input, and announces the zod error', async () =>
   await fireEvent.changeText(screen.getByPlaceholderText('Camera name'), 'x');
   expect(await screen.findByText('Name is too short')).toBeTruthy();
 });
+
+test('the label is the input accessible name, not the placeholder', async () => {
+  function Labelled() {
+    const { control } = useForm({ defaultValues: { name: '' } });
+    return <ControlledTextField control={control} name="name" label="Name" placeholder="Jane" />;
+  }
+  await renderWithProviders(<Labelled />);
+  expect(screen.getByPlaceholderText('Jane')).toHaveAccessibleName('Name');
+});

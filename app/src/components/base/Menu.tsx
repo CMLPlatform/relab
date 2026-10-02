@@ -104,10 +104,13 @@ export function Menu({ visible, onDismiss, anchor, children, triggerRef }: MenuP
 function MenuItem({
   title,
   trailingIcon,
+  checked,
   onPress,
 }: {
   title: string;
   trailingIcon?: IconName;
+  /** Marks the item as one choice of a group: `menuitemradio` plus its checked state. */
+  checked?: boolean;
   onPress: () => void;
 }) {
   const theme = useAppTheme();
@@ -120,7 +123,14 @@ function MenuItem({
     [theme.colors.surfaceVariant],
   );
   return (
-    <Pressable onPress={onPress} accessibilityRole="menuitem" style={pressableStyle}>
+    <Pressable
+      onPress={onPress}
+      // NOTE: menuitemradio is a valid ARIA role that react-native-web passes through but RN's types omit.
+      accessibilityRole={(checked === undefined ? 'menuitem' : 'menuitemradio') as 'menuitem'}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-checked={checked}
+      style={pressableStyle}
+    >
       <AppText testID="menu-item-title" className="shrink">
         {title}
       </AppText>

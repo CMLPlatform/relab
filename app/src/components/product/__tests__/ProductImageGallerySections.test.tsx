@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { ProductImageCameraDialogs } from '@/components/product/gallery/ProductImageCameraDialogs';
 import { ProductImageEmptyEditState } from '@/components/product/gallery/ProductImageEmptyEditState';
 import { ProductImageGalleryContent } from '@/components/product/gallery/ProductImageGalleryContent';
@@ -158,6 +159,29 @@ describe('product gallery section components', () => {
     await fireEvent.press(screen.getByLabelText('Select Widget 2'));
     expect(onSelectIndex).toHaveBeenCalledWith(1);
     expect(onScrollToIndex).toHaveBeenCalledWith(1);
+  });
+
+  it('exposes which thumbnail is selected and paints its border', async () => {
+    await renderWithProviders(
+      <ProductImageThumbnails
+        imageCount={2}
+        items={[galleryItem('a', 'a.jpg'), galleryItem('b', 'b.jpg')]}
+        selectedIndex={0}
+        thumbsRef={{ current: null }}
+        onSelectIndex={jest.fn()}
+        onScrollToIndex={jest.fn()}
+        fallbackLabel="Widget"
+      />,
+    );
+
+    const selected = screen.getByLabelText('Select Widget 1');
+    const other = screen.getByLabelText('Select Widget 2');
+    expect(selected.props['aria-pressed']).toBe(true);
+    expect(selected).toBeSelected();
+    expect(other.props['aria-pressed']).toBe(false);
+    // A className plus a function style would drop the border (see IconButton.tsx).
+    expect(StyleSheet.flatten(selected.props.style).borderColor).not.toBe('transparent');
+    expect(StyleSheet.flatten(other.props.style).borderColor).toBe('transparent');
   });
 
   it('renders camera dialogs and forwards preview actions', async () => {

@@ -36,6 +36,7 @@ export function ControlledTextField<T extends FieldValues>({
             // biome-ignore lint/performance/noJsxPropsBind: per-field transform needs the field's own onChange.
             onChangeText={(text) => onChange(transform ? transform(text) : text)}
             bordered
+            accessibilityLabel={label}
             {...describedBy(errorId, Boolean(error?.message))}
             {...inputProps}
           />

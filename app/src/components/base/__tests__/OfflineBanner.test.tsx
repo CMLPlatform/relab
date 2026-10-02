@@ -11,9 +11,12 @@ describe('OfflineBanner', () => {
     await act(() => onlineManager.setOnline(true));
   });
 
-  it('renders nothing while online', async () => {
+  it('keeps an empty polite live region mounted while online', async () => {
     await renderWithProviders(<OfflineBanner />);
     expect(screen.queryByText(OFFLINE_TEXT)).toBeNull();
+    const region = screen.getByTestId('offline-live-region');
+    expect(region.props.accessibilityLiveRegion).toBe('polite');
+    expect(region.props.role).toBe('status');
   });
 
   it('shows a polite live-region message when offline', async () => {
@@ -21,7 +24,7 @@ describe('OfflineBanner', () => {
     await act(() => onlineManager.setOnline(false));
     const message = screen.getByText(OFFLINE_TEXT);
     expect(message).toBeOnTheScreen();
-    expect(message.props.accessibilityLiveRegion).toBe('polite');
+    expect(screen.getByTestId('offline-live-region')).toContainElement(message);
   });
 
   it('hides again once back online', async () => {

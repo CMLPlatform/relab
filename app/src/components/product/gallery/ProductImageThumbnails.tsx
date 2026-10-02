@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 import Animated, { LinearTransition, ReduceMotion } from 'react-native-reanimated';
 import ImagePlaceholder from '@/components/base/ImagePlaceholder';
@@ -110,11 +110,10 @@ const ThumbnailItem = memo(function ThumbnailItem({
     onScrollToIndex(index);
   }, [onSelectIndex, onScrollToIndex, index]);
 
-  const pressableStyle = useCallback(
-    ({ pressed }: { pressed: boolean }) => [
-      { borderColor: selected ? selectedBorderColor : 'transparent' },
-      pressed && { opacity: 0.7 },
-    ],
+  // NOTE: a static style, not a function: with a className the bridge drops a
+  // function style (see IconButton.tsx), which hid the selected border.
+  const borderStyle = useMemo(
+    () => ({ borderColor: selected ? selectedBorderColor : 'transparent' }),
     [selected, selectedBorderColor],
   );
 
@@ -124,8 +123,11 @@ const ThumbnailItem = memo(function ThumbnailItem({
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={`Select ${altText}`}
-      className="mr-2 overflow-hidden rounded-md border-2"
-      style={pressableStyle}
+      accessibilityState={{ selected }}
+      // aria-selected is invalid on role=button; the toggle state goes out as aria-pressed.
+      aria-pressed={selected}
+      className="mr-2 overflow-hidden rounded-md border-2 active:opacity-70"
+      style={borderStyle}
     >
       {uri ? (
         // Decorative: the Pressable carries the label. expo-image drops an empty

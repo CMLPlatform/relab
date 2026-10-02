@@ -771,7 +771,7 @@ describe('Section layout', () => {
 
     const chips = within(screen.getByTestId('section-nav-chips')).getAllByRole('button');
     expect(chips.map((chip) => chip.props.accessibilityLabel)).toEqual([
-      'Overview, current section',
+      'Overview',
       'Components',
       'Properties',
       'Media',

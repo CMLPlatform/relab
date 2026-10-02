@@ -6,7 +6,7 @@ import { TextInput } from '@/components/base/TextInput';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
 import type { Product } from '@/types/Product';
-import { describedBy, heading } from '@/utils/a11y';
+import { describedBy, heading, visuallyHidden } from '@/utils/a11y';
 import { type SpecFact, SpecFacts } from './SpecFacts';
 
 function buildFacts(product: Product): SpecFact[] {
@@ -91,8 +91,14 @@ export function SpecHeader({
   return (
     <View className="gap-2 px-4 py-3">
       {editMode ? (
-        // Keyed per product so a stale draft is dropped on navigation.
-        <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
+        <>
+          {/* The name is an input here, so the screen's level-1 heading is not visible. */}
+          <AppText style={visuallyHidden} {...heading(1)}>
+            {product.name ? `Editing ${product.name}` : 'New product'}
+          </AppText>
+          {/* Keyed per product so a stale draft is dropped on navigation. */}
+          <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
+        </>
       ) : (
         <AppText variant="display" {...heading(1)}>
           {product.name}

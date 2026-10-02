@@ -5,6 +5,7 @@ import { AppButton } from '@/components/base/AppButton';
 import { AppText } from '@/components/base/AppText';
 import { QUEUED_OFFLINE_LABEL } from '@/features/products/queries';
 import { getImageUploadProgress, subscribeToImageUploadProgress } from '@/services/api/saving';
+import { visuallyHidden } from '@/utils/a11y';
 import { getFloatingPosition } from '@/utils/platformLayout';
 
 type SaveBarProps = {
@@ -70,6 +71,7 @@ export function SaveBar({
     : onPrimaryPress;
   // The card exists to seat the summary text beside the button; a lone button
   // carries its own ground, so the chrome would only frame empty padding.
+  const showsMessage = blockedByValidation && Boolean(validationError);
   const showsSummary = needsAttention || (blockedByValidation && Boolean(validationError));
   return (
     <View
@@ -84,6 +86,31 @@ export function SaveBar({
       {/* NOTE: hand-rolled English plural. Swap it for
           Intl.PluralRules('en') behind a shared helper when the app gains a
           second locale; there is nothing to share until then. */}
+      {/* Mounted even when empty: assistive tech only announces changes to a region it has seen. */}
+      <View
+        testID="save-bar-status"
+        role="status"
+        accessibilityLiveRegion="polite"
+        // Out of flow when empty, so it adds no gap beside the button.
+        style={showsMessage ? (layout === 'flow' ? flowSummaryStyle : undefined) : visuallyHidden}
+      >
+        {uploadingPhotos ? (
+          // The button label carries this visibly; the region makes it heard.
+          <AppText style={visuallyHidden}>
+            {`Uploading ${uploadingPhotos.current} of ${uploadingPhotos.total}…`}
+          </AppText>
+        ) : null}
+        {blockedByValidation && validationError ? (
+          <Animated.View
+            testID="save-bar-validation-error"
+            entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+          >
+            <AppText variant="label" className="text-destructive">
+              {validationError}
+            </AppText>
+          </Animated.View>
+        ) : null}
+      </View>
       {needsAttention ? (
         <Animated.View
           entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
@@ -92,17 +119,6 @@ export function SaveBar({
           <AppButton variant="ghost" onPress={onErrorSummaryPress ?? onPrimaryPress}>
             {`${errorCount} field${errorCount === 1 ? '' : 's'} need${errorCount === 1 ? 's' : ''} attention`}
           </AppButton>
-        </Animated.View>
-      ) : null}
-      {blockedByValidation && validationError ? (
-        <Animated.View
-          testID="save-bar-validation-error"
-          entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
-          style={layout === 'flow' ? flowSummaryStyle : undefined}
-        >
-          <AppText variant="label" className="text-destructive">
-            {validationError}
-          </AppText>
         </Animated.View>
       ) : null}
       <AppButton

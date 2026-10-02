@@ -133,6 +133,7 @@ export function useCamerasScreen() {
       captureAllPending: captureAll.isPending,
       handleSelectAll,
       clearSelection: selection.clearSelection,
+      enterSelectionMode: selection.enterSelectionMode,
       handleCaptureSelected,
     },
     streaming: {

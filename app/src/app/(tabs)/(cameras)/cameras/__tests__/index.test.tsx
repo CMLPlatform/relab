@@ -214,6 +214,40 @@ describe('CamerasScreen', () => {
     expect(screen.getByText('1 selected')).toBeOnTheScreen();
   });
 
+  it('offers a visible Select control that enters multi-select without a long press', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '42' });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
+
+    await renderWithProviders(<CamerasScreen />, { withDialog: true });
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Select' }));
+    expect(screen.getByText('0 selected')).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Select' })).toBeNull();
+  });
+
+  it('exposes a select action and the selected state on camera cells', async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ product: '42' });
+    mockUseCamerasQuery.mockReturnValue(
+      camerasQuery({
+        data: [{ id: 'cam-1', name: 'Cam', description: '', status: { connection: 'online' } }],
+      }),
+    );
+
+    await renderWithProviders(<CamerasScreen />, { withDialog: true });
+
+    const cell = screen.getByTestId('camera-cell-cam-1');
+    expect(cell.props.accessibilityActions).toEqual([{ name: 'longpress', label: 'Select' }]);
+    expect(cell.props['aria-pressed']).toBe(false);
+
+    await fireEvent(cell, 'accessibilityAction', { nativeEvent: { actionName: 'longpress' } });
+    expect(screen.getByText('1 selected')).toBeOnTheScreen();
+    expect(screen.getByTestId('camera-cell-cam-1').props['aria-pressed']).toBe(true);
+  });
+
   it('does not enable capture mode for non-numeric product param', async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ product: 'not-a-number' });
     mockUseCamerasQuery.mockReturnValue(

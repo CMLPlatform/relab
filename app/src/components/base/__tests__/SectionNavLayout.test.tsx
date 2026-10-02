@@ -39,7 +39,8 @@ test('marks the active item for accessibility', async () => {
     </SectionNavLayout>,
   );
   expect(screen.getByText('Components').parent).toBeTruthy();
-  expect(screen.getByLabelText('Components, current section')).toBeOnTheScreen();
+  expect(screen.getByLabelText('Components').props['aria-current']).toBe('page');
+  expect(screen.getByLabelText('Overview').props['aria-current']).toBeUndefined();
 });
 
 test('has web hover, cursor, and focus-visible affordances', async () => {
@@ -54,7 +55,7 @@ test('has web hover, cursor, and focus-visible affordances', async () => {
       {null}
     </SectionNavLayout>,
   );
-  const className = screen.getByLabelText('Overview, current section').props.className;
+  const className = screen.getByLabelText('Overview').props.className;
   expect(className).toEqual(expect.stringContaining('cursor-pointer'));
   expect(className).toEqual(expect.stringContaining('hover:'));
   expect(className).toEqual(expect.stringContaining('focus-visible:'));

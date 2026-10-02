@@ -1,6 +1,7 @@
 import Head from 'expo-router/head';
 import { useCallback, useRef } from 'react';
-import type { View } from 'react-native';
+import { View } from 'react-native';
+import { AppButton } from '@/components/base/AppButton';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { PageContainer } from '@/components/base/PageContainer';
@@ -18,6 +19,9 @@ export default function CamerasScreen() {
   const handleStartStream = async () => streaming.handleStartStream();
   const handleRetry = useCallback(() => refetch(), [refetch]);
   const streamTriggerRef = useRef<View>(null);
+  const { enterSelectionMode } = selection;
+  // Not passed straight to onPress: that would hand the press event over as the initial id.
+  const handleSelectPress = useCallback(() => enterSelectionMode(), [enterSelectionMode]);
 
   // Only hit for the one-render window before useRequireAuth's redirect completes.
   if (!screen.user) return <CenteredSpinner />;
@@ -38,6 +42,14 @@ export default function CamerasScreen() {
       </Head>
       <PageContainer phoneFullBleed>
         <ScreenTitle>Cameras</ScreenTitle>
+        {screen.captureModeEnabled && !selection.selectionMode ? (
+          // Long press has no visible affordance and no pointer-free equivalent on web.
+          <View className="items-end px-3">
+            <AppButton variant="ghost" onPress={handleSelectPress}>
+              Select
+            </AppButton>
+          </View>
+        ) : null}
         <SelectionBar
           visible={selection.selectionMode}
           selectedCount={selection.selectedCount}

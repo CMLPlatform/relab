@@ -117,6 +117,7 @@ function SortMenuItem({
     <Menu.Item
       title={option.label}
       trailingIcon={active ? 'check' : undefined}
+      checked={active}
       onPress={handlePress}
     />
   );

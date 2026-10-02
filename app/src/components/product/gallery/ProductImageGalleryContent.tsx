@@ -368,6 +368,7 @@ function GalleryNavButton({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
       accessibilityLabel={label}
       disabled={disabled}
       hitSlop={15}

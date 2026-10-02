@@ -29,7 +29,9 @@ function SectionNavItem({
       onPress={handlePress}
       onFocus={Platform.OS === 'web' ? scrollFocusedChipIntoView : undefined}
       accessibilityRole="button"
-      accessibilityLabel={active ? `${section.label}, current section` : section.label}
+      accessibilityLabel={section.label}
+      // aria-*, not accessibilityState: only the aria props reach the DOM on web.
+      aria-current={active ? 'page' : undefined}
       className={cn(
         // px-2 keeps four chips on a 390pt phone; more scroll sideways (see SectionNav).
         'min-h-11 justify-center rounded-md px-2 py-2',
