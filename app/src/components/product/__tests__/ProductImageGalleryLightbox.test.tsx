@@ -812,8 +812,8 @@ describe('ProductImages', () => {
           thumbnailUrl: 'https://cdn.test/a_200.webp',
           // 3200 covers both the pager tier (750pt runner @2x = 1500px) and the
           // lightbox tier (max(750,1334)@2x = 2668px), so it is what opens;
-          // pickThumbnailUrl no longer stretches a narrower derivative to stand
-          // in for either, so the zoom below still has a real original to reveal.
+          // the 200 is far too narrow to stand in for either, and the zoom below
+          // still has a real original to reveal.
           thumbnailUrls: {
             200: 'https://cdn.test/a_200.webp',
             3200: 'https://cdn.test/a_3200.webp',

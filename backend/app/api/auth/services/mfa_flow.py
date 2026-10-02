@@ -81,12 +81,14 @@ async def confirm_totp_setup(
     # Reauthenticate before enabling (OWASP). OAuth-only accounts have no password to
     # re-enter, so they need a recent sign-in instead (same as oauth/accounts.py).
     account_security.require_recent_sign_in(user)
+    current_password = payload.password.get_secret_value() if payload.password else None
+    account_security.require_step_up_fields(user, current_password=current_password, mfa_code=None, action="enable MFA")
     # The password and setup code are guesses, so they spend the account's guess budget.
     async with account_guess_budget(user.id):
         account_security.require_step_up_password(
             password_helper=user_manager.password_helper,
             user=user,
-            current_password=payload.password.get_secret_value() if payload.password else None,
+            current_password=current_password,
             action="enable MFA",
         )
         counter = await mfa_service.verify_totp_code(

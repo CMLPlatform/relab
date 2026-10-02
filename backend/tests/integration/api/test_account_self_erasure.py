@@ -233,6 +233,27 @@ async def test_mfa_account_deletes_with_a_valid_code(
     assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
 
 
+async def test_a_mistyped_code_then_a_correct_retry_deletes_the_account(
+    api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI
+) -> None:
+    """One deletion attempt is one guess, so a typo leaves room for the retry."""
+    user, secret, _ = await _mfa_user(db_session)
+    user_id = user.id
+    valid = totp_code(secret)
+    wrong = "000000" if valid != "000000" else "000001"
+
+    with (
+        override_authenticated_user(test_app, user),
+        patch(f"{BUDGET}.limiter", new=Limiter(storage_uri="memory://")),
+    ):
+        typo = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD, "mfa_code": wrong})
+        retry = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD, "mfa_code": valid})
+
+    assert typo.status_code == status.HTTP_403_FORBIDDEN
+    assert retry.status_code == status.HTTP_204_NO_CONTENT
+    assert not await _row_exists(db_session, select(User.id).where(User.id == user_id))
+
+
 async def test_oauth_only_mfa_account_still_needs_the_code(
     api_client: AsyncClient, db_session: AsyncSession, test_app: FastAPI
 ) -> None:

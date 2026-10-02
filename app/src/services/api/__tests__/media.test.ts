@@ -89,8 +89,17 @@ describe('pickThumbnailUrl', () => {
     expect(pickThumbnailUrl(urls, 1170)).toBe('a_1600');
   });
 
-  it('returns undefined rather than stretching the widest derivative past its need', () => {
+  it('takes the widest derivative when it covers at least three quarters of the need', () => {
+    // A 932pt-tall 3x phone needs 2796 for the lightbox; the 2560 WebP is close enough.
+    expect(pickThumbnailUrl({ 800: 'a_800', 2560: 'a_2560' }, 2796)).toBe('a_2560');
+    expect(pickThumbnailUrl({ 800: 'a_800', 2560: 'a_2560' }, 3200)).toBe('a_2560');
+    expect(pickThumbnailUrl(urls, 2000)).toBe('a_1600');
+    expect(pickThumbnailUrl({ 1200: 'a_1200' }, 1600)).toBe('a_1200');
+  });
+
+  it('returns undefined when even the widest derivative is far below the need', () => {
     expect(pickThumbnailUrl(urls, 4000)).toBeUndefined();
+    expect(pickThumbnailUrl({ 1200: 'a_1200' }, 1601)).toBeUndefined();
     // Sparse map: a narrow original generates no wide derivatives.
     expect(pickThumbnailUrl({ 200: 'a_200' }, 1170)).toBeUndefined();
   });

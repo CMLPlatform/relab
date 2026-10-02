@@ -58,7 +58,9 @@ async def account_guess_budget(user_id: UUID) -> AsyncIterator[None]:
 
     Every attempt is charged up front, right or wrong: check-then-charge-on-failure lets
     parallel guesses all pass the check before any of them is charged. Wrap only the
-    credential check, so requests that verify nothing do not spend the budget.
+    credential check, and reject a request that lacks the credential before entering
+    (``account_security.require_step_up_fields``), so requests that verify nothing do not
+    spend the budget.
     """
     await limiter.ahit_key(LOGIN_RATE_LIMIT, rate_limit_bucket_key("auth:guesses:account", str(user_id)))
     yield

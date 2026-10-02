@@ -36,7 +36,7 @@ from app.api.auth.services.email.service import (
 )
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
-from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT, account_guess_budget
+from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
 from app.api.auth.services.user_database import UserDatabaseAsync
 from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction, audit_event
@@ -183,16 +183,15 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         real_user_update = cast("UserUpdate", user_update)
         sensitive_fields = sensitive_update_fields(real_user_update)
         # Only the self-service path (safe=True) can re-authenticate; an admin does not
-        # know the target's password. The budget charges every attempt, so only a change
-        # that needs the password enters it: a preferences or username edit costs nothing.
+        # know the target's password. Only a password check spends the guess budget, so a
+        # preferences or username edit costs nothing.
         if safe and sensitive_fields:
-            async with account_guess_budget(user.id):
-                require_current_password_for_sensitive_update(
-                    password_helper=self.password_helper,
-                    user_update=real_user_update,
-                    user=user,
-                    sensitive_fields=sensitive_fields,
-                )
+            await require_current_password_for_sensitive_update(
+                password_helper=self.password_helper,
+                user_update=real_user_update,
+                user=user,
+                sensitive_fields=sensitive_fields,
+            )
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
 
