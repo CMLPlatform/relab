@@ -755,6 +755,17 @@ describe('Authentication API Service', () => {
         mfa_code: '123456',
       });
     });
+
+    it('sends an empty JSON body for an account with nothing to re-enter', async () => {
+      secureStoreMock.getItemAsync.mockResolvedValue('test-token');
+      fetchMock().mockResolvedValueOnce(mockResponse(204, {}) as Response);
+
+      await auth.unlinkOAuth('github');
+
+      const [, init] = fetchMock().mock.calls[0];
+      expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json');
+      expect(JSON.parse(String(init?.body))).toEqual({});
+    });
   });
   // ─── deleteAccount ──────────────────────────────────────
 
