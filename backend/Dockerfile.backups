@@ -13,6 +13,10 @@ ARG RESTIC_VERSION=0.18.0-1+b4
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
+    # postgres:18 trails Debian's security updates by a rebuild cycle, and this image
+    # talks TLS to the database and to the offsite remote. Take them all at build time,
+    # before the pinned installs below so the upgrade cannot move rclone or restic.
+    && apt-get upgrade -y \
     # Pinned deliberately. This container reads the entire database and every
     # upload, and is the only service besides cloudflared with a route off-host,
     # so an unreviewed rclone/restic bump is an exfiltration surface. Bump these
@@ -20,10 +24,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # semantics (exit 10 = repository does not exist).
     && apt-get install -y --no-install-recommends ca-certificates \
     "rclone=${RCLONE_VERSION}" "restic=${RESTIC_VERSION}" \
-    # postgres:18 lags Debian's openssl security updates by a rebuild cycle, and
-    # this image talks TLS to the database and to the offsite remote. Upgrade the
-    # openssl packages the base already carries rather than wait for the rebuild.
-    && apt-get install -y --only-upgrade openssl libssl3t64 openssl-provider-legacy \
     && rm -rf /var/lib/apt/lists/* \
     # Postgres ships gosu for its own entrypoint; this image has its own and runs
     # as an unprivileged user, so drop the setuid-capable Go binary.
