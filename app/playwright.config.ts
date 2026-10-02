@@ -19,7 +19,8 @@ export default defineConfig({
   // retrying every test until the job's own timeout kills it and leaves nothing to read.
   globalTimeout: process.env.CI ? 15 * 60_000 : undefined,
   maxFailures: process.env.CI ? 10 : undefined,
-  retries: 2,
+  // One retry in CI still records a trace (on-first-retry) without tripling a failing test's time.
+  retries: process.env.CI ? 1 : 2,
   workers: process.env.CI ? 2 : 4,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
