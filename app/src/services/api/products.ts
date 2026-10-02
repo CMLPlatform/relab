@@ -1,4 +1,5 @@
-import { openURL } from 'expo-linking';
+import { File, Paths } from 'expo-file-system';
+import { shareAsync } from 'expo-sharing';
 import { Platform } from 'react-native';
 import { API_URL } from '@/config';
 import { getCachedUser } from '@/services/api/auth/authentication';
@@ -290,26 +291,28 @@ export function productExportUrl(productId: number, format: ExportFormat): URL {
 }
 
 /**
- * Download an export. The request runs in-app first so a refusal (too many
- * matches, rate limit) surfaces as an ApiError with the server's message.
- * Web saves the fetched body; native hands the URL to the system browser,
- * which downloads it.
+ * Download an export. The request runs in-app so a refusal (too many matches,
+ * rate limit) surfaces as an ApiError with the server's message. Web saves the
+ * body through a download link; native writes it to the cache directory and
+ * opens the share sheet.
  */
 export async function downloadExport(url: URL): Promise<void> {
   // owner=me needs the session; every other export is public.
   const fetchExport = url.searchParams.get('owner') === 'me' ? fetchWithAuth : apiFetch;
   const response = await fetchExport(url, { method: 'GET' });
   if (!response.ok) await throwFromResponse(response, 'Export failed');
-  if (Platform.OS !== 'web') {
-    // NOTE: the system browser carries no session, so a native owner=me export
-    // opens without it; the in-app request above already confirmed the rest.
-    // TODO: save the file natively instead (issue #352).
-    await openURL(url.toString());
-    return;
-  }
   const filename =
     CONTENT_DISPOSITION_FILENAME.exec(response.headers.get('Content-Disposition') ?? '')?.[1] ??
     `relab-export.${url.searchParams.get('format') ?? 'csv'}`;
+  if (Platform.OS !== 'web') {
+    const file = new File(Paths.cache, filename);
+    file.write(await response.text());
+    await shareAsync(file.uri, {
+      mimeType: response.headers.get('Content-Type') ?? undefined,
+      dialogTitle: filename,
+    });
+    return;
+  }
   const href = URL.createObjectURL(await response.blob());
   const link = document.createElement('a');
   link.href = href;

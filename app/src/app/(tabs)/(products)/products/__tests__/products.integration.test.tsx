@@ -607,10 +607,10 @@ describe('Export results', () => {
   });
 
   it.each([
-    ['ios', 'all', true],
-    ['ios', 'mine', false],
-    ['android', 'mine', false],
-  ] as const)('on %s with filterMode=%s, shown: %s', async (os, filterMode, shown) => {
+    ['ios', 'all'],
+    ['ios', 'mine'],
+    ['android', 'mine'],
+  ] as const)('is shown on %s with filterMode=%s', async (os, filterMode) => {
     mockPlatform(os);
     mockUseAuth.mockReturnValue({ user: mockUser() });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ filterMode });
@@ -622,7 +622,7 @@ describe('Export results', () => {
       await openFilters();
     }
 
-    expect(screen.queryByText('Export results') !== null).toBe(shown);
+    expect(screen.getByText('Export results')).toBeOnTheScreen();
   });
 });
 

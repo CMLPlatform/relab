@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { screen, waitFor } from '@testing-library/react-native';
-import { openURL } from 'expo-linking';
+import { shareAsync } from 'expo-sharing';
 import { HttpResponse, http } from 'msw';
 import { ExportMenu } from '@/components/product/ExportMenu';
 import { API_URL } from '@/config';
@@ -14,27 +14,47 @@ import {
   setupUser,
 } from '@/test-utils/index';
 
-jest.mock('expo-linking', () => ({
+const mockWrittenFiles = new Map<string, string>();
+jest.mock('expo-file-system', () => ({
   __esModule: true,
-  openURL: require('@jest/globals').jest.fn(),
+  Paths: { cache: 'file:///cache' },
+  File: class {
+    uri: string;
+    constructor(directory: string, name: string) {
+      this.uri = `${directory}/${name}`;
+    }
+    write(content: string) {
+      mockWrittenFiles.set(this.uri, content);
+    }
+  },
+}));
+jest.mock('expo-sharing', () => ({
+  __esModule: true,
+  shareAsync: require('@jest/globals').jest.fn(),
 }));
 
-const openUrlMock = openURL as jest.MockedFunction<typeof openURL>;
+const shareMock = shareAsync as jest.MockedFunction<typeof shareAsync>;
 const CAP_MESSAGE = 'More than 100 products match. Narrow the filters to export them.';
+
+beforeEach(() => {
+  shareMock.mockReset();
+  mockWrittenFiles.clear();
+});
 
 describe('ExportMenu', () => {
   const user = setupUser();
 
-  beforeEach(() => {
-    openUrlMock.mockReset();
-  });
-
-  it('checks the export in-app, then opens it for download on native', async () => {
-    let requested: URL | undefined;
+  it('saves the fetched export to a file and shares it on native', async () => {
+    let requests = 0;
     server.use(
-      http.get(`${API_URL}/products/:id/export`, ({ request }) => {
-        requested = new URL(request.url);
-        return new HttpResponse('id,parent_id\n7,\n', { headers: { 'Content-Type': 'text/csv' } });
+      http.get(`${API_URL}/products/:id/export`, () => {
+        requests += 1;
+        return new HttpResponse('id,parent_id\n7,\n', {
+          headers: {
+            'Content-Type': 'text/csv',
+            'Content-Disposition': 'attachment; filename="relab-product-7-20260928.csv"',
+          },
+        });
       }),
     );
     await renderWithProviders(<ExportMenu label="Export" productId={7} />, { withDialog: true });
@@ -42,9 +62,14 @@ describe('ExportMenu', () => {
     await user.press(screen.getByText('Export'));
     await user.press(screen.getByText('CSV (spreadsheet)'));
 
-    await waitFor(() => expect(openUrlMock).toHaveBeenCalledTimes(1));
-    expect(requested?.href).toBe(`${API_URL}/products/7/export?format=csv`);
-    expect(openUrlMock).toHaveBeenCalledWith(`${API_URL}/products/7/export?format=csv`);
+    await waitFor(() => expect(shareMock).toHaveBeenCalledTimes(1));
+    const uri = 'file:///cache/relab-product-7-20260928.csv';
+    expect(mockWrittenFiles.get(uri)).toBe('id,parent_id\n7,\n');
+    expect(shareMock).toHaveBeenCalledWith(uri, {
+      mimeType: 'text/csv',
+      dialogTitle: 'relab-product-7-20260928.csv',
+    });
+    expect(requests).toBe(1);
     expect(await screen.findByText('Export downloaded')).toBeOnTheScreen();
   });
 
@@ -63,7 +88,7 @@ describe('ExportMenu', () => {
 
     expect(await screen.findByText(CAP_MESSAGE)).toBeOnTheScreen();
     expect(screen.getByText('Export failed')).toBeOnTheScreen();
-    expect(openUrlMock).not.toHaveBeenCalled();
+    expect(shareMock).not.toHaveBeenCalled();
   });
 });
 
@@ -116,7 +141,7 @@ describe('downloadExport on web', () => {
     expect(link.download).toBe('relab-product-7-20260928.json');
     expect(link.href).toBe('blob:export');
     expect(link.click).toHaveBeenCalledTimes(1);
-    expect(openUrlMock).not.toHaveBeenCalled();
+    expect(shareMock).not.toHaveBeenCalled();
   });
 });
 
