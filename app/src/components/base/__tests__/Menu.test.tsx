@@ -5,7 +5,7 @@ import { Menu } from '@/components/base/Menu';
 import { getMenuPosition } from '@/components/base/menuPosition';
 
 describe('getMenuPosition', () => {
-  const anchor = { anchorY: 100, anchorWidth: 40, anchorHeight: 40 };
+  const anchor = { anchorY: 100, anchorWidth: 40, anchorHeight: 40, windowHeight: 900 };
 
   it('pins to the anchor’s left edge when there is room to the right', () => {
     expect(getMenuPosition({ ...anchor, anchorX: 20, windowWidth: 1440 })).toEqual({
@@ -33,6 +33,15 @@ describe('getMenuPosition', () => {
     expect(getMenuPosition({ ...anchor, anchorX: 0, windowWidth: 1440 })).toEqual({
       top: 144,
       left: 8,
+    });
+  });
+
+  it('opens upward when the anchor sits in the lower half of the window', () => {
+    // An export button near the bottom of a 900-high window: opening below
+    // would start the menu at 844 and push its items off-screen.
+    expect(getMenuPosition({ ...anchor, anchorX: 20, anchorY: 800, windowWidth: 1440 })).toEqual({
+      bottom: 104,
+      left: 20,
     });
   });
 });
