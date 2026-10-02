@@ -11,6 +11,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - On the web app, tinted backgrounds, hover and pressed colours, placeholder text and the red
   outline on invalid fields show again
+- The API reference pages no longer request fonts that the docs site's content
+  security policy blocks.
+
+### Security
+
+- The docs site now blocks inline scripts other than its own, hashed at build
+  time, instead of allowing any inline script.
 
 ## [0.4.0] - 2026-10-02
 

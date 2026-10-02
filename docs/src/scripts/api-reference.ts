@@ -21,6 +21,8 @@ if (container instanceof HTMLElement) {
       servers: [{ url: backendApiUrl }],
       telemetry: false,
       url: schemaUrl,
+      // Scalar's fonts come from fonts.scalar.com, which the CSP font-src blocks.
+      withDefaultFonts: false,
     });
   }
 }

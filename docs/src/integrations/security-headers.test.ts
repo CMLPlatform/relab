@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { headersFile } from './security-headers.ts';
+import { headersFile, inlineScriptHashes } from './security-headers.ts';
 
 // Guards the deploy posture of the `_headers` file Cloudflare Workers serves the
 // docs with. www carries the same checks for its own file.
 
-const file = headersFile('https://api.example.test');
+const file = headersFile('https://api.example.test', ['sha256-abc=']);
 
 /** The header lines of one `_headers` rule, keyed by its path line. */
 function rule(path: string): string[] {
@@ -29,7 +29,6 @@ function cspDirective(policy: string, directive: string) {
 }
 
 const enforced = () => header('Content-Security-Policy');
-const reportOnly = () => header('Content-Security-Policy-Report-Only');
 
 describe('baseline security headers', () => {
   it('sets the deployed OWASP HSTS policy', () => {
@@ -60,18 +59,16 @@ describe('CSP security headers', () => {
     expect(policy).not.toContain('report-uri');
   });
 
-  it('allows inline script (Starlight) but never eval in the enforced policy', () => {
-    const scriptPolicy = cspDirective(enforced(), 'script-src');
-
-    expect(scriptPolicy).toContain("'unsafe-inline'");
-    expect(scriptPolicy).not.toContain("'unsafe-eval'");
+  it('allows only same-origin and hashed inline scripts', () => {
+    expect(cspDirective(enforced(), 'script-src')).toBe("script-src 'self' 'sha256-abc='");
   });
 
-  it('tracks the stricter script policy in report-only mode', () => {
-    const scriptPolicy = cspDirective(reportOnly(), 'script-src');
+  it('keeps inline styles for Starlight', () => {
+    expect(cspDirective(enforced(), 'style-src')).toBe("style-src 'self' 'unsafe-inline'");
+  });
 
-    expect(scriptPolicy).not.toContain("'unsafe-inline'");
-    expect(scriptPolicy).not.toContain("'unsafe-eval'");
+  it('sends no report-only policy, since nothing collects reports', () => {
+    expect(file).not.toContain('Content-Security-Policy-Report-Only');
   });
 
   it('lets the API reference fetch the live OpenAPI document', () => {
@@ -81,10 +78,21 @@ describe('CSP security headers', () => {
   });
 
   it('does not allow wildcard scripts or javascript URLs', () => {
-    for (const policy of [enforced(), reportOnly()]) {
-      expect(policy).not.toContain('script-src *');
-      expect(policy).not.toContain('javascript:');
-    }
+    expect(enforced()).not.toContain('script-src *');
+    expect(enforced()).not.toContain('javascript:');
+  });
+});
+
+describe('inline script hashes', () => {
+  it('hashes each distinct inline script body and skips external and empty ones', () => {
+    const pages = [
+      '<script>a()</script><script type="module" src="/x.js"></script>',
+      '<script type="module">a()</script><script></script>',
+    ];
+    expect(inlineScriptHashes(pages)).toEqual([
+      // sha256 of "a()".
+      'sha256-qVpDBgj7bpq5hMAcGp3AOc79J3Y1Z4HvySTwKrWDoy4=',
+    ]);
   });
 });
 
