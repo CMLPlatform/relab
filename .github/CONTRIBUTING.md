@@ -461,6 +461,13 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 For code style, test commands, migration workflow, and email templates, see
 [backend/README.md](../backend/README.md).
 
+Drop or rename a column one release after the code stops reading it, never in the same release.
+A code-only rollback runs the previous release's images against the current schema, so that schema
+must still hold everything the previous release reads. When a release does drop something the
+previous one reads, its upgrade notes and the rollback section of
+[deploy/DEPLOY-PROD.md](../deploy/DEPLOY-PROD.md) must name the revision a rollback has to
+downgrade to.
+
 The chain was flattened once, on 2026-09-08, into the single revision `a9c2e4f60b18`.
 Write new revisions on top of it as usual. A future flatten repeats the same recipe: keep the
 current head's revision id so deployed databases stay at a revision that still resolves, replace

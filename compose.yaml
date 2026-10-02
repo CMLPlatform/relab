@@ -79,8 +79,10 @@ services:
         # Both services mount `user_uploads`, and Docker seeds an empty named
         # volume from each container's image as it starts. Started together, the
         # two seedings race and one dies on `mkdir .../images: file exists`.
-        # Waiting also means the API never serves against a schema the migrator
-        # has not finished applying. `required: false` keeps this inert unless
+        # Waiting also keeps the API from starting before the migrator finishes; a
+        # migrator that exits non-zero is only a warning under `required: false`, so
+        # the API then starts on the unfinished schema (`just stack` reports that
+        # case for deploys). `required: false` also keeps this inert unless
         # the migrations profile is actually up, so `compose up api` on its own
         # is unchanged. compose.deploy.yaml repeats this with the prod caveats.
         condition: service_completed_successfully

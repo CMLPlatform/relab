@@ -396,6 +396,55 @@ assert_eq "a stalled service with no migrator at all points at the stack" \
        inspect with: just stack staging ps" \
     "$(gate '' www)"
 
+# A migrator container outlives its run, so a failed one from an earlier deploy is still
+# there for `ps -a` to read on a later `up` or `rollback` that never ran it.
+# shellcheck disable=SC2317,SC2329 # the stub is called by the code under test
+started() {
+    local out status
+    out="$(
+        run_deploy_compose() { printf '%s\n' 'migrator exited 1' 'api running 0'; }
+        DEPLOY_PROFILE_FLAGS=("$@")
+        assert_stack_started staging 2>&1
+    )"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "a stale failed migrator is ignored without the migrations profile" "0|" "$(started)"
+assert_eq "a failed migrator is reported when the migrations profile ran it" \
+    "1|error: the staging migrator did not complete (exit 1); the stack is serving a schema it did not finish migrating
+       read the migration error with: docker logs relab_staging-migrator-1" \
+    "$(started --profile migrations)"
+
+# ---------------------------------------------------------------------------
+# deploy_ops.sh rollback: a failed downgrade must stop the rollback and say what it left
+# behind, not write the earlier tag and start code against a half-downgraded schema.
+# ---------------------------------------------------------------------------
+# shellcheck disable=SC2317,SC2329 # the stubs are called by the code under test
+failed_downgrade() {
+    local out status
+    out="$(
+        run_deploy_compose() {
+            [[ " $* " == *" downgrade "* ]] && return 1
+            return 0
+        }
+        pull_image_tag() { :; }
+        write_image_tag() { echo "wrote IMAGE_TAG=$1"; }
+        FORCE=1 in_dotenv_dir 'ENVIRONMENT=prod
+IMAGE_TAG=0.4.0' stack_command prod rollback _ 0.3.2 e2a7c4d1b930 2>&1
+    )"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "a failed downgrade stops the rollback and names what is stranded" \
+    "1|error: the prod schema downgrade to e2a7c4d1b930 failed; the rollback stopped before switching images
+       api is stopped, and IMAGE_TAG is still 0.4.0
+       each revision commits on its own, so the schema is at the last one that downgraded
+       return to 0.4.0 (re-applies its migrations): just stack prod up YES migrations
+       or, once the error above is fixed, retry: just stack prod rollback YES 0.3.2 e2a7c4d1b930" \
+    "$(failed_downgrade)"
+
 # ---------------------------------------------------------------------------
 # deploy_watchdog.sh check 1: container state classification
 # ---------------------------------------------------------------------------

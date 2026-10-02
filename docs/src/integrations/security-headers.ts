@@ -7,6 +7,10 @@ import type { AstroIntegration } from 'astro';
  * the long-lived paths set Cache-Control; a second rule setting it on the same
  * path would be joined to the first with a comma.
  *
+ * Request methods are not set here: with no Worker script, the static-asset
+ * server answers only GET and HEAD and refuses the rest (TRACE and CONNECT
+ * included) with 405. A Worker script added later must keep that refusal.
+ *
  * `apiOrigin` lets the API reference pages fetch the live OpenAPI document.
  */
 export function headersFile(apiOrigin: string | null): string {

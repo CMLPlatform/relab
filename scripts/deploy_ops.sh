@@ -680,9 +680,11 @@ assert_stack_started() {
 
     while read -r service state exit_code; do
         # The migrator is reported on its own; listing it among the services it gated
-        # would read as though it were waiting on itself.
+        # would read as though it were waiting on itself. Its container outlives the
+        # run, so without the migrations profile it is an earlier deploy's and says
+        # nothing about this one.
         if [[ "$service" == migrator ]]; then
-            migrator_exit="$exit_code"
+            [[ " ${DEPLOY_PROFILE_FLAGS[*]} " == *" migrations "* ]] && migrator_exit="$exit_code"
             continue
         fi
         case "$state" in
@@ -692,6 +694,18 @@ assert_stack_started() {
         --format '{{.Service}} {{.State}} {{.ExitCode}}' 2>/dev/null || true)
 
     stack_gate_alerts "$env" "$migrator_exit" "$stalled" || exit 1
+}
+
+# A rollback whose downgrade fails has already stopped the API and has not yet switched
+# IMAGE_TAG, and set -e would end it there with only alembic's traceback on screen.
+rollback_downgrade_alert() {
+    local env="$1" current="$2" tag="$3" revision="$4"
+
+    echo "error: the $env schema downgrade to $revision failed; the rollback stopped before switching images" >&2
+    echo "       api is stopped, and IMAGE_TAG is still $current" >&2
+    echo "       each revision commits on its own, so the schema is at the last one that downgraded" >&2
+    echo "       return to $current (re-applies its migrations): just stack $env up YES migrations" >&2
+    echo "       or, once the error above is fixed, retry: just stack $env rollback YES $tag $revision" >&2
 }
 
 stack_command() {
@@ -820,7 +834,10 @@ stack_command() {
                 run_deploy_compose "$env" --profile migrations run --rm --entrypoint python \
                     migrator -m scripts.maintenance.downgrade_safety "$revision"
                 run_deploy_compose "$env" stop api
-                run_deploy_compose "$env" --profile migrations run --rm --entrypoint alembic migrator downgrade "$revision"
+                if ! run_deploy_compose "$env" --profile migrations run --rm --entrypoint alembic migrator downgrade "$revision"; then
+                    rollback_downgrade_alert "$env" "$(dotenv_value IMAGE_TAG)" "$tag" "$revision"
+                    exit 1
+                fi
             fi
             # After the downgrade, which needs the current .env tag's migrator.
             write_image_tag "$tag"

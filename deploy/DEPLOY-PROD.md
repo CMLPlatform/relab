@@ -353,18 +353,20 @@ Before you start: CI green on `main`, you know whether the release contains migr
 (`just backup prod`).
 
 From the dev host, over the restricted key (`relab-prod` here is an ssh config alias for the
-deploy user on the prod host):
+deploy user on the prod host; `RELAB_DEPLOY_HOST` names a different alias for `just deploy`):
 
 ```bash
-just images-verify prod 0.4.0       # on the dev host: built by publish-images.yml from main
 ssh relab-prod pull                 # git pull --ff-only of origin/main, prints the revision
-ssh relab-prod tag 0.4.0            # pull the release's published images, write IMAGE_TAG
+just deploy prod 0.4.0              # images-verify on the dev host, then `ssh relab-prod tag 0.4.0`
 ssh relab-prod up migrations
 ```
 
-`ssh relab-prod` with no command prints the allow-list. On the host itself the same three steps
-are `git pull --ff-only`, `just stack prod tag YES <tag>`, `just stack prod up YES migrations` as
-the deploy user.
+`just deploy` refuses to reach the host unless every image of the tag verifies: release images
+must come from their release tag, which only repository admins and maintainers can create or move
+(the `release tags` ruleset in `infra/cloudflare/github.tf`). `ssh relab-prod` with no command
+prints the allow-list. On the host itself the steps are `git pull --ff-only`, `just stack prod tag
+YES <tag>`, `just stack prod up YES migrations` as the deploy user; run `just images-verify prod
+<tag>` on the dev host first.
 
 The images come from the release: publishing it on GitHub starts `release.yml`, which publishes
 them to GHCR (`publish-images.yml`), so wait for that run to finish. `tag` pulls every image before it writes
@@ -380,9 +382,12 @@ them, so check staging before you do. Prod is never rebuilt unattended: to show 
 featured product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment), run
 Deploy Sites by hand for `prod` on `main` and approve it. Staging rebuilds weekly on its own.
 
-The `migrations` profile is the routine path: the API waits for the migrator to exit 0, so a failed
-migration leaves the old API serving. Without it you get a two-step that briefly serves against the
-old schema, acceptable during a planned outage, not for a routine release.
+The `migrations` profile is the routine path: the API waits for the migrator to finish before it
+starts. A failed migration does not leave the old API serving: `up` has already replaced it, so the
+new API either stays in `Created` or, when the migrator ran and exited non-zero, starts on the
+unfinished schema. `up` exits non-zero and names the migrator in both cases; fix forward or roll
+back (Part 3). Without the profile you get a two-step that briefly serves against the old schema,
+acceptable during a planned outage, not for a routine release.
 
 A migrator that stops on an unresolvable revision means the database's `alembic_version` predates
 the 2026-09-08 flatten: nothing is corrupted, but the chain no longer contains that id. Bring the
@@ -472,6 +477,19 @@ earlier tag's images are pulled before any of that, so a missing tag changes not
 
 History was flattened at `a9c2e4f60b18` on 2026-09-08; revisions older than that no
 longer resolve, so a schema rollback can only target that id or a newer one.
+
+**A rollback across a dropped column needs the revision form.** Code from before the drop still
+reads the column, so a code-only rollback leaves it failing on every query that touches it.
+Downgrade to the earlier release's head revision with it:
+
+```bash
+just stack prod rollback YES <tag> <revision>
+```
+
+If the downgrade itself fails, the rollback stops before switching images and says so: the API is
+stopped, `IMAGE_TAG` still names the release you were leaving, and the schema sits at the last
+revision that downgraded. `just stack prod up YES migrations` returns to that release; the printed
+`rollback` line retries once the error is fixed.
 
 A migration whose destructive
 statement is harmless declares `ROLLBACK_SAFE = True`; without it the check fails closed, including

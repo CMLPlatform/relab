@@ -579,8 +579,8 @@ release-publish version:
         --title "v$version" --notes "$notes"
     echo "Review the draft, add any upgrade notes, then publish it: that starts release.yml."
 
-# Check a published tag's build provenance from the dev host, before
-# `ssh relab-<env> tag <tag>` makes a host pull it: every image must have been built by
+# Check a published tag's build provenance from the dev host, before a host pulls it
+# (`just deploy <env> <tag>` runs both): every image must have been built by
 # this repository's publish-images.yml on a GitHub-hosted runner, and a prod image
 # from its release tag (or from main, for a `sha-` tag). gh reads the image from GHCR with
 # Docker's credentials, so the packages must be public or `docker login ghcr.io` done.
@@ -613,6 +613,16 @@ images-verify env tag:
             --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
         echo "verified $registry/$image"
     done
+
+# The release loop's deploy step, from the dev host: verify the tag's provenance, then
+# have the host pull it and write IMAGE_TAG. The host is an ssh config alias for the
+# deploy user's restricted key (DEPLOY-PROD.md Part 1); it defaults to relab-<env>, and
+# RELAB_DEPLOY_HOST names another. Start the stack afterwards with `ssh <host> up migrations`.
+[group('deploy')]
+[doc('Verify an image tag, then have the host pull it over the deploy key')]
+deploy env tag:
+    @just images-verify {{ quote(env) }} {{ quote(tag) }}
+    ssh {{ quote(env_var_or_default('RELAB_DEPLOY_HOST', 'relab-' + env)) }} tag {{ quote(tag) }}
 
 # Run one backup cycle now. This is what the systemd timer calls; see deploy/systemd/.
 # Pass `manual` before a risky operation. Retention keeps `manual` snapshots
@@ -654,10 +664,10 @@ snapshots env count='20':
 timers-render:
     @bash scripts/install_timers.sh render
 
-# Install and enable the backup, watchdog, and restore-check timers for one environment.
+# Install and enable the backup, backup-maintenance, watchdog, and restore-check timers for one environment.
 # Prompts for sudo. Run it as the deploy user, not as `sudo just`.
 [group('deploy')]
-[doc('Install and enable the backup, watchdog, and restore-check timers for one environment')]
+[doc('Install and enable the backup, backup-maintenance, watchdog, and restore-check timers for one environment')]
 timers-install env:
     @bash scripts/install_timers.sh install {{ quote(env) }}
 
