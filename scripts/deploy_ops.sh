@@ -767,9 +767,12 @@ stack_command() {
             docker rm -f "relab-backup-$env" >/dev/null 2>&1 || true
             # BACKUP_MANUAL tags this run's snapshots `manual`, which retention keeps
             # unconditionally. Set by `just backup <env> manual`, never by the timer.
+            # RESTIC_MIN_DUMP_RATIO passes through only when the caller set it, so the
+            # script's own default applies otherwise.
             run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
                 -e "BACKUP_MANUAL=${BACKUP_MANUAL:-false}" \
                 -e "BACKUP_MAINTENANCE=${BACKUP_MAINTENANCE:-auto}" \
+                -e RESTIC_MIN_DUMP_RATIO \
                 --name "relab-backup-$env" backup
             ;;
         backup-init)

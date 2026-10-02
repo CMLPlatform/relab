@@ -69,6 +69,14 @@ user-uploads size 355234816 bytes (100% of previous); archiving
 enforces the marker strictly, so a check landing between the stamp and the first marked snapshot
 fails against the pre-marker one. `systemctl list-timers relab-restore-check@prod` gives the slack.
 
+**Dump or uploads tree refused as collapsed:** a run refuses to archive data under half the size of
+the newest snapshot with the same tag. If the shrink is real (a deliberate mass deletion), take one
+snapshot with the guard off; the next scheduled run compares against it:
+
+```bash
+RESTIC_MIN_DUMP_RATIO=0 just backup prod
+```
+
 **Marker missing, and the volume is genuinely empty:** the volume lost its contents or was
 replaced. No `just` recipe restores uploads live (`restore-check` only targets a scratch directory;
 `just restore` is Postgres-only), so restore by hand into the compose-managed volume

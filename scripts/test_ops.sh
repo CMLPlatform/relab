@@ -780,12 +780,12 @@ assert_eq "file bytes are summed" 3000 "$(uploads_bytes 3000)"
 # aside. cycle_steps stubs this out, so only here is the real call site checked -- guard
 # asked about `user-uploads`, refusal surfaces as EXIT_REFUSED without archiving.
 uploads_step() {
-    local prev_bytes="$1" tmp out status
+    local prev_bytes="$1" backup_exit="${2:-0}" tmp out status
     tmp="$(mktemp -d)"
     mkdir -p "$tmp/uploads/files"
     head -c 4096 /dev/zero >"$tmp/uploads/files/a.bin"
     out="$(
-        UPLOADS_DIR="$tmp/uploads" STUB_ARGS="$tmp/args" STUB_PREV="$prev_bytes" bash -c '
+        UPLOADS_DIR="$tmp/uploads" STUB_ARGS="$tmp/args" STUB_PREV="$prev_bytes" STUB_BACKUP_EXIT="$backup_exit" bash -c '
             set -euo pipefail
             # shellcheck source=/dev/null
             . backend/scripts/backup/backup_relab_restic.sh
@@ -793,6 +793,7 @@ uploads_step() {
             # Arguments go to a file, not stdout: the guard parses stdout as JSON.
             restic() {
                 printf "%s\n" "$*" >>"$STUB_ARGS"
+                [[ "$1" != backup ]] || return "$STUB_BACKUP_EXIT"
                 [[ "$1" != stats ]] || printf %s "{\"total_size\":${STUB_PREV},\"snapshots_count\":1}"
             }
             backup_uploads
@@ -809,6 +810,55 @@ assert_eq "the uploads step archives when the tree held its size" "0|1|1" "$(upl
 # Field 3 is 0: the refusal has to land before the write, not after it.
 assert_eq "a collapsed uploads tree refuses with EXIT_REFUSED and archives nothing" "3|1|0" \
     "$(uploads_step 259672)"
+# restic's own exit 3 means "snapshot written, some files unreadable"; passed through raw
+# it would read as EXIT_REFUSED and RestartPreventExitStatus would suppress the retry.
+assert_eq "a restic exit 3 from the uploads snapshot is a retryable step error" "1|1|1" \
+    "$(uploads_step 4096 3)"
+
+# backup_database through run_cycle, with only the pg_dump and restic binaries stubbed
+# on PATH. run_cycle calls it under `if`, which disables `set -e` inside it, so a failure
+# that is not returned explicitly reads as success, sets did_backup, and prunes.
+# Output: exit status | `restic backup` calls | `forget` calls | dump files left behind.
+db_cycle() {
+    local dump_exit="$1" backup_exit="$2" tmp out status
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/bin" "$tmp/work"
+    cat >"$tmp/bin/pg_dump" <<EOS
+#!/usr/bin/env bash
+for arg; do [[ "\$arg" == --file=* ]] && head -c 4096 /dev/zero >"\${arg#--file=}"; done
+exit $dump_exit
+EOS
+    cat >"$tmp/bin/restic" <<EOS
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >>"$tmp/args"
+case "\$1" in
+    stats) printf %s '{"total_size":4096,"snapshots_count":1}' ;;
+    backup) exit $backup_exit ;;
+esac
+EOS
+    chmod +x "$tmp/bin/pg_dump" "$tmp/bin/restic"
+    touch "$tmp/args"
+    out="$(
+        PATH="$tmp/bin:$PATH" BACKUP_WORK_DIR="$tmp/work" SKIP_UPLOAD_BACKUP=true \
+            POSTGRES_DB=relab DATABASE_BACKUP_USER=backup DATABASE_BACKUP_PASSWORD=x bash -c '
+            set -euo pipefail
+            # shellcheck source=/dev/null
+            . backend/scripts/backup/backup_relab_restic.sh
+            run_cycle auto
+        ' 2>&1
+    )"
+    status=$?
+    printf '%s|%s|%s|%s' "$status" "$(grep -c '^backup ' "$tmp/args")" \
+        "$(grep -c '^forget ' "$tmp/args")" "$(find "$tmp/work" -type f | wc -l)"
+    rm -rf "$tmp"
+}
+
+assert_eq "a database snapshot that succeeds runs maintenance" "0|1|1|0" "$(db_cycle 0 0)"
+assert_eq "a failed pg_dump archives nothing, prunes nothing, and stays retryable" "1|0|0|0" \
+    "$(db_cycle 1 0)"
+assert_eq "a failed restic backup of the dump prunes nothing and stays retryable" "1|1|0|0" \
+    "$(db_cycle 0 1)"
+assert_eq "a restic exit 3 on the dump is a step error, not a refusal" "1|1|0|0" "$(db_cycle 0 3)"
 
 # ---------------------------------------------------------------------------
 # The hourly-vs-daily split: BACKUP_MAINTENANCE decides which steps run. Every step is

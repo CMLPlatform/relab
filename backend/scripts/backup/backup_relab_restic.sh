@@ -19,8 +19,8 @@ fi
 
 # How long a snapshot waits for restic's lock. The daily maintenance run holds an
 # exclusive lock while `forget --prune` repacks, and restic's default is to give up
-# immediately.
-RESTIC_RETRY_LOCK="${RESTIC_RETRY_LOCK:-30m}"
+# immediately. Kept well under relab-backup@.service's TimeoutStartSec=1800.
+RESTIC_RETRY_LOCK="${RESTIC_RETRY_LOCK:-10m}"
 
 # EXIT_REFUSED marks a permanent state (a human must clear it), not a crash: the run
 # continues -- the other half's snapshot, retention, check and offsite copy all still
@@ -95,7 +95,11 @@ backup_database() {
         --format=custom \
         --compress="${POSTGRES_COMPRESSION:-zstd:3}" \
         --schema="${POSTGRES_SCHEMA:-public}" \
-        --file="$dump_file"
+        --file="$dump_file" || {
+        log "ERROR: pg_dump failed; skipping the postgres snapshot this run"
+        rm -f "$dump_file"
+        return "$EXIT_STEP_ERROR"
+    }
 
     local status=0
     assert_not_collapsed postgres "$(stat -c %s "$dump_file")" || status=$?
@@ -105,8 +109,12 @@ backup_database() {
     fi
 
     log "Backing up PostgreSQL dump to restic"
-    restic backup "$dump_file" --retry-lock "$RESTIC_RETRY_LOCK" --tag postgres --tag relab "${BACKUP_TAG_ARGS[@]}"
+    # run_cycle calls this under `if`, which turns `set -e` off in here, so each failure
+    # is returned explicitly. Any restic failure is a step error: its own exit 3 (snapshot
+    # written, some files unreadable) must not pass for EXIT_REFUSED.
+    restic backup "$dump_file" --retry-lock "$RESTIC_RETRY_LOCK" --tag postgres --tag relab "${BACKUP_TAG_ARGS[@]}" || status=$?
     rm -f "$dump_file"
+    ((status == 0)) || return "$EXIT_STEP_ERROR"
 }
 
 # Refuse to archive data collapsed against the newest stored snapshot of the same tag: a
@@ -148,7 +156,7 @@ assert_not_collapsed() {
     if ((pct < ratio)); then
         log "ERROR: new ${tag} data is ${pct}% of the previous snapshot (${new_size} vs ${prev_size} bytes)."
         log "ERROR: refusing to archive it -- a collapsed snapshot would age out the good ones."
-        log "ERROR: if this shrink is real, re-run with RESTIC_MIN_DUMP_RATIO=0. See deploy/DEPLOY-PROD.md Part 1.1."
+        log "ERROR: if this shrink is real, re-run with: RESTIC_MIN_DUMP_RATIO=0 just backup ${RELAB_ENVIRONMENT:-<env>}. See deploy/DEPLOY-PROD.md Part 1.1."
         return "$EXIT_REFUSED"
     fi
     log "${tag} size ${new_size} bytes (${pct}% of previous); archiving"
@@ -213,7 +221,8 @@ backup_uploads() {
     assert_not_collapsed user-uploads "$new_size" || return $?
 
     log "Backing up user uploads to restic: ${UPLOADS_DIR}"
-    restic backup "$UPLOADS_DIR" --retry-lock "$RESTIC_RETRY_LOCK" --tag user-uploads --tag relab "${BACKUP_TAG_ARGS[@]}"
+    restic backup "$UPLOADS_DIR" --retry-lock "$RESTIC_RETRY_LOCK" --tag user-uploads --tag relab "${BACKUP_TAG_ARGS[@]}" \
+        || return "$EXIT_STEP_ERROR"
 }
 
 prune_repo() {
