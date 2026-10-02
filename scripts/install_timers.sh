@@ -39,6 +39,11 @@ render_one() {
         echo "error: just is not on PATH; the rendered units would point at a missing binary" >&2
         return 1
     }
+    # Under `just` or `mise exec`, a mise-managed just resolves to its versioned install
+    # directory, which the next upgrade deletes. The shim outlives upgrades.
+    if [[ "$just_bin" == */mise/installs/just/* && -x "${just_bin%%/installs/*}/shims/just" ]]; then
+        just_bin="${just_bin%%/installs/*}/shims/just"
+    fi
     # sed treats & (whole match) and the delimiter specially in the REPLACEMENT, so a
     # checkout path containing either would render silently wrong ExecStart lines that
     # only surface at the unit's first fire. Escape both substituted values.

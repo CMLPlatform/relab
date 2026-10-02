@@ -519,6 +519,24 @@ for unit_job in $(sed -n 's|.*run_scheduled\.sh \([a-z-]*\) %i.*|\1|p' deploy/sy
     )"
 done
 
+# install_timers.sh pins JUST_BIN at render time; a versioned mise install path would
+# break every unit at the next `just` upgrade, so it renders the shim instead.
+rendered_just_bin() {
+    local tmp
+    tmp="$(mktemp -d)"
+    mkdir -p "$tmp/mise/installs/just/1.0.0" "$tmp/mise/shims"
+    printf '#!/bin/sh\n' | tee "$tmp/mise/installs/just/1.0.0/just" >"$tmp/mise/shims/just"
+    chmod +x "$tmp/mise/installs/just/1.0.0/just" "$tmp/mise/shims/just"
+    [[ "$1" == shim ]] || rm "$tmp/mise/shims/just"
+    PATH="$tmp/mise/installs/just/1.0.0:$PATH" bash scripts/install_timers.sh render \
+        | sed -n "s|^Environment=JUST_BIN=$tmp/||p" | head -n1
+    rm -rf "$tmp"
+}
+
+assert_eq "a mise-installed just renders as its shim" "mise/shims/just" "$(rendered_just_bin shim)"
+assert_eq "without a shim the resolved path is kept" "mise/installs/just/1.0.0/just" \
+    "$(rendered_just_bin no-shim)"
+
 # ---------------------------------------------------------------------------
 # Offsite repository derivation in backup_relab_restic.sh: the one remote in
 # RCLONE_CONFIG, empty path; nothing when the config is absent, empty, or ambiguous.
