@@ -8,6 +8,8 @@ on:
   # between the CI network split and the first run after it.
   schedule:
     - cron: "0 5 * * 1"
+    # Monthly: mutation testing takes hours of runner time across its shards.
+    - cron: "0 2 1 * *"
   workflow_dispatch:
     inputs:
       operation:
@@ -17,6 +19,7 @@ on:
         options:
           - perf-baseline
           - bundle-budget
+          - mutation
       git_ref:
         description: Git ref to test
         required: false
@@ -33,7 +36,7 @@ defaults:
 jobs:
   app-bundle-budget:
     name: App Bundle Budget
-    if: github.event_name == 'schedule' || inputs.operation == 'bundle-budget'
+    if: github.event.schedule == '0 5 * * 1' || inputs.operation == 'bundle-budget'
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
@@ -64,7 +67,7 @@ jobs:
 
   backend-perf-baseline:
     name: Backend Perf Baseline
-    if: github.event_name == 'schedule' || inputs.operation == 'perf-baseline'
+    if: github.event.schedule == '0 5 * * 1' || inputs.operation == 'perf-baseline'
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     steps:
@@ -104,3 +107,74 @@ jobs:
             repo/backend/reports/performance/latest-k6-summary.json
             repo/backend/reports/performance/*.md
           retention-days: 14
+
+  # Tracks the survivor count rather than gating on it: it never reaches zero. Triage
+  # the functions listed above baseline, then rebaseline (backend/tests/README.md).
+  # One run over the whole app outlasts a job's time limit, so it is sharded by
+  # mutant name; the globs must cover every package under app/ exactly once.
+  backend-mutation:
+    name: Backend Mutation Testing (${{ matrix.shard }})
+    if: github.event.schedule == '0 2 1 * *' || inputs.operation == 'mutation'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: auth-flows
+            mutants: app.api.auth.services.[e-o]*
+          - shard: auth-core
+            mutants: app.api.auth.services.[!e-o]* app.api.auth.[!s]* app.api.auth.schemas*
+          - shard: plugins
+            mutants: app.api.plugins.*
+          - shard: common
+            mutants: app.api.common.* app.api.stats.* app.api.application.* app.api.reference_data.*
+          - shard: data
+            mutants: app.api.data_collection.* app.api.file_storage.*
+          - shard: core
+            mutants: app.core.*
+    steps:
+      - name: Checkout trusted workflow ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up runtime
+        uses: ./.github/actions/setup-runtime
+        with:
+          setup-python: "true"
+          uv-cache-dependency-glob: backend/uv.lock
+
+      - name: Checkout requested repository ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.git_ref || github.ref_name }}
+          path: repo
+          persist-credentials: false
+
+      - name: Install dependencies
+        working-directory: repo
+        run: just backend/install
+
+      - name: Run mutation testing
+        working-directory: repo/backend
+        env:
+          MUTANTS: ${{ matrix.mutants }}
+        run: |
+          # Split MUTANTS into words without expanding the globs in it.
+          set -f
+          # shellcheck disable=SC2086
+          MUTMUT_JOBS="$(nproc)" just mutation $MUTANTS
+          {
+            echo "### Mutation testing: ${{ matrix.shard }}"
+            echo "$(wc -l < reports/mutation/survivors.txt) survivors"
+            echo "$(wc -l < reports/mutation/new-survivors.txt) functions above baseline"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive survivor lists
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ops-backend-mutation-${{ matrix.shard }}
+          path: repo/backend/reports/mutation/
+          retention-days: 30
