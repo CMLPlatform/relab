@@ -687,8 +687,7 @@ docker-lint:
     set -uo pipefail
     specs=(
       "app/Dockerfile:."
-      "www/Dockerfile:."
-      "docs/Dockerfile:."
+      "Dockerfile.sites:."
       "backend/Dockerfile:backend"
       "backend/Dockerfile.migrations:backend"
       "backend/Dockerfile.backups:backend"

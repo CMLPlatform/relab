@@ -1,0 +1,31 @@
+# BuildKit reads this in place of the root .dockerignore when building
+# Dockerfile.sites. It is an allowlist, not a denylist: nothing reaches the build
+# context unless it is named below, so a new directory at the repo root can
+# never silently bloat this build the way infra/'s .terraform providers did.
+*
+
+# The deps stage needs the workspace manifests; every other stage copies only
+# from the site directory.
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!docs/**
+!www/**
+
+# Generated, local-only, or test output inside the sites.
+*/node_modules
+*/node_modules/**
+*/dist
+*/dist/**
+*/.astro
+*/.astro/**
+*/.cache
+*/.cache/**
+*/coverage
+*/coverage/**
+*/playwright-report
+*/playwright-report/**
+*/test-results
+*/test-results/**
+*/.rumdl_cache
+*/.rumdl_cache/**

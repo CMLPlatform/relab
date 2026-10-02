@@ -1,15 +1,19 @@
 # syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
 
-# Dev image for the Astro web frontend: the hot-reload dev server (use with `docker compose
-# watch`). The production build deploys to Cloudflare Workers (deploy-sites.yml), not
-# as an image.
+# Dev image for the Astro sites (www, docs): the hot-reload dev server (use with
+# `docker compose watch`). compose.dev.yaml picks the site and port with the SITE and
+# PORT build args. The production builds deploy to Cloudflare Workers
+# (deploy-sites.yml), not as images.
 
 ARG WORKDIR=/opt/relab
+ARG SITE
+ARG PORT
 
 # --- Shared deps stage ---
 FROM node:26-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1 AS deps
 
 ARG WORKDIR
+ARG SITE
 WORKDIR $WORKDIR
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
@@ -29,31 +33,35 @@ RUN mkdir -p /usr/local/lib/node_modules/corepack \
 
 COPY package.json pnpm-lock.yaml ./
 COPY pnpm-workspace.yaml ./
-COPY www/package.json www/package.json
+COPY ${SITE}/package.json ${SITE}/package.json
 RUN --mount=type=cache,target=/pnpm/store \
-    pnpm install --frozen-lockfile --filter ./www... --prefer-offline
+    pnpm install --frozen-lockfile --filter "./${SITE}..." --prefer-offline
 
 # --- Dev stage (hot reload) ---
 FROM deps AS dev
 
 ARG WORKDIR
+ARG SITE
+ARG PORT
 WORKDIR $WORKDIR
 
 # The image's unprivileged node user runs the dev server. It owns the sources (which
-# `docker compose watch` syncs into), www/ (where Astro writes .astro/) and
-# www/node_modules (Vite's cache); the installed dependencies stay root-owned.
-COPY --chown=node:node www/ www/
-RUN chown node:node www www/node_modules
+# `docker compose watch` syncs into), the site directory (where Astro writes .astro/)
+# and its node_modules (Vite's cache); the installed dependencies stay root-owned.
+COPY --chown=node:node ${SITE}/ ${SITE}/
+RUN chown node:node "$SITE" "$SITE/node_modules"
 
-WORKDIR $WORKDIR/www
+WORKDIR $WORKDIR/$SITE
 
 USER node
 
-EXPOSE 8081
+ENV DEV_PORT=$PORT
+EXPOSE $PORT
 
 # Drop any stale dev-server lock left in the container's writable layer when
 # `docker compose up` reuses/restarts a container: astro refuses to start if
 # .astro/dev.json names a PID that looks alive, and a recycled PID often does.
 # (astro's --force clears the content cache, it does NOT replace the lock.) The binary
 # is called directly: `pnpm exec` would re-verify and install the whole workspace.
-CMD ["sh", "-c", "rm -f .astro/dev.json; exec node_modules/.bin/astro dev --port 8081 --host 0.0.0.0 --strictPort"]
+# `--mode dev` picks the docs site's dev URLs; www ignores the mode.
+CMD ["sh", "-c", "rm -f .astro/dev.json; exec node_modules/.bin/astro dev --port \"$DEV_PORT\" --host 0.0.0.0 --strictPort --mode dev"]

@@ -110,8 +110,11 @@ services:
     !!merge <<: *dev-site-hardening
     build:
       context: .
-      dockerfile: docs/Dockerfile
+      dockerfile: Dockerfile.sites
       target: dev
+      args:
+        SITE: docs
+        PORT: "8000"
     restart: "no"
     ports:
       - "127.0.0.1:8012:8000"
@@ -218,8 +221,11 @@ services:
     !!merge <<: *dev-site-hardening
     build:
       context: .
-      dockerfile: www/Dockerfile
+      dockerfile: Dockerfile.sites
       target: dev
+      args:
+        SITE: www
+        PORT: "8081"
     restart: "no"
     ports:
       - "127.0.0.1:8013:8081"
