@@ -8,7 +8,6 @@ const REFERRER_POLICY_PATTERN = /^\s*Referrer-Policy\s+"([^"]+)"/m;
 const CONTENT_TYPE_OPTIONS_PATTERN = /^\s*X-Content-Type-Options\s+"([^"]+)"/m;
 const PERMISSIONS_POLICY_PATTERN = /^\s*Permissions-Policy\s+"([^"]+)"/m;
 const ENFORCED_CSP_PATTERN = /^\s*Content-Security-Policy\s+"([^"]+)"/m;
-const REPORT_ONLY_CSP_PATTERN = /^\s*Content-Security-Policy-Report-Only\s+"([^"]+)"/m;
 const DANGEROUS_METHODS_PATTERN =
   /@dangerous_methods\s+method\s+([^\n]+)\s+handle\s+@dangerous_methods\s+\{(?<block>[\s\S]*?)\n\s*\}/m;
 const METHOD_SPLIT_PATTERN = /\s+/;
@@ -24,14 +23,6 @@ function enforcedCsp() {
   const match = caddyfile.match(ENFORCED_CSP_PATTERN);
   if (!match) {
     throw new Error('Missing enforced Content-Security-Policy header');
-  }
-  return match[1];
-}
-
-function reportOnlyCsp() {
-  const match = caddyfile.match(REPORT_ONLY_CSP_PATTERN);
-  if (!match) {
-    throw new Error('Missing report-only Content-Security-Policy header');
   }
   return match[1];
 }
@@ -128,15 +119,19 @@ describe('Caddy security headers', () => {
     expect(policy).not.toContain('report-uri');
   });
 
-  it('observes a stricter script policy without unsafe eval', () => {
-    expect(reportOnlyCsp()).not.toContain("'unsafe-eval'");
+  it('enforces same-origin scripts with no inline or eval allowance', () => {
+    const policy = enforcedCsp();
+
+    expect(policy).toContain("script-src 'self';");
+    expect(policy).not.toContain('script-src-elem');
+    expect(policy).not.toContain("'unsafe-eval'");
+    expect(policy).not.toContain('javascript:');
+    // React Native Web injects styles at runtime; inline style stays allowed.
+    expect(policy.replace("style-src 'self' 'unsafe-inline'", '')).not.toContain("'unsafe-inline'");
   });
 
-  it('does not allow wildcard scripts or javascript URLs', () => {
-    expect(enforcedCsp()).not.toContain('script-src *');
-    expect(reportOnlyCsp()).not.toContain('script-src *');
-    expect(enforcedCsp()).not.toContain('javascript:');
-    expect(reportOnlyCsp()).not.toContain('javascript:');
+  it('ships no report-only policy, which nothing collects', () => {
+    expect(caddyfile).not.toContain('Content-Security-Policy-Report-Only');
   });
 
   it('uses the global no-referrer policy for password reset routes', () => {

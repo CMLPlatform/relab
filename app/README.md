@@ -248,10 +248,10 @@ Validate memoization changes in a release-like build, not only in Metro dev mode
 - **Dev (web):** `just dev`: Expo Metro on :8011.
 - **Dev (native):** `pnpm android` / `pnpm ios`.
 - **Web build:** `just build-web` runs `expo export -p web -c` → `dist/`.
-- **Runtime:** Caddy serves `dist/` with CSP templated from `CADDY_API_ORIGIN`. The enforced
-  policy keeps temporary Expo web allowances for inline/eval script execution, permits product
-  embeds only from `https://www.youtube-nocookie.com`, and sends a stricter report-only policy as
-  the hardening target. See [Dockerfile](Dockerfile) and [Caddyfile](Caddyfile).
+- **Runtime:** Caddy serves `dist/` with CSP templated from `CADDY_API_ORIGIN`. Scripts load only
+  from the app's own origin, with no inline script or eval; inline styles stay allowed for React
+  Native Web. Product embeds come only from `https://www.youtube-nocookie.com`. See
+  [Dockerfile](Dockerfile) and [Caddyfile](Caddyfile).
 - **Native releases:** not containerised; use Expo's native build flow from a developer machine.
 
 ## Lint Ownership
