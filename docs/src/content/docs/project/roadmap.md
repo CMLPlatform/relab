@@ -32,4 +32,12 @@ The live work list is tracked in the public
 - [ ] make reference-data search multilingual and meaning-based: embedding search over categories
   and product types next to the current full-text and fuzzy matching (accent-insensitive since
   2026-09)
+  - pin a self-hosted multilingual model (bge-m3 is the first candidate) rather than a hosted
+    one whose output can change under us
+  - store the model id with each vector, so a model change forces a full re-embed instead of
+    mixing vectors from two models
 - [ ] explore interoperability with semantic vocabularies and Digital Product Passport identifiers
+  - first candidate: [CEON](https://arxiv.org/abs/2606.02253), the Circular Economy Ontology
+    Network (CC BY 4.0), which separates a product model from a physical item and follows the
+    ISO 59040 Product Circularity Data Sheet; map products and components onto its product and
+    material modules for the JSON-LD export
