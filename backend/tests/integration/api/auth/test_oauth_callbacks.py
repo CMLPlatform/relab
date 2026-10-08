@@ -11,9 +11,12 @@ from fastapi import HTTPException, status
 from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router.common import ErrorCode
 
+from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.oauth.associate import handle_oauth_associate_callback
 from app.api.auth.services.oauth.login import handle_oauth_login_callback
 from app.api.auth.services.refresh_token_service import verify_refresh_token
+from app.api.auth.services.user_database import UserDatabaseAsync
+from app.api.auth.services.user_manager import UserManager
 from app.core.runtime import AppServices
 
 from ._oauth_support import (
@@ -26,12 +29,13 @@ from ._oauth_support import (
     make_oauth_state,
     make_request_with_valid_state,
 )
-from .shared import USER1_EMAIL, USER2_EMAIL
+from .shared import USER1_EMAIL, USER2_EMAIL, create_password_user, link_google
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from redis.asyncio import Redis
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.api
 
@@ -342,3 +346,47 @@ async def test_associate_callback_rejects_standard_google_state_for_youtube_flow
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
     cast("MagicMock", config.oauth_client).get_id_email.assert_not_awaited()
+
+
+async def _google_login(db_session: AsyncSession, email: str, account_id: str = "google-account-id") -> User:
+    """Run the Google login callback the way the Google router configures it."""
+    user_manager = UserManager(UserDatabaseAsync(db_session, User, OAuthAccount), http_client=None)
+    return await user_manager.oauth_callback(
+        "google",
+        "provider-access-token",
+        account_id,
+        email,
+        associate_by_email=True,
+        is_verified_by_default=True,
+    )
+
+
+async def test_google_login_refuses_to_link_unverified_password_account(db_session: AsyncSession) -> None:
+    """A password account only gets a provider linked by email once its address is verified."""
+    user = await create_password_user(db_session, email=TEST_EMAIL, username="unverified_owner", is_verified=False)
+
+    with pytest.raises(UserAlreadyExists):
+        await _google_login(db_session, TEST_EMAIL)
+
+    await db_session.refresh(user, ["oauth_accounts"])
+    assert user.oauth_accounts == []
+
+
+async def test_google_login_links_verified_password_account(db_session: AsyncSession) -> None:
+    """A verified password account gets the provider linked by email."""
+    user = await create_password_user(db_session, email=TEST_EMAIL, username="verified_owner", is_verified=True)
+
+    logged_in = await _google_login(db_session, TEST_EMAIL)
+
+    assert logged_in.id == user.id
+    assert [account.oauth_name for account in logged_in.oauth_accounts] == ["google"]
+
+
+async def test_google_login_still_works_for_unverified_account_already_linked(db_session: AsyncSession) -> None:
+    """The verified-only rule applies to new links, not to a provider already linked."""
+    user = await create_password_user(db_session, email=TEST_EMAIL, username="linked_owner", is_verified=False)
+    await link_google(db_session, user, account_id="google-account-id")
+
+    logged_in = await _google_login(db_session, TEST_EMAIL, account_id="google-account-id")
+
+    assert logged_in.id == user.id
