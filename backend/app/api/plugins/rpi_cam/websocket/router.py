@@ -16,7 +16,11 @@ from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES, RelayMessageTy
 
 from app.api.common.rate_limiting import RateLimitExceededError, limiter, rate_limit_bucket_key
 from app.api.plugins.rpi_cam.constants import RELAY_WS_PATH
-from app.api.plugins.rpi_cam.device_assertion import verify_device_assertion
+from app.api.plugins.rpi_cam.device_assertion import (
+    CAMERA_OWNER_LOAD,
+    camera_may_authenticate,
+    verify_device_assertion,
+)
 from app.api.plugins.rpi_cam.models import Camera
 from app.api.plugins.rpi_cam.runtime.status import mark_camera_offline, mark_camera_online
 from app.api.plugins.rpi_cam.websocket.connection_manager import CameraConnectionManager
@@ -203,7 +207,7 @@ async def _authenticate(websocket: WebSocket, camera_id: UUID4) -> bool:
         return False
 
     camera = await _get_camera(camera_id)
-    if camera is None or not camera.credential_is_active:
+    if not camera_may_authenticate(camera):
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Authentication failed.")
         return False
 
@@ -243,7 +247,7 @@ def _extract_bearer_token(websocket: WebSocket) -> str:
 
 async def _get_camera(camera_id: UUID4) -> Camera | None:
     async with async_session_context() as session:
-        return await session.get(Camera, camera_id)
+        return await session.get(Camera, camera_id, options=CAMERA_OWNER_LOAD)
 
 
 async def _heartbeat_loop(websocket: WebSocket, session: _RelayWebSocketSession) -> None:

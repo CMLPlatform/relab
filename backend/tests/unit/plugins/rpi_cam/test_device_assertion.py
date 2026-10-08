@@ -245,3 +245,26 @@ async def test_replayed_assertion_returns_401() -> None:
     ):
         await da._authenticated_camera(request, camera.id, session)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.parametrize(
+    ("is_active", "is_verified"),
+    [pytest.param(False, True, id="inactive"), pytest.param(True, False, id="unverified")],
+)
+async def test_inactive_owner_camera_is_rejected(*, is_active: bool, is_verified: bool) -> None:
+    """A valid assertion from a camera whose owner is deactivated or unverified must not authenticate."""
+    camera, private_key = _make_camera()
+    camera.owner.is_active = is_active
+    camera.owner.is_verified = is_verified
+    session = MagicMock()
+    session.get = AsyncMock(return_value=camera)
+    redis = AsyncMock()
+    redis.set = AsyncMock(return_value=True)
+    request = _request_with_auth(_sign(camera, private_key))
+
+    with (
+        patch.object(da, "require_connection_redis", return_value=redis),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await da._authenticated_camera(request, camera.id, session)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
