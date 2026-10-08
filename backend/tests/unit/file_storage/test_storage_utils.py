@@ -1,5 +1,6 @@
 """Behavior-focused tests for file-storage utility helpers."""
 
+import re
 from io import BytesIO
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -44,13 +45,39 @@ ZIP_MEMBER_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 def test_sanitize_filename() -> None:
     """Test filename sanitization."""
     assert sanitize_filename(TEST_SAN_RAW) == TEST_SAN_CLEAN
-    assert sanitize_filename(ARC_TAR_GZ) == ARC_TAR_GZ
+    # Only the final suffix is kept as an extension; earlier ones become part of the stem.
+    assert sanitize_filename(ARC_TAR_GZ) == "archive-tar.gz"
     assert sanitize_filename("Résumé photo 01.JPG") == "Resume-photo-01.JPG"
 
     long_name = "a" * 50 + ".pdf"
     sanitized = sanitize_filename(long_name, max_length=10)
     assert sanitized.endswith(".pdf")
-    assert len(sanitized) <= 15
+    assert len(sanitized) <= 10
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "photo.<script>alert(1)</script>",
+        "photo.jpg\u202egpj",
+        "photo.jp\r\ng",
+        'report.<img src=x onerror="x">.pdf',
+        "evil.\u202ecod.pdf",
+    ],
+)
+def test_sanitize_filename_strips_unsafe_suffix_characters(filename: str) -> None:
+    """Suffixes are untrusted input too: only ASCII letters, digits, dashes and one final dot survive."""
+    sanitized = sanitize_filename(filename)
+
+    assert re.fullmatch(r"[A-Za-z0-9-]+(\.[A-Za-z0-9]+)?", sanitized), sanitized
+
+
+def test_sanitize_filename_caps_total_length_with_many_suffixes() -> None:
+    """Middle suffixes count towards the length cap instead of riding along uncapped."""
+    sanitized = sanitize_filename("a" + ".middle" * 40 + ".pdf", max_length=42)
+
+    assert sanitized.endswith(".pdf")
+    assert len(sanitized) <= 42
 
 
 def test_process_uploadfile_name_success() -> None:
