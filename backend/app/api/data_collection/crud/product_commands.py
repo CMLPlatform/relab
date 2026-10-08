@@ -2,16 +2,17 @@
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.orm import selectinload
-
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_locked_model, require_model, require_models
-from app.api.common.crud.utils import ensure_model_exists
-from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.crud.product_tree_queries import MAX_COMPONENT_DEPTH, component_depth
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
-from app.api.data_collection.crud.storage import cleanup_product_media_storage, delete_product_media
+from app.api.data_collection.crud.storage import (
+    cleanup_product_media_storage,
+    delete_product_media,
+    delete_product_rows,
+    product_subtree_ids,
+)
 from app.api.data_collection.exceptions import (
     ProductOwnerRequiredError,
     ProductTreeTooDeepError,
@@ -27,75 +28,39 @@ if TYPE_CHECKING:
     from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from app.api.data_collection.crud.storage import ProductMediaStorageCleanup
 
-
-async def create_product_record(
-    db: AsyncSession,
+def build_product_tree(
     product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
     *,
     owner_id: UUID4,
     parent_product: Product | None = None,
 ) -> Product:
-    """Create a Product row and flush it so dependent rows can reference it.
+    """Build the product, its videos, bill of materials and components in memory.
 
-    ``owner_id`` is stored on every row; components denormalize their root
-    base product's owner (their caller passes ``parent_product.owner_id``).
+    ``owner_id`` is stored on every row: components denormalize their root base
+    product's owner so downstream queries (ownership, stats, per-user listings) stay
+    single-table, single-filter.
     """
     db_product = Product(
         **product_data.model_dump(exclude={"components", "owner_id", "videos", "bill_of_materials"}),
         owner_id=owner_id,
         parent=parent_product,
     )
-    db.add(db_product)
-    await db.flush()
+    if isinstance(product_data, ProductCreateWithComponents) and product_data.videos:
+        db_product.videos = [Video(**v.model_dump()) for v in product_data.videos]
+    if product_data.bill_of_materials:
+        db_product.bill_of_materials = [MaterialProductLink(**m.model_dump()) for m in product_data.bill_of_materials]
+    for component in product_data.components:
+        build_product_tree(component, owner_id=owner_id, parent_product=db_product)
     return db_product
 
 
-def create_product_videos(
-    db: AsyncSession,
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-    db_product: Product,
-) -> None:
-    """Attach any videos from the create payload to the product."""
-    if not isinstance(product_data, ProductCreateWithComponents) or not product_data.videos:
-        return
-    videos = [Video(**v.model_dump()) for v in product_data.videos]
-    db_product.videos = videos
-    db.add_all(videos)
-
-
-async def create_product_bill_of_materials(
-    db: AsyncSession,
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-    db_product: Product,
-) -> None:
-    """Create bill-of-materials rows linked to the product."""
-    if not product_data.bill_of_materials:
-        return
-
-    material_ids = {material.material_id for material in product_data.bill_of_materials}
-    await require_models(db, Material, material_ids)
-
-    db.add_all(
-        MaterialProductLink(**material.model_dump(), product=db_product) for material in product_data.bill_of_materials
-    )
-
-
-async def create_product_components(
-    db: AsyncSession,
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-    *,
-    owner_id: UUID4,
-    db_product: Product,
-) -> None:
-    """Recursively create child components for a product.
-
-    Components denormalize the root's ``owner_id`` so downstream queries
-    (ownership, stats, per-user listings) stay single-table, single-filter.
-    """
+def _tree_material_ids(product_data: ProductCreateWithComponents | ComponentCreateWithComponents) -> set[int]:
+    """Collect the material ids named anywhere in a create payload's tree."""
+    ids = {material.material_id for material in product_data.bill_of_materials}
     for component in product_data.components:
-        await create_product_tree(db, component, owner_id=owner_id, parent_product=db_product)
+        ids |= _tree_material_ids(component)
+    return ids
 
 
 async def create_product_tree(
@@ -105,15 +70,19 @@ async def create_product_tree(
     owner_id: UUID4 | None = None,
     parent_product: Product | None = None,
 ) -> Product:
-    """Create an in-memory product tree and flush rows for persistence."""
+    """Create a product tree and flush its rows.
+
+    The tree's material ids are checked in one query and the rows flushed once, so
+    the query count does not grow with the number of components.
+    """
     if owner_id is None:
         raise ProductOwnerRequiredError
 
-    db_product = await create_product_record(db, product_data, owner_id=owner_id, parent_product=parent_product)
-    create_product_videos(db, product_data, db_product)
-    await create_product_bill_of_materials(db, product_data, db_product)
-    await create_product_components(db, product_data, owner_id=owner_id, db_product=db_product)
-
+    if material_ids := _tree_material_ids(product_data):
+        await require_models(db, Material, material_ids)
+    db_product = build_product_tree(product_data, owner_id=owner_id, parent_product=parent_product)
+    db.add(db_product)
+    await db.flush()
     return db_product
 
 
@@ -214,45 +183,19 @@ async def update_product(
     return res
 
 
-async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = True) -> list[ProductMediaStorageCleanup]:
-    """Delete a product from the database.
+async def delete_product(db: AsyncSession, product_id: int) -> None:
+    """Delete a product and its components, commit, then remove their media from storage."""
+    owner_id = (await require_locked_model(db, Product, product_id)).owner_id
+    # Bulk statements over the subtree: the ORM delete cascade would load every
+    # component's media, videos and components one row at a time.
+    subtree = product_subtree_ids(Product.id == product_id)
+    storage_cleanups = await delete_product_media(db, subtree)
+    await delete_product_rows(db, subtree)
 
-    With ``commit=False`` the caller owns the transaction: nothing is committed, the
-    deletion is not audited, and the returned storage cleanups are the caller's to run
-    once its own commit is durable. The committing default returns an empty list.
-    """
-    # Not the loader-profile helpers, and populate_existing so components a detail read
-    # already put in the session under raiseload("*") are reloaded with the relationships
-    # the delete cascade walks at flush time. Whether such stale instances are still in
-    # the identity map depends on garbage collection, so the direct components' walked
-    # relationships (product_type and parent) are loaded here explicitly.
-    db_product = ensure_model_exists(
-        await db.get(
-            Product,
-            product_id,
-            with_for_update=True,
-            populate_existing=True,
-            options=[
-                selectinload(orm_attr(Product.product_type)),
-                selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.product_type)),
-                selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.parent)),
-            ],
-        ),
-        Product,
-        product_id,
-    )
-    storage_cleanups = await delete_product_media(db, product_id)
-
-    owner_id = db_product.owner_id
-    await db.delete(db_product)
     if owner_id is not None:
         await db.flush()
         await recompute_user_upload_quota(db, user_id=owner_id)
         await recompute_user_profile_stats(db, owner_id)
-    if not commit:
-        return storage_cleanups
-
     await db.commit()
     audit_event(owner_id, AuditAction.DELETE, Product, product_id)
     await cleanup_product_media_storage(storage_cleanups)
-    return []

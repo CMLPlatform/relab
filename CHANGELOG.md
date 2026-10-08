@@ -9,6 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
+  `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`, `pages`, `links`)
+  instead of a bare list. Pass `page` and `size` to walk the results.
+- `GET /v1/products/{id}/components/tree` answers 400 when a tree has more than 1,000
+  components; use the paged components route for larger products.
+- Deleting a product, erasing an account with its content, and creating a product with
+  components each take a fixed number of database queries, however many components there are.
 - The web app downloads about 14 KB less JavaScript before its first screen: the image
   lightbox, measurement cube, capture screen and streaming sheet now load when first shown.
 - Photo uploads finish faster: thumbnails are made from one decode of the original, about

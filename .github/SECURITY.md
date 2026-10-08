@@ -84,6 +84,13 @@ Security-sensitive areas:
     than 10 levels is refused as well.
     Owner attribution follows the same profile-visibility redaction as the product page. CSV cells
     that a spreadsheet would read as a formula are prefixed with `'`.
+  - Component reads carry the per-IP read limit, as do the product search and facet routes. The
+    direct list (`/products/{id}/components`) is paged; the tree (`/products/{id}/components/tree`)
+    returns at most 1,000 components across all levels and fails with a `400` past that, checked
+    as each level loads. The category tree routes (`/categories/tree`,
+    `/categories/{id}/subcategories/tree`, `/taxonomies/{id}/categories/tree`) page their
+    top-level categories and carry the same limit. `test_dos_rate_limit_routes.py` requires the
+    read limit on every public route that lists components or returns a tree.
 - cookie-authenticated writes: an unsafe `/v1` request carrying the session cookies, and every
   session login, is refused with 403 when `Sec-Fetch-Site` is `cross-site` or the `Origin` is not
   in the CORS allow-list (`app/core/middleware/cross_site.py`). Requests without either header

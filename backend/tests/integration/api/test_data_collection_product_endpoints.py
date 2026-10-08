@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import status
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from app.api.data_collection.models.product import Product
 from app.api.reference_data.models import Material, ProductType
@@ -134,6 +134,29 @@ async def test_create_product(
     assert data["name"] == NEW_PRODUCT_NAME
     assert data["circularity_properties"]["recyclability"] == RECYCLABILITY_GOOD
     assert "id" in data
+
+
+async def test_create_product_rejects_a_missing_component_material(
+    api_client_superuser: AsyncClient, db_session: AsyncSession, db_superuser: User
+) -> None:
+    """A material id missing anywhere in the tree is a 404 naming it, and nothing is written."""
+    material = Material(name="Steel")
+    db_session.add(material)
+    await db_session.flush()
+    bom = [{"material_id": material.id, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}]
+    missing_bom = [{"material_id": 999_999, "quantity": BOM_QUANTITY, "unit": BOM_UNIT}]
+    payload = {
+        "name": NEW_PRODUCT_NAME,
+        "bill_of_materials": bom,
+        "components": [{"name": COMPONENT_NAME, "amount_in_parent": 1, "bill_of_materials": missing_bom}],
+    }
+
+    response = await api_client_superuser.post("/v1/products", json=payload)
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert "do not exist: 999999" in response.text
+    owned = await db_session.execute(select(Product.id).where(Product.owner_id == db_superuser.id))
+    assert owned.first() is None
 
 
 async def test_create_product_normalizes_empty_circularity_properties(

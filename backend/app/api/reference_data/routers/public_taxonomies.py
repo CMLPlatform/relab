@@ -1,30 +1,28 @@
 """Public taxonomy routers for reference data."""
 
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from fastapi import Depends
-from fastapi_pagination import Page, Params, create_page
+from fastapi_pagination import Page, Params
 from pydantic import PositiveInt
 from sqlalchemy import select
 
+from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.reference_data.crud.categories import count_category_trees, get_category_trees
 from app.api.reference_data.dependencies import CategoryFilterDep, TaxonomyFilterDep
 from app.api.reference_data.models import Category, Taxonomy
 from app.api.reference_data.routers.public_support import (
     RecursionDepthQueryParam,
     ReferenceDataAPIRouter,
-    convert_categories_to_tree,
+    page_category_trees,
 )
 from app.api.reference_data.schemas import CategoryRead, CategoryReadWithRecursiveSubCategories, TaxonomyRead
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from sqlalchemy import Select
 
 router = ReferenceDataAPIRouter(prefix="/taxonomies", tags=["taxonomies"])
@@ -68,6 +66,7 @@ async def get_taxonomy(taxonomy_id: PositiveInt, session: AsyncSessionDep) -> Ta
     "/{taxonomy_id}/categories/tree",
     response_model=Page[CategoryReadWithRecursiveSubCategories],
     summary="Get the category tree of a taxonomy",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 async def get_taxonomy_category_tree(
     taxonomy_id: PositiveInt,
@@ -77,21 +76,8 @@ async def get_taxonomy_category_tree(
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> Page[CategoryReadWithRecursiveSubCategories]:
     """Get paginated top-level categories of a taxonomy with their recursive subcategory trees."""
-    # Page at the query level: fetch and expand only this page's top-level categories rather
-    # than building every subtree in the taxonomy and slicing in Python.
-    total = await count_category_trees(session, taxonomy_id=taxonomy_id, category_filter=category_filter)
-    categories: Sequence[Category] = await get_category_trees(
-        session,
-        recursion_depth,
-        taxonomy_id=taxonomy_id,
-        category_filter=category_filter,
-        offset=(params.page - 1) * params.size,
-        limit=params.size,
-    )
-    tree_items = convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
-    return cast(
-        "Page[CategoryReadWithRecursiveSubCategories]",
-        create_page(tree_items, total=total, params=params),
+    return await page_category_trees(
+        session, params, recursion_depth=recursion_depth, category_filter=category_filter, taxonomy_id=taxonomy_id
     )
 
 

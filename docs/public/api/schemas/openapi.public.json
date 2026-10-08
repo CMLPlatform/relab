@@ -3938,6 +3938,51 @@
         "title": "Page[TaxonomyRead]",
         "type": "object"
       },
+      "Page_TypeVar_Customized_ComponentRead_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ComponentRead"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "links": {
+            "$ref": "#/components/schemas/Links",
+            "readOnly": true
+          },
+          "page": {
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "pages": {
+            "minimum": 0.0,
+            "title": "Pages",
+            "type": "integer"
+          },
+          "size": {
+            "minimum": 1.0,
+            "title": "Size",
+            "type": "integer"
+          },
+          "total": {
+            "minimum": 0.0,
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "size",
+          "pages",
+          "links"
+        ],
+        "title": "Page[TypeVar]Customized[ComponentRead]",
+        "type": "object"
+      },
       "Page_TypeVar_Customized_FileReadWithinParent_": {
         "properties": {
           "items": {
@@ -8156,7 +8201,7 @@
     },
     "/v1/categories/tree": {
       "get": {
-        "description": "Get all base categories and their subcategories in a tree structure.",
+        "description": "Get a page of top-level categories, each with its subcategories in a tree structure.",
         "operationId": "get_categories_tree_v1_categories_tree_get",
         "parameters": [
           {
@@ -8170,6 +8215,29 @@
               "maximum": 5,
               "minimum": 1,
               "title": "Recursion Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
               "type": "integer"
             }
           },
@@ -8443,11 +8511,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CategoryReadWithRecursiveSubCategories"
-                  },
-                  "title": "Response Get Categories Tree V1 Categories Tree Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_CategoryReadWithRecursiveSubCategories_"
                 }
               }
             },
@@ -8734,7 +8798,7 @@
     },
     "/v1/categories/{category_id}/subcategories/tree": {
       "get": {
-        "description": "Get a category subcategories in a tree structure, up to a specified depth.",
+        "description": "Get a page of a category's subcategories in a tree structure, up to a specified depth.",
         "operationId": "get_category_subtree_v1_categories__category_id__subcategories_tree_get",
         "parameters": [
           {
@@ -8758,6 +8822,29 @@
               "maximum": 5,
               "minimum": 1,
               "title": "Recursion Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
               "type": "integer"
             }
           },
@@ -8900,11 +8987,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CategoryReadWithRecursiveSubCategories"
-                  },
-                  "title": "Response Get Category Subtree V1 Categories  Category Id  Subcategories Tree Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_CategoryReadWithRecursiveSubCategories_"
                 }
               }
             },
@@ -16325,7 +16408,7 @@
     },
     "/v1/products/{product_id}/components": {
       "get": {
-        "description": "Get all direct components of a product.",
+        "description": "Get a page of a product's direct components.",
         "operationId": "get_product_components_v1_products__product_id__components_get",
         "parameters": [
           {
@@ -16335,6 +16418,33 @@
             "schema": {
               "exclusiveMinimum": 0,
               "title": "Product Id",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Page number",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Page number",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Page size",
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Page size",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
               "type": "integer"
             }
           },
@@ -16791,11 +16901,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/ComponentRead"
-                  },
-                  "title": "Response Get Product Components V1 Products  Product Id  Components Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_TypeVar_Customized_ComponentRead_"
                 }
               }
             },
@@ -16959,7 +17065,7 @@
     },
     "/v1/products/{product_id}/components/tree": {
       "get": {
-        "description": "Get a product's component subtree as a bounded hierarchical view.",
+        "description": "Get a product's component subtree as a bounded hierarchical view.\n\nA tree with more components than the cap, across all levels, is a 400. Page through\n``/components`` level by level, or use the export, for bigger products.",
         "operationId": "get_product_subtree_v1_products__product_id__components_tree_get",
         "parameters": [
           {
@@ -17448,6 +17554,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "400": {
+            "description": "More than 1,000 components at the requested depth"
           },
           "422": {
             "content": {
