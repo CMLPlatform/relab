@@ -66,6 +66,8 @@ export const handlers = [
     }
     return HttpResponse.json({ items: [], total: 0, page: 1, size: 50, pages: 0 });
   }),
+  // The detail page's weight total. Empty, so the line stays hidden unless a test sets a tree.
+  http.get(`${API_URL}/products/:id/components/tree`, () => HttpResponse.json([])),
   http.get(`${API_URL}/stats/categories`, () =>
     HttpResponse.json({ generated_at: '', limit: 10, scope: 'all', categories: [] }),
   ),

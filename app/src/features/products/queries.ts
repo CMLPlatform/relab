@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { useDialog } from '@/components/base/dialogContext';
 import { baseProductQueryOptions, componentQueryOptions } from '@/features/product-entity/queries';
 import { ApiError } from '@/services/api/errors';
-import { type ProductsQuery, products } from '@/services/api/products';
+import { getComponentTree, type ProductsQuery, products } from '@/services/api/products';
 import {
   fetchProductTypesByName,
   searchProductBrands,
@@ -147,6 +147,17 @@ export const productTypeLabelsQueryOptions = (names: string[]) => {
   });
 };
 
+/**
+ * The component tree under `id`, for the weight total. Null when the API declines a tree
+ * that large. Every save and delete refreshes all cached trees: a change can move a total
+ * several levels up, and the saved record does not know its ancestors.
+ */
+export const componentTreeQueryOptions = (id: number) =>
+  queryOptions({
+    queryKey: ['componentTree', id] as const,
+    queryFn: () => getComponentTree(id),
+  });
+
 // ─── Save / delete mutations ───────────────────────────────────────────────────
 
 function invalidateAfterSave(queryClient: QueryClient, product: Product, savedId: number) {
@@ -156,6 +167,7 @@ function invalidateAfterSave(queryClient: QueryClient, product: Product, savedId
     : baseProductQueryOptions(savedId).queryKey;
   queryClient.invalidateQueries({ queryKey: savedKey });
   queryClient.invalidateQueries({ queryKey: ['products'] });
+  queryClient.invalidateQueries({ queryKey: ['componentTree'] });
 
   // Refresh the parent's components list. Its role is unknown here, so
   // invalidate both cache entries.
@@ -327,6 +339,7 @@ export function useDeleteProductMutation() {
         queryClient.removeQueries({ queryKey: componentQueryOptions(product.id).queryKey });
       }
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['componentTree'] });
 
       // Refresh the parent's components list; its role is unknown, so
       // invalidate both cache entries.

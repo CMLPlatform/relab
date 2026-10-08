@@ -13,6 +13,7 @@ export type ApiComponentDetail =
 // Collection and nested-component payloads.
 export type ApiBaseProductPageItem = components['schemas']['ProductRead'];
 export type ApiComponentChildItem = components['schemas']['ComponentRead'];
+export type ApiComponentTreeItem = components['schemas']['ComponentReadWithRecursiveComponents'];
 export type ApiProductCreate = components['schemas']['ProductCreateWithComponents'];
 export type ApiProductUpdate = components['schemas']['ProductUpdate'];
 // ─── Materials ───────────────────────────────────────────────────────────────

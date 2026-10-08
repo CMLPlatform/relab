@@ -10,6 +10,7 @@ import type {
   ApiBaseProductPageItem,
   ApiComponentChildItem,
   ApiComponentDetail,
+  ApiComponentTreeItem,
   ApiImageRead,
   ApiMaterialLink,
   ApiPaginatedProducts,
@@ -50,7 +51,8 @@ type ProductMapperPayload =
   | ApiBaseProductDetail
   | ApiBaseProductPageItem
   | ApiComponentChildItem
-  | ApiComponentDetail;
+  | ApiComponentDetail
+  | ApiComponentTreeItem;
 
 // Fields mapped identically for base products and components.
 function commonProductFields(data: ProductMapperPayload, meId?: string) {
@@ -147,7 +149,10 @@ function toBaseProduct(
   };
 }
 
-function toComponent(data: ApiComponentChildItem | ApiComponentDetail, meId?: string): Product {
+function toComponent(
+  data: ApiComponentChildItem | ApiComponentDetail | ApiComponentTreeItem,
+  meId?: string,
+): Product {
   const ownerId = data.owner_id;
   return {
     ...commonProductFields(data, meId),
@@ -195,6 +200,25 @@ export async function getComponent(id: number) {
   ]);
   if (!data) throw new ProductNotFoundError(id);
   return toComponent(data, meId);
+}
+
+// The deepest `recursion_depth` the tree route accepts; components can nest deeper.
+const COMPONENT_TREE_DEPTH = 5;
+
+/**
+ * The components under a product or component, five levels deep, with their
+ * children nested. Levels below the fifth arrive as an empty child list. Null when the tree has more components than the API serves
+ * at once (it answers 400 above 1,000).
+ */
+export async function getComponentTree(id: number): Promise<Product[] | null> {
+  const url = new URL(`${baseUrl}/products/${id}/components/tree`);
+  url.searchParams.append('recursion_depth', String(COMPONENT_TREE_DEPTH));
+  const response = await apiFetch(url, { method: 'GET' });
+  if (response.status === 400) return null;
+  if (!response.ok) await throwFromResponse(response, 'Failed to fetch components');
+  const data = (await response.json()) as ApiComponentTreeItem[];
+  // NOTE: no viewer lookup, so `ownedBy` is never 'me'; callers read the measurements only.
+  return data.map((component) => toComponent(component));
 }
 
 export function newProduct(

@@ -69,6 +69,11 @@ front of you) and its mass in grams. Enter what you measured. Leave a field empt
 typing `0`: empty means "not recorded", zero means a weightless or flat object. Sub-gram masses
 (screws, clips) are fine as decimals.
 
+The components list on a record adds up the weights of its components, each times its amount. A
+component you weighed counts as a whole; one you did not weigh counts through its own components.
+If some components have no weight, the list shows the total as "at least" and says how many are
+missing.
+
 The circularity notes ask for three observations. *Disassemblability* is how easily the item comes
 apart and whether doing so damages the parts: tools needed, glued or welded joins, and anything you
 had to break. *Recyclability* and *remanufacturability* are the same kind of observation about the

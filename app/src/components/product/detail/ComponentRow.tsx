@@ -23,16 +23,14 @@ import { getErrorMessage } from '@/utils/errors';
 interface Props {
   component: Product;
   enabled: boolean;
-  /** Internal: nested child rows never expand further (the component list shows one level deep). */
-  nested?: boolean;
   /** Edit mode only: copy this row into a new sibling component. */
   onDuplicate?: () => void;
 }
 
 const THUMBNAIL_SIZE = 44;
 
-/** Component row. Children absent from the parent payload are fetched on first expand. */
-export function ComponentRow({ component, enabled, nested = false, onDuplicate }: Props) {
+/** Component row. Expands to its children, and they to theirs, to any depth; children absent from the parent payload are fetched on first expand. */
+export function ComponentRow({ component, enabled, onDuplicate }: Props) {
   const router = useRouter();
   const theme = useAppTheme();
   const [expanded, setExpanded] = useState(false);
@@ -50,7 +48,7 @@ export function ComponentRow({ component, enabled, nested = false, onDuplicate }
   const fetchedEmpty = wasUnknown && query.isSuccess && childCount === 0;
   // Chevron when children exist, are not loaded yet, or the row is
   // expanded-but-empty (so it can still be collapsed).
-  const canExpand = !nested && (children === undefined || childCount > 0 || fetchedEmpty);
+  const canExpand = children === undefined || childCount > 0 || fetchedEmpty;
 
   const navigate = useCallback(() => {
     if (typeof component.id !== 'number') return;
@@ -209,7 +207,7 @@ function ExpandedBody({
 }): ReactNode {
   if (items && items.length > 0) {
     return items.map((child) => (
-      <ComponentRow key={child.id} component={child} enabled={enabled} nested={true} />
+      <ComponentRow key={child.id} component={child} enabled={enabled} />
     ));
   }
   if (fetchedEmpty) return <ExpandedNote text="No subcomponents" />;

@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { View } from 'react-native';
@@ -7,7 +8,8 @@ import { AppText } from '@/components/base/AppText';
 import { DisclosureRow } from '@/components/base/DisclosureRow';
 import { useDialog } from '@/components/base/dialogContext';
 import { FADE_ENTER, FADE_EXIT, ROW_MOVE } from '@/components/base/motion';
-import { useSaveProductMutation } from '@/features/products/queries';
+import { totalComponentWeight } from '@/features/products/componentWeight';
+import { componentTreeQueryOptions, useSaveProductMutation } from '@/features/products/queries';
 import { newProduct } from '@/services/api/products';
 import { createRequestId } from '@/services/api/request';
 import { entityLabel, type Product } from '@/types/Product';
@@ -96,6 +98,9 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
           This {label} has no subcomponents.
         </AppText>
       )}
+      {typeof product.id === 'number' && components.length > 0 ? (
+        <WeightTotal productId={product.id} />
+      ) : null}
       <LayoutAnimationConfig skipEntering skipExiting>
         {visibleComponents.map((component) => (
           // Always the same wrapper, so a row keeps its identity (and its expanded
@@ -136,5 +141,28 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
         </AppButton>
       )}
     </View>
+  );
+}
+
+const grams = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+
+/** One line with the components' total weight, or why it is partial or missing. Silent while loading or on a failed fetch. */
+function WeightTotal({ productId }: { productId: number }) {
+  const { data: tree } = useQuery(componentTreeQueryOptions(productId));
+  if (tree === undefined) return null;
+  let text: string;
+  if (tree === null) {
+    text = 'Too many components to total their weight.';
+  } else {
+    const { grams: total, missing } = totalComponentWeight(tree);
+    const without = `${missing} ${missing === 1 ? 'component has' : 'components have'} no weight`;
+    if (missing === 0) text = `Components weigh ${grams.format(total)} g in total.`;
+    else if (total === 0) text = `No total weight yet: ${without}.`;
+    else text = `Components weigh at least ${grams.format(total)} g: ${without}.`;
+  }
+  return (
+    <AppText variant="label" className="mb-2 text-muted-foreground">
+      {text}
+    </AppText>
   );
 }

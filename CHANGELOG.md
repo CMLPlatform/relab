@@ -19,6 +19,14 @@ chmod 644 "secrets/$env/cloudflare_tunnel_token"
 Then delete the `CLOUDFLARE_TUNNEL_TOKEN` line from `.env`. Until the file exists, `up`
 stops before touching the running stack and prints these steps.
 
+### Added
+
+- On a product or component page, each component row now expands to show its own
+  components, and theirs, as deep as the breakdown goes.
+- The components list shows the total weight of the components, from the weights recorded on
+  each one times its amount. When some components have no weight, it says how many and shows
+  the total as a lower bound.
+
 ### Changed
 
 - **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
