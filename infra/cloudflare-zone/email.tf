@@ -54,3 +54,17 @@ resource "cloudflare_email_routing_rule" "forward" {
 
   depends_on = [cloudflare_email_routing_address.destination]
 }
+
+# DMARC in monitoring mode: reports only, no mail is rejected. Outbound mail is signed by the
+# sending provider, whose DKIM and SPF records are added by hand, not here.
+resource "cloudflare_dns_record" "dmarc" {
+  count = local.email_enabled ? 1 : 0
+
+  zone_id = var.cloudflare_zone_id
+  name    = "_dmarc.${var.cloudflare_zone_name}"
+  type    = "TXT"
+  # Quoted, as Cloudflare recommends for TXT content.
+  content = "\"v=DMARC1; p=none; rua=mailto:info@${var.cloudflare_zone_name}\""
+  ttl     = 1
+  comment = "R9lab DMARC policy managed by OpenTofu."
+}

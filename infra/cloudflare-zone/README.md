@@ -8,7 +8,8 @@ Zone-scoped configuration for each R9lab zone (`r9lab.io`, `cml-relab.org`), man
 - on the old zone only, when `redirect_to_zone_name` is set: the `http_request_dynamic_redirect`
   ruleset that sends its R9lab hostnames to the new zone (see
   [Redirecting the old zone](#redirecting-the-old-zone))
-- Email Routing (switch, DNS records, destination addresses and rules), when `email_forwards` is set
+- Email Routing (switch, DNS records, destination addresses and rules) and a DMARC record, when
+  `email_forwards` is set (see [Mail](#mail))
 
 ## Why this is a separate root
 
@@ -99,6 +100,19 @@ so each environment keeps serving from the old zone until its own window:
 
 After each apply, `just smoke-redirects cml-relab.org r9lab.io <env>` checks the live redirects
 for that environment.
+
+## Mail
+
+`email_forwards` turns on Email Routing for inbound mail and publishes a DMARC record,
+`_dmarc.<zone>`, in monitoring mode: `p=none`, with aggregate reports sent to `info@<zone>`. A
+`_dmarc` record made by hand in the dashboard makes the apply fail with "already exists"; delete
+it or import it as `cloudflare_dns_record.dmarc[0]` first.
+
+After two weeks of reports that show only the expected senders passing, raise the policy to
+`p=quarantine` in `email.tf`.
+
+Outbound mail is signed by the sending provider. Its DKIM record and its SPF include are added
+by hand, not here: keep one SPF record, merging the include into the one Email Routing creates.
 
 ## Rules adopted from the hand-configured zone
 

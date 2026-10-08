@@ -46,6 +46,14 @@ run "forwards_info" {
     condition     = cloudflare_email_routing_rule.forward["info"].actions[0].value == tolist(["relab@cml.leidenuniv.nl"])
     error_message = "the rule must forward to the configured destination."
   }
+  assert {
+    condition = alltrue([
+      cloudflare_dns_record.dmarc[0].name == "_dmarc.r9lab.io",
+      cloudflare_dns_record.dmarc[0].type == "TXT",
+      cloudflare_dns_record.dmarc[0].content == "\"v=DMARC1; p=none; rua=mailto:info@r9lab.io\"",
+    ])
+    error_message = "a zone that receives mail must publish a monitoring DMARC policy."
+  }
 }
 
 run "shared_destination_has_one_address" {
@@ -81,6 +89,7 @@ run "no_routing_by_default" {
       length(cloudflare_email_routing_dns.this) == 0,
       length(cloudflare_email_routing_address.destination) == 0,
       length(cloudflare_email_routing_rule.forward) == 0,
+      length(cloudflare_dns_record.dmarc) == 0,
     ])
     error_message = "an empty email_forwards map must manage no Email Routing resources."
   }
