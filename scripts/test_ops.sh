@@ -1273,6 +1273,23 @@ assert_eq "no response from the new host fails" "1|FAIL[app.r9lab.io]: no respon
 assert_eq "permanent maps 302 to 301" "301" "$(expected_status 302 1)"
 assert_eq "permanent maps 307 to 308" "308" "$(expected_status 307 1)"
 assert_eq "temporary keeps the status" "307" "$(expected_status 307 0)"
+# route_prefixes is a hand copy of infra/cloudflare/hostnames.tf; a route added there must
+# be smoke-checked too. api keeps its method, so it redirects with 307, the rest with 302.
+hcl_routes() {
+    awk -v env="$1" '
+        /^[[:space:]]*(prod|staging)[[:space:]]*=[[:space:]]*[{]/ { cur = $1 }
+        /^[[:space:]]*[a-z]+[[:space:]]*=[[:space:]]*[{]/ { name = $1 }
+        cur == env && /^[[:space:]]*hostname[[:space:]]*=/ {
+            h = $0
+            sub(/^[^=]*=[[:space:]]*/, "", h)
+            gsub(/"/, "", h)
+            sub(/(\$[{])?local[.]cloudflare_zone[}]?$/, "", h)
+            print h ":" (name == "api" ? 307 : 302)
+        }' infra/cloudflare/hostnames.tf
+}
+for env in prod staging; do
+    assert_eq "smoke hosts for $env match hostnames.tf" "$(hcl_routes "$env")" "$(route_prefixes "$env")"
+done
 # An unknown environment must fail before any request, not pass with nothing checked.
 out="$(TELEMETRY_EDGE_KEY='' bash scripts/smoke_redirects.sh cml-relab.org r9lab.io stagign 2>&1)"
 assert_eq "an unknown environment fails" "2|env must be prod or staging" "$?|$out"

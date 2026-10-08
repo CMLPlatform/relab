@@ -106,6 +106,34 @@ run "only_route_hosts_redirected" {
   }
 }
 
+run "each_rule_targets_its_own_host" {
+  command = plan
+
+  variables {
+    redirect_environments = ["prod", "staging"]
+  }
+
+  # Literal pairs on purpose: a target built the same way as the rule would repeat its bugs.
+  assert {
+    condition = {
+      for rule in cloudflare_ruleset.redirects[0].rules :
+      rule.expression => rule.action_parameters.from_value.target_url.expression
+      } == {
+      for old, new in {
+        "cml-relab.org"           = "https://r9lab.io"
+        "app.cml-relab.org"       = "https://app.r9lab.io"
+        "api.cml-relab.org"       = "https://api.r9lab.io"
+        "docs.cml-relab.org"      = "https://docs.r9lab.io"
+        "web-test.cml-relab.org"  = "https://web-test.r9lab.io"
+        "app-test.cml-relab.org"  = "https://app-test.r9lab.io"
+        "api-test.cml-relab.org"  = "https://api-test.r9lab.io"
+        "docs-test.cml-relab.org" = "https://docs-test.r9lab.io"
+      } : "http.host eq \"${old}\"" => "concat(\"${new}\", http.request.uri.path)"
+    }
+    error_message = "each old host must redirect to the same prefix on the new zone."
+  }
+}
+
 run "no_redirects_by_default" {
   command = plan
 
