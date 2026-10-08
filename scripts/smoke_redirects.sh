@@ -3,6 +3,7 @@
 # expected status and a Location on the same host prefix of the new zone, path and query
 # kept. The monitoring host must never redirect, because a 3xx drops exporter POSTs.
 # Usage: smoke_redirects.sh <old_zone> <new_zone> <prod|staging>
+# TELEMETRY_EDGE_KEY (as in the deploy host's root .env) enables the otel check.
 # REDIRECT_PERMANENT=1 expects 301/308 instead of 302/307, mirroring var.redirect_permanent.
 set -euo pipefail
 
@@ -83,11 +84,18 @@ smoke_main() {
     done
 
     # Monitoring posts to this host; any redirect or edge challenge breaks ingestion.
-    local headers
-    headers="$(curl -sS -o /dev/null -D - --max-redirs 0 --max-time 15 -X POST \
-        "https://otel.${old_zone}/v1/logs")" || headers=''
-    code="$(sed -n '1s/^HTTP[^ ]* \([0-9]*\).*/\1/p' <<<"$headers")"
-    otel_verdict "otel.${old_zone}" "$code" "$headers" >&2 || failed=1
+    # The zone's bot-skip rule for telemetry only matches requests with this header. It goes
+    # in through a process-substitution file so it never shows in the process list.
+    if [[ -z "${TELEMETRY_EDGE_KEY:-}" ]]; then
+        printf 'WARN: TELEMETRY_EDGE_KEY is not set; skipping the otel.%s check\n' "$old_zone" >&2
+    else
+        local headers
+        headers="$(curl -sS -o /dev/null -D - --max-redirs 0 --max-time 15 -X POST \
+            -H @<(printf 'X-Telemetry-Key: %s\n' "$TELEMETRY_EDGE_KEY") \
+            "https://otel.${old_zone}/v1/logs")" || headers=''
+        code="$(sed -n '1s/^HTTP[^ ]* \([0-9]*\).*/\1/p' <<<"$headers")"
+        otel_verdict "otel.${old_zone}" "$code" "$headers" >&2 || failed=1
+    fi
 
     [[ "$failed" -eq 0 ]] || return 1
     printf 'redirects ok\n'

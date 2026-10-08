@@ -478,7 +478,7 @@ env-inventory:
 deploy-secrets-check:
     @bash scripts/deploy_ops.sh deploy-secrets-check
 
-# Check that every old-zone host redirects to the new zone (REDIRECT_PERMANENT=1 expects 301/308)
+# Check that every old-zone host redirects to the new zone (REDIRECT_PERMANENT=1 expects 301/308; TELEMETRY_EDGE_KEY enables the otel check)
 [group('deploy')]
 [doc('Smoke-check the old-zone redirects after a cutover step')]
 smoke-redirects old_zone='cml-relab.org' new_zone='r9lab.io' env='prod':
