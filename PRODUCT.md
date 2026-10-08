@@ -171,8 +171,10 @@ collides with the pilot image count by coincidence. Never conflate them.
 
 ## Brand commitments
 
-- **The name is "R9lab" in all text:** copy, titles, alt text, aria-labels, metadata. The drawn 9
-  in the wordmark reads as a mirrored "e" and nods to the 9R strategies. Never write "R-nine-lab".
+- **The name is "R9lab" in all text:** copy, titles, alt text, aria-labels, metadata. It is
+  pronounced "Relab": the drawn 9 in the wordmark reads as a mirrored "e" and nods to the 9R
+  strategies. Never write "R-nine-lab". The accessibility page tells screen-reader users the
+  pronunciation; labels carry the plain name.
 - **Never write "Reverse Engineering Lab".** This is an IP-law concern, not a style preference.
 - **The name, logo, and wordmark carry no licence.** Nominative use needs no permission.
 - **Direction: "Cyanotype & Manila", the colour of engineering documentation.** "Verdigris &

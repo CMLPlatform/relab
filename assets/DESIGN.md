@@ -198,9 +198,10 @@ derivatives regenerate from the same pipeline.
 ## Voice
 
 The name is **"R9lab"** in all text: running copy, titles, alt text, and
-aria-labels. In the wordmark the squished 9 reads as a mirrored "e" and nods
-to the 9R framework of circular-economy strategies, R0–R9. Never write
-"R-nine-lab" or "Reverse Engineering Lab".
+aria-labels. It is pronounced "Relab": in the wordmark the squished 9 reads as
+a mirrored "e" and nods to the 9R framework of circular-economy strategies,
+R0–R9. Never write "R-nine-lab" or "Reverse Engineering Lab", and don't add a
+pronunciation hint to labels (an accessible name must match the visible text).
 
 Circularity framing, lab vernacular (products, components, materials,
 samples); never "reverse engineering" in new copy.

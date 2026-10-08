@@ -18,6 +18,8 @@ move its line from "What we have not checked" to "What we check". -->
 
 ## How accessible R9lab is
 
+R9lab is pronounced “Relab”. Screen readers may read the name as “R nine lab”.
+
 R9lab aims to meet WCAG 2.2, level AA. It is partially conformant: some of it meets that standard and some has not been assessed.
 
 We target 2.2 because Leiden University’s public sites fall under the EU Web Accessibility Directive through EN 301 549.
