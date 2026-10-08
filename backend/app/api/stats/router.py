@@ -1,6 +1,6 @@
 """Public system-wide stats endpoints."""
 
-from datetime import date
+from datetime import date  # noqa: TC003 # FastAPI reads the query parameter annotations at runtime
 from typing import Annotated, Literal
 
 from fastapi import HTTPException, Query
@@ -50,13 +50,11 @@ async def get_stats_categories(
 async def get_stats_series(
     session: AsyncSessionDep,
     granularity: Granularity = Query(default="month"),
-    start: Annotated[str | None, Query(pattern=r"^\d{4}-\d{2}-\d{2}$")] = None,
-    end: Annotated[str | None, Query(pattern=r"^\d{4}-\d{2}-\d{2}$")] = None,
+    start: date | None = None,
+    end: date | None = None,
 ) -> SeriesResponse:
     """Time-bucketed activity series. Granularity: day | week | month | year."""
-    start_date = date.fromisoformat(start) if start else None
-    end_date = date.fromisoformat(end) if end else None
-    effective_start, effective_end = resolve_date_range(granularity, start_date, end_date)
+    effective_start, effective_end = resolve_date_range(granularity, start, end)
 
     if effective_start > effective_end:
         raise HTTPException(status_code=422, detail="start must not be after end")
