@@ -111,7 +111,8 @@ jobs:
   # Tracks the survivor count rather than gating on it: it never reaches zero. Triage
   # the functions listed above baseline, then rebaseline (backend/tests/README.md).
   # One run over the whole app outlasts a job's time limit, so it is sharded by
-  # mutant name; the globs must cover every package under app/ exactly once.
+  # mutant name; the globs must cover every package under app/ exactly once. Each
+  # shard took at most ~100 minutes on a hosted runner.
   backend-mutation:
     name: Backend Mutation Testing (${{ matrix.shard }})
     if: github.event.schedule == '0 2 1 * *' || inputs.operation == 'mutation'
@@ -126,13 +127,20 @@ jobs:
           - shard: auth-core
             mutants: app.api.auth.services.[!e-o]* app.api.auth.[!s]* app.api.auth.schemas*
           - shard: plugins
-            mutants: app.api.plugins.*
-          - shard: common
-            mutants: app.api.common.* app.api.stats.* app.api.application.* app.api.reference_data.*
+            mutants: app.api.p*
           - shard: data
-            mutants: app.api.data_collection.* app.api.file_storage.*
-          - shard: core
-            mutants: app.core.*
+            mutants: app.api.d* app.api.f*
+          # Catch-all, so a new app.api package always lands in some shard.
+          - shard: common
+            mutants: app.api.[!adfp]* app.api.application*
+          # Nearly every API test passes through the middleware and runtime, which makes
+          # each of their mutants slow; app.core needs three shards to fit the limit.
+          - shard: core-middleware
+            mutants: app.core.m*
+          - shard: core-runtime
+            mutants: app.core.l* app.core.t* app.core.ru*
+          - shard: core-rest
+            mutants: app.core.[!lmrt]* app.core.r[!u]*
     steps:
       - name: Checkout trusted workflow ref
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
