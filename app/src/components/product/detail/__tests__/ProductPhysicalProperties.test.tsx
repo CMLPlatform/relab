@@ -77,9 +77,9 @@ describe('ProductPhysicalProperties', () => {
     expect(onChangePhysicalProperties).toHaveBeenCalledWith({ weight: 750 });
   });
 
-  // Regression: the row built a whole object from the rendered product, so a
-  // second blur arriving before the parent re-rendered rebuilt from the
-  // pre-edit values and reverted the first field.
+  // The row must send a patch, not a whole object built from the rendered
+  // product: a second blur arriving before the parent re-renders would rebuild
+  // from the pre-edit values and revert the first field.
   it('does not revert an earlier edit when a second field commits before a re-render', async () => {
     let merged: PhysicalProperties = { ...baseProduct.physicalProperties };
     const onChangePhysicalProperties = jest.fn((patch: Partial<PhysicalProperties>) => {
@@ -106,10 +106,10 @@ describe('ProductPhysicalProperties', () => {
   });
 
   it('renders measurements as spec rows, not disabled inputs, when editMode is false', async () => {
-    // View mode used to render a disabled TextInput per measurement, which reads
-    // as a form control to assistive tech when there is nothing to fill in, and
-    // missed the Spec Row treatment DESIGN.md calls the app's signature. The
-    // value now renders as text with its unit.
+    // View mode renders each value as text with its unit. A disabled TextInput
+    // per measurement reads as a form control to assistive tech when there is
+    // nothing to fill in, and misses the Spec Row treatment DESIGN.md calls the
+    // app's signature.
     await renderWithProviders(<ProductPhysicalProperties product={baseProduct} editMode={false} />);
     expect(screen.queryByDisplayValue('500')).toBeNull();
     expect(screen.getByText('500 g')).toBeOnTheScreen();
@@ -139,9 +139,9 @@ describe('ProductPhysicalProperties', () => {
 
 describe('ProductPhysicalProperties validation messages', () => {
   // A zero is the one invalid value the input will actually hand to the form:
-  // the field pattern rejects a minus sign, and blank is allowed. Before this,
-  // a zero looked identical to a valid entry and the only feedback was the save
-  // FAB refusing to submit, with nothing naming the offending field.
+  // the field pattern rejects a minus sign, and blank is allowed. Without these
+  // messages a zero looks identical to a valid entry and the only feedback is the
+  // save FAB refusing to submit, with nothing naming the offending field.
   const zeroWeight: Product = {
     ..._base,
     physicalProperties: { width: 10, height: 5, depth: 3, weight: 0 },

@@ -162,14 +162,13 @@ test('tabs carry a web focus-visible ring', async () => {
   const className = screen.getByLabelText('Products').props.className as string;
   // Asserts the outline mechanism, not `ring`. Tailwind's ring compiles to a
   // box-shadow layer that never composed here (these controls also carry
-  // `shadow-none`), so the old assertion passed while focus painted nothing at
+  // `shadow-none`), so asserting `ring` passes while focus paints nothing at
   // all. Outline cannot be clipped and does not depend on shadow composition.
   expect(className).toEqual(expect.stringContaining('focus-visible:outline-2'));
   expect(className).toEqual(expect.stringContaining('focus-visible:outline-ring'));
-  // The style utility is the one that was missing and made the indicator
-  // invisible while width and colour computed correctly. A class-string test
-  // cannot prove it paints (see the e2e focus test for that), but it can stop
-  // this specific utility being dropped again.
+  // Without the style utility the indicator is invisible even though width and
+  // colour compute correctly. A class-string test cannot prove it paints (see
+  // the e2e focus test for that), but it can stop this utility being dropped.
   expect(className).toEqual(expect.stringContaining('focus-visible:outline-solid'));
   restorePlatform();
 });

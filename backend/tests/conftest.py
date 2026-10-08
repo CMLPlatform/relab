@@ -95,7 +95,6 @@ def pytest_configure(config: pytest.Config) -> None:
     if config.option.collectonly:
         return
 
-    # Initialize logging for the test session
     setup_logging()
 
     if _is_xdist_worker(config):

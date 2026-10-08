@@ -179,7 +179,7 @@ async def test_backfill_measures_images_stored_before_dimensions_existed(
     assert response.status_code == status.HTTP_201_CREATED, response.text
     image_id = response.json()["id"]
 
-    # Put the row back the way an upload before this feature would have left it.
+    # Clear the dimensions, as on an image stored before uploads recorded them.
     await db_session.execute(update(Image).where(Image.id == UUID(image_id)).values(width_px=None, height_px=None))
     await db_session.commit()
 

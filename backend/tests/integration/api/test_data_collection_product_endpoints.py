@@ -484,9 +484,9 @@ async def test_delete_product_with_components(
 ) -> None:
     """DELETE /products/{id} removes a product that still has two levels of components.
 
-    Detail reads load a product's components under ``raiseload("*")``. The delete used
-    to hand those stale instances to the flush, which walked ``product_type`` on them
-    and raised ``lazy='raise'``, but only when a component made the cascade walk at all.
+    Detail reads load a product's components under ``raiseload("*")``. The delete must
+    not hand those stale instances to the flush: walking ``product_type`` on them raises
+    ``lazy='raise'``, but only when a component makes the cascade walk at all.
     """
     created = await api_client_superuser.post("/v1/products", json={"name": PRODUCT_BASE_NAME})
     assert created.status_code == status.HTTP_201_CREATED, created.text
@@ -507,10 +507,10 @@ async def test_delete_product_with_components(
     assert sub_component.status_code == status.HTTP_201_CREATED, sub_component.text
     component_ids.append(sub_component.json()["id"])
 
-    # The detail read is what makes this a regression test: it is the only route that
+    # The detail read is what lets this test catch the failure: it is the only route that
     # applies raiseload("*"), leaving the components in this session's identity map as
-    # the stale instances the delete then hands to the flush. Without it the test passes
-    # against the unfixed code.
+    # stale instances the delete could hand to the flush. Without it the test passes
+    # even when the delete reuses them.
     detail = await api_client_superuser.get(f"/v1/products/{product_id}")
     assert detail.status_code == status.HTTP_200_OK, detail.text
 

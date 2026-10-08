@@ -214,7 +214,7 @@ describe('LivePreview', () => {
     });
   });
 
-  // Regression: expo-video's useVideoPlayer releases the player itself on
+  // expo-video's useVideoPlayer releases the player itself on
   // unmount. Releasing it again here would double-release the native object.
   it('leaves the player release to useVideoPlayer on unmount', async () => {
     const { unmount } = await renderPreview(<LivePreview camera={CAMERA} />);

@@ -34,8 +34,8 @@ describe('authUser', () => {
     oauth_accounts: [],
   };
 
-  // Regression: getUser re-checked authGeneration before the parse but not
-  // after, so a logout landing mid-body resurrected the signed-out user.
+  // getUser must re-check authGeneration after the parse, not only before it:
+  // a logout landing mid-body would otherwise resurrect the signed-out user.
   it('does not resurrect the user when a logout lands while the body is parsing', async () => {
     fetchWithAuth.mockResolvedValue({
       ok: true,
@@ -56,7 +56,7 @@ describe('authUser', () => {
     expect(setWebSessionFlag).not.toHaveBeenCalledWith(true);
   });
 
-  // Regression: a successful authenticated fetch proves a live session, so it
+  // A successful authenticated fetch proves a live session, so it
   // must re-arm the transparent 401 refresh that a failed refresh disabled.
   it('clears explicitlyLoggedOut when an authenticated fetch succeeds', async () => {
     authRuntime.explicitlyLoggedOut = true;

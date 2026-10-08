@@ -203,7 +203,7 @@ describe('AccountScreen', () => {
   it('folds the stats row into the header (no separate Profile section)', async () => {
     const { findByText, queryByText } = await renderAccount();
     // product_count: 3 from the getPublicProfile mock; proves stats render
-    // in the header now that the standalone "profile" section is gone.
+    // in the header, with no standalone "profile" section.
     expect(await findByText('3')).toBeTruthy();
     expect(queryByText('Profile')).toBeNull();
   });

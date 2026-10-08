@@ -121,9 +121,9 @@ describe('useProductEditShortcuts', () => {
     expect(onExit).toHaveBeenCalled();
   });
 
-  // Regression: only the "e" branch consulted isDialogOpen, so Escape behind an
-  // open dialog closed it AND exited the page, and Cmd/Ctrl+S saved and
-  // navigated from under the scrim.
+  // Every shortcut branch must consult isDialogOpen, not only "e": otherwise
+  // Escape behind an open dialog closes it AND exits the page, and Cmd/Ctrl+S
+  // saves and navigates from under the scrim.
   it('leaves Escape and Cmd/Ctrl+S to an open dialog', async () => {
     Object.defineProperty(globalThis, 'document', {
       configurable: true,
@@ -163,8 +163,9 @@ describe('useProductEditShortcuts', () => {
     expect(preventDefault).toHaveBeenCalled();
   });
 
-  // Regression: text fields commit on blur, and Cmd+S fired while the caret was
-  // still in one, so the save went out without the text just typed there.
+  // Text fields commit on blur, and Cmd+S can fire while the caret is still in
+  // one. The focused field must commit first, or the save goes out without the
+  // text just typed there.
   it('commits the focused field before saving on Cmd/Ctrl+S', async () => {
     const saved: string[] = [];
     let commit: (text: string) => void = () => {};

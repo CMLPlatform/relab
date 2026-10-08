@@ -29,10 +29,10 @@ afterEach(() => {
 });
 
 describe('useVerifyEmail post-verify redirect', () => {
-  // Regression: the redirect chained `refetch(true).then(() => replace(...))`
-  // with no catch, so a transient refetch rejection stranded the signed-in user
-  // on the success screen forever (plus an unhandled rejection). It must navigate
-  // regardless of the refetch outcome.
+  // The redirect must navigate regardless of the refetch outcome. Chaining
+  // `refetch(true).then(() => replace(...))` with no catch lets a transient
+  // refetch rejection strand the signed-in user on the success screen forever
+  // (plus an unhandled rejection).
   it('navigates to /products even when the post-verify refetch rejects', async () => {
     mockVerify.mockImplementation(async () => undefined);
     mockRefetch.mockImplementation(async () => {

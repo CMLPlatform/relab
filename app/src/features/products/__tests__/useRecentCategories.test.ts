@@ -26,9 +26,9 @@ test('strips allChildren before persisting — only read by live cpvClass filter
   expect(result.current.recents[0]).toMatchObject({ id: 1, allChildren: [] });
 });
 
-// Sign-out used to drop only the AsyncStorage key, leaving the picks in
-// memory: on a shared device the next user saw them and the next write
-// persisted them straight back.
+// Sign-out must clear the picks in memory, not only the AsyncStorage key:
+// on a shared device the next user would see them and the next write would
+// persist them straight back.
 test('sign-out empties the live store, not just its persisted copy', async () => {
   const { result } = await renderHook(() => useRecentCategories());
   await act(() => {

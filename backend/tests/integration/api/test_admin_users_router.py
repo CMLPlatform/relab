@@ -42,7 +42,7 @@ class TestAdminUsersAuthorization:
         response = await api_client_superuser.get(ADMIN_USERS)
         assert response.status_code == 200
 
-    # Regression: the router-level superuser gate is the ONLY authorization on
+    # The router-level superuser gate is the ONLY authorization on
     # these routes. Delete it and a regular user reaches the handler (200);
     # requiring a denial here fails that mutation. The fixture overrides the
     # regular-user deps but not the superuser one, so the real superuser dep
@@ -95,8 +95,8 @@ class TestAdminUsersAuthorization:
 class TestAdminUsersNotFound:
     """A well-formed but absent user id returns 404, not a 500."""
 
-    # Regression: the handlers called user_manager.get directly, so a missing id
-    # raised UserNotExists straight into the catch-all handler as a 500.
+    # A handler that calls user_manager.get directly lets a missing id raise
+    # UserNotExists straight into the catch-all handler as a 500.
     @pytest.mark.parametrize(
         ("method", "path_suffix"),
         [("get", "/{uid}"), ("patch", "/{uid}"), ("delete", "/{uid}"), ("post", "/{uid}/mfa/reset")],
@@ -169,7 +169,7 @@ class TestAdminUsersActions:
 
 @dataclass(slots=True)
 class ErasureSubject:
-    """A user together with everything that used to block their deletion."""
+    """A user together with the products, components and camera that must not block their deletion."""
 
     user: User
     product: Product
@@ -255,7 +255,7 @@ class TestAdminUserErasure:
         )
         assert not await _row_exists(db_session, select(User.id).where(User.id == subject.user.id))
         assert not await _row_exists(db_session, select(Camera.id).where(Camera.id == subject.camera.id))
-        # Regression: product-deletion audit rows must name the acting admin, not
+        # Product-deletion audit rows must name the acting admin, not
         # the erased user whose data is being removed. Only base products are
         # audited individually; components are removed as part of the subtree.
         audited_ids = {call.args[3] for call in log_audit.call_args_list}

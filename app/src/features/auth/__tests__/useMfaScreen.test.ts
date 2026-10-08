@@ -21,8 +21,8 @@ afterEach(() => {
 });
 
 describe('useMfaScreen guards', () => {
-  // Regression: the guard read `isSubmitting` from state, so two submits in the
-  // same tick both saw the stale `false`. A TOTP code is single-use; the second
+  // The guard must not read `isSubmitting` from state: two submits in the same
+  // tick both see the stale `false`. A TOTP code is single-use; the second
   // request burns it and the user sees "Invalid MFA code" after a real success.
   it('ignores a second submit while the first is in flight', async () => {
     mockPending.mockReturnValue({ status: 'mfa_required', mfaToken: 'tok' });
@@ -50,9 +50,9 @@ describe('useMfaScreen guards', () => {
     });
   });
 
-  // Regression: the pending login was re-read from its module slot on every
-  // render, so clearing it after a correct code flashed "session has ended"
-  // while the auth refetch was still in flight.
+  // The pending login must not be re-read from its module slot on every render:
+  // clearing it after a correct code would flash "session has ended" while the
+  // auth refetch is still in flight.
   it('keeps the challenge it opened with once the pending login is cleared', async () => {
     mockPending.mockReturnValue({ status: 'mfa_required', mfaToken: 'tok' });
     mockComplete.mockResolvedValue(undefined);

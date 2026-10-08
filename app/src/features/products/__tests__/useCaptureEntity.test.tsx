@@ -491,7 +491,7 @@ describe('useCaptureEntity', () => {
     });
   });
 
-  // TDD for the offline-queued acknowledgment: a paused mutation must not
+  // A paused mutation must not
   // just leave the Create button spinning; the screen surfaces it (a toast,
   // fired once) and exposes isPaused so the button can swap its label.
   it('exposes isPaused and toasts once when the save mutation pauses offline', async () => {

@@ -23,8 +23,8 @@ class TestLoadUserPreferences:
         assert load_user_preferences(None) == UserPreferences()
         assert load_user_preferences("garbage") == UserPreferences()
 
-    # Regression: a stored value that no longer validates used to 500 the read
-    # unless the offending key was exactly profile_visibility.
+    # A stored value that fails validation must not 500 the read, whichever key
+    # holds it, not only profile_visibility.
     def test_a_bad_non_visibility_value_reverts_to_that_field_default(self) -> None:
         """A bad non-visibility value reverts to that field's default."""
         prefs = load_user_preferences({"theme_mode": "midnight", "email_updates_enabled": True})
@@ -32,7 +32,7 @@ class TestLoadUserPreferences:
         # Sibling valid keys survive.
         assert prefs.email_updates_enabled is True
 
-    # Regression: legacy keys from before extra="forbid" must not 500 a read.
+    # Keys stored before the model set extra="forbid" must not 500 a read.
     def test_a_legacy_unknown_key_is_dropped(self) -> None:
         """A legacy unknown key is dropped, not raised."""
         prefs = load_user_preferences({"stats_cache": {"n": 1}, "profile_visibility": "private"})

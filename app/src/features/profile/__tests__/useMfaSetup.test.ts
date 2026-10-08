@@ -154,8 +154,8 @@ describe('useMfaSetup regenerate', () => {
 });
 
 describe('useMfaSetup guards', () => {
-  // Regression: the `busy` single-flight guard had zero coverage. A double tap
-  // must not submit the same single-use TOTP code twice.
+  // The `busy` single-flight guard: a double tap must not submit the same
+  // single-use TOTP code twice.
   it('ignores a second confirm while the first is in flight', async () => {
     mockStart.mockResolvedValue(SETUP);
     let release: (value: string[]) => void = () => {};
@@ -212,7 +212,7 @@ describe('useMfaSetup guards', () => {
     });
   });
 
-  // Regression: the shared secret was held through the recovery-codes screen.
+  // The shared secret must not outlive enrollment into the recovery-codes screen.
   it('drops the TOTP secret as soon as enrollment is confirmed', async () => {
     mockStart.mockResolvedValue(SETUP);
     mockConfirm.mockResolvedValue(CODES);
@@ -229,7 +229,7 @@ describe('useMfaSetup guards', () => {
     expect(result.current.recoveryCodes).toEqual(CODES);
   });
 
-  // Regression: reset() clearing the one-time recovery codes was never driven.
+  // reset() must clear the one-time recovery codes.
   it('clears the recovery codes when the dialog is closed', async () => {
     mockStart.mockResolvedValue(SETUP);
     mockConfirm.mockResolvedValue(CODES);
@@ -247,9 +247,9 @@ describe('useMfaSetup guards', () => {
     expect(result.current.mode).toBe('idle');
   });
 
-  // Regression: a refetch failure after disableTotp already succeeded was
-  // reported as "That code didn't match", stranding the dialog against a server
-  // that had already turned MFA off.
+  // A refetch failure after disableTotp succeeded must not be reported as
+  // "That code didn't match": that strands the dialog against a server that
+  // has already turned MFA off.
   it('does not blame the code when the post-disable refetch fails', async () => {
     mockDisable.mockResolvedValue(undefined);
     const onChange = jest.fn(() => {

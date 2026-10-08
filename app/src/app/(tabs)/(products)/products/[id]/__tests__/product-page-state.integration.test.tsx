@@ -232,8 +232,8 @@ describe('ProductPage state handling', () => {
     await unmount();
   });
 
-  // Regression: States rendered `{String(error) || fallback}`, so a non-Error
-  // value showed "[object Object]" and the friendly fallback was dead code.
+  // States must not render `{String(error) || fallback}`: a non-Error value
+  // shows "[object Object]" and the friendly fallback becomes dead code.
   it('renders the friendly fallback when the error is not an Error', async () => {
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,

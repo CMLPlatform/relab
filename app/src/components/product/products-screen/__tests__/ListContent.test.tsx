@@ -67,7 +67,7 @@ describe('ProductsListContent skeleton handoff', () => {
     expect(getHostByType('RCTScrollView')).toBeTruthy();
   });
 
-  // Regression guard for the crash above: `entering`/`layout` must never land
+  // Guards against the crash above: `entering`/`layout` must never land
   // directly on the virtualized FlatList itself, only on the wrapper.
   it('never applies a layout animation to the FlatList itself', async () => {
     await renderList();
@@ -270,7 +270,7 @@ describe('ProductsListContent empty state', () => {
     // The photo is decorative (aria-hidden), so opt into hidden elements.
     expect(screen.getByTestId('expo-image-bg', { includeHiddenElements: true })).toBeOnTheScreen();
     // Jest maps every image asset to `1`, so assert the wordmark footprint
-    // (wide, not the old square "9" mark) rather than the source path.
+    // (wide, not a square mark) rather than the source path.
     const wordmark = screen.getByTestId('expo-image', { includeHiddenElements: true });
     expect(wordmark.props.style.width).toBeGreaterThan(wordmark.props.style.height * 2);
   });

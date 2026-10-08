@@ -247,8 +247,8 @@ describe('useProfileScreen', () => {
     );
   });
 
-  // Regression: "Sign out everywhere" used to fire on a single tap, with no
-  // confirmation, while the milder logout and unlink both asked first.
+  // "Sign out everywhere" must ask for confirmation, as the milder logout and
+  // unlink do; a single tap must not fire it.
   it('does not sign out everywhere until the confirmation is accepted', async () => {
     const { result } = await renderHook(() => useProfileScreen(), { wrapper: Wrapper });
 

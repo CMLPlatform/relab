@@ -11,9 +11,9 @@ function product(images: Product['images']): Product {
 }
 
 describe('buildGalleryMedia', () => {
-  // Regression: unresolvable images used to be filtered out, so the display array
-  // was shorter than product.images. The add/delete actions wrote that shorter
-  // array back and permanently deleted the hidden rows.
+  // Unresolvable images must stay in the display array. The add/delete actions
+  // write that array back, so one shorter than product.images permanently
+  // deletes the hidden rows.
   it('emits exactly one item per product image, in source order', () => {
     const images = [
       { id: 'a', url: 'https://cdn.test/a.jpg', description: '' },

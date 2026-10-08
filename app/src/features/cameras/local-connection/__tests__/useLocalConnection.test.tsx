@@ -127,7 +127,7 @@ describe('useLocalConnection', () => {
   });
 
   it('stays on the relay when a reachable URL has no key bound to it', async () => {
-    // Regression: mode 'local' with a null key made the UI claim "direct
+    // Mode 'local' with a null key would make the UI claim "direct
     // connection · online" while every capture silently used the relay.
     jest.mocked(loadLocalConnection).mockImplementation(async () => ({
       url: 'http://10.0.0.5:8018',
@@ -252,8 +252,8 @@ describe('useLocalConnection', () => {
   });
 
   it('does not let the relay bootstrap undo an explicit disconnect', async () => {
-    // Regression: `clear` sets mode to 'relay', which is a dep of the bootstrap
-    // effect: it used to immediately rediscover and re-persist the connection.
+    // `clear` sets mode to 'relay', which is a dep of the bootstrap effect.
+    // That effect must not then rediscover and re-persist the connection.
     jest.mocked(fetchLocalAccessInfo).mockImplementation(async () => ({
       local_api_key: 'relay-key',
       candidate_urls: ['http://10.0.0.8:8018'],
@@ -283,7 +283,7 @@ describe('useLocalConnection', () => {
   });
 
   it('returns a stable object reference across renders while values are unchanged', async () => {
-    // Regression: an unstable reference here drove an infinite render loop on the
+    // An unstable reference here drives an infinite render loop on the
     // cameras grid (effective-connection memo + cell effect + snapshot dedup all
     // use this object as an identity).
     const { result, rerender, unmount } = await renderHook(() => useLocalConnection('cam-1'));

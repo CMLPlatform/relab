@@ -51,7 +51,6 @@ describe('authRefresh', () => {
     session().hasWebSessionFlag.mockReturnValue(true);
   });
 
-  // Regression: this guard had zero coverage; deleting it left the suite green.
   it('single-flights concurrent refreshes into one request', async () => {
     const { fetchWithTimeout } = request();
     session().loadStoredRefreshToken.mockResolvedValue('rt');
@@ -75,7 +74,7 @@ describe('authRefresh', () => {
     expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
   });
 
-  // Regression: the post-parse authGeneration re-check had zero coverage.
+  // Guards the post-parse authGeneration re-check.
   it('does not persist a token when a logout lands while the body is parsing', async () => {
     const { fetchWithTimeout } = request();
     session().loadStoredRefreshToken.mockResolvedValueOnce('rt');

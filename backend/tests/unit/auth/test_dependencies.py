@@ -74,7 +74,6 @@ class TestGetUserOr404:
         assert await get_user_or_404(user_id, user_manager) is user
         user_manager.get.assert_awaited_once_with(user_id)
 
-    # Regression: a missing id used to escape as UserNotExists → catch-all 500.
     async def test_missing_user_raises_404(self) -> None:
         """A missing user maps to 404, not the catch-all 500."""
         user_manager = MagicMock()

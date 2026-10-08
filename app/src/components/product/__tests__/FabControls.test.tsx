@@ -104,7 +104,6 @@ describe.each([
 
 // The FAB only ever renders below md in view mode: `isMd || editMode` sends every
 // edit-mode render to SaveBar, so it has no save or validation state of its own.
-// It used to carry a whole blocked-save tooltip that no render could reach.
 describe('ProductFabControls — view-mode FAB', () => {
   it('labels and announces the FAB by entity role', async () => {
     await render(<ProductFabControls {...baseProps} entityRole="component" />);

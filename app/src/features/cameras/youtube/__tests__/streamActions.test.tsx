@@ -199,8 +199,8 @@ describe('camera stream action hooks', () => {
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  // Regression: addProductVideo used to be fire-and-forget with an empty catch,
-  // so a failed video save was invisible to the user.
+  // addProductVideo must not be fire-and-forget with an empty catch: a failed
+  // video save would be invisible to the user.
   it('surfaces a failure to save the stream video without failing the start', async () => {
     mockAddProductVideo.mockImplementationOnce(async () => {
       throw new Error('disk full');

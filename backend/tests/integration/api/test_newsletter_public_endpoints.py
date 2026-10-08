@@ -1,4 +1,4 @@
-"""Regression tests for removed public newsletter endpoints."""
+"""The removed public newsletter endpoints must stay unreachable."""
 
 from typing import TYPE_CHECKING
 

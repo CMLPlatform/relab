@@ -5,7 +5,7 @@ import type { MissingField } from '@/features/products/missingFields';
 import { cn } from '@/utils/cn';
 
 /**
- * Owner-only "what's left to fill in" line (issue #325). Each item scrolls to
+ * Owner-only "what's left to fill in" line. Each item scrolls to
  * its section; hidden entirely when nothing is missing.
  */
 export function MissingFieldsNotice({

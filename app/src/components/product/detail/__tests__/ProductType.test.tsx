@@ -74,7 +74,7 @@ describe('ProductType', () => {
     expect(screen.queryByText('Select a fitting category for the product.')).toBeNull();
   });
 
-  // Regression: the root CPV entry is a placeholder ({name: "undefined"})
+  // The root CPV entry is a placeholder ({name: "undefined"})
   // that CPVCard renders as a red error card; a typeless product must never
   // show that as its default first impression.
   it('shows an inviting empty state instead of the undefined category card when no type is picked', async () => {
@@ -95,9 +95,9 @@ describe('ProductType', () => {
     expect(queryByText('Category undefined')).toBeNull();
   });
 
-  // Regression: the bundled CPV snapshot is keyed by its own ids, not the
-  // database's. A seeded "Display module" stored as id 3 rendered as snapshot
-  // entry 3, "CPV: 03 Agricultural, farming...".
+  // The bundled CPV snapshot is keyed by its own ids, not the database's.
+  // Looked up by database id, a seeded "Display module" stored as id 3 renders
+  // as snapshot entry 3, "CPV: 03 Agricultural, farming...".
   it('shows a type picked since load from the snapshot, not the stale recorded one', async () => {
     const product = {
       ...baseProduct,
@@ -155,8 +155,8 @@ describe('ProductType', () => {
     expect(mockPush).toHaveBeenCalledWith('/category-selection');
   });
 
-  // Regression: a guard used to block the picker for unsaved drafts (no numeric
-  // id), so a new product could never set its type before the first save.
+  // The picker must open for unsaved drafts (no numeric id), or a new product
+  // can never set its type before the first save.
   it('opens the picker for an unsaved draft (no id) in editMode', async () => {
     const draft = { ...baseProduct, id: undefined } as unknown as Product;
     await renderWithProviders(<ProductType product={draft} editMode={true} />);

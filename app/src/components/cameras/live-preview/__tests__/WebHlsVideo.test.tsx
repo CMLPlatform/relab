@@ -57,7 +57,7 @@ describe('WebHlsVideo', () => {
     expect(screen.getByText('Live preview unavailable')).toBeOnTheScreen();
   });
 
-  // Regression: retryKey must be wired into the setup effect's deps, otherwise
+  // retryKey must be wired into the setup effect's deps, otherwise
   // the retry button clears the overlay but never re-attaches the player.
   it('re-runs setup when the user taps retry', async () => {
     await renderPlayer();

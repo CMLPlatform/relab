@@ -77,9 +77,9 @@ describe('usePublicProfileQuery', () => {
     expect(mockGetPublicProfile).toHaveBeenCalledWith('other');
   });
 
-  // Regression: the hand-rolled fetch kept the previous user's stats in state
-  // while the new ones loaded, so a username change briefly rendered the wrong
-  // person's product and photo counts.
+  // Stats are keyed by username: keeping the previous user's stats while the
+  // new ones load makes a username change briefly render the wrong person's
+  // product and photo counts.
   it('never surfaces the previous username’s stats after a change', async () => {
     const wrapper = createWrapper();
     const { result, rerender } = await renderHook(
@@ -105,7 +105,7 @@ describe('usePublicProfileQuery', () => {
     await waitFor(() => expect(result.current.profile?.product_count).toBe(99));
   });
 
-  // Regression: a failed fetch was logged and swallowed, leaving stale stats on
+  // A failed fetch must not be logged and swallowed: that leaves stale stats on
   // screen with no error surfaced.
   it('surfaces a fetch failure instead of swallowing it', async () => {
     mockGetPublicProfile.mockImplementation(async () => {

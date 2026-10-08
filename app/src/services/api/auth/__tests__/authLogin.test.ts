@@ -93,8 +93,8 @@ describe('authLogin', () => {
     expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
   });
 
-  // Regression: a web 204 used to fire a redundant refresh whose expected 401
-  // latched explicitlyLoggedOut=true, silently disabling refresh for the session.
+  // A web 204 must not fire a redundant refresh: its expected 401 latches
+  // explicitlyLoggedOut=true, silently disabling refresh for the session.
   it('on web 204 login never leaves the session marked as logged out', async () => {
     isWeb.mockReturnValue(true);
     authRuntime.explicitlyLoggedOut = true;
@@ -107,8 +107,8 @@ describe('authLogin', () => {
     expect(fetchWithTimeout).toHaveBeenCalledTimes(1);
   });
 
-  // Regression: a native 2xx without an access_token used to report success,
-  // routing into a signed-in UI whose every request 401s.
+  // A native 2xx without an access_token must not report success: that routes
+  // into a signed-in UI whose every request 401s.
   it('rejects a native login response that carries no access token', async () => {
     fetchWithTimeout.mockResolvedValueOnce({
       ok: true,
@@ -121,7 +121,7 @@ describe('authLogin', () => {
     expect(persistAccessToken).not.toHaveBeenCalled();
   });
 
-  // Regression: raw transport errors leaked to the login form.
+  // Raw transport errors must not reach the login form.
   it.each([
     ['timeout', new TimeoutError(15_000)],
     ['network failure', new TypeError('Network request failed')],

@@ -67,9 +67,9 @@ function setup(onImagesChange: (images: unknown[]) => void) {
 }
 
 describe('useProductGalleryImageActions', () => {
-  // Regression: the actions wrote back the URL-filtered display array, so any
-  // image whose file was missing on disk was silently deleted from the product
-  // the next time the user added or removed a photo.
+  // The actions must not write back the URL-filtered display array: any image
+  // whose file is missing on disk would be silently deleted from the product the
+  // next time the user adds or removes a photo.
   it('deleting a visible image preserves an image whose url did not resolve', async () => {
     const onImagesChange = jest.fn();
     const { result } = await setup(onImagesChange);
@@ -88,8 +88,8 @@ describe('useProductGalleryImageActions', () => {
     const onImagesChange = jest.fn();
     const { result } = await setup(onImagesChange);
 
-    // Index 2 is the third slide; with the old filtering it addressed image 'c'
-    // via a two-element array and would have thrown the index away.
+    // Index 2 is the third slide; resolved against a URL-filtered two-element
+    // array it would address image 'c' and throw the index away.
     await act(async () => {
       result.current.handleDeleteImage(2);
     });
@@ -146,8 +146,8 @@ describe('undo', () => {
   });
 
   // The window is long enough to import a photo in. Restoring a snapshot taken
-  // before that import would delete it; the same silent-loss bug the
-  // url-filtering regression above guards against, one step later.
+  // before that import would delete it; the same silent loss the
+  // url-filtering test above guards against, one step later.
   it('undo keeps a photo added during the undo window', async () => {
     toastCalls.length = 0;
     const added = { url: 'data:image/png;base64,x', description: '' };

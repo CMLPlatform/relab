@@ -309,9 +309,9 @@ describe('useProductPageScreen', () => {
   it('defers back navigation until the record loads, instead of reading the loading sentinel', async () => {
     // useProductForm seeds a blank `newProduct()` while the query is in flight,
     // and that sentinel's role is 'product' with no parentID, indistinguishable
-    // from a real top-level product. Pressing back in that window used to
-    // replace to '/products', stranding a component's user on the list instead
-    // of its parent.
+    // from a real top-level product. Pressing back in that window must not
+    // replace to '/products', which strands a component's user on the list
+    // instead of its parent.
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: { ...baseProduct, id: undefined, parentID: undefined },
@@ -352,7 +352,7 @@ describe('useProductPageScreen', () => {
     // The query resolves one commit before `useProductFormHydration` resets the
     // form, so there is always a frame where `isLoading` is false and `product`
     // is still the blank `newProduct()` sentinel (role 'product', no parentID).
-    // A back press captured in that frame used to replace to '/products'.
+    // A back press captured in that frame must not replace to '/products'.
     mockUseProductForm.mockReturnValue({
       ...baseFormReturn,
       product: { ...baseProduct, id: undefined, role: 'product', parentID: undefined },

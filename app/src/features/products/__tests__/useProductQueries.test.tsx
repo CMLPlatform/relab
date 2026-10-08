@@ -237,7 +237,7 @@ describe('useProductQueries', () => {
       expect(result.current.hasNextPage).toBe(false);
     });
 
-    // Regression: infinite scroll must APPEND the next page's items below the
+    // Infinite scroll must APPEND the next page's items below the
     // ones already on screen, never replace them; this is the load-bearing
     // behaviour the products catalogue's onEndReached/"Load more" wiring relies on.
     it('appends the next page below the first instead of replacing it', async () => {
@@ -395,9 +395,9 @@ describe('useProductQueries', () => {
     );
   });
 
-  // Regression: every save PATCHes the whole record, and blur-saves fire one per
-  // field, so two in flight at once let the slower one land last and overwrite
-  // the newer one's values. Only a mutation scope serializes them; a shared
+  // Every save PATCHes the whole record, and blur-saves fire one per field, so
+  // with two in flight at once the slower one can land last and overwrite the
+  // newer one's values. Only a mutation scope serializes them; a shared
   // mutationKey does not.
   it('useSaveProductMutation runs overlapping saves one at a time, in send order', async () => {
     const started: string[] = [];
@@ -446,9 +446,9 @@ describe('useProductQueries', () => {
     expect(finished).toEqual(['first', 'second']);
   });
 
-  // Regression: an upload answers as soon as its narrow thumbnail exists, so the
-  // refetch fired on success brought back that width alone and the full-screen
-  // viewer stretched a 200px derivative until something else refetched.
+  // An upload answers as soon as its narrow thumbnail exists, so a refetch fired
+  // on success alone brings back that width only, and the full-screen viewer
+  // stretches a 200px derivative until something else refetches.
   it('useSaveProductMutation re-asks for a product whose save uploaded an image', async () => {
     mockedSaveProduct.mockResolvedValue(123);
     const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');

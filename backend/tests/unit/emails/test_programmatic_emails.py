@@ -292,13 +292,11 @@ async def test_all_email_functions_send_emails(
     needs_token: bool,
 ) -> None:
     """Test that all email functions successfully send emails."""
-    # Call function with appropriate arguments
     if needs_token:
         await email_func(email_data["email"], email_data["username"], email_data["token"])
     else:
         await email_func(email_data["email"], email_data["username"])
 
-    # Verify email was sent
     mock_email_sending.assert_called_once()
 
 
@@ -322,7 +320,6 @@ async def test_all_email_functions_support_background_tasks(
     """Test that all email functions support background tasks."""
     background_tasks = MagicMock(spec=BackgroundTasks)
 
-    # Call function with background tasks
     if needs_token:
         await email_func(
             email_data["email"], email_data["username"], email_data["token"], background_tasks=background_tasks

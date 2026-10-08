@@ -57,7 +57,6 @@ export default function ProductPhysicalProperties({
   editMode,
   onChangePhysicalProperties,
 }: Props) {
-  // Callbacks
   const onChangeProperty = useCallback(
     (key: keyof PhysicalProperties, value: number | undefined) => {
       onChangePhysicalProperties?.({ [key]: value });
@@ -69,7 +68,6 @@ export default function ProductPhysicalProperties({
   // An empty box is not a drawing worth making.
   const hasDimensions = Boolean(width || height || depth);
 
-  // Render
   return (
     <View>
       <AppText variant="body" {...heading(3)} className="mb-2 font-semibold">
