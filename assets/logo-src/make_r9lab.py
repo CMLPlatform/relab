@@ -161,9 +161,9 @@ def build_set(colors: dict) -> dict[str, str]:
     mark = Composer(_letters()["upm"])
     mark.glyph(load_glyphs(NINE_FONT), "9", colors["nine"], squish=NINE_SQUISH)
     return {
-        "mark": mark.svg("Relab mark"),
-        "wordmark": _wordmark(colors).svg("Relab"),
-        "logo": _wordmark(colors, ringed=True).svg("Relab"),  # ringed wordmark: the flask successor
+        "mark": mark.svg("R9lab mark"),
+        "wordmark": _wordmark(colors).svg("R9lab"),
+        "logo": _wordmark(colors, ringed=True).svg("R9lab"),  # ringed wordmark: the flask successor
     }
 
 
@@ -193,7 +193,7 @@ def og_svg(colors: dict) -> str:
 
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" '
-        f'role="img" aria-label="Relab — {TAGLINE}">'
+        f'role="img" aria-label="R9lab — {TAGLINE}">'
         f'<rect width="1200" height="630" fill="{colors["bg"]}"/>'
         f"{place(wm, 560, 350)}{place(tag, 460, 450)}</svg>\n"
     )

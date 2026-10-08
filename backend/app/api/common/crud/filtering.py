@@ -50,7 +50,7 @@ class RelationshipFilterJoin:
 
 
 class BaseFilterSet(FilterSet):
-    """Base FilterSet with Relab-specific search, sorting, and join metadata."""
+    """Base FilterSet with R9lab-specific search, sorting, and join metadata."""
 
     filter_model: ClassVar[type[Any]]
     relationship_joins: ClassVar[tuple[RelationshipFilterJoin, ...]] = ()
@@ -160,7 +160,7 @@ def apply_filter[MT: Base](
     statement: Select[tuple[MT]],
     model_filter: BaseFilterSet | None,
 ) -> Select[tuple[MT]]:
-    """Apply Relab FilterSet filtering, explicit relationship joins, search, and sorting."""
+    """Apply R9lab FilterSet filtering, explicit relationship joins, search, and sorting."""
     if model_filter is None:
         return statement
 
@@ -199,7 +199,7 @@ def apply_filter[MT: Base](
 def create_filter_dependency(
     filter_cls: type[BaseFilterSet],
 ) -> Callable[..., Awaitable[BaseFilterSet]]:
-    """Create a FastAPI dependency returning a configured Relab filter set."""
+    """Create a FastAPI dependency returning a configured R9lab filter set."""
     if not filter_cls.sortable_fields:
 
         async def dependency_without_sorting(

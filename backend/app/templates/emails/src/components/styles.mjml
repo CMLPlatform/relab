@@ -14,7 +14,7 @@
 </mj-attributes>
 <mj-style>
   /* Styled alt text so a blocked/missing wordmark image degrades to a neat
-     "Relab" instead of a broken-image icon (alt carries the pronounced name;
+     "R9lab" instead of a broken-image icon (alt carries the pronounced name;
      the 9-as-e spelling is a purely visual device). */
   .wordmark-fallback img {
     font-family: -apple-system, "Segoe UI", Arial, sans-serif !important;

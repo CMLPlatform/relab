@@ -1,11 +1,11 @@
 ---
 title: Installation and self-hosting
-description: Run Relab locally or self-host the stack in production or staging.
+description: Run R9lab locally or self-host the stack in production or staging.
 ---
 
 ## Hosted use
 
-To use Relab without any local setup, open [app.r9lab.io](https://app.r9lab.io).
+To use R9lab without any local setup, open [app.r9lab.io](https://app.r9lab.io).
 
 ## Self-hosting
 

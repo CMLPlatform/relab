@@ -100,7 +100,7 @@ RUN --mount=type=cache,target=/tmp/metro-cache,id=metro-${EXPO_PUBLIC_API_URL}-$
 
 # --- Runtime stage (default) ---
 # --- Caddy binary, stripped of its low-port capability ---
-# Relab serves on high ports, so cap_net_bind_service is dead weight next to
+# R9lab serves on high ports, so cap_net_bind_service is dead weight next to
 # no-new-privileges. `setcap -r` rewrites the 48MB binary and the overlay
 # copy-up leaves a second copy in the layer, so strip in a throwaway stage and
 # copy onto plain Alpine. BuildKit preserves caps across COPY --from, so the

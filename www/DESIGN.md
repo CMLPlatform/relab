@@ -1,6 +1,6 @@
 ---
-name: Relab — Web
-description: The marketing and research-provenance site for Relab, set as engineering documentation.
+name: R9lab — Web
+description: The marketing and research-provenance site for R9lab, set as engineering documentation.
 colors:
   primary: '#1f4c96'
   primary-strong: '#143567'
@@ -144,7 +144,7 @@ components:
     padding: 0.55rem 0
 ---
 
-# Design System: Relab — Web
+# Design System: R9lab — Web
 
 ## Overview
 

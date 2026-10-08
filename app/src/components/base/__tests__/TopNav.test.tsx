@@ -74,7 +74,7 @@ test('the sign-in pill and the brand are links, not buttons', async () => {
   (useBreakpoint as jest.Mock).mockReturnValue({ isMd: true, isLg: true });
   await render(<TopNav />);
   expect(screen.getByRole('link', { name: 'Sign in' }).props['aria-current']).toBeUndefined();
-  expect(screen.getByRole('link', { name: 'Relab, go to products' })).toBeOnTheScreen();
+  expect(screen.getByRole('link', { name: 'R9lab, go to products' })).toBeOnTheScreen();
 });
 
 test('marks the active destination from the pathname', async () => {

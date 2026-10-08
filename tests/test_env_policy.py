@@ -174,13 +174,13 @@ def test_rendered_secret_outside_the_inventory_fails() -> None:
 def test_env_assignments_ignores_comments_and_keeps_values_with_equals(tmp_path: Path) -> None:
     path = tmp_path / ".env"
     path.write_text(
-        "# comment\n\n  ENVIRONMENT = prod \nEMAIL_FROM=Relab <a@b.test>\n"
+        "# comment\n\n  ENVIRONMENT = prod \nEMAIL_FROM=R9lab <a@b.test>\n"
         "DSN=postgres://u:p@h/db?x=1\nnot an assignment\n",
         encoding="utf-8",
     )
     assert env_policy.env_assignments(path) == {
         "ENVIRONMENT": "prod",
-        "EMAIL_FROM": "Relab <a@b.test>",
+        "EMAIL_FROM": "R9lab <a@b.test>",
         "DSN": "postgres://u:p@h/db?x=1",
     }
 

@@ -190,7 +190,7 @@ function AmountChip({
           className="text-primary-foreground min-w-9 text-center py-2 px-1"
           style={amountStyles.input}
           accessibilityLabel="Amount"
-          accessibilityHint="Enter a whole number from 1 to 10000. Relab corrects a value outside that range."
+          accessibilityHint="Enter a whole number from 1 to 10000. R9lab corrects a value outside that range."
         />
         <StepButton
           icon="plus"

@@ -34,8 +34,8 @@ for taken, tag in sorted((newest.get(tag, 0), tag) for tag in ("postgres", "user
 # a request past Cloudflare's bot products, the bearer token gets it into the collector.
 # The remedies live in different systems, so the alert has to say which failed.
 # A challenged export is dropped silently — the SDK logs an export error and the
-# application carries on. Relab's zone owns the skip rule for `otel.`, which the whole
-# CML monitoring hub ships to, so a mismatch here is not only Relab's outage.
+# application carries on. R9lab's zone owns the skip rule for `otel.`, which the whole
+# CML monitoring hub ships to, so a mismatch here is not only R9lab's outage.
 telemetry_ingress_alerts() {
     local env="$1" status="$2" cf_mitigated="$3" failures=0
 

@@ -263,7 +263,7 @@ describe('ProductsListContent chrome', () => {
 });
 
 describe('ProductsListContent empty state', () => {
-  it('shows the Relab wordmark over the teardown photo when the list is empty', async () => {
+  it('shows the R9lab wordmark over the teardown photo when the list is empty', async () => {
     await renderList({ products: [], total: 0 });
 
     expect(screen.getByTestId('products-empty-state')).toBeOnTheScreen();

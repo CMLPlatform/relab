@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Render and install the Relab scheduled-job systemd units for this host.
+# Render and install the R9lab scheduled-job systemd units for this host.
 #
 #   install_timers.sh render            # print the rendered units, install nothing
 #   install_timers.sh install <env>     # install, enable, and start them (needs sudo)
@@ -104,7 +104,7 @@ cmd_install() {
         sudo install -d -m 0755 "$(dirname "$HOST_ENV")"
         sudo install -m 0600 -o "$UNIT_USER" /dev/null "$HOST_ENV"
         sudo tee "$HOST_ENV" >/dev/null <<'EOF'
-# Dead-man's-switch URLs for the Relab scheduled jobs (healthchecks.io or compatible).
+# Dead-man's-switch URLs for the R9lab scheduled jobs (healthchecks.io or compatible).
 # This monitoring path does not share fate with the Grafana stack: it is a push from this
 # host to an outside endpoint, so it still reports when the collector, the tunnel or this
 # host's telemetry is what broke.

@@ -5,7 +5,7 @@ import { renderWithProviders } from '@/test-utils/index';
 
 test('renders the default message and routes to login on sign-in press', async () => {
   await renderWithProviders(<SignedOutState />);
-  expect(screen.getByText('Sign in to use this part of Relab.')).toBeOnTheScreen();
+  expect(screen.getByText('Sign in to use this part of R9lab.')).toBeOnTheScreen();
 
   await fireEvent.press(screen.getByText('Sign in'));
   expect(useRouter().replace).toHaveBeenCalledWith('/login');

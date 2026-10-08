@@ -37,7 +37,7 @@ describe('SiteFooter', () => {
     // A third instance of the mark, under a sticky header that already shows
     // one, is decoration; the copyright line names the institution instead.
     expect(html).not.toContain('wordmark');
-    expect(html).not.toContain('aria-label="Relab home"');
+    expect(html).not.toContain('aria-label="R9lab home"');
   });
 
   it('states the institution, the authors, and the funding', async () => {

@@ -1,4 +1,4 @@
-# Relab App
+# R9lab App
 
 Expo / React Native app for authenticated data collection.
 

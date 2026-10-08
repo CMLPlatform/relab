@@ -1,7 +1,7 @@
 import { ApiError } from '@/services/api/errors';
 import { TimeoutError } from '@/services/api/request';
 
-const CONNECTION_MESSAGE = "Can't reach Relab. Check your connection and try again.";
+const CONNECTION_MESSAGE = "Can't reach R9lab. Check your connection and try again.";
 
 /**
  * User-facing text for a failure. Network failures (fetch throws a TypeError; any TypeError
@@ -12,7 +12,7 @@ const CONNECTION_MESSAGE = "Can't reach Relab. Check your connection and try aga
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof TypeError || error instanceof TimeoutError) return CONNECTION_MESSAGE;
   if (error instanceof ApiError && error.status >= 500) {
-    return 'Relab had a problem on its side. Try again in a moment.';
+    return 'R9lab had a problem on its side. Try again in a moment.';
   }
   return (error instanceof Error && error.message) || fallback;
 }

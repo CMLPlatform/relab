@@ -81,8 +81,8 @@ const SIDEBAR = [
   },
 ];
 const STARLIGHT_OPTIONS = {
-  title: 'Relab docs',
-  description: 'Technical documentation for the Relab research platform.',
+  title: 'R9lab docs',
+  description: 'Technical documentation for the R9lab research platform.',
   favicon: '/images/favicon.svg',
   titleDelimiter: '·',
   lastUpdated: true,

@@ -9,7 +9,7 @@ test('accessibility statement renders', async ({ page }) => {
   await expect(page).toHaveTitle(ACCESSIBILITY_TITLE);
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2 })).toHaveText([
-    'How accessible Relab is',
+    'How accessible R9lab is',
     'What we check',
     'What we have not checked',
     'Tell us what does not work',

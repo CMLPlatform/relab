@@ -44,7 +44,7 @@ resource "cloudflare_zone_setting" "always_use_https" {
 resource "cloudflare_ruleset" "rate_limiting" {
   zone_id     = var.cloudflare_zone_id
   name        = "default"
-  description = "Zone-level rate limiting for Relab authentication endpoints (all environments)."
+  description = "Zone-level rate limiting for R9lab authentication endpoints (all environments)."
   kind        = "zone"
   phase       = "http_ratelimit"
 
@@ -74,7 +74,7 @@ resource "cloudflare_ruleset" "rate_limiting" {
 resource "cloudflare_ruleset" "cache_settings" {
   zone_id     = var.cloudflare_zone_id
   name        = "default"
-  description = "Zone-level cache rules for Relab."
+  description = "Zone-level cache rules for R9lab."
   kind        = "zone"
   phase       = "http_request_cache_settings"
 
@@ -122,7 +122,7 @@ resource "cloudflare_ruleset" "cache_settings" {
 resource "cloudflare_ruleset" "custom_firewall" {
   zone_id     = var.cloudflare_zone_id
   name        = "default"
-  description = "Zone-level custom firewall rules for Relab."
+  description = "Zone-level custom firewall rules for R9lab."
   kind        = "zone"
   phase       = "http_request_firewall_custom"
 

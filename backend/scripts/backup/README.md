@@ -1,4 +1,4 @@
-# Relab Backups
+# R9lab Backups
 
 One restic-based workflow serves production and staging. Each backup run creates:
 

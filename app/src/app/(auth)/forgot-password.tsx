@@ -17,7 +17,7 @@ export default function ForgotPasswordScreen() {
   return (
     <>
       <Head>
-        <title>Forgot password · Relab</title>
+        <title>Forgot password · R9lab</title>
       </Head>
       <AuthScreen>
         <AuthCard title="Forgot password">

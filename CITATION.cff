@@ -12,7 +12,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-8287-2413"
     email: "f.donati@cml.leidenuniv.nl"
     affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
-title: "Relab - Data Collection Platform"
+title: "R9lab - Data Collection Platform"
 abstract: "Data collection platform for disassembled power tool images and metadata supporting computer vision tasks for life cycle assessments."
 version: 0.4.0
 identifiers:
@@ -20,7 +20,7 @@ identifiers:
   # software" identifier should do. Version DOIs live on the Zenodo concept record.
   - type: doi
     value: 10.5281/zenodo.16637742
-    description: Concept DOI for all versions of Relab
+    description: Concept DOI for all versions of R9lab
 date-released: 2026-10-02
 url: https://r9lab.io
 repository-code: "https://github.com/CMLPlatform/relab"

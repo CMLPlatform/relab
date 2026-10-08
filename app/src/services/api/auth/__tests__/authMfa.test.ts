@@ -249,14 +249,14 @@ describe('TOTP enrolment', () => {
       json: async () => ({
         setup_token: 'setup-token',
         secret: 'BASE32SECRET',
-        otpauth_uri: 'otpauth://totp/Relab:me',
+        otpauth_uri: 'otpauth://totp/R9lab:me',
       }),
     } as never);
 
     await expect(startTotpSetup()).resolves.toEqual({
       setupToken: 'setup-token',
       secret: 'BASE32SECRET',
-      otpauthUri: 'otpauth://totp/Relab:me',
+      otpauthUri: 'otpauth://totp/R9lab:me',
     });
     expect(lastRequest().path).toBe('/v1/auth/mfa/totp/setup');
   });

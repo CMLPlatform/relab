@@ -1,9 +1,9 @@
 ---
 title: System design
-description: Why Relab is split into separate frontends, backend services, and docs surfaces.
+description: Why R9lab is split into separate frontends, backend services, and docs surfaces.
 ---
 
-Relab is a research app, a public website, a docs site, and one backend.
+R9lab is a research app, a public website, a docs site, and one backend.
 
 ## High-level architecture
 
@@ -16,7 +16,7 @@ config:
 ---
 
 graph TD
-    accTitle: Relab system architecture overview
+    accTitle: R9lab system architecture overview
     accDescr: Researchers and public visitors reach the Expo app, Astro landing page, and Starlight docs frontends; the Expo app and admins call the FastAPI backend, which authenticates through OAuth and bearer/cookie auth, reads and writes PostgreSQL and Redis, manages file storage, and integrates with the RPi camera API and YouTube API.
     Researcher["Researcher"] -->|Data entry| FrontendApp
     PublicUser["Public visitor"] -->|Browses products| FrontendApp
@@ -129,6 +129,6 @@ app/
 - keep identifiers and exports stable enough to link with other datasets
 - avoid infrastructure the project scale does not justify
 
-Relab is a modular monolith with explicit bounded contexts: identity and access, data collection,
+R9lab is a modular monolith with explicit bounded contexts: identity and access, data collection,
 reference data, media and storage, statistics, and device integration. It stays a monolith until a
 real deployment or runtime boundary justifies a split.

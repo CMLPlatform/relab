@@ -47,7 +47,7 @@ function CameraDetailContent({
   return (
     <>
       <Head>
-        <title>{`${camera.name || 'Camera'} · Relab`}</title>
+        <title>{`${camera.name || 'Camera'} · R9lab`}</title>
       </Head>
       <CameraDetailLayout>
         {isLg ? (

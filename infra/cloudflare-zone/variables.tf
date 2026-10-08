@@ -35,7 +35,7 @@ variable "telemetry_edge_key" {
     It must equal TELEMETRY_EDGE_KEY in the deploy hosts' root `.env` (the api's
     OTEL_EXPORTER_OTLP_HEADERS and Alloy both send it).
 
-    NOTE: `otel.` is the monitoring stack's hostname, not Relab's. That stack manages its
+    NOTE: `otel.` is the monitoring stack's hostname, not R9lab's. That stack manages its
     own Cloudflare config but declares no rulesets, so this root stays the single owner of
     the zone entrypoints — see the ownership note in README.md.
   EOT
@@ -65,7 +65,7 @@ variable "e2e_edge_key" {
 
 variable "redirect_to_zone_name" {
   description = <<-EOT
-    Zone this zone's Relab hostnames redirect to. Non-empty turns on the redirect ruleset,
+    Zone this zone's R9lab hostnames redirect to. Non-empty turns on the redirect ruleset,
     which covers exactly the hosts in the shared route map: monitoring and hand-made
     hosts are never redirected. Set it only in the previous zone's workspace.
   EOT

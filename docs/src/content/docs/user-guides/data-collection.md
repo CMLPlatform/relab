@@ -1,6 +1,6 @@
 ---
 title: Data collection guide
-description: Capture a solid Relab record with clear hierarchy, media, and reference data.
+description: Capture a solid R9lab record with clear hierarchy, media, and reference data.
 ---
 
 A good record captures what the product is, how it comes apart, and the evidence you collected.
@@ -89,7 +89,7 @@ Attach media in two ways:
 - device-assisted capture through the Raspberry Pi camera integration
 
 Use image uploads for display photos. Use file uploads for research documents and scientific
-datasets (hyperspectral ENVI, HDF5, NITF, GeoTIFF); Relab stores those without image processing.
+datasets (hyperspectral ENVI, HDF5, NITF, GeoTIFF); R9lab stores those without image processing.
 
 Every signed-in, verified account can upload images. Only a lab account sees the "Research files"
 block on a record it owns. Ask an administrator if you need the lab role.
@@ -106,7 +106,7 @@ Accepted types and size limits:
 - Scientific data (up to 50 MiB): `.dat`, `.h5`, `.hdr`, `.hdf5`, `.img`, `.nitf`, `.ntf`, `.raw`,
   `.tif`, `.tiff`
 
-Relab validates type, size, and content before storing a file, and unpacks and inspects office
+R9lab validates type, size, and content before storing a file, and unpacks and inspects office
 files. If malware scanning is enabled, flagged files are rejected.
 
 Each image has a size cap set by the role of the account that uploads it. Every image is also at

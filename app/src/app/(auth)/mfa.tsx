@@ -32,7 +32,7 @@ export default function MfaScreen() {
     return (
       <>
         <Head>
-          <title>Two-step verification · Relab</title>
+          <title>Two-step verification · R9lab</title>
         </Head>
         <AuthScreen>
           <AuthCard
@@ -55,7 +55,7 @@ export default function MfaScreen() {
   return (
     <>
       <Head>
-        <title>Two-step verification · Relab</title>
+        <title>Two-step verification · R9lab</title>
       </Head>
       <AuthScreen>
         <AuthCard

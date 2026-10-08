@@ -1,6 +1,6 @@
-# Relab Cloudflare zone configuration
+# R9lab Cloudflare zone configuration
 
-Zone-scoped configuration for each Relab zone (`r9lab.io`, `cml-relab.org`), managed with OpenTofu:
+Zone-scoped configuration for each R9lab zone (`r9lab.io`, `cml-relab.org`), managed with OpenTofu:
 
 - TLS zone settings (minimum version, TLS 1.3, always-use-HTTPS)
 - the three entrypoint rulesets: `http_ratelimit`,

@@ -21,7 +21,7 @@ resource "cloudflare_dns_record" "edge" {
   type    = "CNAME"
   ttl     = 1
   proxied = true
-  comment = "Relab ${var.environment} ${each.key} edge route managed by OpenTofu."
+  comment = "R9lab ${var.environment} ${each.key} edge route managed by OpenTofu."
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {

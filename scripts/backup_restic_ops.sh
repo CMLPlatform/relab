@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Operator and smoke-test helpers for Relab restic backups.
+# Operator and smoke-test helpers for R9lab restic backups.
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"

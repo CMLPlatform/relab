@@ -1,4 +1,4 @@
-# Plan-only tests for the per-environment Relab Cloudflare edge (tunnel, DNS records,
+# Plan-only tests for the per-environment R9lab Cloudflare edge (tunnel, DNS records,
 # tunnel ingress). The provider is mocked, so these need no Cloudflare credentials and
 # make no API calls: run them with `tofu test` (wired into `just cloudflare-check`).
 #

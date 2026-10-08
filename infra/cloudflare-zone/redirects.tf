@@ -22,7 +22,7 @@ resource "cloudflare_ruleset" "redirects" {
 
   zone_id     = var.cloudflare_zone_id
   name        = "default"
-  description = "Redirects Relab hostnames to ${var.redirect_to_zone_name}."
+  description = "Redirects R9lab hostnames to ${var.redirect_to_zone_name}."
   kind        = "zone"
   phase       = "http_request_dynamic_redirect"
 

@@ -1,4 +1,4 @@
-# Relab runtime secret inventory.
+# R9lab runtime secret inventory.
 
 # The full runtime secret inventory is required ∪ optional; every secret belongs to
 # exactly one list. Required secrets must be non-empty in prod/staging.

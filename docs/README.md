@@ -1,6 +1,6 @@
-# Relab Docs
+# R9lab Docs
 
-Standalone Astro Starlight documentation app for the Relab platform.
+Standalone Astro Starlight documentation app for the R9lab platform.
 
 ## Quick start
 

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/r9lab-wordmark.png" alt="Relab" width="340">
+  <img src="assets/r9lab-wordmark.png" alt="R9lab" width="340">
 </p>
 
-# Relab
+# R9lab
 
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
 [![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE)
@@ -14,14 +14,14 @@
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
 [![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fr9lab.io&label=website)](https://r9lab.io)
 
-Relab is an open-source research platform for collecting and publicly viewing data on the
+R9lab is an open-source research platform for collecting and publicly viewing data on the
 disassembly of durable goods. It is built at
 [CML, Leiden University](https://www.universiteitleiden.nl/en/science/environmental-sciences) to
 support industrial ecology and circular economy research with better primary product data.
 
-Repairers, refurbishers, dismantlers, and recyclers meet products at the point of failure. Relab
+Repairers, refurbishers, dismantlers, and recyclers meet products at the point of failure. R9lab
 turns their routine work into structured, openly shared records of what products are made of and
-how they come apart. [Why Relab exists](https://docs.r9lab.io/project/) sets out the argument.
+how they come apart. [Why R9lab exists](https://docs.r9lab.io/project/) sets out the argument.
 
 It combines:
 
@@ -99,7 +99,7 @@ CI runs axe scans and per-PR a11y lint across `www/`, `docs/`, and `app/`. See
 | Site content: the writing on the docs site and on r9lab.io (code samples are Apache-2.0) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)          |
 | Curated dataset releases                                                                      | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), planned |
 
-**Relab, the logo, and the wordmark are not licensed by any of the above.** The
+**R9lab, the logo, and the wordmark are not licensed by any of the above.** The
 [licensing page](https://docs.r9lab.io/project/licensing/) explains each choice, the RPi camera
 schema's separate licence, and the limits no licence changes.
 

@@ -2,7 +2,7 @@
   <mj-column>
     <mj-image
       src="https://r9lab.io/images/wordmark.png"
-      alt="Relab"
+      alt="R9lab"
       css-class="wordmark-fallback"
       width="170px"
       align="left"

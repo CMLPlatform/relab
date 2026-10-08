@@ -60,7 +60,7 @@ function DocumentChrome({ product, justSaved }: { product: Product; justSaved: b
   return (
     <>
       <Head>
-        <title>{`${product.name?.trim() || entityLabelTitle(product)} · Relab`}</title>
+        <title>{`${product.name?.trim() || entityLabelTitle(product)} · R9lab`}</title>
       </Head>
       <AppText accessibilityLiveRegion="polite" style={styles.srOnly}>
         {justSaved ? 'Saved' : ''}

@@ -81,7 +81,7 @@ def test_trigram_cols_contains_name(filter_cls: type[BaseFilterSet], table_name:
     ],
 )
 def test_search_is_handled_by_relab_adapter(filter_cls: type[BaseFilterSet], table_name: str) -> None:
-    """Search should remain PostgreSQL tsvector/trigram logic owned by Relab."""
+    """Search should remain PostgreSQL tsvector/trigram logic owned by R9lab."""
     statement = apply_filter(
         select(filter_cls.filter_model),
         filter_cls().with_search("steel"),

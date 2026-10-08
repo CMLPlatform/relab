@@ -9,11 +9,11 @@ import { dismissProductsInfoCard, loginAndGoToProfile, reachProductsPage } from 
 
 test.setTimeout(60_000);
 
-// The wordmark image (accessibilityLabel="Relab") is rendered by both the
+// The wordmark image (accessibilityLabel="R9lab") is rendered by both the
 // TopNav brand pressable and the native stack header's headerTitle, never
 // both at once for a TopNav-covered screen. A count of 1 is the regression
 // net for hideForTopNav failing to apply.
-const WORDMARK_IMAGE_NAME = /Relab/;
+const WORDMARK_IMAGE_NAME = /R9lab/;
 // HeaderRightPill's accessible name, from either TopNav or the stack header.
 const HEADER_PILL_NAME = /^(Sign in|Account: .+)$/;
 const CAMERAS_URL_PATTERN = /cameras/;
@@ -39,7 +39,7 @@ test.describe('Top nav (>=lg)', () => {
     // The brand pressable is the TopNav-only landmark (the stack header's
     // wordmark has no such accessible name), so its presence proves the top
     // bar itself rendered.
-    await expect(page.getByLabel('Relab, go to products')).toBeVisible();
+    await expect(page.getByLabel('R9lab, go to products')).toBeVisible();
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);
     await expect(page.getByRole('link', { name: 'Products', exact: true })).toBeVisible();
 
@@ -88,7 +88,7 @@ test.describe('Top nav (phone)', () => {
   test('top bar is absent; the stack header renders instead', async ({ page }) => {
     await reachProductsPage(page);
 
-    await expect(page.getByLabel('Relab, go to products')).not.toBeVisible();
+    await expect(page.getByLabel('R9lab, go to products')).not.toBeVisible();
     // The stack header still shows the wordmark and the header pill, exactly
     // once, from the stack header alone (TopNav renders null below lg).
     await expect(page.getByRole('img', { name: WORDMARK_IMAGE_NAME })).toHaveCount(1);

@@ -21,7 +21,7 @@ describe('BrandHero', () => {
   it('leads with the thesis and the nutshell', async () => {
     const html = await render();
     expect(html).toContain('Open product data for circular-economy research');
-    expect(html).toMatch(/Relab documents how durable goods come apart/);
+    expect(html).toMatch(/R9lab documents how durable goods come apart/);
   });
 
   it('carries the mark decoratively, in both theme variants', async () => {
@@ -34,7 +34,7 @@ describe('BrandHero', () => {
     // The header's brand link carries the name; this one is decoration, and
     // hands off to it on scroll.
     expect(html).toContain('aria-hidden="true"');
-    expect(html).not.toContain('alt="Relab"');
+    expect(html).not.toContain('alt="R9lab"');
   });
 
   it('offers both doors: browsing the records and contributing one', async () => {

@@ -128,9 +128,9 @@ export function ProfileEmailUpdatesSection({
     <View className="mx-1">
       <View className="flex-row items-start justify-between gap-3 px-4 py-2.5">
         <View className="flex-1">
-          <AppText className="font-semibold">Receive Relab account updates</AppText>
+          <AppText className="font-semibold">Receive R9lab account updates</AppText>
           <AppText className="mt-px text-[13px] text-muted-foreground">
-            Occasional news about Relab and the research project, sent to your account email.
+            Occasional news about R9lab and the research project, sent to your account email.
           </AppText>
           <AppText className="mt-1.5 text-[13px] font-semibold">
             {enabled ? 'Currently enabled.' : 'Currently disabled.'}
@@ -140,7 +140,7 @@ export function ProfileEmailUpdatesSection({
           checked={enabled}
           onCheckedChange={onSetEnabled}
           disabled={saving}
-          accessibilityLabel="Receive Relab account updates"
+          accessibilityLabel="Receive R9lab account updates"
         />
       </View>
     </View>

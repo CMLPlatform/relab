@@ -937,7 +937,7 @@ falls outside both the licence and the GDPR basis on which the release was publi
 
 ## Citation
 
-See `CITATION.cff`. This dataset record is distinct from the Relab software record
+See `CITATION.cff`. This dataset record is distinct from the R9lab software record
 ({meta.software_concept_doi}), which is licensed separately.
 """
 
@@ -1757,7 +1757,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--software-doi",
         default=ReleaseMetadata.software_version_doi,
-        help="version DOI of the Relab release the data was exported from (provenance link)",
+        help="version DOI of the R9lab release the data was exported from (provenance link)",
     )
     parser.add_argument(
         "--pseudonym-salt",

@@ -1,4 +1,4 @@
-# Relab monorepo task runner
+# R9lab monorepo task runner
 # Run `just --list` to see the recipes in this file.
 # Each subrepo has its own: `just backend/<recipe>`, `just app/<recipe>`, and so on.
 

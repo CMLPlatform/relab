@@ -1,9 +1,9 @@
 ---
 title: Getting started
-description: Create an account and capture a first Relab product record.
+description: Create an account and capture a first R9lab product record.
 ---
 
-Relab documents a product while you take it apart. A useful first record needs a clear product identity, a few good photos, and notes on what you found.
+R9lab documents a product while you take it apart. A useful first record needs a clear product identity, a few good photos, and notes on what you found.
 
 ## Create an account
 

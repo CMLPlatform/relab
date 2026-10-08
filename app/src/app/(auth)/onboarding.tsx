@@ -64,7 +64,7 @@ export default function Onboarding() {
   return (
     <>
       <Head>
-        <title>Choose a username · Relab</title>
+        <title>Choose a username · R9lab</title>
       </Head>
       <AuthScreen>
         <OnboardingBody

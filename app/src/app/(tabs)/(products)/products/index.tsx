@@ -61,7 +61,7 @@ export default function Products() {
   return (
     <>
       <Head>
-        <title>Products · Relab</title>
+        <title>Products · R9lab</title>
       </Head>
       <PageContainer phoneFullBleed>
         <ScreenTitle>Products</ScreenTitle>

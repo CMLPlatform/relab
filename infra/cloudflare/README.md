@@ -1,6 +1,6 @@
-# Relab Cloudflare Edge
+# R9lab Cloudflare Edge
 
-This directory manages Relab's **per-environment** Cloudflare edge with OpenTofu:
+This directory manages R9lab's **per-environment** Cloudflare edge with OpenTofu:
 
 - a Cloudflare Tunnel per environment
 - DNS records for the hostnames the tunnel serves (api and app)
@@ -258,9 +258,9 @@ zone policy rows: the tunnel is an account resource, everything else is scoped t
 
 | Scope                   | Permission                            | Access | Required by                                      |
 | ----------------------- | ------------------------------------- | ------ | ------------------------------------------------ |
-| Account (Relab account) | Cloudflare Tunnel                     | Edit   | `cloudflare_zero_trust_tunnel_cloudflared`       |
-| Account (Relab account) | Cloudflare One Connector: cloudflared | Edit   | `..._tunnel_cloudflared_config` ingress rules    |
-| Account (Relab account) | Workers (all Workers)                 | Editor | `cloudflare_workers_custom_domain`               |
+| Account (R9lab account) | Cloudflare Tunnel                     | Edit   | `cloudflare_zero_trust_tunnel_cloudflared`       |
+| Account (R9lab account) | Cloudflare One Connector: cloudflared | Edit   | `..._tunnel_cloudflared_config` ingress rules    |
+| Account (R9lab account) | Workers (all Workers)                 | Editor | `cloudflare_workers_custom_domain`               |
 | Zone (`cml-relab.org`)  | DNS                                   | Edit   | `cloudflare_dns_record`                          |
 | Zone (`cml-relab.org`)  | Workers Routes                        | Edit   | `cloudflare_workers_custom_domain`               |
 | Zone (`cml-relab.org`)  | Zone Settings                         | Edit   | `cloudflare_zone_setting`                        |

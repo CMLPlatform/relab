@@ -1,4 +1,4 @@
-# Relab Backend
+# R9lab Backend
 
 The API, authentication, product and component data model, media handling, email, and plugin
 integrations. Built with [FastAPI](https://fastapi.tiangolo.com/), PostgreSQL, Redis, and `uv`.
@@ -99,7 +99,7 @@ Use the default provider:
 EMAIL_PROVIDER=smtp
 SMTP_HOST=smtp.gmail.com
 SMTP_USERNAME=sender@example.com
-EMAIL_FROM=Relab <sender@example.com>
+EMAIL_FROM=R9lab <sender@example.com>
 EMAIL_REPLY_TO=relab@example.com
 ```
 
@@ -115,7 +115,7 @@ Use Graph when sending from a Microsoft 365 mailbox:
 
 ```env
 EMAIL_PROVIDER=microsoft_graph
-EMAIL_FROM=Relab <relab@example.edu>
+EMAIL_FROM=R9lab <relab@example.edu>
 EMAIL_REPLY_TO=relab@example.edu
 MICROSOFT_GRAPH_TENANT_ID=00000000-0000-0000-0000-000000000000
 MICROSOFT_GRAPH_CLIENT_ID=00000000-0000-0000-0000-000000000000

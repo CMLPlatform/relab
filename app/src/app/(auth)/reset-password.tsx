@@ -28,7 +28,7 @@ export default function ResetPasswordScreen() {
   return (
     <>
       <Head>
-        <title>Reset password · Relab</title>
+        <title>Reset password · R9lab</title>
       </Head>
       <AuthScreen>
         <AuthCard title="Reset password">

@@ -13,7 +13,7 @@ import {
   server,
 } from '@/test-utils/index';
 
-const NETWORK_FAILURE_PATTERN = /Relab had a problem on its side/;
+const NETWORK_FAILURE_PATTERN = /R9lab had a problem on its side/;
 
 const mockUseAuth = jest.fn();
 const mockDismissWelcomeCard = jest.fn();
@@ -362,7 +362,7 @@ describe('Products screen', () => {
 
   it('renders welcome banner on first visit', async () => {
     await renderProducts();
-    expect(screen.getByText('Welcome to Relab')).toBeOnTheScreen();
+    expect(screen.getByText('Welcome to R9lab')).toBeOnTheScreen();
     expect(
       screen.getByText('Browse products freely. Sign in when you are ready to add your own.'),
     ).toBeOnTheScreen();
@@ -371,7 +371,7 @@ describe('Products screen', () => {
   it('dismisses welcome banner when Maybe later is pressed', async () => {
     await renderProducts();
     await fireEvent.press(screen.getByText('Maybe later'));
-    expect(screen.queryByText('Welcome to Relab')).toBeNull();
+    expect(screen.queryByText('Welcome to R9lab')).toBeNull();
   });
 
   it('shows no welcome card to verified users', async () => {

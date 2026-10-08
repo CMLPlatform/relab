@@ -83,7 +83,7 @@ export default function CategorySelection() {
     // phoneFullBleed: the search bar, blurb, and list own their own px-4 spacing.
     <>
       <Head>
-        <title>Select category · Relab</title>
+        <title>Select category · R9lab</title>
       </Head>
       <PageContainer phoneFullBleed>
         <ScreenTitle>Select category</ScreenTitle>
@@ -100,7 +100,7 @@ export default function CategorySelection() {
               Type a name (e.g. laptop) to search every category, or browse below. Tap a category to
               select it as the type.
             </AppText>
-            <InfoTooltip title="Product types come from CPV, a standard list of product categories. Pick the most specific category you're sure of. A broader one is fine. Relab uses it for filtering and for the research statistics." />
+            <InfoTooltip title="Product types come from CPV, a standard list of product categories. Pick the most specific category you're sure of. A broader one is fine. R9lab uses it for filtering and for the research statistics." />
           </View>
           {history.length > 1 && <CPVHistory history={history} onPress={moveUp} />}
         </View>

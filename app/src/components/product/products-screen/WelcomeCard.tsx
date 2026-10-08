@@ -49,7 +49,7 @@ export function ProductsWelcomeCard({
           </View>
           <View className="flex-1">
             <AppText variant="heading" className="font-bold">
-              {isAuthenticated ? 'Verify your email to start creating' : 'Welcome to Relab'}
+              {isAuthenticated ? 'Verify your email to start creating' : 'Welcome to R9lab'}
             </AppText>
           </View>
         </View>

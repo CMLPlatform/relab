@@ -1,6 +1,6 @@
 ---
 title: API reference
-description: Choose an interactive Relab API reference generated from the committed OpenAPI schemas.
+description: Choose an interactive R9lab API reference generated from the committed OpenAPI schemas.
 ---
 
 Interactive views of the OpenAPI schemas committed with the docs site: endpoint details, request
@@ -8,7 +8,7 @@ and response models, authentication requirements, and schema downloads.
 
 - [Public API](/api/public/): the application API for platform data, accounts, authentication,
   media, and public research records. Use this unless you are building a device integration.
-- [Device API](/api/device/): the backend-facing API for pairing devices and Relab plugins with the
+- [Device API](/api/device/): the backend-facing API for pairing devices and R9lab plugins with the
   platform.
 - [RPi camera API](/api/rpi-cam/): the local camera service API for status checks, capture
   workflows, and camera-device integration.

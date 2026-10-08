@@ -1,6 +1,6 @@
 ---
-name: Relab Docs
-description: The Relab research platform's Starlight documentation site — cyanotype blue and manila re-skinned onto Starlight's own token layer.
+name: R9lab Docs
+description: The R9lab research platform's Starlight documentation site — cyanotype blue and manila re-skinned onto Starlight's own token layer.
 colors:
   primary: 'light-dark(#1f4c96, #8fb8ff)'
   primary-strong: 'light-dark(#143567, #bad3ff)'
@@ -86,7 +86,7 @@ components:
     rounded: '{rounded.card}'
 ---
 
-# Design System: Relab Docs
+# Design System: R9lab Docs
 
 ## Overview
 
@@ -101,7 +101,7 @@ Docs does not re-author that system. A **thin brand layer** (`brand.css` and
 `tokens.generated.css`, ~123 lines combined) loads before Starlight's styles in `customCss` and
 overrides a short list of Starlight tokens. Everything else is unmodified Starlight default:
 spacing rhythm, sidebar layout, search modal, table styling, code block chrome (Expressive Code),
-badge and aside components, table-of-contents behavior. The `Relab-authored vs. Starlight-default`
+badge and aside components, table-of-contents behavior. The `R9lab-authored vs. Starlight-default`
 note under each section marks the boundary.
 
 **The duplicated brand rules below are duplicated on purpose. Do not deduplicate them into a
@@ -268,8 +268,8 @@ All four heading selectors also get `font-family: IBM Plex Serif, Georgia, serif
 `letter-spacing: -0.01em` in `base.css`, on `h1, h2, h3, h4, .site-title, .hero`. Starlight exposes
 no `--sl-font-headings` token.
 
-**Relab-authored vs. Starlight-default:** the four heading *sizes* and the heading *font-family*
-are Relab decisions (`base.css`). Body size, label size, code font size, and every other
+**R9lab-authored vs. Starlight-default:** the four heading *sizes* and the heading *font-family*
+are R9lab decisions (`base.css`). Body size, label size, code font size, and every other
 `--sl-text-*` step are Starlight defaults. `--sl-font-mono` is repointed to
 `--relab-brand-font-mono`. `--sl-font` is **not** overridden; `base.css` sets `font-family`
 directly on `html, body`, which wins by source order but bypasses the token. A future Starlight
@@ -337,7 +337,7 @@ ring and bold text. Header layout comes from two swapped component slots:
   `--relab-brand-primary`, `--radius-control` corners, `--relab-brand-primary-strong` on hover; it
   drops below 30rem viewport width.
 
-### Cards (Relab-authored)
+### Cards (R9lab-authored)
 
 `.relab-card-grid` (`components.css`): an auto-fit grid (`minmax(15rem, 1fr)`) of plain `<li>`
 cards for the landing-page section links. **Shape:** `--radius-card` (8px). **Background:**
@@ -345,7 +345,7 @@ cards for the landing-page section links. **Shape:** `--radius-card` (8px). **Ba
 `--relab-brand-surface` token. **Border:** 1px, `color-mix()` primary at 18%. No hover state:
 cards are plain links.
 
-### Colophon (Relab-authored, signature pattern)
+### Colophon (R9lab-authored, signature pattern)
 
 `.relab-colophon` (`components.css`, content from `Colophon.generated.astro`) sets research
 metadata (affiliation, authors, citation DOI, license, funding, contact) in mono at 13px/1.6, with
@@ -371,15 +371,15 @@ Rendered client-side via `mermaid` + `@mermaid-js/layout-elk`, orchestrated by
 brand tokens at runtime) and partly hand-tuned hex with no update path (see Colors § Diagram &
 chart palette). **Content** (node and edge categorical colors) is themed via literal hex
 `classDef` lines in the `.mdx` files. The wrapping frame (`.relab-mermaid`: border, radius,
-background tint, horizontal scroll for overflow) is Relab-authored in `components.css`.
+background tint, horizontal scroll for overflow) is R9lab-authored in `components.css`.
 
 ### API reference pages (third-party, **not themed**)
 
 `src/pages/api/*` use `@scalar/api-reference`, rendered through `api-reference-page.astro` +
-`src/scripts/api-reference.ts`. Scalar's `style.css` is imported unmodified and **no Relab CSS
+`src/scripts/api-reference.ts`. Scalar's `style.css` is imported unmodified and **no R9lab CSS
 variable, theme override, or Scalar theme option is passed**. The `api-reference` config sets only
 functional options (`baseServerURL`, `hideClientButton`, `persistAuth: false`,
-`telemetry: false`). The reference renders in Scalar's vendor default theme. The only Relab chrome
+`telemetry: false`). The reference renders in Scalar's vendor default theme. The only R9lab chrome
 on these pages is the shell in `api-reference-page.astro`'s `<style>` block: the sticky switcher
 nav between Public/Device/RPi-camera references, built from `--relab-brand-primary` and
 `--radius-control`. It also sets `<meta name="theme-color">`, parsed at build time out of
@@ -393,7 +393,7 @@ nav between Public/Device/RPi-camera references, built from `--relab-brand-prima
   `scripts/sync_brand_assets.py` and byte-identical to `www/`'s copy; edit the JSON and run
   `just assets-sync`.
 - **Do** map any new Starlight interaction-state override onto the primary blue family, never
-  manila. Starlight's `accent` token is its *interaction* color, not Relab's *data-label* accent.
+  manila. Starlight's `accent` token is its *interaction* color, not R9lab's *data-label* accent.
 - **Do** keep the manila accent scarce and small (the R-number in `NineRLadder`), per "accent is
   for small text, never for mass".
 - **Do** reuse the chart ramp's hue-to-category mapping (actor=blue, backend=manila,

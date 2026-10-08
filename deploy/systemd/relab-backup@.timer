@@ -1,4 +1,4 @@
-# Relab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+# R9lab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -9,7 +9,7 @@
 # host. These units run a writable git checkout as unattended, scheduled, effectively
 # root-level jobs — treat that directory as privileged.
 [Unit]
-Description=Relab encrypted backup schedule (%i)
+Description=R9lab encrypted backup schedule (%i)
 
 [Timer]
 # Hourly snapshot only. Prune, integrity check and the offsite copy run once a day from

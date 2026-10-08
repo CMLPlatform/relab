@@ -739,7 +739,7 @@ stack_command() {
             parse_profiles "$env" "migrations backups scanning" "$@"
             # Root env policy, on the host, before anything starts. The vendored
             # telemetry overlay cannot require TELEMETRY_EDGE_KEY, because only projects
-            # behind a WAF need it. Relab is behind one, and an empty key means the
+            # behind a WAF need it. R9lab is behind one, and an empty key means the
             # Cloudflare skip rule stops matching and every export is bot-challenged
             # silently. scripts/env_policy.py owns that pairing.
             uv run python scripts/env_policy.py check --env "$env"

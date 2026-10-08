@@ -1,5 +1,5 @@
 ---
-name: Relab App
+name: R9lab App
 description: Field data-collection app for circular-economy product teardowns — the colour of engineering documentation.
 colors:
   background: '#FAFBFE'
@@ -99,7 +99,7 @@ components:
     height: 24px
 ---
 
-# Design System: Relab App
+# Design System: R9lab App
 
 ## Overview
 

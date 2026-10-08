@@ -1,12 +1,12 @@
 # Product
 
-What Relab is, who it serves, and which facts about it are settled. This covers the product as a
+What R9lab is, who it serves, and which facts about it are settled. This covers the product as a
 whole; `app/`, `www/`, and `docs/` are surfaces of it. Per-surface strategy lives in the surface
 briefs.
 
 ## Purpose
 
-Relab is a data collection and viewing platform for a PhD at Leiden University (CML), built around
+R9lab is a data collection and viewing platform for a PhD at Leiden University (CML), built around
 the circular economy and the 9R strategies. Users document a physical product, break it into
 components, and tag those components with materials and circularity observations. The output is a
 structured, citable research dataset about how real products are built and how recoverable their
@@ -64,20 +64,20 @@ superuser.
 
 ## Positioning
 
-Site line: "Relab | Product data and disassembly records for the circular economy."
+Site line: "R9lab | Product data and disassembly records for the circular economy."
 
 The mechanism a neighbouring product could not truthfully copy: teardown records captured by people
 with the product physically disassembled in front of them. Recursive product → component hierarchy
 of unbounded depth, photographic evidence at every node, and per-node circularity observations.
 Field-captured primary data, not scraped specifications or inferred bills of materials.
 
-Relab works downstream, at the point of failure, with the people who already open products. That
+R9lab works downstream, at the point of failure, with the people who already open products. That
 vantage captures as-failed composition, wear, and recoverability that as-designed producer
 specifications never record.
 
 The sharpest comparison: repair groups have logged more than 400,000 records under the Open Repair
 Data Standard, but those are event-level, with no component hierarchies, no masses, no geometry.
-Relab's contribution is exactly that missing depth.
+R9lab's contribution is exactly that missing depth.
 
 **Careful with the 9R framing.** The 9R strategies motivate the project and supply its wordmark.
 They are not applied per record. The platform does not tag a record with an R-strategy and does not
@@ -171,8 +171,8 @@ collides with the pilot image count by coincidence. Never conflate them.
 
 ## Brand commitments
 
-- **The name is "Relab" in all text:** copy, titles, alt text, aria-labels, metadata. "R9lab" is a
-  visual wordmark device that lives only in logo artwork. Never as text, never "R-nine-lab".
+- **The name is "R9lab" in all text:** copy, titles, alt text, aria-labels, metadata. The drawn 9
+  in the wordmark reads as a mirrored "e" and nods to the 9R strategies. Never write "R-nine-lab".
 - **Never write "Reverse Engineering Lab".** This is an IP-law concern, not a style preference.
 - **The name, logo, and wordmark carry no licence.** Nominative use needs no permission.
 - **Direction: "Cyanotype & Manila", the colour of engineering documentation.** "Verdigris &

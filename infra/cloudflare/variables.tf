@@ -1,5 +1,5 @@
 variable "environment" {
-  description = "Relab environment managed by this state."
+  description = "R9lab environment managed by this state."
   type        = string
 
   validation {
@@ -22,17 +22,17 @@ variable "state_passphrase" {
 }
 
 variable "cloudflare_account_id" {
-  description = "Cloudflare account ID that owns the Relab tunnels."
+  description = "Cloudflare account ID that owns the R9lab tunnels."
   type        = string
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare zone ID for the zone that serves Relab."
+  description = "Cloudflare zone ID for the zone that serves R9lab."
   type        = string
 }
 
 variable "cloudflare_zone_name" {
-  description = "Public DNS zone name for Relab edge hostnames."
+  description = "Public DNS zone name for R9lab edge hostnames."
   type        = string
   default     = "r9lab.io"
 }

@@ -1,4 +1,4 @@
-# Relab scheduled job: backup restore verification. Instance is the environment, e.g. relab-restore-check@prod.
+# R9lab scheduled job: backup restore verification. Instance is the environment, e.g. relab-restore-check@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -9,7 +9,7 @@
 # host. These units run a writable git checkout as unattended, scheduled, effectively
 # root-level jobs — treat that directory as privileged.
 [Unit]
-Description=Relab backup restore verification schedule (%i)
+Description=R9lab backup restore verification schedule (%i)
 
 [Timer]
 # 06:00 clears relab-backup-maintenance@, which fires at 02:30 with a 2h timeout and
