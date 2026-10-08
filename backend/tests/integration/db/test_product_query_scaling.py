@@ -13,8 +13,13 @@ from sqlalchemy import func, select
 
 from app.api.application.account_erasure import erase_user
 from app.api.auth.models import User
-from app.api.data_collection.crud.product_commands import delete_product
+from app.api.data_collection.crud.product_commands import create_product, delete_product
 from app.api.data_collection.models.product import MaterialProductLink, Product
+from app.api.data_collection.schemas import (
+    ComponentCreateWithComponents,
+    MaterialProductLinkCreateWithinProduct,
+    ProductCreateWithComponents,
+)
 from app.api.file_storage.models import File, MediaParentType, Video
 from scripts.seed.factories.models import UserFactory
 from tests.fixtures.queries import count_queries
@@ -105,3 +110,39 @@ async def test_erasure_query_count_does_not_grow_with_products(db_session: Async
     assert await _count_erasure(db_session, db_material, products=3) == await _count_erasure(
         db_session, db_material, products=30
     )
+
+
+def _product_payload(material: Material, *, components: int) -> ProductCreateWithComponents:
+    """A base product with ``components`` components, each with one part, all with a bill of materials."""
+    bom = [MaterialProductLinkCreateWithinProduct(material_id=material.id, quantity=1.0)]
+    part = ComponentCreateWithComponents(name="Scaling part", amount_in_parent=1, bill_of_materials=bom)
+    return ProductCreateWithComponents(
+        name="Scaling create",
+        bill_of_materials=bom,
+        components=[
+            ComponentCreateWithComponents(
+                name="Scaling component", amount_in_parent=1, bill_of_materials=bom, components=[part]
+            )
+            for _ in range(components)
+        ],
+    )
+
+
+async def _count_create(session: AsyncSession, owner: User, material: Material, *, components: int) -> int:
+    payload = _product_payload(material, components=components)
+    session.expunge_all()
+    with count_queries() as statements:
+        product = await create_product(session, payload, owner.id)
+    assert await _remaining_rows(session, owner) == 1 + 2 * components
+    with patch("app.api.data_collection.crud.product_commands.audit_event"):
+        await delete_product(session, product.id)
+    return len(statements)
+
+
+async def test_product_tree_create_query_count_does_not_grow_with_components(
+    db_session: AsyncSession, db_user: User, db_material: Material
+) -> None:
+    """Creating 30 components with bills of materials takes as many queries as 3."""
+    small = await _count_create(db_session, db_user, db_material, components=3)
+    large = await _count_create(db_session, db_user, db_material, components=30)
+    assert small == large

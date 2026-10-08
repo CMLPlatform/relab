@@ -29,72 +29,38 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def create_product_record(
-    db: AsyncSession,
+def build_product_tree(
     product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
     *,
     owner_id: UUID4,
     parent_product: Product | None = None,
 ) -> Product:
-    """Create a Product row and flush it so dependent rows can reference it.
+    """Build the product, its videos, bill of materials and components in memory.
 
-    ``owner_id`` is stored on every row; components denormalize their root
-    base product's owner (their caller passes ``parent_product.owner_id``).
+    ``owner_id`` is stored on every row: components denormalize their root base
+    product's owner so downstream queries (ownership, stats, per-user listings) stay
+    single-table, single-filter.
     """
     db_product = Product(
         **product_data.model_dump(exclude={"components", "owner_id", "videos", "bill_of_materials"}),
         owner_id=owner_id,
         parent=parent_product,
     )
-    db.add(db_product)
-    await db.flush()
+    if isinstance(product_data, ProductCreateWithComponents) and product_data.videos:
+        db_product.videos = [Video(**v.model_dump()) for v in product_data.videos]
+    if product_data.bill_of_materials:
+        db_product.bill_of_materials = [MaterialProductLink(**m.model_dump()) for m in product_data.bill_of_materials]
+    for component in product_data.components:
+        build_product_tree(component, owner_id=owner_id, parent_product=db_product)
     return db_product
 
 
-def create_product_videos(
-    db: AsyncSession,
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-    db_product: Product,
-) -> None:
-    """Attach any videos from the create payload to the product."""
-    if not isinstance(product_data, ProductCreateWithComponents) or not product_data.videos:
-        return
-    videos = [Video(**v.model_dump()) for v in product_data.videos]
-    db_product.videos = videos
-    db.add_all(videos)
-
-
-async def create_product_bill_of_materials(
-    db: AsyncSession,
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-    db_product: Product,
-) -> None:
-    """Create bill-of-materials rows linked to the product."""
-    if not product_data.bill_of_materials:
-        return
-
-    material_ids = {material.material_id for material in product_data.bill_of_materials}
-    await require_models(db, Material, material_ids)
-
-    db.add_all(
-        MaterialProductLink(**material.model_dump(), product=db_product) for material in product_data.bill_of_materials
-    )
-
-
-async def create_product_components(
-    db: AsyncSession,
-    product_data: ProductCreateWithComponents | ComponentCreateWithComponents,
-    *,
-    owner_id: UUID4,
-    db_product: Product,
-) -> None:
-    """Recursively create child components for a product.
-
-    Components denormalize the root's ``owner_id`` so downstream queries
-    (ownership, stats, per-user listings) stay single-table, single-filter.
-    """
+def _tree_material_ids(product_data: ProductCreateWithComponents | ComponentCreateWithComponents) -> set[int]:
+    """Collect the material ids named anywhere in a create payload's tree."""
+    ids = {material.material_id for material in product_data.bill_of_materials}
     for component in product_data.components:
-        await create_product_tree(db, component, owner_id=owner_id, parent_product=db_product)
+        ids |= _tree_material_ids(component)
+    return ids
 
 
 async def create_product_tree(
@@ -104,15 +70,19 @@ async def create_product_tree(
     owner_id: UUID4 | None = None,
     parent_product: Product | None = None,
 ) -> Product:
-    """Create an in-memory product tree and flush rows for persistence."""
+    """Create a product tree and flush its rows.
+
+    The tree's material ids are checked in one query and the rows flushed once, so
+    the query count does not grow with the number of components.
+    """
     if owner_id is None:
         raise ProductOwnerRequiredError
 
-    db_product = await create_product_record(db, product_data, owner_id=owner_id, parent_product=parent_product)
-    create_product_videos(db, product_data, db_product)
-    await create_product_bill_of_materials(db, product_data, db_product)
-    await create_product_components(db, product_data, owner_id=owner_id, db_product=db_product)
-
+    if material_ids := _tree_material_ids(product_data):
+        await require_models(db, Material, material_ids)
+    db_product = build_product_tree(product_data, owner_id=owner_id, parent_product=parent_product)
+    db.add(db_product)
+    await db.flush()
     return db_product
 
 
