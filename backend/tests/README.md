@@ -69,5 +69,9 @@ cat reports/mutation/ops/*/survivors.txt | sort > reports/mutation/survivors.txt
 just mutation-baseline
 ```
 
+mutmut skips decorated functions, so route handlers are never mutated: guards that live in a
+handler body (such as the empty-upload check in the camera preview upload) need the `if False:`
+check above instead.
+
 Log calls are not mutated, but only on the call's first line: the argument lines of a multi-line
 call still are, and their survivors belong in the baseline.
