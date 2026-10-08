@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Smoke check for the old-zone to new-zone redirects: every old host must answer with the
 # expected status and a Location on the same host prefix of the new zone, path and query
-# kept. The monitoring host must never redirect, because a 3xx drops exporter POSTs.
+# kept, and that new host must not redirect back to the old zone. The monitoring host must
+# never redirect, because a 3xx drops exporter POSTs.
 # Usage: smoke_redirects.sh <old_zone> <new_zone> <prod|staging>
 # TELEMETRY_EDGE_KEY (as in the deploy host's root .env) enables the otel check.
 # REDIRECT_PERMANENT=1 expects 301/308 instead of 302/307, mirroring var.redirect_permanent.
@@ -23,6 +24,23 @@ redirect_verdict() {
     fi
     if [[ "$location" != "$expect_location" ]]; then
         printf 'FAIL[%s]: Location %s, expected %s\n' "$host" "$location" "$expect_location"
+        return 1
+    fi
+    printf 'ok\n'
+}
+
+# second_hop_verdict <host> <status> <location> <old_zone>
+# The new host may answer anything but a redirect back to the old zone: that loops.
+second_hop_verdict() {
+    local host="$1" status="$2" location="$3" old_zone="$4" target
+    if [[ -z "$status" || "$status" == 000 ]]; then
+        printf 'FAIL[%s]: no response\n' "$host"
+        return 1
+    fi
+    target="${location#*://}"
+    target="${target%%[/?#]*}"
+    if [[ "$status" == 3* && ("$target" == "$old_zone" || "$target" == *".$old_zone") ]]; then
+        printf 'FAIL[%s]: redirects back to the old zone: %s\n' "$host" "$location"
         return 1
     fi
     printf 'ok\n'
@@ -87,8 +105,14 @@ smoke_main() {
             -w '%{http_code} %{redirect_url}' "https://${prefix}${old_zone}${SMOKE_PATH}")" || result=''
         code="${result%% *}"
         location="${result#* }"
-        redirect_verdict "${prefix}${old_zone}" "$code" "$location" "$status" \
-            "https://${prefix}${new_zone}${SMOKE_PATH}" >&2 || failed=1
+        if ! redirect_verdict "${prefix}${old_zone}" "$code" "$location" "$status" \
+            "https://${prefix}${new_zone}${SMOKE_PATH}" >&2; then
+            failed=1
+            continue
+        fi
+        result="$(curl -sS -o /dev/null --max-redirs 0 --max-time 15 \
+            -w '%{http_code} %{redirect_url}' "$location")" || result=''
+        second_hop_verdict "${prefix}${new_zone}" "${result%% *}" "${result#* }" "$old_zone" >&2 || failed=1
     done
 
     # Monitoring posts to this host; any redirect or edge challenge breaks ingestion.

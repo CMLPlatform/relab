@@ -1251,6 +1251,25 @@ assert_eq "an edge challenge fails" "1|FAIL[otel.cml-relab.org]: challenged by t
     "$(otel 403 $'HTTP/2 403\r\ncf-mitigated: challenge\r\n')"
 assert_eq "405 from the collector passes" "0|ok" "$(otel 405 $'HTTP/2 405\r\n')"
 assert_eq "no response on a redirect host" "1|FAIL[app.cml-relab.org]: no response" "$(verdict 000 '')"
+# The second hop: the new host must not send the request back to the old zone, which loops
+# once a leftover rule on the new zone forwards it there.
+hop() {
+    local out status
+    out="$(second_hop_verdict app.r9lab.io "$1" "$2" cml-relab.org 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+assert_eq "new host bounces back to the old zone" \
+    "1|FAIL[app.r9lab.io]: redirects back to the old zone: https://app.cml-relab.org/r9lab-smoke?q=1" \
+    "$(hop 302 'https://app.cml-relab.org/r9lab-smoke?q=1')"
+assert_eq "new apex bouncing to the old apex fails" \
+    "1|FAIL[app.r9lab.io]: redirects back to the old zone: https://cml-relab.org/" \
+    "$(hop 301 'https://cml-relab.org/')"
+assert_eq "a 200 on the new host passes" "0|ok" "$(hop 200 '')"
+assert_eq "an edge challenge on the new host passes" "0|ok" "$(hop 403 '')"
+assert_eq "a redirect within the new zone passes" "0|ok" "$(hop 302 'https://app.r9lab.io/login')"
+assert_eq "a lookalike domain is not the old zone" "0|ok" "$(hop 302 'https://notcml-relab.org/')"
+assert_eq "no response from the new host fails" "1|FAIL[app.r9lab.io]: no response" "$(hop 000 '')"
 assert_eq "permanent maps 302 to 301" "301" "$(expected_status 302 1)"
 assert_eq "permanent maps 307 to 308" "308" "$(expected_status 307 1)"
 assert_eq "temporary keeps the status" "307" "$(expected_status 307 0)"
