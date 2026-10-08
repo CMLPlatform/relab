@@ -268,7 +268,7 @@ async def test_email_update_revokes_sessions_before_email_side_effects() -> None
             "app.api.auth.services.user_manager.revoke_user_refresh_tokens",
             side_effect=revoke_side_effect,
         ) as revoke,
-        patch("app.api.auth.services.user_manager.require_account_update_step_up"),
+        patch("app.api.auth.services.mfa_flow.require_account_update_step_up"),
         patch(
             "app.api.auth.services.user_manager.send_email_changed_notification",
             side_effect=email_notification_side_effect,

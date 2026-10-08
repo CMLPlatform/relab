@@ -31,7 +31,6 @@ from app.api.auth.services.email.service import (
     send_verification_email,
 )
 from app.api.auth.services.email_identity import account_rate_limit_identity
-from app.api.auth.services.mfa_flow import require_account_update_step_up
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
@@ -228,6 +227,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         # know the target's password. Only the password and MFA checks spend the guess
         # budget, so a preferences or username edit costs nothing.
         if safe and sensitive_fields:
+            # NOTE: imported here because mfa_flow's helpers take a UserManager, so a
+            # module-level import would make the two modules import each other.
+            from app.api.auth.services.mfa_flow import require_account_update_step_up  # noqa: PLC0415
+
             await require_account_update_step_up(real_user_update, user=user, user_manager=self, request=request)
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
