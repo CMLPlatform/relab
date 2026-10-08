@@ -105,7 +105,8 @@ async def test_legacy_cookie_names_are_not_accepted(redis_client: Redis) -> None
         return "ok"
 
     @app.get("/me")
-    async def me(_: Annotated[str, Depends(current_user)]) -> None: ...
+    async def me(_: Annotated[str, Depends(current_user)]) -> None:
+        return None
 
     @app.get("/material")
     async def material(request: Request) -> dict[str, bool]:
