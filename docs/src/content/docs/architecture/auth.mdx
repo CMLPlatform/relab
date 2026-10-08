@@ -47,8 +47,8 @@ Forgot-password returns the same accepted response for known, unknown, and inact
 
 Rate limits use the Redis-backed `limits` integration:
 
-- login by transient client-IP bucket (60 a minute, so a workshop room behind one IP can sign in) and by failed attempts against a keyed digest of the submitted identifier (3 a minute); successful logins do not count against the account, so a shared demo account is not locked by use
-- forgot-password requests by transient client-IP bucket and by a keyed digest of the submitted email address
+- login by transient client-IP bucket (60 a minute, so a workshop room behind one IP can sign in) and by failed attempts against a keyed digest of the account's canonical email address (3 a minute), so every spelling of one address shares one bucket; successful logins do not count against the account, so a shared demo account is not locked by use
+- forgot-password requests by transient client-IP bucket and by a keyed digest of the canonical email address
 - reset-password submissions, registration, and email verification requests by transient client-IP bucket
 
 Password reset uses email links. Reset tokens are valid for one hour and include a fingerprint of the previous password hash, so a successful change invalidates them. A successful reset revokes existing refresh tokens and sends a confirmation email without credentials, tokens, or links. The web app is served with `Referrer-Policy: no-referrer` and removes the token from browser history after loading the reset page.

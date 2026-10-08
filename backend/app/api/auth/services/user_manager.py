@@ -34,6 +34,7 @@ from app.api.auth.services.email.service import (
     send_reset_password_email,
     send_verification_email,
 )
+from app.api.auth.services.email_identity import account_rate_limit_identity
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
@@ -67,7 +68,7 @@ VERIFICATION_TOKEN_AUDIENCE = "fastapi-users:verify"  # noqa: S105 # This value 
 
 def _login_identifier_rate_limit_key(identifier: str) -> str:
     """Return a privacy-preserving login rate-limit key for a submitted identifier."""
-    return rate_limit_bucket_key("auth:login:account", identifier)
+    return rate_limit_bucket_key("auth:login:account", account_rate_limit_identity(identifier))
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):

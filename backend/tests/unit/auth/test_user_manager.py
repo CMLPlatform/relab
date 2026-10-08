@@ -25,6 +25,7 @@ from app.api.auth.terms import CURRENT_TERMS_VERSION
 from app.api.common.audit import AuditAction
 from app.api.common.rate_limiting import Limiter, RateLimitExceededError
 from app.core.runtime import AppServices
+from tests.fixtures.auth import EMAIL_SPELLING_VARIANTS
 
 
 def _make_credentials(username: str, password: str = "testpassword") -> OAuth2PasswordRequestForm:
@@ -199,6 +200,26 @@ async def test_username_and_email_login_share_rate_limit_bucket() -> None:
     email_key = email_limiter.ahit_key.call_args.args[1]
 
     assert username_key == email_key
+
+
+async def test_email_case_variants_share_login_rate_limit_bucket() -> None:
+    """Every spelling that signs in to one account charges one failed-login bucket.
+
+    Covers letter case, a decomposed accent and a Unicode domain against its ASCII form,
+    all of which the account lookup treats as the same address.
+    """
+    keys = set()
+    for variant in EMAIL_SPELLING_VARIANTS:
+        manager, _ = _make_manager()
+        with (
+            patch("app.api.auth.services.user_manager.limiter", create=True) as mock_limiter,
+            patch.object(UserManager, "_authenticate_offloading_hashes", new_callable=AsyncMock, return_value=None),
+        ):
+            mock_limiter.ahit_key = AsyncMock()
+            await manager.authenticate(_make_credentials(variant))
+        keys.add(mock_limiter.ahit_key.call_args.args[1])
+
+    assert len(keys) == 1
 
 
 def test_current_password_is_not_in_forwarded_update_dicts() -> None:

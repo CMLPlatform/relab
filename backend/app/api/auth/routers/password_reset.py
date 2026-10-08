@@ -11,6 +11,7 @@ from fastapi_users.router.reset import RESET_PASSWORD_RESPONSES, ErrorCode
 from pydantic import EmailStr
 
 from app.api.auth.dependencies import UserManagerDep
+from app.api.auth.services.email_identity import account_rate_limit_identity
 from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT
 from app.api.common.rate_limiting import limiter, rate_limit_bucket_key
 
@@ -23,7 +24,7 @@ router = APIRouter(dependencies=[limiter.dependency(PASSWORD_RESET_RATE_LIMIT)])
 
 def _password_reset_identifier_rate_limit_key(identifier: str) -> str:
     """Return a privacy-preserving forgot-password rate-limit key."""
-    return rate_limit_bucket_key("auth:password-reset:account", identifier)
+    return rate_limit_bucket_key("auth:password-reset:account", account_rate_limit_identity(identifier))
 
 
 async def _sleep_until_minimum_elapsed(started_at: float) -> None:

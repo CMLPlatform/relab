@@ -47,6 +47,9 @@ Security-sensitive areas:
 - rate limits (the buckets and numbers are in the security reference)
   - Password login is limited per IP and by failed attempts per account, so a shared account is
     not locked by use while guessing stays capped per account.
+  - Per-account buckets for login and forgot-password are keyed on the canonical email address
+    (`account_rate_limit_identity`): the comparison key the account lookup uses, so letter case,
+    Unicode normalization and Unicode or ASCII domain spellings share one budget.
   - The MFA login challenge and every signed-in re-authentication (account deletion, email and
     password changes, social login link and unlink, MFA setup, disable and recovery-code
     rotation) share one per-account budget of password, TOTP and recovery-code checks
