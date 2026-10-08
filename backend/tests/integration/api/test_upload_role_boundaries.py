@@ -4,16 +4,12 @@ These go through the real app so the route dependency is exercised. Client-side
 hiding of a file picker is not a control; this file is where the control lives.
 """
 
-import base64
 import json
-import time
 from io import BytesIO
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
-import jwt
 import pytest
-from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import FastAPI, HTTPException, status
 from PIL import Image as PILImage
 from sqlalchemy.exc import IntegrityError
@@ -26,11 +22,11 @@ from app.api.auth.roles import (
     upload_quota_bytes_for_role,
     upload_quota_files_for_role,
 )
-from app.api.plugins.rpi_cam.device_assertion import ASSERTION_AUDIENCE
 from app.api.plugins.rpi_cam.models import Camera
 from app.core.config.core import settings
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 from tests.fixtures.client import override_authenticated_user
+from tests.fixtures.device_assertion import make_keypair, sign_assertion
 
 from .auth.shared import TEST_PASSWORD, hash_test_password, login_bearer
 
@@ -319,36 +315,15 @@ class TestRoleAssignment:
 
 def _signed_camera(owner: User) -> tuple[Camera, str]:
     """Build a camera for ``owner`` and a fresh device assertion signed with its key."""
-    private_key = ec.generate_private_key(ec.SECP256R1())
-    numbers = private_key.public_key().public_numbers()
-
-    def _b64(value: int) -> str:
-        return base64.urlsafe_b64encode(value.to_bytes(32, "big")).rstrip(b"=").decode()
-
+    private_key, jwk = make_keypair()
     camera = Camera(
         id=uuid4(),
         name="Upload boundary camera",
         owner_id=owner.id,
-        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": _b64(numbers.x), "y": _b64(numbers.y)},
+        relay_public_key_jwk=jwk,
         relay_key_id="boundary-key",
     )
-    now = int(time.time())
-    claim = f"camera:{camera.id}"
-    assertion = jwt.encode(
-        {
-            "iss": claim,
-            "sub": claim,
-            "aud": ASSERTION_AUDIENCE,
-            "iat": now,
-            "nbf": now,
-            "exp": now + 60,
-            "jti": str(uuid4()),
-        },
-        private_key,
-        algorithm="ES256",
-        headers={"kid": camera.relay_key_id},
-    )
-    return camera, assertion
+    return camera, sign_assertion(private_key, camera.id, camera.relay_key_id, exp_offset=60)
 
 
 class TestCameraUploadsFollowTheOwnerAccount:
