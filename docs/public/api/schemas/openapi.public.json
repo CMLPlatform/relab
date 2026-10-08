@@ -17086,7 +17086,7 @@
             "schema": {
               "default": 1,
               "description": "Maximum recursion depth",
-              "maximum": 5,
+              "maximum": 10,
               "minimum": 1,
               "title": "Recursion Depth",
               "type": "integer"

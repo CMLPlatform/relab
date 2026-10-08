@@ -164,17 +164,40 @@ describe('ComponentRow', () => {
     });
   });
 
-  it('does not offer expansion on nested child rows (one level deep only)', async () => {
-    const grandchild = makeComponent({ id: 12, name: 'Magnet' });
+  it('expands nested rows to any depth, fetching children a payload left out', async () => {
+    const grandchild = makeComponent({ id: 12, name: 'Magnet', components: undefined });
     const child = makeComponent({ id: 11, name: 'Rotor', components: [grandchild] });
+    mockGetComponent.mockResolvedValue(
+      makeComponent({
+        id: 12,
+        name: 'Magnet',
+        components: [makeComponent({ id: 13, name: 'Coating' })],
+      }),
+    );
     await renderWithProviders(
       <ComponentRow component={makeComponent({ components: [child] })} enabled={true} />,
     );
 
     await fireEvent.press(screen.getByLabelText('Show components of Motor Assembly'));
-    expect(screen.getByText('Rotor')).toBeOnTheScreen();
-    expect(screen.queryByLabelText('Show components of Rotor')).toBeNull();
+    await fireEvent.press(screen.getByLabelText('Show components of Rotor'));
+    expect(screen.getByText('Magnet')).toBeOnTheScreen();
+
+    const magnetToggle = screen.getByLabelText('Show components of Magnet');
+    expect(magnetToggle.props.accessibilityState).toEqual({ expanded: false });
+    await fireEvent.press(magnetToggle);
+    await waitFor(() => {
+      expect(screen.getByText('Coating')).toBeOnTheScreen();
+    });
+    expect(mockGetComponent).toHaveBeenCalledWith(12);
+    expect(screen.getByLabelText('Hide components of Magnet').props.accessibilityState).toEqual({
+      expanded: true,
+    });
+
+    // Each level folds on its own: hiding the middle row hides everything under it.
+    await fireEvent.press(screen.getByLabelText('Hide components of Rotor'));
     expect(screen.queryByText('Magnet')).toBeNull();
+    expect(screen.queryByText('Coating')).toBeNull();
+    expect(screen.getByText('Rotor')).toBeOnTheScreen();
   });
 
   it('hides the decorative thumbnail from assistive tech', async () => {

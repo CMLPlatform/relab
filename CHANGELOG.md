@@ -44,6 +44,11 @@ stops before touching the running stack and prints these steps.
   `cloudflare_account_id`); `r9lab.io.tfvars` forwards `info@r9lab.io`.
 - `just smoke-redirects` checks that the old hosts redirect to the new ones. It sends
   `TELEMETRY_EDGE_KEY` as `X-Telemetry-Key` for the telemetry probe.
+- On a product or component page, each component row now expands to show its own
+  components, and theirs, as deep as the breakdown goes.
+- The components list shows the total weight of the components, from the weights recorded on
+  each one times its amount. When some components have no weight, it says how many and shows
+  the total as a lower bound.
 
 ### Changed
 
@@ -60,6 +65,8 @@ stops before touching the running stack and prints these steps.
   instead of a bare list. Pass `page` and `size` to walk the results.
 - `GET /v1/products/{id}/components/tree` answers 400 when a tree has more than 1,000
   components; use the paged components route for larger products.
+- `GET /v1/products/{id}/components/tree` accepts `recursion_depth` up to 10, as deep as
+  components can nest, instead of 5.
 - Deleting a product, erasing an account with its content, and creating a product with
   components each take a fixed number of database queries, however many components there are.
 - The privacy policy now says how long backups keep deleted accounts and uploads:

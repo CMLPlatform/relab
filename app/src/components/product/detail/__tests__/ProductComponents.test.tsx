@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { useRouter } from 'expo-router';
+import { HttpResponse, http } from 'msw';
 import ProductComponents from '@/components/product/detail/ProductComponents';
+import { API_URL } from '@/config';
 import { saveProduct } from '@/services/api/saving';
-import { baseProduct, renderWithProviders } from '@/test-utils/index';
+import { baseProduct, renderWithProviders, server } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 const SHOW_MORE_PATTERN = /Show \d+ more/;
+const WEIGHT_PATTERN = /weigh|weight/;
 
 jest.mock('@/services/api/saving', () => ({
   ...(jest.requireActual('@/services/api/saving') as object),
@@ -323,5 +326,90 @@ describe('ProductComponents', () => {
 
     await screen.findByText('Aluminium bracket');
     expect(screen.queryByLabelText('Duplicate Aluminium bracket')).toBeNull();
+  });
+
+  describe('weight total', () => {
+    const withOneComponent: Product = {
+      ...baseProduct,
+      components: [{ ...baseProduct, id: 2, role: 'component', name: 'Frame' }],
+    };
+    // Tree route payload: the fields the total reads, nested as the API nests them.
+    const node = (
+      id: number,
+      weight: number | null,
+      amount: number,
+      components: unknown[] = [],
+    ) => ({
+      id,
+      name: `Part ${id}`,
+      version: 1,
+      parent_id: 1,
+      weight_g: weight,
+      amount_in_parent: amount,
+      components,
+    });
+    const answerTree = (response: Response | ReturnType<typeof HttpResponse.json>) =>
+      server.use(http.get(`${API_URL}/products/1/components/tree`, () => response));
+
+    it('totals the weights from every level of the tree', async () => {
+      answerTree(HttpResponse.json([node(2, 300, 2), node(3, null, 1, [node(4, 25, 4)])]));
+      await renderWithProviders(
+        <ProductComponents product={withOneComponent} editMode={false} canEdit />,
+        { withDialog: true },
+      );
+      expect(await screen.findByText('Components weigh 700 g in total.')).toBeOnTheScreen();
+    });
+
+    it('asks for all ten levels and counts a weight recorded below the fifth', async () => {
+      let depth: string | null = null;
+      // Six unweighed levels over one weighed 40 g leaf, two of each.
+      let tree = [node(8, 40, 2)];
+      for (let id = 7; id >= 2; id -= 1) tree = [node(id, null, 1, tree)];
+      server.use(
+        http.get(`${API_URL}/products/1/components/tree`, ({ request }) => {
+          depth = new URL(request.url).searchParams.get('recursion_depth');
+          return HttpResponse.json(tree);
+        }),
+      );
+      await renderWithProviders(
+        <ProductComponents product={withOneComponent} editMode={false} canEdit />,
+        { withDialog: true },
+      );
+      expect(await screen.findByText('Components weigh 80 g in total.')).toBeOnTheScreen();
+      expect(depth).toBe('10');
+    });
+
+    it('shows no total for an empty tree', async () => {
+      answerTree(HttpResponse.json([]));
+      await renderWithProviders(
+        <ProductComponents product={withOneComponent} editMode={false} canEdit />,
+        { withDialog: true },
+      );
+      // Long enough for the tree to load and render; a "0 g" line would show by then.
+      await expect(screen.findByText(WEIGHT_PATTERN, {}, { timeout: 500 })).rejects.toThrow();
+    });
+
+    it('says the total is partial when components have no weight', async () => {
+      answerTree(HttpResponse.json([node(2, 300, 1), node(3, null, 1), node(4, null, 2)]));
+      await renderWithProviders(
+        <ProductComponents product={withOneComponent} editMode={false} canEdit />,
+        { withDialog: true },
+      );
+      expect(
+        await screen.findByText('Components weigh at least 300 g: 2 components have no weight.'),
+      ).toBeOnTheScreen();
+    });
+
+    it('explains a missing total when the tree is too large to fetch', async () => {
+      answerTree(new HttpResponse(null, { status: 400 }));
+      await renderWithProviders(
+        <ProductComponents product={withOneComponent} editMode={false} canEdit />,
+        { withDialog: true },
+      );
+      expect(
+        await screen.findByText('Too many components to total their weight.'),
+      ).toBeOnTheScreen();
+      expect(screen.getByText('Frame')).toBeOnTheScreen();
+    });
   });
 });

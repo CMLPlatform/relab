@@ -10,6 +10,7 @@ import type {
   ApiBaseProductPageItem,
   ApiComponentChildItem,
   ApiComponentDetail,
+  ApiComponentTreeItem,
   ApiImageRead,
   ApiMaterialLink,
   ApiPaginatedProducts,
@@ -50,7 +51,8 @@ type ProductMapperPayload =
   | ApiBaseProductDetail
   | ApiBaseProductPageItem
   | ApiComponentChildItem
-  | ApiComponentDetail;
+  | ApiComponentDetail
+  | ApiComponentTreeItem;
 
 // Fields mapped identically for base products and components.
 function commonProductFields(data: ProductMapperPayload, meId?: string) {
@@ -147,7 +149,10 @@ function toBaseProduct(
   };
 }
 
-function toComponent(data: ApiComponentChildItem | ApiComponentDetail, meId?: string): Product {
+function toComponent(
+  data: ApiComponentChildItem | ApiComponentDetail | ApiComponentTreeItem,
+  meId?: string,
+): Product {
   const ownerId = data.owner_id;
   return {
     ...commonProductFields(data, meId),
@@ -195,6 +200,25 @@ export async function getComponent(id: number) {
   ]);
   if (!data) throw new ProductNotFoundError(id);
   return toComponent(data, meId);
+}
+
+// How deep components may nest below a base product; the tree route accepts this as its depth.
+const MAX_COMPONENT_DEPTH = 10;
+
+/**
+ * Every component under a product or component, with their children nested.
+ * Null when the tree has more components than the API serves at once (it
+ * answers 400 above 1,000).
+ */
+export async function getComponentTree(id: number): Promise<Product[] | null> {
+  const url = new URL(`${baseUrl}/products/${id}/components/tree`);
+  url.searchParams.append('recursion_depth', String(MAX_COMPONENT_DEPTH));
+  const response = await apiFetch(url, { method: 'GET' });
+  if (response.status === 400) return null;
+  if (!response.ok) await throwFromResponse(response, 'Failed to fetch components');
+  const data = (await response.json()) as ApiComponentTreeItem[];
+  // NOTE: no viewer lookup, so `ownedBy` is never 'me'; callers read the measurements only.
+  return data.map((component) => toComponent(component));
 }
 
 export function newProduct(
@@ -311,7 +335,7 @@ export async function downloadExport(url: URL): Promise<void> {
     }
     const file = new File(Paths.cache, filename);
     // Bytes, not text: re-encoding could drop the CSV's BOM, which Excel needs to read UTF-8.
-    file.write(new Uint8Array(await response.arrayBuffer()));
+    await file.write(new Uint8Array(await response.arrayBuffer()));
     await shareAsync(file.uri, {
       mimeType: response.headers.get('Content-Type') ?? undefined,
       dialogTitle: filename,
