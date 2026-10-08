@@ -146,10 +146,13 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
 
 const grams = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
-/** One line with the components' total weight, or why it is partial or missing. Silent while loading or on a failed fetch. */
+/**
+ * One line with the components' total weight, or why it is partial or missing.
+ * Silent while loading, on a failed fetch, and for an empty tree.
+ */
 function WeightTotal({ productId }: { productId: number }) {
   const { data: tree } = useQuery(componentTreeQueryOptions(productId));
-  if (tree === undefined) return null;
+  if (tree === undefined || tree?.length === 0) return null;
   let text: string;
   if (tree === null) {
     text = 'Too many components to total their weight.';

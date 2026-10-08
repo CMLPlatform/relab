@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 import pytest
 from fastapi import status
 
+from app.api.data_collection.crud.product_tree_queries import MAX_COMPONENT_DEPTH
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.routers import product_read_routers
 from tests.fixtures.queries import count_queries
@@ -54,6 +55,20 @@ async def test_component_list_and_tree_are_capped(
     assert shallow.status_code == status.HTTP_200_OK
     assert len(shallow.json()) == 6
     assert deep.status_code == status.HTTP_400_BAD_REQUEST
+
+
+async def test_component_tree_depth_reaches_the_nesting_limit(
+    api_client: AsyncClient, setup_product_graph: ProductGraph
+) -> None:
+    """The tree route accepts as many levels as components may nest, and no more."""
+    url = f"/v1/products/{setup_product_graph.product.id}/components/tree"
+
+    deepest = await api_client.get(url, params={"recursion_depth": MAX_COMPONENT_DEPTH})
+    too_deep = await api_client.get(url, params={"recursion_depth": MAX_COMPONENT_DEPTH + 1})
+
+    assert MAX_COMPONENT_DEPTH == 10
+    assert deepest.status_code == status.HTTP_200_OK
+    assert too_deep.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 async def test_product_reads_load_only_the_owner_columns_they_render(

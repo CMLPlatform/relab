@@ -9,6 +9,7 @@ import { baseProduct, renderWithProviders, server } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
 const SHOW_MORE_PATTERN = /Show \d+ more/;
+const WEIGHT_PATTERN = /weigh|weight/;
 
 jest.mock('@/services/api/saving', () => ({
   ...(jest.requireActual('@/services/api/saving') as object),
@@ -357,6 +358,35 @@ describe('ProductComponents', () => {
         { withDialog: true },
       );
       expect(await screen.findByText('Components weigh 700 g in total.')).toBeOnTheScreen();
+    });
+
+    it('asks for all ten levels and counts a weight recorded below the fifth', async () => {
+      let depth: string | null = null;
+      // Six unweighed levels over one weighed 40 g leaf, two of each.
+      let tree = [node(8, 40, 2)];
+      for (let id = 7; id >= 2; id -= 1) tree = [node(id, null, 1, tree)];
+      server.use(
+        http.get(`${API_URL}/products/1/components/tree`, ({ request }) => {
+          depth = new URL(request.url).searchParams.get('recursion_depth');
+          return HttpResponse.json(tree);
+        }),
+      );
+      await renderWithProviders(
+        <ProductComponents product={withOneComponent} editMode={false} canEdit />,
+        { withDialog: true },
+      );
+      expect(await screen.findByText('Components weigh 80 g in total.')).toBeOnTheScreen();
+      expect(depth).toBe('10');
+    });
+
+    it('shows no total for an empty tree', async () => {
+      answerTree(HttpResponse.json([]));
+      await renderWithProviders(
+        <ProductComponents product={withOneComponent} editMode={false} canEdit />,
+        { withDialog: true },
+      );
+      // Long enough for the tree to load and render; a "0 g" line would show by then.
+      await expect(screen.findByText(WEIGHT_PATTERN, {}, { timeout: 500 })).rejects.toThrow();
     });
 
     it('says the total is partial when components have no weight', async () => {

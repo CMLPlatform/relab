@@ -202,17 +202,17 @@ export async function getComponent(id: number) {
   return toComponent(data, meId);
 }
 
-// The deepest `recursion_depth` the tree route accepts; components can nest deeper.
-const COMPONENT_TREE_DEPTH = 5;
+// How deep components may nest below a base product; the tree route accepts this as its depth.
+const MAX_COMPONENT_DEPTH = 10;
 
 /**
- * The components under a product or component, five levels deep, with their
- * children nested. Levels below the fifth arrive as an empty child list. Null when the tree has more components than the API serves
- * at once (it answers 400 above 1,000).
+ * Every component under a product or component, with their children nested.
+ * Null when the tree has more components than the API serves at once (it
+ * answers 400 above 1,000).
  */
 export async function getComponentTree(id: number): Promise<Product[] | null> {
   const url = new URL(`${baseUrl}/products/${id}/components/tree`);
-  url.searchParams.append('recursion_depth', String(COMPONENT_TREE_DEPTH));
+  url.searchParams.append('recursion_depth', String(MAX_COMPONENT_DEPTH));
   const response = await apiFetch(url, { method: 'GET' });
   if (response.status === 400) return null;
   if (!response.ok) await throwFromResponse(response, 'Failed to fetch components');

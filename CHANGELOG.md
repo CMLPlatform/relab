@@ -34,6 +34,8 @@ stops before touching the running stack and prints these steps.
   instead of a bare list. Pass `page` and `size` to walk the results.
 - `GET /v1/products/{id}/components/tree` answers 400 when a tree has more than 1,000
   components; use the paged components route for larger products.
+- `GET /v1/products/{id}/components/tree` accepts `recursion_depth` up to 10, as deep as
+  components can nest, instead of 5.
 - Deleting a product, erasing an account with its content, and creating a product with
   components each take a fixed number of database queries, however many components there are.
 - The privacy policy now says how long backups keep deleted accounts and uploads:
