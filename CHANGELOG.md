@@ -9,6 +9,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The privacy policy now says how long backups keep deleted accounts and uploads:
+  up to 13 months, and backups taken by hand before maintenance until we delete them.
 - The web app downloads about 14 KB less JavaScript before its first screen: the image
   lightbox, measurement cube, capture screen and streaming sheet now load when first shown.
 - Photo uploads finish faster: thumbnails are made from one decode of the original, about

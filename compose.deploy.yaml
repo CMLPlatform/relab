@@ -292,6 +292,8 @@ services:
       RESTIC_KEEP_HOURLY: "24"
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
+      # NOTE: the privacy page (www/src/pages/privacy.md) states the backup retention
+      # this sets; change both together.
       RESTIC_KEEP_MONTHLY: "12"
       # Offsite copy, run at the end of the DAILY maintenance cycle (the hourly
       # snapshot runs skip it), to the one remote in rclone.conf
