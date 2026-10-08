@@ -125,17 +125,10 @@ async def load_component_subtree(
     Callers are expected to have already verified ``parent_id`` exists
     (e.g. via the summary loader on the read route).
     """
-    root_statement: Select[tuple[Product]] = (
-        select(Product)
-        .where(Product.parent_id == parent_id)
-        .options(
-            selectinload(orm_attr(Product.owner)),
-            selectinload(orm_attr(Product.product_type)),
-            selectinload(orm_attr(Product.videos)),
-            selectinload(orm_attr(Product.files)),
-            selectinload(orm_attr(Product.images)),
-            selectinload(orm_attr(Product.bill_of_materials)),
-        )
+    # Components render as ComponentRead, which needs only the owner: the summary profile
+    # keeps the class-level eager loads (components, images, bill of materials) from firing.
+    root_statement = apply_loader_profile(
+        select(Product).where(Product.parent_id == parent_id), Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS
     )
     root_statement = apply_filter(root_statement, product_filter)
 
@@ -143,8 +136,8 @@ async def load_component_subtree(
     children_by_parent_id, _ = await _load_levels(
         db,
         [product.id for product in roots if product.id is not None],
-        lambda frontier: (
-            select(Product).where(Product.parent_id.in_(frontier)).options(selectinload(orm_attr(Product.owner)))
+        lambda frontier: apply_loader_profile(
+            select(Product).where(Product.parent_id.in_(frontier)), Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS
         ),
         levels=max(recursion_depth - 1, 0),
     )

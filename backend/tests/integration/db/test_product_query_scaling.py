@@ -14,9 +14,12 @@ from sqlalchemy import func, select
 from app.api.application.account_erasure import erase_user
 from app.api.auth.models import User
 from app.api.data_collection.crud.product_commands import create_product, delete_product
+from app.api.data_collection.crud.product_tree_queries import load_component_subtree
 from app.api.data_collection.models.product import MaterialProductLink, Product
+from app.api.data_collection.presentation.product_reads import render_component_tree
 from app.api.data_collection.schemas import (
     ComponentCreateWithComponents,
+    ComponentReadWithRecursiveComponents,
     MaterialProductLinkCreateWithinProduct,
     ProductCreateWithComponents,
 )
@@ -146,3 +149,33 @@ async def test_product_tree_create_query_count_does_not_grow_with_components(
     small = await _count_create(db_session, db_user, db_material, components=3)
     large = await _count_create(db_session, db_user, db_material, components=30)
     assert small == large
+
+
+def _count_nodes(nodes: list[ComponentReadWithRecursiveComponents]) -> int:
+    return sum(1 + _count_nodes(node.components) for node in nodes)
+
+
+async def _count_tree_read(session: AsyncSession, root_id: int, *, depth: int) -> tuple[int, int]:
+    """Load and render a component tree; return the statement count and how many nodes rendered."""
+    session.expunge_all()
+    with count_queries() as statements:
+        tree = await load_component_subtree(session, parent_id=root_id, recursion_depth=depth)
+        rendered = render_component_tree(
+            tree.roots, children_by_parent_id=tree.children_by_parent_id, max_depth=depth - 1, viewer=None
+        )
+    return len(statements), _count_nodes(rendered)
+
+
+@pytest.mark.parametrize("depth", [1, 5])
+async def test_component_tree_read_queries_grow_only_with_depth(
+    db_session: AsyncSession, db_user: User, db_superuser: User, db_material: Material, depth: int
+) -> None:
+    """A component tree read takes two queries per level, however many components each level has."""
+    small = await _seed_product(db_session, db_user, db_material, components=5, depth=depth)
+    large = await _seed_product(db_session, db_superuser, db_material, components=50, depth=depth)
+
+    small_count, small_nodes = await _count_tree_read(db_session, small.id, depth=depth)
+    large_count, large_nodes = await _count_tree_read(db_session, large.id, depth=depth)
+
+    assert (small_nodes, large_nodes) == (5 * depth, 50 * depth)
+    assert small_count == large_count <= 2 * depth
