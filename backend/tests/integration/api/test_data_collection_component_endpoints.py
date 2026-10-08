@@ -28,13 +28,13 @@ pytestmark = pytest.mark.api
 
 
 async def test_get_product_components(api_client: AsyncClient, setup_product_graph: ProductGraph) -> None:
-    """GET /products/{id}/components returns the direct children."""
+    """GET /products/{id}/components returns a page of the direct children."""
     response = await api_client.get(f"/v1/products/{setup_product_graph.product.id}/components")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert len(data) >= 1
-    assert data[0]["name"] == COMPONENT_NAME
+    assert data["total"] == 1
+    assert data["items"][0]["name"] == COMPONENT_NAME
 
 
 async def test_get_component_by_id(api_client: AsyncClient, setup_product_graph: ProductGraph) -> None:

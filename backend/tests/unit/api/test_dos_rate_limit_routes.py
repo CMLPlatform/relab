@@ -209,6 +209,29 @@ def test_rate_limit_exemptions_name_real_routes() -> None:
     assert {(method, path) for method, path, _dependant in _mutating_routes()} >= RATE_LIMIT_EXEMPT_ROUTES
 
 
+def _tree_read_routes() -> list[tuple[str, Dependant]]:
+    """Return (path, effective dependant) for every public GET /v1 route that lists components or loads a tree."""
+    return [
+        (path, ctx.dependant)
+        for ctx in iter_route_contexts(create_app().routes)
+        if isinstance(ctx.route, APIRoute)
+        and (path := ctx.path or "").startswith("/v1/")
+        and "GET" in (ctx.methods or set())
+        and path.endswith(("/components", "/components/tree"))
+    ]
+
+
+def test_public_tree_reads_are_rate_limited() -> None:
+    """Routes that assemble component lists or trees per request carry the per-IP read limit."""
+    routes = _tree_read_routes()
+    assert {"/v1/products/{product_id}/components", "/v1/products/{product_id}/components/tree"} <= {
+        path for path, _dependant in routes
+    }
+    assert {
+        path for path, dependant in routes if "api_read_rate_limit" not in _all_dependency_names(dependant)
+    } == set()
+
+
 def test_rpi_cam_capture_spends_the_upload_budget() -> None:
     """A camera capture stores a full-size photo, so it is charged like an upload."""
     dependant = next(

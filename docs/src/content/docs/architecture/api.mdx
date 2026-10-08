@@ -48,7 +48,7 @@ Base products and components share the same database table, but they are separat
 - base products are addressed through `/v1/products/{id}`
 - components are addressed through `/v1/components/{id}`
 - new components are created in parent context: use `POST /v1/products/{id}/components` for a base-product parent and `POST /v1/components/{id}/components` for a component parent
-- direct children and bounded base-product subtrees are listed with `/v1/products/{id}/components` and `/v1/products/{id}/components/tree`
+- direct children are paged with `/v1/products/{id}/components`, and a bounded subtree (at most 1,000 components) comes from `/v1/products/{id}/components/tree`
 - bill-of-materials routes follow the addressed resource: `/v1/products/{id}/materials` for base products and `/v1/components/{id}/materials` for components
 
 Entry is progressive: a record can be created before its component tree or bill of materials is known. Completeness checks belong to later curation and audit, not create-time validation.

@@ -962,6 +962,9 @@ export interface paths {
     /**
      * Get product component subtree
      * @description Get a product's component subtree as a bounded hierarchical view.
+     *
+     *     A tree with more components than the cap, across all levels, is a 400. Page through
+     *     ``/components`` level by level, or use the export, for bigger products.
      */
     get: operations['get_product_subtree_v1_products__product_id__components_tree_get'];
     put?: never;
@@ -981,7 +984,7 @@ export interface paths {
     };
     /**
      * Get product components
-     * @description Get all direct components of a product.
+     * @description Get a page of a product's direct components.
      */
     get: operations['get_product_components_v1_products__product_id__components_get'];
     put?: never;
@@ -4635,6 +4638,20 @@ export interface components {
       size: number;
       /** Pages */
       pages: number;
+    };
+    /** Page[TypeVar]Customized[ComponentRead] */
+    Page_TypeVar_Customized_ComponentRead_: {
+      /** Items */
+      items: components['schemas']['ComponentRead'][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+      readonly links: components['schemas']['Links'];
     };
     /** Page[TypeVar]Customized[FileReadWithinParent] */
     Page_TypeVar_Customized_FileReadWithinParent_: {
@@ -8296,6 +8313,13 @@ export interface operations {
           'application/json': components['schemas']['ComponentReadWithRecursiveComponents'][];
         };
       };
+      /** @description More than 1,000 components at the requested depth */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -8310,6 +8334,10 @@ export interface operations {
   get_product_components_v1_products__product_id__components_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -8378,7 +8406,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentRead'][];
+          'application/json': components['schemas']['Page_TypeVar_Customized_ComponentRead_'];
         };
       };
       /** @description Validation Error */

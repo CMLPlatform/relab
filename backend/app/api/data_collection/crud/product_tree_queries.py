@@ -11,7 +11,7 @@ from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.utils import ensure_model_exists
 from app.api.common.sa_typing import orm_attr
-from app.api.data_collection.exceptions import ProductExportTooLargeError
+from app.api.data_collection.exceptions import ComponentTreeTooLargeError, ProductExportTooLargeError
 from app.api.data_collection.filters import ProductFilterWithRelationships
 from app.api.data_collection.models.product import MaterialProductLink, Product
 
@@ -19,6 +19,9 @@ from app.api.data_collection.models.product import MaterialProductLink, Product
 EXPORT_MAX_BASE_PRODUCTS = 100
 # Components across all exported trees; keeps one export request bounded in time and memory.
 EXPORT_MAX_COMPONENTS = 5_000
+# Components in one component tree read (all levels together); deeper data pages through
+# /components or comes from the export.
+COMPONENT_TREE_MAX_COMPONENTS = 1_000
 # Levels of components below a base product, enforced on create and on export.
 MAX_COMPONENT_DEPTH = 10
 
@@ -119,28 +122,37 @@ async def load_component_subtree(
     parent_id: int,
     recursion_depth: int = 1,
     product_filter: ProductFilterWithRelationships | None = None,
+    max_nodes: int,
 ) -> ProductTreeData:
     """Load a bounded component subtree for the given parent.
 
     Callers are expected to have already verified ``parent_id`` exists
-    (e.g. via the summary loader on the read route).
+    (e.g. via the summary loader on the read route). Raises
+    ``ComponentTreeTooLargeError`` once more than ``max_nodes`` components load,
+    counting every level, before the rest of the tree is fetched.
     """
     # Components render as ComponentRead, which needs only the owner: the summary profile
     # keeps the class-level eager loads (components, images, bill of materials) from firing.
     root_statement = apply_loader_profile(
         select(Product).where(Product.parent_id == parent_id), Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS
     )
-    root_statement = apply_filter(root_statement, product_filter)
+    root_statement = apply_filter(root_statement, product_filter).limit(max_nodes + 1)
 
     roots = list((await db.execute(root_statement)).scalars().unique().all())
-    children_by_parent_id, _ = await _load_levels(
-        db,
-        [product.id for product in roots if product.id is not None],
-        lambda frontier: apply_loader_profile(
-            select(Product).where(Product.parent_id.in_(frontier)), Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS
-        ),
-        levels=max(recursion_depth - 1, 0),
-    )
+    if len(roots) > max_nodes:
+        raise ComponentTreeTooLargeError(max_nodes)
+    try:
+        children_by_parent_id, _ = await _load_levels(
+            db,
+            [product.id for product in roots if product.id is not None],
+            lambda frontier: apply_loader_profile(
+                select(Product).where(Product.parent_id.in_(frontier)), Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS
+            ),
+            levels=max(recursion_depth - 1, 0),
+            max_nodes=max_nodes - len(roots),
+        )
+    except ProductExportTooLargeError:
+        raise ComponentTreeTooLargeError(max_nodes) from None
     return ProductTreeData(roots=roots, children_by_parent_id=children_by_parent_id)
 
 

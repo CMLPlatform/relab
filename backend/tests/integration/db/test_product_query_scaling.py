@@ -159,7 +159,7 @@ async def _count_tree_read(session: AsyncSession, root_id: int, *, depth: int) -
     """Load and render a component tree; return the statement count and how many nodes rendered."""
     session.expunge_all()
     with count_queries() as statements:
-        tree = await load_component_subtree(session, parent_id=root_id, recursion_depth=depth)
+        tree = await load_component_subtree(session, parent_id=root_id, recursion_depth=depth, max_nodes=1_000)
         rendered = render_component_tree(
             tree.roots, children_by_parent_id=tree.children_by_parent_id, max_depth=depth - 1, viewer=None
         )
