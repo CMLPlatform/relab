@@ -54,7 +54,6 @@ from app.api.data_collection.schemas import (
     ProductFacetValue,
     ProductReadWithRelationshipsAndFlatComponents,
 )
-from app.api.reference_data.routers.public_support import RecursionDepthQueryParam
 from app.core.cache import cache
 from app.core.responses import conditional_json_response
 
@@ -313,6 +312,10 @@ async def export_product(
     return await _export_response(session, [root], current_user, export_format, f"relab-product-{product_id}")
 
 
+# Components nest deeper than categories, so the tree route takes its own bound.
+ComponentTreeDepthQuery = Annotated[int, Query(ge=1, le=MAX_COMPONENT_DEPTH, description="Maximum recursion depth")]
+
+
 @product_read_router.get(
     "/{product_id}/components/tree",
     summary="Get product component subtree",
@@ -325,7 +328,7 @@ async def get_product_subtree(
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
     product_filter: ProductFilterWithRelationshipsDep,
-    recursion_depth: RecursionDepthQueryParam = 1,
+    recursion_depth: ComponentTreeDepthQuery = 1,
 ) -> list[ComponentReadWithRecursiveComponents]:
     """Get a product's component subtree as a bounded hierarchical view.
 
