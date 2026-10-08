@@ -227,6 +227,10 @@ class UserRoleUpdate(BaseModel):
 STEP_UP_ONLY_FIELDS = frozenset({"current_password", "mfa_code"})
 
 
+def _without_step_up_fields(update_dict: dict) -> dict:
+    return {key: value for key, value in update_dict.items() if key not in STEP_UP_ONLY_FIELDS}
+
+
 class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
@@ -273,15 +277,11 @@ class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUs
 
     def create_update_dict(self) -> dict:
         """Return FastAPI-Users update data without reauthentication-only fields."""
-        return {key: value for key, value in super().create_update_dict().items() if key not in STEP_UP_ONLY_FIELDS}
+        return _without_step_up_fields(super().create_update_dict())
 
     def create_update_dict_superuser(self) -> dict:
         """Return privileged update data without reauthentication-only fields."""
-        return {
-            key: value
-            for key, value in super().create_update_dict_superuser().items()
-            if key not in STEP_UP_ONLY_FIELDS
-        }
+        return _without_step_up_fields(super().create_update_dict_superuser())
 
 
 ### Authentication & Sessions ###
