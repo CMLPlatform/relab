@@ -8,11 +8,17 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 **Upgrading:** the public domain moves to r9lab.io and the product is called R9lab.
-Everyone is signed out once, because the session cookies are renamed (see Changed).
+Everyone signs in again once, because the session cookies are renamed (see Changed).
 Self-hosters set their own `*_PUBLIC_URL`, `EMAIL_*` and `SMTP_*` values in the root `.env`;
 the defaults now point at r9lab.io. Operators of the reference deployment follow the
 zone-move runbook in `infra/cloudflare/README.md`, and now pass the zone to the zone recipes:
 `just cloudflare-zone-plan <zone>` and `just cloudflare-zone-apply <zone>`.
+
+**Upgrading (API clients):** the API base URL is now `https://api.r9lab.io`. The old host only
+redirects (307 or 308) for a transition period. Change the base URL rather than rely on that
+redirect: most HTTP clients drop the `Authorization` header when a redirect moves to another
+host, browsers do not follow redirects on CORS preflight requests, and the session cookies are
+bound to the host that set them.
 
 **Upgrading:** the Cloudflare tunnel token moves from the host's root `.env` into a secret
 file. On each deploy host, before the next `just stack <env> up`, run from the checkout:
