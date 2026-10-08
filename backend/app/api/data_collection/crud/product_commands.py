@@ -2,16 +2,17 @@
 
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy.orm import selectinload
-
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.persistence import commit_and_refresh
 from app.api.common.crud.query import require_locked_model, require_model, require_models
-from app.api.common.crud.utils import ensure_model_exists
-from app.api.common.sa_typing import orm_attr
 from app.api.data_collection.crud.product_tree_queries import MAX_COMPONENT_DEPTH, component_depth
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
-from app.api.data_collection.crud.storage import cleanup_product_media_storage, delete_product_media
+from app.api.data_collection.crud.storage import (
+    cleanup_product_media_storage,
+    delete_product_media,
+    delete_product_rows,
+    product_subtree_ids,
+)
 from app.api.data_collection.exceptions import (
     ProductOwnerRequiredError,
     ProductTreeTooDeepError,
@@ -221,30 +222,13 @@ async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = Tr
     deletion is not audited, and the returned storage cleanups are the caller's to run
     once its own commit is durable. The committing default returns an empty list.
     """
-    # Not the loader-profile helpers, and populate_existing so components a detail read
-    # already put in the session under raiseload("*") are reloaded with the relationships
-    # the delete cascade walks at flush time. Whether such stale instances are still in
-    # the identity map depends on garbage collection, so the direct components' walked
-    # relationships (product_type and parent) are loaded here explicitly.
-    db_product = ensure_model_exists(
-        await db.get(
-            Product,
-            product_id,
-            with_for_update=True,
-            populate_existing=True,
-            options=[
-                selectinload(orm_attr(Product.product_type)),
-                selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.product_type)),
-                selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.parent)),
-            ],
-        ),
-        Product,
-        product_id,
-    )
-    storage_cleanups = await delete_product_media(db, product_id)
+    owner_id = (await require_locked_model(db, Product, product_id)).owner_id
+    # Bulk statements over the subtree: the ORM delete cascade would load every
+    # component's media, videos and components one row at a time.
+    subtree = product_subtree_ids(Product.id == product_id)
+    storage_cleanups = await delete_product_media(db, subtree)
+    await delete_product_rows(db, subtree)
 
-    owner_id = db_product.owner_id
-    await db.delete(db_product)
     if owner_id is not None:
         await db.flush()
         await recompute_user_upload_quota(db, user_id=owner_id)

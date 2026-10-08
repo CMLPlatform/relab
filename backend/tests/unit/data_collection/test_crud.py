@@ -10,15 +10,13 @@ from app.api.data_collection.crud.material_links import (
     add_material_to_product,
     remove_materials_from_product,
 )
-from app.api.data_collection.crud.product_commands import (
-    create_product,
-    delete_product,
-    delete_product_media,
-)
+from app.api.data_collection.crud.product_commands import create_product, delete_product
+from app.api.data_collection.crud.storage import delete_product_media, product_subtree_ids
 from app.api.data_collection.exceptions import (
     MaterialIDRequiredError,
     ProductOwnerRequiredError,
 )
+from app.api.data_collection.models.product import Product
 from app.api.data_collection.schemas import (
     MaterialProductLinkCreateWithinProduct,
     MaterialProductLinkCreateWithinProductAndMaterial,
@@ -125,7 +123,7 @@ async def test_delete_product_media_stages_rows_without_committing(mock_session:
     image_result.scalars.return_value.all.return_value = [image_item]
     mock_session.execute.side_effect = [file_result, image_result]
 
-    cleanups = await delete_product_media(mock_session, product_id=1)
+    cleanups = await delete_product_media(mock_session, product_subtree_ids(Product.id == 1))
 
     assert mock_session.delete.await_count == 2
     mock_session.commit.assert_not_called()
