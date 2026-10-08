@@ -12,6 +12,9 @@ auditConfig:
   ignoreGhsas:
     - GHSA-vcc3-ghjq-m6fr # decode-uri-component (query-string@7 pins ^0.2.2)
     - GHSA-86w9-cpqp-85rv # node-forge via @expo/cli code signing, unused
+    - GHSA-vfj7-8cjw-p6xm # braces via metro/jest micromatch, build-time globs only
+    - GHSA-hp3w-g68c-fv3c # sprintf-js via jest's js-yaml@3, test tooling only
+    - GHSA-rj75-hqrm-r3gf # postcss-selector-parser via expressive-code, docs build only
 
 # Wait 3 days before accepting newly published packages, transitive ones
 # included. Strict by default: resolution fails rather than fall back to a

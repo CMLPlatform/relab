@@ -3,9 +3,11 @@
 name: Renovate
 
 on:
-  # Monday's 00:17 UTC run falls inside the before-4am Amsterdam window that
-  # `schedule:weekly` allows for new branches. The other runs open security
-  # fixes, which ignore the schedule, and rebase and merge open PRs.
+  # Renovate opens new branches only on Mondays (Amsterdam time), which gives
+  # four runs a chance: GitHub delays or drops scheduled runs at busy hours, so
+  # a window that only one run falls into can go weeks without a lock refresh.
+  # The other runs open security fixes, which ignore the schedule, and rebase
+  # and merge open PRs.
   schedule:
     - cron: "17 */6 * * *"
   # A merge to main often leaves the other open PRs conflicting on the shared
