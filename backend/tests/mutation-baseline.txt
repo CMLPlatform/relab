@@ -35,7 +35,6 @@
 4 app.api.auth.services.access_token_store.x_revoke_user_access_tokens
 3 app.api.auth.services.access_token_store.xǁRevocableRedisStrategyǁ__init__
 2 app.api.auth.services.access_token_store.xǁRevocableRedisStrategyǁwrite_token
-3 app.api.auth.services.account_security.x_require_current_password_for_sensitive_update
 1 app.api.auth.services.account_security.x_require_recent_sign_in
 2 app.api.auth.services.account_security.x_require_step_up_fields
 5 app.api.auth.services.account_security.x_revoke_user_refresh_tokens
@@ -306,8 +305,6 @@
 1 app.api.data_collection.routers.media_handlers.x_handle_upload_file
 4 app.api.data_collection.routers.media_handlers.x_handle_upload_image
 9 app.api.data_collection.routers.product_read_routers.x__export_response
-1 app.api.data_collection.routers.product_read_routers.x__list_direct_components
-6 app.api.data_collection.routers.product_read_routers.x__page_base_products
 2 app.api.data_collection.routers.product_read_routers.x__require_product_summary
 16 app.api.data_collection.routers.product_read_routers.x_resolve_owner_id
 4 app.api.data_collection.routers.product_related_routers.x__load_product_video

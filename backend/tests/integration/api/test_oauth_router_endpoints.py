@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, cast
 import pyotp
 import pytest
 from fastapi import FastAPI, status
+from httpx_oauth.oauth2 import RevokeTokenError
 
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services import mfa_service
@@ -21,6 +22,7 @@ KNOWN_PASSWORD = "correct-horse-battery-staple-v9"  # gitleaks:allow # test-only
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
+    from unittest.mock import AsyncMock
 
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,6 +82,45 @@ async def test_oauth_only_user_unlinks_without_password(
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert await db_session.get(OAuthAccount, oauth_account.id) is None
+
+
+async def test_unlink_revokes_google_token(
+    active_user_client: AsyncClient,
+    active_user: User,
+    db_session: AsyncSession,
+    mock_google_token_revocation: AsyncMock,
+) -> None:
+    """Unlinking Google revokes the grant with the stored refresh token."""
+    active_user.has_usable_password = False
+    active_user.last_login_at = datetime.now(UTC)
+    await link_google(db_session, active_user, refresh_token="google-refresh")  # test fixture value
+
+    response = await active_user_client.delete("/v1/oauth/google/associate")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    mock_google_token_revocation.assert_awaited_once_with("google-refresh")
+
+
+async def test_unlink_succeeds_when_google_revocation_fails(
+    active_user_client: AsyncClient,
+    active_user: User,
+    db_session: AsyncSession,
+    mock_google_token_revocation: AsyncMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A failed revocation is logged without the token and never keeps the link."""
+    active_user.has_usable_password = False
+    active_user.last_login_at = datetime.now(UTC)
+    oauth_account = await link_google(db_session, active_user)
+    mock_google_token_revocation.side_effect = RevokeTokenError("revocation endpoint unreachable")
+
+    response = await active_user_client.delete("/v1/oauth/google/associate")
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert await db_session.get(OAuthAccount, oauth_account.id) is None
+    mock_google_token_revocation.assert_awaited_once_with("access-token")
+    assert "revocation failed" in caplog.text.lower()
+    assert "access-token" not in caplog.text
 
 
 async def test_unlink_requires_password_when_account_has_one(

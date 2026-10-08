@@ -7,8 +7,29 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+**Upgrading:** the Cloudflare tunnel token moves from the host's root `.env` into a secret
+file. On each deploy host, before the next `just stack <env> up`, run from the checkout:
+
+```bash
+env=prod   # or staging
+grep '^CLOUDFLARE_TUNNEL_TOKEN=' .env | cut -d= -f2- | tr -d "\"'" >"secrets/$env/cloudflare_tunnel_token"
+chmod 644 "secrets/$env/cloudflare_tunnel_token"
+```
+
+Then delete the `CLOUDFLARE_TUNNEL_TOKEN` line from `.env`. Until the file exists, `up`
+stops before touching the running stack and prints these steps.
+
 ### Changed
 
+- **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
+  `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`, `pages`, `links`)
+  instead of a bare list. Pass `page` and `size` to walk the results.
+- `GET /v1/products/{id}/components/tree` answers 400 when a tree has more than 1,000
+  components; use the paged components route for larger products.
+- Deleting a product, erasing an account with its content, and creating a product with
+  components each take a fixed number of database queries, however many components there are.
+- The privacy policy now says how long backups keep deleted accounts and uploads:
+  up to 13 months, and backups taken by hand before maintenance until we delete them.
 - The web app downloads about 14 KB less JavaScript before its first screen: the image
   lightbox, measurement cube, capture screen and streaming sheet now load when first shown.
 - Photo uploads finish faster: thumbnails are made from one decode of the original, about
@@ -32,6 +53,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - The docs site now blocks inline scripts other than its own, hashed at build
   time, instead of allowing any inline script.
+- **Breaking** for self-hosters: the Cloudflare tunnel reads its token from
+  `secrets/<env>/cloudflare_tunnel_token` instead of an environment variable, and runs
+  with a read-only filesystem. `just stack <env> up` refuses to start while a required
+  secret file is missing or empty.
 
 ## [0.4.0] - 2026-10-02
 

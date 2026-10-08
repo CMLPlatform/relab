@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     from uuid import UUID
 
 LOGIN_RATE_LIMIT = f"{auth_settings.rate_limit_login_attempts_per_minute}/minute"
+# Daily ceiling on one account's password, TOTP and recovery-code checks, on top of
+# LOGIN_RATE_LIMIT: paced guessing that stays under the per-minute limit still runs out.
+ACCOUNT_GUESS_DAILY_RATE_LIMIT = "100/day"
 LOGIN_IP_RATE_LIMIT = f"{auth_settings.rate_limit_login_attempts_per_ip_per_minute}/minute"
 REGISTER_RATE_LIMIT = f"{auth_settings.rate_limit_register_attempts_per_hour}/hour"
 VERIFY_RATE_LIMIT = f"{auth_settings.rate_limit_verify_attempts_per_hour}/hour"
@@ -51,10 +54,11 @@ API_EXPORT_RATE_LIMIT_DEPENDENCY = limiter.dependency(
 async def account_guess_budget(user_id: UUID) -> AsyncIterator[None]:
     """Charge a password, TOTP or recovery-code check to the account's guess budget.
 
-    One per-account bucket, sized like the failed-login budget, covers the MFA login
-    challenge and every signed-in re-authentication (account deletion, email and password
-    changes, social login link and unlink, MFA changes). Guesses spread over routes, IP
-    addresses or fresh login challenges still run out.
+    One per-account budget, sized like the failed-login budget per minute and capped at
+    ACCOUNT_GUESS_DAILY_RATE_LIMIT per day, covers the MFA login challenge and every
+    signed-in re-authentication (account deletion, email and password changes, social
+    login link and unlink, MFA changes). Guesses spread over routes, IP addresses, fresh
+    login challenges or many minutes still run out.
 
     Every attempt is charged up front, right or wrong: check-then-charge-on-failure lets
     parallel guesses all pass the check before any of them is charged. Wrap only the
@@ -62,5 +66,9 @@ async def account_guess_budget(user_id: UUID) -> AsyncIterator[None]:
     (``account_security.require_step_up_fields``), so requests that verify nothing do not
     spend the budget.
     """
+    # Minute first: a guess the minute limit refuses does not spend the daily ceiling.
     await limiter.ahit_key(LOGIN_RATE_LIMIT, rate_limit_bucket_key("auth:guesses:account", str(user_id)))
+    await limiter.ahit_key(
+        ACCOUNT_GUESS_DAILY_RATE_LIMIT, rate_limit_bucket_key("auth:guesses:account:day", str(user_id))
+    )
     yield

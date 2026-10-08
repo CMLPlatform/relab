@@ -8,6 +8,7 @@ from app.core.config.core import settings
 from app.core.config.models import Environment
 from app.core.http_headers import IDEMPOTENCY_KEY_HEADER, REQUEST_ID_HEADER
 from app.core.middleware.content_negotiation import register_content_negotiation_middleware
+from app.core.middleware.cross_site import register_cross_site_request_middleware
 from app.core.middleware.method_policy import CORS_HTTP_METHODS, register_method_policy_middleware
 from app.core.middleware.request_id import register_request_id_middleware
 from app.core.middleware.request_size import register_request_size_limit_middleware
@@ -20,6 +21,8 @@ def register_middleware(app: FastAPI) -> None:
     Starlette wraps middleware in reverse registration order, so response
     policy is registered last to become the outermost layer.
     """
+    # Innermost, so its 403 still carries the request id and the CORS and response headers.
+    register_cross_site_request_middleware(app)
     register_request_id_middleware(app)
     register_method_policy_middleware(app)
     register_content_negotiation_middleware(app)

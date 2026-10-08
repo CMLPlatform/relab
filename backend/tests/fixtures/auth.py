@@ -1,6 +1,7 @@
 """Auth/user fixtures shared across integration test tiers."""
 
 import time
+import unicodedata
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
@@ -18,6 +19,15 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
+
+
+# One account address spelled three ways that the account lookup treats as equal: letter
+# case, a decomposed accent, and a Unicode domain against its ASCII (punycode) form.
+EMAIL_SPELLING_VARIANTS = (
+    "Am\u00e9lie@B\u00fccher.example.com",
+    unicodedata.normalize("NFD", "am\u00e9lie@xn--bcher-kva.example.com"),
+    "AM\u00c9LIE@B\u00dcCHER.EXAMPLE.COM",
+)
 
 
 @pytest.fixture

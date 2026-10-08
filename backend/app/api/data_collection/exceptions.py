@@ -32,6 +32,16 @@ class ProductExportTooLargeError(BadRequestError):
         )
 
 
+class ComponentTreeTooLargeError(BadRequestError):
+    """Raised when a component tree read would return more components than one response allows."""
+
+    def __init__(self, max_components: int) -> None:
+        super().__init__(
+            f"This component tree has more than {max_components:,} components at the requested depth. "
+            "Lower recursion_depth, or page through /components level by level."
+        )
+
+
 class MaterialIDRequiredError(BadRequestError):
     """Raised when a nested material operation requires an explicit material id."""
 

@@ -131,11 +131,11 @@ describes the topology these steps produce.
      Apply only against a new zone, or after you import the existing DNS records, tunnels, and
      rulesets into OpenTofu state (see the README's import workflow). Otherwise the apply
      duplicates DNS records and creates a second tunnel whose token does not match
-     `CLOUDFLARE_TUNNEL_TOKEN`. It can also overwrite existing rulesets, because each Cloudflare
+     `secrets/<env>/cloudflare_tunnel_token`. It can also overwrite existing rulesets, because each Cloudflare
      phase allows one ruleset per zone.
      :::
 
-   Either way, copy the tunnel token for the next step.
+   Either way, copy the tunnel token: step 3 puts it in a secret file.
 
 1. Copy `.env.example` to `.env` and fill it in.
 
@@ -152,7 +152,6 @@ describes the topology these steps produce.
      origins on your domain.
    - `IMAGE_TAG`: the published image tag to run, see step 5. Set `IMAGE_REGISTRY` too when the
      images come from your own fork.
-   - `CLOUDFLARE_TUNNEL_TOKEN`: the tunnel token from the previous step.
    - `GOOGLE_OAUTH_CLIENT_ID`, `GITHUB_OAUTH_CLIENT_ID`: OAuth client IDs for social login.
    - `EMAIL_PROVIDER` and the sender fields. With `smtp`, also fill `SMTP_HOST`, `SMTP_USERNAME`,
      and `secrets/<env>/smtp_password`. With `microsoft_graph`, fill the tenant, client, and sender
@@ -181,8 +180,10 @@ describes the topology these steps produce.
    just deploy-secrets-template prod
    ```
 
-   Replace every placeholder under `secrets/prod/`. Runtime secrets (database passwords, the auth
-   token secret, the restic password, provider secrets) live only there, never in `.env`.
+   Replace every placeholder under `secrets/prod/`, and paste the tunnel token from step 1 into
+   `secrets/prod/cloudflare_tunnel_token`. Runtime secrets (database passwords, the auth token
+   secret, the restic password, the tunnel token, provider secrets) live only there, never in
+   `.env`.
    `deploy/env/variables.toml` is the inventory; `just env-inventory` prints it.
 
 1. Validate the configuration.

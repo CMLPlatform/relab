@@ -11,7 +11,7 @@ from pydantic import UUID4, PositiveInt
 from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 from sqlalchemy import select
 
-from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.auth.dependencies import CurrentActiveVerifiedUserDep
 from app.api.auth.models import User
 from app.api.auth.roles import DEFAULT_USER_ROLE, UserRole, image_upload_max_pixels_for_role
 from app.api.auth.services.rate_limiter import API_UPLOAD_RATE_LIMIT_DEPENDENCY
@@ -84,7 +84,7 @@ def _write_preview_thumbnail_atomic(path: Path, image_bytes: bytes) -> None:
 async def capture_image(
     camera_id: UUID4,
     session: AsyncSessionDep,
-    current_user: CurrentActiveUserDep,
+    current_user: CurrentActiveVerifiedUserDep,
     redis: RedisDep,
     *,
     product_id: Annotated[

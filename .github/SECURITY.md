@@ -44,18 +44,35 @@ Review security-sensitive changes against this baseline:
 Security-sensitive areas:
 
 - authentication and OAuth
+  - Stored OAuth access and refresh tokens use `EncryptedString` (AES-256-GCM under
+    `DATA_ENCRYPTION_KEY`), like the TOTP secret and the camera broadcast key; the column refuses
+    a value without the encrypted-value prefix.
+  - Unlinking Google or erasing the account revokes the Google grant (YouTube scope included)
+    once the link's deletion is committed. Revocation is best effort: a failure is logged without the token and
+    never blocks the unlink or the erasure. GitHub grants are not revoked by the backend; the user
+    removes them in their GitHub settings.
 - rate limits (the buckets and numbers are in the security reference)
   - Password login is limited per IP and by failed attempts per account, so a shared account is
     not locked by use while guessing stays capped per account.
+  - Per-account buckets for login and forgot-password are keyed on the canonical email address
+    (`account_rate_limit_identity`): the comparison key the account lookup uses, so letter case,
+    Unicode normalization and Unicode or ASCII domain spellings share one budget.
   - The MFA login challenge and every signed-in re-authentication (account deletion, email and
     password changes, social login link and unlink, MFA setup, disable and recovery-code
     rotation) share one per-account budget of password, TOTP and recovery-code checks
-    (`account_guess_budget`). Every check is charged before it runs, right or wrong, so parallel
-    guesses cannot race past the cap. Rotating IPs, routes or fresh login challenges buys no
+    (`account_guess_budget`): a few a minute, and at most 100 a day, so slow guessing paced under
+    the minute limit runs out too. Every check is charged before it runs, right or wrong, so
+    parallel guesses cannot race past the cap. Rotating IPs, routes or fresh login challenges buys no
     extra guesses, so the MFA routes themselves sit on the looser login IP budget.
   - Every mutating `/v1` route carries a rate limit; the exemptions (admin routes, device-signed
     camera routes, routes on the guess budget) are listed and justified in
     `backend/tests/unit/api/test_dos_rate_limit_routes.py`.
+- step-up re-authentication: changing the email or password through `PATCH /users/me`, linking
+  or unlinking a social login, and deleting the account all re-authenticate with the current
+  password (an account without one shows a recent sign-in instead, except for an email or
+  password change), plus a current TOTP or recovery code when the account has MFA
+  (`require_account_update_step_up`, `require_step_up`). A request missing a credential the
+  account needs is refused before the guess budget is charged.
 - public read APIs
   - Product export (`/products/export`, `/products/{id}/export`) assembles whole product trees, so
     it has its own, stricter rate limit. Signed-in exports also share a looser per-IP ceiling, so
@@ -67,6 +84,25 @@ Security-sensitive areas:
     than 10 levels is refused as well.
     Owner attribution follows the same profile-visibility redaction as the product page. CSV cells
     that a spreadsheet would read as a formula are prefixed with `'`.
+  - Component reads carry the per-IP read limit, as do the product search and facet routes. The
+    direct list (`/products/{id}/components`) is paged; the tree (`/products/{id}/components/tree`)
+    returns at most 1,000 components across all levels and fails with a `400` past that, checked
+    as each level loads. The category tree routes (`/categories/tree`,
+    `/categories/{id}/subcategories/tree`, `/taxonomies/{id}/categories/tree`) page their
+    top-level categories and carry the same limit. `test_dos_rate_limit_routes.py` requires the
+    read limit on every public route that lists components or returns a tree.
+- cookie-authenticated writes: an unsafe `/v1` request carrying the session cookies, and every
+  session login, is refused with 403 when `Sec-Fetch-Site` is `cross-site` or the `Origin` is not
+  in the CORS allow-list (`app/core/middleware/cross_site.py`). Requests without either header
+  (native app, scripts) and bearer-token requests pass. A new browser origin that signs in must
+  be added to the CORS allow-list.
+- client IP: the API takes the client address from `X-Forwarded-For` only when the request comes
+  from Docker's private range (`172.16.0.0/12`, `FORWARDED_ALLOW_IPS` and `TRUSTED_PROXY_CIDRS`
+  in `compose.deploy.yaml`). The API publishes no port, so only containers on its own networks
+  can reach it, and all of them belong to the stack. Accepted risk: one of those containers, if
+  compromised, could set a false client address and get around the per-IP rate limits. It would
+  already hold database or Redis access, which matters more. Pinning the `edge` subnet would
+  narrow this but needs a per-host setting that must not overlap the host's other networks.
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
@@ -81,6 +117,10 @@ Security-sensitive areas:
   from the environment, not configured, so staging and production cannot opt into it.
 - admin APIs
 - RPi camera device APIs and WebSocket relay
+  - A camera acts for its owner. Device-signed HTTP routes and the relay accept a camera only when
+    its credential is active and its owner account is active and verified
+    (`camera_may_authenticate` in `device_assertion.py`), the same bar a person must clear to upload
+    directly. Triggering a capture also needs a verified account.
 - backups, secrets, logs, and telemetry
 - release and security artifacts: the GHCR images the hosts pull, and the landing page and docs
   deploy, whose Cloudflare API token is a GitHub Environment secret holding only Workers

@@ -9,12 +9,13 @@ code paths.
 
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, TypeIs
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 from jwt import InvalidTokenError, PyJWK
 from pydantic import UUID4
+from sqlalchemy.orm import joinedload
 
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.plugins.rpi_cam.models import Camera
@@ -32,6 +33,19 @@ ASSERTION_AUDIENCE = "relab-rpi-cam-relay"
 ASSERTION_ALGORITHMS = ("ES256",)
 REPLAY_KEY_PREFIX = "rpi_cam:relay_assertion_jti:"
 MAX_ASSERTION_TTL_SECONDS = 5 * 60
+
+# Load options for a camera row read before ``camera_may_authenticate``.
+CAMERA_OWNER_LOAD = (joinedload(Camera.owner),)
+
+
+def camera_may_authenticate(camera: Camera | None) -> TypeIs[Camera]:
+    """Return whether a camera may authenticate at all, before its assertion is checked.
+
+    A camera acts for its owner, so it needs an active credential and an owner who is
+    active and verified, the same bar a person must clear to upload directly. Load the
+    camera with ``CAMERA_OWNER_LOAD`` so the owner is available without lazy loading.
+    """
+    return camera is not None and camera.credential_is_active and camera.owner.is_active and camera.owner.is_verified
 
 
 async def verify_device_assertion(assertion: str, camera: Camera, redis: Redis) -> dict[str, Any]:
@@ -108,8 +122,8 @@ async def _authenticated_camera(
 ) -> Camera:
     """FastAPI dependency: resolve a Camera from the path param + validate its bearer token."""
     assertion = await _extract_bearer(request)
-    camera: Camera | None = await session.get(Camera, camera_id)
-    if camera is None or not camera.credential_is_active:
+    camera: Camera | None = await session.get(Camera, camera_id, options=CAMERA_OWNER_LOAD)
+    if not camera_may_authenticate(camera):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication failed.")
 
     redis = require_connection_redis(request)

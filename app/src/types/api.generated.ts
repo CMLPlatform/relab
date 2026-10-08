@@ -440,7 +440,7 @@ export interface paths {
     };
     /**
      * Get categories tree
-     * @description Get all base categories and their subcategories in a tree structure.
+     * @description Get a page of top-level categories, each with its subcategories in a tree structure.
      */
     get: operations['get_categories_tree_v1_categories_tree_get'];
     put?: never;
@@ -500,7 +500,7 @@ export interface paths {
     };
     /**
      * Get category subtree
-     * @description Get a category subcategories in a tree structure, up to a specified depth.
+     * @description Get a page of a category's subcategories in a tree structure, up to a specified depth.
      */
     get: operations['get_category_subtree_v1_categories__category_id__subcategories_tree_get'];
     put?: never;
@@ -962,6 +962,9 @@ export interface paths {
     /**
      * Get product component subtree
      * @description Get a product's component subtree as a bounded hierarchical view.
+     *
+     *     A tree with more components than the cap, across all levels, is a 400. Page through
+     *     ``/components`` level by level, or use the export, for bigger products.
      */
     get: operations['get_product_subtree_v1_products__product_id__components_tree_get'];
     put?: never;
@@ -981,7 +984,7 @@ export interface paths {
     };
     /**
      * Get product components
-     * @description Get all direct components of a product.
+     * @description Get a page of a product's direct components.
      */
     get: operations['get_product_components_v1_products__product_id__components_get'];
     put?: never;
@@ -4636,6 +4639,20 @@ export interface components {
       /** Pages */
       pages: number;
     };
+    /** Page[TypeVar]Customized[ComponentRead] */
+    Page_TypeVar_Customized_ComponentRead_: {
+      /** Items */
+      items: components['schemas']['ComponentRead'][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+      readonly links: components['schemas']['Links'];
+    };
     /** Page[TypeVar]Customized[FileReadWithinParent] */
     Page_TypeVar_Customized_FileReadWithinParent_: {
       /** Items */
@@ -5851,6 +5868,11 @@ export interface components {
        * @description Current password required when changing email or password.
        */
       current_password?: string | null;
+      /**
+       * Mfa Code
+       * @description Current authenticator code or a recovery code. Required to change email or password when the account has MFA enabled.
+       */
+      mfa_code?: string | null;
       /** @description User preferences (partial merge). */
       preferences?: components['schemas']['UserPreferencesUpdate'] | null;
     };
@@ -6909,6 +6931,8 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
+        page?: number;
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6948,7 +6972,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['CategoryReadWithRecursiveSubCategories'][];
+          'application/json': components['schemas']['Page_CategoryReadWithRecursiveSubCategories_'];
         };
       };
       /** @description Validation Error */
@@ -7043,6 +7067,8 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
+        page?: number;
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -7066,7 +7092,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['CategoryReadWithRecursiveSubCategories'][];
+          'application/json': components['schemas']['Page_CategoryReadWithRecursiveSubCategories_'];
         };
       };
       /** @description Validation Error */
@@ -8296,6 +8322,13 @@ export interface operations {
           'application/json': components['schemas']['ComponentReadWithRecursiveComponents'][];
         };
       };
+      /** @description More than 1,000 components at the requested depth */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -8310,6 +8343,10 @@ export interface operations {
   get_product_components_v1_products__product_id__components_get: {
     parameters: {
       query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -8378,7 +8415,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ComponentRead'][];
+          'application/json': components['schemas']['Page_TypeVar_Customized_ComponentRead_'];
         };
       };
       /** @description Validation Error */

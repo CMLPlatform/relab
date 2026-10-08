@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 _FILENAME_SEPARATOR_RE = re.compile(r"[^A-Za-z0-9]+")
 _FILENAME_SEPARATOR = "-"
+_SAFE_SUFFIX_RE = re.compile(r"\.[A-Za-z0-9]{1,16}")
 
 
 def _slugify_filename_stem(stem: str, max_length: int) -> str:
@@ -42,16 +43,17 @@ def _slugify_filename_stem(stem: str, max_length: int) -> str:
 
 
 def sanitize_filename(filename: str, max_length: int = 42) -> str:
-    """Preserve all suffixes while sanitizing the base name."""
+    """Return an ASCII-safe filename of at most ``max_length`` characters.
+
+    Only the final suffix is kept as the extension, and only when it is plain ASCII
+    letters and digits; earlier suffixes, and an unsafe final one, are slugified into
+    the stem, so ``archive.tar.gz`` becomes ``archive-tar.gz``.
+    """
     path = Path(filename)
-    name = path.name
-
-    for suffix in path.suffixes[::-1]:
-        name = name.removesuffix(suffix)
-
-    sanitized_filename = _slugify_filename_stem(name, max_length=max_length)
-
-    return f"{sanitized_filename}{''.join(path.suffixes)}"
+    suffix = path.suffix if _SAFE_SUFFIX_RE.fullmatch(path.suffix) else ""
+    stem = path.name.removesuffix(suffix) if suffix else path.name
+    sanitized_stem = _slugify_filename_stem(stem, max_length=max(1, max_length - len(suffix)))
+    return f"{sanitized_stem}{suffix}"
 
 
 def process_uploadfile_name(file: UploadFile) -> tuple[UploadFile, UUID4, str, str]:

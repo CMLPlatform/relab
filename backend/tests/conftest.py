@@ -321,3 +321,12 @@ def mock_email_sending(mocker: MockerFixture) -> AsyncMock:
         return_value=provider,
     )
     return send
+
+
+@pytest.fixture(autouse=True)
+def mock_google_token_revocation(mocker: MockerFixture) -> AsyncMock:
+    """Keep unlink and erasure tests from calling Google's revocation endpoint."""
+    return mocker.patch(
+        "app.api.auth.services.oauth.clients.google_oauth_client.revoke_token",
+        new_callable=AsyncMock,
+    )

@@ -57,12 +57,19 @@ async def create_password_user(db_session: AsyncSession, *, email: str, username
     )
 
 
-async def link_google(db_session: AsyncSession, user: User, *, account_id: str = "provider-user-123") -> OAuthAccount:
+async def link_google(
+    db_session: AsyncSession,
+    user: User,
+    *,
+    account_id: str = "provider-user-123",
+    refresh_token: str | None = None,
+) -> OAuthAccount:
     """Link a Google sign-in to ``user`` and flush it."""
     oauth_account = OAuthAccount(
         user_id=user.id,
         oauth_name="google",
         access_token="access-token",  # test fixture value, not a credential
+        refresh_token=refresh_token,
         account_id=account_id,
         account_email=user.email,
     )

@@ -6,69 +6,33 @@ missing ``jti``, bearer extraction, and the ``_authenticated_camera`` FastAPI
 dependency.
 """
 
-import base64
-import secrets
 import time
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import jwt
 import pytest
-from cryptography.hazmat.primitives.asymmetric import ec
 from fastapi import HTTPException, status
 
 from app.api.common.routers.exceptions import _response_parts
 from app.api.plugins.rpi_cam import device_assertion as da
 from app.core.runtime import RequiredServiceUnavailableError
+from tests.fixtures.device_assertion import make_keypair, sign_assertion
 
-
-def _make_keypair() -> tuple[ec.EllipticCurvePrivateKey, dict]:
-    private_key = ec.generate_private_key(ec.SECP256R1())
-    pub = private_key.public_key().public_numbers()
-
-    def _b64(n: int) -> str:
-        return base64.urlsafe_b64encode(n.to_bytes(32, "big")).rstrip(b"=").decode()
-
-    return private_key, {"kty": "EC", "crv": "P-256", "x": _b64(pub.x), "y": _b64(pub.y)}
+if TYPE_CHECKING:
+    from cryptography.hazmat.primitives.asymmetric import ec
 
 
 def _make_camera(key_id: str = "kid-1", *, active: bool = True) -> tuple[MagicMock, ec.EllipticCurvePrivateKey]:
     """Build a camera mock + its signing key. The key is returned separately to avoid poking private attrs."""
-    private_key, jwk = _make_keypair()
+    private_key, jwk = make_keypair()
     camera = MagicMock()
     camera.id = uuid4()
     camera.relay_key_id = key_id
     camera.relay_public_key_jwk = jwk
     camera.credential_is_active = active
     return camera, private_key
-
-
-def _sign(
-    camera: MagicMock,
-    private_key: ec.EllipticCurvePrivateKey,
-    *,
-    jti: str | None = None,
-    exp_offset: int = 120,
-    omit_jti: bool = False,
-    headers: dict[str, object] | None = None,
-) -> str:
-    now = int(time.time())
-    payload: dict = {
-        "iss": f"camera:{camera.id}",
-        "sub": f"camera:{camera.id}",
-        "aud": da.ASSERTION_AUDIENCE,
-        "iat": now,
-        "nbf": now,
-        "exp": now + exp_offset,
-    }
-    if not omit_jti:
-        payload["jti"] = jti if jti is not None else secrets.token_urlsafe(24)
-    return jwt.encode(
-        payload,
-        private_key,
-        algorithm="ES256",
-        headers=headers or {"kid": camera.relay_key_id},
-    )
 
 
 # ── verify_device_assertion: missing jti ─────────────────────────────────────
@@ -78,7 +42,7 @@ async def test_empty_jti_rejected() -> None:
     """An empty jti claim should be rejected before Redis is consulted."""
     camera, private_key = _make_camera()
     redis = AsyncMock()
-    assertion = _sign(camera, private_key, jti="")
+    assertion = sign_assertion(private_key, camera.id, camera.relay_key_id, jti="")
     with pytest.raises(jwt.InvalidTokenError):
         await da.verify_device_assertion(assertion, camera, redis)
     redis.set.assert_not_called()
@@ -88,11 +52,11 @@ async def test_empty_jti_rejected() -> None:
 async def test_ignores_attacker_supplied_key_headers(header_name: str) -> None:
     """JWT key-source headers must not override the camera's stored public credential."""
     camera, _stored_private_key = _make_camera()
-    attacker_private_key, attacker_jwk = _make_keypair()
+    attacker_private_key, attacker_jwk = make_keypair()
     redis = AsyncMock()
     headers: dict[str, object] = {"kid": camera.relay_key_id}
     headers[header_name] = attacker_jwk if header_name == "jwk" else "https://attacker.example/jwks.json"
-    assertion = _sign(camera, attacker_private_key, headers=headers)
+    assertion = sign_assertion(attacker_private_key, camera.id, camera.relay_key_id, headers=headers)
 
     with pytest.raises(jwt.InvalidTokenError):
         await da.verify_device_assertion(assertion, camera, redis)
@@ -220,7 +184,7 @@ async def test_valid_assertion_returns_camera() -> None:
     session.get = AsyncMock(return_value=camera)
     redis = AsyncMock()
     redis.set = AsyncMock(return_value=True)
-    assertion = _sign(camera, private_key)
+    assertion = sign_assertion(private_key, camera.id, camera.relay_key_id)
     request = _request_with_auth(assertion)
 
     with patch.object(da, "require_connection_redis", return_value=redis):
@@ -236,8 +200,31 @@ async def test_replayed_assertion_returns_401() -> None:
     session.get = AsyncMock(return_value=camera)
     redis = AsyncMock()
     redis.set = AsyncMock(return_value=None)  # nx failed → replay
-    assertion = _sign(camera, private_key)
+    assertion = sign_assertion(private_key, camera.id, camera.relay_key_id)
     request = _request_with_auth(assertion)
+
+    with (
+        patch.object(da, "require_connection_redis", return_value=redis),
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await da._authenticated_camera(request, camera.id, session)
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.parametrize(
+    ("is_active", "is_verified"),
+    [pytest.param(False, True, id="inactive"), pytest.param(True, False, id="unverified")],
+)
+async def test_inactive_owner_camera_is_rejected(*, is_active: bool, is_verified: bool) -> None:
+    """A valid assertion from a camera whose owner is deactivated or unverified must not authenticate."""
+    camera, private_key = _make_camera()
+    camera.owner.is_active = is_active
+    camera.owner.is_verified = is_verified
+    session = MagicMock()
+    session.get = AsyncMock(return_value=camera)
+    redis = AsyncMock()
+    redis.set = AsyncMock(return_value=True)
+    request = _request_with_auth(sign_assertion(private_key, camera.id, camera.relay_key_id))
 
     with (
         patch.object(da, "require_connection_redis", return_value=redis),

@@ -205,7 +205,7 @@ async def test_private_profile_redacts_identity_for_regular_users_across_compone
 
     components_response = await other_user_client.get(f"/v1/products/{product.id}/components")
     assert components_response.status_code == status.HTTP_200_OK
-    assert components_response.json()[0]["owner_username"] is None
+    assert components_response.json()["items"][0]["owner_username"] is None
 
     subtree_response = await other_user_client.get(f"/v1/products/{product.id}/components/tree?recursion_depth=1")
     assert subtree_response.status_code == status.HTTP_200_OK

@@ -43,7 +43,6 @@ COMPOSE_SCRUBBED_ENV_NAMES=(
     DOCS_PUBLIC_URL
     IMAGE_REGISTRY
     IMAGE_TAG
-    CLOUDFLARE_TUNNEL_TOKEN
     EMAIL_PROVIDER
     EMAIL_FROM
     EMAIL_REPLY_TO
@@ -235,8 +234,9 @@ deploy_secret_template_value() {
                 '# backup copies to rclone:<that remote>: (empty path). Offsite copies stay' \
                 '# disabled while this file holds only comments.'
             ;;
-        *_oauth_client_secret | microsoft_graph_client_secret)
-            # External identity credentials cannot be auto-generated: a random token
+        *_oauth_client_secret | microsoft_graph_client_secret | cloudflare_tunnel_token)
+            # Credentials another service issues (identity providers, the Cloudflare
+            # tunnel) cannot be auto-generated: a random token
             # yields a silent 401 at runtime, and warn_on_placeholder_secrets
             # (backend/app/core/secrets.py) crashes staging/prod on any replace-me
             # value, including providers nobody configured. Empty means "not

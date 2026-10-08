@@ -18,15 +18,20 @@ from typing import TYPE_CHECKING, Literal
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-from app.api.auth.models import User
+from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.email_identity import canonicalize_email
+from app.api.auth.services.oauth.accounts import google_tokens_to_revoke, revoke_google_tokens
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.query import require_model
 from app.api.common.exceptions import ConflictError
-from app.api.data_collection.crud.product_commands import delete_product
 from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
-from app.api.data_collection.crud.storage import cleanup_product_media_storage
+from app.api.data_collection.crud.storage import (
+    cleanup_product_media_storage,
+    delete_product_media,
+    delete_product_rows,
+    product_subtree_ids,
+)
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.upload_quota import recompute_user_upload_quota
 from app.api.plugins.rpi_cam.models import Camera
@@ -109,6 +114,9 @@ async def erase_user(
 
     thumbnails = await _delete_owned_cameras(session, user_id)
 
+    google_tokens = google_tokens_to_revoke(
+        (await session.execute(select(OAuthAccount).where(OAuthAccount.user_id == user_id))).scalars()
+    )
     # OAuth links follow the user row through the delete-orphan cascade.
     await session.delete(db_user)
     await session.flush()
@@ -126,6 +134,7 @@ async def erase_user(
     await cleanup_product_media_storage(pending_media)
     for path in thumbnails:
         remove_preview_thumbnail(path)
+    await revoke_google_tokens(google_tokens)
 
 
 async def require_erasable_account(session: AsyncSession, user: User) -> User:
@@ -167,16 +176,15 @@ async def _delete_owned_products(
     """Delete every base product the user owns, subtrees and media included.
 
     Returns the storage cleanups to run after the caller's commit, and the deleted
-    product ids to audit once that commit is durable.
+    product ids to audit once that commit is durable. Bulk statements, however many
+    products the user owns; the owner's quota and profile stats are not recomputed,
+    since the user row goes too.
     """
-    base_product_ids = (
-        (await session.execute(select(Product.id).where(Product.owner_id == user_id, Product.parent_id.is_(None))))
-        .scalars()
-        .all()
-    )
-    pending_media: list[ProductMediaStorageCleanup] = []
-    for product_id in base_product_ids:
-        pending_media += await delete_product(session, product_id, commit=False)
+    owned_roots = (Product.owner_id == user_id, Product.parent_id.is_(None))
+    base_product_ids = (await session.execute(select(Product.id).where(*owned_roots))).scalars().all()
+    subtrees = product_subtree_ids(*owned_roots)
+    pending_media = await delete_product_media(session, subtrees)
+    await delete_product_rows(session, subtrees)
     return pending_media, list(base_product_ids)
 
 

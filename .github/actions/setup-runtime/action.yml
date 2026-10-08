@@ -19,6 +19,13 @@ inputs:
     description: Cache the Playwright browser binaries (~/.cache/ms-playwright). Callers still run `playwright install`; on a cache hit it skips the download.
     required: false
     default: "false"
+  restore-cache:
+    description: >-
+      Restore and save the uv, pnpm and Playwright caches. Set "false" in any job that
+      holds deploy or publish credentials: a cache entry is written by whichever run got
+      there first, so restoring one lets that run's files execute next to the credential.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -37,7 +44,7 @@ runs:
       uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         version-file: .tool-versions
-        enable-cache: true
+        enable-cache: ${{ inputs.restore-cache }}
         cache-dependency-glob: ${{ inputs.uv-cache-dependency-glob }}
 
     - name: Set up Python
@@ -54,12 +61,12 @@ runs:
       uses: pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024 # v3.0.0
       with:
         runtime: node@${{ steps.versions.outputs.node }}
-        cache: true
+        cache: ${{ inputs.restore-cache == 'true' }}
         cache-dependency-path: pnpm-lock.yaml
         install: false
 
     - name: Cache Playwright browsers
-      if: inputs.setup-playwright == 'true'
+      if: inputs.setup-playwright == 'true' && inputs.restore-cache == 'true'
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ms-playwright

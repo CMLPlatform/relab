@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
+import pyotp
 import pytest
 from fastapi import status
 from pydantic import ValidationError
@@ -14,6 +15,7 @@ from app.api.auth.services.email_identity import canonicalize_email
 from app.api.auth.services.refresh_token_service import create_refresh_token
 from app.api.common.exceptions import BadRequestError
 from scripts.seed.factories.models import UserFactory
+from tests.fixtures.auth import totp_code
 
 from .shared import (
     NEW_USERNAME,
@@ -381,3 +383,27 @@ async def test_email_update_revokes_existing_refresh_sessions(
     assert update_response.status_code == status.HTTP_200_OK
     assert mock_email_sending.await_count == 2
     await assert_refresh_session_revoked(api_client, old_refresh_token)
+
+
+@pytest.mark.usefixtures("mock_email_sending", "fresh_guess_budget")
+async def test_email_update_on_mfa_account_needs_a_current_code(
+    api_client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """An MFA account changes its email only with the password and a current authenticator code."""
+    user = await create_password_user(db_session, email="mfa-update@example.com", username="mfa_update")
+    headers = {"Authorization": f"Bearer {await _login_bearer(api_client, user)}"}
+    secret = pyotp.random_base32()
+    user.mfa_enabled = True
+    user.mfa_totp_secret = secret
+    await db_session.flush()
+    body = {"email": "mfa-update-new@example.com", "current_password": TEST_PASSWORD}
+
+    missing = await api_client.patch("/v1/users/me", json=body, headers=headers)
+    wrong = await api_client.patch("/v1/users/me", json={**body, "mfa_code": "000000"}, headers=headers)
+    right = await api_client.patch("/v1/users/me", json={**body, "mfa_code": totp_code(secret)}, headers=headers)
+
+    assert missing.status_code == status.HTTP_400_BAD_REQUEST, missing.text
+    assert wrong.status_code == status.HTTP_403_FORBIDDEN, wrong.text
+    assert right.status_code == status.HTTP_200_OK, right.text
+    assert right.json()["email"] == "mfa-update-new@example.com"

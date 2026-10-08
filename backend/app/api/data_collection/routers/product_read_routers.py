@@ -16,19 +16,19 @@ from app.api.auth.services.privacy import can_view_profile
 from app.api.auth.services.rate_limiter import API_EXPORT_RATE_LIMIT_DEPENDENCY, API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
-from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
 from app.api.common.exceptions import BadRequestError
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.validation import MAX_QUERY_TEXT_LENGTH
 from app.api.data_collection.crud.product_tree_queries import (
+    COMPONENT_TREE_MAX_COMPONENTS,
     EXPORT_MAX_BASE_PRODUCTS,
     EXPORT_MAX_COMPONENTS,
     MAX_COMPONENT_DEPTH,
     PRODUCT_EXPORT_RELATIONSHIPS,
-    PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     apply_product_detail_loaders,
+    apply_product_read_loaders,
     load_all_descendants,
     load_component_subtree,
     require_product_detail,
@@ -85,41 +85,29 @@ _EXPORT_TOO_LARGE = (
 _EXPORT_200: dict[str, Any] = {"content": {"text/csv": {"schema": {"type": "string"}}}}
 
 
-async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
-    """Load one product with the summary relationships used on collection reads."""
-    return await require_model(session, Product, product_id, loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS)
+async def _require_product_exists(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
+    """Load one product, without relationships, to check it exists."""
+    return await require_model(session, Product, product_id)
 
 
-async def _list_direct_components(
-    session: AsyncSessionDep,
-    *,
-    product_id: PositiveInt,
-    product_filter: ProductFilterWithRelationshipsDep,
-) -> Sequence[Product]:
-    """List direct child components for a product."""
-    statement = select(Product).where(Product.parent_id == product_id)
-    statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
-    statement = apply_filter(statement, product_filter)
-    return list((await session.execute(statement)).scalars().unique().all())
-
-
-async def _page_base_products(
+async def _page_products[ReadT: ProductRead | ComponentRead](
     session: AsyncSessionDep,
     *,
     statement: Select[tuple[Product]],
     product_filter: ProductFilterWithRelationshipsDep,
     viewer: OptionalCurrentActiveUserDep,
-) -> Page[ProductRead]:
-    """Page base products through ProductRead, applying per-owner privacy redaction."""
+    schema: type[ReadT],
+) -> Page[ReadT]:
+    """Page products or components through ``schema``, applying per-owner privacy redaction."""
     statement = apply_filter(statement, product_filter)
-    statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
+    statement = apply_product_read_loaders(statement)
     page = await paginate_select(
         session,
         statement,
         model=Product,
-        transform=lambda rows: [to_read_model(r, ProductRead, viewer) for r in rows],
+        transform=lambda rows: [to_read_model(r, schema, viewer) for r in rows],
     )
-    return cast("Page[ProductRead]", page)
+    return cast("Page[ReadT]", page)
 
 
 async def resolve_owner_id(session: AsyncSessionDep, owner: str, viewer: User | None) -> UUID4:
@@ -174,11 +162,12 @@ async def get_user_products(
         raise HTTPException(status_code=403, detail="Not authorized to view this user's products")
 
     statement = select(Product).where(Product.owner_id == user_id, Product.parent_id.is_(None))
-    payload = await _page_base_products(
+    payload = await _page_products(
         session,
         statement=statement,
         product_filter=product_filter,
         viewer=current_user,
+        schema=ProductRead,
     )
     return conditional_json_response(request, payload)
 
@@ -199,11 +188,12 @@ async def get_products(
     statement: Select[tuple[Product]] = select(Product).where(Product.parent_id.is_(None))
     if owner is not None:
         statement = statement.where(Product.owner_id == await resolve_owner_id(session, owner, current_user))
-    payload = await _page_base_products(
+    payload = await _page_products(
         session,
         statement=statement,
         product_filter=product_filter,
         viewer=current_user,
+        schema=ProductRead,
     )
     return conditional_json_response(request, payload)
 
@@ -327,6 +317,8 @@ async def export_product(
     "/{product_id}/components/tree",
     summary="Get product component subtree",
     response_model=list[ComponentReadWithRecursiveComponents],
+    responses={400: {"description": f"More than {COMPONENT_TREE_MAX_COMPONENTS:,} components at the requested depth"}},
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 async def get_product_subtree(
     session: AsyncSessionDep,
@@ -335,13 +327,18 @@ async def get_product_subtree(
     product_filter: ProductFilterWithRelationshipsDep,
     recursion_depth: RecursionDepthQueryParam = 1,
 ) -> list[ComponentReadWithRecursiveComponents]:
-    """Get a product's component subtree as a bounded hierarchical view."""
-    await _require_product_summary(session, product_id)
+    """Get a product's component subtree as a bounded hierarchical view.
+
+    A tree with more components than the cap, across all levels, is a 400. Page through
+    ``/components`` level by level, or use the export, for bigger products.
+    """
+    await _require_product_exists(session, product_id)
     tree_data = await load_component_subtree(
         session,
         parent_id=product_id,
         recursion_depth=recursion_depth,
         product_filter=product_filter,
+        max_nodes=COMPONENT_TREE_MAX_COMPONENTS,
     )
     return render_component_tree(
         tree_data.roots,
@@ -354,19 +351,25 @@ async def get_product_subtree(
 
 @product_read_router.get(
     "/{product_id}/components",
-    response_model=list[ComponentRead],
+    response_model=Page[ComponentRead],
     summary="Get product components",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 async def get_product_components(
     session: AsyncSessionDep,
     current_user: OptionalCurrentActiveUserDep,
     product_id: PositiveInt,
     product_filter: ProductFilterWithRelationshipsDep,
-) -> list[ComponentRead]:
-    """Get all direct components of a product."""
-    await _require_product_summary(session, product_id)
-    components = await _list_direct_components(session, product_id=product_id, product_filter=product_filter)
-    return [to_read_model(c, ComponentRead, current_user) for c in components]
+) -> Page[ComponentRead]:
+    """Get a page of a product's direct components."""
+    await _require_product_exists(session, product_id)
+    return await _page_products(
+        session,
+        statement=select(Product).where(Product.parent_id == product_id),
+        product_filter=product_filter,
+        viewer=current_user,
+        schema=ComponentRead,
+    )
 
 
 ### Ancillary search/facet routes ###

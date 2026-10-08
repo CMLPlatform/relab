@@ -9,7 +9,6 @@ from app.api.auth.exceptions import RecentSignInRequiredError
 from app.api.auth.models import User
 from app.api.auth.schemas import UserUpdate
 from app.api.auth.services import refresh_token_service
-from app.api.auth.services.rate_limiter import account_guess_budget
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.runtime import require_connection_redis
 
@@ -46,31 +45,6 @@ def verify_current_password(*, password_helper: PasswordHelperProtocol, password
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Current password is invalid.",
-        )
-
-
-async def require_current_password_for_sensitive_update(
-    *,
-    password_helper: PasswordHelperProtocol,
-    user_update: UserUpdate,
-    user: User,
-    sensitive_fields: set[str],
-) -> None:
-    """Require password reauthentication before e-mail or password changes."""
-    if not sensitive_fields:
-        return
-
-    if not user_update.current_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is required for this account update.",
-        )
-
-    async with account_guess_budget(user.id):
-        verify_current_password(
-            password_helper=password_helper,
-            password=user_update.current_password.get_secret_value(),
-            user=user,
         )
 
 

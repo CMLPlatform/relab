@@ -22,7 +22,7 @@ Password validation follows the [OWASP Authentication Cheat Sheet](https://cheat
 
 Password inputs do not block paste, so password managers work.
 
-Changing `email` or `password` through `PATCH /v1/users/me` requires `current_password`. Username, profile, and preference updates do not. Email changes mark the account unverified, send a verification email to the new address, and send a security notification to the previous address. Password changes send a security notification to the account email address.
+Changing `email` or `password` through `PATCH /v1/users/me` requires `current_password`, and on an account with two-step verification also a current authenticator code or a recovery code (`mfa_code`); a recovery code used here is spent. Username, profile, and preference updates do not. Email changes mark the account unverified, send a verification email to the new address, and send a security notification to the previous address. Password changes send a security notification to the account email address.
 
 TOTP MFA is optional account hardening for contributors and required for administrators:
 
@@ -40,15 +40,16 @@ TOTP MFA is optional account hardening for contributors and required for adminis
 - Accepted TOTP counters are recorded briefly to prevent replay within the clock window.
 - Wrong TOTP and recovery codes at the login challenge, and wrong passwords or codes re-entered
   by a signed-in user, count against one per-account budget shared by all of these routes, not
-  only against the client IP or the challenge token.
+  only against the client IP or the challenge token. The budget allows 3 checks a minute and at
+  most 100 a day.
 - Administrators can reset a user's MFA enrollment after identity-proofed recovery, but cannot choose a replacement factor.
 
 Forgot-password returns the same accepted response for known, unknown, and inactive accounts, padded to a small minimum duration against timing-based enumeration. Login failures use the same bad-credentials response for unknown, invalid, and inactive accounts.
 
 Rate limits use the Redis-backed `limits` integration:
 
-- login by transient client-IP bucket (60 a minute, so a workshop room behind one IP can sign in) and by failed attempts against a keyed digest of the submitted identifier (3 a minute); successful logins do not count against the account, so a shared demo account is not locked by use
-- forgot-password requests by transient client-IP bucket and by a keyed digest of the submitted email address
+- login by transient client-IP bucket (60 a minute, so a workshop room behind one IP can sign in) and by failed attempts against a keyed digest of the account's canonical email address (3 a minute), so every spelling of one address shares one bucket; successful logins do not count against the account, so a shared demo account is not locked by use
+- forgot-password requests by transient client-IP bucket and by a keyed digest of the canonical email address
 - reset-password submissions, registration, and email verification requests by transient client-IP bucket
 
 Password reset uses email links. Reset tokens are valid for one hour and include a fingerprint of the previous password hash, so a successful change invalidates them. A successful reset revokes existing refresh tokens and sends a confirmation email without credentials, tokens, or links. The web app is served with `Referrer-Policy: no-referrer` and removes the token from browser history after loading the reset page.
@@ -77,6 +78,8 @@ Access tokens live 15 minutes. Auth flows require Redis and fail closed without 
 
 Login updates `last_login_at`; client IP addresses are processed only transiently for rate limiting and never stored on the account. Browser sessions receive refresh and access cookies; bearer clients receive tokens in the response body.
 
+Session cookies are `SameSite=Lax`. On top of that, the API refuses with 403 any `POST`, `PUT`, `PATCH` or `DELETE` under `/v1` that carries the session cookies, and any `POST /v1/auth/session/login`, when the browser marks it `Sec-Fetch-Site: cross-site` or sends an `Origin` outside the CORS allow-list (the app, site and docs origins, plus the API's own). A request with neither header, such as one from the native app or a script, passes, and bearer-token requests are not checked.
+
 Refresh-token rotation uses dedicated endpoints:
 
 - `POST /v1/auth/bearer/refresh` for bearer clients
@@ -99,7 +102,7 @@ Authorization is enforced in the backend route layer, not by client UI state. Fa
 
 ## Account deletion
 
-Signed-in users delete their own account from the account screen (`DELETE /v1/users/me`). Like an email or password change, this requires the current password; accounts that sign in only through Google or GitHub have no password to enter. Accounts with two-step verification also enter a current authenticator code or a recovery code, whether or not they have a password. An account with neither a password nor two-step verification must have signed in within the last 10 minutes; otherwise the route returns 403 and asks the user to sign in again. Failed password and code attempts count against a per-account budget, on top of the per-IP login limit. A wrong current password returns 403 rather than 401 here and in every other password step-up, as does a wrong authenticator code when confirming or turning off two-step verification, regenerating recovery codes, or deleting the account, because the session itself is still valid and a client must not refresh and resend the guess. Deletion erases the account details (email address, username, linked sign-ins, and cameras), revokes every session, and sends a notification email to the former address. Products and their media move to an inactive anonymous system account, so they stay public without the owner's name. That includes any text the owner wrote in product records and the original file names of their photos. Removing the uploads as well is a request to the maintainers.
+Signed-in users delete their own account from the account screen (`DELETE /v1/users/me`). Like an email or password change, this requires the current password; accounts that sign in only through Google or GitHub have no password to enter. Accounts with two-step verification also enter a current authenticator code or a recovery code, whether or not they have a password. An account with neither a password nor two-step verification must have signed in within the last 10 minutes; otherwise the route returns 403 and asks the user to sign in again. Failed password and code attempts count against a per-account budget, on top of the per-IP login limit. A wrong current password returns 403 rather than 401 here and in every other password step-up, as does a wrong authenticator code when changing the email or password, confirming or turning off two-step verification, regenerating recovery codes, or deleting the account, because the session itself is still valid and a client must not refresh and resend the guess. Deletion erases the account details (email address, username, linked sign-ins, and cameras), revokes every session, asks Google to revoke a linked Google sign-in's grant, and sends a notification email to the former address. Products and their media move to an inactive anonymous system account, so they stay public without the owner's name. That includes any text the owner wrote in product records and the original file names of their photos. Removing the uploads as well is a request to the maintainers.
 
 Admins delete accounts through `DELETE /v1/admin/users/{user_id}` and can choose to delete the products instead of anonymizing them. Neither route deletes the last active superuser.
 

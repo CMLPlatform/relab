@@ -2,24 +2,24 @@
 
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import Path, Request
-from fastapi_pagination import Page
+from fastapi import Depends, Path, Request
+from fastapi_pagination import Page, Params
 from pydantic import PositiveInt
 from sqlalchemy import select
 from starlette.responses import Response  # noqa: TC002 # Runtime annotation evaluation needs this.
 
+from app.api.auth.services.rate_limiter import API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
 from app.api.common.routers.dependencies import AsyncSessionDep
-from app.api.reference_data.crud.categories import get_category_trees
 from app.api.reference_data.dependencies import CategoryFilterDep, CategoryFilterWithRelationshipsDep
 from app.api.reference_data.models import Category
 from app.api.reference_data.routers.public_support import (
     RecursionDepthQueryParam,
     ReferenceDataAPIRouter,
-    convert_categories_to_tree,
+    page_category_trees,
 )
 from app.api.reference_data.schemas import (
     CategoryReadWithRecursiveSubCategories,
@@ -28,8 +28,6 @@ from app.api.reference_data.schemas import (
 from app.core.responses import conditional_json_response
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from sqlalchemy import Select
 
 router = ReferenceDataAPIRouter(prefix="/categories", tags=["categories"])
@@ -98,18 +96,21 @@ async def get_categories(
 
 @router.get(
     "/tree",
-    response_model=list[CategoryReadWithRecursiveSubCategories],
+    response_model=Page[CategoryReadWithRecursiveSubCategories],
     summary="Get categories tree",
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 async def get_categories_tree(
     request: Request,
     session: AsyncSessionDep,
     category_filter: CategoryFilterWithRelationshipsDep,
+    params: Annotated[Params, Depends()],
     recursion_depth: RecursionDepthQueryParam = 1,
-) -> list[CategoryReadWithRecursiveSubCategories] | Response:
-    """Get all base categories and their subcategories in a tree structure."""
-    categories: Sequence[Category] = await get_category_trees(session, recursion_depth, category_filter=category_filter)
-    payload = convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
+) -> Page[CategoryReadWithRecursiveSubCategories] | Response:
+    """Get a page of top-level categories, each with its subcategories in a tree structure."""
+    payload = await page_category_trees(
+        session, params, recursion_depth=recursion_depth, category_filter=category_filter
+    )
     return conditional_json_response(request, payload)
 
 
@@ -147,16 +148,17 @@ async def get_subcategories(
 @router.get(
     "/{category_id}/subcategories/tree",
     summary="Get category subtree",
-    response_model=list[CategoryReadWithRecursiveSubCategories],
+    response_model=Page[CategoryReadWithRecursiveSubCategories],
+    dependencies=[API_READ_RATE_LIMIT_DEPENDENCY],
 )
 async def get_category_subtree(
     category_id: PositiveInt,
     category_filter: CategoryFilterDep,
     session: AsyncSessionDep,
+    params: Annotated[Params, Depends()],
     recursion_depth: RecursionDepthQueryParam = 1,
-) -> list[CategoryReadWithRecursiveSubCategories]:
-    """Get a category subcategories in a tree structure, up to a specified depth."""
-    categories: Sequence[Category] = await get_category_trees(
-        session, recursion_depth=recursion_depth, supercategory_id=category_id, category_filter=category_filter
+) -> Page[CategoryReadWithRecursiveSubCategories]:
+    """Get a page of a category's subcategories in a tree structure, up to a specified depth."""
+    return await page_category_trees(
+        session, params, recursion_depth=recursion_depth, category_filter=category_filter, supercategory_id=category_id
     )
-    return convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)

@@ -47,6 +47,18 @@ The same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace
 - **VS Code REST Client / JetBrains HTTP Client**: use `scripts/admin.http` from a repo checkout.
   Send `login` once; the token flows into the calls below it.
 
+## Reading components
+
+- `GET /v1/products/{id}/components` returns one page of a product's direct components, with the
+  same `page` and `size` parameters as the other lists.
+- `GET /v1/products/{id}/components/tree?recursion_depth=1..5` returns the components nested up to
+  that depth, at most 1,000 components across all levels. A larger tree fails with a `400`: lower
+  `recursion_depth`, page through `/components` level by level, or export the product.
+
+The category trees (`GET /v1/categories/tree`, `GET /v1/categories/{id}/subcategories/tree`,
+`GET /v1/taxonomies/{id}/categories/tree`) are paged the same way: each page holds `size` top-level
+categories, each with its subcategories down to `recursion_depth`.
+
 ## Exporting products
 
 To analyse a set of products in a spreadsheet or in Python, export them instead of paging through
