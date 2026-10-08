@@ -12,6 +12,10 @@ SMOKE_PATH='/r9lab-smoke?q=1'
 # Prints "ok", or one FAIL line; returns 0 or 1.
 redirect_verdict() {
     local host="$1" status="$2" location="$3" expect_status="$4" expect_location="$5"
+    if [[ -z "$status" || "$status" == 000 ]]; then
+        printf 'FAIL[%s]: no response\n' "$host"
+        return 1
+    fi
     if [[ "$status" != "$expect_status" ]]; then
         printf 'FAIL[%s]: status %s, expected %s\n' "$host" "$status" "$expect_status"
         return 1
@@ -21,6 +25,35 @@ redirect_verdict() {
         return 1
     fi
     printf 'ok\n'
+}
+
+# expected_status <temporary status> <permanent flag>: 302 becomes 301, 307 becomes 308.
+expected_status() {
+    if [[ "$2" != 1 ]]; then
+        printf '%s\n' "$1"
+    elif [[ "$1" == 307 ]]; then
+        printf '308\n'
+    else
+        printf '301\n'
+    fi
+}
+
+# otel_verdict <host> <status> <response headers>
+# The collector may answer 4xx/5xx/405 to an empty POST; only silence, a redirect or an
+# edge challenge break ingestion.
+otel_verdict() {
+    local host="$1" status="$2" headers="$3"
+    if [[ -z "$status" || "$status" == 000 ]]; then
+        printf 'FAIL[%s]: no response\n' "$host"
+    elif [[ "$status" == 3* ]]; then
+        printf 'FAIL[%s]: redirected with status %s\n' "$host" "$status"
+    elif grep -qi '^cf-mitigated:' <<<"$headers"; then
+        printf 'FAIL[%s]: challenged by the edge\n' "$host"
+    else
+        printf 'ok\n'
+        return 0
+    fi
+    return 1
 }
 
 # NOTE: mirrors edge_routes_by_environment in infra/cloudflare/hostnames.tf; parsing HCL
@@ -40,9 +73,7 @@ smoke_main() {
     for entry in $(route_prefixes "$env"); do
         prefix="${entry%:*}"
         status="${entry#*:}"
-        if [[ "$permanent" == 1 ]]; then
-            [[ "$status" == 307 ]] && status=308 || status=301
-        fi
+        status="$(expected_status "$status" "$permanent")"
         result="$(curl -sS -o /dev/null --max-redirs 0 --max-time 15 \
             -w '%{http_code} %{redirect_url}' "https://${prefix}${old_zone}${SMOKE_PATH}")" || result=''
         code="${result%% *}"
@@ -54,11 +85,9 @@ smoke_main() {
     # Monitoring posts to this host; any redirect or edge challenge breaks ingestion.
     local headers
     headers="$(curl -sS -o /dev/null -D - --max-redirs 0 --max-time 15 -X POST \
-        -w 'status=%{http_code}\n' "https://otel.${old_zone}/v1/logs")" || headers='status=000'
-    if [[ "$headers" =~ status=3[0-9][0-9] ]] || grep -qi '^cf-mitigated:' <<<"$headers"; then
-        printf 'FAIL[otel.%s]: redirected or challenged\n' "$old_zone" >&2
-        failed=1
-    fi
+        "https://otel.${old_zone}/v1/logs")" || headers=''
+    code="$(sed -n '1s/^HTTP[^ ]* \([0-9]*\).*/\1/p' <<<"$headers")"
+    otel_verdict "otel.${old_zone}" "$code" "$headers" >&2 || failed=1
 
     [[ "$failed" -eq 0 ]] || return 1
     printf 'redirects ok\n'

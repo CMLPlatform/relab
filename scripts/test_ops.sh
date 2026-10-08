@@ -1238,5 +1238,22 @@ assert_eq "a Location on the old zone fails" \
     "$(verdict 302 'https://app.cml-relab.org/r9lab-smoke?q=1')"
 assert_eq "a 200 fails" "1|FAIL[app.cml-relab.org]: status 200, expected 302" "$(verdict 200 '')"
 
+otel() {
+    local out status
+    out="$(otel_verdict otel.cml-relab.org "$1" "$2" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+assert_eq "a dead collector fails" "1|FAIL[otel.cml-relab.org]: no response" "$(otel 000 '')"
+assert_eq "a missing status fails" "1|FAIL[otel.cml-relab.org]: no response" "$(otel '' '')"
+assert_eq "a redirect fails" "1|FAIL[otel.cml-relab.org]: redirected with status 302" "$(otel 302 '')"
+assert_eq "an edge challenge fails" "1|FAIL[otel.cml-relab.org]: challenged by the edge" \
+    "$(otel 403 $'HTTP/2 403\r\ncf-mitigated: challenge\r\n')"
+assert_eq "405 from the collector passes" "0|ok" "$(otel 405 $'HTTP/2 405\r\n')"
+assert_eq "no response on a redirect host" "1|FAIL[app.cml-relab.org]: no response" "$(verdict 000 '')"
+assert_eq "permanent maps 302 to 301" "301" "$(expected_status 302 1)"
+assert_eq "permanent maps 307 to 308" "308" "$(expected_status 307 1)"
+assert_eq "temporary keeps the status" "307" "$(expected_status 307 0)"
+
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1
