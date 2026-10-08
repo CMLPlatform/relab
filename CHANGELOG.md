@@ -28,11 +28,12 @@ stops before touching the running stack and prints these steps.
 
 ### Added
 
-- The zone OpenTofu root keeps one workspace per zone, and refuses a plan whose zone id
-  belongs to another zone.
+- The zone OpenTofu root keeps one workspace per zone. Both OpenTofu roots refuse a plan whose
+  zone id belongs to another zone.
 - The zone root can redirect every host of a previous zone to the new one
-  (`redirect_to_zone_name`). The redirects are temporary (302/307) until
-  `redirect_permanent` is set, then permanent (301/308).
+  (`redirect_to_zone_name`), one environment at a time (`redirect_environments`). The
+  redirects are temporary (302/307) until `redirect_permanent` is set, then permanent
+  (301/308).
 - The zone root can forward mail through Cloudflare Email Routing (`email_forwards`,
   `cloudflare_account_id`); `r9lab.io.tfvars` forwards `info@r9lab.io`.
 - `just smoke-redirects` checks that the old hosts redirect to the new ones. It sends
@@ -45,11 +46,9 @@ stops before touching the running stack and prints these steps.
   again once.
 - The product is called R9lab in all user-facing text. The two-factor issuer label is now
   "R9lab"; authenticator entries already added keep the old label, and their codes still work.
-- Public URLs and contact addresses default to r9lab.io (`info@r9lab.io`). The environment
-  policy check for hidden defaults no longer depends on the host name.
+- Public URLs and contact addresses default to r9lab.io (`info@r9lab.io`).
 - The edge OpenTofu root defaults to the r9lab.io zone. A transitional `legacy_zone_name`
   keeps the previous zone's hosts served until the move is done.
-
 - **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
   `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`, `pages`, `links`)
   instead of a bare list. Pass `page` and `size` to walk the results.

@@ -339,9 +339,9 @@ async def send_existing_account_notification(
     """
     await _notify(
         to_email,
-        "You already have a R9lab account",
+        "You already have an R9lab account",
         (
-            "<p>Someone tried to create a R9lab account with this email address, but you already "
+            "<p>Someone tried to create an R9lab account with this email address, but you already "
             "have one. If this was you, just log in — or reset your password if you have forgotten it. "
             "If it was not you, you can safely ignore this email.</p>"
         ),
