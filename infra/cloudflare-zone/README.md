@@ -85,21 +85,24 @@ so each environment keeps serving from the old zone until its own window:
    just cloudflare-zone-apply cml-relab.org
    ```
 
-   Expect one ruleset with four rules, none for a prod host. `redirect_environments` has no
-   default: a plan with `redirect_to_zone_name` set and no environments fails rather than
-   redirecting prod by omission. Once the apply lands, commit
-   `infra/cloudflare-zone/cml-relab.org.tfvars`:
+   Expect one ruleset with four rules, none for a prod host. `redirect_environments` defaults to
+   `[]`, and a validation requires a non-empty set whenever `redirect_to_zone_name` is set: a plan
+   that turns redirects on without naming the environments fails rather than redirecting prod by
+   omission. Once the apply lands, commit `infra/cloudflare-zone/cml-relab.org.tfvars`:
 
    ```hcl
    redirect_to_zone_name = "r9lab.io"
    redirect_environments = ["staging"]
    ```
 
-   The recipes load it automatically and it overrides `TF_VAR_*`, so a later old-zone apply run
+   The recipes pass it as `-var-file`, which overrides `TF_VAR_*`, so a later old-zone apply run
    without those variables cannot drop the redirects.
-3. **Prod**, in its own window later: the same with `TF_VAR_redirect_environments='["prod", "staging"]'`, eight
-   rules. Once it lands, change the committed `redirect_environments` to `["prod", "staging"]`.
-   Never commit an environment before its own apply: the next old-zone apply would redirect it.
+3. **Prod**, in its own window later. The committed tfvars now wins over any
+   `TF_VAR_redirect_environments`, so exporting `'["prod", "staging"]'` changes nothing. Instead,
+   edit `cml-relab.org.tfvars` in your checkout to `redirect_environments = ["prod", "staging"]`,
+   then plan and apply from it with `just cloudflare-zone-apply cml-relab.org` and `YES`: expect
+   eight rules. Commit the edit once the apply lands. Never commit an environment before its own
+   apply: the next old-zone apply would redirect it.
 
 After each apply, `just smoke-redirects cml-relab.org r9lab.io <env>` checks the live redirects
 for that environment.

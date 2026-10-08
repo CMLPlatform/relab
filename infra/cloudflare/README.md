@@ -174,12 +174,15 @@ the move, so an apply that leaves it unset still serves the old hosts.
 0. Apply the zone root for the new zone first (`just cloudflare-zone-apply r9lab.io`, then with
    `YES`), so its WAF and rate-limit rulesets are live before any proxied record exists there.
 1. Then, for each environment, staging first and prod once staging serves:
-   1. **Interim forwarding.** Right before the environment's first edge apply, delete the
-      placeholder DNS records and hand-made redirect rules on the new zone that cover its hosts:
-      the `*` record and the wildcard rule before staging, the `@` record and the apex rule before
-      prod. Between the two applies only the prod-host forwarding stays. A leftover collides with
-      the records the apply creates and, once the old zone redirects, loops back to it;
-      `just smoke-redirects` reports such a loop.
+   1. **Interim forwarding.** The new zone starts with hand-made placeholders: an `@` and a `*`
+      DNS record, and Redirect Rules that forward its hosts. Before staging's edge apply, replace
+      the wildcard Redirect Rule with explicit rules for the prod hosts only (`r9lab.io`, `app.`,
+      `api.`, `docs.`), and keep both placeholder records. The staging records this apply creates
+      take precedence over `*`, so the staging hosts stop forwarding while the prod hosts keep
+      forwarding until prod's edge apply. Before prod's edge apply, delete the remaining interim
+      rules and both placeholder records; from then on nothing on the new zone forwards. A
+      leftover collides with the records the apply creates and, once the old zone redirects,
+      loops back to it; `just smoke-redirects` reports such a loop.
    2. Take the old zone's records out of the environment's state without deleting them in
       Cloudflare:
 
@@ -212,7 +215,10 @@ the move, so an apply that leaves it unset still serves the old hosts.
       1. Plan the old zone's redirect apply (see
          [Redirecting the old zone](../cloudflare-zone/README.md#redirecting-the-old-zone)) right
          before the next step. `just cloudflare-zone-apply cml-relab.org` saves the plan and stops;
-         a saved plan stays valid for twenty minutes.
+         a saved plan stays valid for twenty minutes. For staging, export the `TF_VAR_redirect_*`
+         variables. For prod, the committed `cml-relab.org.tfvars` overrides them: edit its
+         `redirect_environments` to `["prod", "staging"]` before planning, and commit that edit
+         once the apply lands.
       2. Point the host's root `.env` at the new zone (`*_PUBLIC_URL`, `EMAIL_*`, `SMTP_*`). Check
          that `gh variable get API_PUBLIC_URL --env <env>` prints the same `API_PUBLIC_URL`, then
          deploy the new image tag.
