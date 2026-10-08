@@ -36,7 +36,8 @@ die() {
 : "${CLOUDFLARE_API_TOKEN:?is not set}"
 zone="${TF_VAR_cloudflare_zone_id:?is not set}"
 account="${TF_VAR_cloudflare_account_id:-}"
-zone_name="${TF_VAR_cloudflare_zone_name:-cml-relab.org}"
+# Defaults to the current zone; export TF_VAR_cloudflare_zone_name=cml-relab.org to adopt the previous one.
+zone_name="${TF_VAR_cloudflare_zone_name:-r9lab.io}"
 
 mode="${1:-}"
 env="${2:-}"

@@ -27,14 +27,14 @@ variable "cloudflare_account_id" {
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare zone ID for cml-relab.org."
+  description = "Cloudflare zone ID for the zone that serves Relab."
   type        = string
 }
 
 variable "cloudflare_zone_name" {
   description = "Public DNS zone name for Relab edge hostnames."
   type        = string
-  default     = "cml-relab.org"
+  default     = "r9lab.io"
 }
 
 variable "github_owner" {
@@ -53,4 +53,14 @@ variable "github_reviewers" {
   description = "GitHub logins that approve every job using this Environment: prod's release gate, and staging's while its Cloudflare token is not scoped to its own Workers. Required."
   type        = list(string)
   default     = []
+}
+
+variable "legacy_zone_name" {
+  description = <<-EOT
+    Previous zone whose tunnel hostnames stay in the ingress while its redirect rules go
+    live. Only the ingress changes: no DNS record or custom domain is created there.
+    Empty (the default) leaves the previous zone out entirely.
+  EOT
+  type        = string
+  default     = ""
 }

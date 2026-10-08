@@ -27,10 +27,9 @@ databases, backups, or telemetry.
 hostname map they share lives in `hostnames.tf`, which is symlinked into the zone root
 so both read one definition. Current hostnames:
 
-- Production: `cml-relab.org`, `app.cml-relab.org`, `api.cml-relab.org`,
-  `docs.cml-relab.org`
-- Staging: `web-test.cml-relab.org`, `app-test.cml-relab.org`,
-  `api-test.cml-relab.org`, `docs-test.cml-relab.org`
+- Production: `r9lab.io`, `app.r9lab.io`, `api.r9lab.io`, `docs.r9lab.io`
+- Staging: `web-test.r9lab.io`, `app-test.r9lab.io`, `api-test.r9lab.io`,
+  `docs-test.r9lab.io`
 
 Tunnel origins use plain HTTP inside the private Compose `edge` network.
 
@@ -147,7 +146,7 @@ chmod 600 ~/.config/relab-cloudflare.env && . ~/.config/relab-cloudflare.env
 Optional:
 
 ```bash
-export TF_VAR_cloudflare_zone_name='cml-relab.org'
+export TF_VAR_cloudflare_zone_name='r9lab.io'  # the default
 export TF_VAR_github_owner='CMLPlatform'  # a fork's owner, when it publishes its own images
 ```
 
@@ -163,6 +162,39 @@ and approved. Staging needs it because it accepts a run from any branch, and a
 `CLOUDFLARE_API_TOKEN` granted on all Workers is not scoped to one environment.
 
 Do not commit tokens, tunnel tokens, or state files.
+
+## Moving the edge to another zone
+
+Used once, to move from `cml-relab.org` to `r9lab.io`. While the old zone's redirect rules are
+not live, its tunnel hostnames must keep reaching the tunnel. `legacy_zone_name` keeps them in the
+ingress only: no record or custom domain is created for them.
+
+1. On the new zone, delete the hand-made redirect rules and the placeholder `@` and `*` DNS
+   records. They collide with the records this apply creates.
+2. In each workspace (`prod`, `staging`), take the old zone's records out of state without
+   deleting them in Cloudflare:
+
+   ```bash
+   tofu state rm 'cloudflare_dns_record.edge' 'cloudflare_workers_custom_domain.site'
+   ```
+
+   Run it once per resource address that the workspace lists in `tofu state list`
+   (`cloudflare_dns_record.edge["app"]`, and so on).
+3. Plan with the new zone id and the old zone name:
+
+   ```bash
+   export TF_VAR_cloudflare_zone_id='<new zone id>'
+   export TF_VAR_legacy_zone_name='cml-relab.org'
+   ```
+
+   Expect: the tunnel unchanged, the ingress updated in place, new records and custom domains,
+   the `github_*` variables updated in place, and 0 to destroy. Stop if anything on the old zone
+   or the tunnel is destroyed or replaced.
+4. Apply. Once the old zone redirects and traffic has moved, unset `TF_VAR_legacy_zone_name` and
+   apply again to drop the legacy ingress rules.
+
+`generate-imports.sh` defaults to the new zone. To adopt resources on the old one, export
+`TF_VAR_cloudflare_zone_name=cml-relab.org` and its zone id first.
 
 ## Moving a hostname onto a Worker
 
