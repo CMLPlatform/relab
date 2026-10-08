@@ -62,3 +62,24 @@ variable "e2e_edge_key" {
   sensitive   = true
   default     = ""
 }
+
+variable "redirect_to_zone_name" {
+  description = <<-EOT
+    Zone this zone's Relab hostnames redirect to. Non-empty turns on the redirect ruleset,
+    which covers exactly the hosts in the shared route map: monitoring and hand-made
+    hosts are never redirected. Set it only in the previous zone's workspace.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.redirect_to_zone_name != var.cloudflare_zone_name
+    error_message = "redirect_to_zone_name must differ from cloudflare_zone_name: a zone cannot redirect to itself."
+  }
+}
+
+variable "redirect_permanent" {
+  description = "Redirect with 301/308 instead of 302/307. Keep false until the new zone is verified."
+  type        = bool
+  default     = false
+}
