@@ -78,6 +78,8 @@ Access tokens live 15 minutes. Auth flows require Redis and fail closed without 
 
 Login updates `last_login_at`; client IP addresses are processed only transiently for rate limiting and never stored on the account. Browser sessions receive refresh and access cookies; bearer clients receive tokens in the response body.
 
+Session cookies are `SameSite=Lax`. On top of that, the API refuses with 403 any `POST`, `PUT`, `PATCH` or `DELETE` under `/v1` that carries the session cookies, and any `POST /v1/auth/session/login`, when the browser marks it `Sec-Fetch-Site: cross-site` or sends an `Origin` outside the CORS allow-list (the app, site and docs origins, plus the API's own). A request with neither header, such as one from the native app or a script, passes, and bearer-token requests are not checked.
+
 Refresh-token rotation uses dedicated endpoints:
 
 - `POST /v1/auth/bearer/refresh` for bearer clients

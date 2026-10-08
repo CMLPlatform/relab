@@ -77,6 +77,11 @@ Security-sensitive areas:
     than 10 levels is refused as well.
     Owner attribution follows the same profile-visibility redaction as the product page. CSV cells
     that a spreadsheet would read as a formula are prefixed with `'`.
+- cookie-authenticated writes: an unsafe `/v1` request carrying the session cookies, and every
+  session login, is refused with 403 when `Sec-Fetch-Site` is `cross-site` or the `Origin` is not
+  in the CORS allow-list (`app/core/middleware/cross_site.py`). Requests without either header
+  (native app, scripts) and bearer-token requests pass. A new browser origin that signs in must
+  be added to the CORS allow-list.
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
