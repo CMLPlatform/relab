@@ -3,7 +3,7 @@ title: Dataset
 description: How to browse current Relab records and how curated dataset releases will differ.
 ---
 
-Browse current records at [app.cml-relab.org](https://app.cml-relab.org). The app shows live,
+Browse current records at [app.r9lab.io](https://app.r9lab.io). The app shows live,
 evolving records. A curated dataset release is a reviewed, versioned snapshot with defined scope,
 metadata, and licensing, suitable for citation and reuse.
 
@@ -87,4 +87,4 @@ Full flags: `just release-build --help` and `uv run python -m scripts.zenodo_dep
 ## Contact
 
 For questions about using the dataset or platform, contact
-[relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).
+[info@r9lab.io](mailto:info@r9lab.io).

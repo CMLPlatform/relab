@@ -105,7 +105,7 @@ Every deployed browser-facing origin emits:
 Strict-Transport-Security: max-age=63072000; includeSubDomains
 ```
 
-The app sets it in Caddy, the landing page and docs in the `_headers` file their Workers serve, and the API sets it from FastAPI in `prod` and `staging`. `preload` is omitted because the full `cml-relab.org` subdomain inventory has not been verified for preloading.
+The app sets it in Caddy, the landing page and docs in the `_headers` file their Workers serve, and the API sets it from FastAPI in `prod` and `staging`. `preload` is omitted because the full `r9lab.io` subdomain inventory has not been verified for preloading.
 
 PostgreSQL and Redis stay on the private Compose `data` network, so `DATABASE_TLS=false` and
 `REDIS_TLS=false` are the defaults. If either service moves off that network, set

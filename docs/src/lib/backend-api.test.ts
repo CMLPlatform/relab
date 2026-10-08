@@ -36,11 +36,11 @@ describe('backendApiUrlForMode', () => {
 
   it('falls back to the per-mode default when unconfigured', () => {
     vi.stubEnv('PUBLIC_BACKEND_API_URL', '');
-    expect(backendApiUrlForMode('staging')).toBe('https://api-test.cml-relab.org');
+    expect(backendApiUrlForMode('staging')).toBe('https://api-test.r9lab.io');
   });
 
   it('falls back to prod for an unknown mode', () => {
     vi.stubEnv('PUBLIC_BACKEND_API_URL', '');
-    expect(backendApiUrlForMode('nonsense')).toBe('https://api.cml-relab.org');
+    expect(backendApiUrlForMode('nonsense')).toBe('https://api.r9lab.io');
   });
 });

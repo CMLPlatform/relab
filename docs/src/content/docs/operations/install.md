@@ -5,7 +5,7 @@ description: Run Relab locally or self-host the stack in production or staging.
 
 ## Hosted use
 
-To use Relab without any local setup, open [app.cml-relab.org](https://app.cml-relab.org).
+To use Relab without any local setup, open [app.r9lab.io](https://app.r9lab.io).
 
 ## Self-hosting
 
@@ -390,4 +390,4 @@ forwarding. Set `PAIRING_BACKEND_URL` on the Pi, then pair it as the
 ## Need help?
 
 - Source code: [github.com/CMLPlatform/relab](https://github.com/CMLPlatform/relab)
-- Contact: [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl)
+- Contact: [info@r9lab.io](mailto:info@r9lab.io)

@@ -5,8 +5,8 @@ import { securityHeaders } from './src/integrations/security-headers.ts';
 
 const MODE_SITES = {
   dev: 'http://127.0.0.1:8012',
-  prod: 'https://docs.cml-relab.org',
-  staging: 'https://docs-test.cml-relab.org',
+  prod: 'https://docs.r9lab.io',
+  staging: 'https://docs-test.r9lab.io',
   test: 'http://127.0.0.1:18012',
 };
 const MODE_FLAG = '--mode';

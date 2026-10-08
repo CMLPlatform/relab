@@ -8,7 +8,7 @@ const STATS = {
   series: [],
   generatedAt: '2026-07-17T00:00:00Z',
 };
-const APP_URL = 'https://app.cml-relab.org';
+const APP_URL = 'https://app.r9lab.io';
 
 async function render(props: Record<string, unknown> = {}): Promise<string> {
   const container = await AstroContainer.create();
@@ -39,8 +39,8 @@ describe('BrandHero', () => {
 
   it('offers both doors: browsing the records and contributing one', async () => {
     const html = await render();
-    expect(html).toContain('https://app.cml-relab.org/products');
-    expect(html).toContain('https://app.cml-relab.org/new-account');
+    expect(html).toContain('https://app.r9lab.io/products');
+    expect(html).toContain('https://app.r9lab.io/new-account');
     expect(html).toMatch(/Browse the records/);
     expect(html).toMatch(/Contribute a teardown/);
     // Both leave the site, and each says so to a screen reader.

@@ -294,3 +294,16 @@ def test_deploy_services_must_be_read_only_unless_allowlisted() -> None:
 
     services["cloudflared"]["read_only"] = True
     env_policy.assert_services_are_read_only("prod", {"services": services})
+
+
+def test_hidden_caddy_default_rejected_for_any_host(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config = tmp_path / "Caddyfile"
+    monkeypatch.setattr(env_policy, "RUNTIME_CONFIG_FILES", (config,))
+
+    config.write_text("reverse_proxy {$CADDY_API_ORIGIN}\n", encoding="utf-8")
+    env_policy.assert_runtime_images_do_not_hide_prod_defaults()
+
+    for hidden in ("{$CADDY_API_ORIGIN:https://api.example.org}", "ENV CADDY_API_ORIGIN=https://api.example.org"):
+        config.write_text(hidden + "\n", encoding="utf-8")
+        with pytest.raises(AssertionError, match="hidden production default"):
+            env_policy.assert_runtime_images_do_not_hide_prod_defaults()

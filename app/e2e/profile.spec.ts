@@ -164,11 +164,11 @@ test.describe('Profile: delete dialog', () => {
   test('delete account dialog shows the contact email address', async ({ page }) => {
     await loginAndGoToProfile(page);
     await page.getByText('Delete account?').click();
-    await expect(page.getByText('relab@cml.leidenuniv.nl')).toBeVisible({
+    await expect(page.getByText('info@r9lab.io')).toBeVisible({
       timeout: 3_000,
     });
     // Dismiss the dialog without deleting
     await page.getByRole('button', { name: 'Cancel' }).click();
-    await expect(page.getByText('relab@cml.leidenuniv.nl')).not.toBeVisible();
+    await expect(page.getByText('info@r9lab.io')).not.toBeVisible();
   });
 });

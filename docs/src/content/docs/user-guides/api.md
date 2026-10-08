@@ -7,7 +7,7 @@ For schemas, request models, and endpoint lists, see the [API reference overview
 For the internal design, see [API structure](../../architecture/api/).
 
 The public API is versioned under `/v1`. Keep the API origin separate from the versioned path in
-your client configuration and build requests such as `https://api.cml-relab.org/v1/products`.
+your client configuration and build requests such as `https://api.r9lab.io/v1/products`.
 
 ## When to use the API directly
 

@@ -42,10 +42,10 @@ def _production_core_settings_kwargs(**overrides: object) -> dict[str, Any]:
     """Return valid production-like settings, with optional field overrides."""
     kwargs: dict[str, Any] = {
         "environment": Environment.PROD,
-        "api_public_url": HttpUrl("https://api.cml-relab.org"),
-        "site_public_url": HttpUrl("https://cml-relab.org"),
-        "app_public_url": HttpUrl("https://app.cml-relab.org"),
-        "docs_public_url": HttpUrl("https://docs.cml-relab.org"),
+        "api_public_url": HttpUrl("https://api.r9lab.io"),
+        "site_public_url": HttpUrl("https://r9lab.io"),
+        "app_public_url": HttpUrl("https://app.r9lab.io"),
+        "docs_public_url": HttpUrl("https://docs.r9lab.io"),
         **_database_role_kwargs(),
         "redis": RedisSettings(password=SecretStr("test-password")),
         "bootstrap_superuser_password": SecretStr("test-password"),
@@ -80,18 +80,18 @@ def test_allowed_origins_staging_are_normalized() -> None:
     settings = CoreSettings(
         **_production_core_settings_kwargs(
             environment=Environment.STAGING,
-            api_public_url=HttpUrl("https://api-test.cml-relab.org/"),
-            site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-            app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
-            docs_public_url=HttpUrl("https://docs-test.cml-relab.org/"),
+            api_public_url=HttpUrl("https://api-test.r9lab.io/"),
+            site_public_url=HttpUrl("https://web-test.r9lab.io/"),
+            app_public_url=HttpUrl("https://app-test.r9lab.io/"),
+            docs_public_url=HttpUrl("https://docs-test.r9lab.io/"),
             cors_origin_regex=None,
         )
     )
 
     assert settings.allowed_origins == [
-        "https://web-test.cml-relab.org",
-        "https://app-test.cml-relab.org",
-        "https://docs-test.cml-relab.org",
+        "https://web-test.r9lab.io",
+        "https://app-test.r9lab.io",
+        "https://docs-test.r9lab.io",
     ]
 
 
@@ -106,15 +106,15 @@ def test_allowed_hosts_derive_from_api_public_url() -> None:
     settings = CoreSettings(
         **_production_core_settings_kwargs(
             environment=Environment.STAGING,
-            api_public_url=HttpUrl("https://api-test.cml-relab.org"),
-            site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-            app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
+            api_public_url=HttpUrl("https://api-test.r9lab.io"),
+            site_public_url=HttpUrl("https://web-test.r9lab.io/"),
+            app_public_url=HttpUrl("https://app-test.r9lab.io/"),
             cors_origin_regex=None,
         )
     )
 
     assert settings.allowed_hosts == [
-        "api-test.cml-relab.org",
+        "api-test.r9lab.io",
         "127.0.0.1",
         "localhost",
     ]
@@ -126,9 +126,9 @@ def test_staging_rejects_cors_regex() -> None:
         CoreSettings(
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
-                api_public_url=HttpUrl("https://api-test.cml-relab.org"),
-                site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-                app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
+                api_public_url=HttpUrl("https://api-test.r9lab.io"),
+                site_public_url=HttpUrl("https://web-test.r9lab.io/"),
+                app_public_url=HttpUrl("https://app-test.r9lab.io/"),
                 cors_origin_regex=DEFAULT_CORS_ORIGIN_REGEX,
             )
         )
@@ -140,9 +140,9 @@ def test_staging_rejects_unanchored_cors_regex() -> None:
         CoreSettings(
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
-                api_public_url=HttpUrl("https://api-test.cml-relab.org"),
-                site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-                app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
+                api_public_url=HttpUrl("https://api-test.r9lab.io"),
+                site_public_url=HttpUrl("https://web-test.r9lab.io/"),
+                app_public_url=HttpUrl("https://app-test.r9lab.io/"),
                 cors_origin_regex=r".*",
             )
         )
@@ -154,10 +154,10 @@ def test_staging_rejects_partially_anchored_cors_regex() -> None:
         CoreSettings(
             **_production_core_settings_kwargs(
                 environment=Environment.STAGING,
-                api_public_url=HttpUrl("https://api-test.cml-relab.org"),
-                site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-                app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
-                cors_origin_regex=r"^https://.*\.cml-relab\.org",
+                api_public_url=HttpUrl("https://api-test.r9lab.io"),
+                site_public_url=HttpUrl("https://web-test.r9lab.io/"),
+                app_public_url=HttpUrl("https://app-test.r9lab.io/"),
+                cors_origin_regex=r"^https://.*\.r9lab\.io",
             )
         )
 
@@ -167,13 +167,13 @@ def test_staging_accepts_anchored_cors_regex() -> None:
     settings = CoreSettings(
         **_production_core_settings_kwargs(
             environment=Environment.STAGING,
-            api_public_url=HttpUrl("https://api-test.cml-relab.org"),
-            site_public_url=HttpUrl("https://web-test.cml-relab.org/"),
-            app_public_url=HttpUrl("https://app-test.cml-relab.org/"),
-            cors_origin_regex=r"^https://.*\.cml-relab\.org$",
+            api_public_url=HttpUrl("https://api-test.r9lab.io"),
+            site_public_url=HttpUrl("https://web-test.r9lab.io/"),
+            app_public_url=HttpUrl("https://app-test.r9lab.io/"),
+            cors_origin_regex=r"^https://.*\.r9lab\.io$",
         )
     )
-    assert settings.cors_origin_regex == r"^https://.*\.cml-relab\.org$"
+    assert settings.cors_origin_regex == r"^https://.*\.r9lab\.io$"
 
 
 def test_production_requires_non_default_secrets() -> None:
@@ -544,10 +544,10 @@ def test_cache_url_uses_rediss_when_redis_tls_is_enabled() -> None:
 @pytest.mark.parametrize(
     ("field", "url", "message"),
     [
-        ("api_public_url", "http://api.cml-relab.org", "API_PUBLIC_URL must use https"),
-        ("app_public_url", "http://app.cml-relab.org", "APP_PUBLIC_URL must use https"),
-        ("site_public_url", "http://cml-relab.org", "SITE_PUBLIC_URL must use https"),
-        ("docs_public_url", "http://docs.cml-relab.org", "DOCS_PUBLIC_URL must use https"),
+        ("api_public_url", "http://api.r9lab.io", "API_PUBLIC_URL must use https"),
+        ("app_public_url", "http://app.r9lab.io", "APP_PUBLIC_URL must use https"),
+        ("site_public_url", "http://r9lab.io", "SITE_PUBLIC_URL must use https"),
+        ("docs_public_url", "http://docs.r9lab.io", "DOCS_PUBLIC_URL must use https"),
     ],
 )
 def test_production_requires_https_origins(field: str, url: str, message: str) -> None:

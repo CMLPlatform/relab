@@ -7,7 +7,7 @@ Relab documents a product while you take it apart. A useful first record needs a
 
 ## Create an account
 
-1. Go to [app.cml-relab.org](https://app.cml-relab.org) or open [sign up](https://app.cml-relab.org/new-account).
+1. Go to [app.r9lab.io](https://app.r9lab.io) or open [sign up](https://app.r9lab.io/new-account).
 1. Register with email and password, or sign in with GitHub or Google.
 1. Verify your email if prompted. Some features only activate once the account is verified.
 

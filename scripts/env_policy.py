@@ -109,10 +109,8 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
     "MAX_UPLOAD_BYTES_PER_LAB_USER_MB",
     "MALWARE_SCAN_ENABLED",
 }
-HIDDEN_PROD_DEFAULT_PATTERNS = {
-    "CADDY_API_ORIGIN=https://api.cml-relab.org",
-    "{$CADDY_API_ORIGIN:https://api.cml-relab.org}",
-}
+# A literal origin or a `{$CADDY_API_ORIGIN:default}` fallback hides which backend an image talks to.
+HIDDEN_PROD_DEFAULT_PATTERN = re.compile(r"CADDY_API_ORIGIN=https://|\{\$CADDY_API_ORIGIN:")
 # Deploy services that may keep a writable root filesystem. Every other service in the
 # rendered prod/staging config must set `read_only: true`.
 WRITABLE_ROOT_SERVICES = {
@@ -393,8 +391,8 @@ def assert_runtime_images_do_not_hide_prod_defaults() -> None:
         if not path.exists():
             continue
         contents = path.read_text(encoding="utf-8")
-        for pattern in HIDDEN_PROD_DEFAULT_PATTERNS:
-            require(pattern not in contents, f"{path}: remove hidden production default {pattern}")
+        match = HIDDEN_PROD_DEFAULT_PATTERN.search(contents)
+        require(match is None, f"{path}: remove hidden production default {match and match.group()}")
 
 
 def assert_telemetry_examples_use_department_contract() -> None:

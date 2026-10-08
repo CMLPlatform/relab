@@ -27,7 +27,7 @@ not an automated computer-vision pipeline, not an elastic cloud platform.
 ## Platform
 
 web (shipped). `build` is `expo export -p web`, E2E runs Playwright against that export, and the
-deployed surface is `app.cml-relab.org` behind Caddy.
+deployed surface is `app.r9lab.io` behind Caddy.
 
 Native iOS and Android are configured in `app/app.json` but this repo's tooling does not build or
 release them. Native remains a live target, so design nothing that could not be carried to a phone
@@ -236,7 +236,7 @@ That page is the user-facing half only. The compliant artifact under the Dutch i
 (Tijdelijk besluit digitale toegankelijkheid overheid) is a register entry per domain, filed through
 the invulassistent at toegankelijkheidsverklaring.nl and signed by someone who can bind the
 university. **Open, and not the maintainer's alone to close:** ask Leiden's accessibility
-coordinator whether `cml-relab.org`, `app.cml-relab.org`, and `docs.cml-relab.org` are covered by an
+coordinator whether `r9lab.io`, `app.r9lab.io`, and `docs.r9lab.io` are covered by an
 existing entry or need their own. Until that answer lands, the page omits a feedback response window
 and an escalation body, because a statement that contradicts the university's is worse than none.
 The decree's own baseline is WCAG 2.1 AA.

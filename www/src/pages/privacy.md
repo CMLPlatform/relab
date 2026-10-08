@@ -60,4 +60,4 @@ External videos are the exception, which is why they never load on their own. Ch
 
 **Complaints:** [autoriteitpersoonsgegevens.nl](https://www.autoriteitpersoonsgegevens.nl/en) If you think we are handling your data wrongly, please tell us first — but you also have the right to complain to the Dutch data protection authority, the Autoriteit Persoonsgegevens.
 
-**Contact:** [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl) for questions or data requests.
+**Contact:** [info@r9lab.io](mailto:info@r9lab.io) for questions or data requests.

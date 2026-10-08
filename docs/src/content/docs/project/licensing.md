@@ -10,7 +10,7 @@ which repository you found it in.
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Platform software: the code behind the backend, app, website, and this docs site         | [AGPL-3.0-or-later](https://github.com/CMLPlatform/relab/blob/main/LICENSE)     |
 | API specification: the OpenAPI schemas this repository generates, and their client types | [Apache-2.0](https://github.com/CMLPlatform/relab/blob/main/LICENSE-APACHE-2.0) |
-| Site content: the writing on the docs site and on [cml-relab.org](https://cml-relab.org) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)                       |
+| Site content: the writing on the docs site and on [r9lab.io](https://r9lab.io) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)                       |
 | Curated dataset releases                                                                 | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), planned              |
 
 Code samples inside the documentation are **Apache-2.0**, not CC BY: a copied sample lands under

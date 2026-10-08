@@ -310,7 +310,7 @@ class ReleaseMetadata:
     licence_name: str = "CC BY 4.0"
     licence_spdx: str = "CC-BY-4.0"
     licence_url: str = "https://creativecommons.org/licenses/by/4.0/"
-    homepage: str = "https://cml-relab.org"
+    homepage: str = "https://r9lab.io"
     repository: str = "https://github.com/CMLPlatform/relab"
     description: str = (
         "Teardown records and photographs of disassembled power tools, collected at the "

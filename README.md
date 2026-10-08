@@ -12,7 +12,7 @@
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/CMLPlatform/relab/badge)](https://scorecard.dev/viewer/?uri=github.com/CMLPlatform/relab)
 [![FAIR checklist badge](https://fairsoftwarechecklist.net/badge.svg)](https://fairsoftwarechecklist.net/v0.2?f=31&a=32113&i=22322&r=123)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](.github/CODE_OF_CONDUCT.md)
-[![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fcml-relab.org&label=website)](https://cml-relab.org)
+[![Deployed](https://img.shields.io/website?url=https%3A%2F%2Fr9lab.io&label=website)](https://r9lab.io)
 
 Relab is an open-source research platform for collecting and publicly viewing data on the
 disassembly of durable goods. It is built at
@@ -21,7 +21,7 @@ support industrial ecology and circular economy research with better primary pro
 
 Repairers, refurbishers, dismantlers, and recyclers meet products at the point of failure. Relab
 turns their routine work into structured, openly shared records of what products are made of and
-how they come apart. [Why Relab exists](https://docs.cml-relab.org/project/) sets out the argument.
+how they come apart. [Why Relab exists](https://docs.r9lab.io/project/) sets out the argument.
 
 It combines:
 
@@ -32,14 +32,14 @@ It combines:
 
 ## Start Here
 
-Use the hosted platform at [app.cml-relab.org](https://app.cml-relab.org).
+Use the hosted platform at [app.r9lab.io](https://app.r9lab.io).
 
 To go deeper:
 
-- [Install and self-host](https://docs.cml-relab.org/operations/install/) for running or
+- [Install and self-host](https://docs.r9lab.io/operations/install/) for running or
   self-hosting the stack
 - [CONTRIBUTING.md](.github/CONTRIBUTING.md) for making code or docs changes
-- [docs.cml-relab.org](https://docs.cml-relab.org) for architecture and user-facing docs
+- [docs.r9lab.io](https://docs.r9lab.io) for architecture and user-facing docs
 
 ## Monorepo
 
@@ -77,10 +77,10 @@ CI runs axe scans and per-PR a11y lint across `www/`, `docs/`, and `app/`. See
 
 ## Project Links
 
-- [Live Platform](https://app.cml-relab.org)
-- [Documentation](https://docs.cml-relab.org)
-- [API Docs](https://docs.cml-relab.org/api/public/)
-- [Roadmap](https://docs.cml-relab.org/project/roadmap)
+- [Live Platform](https://app.r9lab.io)
+- [Documentation](https://docs.r9lab.io)
+- [API Docs](https://docs.r9lab.io/api/public/)
+- [Roadmap](https://docs.r9lab.io/project/roadmap)
 
 ## Community and Policy
 
@@ -96,14 +96,14 @@ CI runs axe scans and per-PR a11y lint across `www/`, `docs/`, and `app/`. See
 | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
 | Platform software: backend, app, www, docs site                                               | [AGPL-3.0-or-later](LICENSE)                                       |
 | API specification: `openapi.public.json`, `openapi.device.json`, and client types built from them | [Apache-2.0](LICENSE-APACHE-2.0)                                   |
-| Site content: the writing on the docs site and on cml-relab.org (code samples are Apache-2.0) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)          |
+| Site content: the writing on the docs site and on r9lab.io (code samples are Apache-2.0) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)          |
 | Curated dataset releases                                                                      | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), planned |
 
 **Relab, the logo, and the wordmark are not licensed by any of the above.** The
-[licensing page](https://docs.cml-relab.org/project/licensing/) explains each choice, the RPi camera
+[licensing page](https://docs.r9lab.io/project/licensing/) explains each choice, the RPi camera
 schema's separate licence, and the limits no licence changes.
 
 ## Contact
 
 Questions about the platform, code, or dataset:
-[relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl)
+[info@r9lab.io](mailto:info@r9lab.io)
