@@ -35,7 +35,6 @@
 4 app.api.auth.services.access_token_store.x_revoke_user_access_tokens
 3 app.api.auth.services.access_token_store.xǁRevocableRedisStrategyǁ__init__
 2 app.api.auth.services.access_token_store.xǁRevocableRedisStrategyǁwrite_token
-3 app.api.auth.services.account_security.x_require_current_password_for_sensitive_update
 1 app.api.auth.services.account_security.x_require_recent_sign_in
 2 app.api.auth.services.account_security.x_require_step_up_fields
 5 app.api.auth.services.account_security.x_revoke_user_refresh_tokens

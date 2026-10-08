@@ -223,6 +223,10 @@ class UserRoleUpdate(BaseModel):
     role: UserRole = Field(description="The contributor tier to assign.")
 
 
+# Re-authentication input on UserUpdate, never written to the account.
+STEP_UP_ONLY_FIELDS = frozenset({"current_password", "mfa_code"})
+
+
 class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUserUpdate):
     """Update schema for users."""
 
@@ -252,6 +256,14 @@ class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUs
         json_schema_extra={"format": "password"},
         description="Current password required when changing email or password.",
     )
+    # 6 digits for TOTP, or a longer recovery code, as on StepUpRequest.
+    mfa_code: str | None = Field(
+        default=None,
+        min_length=6,
+        max_length=20,
+        description="Current authenticator code or a recovery code. Required to change email or password "
+        "when the account has MFA enabled.",
+    )
 
     preferences: UserPreferencesUpdate | None = Field(
         default=None,
@@ -261,15 +273,15 @@ class UserUpdate(NoPublicAccountControls, UserBase, fastapi_users_schemas.BaseUs
 
     def create_update_dict(self) -> dict:
         """Return FastAPI-Users update data without reauthentication-only fields."""
-        update_dict = super().create_update_dict()
-        update_dict.pop("current_password", None)
-        return update_dict
+        return {key: value for key, value in super().create_update_dict().items() if key not in STEP_UP_ONLY_FIELDS}
 
     def create_update_dict_superuser(self) -> dict:
         """Return privileged update data without reauthentication-only fields."""
-        update_dict = super().create_update_dict_superuser()
-        update_dict.pop("current_password", None)
-        return update_dict
+        return {
+            key: value
+            for key, value in super().create_update_dict_superuser().items()
+            if key not in STEP_UP_ONLY_FIELDS
+        }
 
 
 ### Authentication & Sessions ###

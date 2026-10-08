@@ -24,6 +24,19 @@ def canonicalize_email(email: str) -> str:
     return f"{local_part}@{domain}"
 
 
+def account_rate_limit_identity(identifier: str) -> str:
+    """Return the canonical address to key a per-account rate limit on.
+
+    Every spelling the account lookup treats as one address (letter case, Unicode
+    normalization, a Unicode domain or its ASCII form) then shares one bucket. A value
+    that is not an address, such as an unknown username, is keyed as given.
+    """
+    try:
+        return canonicalize_email(identifier)
+    except ValueError:
+        return identifier
+
+
 def canonical_email_domain(email: str) -> str:
     """Return the canonical domain portion for policy checks."""
     return canonicalize_email(email).rsplit("@", 1)[1]

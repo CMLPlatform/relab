@@ -6356,6 +6356,20 @@
             ],
             "title": "Email"
           },
+          "mfa_code": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "minLength": 6,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current authenticator code or a recovery code. Required to change email or password when the account has MFA enabled.",
+            "title": "Mfa Code"
+          },
           "password": {
             "anyOf": [
               {

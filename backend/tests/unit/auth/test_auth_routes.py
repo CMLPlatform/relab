@@ -19,6 +19,7 @@ from app.api.auth.routers.password_reset import (
 )
 from app.api.auth.services.rate_limiter import PASSWORD_RESET_RATE_LIMIT
 from app.api.common.rate_limiting import rate_limit_bucket_key
+from tests.fixtures.auth import EMAIL_SPELLING_VARIANTS
 
 
 def _router_dependency_names(api_router: APIRouter) -> set[str]:
@@ -83,6 +84,24 @@ async def test_forgot_password_applies_account_rate_limit_to_all_requests() -> N
     assert key.startswith("auth:password-reset:account:")
     assert "User@Example.COM" not in key
     assert "user@example.com" not in key
+
+
+async def test_forgot_password_case_variants_share_bucket() -> None:
+    """Every spelling the account lookup treats as one address charges one reset bucket."""
+    user_manager = MagicMock()
+    user_manager.get_by_email = AsyncMock(side_effect=exceptions.UserNotExists)
+    keys = set()
+
+    for variant in EMAIL_SPELLING_VARIANTS:
+        with (
+            patch("app.api.auth.routers.password_reset.limiter") as mock_limiter,
+            patch("app.api.auth.routers.password_reset._sleep_until_minimum_elapsed", new_callable=AsyncMock),
+        ):
+            mock_limiter.ahit_key = AsyncMock()
+            await forgot_password(request=_request(), email=variant, user_manager=user_manager)
+        keys.add(mock_limiter.ahit_key.call_args.args[1])
+
+    assert len(keys) == 1
 
 
 @pytest.mark.parametrize(

@@ -18,11 +18,7 @@ from app.api.auth.crud import update_user_override
 from app.api.auth.models import OAuthAccount, User
 from app.api.auth.runtime_dependencies import get_common_password_checker
 from app.api.auth.schemas import UserCreateBase, UserUpdate
-from app.api.auth.services.account_security import (
-    require_current_password_for_sensitive_update,
-    revoke_user_refresh_tokens,
-    sensitive_update_fields,
-)
+from app.api.auth.services.account_security import revoke_user_refresh_tokens, sensitive_update_fields
 from app.api.auth.services.auth_backends import build_authentication_backends
 from app.api.auth.services.email.service import (
     email_log_token,
@@ -34,6 +30,8 @@ from app.api.auth.services.email.service import (
     send_reset_password_email,
     send_verification_email,
 )
+from app.api.auth.services.email_identity import account_rate_limit_identity
+from app.api.auth.services.mfa_flow import require_account_update_step_up
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.auth.services.password_validator import validate_password as _validate_password
 from app.api.auth.services.rate_limiter import LOGIN_RATE_LIMIT
@@ -67,7 +65,7 @@ VERIFICATION_TOKEN_AUDIENCE = "fastapi-users:verify"  # noqa: S105 # This value 
 
 def _login_identifier_rate_limit_key(identifier: str) -> str:
     """Return a privacy-preserving login rate-limit key for a submitted identifier."""
-    return rate_limit_bucket_key("auth:login:account", identifier)
+    return rate_limit_bucket_key("auth:login:account", account_rate_limit_identity(identifier))
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
@@ -227,15 +225,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
         real_user_update = cast("UserUpdate", user_update)
         sensitive_fields = sensitive_update_fields(real_user_update)
         # Only the self-service path (safe=True) can re-authenticate; an admin does not
-        # know the target's password. Only a password check spends the guess budget, so a
-        # preferences or username edit costs nothing.
+        # know the target's password. Only the password and MFA checks spend the guess
+        # budget, so a preferences or username edit costs nothing.
         if safe and sensitive_fields:
-            await require_current_password_for_sensitive_update(
-                password_helper=self.password_helper,
-                user_update=real_user_update,
-                user=user,
-                sensitive_fields=sensitive_fields,
-            )
+            await require_account_update_step_up(real_user_update, user=user, user_manager=self, request=request)
         real_user_update = await update_user_override(self.user_db, user, real_user_update)
         user_update = cast("schemas.UU", real_user_update)
 

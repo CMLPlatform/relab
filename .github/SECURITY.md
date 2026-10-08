@@ -47,15 +47,25 @@ Security-sensitive areas:
 - rate limits (the buckets and numbers are in the security reference)
   - Password login is limited per IP and by failed attempts per account, so a shared account is
     not locked by use while guessing stays capped per account.
+  - Per-account buckets for login and forgot-password are keyed on the canonical email address
+    (`account_rate_limit_identity`): the comparison key the account lookup uses, so letter case,
+    Unicode normalization and Unicode or ASCII domain spellings share one budget.
   - The MFA login challenge and every signed-in re-authentication (account deletion, email and
     password changes, social login link and unlink, MFA setup, disable and recovery-code
     rotation) share one per-account budget of password, TOTP and recovery-code checks
-    (`account_guess_budget`). Every check is charged before it runs, right or wrong, so parallel
-    guesses cannot race past the cap. Rotating IPs, routes or fresh login challenges buys no
+    (`account_guess_budget`): a few a minute, and at most 100 a day, so slow guessing paced under
+    the minute limit runs out too. Every check is charged before it runs, right or wrong, so
+    parallel guesses cannot race past the cap. Rotating IPs, routes or fresh login challenges buys no
     extra guesses, so the MFA routes themselves sit on the looser login IP budget.
   - Every mutating `/v1` route carries a rate limit; the exemptions (admin routes, device-signed
     camera routes, routes on the guess budget) are listed and justified in
     `backend/tests/unit/api/test_dos_rate_limit_routes.py`.
+- step-up re-authentication: changing the email or password through `PATCH /users/me`, linking
+  or unlinking a social login, and deleting the account all re-authenticate with the current
+  password (an account without one shows a recent sign-in instead, except for an email or
+  password change), plus a current TOTP or recovery code when the account has MFA
+  (`require_account_update_step_up`, `require_step_up`). A request missing a credential the
+  account needs is refused before the guess budget is charged.
 - public read APIs
   - Product export (`/products/export`, `/products/{id}/export`) assembles whole product trees, so
     it has its own, stricter rate limit. Signed-in exports also share a looser per-IP ceiling, so
@@ -67,6 +77,11 @@ Security-sensitive areas:
     than 10 levels is refused as well.
     Owner attribution follows the same profile-visibility redaction as the product page. CSV cells
     that a spreadsheet would read as a formula are prefixed with `'`.
+- cookie-authenticated writes: an unsafe `/v1` request carrying the session cookies, and every
+  session login, is refused with 403 when `Sec-Fetch-Site` is `cross-site` or the `Origin` is not
+  in the CORS allow-list (`app/core/middleware/cross_site.py`). Requests without either header
+  (native app, scripts) and bearer-token requests pass. A new browser origin that signs in must
+  be added to the CORS allow-list.
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
