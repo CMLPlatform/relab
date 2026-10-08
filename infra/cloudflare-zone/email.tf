@@ -16,6 +16,8 @@ resource "cloudflare_email_routing_dns" "this" {
 
   zone_id = var.cloudflare_zone_id
   name    = var.cloudflare_zone_name
+
+  depends_on = [cloudflare_email_routing_settings.this]
 }
 
 resource "cloudflare_email_routing_address" "destination" {
@@ -23,6 +25,13 @@ resource "cloudflare_email_routing_address" "destination" {
 
   account_id = var.cloudflare_account_id
   email      = each.value
+
+  lifecycle {
+    precondition {
+      condition     = var.cloudflare_account_id != ""
+      error_message = "cloudflare_account_id is required when email_forwards is set (export TF_VAR_cloudflare_account_id)."
+    }
+  }
 }
 
 resource "cloudflare_email_routing_rule" "forward" {
