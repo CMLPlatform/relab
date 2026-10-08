@@ -256,16 +256,31 @@ run "legacy_ingress_only_when_set" {
   }
 }
 
-run "no_legacy_ingress_by_default" {
+run "legacy_ingress_by_default" {
   command = plan
 
   variables {
     environment = "prod"
   }
 
+  # A forgotten TF_VAR_legacy_zone_name during the move must not drop the old hosts.
+  assert {
+    condition     = contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : coalesce(rule.hostname, "-")], "app.cml-relab.org")
+    error_message = "the default ingress must keep the previous zone's hosts during the move."
+  }
+}
+
+run "no_legacy_ingress_when_empty" {
+  command = plan
+
+  variables {
+    environment      = "prod"
+    legacy_zone_name = ""
+  }
+
   assert {
     condition     = !anytrue([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : endswith(coalesce(rule.hostname, "-"), "cml-relab.org")])
-    error_message = "without legacy_zone_name the ingress must not mention the old zone."
+    error_message = "an empty legacy_zone_name must leave the old zone out of the ingress."
   }
 }
 
@@ -327,6 +342,7 @@ run "zone_id_must_match_zone_name" {
   variables {
     environment          = "prod"
     cloudflare_zone_name = "cml-relab.org"
+    legacy_zone_name     = ""
   }
 
   expect_failures = [data.cloudflare_zone.this]

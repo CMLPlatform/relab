@@ -55,14 +55,16 @@ variable "github_reviewers" {
   default     = []
 }
 
+# TODO: reset to "" once the old zone's redirects are permanent.
 variable "legacy_zone_name" {
   description = <<-EOT
     Previous zone whose tunnel hostnames stay in the ingress while its redirect rules go
     live. Only the ingress changes: no DNS record or custom domain is created there.
-    Empty (the default) leaves the previous zone out entirely.
+    Defaults to the previous zone for the move, so an apply that leaves it unset keeps the
+    old hosts reachable. Empty leaves the previous zone out entirely.
   EOT
   type        = string
-  default     = ""
+  default     = "cml-relab.org"
 
   validation {
     condition     = var.legacy_zone_name != var.cloudflare_zone_name

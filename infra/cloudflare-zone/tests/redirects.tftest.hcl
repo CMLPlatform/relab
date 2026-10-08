@@ -19,6 +19,10 @@ variables {
 run "redirects_every_route" {
   command = plan
 
+  variables {
+    redirect_environments = ["prod", "staging"]
+  }
+
   assert {
     condition     = length(cloudflare_ruleset.redirects[0].rules) == 8
     error_message = "expected one redirect rule per route in both environments."
@@ -46,6 +50,10 @@ run "redirects_every_route" {
 run "api_keeps_method" {
   command = plan
 
+  variables {
+    redirect_environments = ["prod", "staging"]
+  }
+
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.redirects[0].rules :
@@ -59,7 +67,8 @@ run "api_keeps_method_when_permanent" {
   command = plan
 
   variables {
-    redirect_permanent = true
+    redirect_environments = ["prod", "staging"]
+    redirect_permanent    = true
   }
 
   assert {
@@ -73,6 +82,10 @@ run "api_keeps_method_when_permanent" {
 
 run "only_route_hosts_redirected" {
   command = plan
+
+  variables {
+    redirect_environments = ["prod", "staging"]
+  }
 
   assert {
     condition = alltrue([
@@ -111,6 +124,7 @@ run "target_zone_differs" {
 
   variables {
     redirect_to_zone_name = "cml-relab.org"
+    redirect_environments = ["prod", "staging"]
   }
 
   expect_failures = [var.redirect_to_zone_name]
@@ -153,6 +167,13 @@ run "redirect_environments_not_empty" {
   variables {
     redirect_environments = []
   }
+
+  expect_failures = [var.redirect_environments]
+}
+
+# A staging cutover must never redirect prod because the environment list was left out.
+run "redirect_environments_required" {
+  command = plan
 
   expect_failures = [var.redirect_environments]
 }

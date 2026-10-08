@@ -168,7 +168,8 @@ Do not commit tokens, tunnel tokens, or state files.
 
 Used once, to move from `cml-relab.org` to `r9lab.io`. While the old zone's redirect rules are
 not live, its tunnel hostnames must keep reaching the tunnel. `legacy_zone_name` keeps them in the
-ingress only: no record or custom domain is created for them.
+ingress only: no record or custom domain is created for them. It defaults to `cml-relab.org` for
+the move, so an apply that leaves it unset still serves the old hosts.
 
 0. Apply the zone root for the new zone first (`just cloudflare-zone-apply r9lab.io`, then with
    `YES`), so its WAF and rate-limit rulesets are live before any proxied record exists there.
@@ -191,17 +192,17 @@ ingress only: no record or custom domain is created for them.
    ```bash
    export TF_VAR_cloudflare_zone_id='<new zone id>'
    export TF_VAR_cloudflare_zone_name='r9lab.io'
-   export TF_VAR_legacy_zone_name='cml-relab.org'
    ```
 
    Expect: the tunnel unchanged, the ingress updated in place, new records and custom domains,
    the `github_*` variables updated in place, and 0 to destroy. Stop if anything on the old zone
    or the tunnel is destroyed or replaced.
-4. Apply. Once the old zone redirects and traffic has moved, unset `TF_VAR_legacy_zone_name` and
+4. Apply. Once the old zone's redirects are permanent, export `TF_VAR_legacy_zone_name=''` and
    apply again to drop the legacy ingress rules.
 
 `generate-imports.sh` defaults to the new zone. To adopt resources on the old one, export
-`TF_VAR_cloudflare_zone_name=cml-relab.org` and its zone id first.
+`TF_VAR_cloudflare_zone_name=cml-relab.org` and its zone id first, and `TF_VAR_legacy_zone_name=''`
+for the plan, since the legacy zone must differ from the zone.
 
 ## Moving a hostname onto a Worker
 
