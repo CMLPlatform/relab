@@ -217,16 +217,20 @@ def _tree_read_routes() -> list[tuple[str, Dependant]]:
         if isinstance(ctx.route, APIRoute)
         and (path := ctx.path or "").startswith("/v1/")
         and "GET" in (ctx.methods or set())
-        and path.endswith(("/components", "/components/tree"))
+        and path.endswith(("/components", "/tree"))
     ]
 
 
 def test_public_tree_reads_are_rate_limited() -> None:
     """Routes that assemble component lists or trees per request carry the per-IP read limit."""
     routes = _tree_read_routes()
-    assert {"/v1/products/{product_id}/components", "/v1/products/{product_id}/components/tree"} <= {
-        path for path, _dependant in routes
-    }
+    assert {
+        "/v1/products/{product_id}/components",
+        "/v1/products/{product_id}/components/tree",
+        "/v1/categories/tree",
+        "/v1/categories/{category_id}/subcategories/tree",
+        "/v1/taxonomies/{taxonomy_id}/categories/tree",
+    } <= {path for path, _dependant in routes}
     assert {
         path for path, dependant in routes if "api_read_rate_limit" not in _all_dependency_names(dependant)
     } == set()

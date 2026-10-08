@@ -440,7 +440,7 @@ export interface paths {
     };
     /**
      * Get categories tree
-     * @description Get all base categories and their subcategories in a tree structure.
+     * @description Get a page of top-level categories, each with its subcategories in a tree structure.
      */
     get: operations['get_categories_tree_v1_categories_tree_get'];
     put?: never;
@@ -500,7 +500,7 @@ export interface paths {
     };
     /**
      * Get category subtree
-     * @description Get a category subcategories in a tree structure, up to a specified depth.
+     * @description Get a page of a category's subcategories in a tree structure, up to a specified depth.
      */
     get: operations['get_category_subtree_v1_categories__category_id__subcategories_tree_get'];
     put?: never;
@@ -6926,6 +6926,8 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
+        page?: number;
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -6965,7 +6967,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['CategoryReadWithRecursiveSubCategories'][];
+          'application/json': components['schemas']['Page_CategoryReadWithRecursiveSubCategories_'];
         };
       };
       /** @description Validation Error */
@@ -7060,6 +7062,8 @@ export interface operations {
       query?: {
         /** @description Maximum recursion depth */
         recursion_depth?: number;
+        page?: number;
+        size?: number;
         search?: string | null;
         name?: string | null;
         'name[ilike]'?: string | null;
@@ -7083,7 +7087,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['CategoryReadWithRecursiveSubCategories'][];
+          'application/json': components['schemas']['Page_CategoryReadWithRecursiveSubCategories_'];
         };
       };
       /** @description Validation Error */

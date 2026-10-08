@@ -8187,7 +8187,7 @@
     },
     "/v1/categories/tree": {
       "get": {
-        "description": "Get all base categories and their subcategories in a tree structure.",
+        "description": "Get a page of top-level categories, each with its subcategories in a tree structure.",
         "operationId": "get_categories_tree_v1_categories_tree_get",
         "parameters": [
           {
@@ -8201,6 +8201,29 @@
               "maximum": 5,
               "minimum": 1,
               "title": "Recursion Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
               "type": "integer"
             }
           },
@@ -8474,11 +8497,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CategoryReadWithRecursiveSubCategories"
-                  },
-                  "title": "Response Get Categories Tree V1 Categories Tree Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_CategoryReadWithRecursiveSubCategories_"
                 }
               }
             },
@@ -8765,7 +8784,7 @@
     },
     "/v1/categories/{category_id}/subcategories/tree": {
       "get": {
-        "description": "Get a category subcategories in a tree structure, up to a specified depth.",
+        "description": "Get a page of a category's subcategories in a tree structure, up to a specified depth.",
         "operationId": "get_category_subtree_v1_categories__category_id__subcategories_tree_get",
         "parameters": [
           {
@@ -8789,6 +8808,29 @@
               "maximum": 5,
               "minimum": 1,
               "title": "Recursion Depth",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Size",
               "type": "integer"
             }
           },
@@ -8931,11 +8973,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/CategoryReadWithRecursiveSubCategories"
-                  },
-                  "title": "Response Get Category Subtree V1 Categories  Category Id  Subcategories Tree Get",
-                  "type": "array"
+                  "$ref": "#/components/schemas/Page_CategoryReadWithRecursiveSubCategories_"
                 }
               }
             },

@@ -148,12 +148,32 @@ async def test_category_tree_endpoints_return_bounded_recursive_children(
     subtree = await api_client.get(f"/v1/categories/{parent.id}/subcategories/tree?recursion_depth=1")
 
     assert categories_tree.status_code == status.HTTP_200_OK
-    parent_payload = next((item for item in categories_tree.json() if item["id"] == parent.id), None)
+    parent_payload = next((item for item in categories_tree.json()["items"] if item["id"] == parent.id), None)
     assert parent_payload is not None
     assert [item["id"] for item in parent_payload["subcategories"]] == [child.id]
 
     assert subtree.status_code == status.HTTP_200_OK
-    assert [item["id"] for item in subtree.json()] == [child.id]
+    assert [item["id"] for item in subtree.json()["items"]] == [child.id]
+
+
+@pytest.mark.parametrize("root_count", [10, 100])
+async def test_category_trees_are_paged(
+    api_client: AsyncClient, db_session: AsyncSession, db_taxonomy: Taxonomy, root_count: int
+) -> None:
+    """Both category tree routes return one page of top-level categories, however many there are."""
+    parent = await CategoryFactory.create_async(db_session, taxonomy_id=db_taxonomy.id, name="Paged parent")
+    for index in range(root_count):
+        await CategoryFactory.create_async(db_session, taxonomy_id=db_taxonomy.id, name=f"Paged root {index}")
+        await CategoryFactory.create_async(
+            db_session, taxonomy_id=db_taxonomy.id, supercategory_id=parent.id, name=f"Paged child {index}"
+        )
+
+    for url in ("/v1/categories/tree", f"/v1/categories/{parent.id}/subcategories/tree"):
+        response = await api_client.get(url, params={"size": 20})
+        assert response.status_code == status.HTTP_200_OK
+        page = response.json()
+        assert len(page["items"]) <= 20
+        assert page["total"] >= root_count
 
 
 async def test_category_reads_support_conditional_get(api_client: AsyncClient, db_category: Category) -> None:

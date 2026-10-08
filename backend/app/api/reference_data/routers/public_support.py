@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import Query
 from fastapi.types import DecoratedCallable
+from fastapi_pagination import Page, Params, create_page
 from sqlalchemy import inspect
 from sqlalchemy.exc import NoInspectionAvailable
 from sqlalchemy.orm.base import ATTR_EMPTY
 
 from app.api.common.audiences import PublicAPIRouter
+from app.api.reference_data.crud.categories import count_category_trees, get_category_trees
 from app.api.reference_data.models import Category
 from app.api.reference_data.schemas import (
     CategoryRead,
@@ -24,6 +26,10 @@ from app.core.config.models import CacheNamespace
 if TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Any
+
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from app.api.reference_data.filters import CategoryFilter, CategoryFilterWithRelationships
 
 
 class ReferenceDataAPIRouter(PublicAPIRouter):
@@ -112,6 +118,36 @@ def convert_categories_to_tree(
             )
         )
     return tree_items
+
+
+async def page_category_trees(
+    session: AsyncSession,
+    params: Params,
+    *,
+    recursion_depth: int,
+    category_filter: CategoryFilter | CategoryFilterWithRelationships,
+    supercategory_id: int | None = None,
+    taxonomy_id: int | None = None,
+) -> Page[CategoryReadWithRecursiveSubCategories]:
+    """Page top-level categories in the given scope, each with its subcategory tree.
+
+    Pages at the query level: only this page's top-level categories are fetched and
+    expanded, rather than every subtree in the scope.
+    """
+    total = await count_category_trees(
+        session, supercategory_id=supercategory_id, taxonomy_id=taxonomy_id, category_filter=category_filter
+    )
+    categories = await get_category_trees(
+        session,
+        recursion_depth,
+        supercategory_id=supercategory_id,
+        taxonomy_id=taxonomy_id,
+        category_filter=category_filter,
+        offset=(params.page - 1) * params.size,
+        limit=params.size,
+    )
+    tree_items = convert_categories_to_tree(list(categories), recursion_depth=recursion_depth)
+    return cast("Page[CategoryReadWithRecursiveSubCategories]", create_page(tree_items, total=total, params=params))
 
 
 RecursionDepthQueryParam = Annotated[int, Query(ge=1, le=5, description="Maximum recursion depth")]

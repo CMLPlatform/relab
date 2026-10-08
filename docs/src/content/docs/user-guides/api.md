@@ -55,6 +55,10 @@ The same path covers superuser tasks like `POST /v1/admin/cache/clear/{namespace
   that depth, at most 1,000 components across all levels. A larger tree fails with a `400`: lower
   `recursion_depth`, page through `/components` level by level, or export the product.
 
+The category trees (`GET /v1/categories/tree`, `GET /v1/categories/{id}/subcategories/tree`,
+`GET /v1/taxonomies/{id}/categories/tree`) are paged the same way: each page holds `size` top-level
+categories, each with its subcategories down to `recursion_depth`.
+
 ## Exporting products
 
 To analyse a set of products in a spreadsheet or in Python, export them instead of paging through

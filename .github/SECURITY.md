@@ -70,8 +70,10 @@ Security-sensitive areas:
   - Component reads carry the per-IP read limit, as do the product search and facet routes. The
     direct list (`/products/{id}/components`) is paged; the tree (`/products/{id}/components/tree`)
     returns at most 1,000 components across all levels and fails with a `400` past that, checked
-    as each level loads. `test_dos_rate_limit_routes.py` requires the read limit on every public
-    route that lists components.
+    as each level loads. The category tree routes (`/categories/tree`,
+    `/categories/{id}/subcategories/tree`, `/taxonomies/{id}/categories/tree`) page their
+    top-level categories and carry the same limit. `test_dos_rate_limit_routes.py` requires the
+    read limit on every public route that lists components or returns a tree.
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
