@@ -161,6 +161,4 @@ def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONRespons
     )
 
 
-# Singleton limiter instance
-
 limiter = Limiter(storage_uri=core_settings.redis.cache_url, enabled=core_settings.enable_rate_limit)

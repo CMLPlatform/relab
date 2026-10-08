@@ -158,7 +158,7 @@ def test_missing_file_on_disk_yields_no_derivatives(tmp_path: Path, monkeypatch:
 
 
 def test_detail_read_fallback_prefers_the_generated_thumbnail() -> None:
-    """Regression: the images fallback used to serve the full-size original."""
+    """The images fallback serves the generated thumbnail, not the full-size original."""
     image = {
         "id": uuid4(),
         "filename": "front.jpg",

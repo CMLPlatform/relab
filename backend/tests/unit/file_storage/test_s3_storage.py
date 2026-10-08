@@ -167,7 +167,6 @@ async def test_write_upload_uploads_to_s3(mock_boto3: MagicMock) -> None:
 
     mock_client.upload_fileobj = mock_upload
 
-    # Create a mock UploadFile
     mock_file = MagicMock()
     mock_file.file = io.BytesIO(b"test data")
     mock_file.seek = AsyncMock()

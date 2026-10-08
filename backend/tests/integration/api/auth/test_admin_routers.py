@@ -24,7 +24,6 @@ async def test_get_all_users_as_superuser(
     api_client_superuser_light: AsyncClient, db_session: AsyncSession, db_superuser: User
 ) -> None:
     """Superuser can list all users."""
-    # Create additional users
     user1 = await UserFactory.create_async(db_session, email="user1@example.com", username="user1")
     user2 = await UserFactory.create_async(db_session, email="user2@example.com", username="user2")
 

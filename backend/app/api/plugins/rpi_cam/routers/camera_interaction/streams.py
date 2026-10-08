@@ -30,7 +30,6 @@ from app.api.plugins.rpi_cam.services.recording_service import (
 from app.api.plugins.rpi_cam.services.youtube import YouTubePrivacyStatus
 from app.core.redis import RedisDep
 
-# Initialize router
 router = PublicAPIRouter()
 
 

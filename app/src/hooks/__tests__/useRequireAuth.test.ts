@@ -31,7 +31,7 @@ describe('useRequireAuth', () => {
     });
   });
 
-  // Regression: a tab-group screen stays mounted off-focus, so a delayed
+  // A tab-group screen stays mounted off-focus, so a delayed
   // sign-out effect can clear the user after focus has already moved
   // elsewhere. The guard must not fire in that case, or it clobbers
   // whatever navigation already happened with a stray /login redirect.

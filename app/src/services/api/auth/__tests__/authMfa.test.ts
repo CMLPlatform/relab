@@ -131,8 +131,8 @@ describe('completeMfaChallenge', () => {
     restorePlatform();
   });
 
-  // Regression: a bodyless 204 was treated as a web session on every platform,
-  // so native completed the challenge holding no bearer token.
+  // A bodyless 204 means a web session only on web: accepted on native, it
+  // completes the challenge holding no bearer token.
   it('rejects a 204 on native, where no bearer token was issued', async () => {
     mockPlatform('ios');
     const { fetchWithTimeout } = jest.requireMock('@/services/api/request') as {

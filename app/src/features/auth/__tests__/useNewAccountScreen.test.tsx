@@ -158,7 +158,7 @@ describe('useNewAccountScreen', () => {
     expect(mockReplace).toHaveBeenCalledWith('/login');
   });
 
-  // Regression: the button only shows a spinner while submitting (it stays
+  // The button only shows a spinner while submitting (it stays
   // pressable), so a double-tap would fire register twice and stack two dialogs.
   // The ref guard must single-flight it.
   it('ignores a second createAccount while the first is in flight', async () => {

@@ -184,8 +184,8 @@ describe('useOAuthAssociations', () => {
     });
   });
 
-  // Regression: the step-up retry runs detached from the dialog's onPress, so a wrong
-  // password rejected unhandled: the dialog closed and the user was told nothing.
+  // The step-up retry runs detached from the dialog's onPress, so a wrong password
+  // must be caught here: unhandled, the dialog closes and the user is told nothing.
   it('reports a wrong password entered at the step-up prompt', async () => {
     jest
       .mocked(fetchOAuthAuthorizationUrl)
@@ -376,9 +376,9 @@ describe('linkOAuth callback status', () => {
     mockSetYoutubeEnabled.mockImplementation(async () => undefined);
   });
 
-  // Regression: a denied consent screen completes the browser session, so
-  // linkOAuth refetched and told the user nothing. The outcome lives in the
-  // callback fragment, not in the session result.
+  // A denied consent screen still completes the browser session, so linkOAuth
+  // must read the outcome from the callback fragment, not the session result;
+  // otherwise it refetches and tells the user nothing.
   it('surfaces the callback error when the user denies consent', async () => {
     jest.mocked(openOAuthBrowserSession).mockImplementation(async () => ({
       type: 'success',

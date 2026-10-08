@@ -12,7 +12,7 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-// Regression for the `text-accent` remap in global.css: the vendored primitives
+// Guards the `text-accent` remap in global.css: the vendored primitives
 // hijack `--color-accent` for a neutral state layer, so brand-manila text must
 // go through `text-manila` (--color-manila) instead, never `text-accent`.
 // Widened to Record<...>: palette.light and palette.dark are `as const`

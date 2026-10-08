@@ -156,8 +156,8 @@ describe('SingleSelectFilterModal', () => {
   const user = setupUser();
 
   it('shows add-new chip instead of "No results" when search yields no matches', async () => {
-    // Regression: previously the add-new chip was hidden inside the visibleItems.length > 0
-    // branch, so typing a brand not in the list showed "No results" with no way to add it.
+    // The add-new chip must not hide inside the visibleItems.length > 0 branch:
+    // typing a brand not in the list would show "No results" with no way to add it.
     await renderSingle({ title: 'Select brand', items: [], searchQuery: 'BrandNew' });
 
     expect(screen.queryByText('No results')).toBeNull();

@@ -11,7 +11,6 @@ import {
 } from '@/services/api/saving';
 import type { Product } from '@/types/Product';
 
-// Mock dependencies
 jest.mock('@/services/api/auth/authRefresh', () => ({
   fetchWithAuth: jest.fn(),
 }));

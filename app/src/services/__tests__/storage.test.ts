@@ -80,8 +80,8 @@ describe('services/storage', () => {
       'auth-state',
       'session-id',
       'password',
-      // Regression: the guard used an `i` flag, whose `[^a-z0-9]` boundary also
-      // excluded A-Z, so every camelCase name below slipped through.
+      // The guard must not use an `i` flag: its `[^a-z0-9]` boundary would also
+      // exclude A-Z, so every camelCase name below would slip through.
       'authToken',
       'bearerToken',
       'sessionId',

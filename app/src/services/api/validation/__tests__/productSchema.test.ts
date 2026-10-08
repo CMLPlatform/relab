@@ -67,7 +67,7 @@ describe('productSchema', () => {
   });
 
   // NaN is type-legal for `number | undefined` (typeof NaN === 'number'), so the
-  // schema is what keeps the old sentinel from reaching the save path.
+  // schema is what keeps a NaN sentinel from reaching the save path.
   it('rejects a NaN weight', () => {
     const result = productSchema.safeParse({
       ...validBase,

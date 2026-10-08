@@ -128,7 +128,7 @@ describe('ProductPageContent — missing-data checklist (#325)', () => {
     expect(screen.queryByTestId('missing-fields-notice')).toBeNull();
   });
 
-  // TDD for #18: in view mode, an empty Overview is collapsed out of the page
+  // In view mode, an empty Overview is collapsed out of the page
   // entirely, so a link into it has nothing to scroll to until edit mode shows
   // the section. Properties always renders in view mode, so its own link still
   // just scrolls.

@@ -14,8 +14,8 @@ describe('parseApiErrorDetail', () => {
     );
   });
 
-  // Regression: only `detail[0].msg` was read, so a plain string array fell
-  // through to the caller's generic fallback and hid the server's message.
+  // Reading only `detail[0].msg` lets a plain string array fall through to the
+  // caller's generic fallback and hides the server's message.
   it('reads a detail array of plain strings', () => {
     expect(parseApiErrorDetail({ detail: ['Rate limit exceeded'] })).toBe('Rate limit exceeded');
   });

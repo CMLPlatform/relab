@@ -24,7 +24,7 @@ def test_validate_email_route_is_rate_limited() -> None:
 
 
 def test_validate_email_route_is_post_only() -> None:
-    """The route must not still expose GET now that the email travels in the body."""
+    """The route must not expose GET: the email travels in the body, not the URL."""
     route = _validate_email_route()
     assert route.methods == {"POST"}
 
@@ -36,7 +36,7 @@ def _client() -> httpx.AsyncClient:
 
 
 async def test_validate_email_rejects_get() -> None:
-    """GET must 405 now that this is a POST-only, body-carrying endpoint."""
+    """GET must 405: the endpoint is POST-only and carries the email in the body."""
     async with _client() as client:
         response = await client.get("/v1/auth/validate-email")
     assert response.status_code == 405

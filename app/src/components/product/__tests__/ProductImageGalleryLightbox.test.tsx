@@ -809,9 +809,9 @@ describe('ProductImages', () => {
       expect(screen.getAllByText('2 / 2').length).toBeGreaterThan(0);
     });
   });
-  // Regression: only the swipe path cleared isZoomed. Navigating with the footer
-  // chevron (or an arrow key) left it set, so `scrollEnabled` stayed false and
-  // paging/swiping were permanently disabled on the next slide.
+  // Every navigation path must clear isZoomed, not only the swipe. Left set by
+  // the footer chevron (or an arrow key), it keeps `scrollEnabled` false and
+  // paging/swiping stay permanently disabled on the next slide.
   it('clears the zoom flag when navigating with the lightbox chevron', async () => {
     await renderWithProviders(<ProductImages product={twoImages} editMode={false} />, {
       withDialog: true,

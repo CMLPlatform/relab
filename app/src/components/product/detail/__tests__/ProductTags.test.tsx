@@ -259,9 +259,8 @@ describe('AmountChip (isComponent=true)', () => {
     expect(screen.getByLabelText('Increase amount')).toBeDisabled();
   });
 
-  // Fix round 1 (item 2, Minor): typing then tapping +/- used to discard the
-  // typed digits because the steppers stepped off the last *committed*
-  // amount, not what's currently on screen.
+  // Typing then tapping +/- must step off what's currently on screen, not the
+  // last *committed* amount, or the typed digits are discarded.
   it('increments from the typed draft, not the last committed amount, when pressed before blur', async () => {
     const onAmountChange = jest.fn();
     await renderWithProviders(
@@ -285,11 +284,10 @@ describe('AmountChip (isComponent=true)', () => {
   });
 });
 
-// Fix round 1 (item 1, Important): AmountChip's uncommitted draft used to be
-// silently dropped by Save, because nothing in the save path flushed it;
-// blur-before-press ordering is convention, not a contract, in RN. These
+// Save must not drop AmountChip's uncommitted draft, so the save path flushes
+// it: blur-before-press ordering is convention, not a contract, in RN. These
 // exercise the flush contract directly (the channel saveAndExit uses; see
-// useProductForm.test.tsx for the saveAndExit side of the same fix) by
+// useProductForm.test.tsx for the saveAndExit side of the contract) by
 // invoking the registered flush WITHOUT ever firing a blur/submitEditing
 // event on the input, simulating Save being pressed first.
 describe('AmountChip draft flush (Save without blur)', () => {

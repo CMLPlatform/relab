@@ -46,7 +46,6 @@ export default function ProductDescription({ product, editMode, onChangeDescript
     [onChangeDescription, draftText],
   );
 
-  // Render
   if (!editMode) {
     return (
       <View style={{ paddingVertical: 8, gap: 10 }}>

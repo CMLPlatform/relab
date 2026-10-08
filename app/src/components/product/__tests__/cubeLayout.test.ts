@@ -24,9 +24,9 @@ describe('cubeLayout', () => {
     expect(w / d).toBeCloseTo(10 / 3);
   });
 
-  // The old implementation subtracted a magic 50 from its height estimate and
-  // ignored the top face's overhang, so a tall thin product rendered in the
-  // bottom half of the canvas.
+  // Centring must count the top face's overhang and not lean on a magic offset
+  // (such as subtracting 50 from the height estimate), or a tall thin product
+  // renders in the bottom half of the canvas.
   it.each([
     ['cube', 10, 10, 10],
     ['tall and thin', 1, 40, 1],
@@ -47,7 +47,7 @@ describe('cubeLayout', () => {
     expect(across).toBeLessThanOrEqual(FRAME_W + 1e-6);
     expect(down).toBeLessThanOrEqual(FRAME_H + 1e-6);
     // Fitted, not merely small: one axis has to touch the frame or the drawing
-    // wastes the canvas the way the old fixed 90-unit normalisation did.
+    // wastes the canvas the way a fixed 90-unit normalisation would.
     const filled = across > FRAME_W - 1e-6 || down > FRAME_H - 1e-6;
     expect(filled).toBe(true);
   });

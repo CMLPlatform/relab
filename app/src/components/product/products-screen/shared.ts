@@ -37,7 +37,7 @@ export const productsScreenStyles = StyleSheet.create({
     flex: 1,
   },
   // expo-image's Image isn't a NativeWind className target, style only.
-  // Wordmark aspect (759x240), same height as the old mark.
+  // Wordmark aspect (759x240) at 60px tall.
   emptyStateMark: {
     width: 190,
     height: 60,

@@ -153,9 +153,9 @@ describe('fetchWithTimeout header normalization', () => {
     return () => new Headers(fetchSpy.mock.calls[0]?.[1]?.headers);
   }
 
-  // Regression: headers were built with an object spread, which yields {} for a
-  // Headers instance and {0:[...]} for a tuple array; silently dropping
-  // Authorization and Content-Type, both legal RequestInit values.
+  // Headers must not be built with an object spread: it yields {} for a Headers
+  // instance and {0:[...]} for a tuple array, silently dropping Authorization
+  // and Content-Type, both legal RequestInit values.
   it('preserves a Headers instance', async () => {
     const read = captureHeaders();
 

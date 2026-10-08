@@ -74,8 +74,7 @@ describe('useGalleryIndexPersistence', () => {
   });
 
   describe('saved-index bounds', () => {
-    // Regression: only the upper bound was covered, so `index >= 0 &&` could be
-    // deleted with the suite green.
+    // Covers the lower bound, `index >= 0 &&`.
     it.each([['-1'], ['-42']])('ignores a negative saved index (%s)', async (saved) => {
       mockGetLocalItem.mockResolvedValueOnce(saved);
 
@@ -104,8 +103,8 @@ describe('useGalleryIndexPersistence', () => {
     });
   });
 
-  // Regression: `if (productId && ...)` treated product id 0 as "no product",
-  // while the new-product check elsewhere is `productId === null`.
+  // `if (productId && ...)` would treat product id 0 as "no product", while
+  // the new-product check elsewhere is `productId === null`.
   it('restores for product id 0, which is a real product', async () => {
     mockGetLocalItem.mockResolvedValueOnce('1');
 

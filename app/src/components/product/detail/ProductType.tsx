@@ -15,7 +15,6 @@ interface Props {
 }
 
 export default function ProductType({ product, editMode, onTypeChange }: Props) {
-  // Hooks
   const router = useRouter();
 
   // Apply the type picked on the category-selection screen (see pendingTypeSelection.ts).
@@ -28,7 +27,6 @@ export default function ProductType({ product, editMode, onTypeChange }: Props) 
 
   const cpvType = useCpvType(product.productTypeID, product.productType);
 
-  // Callback
   const onTypeSelectionStart = () => router.push('/category-selection');
 
   const labels = typeRowLabels(product.role);

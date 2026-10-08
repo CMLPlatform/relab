@@ -75,7 +75,6 @@ function describeDimensions(
 }
 
 function Cube({ width, height, depth, compact = false }: CubeProps) {
-  // Hooks
   const theme = useAppTheme();
   const layout = cubeLayout(width, height, depth);
 
@@ -154,7 +153,6 @@ function Cube({ width, height, depth, compact = false }: CubeProps) {
     alignmentBaseline: 'middle',
   } as const;
 
-  // Render
   return (
     <Svg
       width="100%"

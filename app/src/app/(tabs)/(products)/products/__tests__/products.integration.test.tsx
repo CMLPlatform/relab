@@ -539,7 +539,7 @@ describe('Infinite scroll', () => {
     expect(screen.getByText('Product B')).toBeOnTheScreen();
   });
 
-  // The core regression this task fixes: pressing "Load more" must APPEND the
+  // Pressing "Load more" must APPEND the
   // next page's items below the ones already rendered, never replace them.
   it('appends page-2 items below page-1 items when Load more is pressed', async () => {
     server.use(threePageProductsHandler());

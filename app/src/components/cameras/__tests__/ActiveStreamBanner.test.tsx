@@ -186,7 +186,7 @@ describe('ActiveStreamBanner', () => {
     );
   });
 
-  // Regression: '/products/new' (CaptureScreen, no SaveBar) satisfies
+  // '/products/new' (CaptureScreen, no SaveBar) satisfies
   // '/products/:id' too, since the literal 'new' segment matches [^/]+ just
   // like a real id would; the route predicate must exclude it explicitly.
   it('does not reserve space on the /products/new creation route', async () => {

@@ -167,7 +167,7 @@ describe('CaptureScreen', () => {
     if (row) expect(within(row).getByText('Create & add another')).toBeOnTheScreen();
   });
 
-  // TDD for the offline-queued acknowledgment: a paused save mutation shows a
+  // A paused save mutation shows a
   // short "queued" label on both Create buttons and drops the spinner;
   // "paused" isn't "loading", there's nothing to spin for until the device
   // comes back online.

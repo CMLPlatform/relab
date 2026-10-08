@@ -11,12 +11,12 @@ test('radius tiers match DESIGN.md flat & sharp scale', () => {
   expect(radius.full).toBe(9999);
 });
 
-// These tokens are now read from `tokens.generated.ts` rather than hand-written
-// here, and the generator emits `rgba(12, 18, 32, 0.50)` where this file used to
-// declare `rgba(12,18,32,0.50)`, same colour, different whitespace, and `#000`
-// where it declared the equivalent `rgba(0,0,0,1)`. Asserting the exact byte
-// string pinned a formatting choice, not a design decision, so colours are
-// compared by normalised value and the numbers stay exact.
+// These tokens come from `tokens.generated.ts`, whose formatting differs from
+// the hand-written values below: it emits `rgba(12, 18, 32, 0.50)` for
+// `rgba(12,18,32,0.50)`, same colour, different whitespace, and `#000` for the
+// equivalent `rgba(0,0,0,1)`. Asserting the exact byte string would pin a
+// formatting choice, not a design decision, so colours are compared by
+// normalised value and the numbers stay exact.
 const WHITESPACE_PATTERN = /\s+/g;
 const BLACK_HEX_PATTERN = /^#000$/;
 const normaliseColor = (value: string) =>

@@ -53,9 +53,9 @@ describe('the contributor-terms row on the account screen', () => {
   });
 
   it('clears the shared dismissal so the mounted dialog reopens', async () => {
-    // The regression this guards: the dialog is mounted once globally while this row
-    // lives on another screen. With the dismissal held in hook-local state, each
-    // caller got its own copy and pressing this row reopened nothing.
+    // The dialog is mounted once globally while this row lives on another screen.
+    // The dismissal must be shared state: held in hook-local state, each caller
+    // gets its own copy and pressing this row reopens nothing.
     signedInWith(true);
     useTermsPromptDismissed.setState({ dismissed: true });
 

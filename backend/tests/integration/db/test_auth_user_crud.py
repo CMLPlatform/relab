@@ -89,7 +89,7 @@ async def test_skips_disposable_check_when_checker_is_none(db_session: AsyncSess
 
 
 def test_rejects_removed_organization_fields() -> None:
-    """User creation no longer accepts organization fields."""
+    """User creation rejects organization fields."""
     with pytest.raises(ValueError, match="organization"):
         TrustedUserCreate.model_validate(
             {

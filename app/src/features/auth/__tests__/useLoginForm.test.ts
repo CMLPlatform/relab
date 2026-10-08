@@ -38,7 +38,7 @@ afterEach(() => {
 });
 
 describe('useLoginForm guards', () => {
-  // Regression: the login button stays pressable during submit and the password
+  // The login button stays pressable during submit and the password
   // field's onSubmitEditing fires the same handler, so two submits could race
   // before any re-render. Without a ref guard, an mfa_required response stacks
   // two /mfa screens and a success navigates twice.

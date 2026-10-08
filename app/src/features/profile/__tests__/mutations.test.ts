@@ -76,8 +76,8 @@ describe('confirmOAuthUnlink', () => {
     expect(mockUnlink).toHaveBeenCalledWith('google', 'my-password', '123456');
   });
 
-  // Regression: unlinking Google while YouTube streaming was on left YouTube
-  // enabled against an account with no Google link. Untested until now.
+  // Unlinking Google while YouTube streaming is on must not leave YouTube
+  // enabled against an account with no Google link.
   it('turns YouTube streaming off when unlinking Google', async () => {
     const args = makeArgs({ provider: 'google', youtubeEnabled: true });
 
@@ -107,8 +107,8 @@ describe('confirmOAuthUnlink', () => {
     expect(args.refetch).not.toHaveBeenCalled();
   });
 
-  // Regression: a failure in the YouTube cascade used to be reported as
-  // "Failed to disconnect", contradicting a server that had already unlinked.
+  // A failure in the YouTube cascade must not be reported as "Failed to
+  // disconnect": the server has already unlinked.
   it('does not claim the disconnect failed when only the YouTube cascade fails', async () => {
     const args = makeArgs({
       provider: 'google',

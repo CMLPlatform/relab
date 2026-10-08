@@ -218,9 +218,8 @@ describe('useProductForm', () => {
     expect(second[0].idempotencyKey).toBe(first[0].idempotencyKey);
   });
 
-  // Fix round 1 (item 1, Important): AmountChip's typed-but-unblurred amount
-  // used to be silently dropped by Save; nothing in the save path flushed
-  // it, and blur-before-press ordering is convention, not a contract, in RN.
+  // Save must not drop AmountChip's typed-but-unblurred amount: blur-before-press
+  // ordering is convention, not a contract, in RN, so the save path flushes it.
   // amountFlushRef is the channel: AmountChip registers a flush there (see
   // ProductTags.test.tsx's "AmountChip draft flush" tests for that side),
   // and saveAndExit must read it before serializing, even though isDirty is
@@ -270,8 +269,8 @@ describe('useProductForm', () => {
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
-  // Regression: the button stays pressable while the save is in flight, so a
-  // double tap issued a second PATCH and re-uploaded every pending photo.
+  // The button stays pressable while the save is in flight, so a double tap
+  // must not issue a second PATCH and re-upload every pending photo.
   it('ignores a second saveAndExit while the first is still in flight', async () => {
     let release: (id: number) => void = () => {};
     const mockMutate = jest.fn(() => new Promise<number>((resolve) => (release = resolve)));
@@ -468,7 +467,7 @@ describe('useProductForm', () => {
     );
   });
 
-  // TDD for the offline-queued acknowledgment: a paused mutation must not
+  // A paused mutation must not
   // just spin forever; the screen surfaces it (a toast, fired once) and
   // exposes isPaused so the save button can swap its label.
   it('toasts once when the save mutation pauses (offline) and exposes isPaused', async () => {
@@ -556,10 +555,10 @@ describe('useProductForm', () => {
     expect(mockReplace).not.toHaveBeenCalledWith('/products');
   });
 
-  // Regression: the sections used to send a whole properties object rebuilt
-  // from their last render, so two blurs in one tick both built from the
-  // pre-edit values and the second reverted the first. They send a patch now,
-  // and the merge happens here against the live form value.
+  // The sections send a patch, and the merge happens here against the live form
+  // value. A whole properties object rebuilt from the last render would let two
+  // blurs in one tick both build from the pre-edit values, so the second
+  // reverts the first.
   it('merges a property patch into the value that is current, not the last rendered one', async () => {
     const validProduct = {
       ...mockProduct,
@@ -628,9 +627,9 @@ describe('useProductForm', () => {
     });
   });
 
-  // Regression: firstErrorSection used to read react-hook-form's first error
-  // key, whose order follows when each field failed; invalidating a lower
-  // section first scrolled past the invalid field above it.
+  // firstErrorSection must not read react-hook-form's first error key: its order
+  // follows when each field failed, so invalidating a lower section first would
+  // scroll past the invalid field above it.
   it('reports the visually first error section regardless of which field failed first', async () => {
     const validProduct = {
       ...mockProduct,
@@ -668,8 +667,8 @@ describe('useProductForm', () => {
     });
   });
 
-  // Regression: delete had no onError handler, so a failed delete was swallowed
-  // by react-query; the entity stayed on screen with no feedback.
+  // Without an onError handler, react-query swallows a failed delete and the
+  // entity stays on screen with no feedback.
   it('surfaces a dialog when the delete mutation fails', async () => {
     const mockAlert = jest.fn();
     jest

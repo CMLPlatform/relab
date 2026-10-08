@@ -223,7 +223,7 @@ describe('useGalleryKeyboardNavigation guards', () => {
     listener?.({ key, target } as unknown as KeyboardEvent);
   }
 
-  // Regression: arrow keys typed into a text field also moved the gallery slide.
+  // Arrow keys typed into a text field must not move the gallery slide.
   it.each([['INPUT'], ['TEXTAREA'], ['SELECT']])(
     'ignores arrow keys typed inside a %s',
     async (tagName) => {
@@ -303,8 +303,8 @@ describe('useGalleryKeyboardNavigation guards', () => {
     expect(onNext).toHaveBeenCalled();
   });
 
-  // Regression: every existing test passed imageCount 3, so the single-image
-  // guard could be deleted with the suite still green.
+  // The other tests all pass imageCount 3; this one covers the single-image
+  // guard.
   it('does not bind arrow keys for a single-image gallery', async () => {
     await renderHook(() =>
       useGalleryKeyboardNavigation({

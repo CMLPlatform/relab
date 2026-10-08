@@ -633,9 +633,9 @@ describe('Authentication API Service', () => {
         expect(fetchMock()).toHaveBeenCalledTimes(2);
       });
 
-      // Regression: login used to fire a redundant refresh whose expected 401
-      // latched explicitlyLoggedOut=true, permanently disabling the transparent
-      // 401 refresh for the rest of the session.
+      // Login must not fire a redundant refresh: its expected 401 latches
+      // explicitlyLoggedOut=true, permanently disabling the transparent 401
+      // refresh for the rest of the session.
       it('204 login leaves transparent refresh armed for a later 401', async () => {
         fetchMock()
           .mockResolvedValueOnce(mockResponse(204, null) as Response) // POST login

@@ -141,8 +141,8 @@ describe('TermsAcceptanceDialog', () => {
   });
 
   it('remembers the dismissal across a reload', async () => {
-    // Regression: the dismissal used to be in-memory only, so every page load
-    // re-opened the modal. That is nagging rather than asking, and it blocked
+    // The dismissal must outlive the page: kept in memory only, every page load
+    // re-opens the modal. That is nagging rather than asking, and it blocks
     // every authenticated e2e spec that navigates with a full page load.
     signedInWith(true);
     mockPlatform('web');

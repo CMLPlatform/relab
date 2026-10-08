@@ -60,7 +60,7 @@ describe('BrandHero', () => {
     const html = await render();
     expect(html).toContain('data-metrics');
     expect(html).toContain('1,600 parts documented');
-    // The old interpunct-separated totals line read as decoration.
+    // An interpunct-separated totals line reads as decoration.
     expect(html).not.toContain('teardowns ·');
 
     // The node is always emitted, even with no baked figure. It ships hidden

@@ -147,7 +147,7 @@ test('needsAttention state routes the primary button press to the error summary,
   expect(onErrorSummaryPress).toHaveBeenCalledTimes(1);
 });
 
-// TDD for the offline-queued acknowledgment: a paused save mutation shows a
+// A paused save mutation shows a
 // short "queued" label and drops the spinner instead of loading forever.
 test('shows a queued label and no spinner while the save mutation is paused offline', async () => {
   await renderWithProviders(
@@ -167,7 +167,7 @@ test('shows a queued label and no spinner while the save mutation is paused offl
   expect(queryAllHostsByType('ActivityIndicator')).toHaveLength(0);
 });
 
-// TDD for #13: photos upload sequentially after the entity PATCH lands, so a
+// Photos upload sequentially after the entity PATCH lands, so a
 // multi-photo save gets a progress count instead of sitting behind one mute spinner.
 test('shows per-photo progress while photos upload mid-save', async () => {
   jest.mocked(getImageUploadProgress).mockReturnValue({ current: 2, total: 5 });
@@ -244,8 +244,8 @@ test('uses component labels for component pages', async () => {
   expect(screen.getByText('Edit Component')).toBeTruthy();
 });
 
-// These cases used to live in FabControls.test.tsx, rendering ProductFabControls
-// with editMode, which `isMd || editMode` routes straight to this component.
+// ProductFabControls routes every editMode render straight to this component
+// (`isMd || editMode`), so its edit-mode cases live here.
 test('edit mode with nothing unsaved reads Done and stays pressable even while invalid', async () => {
   const onPrimaryPress = jest.fn();
   await renderWithProviders(
