@@ -28,8 +28,6 @@ if TYPE_CHECKING:
     from pydantic import UUID4
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from app.api.data_collection.crud.storage import ProductMediaStorageCleanup
-
 
 async def create_product_record(
     db: AsyncSession,
@@ -215,13 +213,8 @@ async def update_product(
     return res
 
 
-async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = True) -> list[ProductMediaStorageCleanup]:
-    """Delete a product from the database.
-
-    With ``commit=False`` the caller owns the transaction: nothing is committed, the
-    deletion is not audited, and the returned storage cleanups are the caller's to run
-    once its own commit is durable. The committing default returns an empty list.
-    """
+async def delete_product(db: AsyncSession, product_id: int) -> None:
+    """Delete a product and its components, commit, then remove their media from storage."""
     owner_id = (await require_locked_model(db, Product, product_id)).owner_id
     # Bulk statements over the subtree: the ORM delete cascade would load every
     # component's media, videos and components one row at a time.
@@ -233,10 +226,6 @@ async def delete_product(db: AsyncSession, product_id: int, *, commit: bool = Tr
         await db.flush()
         await recompute_user_upload_quota(db, user_id=owner_id)
         await recompute_user_profile_stats(db, owner_id)
-    if not commit:
-        return storage_cleanups
-
     await db.commit()
     audit_event(owner_id, AuditAction.DELETE, Product, product_id)
     await cleanup_product_media_storage(storage_cleanups)
-    return []
