@@ -145,6 +145,14 @@ assert_eq "image tag: git tag name rejected" rejected "$(tag_guard v0.4.0)"
 assert_eq "image tag: bare sha rejected" rejected "$(tag_guard 5b099f3c)"
 assert_eq "image tag: empty rejected" rejected "$(tag_guard '')"
 
+release_guard() {
+    is_release_image_tag "$1" && echo release || echo other
+}
+assert_eq "release check: version is a release" release "$(release_guard 0.4.0)"
+assert_eq "release check: sha tag is not" other "$(release_guard sha-5b099f3)"
+assert_eq "release check: git tag name is not" other "$(release_guard v0.4.0)"
+assert_eq "release check: empty is not" other "$(release_guard '')"
+
 # write_image_tag: every assignment is replaced, so the last one (which dotenv_value
 # and compose read) cannot keep the old tag; a .env without one gains it.
 image_tag_after_write() {
@@ -256,7 +264,7 @@ assert_eq "snapshot without tags exits 0 with both tags at 0" "0|postgres 0;user
 # ---------------------------------------------------------------------------
 drift() {
     local out status
-    out="$(deployment_drift_alerts prod "$1" "$2" "$3" "$4" 2>&1)"
+    out="$(deployment_drift_alerts prod "$1" "$2" "$3" "$4" "${5:-}" "${6:-}" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$out"
 }
@@ -278,6 +286,27 @@ ALERT[prod]: deploy checkout is 4 commits behind origin/main" \
 assert_eq "dirty counts even with no upstream" "2|ALERT[prod]: deploy checkout has uncommitted changes
 ALERT[prod]: deploy checkout tracks no upstream branch; drift cannot be detected" \
     "$(drift yes '' 0 0)"
+
+# A release deploy runs the images of tag v$IMAGE_TAG, so the checkout is measured
+# against that tag: main moving on is not drift, an older checkout is.
+assert_eq "release reached but behind main is silent" "0|" \
+    "$(drift no origin/main 16 0 v0.4.0 reached)"
+assert_eq "release not in the checkout is reported" \
+    "1|ALERT[prod]: deploy checkout does not contain release tag v0.4.0, which IMAGE_TAG runs" \
+    "$(drift no origin/main 0 0 v0.4.0 not-ancestor)"
+assert_eq "missing release tag is itself an alert" \
+    "1|ALERT[prod]: release tag v0.4.0 is not in the deploy checkout; drift cannot be detected" \
+    "$(drift no origin/main 16 0 v0.4.0 missing)"
+assert_eq "release deploy still reports local-only commits" \
+    "1|ALERT[prod]: deploy checkout has 2 commits that are not on origin/main" \
+    "$(drift no origin/main 16 2 v0.4.0 reached)"
+assert_eq "release deploy still reports a dirty tree" "1|ALERT[prod]: deploy checkout has uncommitted changes" \
+    "$(drift yes origin/main 16 0 v0.4.0 reached)"
+assert_eq "release deploy still needs an upstream to pull from" \
+    "1|ALERT[prod]: deploy checkout tracks no upstream branch; drift cannot be detected" \
+    "$(drift no '' 0 0 v0.4.0 reached)"
+assert_eq "sha deploy behind main is still reported" "1|ALERT[prod]: deploy checkout is 16 commits behind origin/main" \
+    "$(drift no origin/main 16 0 '' '')"
 
 # ---------------------------------------------------------------------------
 # deploy_watchdog.sh check 3: backup timer state

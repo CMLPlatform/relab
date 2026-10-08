@@ -20,6 +20,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The deploy watchdog no longer reports a host that runs a release image as drifted
+  because `main` has moved on. With `IMAGE_TAG` set to a version, it checks that the
+  checkout contains that release's git tag, and alerts if the tag is missing or newer
+  than the checkout.
 - Rows on the profile screen, such as "Delete account?", now tint when hovered or pressed
 - The API reference pages no longer request fonts that the docs site's content
   security policy blocks.

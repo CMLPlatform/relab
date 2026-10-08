@@ -253,7 +253,9 @@ until the guard's trigger is fixed (see 1.1). It checks:
 - all four scheduled-job timers (installed, enabled, active, last run not failed, last trigger not
   overdue)
 - that `PING_WATCHDOG` is filled in
-- deployment drift (uncommitted changes, or commits that exist nowhere else)
+- deployment drift (uncommitted changes, or commits that exist nowhere else). With a release
+  `IMAGE_TAG` such as `0.4.0`, the checkout must contain the git tag `v0.4.0`; being behind `main`
+  is expected then. With a `sha-` tag, it must be level with its upstream branch.
 - that telemetry exports reach the collector
 - schema drift: the database's alembic revision against the one the deployed migrator image
   expects, and any index left `indisvalid = f` by a concurrent build that died (Part 3). Between
