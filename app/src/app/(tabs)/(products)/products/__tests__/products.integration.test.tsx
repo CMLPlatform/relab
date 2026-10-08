@@ -91,9 +91,11 @@ jest.mock('@/components/base/dialogContext', () => {
 
 // useWindowDimensions is spied on in beforeEach to control numColumns per describe block
 
-jest.mock('react-native/Libraries/Lists/FlatList', () => {
+jest.mock('react-native', () => {
   const React = jest.requireActual<typeof import('react')>('react');
-  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  // Mutated in place: spreading the module would evaluate every lazy native-module getter.
+  const actual = jest.requireActual<typeof import('react-native')>('react-native');
+  const { View } = actual;
   const FlatListMock = React.forwardRef(function FlatListMock(
     {
       data,
@@ -143,10 +145,8 @@ jest.mock('react-native/Libraries/Lists/FlatList', () => {
       footer,
     );
   });
-  return {
-    __esModule: true,
-    default: FlatListMock,
-  };
+  Object.defineProperty(actual, 'FlatList', { configurable: true, value: FlatListMock });
+  return actual;
 });
 
 jest.mock('expo-image', () => {
