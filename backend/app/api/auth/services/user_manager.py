@@ -155,6 +155,50 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID4]):
             await self.user_db.update(user, {"hashed_password": updated_password_hash})
         return user
 
+    # NOTE: the parent types this method generically over its OAuth user protocol, which
+    # the concrete User model does not satisfy, so the override narrows it to User.
+    async def oauth_callback(  # ty: ignore[invalid-method-override]
+        self,
+        oauth_name: str,
+        access_token: str,
+        account_id: str,
+        account_email: str,
+        expires_at: int | None = None,
+        refresh_token: str | None = None,
+        request: Request | None = None,
+        *,
+        associate_by_email: bool = False,
+        is_verified_by_default: bool = False,
+    ) -> User:
+        """Link a new provider by email only to an account whose address is verified.
+
+        An unverified account has not proven it owns its email, so the provider identity
+        must not join it; the login is refused as an existing-user conflict instead.
+        A provider already linked to the account still logs in as before.
+        """
+        if associate_by_email:
+            try:
+                await self.get_by_oauth_account(oauth_name, account_id)
+            except exceptions.UserNotExists:
+                try:
+                    existing_user = await self.get_by_email(account_email)
+                except exceptions.UserNotExists:
+                    pass
+                else:
+                    if not existing_user.is_verified:
+                        raise exceptions.UserAlreadyExists from None
+        return await super().oauth_callback(
+            oauth_name,
+            access_token,
+            account_id,
+            account_email,
+            expires_at,
+            refresh_token,
+            request,
+            associate_by_email=associate_by_email,
+            is_verified_by_default=is_verified_by_default,
+        )
+
     async def validate_password(
         self,
         password: str | SecretStr,
