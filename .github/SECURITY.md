@@ -96,6 +96,13 @@ Security-sensitive areas:
   in the CORS allow-list (`app/core/middleware/cross_site.py`). Requests without either header
   (native app, scripts) and bearer-token requests pass. A new browser origin that signs in must
   be added to the CORS allow-list.
+- client IP: the API takes the client address from `X-Forwarded-For` only when the request comes
+  from Docker's private range (`172.16.0.0/12`, `FORWARDED_ALLOW_IPS` and `TRUSTED_PROXY_CIDRS`
+  in `compose.deploy.yaml`). The API publishes no port, so only containers on its own networks
+  can reach it, and all of them belong to the stack. Accepted risk: one of those containers, if
+  compromised, could set a false client address and get around the per-IP rate limits. It would
+  already hold database or Redis access, which matters more. Pinning the `edge` subnet would
+  narrow this but needs a per-host setting that must not overlap the host's other networks.
 - authenticated mutation APIs: create endpoints accept an `Idempotency-Key` header and cache the
   response in Redis for one hour.
   - The cache entry is scoped by authenticated user id, endpoint (parent id included), and key, so
