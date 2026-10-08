@@ -367,11 +367,31 @@ jobs:
           # signs and verifies expo-updates manifests, which the app does not configure,
           # so the vulnerable verification never runs. Drop when node-forge ships a fix
           # or @expo/cli stops depending on it.
-          allow-ghsas: GHSA-vcc3-ghjq-m6fr, GHSA-86w9-cpqp-85rv
+          #
+          # GHSA-vfj7-8cjw-p6xm: braces <=3.0.3, no patched release, arrives only
+          # through micromatch in metro and jest. Those match globs from the repo's
+          # own config at build and test time; no braces code ships in the app or
+          # sees user input. Drop when braces ships a fix or micromatch drops it.
+          #
+          # GHSA-hp3w-g68c-fv3c: sprintf-js <=1.1.3, no patched release, arrives only
+          # through argparse in js-yaml@3 under jest's coverage loader. Test tooling,
+          # formatting its own strings. Drop when sprintf-js ships a fix or
+          # babel-plugin-istanbul moves off js-yaml@3.
+          #
+          # GHSA-rj75-hqrm-r3gf: postcss-selector-parser <7.1.6 arrives through
+          # postcss-nested@6 in @expressive-code/core (0.44.2, the latest, still pins
+          # ^6). It parses the theme's own CSS while the docs site builds; nothing
+          # parses selectors at runtime. Drop when @expressive-code/core moves to
+          # postcss-nested@7+.
+          allow-ghsas: >-
+            GHSA-vcc3-ghjq-m6fr, GHSA-86w9-cpqp-85rv, GHSA-vfj7-8cjw-p6xm,
+            GHSA-hp3w-g68c-fv3c, GHSA-rj75-hqrm-r3gf
 
   audit:
     name: Dependency Audit
     # Advisories surface on push and the weekly schedule; PRs get dependency-review.
+    # A new advisory after a merge is upstream news, not a fault in that commit:
+    # push runs report it as a warning, and the weekly and manual runs fail on it.
     # The audits read lockfiles only, so nothing is installed beyond the toolchains.
     # Known-unfixable advisories are allow-listed in pnpm-workspace.yaml
     # (ignoreGhsas), mirroring dependency-review's allow-ghsas.
@@ -394,7 +414,13 @@ jobs:
             backend/uv.lock
 
       - name: Run dependency audits
-        run: just audit
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |-
+          if ! just audit; then
+            [[ "$EVENT_NAME" == push ]] || exit 1
+            echo "::warning title=Dependency audit::New advisories found; the weekly run fails on them until fixed."
+          fi
 
   container-security:
     name: Container Security

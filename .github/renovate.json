@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices", "schedule:weekly"],
+  "extends": ["config:best-practices"],
   "timezone": "Europe/Amsterdam",
+  "schedule": ["* * * * 1"],
   "rebaseWhen": "conflicted",
   "pre-commit": {
     "enabled": true
@@ -23,8 +24,9 @@
       "automerge": true
     },
     {
-      "description": "The weekly lock refresh from config:best-practices is how patched transitive versions arrive, so it merges itself too. Renovate cannot mix it into a group with other update types, so it stays its own PR. It has no release timestamp to age a lock refresh against, so the 3-day minimumReleaseAge above would hold it pending forever; pnpm's strict minimumReleaseAge and uv's exclude-newer enforce the age during the relock instead.",
+      "description": "The weekly lock refresh from config:best-practices is how patched transitive versions arrive, so it merges itself too, and it runs on the same all-Monday schedule rather than the preset's before-4am one. Renovate cannot mix it into a group with other update types, so it stays its own PR. It has no release timestamp to age a lock refresh against, so the 3-day minimumReleaseAge above would hold it pending forever; pnpm's strict minimumReleaseAge and uv's exclude-newer enforce the age during the relock instead.",
       "matchUpdateTypes": ["lockFileMaintenance"],
+      "schedule": ["* * * * 1"],
       "automerge": true,
       "minimumReleaseAge": null
     },
