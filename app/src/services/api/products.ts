@@ -311,7 +311,7 @@ export async function downloadExport(url: URL): Promise<void> {
     }
     const file = new File(Paths.cache, filename);
     // Bytes, not text: re-encoding could drop the CSV's BOM, which Excel needs to read UTF-8.
-    file.write(new Uint8Array(await response.arrayBuffer()));
+    await file.write(new Uint8Array(await response.arrayBuffer()));
     await shareAsync(file.uri, {
       mimeType: response.headers.get('Content-Type') ?? undefined,
       dialogTitle: filename,
