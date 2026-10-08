@@ -223,11 +223,12 @@ async def test_email_case_variants_share_login_rate_limit_bucket() -> None:
 
 
 def test_current_password_is_not_in_forwarded_update_dicts() -> None:
-    """The reauthentication-only field must not be persisted onto the User model."""
-    update = UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"))
+    """The reauthentication-only fields must not be persisted onto the User model."""
+    update = UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"), mfa_code="123456")
 
-    assert "current_password" not in update.create_update_dict()
-    assert "current_password" not in update.create_update_dict_superuser()
+    for update_dict in (update.create_update_dict(), update.create_update_dict_superuser()):
+        assert "current_password" not in update_dict
+        assert "mfa_code" not in update_dict
 
 
 async def test_email_update_revokes_sessions_before_email_side_effects() -> None:
@@ -267,7 +268,7 @@ async def test_email_update_revokes_sessions_before_email_side_effects() -> None
             "app.api.auth.services.user_manager.revoke_user_refresh_tokens",
             side_effect=revoke_side_effect,
         ) as revoke,
-        patch("app.api.auth.services.user_manager.require_current_password_for_sensitive_update"),
+        patch("app.api.auth.services.user_manager.require_account_update_step_up"),
         patch(
             "app.api.auth.services.user_manager.send_email_changed_notification",
             side_effect=email_notification_side_effect,
@@ -291,6 +292,35 @@ async def test_self_service_update_requires_the_current_password() -> None:
         await manager.update(update, user, safe=True, request=MagicMock())
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+
+
+async def _assert_mfa_code_required(update: UserUpdate) -> None:
+    """An MFA-enrolled account is refused without a code, before the password is checked."""
+    manager, _ = _make_manager()
+    password_helper = MagicMock()
+    manager.password_helper = password_helper
+    user = MagicMock(spec=User, email="old@example.com", mfa_enabled=True, has_usable_password=True)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await manager.update(update, user, safe=True, request=MagicMock())
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert "authentication code" in str(exc_info.value.detail).lower()
+    password_helper.verify_and_update.assert_not_called()
+
+
+async def test_self_service_email_change_requires_mfa_code_when_enrolled() -> None:
+    """An email change on an MFA account needs the second factor as well as the password."""
+    await _assert_mfa_code_required(
+        UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"))
+    )
+
+
+async def test_self_service_password_change_requires_mfa_code_when_enrolled() -> None:
+    """A password change on an MFA account needs the second factor as well as the password."""
+    await _assert_mfa_code_required(
+        UserUpdate(password="new-long-passphrase-42", current_password=SecretStr("current-passphrase-42"))
+    )
 
 
 async def test_superuser_update_does_not_require_the_target_password() -> None:

@@ -1,5 +1,7 @@
 """MFA route orchestration."""
 
+from typing import TYPE_CHECKING
+
 from fastapi import BackgroundTasks, HTTPException, Response, status
 from fastapi_users.authentication import Strategy
 from fastapi_users.exceptions import UserNotExists
@@ -28,9 +30,15 @@ from app.api.auth.services.email.service import (
     send_recovery_codes_regenerated_notification,
 )
 from app.api.auth.services.rate_limiter import account_guess_budget
-from app.api.auth.services.user_manager import UserManager
 from app.api.common.audit import AuditAction, AuditContext, audit_event
 from app.core.redis import Redis
+from app.core.runtime import require_connection_redis
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
+
+    from app.api.auth.schemas import UserUpdate
+    from app.api.auth.services.user_manager import UserManager
 
 
 async def get_mfa_token(token: SecretStr) -> str:
@@ -313,6 +321,45 @@ async def require_step_up(
         await require_mfa_step_up(
             mfa_code, user=user, redis=redis, action=action, user_manager=user_manager if burn_recovery_code else None
         )
+
+
+async def require_account_update_step_up(
+    user_update: UserUpdate, *, user: User, user_manager: UserManager, request: Request | None
+) -> None:
+    """Re-authenticate an email or password change made through ``PATCH /users/me``.
+
+    The current password is always required, and an account with MFA also needs a current
+    authenticator or recovery code, so a stolen session alone cannot take over the
+    account's sign-in. A request missing either is refused before a guess is charged.
+    """
+    action = "change your email or password"
+    if not user_update.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Current password is required to {action}.",
+        )
+    if user.mfa_enabled and not user_update.mfa_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Authentication code is required to {action}.",
+        )
+    async with account_guess_budget(user.id):
+        account_security.verify_current_password(
+            password_helper=user_manager.password_helper,
+            password=user_update.current_password.get_secret_value(),
+            user=user,
+        )
+        if user.mfa_enabled:
+            if request is None:
+                msg = "Request context is required to verify an authentication code."
+                raise RuntimeError(msg)
+            await require_mfa_step_up(
+                user_update.mfa_code,
+                user=user,
+                redis=require_connection_redis(request),
+                action=action,
+                user_manager=user_manager,
+            )
 
 
 async def _verify_challenge_code(

@@ -5851,6 +5851,11 @@ export interface components {
        * @description Current password required when changing email or password.
        */
       current_password?: string | null;
+      /**
+       * Mfa Code
+       * @description Current authenticator code or a recovery code. Required to change email or password when the account has MFA enabled.
+       */
+      mfa_code?: string | null;
       /** @description User preferences (partial merge). */
       preferences?: components['schemas']['UserPreferencesUpdate'] | null;
     };

@@ -60,6 +60,12 @@ Security-sensitive areas:
   - Every mutating `/v1` route carries a rate limit; the exemptions (admin routes, device-signed
     camera routes, routes on the guess budget) are listed and justified in
     `backend/tests/unit/api/test_dos_rate_limit_routes.py`.
+- step-up re-authentication: changing the email or password through `PATCH /users/me`, linking
+  or unlinking a social login, and deleting the account all re-authenticate with the current
+  password (an account without one shows a recent sign-in instead, except for an email or
+  password change), plus a current TOTP or recovery code when the account has MFA
+  (`require_account_update_step_up`, `require_step_up`). A request missing a credential the
+  account needs is refused before the guess budget is charged.
 - public read APIs
   - Product export (`/products/export`, `/products/{id}/export`) assembles whole product trees, so
     it has its own, stricter rate limit. Signed-in exports also share a looser per-IP ceiling, so
