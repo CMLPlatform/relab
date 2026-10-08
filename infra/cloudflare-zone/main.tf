@@ -1,9 +1,9 @@
 # Zone-global Cloudflare configuration for the zone this workspace manages.
 #
-# One workspace per zone, named after the zone. prod and staging share each zone. Every resource here is zone-scoped: TLS settings and
-# the three entrypoint rulesets. One root owns them, so two applies cannot fight over
-# them. Per-environment resources (tunnel, DNS records, tunnel ingress) live in
-# ../cloudflare.
+# One workspace per zone, named after the zone. prod and staging share each zone. Every
+# resource here is zone-scoped: TLS settings and the three entrypoint rulesets. One root
+# owns them, so two applies cannot fight over them. Per-environment resources (tunnel,
+# DNS records, tunnel ingress) live in ../cloudflare.
 
 # Guards against a workspace applied with another zone's id: every resource below keys off
 # the id, and a mismatch would write this zone's rules into the wrong zone.

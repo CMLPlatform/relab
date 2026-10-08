@@ -25,22 +25,24 @@ plan. An optional `infra/cloudflare-zone/<zone>.tfvars` is loaded when present.
 
 ### First run: move the existing state
 
-State created before workspaces existed sits in the `default` workspace and belongs to
-`cml-relab.org`. Move it once, before the first plan, so the resources are not planned for
-recreation:
+State created before workspaces existed sits in the `default` workspace, in `terraform.tfstate`,
+and belongs to `cml-relab.org`. Copy it into that zone's workspace once, before the first
+plan, so the resources are not planned for recreation. The file is encrypted on disk
+(encryption is enforced), so the copy writes no plaintext:
 
 ```bash
 cd infra/cloudflare-zone
-tofu workspace select default
-tofu state pull > default.tfstate             # encrypted; needs TF_VAR_state_passphrase
 tofu workspace new cml-relab.org
-tofu state push default.tfstate
-rm default.tfstate
-tofu workspace select default && tofu workspace delete -force default  # only after a clean plan
+cp terraform.tfstate terraform.tfstate.d/cml-relab.org/terraform.tfstate
+cd ../.. && just cloudflare-zone-plan cml-relab.org   # expect: No changes
 ```
 
-Run `just cloudflare-zone-plan cml-relab.org` and expect no changes before deleting the old
-workspace. Other zones start from an empty workspace.
+`tofu workspace new -state=<file>` does not copy state in OpenTofu 1.13, so the file is copied
+by hand.
+
+After a clean plan, move the old `terraform.tfstate` and `terraform.tfstate.backup` aside and
+keep them as a backup. The `default` workspace stays, unused: OpenTofu cannot delete it. Other
+zones start from an empty workspace.
 
 ## Rules adopted from the hand-configured zone
 
