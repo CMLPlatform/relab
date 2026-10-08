@@ -44,7 +44,8 @@ cd ../.. && just cloudflare-zone-plan cml-relab.org
 
 Expect **3 to change, 0 to add, 0 to destroy**: the three rulesets' descriptions now say R9lab
 instead of Relab. Anything else, or any change beyond a description, means the copy went wrong:
-stop.
+stop. Otherwise apply it now (`just cloudflare-zone-apply cml-relab.org`, then with `YES`), so the
+redirect plan inside a cutover window shows the redirect ruleset and nothing else.
 
 If `just cloudflare-zone-plan cml-relab.org` already ran before this move, the recipe created the
 workspace, empty. Then run `tofu workspace select cml-relab.org` instead of `workspace new` and copy
@@ -74,7 +75,9 @@ so each environment keeps serving from the old zone until its own window:
    If it exists (`200`), delete it in the dashboard or import it as `cloudflare_ruleset.redirects[0]`
    with the id `zones/<old zone id>/<ruleset id>`, with `TF_VAR_redirect_to_zone_name` set.
    Otherwise the redirect apply fails with "already exists" inside the cutover window.
-2. **Staging:**
+2. **Staging**, inside its cutover window: plan right before the host's `.env` switch and type
+   `YES` straight after it (see
+   [Moving the edge to another zone](../cloudflare/README.md#moving-the-edge-to-another-zone)):
 
    ```bash
    export TF_VAR_redirect_to_zone_name='r9lab.io'
@@ -94,7 +97,7 @@ so each environment keeps serving from the old zone until its own window:
 
    The recipes load it automatically and it overrides `TF_VAR_*`, so a later old-zone apply run
    without those variables cannot drop the redirects.
-3. **Prod**, later: the same with `TF_VAR_redirect_environments='["prod", "staging"]'`, eight
+3. **Prod**, in its own window later: the same with `TF_VAR_redirect_environments='["prod", "staging"]'`, eight
    rules. Once it lands, change the committed `redirect_environments` to `["prod", "staging"]`.
    Never commit an environment before its own apply: the next old-zone apply would redirect it.
 

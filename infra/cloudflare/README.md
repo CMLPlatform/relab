@@ -173,32 +173,61 @@ the move, so an apply that leaves it unset still serves the old hosts.
 
 0. Apply the zone root for the new zone first (`just cloudflare-zone-apply r9lab.io`, then with
    `YES`), so its WAF and rate-limit rulesets are live before any proxied record exists there.
-1. On the new zone, delete the hand-made redirect rules and the placeholder `@` and `*` DNS
-   records. They collide with the records this apply creates.
-2. In each workspace (`prod`, `staging`), take the old zone's records out of state without
-   deleting them in Cloudflare:
+1. Then, for each environment, staging first and prod once staging serves:
+   1. **Interim forwarding.** Right before the environment's first edge apply, delete the
+      placeholder DNS records and hand-made redirect rules on the new zone that cover its hosts:
+      the `*` record and the wildcard rule before staging, the `@` record and the apex rule before
+      prod. Between the two applies only the prod-host forwarding stays. A leftover collides with
+      the records the apply creates and, once the old zone redirects, loops back to it;
+      `just smoke-redirects` reports such a loop.
+   2. Take the old zone's records out of the environment's state without deleting them in
+      Cloudflare:
 
-   ```bash
-   tofu state rm 'cloudflare_dns_record.edge' 'cloudflare_workers_custom_domain.site'
-   ```
+      ```bash
+      tofu -chdir=infra/cloudflare workspace select <env>
+      tofu -chdir=infra/cloudflare state rm 'cloudflare_dns_record.edge' 'cloudflare_workers_custom_domain.site'
+      ```
 
-   Check `tofu state list` first and name only addresses it shows: `state rm` fails on one that
-   is absent. The old zone's CNAMEs and Worker custom domains stay in Cloudflare, unmanaged, on
-   purpose: its redirect rules only fire on proxied hostnames. Do not delete them as orphans.
-   Deleting or renaming the old Workers later also removes their custom domains and records on the
-   old zone, so keep a proxied record there for the apex and `docs.` or their redirects stop.
-3. Plan with the new zone id and the old zone name:
+      Check `tofu state list` first and name only addresses it shows: `state rm` fails on one that
+      is absent. The old zone's CNAMEs and Worker custom domains stay in Cloudflare, unmanaged, on
+      purpose: its redirect rules only fire on proxied hostnames. Do not delete them as orphans.
+      Deleting or renaming the old Workers later also removes their custom domains and records on
+      the old zone, so keep a proxied record there for the apex and `docs.` or their redirects
+      stop.
+   3. Plan and apply the edge root with the new zone id:
 
-   ```bash
-   export TF_VAR_cloudflare_zone_id='<new zone id>'
-   export TF_VAR_cloudflare_zone_name='r9lab.io'
-   ```
+      ```bash
+      export TF_VAR_cloudflare_zone_id='<new zone id>'
+      export TF_VAR_cloudflare_zone_name='r9lab.io'
+      just cloudflare-apply <env>
+      ```
 
-   Expect: the tunnel unchanged, the ingress updated in place, new records and custom domains,
-   the `github_*` variables updated in place, and 0 to destroy. Stop if anything on the old zone
-   or the tunnel is destroyed or replaced.
-4. Apply. Once the old zone's redirects are permanent, export `TF_VAR_legacy_zone_name=''` and
-   apply again to drop the legacy ingress rules.
+      Expect: the tunnel unchanged, the ingress updated in place, new records and custom domains,
+      the `github_*` variables updated in place, and 0 to destroy. Stop if anything on the old
+      zone or the tunnel is destroyed or replaced. Otherwise `just cloudflare-apply <env> YES`.
+   4. **Build the images only after this apply.** The build bakes in the GitHub Environment's
+      `*_PUBLIC_URL` variables, and this apply is what points them at the new zone: run Publish
+      Images by hand for staging, and cut the release for prod only after prod's edge apply.
+   5. **The cutover window.** Keep it to one `YES`:
+      1. Plan the old zone's redirect apply (see
+         [Redirecting the old zone](../cloudflare-zone/README.md#redirecting-the-old-zone)) right
+         before the next step. `just cloudflare-zone-apply cml-relab.org` saves the plan and stops;
+         a saved plan stays valid for twenty minutes.
+      2. Point the host's root `.env` at the new zone (`*_PUBLIC_URL`, `EMAIL_*`, `SMTP_*`). Check
+         that `gh variable get API_PUBLIC_URL --env <env>` prints the same `API_PUBLIC_URL`, then
+         deploy the new image tag.
+      3. Run Deploy Sites for the environment, so the landing page and docs link to the new hosts.
+      4. Straight away, `just cloudflare-zone-apply cml-relab.org YES`.
+      5. `just smoke-redirects cml-relab.org r9lab.io <env>`, then sign in with each provider.
+   6. **Rollback.** Before the redirect apply: revert the `.env` and the image tag, and set the
+      `*_PUBLIC_URL` Environment variables back with `gh variable set <name> --env <env> --body
+      <old URL>`. The edge root cannot simply be pointed back at the old zone, because its old
+      records are unmanaged now; the legacy ingress keeps serving the old hosts meanwhile. After
+      the redirect apply, while the codes are still 302/307: apply the old zone without
+      `redirect_to_zone_name` (revert its committed tfvars first if it already lists the
+      environment), then revert the `.env`.
+2. Once the old zone's redirects are permanent, export `TF_VAR_legacy_zone_name=''` and apply each
+   environment again to drop the legacy ingress rules.
 
 `generate-imports.sh` defaults to the new zone. To adopt resources on the old one, export
 `TF_VAR_cloudflare_zone_name=cml-relab.org` and its zone id first, and `TF_VAR_legacy_zone_name=''`
