@@ -103,6 +103,10 @@ Security-sensitive areas:
   from the environment, not configured, so staging and production cannot opt into it.
 - admin APIs
 - RPi camera device APIs and WebSocket relay
+  - A camera acts for its owner. Device-signed HTTP routes and the relay accept a camera only when
+    its credential is active and its owner account is active and verified
+    (`camera_may_authenticate` in `device_assertion.py`), the same bar a person must clear to upload
+    directly. Triggering a capture also needs a verified account.
 - backups, secrets, logs, and telemetry
 - release and security artifacts: the GHCR images the hosts pull, and the landing page and docs
   deploy, whose Cloudflare API token is a GitHub Environment secret holding only Workers

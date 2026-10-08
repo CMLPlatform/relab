@@ -4,14 +4,21 @@ These go through the real app so the route dependency is exercised. Client-side
 hiding of a file picker is not a control; this file is where the control lives.
 """
 
+import base64
+import json
+import time
 from io import BytesIO
 from typing import TYPE_CHECKING
+from uuid import uuid4
 
+import jwt
 import pytest
-from fastapi import status
+from cryptography.hazmat.primitives.asymmetric import ec
+from fastapi import FastAPI, HTTPException, status
 from PIL import Image as PILImage
 from sqlalchemy.exc import IntegrityError
 
+from app.api.auth.dependencies import current_active_verified_user
 from app.api.auth.roles import (
     UserRole,
     image_upload_max_mb_for_role,
@@ -19,8 +26,11 @@ from app.api.auth.roles import (
     upload_quota_bytes_for_role,
     upload_quota_files_for_role,
 )
+from app.api.plugins.rpi_cam.device_assertion import ASSERTION_AUDIENCE
+from app.api.plugins.rpi_cam.models import Camera
 from app.core.config.core import settings
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
+from tests.fixtures.client import override_authenticated_user
 
 from .auth.shared import TEST_PASSWORD, hash_test_password, login_bearer
 
@@ -305,3 +315,91 @@ class TestRoleAssignment:
         response = await api_client_superuser.put(f"/v1/admin/users/{db_user.id}/role", json={"role": "admin"})
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT, response.text
+
+
+def _signed_camera(owner: User) -> tuple[Camera, str]:
+    """Build a camera for ``owner`` and a fresh device assertion signed with its key."""
+    private_key = ec.generate_private_key(ec.SECP256R1())
+    numbers = private_key.public_key().public_numbers()
+
+    def _b64(value: int) -> str:
+        return base64.urlsafe_b64encode(value.to_bytes(32, "big")).rstrip(b"=").decode()
+
+    camera = Camera(
+        id=uuid4(),
+        name="Upload boundary camera",
+        owner_id=owner.id,
+        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": _b64(numbers.x), "y": _b64(numbers.y)},
+        relay_key_id="boundary-key",
+    )
+    now = int(time.time())
+    claim = f"camera:{camera.id}"
+    assertion = jwt.encode(
+        {
+            "iss": claim,
+            "sub": claim,
+            "aud": ASSERTION_AUDIENCE,
+            "iat": now,
+            "nbf": now,
+            "exp": now + 60,
+            "jti": str(uuid4()),
+        },
+        private_key,
+        algorithm="ES256",
+        headers={"kid": camera.relay_key_id},
+    )
+    return camera, assertion
+
+
+class TestCameraUploadsFollowTheOwnerAccount:
+    """A camera uploads on its owner's behalf, so it clears the same account checks the owner would."""
+
+    @pytest.mark.parametrize(
+        ("is_active", "is_verified", "expected"),
+        [
+            pytest.param(True, True, status.HTTP_201_CREATED, id="active-verified"),
+            pytest.param(False, True, status.HTTP_401_UNAUTHORIZED, id="inactive"),
+            pytest.param(True, False, status.HTTP_401_UNAUTHORIZED, id="unverified"),
+        ],
+    )
+    async def test_device_upload_requires_an_active_verified_owner(
+        self,
+        api_client: AsyncClient,
+        db_session: AsyncSession,
+        *,
+        is_active: bool,
+        is_verified: bool,
+        expected: int,
+    ) -> None:
+        """A validly signed device upload is refused once the owner account is deactivated or unverified."""
+        owner = await UserFactory.create_async(db_session, is_active=is_active, is_verified=is_verified)
+        product = await _product_owned_by(db_session, owner)
+        camera, assertion = _signed_camera(owner)
+        db_session.add(camera)
+        await db_session.flush()
+        buffer = BytesIO()
+        PILImage.new("RGB", (8, 8)).save(buffer, format="JPEG")
+
+        response = await api_client.post(
+            f"/v1/plugins/rpi-cam/device/cameras/{camera.id}/image-upload",
+            headers={"Authorization": f"Bearer {assertion}"},
+            files={"file": ("capture.jpg", buffer.getvalue(), "image/jpeg")},
+            data={"capture_metadata": "{}", "upload_metadata": json.dumps({"product_id": product.id})},
+        )
+
+        assert response.status_code == expected, response.text
+
+    async def test_capture_requires_a_verified_user(
+        self, api_client: AsyncClient, test_app: FastAPI, db_session: AsyncSession
+    ) -> None:
+        """Triggering a capture stores a photo, so it needs the same verified account a direct upload does."""
+        user = await UserFactory.create_async(db_session, is_active=True, is_verified=False)
+
+        def refuse_unverified() -> None:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+
+        with override_authenticated_user(test_app, user, verified=False, optional=False):
+            test_app.dependency_overrides[current_active_verified_user] = refuse_unverified
+            response = await api_client.post(f"/v1/plugins/rpi-cam/cameras/{uuid4()}/captures", json={"product_id": 1})
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, response.text

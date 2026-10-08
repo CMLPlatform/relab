@@ -97,6 +97,7 @@ async def test_scope_param_forwarded_and_echoed(client: httpx.AsyncClient, scope
         "/v1/stats/categories?scope=widgets",  # unknown scope
         "/v1/stats/series?granularity=quarter",  # invalid granularity
         "/v1/stats/series?start=01/01/2025",  # invalid date format
+        "/v1/stats/series?start=2025-13-40",  # well-formed but impossible date
     ],
 )
 async def test_invalid_query_params_rejected(client: httpx.AsyncClient, query: str) -> None:

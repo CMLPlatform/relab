@@ -15,13 +15,14 @@ if TYPE_CHECKING:
 
 
 # Metadata outside EXIF that can identify a person or place: XMP repeats GPS and can flag
-# an appended motion-photo video, and a JPEG comment is free text. Any of them triggers the
+# an appended motion-photo video, a JPEG comment is free text, and a Photoshop (APP13) block
+# carries IPTC fields such as creator, city and caption. Any of them triggers the
 # re-save, which writes none of them back.
-_IDENTIFYING_INFO_KEYS = ("xmp", "XML:com.adobe.xmp", "comment")
+_IDENTIFYING_INFO_KEYS = ("xmp", "XML:com.adobe.xmp", "comment", "photoshop")
 
 
 def _carries_metadata(img: PILImage.Image) -> bool:
-    """Return whether ``img`` holds EXIF, XMP, a comment or PNG text chunks."""
+    """Return whether ``img`` holds EXIF, XMP, a comment, an IPTC block or PNG text chunks."""
     has_exif = bool(img.info.get("exif"))
     if not has_exif:
         with contextlib.suppress(AttributeError, ValueError, OSError, TypeError):

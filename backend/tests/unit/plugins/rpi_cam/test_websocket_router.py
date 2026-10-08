@@ -544,7 +544,11 @@ def relay_auth_patches():  # noqa: ANN201  # pytest fixture returning a context 
         patch(f"{_ROUTER}.mark_camera_online", new=AsyncMock()) as mark_online,
     ):
         limiter_mock.ahit_key = AsyncMock()
-        get_camera.return_value = SimpleNamespace(credential_is_active=True, relay_key_id="key-1")
+        get_camera.return_value = SimpleNamespace(
+            credential_is_active=True,
+            relay_key_id="key-1",
+            owner=SimpleNamespace(is_active=True, is_verified=True),
+        )
         verify_assertion.return_value = {"kid": "key-1"}
         yield SimpleNamespace(
             get_camera=get_camera,
@@ -571,6 +575,19 @@ async def test_authenticate_rejects_a_camera_whose_credential_is_no_longer_activ
     status is the only thing standing between a revoked Pi and a live relay.
     """
     relay_auth_patches.get_camera.return_value = SimpleNamespace(credential_is_active=False, relay_key_id="key-1")
+    websocket = _authenticating_websocket()
+
+    assert await _authenticate(websocket, uuid4()) is False
+    websocket.close.assert_awaited_once_with(code=_WS_POLICY_VIOLATION, reason="Authentication failed.")
+    relay_auth_patches.verify_assertion.assert_not_awaited()
+
+
+@pytest.mark.parametrize("owner_flag", ["is_active", "is_verified"])
+async def test_authenticate_rejects_a_camera_whose_owner_is_inactive_or_unverified(
+    relay_auth_patches, owner_flag: str
+) -> None:
+    """A camera acts for its owner, so a deactivated or unverified owner's camera must not connect."""
+    setattr(relay_auth_patches.get_camera.return_value.owner, owner_flag, False)
     websocket = _authenticating_websocket()
 
     assert await _authenticate(websocket, uuid4()) is False

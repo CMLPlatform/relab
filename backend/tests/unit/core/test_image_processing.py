@@ -654,6 +654,27 @@ def test_process_image_drops_a_jpeg_comment(tmp_path: Path) -> None:
     assert b"Home Street" not in path.read_bytes()
 
 
+def test_process_image_strips_photoshop_iptc_block(tmp_path: Path) -> None:
+    """An IPTC block (APP13) names people and places; it does not survive storage on its own."""
+    path = tmp_path / "photo.jpg"
+    PILImage.new("RGB", (40, 30)).save(path, format="JPEG")
+    city = b"Home Town"
+    iptc = b"\x1c\x02\x5a" + len(city).to_bytes(2, "big") + city  # IPTC dataset 2:90, City
+    iptc += b"\x00" * (len(iptc) % 2)
+    resource = b"8BIM\x04\x04\x00\x00" + len(iptc).to_bytes(4, "big") + iptc
+    segment = b"Photoshop 3.0\x00" + resource
+    app13 = b"\xff\xed" + (len(segment) + 2).to_bytes(2, "big") + segment
+    original = path.read_bytes()
+    path.write_bytes(original[:2] + app13 + original[2:])
+    with PILImage.open(path) as before:
+        assert before.info.get("photoshop")
+
+    _process(path)
+
+    assert city not in path.read_bytes()
+    assert b"Photoshop 3.0" not in path.read_bytes()
+
+
 def test_process_image_keeps_the_colour_profile(tmp_path: Path) -> None:
     """A wide-gamut phone photo must keep its ICC profile, or its colours shift."""
     icc = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
