@@ -80,9 +80,9 @@ tofu state rm 'cloudflare_ruleset.rate_limiting[0]' \
               'cloudflare_ruleset.custom_firewall[0]' || true
 
 ./generate-imports.sh zone > ../cloudflare-zone/imports.tf
-just cloudflare-zone-plan            # 0 to add; the TLS floor may show 1.0 -> 1.2
-just cloudflare-zone-apply           # plans, prints the diff, saves it, stops
-just cloudflare-zone-apply YES       # applies that saved plan
+just cloudflare-zone-plan cml-relab.org            # 0 to add; the TLS floor may show 1.0 -> 1.2
+just cloudflare-zone-apply cml-relab.org           # plans, prints the diff, saves it, stops
+just cloudflare-zone-apply cml-relab.org YES       # applies that saved plan
 rm ../cloudflare-zone/imports.tf
 ```
 
@@ -100,9 +100,9 @@ just cloudflare-plan staging       # per-environment root
 just cloudflare-apply staging      # plans, prints the diff, saves it, stops
 just cloudflare-apply staging YES  # applies that saved plan
 
-just cloudflare-zone-plan          # zone-global root — affects BOTH environments
-just cloudflare-zone-apply
-just cloudflare-zone-apply YES
+just cloudflare-zone-plan cml-relab.org          # zone-global root — affects BOTH environments
+just cloudflare-zone-apply cml-relab.org
+just cloudflare-zone-apply cml-relab.org YES
 ```
 
 `cloudflare-check` covers **both** roots: format, validate, and `tofu test` with the Cloudflare
@@ -286,7 +286,7 @@ The zone root is adopted the same way:
 
 ```bash
 ./generate-imports.sh zone > ../cloudflare-zone/imports.tf
-just cloudflare-zone-plan
+just cloudflare-zone-plan cml-relab.org
 ```
 
 The script resolves every id before it writes anything, so a failure leaves no half-written file.

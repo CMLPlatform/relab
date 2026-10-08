@@ -1,10 +1,18 @@
 # Plan-only tests for the zone-global Cloudflare configuration. The provider is
 # mocked, so these need no Cloudflare credentials and make no API calls.
 
-mock_provider "cloudflare" {}
+mock_provider "cloudflare" {
+  override_data {
+    target = data.cloudflare_zone.this
+    values = {
+      name = "r9lab.io"
+    }
+  }
+}
 
 variables {
-  cloudflare_zone_id = "11111111111111111111111111111111"
+  cloudflare_zone_id   = "11111111111111111111111111111111"
+  cloudflare_zone_name = "r9lab.io"
 }
 
 run "rulesets_cover_every_environment" {
@@ -23,7 +31,7 @@ run "rulesets_cover_every_environment" {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref == "relab_telemetry_ingress_skip_managed_security" ||
-      (strcontains(rule.expression, "\"api.cml-relab.org\"") && strcontains(rule.expression, "\"api-test.cml-relab.org\""))
+      (strcontains(rule.expression, "\"api.r9lab.io\"") && strcontains(rule.expression, "\"api-test.r9lab.io\""))
     ])
     error_message = "a custom firewall rule does not match both environments' api hosts, leaving one env unprotected."
   }
@@ -33,7 +41,7 @@ run "rulesets_cover_every_environment" {
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.cache_settings.rules :
-      rule.ref == "relab_staging_cache_bypass" || !strcontains(rule.expression, "-test.cml-relab.org")
+      rule.ref == "relab_staging_cache_bypass" || !strcontains(rule.expression, "-test.r9lab.io")
     ])
     error_message = "a cache rule matches a staging host, which would contend with the staging bypass."
   }
@@ -70,7 +78,7 @@ run "prod_html_entry_points_bypass_cache" {
   assert {
     condition = alltrue([
       for rule in cloudflare_ruleset.cache_settings.rules :
-      rule.ref != "relab_prod_html_bypass" || !strcontains(rule.expression, "api.cml-relab.org")
+      rule.ref != "relab_prod_html_bypass" || !strcontains(rule.expression, "api.r9lab.io")
     ])
     error_message = "the HTML bypass must not match the api host, which serves cacheable media."
   }
@@ -101,7 +109,7 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
     condition = anytrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref == "relab_telemetry_ingress_skip_managed_security" &&
-      strcontains(rule.expression, "otel.cml-relab.org") &&
+      strcontains(rule.expression, "otel.r9lab.io") &&
       strcontains(rule.expression, "x-telemetry-key")
     ])
     error_message = "the telemetry skip rule must match the ingress host AND the credential header."
@@ -122,7 +130,7 @@ run "telemetry_rule_is_scoped_to_its_hosts_and_credential" {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref != "relab_telemetry_ingress_skip_managed_security" ||
-      !strcontains(rule.expression, "api.cml-relab.org")
+      !strcontains(rule.expression, "api.r9lab.io")
     ])
     error_message = "the telemetry skip rule must not match the api hosts."
   }
@@ -156,7 +164,7 @@ run "e2e_branch_is_scoped_to_staging_and_its_credential" {
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref == "relab_public_reads_skip_bot_fight_mode" &&
       strcontains(rule.expression, "x-e2e-key") &&
-      strcontains(rule.expression, "api-test.cml-relab.org")
+      strcontains(rule.expression, "api-test.r9lab.io")
     ])
     error_message = "the e2e branch must match the staging hosts AND the credential header."
   }
@@ -314,4 +322,15 @@ run "expressions_stay_inside_the_zone_plan_entitlements" {
     condition     = cloudflare_ruleset.rate_limiting.rules[0].ref == "relab_auth"
     error_message = "the single rate-limit rule must be the auth one."
   }
+}
+
+run "zone_id_must_match_zone_name" {
+  command = plan
+
+  # A workspace selected for one zone must not apply with another zone's id.
+  variables {
+    cloudflare_zone_name = "cml-relab.org"
+  }
+
+  expect_failures = [data.cloudflare_zone.this]
 }

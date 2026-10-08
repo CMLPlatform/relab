@@ -1,9 +1,22 @@
-# Zone-global Cloudflare configuration for cml-relab.org.
+# Zone-global Cloudflare configuration for the zone this workspace manages.
 #
-# prod and staging share this zone. Every resource here is zone-scoped: TLS settings and
+# One workspace per zone, named after the zone. prod and staging share each zone. Every resource here is zone-scoped: TLS settings and
 # the three entrypoint rulesets. One root owns them, so two applies cannot fight over
 # them. Per-environment resources (tunnel, DNS records, tunnel ingress) live in
 # ../cloudflare.
+
+# Guards against a workspace applied with another zone's id: every resource below keys off
+# the id, and a mismatch would write this zone's rules into the wrong zone.
+data "cloudflare_zone" "this" {
+  zone_id = var.cloudflare_zone_id
+
+  lifecycle {
+    postcondition {
+      condition     = self.name == var.cloudflare_zone_name
+      error_message = "cloudflare_zone_id belongs to ${self.name}, not ${var.cloudflare_zone_name}. Select the workspace named after the zone and pass that zone's id."
+    }
+  }
+}
 
 resource "cloudflare_zone_setting" "minimum_tls_version" {
   zone_id    = var.cloudflare_zone_id

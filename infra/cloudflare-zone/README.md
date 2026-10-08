@@ -1,6 +1,6 @@
 # Relab Cloudflare zone configuration
 
-Zone-scoped configuration for `cml-relab.org`, managed with OpenTofu:
+Zone-scoped configuration for each Relab zone (`r9lab.io`, `cml-relab.org`), managed with OpenTofu:
 
 - TLS zone settings (minimum version, TLS 1.3, always-use-HTTPS)
 - the three entrypoint rulesets: `http_ratelimit`,
@@ -9,12 +9,38 @@ Zone-scoped configuration for `cml-relab.org`, managed with OpenTofu:
 ## Why this is a separate root
 
 Cloudflare allows one entrypoint ruleset per (zone, phase), and prod and staging share this zone, so
-these resources live here in a single `default` workspace. See
+these resources live here, one workspace per zone, named after the zone. See
 [Why two roots](../cloudflare/README.md#why-two-roots). The rules match **both** environments'
 hostnames; `hostnames.tf` is a symlink to the map in `../cloudflare`.
 
 **Everything here affects prod and staging together.** A change to the TLS floor or a
 firewall rule lands on every hostname in the zone at once.
+
+## Workspaces
+
+Each zone has its own workspace and state. The recipes select it (creating it on first use) and
+pass `-var=cloudflare_zone_name=<zone>`; `TF_VAR_cloudflare_zone_id` must be that zone's id. A
+`cloudflare_zone` data source checks the id against the name, so a mismatched pair fails the
+plan. An optional `infra/cloudflare-zone/<zone>.tfvars` is loaded when present.
+
+### First run: move the existing state
+
+State created before workspaces existed sits in the `default` workspace and belongs to
+`cml-relab.org`. Move it once, before the first plan, so the resources are not planned for
+recreation:
+
+```bash
+cd infra/cloudflare-zone
+tofu workspace select default
+tofu state pull > default.tfstate             # encrypted; needs TF_VAR_state_passphrase
+tofu workspace new cml-relab.org
+tofu state push default.tfstate
+rm default.tfstate
+tofu workspace select default && tofu workspace delete -force default  # only after a clean plan
+```
+
+Run `just cloudflare-zone-plan cml-relab.org` and expect no changes before deleting the old
+workspace. Other zones start from an empty workspace.
 
 ## Rules adopted from the hand-configured zone
 
@@ -112,9 +138,9 @@ From the repository root:
 
 ```bash
 just cloudflare-check       # covers this root and ../cloudflare
-just cloudflare-zone-plan
-just cloudflare-zone-apply   # plans, prints the diff, saves it, stops
-just cloudflare-zone-apply YES
+just cloudflare-zone-plan r9lab.io
+just cloudflare-zone-apply r9lab.io       # plans, prints the diff, saves it, stops
+just cloudflare-zone-apply r9lab.io YES
 ```
 
 Per-environment resources (tunnels, DNS records, tunnel ingress) live in

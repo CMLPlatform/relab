@@ -11,14 +11,13 @@ variable "state_passphrase" {
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare zone ID for cml-relab.org."
+  description = "Cloudflare zone ID of the zone this workspace manages."
   type        = string
 }
 
 variable "cloudflare_zone_name" {
-  description = "Public DNS zone name for Relab edge hostnames."
+  description = "Name of the zone this workspace manages; must match the zone id."
   type        = string
-  default     = "cml-relab.org"
 }
 
 variable "telemetry_edge_key" {

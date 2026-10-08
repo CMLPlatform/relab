@@ -338,30 +338,40 @@ cloudflare-apply env confirm='':
     just _cloudflare-apply-saved-plan {{ cloudflare_dir }} "$plan"
 
 # Plan the zone-global Cloudflare configuration (TLS settings + the three entrypoint
-# rulesets). One root owns the whole zone, shared by prod and staging.
+# rulesets) for one zone. Each zone has its own workspace, named after the zone.
 [group('cloudflare')]
-[doc('Plan the zone-global Cloudflare configuration (affects prod AND staging)')]
-cloudflare-zone-plan:
-    @just _require-cloudflare-vars
-    @just _require-zone-edge-keys
-    tofu -chdir={{ cloudflare_zone_dir }} init
-    tofu -chdir={{ cloudflare_zone_dir }} plan -input=false
-
-# Apply the zone-global Cloudflare configuration. This affects BOTH environments.
-# Plans first and gates on the printed diff; see `cloudflare-apply` above.
-[group('cloudflare')]
-[doc('Apply the zone-global Cloudflare configuration. This affects BOTH environments.')]
-cloudflare-zone-apply confirm='':
+[doc('Plan the zone-global Cloudflare configuration for one zone (affects prod AND staging)')]
+cloudflare-zone-plan zone:
     #!/usr/bin/env bash
     set -euo pipefail
+    just _require-cloudflare-zone {{ quote(zone) }}
     just _require-cloudflare-vars
     just _require-zone-edge-keys
-    plan="{{ cloudflare_plan_dir }}/cloudflare-zone.tfplan"
     tofu -chdir={{ cloudflare_zone_dir }} init
+    tofu -chdir={{ cloudflare_zone_dir }} workspace select {{ quote(zone) }} || tofu -chdir={{ cloudflare_zone_dir }} workspace new {{ quote(zone) }}
+    varfile=()
+    [ ! -f {{ cloudflare_zone_dir }}/{{ zone }}.tfvars ] || varfile=(-var-file={{ zone }}.tfvars)
+    tofu -chdir={{ cloudflare_zone_dir }} plan -input=false -var=cloudflare_zone_name={{ quote(zone) }} ${varfile[@]+"${varfile[@]}"}
+
+# Apply the zone-global Cloudflare configuration for one zone. This affects BOTH
+# environments. Plans first and gates on the printed diff; see `cloudflare-apply` above.
+[group('cloudflare')]
+[doc('Apply the zone-global Cloudflare configuration for one zone. This affects BOTH environments.')]
+cloudflare-zone-apply zone confirm='':
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just _require-cloudflare-zone {{ quote(zone) }}
+    just _require-cloudflare-vars
+    just _require-zone-edge-keys
+    plan="{{ cloudflare_plan_dir }}/cloudflare-zone-{{ zone }}.tfplan"
+    tofu -chdir={{ cloudflare_zone_dir }} init
+    tofu -chdir={{ cloudflare_zone_dir }} workspace select {{ quote(zone) }} || tofu -chdir={{ cloudflare_zone_dir }} workspace new {{ quote(zone) }}
+    varfile=()
+    [ ! -f {{ cloudflare_zone_dir }}/{{ zone }}.tfvars ] || varfile=(-var-file={{ zone }}.tfvars)
     if [ {{ quote(confirm) }} != "YES" ]; then
         mkdir -p {{ cloudflare_plan_dir }} && chmod 700 {{ cloudflare_plan_dir }}
-        tofu -chdir={{ cloudflare_zone_dir }} plan -input=false -out="$plan"
-        just _require-confirm "apply the zone-global plan printed above (affects prod AND staging)" "just cloudflare-zone-apply YES" "FORCE=1 just cloudflare-zone-apply" {{ quote(confirm) }}
+        tofu -chdir={{ cloudflare_zone_dir }} plan -input=false -var=cloudflare_zone_name={{ quote(zone) }} ${varfile[@]+"${varfile[@]}"} -out="$plan"
+        just _require-confirm "apply the zone-global plan printed above for {{ zone }} (affects prod AND staging)" "just cloudflare-zone-apply {{ zone }} YES" "FORCE=1 just cloudflare-zone-apply {{ zone }}" {{ quote(confirm) }}
     fi
     just _cloudflare-apply-saved-plan {{ cloudflare_zone_dir }} "$plan"
 
@@ -396,6 +406,14 @@ _require-cloudflare-env env:
     case "$env" in
       prod|staging) exit 0 ;;
       *) echo "env must be 'prod' or 'staging'"; exit 1 ;;
+    esac
+
+_require-cloudflare-zone zone:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case {{ quote(zone) }} in
+      r9lab.io|cml-relab.org) exit 0 ;;
+      *) echo "zone must be 'r9lab.io' or 'cml-relab.org'" >&2; exit 1 ;;
     esac
 
 # Both keys gate a rule with `var.<key> == "" ? [] : [...]`. An unset key does not fail
