@@ -1,7 +1,7 @@
-# Redirects every hostname in the route map to the same name under redirect_to_zone_name.
-# Only the previous zone's workspace sets it. The entrypoint is separate from the others
-# because Cloudflare allows one ruleset per (zone, phase); `name` stays "default" for the
-# reason given in main.tf.
+# Redirects the route-map hostnames of redirect_environments to the same name under
+# redirect_to_zone_name. Only the previous zone's workspace sets it. The entrypoint is
+# separate from the others because Cloudflare allows one ruleset per (zone, phase); `name`
+# stays "default" for the reason given in main.tf.
 locals {
   redirect_rules = {
     for pair in flatten([
@@ -12,7 +12,7 @@ locals {
           # api clients must keep their method and body, which 307/308 preserve.
           status_code = name == "api" ? (var.redirect_permanent ? 308 : 307) : (var.redirect_permanent ? 301 : 302)
         }
-      ]
+      ] if contains(var.redirect_environments, env)
     ]) : pair.key => pair
   }
 }

@@ -78,6 +78,21 @@ variable "redirect_to_zone_name" {
   }
 }
 
+variable "redirect_environments" {
+  description = <<-EOT
+    Environments whose route-map hosts the redirect ruleset covers. Cutting over one
+    environment at a time keeps the other's hosts serving from this zone until its own
+    cutover: staging first with ["staging"], then prod with both.
+  EOT
+  type        = set(string)
+  default     = ["prod", "staging"]
+
+  validation {
+    condition     = length(var.redirect_environments) > 0 && alltrue([for env in var.redirect_environments : contains(["prod", "staging"], env)])
+    error_message = "redirect_environments must list at least one of \"prod\" and \"staging\"."
+  }
+}
+
 variable "redirect_permanent" {
   description = "Redirect with 301/308 instead of 302/307. Keep false until the new zone is verified."
   type        = bool

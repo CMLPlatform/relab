@@ -115,3 +115,44 @@ run "target_zone_differs" {
 
   expect_failures = [var.redirect_to_zone_name]
 }
+
+run "staging_cutover_leaves_prod" {
+  command = plan
+
+  variables {
+    redirect_environments = ["staging"]
+  }
+
+  assert {
+    condition     = length(cloudflare_ruleset.redirects[0].rules) == 4
+    error_message = "expected one redirect rule per staging route only."
+  }
+
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.redirects[0].rules :
+      !contains([for route in values(local.edge_routes_by_environment.prod) : "http.host eq \"${route.hostname}\""], rule.expression)
+    ])
+    error_message = "a staging-only cutover must not redirect a prod host."
+  }
+}
+
+run "redirect_environments_known" {
+  command = plan
+
+  variables {
+    redirect_environments = ["stagign"]
+  }
+
+  expect_failures = [var.redirect_environments]
+}
+
+run "redirect_environments_not_empty" {
+  command = plan
+
+  variables {
+    redirect_environments = []
+  }
+
+  expect_failures = [var.redirect_environments]
+}
