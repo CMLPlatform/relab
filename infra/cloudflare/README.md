@@ -39,14 +39,15 @@ into OpenTofu and run a plan before the next apply.
 
 ## Why two roots
 
-Cloudflare allows **one entrypoint ruleset per (zone, phase)**, and prod and staging share one zone
-(`cml-relab.org`). If an environment workspace owned a zone-scoped resource, whichever environment
-applied last would overwrite the other's rules. The roots are split by scope:
+Cloudflare allows **one entrypoint ruleset per (zone, phase)**, and prod and staging share each
+zone (`r9lab.io`, and `cml-relab.org` before it). If an environment workspace owned a zone-scoped
+resource, whichever environment applied last would overwrite the other's rules. The roots are split
+by scope:
 
-| Root               | Scope           | Workspaces        | Owns                                        |
-| ------------------ | --------------- | ----------------- | ------------------------------------------- |
-| `cloudflare/`      | per environment | `prod`, `staging` | tunnel, DNS records, tunnel ingress         |
-| `cloudflare-zone/` | the whole zone  | `default` only    | TLS settings, the three entrypoint rulesets |
+| Root               | Scope           | Workspaces                    | Owns                                                    |
+| ------------------ | --------------- | ----------------------------- | ------------------------------------------------------- |
+| `cloudflare/`      | per environment | `prod`, `staging`             | tunnel, DNS records, tunnel ingress                     |
+| `cloudflare-zone/` | one zone        | one per zone, named after it  | TLS settings, entrypoint rulesets, redirects, email     |
 
 The zone rulesets match **both** environments' api hosts.
 
@@ -169,6 +170,8 @@ Used once, to move from `cml-relab.org` to `r9lab.io`. While the old zone's redi
 not live, its tunnel hostnames must keep reaching the tunnel. `legacy_zone_name` keeps them in the
 ingress only: no record or custom domain is created for them.
 
+0. Apply the zone root for the new zone first (`just cloudflare-zone-apply r9lab.io`, then with
+   `YES`), so its WAF and rate-limit rulesets are live before any proxied record exists there.
 1. On the new zone, delete the hand-made redirect rules and the placeholder `@` and `*` DNS
    records. They collide with the records this apply creates.
 2. In each workspace (`prod`, `staging`), take the old zone's records out of state without
@@ -181,6 +184,8 @@ ingress only: no record or custom domain is created for them.
    Check `tofu state list` first and name only addresses it shows: `state rm` fails on one that
    is absent. The old zone's CNAMEs and Worker custom domains stay in Cloudflare, unmanaged, on
    purpose: its redirect rules only fire on proxied hostnames. Do not delete them as orphans.
+   Deleting or renaming the old Workers later also removes their custom domains and records on the
+   old zone, so keep a proxied record there for the apex and `docs.` or their redirects stop.
 3. Plan with the new zone id and the old zone name:
 
    ```bash
@@ -254,30 +259,39 @@ Staging first; prod once staging serves.
 ## API Token Scopes
 
 Create the token under **My Profile -> API Tokens -> Create Custom Token**. It needs account and
-zone policy rows: the tunnel is an account resource, everything else is scoped to the zone:
+zone policy rows: the tunnel is an account resource, everything else is scoped to the zone. Grant
+the zone rows on both `r9lab.io` and `cml-relab.org` while the move is under way, and on the
+current zone alone afterwards:
 
 | Scope                   | Permission                            | Access | Required by                                      |
 | ----------------------- | ------------------------------------- | ------ | ------------------------------------------------ |
 | Account (R9lab account) | Cloudflare Tunnel                     | Edit   | `cloudflare_zero_trust_tunnel_cloudflared`       |
 | Account (R9lab account) | Cloudflare One Connector: cloudflared | Edit   | `..._tunnel_cloudflared_config` ingress rules    |
 | Account (R9lab account) | Workers (all Workers)                 | Editor | `cloudflare_workers_custom_domain`               |
-| Zone (`cml-relab.org`)  | DNS                                   | Edit   | `cloudflare_dns_record`                          |
-| Zone (`cml-relab.org`)  | Workers Routes                        | Edit   | `cloudflare_workers_custom_domain`               |
-| Zone (`cml-relab.org`)  | Zone Settings                         | Edit   | `cloudflare_zone_setting`                        |
-| Zone (`cml-relab.org`)  | Zone WAF                              | Edit   | `http_ratelimit`, `http_request_firewall_custom` |
-| Zone (`cml-relab.org`)  | Cache Rules                           | Edit   | `http_request_cache_settings`                    |
-| Zone (`cml-relab.org`)  | Zone                                  | Read   | zone lookup                                      |
+| Account (R9lab account) | Email Routing Addresses               | Edit   | `cloudflare_email_routing_address`               |
+| Zone (R9lab zones)      | DNS                                   | Edit   | `cloudflare_dns_record`                          |
+| Zone (R9lab zones)      | Workers Routes                        | Edit   | `cloudflare_workers_custom_domain`               |
+| Zone (R9lab zones)      | Zone Settings                         | Edit   | `cloudflare_zone_setting`                        |
+| Zone (R9lab zones)      | Zone WAF                              | Edit   | `http_ratelimit`, `http_request_firewall_custom` |
+| Zone (R9lab zones)      | Cache Rules                           | Edit   | `http_request_cache_settings`                    |
+| Zone (R9lab zones)      | Single Redirect                       | Edit   | `http_request_dynamic_redirect` (old zone)       |
+| Zone (R9lab zones)      | Email Routing Rules                   | Edit   | `cloudflare_email_routing_*` on the zone         |
+| Zone (R9lab zones)      | Zone                                  | Read   | zone id check in both roots                      |
 
 Some accounts still label the tunnel permission **Argo Tunnel (Legacy)**; it is the same grant
 ("create and delete Cloudflare Tunnels"). Do not substitute Cloudflare One Networks, which covers
 WARP routes and virtual networks that this config does not use.
+
+Cloudflare's permission reference also lists the newer names **Dynamic URL Redirects: Write**,
+**Email Routing Rules: Write** and **Email Routing Addresses: Write** for three of these rows; the
+dashboard may show either. The two Email Routing rows are only needed where `email_forwards` is set.
 
 The Workers row is the **Editor** role on the Workers product, which replaces the legacy
 **Workers Scripts: Edit**. Grant it on all Workers: Custom Domains do not accept a role limited to
 selected Workers, and creating one also needs **Workers Routes: Edit** on the zone.
 
 Grant nothing else. Bot Management, Access, Page Rules, Cache Purge, Zone DNS Settings, and a
-blanket Zone Write are not used here. Scope the zone row to `cml-relab.org` alone, and set an
+blanket Zone Write are not used here. Scope the zone rows to the R9lab zones alone, and set an
 expiry.
 
 Verify before the first plan:
