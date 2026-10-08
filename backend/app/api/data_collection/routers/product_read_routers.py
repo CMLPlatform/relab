@@ -16,7 +16,6 @@ from app.api.auth.services.privacy import can_view_profile
 from app.api.auth.services.rate_limiter import API_EXPORT_RATE_LIMIT_DEPENDENCY, API_READ_RATE_LIMIT_DEPENDENCY
 from app.api.common.audiences import PublicAPIRouter
 from app.api.common.crud.filtering import apply_filter
-from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.pagination import paginate_select
 from app.api.common.crud.query import require_model
 from app.api.common.exceptions import BadRequestError
@@ -28,8 +27,8 @@ from app.api.data_collection.crud.product_tree_queries import (
     EXPORT_MAX_COMPONENTS,
     MAX_COMPONENT_DEPTH,
     PRODUCT_EXPORT_RELATIONSHIPS,
-    PRODUCT_READ_SUMMARY_RELATIONSHIPS,
     apply_product_detail_loaders,
+    apply_product_read_loaders,
     load_all_descendants,
     load_component_subtree,
     require_product_detail,
@@ -86,9 +85,9 @@ _EXPORT_TOO_LARGE = (
 _EXPORT_200: dict[str, Any] = {"content": {"text/csv": {"schema": {"type": "string"}}}}
 
 
-async def _require_product_summary(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
-    """Load one product with the summary relationships used on collection reads."""
-    return await require_model(session, Product, product_id, loaders=PRODUCT_READ_SUMMARY_RELATIONSHIPS)
+async def _require_product_exists(session: AsyncSessionDep, product_id: PositiveInt) -> Product:
+    """Load one product, without relationships, to check it exists."""
+    return await require_model(session, Product, product_id)
 
 
 async def _page_products[ReadT: ProductRead | ComponentRead](
@@ -101,7 +100,7 @@ async def _page_products[ReadT: ProductRead | ComponentRead](
 ) -> Page[ReadT]:
     """Page products or components through ``schema``, applying per-owner privacy redaction."""
     statement = apply_filter(statement, product_filter)
-    statement = apply_loader_profile(statement, Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS)
+    statement = apply_product_read_loaders(statement)
     page = await paginate_select(
         session,
         statement,
@@ -333,7 +332,7 @@ async def get_product_subtree(
     A tree with more components than the cap, across all levels, is a 400. Page through
     ``/components`` level by level, or use the export, for bigger products.
     """
-    await _require_product_summary(session, product_id)
+    await _require_product_exists(session, product_id)
     tree_data = await load_component_subtree(
         session,
         parent_id=product_id,
@@ -363,7 +362,7 @@ async def get_product_components(
     product_filter: ProductFilterWithRelationshipsDep,
 ) -> Page[ComponentRead]:
     """Get a page of a product's direct components."""
-    await _require_product_summary(session, product_id)
+    await _require_product_exists(session, product_id)
     return await _page_products(
         session,
         statement=select(Product).where(Product.parent_id == product_id),

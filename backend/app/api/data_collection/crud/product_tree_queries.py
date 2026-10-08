@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from sqlalchemy import func, literal, select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import load_only, noload, selectinload
 
+from app.api.auth.models import User
 from app.api.common.crud.filtering import apply_filter
 from app.api.common.crud.loading import apply_loader_profile
 from app.api.common.crud.utils import ensure_model_exists
@@ -26,7 +27,8 @@ COMPONENT_TREE_MAX_COMPONENTS = 1_000
 MAX_COMPONENT_DEPTH = 10
 
 COMPONENTS_RELATIONSHIP = "components"
-PRODUCT_READ_SUMMARY_RELATIONSHIPS: frozenset[str] = frozenset({"owner"})
+OWNER_RELATIONSHIP = "owner"
+PRODUCT_READ_SUMMARY_RELATIONSHIPS: frozenset[str] = frozenset({OWNER_RELATIONSHIP})
 PRODUCT_READ_DETAIL_RELATIONSHIPS: frozenset[str] = frozenset(
     {"owner", "product_type", "videos", "files", "images", "bill_of_materials", COMPONENTS_RELATIONSHIP}
 )
@@ -38,6 +40,7 @@ if TYPE_CHECKING:
 
     from sqlalchemy import Select
     from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.orm.strategy_options import _AbstractLoad
 
 
 @dataclass(slots=True)
@@ -46,6 +49,29 @@ class ProductTreeData:
 
     roots: list[Product]
     children_by_parent_id: dict[int, list[Product]]
+
+
+def _owner_columns_only[LoaderT: _AbstractLoad](loader: LoaderT) -> LoaderT:
+    """Limit an owner loader to the columns owner attribution and its privacy check read.
+
+    The rest of the user row stays unloaded, the MFA secret (decrypted on every load)
+    and the joined OAuth accounts included; reading another column raises.
+    """
+    return loader.options(
+        load_only(orm_attr(User.id), orm_attr(User.username), orm_attr(User.preferences), raiseload=True),
+        noload(orm_attr(User.oauth_accounts)),
+    )
+
+
+def apply_product_read_loaders(
+    statement: Select[tuple[Product]],
+    relationships: frozenset[str] = PRODUCT_READ_SUMMARY_RELATIONSHIPS,
+) -> Select[tuple[Product]]:
+    """Apply a product loader profile, loading only the owner columns that reads render."""
+    statement = apply_loader_profile(statement, Product, relationships - {OWNER_RELATIONSHIP})
+    if OWNER_RELATIONSHIP in relationships:
+        statement = statement.options(_owner_columns_only(selectinload(orm_attr(Product.owner))))
+    return statement
 
 
 def apply_product_detail_loaders(
@@ -62,9 +88,11 @@ def apply_product_detail_loaders(
     component's own components come back unloaded. See
     ``test_product_detail_load_stops_below_the_first_component_level``.
     """
-    statement = apply_loader_profile(statement, Product, relationships)
+    statement = apply_product_read_loaders(statement, relationships)
     if COMPONENTS_RELATIONSHIP in relationships:
-        statement = statement.options(selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)))
+        statement = statement.options(
+            _owner_columns_only(selectinload(orm_attr(Product.components)).selectinload(orm_attr(Product.owner)))
+        )
     return statement.options(
         selectinload(orm_attr(Product.bill_of_materials)).selectinload(orm_attr(MaterialProductLink.material)),
     )
@@ -133,9 +161,7 @@ async def load_component_subtree(
     """
     # Components render as ComponentRead, which needs only the owner: the summary profile
     # keeps the class-level eager loads (components, images, bill of materials) from firing.
-    root_statement = apply_loader_profile(
-        select(Product).where(Product.parent_id == parent_id), Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS
-    )
+    root_statement = apply_product_read_loaders(select(Product).where(Product.parent_id == parent_id))
     root_statement = apply_filter(root_statement, product_filter).limit(max_nodes + 1)
 
     roots = list((await db.execute(root_statement)).scalars().unique().all())
@@ -145,9 +171,7 @@ async def load_component_subtree(
         children_by_parent_id, _ = await _load_levels(
             db,
             [product.id for product in roots if product.id is not None],
-            lambda frontier: apply_loader_profile(
-                select(Product).where(Product.parent_id.in_(frontier)), Product, PRODUCT_READ_SUMMARY_RELATIONSHIPS
-            ),
+            lambda frontier: apply_product_read_loaders(select(Product).where(Product.parent_id.in_(frontier))),
             levels=max(recursion_depth - 1, 0),
             max_nodes=max_nodes - len(roots),
         )

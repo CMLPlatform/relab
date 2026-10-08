@@ -7,12 +7,14 @@ from fastapi import status
 
 from app.api.data_collection.models.product import Product
 from app.api.data_collection.routers import product_read_routers
+from tests.fixtures.queries import count_queries
 
 if TYPE_CHECKING:
     from httpx import AsyncClient
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.api.auth.models import User
+    from tests.fixtures.data import ProductGraph
 
 pytestmark = pytest.mark.api
 
@@ -52,3 +54,24 @@ async def test_component_list_and_tree_are_capped(
     assert shallow.status_code == status.HTTP_200_OK
     assert len(shallow.json()) == 6
     assert deep.status_code == status.HTTP_400_BAD_REQUEST
+
+
+async def test_product_reads_load_only_the_owner_columns_they_render(
+    api_client: AsyncClient, setup_product_graph: ProductGraph
+) -> None:
+    """Owner attribution needs the username and privacy settings, not the MFA secret or OAuth links."""
+    product_id = setup_product_graph.product.id
+    with count_queries() as statements:
+        for url in (
+            "/v1/products",
+            f"/v1/products/{product_id}",
+            f"/v1/products/{product_id}/components",
+            f"/v1/products/{product_id}/components/tree",
+        ):
+            assert (await api_client.get(url)).status_code == status.HTTP_200_OK
+
+    owner_sql = [sql for sql in statements if 'FROM "user"' in sql]
+    assert owner_sql, "the owner is still loaded for attribution"
+    for sql in owner_sql:
+        assert "oauthaccount" not in sql
+        assert "mfa_totp_secret" not in sql
