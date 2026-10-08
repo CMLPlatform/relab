@@ -11,6 +11,8 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." || exit 1
 . scripts/deploy_ops.sh
 # shellcheck source=/dev/null
 . scripts/deploy_watchdog.sh # returns after defining SNAPSHOT_AGE_PY
+# shellcheck source=/dev/null
+. scripts/smoke_redirects.sh # returns after defining redirect_verdict
 
 # The sourced scripts turn on errexit; the harness must survive a failing assert.
 set +e
@@ -1213,6 +1215,28 @@ assert_eq "another environment's marker is reported, not overwritten" \
 # it forever while backup runs read it as a different environment and refuse every run.
 assert_eq "a zero-byte marker from an interrupted write is completed, not skipped" \
     "0|1|prod" "$(stamp_marker '')"
+
+# ---------------------------------------------------------------------------
+# Redirect smoke check: one verdict per old host.
+# ---------------------------------------------------------------------------
+loc='https://app.r9lab.io/r9lab-smoke?q=1'
+verdict() {
+    local out status
+    out="$(redirect_verdict app.cml-relab.org "$1" "$2" 302 "$loc" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "correct 302 passes" "0|ok" "$(verdict 302 "$loc")"
+assert_eq "301 when 302 is expected fails" \
+    "1|FAIL[app.cml-relab.org]: status 301, expected 302" "$(verdict 301 "$loc")"
+assert_eq "a Location that drops the query fails" \
+    "1|FAIL[app.cml-relab.org]: Location https://app.r9lab.io/r9lab-smoke, expected $loc" \
+    "$(verdict 302 'https://app.r9lab.io/r9lab-smoke')"
+assert_eq "a Location on the old zone fails" \
+    "1|FAIL[app.cml-relab.org]: Location https://app.cml-relab.org/r9lab-smoke?q=1, expected $loc" \
+    "$(verdict 302 'https://app.cml-relab.org/r9lab-smoke?q=1')"
+assert_eq "a 200 fails" "1|FAIL[app.cml-relab.org]: status 200, expected 302" "$(verdict 200 '')"
 
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1
