@@ -10137,7 +10137,7 @@ export interface operations {
       header?: never;
       path?: never;
       cookie?: {
-        '__Host-relab-refresh'?: string | null;
+        '__Host-r9lab-refresh'?: string | null;
       };
     };
     requestBody?: never;
@@ -10197,8 +10197,8 @@ export interface operations {
       header?: never;
       path?: never;
       cookie?: {
-        '__Host-relab-refresh'?: string | null;
-        '__Host-relab-auth'?: string | null;
+        '__Host-r9lab-refresh'?: string | null;
+        '__Host-r9lab-auth'?: string | null;
       };
     };
     requestBody?: never;

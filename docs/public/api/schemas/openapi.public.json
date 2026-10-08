@@ -6820,7 +6820,7 @@
     "securitySchemes": {
       "APIKeyCookie": {
         "in": "cookie",
-        "name": "__Host-relab-auth",
+        "name": "__Host-r9lab-auth",
         "type": "apiKey"
       },
       "OAuth2PasswordBearer": {
@@ -7600,7 +7600,7 @@
         "parameters": [
           {
             "in": "cookie",
-            "name": "__Host-relab-refresh",
+            "name": "__Host-r9lab-refresh",
             "required": false,
             "schema": {
               "anyOf": [
@@ -7611,12 +7611,12 @@
                   "type": "null"
                 }
               ],
-              "title": "  Host-Relab-Refresh"
+              "title": "  Host-R9Lab-Refresh"
             }
           },
           {
             "in": "cookie",
-            "name": "__Host-relab-auth",
+            "name": "__Host-r9lab-auth",
             "required": false,
             "schema": {
               "anyOf": [
@@ -7627,7 +7627,7 @@
                   "type": "null"
                 }
               ],
-              "title": "  Host-Relab-Auth"
+              "title": "  Host-R9Lab-Auth"
             }
           }
         ],
@@ -7672,7 +7672,7 @@
         "parameters": [
           {
             "in": "cookie",
-            "name": "__Host-relab-refresh",
+            "name": "__Host-r9lab-refresh",
             "required": false,
             "schema": {
               "anyOf": [
@@ -7683,7 +7683,7 @@
                   "type": "null"
                 }
               ],
-              "title": "  Host-Relab-Refresh"
+              "title": "  Host-R9Lab-Refresh"
             }
           }
         ],

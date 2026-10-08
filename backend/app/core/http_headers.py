@@ -23,8 +23,8 @@ UPLOADS_PATH_PREFIX = "/uploads"
 
 # Session cookie names (api/auth/services/auth_backends.py). `__Host-` prefix so
 # credentials never leak to sibling subdomains.
-AUTH_COOKIE_NAME = "__Host-relab-auth"
-REFRESH_COOKIE_NAME = "__Host-relab-refresh"
+AUTH_COOKIE_NAME = "__Host-r9lab-auth"
+REFRESH_COOKIE_NAME = "__Host-r9lab-refresh"
 AUTH_COOKIE_NAMES = frozenset({AUTH_COOKIE_NAME, REFRESH_COOKIE_NAME})
 
 
