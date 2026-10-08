@@ -44,6 +44,13 @@ Review security-sensitive changes against this baseline:
 Security-sensitive areas:
 
 - authentication and OAuth
+  - Stored OAuth access and refresh tokens use `EncryptedString` (AES-256-GCM under
+    `DATA_ENCRYPTION_KEY`), like the TOTP secret and the camera broadcast key; the column refuses
+    a value without the encrypted-value prefix.
+  - Unlinking Google or erasing the account revokes the Google grant (YouTube scope included)
+    once the link's deletion is committed. Revocation is best effort: a failure is logged without the token and
+    never blocks the unlink or the erasure. GitHub grants are not revoked by the backend; the user
+    removes them in their GitHub settings.
 - rate limits (the buckets and numbers are in the security reference)
   - Password login is limited per IP and by failed attempts per account, so a shared account is
     not locked by use while guessing stays capped per account.
