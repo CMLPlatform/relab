@@ -14,6 +14,8 @@ from app.core.logging import sanitize_log_value
 from app.core.redis import delete_redis_key, get_redis_value, set_redis_value
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from redis.asyncio import Redis
 
 logger = logging.getLogger(__name__)
@@ -53,26 +55,45 @@ async def mark_camera_offline(redis_client: Redis, camera_id: UUID4) -> None:
     await delete_redis_key(redis_client, get_camera_online_cache_key(camera_id))
 
 
-async def get_camera_status(redis_client: Redis, camera_id: UUID4) -> CameraStatus:
-    """Fetch connection status globally from Redis cache.
+async def get_camera_statuses(
+    redis_client: Redis,
+    camera_ids: Sequence[UUID4],
+    *,
+    include_telemetry: bool = False,
+) -> dict[UUID4, tuple[CameraStatus, TelemetrySnapshot | None]]:
+    """Fetch status, and optionally cached telemetry, for many cameras in one Redis round trip.
 
-    Degrades to OFFLINE with no last-seen timestamp on a Redis outage, rather
-    than raising and turning every camera-status read into a 500.
+    Degrades to OFFLINE with no last-seen timestamp or telemetry on a Redis outage,
+    rather than raising and turning every camera-status read into a 500.
     """
+    keys_per_camera = 3 if include_telemetry else 2
     pipeline = redis_client.pipeline()
-    pipeline.get(get_camera_online_cache_key(camera_id))
-    pipeline.get(get_camera_last_seen_cache_key(camera_id))
+    for camera_id in camera_ids:
+        pipeline.get(get_camera_online_cache_key(camera_id))
+        pipeline.get(get_camera_last_seen_cache_key(camera_id))
+        if include_telemetry:
+            pipeline.get(get_telemetry_cache_key(camera_id))
     try:
-        online, last_seen_str = await pipeline.execute()
+        values = await pipeline.execute() if camera_ids else []
     except RedisError, OSError, TimeoutError:
-        logger.warning(
-            "Redis unavailable fetching status for camera %s; reporting offline.", sanitize_log_value(camera_id)
-        )
-        return CameraStatus(connection=CameraConnectionStatus.OFFLINE, last_seen_at=None)
+        logger.warning("Redis unavailable fetching status for %d camera(s); reporting offline.", len(camera_ids))
+        values = [None] * (keys_per_camera * len(camera_ids))
 
-    conn = CameraConnectionStatus.ONLINE if online else CameraConnectionStatus.OFFLINE
-    last_seen = datetime.fromisoformat(last_seen_str) if last_seen_str else None
-    return CameraStatus(connection=conn, last_seen_at=last_seen)
+    result: dict[UUID4, tuple[CameraStatus, TelemetrySnapshot | None]] = {}
+    for index, camera_id in enumerate(camera_ids):
+        online, last_seen_str, *rest = values[index * keys_per_camera : (index + 1) * keys_per_camera]
+        status = CameraStatus(
+            connection=CameraConnectionStatus.ONLINE if online else CameraConnectionStatus.OFFLINE,
+            last_seen_at=datetime.fromisoformat(last_seen_str) if last_seen_str else None,
+        )
+        telemetry = _parse_telemetry(rest[0], camera_id) if rest else None
+        result[camera_id] = (status, telemetry)
+    return result
+
+
+async def get_camera_status(redis_client: Redis, camera_id: UUID4) -> CameraStatus:
+    """Fetch one camera's connection status from the Redis cache; see ``get_camera_statuses``."""
+    return (await get_camera_statuses(redis_client, [camera_id]))[camera_id][0]
 
 
 def get_telemetry_cache_key(camera_id: UUID4) -> str:
@@ -99,7 +120,10 @@ async def get_cached_telemetry(
     camera_id: UUID4,
 ) -> TelemetrySnapshot | None:
     """Return the most recent cached telemetry snapshot, or ``None`` on miss."""
-    payload = await get_redis_value(redis_client, get_telemetry_cache_key(camera_id))
+    return _parse_telemetry(await get_redis_value(redis_client, get_telemetry_cache_key(camera_id)), camera_id)
+
+
+def _parse_telemetry(payload: str | bytes | None, camera_id: UUID4) -> TelemetrySnapshot | None:
     if payload is None:
         return None
     try:

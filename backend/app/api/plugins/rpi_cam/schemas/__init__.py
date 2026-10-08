@@ -13,9 +13,11 @@ from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUID
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 from app.api.plugins.rpi_cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
 from app.api.plugins.rpi_cam.models import Camera, CameraCredentialStatus, CameraStatus
-from app.api.plugins.rpi_cam.runtime.status import get_cached_telemetry, get_camera_status
+from app.api.plugins.rpi_cam.runtime.status import get_camera_statuses
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
     from redis.asyncio import Redis
 
 
@@ -90,22 +92,28 @@ class CameraReadWithStatus(CameraRead):
     preview_thumbnail_url: str | None = None
 
     @classmethod
-    async def from_db_model_with_status(
+    async def list_with_status(
         cls,
-        db_model: Camera,
+        db_models: Sequence[Camera],
         redis: Redis,
         *,
         include_telemetry: bool = False,
-        preview_thumbnail_url: str | None = None,
-    ) -> Self:
-        """Create CameraReadWithStatus instance from Camera database model, fetching online status."""
-        telemetry = await get_cached_telemetry(redis, db_model.id) if include_telemetry else None
-        return cls(
-            **db_model.model_dump(exclude={"status", "relay_public_key_jwk"}),
-            status=await get_camera_status(redis, db_model.id),
-            telemetry=telemetry,
-            preview_thumbnail_url=preview_thumbnail_url,
+        preview_thumbnail_urls: Mapping[UUID4, str | None] | None = None,
+    ) -> list[Self]:
+        """Build read models for cameras, fetching their cached status in one Redis round trip."""
+        statuses = await get_camera_statuses(
+            redis, [camera.id for camera in db_models], include_telemetry=include_telemetry
         )
+        thumbnails = preview_thumbnail_urls or {}
+        return [
+            cls(
+                **camera.model_dump(exclude={"status", "relay_public_key_jwk"}),
+                status=statuses[camera.id][0],
+                telemetry=statuses[camera.id][1],
+                preview_thumbnail_url=thumbnails.get(camera.id),
+            )
+            for camera in db_models
+        ]
 
 
 class CameraUpdate(BaseUpdateSchema):

@@ -79,15 +79,11 @@ async def get_user_cameras(
     if include_telemetry:
         preview_thumbnail_urls = get_preview_thumbnail_urls_per_camera([camera.id for camera in db_cameras])
 
-    return [
-        await CameraReadWithStatus.from_db_model_with_status(
-            camera,
-            redis,
-            include_telemetry=include_telemetry,
-            preview_thumbnail_url=preview_thumbnail_urls.get(camera.id),
+    return list(
+        await CameraReadWithStatus.list_with_status(
+            db_cameras, redis, include_telemetry=include_telemetry, preview_thumbnail_urls=preview_thumbnail_urls
         )
-        for camera in db_cameras
-    ]
+    )
 
 
 @camera_router.get(
@@ -112,15 +108,11 @@ async def get_user_camera(
     """Get single Raspberry Pi camera by ID, if owned by the current user."""
     if not (include_status or include_telemetry):
         return db_camera
-    preview_thumbnail_url: str | None = None
-    if include_telemetry:
-        preview_thumbnail_url = get_preview_thumbnail_urls_per_camera([db_camera.id]).get(db_camera.id)
-    return await CameraReadWithStatus.from_db_model_with_status(
-        db_camera,
-        redis,
-        include_telemetry=include_telemetry,
-        preview_thumbnail_url=preview_thumbnail_url,
+    preview_thumbnail_urls = get_preview_thumbnail_urls_per_camera([db_camera.id]) if include_telemetry else None
+    [camera] = await CameraReadWithStatus.list_with_status(
+        [db_camera], redis, include_telemetry=include_telemetry, preview_thumbnail_urls=preview_thumbnail_urls
     )
+    return camera
 
 
 @camera_router.get(
