@@ -1,12 +1,5 @@
 import type { Product } from '@/types/Product';
 
-export type WeightTotal = {
-  /** Grams, each component's weight times its amount in its parent. */
-  grams: number;
-  /** Components that added nothing: no weight of their own and no sub-components to count instead. */
-  missing: number;
-};
-
 /**
  * Total weight of a list of components, from each component's own recorded weight.
  *
@@ -14,8 +7,11 @@ export type WeightTotal = {
  * weight and are not added again. A component without one counts through its
  * sub-components, times its own amount. One with neither adds to `missing`, so a
  * caller can say the total is partial instead of showing it as complete.
+ *
+ * Returns `grams`, each component's weight times its amount in its parent, and `missing`,
+ * the components that added nothing.
  */
-export function totalComponentWeight(components: Product[]): WeightTotal {
+export function totalComponentWeight(components: Product[]): { grams: number; missing: number } {
   let grams = 0;
   let missing = 0;
   for (const component of components) {
