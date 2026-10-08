@@ -39,7 +39,6 @@ KNOWN_SECRET_PLACEHOLDER_PREFIXES = (
 # Placeholder operator inputs for rendering deploy Compose during validation. Single
 # source of truth: deploy_ops.sh calls `validation-env` to materialize this same set.
 VALIDATION_ENV_VALUES = {
-    "CLOUDFLARE_TUNNEL_TOKEN": "placeholder",
     # The telemetry overlay hard-requires the endpoint and the token, so compose-config
     # cannot render it without them. The edge key is optional to the overlay (only
     # projects behind a WAF need it) but required here; see assert_telemetry_inputs_are_set_together.
@@ -72,7 +71,6 @@ REQUIRED_ROOT_OPERATOR_INPUT_NAMES = {
     "DOCS_PUBLIC_URL",
     # The published image tag the stack runs; `just stack <env> tag` rewrites it.
     "IMAGE_TAG",
-    "CLOUDFLARE_TUNNEL_TOKEN",
     "EMAIL_PROVIDER",
     "EMAIL_FROM",
     "EMAIL_REPLY_TO",
@@ -114,6 +112,22 @@ OPTIONAL_ROOT_OPERATOR_INPUT_NAMES = {
 HIDDEN_PROD_DEFAULT_PATTERNS = {
     "CADDY_API_ORIGIN=https://api.cml-relab.org",
     "{$CADDY_API_ORIGIN:https://api.cml-relab.org}",
+}
+# Deploy services that may keep a writable root filesystem. Every other service in the
+# rendered prod/staging config must set `read_only: true`.
+WRITABLE_ROOT_SERVICES = {
+    # Official stateful images: their entrypoints write config and run files at start.
+    "postgres",
+    "redis",
+    # Updates its signature database and writes the clamd socket and pid at runtime.
+    "clamav",
+    # Vendored from the monitoring templates (compose.telemetry.yml); changed upstream.
+    "alloy",
+    "docker-socket-proxy",
+}
+# Names that moved out of the host .env into secrets/<env>/, by the file that replaced them.
+MOVED_FROM_HOST_ENV = {
+    "cloudflare_tunnel_token": "CLOUDFLARE_TUNNEL_TOKEN",
 }
 RUNTIME_CONFIG_FILES = (
     ROOT / "app" / "Dockerfile",
@@ -292,6 +306,47 @@ def assert_existing_secret_files_do_not_use_placeholders(
                 raise AssertionError(msg)
 
 
+def assert_required_secret_files_exist(secret_inventory: dict[str, Any], env: str | None = None) -> None:
+    """On a deploy host, fail when a required secret file is missing or empty, before anything starts.
+
+    Compose only notices a missing secret file when it creates the container that mounts
+    it, part-way through an ``up``. Off a deploy host (no ``.env`` naming one stack) there
+    is no secrets tree to check. A secret that used to be a host ``.env`` value gets the
+    steps that move it.
+    """
+    env_file = ROOT / ".env"
+    labels = deploy_labels(env)
+    if not env_file.exists() or len(labels) != 1:
+        return
+    label = labels[0]
+    host_env = env_assignments(env_file)
+    for name in sorted(secret_inventory["runtime_secret_files"] - secret_inventory["optional_secret_files"]):
+        path = ROOT / "secrets" / label / name
+        if path.exists() and path.read_text(encoding="utf-8").strip():
+            continue
+        msg = f"{label}: required secret file secrets/{label}/{name} is missing or empty"
+        old_name = MOVED_FROM_HOST_ENV.get(name)
+        if old_name in host_env:
+            msg += (
+                f". {old_name} moved out of .env into this file: write its value there "
+                f"(chmod 644), then delete the {old_name} line from .env"
+            )
+        raise AssertionError(msg)
+
+
+def assert_services_are_read_only(label: str, config: dict[str, Any]) -> None:
+    """Require a read-only root filesystem on every deploy service not in WRITABLE_ROOT_SERVICES."""
+    writable = sorted(
+        name
+        for name, service in (config.get("services") or {}).items()
+        if not service.get("read_only") and name not in WRITABLE_ROOT_SERVICES
+    )
+    require(
+        not writable,
+        f"{label}: set read_only: true (with a tmpfs for any path it writes) on: {', '.join(writable)}",
+    )
+
+
 def parse_labeled_paths(values: list[str]) -> dict[str, Path]:
     """Parse command-line arguments of the form LABEL=PATH."""
     parsed: dict[str, Path] = {}
@@ -463,6 +518,7 @@ def run_env_policy_checks(env: str | None = None) -> None:
     assert_runtime_images_do_not_hide_prod_defaults()
     assert_telemetry_examples_use_department_contract()
     assert_telemetry_inputs_are_set_together()
+    assert_required_secret_files_exist(secret_inventory, env)
     assert_existing_secret_files_do_not_use_placeholders(secret_inventory, env)
     assert_offsite_remote_is_configured(env)
     assert_deploy_compose_render_fails_for_missing_operator_values()
@@ -475,6 +531,8 @@ def run_secrets_check(configs: list[str]) -> None:
         config = load_json(path)
         assert_rendered_secrets_are_in_inventory(config, secret_inventory)
         assert_secret_files(label, config)
+        if label in {"prod", "staging"}:
+            assert_services_are_read_only(label, config)
     # `just deploy-secrets-check` is the command the deploy runbooks put in front of
     # every `up`, so the telemetry credential pairing is enforced here as well as in the
     # repo-policy `check`.

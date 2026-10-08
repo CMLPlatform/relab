@@ -243,3 +243,54 @@ def test_offsite_repository_is_derived_from_the_one_rclone_remote(
     conf.write_text("[a]\ntype = webdav\n[b]\ntype = webdav\n", encoding="utf-8")
     env_policy.assert_offsite_remote_is_configured("prod")
     assert "defines 2 remotes" in capsys.readouterr().out
+
+
+# --- deploy host secret files ----------------------------------------------
+
+
+def test_missing_required_secret_is_only_checked_on_a_deploy_host(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(env_policy, "ROOT", tmp_path)
+    secrets = inventory({"auth_token_secret"}, {"smtp_password"})
+    # CI and dev checkouts have no host .env naming a stack.
+    env_policy.assert_required_secret_files_exist(secrets)
+    (tmp_path / ".env").write_text("ENVIRONMENT=dev\n", encoding="utf-8")
+    env_policy.assert_required_secret_files_exist(secrets)
+
+    (tmp_path / ".env").write_text("ENVIRONMENT=prod\n", encoding="utf-8")
+    with pytest.raises(AssertionError, match="secrets/prod/auth_token_secret is missing or empty"):
+        env_policy.assert_required_secret_files_exist(secrets)
+
+    path = tmp_path / "secrets" / "prod" / "auth_token_secret"
+    path.parent.mkdir(parents=True)
+    path.write_text("\n", encoding="utf-8")
+    with pytest.raises(AssertionError, match="missing or empty"):
+        env_policy.assert_required_secret_files_exist(secrets)
+
+    path.write_text("token\n", encoding="utf-8")
+    env_policy.assert_required_secret_files_exist(secrets)
+
+
+def test_secret_moved_out_of_host_env_names_the_old_variable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(env_policy, "ROOT", tmp_path)
+    (tmp_path / ".env").write_text("ENVIRONMENT=staging\nCLOUDFLARE_TUNNEL_TOKEN=abc\n", encoding="utf-8")
+    with pytest.raises(AssertionError, match=r"CLOUDFLARE_TUNNEL_TOKEN moved out of \.env"):
+        env_policy.assert_required_secret_files_exist(inventory({"cloudflare_tunnel_token"}, set()))
+
+
+def test_committed_inventory_requires_the_tunnel_token_file() -> None:
+    assert "cloudflare_tunnel_token" in REAL_INVENTORY["runtime_secret_files"]
+    assert "cloudflare_tunnel_token" not in REAL_INVENTORY["optional_secret_files"]
+
+
+# --- read-only services ----------------------------------------------------
+
+
+def test_deploy_services_must_be_read_only_unless_allowlisted() -> None:
+    services: dict[str, dict[str, Any]] = {"api": {"read_only": True}, "postgres": {}, "cloudflared": {}}
+    with pytest.raises(AssertionError, match="on: cloudflared"):
+        env_policy.assert_services_are_read_only("prod", {"services": services})
+
+    services["cloudflared"]["read_only"] = True
+    env_policy.assert_services_are_read_only("prod", {"services": services})
