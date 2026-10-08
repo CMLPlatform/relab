@@ -61,3 +61,7 @@ reports/performance/*.md
 
 # Derived upload fixtures; rebuilt by `just perf-fixtures` from the committed sample.
 perf/fixtures/generated/
+
+# Mutation testing working copy (`just mutation`)
+mutants/
+reports/mutation/

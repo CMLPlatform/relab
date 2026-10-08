@@ -86,11 +86,7 @@ def _absorb_shared_container_coords(config: pytest.Config) -> None:
     """Reuse the controller's shared Postgres container on an xdist worker."""
     global _external_container
     workerinput = _worker_input(config)
-    os.environ["DATABASE_HOST"] = workerinput["relab_db_host"]
-    os.environ["DATABASE_PORT"] = workerinput["relab_db_port"]
-    os.environ["POSTGRES_USER"] = "postgres"
-    os.environ["POSTGRES_PASSWORD"] = "postgres"  # Test-password only
-    os.environ["POSTGRES_DB"] = "postgres"
+    _publish_postgres_coords(workerinput["relab_db_host"], workerinput["relab_db_port"])
     _external_container = True
 
 
@@ -125,6 +121,11 @@ def _ensure_testcontainers_postgres() -> None:
     if _postgres_container is not None or _external_container:
         return
 
+    if external_host := os.getenv("TEST_POSTGRES_HOST"):
+        # An already-running Postgres: `just mutation` shares one across its forked runs.
+        _publish_postgres_coords(external_host, os.getenv("TEST_POSTGRES_PORT", "5432"))
+        return
+
     logger.info("Starting Testcontainers Postgres...")
     _postgres_container = PostgresContainer(
         "postgres:18-alpine",
@@ -136,14 +137,16 @@ def _ensure_testcontainers_postgres() -> None:
 
     host = _postgres_container.get_container_host_ip()
     port = _postgres_container.get_exposed_port(5432)
+    _publish_postgres_coords(str(host), str(port))
+    logger.info("Testcontainers Postgres started: %s:%s", host, port)
 
-    os.environ["DATABASE_HOST"] = str(host)
-    os.environ["DATABASE_PORT"] = str(port)
+
+def _publish_postgres_coords(host: str, port: str) -> None:
+    os.environ["DATABASE_HOST"] = host
+    os.environ["DATABASE_PORT"] = port
     os.environ["POSTGRES_USER"] = "postgres"
     os.environ["POSTGRES_PASSWORD"] = "postgres"  # Test-password only
     os.environ["POSTGRES_DB"] = "postgres"
-
-    logger.info("Testcontainers Postgres started: %s:%s", host, port)
 
 
 def _validate_test_database_name(database_name: str) -> str:
@@ -177,6 +180,9 @@ def _get_worker_test_db_name() -> str:
     db_name = base_name
     if worker_id and worker_id != _MASTER_WORKER:
         db_name = f"{base_name}_{worker_id}"
+    elif os.getenv("MUTANT_UNDER_TEST"):
+        # mutmut runs mutants in parallel forked processes against one shared server.
+        db_name = f"{base_name}_{os.getpid()}"
 
     return _validate_test_database_name(db_name)
 

@@ -50,3 +50,28 @@ camera setup -> record -> persist. Keep them sparse; they are slower than the ot
 - Break what a new test covers and watch it fail before trusting it.
 - To find gaps, replace a guard with `if False:` and run `tests/unit tests/integration`. One that
   breaks nothing is untested, or covered only by an assertion another path also satisfies.
+
+## Mutation testing
+
+`just mutation` runs mutmut over `app/` against one throwaway Postgres; the Ops workflow runs it
+monthly in shards by package and uploads each shard's survivor list. It never fails on survivors. It lists the functions with more
+survivors than `tests/mutation-baseline.txt`: add the missing assertion, or rebaseline with
+`just mutation-baseline` when the survivor is deliberate (a guard for a state that cannot occur).
+A full run is heavy, so leave it to the Ops job; locally it runs at low priority on half the cores
+(set `MUTMUT_JOBS` to change that). Pass mutant globs to narrow a local run:
+`just mutation 'app.core.images*'`. Results are cached in
+`mutants/`: after adding an assertion, rerun with that function's glob or delete `mutants/`, or the
+old verdict stands. Rebaseline only from a full run, since it replaces the file. From an Ops run:
+
+```sh
+gh run download <run-id> -p 'ops-backend-mutation-*' -D reports/mutation/ops
+cat reports/mutation/ops/*/survivors.txt | sort > reports/mutation/survivors.txt
+just mutation-baseline
+```
+
+mutmut skips decorated functions, so route handlers are never mutated: guards that live in a
+handler body (such as the empty-upload check in the camera preview upload) need the `if False:`
+check above instead.
+
+Log calls are not mutated, but only on the call's first line: the argument lines of a multi-line
+call still are, and their survivors belong in the baseline.
