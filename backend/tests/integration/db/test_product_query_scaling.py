@@ -100,7 +100,6 @@ async def _count_erasure(session: AsyncSession, material: Material, *, products:
     user = await UserFactory.create_async(session=session, is_active=True, is_superuser=False)
     for _ in range(products):
         await _seed_product(session, user, material, components=2)
-    user = await session.get(User, user.id)
     with patch("app.api.application.account_erasure.audit_event") as audit, count_queries() as statements:
         await erase_user(session, user, actor_id=uuid4(), content="delete")
     assert audit.call_count == products, "each deleted base product is audited"
