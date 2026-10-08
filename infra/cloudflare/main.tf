@@ -1,3 +1,16 @@
+# Guards against a workspace applied with another zone's id: every record and custom domain
+# below keys off the id, and a mismatch would put this environment's hosts in the wrong zone.
+data "cloudflare_zone" "this" {
+  zone_id = var.cloudflare_zone_id
+
+  lifecycle {
+    postcondition {
+      condition     = self.name == var.cloudflare_zone_name
+      error_message = "cloudflare_zone_id belongs to ${self.name}, not ${var.cloudflare_zone_name}. Pass the id of the zone named in cloudflare_zone_name."
+    }
+  }
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared" "relab" {
   account_id = var.cloudflare_account_id
   name       = local.tunnel_name

@@ -4,7 +4,14 @@
 #
 # Zone-global resources are tested in ../cloudflare-zone/tests/zone.tftest.hcl.
 
-mock_provider "cloudflare" {}
+mock_provider "cloudflare" {
+  override_data {
+    target = data.cloudflare_zone.this
+    values = {
+      name = "r9lab.io"
+    }
+  }
+}
 mock_provider "github" {
   mock_data "github_user" {
     defaults = {
@@ -311,4 +318,16 @@ run "legacy_zone_must_differ_from_the_zone" {
   }
 
   expect_failures = [var.legacy_zone_name]
+}
+
+run "zone_id_must_match_zone_name" {
+  command = plan
+
+  # The default zone name with another zone's id would put records in the wrong zone.
+  variables {
+    environment          = "prod"
+    cloudflare_zone_name = "cml-relab.org"
+  }
+
+  expect_failures = [data.cloudflare_zone.this]
 }
