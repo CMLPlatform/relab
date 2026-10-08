@@ -1,6 +1,7 @@
 """Tests for ASVS V5 malware scanning controls."""
 
 import logging
+import struct
 from io import BytesIO
 from tempfile import SpooledTemporaryFile
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from fastapi import UploadFile
 
 from app.api.common.exceptions import ServiceUnavailableError
 from app.api.file_storage.upload_security import (
+    CLAMAV_CHUNK_SIZE,
     ClamAVScanner,
     MalwareDetectedError,
     get_upload_scanner,
@@ -116,6 +118,72 @@ async def test_clamav_scanner_parses_terminal_response_markers(
 
     with pytest.raises(expected_error):
         await scanner.scan(BytesIO(b"clean"))
+
+
+def _patch_clamav(monkeypatch: pytest.MonkeyPatch, stream: object) -> None:
+    async def _connect_tcp(host: str, port: int) -> object:
+        del host, port
+        return stream
+
+    monkeypatch.setattr("app.api.file_storage.upload_security.anyio.connect_tcp", _connect_tcp)
+
+
+async def test_clamav_scanner_streams_whole_file_in_instream_frames(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Clamd's INSTREAM protocol: the command, length-prefixed chunks from byte 0, then a zero length."""
+    stream = _ClamAVResponseStream(b"stream: OK\0")
+    _patch_clamav(monkeypatch, stream)
+    payload = b"a" * CLAMAV_CHUNK_SIZE + b"tail"
+    fileobj = BytesIO(payload)
+    fileobj.seek(5)  # a caller that already read part of the upload
+
+    await ClamAVScanner(host="clamav", port=3310, timeout_seconds=1).scan(fileobj)
+
+    assert stream.sent_chunks == [
+        b"zINSTREAM\0",
+        struct.pack("!I", CLAMAV_CHUNK_SIZE) + payload[:CLAMAV_CHUNK_SIZE],
+        struct.pack("!I", 4) + b"tail",
+        struct.pack("!I", 0),
+    ]
+    # Storage reads the upload next, so it is handed back rewound.
+    assert fileobj.tell() == 0
+
+
+async def test_clamav_scanner_reports_detection_signature(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A detection names the matched signature, which the client sees in the 400 errors."""
+    _patch_clamav(monkeypatch, _ClamAVResponseStream(b"stream: Eicar-Test-Signature FOUND\0"))
+
+    with pytest.raises(MalwareDetectedError) as exc_info:
+        await ClamAVScanner(host="clamav", port=3310, timeout_seconds=1).scan(BytesIO(b"x"))
+
+    assert exc_info.value.message == "Uploaded file contains known malicious content."
+    assert exc_info.value.details == "Scanner signature: Eicar-Test-Signature"
+
+
+def test_malware_detected_error_without_signature_has_no_details() -> None:
+    """Without a signature there is nothing to report, rather than a literal "None"."""
+    assert MalwareDetectedError().details is None
+
+
+async def test_clamav_scanner_tolerates_non_utf8_scanner_output(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Undecodable bytes in the reply must not crash the scan; the terminal marker still decides."""
+    _patch_clamav(monkeypatch, _ClamAVResponseStream(b"stream: \xff OK\0"))
+
+    await ClamAVScanner(host="clamav", port=3310, timeout_seconds=1).scan(BytesIO(b"clean"))
+
+
+async def test_clamav_scanner_times_out_as_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A scanner that never answers fails closed after the configured timeout instead of hanging."""
+
+    class _SilentStream(_ClamAVResponseStream):
+        async def receive(self, max_bytes: int) -> bytes:
+            del max_bytes
+            await anyio.sleep_forever()
+            raise AssertionError
+
+    _patch_clamav(monkeypatch, _SilentStream(b""))
+
+    with anyio.fail_after(5), pytest.raises(ServiceUnavailableError, match="Malware scanning is unavailable"):
+        await ClamAVScanner(host="clamav", port=3310, timeout_seconds=0.01).scan(BytesIO(b"clean"))
 
 
 async def test_clamav_scanner_reads_large_spooled_upload_off_the_event_loop(

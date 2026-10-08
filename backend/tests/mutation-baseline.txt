@@ -373,15 +373,12 @@
 6 app.api.file_storage.upload_policy.x__validate_magic_byte_prefix
 6 app.api.file_storage.upload_policy.x__validate_ooxml_content
 3 app.api.file_storage.upload_quota.x__quota_by_role
-32 app.api.file_storage.upload_quota.x_recompute_user_upload_quota
-11 app.api.file_storage.upload_quota.x_release_product_upload_quota_for_media
-1 app.api.file_storage.upload_quota.x_reserve_product_upload_quota
+9 app.api.file_storage.upload_quota.x_recompute_user_upload_quota
 2 app.api.file_storage.upload_security.x_get_upload_scanner
 4 app.api.file_storage.upload_security.x_probe_malware_scanner
 1 app.api.file_storage.upload_security.x_scan_upload_or_raise
 1 app.api.file_storage.upload_security.x_validate_malware_scanner_configuration
-34 app.api.file_storage.upload_security.xǁClamAVScannerǁscan
-7 app.api.file_storage.upload_security.xǁMalwareDetectedErrorǁ__init__
+13 app.api.file_storage.upload_security.xǁClamAVScannerǁscan
 2 app.api.file_storage.upload_security.xǁMalwareScanUnavailableErrorǁ__init__
 1 app.api.plugins.rpi_cam.device_assertion.x__assertion_replay_ttl
 15 app.api.plugins.rpi_cam.device_assertion.x__authenticated_camera
