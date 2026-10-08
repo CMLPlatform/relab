@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from fastapi.encoders import jsonable_encoder
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse, Response
+from pydantic import BaseModel
 
 from app.core.http_headers import REQUEST_ID_HEADER, SENSITIVE_CACHE_HEADERS
 
@@ -95,18 +96,30 @@ def conditional_json_response(
     status_code: int = 200,
     headers: Mapping[str, str] | None = None,
 ) -> Response:
-    """Return a JSON response with ETag support."""
-    encoded_payload = jsonable_encoder(payload)
-    response_bytes = (
-        etag_seed.encode("utf-8")
-        if etag_seed is not None
-        else json.dumps(encoded_payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
-    )
-    etag = _quoted_etag(response_bytes)
+    """Return a JSON response with ETag support.
+
+    A pydantic payload is serialized once and its bytes are hashed for the ETag. Any other
+    payload goes through ``jsonable_encoder`` and a key-sorted dump for the ETag.
+    """
+    if isinstance(payload, BaseModel):
+        body = payload.model_dump_json(by_alias=True).encode("utf-8")
+        etag = _quoted_etag(etag_seed.encode("utf-8") if etag_seed is not None else body)
+        response: Response = Response(content=body, status_code=status_code, media_type="application/json")
+    else:
+        encoded_payload = jsonable_encoder(payload)
+        response_bytes = (
+            etag_seed.encode("utf-8")
+            if etag_seed is not None
+            else json.dumps(encoded_payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+        )
+        etag = _quoted_etag(response_bytes)
+        response = JSONResponse(status_code=status_code, content=encoded_payload)
+
     response_headers = _response_headers(request, headers)
     response_headers["ETag"] = etag
 
     if _etag_matches(request.headers.get("if-none-match"), etag):
         return Response(status_code=304, headers=response_headers)
 
-    return JSONResponse(status_code=status_code, content=encoded_payload, headers=response_headers)
+    response.headers.update(response_headers)
+    return response
