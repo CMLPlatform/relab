@@ -533,9 +533,14 @@ require_dotenv_environment() {
     fi
 }
 
-# publish-images.yml tags a release `<version>` and a manual run `sha-<short sha>`.
+# publish-images.yml tags a release `<version>` (from git tag `v<version>`) and a manual
+# run `sha-<short sha>`.
+is_release_image_tag() {
+    [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+}
+
 require_image_tag() {
-    if [[ ! "$1" =~ ^([0-9]+\.[0-9]+\.[0-9]+|sha-[0-9a-f]{7,40})$ ]]; then
+    if ! is_release_image_tag "$1" && [[ ! "$1" =~ ^sha-[0-9a-f]{7,40}$ ]]; then
         echo "error: expected an image tag like 0.4.0 or sha-5b099f3, got '$1'" >&2
         exit 2
     fi

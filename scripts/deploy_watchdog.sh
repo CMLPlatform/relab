@@ -68,8 +68,14 @@ telemetry_ingress_alerts() {
 #
 # `ahead` counts as drift too: prod has been found carrying local commits that existed
 # nowhere else.
+#
+# A release deploy (IMAGE_TAG=<version>) runs the images built from git tag
+# `release_tag`, so being behind the upstream branch is expected there; the checkout
+# must instead contain that tag. `release_state` is reached, missing or not-ancestor.
+# The upstream is still required, since `pull` fast-forwards from it.
 deployment_drift_alerts() {
     local env="$1" dirty="$2" upstream="$3" behind="$4" ahead="$5"
+    local release_tag="${6:-}" release_state="${7:-}"
     local found=0
 
     if [[ "$dirty" == yes ]]; then
@@ -81,6 +87,17 @@ deployment_drift_alerts() {
         # No upstream means drift cannot be measured at all.
         echo "ALERT[$env]: deploy checkout tracks no upstream branch; drift cannot be detected" >&2
         return $((found + 1))
+    fi
+
+    if [[ -n "$release_tag" ]]; then
+        if [[ "$release_state" == missing ]]; then
+            echo "ALERT[$env]: release tag $release_tag is not in the deploy checkout; drift cannot be detected" >&2
+            found=$((found + 1))
+        elif [[ "$release_state" != reached ]]; then
+            echo "ALERT[$env]: deploy checkout does not contain release tag $release_tag, which IMAGE_TAG runs" >&2
+            found=$((found + 1))
+        fi
+        behind=0
     fi
 
     if ((behind > 0 && ahead > 0)); then
@@ -524,7 +541,9 @@ if ! git_probe="$(git rev-parse --git-dir 2>&1 >/dev/null)"; then
 else
     # Remote-tracking refs go stale without this, and a stale ref reports "no drift"
     # forever. A fetch failure is reportable too: the answer is then unknown.
-    if ! timeout 60 git fetch --quiet origin 2>/dev/null; then
+    # --tags: a release deploy is measured against its tag, and a plain fetch only
+    # brings tags that point into fetched history.
+    if ! timeout 60 git fetch --quiet --tags origin 2>/dev/null; then
         echo "ALERT[$env]: cannot fetch origin; drift is measured against stale refs" >&2
         failures=$((failures + 1))
     fi
@@ -541,7 +560,24 @@ else
         read -r drift_behind drift_ahead < <(git rev-list --left-right --count "$drift_upstream...HEAD" 2>/dev/null || echo "0 0")
     fi
 
-    deployment_drift_alerts "$env" "$drift_dirty" "$drift_upstream" "$drift_behind" "$drift_ahead" || failures=$((failures + $?))
+    # IMAGE_TAG is scrubbed from the shell environment before compose runs, so .env is
+    # the only source of the tag the stack runs.
+    drift_image_tag="$(dotenv_value IMAGE_TAG)"
+    drift_release_tag=""
+    drift_release_state=""
+    if is_release_image_tag "$drift_image_tag"; then
+        drift_release_tag="v$drift_image_tag"
+        if ! git rev-parse --quiet --verify "refs/tags/$drift_release_tag^{commit}" >/dev/null 2>&1; then
+            drift_release_state=missing
+        elif git merge-base --is-ancestor "refs/tags/$drift_release_tag" HEAD 2>/dev/null; then
+            drift_release_state=reached
+        else
+            drift_release_state=not-ancestor
+        fi
+    fi
+
+    deployment_drift_alerts "$env" "$drift_dirty" "$drift_upstream" "$drift_behind" "$drift_ahead" \
+        "$drift_release_tag" "$drift_release_state" || failures=$((failures + $?))
 fi
 
 # Check 5: telemetry actually reaches the collector. No other check here covers
