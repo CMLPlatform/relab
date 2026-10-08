@@ -53,8 +53,9 @@ Security-sensitive areas:
   - The MFA login challenge and every signed-in re-authentication (account deletion, email and
     password changes, social login link and unlink, MFA setup, disable and recovery-code
     rotation) share one per-account budget of password, TOTP and recovery-code checks
-    (`account_guess_budget`). Every check is charged before it runs, right or wrong, so parallel
-    guesses cannot race past the cap. Rotating IPs, routes or fresh login challenges buys no
+    (`account_guess_budget`): a few a minute, and at most 100 a day, so slow guessing paced under
+    the minute limit runs out too. Every check is charged before it runs, right or wrong, so
+    parallel guesses cannot race past the cap. Rotating IPs, routes or fresh login challenges buys no
     extra guesses, so the MFA routes themselves sit on the looser login IP budget.
   - Every mutating `/v1` route carries a rate limit; the exemptions (admin routes, device-signed
     camera routes, routes on the guess budget) are listed and justified in

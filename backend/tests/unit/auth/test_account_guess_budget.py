@@ -1,12 +1,13 @@
 """Unit tests for the per-account guess budget."""
 
+from unittest.mock import patch
 from uuid import uuid4
 
 import anyio
 import pytest
 
 from app.api.auth.exceptions import MfaCodeInvalidError
-from app.api.auth.services.rate_limiter import account_guess_budget
+from app.api.auth.services.rate_limiter import ACCOUNT_GUESS_DAILY_RATE_LIMIT, LOGIN_RATE_LIMIT, account_guess_budget
 from app.api.common.rate_limiting import RateLimitExceededError
 
 pytestmark = pytest.mark.usefixtures("fresh_guess_budget")
@@ -46,3 +47,22 @@ async def test_every_attempt_is_charged() -> None:
     with pytest.raises(RateLimitExceededError):
         async with account_guess_budget(user_id):
             pass
+
+
+async def test_account_guess_budget_has_daily_ceiling() -> None:
+    """Guesses paced under the per-minute limit still stop at the daily ceiling."""
+    user_id = uuid4()
+    clock = [1_000_000.0]
+    per_minute = int(LOGIN_RATE_LIMIT.split("/", 1)[0])
+    per_day = int(ACCOUNT_GUESS_DAILY_RATE_LIMIT.split("/", 1)[0])
+
+    with patch("limits.storage.memory.time.time", side_effect=lambda: clock[0]):
+        for n in range(per_day):
+            if n % per_minute == 0:
+                clock[0] += 61  # A fresh minute window, the daily window keeps counting.
+            async with account_guess_budget(user_id):
+                pass
+        clock[0] += 61
+        with pytest.raises(RateLimitExceededError):
+            async with account_guess_budget(user_id):
+                pass
