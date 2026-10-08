@@ -70,8 +70,16 @@ route_prefixes() {
 smoke_main() {
     local old_zone="${1:?old zone}" new_zone="${2:?new zone}" env="${3:?env}"
     local permanent="${REDIRECT_PERMANENT:-0}" failed=0 entry prefix status result code location
+    local -a entries
 
-    for entry in $(route_prefixes "$env"); do
+    # An unknown env yields no routes; without this it would pass with nothing checked.
+    mapfile -t entries < <(route_prefixes "$env")
+    if [[ ${#entries[@]} -eq 0 ]]; then
+        echo "env must be prod or staging" >&2
+        return 2
+    fi
+
+    for entry in "${entries[@]}"; do
         prefix="${entry%:*}"
         status="${entry#*:}"
         status="$(expected_status "$status" "$permanent")"

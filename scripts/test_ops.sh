@@ -1254,6 +1254,9 @@ assert_eq "no response on a redirect host" "1|FAIL[app.cml-relab.org]: no respon
 assert_eq "permanent maps 302 to 301" "301" "$(expected_status 302 1)"
 assert_eq "permanent maps 307 to 308" "308" "$(expected_status 307 1)"
 assert_eq "temporary keeps the status" "307" "$(expected_status 307 0)"
+# An unknown environment must fail before any request, not pass with nothing checked.
+out="$(TELEMETRY_EDGE_KEY='' bash scripts/smoke_redirects.sh cml-relab.org r9lab.io stagign 2>&1)"
+assert_eq "an unknown environment fails" "2|env must be prod or staging" "$?|$out"
 
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1
