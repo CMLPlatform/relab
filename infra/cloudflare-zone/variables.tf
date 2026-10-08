@@ -83,3 +83,25 @@ variable "redirect_permanent" {
   type        = bool
   default     = false
 }
+
+variable "cloudflare_account_id" {
+  description = <<-EOT
+    Cloudflare account ID. Email Routing destination addresses belong to the account, not
+    the zone. Export as TF_VAR_cloudflare_account_id. Empty (the default) keeps
+    `just cloudflare-check` runnable without secrets; it is only read when
+    email_forwards is non-empty.
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "email_forwards" {
+  description = <<-EOT
+    Email Routing forwards, from local part to destination address. Empty (the default)
+    manages no Email Routing resources at all, so routing set up by hand in the dashboard
+    is never adopted or overwritten. Each destination must be verified once by clicking
+    the link Cloudflare mails to it; until then forwarding to it does not deliver.
+  EOT
+  type        = map(string)
+  default     = {}
+}
