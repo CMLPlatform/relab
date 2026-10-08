@@ -1,7 +1,7 @@
 # r9lab logo: source & generator
 
-The mark is a **font-derived 9, vertically squished** so it reads as a loop and as a mirrored "e"
-(the wordmark reads "R9lab"). The 9 is Titillium Web 600; the R/l/a/b letters come from IBM Plex
+The mark is a **font-derived 9, vertically squished** so it reads as a loop and as a mirrored "e".
+The 9 is Titillium Web 600; the R/l/a/b letters come from IBM Plex
 Sans 600. Output SVGs are self-contained: glyphs are outlined, so no font is needed to render them.
 Colours are the Cyanotype palette from [../DESIGN.md](../DESIGN.md): `#1f4c96` light / `#8fb8ff`
 dark for the 9 and ring, ink `#16202e` / `#e9eff8` for the letters.
