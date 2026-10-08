@@ -178,12 +178,14 @@ ingress only: no record or custom domain is created for them.
    tofu state rm 'cloudflare_dns_record.edge' 'cloudflare_workers_custom_domain.site'
    ```
 
-   Run it once per resource address that the workspace lists in `tofu state list`
-   (`cloudflare_dns_record.edge["app"]`, and so on).
+   Check `tofu state list` first and name only addresses it shows: `state rm` fails on one that
+   is absent. The old zone's CNAMEs and Worker custom domains stay in Cloudflare, unmanaged, on
+   purpose: its redirect rules only fire on proxied hostnames. Do not delete them as orphans.
 3. Plan with the new zone id and the old zone name:
 
    ```bash
    export TF_VAR_cloudflare_zone_id='<new zone id>'
+   export TF_VAR_cloudflare_zone_name='r9lab.io'
    export TF_VAR_legacy_zone_name='cml-relab.org'
    ```
 

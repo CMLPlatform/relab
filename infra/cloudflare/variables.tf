@@ -63,4 +63,9 @@ variable "legacy_zone_name" {
   EOT
   type        = string
   default     = ""
+
+  validation {
+    condition     = var.legacy_zone_name != var.cloudflare_zone_name
+    error_message = "legacy_zone_name must differ from cloudflare_zone_name: export TF_VAR_cloudflare_zone_name for the new zone."
+  }
 }

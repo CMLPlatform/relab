@@ -218,6 +218,22 @@ run "legacy_ingress_only_when_set" {
   }
 
   assert {
+    condition = !anytrue([
+      for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress :
+      contains(["cml-relab.org", "docs.cml-relab.org"], coalesce(rule.hostname, "-"))
+    ])
+    error_message = "only tunnel routes get legacy hostnames: not the apex or docs."
+  }
+
+  assert {
+    condition = (
+      [for r in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : r.service if r.hostname == "api.cml-relab.org"]
+      == [for r in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : r.service if r.hostname == "api.r9lab.io"]
+    )
+    error_message = "a legacy hostname must reach the same origin as its new hostname."
+  }
+
+  assert {
     condition     = reverse(cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress)[0].service == "http_status:404"
     error_message = "the 404 catch-all must stay last with legacy hostnames present."
   }
@@ -270,4 +286,29 @@ run "github_urls_follow_zone_staging" {
     condition     = github_actions_environment_variable.publish["API_PUBLIC_URL"].value == "https://api-test.r9lab.io"
     error_message = "staging API_PUBLIC_URL must follow the zone."
   }
+}
+
+run "legacy_ingress_covers_staging_hosts" {
+  command = plan
+
+  variables {
+    environment      = "staging"
+    legacy_zone_name = "cml-relab.org"
+  }
+
+  assert {
+    condition     = contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : coalesce(rule.hostname, "-")], "app-test.cml-relab.org")
+    error_message = "staging's legacy app host must stay in the ingress."
+  }
+}
+
+run "legacy_zone_must_differ_from_the_zone" {
+  command = plan
+
+  variables {
+    environment      = "prod"
+    legacy_zone_name = "r9lab.io"
+  }
+
+  expect_failures = [var.legacy_zone_name]
 }

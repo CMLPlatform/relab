@@ -111,10 +111,10 @@ if [[ "$mode" == edge ]]; then
         declare -A hosts=([www]="web-test.$zone_name" [app]="app-test.$zone_name" [api]="api-test.$zone_name" [docs]="docs-test.$zone_name")
     fi
 
-    # A missing DNS record is a hard error: the module manages all four, and letting
+    # A missing DNS record is a hard error: the module manages a CNAME for each tunnel route (Worker routes own theirs), and letting
     # one through as a "create" would fight the record that is actually serving.
     declare -A record_ids=()
-    for key in www app api docs; do
+    for key in app api; do
         record_ids[$key]="$(lookup_dns_record "${hosts[$key]}")" \
             || die "no DNS record found for ${hosts[$key]}"
     done
@@ -129,7 +129,7 @@ import {
   id = \"$account/$tunnel_id\"
 }
 "
-    for key in www app api docs; do
+    for key in app api; do
         out+="
 import {
   to = cloudflare_dns_record.edge[\"$key\"]
