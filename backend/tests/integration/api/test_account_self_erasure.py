@@ -118,6 +118,23 @@ async def test_self_deletion_still_signs_out_when_revoking_sessions_fails(
     assert "set-cookie" in response.headers
 
 
+async def test_erase_user_revokes_google_token(
+    api_client: AsyncClient, db_session: AsyncSession, mock_google_token_revocation: AsyncMock
+) -> None:
+    """Erasure revokes the Google grant with the refresh token, after the row is gone."""
+    user = await create_password_user(db_session, email="leaving@example.com", username="leaving_user")
+    await link_google(db_session, user, refresh_token="google-refresh")  # test fixture value, not a credential
+    user_id = user.id
+    headers, _ = await _login(api_client, user)
+
+    with patch(f"{ROUTER}.send_account_deleted_notification", new=AsyncMock()):
+        response = await api_client.request("DELETE", ME, json={"current_password": TEST_PASSWORD}, headers=headers)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert not await _row_exists(db_session, select(OAuthAccount.id).where(OAuthAccount.user_id == user_id))
+    mock_google_token_revocation.assert_awaited_once_with("google-refresh")
+
+
 @pytest.mark.parametrize(
     ("body", "expected"),
     [

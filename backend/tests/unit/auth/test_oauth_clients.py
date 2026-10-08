@@ -17,6 +17,7 @@ from app.api.auth.services.oauth.clients import (
     google_oauth_client,
     google_youtube_oauth_client,
 )
+from app.core.clients.http import create_http_client
 
 
 def test_google_login_client_uses_base_scopes_only() -> None:
@@ -150,3 +151,29 @@ async def test_github_login_reports_a_failed_profile_fetch_as_an_id_email_error(
 
     with pytest.raises(GetIdEmailError):
         await github_oauth_client.get_id_email("token")
+
+
+async def test_google_token_revocation_passes_the_outbound_allowlist(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Revocation goes through the shared client, so its endpoint must stay allowlisted.
+
+    Called through the class: the suite-wide fixture stubs the instance method so no other
+    test reaches Google.
+    """
+    requests: list[httpx.Request] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200)
+
+    transport = httpx.MockTransport(respond)
+    monkeypatch.setattr(
+        "app.api.auth.services.oauth.clients.create_http_client",
+        lambda: create_http_client(transport=transport),
+    )
+
+    await type(google_oauth_client).revoke_token(google_oauth_client, "refresh-value")
+
+    (request,) = requests
+    assert request.method == "POST"
+    assert str(request.url) == "https://accounts.google.com/o/oauth2/revoke"
+    assert b"token=refresh-value" in request.content

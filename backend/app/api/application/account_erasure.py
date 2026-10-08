@@ -18,8 +18,9 @@ from typing import TYPE_CHECKING, Literal
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-from app.api.auth.models import User
+from app.api.auth.models import OAuthAccount, User
 from app.api.auth.services.email_identity import canonicalize_email
+from app.api.auth.services.oauth.accounts import google_tokens_to_revoke, revoke_google_tokens
 from app.api.auth.services.password_hashing import build_password_helper
 from app.api.common.audit import AuditAction, audit_event
 from app.api.common.crud.query import require_model
@@ -109,6 +110,9 @@ async def erase_user(
 
     thumbnails = await _delete_owned_cameras(session, user_id)
 
+    google_tokens = google_tokens_to_revoke(
+        (await session.execute(select(OAuthAccount).where(OAuthAccount.user_id == user_id))).scalars()
+    )
     # OAuth links follow the user row through the delete-orphan cascade.
     await session.delete(db_user)
     await session.flush()
@@ -126,6 +130,7 @@ async def erase_user(
     await cleanup_product_media_storage(pending_media)
     for path in thumbnails:
         remove_preview_thumbnail(path)
+    await revoke_google_tokens(google_tokens)
 
 
 async def require_erasable_account(session: AsyncSession, user: User) -> User:
