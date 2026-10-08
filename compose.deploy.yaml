@@ -292,6 +292,8 @@ services:
       RESTIC_KEEP_HOURLY: "24"
       RESTIC_KEEP_DAILY: "14"
       RESTIC_KEEP_WEEKLY: "8"
+      # NOTE: the privacy page (www/src/pages/privacy.md) states the backup retention
+      # this sets; change both together.
       RESTIC_KEEP_MONTHLY: "12"
       # Offsite copy, run at the end of the DAILY maintenance cycle (the hourly
       # snapshot runs skip it), to the one remote in rclone.conf
@@ -348,10 +350,16 @@ services:
       # healthcheck, so `service_started` is as strict as it gets.
       app:
         condition: service_started
+    # A secret file, not TUNNEL_TOKEN: an environment variable is readable by anyone who
+    # can run `docker inspect` on the host.
     environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN must be set (in root .env on the deploy host)}
+      TUNNEL_TOKEN_FILE: /run/secrets/cloudflare_tunnel_token
+    secrets:
+      - cloudflare_tunnel_token
     command: tunnel --no-autoupdate run
     pull_policy: always
+    # It reads its token and dials out; nothing on its filesystem is written.
+    read_only: true
     # The one service neither hardening anchor in compose.yaml covers, because it is
     # defined only here. The image already runs as 65532; a tunnel dials out over
     # TCP/QUIC and binds nothing, so it needs no capabilities.
@@ -474,6 +482,8 @@ secrets:
     file: ./secrets/${ENVIRONMENT}/microsoft_graph_client_secret
   bootstrap_superuser_password:
     file: ./secrets/${ENVIRONMENT}/bootstrap_superuser_password
+  cloudflare_tunnel_token:
+    file: ./secrets/${ENVIRONMENT}/cloudflare_tunnel_token
 
 networks:
   scanning:

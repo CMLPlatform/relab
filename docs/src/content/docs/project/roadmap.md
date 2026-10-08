@@ -21,6 +21,8 @@ The live work list is tracked in the public
 - [ ] simplify CSV and JSON export from live records toward dataset releases
 - [ ] improve admin and reference-data maintenance workflows
 - [ ] make camera-assisted capture easier to operate in repeated lab workflows
+- [ ] re-apply account and upload erasures after a backup restore, so a restored snapshot
+  stays in step with the deletions made since it was taken (added 2026-10-08)
 
 ## Later
 

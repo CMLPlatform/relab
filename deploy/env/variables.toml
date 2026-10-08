@@ -17,6 +17,9 @@ required_secret_files = [
   # The `backups` profile is part of the default prod/staging `up`, and losing
   # this password makes every existing snapshot unreadable.
   "restic_password",
+  # The Cloudflare tunnel's token, copied from the tunnel in the Cloudflare dashboard;
+  # it cannot be generated locally.
+  "cloudflare_tunnel_token",
 ]
 
 # Secrets that may legitimately be absent or empty because their feature is opt-in:

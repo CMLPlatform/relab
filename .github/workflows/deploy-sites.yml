@@ -121,6 +121,8 @@ jobs:
         uses: ./.github/actions/setup-runtime
         with:
           setup-node: "true"
+          # This job holds CLOUDFLARE_API_TOKEN; build from a clean store.
+          restore-cache: "false"
 
       - name: Install dependencies
         run: just ${{ matrix.site }}/install

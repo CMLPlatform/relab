@@ -268,8 +268,8 @@ that one permission.
 ## Import Workflow
 
 Import anything that already exists in Cloudflare before the first apply, or the plan will try to
-*create* it: duplicate DNS records, a second tunnel whose id does not match the live
-`CLOUDFLARE_TUNNEL_TOKEN`, and a replacement for the one entrypoint ruleset a phase allows.
+*create* it: duplicate DNS records, a second tunnel whose id does not match the live tunnel
+token in `secrets/<env>/cloudflare_tunnel_token`, and a replacement for the one entrypoint ruleset a phase allows.
 
 `generate-imports.sh` writes the `import` blocks, looking up every id through the API. Review the
 file, plan, apply, then delete it: import blocks re-run on every plan until removed.
