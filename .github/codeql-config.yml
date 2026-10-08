@@ -1,4 +1,4 @@
-name: "Relab CodeQL Config"
+name: "R9lab CodeQL Config"
 
 queries:
   - uses: security-and-quality

@@ -4,7 +4,7 @@
 
 Do not open a public GitHub issue for security vulnerabilities.
 
-Instead, email [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl) with:
+Instead, email [info@r9lab.io](mailto:info@r9lab.io) with:
 
 - a clear description of the issue and its potential impact
 - steps to reproduce it, or a proof of concept
@@ -18,12 +18,12 @@ Instead, email [relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl) with:
 
 ## Security Baseline
 
-Relab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the
+R9lab uses [OWASP ASVS](https://github.com/OWASP/ASVS) as the application-security baseline and the
 [OWASP Secure Product Design](https://cheatsheetseries.owasp.org/cheatsheets/Secure_Product_Design_Cheat_Sheet.html)
 lens for product decisions. Keep controls simple, reviewable, and documented near the behavior they
 protect.
 
-[Security and hardening](https://docs.cml-relab.org/operations/security/) is the reference for the
+[Security and hardening](https://docs.r9lab.io/operations/security/) is the reference for the
 deployed security posture: assets and data classes, account privileges, the edge and application
 rate limits, the trust boundaries, the egress policy, the browser runtime policy, and the supply
 chain. This page holds what a reviewer of a change needs on top of it.
@@ -155,7 +155,7 @@ Supply-chain and code-security checks:
   from, and every job in the `staging` and `prod` Environments waits for a required reviewer.
 - Runtime images: Trivy scans and SPDX JSON SBOM artifacts.
 - Infrastructure as code: Trivy misconfiguration scans for supported repo config files, OpenTofu
-  validates Cloudflare edge config, plus Relab Compose render and deploy secret path checks.
+  validates Cloudflare edge config, plus R9lab Compose render and deploy secret path checks.
 - Source code: CodeQL.
 - Secrets: Gitleaks.
 - GitHub Actions workflows: actionlint and Zizmor.
