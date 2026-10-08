@@ -146,3 +146,15 @@ async def test_clear_totp_wipes_mfa_enrolment_on_a_real_row(db_session: AsyncSes
     assert user.mfa_totp_secret is None
     assert user.mfa_confirmed_at is None
     assert user.mfa_recovery_codes == []
+
+
+async def test_username_insert_that_passed_the_check_gets_a_conflict(db_session: AsyncSession) -> None:
+    """An insert that reaches the unique index after a concurrent signup is a username conflict.
+
+    Skipping the pre-check reproduces the state of the losing request in that race.
+    """
+    await UserFactory.create_async(db_session, email="winner@example.com", username="raced_name")
+    user_db = _make_user_db(db_session)
+
+    with pytest.raises(UserNameAlreadyExistsError):
+        await user_db.create({"email": "loser@example.com", "hashed_password": "x", "username": "raced_name"})

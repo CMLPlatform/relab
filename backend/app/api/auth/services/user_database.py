@@ -10,8 +10,10 @@ from typing import TYPE_CHECKING, Any, cast
 from fastapi_users.models import ID, UP
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy import String, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
+from app.api.auth.exceptions import UserNameAlreadyExistsError
 from app.api.auth.services.email_identity import canonicalize_email
 from app.api.common.models.base import Base
 from app.core.crypto.sqlalchemy import EncryptedString
@@ -63,6 +65,16 @@ class BaseOAuthAccountDB(Base):
     account_email: Mapped[str] = mapped_column(String)
 
 
+# The unique index on user.username. The username checks in crud.py run before the
+# write, so two concurrent requests can both pass them; the loser hits this index.
+USERNAME_UNIQUE_INDEX = "ix_user_username"
+
+
+def _raise_if_username_taken(exc: IntegrityError, username: str | None) -> None:
+    if username is not None and USERNAME_UNIQUE_INDEX in str(exc.orig):
+        raise UserNameAlreadyExistsError(username) from exc
+
+
 class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
     """FastAPI-Users SQLAlchemy adapter with Relab's canonical email lookup."""
 
@@ -73,6 +85,22 @@ class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
         oauth_account_table: type[BaseOAuthAccountDB] | None = None,
     ) -> None:
         super().__init__(session, user_table, cast("Any", oauth_account_table))
+
+    async def create(self, create_dict: dict[str, Any]) -> UP:
+        """Insert a user, reporting a lost race for the username as a username conflict."""
+        try:
+            return await super().create(create_dict)
+        except IntegrityError as exc:
+            _raise_if_username_taken(exc, create_dict.get("username"))
+            raise
+
+    async def update(self, user: UP, update_dict: dict[str, Any]) -> UP:
+        """Update a user, reporting a lost race for the username as a username conflict."""
+        try:
+            return await super().update(user, update_dict)
+        except IntegrityError as exc:
+            _raise_if_username_taken(exc, update_dict.get("username"))
+            raise
 
     async def get_by_email(self, email: str) -> UP | None:
         """Get a single user by Relab's canonical email identity."""
