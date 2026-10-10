@@ -397,8 +397,10 @@ taxonomy (Potting et al. 2017) never measured. Rung numbers (`R0`…`R9`) are mo
 accent**, the component's only accent use. The stair unit shrinks from `1.15rem` to `0.5rem` under
 50rem rather than switching layout.
 
-Tier names are `<p>` figure labels inside `role="group"` wrappers, not headings: the page's own
-H2s carry the outline. Risers and treads are 1px `--relab-brand-divider`.
+The figure shows no tier names: the page's own H2s carry them and the outline. Each tier is a
+landing (gap and hairline) followed by its own `<ol>`, labelled with the tier name through
+`aria-label` so screen readers still hear the grouping. The two end labels, "Most circular" and
+"Last resort", match the page intro. Risers and treads are 1px `--relab-brand-divider`.
 
 ### Mermaid diagrams (third-party, partially themed, drift risk)
 

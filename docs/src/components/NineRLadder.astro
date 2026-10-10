@@ -38,15 +38,13 @@ const stepOf = (r: string): number => Number(r.slice(1));
   <p class="ladder-end ladder-end-top">Most circular</p>
   <div class="ladder">
     {
-      tiers.map((tier, i) => (
-        // A figure label, not a heading: the page's own H2s name the tiers, and
-        // an h3 here would sit straight under the page H1.
-        <div class="tier" role="group" aria-labelledby={`ladder-tier-${i}`}>
-          <p class="tier-label" id={`ladder-tier-${i}`}>
-            {tier.label}
-          </p>
-          {/* Explicit role: WebKit drops list semantics under list-style: none. */}
-          <ol class="rungs" role="list">
+      tiers.map((tier) => (
+        <div class="tier">
+          {/* The page's H2s show the tier names; the figure only shows the
+              landing between tiers, so the name reaches screen readers as the
+              list's label. Explicit role: WebKit drops list semantics under
+              list-style: none. */}
+          <ol class="rungs" role="list" aria-label={tier.label}>
             {tier.rungs.map((rung) => (
               /* --step is the rank across all three tiers, so the indent keeps
                  descending across a tier boundary. */
@@ -85,22 +83,12 @@ const stepOf = (r: string): number => Number(r.slice(1));
     gap: 1.4rem;
   }
 
-  /* Each tier is its own flight, set off by a landing (gap, rule, label). */
+  /* Each tier is its own flight, set off by a landing (gap and rule). */
   .tier {
     display: grid;
     gap: 0.35rem;
     border-top: 1px solid var(--relab-brand-divider);
     padding-top: 0.6rem;
-  }
-
-  .tier-label {
-    margin: 0;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: var(--sl-text-xs);
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--sl-color-gray-3);
   }
 
   .rungs {
