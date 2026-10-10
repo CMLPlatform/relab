@@ -98,6 +98,7 @@
 20 app.api.auth.services.mfa_flow.x_disable_totp
 1 app.api.auth.services.mfa_flow.x__load_enrolled_mfa_user
 20 app.api.auth.services.mfa_flow.x_regenerate_recovery_codes
+11 app.api.auth.services.mfa_flow.x_require_account_update_step_up
 7 app.api.auth.services.mfa_flow.x_require_mfa_step_up
 4 app.api.auth.services.mfa_flow.x_require_step_up
 5 app.api.auth.services.mfa_flow.x_start_totp_setup

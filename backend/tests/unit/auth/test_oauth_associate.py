@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, cast
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID, uuid4
 
@@ -15,6 +15,7 @@ from app.api.auth.exceptions import (
     OAuthInvalidRedirectURIError,
     OAuthInvalidStateError,
 )
+from app.api.auth.models import OAuthAccount
 from app.api.auth.services.oauth.associate import (
     _require_account_email,
     _require_account_not_linked_elsewhere,
@@ -121,6 +122,14 @@ def _make_config() -> tuple[OAuthFlowConfig, MagicMock, MagicMock]:
     return config, oauth_client, user_schema
 
 
+def _assert_looked_up_account(um: _FakeUserManager, *, oauth_name: str, account_id: str) -> None:
+    """Assert the existing-link lookup selects OAuth accounts by provider name and account id."""
+    statement = um.user_db.session.execute.await_args.args[0]
+    assert statement.column_descriptions[0]["entity"] is OAuthAccount
+    where = str(statement.whereclause.compile(compile_kwargs={"literal_binds": True}))
+    assert where == f"oauthaccount.oauth_name = '{oauth_name}' AND oauthaccount.account_id = '{account_id}'"
+
+
 def _user(user_id: UUID | None = None) -> User:
     return UserFactory.build(id=user_id or uuid4())
 
@@ -154,7 +163,8 @@ async def test_same_user_reassociate_updates_token_in_place() -> None:
     oauth_client.get_id_email = AsyncMock(return_value=("account-id", "me@example.com"))
     existing_account = SimpleNamespace(user_id=user.id)
     um = _fake_user_manager(existing_account)
-    um.user_db.update_oauth_account.return_value = user
+    updated_user = _user(user.id)
+    um.user_db.update_oauth_account.return_value = updated_user
     user_schema.model_validate = MagicMock(return_value="validated-user")
 
     token = {"access_token": "new-access", "expires_at": 1234, "refresh_token": "new-refresh"}
@@ -168,9 +178,12 @@ async def test_same_user_reassociate_updates_token_in_place() -> None:
         user_schema=user_schema,
     )
 
+    oauth_client.get_id_email.assert_awaited_once_with("new-access")
+    _assert_looked_up_account(um, oauth_name="google", account_id="account-id")
     um.user_db.update_oauth_account.assert_awaited_once()
     args = um.user_db.update_oauth_account.await_args
     assert args is not None
+    assert args.args[0] is user
     assert args.args[1] is existing_account
     assert args.args[2] == {
         "access_token": "new-access",
@@ -178,6 +191,8 @@ async def test_same_user_reassociate_updates_token_in_place() -> None:
         "refresh_token": "new-refresh",
     }
     um.oauth_associate_callback.assert_not_called()
+    # The response describes the account as the update left it.
+    user_schema.model_validate.assert_called_once_with(updated_user)
     assert result == "validated-user"
 
 
@@ -190,18 +205,29 @@ async def test_new_account_invokes_associate_callback() -> None:
     um.oauth_associate_callback.return_value = user
     user_schema.model_validate = MagicMock(return_value="validated-user")
 
-    request, access_token_state = _access_token_state(config, {"access_token": "at"}, user.id)
-    result = await handle_oauth_associate_callback(
-        config,
-        request,
-        user,
-        access_token_state,
-        um,  # ty: ignore[invalid-argument-type]
-        user_schema=user_schema,
-    )
+    token = {"access_token": "at", "expires_at": 1234, "refresh_token": "rt"}
+    request, access_token_state = _access_token_state(config, token, user.id)
+    background_tasks = MagicMock()
+    with patch("app.api.auth.services.oauth.associate.send_oauth_link_changed_notification", new=AsyncMock()) as notify:
+        result = await handle_oauth_associate_callback(
+            config,
+            request,
+            user,
+            access_token_state,
+            um,  # ty: ignore[invalid-argument-type]
+            user_schema=user_schema,
+            background_tasks=background_tasks,
+        )
 
-    um.oauth_associate_callback.assert_awaited_once()
+    _assert_looked_up_account(um, oauth_name="google", account_id="account-id")
+    um.oauth_associate_callback.assert_awaited_once_with(
+        user, "google", "at", "account-id", "me@example.com", 1234, "rt", request
+    )
     um.user_db.update_oauth_account.assert_not_called()
+    # A new link is announced to the account owner out of band.
+    notify.assert_awaited_once_with(
+        user.email, user.username, oauth_provider="google", linked=True, background_tasks=background_tasks
+    )
     assert result == "validated-user"
 
 
