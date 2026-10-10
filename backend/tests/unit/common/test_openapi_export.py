@@ -79,6 +79,40 @@ def test_device_schema_covers_pairing_register_and_poll_only(exported_schemas: P
     assert "/v1/plugins/rpi-cam/pairing/claim" not in device_paths
 
 
+@pytest.mark.parametrize("filename", ["openapi.public.json", "openapi.device.json", "openapi.json"])
+def test_no_operation_repeats_a_tag(exported_schemas: Path, filename: str) -> None:
+    """A tag listed twice on one operation shows that operation twice in the API reference."""
+    paths = json.loads((exported_schemas / filename).read_text(encoding="utf-8"))["paths"]
+
+    repeated = [
+        f"{method.upper()} {path}: {operation['tags']}"
+        for path, operations in paths.items()
+        for method, operation in operations.items()
+        if len(operation.get("tags", [])) != len(set(operation.get("tags", [])))
+    ]
+    assert repeated == []
+
+
+@pytest.mark.parametrize("action", ["login", "refresh", "logout"])
+def test_auth_transports_have_their_own_summaries(exported_schemas: Path, action: str) -> None:
+    """The bearer and session variants of an auth action must read differently in the reference."""
+    paths = json.loads((exported_schemas / "openapi.public.json").read_text(encoding="utf-8"))["paths"]
+
+    bearer = paths[f"/v1/auth/bearer/{action}"]["post"]["summary"]
+    session = paths[f"/v1/auth/session/{action}"]["post"]["summary"]
+
+    assert "bearer-token" in bearer
+    assert "browser session" in session
+
+
+def test_schema_info_names_the_institute(exported_schemas: Path) -> None:
+    """The reference title uses an en dash and the description spells out CML."""
+    info = json.loads((exported_schemas / "openapi.public.json").read_text(encoding="utf-8"))["info"]
+
+    assert info["title"] == "R9lab \u2013 Data Collection API"
+    assert "Institute of Environmental Sciences (CML), Leiden University" in info["description"]
+
+
 def test_schemas_are_current_detects_stale_schema(
     exported_schemas: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -46,7 +46,7 @@ test.describe('API reference pages', () => {
     // sidebar and search that do render belong to Scalar.
     await expect(page.locator('site-search')).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'R9lab - Data Collection API' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'R9lab – Data Collection API' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.public.json',

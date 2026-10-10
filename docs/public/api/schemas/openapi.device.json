@@ -370,12 +370,12 @@
     }
   },
   "info": {
-    "description": "Data collection app for the R9lab project at CML.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
+    "description": "Data collection app for the R9lab project at the Institute of Environmental Sciences (CML), Leiden University.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
     "license": {
       "identifier": "Apache-2.0",
       "name": "Apache-2.0"
     },
-    "title": "R9lab - Data Collection API",
+    "title": "R9lab \u2013 Data Collection API",
     "version": "1.0.0",
     "x-api-major": "v1",
     "x-api-version": "1.0.0",
@@ -433,7 +433,6 @@
         },
         "summary": "Internal: receive an image pushed directly from a paired Raspberry Pi",
         "tags": [
-          "rpi-cam-device",
           "rpi-cam-device"
         ],
         "x-audience": [
@@ -491,7 +490,6 @@
         },
         "summary": "Internal: receive a cached preview thumbnail pushed directly from a paired Raspberry Pi",
         "tags": [
-          "rpi-cam-device",
           "rpi-cam-device"
         ],
         "x-audience": [

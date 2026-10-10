@@ -30,9 +30,7 @@ _BEARER_SCHEME = "bearer"
 # The login IP budget, shared with password login. Guessing is capped per account by
 # account_guess_budget, which mfa_flow charges on every credential check, right or wrong,
 # and per challenge token (mfa_service), not by this per-IP limit.
-router = APIRouter(
-    prefix="/mfa", tags=["auth"], dependencies=[limiter.dependency(LOGIN_IP_RATE_LIMIT, name="login_ip_rate_limit")]
-)
+router = APIRouter(prefix="/mfa", dependencies=[limiter.dependency(LOGIN_IP_RATE_LIMIT, name="login_ip_rate_limit")])
 
 
 @router.post(

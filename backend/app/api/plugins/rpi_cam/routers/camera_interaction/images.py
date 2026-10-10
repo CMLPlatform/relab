@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 router = PublicAPIRouter()
-device_router = DeviceAPIRouter(tags=["rpi-cam-device"])
+device_router = DeviceAPIRouter()
 ZERO_SIZE_UPLOAD_MESSAGE = "File size is zero."
 EMPTY_PREVIEW_UPLOAD_MESSAGE = "Preview thumbnail upload was empty"
 

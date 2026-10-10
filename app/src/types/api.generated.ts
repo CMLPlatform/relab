@@ -1537,7 +1537,7 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Auth:Bearer.Refresh
+     * Refresh tokens for bearer-token clients
      * @description Refresh access token using refresh token for bearer auth.
      *
      *     Validates refresh token and issues new access token.
@@ -1559,7 +1559,7 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Auth:Session.Refresh
+     * Refresh tokens for browser sessions
      * @description Refresh access token using refresh token from cookie.
      *
      *     Validates refresh token cookie and issues new access token cookie.
@@ -1581,7 +1581,7 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Auth:Bearer.Logout
+     * Log out a bearer-token client
      * @description Logout a bearer client and revoke its supplied refresh token.
      */
     post: operations['auth_bearer_logout_v1_auth_bearer_logout_post'];
@@ -1601,7 +1601,7 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Auth:Session.Logout
+     * Log out a browser session
      * @description Logout a browser session, revoke refresh state, and clear browser storage.
      */
     post: operations['auth_session_logout_v1_auth_session_logout_post'];
@@ -1621,7 +1621,7 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Auth:Sessions.Revoke All
+     * Revoke every session of the current user
      * @description Revoke all refresh tokens for the current user and clear browser session state.
      */
     post: operations['auth_sessions_revoke_all_v1_auth_sessions_revoke_all_post'];
