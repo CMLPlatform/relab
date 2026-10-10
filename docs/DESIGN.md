@@ -114,7 +114,8 @@ Docs does not re-author that system. A **thin brand layer** (`brand.css` and
 `tokens.generated.css`, ~123 lines combined) loads before Starlight's styles in `customCss` and
 overrides a short list of Starlight tokens. Everything else is unmodified Starlight default:
 spacing rhythm, sidebar layout, search modal, table styling, code block chrome (Expressive Code),
-badge and aside components, table-of-contents behavior. The `R9lab-authored vs. Starlight-default`
+badge and aside components (except the danger aside, see [Components](#components)),
+table-of-contents behavior. The `R9lab-authored vs. Starlight-default`
 note under each section marks the boundary.
 
 **The duplicated brand rules below are duplicated on purpose. Do not deduplicate them into a
@@ -358,7 +359,17 @@ two swapped component slots:
   **primary CTA button** ("Open app") for the `external`-typed social link. Filled
   `--relab-brand-primary`, `--radius-control` corners, `--relab-brand-primary-strong` on hover.
   Starlight hides the header's right group below 50rem, so on phones the CTA lives in the menu
-  footer.
+  footer: Starlight's mobile menu footer renders the same `SocialIcons` slot.
+- **Menu button** (phones, `components.css`): in the dark theme, Starlight's white disc with a drop
+  shadow becomes `--relab-brand-surface` with a 1px `--relab-brand-divider` hairline,
+  `--relab-brand-text` icon and no shadow. The light theme keeps Starlight's dark disc.
+
+### Asides (Starlight-inherited, danger flattened)
+
+Note, tip and caution asides are Starlight default. The **danger** aside (`components.css`) is flat:
+a 1px `--sl-color-red` hairline on all sides, the page ground as background, and
+`--sl-color-red-high` text for the title and body. Measured on the ground, the text is 9.2:1 light and 12.1:1 dark, the
+border 3.5:1 and 5.5:1.
 
 ### Cards (R9lab-authored)
 

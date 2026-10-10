@@ -109,3 +109,22 @@
   margin-top: -1rem;
   font-size: var(--sl-text-sm);
 }
+
+/* Danger asides are flat (DESIGN.md, Elevation): a red hairline and red text on
+   the page ground instead of Starlight's filled red panel. On the ground,
+   red-high text is 9.2:1 light / 12.1:1 dark and the red border 3.5:1 / 5.5:1. */
+.starlight-aside--danger {
+  border: 1px solid var(--sl-color-red);
+  background-color: var(--sl-color-bg);
+  color: var(--sl-color-red-high);
+}
+
+/* Starlight draws the dark-theme menu button as a white disc with a drop
+   shadow, the brightest thing in the header. It takes the surface token and a
+   hairline instead, open or closed. */
+:root[data-theme="dark"] .sl-menu-button {
+  border: 1px solid var(--relab-brand-divider);
+  background-color: var(--relab-brand-surface);
+  color: var(--relab-brand-text);
+  box-shadow: none;
+}
