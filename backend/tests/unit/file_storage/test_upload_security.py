@@ -16,6 +16,7 @@ from app.api.file_storage.upload_security import (
     CLAMAV_CHUNK_SIZE,
     ClamAVScanner,
     MalwareDetectedError,
+    MalwareScanUnavailableError,
     get_upload_scanner,
     probe_malware_scanner,
     scan_upload_or_raise,
@@ -169,6 +170,20 @@ async def test_clamav_scanner_tolerates_non_utf8_scanner_output(monkeypatch: pyt
     _patch_clamav(monkeypatch, _ClamAVResponseStream(b"stream: \xff OK\0"))
 
     await ClamAVScanner(host="clamav", port=3310, timeout_seconds=1).scan(BytesIO(b"clean"))
+
+
+async def test_clamav_scanner_error_reply_is_logged_not_returned(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A scanner error reply goes to the server log; the client only sees that scanning is unavailable."""
+    _patch_clamav(monkeypatch, _ClamAVResponseStream(b"INSTREAM size limit exceeded. ERROR\0"))
+
+    with pytest.raises(MalwareScanUnavailableError) as exc_info:
+        await ClamAVScanner(host="clamav", port=3310, timeout_seconds=1).scan(BytesIO(b"x"))
+
+    assert exc_info.value.message == "Malware scanning is unavailable."
+    assert exc_info.value.details is None
+    assert exc_info.value.log_message == (
+        "Malware scanning is unavailable. Scanner reply: INSTREAM size limit exceeded. ERROR"
+    )
 
 
 async def test_clamav_scanner_times_out_as_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
