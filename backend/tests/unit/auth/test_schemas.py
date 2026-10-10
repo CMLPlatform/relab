@@ -125,3 +125,12 @@ def test_public_profile_without_products_has_no_top_category() -> None:
     view = PublicProfileView.from_profile_stats(username="alice", created_at=None, stats=ProfileStatsData())
 
     assert view.top_category is None
+
+
+def test_public_profile_weight_keeps_whole_grams() -> None:
+    """164 g reads as 0.164 kg, so a client can show "164 g" rather than a rounded 160."""
+    view = PublicProfileView.from_profile_stats(
+        username="alice", created_at=None, stats=ProfileStatsData(total_weight_g=164)
+    )
+
+    assert view.total_weight_kg == 0.164
