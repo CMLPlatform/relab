@@ -56,8 +56,8 @@
 }
 
 @media (max-width: 760px) {
+  /* Same 1rem gutter as the header and footer, so text and chrome share one edge. */
   .page-shell {
-    width: min(calc(100% - 1.25rem), var(--content-width));
     padding-top: 1.5rem;
     padding-bottom: 2rem;
   }
