@@ -43,7 +43,7 @@ describe('ProductMaterials', () => {
       <ProductMaterials product={withMaterials([{ ...aluminum, source: undefined }])} />,
     );
 
-    expect(screen.getByText('No reference recorded for this material.')).toBeOnTheScreen();
+    expect(screen.getByText('No reference recorded.')).toBeOnTheScreen();
   });
 
   it('renders nothing for a record whose materials were never loaded', async () => {

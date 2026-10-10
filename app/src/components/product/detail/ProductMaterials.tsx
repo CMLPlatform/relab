@@ -61,9 +61,7 @@ function MaterialRow({ material }: { material: ProductMaterial }) {
         editable={false}
       />
       <AppText variant="caption" className="mb-2 px-4 text-muted-foreground">
-        {material.source
-          ? `Material reference: ${material.source}`
-          : 'No reference recorded for this material.'}
+        {material.source ? `Material reference: ${material.source}` : 'No reference recorded.'}
       </AppText>
     </Animated.View>
   );

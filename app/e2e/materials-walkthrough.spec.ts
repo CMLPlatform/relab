@@ -30,7 +30,7 @@ const SEEDED_SUBASSEMBLY_TYPE = 'Display module';
 const SEEDED_SUBASSEMBLY_TYPE_DESCRIPTION = 'A screen assembly supplied as one replaceable unit.';
 // The seeded materials carry no reference, and the row says so rather than
 // showing a placeholder URL.
-const SEEDED_MATERIAL_REFERENCE = 'No reference recorded for this material.';
+const SEEDED_MATERIAL_REFERENCE = 'No reference recorded.';
 
 /**
  * The router keeps the product screen mounted behind the component screen, so
