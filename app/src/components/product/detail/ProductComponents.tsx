@@ -94,9 +94,7 @@ export default function ProductComponents({ product, editMode, canEdit }: Props)
   return (
     <View>
       {components.length === 0 && (
-        <AppText style={{ opacity: 0.7, marginBottom: 8 }}>
-          This {label} has no subcomponents.
-        </AppText>
+        <AppText className="mb-2 text-muted-foreground">This {label} has no subcomponents.</AppText>
       )}
       {typeof product.id === 'number' && components.length > 0 ? (
         <WeightTotal productId={product.id} />
@@ -164,7 +162,7 @@ function WeightTotal({ productId }: { productId: number }) {
     else text = `Components weigh at least ${grams.format(total)} g: ${without}.`;
   }
   return (
-    <AppText variant="label" className="mb-2 text-muted-foreground">
+    <AppText variant="caption" className="mb-2 text-muted-foreground">
       {text}
     </AppText>
   );

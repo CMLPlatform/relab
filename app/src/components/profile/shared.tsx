@@ -53,7 +53,9 @@ export function ProfileAction({
             {title}
           </AppText>
           {subtitle ? (
-            <AppText className="mt-px text-[13px] text-muted-foreground">{subtitle}</AppText>
+            <AppText variant="caption" className="mt-px text-muted-foreground">
+              {subtitle}
+            </AppText>
           ) : null}
         </View>
       </View>

@@ -109,7 +109,7 @@ export function ComponentRow({ component, enabled, onDuplicate }: Props) {
               {displayName}
             </AppText>
             {component.productTypeName ? (
-              <AppText variant="label" className="text-muted-foreground">
+              <AppText variant="caption" className="text-muted-foreground">
                 {component.productTypeName}
               </AppText>
             ) : null}
@@ -184,7 +184,7 @@ function ChildrenReveal({ children }: { children: ReactNode }) {
 function ExpandedNote({ text }: { text: string }) {
   return (
     <View className="min-h-11 justify-center">
-      <AppText variant="label" className="text-muted-foreground">
+      <AppText variant="caption" className="text-muted-foreground">
         {text}
       </AppText>
     </View>
