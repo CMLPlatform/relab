@@ -82,6 +82,14 @@ stops before touching the running stack and prints these steps.
 
 ### Fixed
 
+- In the web app, expanding a component in a product's component list no longer draws its
+  sub-components on top of the rows below it.
+- On a phone, the amount stepper in edit mode fits the screen, and a deeply nested
+  component's header shows its parent and its own name instead of running off the edge.
+- Keyboard and screen-reader focus starts on the record's name when a product or component
+  page opens, instead of at the top of the document.
+- The delete confirmation says that a record's components, and all their photos and files,
+  are deleted with it.
 - When the ClamAV scanner answers an upload with an error, the API log now includes its
   reply, so a rejected upload can be traced to its cause. Clients still see only that
   scanning is unavailable.
