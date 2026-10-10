@@ -212,13 +212,33 @@ the move, so an apply that leaves it unset still serves the old hosts.
       `*_PUBLIC_URL` variables, and this apply is what points them at the new zone: run Publish
       Images by hand for staging, and cut the release for prod only after prod's edge apply.
    5. **The cutover window.** Keep it to one `YES`:
-      1. Plan the old zone's redirect apply (see
-         [Redirecting the old zone](../cloudflare-zone/README.md#redirecting-the-old-zone)) right
-         before the next step. `just cloudflare-zone-apply cml-relab.org` saves the plan and stops;
-         a saved plan stays valid for twenty minutes. For staging, export the `TF_VAR_redirect_*`
-         variables. For prod, the committed `cml-relab.org.tfvars` overrides them: edit its
-         `redirect_environments` to `["prod", "staging"]` before planning, and commit that edit
-         once the apply lands.
+      1. Plan the old zone's redirect apply right before the next step; do the pre-check in
+         [Redirecting the old zone](../cloudflare-zone/README.md#redirecting-the-old-zone) before
+         the first window. `just cloudflare-zone-apply cml-relab.org` saves the plan and stops; a
+         saved plan stays valid for twenty minutes.
+         - **Staging:**
+
+           ```bash
+           export TF_VAR_redirect_to_zone_name='r9lab.io'
+           export TF_VAR_redirect_environments='["staging"]'
+           just cloudflare-zone-apply cml-relab.org
+           ```
+
+           Expect one ruleset with four rules, none for a prod host. Once the apply lands, commit
+           `infra/cloudflare-zone/cml-relab.org.tfvars`:
+
+           ```hcl
+           redirect_to_zone_name = "r9lab.io"
+           redirect_environments = ["staging"]
+           ```
+
+         - **Prod:** the committed tfvars wins over any `TF_VAR_redirect_environments`, so
+           exporting `'["prod", "staging"]'` changes nothing. Edit `cml-relab.org.tfvars` in your
+           checkout to `redirect_environments = ["prod", "staging"]` before planning, expect eight
+           rules, and commit the edit once the apply lands.
+
+         Never commit an environment before its own apply: the next old-zone apply would
+         redirect it.
       2. Point the host's root `.env` at the new zone (`*_PUBLIC_URL`, `EMAIL_*`, `SMTP_*`). Check
          that `gh variable get API_PUBLIC_URL --env <env>` prints the same `API_PUBLIC_URL`, then
          deploy the new image tag.

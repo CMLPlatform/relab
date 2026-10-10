@@ -64,48 +64,24 @@ The old zone's workspace sets `redirect_to_zone_name` to send every route-map ho
 name on the new zone. `redirect_environments` limits the rules to the environments being cut over,
 so each environment keeps serving from the old zone until its own window:
 
-1. **Before the first window**, check that the old zone has no redirect ruleset made in the
-   dashboard. This call must print `404`:
+**Before the first window**, check that the old zone has no redirect ruleset made in the
+dashboard. This call must print `404`:
 
-   ```bash
-   curl -s -o /dev/null -w '%{http_code}\n' "https://api.cloudflare.com/client/v4/zones/<old zone id>/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
-     -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
-   ```
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' "https://api.cloudflare.com/client/v4/zones/<old zone id>/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+```
 
-   If it exists (`200`), delete it in the dashboard or import it as `cloudflare_ruleset.redirects[0]`
-   with the id `zones/<old zone id>/<ruleset id>`, with `TF_VAR_redirect_to_zone_name` set.
-   Otherwise the redirect apply fails with "already exists" inside the cutover window.
-2. **Staging**, inside its cutover window: plan right before the host's `.env` switch and type
-   `YES` straight after it (see
-   [Moving the edge to another zone](../cloudflare/README.md#moving-the-edge-to-another-zone)):
+If it exists (`200`), delete it in the dashboard or import it as `cloudflare_ruleset.redirects[0]`
+with the id `zones/<old zone id>/<ruleset id>`, with `TF_VAR_redirect_to_zone_name` set.
+Otherwise the redirect apply fails with "already exists" inside the cutover window.
 
-   ```bash
-   export TF_VAR_redirect_to_zone_name='r9lab.io'
-   export TF_VAR_redirect_environments='["staging"]'
-   just cloudflare-zone-apply cml-relab.org
-   ```
-
-   Expect one ruleset with four rules, none for a prod host. `redirect_environments` defaults to
-   `[]`, and a validation requires a non-empty set whenever `redirect_to_zone_name` is set: a plan
-   that turns redirects on without naming the environments fails rather than redirecting prod by
-   omission. Once the apply lands, commit `infra/cloudflare-zone/cml-relab.org.tfvars`:
-
-   ```hcl
-   redirect_to_zone_name = "r9lab.io"
-   redirect_environments = ["staging"]
-   ```
-
-   The recipes pass it as `-var-file`, which overrides `TF_VAR_*`, so a later old-zone apply run
-   without those variables cannot drop the redirects.
-3. **Prod**, in its own window later. The committed tfvars now wins over any
-   `TF_VAR_redirect_environments`, so exporting `'["prod", "staging"]'` changes nothing. Instead,
-   edit `cml-relab.org.tfvars` in your checkout to `redirect_environments = ["prod", "staging"]`,
-   then plan and apply from it with `just cloudflare-zone-apply cml-relab.org` and `YES`: expect
-   eight rules. Commit the edit once the apply lands. Never commit an environment before its own
-   apply: the next old-zone apply would redirect it.
-
-After each apply, `just smoke-redirects cml-relab.org r9lab.io <env>` checks the live redirects
-for that environment.
+`redirect_environments` defaults to `[]`, and a validation requires a non-empty set whenever
+`redirect_to_zone_name` is set: a plan that turns redirects on without naming the environments
+fails rather than redirecting prod by omission. The recipes pass `cml-relab.org.tfvars` as
+`-var-file`, which overrides `TF_VAR_*`, so a later old-zone apply run without those variables
+cannot drop the redirects. The apply steps for each environment are in
+[Moving the edge to another zone](../cloudflare/README.md#moving-the-edge-to-another-zone).
 
 ## Mail
 
