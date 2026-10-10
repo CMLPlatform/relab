@@ -396,7 +396,9 @@ Rendered client-side via `mermaid` + `@mermaid-js/layout-elk`, orchestrated by
 `themeVariables` as literal hex copied from the brand tokens or hand-tuned, with no update path
 (see Colors § Diagram & chart palette). **Content** (node and edge categorical colors) is themed via literal hex
 `classDef` lines in the `.mdx` files. The wrapping frame (`.relab-mermaid`: border, radius,
-background tint, horizontal scroll for overflow) is R9lab-authored in `components.css`.
+background tint) is R9lab-authored in `components.css`. A diagram scales down to the frame width
+and never scrolls sideways; a "View full size" link under it opens the rendered SVG at its natural
+size in a new tab (a blob URL, with the page ground as background).
 
 ### API reference pages (third-party, token-themed)
 

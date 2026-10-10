@@ -78,7 +78,6 @@
 .relab-mermaid {
   margin: 1rem 0 1.5rem;
   padding: 1rem;
-  overflow-x: auto;
   border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 16%, transparent);
   background: color-mix(in srgb, var(--relab-brand-primary) 6%, var(--relab-brand-background));
@@ -89,12 +88,6 @@
    Desktop only: below this the column is already full width and a break-out
    would cause horizontal scroll. */
 @media (min-width: 72rem) {
-  /* Inline surfaces stay flat (DESIGN.md, Elevation): Starlight's prev/next
-   cards drop their stock drop shadow. */
-  .pagination-links a {
-    box-shadow: none;
-  }
-
   .relab-mermaid {
     --relab-mermaid-bleed: calc(var(--sl-content-pad-x) - 0.5rem);
 
@@ -103,11 +96,16 @@
   }
 }
 
-/* Diagrams scroll rather than shrink. Mermaid emits width="100%" with the
-   natural size only as an inline `max-width`; a `min-width: 100%` here would
-   force the SVG to fit and only ever scale down. The width cannot be recovered
-   in CSS (a percent-sized SVG has no intrinsic width), so
-   pinDiagramToIntrinsicWidth() in src/scripts/mermaid.ts sets it after render. */
+/* Diagrams fit the frame: mermaid emits width="100%" with the natural width as
+   an inline max-width, so a wide diagram scales down and a narrow one keeps its
+   size. The "View full size" link under each opens it unscaled
+   (src/scripts/mermaid.ts). */
 .relab-mermaid svg {
-  max-width: none;
+  height: auto;
+}
+
+/* Starlight spaces flow content by margin-top; pull the link up to the frame. */
+.sl-markdown-content .relab-mermaid + .relab-mermaid-full-size {
+  margin-top: -1rem;
+  font-size: var(--sl-text-sm);
 }

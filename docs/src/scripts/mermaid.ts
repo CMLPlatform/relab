@@ -6,44 +6,6 @@ let mermaidPromise: Promise<typeof import('mermaid').default> | undefined;
 const BOM_PATTERN = /^\uFEFF/;
 const TRAILING_WHITESPACE_PATTERN = /[ \t]+$/g;
 
-/**
- * Give a rendered diagram its natural width so the frame can scroll it.
- *
- * Mermaid emits `width="100%"` with the natural size only as an inline
- * `max-width`, and a percent-sized SVG has no intrinsic width CSS can recover
- * (`width: max-content` resolves to the container). Left alone a 1636px diagram
- * scaled to 0.46x at 1440px, putting 16px labels at ~7.4px. Narrow diagrams are
- * left alone so they still fill the frame.
- */
-function pinDiagramToIntrinsicWidth(diagram: HTMLElement): void {
-  const svg = diagram.querySelector('svg');
-  if (!svg) {
-    return;
-  }
-  const intrinsic = svg.viewBox?.baseVal?.width;
-  if (!intrinsic) {
-    return;
-  }
-  if (intrinsic > diagram.clientWidth) {
-    svg.style.width = `${intrinsic}px`;
-    svg.style.maxWidth = 'none';
-  } else {
-    svg.style.width = '';
-    svg.style.maxWidth = '';
-  }
-}
-
-/*
- * Re-pin when the frame's width changes (resize, rotation, sidebar). The frame
- * scrolls its overflow, so re-pinning the SVG never resizes the frame and
- * cannot loop the observer.
- */
-const diagramFrameObserver = new ResizeObserver((entries) => {
-  for (const entry of entries) {
-    pinDiagramToIntrinsicWidth(entry.target as HTMLElement);
-  }
-});
-
 /*
  * NOTE: literal colors because mermaid's parser (khroma) cannot read CSS custom
  * properties or `light-dark()`. Border and text mirror brand.css
@@ -75,6 +37,63 @@ const mermaidThemeVariables = {
     edgeLabelBackground: '#191e2b',
   },
 } as const;
+
+const fullSizeUrls = new WeakMap<HTMLElement, string>();
+const FULL_SIZE_CLASS = 'relab-mermaid-full-size';
+
+/**
+ * Put a "View full size" link under a rendered diagram.
+ *
+ * Diagrams scale down to the column width, which shrinks the labels of a wide
+ * one. The link opens the SVG at its natural size in a new tab. The copy gets
+ * the page ground as its background, so light dark-theme labels stay readable
+ * on the tab's white default. Called again after every render (theme swaps),
+ * it replaces the previous blob URL.
+ */
+function linkFullSizeDiagram(diagram: HTMLElement, theme: keyof typeof mermaidThemeVariables) {
+  const previousUrl = fullSizeUrls.get(diagram);
+  if (previousUrl) {
+    URL.revokeObjectURL(previousUrl);
+  }
+  const svg = diagram.querySelector('svg');
+  let wrapper = diagram.nextElementSibling;
+  if (!wrapper?.classList.contains(FULL_SIZE_CLASS)) {
+    wrapper = null;
+  }
+  if (!svg) {
+    wrapper?.remove();
+    return;
+  }
+
+  const copy = svg.cloneNode(true) as SVGSVGElement;
+  const { width, height } = svg.viewBox.baseVal;
+  if (width && height) {
+    copy.setAttribute('width', String(width));
+    copy.setAttribute('height', String(height));
+  }
+  copy.style.maxWidth = 'none';
+  copy.style.background = mermaidThemeVariables[theme].background;
+  // XMLSerializer, not outerHTML: HTML labels inside foreignObject must be
+  // well-formed XML for a standalone SVG document to parse.
+  const markup = new XMLSerializer().serializeToString(copy);
+  const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
+  fullSizeUrls.set(diagram, url);
+
+  if (!wrapper) {
+    wrapper = document.createElement('p');
+    wrapper.className = FULL_SIZE_CLASS;
+    const link = document.createElement('a');
+    link.target = '_blank';
+    link.textContent = 'View full size';
+    const hint = document.createElement('span');
+    hint.className = 'sr-only';
+    hint.textContent = ' (opens in a new tab)';
+    link.append(hint);
+    wrapper.append(link);
+    diagram.after(wrapper);
+  }
+  wrapper.querySelector('a')?.setAttribute('href', url);
+}
 
 const normalizeMermaidSource = (source: string) => {
   return source
@@ -117,9 +136,8 @@ const ensureMermaidContainers = () => {
 
     const container = document.createElement('div');
     container.className = 'relab-mermaid';
-    container.tabIndex = 0;
     container.setAttribute('role', 'group');
-    container.setAttribute('aria-label', 'Diagram, scrollable');
+    container.setAttribute('aria-label', 'Diagram');
     container.dataset.mermaidSource = normalizeMermaidSource(readMermaidSource(sourceElement));
     container.textContent = container.dataset.mermaidSource;
     // Reserve the pre-render block's height so the swap never shrinks
@@ -172,9 +190,7 @@ const renderMermaid = async (force = false): Promise<void> => {
       // leaves the source text rather than a blank reserved box.
       for (const diagram of diagrams) {
         diagram.style.minHeight = '';
-        pinDiagramToIntrinsicWidth(diagram);
-        // Idempotent per element; re-renders (theme swaps) do not stack observers.
-        diagramFrameObserver.observe(diagram);
+        linkFullSizeDiagram(diagram, theme);
       }
     }
   })();
