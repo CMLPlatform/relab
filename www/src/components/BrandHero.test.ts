@@ -20,7 +20,12 @@ async function render(props: Record<string, unknown> = {}): Promise<string> {
 describe('BrandHero', () => {
   it('leads with the thesis and the nutshell', async () => {
     const html = await render();
-    expect(html).toContain('Open product data for circular-economy research');
+    const title = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? '';
+    expect(title.replace(/<[^>]+>/g, '').trim()).toBe(
+      'Open product data for circular-economy research',
+    );
+    // The compound never breaks at its hyphen.
+    expect(title).toMatch(/<span class="nowrap"[^>]*>circular-economy<\/span>/);
     expect(html).toMatch(/R9lab documents how durable goods come apart/);
   });
 

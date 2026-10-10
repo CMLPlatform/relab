@@ -26,7 +26,15 @@ const appBase = appUrl.replace(/\/$/, '');
     <img class="brand-light" src={logoUrl} alt="" width="156" height="84" />
     <img class="brand-dark" src={logoDarkUrl} alt="" width="156" height="84" />
   </div>
-  <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
+  {/* A hyphenated compound stays on one line: a phone width otherwise broke
+      "circular-economy" at its hyphen. */}
+  <h1 class="brand-hero-title">
+    {
+      siteMeta.heroTitle
+        .split(/(\S+-\S+)/)
+        .map((part) => (part.includes('-') ? <span class="nowrap">{part}</span> : part))
+    }
+  </h1>
   <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
   {/* Two CTAs: reading takes no account, adding does. Each carries its own cost
       on a second line inside the <a>, so it is part of the accessible name. */}
@@ -114,6 +122,10 @@ const appBase = appUrl.replace(/\/$/, '');
     font-size: clamp(2rem, 3.2vw, 2.375rem);
     line-height: 1.16;
     text-wrap: balance;
+  }
+
+  .nowrap {
+    white-space: nowrap;
   }
 
   .brand-hero-lead {
