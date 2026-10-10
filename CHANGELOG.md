@@ -82,6 +82,9 @@ stops before touching the running stack and prints these steps.
 
 ### Fixed
 
+- When the ClamAV scanner answers an upload with an error, the API log now includes its
+  reply, so a rejected upload can be traced to its cause. Clients still see only that
+  scanning is unavailable.
 - The deploy watchdog no longer reports a host that runs a release image as drifted
   because `main` has moved on. With `IMAGE_TAG` set to a version, it checks that the
   checkout contains that release's git tag, and alerts if the tag is missing or newer

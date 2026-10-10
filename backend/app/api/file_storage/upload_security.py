@@ -43,8 +43,12 @@ class MalwareDetectedError(BadRequestError):
 class MalwareScanUnavailableError(ServiceUnavailableError):
     """Raised when a required malware scanner cannot scan the upload."""
 
-    def __init__(self, details: str | None = None) -> None:
-        super().__init__(message=MALWARE_SCANNING_UNAVAILABLE_MESSAGE, details=details)
+    def __init__(self, scanner_reply: str | None = None) -> None:
+        # The error handler logs log_message and never returns details on a 5xx.
+        log_message = (
+            f"{MALWARE_SCANNING_UNAVAILABLE_MESSAGE} Scanner reply: {scanner_reply}" if scanner_reply else None
+        )
+        super().__init__(message=MALWARE_SCANNING_UNAVAILABLE_MESSAGE, log_message=log_message)
 
 
 class ClamAVScanner:
@@ -69,7 +73,7 @@ class ClamAVScanner:
                     await stream.send(struct.pack("!I", 0))
                     response = (await stream.receive(4096)).decode("utf-8", errors="replace").removesuffix("\0").strip()
         except CLAMAV_UNAVAILABLE_EXCEPTIONS as exc:
-            raise MalwareScanUnavailableError(details=None) from exc
+            raise MalwareScanUnavailableError from exc
         finally:
             fileobj.seek(0)
 
@@ -77,7 +81,7 @@ class ClamAVScanner:
             signature = response.removesuffix(CLAMAV_FOUND_MARKER).split(":", 1)[-1].strip()
             raise MalwareDetectedError(signature or None)
         if not response.endswith(CLAMAV_OK_MARKER):
-            raise MalwareScanUnavailableError(details=response.strip() or None)
+            raise MalwareScanUnavailableError(response)
 
 
 def get_upload_scanner() -> ClamAVScanner | None:
@@ -135,7 +139,7 @@ async def scan_upload_or_raise(
 
     if scanner is None:
         if settings.malware_scan_enabled:
-            raise MalwareScanUnavailableError(details=None)
+            raise MalwareScanUnavailableError
         upload_file.file.seek(0)
         return
 
