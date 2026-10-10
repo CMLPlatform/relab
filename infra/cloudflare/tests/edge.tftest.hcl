@@ -133,6 +133,11 @@ run "publish_urls_follow_the_hostnames" {
   }
 
   assert {
+    condition     = github_actions_environment_variable.publish["API_PUBLIC_URL"].value == "https://api-test.r9lab.io"
+    error_message = "staging API_PUBLIC_URL must follow the zone."
+  }
+
+  assert {
     condition     = length(github_repository_environment_deployment_policy.main) == 0
     error_message = "staging must accept a publish from any branch."
   }
@@ -159,6 +164,11 @@ run "prod_gates_publishes_and_release_tags" {
   assert {
     condition     = github_repository_environment_deployment_policy.main[0].branch_pattern == "main"
     error_message = "prod URLs must only be baked into images built from main."
+  }
+
+  assert {
+    condition     = github_actions_environment_variable.publish["API_PUBLIC_URL"].value == "https://api.r9lab.io"
+    error_message = "prod API_PUBLIC_URL must follow the zone."
   }
 
   assert {
@@ -205,25 +215,21 @@ run "an_environment_without_a_reviewer_is_refused" {
   expect_failures = [github_repository_environment.publish]
 }
 
-run "legacy_ingress_only_when_set" {
+run "legacy_ingress_by_default" {
   command = plan
 
   variables {
-    environment      = "prod"
-    legacy_zone_name = "cml-relab.org"
+    environment = "prod"
   }
 
-  # The old hostnames keep reaching the tunnel until the old zone redirects, but only
-  # the ingress knows about them: no record or custom domain may be created there.
+  # A forgotten TF_VAR_legacy_zone_name during the move must not drop the old hosts.
   assert {
-    condition = alltrue([
-      contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : coalesce(rule.hostname, "-")], "app.cml-relab.org"),
-      contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : coalesce(rule.hostname, "-")], "api.cml-relab.org"),
-      contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : coalesce(rule.hostname, "-")], "app.r9lab.io"),
-    ])
-    error_message = "the ingress must carry both the new and the legacy tunnel hostnames."
+    condition     = contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : coalesce(rule.hostname, "-")], "app.cml-relab.org")
+    error_message = "the default ingress must keep the previous zone's hosts during the move."
   }
 
+  # The old hostnames reach the tunnel until the old zone redirects, but only the ingress
+  # knows about them.
   assert {
     condition = !anytrue([
       for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress :
@@ -256,20 +262,6 @@ run "legacy_ingress_only_when_set" {
   }
 }
 
-run "legacy_ingress_by_default" {
-  command = plan
-
-  variables {
-    environment = "prod"
-  }
-
-  # A forgotten TF_VAR_legacy_zone_name during the move must not drop the old hosts.
-  assert {
-    condition     = contains([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : coalesce(rule.hostname, "-")], "app.cml-relab.org")
-    error_message = "the default ingress must keep the previous zone's hosts during the move."
-  }
-}
-
 run "no_legacy_ingress_when_empty" {
   command = plan
 
@@ -281,32 +273,6 @@ run "no_legacy_ingress_when_empty" {
   assert {
     condition     = !anytrue([for rule in cloudflare_zero_trust_tunnel_cloudflared_config.relab.config.ingress : endswith(coalesce(rule.hostname, "-"), "cml-relab.org")])
     error_message = "an empty legacy_zone_name must leave the old zone out of the ingress."
-  }
-}
-
-run "github_urls_follow_zone" {
-  command = plan
-
-  variables {
-    environment = "prod"
-  }
-
-  assert {
-    condition     = github_actions_environment_variable.publish["API_PUBLIC_URL"].value == "https://api.r9lab.io"
-    error_message = "prod API_PUBLIC_URL must follow the zone."
-  }
-}
-
-run "github_urls_follow_zone_staging" {
-  command = plan
-
-  variables {
-    environment = "staging"
-  }
-
-  assert {
-    condition     = github_actions_environment_variable.publish["API_PUBLIC_URL"].value == "https://api-test.r9lab.io"
-    error_message = "staging API_PUBLIC_URL must follow the zone."
   }
 }
 

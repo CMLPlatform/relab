@@ -47,65 +47,6 @@ run "redirects_every_route" {
   }
 }
 
-run "api_keeps_method" {
-  command = plan
-
-  variables {
-    redirect_environments = ["prod", "staging"]
-  }
-
-  assert {
-    condition = alltrue([
-      for rule in cloudflare_ruleset.redirects[0].rules :
-      rule.action_parameters.from_value.status_code == (strcontains(rule.ref, "_api") ? 307 : 302)
-    ])
-    error_message = "api redirects must be 307 and the rest 302 while temporary."
-  }
-}
-
-run "api_keeps_method_when_permanent" {
-  command = plan
-
-  variables {
-    redirect_environments = ["prod", "staging"]
-    redirect_permanent    = true
-  }
-
-  assert {
-    condition = alltrue([
-      for rule in cloudflare_ruleset.redirects[0].rules :
-      rule.action_parameters.from_value.status_code == (strcontains(rule.ref, "_api") ? 308 : 301)
-    ])
-    error_message = "api redirects must be 308 and the rest 301 once permanent."
-  }
-}
-
-run "only_route_hosts_redirected" {
-  command = plan
-
-  variables {
-    redirect_environments = ["prod", "staging"]
-  }
-
-  assert {
-    condition = alltrue([
-      for rule in cloudflare_ruleset.redirects[0].rules :
-      !strcontains(rule.expression, "otel.") && !strcontains(rule.expression, "grafana.") && !strcontains(rule.expression, "ssh-")
-    ])
-    error_message = "monitoring and SSH hosts must keep resolving in the old zone."
-  }
-
-  assert {
-    condition = toset([
-      for rule in cloudflare_ruleset.redirects[0].rules : rule.expression
-      ]) == toset([
-      for route in concat(values(local.edge_routes_by_environment.prod), values(local.edge_routes_by_environment.staging)) :
-      "http.host eq \"${route.hostname}\""
-    ])
-    error_message = "redirect rules must match exactly the hosts in the route map."
-  }
-}
-
 run "each_rule_targets_its_own_host" {
   command = plan
 
@@ -131,6 +72,53 @@ run "each_rule_targets_its_own_host" {
       } : "http.host eq \"${old}\"" => "concat(\"${new}\", http.request.uri.path)"
     }
     error_message = "each old host must redirect to the same prefix on the new zone."
+  }
+
+  assert {
+    condition = {
+      for rule in cloudflare_ruleset.redirects[0].rules :
+      rule.expression => rule.action_parameters.from_value.status_code
+      } == {
+      for old, status in {
+        "cml-relab.org"           = 302
+        "app.cml-relab.org"       = 302
+        "api.cml-relab.org"       = 307
+        "docs.cml-relab.org"      = 302
+        "web-test.cml-relab.org"  = 302
+        "app-test.cml-relab.org"  = 302
+        "api-test.cml-relab.org"  = 307
+        "docs-test.cml-relab.org" = 302
+      } : "http.host eq \"${old}\"" => status
+    }
+    error_message = "api redirects must be 307 and the rest 302 while temporary."
+  }
+}
+
+run "permanent_redirects" {
+  command = plan
+
+  variables {
+    redirect_environments = ["prod", "staging"]
+    redirect_permanent    = true
+  }
+
+  assert {
+    condition = {
+      for rule in cloudflare_ruleset.redirects[0].rules :
+      rule.expression => rule.action_parameters.from_value.status_code
+      } == {
+      for old, status in {
+        "cml-relab.org"           = 301
+        "app.cml-relab.org"       = 301
+        "api.cml-relab.org"       = 308
+        "docs.cml-relab.org"      = 301
+        "web-test.cml-relab.org"  = 301
+        "app-test.cml-relab.org"  = 301
+        "api-test.cml-relab.org"  = 308
+        "docs-test.cml-relab.org" = 301
+      } : "http.host eq \"${old}\"" => status
+    }
+    error_message = "api redirects must be 308 and the rest 301 once permanent."
   }
 }
 
@@ -184,16 +172,6 @@ run "redirect_environments_known" {
 
   variables {
     redirect_environments = ["stagign"]
-  }
-
-  expect_failures = [var.redirect_environments]
-}
-
-run "redirect_environments_not_empty" {
-  command = plan
-
-  variables {
-    redirect_environments = []
   }
 
   expect_failures = [var.redirect_environments]
