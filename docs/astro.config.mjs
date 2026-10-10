@@ -45,8 +45,8 @@ const SIDEBAR = [
       { label: 'Data collection', slug: 'user-guides/data-collection' },
       { label: 'Glossary', slug: 'user-guides/glossary' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
-      { label: 'RPi camera', slug: 'user-guides/rpi-cam' },
-      { label: 'API', slug: 'user-guides/api' },
+      { label: 'RPi camera setup', slug: 'user-guides/rpi-cam' },
+      { label: 'Using the API', slug: 'user-guides/api' },
     ],
   },
   {
@@ -72,6 +72,8 @@ const SIDEBAR = [
   {
     label: 'Project',
     items: [
+      { label: 'Project context', slug: 'project' },
+      { label: 'The 9R framework', slug: 'project/9r-framework' },
       { label: 'Use cases', slug: 'project/use-cases' },
       { label: 'Roadmap', slug: 'project/roadmap' },
       { label: 'Dataset', slug: 'project/dataset' },
