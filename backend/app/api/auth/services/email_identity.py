@@ -12,7 +12,7 @@ DELIVERABILITY_DNS_TIMEOUT_SECONDS = 5
 
 
 def canonicalize_email(email: str) -> str:
-    """Return Relab's conservative email comparison key."""
+    """Return R9lab's conservative email comparison key."""
     try:
         validated = validate_email(str(email), check_deliverability=False)
     except EmailNotValidError as exc:

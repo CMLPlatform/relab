@@ -1,12 +1,12 @@
 ---
 title: Project
-description: Why Relab exists, what it is for, and where the research platform is heading.
+description: Why R9lab exists, what it is for, and where the research platform is heading.
 ---
 
-Relab makes product disassembly data easier to collect and reuse. These pages cover the research
+R9lab makes product disassembly data easier to collect and reuse. These pages cover the research
 framing, current priorities, and the path from live records to curated dataset releases.
 
-## Why Relab exists
+## Why R9lab exists
 
 Circular-economy and industrial-ecology research depends on detailed product data: what things are
 made of, how they come apart, and what evidence backs those claims. Without it, life-cycle
@@ -16,14 +16,14 @@ Producers tend to hold it as proprietary, and small expert teams sampling produc
 keep pace with everything entering the market. The Global LCA Data Access network hosted roughly
 130,000 process datasets as of 2024, against millions of consumer products on the market.
 
-Relab works downstream instead, with the people who already open products: repairers, refurbishers,
+R9lab works downstream instead, with the people who already open products: repairers, refurbishers,
 dismantlers, recyclers. They meet products at the point of failure, which shows as-failed
 composition, wear, and recoverability that as-designed specifications never record. Low-barrier
 tools turn that routine work into structured, openly licensed observations.
 
 Some of that work is already recorded. Under the Open Repair Data Standard, repair groups have
 logged more than 400,000 repair records covering product category, brand, age, fault, and outcome.
-Those records are event-level: they carry no component hierarchies, no masses, no geometry. Relab's
+Those records are event-level: they carry no component hierarchies, no masses, no geometry. R9lab's
 contribution is that missing depth, at the component level, together with standardized imagery.
 
 The exchange is meant to run both ways. A circular economy for products needs a *circular data
@@ -47,7 +47,7 @@ not demonstrated functionality.
 
 ## Where to go next
 
-[Use cases](use-cases/) says what Relab is and is not for, if you are deciding whether it fits
+[Use cases](use-cases/) says what R9lab is and is not for, if you are deciding whether it fits
 your work. [The 9R framework](9r-framework/) is background: the ten circularity strategies, R0 to
 R9, that the project takes its cue from; the platform does not apply them to records.
 [Dataset](dataset/) covers how to browse current records and how curated releases differ from the

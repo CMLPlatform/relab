@@ -170,7 +170,7 @@ export default function UserProfileScreen() {
   return (
     <>
       <Head>
-        <title>{`${title} · Relab`}</title>
+        <title>{`${title} · R9lab`}</title>
       </Head>
       {/* react-native-web renders react-navigation's header title
           (accessibilityRole "header", no aria-level) as an <h1>, which would

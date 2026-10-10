@@ -1,3 +1,16 @@
+# Guards against a workspace applied with another zone's id: every record and custom domain
+# below keys off the id, and a mismatch would put this environment's hosts in the wrong zone.
+data "cloudflare_zone" "this" {
+  zone_id = var.cloudflare_zone_id
+
+  lifecycle {
+    postcondition {
+      condition     = self.name == var.cloudflare_zone_name
+      error_message = "cloudflare_zone_id belongs to ${self.name}, not ${var.cloudflare_zone_name}. Pass the id of the zone named in cloudflare_zone_name."
+    }
+  }
+}
+
 resource "cloudflare_zero_trust_tunnel_cloudflared" "relab" {
   account_id = var.cloudflare_account_id
   name       = local.tunnel_name
@@ -21,7 +34,7 @@ resource "cloudflare_dns_record" "edge" {
   type    = "CNAME"
   ttl     = 1
   proxied = true
-  comment = "Relab ${var.environment} ${each.key} edge route managed by OpenTofu."
+  comment = "R9lab ${var.environment} ${each.key} edge route managed by OpenTofu."
 }
 
 resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
@@ -31,7 +44,7 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "relab" {
   config = {
     ingress = concat(
       [
-        for route in values(local.tunnel_routes) : {
+        for route in concat(values(local.tunnel_routes), values(local.legacy_tunnel_routes)) : {
           hostname = route.hostname
           service  = route.origin
         }

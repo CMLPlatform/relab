@@ -16,11 +16,11 @@ def test_public_callback_url_uses_configured_backend_base(monkeypatch: pytest.Mo
     """Public OAuth callbacks should be built from the configured backend URL."""
     monkeypatch.setattr(
         "app.api.auth.services.oauth.routes.core_settings.api_public_url",
-        HttpUrl("https://api-test.cml-relab.org"),
+        HttpUrl("https://api-test.r9lab.io"),
     )
 
     assert public_callback_url(f"{PUBLIC_OAUTH_CALLBACK_PREFIX}/google/associate/callback") == (
-        "https://api-test.cml-relab.org/v1/oauth/google/associate/callback"
+        "https://api-test.r9lab.io/v1/oauth/google/associate/callback"
     )
 
 
@@ -28,11 +28,11 @@ def test_public_callback_url_normalizes_slashes(monkeypatch: pytest.MonkeyPatch)
     """Callback URL construction should be stable regardless of input slashes."""
     monkeypatch.setattr(
         "app.api.auth.services.oauth.routes.core_settings.api_public_url",
-        HttpUrl("https://api-test.cml-relab.org/"),
+        HttpUrl("https://api-test.r9lab.io/"),
     )
 
     assert public_callback_url(f"{PUBLIC_OAUTH_CALLBACK_PREFIX}/google/session/callback") == (
-        "https://api-test.cml-relab.org/v1/oauth/google/session/callback"
+        "https://api-test.r9lab.io/v1/oauth/google/session/callback"
     )
 
 

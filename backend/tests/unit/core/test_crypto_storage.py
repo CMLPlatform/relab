@@ -94,9 +94,9 @@ def test_production_requires_data_encryption_key() -> None:
     with pytest.raises(ValueError, match="DATA_ENCRYPTION_KEY must not be empty"):
         CoreSettings(
             environment=Environment.PROD,
-            api_public_url=HttpUrl("https://api.cml-relab.org/"),
-            site_public_url=HttpUrl("https://cml-relab.org/"),
-            app_public_url=HttpUrl("https://app.cml-relab.org/"),
+            api_public_url=HttpUrl("https://api.r9lab.io/"),
+            site_public_url=HttpUrl("https://r9lab.io/"),
+            app_public_url=HttpUrl("https://app.r9lab.io/"),
             bootstrap_superuser_password=SecretStr("test-password"),
             bootstrap_superuser_email="admin@example.com",
             data_encryption_key=SecretStr(""),

@@ -11,14 +11,13 @@ variable "state_passphrase" {
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare zone ID for cml-relab.org."
+  description = "Cloudflare zone ID of the zone this workspace manages."
   type        = string
 }
 
 variable "cloudflare_zone_name" {
-  description = "Public DNS zone name for Relab edge hostnames."
+  description = "Name of the zone this workspace manages; must match the zone id."
   type        = string
-  default     = "cml-relab.org"
 }
 
 variable "telemetry_edge_key" {
@@ -36,7 +35,7 @@ variable "telemetry_edge_key" {
     It must equal TELEMETRY_EDGE_KEY in the deploy hosts' root `.env` (the api's
     OTEL_EXPORTER_OTLP_HEADERS and Alloy both send it).
 
-    NOTE: `otel.` is the monitoring stack's hostname, not Relab's. That stack manages its
+    NOTE: `otel.` is the monitoring stack's hostname, not R9lab's. That stack manages its
     own Cloudflare config but declares no rulesets, so this root stays the single owner of
     the zone entrypoints — see the ownership note in README.md.
   EOT
@@ -62,4 +61,70 @@ variable "e2e_edge_key" {
   type        = string
   sensitive   = true
   default     = ""
+}
+
+variable "redirect_to_zone_name" {
+  description = <<-EOT
+    Zone this zone's R9lab hostnames redirect to. Non-empty turns on the redirect ruleset,
+    which covers exactly the hosts in the shared route map: monitoring and hand-made
+    hosts are never redirected. Set it only in the previous zone's workspace.
+  EOT
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.redirect_to_zone_name != var.cloudflare_zone_name
+    error_message = "redirect_to_zone_name must differ from cloudflare_zone_name: a zone cannot redirect to itself."
+  }
+}
+
+# TODO: drop redirect_environments once both environments are cut over; the redirect
+# ruleset itself stays for at least a year after that.
+variable "redirect_environments" {
+  description = <<-EOT
+    Environments whose route-map hosts the redirect ruleset covers. Cutting over one
+    environment at a time keeps the other's hosts serving from this zone until its own
+    cutover: staging first with ["staging"], then prod with both. Required whenever
+    redirect_to_zone_name is set, so an apply can never redirect an environment by omission.
+  EOT
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = var.redirect_to_zone_name == "" || length(var.redirect_environments) > 0
+    error_message = "redirect_environments must be set whenever redirect_to_zone_name is: [\"staging\"] for the staging cutover, then both."
+  }
+
+  validation {
+    condition     = alltrue([for env in var.redirect_environments : contains(["prod", "staging"], env)])
+    error_message = "redirect_environments may only list \"prod\" and \"staging\"."
+  }
+}
+
+variable "redirect_permanent" {
+  description = "Redirect with 301/308 instead of 302/307. Keep false until the new zone is verified."
+  type        = bool
+  default     = false
+}
+
+variable "cloudflare_account_id" {
+  description = <<-EOT
+    Cloudflare account ID. Email Routing destination addresses belong to the account, not
+    the zone. Export as TF_VAR_cloudflare_account_id. Empty (the default) keeps
+    `just cloudflare-check` runnable without secrets; it is only read when
+    email_forwards is non-empty.
+  EOT
+  type        = string
+  default     = ""
+}
+
+variable "email_forwards" {
+  description = <<-EOT
+    Email Routing forwards, from local part to destination address. Empty (the default)
+    manages no Email Routing resources at all, so routing set up by hand in the dashboard
+    is never adopted or overwritten. Each destination must be verified once by clicking
+    the link Cloudflare mails to it; until then forwarding to it does not deliver.
+  EOT
+  type        = map(string)
+  default     = {}
 }

@@ -26,7 +26,7 @@
   --sl-font-mono: var(--relab-brand-font-mono);
 
   /* Starlight's "accent" is its INTERACTION colour (links, active nav, focus
-     rings), not the Relab manila accent. It maps to the primary family;
+     rings), not the R9lab manila accent. It maps to the primary family;
      --relab-brand-accent here would turn every link manila, which DESIGN.md's
      accent rule forbids. */
   --sl-color-accent-low: var(--relab-brand-primary-soft);

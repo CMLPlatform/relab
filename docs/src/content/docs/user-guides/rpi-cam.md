@@ -1,6 +1,6 @@
 ---
 title: RPi camera integration
-description: Set up and use the Relab Raspberry Pi camera workflow from the platform side.
+description: Set up and use the R9lab Raspberry Pi camera workflow from the platform side.
 ---
 
 This page covers the platform side: pairing a camera, checking that it is online, and using it
@@ -54,7 +54,7 @@ Use this when automatic pairing is unavailable.
 
 1. Open the product or component record.
 1. Trigger image capture or preview. The backend relays the request to the device.
-1. Captured images are uploaded to Relab and linked to the record.
+1. Captured images are uploaded to R9lab and linked to the record.
 
 When your device is on the same network as a paired camera, the app can switch to direct local
 access for faster preview and capture. No extra setup is needed; the relay stays the default.

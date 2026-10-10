@@ -3,7 +3,7 @@ layout: ../layouts/ContentLayout.astro
 title: Accessibility statement
 description: What we check, what we have not checked, and how to tell us about a barrier.
 meta: "Last updated: September 8, 2026"
-intro: This statement covers the Relab website, the documentation site, and the web app.
+intro: This statement covers the R9lab website, the documentation site, and the web app.
 feedback:
   title: Tell us what does not work
   lead: If you cannot use something, email
@@ -16,13 +16,15 @@ what is untested. Every fact must stay checkable in the repository (axe tags in
 e2e/helpers.ts, the contrast unit tests, the target-size rules). When a gap closes,
 move its line from "What we have not checked" to "What we check". -->
 
-## How accessible Relab is
+## How accessible R9lab is
 
-Relab aims to meet WCAG 2.2, level AA. It is partially conformant: some of it meets that standard and some has not been assessed.
+R9lab is pronounced “Relab”. Screen readers may read the name as “R nine lab”.
+
+R9lab aims to meet WCAG 2.2, level AA. It is partially conformant: some of it meets that standard and some has not been assessed.
 
 We target 2.2 because Leiden University’s public sites fall under the EU Web Accessibility Directive through EN 301 549.
 
-This is a self-evaluation by the people who build Relab. There has been no external audit.
+This is a self-evaluation by the people who build R9lab. There has been no external audit.
 
 ## What we check
 
@@ -36,8 +38,8 @@ Every release scans the website and documentation site fully with axe, an access
 
 These are the gaps we know about.
 
-- Nobody has worked through Relab by keyboard alone, or with a screen reader.
+- Nobody has worked through R9lab by keyboard alone, or with a screen reader.
 - Two criteria have no automated test available: 2.4.11 Focus Not Obscured and 2.4.13 Focus Appearance. We check those by hand.
 - The app is tested in a browser, so VoiceOver and TalkBack are untested.
-- Relab is in English only.
+- R9lab is in English only.
 - Videos are embedded from YouTube. Captions are up to whoever published them.

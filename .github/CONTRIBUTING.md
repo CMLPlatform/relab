@@ -1,8 +1,8 @@
-# Contributing to Relab
+# Contributing to R9lab
 
-Relab is a research platform developed at CML, Leiden University. This page covers code and
+R9lab is a research platform developed at CML, Leiden University. This page covers code and
 documentation changes. To run or deploy the stack, see
-[Install and self-host](https://docs.cml-relab.org/operations/install/).
+[Install and self-host](https://docs.r9lab.io/operations/install/).
 
 ## Start Here
 
@@ -11,7 +11,7 @@ documentation changes. To run or deploy the stack, see
 | get the recommended working environment | [Devcontainer Setup](#devcontainer-setup)                                   |
 | run the full stack locally in Docker    | [Docker Development](#docker-development)                                   |
 | work on one subrepo directly            | [Local Development](#local-development)                                     |
-| understand the system first             | [docs.cml-relab.org/architecture](https://docs.cml-relab.org/architecture/) |
+| understand the system first             | [docs.r9lab.io/architecture](https://docs.r9lab.io/architecture/)           |
 | understand config ownership             | [Tooling and configuration](#tooling-and-configuration)                     |
 
 ## Code of Conduct
@@ -43,7 +43,7 @@ the landing site on 8013, plus PostgreSQL on `5432` and Redis on `6379`, all on 
 ## Docker Development
 
 Runs the full stack without configuring each subrepo. Follow
-[Local Docker setup](https://docs.cml-relab.org/operations/install/#local-docker-setup) in the
+[Local Docker setup](https://docs.r9lab.io/operations/install/#local-docker-setup) in the
 install guide: it covers the secret files, the optional `backend/.env.dev`, migrations, and the
 service URLs. Then:
 

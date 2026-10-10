@@ -1,4 +1,4 @@
-# Relab App
+# R9lab App
 
 Expo / React Native app for authenticated data collection.
 
@@ -83,7 +83,7 @@ question only when the primitive gains that behavior.
 file tree.
 
 The full screen inventory, flow diagrams, and routing rules live in
-[App navigation flow](https://docs.cml-relab.org/architecture/app-flow/).
+[App navigation flow](https://docs.r9lab.io/architecture/app-flow/).
 
 The three primary destinations are tabs: `(tabs)/(products)`, `(tabs)/(cameras)` and
 `(tabs)/(account)`. Each group holds its own Stack, so every tab keeps its trail. BottomNav is that

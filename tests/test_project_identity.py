@@ -28,7 +28,7 @@ PROJECT = {
     "institution": "Institute of Environmental Sciences (CML), Leiden University",
     "institutionShort": "CML",
     "department": "Department of Industrial Ecology",
-    "contactEmail": "relab@cml.leidenuniv.nl",
+    "contactEmail": "info@r9lab.io",
     "dataLicence": {"name": "CC BY 4.0", "url": "https://example.invalid", "status": "planned", "docsPath": "/x/"},
     "funding": {"short": "Fund A; Fund B", "sentence": "Supported by Fund A and Fund B."},
 }

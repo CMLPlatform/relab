@@ -73,8 +73,8 @@ async def test_callback_passes_associate_by_email_false(redis_client: Redis) -> 
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
     set_cookie_headers = response.headers.getlist("set-cookie")
-    assert any(header.startswith("__Host-relab-auth=") for header in set_cookie_headers)
-    assert any(header.startswith("__Host-relab-refresh=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-r9lab-auth=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-r9lab-refresh=") for header in set_cookie_headers)
     cast("MagicMock", config.oauth_client).get_id_email.assert_awaited_once_with("provider-access-token")
     user_manager.oauth_callback.assert_awaited_once_with(
         "github",
@@ -275,8 +275,8 @@ async def test_callback_redirect_carries_session_cookies_on_success(redis_client
     assert (location.scheme, location.netloc) == ("relab-app", "login")
     assert parse_qs(location.fragment)["status"] == ["success"]
     set_cookie_headers = response.headers.getlist("set-cookie")
-    assert any(header.startswith("__Host-relab-auth=") for header in set_cookie_headers)
-    assert any(header.startswith("__Host-relab-refresh=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-r9lab-auth=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-r9lab-refresh=") for header in set_cookie_headers)
 
 
 @pytest.mark.parametrize(

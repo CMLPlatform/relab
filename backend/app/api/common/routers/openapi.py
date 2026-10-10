@@ -28,12 +28,12 @@ __all__ = [
 API_CONTRACT_VERSION = "1.0.0"
 API_MAJOR = "v1"
 
-API_TITLE = "Relab - Data Collection API"
+API_TITLE = "R9lab - Data Collection API"
 API_DESCRIPTION = (
-    "Data collection app for the Relab project at CML.\n\n"
+    "Data collection app for the R9lab project at CML.\n\n"
     "**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write "
     "clients, importers, or integrations against it without inheriting the platform's "
-    "copyleft. The Relab platform software itself remains AGPL-3.0-or-later, and curated "
+    "copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated "
     "dataset releases are licensed CC BY 4.0."
 )
 # Licence of the specification, not the software. Full text ships at LICENSE-APACHE-2.0

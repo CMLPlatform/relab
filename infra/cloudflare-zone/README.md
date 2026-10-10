@@ -1,20 +1,100 @@
-# Relab Cloudflare zone configuration
+# R9lab Cloudflare zone configuration
 
-Zone-scoped configuration for `cml-relab.org`, managed with OpenTofu:
+Zone-scoped configuration for each R9lab zone (`r9lab.io`, `cml-relab.org`), managed with OpenTofu:
 
 - TLS zone settings (minimum version, TLS 1.3, always-use-HTTPS)
 - the three entrypoint rulesets: `http_ratelimit`,
   `http_request_cache_settings`, `http_request_firewall_custom`
+- on the old zone only, when `redirect_to_zone_name` is set: the `http_request_dynamic_redirect`
+  ruleset that sends its R9lab hostnames to the new zone (see
+  [Redirecting the old zone](#redirecting-the-old-zone))
+- Email Routing (switch, DNS records, destination addresses and rules) and a DMARC record, when
+  `email_forwards` is set (see [Mail](#mail))
 
 ## Why this is a separate root
 
 Cloudflare allows one entrypoint ruleset per (zone, phase), and prod and staging share this zone, so
-these resources live here in a single `default` workspace. See
+these resources live here, one workspace per zone, named after the zone. See
 [Why two roots](../cloudflare/README.md#why-two-roots). The rules match **both** environments'
 hostnames; `hostnames.tf` is a symlink to the map in `../cloudflare`.
 
 **Everything here affects prod and staging together.** A change to the TLS floor or a
 firewall rule lands on every hostname in the zone at once.
+
+## Workspaces
+
+Each zone has its own workspace and state. The recipes select it (creating it on first use) and
+pass `-var=cloudflare_zone_name=<zone>`; `TF_VAR_cloudflare_zone_id` must be that zone's id. A
+`cloudflare_zone` data source checks the id against the name, so a mismatched pair fails the
+plan. An optional `infra/cloudflare-zone/<zone>.tfvars` is loaded when present.
+
+### First run: move the existing state
+
+State created before workspaces existed sits in the `default` workspace, in `terraform.tfstate`,
+and belongs to `cml-relab.org`. Copy it into that zone's workspace once, before the first
+plan, so the resources are not planned for recreation. The file is encrypted on disk
+(encryption is enforced), so the copy writes no plaintext:
+
+```bash
+cd infra/cloudflare-zone
+tofu workspace new cml-relab.org
+cp terraform.tfstate terraform.tfstate.d/cml-relab.org/terraform.tfstate
+cd ../.. && just cloudflare-zone-plan cml-relab.org
+```
+
+Expect **3 to change, 0 to add, 0 to destroy**: the three rulesets' descriptions now say R9lab
+instead of Relab. Anything else, or any change beyond a description, means the copy went wrong:
+stop. Otherwise apply it now (`just cloudflare-zone-apply cml-relab.org`, then with `YES`), so the
+redirect plan inside a cutover window shows the redirect ruleset and nothing else.
+
+If `just cloudflare-zone-plan cml-relab.org` already ran before this move, the recipe created the
+workspace, empty. Then run `tofu workspace select cml-relab.org` instead of `workspace new` and copy
+the file the same way.
+
+`tofu workspace new -state=<file>` does not copy state in OpenTofu 1.13, so the file is copied
+by hand.
+
+After a clean plan, move the old `terraform.tfstate` and `terraform.tfstate.backup` aside and
+keep them as a backup. The `default` workspace stays, unused: OpenTofu cannot delete it. Other
+zones start from an empty workspace.
+
+## Redirecting the old zone
+
+The old zone's workspace sets `redirect_to_zone_name` to send every route-map hostname to the same
+name on the new zone. `redirect_environments` limits the rules to the environments being cut over,
+so each environment keeps serving from the old zone until its own window:
+
+**Before the first window**, check that the old zone has no redirect ruleset made in the
+dashboard. This call must print `404`:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' "https://api.cloudflare.com/client/v4/zones/<old zone id>/rulesets/phases/http_request_dynamic_redirect/entrypoint" \
+  -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+```
+
+If it exists (`200`), delete it in the dashboard or import it as `cloudflare_ruleset.redirects[0]`
+with the id `zones/<old zone id>/<ruleset id>`, with `TF_VAR_redirect_to_zone_name` set.
+Otherwise the redirect apply fails with "already exists" inside the cutover window.
+
+`redirect_environments` defaults to `[]`, and a validation requires a non-empty set whenever
+`redirect_to_zone_name` is set: a plan that turns redirects on without naming the environments
+fails rather than redirecting prod by omission. The recipes pass `cml-relab.org.tfvars` as
+`-var-file`, which overrides `TF_VAR_*`, so a later old-zone apply run without those variables
+cannot drop the redirects. The apply steps for each environment are in
+[Moving the edge to another zone](../cloudflare/README.md#moving-the-edge-to-another-zone).
+
+## Mail
+
+`email_forwards` turns on Email Routing for inbound mail and publishes a DMARC record,
+`_dmarc.<zone>`, in monitoring mode: `p=none`, with aggregate reports sent to `info@<zone>`. A
+`_dmarc` record made by hand in the dashboard makes the apply fail with "already exists"; delete
+it or import it as `cloudflare_dns_record.dmarc[0]` first.
+
+After two weeks of reports that show only the expected senders passing, raise the policy to
+`p=quarantine` in `email.tf`.
+
+Outbound mail is signed by the sending provider. Its DKIM record and its SPF include are added
+by hand, not here: keep one SPF record, merging the include into the one Email Routing creates.
 
 ## Rules adopted from the hand-configured zone
 
@@ -112,9 +192,9 @@ From the repository root:
 
 ```bash
 just cloudflare-check       # covers this root and ../cloudflare
-just cloudflare-zone-plan
-just cloudflare-zone-apply   # plans, prints the diff, saves it, stops
-just cloudflare-zone-apply YES
+just cloudflare-zone-plan r9lab.io
+just cloudflare-zone-apply r9lab.io       # plans, prints the diff, saves it, stops
+just cloudflare-zone-apply r9lab.io YES
 ```
 
 Per-environment resources (tunnels, DNS records, tunnel ingress) live in

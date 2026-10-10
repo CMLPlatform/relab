@@ -110,7 +110,7 @@ export function MfaDialogs({
           style={[local.field, { borderColor: theme.colors.outline }]}
         />
         <AppText variant="caption" className="mt-2 text-muted-foreground">
-          Signed up with Google or GitHub? Use your Relab account password — if you never set one,
+          Signed up with Google or GitHub? Use your R9lab account password — if you never set one,
           create it with “Forgot password” on the login screen first.
         </AppText>
 

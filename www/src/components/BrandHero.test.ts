@@ -8,7 +8,7 @@ const STATS = {
   series: [],
   generatedAt: '2026-07-17T00:00:00Z',
 };
-const APP_URL = 'https://app.cml-relab.org';
+const APP_URL = 'https://app.r9lab.io';
 
 async function render(props: Record<string, unknown> = {}): Promise<string> {
   const container = await AstroContainer.create();
@@ -21,7 +21,7 @@ describe('BrandHero', () => {
   it('leads with the thesis and the nutshell', async () => {
     const html = await render();
     expect(html).toContain('Open product data for circular-economy research');
-    expect(html).toMatch(/Relab documents how durable goods come apart/);
+    expect(html).toMatch(/R9lab documents how durable goods come apart/);
   });
 
   it('carries the mark decoratively, in both theme variants', async () => {
@@ -34,13 +34,13 @@ describe('BrandHero', () => {
     // The header's brand link carries the name; this one is decoration, and
     // hands off to it on scroll.
     expect(html).toContain('aria-hidden="true"');
-    expect(html).not.toContain('alt="Relab"');
+    expect(html).not.toContain('alt="R9lab"');
   });
 
   it('offers both doors: browsing the records and contributing one', async () => {
     const html = await render();
-    expect(html).toContain('https://app.cml-relab.org/products');
-    expect(html).toContain('https://app.cml-relab.org/new-account');
+    expect(html).toContain('https://app.r9lab.io/products');
+    expect(html).toContain('https://app.r9lab.io/new-account');
     expect(html).toMatch(/Browse the records/);
     expect(html).toMatch(/Contribute a teardown/);
     // Both leave the site, and each says so to a screen reader.

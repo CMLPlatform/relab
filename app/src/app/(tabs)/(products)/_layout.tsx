@@ -21,7 +21,7 @@ export default function ProductsTabLayout() {
       <Stack.Screen
         name="products/index"
         options={{
-          title: 'Relab',
+          title: 'R9lab',
           headerTitle: () => <BrandHeaderTitle isDark={colorScheme === 'dark'} />,
           ...getProductsHeaderStyle(theme),
           headerRight: () => <HeaderRightPill />,

@@ -76,7 +76,7 @@ def _raise_if_username_taken(exc: IntegrityError, username: str | None) -> None:
 
 
 class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
-    """FastAPI-Users SQLAlchemy adapter with Relab's canonical email lookup."""
+    """FastAPI-Users SQLAlchemy adapter with R9lab's canonical email lookup."""
 
     def __init__(
         self,
@@ -103,7 +103,7 @@ class UserDatabaseAsync(SQLAlchemyUserDatabase[UP, ID]):
             raise
 
     async def get_by_email(self, email: str) -> UP | None:
-        """Get a single user by Relab's canonical email identity."""
+        """Get a single user by R9lab's canonical email identity."""
         try:
             email_canonical = canonicalize_email(email)
         except ValueError:

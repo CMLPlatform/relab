@@ -16,7 +16,7 @@ test('terms page renders and is linked from the footer', async ({ page }) => {
     'Published releases cannot be taken back',
   ]);
   await expectContentPage(page);
-  await expect(page.getByRole('link', { name: 'Read the Relab terms of use' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Read the R9lab terms of use' })).toBeVisible();
   // Astro's directory build format emits trailing-slash canonicals.
   await expectCanonicalUrl(page, '/terms/');
 });

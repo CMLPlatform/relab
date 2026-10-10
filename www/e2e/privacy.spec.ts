@@ -7,7 +7,7 @@ const GITHUB_AND_LINKEDIN_TEXT = /github and linkedin/i;
 test('privacy page renders', async ({ page }) => {
   await page.goto('/privacy');
   await expect(page).toHaveTitle(PRIVACY_TITLE);
-  await expect(page.getByRole('link', { name: 'Relab', exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'R9lab', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2 })).toHaveText([
     'Who is responsible for your data',

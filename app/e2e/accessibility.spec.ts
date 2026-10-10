@@ -79,7 +79,7 @@ test.describe('Accessibility', () => {
   // user meets first on every route change.
   test('products list exposes landmarks, a titled document and focus in main', async ({ page }) => {
     await reachProductsPage(page);
-    await expect(page).toHaveTitle('Products · Relab');
+    await expect(page).toHaveTitle('Products · R9lab');
     await expect(page.getByRole('main')).toBeVisible();
     // Below lg the bottom tab bar, at lg the TopNav: either way one primary nav.
     await expect(page.getByRole('navigation', { name: 'Primary' })).toBeVisible();
@@ -137,7 +137,7 @@ test.describe('Accessibility', () => {
 
   test('login page is titled', async ({ page }) => {
     await page.goto('/login');
-    await expect(page).toHaveTitle('Sign in · Relab');
+    await expect(page).toHaveTitle('Sign in · R9lab');
   });
 
   test('product detail has no serious a11y violations', async ({ page }) => {

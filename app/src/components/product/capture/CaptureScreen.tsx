@@ -117,7 +117,7 @@ export function CaptureScreen({ entityRole: role, parentID, parentRole }: Captur
   return (
     <>
       <Head>
-        <title>{`${role === 'component' ? 'New component' : 'New product'} · Relab`}</title>
+        <title>{`${role === 'component' ? 'New component' : 'New product'} · R9lab`}</title>
       </Head>
       <KeyboardAwareScrollView
         testID="capture-scroll"

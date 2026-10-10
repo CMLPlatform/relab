@@ -23,7 +23,7 @@ test.describe('API reference pages', () => {
   test('public API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/public/');
 
-    await expect(page).toHaveTitle('Relab public API · Relab docs');
+    await expect(page).toHaveTitle('R9lab public API · R9lab docs');
     const apiNav = page.getByRole('navigation', { name: 'API references' });
     await expect(apiNav.getByRole('link', { name: 'API reference overview' })).toHaveAttribute(
       'href',
@@ -46,7 +46,7 @@ test.describe('API reference pages', () => {
     // sidebar and search that do render belong to Scalar.
     await expect(page.locator('site-search')).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Relab - Data Collection API' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'R9lab - Data Collection API' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.public.json',
@@ -63,7 +63,7 @@ test.describe('API reference pages', () => {
   test('device API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/device/');
 
-    await expect(page).toHaveTitle('Relab device API · Relab docs');
+    await expect(page).toHaveTitle('R9lab device API · R9lab docs');
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.device.json',
@@ -79,7 +79,7 @@ test.describe('API reference pages', () => {
   test('RPi camera API reference renders from the committed docs schema', async ({ page }) => {
     await page.goto('/api/rpi-cam/');
 
-    await expect(page).toHaveTitle('Relab RPi camera API · Relab docs');
+    await expect(page).toHaveTitle('R9lab RPi camera API · R9lab docs');
     await expect(page.getByRole('heading', { name: 'Get camera status' })).toBeVisible();
     await expect(page.getByText('/camera').first()).toBeVisible();
     await expect(page.getByText(/Add API/i)).toHaveCount(0);

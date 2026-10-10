@@ -126,7 +126,7 @@ describe('useProductFiles', () => {
     await act(() => result.current.pickAndUpload());
 
     expect(mockError).toHaveBeenCalledWith(
-      'Relab had a problem on its side. Try again in a moment.',
+      'R9lab had a problem on its side. Try again in a moment.',
       'Upload failed',
     );
   });

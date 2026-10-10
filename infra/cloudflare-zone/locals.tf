@@ -23,7 +23,7 @@ locals {
     "(http.request.uri.path.extension eq \"html\" or http.request.uri.path eq \"/\")",
   ])
 
-  # The telemetry ingress host is owned by CMLPlatform/monitoring, not by either Relab
+  # The telemetry ingress host is owned by CMLPlatform/monitoring, not by either R9lab
   # environment, so it is absent from the route map. This expression must track the
   # ingestion host's name, or the skip stops matching.
   telemetry_ingress_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [

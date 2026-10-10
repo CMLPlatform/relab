@@ -1,7 +1,7 @@
 ---
 layout: ../layouts/ContentLayout.astro
 title: Terms of use
-description: The terms you agree to when you contribute records, images, or notes to Relab.
+description: The terms you agree to when you contribute records, images, or notes to R9lab.
 # `version` pairs with CURRENT_TERMS_VERSION in backend/app/api/auth/terms.py;
 # tests/test_terms_version.py fails if they drift. Bump both when the wording
 # changes materially (a typo fix needs no bump). The version is recorded once,
@@ -9,7 +9,7 @@ description: The terms you agree to when you contribute records, images, or note
 # no re-prompt.
 version: 1
 meta: "Version 1 · Last updated: September 28, 2026"
-intro: These terms cover what you contribute to Relab and how it may be used. They are short on purpose.
+intro: These terms cover what you contribute to R9lab and how it may be used. They are short on purpose.
 ---
 
 <!-- What a contributor agrees to. Kept separate from the privacy policy, which is
@@ -17,7 +17,7 @@ a notice and cannot carry a licence grant. -->
 
 ## Who you are agreeing with
 
-Relab is a research platform of the Institute of Environmental Sciences (CML) at Leiden University. CML is part of the university, not a separate organisation, so the agreement below is with Leiden University, and “we” means Leiden University acting through CML.
+R9lab is a research platform of the Institute of Environmental Sciences (CML) at Leiden University. CML is part of the university, not a separate organisation, so the agreement below is with Leiden University, and “we” means Leiden University acting through CML.
 
 ## The licence you give us
 
@@ -35,15 +35,15 @@ We may move a later release to a newer version of CC BY, or to another licence t
 
 You confirm that you made what you upload: you took the photographs yourself and wrote the measurements and notes yourself. Do not upload someone else’s photographs, or images and text copied from a manual, a datasheet, a catalogue, or another site.
 
-Photographing a product you took apart is exactly what Relab is for, and those photographs will show brand names, logos, model numbers and the design of the product itself. That is expected and is not a problem: you are not promising your photographs are free of other people’s trademarks, only that the photographs are yours.
+Photographing a product you took apart is exactly what R9lab is for, and those photographs will show brand names, logos, model numbers and the design of the product itself. That is expected and is not a problem: you are not promising your photographs are free of other people’s trademarks, only that the photographs are yours.
 
 If you are not sure you hold the rights to something, do not upload it.
 
 ## Credit
 
-Contributors are credited collectively. A dataset release names Relab and its authors, and credits everyone who contributed records as a group; it does not name you individually. Your records appear under a code, not your username.
+Contributors are credited collectively. A dataset release names R9lab and its authors, and credits everyone who contributed records as a group; it does not name you individually. Your records appear under a code, not your username.
 
-CC BY 4.0 requires people who reuse a release to credit the release itself. That credit goes to Relab and its authors, which is the same collective form.
+CC BY 4.0 requires people who reuse a release to credit the release itself. That credit goes to R9lab and its authors, which is the same collective form.
 
 Your own profile is separate. Your name and contributions stay visible in the app according to your profile settings, and that is where your work is attributed to you.
 

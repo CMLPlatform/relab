@@ -44,7 +44,7 @@ def test_login_router_wiring_uses_standard_google_client() -> None:
 
 
 async def test_oauth_clients_use_shared_outbound_http_policy() -> None:
-    """OAuth provider calls should use Relab's shared HTTP client configuration."""
+    """OAuth provider calls should use R9lab's shared HTTP client configuration."""
     for client in (google_oauth_client, google_youtube_oauth_client, github_oauth_client):
         http_client = client.get_httpx_client()
         try:
@@ -75,7 +75,7 @@ async def test_google_login_refuses_an_unverified_primary_address(monkeypatch: p
     """``associate_by_email`` links accounts on this address, so an unverified one must not pass.
 
     Returning it would let anyone who can prove control of a Google account with a
-    stranger's address set as an unverified primary take over that Relab account.
+    stranger's address set as an unverified primary take over that R9lab account.
     """
     _mock_transport(
         monkeypatch,

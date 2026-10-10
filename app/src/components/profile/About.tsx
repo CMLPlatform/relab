@@ -25,13 +25,13 @@ export function ProfileAboutSection() {
       <ProfileAction
         icon="tag"
         title="Glossary"
-        subtitle="What the words in Relab mean, in plain language"
+        subtitle="What the words in R9lab mean, in plain language"
         onPress={openGlossary}
       />
       <ProfileAction
         icon="info"
         title="The 9R framework"
-        subtitle="The nine circular-economy strategies behind Relab"
+        subtitle="The nine circular-economy strategies behind R9lab"
         onPress={openNineRFramework}
       />
     </View>

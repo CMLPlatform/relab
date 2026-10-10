@@ -1,6 +1,6 @@
 ---
 title: Hardware
-description: Choose a simple or advanced capture setup for Relab documentation work.
+description: Choose a simple or advanced capture setup for R9lab documentation work.
 ---
 
 Good lighting and a clean workspace matter more than equipment. Start with tier 1; add tier 2 only when your workflow needs it.

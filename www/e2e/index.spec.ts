@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { expectCanonicalUrl, expectHomepageHero, expectThemeToggle } from './helpers.ts';
 
-const HOMEPAGE_TITLE_PATTERN = /Relab/i;
-const META_TITLE_PATTERN = /Relab/i;
+const HOMEPAGE_TITLE_PATTERN = /R9lab/i;
+const META_TITLE_PATTERN = /R9lab/i;
 const META_DESCRIPTION_PATTERN = /open-source research platform/i;
 // Two hero CTAs, the blueprint's record link (the fixture build's "Browse the
 // records", a live build's "Open this record"), and the 9R docs link; header
@@ -15,8 +15,8 @@ test.describe('Landing page', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(HOMEPAGE_TITLE_PATTERN);
     await expectHomepageHero(page);
-    await expect(page.getByRole('link', { name: 'Relab', exact: true })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Read the Relab privacy policy' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'R9lab', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Read the R9lab privacy policy' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'YouTube' })).toBeVisible();
     await expectThemeToggle(page);
 

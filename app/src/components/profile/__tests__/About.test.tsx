@@ -26,10 +26,10 @@ describe('ProfileAboutSection', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'The 9R framework, The nine circular-economy strategies behind Relab',
+        name: 'The 9R framework, The nine circular-economy strategies behind R9lab',
       }),
     ).toBeOnTheScreen();
-    expect(screen.getByText('The nine circular-economy strategies behind Relab')).toBeOnTheScreen();
+    expect(screen.getByText('The nine circular-economy strategies behind R9lab')).toBeOnTheScreen();
   });
 
   it('renders the glossary row', async () => {
@@ -37,7 +37,7 @@ describe('ProfileAboutSection', () => {
 
     expect(
       screen.getByRole('button', {
-        name: 'Glossary, What the words in Relab mean, in plain language',
+        name: 'Glossary, What the words in R9lab mean, in plain language',
       }),
     ).toBeOnTheScreen();
   });
@@ -47,7 +47,7 @@ describe('ProfileAboutSection', () => {
 
     await user.press(
       screen.getByRole('button', {
-        name: 'Glossary, What the words in Relab mean, in plain language',
+        name: 'Glossary, What the words in R9lab mean, in plain language',
       }),
     );
 
@@ -61,7 +61,7 @@ describe('ProfileAboutSection', () => {
 
     await user.press(
       screen.getByRole('button', {
-        name: 'The 9R framework, The nine circular-economy strategies behind Relab',
+        name: 'The 9R framework, The nine circular-economy strategies behind R9lab',
       }),
     );
 

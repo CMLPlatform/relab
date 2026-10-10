@@ -1,4 +1,4 @@
-# Relab Design System
+# R9lab Design System
 
 Source of truth for brand typography and colour across the monorepo.
 Web/email primitives live in [brand.css](brand.css); the app maps the same
@@ -189,7 +189,7 @@ targets a destructive or cancel action.
 ## Logo
 
 The mark is a **font-derived 9, vertically squished** so it reads as a loop
-and as a mirrored "e" (the wordmark reads "Relab"). The 9 is Titillium Web
+and as a mirrored "e". The 9 is Titillium Web
 600; the letters are IBM Plex Sans 600; the ringed lockup uses a plain ring
 (see [logo-src/](logo-src/README.md)). Regenerate via `make_r9lab.py` +
 `just assets-sync`. Colours follow the palette above; og-images and all PNG
@@ -197,11 +197,11 @@ derivatives regenerate from the same pipeline.
 
 ## Voice
 
-The brand is always read and pronounced **"Relab"**, and that is how it is
-written in running copy, alt text, and aria-labels. The `R9lab` spelling is a
-purely visual device (the squished 9 reads as a mirrored "e" while hinting at
-the 9R framework of circular-economy strategies, R0–R9) and lives only in the
-wordmark artwork. Never "R-nine-lab".
+The name is **"R9lab"** in all text: running copy, titles, alt text, and
+aria-labels. It is pronounced "Relab": in the wordmark the squished 9 reads as
+a mirrored "e" and nods to the 9R framework of circular-economy strategies,
+R0–R9. Never write "R-nine-lab" or "Reverse Engineering Lab", and don't add a
+pronunciation hint to labels (an accessible name must match the visible text).
 
 Circularity framing, lab vernacular (products, components, materials,
 samples); never "reverse engineering" in new copy.

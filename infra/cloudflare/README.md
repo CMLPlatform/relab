@@ -1,6 +1,6 @@
-# Relab Cloudflare Edge
+# R9lab Cloudflare Edge
 
-This directory manages Relab's **per-environment** Cloudflare edge with OpenTofu:
+This directory manages R9lab's **per-environment** Cloudflare edge with OpenTofu:
 
 - a Cloudflare Tunnel per environment
 - DNS records for the hostnames the tunnel serves (api and app)
@@ -27,10 +27,9 @@ databases, backups, or telemetry.
 hostname map they share lives in `hostnames.tf`, which is symlinked into the zone root
 so both read one definition. Current hostnames:
 
-- Production: `cml-relab.org`, `app.cml-relab.org`, `api.cml-relab.org`,
-  `docs.cml-relab.org`
-- Staging: `web-test.cml-relab.org`, `app-test.cml-relab.org`,
-  `api-test.cml-relab.org`, `docs-test.cml-relab.org`
+- Production: `r9lab.io`, `app.r9lab.io`, `api.r9lab.io`, `docs.r9lab.io`
+- Staging: `web-test.r9lab.io`, `app-test.r9lab.io`, `api-test.r9lab.io`,
+  `docs-test.r9lab.io`
 
 Tunnel origins use plain HTTP inside the private Compose `edge` network.
 
@@ -40,14 +39,15 @@ into OpenTofu and run a plan before the next apply.
 
 ## Why two roots
 
-Cloudflare allows **one entrypoint ruleset per (zone, phase)**, and prod and staging share one zone
-(`cml-relab.org`). If an environment workspace owned a zone-scoped resource, whichever environment
-applied last would overwrite the other's rules. The roots are split by scope:
+Cloudflare allows **one entrypoint ruleset per (zone, phase)**, and prod and staging share each
+zone (`r9lab.io`, and `cml-relab.org` before it). If an environment workspace owned a zone-scoped
+resource, whichever environment applied last would overwrite the other's rules. The roots are split
+by scope:
 
-| Root               | Scope           | Workspaces        | Owns                                        |
-| ------------------ | --------------- | ----------------- | ------------------------------------------- |
-| `cloudflare/`      | per environment | `prod`, `staging` | tunnel, DNS records, tunnel ingress         |
-| `cloudflare-zone/` | the whole zone  | `default` only    | TLS settings, the three entrypoint rulesets |
+| Root               | Scope           | Workspaces                    | Owns                                                    |
+| ------------------ | --------------- | ----------------------------- | ------------------------------------------------------- |
+| `cloudflare/`      | per environment | `prod`, `staging`             | tunnel, DNS records, tunnel ingress                     |
+| `cloudflare-zone/` | one zone        | one per zone, named after it  | TLS settings, entrypoint rulesets, redirects, email     |
 
 The zone rulesets match **both** environments' api hosts.
 
@@ -80,9 +80,9 @@ tofu state rm 'cloudflare_ruleset.rate_limiting[0]' \
               'cloudflare_ruleset.custom_firewall[0]' || true
 
 ./generate-imports.sh zone > ../cloudflare-zone/imports.tf
-just cloudflare-zone-plan            # 0 to add; the TLS floor may show 1.0 -> 1.2
-just cloudflare-zone-apply           # plans, prints the diff, saves it, stops
-just cloudflare-zone-apply YES       # applies that saved plan
+just cloudflare-zone-plan cml-relab.org            # 0 to add; the TLS floor may show 1.0 -> 1.2
+just cloudflare-zone-apply cml-relab.org           # plans, prints the diff, saves it, stops
+just cloudflare-zone-apply cml-relab.org YES       # applies that saved plan
 rm ../cloudflare-zone/imports.tf
 ```
 
@@ -100,9 +100,9 @@ just cloudflare-plan staging       # per-environment root
 just cloudflare-apply staging      # plans, prints the diff, saves it, stops
 just cloudflare-apply staging YES  # applies that saved plan
 
-just cloudflare-zone-plan          # zone-global root — affects BOTH environments
-just cloudflare-zone-apply
-just cloudflare-zone-apply YES
+just cloudflare-zone-plan cml-relab.org          # zone-global root — affects BOTH environments
+just cloudflare-zone-apply cml-relab.org
+just cloudflare-zone-apply cml-relab.org YES
 ```
 
 `cloudflare-check` covers **both** roots: format, validate, and `tofu test` with the Cloudflare
@@ -147,7 +147,7 @@ chmod 600 ~/.config/relab-cloudflare.env && . ~/.config/relab-cloudflare.env
 Optional:
 
 ```bash
-export TF_VAR_cloudflare_zone_name='cml-relab.org'
+export TF_VAR_cloudflare_zone_name='r9lab.io'  # the default
 export TF_VAR_github_owner='CMLPlatform'  # a fork's owner, when it publishes its own images
 ```
 
@@ -163,6 +163,101 @@ and approved. Staging needs it because it accepts a run from any branch, and a
 `CLOUDFLARE_API_TOKEN` granted on all Workers is not scoped to one environment.
 
 Do not commit tokens, tunnel tokens, or state files.
+
+## Moving the edge to another zone
+
+Used once, to move from `cml-relab.org` to `r9lab.io`. While the old zone's redirect rules are
+not live, its tunnel hostnames must keep reaching the tunnel. `legacy_zone_name` keeps them in the
+ingress only: no record or custom domain is created for them. It defaults to `cml-relab.org` for
+the move, so an apply that leaves it unset still serves the old hosts.
+
+0. Apply the zone root for the new zone first (`just cloudflare-zone-apply r9lab.io`, then with
+   `YES`), so its WAF and rate-limit rulesets are live before any proxied record exists there.
+1. Then, for each environment, staging first and prod once staging serves:
+   1. **Interim forwarding.** The new zone starts with hand-made placeholders: an `@` and a `*`
+      DNS record, and Redirect Rules that forward its hosts. Before staging's edge apply, replace
+      the wildcard Redirect Rule with explicit rules for the prod hosts only (`r9lab.io`, `app.`,
+      `api.`, `docs.`), and keep both placeholder records. The staging records this apply creates
+      take precedence over `*`, so the staging hosts stop forwarding while the prod hosts keep
+      forwarding until prod's edge apply. Before prod's edge apply, delete the remaining interim
+      rules and both placeholder records; from then on nothing on the new zone forwards. A
+      leftover collides with the records the apply creates and, once the old zone redirects,
+      loops back to it; `just smoke-redirects` reports such a loop.
+   2. Take the old zone's records out of the environment's state without deleting them in
+      Cloudflare:
+
+      ```bash
+      tofu -chdir=infra/cloudflare workspace select <env>
+      tofu -chdir=infra/cloudflare state rm 'cloudflare_dns_record.edge' 'cloudflare_workers_custom_domain.site'
+      ```
+
+      Check `tofu state list` first and name only addresses it shows: `state rm` fails on one that
+      is absent. The old zone's CNAMEs and Worker custom domains stay in Cloudflare, unmanaged, on
+      purpose: its redirect rules only fire on proxied hostnames. Do not delete them as orphans.
+      Deleting or renaming the old Workers later also removes their custom domains and records on
+      the old zone, so keep a proxied record there for the apex and `docs.` or their redirects
+      stop.
+   3. Plan and apply the edge root with the new zone id:
+
+      ```bash
+      export TF_VAR_cloudflare_zone_id='<new zone id>'
+      export TF_VAR_cloudflare_zone_name='r9lab.io'
+      just cloudflare-apply <env>
+      ```
+
+      Expect: the tunnel unchanged, the ingress updated in place, new records and custom domains,
+      the `github_*` variables updated in place, and 0 to destroy. Stop if anything on the old
+      zone or the tunnel is destroyed or replaced. Otherwise `just cloudflare-apply <env> YES`.
+   4. **Build the images only after this apply.** The build bakes in the GitHub Environment's
+      `*_PUBLIC_URL` variables, and this apply is what points them at the new zone: run Publish
+      Images by hand for staging, and cut the release for prod only after prod's edge apply.
+   5. **The cutover window.** Keep it to one `YES`:
+      1. Plan the old zone's redirect apply right before the next step; do the pre-check in
+         [Redirecting the old zone](../cloudflare-zone/README.md#redirecting-the-old-zone) before
+         the first window. `just cloudflare-zone-apply cml-relab.org` saves the plan and stops; a
+         saved plan stays valid for twenty minutes.
+         - **Staging:**
+
+           ```bash
+           export TF_VAR_redirect_to_zone_name='r9lab.io'
+           export TF_VAR_redirect_environments='["staging"]'
+           just cloudflare-zone-apply cml-relab.org
+           ```
+
+           Expect one ruleset with four rules, none for a prod host. Once the apply lands, commit
+           `infra/cloudflare-zone/cml-relab.org.tfvars`:
+
+           ```hcl
+           redirect_to_zone_name = "r9lab.io"
+           redirect_environments = ["staging"]
+           ```
+
+         - **Prod:** the committed tfvars wins over any `TF_VAR_redirect_environments`, so
+           exporting `'["prod", "staging"]'` changes nothing. Edit `cml-relab.org.tfvars` in your
+           checkout to `redirect_environments = ["prod", "staging"]` before planning, expect eight
+           rules, and commit the edit once the apply lands.
+
+         Never commit an environment before its own apply: the next old-zone apply would
+         redirect it.
+      2. Point the host's root `.env` at the new zone (`*_PUBLIC_URL`, `EMAIL_*`, `SMTP_*`). Check
+         that `gh variable get API_PUBLIC_URL --env <env>` prints the same `API_PUBLIC_URL`, then
+         deploy the new image tag.
+      3. Run Deploy Sites for the environment, so the landing page and docs link to the new hosts.
+      4. Straight away, `just cloudflare-zone-apply cml-relab.org YES`.
+      5. `just smoke-redirects cml-relab.org r9lab.io <env>`, then sign in with each provider.
+   6. **Rollback.** Before the redirect apply: revert the `.env` and the image tag, and set the
+      `*_PUBLIC_URL` Environment variables back with `gh variable set <name> --env <env> --body
+      <old URL>`. The edge root cannot simply be pointed back at the old zone, because its old
+      records are unmanaged now; the legacy ingress keeps serving the old hosts meanwhile. After
+      the redirect apply, while the codes are still 302/307: apply the old zone without
+      `redirect_to_zone_name` (revert its committed tfvars first if it already lists the
+      environment), then revert the `.env`.
+2. Once the old zone's redirects are permanent, export `TF_VAR_legacy_zone_name=''` and apply each
+   environment again to drop the legacy ingress rules.
+
+`generate-imports.sh` defaults to the new zone. To adopt resources on the old one, export
+`TF_VAR_cloudflare_zone_name=cml-relab.org` and its zone id first, and `TF_VAR_legacy_zone_name=''`
+for the plan, since the legacy zone must differ from the zone.
 
 ## Moving a hostname onto a Worker
 
@@ -220,30 +315,39 @@ Staging first; prod once staging serves.
 ## API Token Scopes
 
 Create the token under **My Profile -> API Tokens -> Create Custom Token**. It needs account and
-zone policy rows: the tunnel is an account resource, everything else is scoped to the zone:
+zone policy rows: the tunnel is an account resource, everything else is scoped to the zone. Grant
+the zone rows on both `r9lab.io` and `cml-relab.org` while the move is under way, and on the
+current zone alone afterwards:
 
 | Scope                   | Permission                            | Access | Required by                                      |
 | ----------------------- | ------------------------------------- | ------ | ------------------------------------------------ |
-| Account (Relab account) | Cloudflare Tunnel                     | Edit   | `cloudflare_zero_trust_tunnel_cloudflared`       |
-| Account (Relab account) | Cloudflare One Connector: cloudflared | Edit   | `..._tunnel_cloudflared_config` ingress rules    |
-| Account (Relab account) | Workers (all Workers)                 | Editor | `cloudflare_workers_custom_domain`               |
-| Zone (`cml-relab.org`)  | DNS                                   | Edit   | `cloudflare_dns_record`                          |
-| Zone (`cml-relab.org`)  | Workers Routes                        | Edit   | `cloudflare_workers_custom_domain`               |
-| Zone (`cml-relab.org`)  | Zone Settings                         | Edit   | `cloudflare_zone_setting`                        |
-| Zone (`cml-relab.org`)  | Zone WAF                              | Edit   | `http_ratelimit`, `http_request_firewall_custom` |
-| Zone (`cml-relab.org`)  | Cache Rules                           | Edit   | `http_request_cache_settings`                    |
-| Zone (`cml-relab.org`)  | Zone                                  | Read   | zone lookup                                      |
+| Account (R9lab account) | Cloudflare Tunnel                     | Edit   | `cloudflare_zero_trust_tunnel_cloudflared`       |
+| Account (R9lab account) | Cloudflare One Connector: cloudflared | Edit   | `..._tunnel_cloudflared_config` ingress rules    |
+| Account (R9lab account) | Workers (all Workers)                 | Editor | `cloudflare_workers_custom_domain`               |
+| Account (R9lab account) | Email Routing Addresses               | Edit   | `cloudflare_email_routing_address`               |
+| Zone (R9lab zones)      | DNS                                   | Edit   | `cloudflare_dns_record`                          |
+| Zone (R9lab zones)      | Workers Routes                        | Edit   | `cloudflare_workers_custom_domain`               |
+| Zone (R9lab zones)      | Zone Settings                         | Edit   | `cloudflare_zone_setting`                        |
+| Zone (R9lab zones)      | Zone WAF                              | Edit   | `http_ratelimit`, `http_request_firewall_custom` |
+| Zone (R9lab zones)      | Cache Rules                           | Edit   | `http_request_cache_settings`                    |
+| Zone (R9lab zones)      | Single Redirect                       | Edit   | `http_request_dynamic_redirect` (old zone)       |
+| Zone (R9lab zones)      | Email Routing Rules                   | Edit   | `cloudflare_email_routing_*` on the zone         |
+| Zone (R9lab zones)      | Zone                                  | Read   | zone id check in both roots                      |
 
 Some accounts still label the tunnel permission **Argo Tunnel (Legacy)**; it is the same grant
 ("create and delete Cloudflare Tunnels"). Do not substitute Cloudflare One Networks, which covers
 WARP routes and virtual networks that this config does not use.
+
+Cloudflare's permission reference also lists the newer names **Dynamic URL Redirects: Write**,
+**Email Routing Rules: Write** and **Email Routing Addresses: Write** for three of these rows; the
+dashboard may show either. The two Email Routing rows are only needed where `email_forwards` is set.
 
 The Workers row is the **Editor** role on the Workers product, which replaces the legacy
 **Workers Scripts: Edit**. Grant it on all Workers: Custom Domains do not accept a role limited to
 selected Workers, and creating one also needs **Workers Routes: Edit** on the zone.
 
 Grant nothing else. Bot Management, Access, Page Rules, Cache Purge, Zone DNS Settings, and a
-blanket Zone Write are not used here. Scope the zone row to `cml-relab.org` alone, and set an
+blanket Zone Write are not used here. Scope the zone rows to the R9lab zones alone, and set an
 expiry.
 
 Verify before the first plan:
@@ -286,7 +390,7 @@ The zone root is adopted the same way:
 
 ```bash
 ./generate-imports.sh zone > ../cloudflare-zone/imports.tf
-just cloudflare-zone-plan
+just cloudflare-zone-plan cml-relab.org
 ```
 
 The script resolves every id before it writes anything, so a failure leaves no half-written file.

@@ -12,7 +12,7 @@ disassembly and how to record uncertainty; return to it often. The [Glossary](gl
 the terms.
 
 [Hardware](hardware/) and [RPi camera](rpi-cam/) are optional: a phone camera is enough to
-contribute. [API interaction](api/) covers reading and writing Relab data from scripts, notebooks,
+contribute. [API interaction](api/) covers reading and writing R9lab data from scripts, notebooks,
 or integrations, and assumes you have an account.
 
 For how the platform is built or how to run your own instance, see [Architecture](/architecture/)

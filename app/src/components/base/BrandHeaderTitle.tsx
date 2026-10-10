@@ -13,7 +13,7 @@ export function BrandHeaderTitle({ isDark }: { isDark: boolean }) {
       source={source}
       style={styles.wordmark}
       contentFit="contain"
-      accessibilityLabel="Relab"
+      accessibilityLabel="R9lab"
     />
   );
 }

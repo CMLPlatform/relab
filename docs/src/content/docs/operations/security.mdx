@@ -1,6 +1,6 @@
 ---
 title: Security and hardening
-description: Relab's deployed security posture and trust-boundary controls.
+description: R9lab's deployed security posture and trust-boundary controls.
 ---
 
 Public traffic enters through Cloudflare: Tunnel for the API and app, Workers static assets for the landing page and docs. Data services stay on private Compose networks, outbound backend HTTP is allowlisted, and source-controlled checks cover sensitive application behavior.
@@ -77,7 +77,7 @@ Compose networks segment the deploy stack: public-facing services on `edge`, dat
 
 Backend outbound HTTP must use the shared HTTP client unless a reviewed exception exists. The shared client ignores ambient proxy and CA environment variables, does not follow redirects, uses bounded timeouts, validates TLS certificates, and permits only `OUTBOUND_HTTP_ALLOWED_URLS`.
 
-Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with dynamic path segments. Narrow GitHub, raw GitHub, and provider API access to the specific URLs Relab uses.
+Prefer exact HTTPS URLs. Use trailing-slash prefixes only for integrations with dynamic path segments. Narrow GitHub, raw GitHub, and provider API access to the specific URLs R9lab uses.
 
 ## Denial-of-service controls
 

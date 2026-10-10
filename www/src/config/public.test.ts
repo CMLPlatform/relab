@@ -53,7 +53,7 @@ describe('readPublicSiteConfig', () => {
   it('falls back to the default contact email when blank', () => {
     expect(readPublicSiteConfig(publicEnv([['PUBLIC_CONTACT_EMAIL', '   ']]))).toEqual({
       appUrl: 'https://app.example.com',
-      contactEmail: 'relab@cml.leidenuniv.nl',
+      contactEmail: 'info@r9lab.io',
       docsUrl: 'https://docs.example.com',
       siteUrl: 'https://example.com',
     });
@@ -61,16 +61,16 @@ describe('readPublicSiteConfig', () => {
 
   it('defaults missing URL vars to the production origins', () => {
     expect(readPublicSiteConfig({})).toEqual({
-      appUrl: 'https://app.cml-relab.org',
-      contactEmail: 'relab@cml.leidenuniv.nl',
-      docsUrl: 'https://docs.cml-relab.org',
-      siteUrl: 'https://cml-relab.org',
+      appUrl: 'https://app.r9lab.io',
+      contactEmail: 'info@r9lab.io',
+      docsUrl: 'https://docs.r9lab.io',
+      siteUrl: 'https://r9lab.io',
     });
   });
 
   it('defaults a blank URL var to its production origin', () => {
     expect(readPublicSiteConfig(publicEnv([['PUBLIC_APP_URL', '   ']])).appUrl).toBe(
-      'https://app.cml-relab.org',
+      'https://app.r9lab.io',
     );
   });
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepare the mounted secrets, then run one Relab restic backup and exit.
+# Prepare the mounted secrets, then run one R9lab restic backup and exit.
 # Scheduling is a systemd timer on the host (deploy/systemd/); a non-zero exit here
 # is recorded by systemd and reported by `just watchdog <env>`.
 
