@@ -337,6 +337,8 @@ change it there first.*
 
 - **Style:** Borderless by default on a `card` fill; bordered variant available. 6px radius,
   44px minimum height.
+- **Placeholder:** the input stroke grey (`#74777F` / `#8E9099`, `tokens.text.placeholder`), so
+  an example never reads as entered text. It keeps at least 3:1 on its fill in both schemes.
 - **Error:** Message rendered by `FormField` with a `nativeID` linked via
   `accessibilityLabelledBy`, so the error is programmatically associated, not merely adjacent.
 - **Required:** only a field the form cannot submit without (sign-in, sign-up, onboarding's

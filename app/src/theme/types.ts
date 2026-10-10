@@ -60,6 +60,7 @@ export type AppTokens = {
     inverseMuted: string;
     onMedia: string;
     data: string;
+    placeholder: string;
   };
   surface: {
     sunken: string;

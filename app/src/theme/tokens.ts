@@ -82,6 +82,8 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       onMedia: '#fff',
       /** Manila data labels: measurements, IDs, counts (DESIGN.md Data-Label Rule). */
       data: p.accent, // manila
+      // The input stroke grey: lighter than entered text, still 3:1 on the card fill.
+      placeholder: p.input,
     },
     surface: {
       sunken: isDark ? colors.card : colors.muted,

@@ -23,6 +23,11 @@ function luminance(color: string): number {
   });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+/** `top` at `alpha` over an opaque `under`, as an "rgb()" string. */
+function blend(top: string, under: string, alpha: number): string {
+  const [t, u] = [toRgbTriple(top), toRgbTriple(under)];
+  return `rgb(${t.map((v, i) => Math.round(v * alpha + u[i] * (1 - alpha))).join(', ')})`;
+}
 function contrast(a: string, b: string): number {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
@@ -32,7 +37,7 @@ function contrast(a: string, b: string): number {
 describe.each<[string, AppTheme, string]>([
   ['light', lightTheme, palette.light.background],
   ['dark', darkTheme, palette.dark.background],
-])('%s scheme', (_scheme, theme, background) => {
+])('%s scheme', (scheme, theme, background) => {
   test('status and link text tones meet 4.5:1 on the page background', () => {
     const { success, warning, info, offline, danger, live } = theme.tokens.status;
     for (const tone of [success, warning, info, offline, danger, live, theme.tokens.text.link]) {
@@ -47,6 +52,19 @@ describe.each<[string, AppTheme, string]>([
   });
   test('destructive fill carries readable destructive-foreground text', () => {
     expect(contrast(theme.colors.onError, theme.colors.error)).toBeGreaterThanOrEqual(4.5);
+  });
+  // Placeholders sit on the card fill (TextInput) or the page, and in dark ui/input on a
+  // 30% tint of the input grey. Readable, yet clearly lighter than a typed value.
+  test('placeholder text meets 3:1 and reads lighter than entered text', () => {
+    const placeholder = theme.tokens.text.placeholder;
+    const fills = [background, theme.colors.card];
+    if (scheme === 'dark') fills.push(blend(theme.colors.outline, background, 0.3));
+    for (const fill of fills) {
+      expect(contrast(placeholder, fill)).toBeGreaterThanOrEqual(3);
+      expect(contrast(theme.colors.onSurface, fill)).toBeGreaterThanOrEqual(
+        2 * contrast(placeholder, fill),
+      );
+    }
   });
   test('pressed primary-strong fill carries readable onPrimary text', () => {
     expect(contrast(theme.colors.onPrimary, theme.colors.primaryStrong)).toBeGreaterThanOrEqual(
