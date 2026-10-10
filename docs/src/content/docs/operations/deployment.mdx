@@ -5,7 +5,7 @@ description: The self-hosted R9lab deployment topology and its operational trade
 
 R9lab runs as a self-hosted Docker Compose stack sized for a single VPS. This page describes how
 that stack is put together. For the step-by-step procedure, see
-[Installation and self-hosting](/operations/install/#production-and-staging-deployment).
+[Configure](/operations/configure/) and the pages after it.
 
 ## Compose service topology
 
@@ -71,7 +71,7 @@ share; [Security and hardening](/operations/security/#inbound-edge) describes th
 Prod and staging have separate OpenTofu workspaces and state. Start public hostname changes in
 `infra/cloudflare/`. Do not add wildcard DNS records without a concrete operational need and a
 blast-radius review. The plan and apply procedure is in the
-[install guide](/operations/install/#production-and-staging-deployment).
+[install guide](/operations/configure/).
 
 ## Network segmentation policy
 

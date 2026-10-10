@@ -36,7 +36,7 @@ Use the hosted platform at [app.r9lab.io](https://app.r9lab.io).
 
 To go deeper:
 
-- [Install and self-host](https://docs.r9lab.io/operations/install/) for running or
+- [Install and self-host](https://docs.r9lab.io/operations/prerequisites/) for running or
   self-hosting the stack
 - [CONTRIBUTING.md](.github/CONTRIBUTING.md) for making code or docs changes
 - [docs.r9lab.io](https://docs.r9lab.io) for architecture and user-facing docs

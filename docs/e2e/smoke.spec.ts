@@ -17,7 +17,7 @@ test('core docs routes render and search UI is present', async ({ page }) => {
 
   await page.goto('/operations/install/');
   await expect(
-    page.getByRole('main').getByRole('heading', { name: 'Installation and self-hosting' }).first(),
+    page.getByRole('main').getByRole('heading', { name: 'Install', exact: true }).first(),
   ).toBeVisible();
 });
 

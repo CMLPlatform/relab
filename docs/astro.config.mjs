@@ -66,8 +66,12 @@ const SIDEBAR = [
   {
     label: 'Operations',
     items: [
-      { label: 'Install and self-host', slug: 'operations/install' },
-      { label: 'Deployment', slug: 'operations/deployment' },
+      { label: 'Prerequisites', slug: 'operations/prerequisites' },
+      { label: 'Install', slug: 'operations/install' },
+      { label: 'Configure', slug: 'operations/configure' },
+      { label: 'Deploy', slug: 'operations/deploy' },
+      { label: 'Upgrade and backup', slug: 'operations/upgrade-backup' },
+      { label: 'Deployment and operations', slug: 'operations/deployment' },
       { label: 'Security and hardening', slug: 'operations/security' },
     ],
   },

@@ -35,5 +35,6 @@ scratch directory and checks that it holds files.
 
 ## Setup, secrets, and offsite copies
 
-The install guide (`docs/src/content/docs/operations/install.md`) covers the first backup, the
-secret files, the timers, and the optional offsite copy.
+The install guide in `docs/src/content/docs/operations/` covers the secret files
+(`configure.md`) and the first backup, the timers, and the optional offsite copy
+(`upgrade-backup.md`).

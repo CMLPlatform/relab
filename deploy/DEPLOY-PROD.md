@@ -2,8 +2,8 @@
 
 What is specific to the CML production host: one-time host setup, the routine release loop, and
 recovery. The generic procedure (env files, secrets, first start, upgrades, timers, offsite,
-telemetry) is in the install guide, `docs/src/content/docs/operations/install.md`. This file does not
-repeat it.
+telemetry) is in the install guide, `docs/src/content/docs/operations/` from `prerequisites.md` to
+`upgrade-backup.md`. This file does not repeat it.
 
 Staging equivalent: [DEPLOY-STAGING.md](DEPLOY-STAGING.md). Rehearse there first.
 
@@ -31,8 +31,8 @@ Skipping this loses nothing for the stack itself; the compose caps stay authorit
 
 ### 1.1 Backup repository
 
-Follow "First backup" in the install guide (`mkdir`/`chown 65532`, `just backup-init prod`,
-`just backup prod`, `just restore-check prod`). **The repository is never created automatically.**
+Follow "First backup" in the install guide's `upgrade-backup.md` (`mkdir`/`chown 65532`,
+`just backup-init prod`, `just backup prod`, `just restore-check prod`). **The repository is never created automatically.**
 
 `backup-init` also stamps the uploads volume with `.relab-volume`, naming its environment. A backup then
 refuses to run if the marker is missing or wrong: a deleted volume returns silently empty and the
@@ -386,7 +386,7 @@ in that run until you approve them, so check staging before you do. Prod is neve
 product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment), run Deploy Sites by
 hand for `prod` on `main` and approve it. Staging rebuilds weekly on its own.
 
-The install guide's upgrade step covers what a failed migration does and the 2026-09-08 flatten.
+The install guide's "Upgrade" section (`upgrade-backup.md`) covers what a failed migration does and the 2026-09-08 flatten.
 Without the `migrations` profile, the API briefly serves against the old schema: acceptable during a
 planned outage, not for a routine release.
 
@@ -409,7 +409,7 @@ there, not from the first 100% CPU reading during the release.
 overrides the image's own `USER`, so the change takes effect as soon as the checkout moves, and
 every backup fails until the matching `chown`. The safety snapshot cannot run after `down`, because
 `just backup <env> manual` runs with `--no-deps`: the timer must never start PostgreSQL as a side
-effect. The install guide's upgrade step has the commands in the order that works. `up` refuses to
+effect. The install guide's "Upgrade" section has the commands in the order that works. `up` refuses to
 start while a mount is unwritable and names the volume.
 
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
