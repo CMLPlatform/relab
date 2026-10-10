@@ -55,12 +55,12 @@ describe.each<[string, AppTheme, string]>([
   });
   // Placeholders sit on the card fill (TextInput) or the page, and in dark ui/input on a
   // 30% tint of the input grey. Readable, yet clearly lighter than a typed value.
-  test('placeholder text meets 3:1 and reads lighter than entered text', () => {
+  test('placeholder text meets 4.5:1 and reads lighter than entered text', () => {
     const placeholder = theme.tokens.text.placeholder;
     const fills = [background, theme.colors.card];
     if (scheme === 'dark') fills.push(blend(theme.colors.outline, background, 0.3));
     for (const fill of fills) {
-      expect(contrast(placeholder, fill)).toBeGreaterThanOrEqual(3);
+      expect(contrast(placeholder, fill)).toBeGreaterThanOrEqual(4.5);
       expect(contrast(theme.colors.onSurface, fill)).toBeGreaterThanOrEqual(
         2 * contrast(placeholder, fill),
       );
