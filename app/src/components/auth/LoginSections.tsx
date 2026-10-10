@@ -13,7 +13,7 @@ import { TextInput } from '@/components/base/TextInput';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import type { LoginFormValues } from '@/services/api/validation/userSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { describedBy, requiredField } from '@/utils/a11y';
+import { describedBy, heading, requiredField } from '@/utils/a11y';
 
 type LoginLayoutProps = {
   children: React.ReactNode;
@@ -69,11 +69,17 @@ export function LoginCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The wordmark at the head of the auth card: on the card's opaque ground, never on the photo. */
+/**
+ * The wordmark and the screen's h1 at the head of the auth card: on the card's
+ * opaque ground, never on the photo.
+ */
 export function LoginBrandHero() {
   return (
-    <View className="items-center pt-2 pb-3">
+    <View className="items-center gap-2 pt-2 pb-3">
       <BrandWordmark style={styles.brandLogo} />
+      <AppText variant="title" {...heading(1)}>
+        Sign in
+      </AppText>
     </View>
   );
 }

@@ -165,7 +165,8 @@ describe('Login screen', () => {
 
   it('renders login form elements', async () => {
     await renderWithProviders(<Login />, { withDialog: true });
-    expect(screen.getAllByText('Sign in').length).toBeGreaterThan(0);
+    // The screen's one h1, separate from the Sign in button.
+    expect(screen.getByRole('header', { name: 'Sign in' })).toBeOnTheScreen();
     expect(screen.getByLabelText('Email or username')).toBeOnTheScreen();
     expect(screen.getByLabelText('Password')).toBeOnTheScreen();
   });

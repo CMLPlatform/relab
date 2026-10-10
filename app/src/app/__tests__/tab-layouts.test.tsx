@@ -91,6 +91,23 @@ describe('tab stack layouts', () => {
     },
   );
 
+  // Their screens render their own h1, so the header title must not be a second one
+  // (react-native-web makes react-navigation's default title an <h1>).
+  it.each([CamerasTabLayout, AccountTabLayout])(
+    'renders the header title as plain text, not a heading (%p)',
+    async (Layout) => {
+      await render(<Layout />);
+      const headerTitle = mockStackOptions?.headerTitle as (props: {
+        children: string;
+      }) => React.ReactElement;
+
+      const title = await render(headerTitle({ children: 'Account' }));
+
+      expect(title.getByText('Account')).toBeOnTheScreen();
+      expect(title.queryByRole('header')).toBeNull();
+    },
+  );
+
   // The products tab owns the /components tree too, so a component's creation
   // screen has to be declared here rather than on the root stack.
   it('keeps both the products and components trees in the products tab', async () => {

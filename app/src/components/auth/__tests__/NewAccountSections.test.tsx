@@ -3,7 +3,12 @@ import { screen, within } from '@testing-library/react-native';
 import { Text } from 'react-native';
 import { NewAccountLayout, PrivacyPolicy } from '@/components/auth/NewAccountSections';
 import { openExternalUrl } from '@/services/externalLinks';
-import { getHostByType, renderWithProviders, setupUser } from '@/test-utils/index';
+import {
+  getHostByType,
+  queryAllHostsByProps,
+  renderWithProviders,
+  setupUser,
+} from '@/test-utils/index';
 
 // EXPO_PUBLIC_WEBSITE_URL is unset under Jest, which would leave both links inert.
 const WEBSITE_URL = 'https://relab.example';
@@ -63,5 +68,18 @@ describe('NewAccountLayout', () => {
     // Inside the ScrollView and after the form, so a short screen scrolls to it
     // instead of the footer covering the step's actions.
     expect(within(scroll).getByTestId('signup-footer')).toBeOnTheScreen();
+  });
+
+  // One main landmark around the form, as on the other auth screens; the footer stays outside it.
+  it('wraps the form in the main landmark', async () => {
+    await renderWithProviders(
+      <NewAccountLayout onNavigateToLogin={jest.fn()}>
+        <Text>Form</Text>
+      </NewAccountLayout>,
+    );
+    const mains = queryAllHostsByProps({ role: 'main' });
+    expect(mains).toHaveLength(1);
+    expect(within(mains[0]).getByText('Form')).toBeOnTheScreen();
+    expect(within(mains[0]).queryByTestId('signup-footer')).toBeNull();
   });
 });

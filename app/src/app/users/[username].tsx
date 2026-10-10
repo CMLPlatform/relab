@@ -14,6 +14,7 @@ import { AppText } from '@/components/base/AppText';
 import { CenteredSpinner } from '@/components/base/CenteredSpinner';
 import { ErrorState } from '@/components/base/ErrorState';
 import { PageContainer } from '@/components/base/PageContainer';
+import { PlainHeaderTitle } from '@/components/base/PlainHeaderTitle';
 import { SpecFacts } from '@/components/base/SpecFacts';
 import { LoadMoreFooter } from '@/components/product/LoadMoreFooter';
 import ProductCard from '@/components/product/ProductCard';
@@ -163,8 +164,6 @@ function ProfileProductList({ username, header }: { username: string; header: Re
 }
 
 export default function UserProfileScreen() {
-  const theme = useAppTheme();
-  const styles = createStyles(theme);
   const { profile, loading, hasError, errorMessage, onRetry } = usePublicProfileScreen();
   const title = profile?.username ?? 'Profile';
 
@@ -173,25 +172,11 @@ export default function UserProfileScreen() {
       <Head>
         <title>{`${title} · R9lab`}</title>
       </Head>
-      {/* react-native-web renders react-navigation's header title
-          (accessibilityRole "header", no aria-level) as an <h1>, which would
-          compete with the username heading in the page below, and
-          useScreenEntryFocus focuses the scaffold's h1. Render the chrome title
-          as plain text so the screen keeps exactly one heading, the way the
-          product detail screen does with ProductNameHeader. */}
+      {/* Plain text: the username below is the screen's one h1 (see PlainHeaderTitle). */}
       <Stack.Screen
         options={{
           title,
-          headerTitle: () => (
-            <AppText
-              variant="body"
-              numberOfLines={1}
-              className="font-bold"
-              style={styles.headerTitle}
-            >
-              {title}
-            </AppText>
-          ),
+          headerTitle: () => <PlainHeaderTitle>{title}</PlainHeaderTitle>,
         }}
       />
       <PageContainer entryFocusReady={!loading}>
@@ -225,10 +210,6 @@ const createStyles = memoizeByTheme((theme: AppTheme) =>
       // NOTE: avatar-initials glyph sized to fill the 120px circle; no ramp step applies.
       fontSize: 48,
       color: theme.colors.primary,
-    },
-    headerTitle: {
-      flexShrink: 1,
-      color: theme.colors.onBackground,
     },
   }),
 );
