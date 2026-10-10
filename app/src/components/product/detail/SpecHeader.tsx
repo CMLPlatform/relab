@@ -7,7 +7,7 @@ import { type SpecFact, SpecFacts } from '@/components/base/SpecFacts';
 import { TextInput } from '@/components/base/TextInput';
 import { PRODUCT_NAME_MAX_LENGTH, productSchema } from '@/services/api/validation/productSchema';
 import { useAppTheme } from '@/theme/appThemeContext';
-import type { Product } from '@/types/Product';
+import { entityLabelTitle, type Product } from '@/types/Product';
 import { describedBy, heading, visuallyHidden } from '@/utils/a11y';
 
 function buildFacts(product: Product): SpecFact[] {
@@ -26,9 +26,12 @@ function buildFacts(product: Product): SpecFact[] {
 /** Edit-mode name field at title scale. Local draft so hydration cannot clobber typing; commits trimmed on blur. */
 function NameField({
   name,
+  fieldLabel,
   onNameChange,
 }: {
   name: string | undefined;
+  /** "Product name" or "Component name": a component's field must not announce itself as a product's. */
+  fieldLabel: string;
   onNameChange?: (newName: string) => void;
 }) {
   const { tokens } = useAppTheme();
@@ -53,7 +56,7 @@ function NameField({
         value={value}
         onChangeText={setDraft}
         onBlur={handleBlur}
-        placeholder="Product name"
+        placeholder={fieldLabel}
         maxLength={PRODUCT_NAME_MAX_LENGTH}
         bordered
         // NOTE: the `title` ramp step, applied as a style because RN's
@@ -64,7 +67,7 @@ function NameField({
           { paddingHorizontal: 8 },
           isInvalid && { borderColor: tokens.status.danger },
         ]}
-        accessibilityLabel="Product name"
+        accessibilityLabel={fieldLabel}
         {...describedBy(errorId, isInvalid)}
       />
       <FormFieldError errorId={errorId} message={errorMessage} />
@@ -99,7 +102,12 @@ export function SpecHeader({
             {product.id === undefined ? 'New product' : `Editing ${product.name}`}
           </AppText>
           {/* Keyed per product so a stale draft is dropped on navigation. */}
-          <NameField key={product.id} name={product.name} onNameChange={onNameChange} />
+          <NameField
+            key={product.id}
+            name={product.name}
+            fieldLabel={`${entityLabelTitle(product)} name`}
+            onNameChange={onNameChange}
+          />
         </>
       ) : (
         <AppText variant="display" {...heading(1)}>

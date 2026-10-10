@@ -85,7 +85,7 @@ test('an ordinary member can create, populate and publish a product', async ({ p
       (r) => r.request().method() === 'POST' && PRODUCT_IMAGE_UPLOAD_PATH_PATTERN.test(r.url()),
       { timeout: 30_000 },
     ),
-    page.getByRole('button', { name: 'Save Product' }).click(),
+    page.getByRole('button', { name: 'Save product' }).click(),
   ]);
   expect(upload.status()).toBeLessThan(300);
 
@@ -122,7 +122,7 @@ test('an ordinary member can create, populate and publish a product', async ({ p
 
     // Pin down that this really is an anonymous visitor. Without it the whole
     // guest block would keep passing if the context ever inherited a session.
-    await expect(guest.getByRole('button', { name: 'Edit Product' })).toBeHidden();
+    await expect(guest.getByRole('button', { name: 'Edit product' })).toBeHidden();
 
     // The image must be served to an anonymous visitor too, not just rendered
     // from the authenticated session's cache.

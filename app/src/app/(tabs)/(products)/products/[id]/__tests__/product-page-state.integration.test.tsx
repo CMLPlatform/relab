@@ -315,21 +315,21 @@ describe('ProductPage state handling', () => {
     await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Edit product')).toBeOnTheScreen();
     });
 
     // Fire scroll events to exercise the onScroll handler
-    await fireEvent.scroll(screen.getByLabelText('Edit Product'), {
+    await fireEvent.scroll(screen.getByLabelText('Edit product'), {
       nativeEvent: { contentOffset: { y: 100 } },
     });
 
     // Scroll back to top
-    await fireEvent.scroll(screen.getByLabelText('Edit Product'), {
+    await fireEvent.scroll(screen.getByLabelText('Edit product'), {
       nativeEvent: { contentOffset: { y: 0 } },
     });
 
     // Component doesn't crash and FAB still renders
-    expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Edit product')).toBeOnTheScreen();
   });
 
   it('shows slow-loading card after timeout', async () => {
@@ -550,7 +550,7 @@ describe('ProductPage state handling', () => {
     await waitFor(() => {
       expect(screen.getByTestId('save-status')).toHaveTextContent('Saved · ID 42');
     });
-    expect(screen.queryByText('Save Product')).toBeNull();
+    expect(screen.queryByText('Save product')).toBeNull();
 
     // Leaving a fully saved record never prompts.
     const preventDefault = jest.fn();
@@ -582,10 +582,10 @@ describe('ProductPage state handling', () => {
     await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Edit product')).toBeOnTheScreen();
     });
 
-    await fireEvent.press(screen.getByLabelText('Edit Product'));
+    await fireEvent.press(screen.getByLabelText('Edit product'));
 
     expect(mockSetParams).toHaveBeenCalledWith({ edit: '1' });
     expect(baseFormReturn.saveAndExit).not.toHaveBeenCalled();
@@ -615,14 +615,14 @@ describe('ProductPage state handling', () => {
     await renderWithProviders(<ProductPage />, { withDialog: true });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Edit product')).toBeOnTheScreen();
     });
 
     await fireEvent.scroll(screen.getByTestId('product-scroll'), {
       nativeEvent: { contentOffset: { y: 120 } },
     });
 
-    expect(screen.getByLabelText('Edit Product')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Edit product')).toBeOnTheScreen();
   });
 });
 

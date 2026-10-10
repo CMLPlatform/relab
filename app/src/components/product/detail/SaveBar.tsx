@@ -68,7 +68,8 @@ export function SaveBar({
     () => null,
   );
   if (!canModerate) return null;
-  const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
+  // Sentence case, like every other button label ("New product", "Add component").
+  const titleLabel = entityRole === 'component' ? 'component' : 'product';
   // Validation only gates a press that would actually save dirty edits, not a
   // plain view->edit toggle.
   const wouldSave = editMode && isDirty;
