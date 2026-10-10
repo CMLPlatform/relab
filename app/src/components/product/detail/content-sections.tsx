@@ -154,7 +154,7 @@ export const SECTIONS: SectionConfig[] = [
           editMode={props.editMode}
           onChangePhysicalProperties={props.onChangePhysicalProperties}
         />
-        <ProductMaterials product={props.product} />
+        <ProductMaterials product={props.product} editMode={props.editMode} />
         <ProductCircularityProperties
           product={props.product}
           editMode={props.editMode}

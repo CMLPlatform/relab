@@ -9,6 +9,7 @@ import { heading } from '@/utils/a11y';
 
 interface Props {
   product: Product;
+  editMode?: boolean;
 }
 
 /**
@@ -16,16 +17,17 @@ interface Props {
  *
  * Read-only: quantities are recorded through `/v1/products/{id}/materials`
  * (base products) or `/v1/components/{id}/materials` (components), not here,
- * so there is no add-row to offer. The line under each row is the source
- * of the material's reference data (density and the like), never of the
- * quantity observed on this product.
+ * so there is no add-row to offer, and edit mode hides an empty list. The
+ * line under each row is the source of the material's reference data
+ * (density and the like), never of the quantity observed on this product.
  */
-export default function ProductMaterials({ product }: Props) {
+export default function ProductMaterials({ product, editMode = false }: Props) {
   const materials = product.materials;
 
   // Distinct from `[]`: the payload never carried a bill of materials, so
   // saying "none recorded" would be a claim we cannot make.
   if (materials === undefined) return null;
+  if (editMode && materials.length === 0) return null;
 
   return (
     <View className="mt-4">
@@ -33,9 +35,11 @@ export default function ProductMaterials({ product }: Props) {
         <AppText variant="body" {...heading(3)} className="font-semibold">
           Materials
         </AppText>
-        <AppText variant="data" className="text-muted-foreground">
-          {`(${materials.length})`}
-        </AppText>
+        {materials.length > 0 ? (
+          <AppText variant="data" className="text-muted-foreground">
+            {`(${materials.length})`}
+          </AppText>
+        ) : null}
       </View>
       <LayoutAnimationConfig skipEntering skipExiting>
         {materials.map((material) => (
@@ -43,7 +47,8 @@ export default function ProductMaterials({ product }: Props) {
         ))}
       </LayoutAnimationConfig>
       {materials.length === 0 ? (
-        <AppText className="mb-2 text-muted-foreground">No materials recorded yet.</AppText>
+        // Unset, like an empty spec row: a dash.
+        <AppText className="mb-2">—</AppText>
       ) : null}
     </View>
   );
