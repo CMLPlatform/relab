@@ -168,6 +168,8 @@ function invalidateAfterSave(queryClient: QueryClient, product: Product, savedId
   queryClient.invalidateQueries({ queryKey: savedKey });
   queryClient.invalidateQueries({ queryKey: ['products'] });
   queryClient.invalidateQueries({ queryKey: ['componentTree'] });
+  // The owner's counts (products, photos, weight) on the account and profile screens.
+  queryClient.invalidateQueries({ queryKey: ['publicProfile'] });
 
   // Refresh the parent's components list. Its role is unknown here, so
   // invalidate both cache entries.
@@ -340,6 +342,7 @@ export function useDeleteProductMutation() {
       }
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['componentTree'] });
+      queryClient.invalidateQueries({ queryKey: ['publicProfile'] });
 
       // Refresh the parent's components list; its role is unknown, so
       // invalidate both cache entries.
