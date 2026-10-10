@@ -1,8 +1,8 @@
 # Product
 
 What R9lab is, who it serves, and which facts about it are settled. This covers the product as a
-whole; `app/`, `www/`, and `docs/` are surfaces of it. Per-surface strategy lives in the surface
-briefs.
+whole; `app/`, `www/`, and `docs/` are surfaces of it. Each surface's visual decisions live in
+its own `DESIGN.md`.
 
 ## Purpose
 
@@ -26,8 +26,10 @@ not an automated computer-vision pipeline, not an elastic cloud platform.
 
 ## Platform
 
-web (shipped). `build` is `expo export -p web`, E2E runs Playwright against that export, and the
-deployed surface is `app.r9lab.io` behind Caddy.
+web
+
+The app ships as a web build. `build` is `expo export -p web`, and E2E runs Playwright against
+that export. The deployed surface is `app.r9lab.io` behind Caddy.
 
 Native iOS and Android are configured in `app/app.json` but this repo's tooling does not build or
 release them. Native remains a live target, so design nothing that could not be carried to a phone
