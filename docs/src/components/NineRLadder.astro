@@ -38,9 +38,13 @@ const stepOf = (r: string): number => Number(r.slice(1));
   <p class="ladder-end ladder-end-top">Most circular</p>
   <div class="ladder">
     {
-      tiers.map((tier) => (
-        <section class="tier" aria-label={tier.label}>
-          <h3 class="tier-label">{tier.label}</h3>
+      tiers.map((tier, i) => (
+        // A figure label, not a heading: the page's own H2s name the tiers, and
+        // an h3 here would sit straight under the page H1.
+        <div class="tier" role="group" aria-labelledby={`ladder-tier-${i}`}>
+          <p class="tier-label" id={`ladder-tier-${i}`}>
+            {tier.label}
+          </p>
           {/* Explicit role: WebKit drops list semantics under list-style: none. */}
           <ol class="rungs" role="list">
             {tier.rungs.map((rung) => (
@@ -52,7 +56,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
               </li>
             ))}
           </ol>
-        </section>
+        </div>
       ))
     }
   </div>
@@ -85,21 +89,18 @@ const stepOf = (r: string): number => Number(r.slice(1));
   .tier {
     display: grid;
     gap: 0.35rem;
-    border-top: 1px solid var(--sl-color-hairline, var(--relab-brand-divider));
+    border-top: 1px solid var(--relab-brand-divider);
     padding-top: 0.6rem;
   }
 
   .tier-label {
     margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    font-size: var(--sl-text-xs);
+    font-weight: 400;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--sl-color-gray-3);
-    /* Starlight styles content headings heavily; this one is a figure label. */
-    border: 0;
-    padding: 0;
   }
 
   .rungs {
@@ -116,16 +117,16 @@ const stepOf = (r: string): number => Number(r.slice(1));
     width: min(22rem, 100%);
     margin-left: calc(var(--step) * var(--stair));
     padding: 0.35rem 0.6rem;
-    border-left: 1px solid var(--sl-color-hairline, var(--relab-brand-divider));
-    border-bottom: 1px solid var(--sl-color-hairline, var(--relab-brand-divider));
-    font-size: 0.95rem;
+    border-left: 1px solid var(--relab-brand-divider);
+    border-bottom: 1px solid var(--relab-brand-divider);
+    font-size: var(--sl-text-base);
   }
 
   .rung-num {
     flex: none;
     width: 1.7rem;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.78rem;
+    font-size: var(--sl-text-2xs);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
     color: var(--relab-brand-accent);
@@ -139,7 +140,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
   .ladder-end {
     margin: 0;
     font-family: var(--relab-brand-font-mono), monospace;
-    font-size: 0.75rem;
+    font-size: var(--sl-text-2xs);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--sl-color-gray-3);
@@ -158,7 +159,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
   .ladder-figure figcaption {
     margin-top: 1.2rem;
     max-width: 68ch;
-    font-size: 0.9rem;
+    font-size: var(--sl-text-sm);
     line-height: 1.6;
     color: var(--sl-color-gray-3);
   }

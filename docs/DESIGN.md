@@ -59,6 +59,19 @@ typography:
     letterSpacing: -0.01em
   body:
     fontFamily: IBM Plex Sans, sans-serif
+    fontSize: 1rem
+    fontWeight: 400
+  small:
+    fontFamily: IBM Plex Sans, sans-serif
+    fontSize: 0.875rem
+    fontWeight: 400
+  label:
+    fontFamily: IBM Plex Mono, monospace
+    fontSize: 0.8125rem
+    fontWeight: 400
+  caption:
+    fontFamily: IBM Plex Mono, monospace
+    fontSize: 0.75rem
     fontWeight: 400
   mono:
     fontFamily: IBM Plex Mono, monospace
@@ -155,11 +168,8 @@ to `www/src/styles/tokens.css`. **Do not hand-edit these values here**; change
 - **Cyanotype Blue, Soft** (`light-dark(rgba(31,76,150,.08), rgba(143,184,255,.14))`,
   `--relab-brand-primary-soft`): tinted fills, the active sidebar-link background and the
   `.relab-card-grid` item background; mapped to `--sl-color-accent-low`.
-- **Active sidebar-link ink** (`rgb(18,49,75)` light / `rgb(234,247,255)` dark,
-  `components.css:60,71`): the one hand-authored colour in docs. The nearest token,
-  `--relab-brand-primary-strong`, does not match. The pair was picked for contrast against the
-  tinted active-row background (4.49:1 → 10.92:1 light, 8.57:1 dark). The detector flags both;
-  the findings are expected.
+- **Active sidebar link**: `--relab-brand-primary-strong` text on 14% primary mixed into the page
+  ground (`components.css`), one rule for both schemes.
 
 ### Secondary
 
@@ -210,11 +220,12 @@ copied verbatim from this table. The tokens in `tokens.generated.css` and the li
 `.mdx` are two copies kept in sync by hand.
 
 Mermaid's own **chrome** (diagram background, un-classed node fill, line color) is themed by
-`src/scripts/mermaid.ts` through `themeVariables`. `primaryBorderColor`/`primaryTextColor` read
-live from `--relab-brand-primary`/`-text` via `resolveLightDark` (mermaid's `khroma` parser cannot
-parse `light-dark()`). `background`/`primaryColor`/`lineColor`/`tertiaryColor` are hand-tuned hex
-with no update path if the brand primary moves; the file's own comment says so. This is a named
-drift risk.
+`src/scripts/mermaid.ts` through `themeVariables`, all literal hex because mermaid's `khroma`
+parser cannot read custom properties or `light-dark()`. `primaryBorderColor`, `primaryTextColor`
+and `background` copy `--relab-brand-primary`, `-text` and `-background`; `tertiaryColor` and
+`edgeLabelBackground` copy the frame tone (6% primary over the page ground);
+`primaryColor`/`lineColor` are hand-tuned. Nothing updates them if the brand moves; the file's
+own comment says so. This is a named drift risk.
 
 ### Named Rules
 
@@ -250,7 +261,8 @@ used above the fold.
 
 Docs sets no type scale of its own. It maps the shared web scale from `assets/DESIGN.md` onto
 Starlight's heading tokens (`--sl-text-h1/h2/h3/h4`) and leaves every other `--sl-text-*` token
-(body, small, code) untouched. Starlight's stock ramp rendered 54px/35px/29px against a 16px body,
+(body, small, code) untouched. Components size small text with those Starlight tokens, never a
+literal: `--sl-text-sm` (14px), `--sl-text-xs` (13px) and `--sl-text-2xs` (12px). Starlight's stock ramp rendered 54px/35px/29px against a 16px body,
 roughly 1.45× the brand scale, which read as a landing page inside a reference site.
 
 ### Hierarchy
@@ -263,6 +275,13 @@ roughly 1.45× the brand scale, which read as a landing page inside a reference 
   `assets/DESIGN.md`.
 - **Body**: Starlight's own default (`--sl-text-base`, 16px), which already matches the brand's
   body step; not an override.
+- **Small** (400, `--sl-text-sm`, 14px): figure captions.
+- **Label** (mono 400, `--sl-text-xs`, 13px): the colophon and NineRLadder tier labels.
+- **Caption** (12px, `--sl-text-2xs`): R-numbers, ladder-end labels; the header's "Docs" cue uses the
+  same step in sans.
+
+The API reference shell (`api-reference-page.astro`) loads no Starlight CSS, so it writes the
+same steps as literals (`0.875rem`, `1rem`).
 
 All four heading selectors also get `font-family: IBM Plex Serif, Georgia, serif` and
 `letter-spacing: -0.01em` in `base.css`, on `h1, h2, h3, h4, .site-title, .hero`. Starlight exposes
@@ -282,7 +301,8 @@ column. The one change is content width: `--sl-content-width` is `45rem`, not St
 **Measured in the browser: 720px at 16px IBM Plex Sans renders 72 characters per line**, inside
 the 45-75 range. (A rem-to-character estimate gave ~86ch and was wrong; trust the measurement.)
 Mermaid diagrams are the sole content allowed to exceed this column: on viewports ≥72rem,
-`.relab-mermaid` breaks out to `calc(100% + 4.5rem)` with `-2.25rem` inline margins. Below that
+`.relab-mermaid` bleeds into the content padding (`--sl-content-pad-x` less a 0.5rem gutter, so
+it never slides under the sidebar or TOC column). Below that
 breakpoint the column is already full-width, so no break-out happens. The header grid gets one
 density tweak at ≥50rem
 (`grid-template-columns: minmax(max-content, auto) minmax(14rem, 1fr) auto`) to keep the widened
@@ -302,7 +322,8 @@ surface fill, no shadow. Shadow is reserved for one tier, `shadow-overlay`, on s
 *Mirrors assets/DESIGN.md:121 — change it there first.*
 
 Depth in the rendered page comes from Starlight's own chrome (search modal, mobile nav drawer),
-which docs does not restyle. The one frame docs authors, `.relab-mermaid`, is a bordered, tinted
+which docs does not restyle, except that the prev/next pagination cards lose Starlight's stock
+drop shadow (`components.css`). The one frame docs authors, `.relab-mermaid`, is a bordered, tinted
 panel: 1px `color-mix()` border, tinted background, `border-radius: var(--radius-card)`, no
 box-shadow.
 
@@ -324,8 +345,9 @@ pair chains into a continuous descending flight.
 
 Sidebar link styling, mobile collapse, and the search trigger are unmodified Starlight. The one
 override is the **active-page state** (`.sidebar-pane a[aria-current="page"]`, `components.css`):
-a `color-mix()`-tinted primary background (14% light / 22% dark) with a matching inset box-shadow
-ring and bold text. Header layout comes from two swapped component slots:
+a `color-mix()`-tinted primary background (14% primary into the page ground) with a matching
+inset box-shadow ring and semibold `--relab-brand-primary-strong` text. Header layout comes from
+two swapped component slots:
 
 - **`SiteTitle`** (`src/components/SiteTitle.astro`): the wordmark, theme-swapped via two `<img>`
   elements toggled by Starlight's `dark:sl-hidden`/`light:sl-hidden` classes (there is no CSS-only
@@ -334,8 +356,9 @@ ring and bold text. Header layout comes from two swapped component slots:
   was 4.49:1 in dark mode, under WCAG AA.
 - **`SocialIcons`** (`src/components/SocialIcons.astro`): renders the GitHub icon plus a
   **primary CTA button** ("Open app") for the `external`-typed social link. Filled
-  `--relab-brand-primary`, `--radius-control` corners, `--relab-brand-primary-strong` on hover; it
-  drops below 30rem viewport width.
+  `--relab-brand-primary`, `--radius-control` corners, `--relab-brand-primary-strong` on hover.
+  Starlight hides the header's right group below 50rem, so on phones the CTA lives in the menu
+  footer.
 
 ### Cards (R9lab-authored)
 
@@ -363,27 +386,33 @@ taxonomy (Potting et al. 2017) never measured. Rung numbers (`R0`…`R9`) are mo
 accent**, the component's only accent use. The stair unit shrinks from `1.15rem` to `0.5rem` under
 50rem rather than switching layout.
 
+Tier names are `<p>` figure labels inside `role="group"` wrappers, not headings: the page's own
+H2s carry the outline. Risers and treads are 1px `--relab-brand-divider`.
+
 ### Mermaid diagrams (third-party, partially themed, drift risk)
 
 Rendered client-side via `mermaid` + `@mermaid-js/layout-elk`, orchestrated by
 `src/scripts/mermaid.ts`. **Chrome** (background, un-classed node fill, line color) is themed via
-`themeVariables`, partly live (`primaryBorderColor`/`primaryTextColor` resolve `light-dark()`
-brand tokens at runtime) and partly hand-tuned hex with no update path (see Colors § Diagram &
-chart palette). **Content** (node and edge categorical colors) is themed via literal hex
+`themeVariables` as literal hex copied from the brand tokens or hand-tuned, with no update path
+(see Colors § Diagram & chart palette). **Content** (node and edge categorical colors) is themed via literal hex
 `classDef` lines in the `.mdx` files. The wrapping frame (`.relab-mermaid`: border, radius,
 background tint, horizontal scroll for overflow) is R9lab-authored in `components.css`.
 
-### API reference pages (third-party, **not themed**)
+### API reference pages (third-party, token-themed)
 
 `src/pages/api/*` use `@scalar/api-reference`, rendered through `api-reference-page.astro` +
-`src/scripts/api-reference.ts`. Scalar's `style.css` is imported unmodified and **no R9lab CSS
-variable, theme override, or Scalar theme option is passed**. The `api-reference` config sets only
-functional options (`baseServerURL`, `hideClientButton`, `persistAuth: false`,
-`telemetry: false`). The reference renders in Scalar's vendor default theme. The only R9lab chrome
-on these pages is the shell in `api-reference-page.astro`'s `<style>` block: the sticky switcher
-nav between Public/Device/RPi-camera references, built from `--relab-brand-primary` and
-`--radius-control`. It also sets `<meta name="theme-color">`, parsed at build time out of
-`brand.css`'s raw text by a regex on `--relab-brand-theme-color`.
+`src/scripts/api-reference.ts`. Scalar's `style.css` is imported unmodified. Brand theming goes
+through Scalar's `customCss` option: its font, background, text and accent variables point at the
+brand tokens, secondary text is mixed from the ink to clear 4.5:1, and the page opens in the
+reader's stored Starlight theme. Scalar's layout, components and remaining colours (method badges,
+syntax highlighting) stay vendor default. The rest of the config is functional
+(`baseServerURL`, `hideClientButton`, `persistAuth: false`, `telemetry: false`).
+
+The R9lab shell in `api-reference-page.astro`'s `<style>` block is the sticky switcher nav between
+the Public/Device/RPi-camera references, built from `--relab-brand-primary` and
+`--relab-radius-control`; below 42rem it is one sideways-scrolling row. The page also sets
+`<meta name="theme-color">`, parsed at build time out of `brand.css`'s raw text by a regex on
+`--relab-brand-theme-color`.
 
 ## Do's and Don'ts
 
@@ -409,8 +438,8 @@ nav between Public/Device/RPi-camera references, built from `--relab-brand-prima
 - **Don't** point `--sl-color-accent` at `--relab-brand-accent` (manila).
 - **Don't** assume mermaid diagram content colors are bound to `tokens.generated.css`; they are
   hand-copied literals in each `.mdx` file. Changing the token alone does not update diagrams.
-- **Don't** assume the Scalar API reference pages inherit brand theming; only the wrapping shell
-  nav is on-brand.
+- **Don't** assume the Scalar API reference pages inherit brand CSS; only the variables mapped in
+  `api-reference.ts` reach Scalar.
 - **Don't** use Tailwind utility classes in docs; the subrepo ships none, and Tailwind's preflight
   reset broke markdown list rendering here.
 - **Don't** add a floating or shadowed surface to docs without also using `--radius-overlay` and

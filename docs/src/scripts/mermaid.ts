@@ -47,30 +47,32 @@ const diagramFrameObserver = new ResizeObserver((entries) => {
 /*
  * NOTE: literal colors because mermaid's parser (khroma) cannot read CSS custom
  * properties or `light-dark()`. Border and text mirror brand.css
- * --relab-brand-primary / --relab-brand-text; the surfaces are hand-tuned. If brand.css
+ * --relab-brand-primary / --relab-brand-text and `background` mirrors
+ * --relab-brand-background; the other surfaces are hand-tuned. If brand.css
  * changes, retune these (no machine link).
  */
 const mermaidThemeVariables = {
   light: {
-    background: '#f7fbff',
+    background: '#fafbfe',
     primaryColor: '#d9f4fb',
     primaryBorderColor: '#1f4c96',
     primaryTextColor: '#16202e',
     lineColor: '#24415b',
-    tertiaryColor: '#eef5fb',
+    tertiaryColor: '#edf0f8',
     // Without this, mermaid's `base` theme derives a pale yellow-green edge-label
-    // background (rgba(244,251,217,.5)). Pinned to the diagram frame's tone.
-    edgeLabelBackground: '#eef5fb',
+    // background (rgba(244,251,217,.5)). Pinned to the diagram frame's tone,
+    // .relab-mermaid's 6% primary over the page ground.
+    edgeLabelBackground: '#edf0f8',
   },
   dark: {
-    background: '#0c1724',
+    background: '#11141d',
     primaryColor: '#13364d',
     primaryBorderColor: '#8fb8ff',
     primaryTextColor: '#e9eff8',
     lineColor: '#b9dcf6',
-    tertiaryColor: '#102131',
+    tertiaryColor: '#191e2b',
     // Dark-mode derivation was rgba(54,77,19,.5). Same fix.
-    edgeLabelBackground: '#102131',
+    edgeLabelBackground: '#191e2b',
   },
 } as const;
 

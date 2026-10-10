@@ -15,7 +15,7 @@
   padding-top: 1.2rem;
   border-top: 1px solid var(--relab-brand-divider);
   font-family: var(--relab-brand-font-mono), monospace;
-  font-size: 0.8125rem;
+  font-size: var(--sl-text-xs);
   line-height: 1.6;
   color: var(--sl-color-gray-3);
 }
@@ -52,19 +52,14 @@
 }
 
 .sidebar-pane :where(a[aria-current="page"]) {
-  color: rgb(18, 49, 75);
-  font-weight: 700;
-  background: color-mix(in srgb, var(--relab-brand-primary) 14%, white 86%);
+  color: var(--relab-brand-primary-strong);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--relab-brand-primary) 14%, var(--relab-brand-background));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
 }
 
 .sidebar-pane :where(a[aria-current="page"] span) {
   color: inherit;
-}
-
-:root[data-theme="dark"] .sidebar-pane :where(a[aria-current="page"]) {
-  color: rgb(234, 247, 255);
-  background: color-mix(in srgb, var(--relab-brand-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
 }
 
 /* Expressive Code's `pre` computes overflow-x: visible here, so long lines
@@ -74,26 +69,38 @@
   overflow-x: auto;
 }
 
+/* Inline surfaces stay flat (DESIGN.md, Elevation): Starlight's prev/next
+   cards drop their stock drop shadow. */
+.pagination-links a {
+  box-shadow: none;
+}
+
 .relab-mermaid {
   margin: 1rem 0 1.5rem;
   padding: 1rem;
   overflow-x: auto;
   border-radius: var(--radius-card);
   border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 16%, transparent);
-  background: color-mix(in srgb, white 88%, var(--relab-brand-primary) 6%);
+  background: color-mix(in srgb, var(--relab-brand-primary) 6%, var(--relab-brand-background));
 }
 
-/* Diagrams break out of the prose column. Desktop only: below this the column
-   is already full width and a break-out would cause horizontal scroll. */
+/* Diagrams break out of the prose column into the content padding, keeping a
+   0.5rem gutter so the frame never slides under the sidebar or the TOC column.
+   Desktop only: below this the column is already full width and a break-out
+   would cause horizontal scroll. */
 @media (min-width: 72rem) {
-  .relab-mermaid {
-    width: calc(100% + 4.5rem);
-    margin-inline: -2.25rem;
+  /* Inline surfaces stay flat (DESIGN.md, Elevation): Starlight's prev/next
+   cards drop their stock drop shadow. */
+  .pagination-links a {
+    box-shadow: none;
   }
-}
 
-:root[data-theme="dark"] .relab-mermaid {
-  background: rgba(13, 23, 34, 0.88);
+  .relab-mermaid {
+    --relab-mermaid-bleed: calc(var(--sl-content-pad-x) - 0.5rem);
+
+    width: calc(100% + 2 * var(--relab-mermaid-bleed));
+    margin-inline: calc(-1 * var(--relab-mermaid-bleed));
+  }
 }
 
 /* Diagrams scroll rather than shrink. Mermaid emits width="100%" with the
