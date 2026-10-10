@@ -82,8 +82,10 @@ describe('renderStats', () => {
     // 12 months, but the first has a value of 0 and so draws no mark.
     expect(panel.querySelectorAll('.stats-chart-bar')).toHaveLength(11);
     expect(panel.querySelectorAll('.stats-chart-hits rect')).toHaveLength(12);
-    expect(statText(panel, 'chart-heading')).toBe('Parts per month · last 12 months');
-    expect(panel.querySelector('.stats-toggle[aria-pressed="true"]')?.textContent).toBe('Parts');
+    expect(statText(panel, 'chart-heading')).toBe('Components per month · last 12 months');
+    expect(panel.querySelector('.stats-toggle[aria-pressed="true"]')?.textContent).toBe(
+      'Components',
+    );
   });
 
   it('direct-labels only the extreme column', async () => {

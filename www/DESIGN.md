@@ -446,7 +446,7 @@ as an unexposed frame rather than a hole.
 ### Chips
 
 - **Style:** Hairline border, 6px radius, small uppercase mono in muted ink, `0.2rem 0.55rem`
-  padding. Used for the product-type tag on the featured record and the "repeats per part" marker
+  padding. Used for the product-type tag on the featured record and the "repeats" marker
   on the looping method phase.
 - **State:** Static. Chips on www are labels, not filters. No selected state exists.
 

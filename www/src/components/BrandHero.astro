@@ -17,6 +17,11 @@ interface Props {
 
 const { stats, appUrl } = Astro.props;
 const appBase = appUrl.replace(/\/$/, '');
+// The figure is baked at build time, so it carries the date it was counted.
+const asOf = (iso: string) =>
+  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(
+    new Date(iso),
+  );
 ---
 
 <section class="brand-hero">
@@ -64,7 +69,11 @@ const appBase = appUrl.replace(/\/$/, '');
     /* One figure, baked at build time. Hidden until a real number exists;
        StatsPanel below is where a live count lives. */
     <p class="brand-hero-metrics" data-metrics hidden={!stats}>
-      {stats ? `${formatCount(stats.totals.parts)} parts documented` : ''}
+      {
+        stats
+          ? `${formatCount(stats.totals.parts)} components documented, as of ${asOf(stats.generatedAt)}`
+          : ''
+      }
     </p>
   }
   <p class="brand-hero-affiliation">{research.affiliation}</p>

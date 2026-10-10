@@ -66,7 +66,7 @@ const phases = [
   <h2 id="method-steps-heading">From teardown to data</h2>
   <p class="method-lede">
     Every record is built the same way, in three passes: the product is taken in, each component is
-    worked through in turn, and the finished record is published.
+    worked through in turn, and the finished record becomes browsable.
   </p>
 
   {/* Ordered lists carry the order; no arrow glyphs. */}
@@ -77,7 +77,7 @@ const phases = [
           <p class="flow-phase-name">
             <span class="flow-phase-num">{phaseIndex + 1}</span>
             {phase.name}
-            {phase.repeats && <span class="flow-phase-repeat">repeats per part</span>}
+            {phase.repeats && <span class="flow-phase-repeat">repeats</span>}
           </p>
           <ol class="flow-steps" role="list">
             {phase.steps.map((step) => (
@@ -95,10 +95,8 @@ const phases = [
   {/* Framing from the project's papers. Do not say records "are read through the
       9R framework": the platform performs no such analysis step. */}
   <p class="method-lens">
-    A finished record says what one product is made of, how it comes apart, and how it has fared.
-    That is the primary data life-cycle assessment and material-flow analysis are built on, and it
-    is scarcest exactly where it is most observable: products are documented as designed, rarely as
-    they are found at the end of their life.
+    A finished record says what one product is made of, how it comes apart, and how it has fared:
+    the primary data that life-cycle assessment and material-flow analysis are built on.
   </p>
   {/* Background, not method: the 9R framework is not part of how records are
       made or read. The wordmark stays artwork, never spelled out as text. */}

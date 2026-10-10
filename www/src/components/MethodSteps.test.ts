@@ -31,7 +31,7 @@ describe('MethodSteps', () => {
     const html = await render();
     expect(html).toContain('Intake');
     expect(html).toContain('For each component');
-    expect(html).toContain('repeats per part');
+    expect(html).toMatch(/flow-phase-repeat[^>]*>repeats</);
     expect(html.match(/class="flow-phase"/g)).toHaveLength(3);
   });
 

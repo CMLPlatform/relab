@@ -136,7 +136,7 @@ test.describe('Landing page content', () => {
     // Descriptions are plain text now, not a hover-only tooltip on an SVG node.
     await expect(flow.getByText('Record mass and dimensions for every component.')).toBeVisible();
     // The loop is marked, since a column layout cannot draw the arrow back.
-    await expect(flow.getByText('repeats per part')).toBeVisible();
+    await expect(flow.getByText('repeats', { exact: true })).toBeVisible();
   });
 
   test('the 9R framework is named and linked, not taught, on the landing page', async ({

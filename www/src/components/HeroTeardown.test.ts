@@ -211,7 +211,7 @@ describe('HeroTeardown', () => {
     const html = await render({ teardown: many });
     expect(html).toContain('Part 6');
     expect(html).not.toContain('Part 7');
-    expect(html).toContain('Showing the 6 heaviest of 12 recorded parts');
+    expect(html).toContain('Showing the 6 heaviest of 12 recorded components');
   });
 
   it('states no extract when the whole schedule fits', async () => {
