@@ -41,9 +41,10 @@ function PairingSuccessDialog({
     >
       <View className="items-center gap-3 pt-6">
         <Animated.View
-          entering={ZoomIn.duration(250)
-            .withInitialValues({ transform: [{ scale: 0.92 }] })
-            .reduceMotion(ReduceMotion.System)}
+          // NOTE: the stock preset, never with custom initial values: on web Reanimated
+          // pins a custom entering animation to `position: absolute` once it ends,
+          // which would lift the icon out of the column and over the title.
+          entering={ZoomIn.duration(250).reduceMotion(ReduceMotion.System)}
         >
           <Icon name="circle-check-big" size={56} color={theme.tokens.status.success} />
         </Animated.View>

@@ -176,10 +176,11 @@ export function SaveBar({
   );
 }
 
-// Rises 12px into place as edit mode begins; leaves faster, by fading.
-const DOCK_ENTER = FadeInDown.duration(200)
-  .withInitialValues({ transform: [{ translateY: 12 }] })
-  .reduceMotion(ReduceMotion.System);
+// Rises into place as edit mode begins; leaves faster, by fading.
+// NOTE: the stock preset, never with custom initial values: on web Reanimated pins a
+// custom entering animation to `position: absolute` at its snapshot's top/left
+// once it ends, which unpins the dock from the viewport and from `right: 24`.
+const DOCK_ENTER = FadeInDown.duration(200).reduceMotion(ReduceMotion.System);
 const DOCK_EXIT = FadeOut.duration(150).reduceMotion(ReduceMotion.System);
 
 const PROGRESS_STEP = {

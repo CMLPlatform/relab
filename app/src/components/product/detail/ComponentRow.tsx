@@ -162,10 +162,12 @@ export function ComponentRow({ component, enabled, onDuplicate }: Props) {
   );
 }
 
-// Starts 8px up, under the row it hangs from, and drops into place.
-const CHILDREN_ENTER = FadeInUp.duration(200)
-  .withInitialValues({ transform: [{ translateY: -8 }] })
-  .reduceMotion(ReduceMotion.System);
+// Starts just above, under the row it hangs from, and drops into place.
+// NOTE: the stock preset, never with custom initial values. On web, Reanimated pins
+// an element whose entering animation is custom to `position: absolute` at its
+// snapshot size once the animation ends, so expanded children would sit on top
+// of the rows below them instead of pushing them down.
+const CHILDREN_ENTER = FadeInUp.duration(200).reduceMotion(ReduceMotion.System);
 
 /** Drops down out of the row it belongs to, so the new rows read as its children. */
 function ChildrenReveal({ children }: { children: ReactNode }) {
