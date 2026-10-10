@@ -8,6 +8,7 @@ import { Text } from '@/components/base/ui/text';
 import type { PublicProfileView } from '@/services/api/profiles';
 import type { User } from '@/types/User';
 import { heading } from '@/utils/a11y';
+import { formatWeightKg } from '@/utils/weight';
 
 type ProfileHeroProps = {
   profile: User;
@@ -88,7 +89,7 @@ export function ProfileStatsSection({ ownStats, statsLoading }: ProfileStatsSect
       facts={[
         { label: 'Products', value: String(ownStats?.product_count ?? 0) },
         { label: 'Photos', value: String(ownStats?.image_count ?? 0) },
-        { label: 'Weight', value: `${ownStats?.total_weight_kg ?? 0} kg` },
+        { label: 'Weight', value: formatWeightKg(ownStats?.total_weight_kg ?? 0) },
         { label: 'Top category', value: ownStats?.top_category || '—' },
       ].map((fact) => ({ ...fact, loading: statsLoading }))}
     />

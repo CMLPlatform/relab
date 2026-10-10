@@ -28,6 +28,7 @@ import type { AppTheme } from '@/theme/types';
 import type { Product } from '@/types/Product';
 import { heading } from '@/utils/a11y';
 import { getErrorMessage } from '@/utils/errors';
+import { formatWeightKg } from '@/utils/weight';
 
 function ProfileSummary({ profile }: { profile: PublicProfileView }) {
   const theme = useAppTheme();
@@ -59,7 +60,7 @@ function ProfileSummary({ profile }: { profile: PublicProfileView }) {
       <View className="self-center">
         <SpecFacts
           facts={[
-            { label: 'Weight', value: `${profile.total_weight_kg} kg` },
+            { label: 'Weight', value: formatWeightKg(profile.total_weight_kg) },
             { label: 'Photos', value: String(profile.image_count) },
             // Unset, not a penalty (PRODUCT.md): a dash, never "None".
             { label: 'Top category', value: profile.top_category || '—' },
