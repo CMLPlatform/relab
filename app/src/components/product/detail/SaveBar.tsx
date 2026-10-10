@@ -230,8 +230,10 @@ const floatingStyle: ViewStyle = {
   right: 24,
 };
 
+// The phone gutter (PageContainer's px-4), so the button does not sit flush on the screen edge.
 const flowStyle: ViewStyle = {
   width: '100%',
+  paddingHorizontal: 16,
 };
 
 const flowRowStyle: ViewStyle = {

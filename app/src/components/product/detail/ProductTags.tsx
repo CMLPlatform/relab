@@ -187,7 +187,9 @@ function AmountChip({
           onSubmitEditing={commitDraft}
           keyboardType="numeric"
           maxFontSizeMultiplier={2}
-          className="text-primary-foreground min-w-9 text-center py-2 px-1"
+          // Fixed width: on web an unsized input takes the browser default (~200px),
+          // which pushed "+" off a phone screen. 56px holds the 5-digit maximum.
+          className="text-primary-foreground w-14 text-center py-2 px-1"
           style={amountStyles.input}
           accessibilityLabel="Amount"
           accessibilityHint="Enter a whole number from 1 to 10000. R9lab corrects a value outside that range."
