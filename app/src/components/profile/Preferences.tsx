@@ -132,9 +132,6 @@ export function ProfileEmailUpdatesSection({
           <AppText variant="caption" className="mt-px text-muted-foreground">
             Occasional news about R9lab and the research project, sent to your account email.
           </AppText>
-          <AppText variant="caption" className="mt-1.5 font-semibold">
-            {enabled ? 'Currently enabled.' : 'Currently disabled.'}
-          </AppText>
         </View>
         <Switch
           checked={enabled}
