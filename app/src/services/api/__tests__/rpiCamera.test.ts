@@ -356,7 +356,7 @@ describe('rpiCamera API service', () => {
   it.each([
     ['a network TypeError', new TypeError('Failed to fetch')],
     ['a timeout', new TimeoutError(10_000)],
-  ])('names the camera, not Relab, when the local capture hits %s', async (_name, failure) => {
+  ])('names the camera, not R9lab, when the local capture hits %s', async (_name, failure) => {
     const fetchSpy = jest.spyOn(globalThis, 'fetch').mockRejectedValueOnce(failure);
 
     const error = await captureImageLocally('http://192.168.7.1:8018', 'local-key', 42).catch(

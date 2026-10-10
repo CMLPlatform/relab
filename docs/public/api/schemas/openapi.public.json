@@ -6820,7 +6820,7 @@
     "securitySchemes": {
       "APIKeyCookie": {
         "in": "cookie",
-        "name": "__Host-relab-auth",
+        "name": "__Host-r9lab-auth",
         "type": "apiKey"
       },
       "OAuth2PasswordBearer": {
@@ -6835,12 +6835,12 @@
     }
   },
   "info": {
-    "description": "Data collection app for the Relab project at CML.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The Relab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
+    "description": "Data collection app for the R9lab project at CML.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
     "license": {
       "identifier": "Apache-2.0",
       "name": "Apache-2.0"
     },
-    "title": "Relab - Data Collection API",
+    "title": "R9lab - Data Collection API",
     "version": "1.0.0",
     "x-api-major": "v1",
     "x-api-version": "1.0.0",
@@ -7600,7 +7600,7 @@
         "parameters": [
           {
             "in": "cookie",
-            "name": "__Host-relab-refresh",
+            "name": "__Host-r9lab-refresh",
             "required": false,
             "schema": {
               "anyOf": [
@@ -7611,12 +7611,12 @@
                   "type": "null"
                 }
               ],
-              "title": "  Host-Relab-Refresh"
+              "title": "  Host-R9Lab-Refresh"
             }
           },
           {
             "in": "cookie",
-            "name": "__Host-relab-auth",
+            "name": "__Host-r9lab-auth",
             "required": false,
             "schema": {
               "anyOf": [
@@ -7627,7 +7627,7 @@
                   "type": "null"
                 }
               ],
-              "title": "  Host-Relab-Auth"
+              "title": "  Host-R9Lab-Auth"
             }
           }
         ],
@@ -7672,7 +7672,7 @@
         "parameters": [
           {
             "in": "cookie",
-            "name": "__Host-relab-refresh",
+            "name": "__Host-r9lab-refresh",
             "required": false,
             "schema": {
               "anyOf": [
@@ -7683,7 +7683,7 @@
                   "type": "null"
                 }
               ],
-              "title": "  Host-Relab-Refresh"
+              "title": "  Host-R9Lab-Refresh"
             }
           }
         ],

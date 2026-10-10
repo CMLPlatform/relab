@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://docs.cml-relab.org/sitemap-index.xml
+Sitemap: https://docs.r9lab.io/sitemap-index.xml

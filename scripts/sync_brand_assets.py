@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync shared brand assets into Relab subrepos."""
+"""Sync shared brand assets into R9lab subrepos."""
 
 from __future__ import annotations
 
@@ -490,7 +490,7 @@ def render_docs_colophon_astro(identity: dict) -> str:
 
 <div class="relab-colophon">
   <p>
-    <strong>Relab</strong> — {_escape(identity["department"])}, {_escape(identity["institution"])}.
+    <strong>R9lab</strong> — {_escape(identity["department"])}, {_escape(identity["institution"])}.
   </p>
   <p>{people}.</p>
   <p>

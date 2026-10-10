@@ -77,7 +77,7 @@ export default function AddCameraScreen() {
   return (
     <>
       <Head>
-        <title>Add camera · Relab</title>
+        <title>Add camera · R9lab</title>
       </Head>
       {/* Keyboard-aware like the capture screen: the description field and Pair
           stay reachable above the on-screen keyboard. */}

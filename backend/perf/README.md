@@ -168,14 +168,14 @@ just perf-baseline
 Enable media URL coverage when you have a sample uploaded media URL:
 
 ```bash
-PERF_MEDIA_URL=https://api-test.cml-relab.org/uploads/images/sample.webp \
+PERF_MEDIA_URL=https://api-test.r9lab.io/uploads/images/sample.webp \
 just perf-baseline
 ```
 
 Target a non-local backend:
 
 ```bash
-BASE_URL=https://api-test.cml-relab.org \
+BASE_URL=https://api-test.r9lab.io \
 just perf-baseline
 ```
 

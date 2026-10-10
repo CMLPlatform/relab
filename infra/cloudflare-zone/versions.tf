@@ -1,9 +1,9 @@
 terraform {
   required_version = ">= 1.8"
 
-  # State is local, in terraform.tfstate; this root uses the single default workspace,
-  # while the edge root uses per-environment workspaces. Losing it costs a re-import, not
-  # a rebuild.
+  # State is local, in terraform.tfstate; there is one workspace per zone, named after the
+  # zone, while the edge root uses per-environment workspaces. Losing it costs a
+  # re-import, not a rebuild.
   #
   # Encrypted with no plaintext fallback, matching ../cloudflare: this state holds the
   # zone's rate limits and firewall rules. A missing TF_VAR_state_passphrase fails closed.

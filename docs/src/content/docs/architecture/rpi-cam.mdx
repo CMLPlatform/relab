@@ -1,9 +1,9 @@
 ---
 title: RPi camera plugin architecture
-description: How the Relab Raspberry Pi camera plugin talks to the backend and app clients.
+description: How the R9lab Raspberry Pi camera plugin talks to the backend and app clients.
 ---
 
-The optional RPi camera plugin connects camera devices to Relab for remote capture, HLS preview streaming, and YouTube streaming. The backend is the control plane and default relay path. When the camera and client share a LAN, the app can switch to direct local access for lower-latency preview and capture.
+The optional RPi camera plugin connects camera devices to R9lab for remote capture, HLS preview streaming, and YouTube streaming. The backend is the control plane and default relay path. When the camera and client share a LAN, the app can switch to direct local access for lower-latency preview and capture.
 
 For setup and usage, see the [RPi camera user guide](../../user-guides/rpi-cam/). For endpoints, see the [API reference overview](/api-reference/). For device installation, see the [RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
@@ -135,7 +135,7 @@ sequenceDiagram
 - Two contract layers: a public app-facing API and a smaller private device contract for pairing, relay, and uploads (see [Protocol boundaries](#protocol-boundaries)).
 - After pairing, the app can switch to LAN-direct access with a device-local API key.
 - Cameras pair through a short-lived code and receive runtime relay credentials from the backend. Operators do not copy long-lived API keys by hand.
-- Captured images go to Relab's file storage, linked to the originating product or component record.
+- Captured images go to R9lab's file storage, linked to the originating product or component record.
 - YouTube streaming is optional. The backend's OAuth connection creates the broadcast; the device then streams directly to YouTube.
 
 ## Protocol boundaries

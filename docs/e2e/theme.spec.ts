@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const HEADER_LOGO_NAME = /relab/i;
+const HEADER_LOGO_NAME = /r9lab/i;
 
 // The page ground is a flat brand token, not a backdrop image: the blurred
 // bg-*.jpg wallpaper was removed because it taxed the contrast of every line of

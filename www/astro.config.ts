@@ -5,7 +5,7 @@ import { defineConfig } from 'astro/config';
 import { readSiteUrl } from './src/config/public.ts';
 import { securityHeaders } from './src/integrations/security-headers.ts';
 
-const defaultSiteUrl = 'https://cml-relab.org';
+const defaultSiteUrl = 'https://r9lab.io';
 
 export default defineConfig({
   devToolbar: {

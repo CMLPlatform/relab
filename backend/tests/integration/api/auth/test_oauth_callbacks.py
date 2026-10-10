@@ -70,8 +70,8 @@ async def test_callback_passes_associate_by_email_false(redis_client: Redis) -> 
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
     set_cookie_headers = response.headers.getlist("set-cookie")
-    assert any(header.startswith("__Host-relab-auth=") for header in set_cookie_headers)
-    assert any(header.startswith("__Host-relab-refresh=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-r9lab-auth=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-r9lab-refresh=") for header in set_cookie_headers)
     assert user_manager.oauth_callback.await_args is not None
     assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
     user_manager.on_after_login.assert_awaited_once()

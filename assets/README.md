@@ -1,6 +1,6 @@
 # Shared Brand Assets
 
-Source of truth for the shared Relab brand assets used across the monorepo.
+Source of truth for the shared R9lab brand assets used across the monorepo.
 
 Edit the files here, then run:
 

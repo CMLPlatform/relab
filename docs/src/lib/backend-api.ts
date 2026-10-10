@@ -1,7 +1,7 @@
 const BACKEND_API_URL_BY_MODE: Record<string, string> = {
   dev: 'http://127.0.0.1:8010',
-  prod: 'https://api.cml-relab.org',
-  staging: 'https://api-test.cml-relab.org',
+  prod: 'https://api.r9lab.io',
+  staging: 'https://api-test.r9lab.io',
   test: 'http://127.0.0.1:18010',
 };
 

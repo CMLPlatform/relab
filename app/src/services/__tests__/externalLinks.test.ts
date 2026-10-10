@@ -15,13 +15,13 @@ describe('openExternalUrl', () => {
     openUrlMock.mockResolvedValue(true);
 
     await expect(openExternalUrl('https://example.com')).resolves.toBe(true);
-    await expect(openExternalUrl('mailto:relab@cml.leidenuniv.nl')).resolves.toBe(false);
+    await expect(openExternalUrl('mailto:info@r9lab.io')).resolves.toBe(false);
     await expect(openExternalUrl('javascript:alert(1)')).resolves.toBe(false);
     await expect(openExternalUrl('data:text/html,<script>alert(1)</script>')).resolves.toBe(false);
     await expect(openExternalUrl('https://')).resolves.toBe(false);
 
     expect(openUrlMock).toHaveBeenCalledWith('https://example.com/');
-    expect(openUrlMock).not.toHaveBeenCalledWith('mailto:relab@cml.leidenuniv.nl');
+    expect(openUrlMock).not.toHaveBeenCalledWith('mailto:info@r9lab.io');
     expect(openUrlMock).not.toHaveBeenCalledWith('javascript:alert(1)');
   });
 });

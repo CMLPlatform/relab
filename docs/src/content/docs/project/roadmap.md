@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-description: Research and platform priorities for the next Relab phases.
+description: Research and platform priorities for the next R9lab phases.
 ---
 
 Reviewed: 2026-09
@@ -8,7 +8,7 @@ Reviewed: 2026-09
 ## Research direction
 
 The main question is how to make product data collection more scalable, collaborative, and reusable.
-Relab focuses on open, FAIR product-level disassembly data. Automation stays
+R9lab focuses on open, FAIR product-level disassembly data. Automation stays
 human-verified: software can suggest, people confirm.
 
 The live work list is tracked in the public

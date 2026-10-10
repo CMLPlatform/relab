@@ -1,5 +1,5 @@
 variable "environment" {
-  description = "Relab environment managed by this state."
+  description = "R9lab environment managed by this state."
   type        = string
 
   validation {
@@ -22,19 +22,19 @@ variable "state_passphrase" {
 }
 
 variable "cloudflare_account_id" {
-  description = "Cloudflare account ID that owns the Relab tunnels."
+  description = "Cloudflare account ID that owns the R9lab tunnels."
   type        = string
 }
 
 variable "cloudflare_zone_id" {
-  description = "Cloudflare zone ID for cml-relab.org."
+  description = "Cloudflare zone ID for the zone that serves R9lab."
   type        = string
 }
 
 variable "cloudflare_zone_name" {
-  description = "Public DNS zone name for Relab edge hostnames."
+  description = "Public DNS zone name for R9lab edge hostnames."
   type        = string
-  default     = "cml-relab.org"
+  default     = "r9lab.io"
 }
 
 variable "github_owner" {
@@ -53,4 +53,21 @@ variable "github_reviewers" {
   description = "GitHub logins that approve every job using this Environment: prod's release gate, and staging's while its Cloudflare token is not scoped to its own Workers. Required."
   type        = list(string)
   default     = []
+}
+
+# TODO: reset to "" once the old zone's redirects are permanent.
+variable "legacy_zone_name" {
+  description = <<-EOT
+    Previous zone whose tunnel hostnames stay in the ingress while its redirect rules go
+    live. Only the ingress changes: no DNS record or custom domain is created there.
+    Defaults to the previous zone for the move, so an apply that leaves it unset keeps the
+    old hosts reachable. Empty leaves the previous zone out entirely.
+  EOT
+  type        = string
+  default     = "cml-relab.org"
+
+  validation {
+    condition     = var.legacy_zone_name != var.cloudflare_zone_name
+    error_message = "legacy_zone_name must differ from cloudflare_zone_name: export TF_VAR_cloudflare_zone_name for the new zone."
+  }
 }

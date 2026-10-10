@@ -18,7 +18,7 @@ export default function VerifyEmailScreen() {
   return (
     <>
       <Head>
-        <title>Verify email · Relab</title>
+        <title>Verify email · R9lab</title>
       </Head>
       <AuthScreen>
         <AuthCard title="Verify email" contentStyle={styles.cardContent}>

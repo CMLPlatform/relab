@@ -33,7 +33,7 @@ def test_oauth_csrf_cookie_uses_host_prefix() -> None:
     """OAuth CSRF cookies should use the __Host- prefix contract."""
     cookie_settings = OAuthCookieSettings()
 
-    assert CSRF_TOKEN_COOKIE_NAME == "__Host-relab-oauth-csrf"
+    assert CSRF_TOKEN_COOKIE_NAME == "__Host-r9lab-oauth-csrf"
     assert cookie_settings.name == CSRF_TOKEN_COOKIE_NAME
     assert cookie_settings.path == "/"
     assert cookie_settings.domain is None
@@ -161,7 +161,7 @@ def test_verify_state_succeeds_with_matching_csrf() -> None:
 def test_verify_state_rejects_wrong_transaction_binding(
     state_data: dict[str, str],
 ) -> None:
-    """State must be bound to the expected provider and Relab OAuth flow."""
+    """State must be bound to the expected provider and R9lab OAuth flow."""
     config = make_base_config()
     state = generate_state_token(state_data, TEST_STATE_JWT_SECRET)
     mock_request = MagicMock()

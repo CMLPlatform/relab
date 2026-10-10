@@ -6,19 +6,19 @@ import { getErrorMessage } from '@/utils/errors';
 describe('getErrorMessage', () => {
   it('maps a network TypeError to a plain-language message', () => {
     expect(getErrorMessage(new TypeError('Failed to fetch'), 'fb')).toBe(
-      "Can't reach Relab. Check your connection and try again.",
+      "Can't reach R9lab. Check your connection and try again.",
     );
   });
 
   it('maps a request timeout to the connection message, not its millisecond detail', () => {
     expect(getErrorMessage(new TimeoutError(30_000), 'fb')).toBe(
-      "Can't reach Relab. Check your connection and try again.",
+      "Can't reach R9lab. Check your connection and try again.",
     );
   });
 
   it('maps server errors to a fixed message', () => {
     expect(getErrorMessage(new ApiError('boom', 502), 'fb')).toBe(
-      'Relab had a problem on its side. Try again in a moment.',
+      'R9lab had a problem on its side. Try again in a moment.',
     );
   });
 

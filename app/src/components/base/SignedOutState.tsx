@@ -8,7 +8,7 @@ import { Icon } from './Icon';
 
 /** Replaces `if (!user) return null` blank screens with an explanation and a way in. */
 export function SignedOutState({
-  message = 'Sign in to use this part of Relab.',
+  message = 'Sign in to use this part of R9lab.',
 }: {
   message?: string;
 }) {

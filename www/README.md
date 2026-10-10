@@ -1,6 +1,6 @@
-# Relab Web
+# R9lab Web
 
-The public website for Relab, built with Astro: the landing page, privacy page, and links to the
+The public website for R9lab, built with Astro: the landing page, privacy page, and links to the
 app, docs, and source code. The research workflow UI lives in [`app/`](../app/).
 
 ## Quick start

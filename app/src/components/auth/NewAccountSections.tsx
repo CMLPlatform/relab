@@ -304,7 +304,7 @@ export function NewAccountUsernameStep({
     <NewAccountStep
       {...shared}
       field="username"
-      lines={['Welcome to', 'Relab', 'Who are you?']}
+      lines={['Welcome to', 'R9lab', 'Who are you?']}
       label="Username"
       brandLogo
       inputProps={{

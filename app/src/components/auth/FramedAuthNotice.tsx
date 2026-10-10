@@ -12,10 +12,10 @@ export function FramedAuthNotice() {
     <AuthScreen>
       <View className="items-center gap-3">
         <AppText className="text-center text-muted-foreground">
-          Relab is embedded in another page. Open it in its own tab to sign in or create an account.
+          R9lab is embedded in another page. Open it in its own tab to sign in or create an account.
         </AppText>
         <AppButton variant="primary" onPress={openInNewTab} className="mt-2">
-          Open Relab in a new tab
+          Open R9lab in a new tab
         </AppButton>
       </View>
     </AuthScreen>

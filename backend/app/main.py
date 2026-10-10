@@ -1,4 +1,4 @@
-"""Main application entrypoint for the Relab backend."""
+"""Main application entrypoint for the R9lab backend."""
 
 from functools import partial
 

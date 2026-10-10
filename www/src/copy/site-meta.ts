@@ -1,13 +1,13 @@
 const siteMeta = {
   defaultDescription:
-    'Relab is an open-source research platform for documenting teardowns of durable goods and organising the resulting product data.',
+    'R9lab is an open-source research platform for documenting teardowns of durable goods and organising the resulting product data.',
   heroTitle: 'Open product data for circular-economy research',
   // The licensed dataset release does not exist yet; the hero must not promise one.
   heroNutshell:
-    'Relab documents how durable goods come apart: every component named, weighed and photographed. The records are open to browse as they are collected.',
-  name: 'Relab',
+    'R9lab documents how durable goods come apart: every component named, weighed and photographed. The records are open to browse as they are collected.',
+  name: 'R9lab',
   organization: 'CML, Leiden University',
-  title: 'Relab',
+  title: 'R9lab',
 };
 
 export const siteLinks = {

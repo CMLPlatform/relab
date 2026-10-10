@@ -73,7 +73,7 @@ export async function captureImageLocally(
     });
   } catch (error) {
     // A dead LAN address, mixed content or CORS all surface as a TypeError (or a
-    // timeout), which getErrorMessage would otherwise blame on Relab's server.
+    // timeout), which getErrorMessage would otherwise blame on R9lab's server.
     if (error instanceof TypeError || error instanceof TimeoutError) {
       throw new Error(LOCAL_CAMERA_UNREACHABLE_MESSAGE, { cause: error });
     }

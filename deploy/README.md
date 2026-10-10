@@ -14,7 +14,7 @@ ever run on prod has never been tested.
 
 [CMLPlatform/monitoring](https://github.com/CMLPlatform/monitoring) owns the monitoring
 architecture: its ADR 0002 records the hub-and-spoke design, and its `templates/README.md` describes
-how a project onboards. Relab is one spoke; the Relab-specific parts live in the runbooks.
+how a project onboards. R9lab is one spoke; the R9lab-specific parts live in the runbooks.
 
 The one-time cutover runbooks were removed after staging moved on 2026-09-06 and prod on 2026-09-08.
 `git log -- deploy/CUTOVER-PROD.md` finds them.

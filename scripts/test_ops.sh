@@ -11,6 +11,8 @@ cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." || exit 1
 . scripts/deploy_ops.sh
 # shellcheck source=/dev/null
 . scripts/deploy_watchdog.sh # returns after defining SNAPSHOT_AGE_PY
+# shellcheck source=/dev/null
+. scripts/smoke_redirects.sh # returns after defining redirect_verdict
 
 # The sourced scripts turn on errexit; the harness must survive a failing assert.
 set +e
@@ -1213,6 +1215,81 @@ assert_eq "another environment's marker is reported, not overwritten" \
 # it forever while backup runs read it as a different environment and refuse every run.
 assert_eq "a zero-byte marker from an interrupted write is completed, not skipped" \
     "0|1|prod" "$(stamp_marker '')"
+
+# ---------------------------------------------------------------------------
+# Redirect smoke check: one verdict per old host.
+# ---------------------------------------------------------------------------
+loc='https://app.r9lab.io/r9lab-smoke?q=1'
+verdict() {
+    local out status
+    out="$(redirect_verdict app.cml-relab.org "$1" "$2" 302 "$loc" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+
+assert_eq "correct 302 passes" "0|ok" "$(verdict 302 "$loc")"
+assert_eq "301 when 302 is expected fails" \
+    "1|FAIL[app.cml-relab.org]: status 301, expected 302" "$(verdict 301 "$loc")"
+assert_eq "a Location that drops the query fails" \
+    "1|FAIL[app.cml-relab.org]: Location https://app.r9lab.io/r9lab-smoke, expected $loc" \
+    "$(verdict 302 'https://app.r9lab.io/r9lab-smoke')"
+assert_eq "a Location on the old zone fails" \
+    "1|FAIL[app.cml-relab.org]: Location https://app.cml-relab.org/r9lab-smoke?q=1, expected $loc" \
+    "$(verdict 302 'https://app.cml-relab.org/r9lab-smoke?q=1')"
+assert_eq "a 200 fails" "1|FAIL[app.cml-relab.org]: status 200, expected 302" "$(verdict 200 '')"
+
+otel() {
+    local out status
+    out="$(otel_verdict otel.cml-relab.org "$1" "$2" 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+assert_eq "a dead collector fails" "1|FAIL[otel.cml-relab.org]: no response" "$(otel 000 '')"
+assert_eq "a missing status fails" "1|FAIL[otel.cml-relab.org]: no response" "$(otel '' '')"
+assert_eq "a redirect fails" "1|FAIL[otel.cml-relab.org]: redirected with status 302" "$(otel 302 '')"
+assert_eq "an edge challenge fails" "1|FAIL[otel.cml-relab.org]: challenged by the edge" \
+    "$(otel 403 $'HTTP/2 403\r\ncf-mitigated: challenge\r\n')"
+assert_eq "405 from the collector passes" "0|ok" "$(otel 405 $'HTTP/2 405\r\n')"
+assert_eq "no response on a redirect host" "1|FAIL[app.cml-relab.org]: no response" "$(verdict 000 '')"
+# The second hop: the new host must not send the request back to the old zone, which loops
+# once a leftover rule on the new zone forwards it there.
+hop() {
+    local out status
+    out="$(second_hop_verdict app.r9lab.io "$1" "$2" cml-relab.org 2>&1)"
+    status=$?
+    printf '%s|%s' "$status" "$out"
+}
+assert_eq "new host bounces back to the old zone" \
+    "1|FAIL[app.r9lab.io]: redirects back to the old zone: https://app.cml-relab.org/r9lab-smoke?q=1" \
+    "$(hop 302 'https://app.cml-relab.org/r9lab-smoke?q=1')"
+assert_eq "new apex bouncing to the old apex fails" \
+    "1|FAIL[app.r9lab.io]: redirects back to the old zone: https://cml-relab.org/" \
+    "$(hop 301 'https://cml-relab.org/')"
+assert_eq "a 200 on the new host passes" "0|ok" "$(hop 200 '')"
+assert_eq "an edge challenge on the new host passes" "0|ok" "$(hop 403 '')"
+assert_eq "a redirect within the new zone passes" "0|ok" "$(hop 302 'https://app.r9lab.io/login')"
+assert_eq "a lookalike domain is not the old zone" "0|ok" "$(hop 302 'https://notcml-relab.org/')"
+assert_eq "no response from the new host fails" "1|FAIL[app.r9lab.io]: no response" "$(hop 000 '')"
+# route_prefixes is a hand copy of infra/cloudflare/hostnames.tf; a route added there must
+# be smoke-checked too. api keeps its method, so it redirects with 307/308, the rest 302/301.
+hcl_routes() {
+    awk -v env="$1" '
+        /^[[:space:]]*(prod|staging)[[:space:]]*=[[:space:]]*[{]/ { cur = $1 }
+        /^[[:space:]]*[a-z]+[[:space:]]*=[[:space:]]*[{]/ { name = $1 }
+        cur == env && /^[[:space:]]*hostname[[:space:]]*=/ {
+            h = $0
+            sub(/^[^=]*=[[:space:]]*/, "", h)
+            gsub(/"/, "", h)
+            sub(/(\$[{])?local[.]cloudflare_zone[}]?$/, "", h)
+            print h ":" (name == "api" ? "307:308" : "302:301")
+        }' infra/cloudflare/hostnames.tf
+}
+for env in prod staging; do
+    assert_eq "smoke hosts for $env match hostnames.tf" "$(hcl_routes "$env")" "$(route_prefixes "$env")"
+done
+# An unknown environment must fail before any request, not pass with nothing checked.
+out="$(TELEMETRY_EDGE_KEY='' bash scripts/smoke_redirects.sh cml-relab.org r9lab.io stagign 2>&1)"
+assert_eq "an unknown environment fails" "2|env must be prod or staging" "$?|$out"
 
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1

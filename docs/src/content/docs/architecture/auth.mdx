@@ -1,11 +1,11 @@
 ---
 title: Authentication
-description: Relab authentication flows, token handling, and browser session behavior.
+description: R9lab authentication flows, token handling, and browser session behavior.
 ---
 
 The API exposes two login transports: bearer tokens for native apps, scripts, and API clients, and httpOnly session cookies for browsers. Redis backs auth token storage, MFA challenge state, and rate limiting.
 
-Authentication builds on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with Relab-specific refresh-token, session-cookie, OAuth, and validation logic.
+Authentication builds on [FastAPI-Users](https://fastapi-users.github.io/fastapi-users/latest/) with R9lab-specific refresh-token, session-cookie, OAuth, and validation logic.
 
 ## Supported flows
 
@@ -18,7 +18,7 @@ Authentication builds on [FastAPI-Users](https://fastapi-users.github.io/fastapi
 
 ## Security controls
 
-Password validation follows the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters and must not contain the username or email address. They are checked against a committed common-password list (seeded into Redis when available) and against Have I Been Pwned through the k-anonymity range API. The breach check fails open if Have I Been Pwned is unavailable. Stored passwords use Argon2id; Relab stores no reversible passwords.
+Password validation follows the [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html). Passwords must be 12 to 128 characters and must not contain the username or email address. They are checked against a committed common-password list (seeded into Redis when available) and against Have I Been Pwned through the k-anonymity range API. The breach check fails open if Have I Been Pwned is unavailable. Stored passwords use Argon2id; R9lab stores no reversible passwords.
 
 Password inputs do not block paste, so password managers work.
 
@@ -108,7 +108,7 @@ Admins delete accounts through `DELETE /v1/admin/users/{user_id}` and can choose
 
 ## OAuth
 
-Google and GitHub support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email; GitHub linking requires explicit association. Linking or unlinking a sign-in provider requires the current password. An account with two-step verification also enters a current authenticator code or a recovery code (`mfa_code`), and a recovery code used here is spent. An account with neither a password nor two-step verification must have signed in within the last 10 minutes. Wrong passwords and codes count against the per-account guess budget. OAuth login creates Relab-owned sessions; Relab does not perform IdP-wide logout.
+Google and GitHub support session-cookie callbacks, bearer-token callbacks, and account linking. Google accounts may be linked by verified email; GitHub linking requires explicit association. Linking or unlinking a sign-in provider requires the current password. An account with two-step verification also enters a current authenticator code or a recovery code (`mfa_code`), and a recovery code used here is spent. An account with neither a password nor two-step verification must have signed in within the last 10 minutes. Wrong passwords and codes count against the per-account guess budget. OAuth login creates R9lab-owned sessions; R9lab does not perform IdP-wide logout.
 
 ### Backend-mediated flow
 
@@ -116,13 +116,13 @@ Google and GitHub use the backend-mediated flow on all platforms.
 
 Callbacks use a CSRF cookie and signed state token. Frontend redirect targets must exactly match the backend allowlist derived from `APP_PUBLIC_URL` (`/login` and `/account`) plus the fixed native app redirects (`relab-app://login` and `relab-app://account`). Entries are normalized as `scheme://host/path` and must not contain credentials, query strings, or fragments. Provider callback URLs are versioned under `/v1/oauth` and must be registered with each provider:
 
-- `https://api.cml-relab.org/v1/oauth/google/session/callback`
-- `https://api.cml-relab.org/v1/oauth/google/associate/callback`
-- `https://api.cml-relab.org/v1/oauth/google-youtube/associate/callback`
-- `https://api.cml-relab.org/v1/oauth/github/session/callback`
-- `https://api.cml-relab.org/v1/oauth/github/associate/callback`
+- `https://api.r9lab.io/v1/oauth/google/session/callback`
+- `https://api.r9lab.io/v1/oauth/google/associate/callback`
+- `https://api.r9lab.io/v1/oauth/google-youtube/associate/callback`
+- `https://api.r9lab.io/v1/oauth/github/session/callback`
+- `https://api.r9lab.io/v1/oauth/github/associate/callback`
 
-The public backend origin comes from `API_PUBLIC_URL`; production uses `https://api.cml-relab.org`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
+The public backend origin comes from `API_PUBLIC_URL`; production uses `https://api.r9lab.io`. Bearer callback routes use the same pattern, such as `/v1/oauth/google/token/callback`, when enabled for a client.
 
 Callback results travel only in the URL fragment: `#status=success`, `#status=error&error=<code>`, or `#status=mfa_required&mfa_handoff=<one-time-handoff>`. The app reads the fragment and clears it from browser history; access tokens never travel through callback URLs. When OAuth login needs MFA, the app claims the one-time handoff through the API, keeps the pending challenge in runtime or session storage, and routes to the MFA screen. The MFA challenge token itself never appears in a query string or fragment.
 

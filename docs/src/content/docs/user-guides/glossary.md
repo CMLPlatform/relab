@@ -1,10 +1,10 @@
 ---
 title: Glossary
-description: What the words in Relab mean, in plain language.
+description: What the words in R9lab mean, in plain language.
 ---
 
-Relab borrows its vocabulary from circular-economy research. Each term below is defined in
-ordinary words, with what Relab expects you to put in the field that carries it.
+R9lab borrows its vocabulary from circular-economy research. Each term below is defined in
+ordinary words, with what R9lab expects you to put in the field that carries it.
 
 You do not need to learn any of this before you start. Every field that uses one of these terms
 carries a short version of the same explanation next to it.
@@ -13,7 +13,7 @@ carries a short version of the same explanation next to it.
 
 ### Record
 
-One entry in Relab. A record is either a whole product or one component taken out of another
+One entry in R9lab. A record is either a whole product or one component taken out of another
 record. Both hold the same fields.
 
 ### Product
@@ -48,7 +48,7 @@ The item's size and weight, measured as it sits in front of you. Width, height, 
 in centimetres; weight is in grams. Record a sub-gram weight, such as a clip, as a decimal.
 
 Leave a field empty if you did not measure it. An empty field means "not recorded". Do not type
-`0` instead: Relab rejects it, because a zero claims the object really is flat or weightless.
+`0` instead: R9lab rejects it, because a zero claims the object really is flat or weightless.
 
 ### Circularity
 
@@ -93,7 +93,7 @@ from CPV.
 
 ### CPV
 
-Common Procurement Vocabulary, a standard European list of product categories. Relab uses it so
+Common Procurement Vocabulary, a standard European list of product categories. R9lab uses it so
 that researchers can compare and count records across teardowns. You browse it by category and
 pick the closest match. The code itself never appears in the app.
 
@@ -104,7 +104,7 @@ They are not a separate label on your record.
 
 ### Taxonomy
 
-One named classification scheme. CPV is a taxonomy. Relab can hold more than one.
+One named classification scheme. CPV is a taxonomy. R9lab can hold more than one.
 
 ### Material
 
@@ -118,12 +118,12 @@ which is usually a component rather than the whole product.
 Nine strategies for keeping products and materials in use, from refusing a product outright to
 recovering its energy. They motivate the project and give the wordmark its nine.
 
-Relab does **not** tag your records with an R-strategy. See
+R9lab does **not** tag your records with an R-strategy. See
 [The 9R framework](/project/9r-framework/) for the strategies themselves.
 
 ### Dataset release
 
-A published snapshot of Relab's records, as files anybody can download and cite. Contributors
+A published snapshot of R9lab's records, as files anybody can download and cite. Contributors
 are credited collectively, not against individual rows. See
 [Dataset](/project/dataset/) and the [Dataset codebook](/project/codebook/).
 
@@ -136,7 +136,7 @@ fields, so attach anything a later reader might want to check.
 
 ### Research file
 
-A non-image file attached to a record, such as a spreadsheet or a measurement dataset. Relab
+A non-image file attached to a record, such as a spreadsheet or a measurement dataset. R9lab
 stores these unchanged, without image processing.
 
 ### RPi camera
@@ -148,13 +148,13 @@ per camera, and the integration stays off until you turn it on. See
 ### Pairing code
 
 A six-character code the Raspberry Pi shows on its setup page or in its startup logs. Enter it
-in Relab once to connect that camera to your account.
+in R9lab once to connect that camera to your account.
 
 ## Accounts
 
 ### Verified
 
-An account whose email address has been confirmed. You can browse Relab without an account, and
+An account whose email address has been confirmed. You can browse R9lab without an account, and
 you can sign in without verifying. You need a verified email address to create records.
 
 ### Two-step verification

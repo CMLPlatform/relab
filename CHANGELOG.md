@@ -7,6 +7,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+**Upgrading:** the public domain moves to r9lab.io and the product is called R9lab.
+Everyone signs in again once, because the session cookies are renamed (see Changed).
+Self-hosters set their own `*_PUBLIC_URL`, `EMAIL_*` and `SMTP_*` values in the root `.env`;
+the defaults now point at r9lab.io. Operators of the reference deployment follow the
+zone-move runbook in `infra/cloudflare/README.md`, and now pass the zone to the zone recipes:
+`just cloudflare-zone-plan <zone>` and `just cloudflare-zone-apply <zone>`.
+
+**Upgrading (API clients):** the API base URL is now `https://api.r9lab.io`. The old host only
+redirects (307 or 308) for a transition period. Change the base URL rather than rely on that
+redirect: most HTTP clients drop the `Authorization` header when a redirect moves to another
+host, browsers do not follow redirects on CORS preflight requests, and the session cookies are
+bound to the host that set them.
+
 **Upgrading:** the Cloudflare tunnel token moves from the host's root `.env` into a secret
 file. On each deploy host, before the next `just stack <env> up`, run from the checkout:
 
@@ -21,6 +34,16 @@ stops before touching the running stack and prints these steps.
 
 ### Added
 
+- The zone OpenTofu root keeps one workspace per zone. Both OpenTofu roots refuse a plan whose
+  zone id belongs to another zone.
+- The zone root can redirect every host of a previous zone to the new one
+  (`redirect_to_zone_name`), one environment at a time (`redirect_environments`). The
+  redirects are temporary (302/307) until `redirect_permanent` is set, then permanent
+  (301/308).
+- The zone root can forward mail through Cloudflare Email Routing (`email_forwards`,
+  `cloudflare_account_id`); `r9lab.io.tfvars` forwards `info@r9lab.io`.
+- `just smoke-redirects` checks that the old hosts redirect to the new ones. It sends
+  `TELEMETRY_EDGE_KEY` as `X-Telemetry-Key` for the telemetry probe.
 - On a product or component page, each component row now expands to show its own
   components, and theirs, as deep as the breakdown goes.
 - The components list shows the total weight of the components, from the weights recorded on
@@ -29,6 +52,14 @@ stops before touching the running stack and prints these steps.
 
 ### Changed
 
+- **Breaking:** the session cookies are renamed to `__Host-r9lab-auth`, `__Host-r9lab-refresh`
+  and `__Host-r9lab-oauth-csrf`. The old names are no longer accepted, so every user signs in
+  again once.
+- The product is called R9lab in all user-facing text. The two-factor issuer label is now
+  "R9lab"; authenticator entries already added keep the old label, and their codes still work.
+- Public URLs and contact addresses default to r9lab.io (`info@r9lab.io`).
+- The edge OpenTofu root defaults to the r9lab.io zone. A transitional `legacy_zone_name`
+  keeps the previous zone's hosts served until the move is done.
 - **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
   `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`, `pages`, `links`)
   instead of a bare list. Pass `page` and `size` to walk the results.

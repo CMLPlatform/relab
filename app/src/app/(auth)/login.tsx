@@ -24,7 +24,7 @@ export default function Login() {
   return (
     <>
       <Head>
-        <title>Sign in · Relab</title>
+        <title>Sign in · R9lab</title>
       </Head>
       <LoginLayout onBrowse={actions.browseProducts}>
         <LoginCard>

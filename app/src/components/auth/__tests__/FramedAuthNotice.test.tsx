@@ -41,7 +41,7 @@ describe('FramedAuthNotice', () => {
     Object.defineProperty(window, 'location', { value: { href }, configurable: true });
 
     await renderWithProviders(<FramedAuthNotice />);
-    fireEvent.press(screen.getByText('Open Relab in a new tab'));
+    fireEvent.press(screen.getByText('Open R9lab in a new tab'));
 
     expect(open).toHaveBeenCalledWith(href, '_blank', 'noopener');
   });

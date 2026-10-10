@@ -16,7 +16,7 @@ export function BrandWordmark({ style }: { style?: StyleProp<ImageStyle> }) {
       accessibilityIgnoresInvertColors
       source={source}
       contentFit="contain"
-      accessibilityLabel="Relab"
+      accessibilityLabel="R9lab"
       style={[width && height ? { aspectRatio: width / height } : null, style]}
     />
   );

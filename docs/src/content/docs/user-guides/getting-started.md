@@ -1,13 +1,13 @@
 ---
 title: Getting started
-description: Create an account and capture a first Relab product record.
+description: Create an account and capture a first R9lab product record.
 ---
 
-Relab documents a product while you take it apart. A useful first record needs a clear product identity, a few good photos, and notes on what you found.
+R9lab documents a product while you take it apart. A useful first record needs a clear product identity, a few good photos, and notes on what you found.
 
 ## Create an account
 
-1. Go to [app.cml-relab.org](https://app.cml-relab.org) or open [sign up](https://app.cml-relab.org/new-account).
+1. Go to [app.r9lab.io](https://app.r9lab.io) or open [sign up](https://app.r9lab.io/new-account).
 1. Register with email and password, or sign in with GitHub or Google.
 1. Verify your email if prompted. Some features only activate once the account is verified.
 

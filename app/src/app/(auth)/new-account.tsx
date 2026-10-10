@@ -20,7 +20,7 @@ export default function NewAccount() {
   return (
     <>
       <Head>
-        <title>Create account · Relab</title>
+        <title>Create account · R9lab</title>
       </Head>
       <NewAccountLayout onNavigateToLogin={actions.goToLogin}>
         {flow.section === 'username' ? (

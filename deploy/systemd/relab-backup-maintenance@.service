@@ -1,4 +1,4 @@
-# Relab scheduled job: backup repository maintenance. Instance is the environment, e.g. relab-backup-maintenance@prod.
+# R9lab scheduled job: backup repository maintenance. Instance is the environment, e.g. relab-backup-maintenance@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -9,7 +9,7 @@
 # host. These units run a writable git checkout as unattended, scheduled, effectively
 # root-level jobs — treat that directory as privileged.
 [Unit]
-Description=Relab backup maintenance: retention, integrity check, offsite copy (%i)
+Description=R9lab backup maintenance: retention, integrity check, offsite copy (%i)
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service

@@ -14,7 +14,7 @@ const render = async (props: Record<string, unknown> = {}) =>
 describe('SiteHeader', () => {
   it('renders the wordmark linking home and the two nav links', async () => {
     const html = await render();
-    expect(html).toContain('aria-label="Relab"');
+    expect(html).toContain('aria-label="R9lab"');
     expect(html).toContain('href="/"');
     expect(html).toContain('https://app.example.com');
     expect(html).toContain('https://docs.example.com');

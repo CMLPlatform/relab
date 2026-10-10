@@ -174,13 +174,13 @@ def test_rendered_secret_outside_the_inventory_fails() -> None:
 def test_env_assignments_ignores_comments_and_keeps_values_with_equals(tmp_path: Path) -> None:
     path = tmp_path / ".env"
     path.write_text(
-        "# comment\n\n  ENVIRONMENT = prod \nEMAIL_FROM=Relab <a@b.test>\n"
+        "# comment\n\n  ENVIRONMENT = prod \nEMAIL_FROM=R9lab <a@b.test>\n"
         "DSN=postgres://u:p@h/db?x=1\nnot an assignment\n",
         encoding="utf-8",
     )
     assert env_policy.env_assignments(path) == {
         "ENVIRONMENT": "prod",
-        "EMAIL_FROM": "Relab <a@b.test>",
+        "EMAIL_FROM": "R9lab <a@b.test>",
         "DSN": "postgres://u:p@h/db?x=1",
     }
 
@@ -294,3 +294,16 @@ def test_deploy_services_must_be_read_only_unless_allowlisted() -> None:
 
     services["cloudflared"]["read_only"] = True
     env_policy.assert_services_are_read_only("prod", {"services": services})
+
+
+def test_hidden_caddy_default_rejected_for_any_host(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config = tmp_path / "Caddyfile"
+    monkeypatch.setattr(env_policy, "RUNTIME_CONFIG_FILES", (config,))
+
+    config.write_text("reverse_proxy {$CADDY_API_ORIGIN}\n", encoding="utf-8")
+    env_policy.assert_runtime_images_do_not_hide_prod_defaults()
+
+    for hidden in ("{$CADDY_API_ORIGIN:https://api.example.org}", "ENV CADDY_API_ORIGIN=https://api.example.org"):
+        config.write_text(hidden + "\n", encoding="utf-8")
+        with pytest.raises(AssertionError, match="hidden production default"):
+            env_policy.assert_runtime_images_do_not_hide_prod_defaults()

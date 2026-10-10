@@ -38,7 +38,7 @@ export default function CamerasScreen() {
   return (
     <>
       <Head>
-        <title>Cameras · Relab</title>
+        <title>Cameras · R9lab</title>
       </Head>
       <PageContainer phoneFullBleed>
         <ScreenTitle>Cameras</ScreenTitle>

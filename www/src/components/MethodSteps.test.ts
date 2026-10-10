@@ -67,7 +67,7 @@ describe('MethodSteps', () => {
 
   it('does not claim the platform applies the 9R framework to records', async () => {
     const html = await render();
-    // Relab collects data; the research that uses it does the interpreting.
+    // R9lab collects data; the research that uses it does the interpreting.
     // Saying records are "read through" the framework describes a step the
     // platform has never performed.
     expect(html).not.toMatch(/read through the 9R/i);

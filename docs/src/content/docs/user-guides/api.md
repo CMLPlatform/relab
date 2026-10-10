@@ -1,18 +1,18 @@
 ---
 title: API interaction guide
-description: Use the Relab API safely for scripts, notebooks, and external tooling.
+description: Use the R9lab API safely for scripts, notebooks, and external tooling.
 ---
 
 For schemas, request models, and endpoint lists, see the [API reference overview](/api-reference/).
 For the internal design, see [API structure](../../architecture/api/).
 
 The public API is versioned under `/v1`. Keep the API origin separate from the versioned path in
-your client configuration and build requests such as `https://api.cml-relab.org/v1/products`.
+your client configuration and build requests such as `https://api.r9lab.io/v1/products`.
 
 ## When to use the API directly
 
 - scripted or batch access to structured research data
-- connecting Relab records to notebooks or external tooling
+- connecting R9lab records to notebooks or external tooling
 - automating repetitive reference-data lookups
 - building custom integrations on top of the platform
 

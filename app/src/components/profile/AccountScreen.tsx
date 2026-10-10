@@ -33,7 +33,7 @@ function AccountBody({ ctx, profile }: { ctx: AccountSectionContext; profile: Us
   return (
     <>
       <Head>
-        <title>Account · Relab</title>
+        <title>Account · R9lab</title>
       </Head>
       <PageContainer onLayout={onPageContainerLayout}>
         <View style={{ gap: 15 }} onLayout={onSectionsWrapperLayout}>

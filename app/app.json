@@ -16,7 +16,7 @@
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         },
-        "NSLocalNetworkUsageDescription": "Relab connects directly to your Raspberry Pi camera on this network."
+        "NSLocalNetworkUsageDescription": "R9lab connects directly to your Raspberry Pi camera on this network."
       }
     },
     "android": {
@@ -63,8 +63,8 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow Relab to use the camera for product photos.",
-          "photosPermission": "Allow Relab to select product photos from your library.",
+          "cameraPermission": "Allow R9lab to use the camera for product photos.",
+          "photosPermission": "Allow R9lab to select product photos from your library.",
           "microphonePermission": false
         }
       ],

@@ -1,9 +1,9 @@
 ---
 title: Dataset
-description: How to browse current Relab records and how curated dataset releases will differ.
+description: How to browse current R9lab records and how curated dataset releases will differ.
 ---
 
-Browse current records at [app.cml-relab.org](https://app.cml-relab.org). The app shows live,
+Browse current records at [app.r9lab.io](https://app.r9lab.io). The app shows live,
 evolving records. A curated dataset release is a reviewed, versioned snapshot with defined scope,
 metadata, and licensing, suitable for citation and reuse.
 
@@ -66,7 +66,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
    acceptance was tracked hold no grant until they answer the in-app prompt, and declining is a
    real outcome.
 1. `just release-build --out dist/dataset-vX.Y --software-doi 10.5281/zenodo.NNNNNNN`: builds the
-   release directory. The software DOI is the version DOI of the Relab release the data was
+   release directory. The software DOI is the version DOI of the R9lab release the data was
    exported from, listed on the [concept record](https://doi.org/10.5281/zenodo.16637742); the
    provenance link must name one frozen release. The verification pass at the end fails the build
    rather than warning.
@@ -87,4 +87,4 @@ Full flags: `just release-build --help` and `uv run python -m scripts.zenodo_dep
 ## Contact
 
 For questions about using the dataset or platform, contact
-[relab@cml.leidenuniv.nl](mailto:relab@cml.leidenuniv.nl).
+[info@r9lab.io](mailto:info@r9lab.io).

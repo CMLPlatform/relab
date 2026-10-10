@@ -36,9 +36,9 @@ export function readSiteUrl(env: EnvSource, fallback: string): string {
 
 // Used only for outbound links, so an unset build falls back to the reference deployment.
 const DEFAULTS = {
-  PUBLIC_APP_URL: 'https://app.cml-relab.org',
-  PUBLIC_DOCS_URL: 'https://docs.cml-relab.org',
-  PUBLIC_SITE_URL: 'https://cml-relab.org',
+  PUBLIC_APP_URL: 'https://app.r9lab.io',
+  PUBLIC_DOCS_URL: 'https://docs.r9lab.io',
+  PUBLIC_SITE_URL: 'https://r9lab.io',
 } as const;
 
 export function readPublicSiteConfig(env: EnvSource): PublicSiteConfig {
@@ -47,7 +47,7 @@ export function readPublicSiteConfig(env: EnvSource): PublicSiteConfig {
   return {
     appUrl: read('PUBLIC_APP_URL'),
     docsUrl: read('PUBLIC_DOCS_URL'),
-    contactEmail: getOptional(env, 'PUBLIC_CONTACT_EMAIL') ?? 'relab@cml.leidenuniv.nl',
+    contactEmail: getOptional(env, 'PUBLIC_CONTACT_EMAIL') ?? 'info@r9lab.io',
     siteUrl: read('PUBLIC_SITE_URL'),
   };
 }
