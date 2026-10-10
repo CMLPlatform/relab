@@ -41,6 +41,7 @@ const SIDEBAR = [
   {
     label: 'Guides',
     items: [
+      { label: 'Guides overview', slug: 'user-guides' },
       { label: 'Getting started', slug: 'user-guides/getting-started' },
       { label: 'Data collection', slug: 'user-guides/data-collection' },
       { label: 'Glossary', slug: 'user-guides/glossary' },
@@ -52,6 +53,7 @@ const SIDEBAR = [
   {
     label: 'Architecture',
     items: [
+      { label: 'Architecture overview', slug: 'architecture' },
       { label: 'System design', slug: 'architecture/system-design' },
       { label: 'App navigation flow', slug: 'architecture/app-flow' },
       { label: 'Data model', slug: 'architecture/datamodel' },
