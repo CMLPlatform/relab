@@ -6,6 +6,7 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException, Response, status
 from fastapi_users.exceptions import UserNotExists
+from fastapi_users.router.common import ErrorCode
 from pydantic import SecretStr
 
 from app.api.auth.exceptions import (
@@ -20,10 +21,11 @@ from app.api.auth.schemas import (
     MfaRecoveryCodesRegenerateRequest,
     MfaTotpConfirmRequest,
     MfaTotpDisableRequest,
+    UserUpdate,
 )
-from app.api.auth.services import mfa_flow, mfa_service
+from app.api.auth.services import mfa_flow, mfa_service, rate_limiter
 from app.api.auth.services.account_security import RECENT_SIGN_IN_WINDOW
-from app.api.common.audit import AuditAction
+from app.api.common.audit import AuditAction, AuditContext
 
 
 def build_mfa_user(**flags: object) -> tuple[MagicMock, MagicMock]:
@@ -67,13 +69,14 @@ async def test_complete_mfa_challenge_invalid_code_does_not_consume_login_challe
     """Invalid TOTP codes should keep the login challenge available for retry."""
     challenge = MagicMock()
     challenge.user_id = "user-id"
-    _user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
+    user, user_manager = build_mfa_user(mfa_enabled=True, mfa_totp_secret="totp-secret")
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=False)),
         patch("app.api.auth.services.mfa_flow.mfa_service.consume_login_challenge", new=AsyncMock()) as consume,
-        patch("app.api.auth.services.mfa_flow.audit_event") as audit_event,
+        patch("app.api.auth.services.mfa_flow.account_guess_budget", wraps=rate_limiter.account_guess_budget) as budget,
+        patch("app.api.auth.services.mfa_flow.audit_mfa_failure") as audit_failure,
         pytest.raises(MfaCodeInvalidError),
     ):
         await mfa_flow.complete_mfa_challenge(
@@ -86,7 +89,25 @@ async def test_complete_mfa_challenge_invalid_code_does_not_consume_login_challe
         )
 
     consume.assert_not_awaited()
-    assert any(call.args[1] == AuditAction.MFA_FAILURE for call in audit_event.call_args_list)
+    # The guess is charged to the account, not only to this challenge token.
+    budget.assert_called_once_with("user-id")
+    audit_failure.assert_called_once_with(user, reason="invalid_mfa_code")
+
+
+def test_audit_mfa_failure_emits_denied_event() -> None:
+    """A failed MFA check is logged against the user with the reason it was denied."""
+    user, _ = build_mfa_user()
+
+    with patch("app.api.auth.services.mfa_flow.audit_event") as audit_event:
+        mfa_flow.audit_mfa_failure(user, reason="invalid_mfa_code")
+
+    audit_event.assert_called_once_with(
+        "user-id",
+        AuditAction.MFA_FAILURE,
+        "mfa",
+        "user-id",
+        context=AuditContext(outcome="denied", reason="invalid_mfa_code"),
+    )
 
 
 async def test_confirm_totp_setup_consumes_setup_only_after_valid_code() -> None:
@@ -333,6 +354,7 @@ async def test_complete_mfa_challenge_accepts_recovery_code() -> None:
             "app.api.auth.services.mfa_flow.login_completion.issue_bearer_login_response",
             new=AsyncMock(return_value="login-response"),
         ),
+        patch("app.api.auth.services.mfa_flow.audit_event") as audit_event,
     ):
         result = await mfa_flow.complete_mfa_challenge(
             MfaChallengeRequest(mfa_token=SecretStr("mfa-token"), code="ABCDE-FGHIJ"),
@@ -347,6 +369,55 @@ async def test_complete_mfa_challenge_accepts_recovery_code() -> None:
     set_codes.assert_awaited_once_with(user_manager, user, ["hash-b"])
     verify_totp.assert_not_awaited()  # a non-6-digit code never touches the TOTP path
     assert result == "login-response"
+    audit_event.assert_called_once_with(
+        "user-id",
+        AuditAction.MFA_SUCCESS,
+        "mfa",
+        "user-id",
+        context=AuditContext(transport="bearer", flow="login_challenge", operation="recovery"),
+    )
+
+
+async def test_complete_mfa_challenge_session_transport_sets_cookies() -> None:
+    """A session-transport challenge signs in through cookies and returns no token body."""
+    challenge = MagicMock()
+    challenge.user_id = "user-id"
+    challenge.transport = mfa_service.SESSION_TRANSPORT
+    user, user_manager = build_mfa_user(is_active=True, mfa_enabled=True, mfa_totp_secret="totp-secret")
+    response = Response()
+    redis = MagicMock()
+    cookie_strategy = MagicMock()
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock(return_value=True)),
+        patch(
+            "app.api.auth.services.mfa_flow.mfa_service.consume_login_challenge",
+            new=AsyncMock(return_value=challenge),
+        ),
+        patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
+        patch(
+            "app.api.auth.services.mfa_flow.login_completion.issue_session_login_response", new=AsyncMock()
+        ) as issue_session,
+        patch(
+            "app.api.auth.services.mfa_flow.login_completion.issue_bearer_login_response", new=AsyncMock()
+        ) as issue_bearer,
+    ):
+        result = await mfa_flow.complete_mfa_challenge(
+            MfaChallengeRequest(mfa_token=SecretStr("mfa-token"), code="123456"),
+            response=response,
+            user_manager=user_manager,
+            redis=redis,
+            bearer_strategy=MagicMock(),
+            cookie_strategy=cookie_strategy,
+        )
+
+    assert result is None
+    issue_session.assert_awaited_once_with(
+        response=response, user=user, user_manager=user_manager, redis=redis, cookie_strategy=cookie_strategy
+    )
+    issue_bearer.assert_not_awaited()
+    set_codes.assert_not_awaited()  # a TOTP code leaves the recovery codes alone
 
 
 async def test_complete_mfa_challenge_rejects_bad_recovery_code() -> None:
@@ -503,12 +574,12 @@ async def test_complete_mfa_challenge_rejects_deactivated_user() -> None:
     """A deactivated user must not be able to complete a pending MFA challenge."""
     challenge = MagicMock()
     challenge.user_id = "user-id"
-    _user, user_manager = build_mfa_user(is_active=False, mfa_enabled=True, mfa_totp_secret="totp-secret")
+    user, user_manager = build_mfa_user(is_active=False, mfa_enabled=True, mfa_totp_secret="totp-secret")
 
     with (
         patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
         patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock()) as verify_code,
-        patch("app.api.auth.services.mfa_flow.audit_event"),
+        patch("app.api.auth.services.mfa_flow.audit_mfa_failure") as audit_failure,
         pytest.raises(HTTPException) as exc_info,
     ):
         await mfa_flow.complete_mfa_challenge(
@@ -521,4 +592,105 @@ async def test_complete_mfa_challenge_rejects_deactivated_user() -> None:
         )
 
     assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == ErrorCode.LOGIN_BAD_CREDENTIALS
+    audit_failure.assert_called_once_with(user, reason="user_inactive")
     verify_code.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("mfa_enabled", "mfa_totp_secret"),
+    [(True, None), (False, "totp-secret")],
+    ids=["enabled_without_secret", "secret_without_enabled"],
+)
+async def test_complete_mfa_challenge_rejects_half_enrolled_user(
+    *, mfa_enabled: bool, mfa_totp_secret: str | None
+) -> None:
+    """A challenge for an account without both the MFA flag and a secret is refused before any code check."""
+    challenge = MagicMock()
+    challenge.user_id = "user-id"
+    user, user_manager = build_mfa_user(is_active=True, mfa_enabled=mfa_enabled, mfa_totp_secret=mfa_totp_secret)
+
+    with (
+        patch("app.api.auth.services.mfa_flow.mfa_service.get_login_challenge", new=AsyncMock(return_value=challenge)),
+        patch("app.api.auth.services.mfa_flow.mfa_service.verify_totp_code_once", new=AsyncMock()) as verify_code,
+        patch("app.api.auth.services.mfa_flow.audit_mfa_failure") as audit_failure,
+        pytest.raises(MfaCodeInvalidError),
+    ):
+        await mfa_flow.complete_mfa_challenge(
+            MfaChallengeRequest(mfa_token=SecretStr("mfa-token"), code="123456"),
+            response=Response(),
+            user_manager=user_manager,
+            redis=MagicMock(),
+            bearer_strategy=MagicMock(),
+            cookie_strategy=MagicMock(),
+        )
+
+    audit_failure.assert_called_once_with(user, reason="mfa_not_enabled")
+    verify_code.assert_not_awaited()
+
+
+def _account_update(mfa_code: str | None = None) -> UserUpdate:
+    """An email change carrying the current password, and the MFA code when given."""
+    return UserUpdate(email="new@example.com", current_password=SecretStr("current-passphrase-42"), mfa_code=mfa_code)
+
+
+async def test_account_update_step_up_requires_current_password() -> None:
+    """An email or password change without the current password is refused with a named action."""
+    user, user_manager = build_mfa_user(mfa_enabled=False)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await mfa_flow.require_account_update_step_up(
+            UserUpdate(email="new@example.com"), user=user, user_manager=user_manager, request=MagicMock()
+        )
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == "Current password is required to change your email or password."
+
+
+async def test_account_update_step_up_requires_mfa_code_when_enrolled() -> None:
+    """An MFA account must send its code too, and the refusal names the action."""
+    user, user_manager = build_mfa_user(mfa_enabled=True)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await mfa_flow.require_account_update_step_up(
+            _account_update(), user=user, user_manager=user_manager, request=MagicMock()
+        )
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.detail == "Authentication code is required to change your email or password."
+    user_manager.password_helper.verify_and_update.assert_not_called()
+
+
+async def test_account_update_step_up_needs_request_to_check_mfa_code() -> None:
+    """Without a request there is no Redis to check the code against, which is a programming error."""
+    user, user_manager = build_mfa_user(mfa_enabled=True)
+    user_manager.password_helper.verify_and_update = MagicMock(return_value=(True, None))
+
+    with pytest.raises(RuntimeError) as exc_info:
+        await mfa_flow.require_account_update_step_up(
+            _account_update("123456"), user=user, user_manager=user_manager, request=None
+        )
+
+    assert str(exc_info.value) == "Request context is required to verify an authentication code."
+
+
+async def test_account_update_step_up_burns_matched_recovery_code() -> None:
+    """A recovery code used to approve an email or password change cannot be used again."""
+    user, user_manager = build_mfa_user(
+        mfa_enabled=True, mfa_totp_secret="totp-secret", mfa_recovery_codes=["hash-a", "hash-b"]
+    )
+    user_manager.password_helper.verify_and_update = MagicMock(return_value=(True, None))
+
+    with (
+        patch("app.api.auth.services.mfa_flow.require_connection_redis", return_value=MagicMock()),
+        patch("app.api.auth.services.mfa_flow.mfa_service.consume_recovery_code", return_value=["hash-b"]),
+        patch("app.api.auth.services.mfa_flow.mfa_service.set_recovery_codes", new=AsyncMock()) as set_codes,
+    ):
+        await mfa_flow.require_account_update_step_up(
+            _account_update("ABCDE-FGHIJ"),
+            user=user,
+            user_manager=user_manager,
+            request=MagicMock(),
+        )
+
+    set_codes.assert_awaited_once_with(user_manager, user, ["hash-b"])

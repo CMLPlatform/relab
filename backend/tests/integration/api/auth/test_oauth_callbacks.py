@@ -12,6 +12,7 @@ from fastapi_users.exceptions import UserAlreadyExists
 from fastapi_users.router.common import ErrorCode
 
 from app.api.auth.models import OAuthAccount, User
+from app.api.auth.services.mfa_service import get_login_challenge
 from app.api.auth.services.oauth.associate import handle_oauth_associate_callback
 from app.api.auth.services.oauth.login import handle_oauth_login_callback
 from app.api.auth.services.refresh_token_service import verify_refresh_token
@@ -43,8 +44,10 @@ pytestmark = pytest.mark.api
 async def test_callback_passes_associate_by_email_false(redis_client: Redis) -> None:
     """Disables implicit email-based account linking and issues session cookies."""
     config, backend = make_auth_flow()
-    request, access_token_state = make_request_with_valid_state()
+    request, (_token, state) = make_request_with_valid_state()
     request.app.state.services = AppServices(redis=redis_client)
+    token = {"access_token": "provider-access-token", "expires_at": 1234, "refresh_token": "provider-refresh"}
+    access_token_state = (cast("Any", token), state)
 
     user = MagicMock()
     user.id = uuid4()
@@ -72,8 +75,18 @@ async def test_callback_passes_associate_by_email_false(redis_client: Redis) -> 
     set_cookie_headers = response.headers.getlist("set-cookie")
     assert any(header.startswith("__Host-r9lab-auth=") for header in set_cookie_headers)
     assert any(header.startswith("__Host-r9lab-refresh=") for header in set_cookie_headers)
-    assert user_manager.oauth_callback.await_args is not None
-    assert user_manager.oauth_callback.await_args.kwargs["associate_by_email"] is False
+    cast("MagicMock", config.oauth_client).get_id_email.assert_awaited_once_with("provider-access-token")
+    user_manager.oauth_callback.assert_awaited_once_with(
+        "github",
+        "provider-access-token",
+        "provider-account-id",
+        TEST_EMAIL,
+        1234,
+        "provider-refresh",
+        request,
+        associate_by_email=False,
+        is_verified_by_default=True,
+    )
     user_manager.on_after_login.assert_awaited_once()
 
 
@@ -160,6 +173,149 @@ async def test_callback_redirect_places_mfa_handoff_not_token_in_url_fragment(re
     assert "mfa_token" not in fragment
     assert fragment["status"] == ["mfa_required"]
     assert fragment["mfa_handoff"][0]
+
+
+def _frontend_redirect_request(frontend_redirect: str) -> tuple[MagicMock, tuple[Any, str]]:
+    """Build a session-flow callback request whose state carries a frontend redirect."""
+    csrf_token = generate_csrf_token()
+    state = make_oauth_state(
+        csrf_token,
+        provider_name="github",
+        oauth_flow="github:session",
+        extra_state={"frontend_redirect_uri": frontend_redirect},
+    )
+    request = MagicMock()
+    request.cookies = {OAuthCookieSettings.name: csrf_token}
+    return request, (cast("Any", {"access_token": "provider-access-token"}), state)
+
+
+async def test_callback_redirect_reports_missing_provider_email() -> None:
+    """A provider that returns no email ends the flow with a typed error, before any account lookup."""
+    config, backend = make_auth_flow()
+    cast("MagicMock", config.oauth_client).get_id_email = AsyncMock(return_value=("provider-account-id", None))
+    request, access_token_state = _frontend_redirect_request("relab-app://login")
+    user_manager = MagicMock()
+    user_manager.oauth_callback = AsyncMock()
+
+    response = await handle_oauth_login_callback(
+        config,
+        backend,
+        request,
+        access_token_state,
+        user_manager,
+        MagicMock(),
+        associate_by_email=False,
+        is_verified_by_default=True,
+    )
+
+    location = urlparse(response.headers["location"])
+    assert (location.scheme, location.netloc) == ("relab-app", "login")
+    fragment = parse_qs(location.fragment)
+    assert fragment["status"] == ["error"]
+    assert fragment["error"] == [ErrorCode.OAUTH_NOT_AVAILABLE_EMAIL.value]
+    user_manager.oauth_callback.assert_not_awaited()
+
+
+async def test_callback_redirect_reports_inactive_user_as_bad_credentials() -> None:
+    """An inactive account gets the bad-credentials error, not a session."""
+    config, backend = make_auth_flow()
+    request, access_token_state = _frontend_redirect_request("relab-app://login")
+    user = MagicMock()
+    user.is_active = False
+    user_manager = MagicMock()
+    user_manager.oauth_callback = AsyncMock(return_value=user)
+    user_manager.on_after_login = AsyncMock()
+
+    response = await handle_oauth_login_callback(
+        config,
+        backend,
+        request,
+        access_token_state,
+        user_manager,
+        MagicMock(),
+        associate_by_email=False,
+        is_verified_by_default=True,
+    )
+
+    location = urlparse(response.headers["location"])
+    assert (location.scheme, location.netloc) == ("relab-app", "login")
+    fragment = parse_qs(location.fragment)
+    assert fragment["status"] == ["error"]
+    assert fragment["error"] == [ErrorCode.LOGIN_BAD_CREDENTIALS.value]
+    user_manager.on_after_login.assert_not_awaited()
+
+
+async def test_callback_redirect_carries_session_cookies_on_success(redis_client: Redis) -> None:
+    """A successful redirect login reports success and sets the same cookies as a direct one."""
+    config, backend = make_auth_flow()
+    request, access_token_state = _frontend_redirect_request("relab-app://login")
+    request.app.state.services = AppServices(redis=redis_client)
+    user = MagicMock()
+    user.id = uuid4()
+    user.is_active = True
+    user.mfa_enabled = False
+    user_manager = MagicMock()
+    user_manager.oauth_callback = AsyncMock(return_value=user)
+    user_manager.on_after_login = AsyncMock()
+    strategy = MagicMock()
+    strategy.write_token = AsyncMock(return_value="access-token")
+
+    response = await handle_oauth_login_callback(
+        config,
+        backend,
+        request,
+        access_token_state,
+        user_manager,
+        strategy,
+        associate_by_email=False,
+        is_verified_by_default=True,
+    )
+
+    location = urlparse(response.headers["location"])
+    assert (location.scheme, location.netloc) == ("relab-app", "login")
+    assert parse_qs(location.fragment)["status"] == ["success"]
+    set_cookie_headers = response.headers.getlist("set-cookie")
+    assert any(header.startswith("__Host-r9lab-auth=") for header in set_cookie_headers)
+    assert any(header.startswith("__Host-r9lab-refresh=") for header in set_cookie_headers)
+
+
+@pytest.mark.parametrize(
+    ("backend_name", "oauth_flow", "transport"),
+    [("cookie", "github:session", "session"), ("bearer", "github:bearer", "bearer")],
+)
+async def test_callback_mfa_challenge_keeps_the_backend_transport(
+    redis_client: Redis, backend_name: str, oauth_flow: str, transport: str
+) -> None:
+    """An MFA user gets a 202 challenge that finishes on the transport of the backend it started on."""
+    config, backend = make_auth_flow(backend_name=backend_name, oauth_flow=oauth_flow)
+    request, access_token_state = make_request_with_valid_state(oauth_flow=oauth_flow)
+    request.app.state.services = AppServices(redis=redis_client)
+    user = MagicMock()
+    user.id = uuid4()
+    user.is_active = True
+    user.mfa_enabled = True
+    user_manager = MagicMock()
+    user_manager.oauth_callback = AsyncMock(return_value=user)
+    user_manager.on_after_login = AsyncMock()
+
+    response = await handle_oauth_login_callback(
+        config,
+        backend,
+        request,
+        access_token_state,
+        user_manager,
+        MagicMock(),
+        associate_by_email=False,
+        is_verified_by_default=True,
+    )
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    payload = json.loads(bytes(response.body))
+    assert payload["mfa_required"] is True
+    challenge = await get_login_challenge(redis_client, payload["mfa_token"])
+    assert challenge.user_id == user.id
+    assert challenge.transport == transport
+    user_manager.on_after_login.assert_not_awaited()
 
 
 async def test_callback_redirect_returns_typed_existing_user_error() -> None:
