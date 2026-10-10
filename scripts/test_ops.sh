@@ -1270,11 +1270,8 @@ assert_eq "an edge challenge on the new host passes" "0|ok" "$(hop 403 '')"
 assert_eq "a redirect within the new zone passes" "0|ok" "$(hop 302 'https://app.r9lab.io/login')"
 assert_eq "a lookalike domain is not the old zone" "0|ok" "$(hop 302 'https://notcml-relab.org/')"
 assert_eq "no response from the new host fails" "1|FAIL[app.r9lab.io]: no response" "$(hop 000 '')"
-assert_eq "permanent maps 302 to 301" "301" "$(expected_status 302 1)"
-assert_eq "permanent maps 307 to 308" "308" "$(expected_status 307 1)"
-assert_eq "temporary keeps the status" "307" "$(expected_status 307 0)"
 # route_prefixes is a hand copy of infra/cloudflare/hostnames.tf; a route added there must
-# be smoke-checked too. api keeps its method, so it redirects with 307, the rest with 302.
+# be smoke-checked too. api keeps its method, so it redirects with 307/308, the rest 302/301.
 hcl_routes() {
     awk -v env="$1" '
         /^[[:space:]]*(prod|staging)[[:space:]]*=[[:space:]]*[{]/ { cur = $1 }
@@ -1284,7 +1281,7 @@ hcl_routes() {
             sub(/^[^=]*=[[:space:]]*/, "", h)
             gsub(/"/, "", h)
             sub(/(\$[{])?local[.]cloudflare_zone[}]?$/, "", h)
-            print h ":" (name == "api" ? 307 : 302)
+            print h ":" (name == "api" ? "307:308" : "302:301")
         }' infra/cloudflare/hostnames.tf
 }
 for env in prod staging; do

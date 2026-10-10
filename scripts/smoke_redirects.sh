@@ -10,14 +10,17 @@ set -euo pipefail
 
 SMOKE_PATH='/r9lab-smoke?q=1'
 
+# no_response <host> <status>: prints a FAIL line and succeeds when the request got no answer.
+no_response() {
+    [[ -z "$2" || "$2" == 000 ]] || return 1
+    printf 'FAIL[%s]: no response\n' "$1"
+}
+
 # redirect_verdict <host> <status> <location> <expect_status> <expect_location>
 # Prints "ok", or one FAIL line; returns 0 or 1.
 redirect_verdict() {
     local host="$1" status="$2" location="$3" expect_status="$4" expect_location="$5"
-    if [[ -z "$status" || "$status" == 000 ]]; then
-        printf 'FAIL[%s]: no response\n' "$host"
-        return 1
-    fi
+    no_response "$host" "$status" && return 1
     if [[ "$status" != "$expect_status" ]]; then
         printf 'FAIL[%s]: status %s, expected %s\n' "$host" "$status" "$expect_status"
         return 1
@@ -33,10 +36,7 @@ redirect_verdict() {
 # The new host may answer anything but a redirect back to the old zone: that loops.
 second_hop_verdict() {
     local host="$1" status="$2" location="$3" old_zone="$4" target
-    if [[ -z "$status" || "$status" == 000 ]]; then
-        printf 'FAIL[%s]: no response\n' "$host"
-        return 1
-    fi
+    no_response "$host" "$status" && return 1
     target="${location#*://}"
     target="${target%%[/?#]*}"
     if [[ "$status" == 3* && ("$target" == "$old_zone" || "$target" == *".$old_zone") ]]; then
@@ -46,25 +46,13 @@ second_hop_verdict() {
     printf 'ok\n'
 }
 
-# expected_status <temporary status> <permanent flag>: 302 becomes 301, 307 becomes 308.
-expected_status() {
-    if [[ "$2" != 1 ]]; then
-        printf '%s\n' "$1"
-    elif [[ "$1" == 307 ]]; then
-        printf '308\n'
-    else
-        printf '301\n'
-    fi
-}
-
 # otel_verdict <host> <status> <response headers>
 # The collector may answer 4xx/5xx/405 to an empty POST; only silence, a redirect or an
 # edge challenge break ingestion.
 otel_verdict() {
     local host="$1" status="$2" headers="$3"
-    if [[ -z "$status" || "$status" == 000 ]]; then
-        printf 'FAIL[%s]: no response\n' "$host"
-    elif [[ "$status" == 3* ]]; then
+    no_response "$host" "$status" && return 1
+    if [[ "$status" == 3* ]]; then
         printf 'FAIL[%s]: redirected with status %s\n' "$host" "$status"
     elif grep -qi '^cf-mitigated:' <<<"$headers"; then
         printf 'FAIL[%s]: challenged by the edge\n' "$host"
@@ -76,18 +64,19 @@ otel_verdict() {
 }
 
 # NOTE: mirrors edge_routes_by_environment in infra/cloudflare/hostnames.tf; parsing HCL
-# from bash is not worth it for eight names. An empty prefix is the zone apex.
+# from bash is not worth it for eight names. An empty prefix is the zone apex. Each entry is
+# prefix:temporary status:permanent status; api keeps its method (307/308), the rest 302/301.
 route_prefixes() {
     case "$1" in
-        prod) printf '%s\n' ':302' 'app.:302' 'api.:307' 'docs.:302' ;;
-        staging) printf '%s\n' 'web-test.:302' 'app-test.:302' 'api-test.:307' 'docs-test.:302' ;;
+        prod) printf '%s\n' ':302:301' 'app.:302:301' 'api.:307:308' 'docs.:302:301' ;;
+        staging) printf '%s\n' 'web-test.:302:301' 'app-test.:302:301' 'api-test.:307:308' 'docs-test.:302:301' ;;
         *) return 1 ;;
     esac
 }
 
 smoke_main() {
     local old_zone="${1:?old zone}" new_zone="${2:?new zone}" env="${3:?env}"
-    local permanent="${REDIRECT_PERMANENT:-0}" failed=0 entry prefix status result code location
+    local permanent="${REDIRECT_PERMANENT:-0}" failed=0 entry prefix status permanent_status result code location
     local -a entries
 
     # An unknown env yields no routes; without this it would pass with nothing checked.
@@ -98,9 +87,8 @@ smoke_main() {
     fi
 
     for entry in "${entries[@]}"; do
-        prefix="${entry%:*}"
-        status="${entry#*:}"
-        status="$(expected_status "$status" "$permanent")"
+        IFS=: read -r prefix status permanent_status <<<"$entry"
+        [[ "$permanent" == 1 ]] && status="$permanent_status"
         result="$(curl -sS -o /dev/null --max-redirs 0 --max-time 15 \
             -w '%{http_code} %{redirect_url}' "https://${prefix}${old_zone}${SMOKE_PATH}")" || result=''
         code="${result%% *}"
