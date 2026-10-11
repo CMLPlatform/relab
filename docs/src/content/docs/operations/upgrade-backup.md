@@ -5,8 +5,8 @@ description: Upgrade a self-hosted R9lab stack, roll it back, and set up its bac
 
 ## Upgrade
 
-Upgrade later with the same commands: pull a known-good revision, run
-`just stack prod tag YES <tag>`, then `just stack prod up YES migrations`.
+An upgrade uses the same commands as [Deploy](/operations/deploy/): pull a known-good revision,
+run `just stack prod tag YES <tag>`, then `just stack prod up YES migrations`.
 
 A failed migration does not leave the old API serving. `up` exits non-zero and names the
 migrator; the new API is either not started or running on the unfinished schema. Fix forward or

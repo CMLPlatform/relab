@@ -32,7 +32,8 @@ Skipping this loses nothing for the stack itself; the compose caps stay authorit
 ### 1.1 Backup repository
 
 Follow "First backup" in the install guide's `upgrade-backup.md` (`mkdir`/`chown 65532`,
-`just backup-init prod`, `just backup prod`, `just restore-check prod`). **The repository is never created automatically.**
+`just backup-init prod`, `just backup prod`, `just restore-check prod`). **The repository is never
+created automatically.**
 
 `backup-init` also stamps the uploads volume with `.relab-volume`, naming its environment. A backup then
 refuses to run if the marker is missing or wrong: a deleted volume returns silently empty and the
@@ -386,9 +387,9 @@ in that run until you approve them, so check staging before you do. Prod is neve
 product (the `FEATURED_PRODUCT_ID` variable of the `prod` GitHub Environment), run Deploy Sites by
 hand for `prod` on `main` and approve it. Staging rebuilds weekly on its own.
 
-The install guide's "Upgrade" section (`upgrade-backup.md`) covers what a failed migration does and the 2026-09-08 flatten.
-Without the `migrations` profile, the API briefly serves against the old schema: acceptable during a
-planned outage, not for a routine release.
+The install guide's "Upgrade" section (`upgrade-backup.md`) covers what a failed migration does
+and the 2026-09-08 flatten. Without the `migrations` profile, the API briefly serves against the
+old schema: acceptable during a planned outage, not for a routine release.
 
 Do not run `just cloudflare-apply prod` as part of a deploy. The edge is managed separately in
 `infra/cloudflare/`. The tunnel's ingress rules live there, so a renamed Compose service needs a

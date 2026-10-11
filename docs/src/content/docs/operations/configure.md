@@ -3,7 +3,7 @@ title: Configure
 description: Prepare a production or staging host with a Cloudflare Tunnel, the root .env, and the runtime secrets.
 ---
 
-## Production and staging deployment
+## Set up the host
 
 The stack runs on one host behind a Cloudflare Tunnel, so the host needs no public ports. A deploy
 is three commands on the server: pull the repository, pick a published image tag, start the stack.
@@ -37,8 +37,8 @@ describes the topology these steps produce.
      Apply only against a new zone, or after you import the existing DNS records, tunnels, and
      rulesets into OpenTofu state (see the README's import workflow). Otherwise the apply
      duplicates DNS records and creates a second tunnel whose token does not match
-     `secrets/<env>/cloudflare_tunnel_token`. It can also overwrite existing rulesets, because each Cloudflare
-     phase allows one ruleset per zone.
+     `secrets/<env>/cloudflare_tunnel_token`. It can also overwrite existing rulesets, because
+     each Cloudflare phase allows one ruleset per zone.
      :::
 
    Either way, copy the tunnel token: step 3 puts it in a secret file.
@@ -90,8 +90,7 @@ describes the topology these steps produce.
    Replace every placeholder under `secrets/prod/`, and paste the tunnel token from step 1 into
    `secrets/prod/cloudflare_tunnel_token`. Runtime secrets (database passwords, the auth token
    secret, the restic password, the tunnel token, provider secrets) live only there, never in
-   `.env`.
-   `deploy/env/variables.toml` is the inventory; `just env-inventory` prints it.
+   `.env`. `deploy/env/variables.toml` is the inventory; `just env-inventory` prints it.
 
 1. Validate the configuration.
 

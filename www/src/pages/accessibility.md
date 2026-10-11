@@ -43,4 +43,4 @@ These are the gaps we know about.
 - The app is tested in a browser, so VoiceOver and TalkBack are untested.
 - R9lab is in English only.
 - Videos are embedded from YouTube. Captions are up to whoever published them.
-- The documentation site’s API reference pages use a third-party viewer with two known problems we cannot fix ourselves: its endpoint lists scroll but hold nothing that takes keyboard focus, and one of its MCP links is smaller than 24 by 24 CSS pixels.
+- The documentation site’s API reference pages use a third-party viewer with two known problems we cannot fix ourselves. Its endpoint lists scroll, but nothing in them takes keyboard focus. One of its MCP links is smaller than 24 by 24 CSS pixels.
