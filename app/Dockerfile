@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1@sha256:ecfaec9ed6d810b56388c508f4121597bfbba70d41a6dfeee4d8cad5f295fc32
+# syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 
 # Multi-target Dockerfile for the Expo frontend app
 #   - `dev`     → Metro dev server (use with `docker compose watch`)
@@ -105,7 +105,7 @@ RUN --mount=type=cache,target=/tmp/metro-cache,id=metro-${EXPO_PUBLIC_API_URL}-$
 # copy-up leaves a second copy in the layer, so strip in a throwaway stage and
 # copy onto plain Alpine. BuildKit preserves caps across COPY --from, so the
 # strip must precede the copy.
-FROM caddy:2-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b AS caddybin
+FROM caddy:2-alpine@sha256:d8542f48d34a9cf4e4c11a478865229840e87e4c96ea3f439101f31a5d35f75f AS caddybin
 RUN setcap -r /usr/bin/caddy
 
 FROM alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 AS runtime
