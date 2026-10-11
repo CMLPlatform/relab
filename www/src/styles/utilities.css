@@ -27,8 +27,8 @@
 }
 
 /* Prose pages: cap the whole page so headings and paragraphs share one
-   measure. 40rem sets the compact body at about 80 characters a line; 44rem
-   ran past 90, and the landing column would set prose at ~140. */
+   measure. 40rem sets the compact body at about 80 characters a line. 44rem
+   runs past 90, and the full landing column would set prose at about 140. */
 .content-page {
   --content-page-body-size: var(--font-size-body-compact);
   --content-page-line-height: var(--line-height-body-compact);
@@ -48,7 +48,7 @@
 }
 
 /* Each Markdown `##` starts a new section: a hairline rule and extra space
-   above it, none on the first (it already follows the intro). */
+   above it. */
 .content-page h2 {
   font-size: var(--content-page-heading-size);
   margin-top: 0.9rem;
@@ -56,8 +56,8 @@
   border-top: 1px solid var(--color-page-border);
 }
 
-/* No rule on the first, but the same space as the rest, so it does not butt
-   against the intro. */
+/* The first follows the intro, so it drops the rule and its padding. It keeps
+   the top margin, so it does not sit tight against the intro. */
 .content-page h2:first-of-type {
   padding-top: 0;
   border-top: 0;
