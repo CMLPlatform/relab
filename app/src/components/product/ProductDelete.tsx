@@ -44,17 +44,16 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
 }
 
 /**
- * Says what goes with the record. The server deletes the whole subtree and
- * every photo and file on it, which a bare "delete this component?" hides.
+ * The dialog message names what goes with the record: the server deletes the
+ * whole subtree and every photo and file in it.
  */
 function deleteMessage(product: Product): string {
   if (product.components === undefined) {
     return `This deletes the ${entityLabel(product)}, any components under it, and all their photos and files. You cannot undo this.`;
   }
   const count = product.components.length;
-  const media = 'its photos and files';
   if (count === 0)
-    return `This deletes the ${entityLabel(product)} with ${media}. You cannot undo this.`;
+    return `This deletes the ${entityLabel(product)} with its photos and files. You cannot undo this.`;
   const children = count === 1 ? '1 component' : `${count} components`;
   return `This also deletes its ${children}, everything recorded under them, and all their photos and files. You cannot undo this.`;
 }

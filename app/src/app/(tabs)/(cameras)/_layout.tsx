@@ -16,7 +16,7 @@ export default function CamerasTabLayout() {
         contentStyle: { backgroundColor: 'transparent' },
         headerShown: !isLg,
         // Every cameras screen renders its own h1 (ScreenTitle).
-        headerTitle: ({ children }) => <PlainHeaderTitle>{children}</PlainHeaderTitle>,
+        headerTitle: PlainHeaderTitle,
       }}
     >
       {/* TopNav replaces every stack header on >=lg web; add and detail render a PageHeaderRow there. */}

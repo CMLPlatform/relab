@@ -68,8 +68,6 @@ export function SaveBar({
     () => null,
   );
   if (!canModerate) return null;
-  // Sentence case, like every other button label ("New product", "Add component").
-  const titleLabel = entityRole === 'component' ? 'component' : 'product';
   // Validation only gates a press that would actually save dirty edits, not a
   // plain view->edit toggle.
   const wouldSave = editMode && isDirty;
@@ -168,7 +166,7 @@ export function SaveBar({
             {isQueued
               ? QUEUED_OFFLINE_LABEL
               : (uploadingText ??
-                (editMode ? (isDirty ? `Save ${titleLabel}` : 'Done') : `Edit ${titleLabel}`))}
+                (editMode ? (isDirty ? `Save ${entityRole}` : 'Done') : `Edit ${entityRole}`))}
           </AppButton>
           {uploadingPhotos ? <UploadProgressBar progress={uploadingPhotos} /> : null}
         </View>
@@ -178,9 +176,7 @@ export function SaveBar({
 }
 
 // Rises into place as edit mode begins; leaves faster, by fading.
-// NOTE: the stock preset, never with custom initial values: on web Reanimated pins a
-// custom entering animation to `position: absolute` at its snapshot's top/left
-// once it ends, which unpins the dock from the viewport and from `right: 24`.
+// NOTE: a stock preset, no custom initial values (see no-custom-entering-animations.test.ts).
 const DOCK_ENTER = FadeInDown.duration(200).reduceMotion(ReduceMotion.System);
 const DOCK_EXIT = FadeOut.duration(150).reduceMotion(ReduceMotion.System);
 

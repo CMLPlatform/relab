@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react';
 import { Platform, type View } from 'react-native';
 import { useScreenFocusedSafe } from './useScreenFocused';
 
+/** About half a second at 60 fps: longer than any screen's entering fade (200ms). */
+const ENTRY_FOCUS_MAX_FRAMES = 30;
+
 /**
  * Web only: when a screen gains focus (first render, forward navigation, back),
  * move keyboard focus to its h1, else to the scaffold itself. Without this the
@@ -10,9 +13,6 @@ import { useScreenFocusedSafe } from './useScreenFocused';
  * screen's scaffold View; no-op on native. Pass `ready = false` while the
  * screen's h1 is still loading, so focus waits for it instead of the scaffold.
  */
-/** About half a second at 60 fps: longer than any screen's entering fade (200ms). */
-const ENTRY_FOCUS_MAX_FRAMES = 30;
-
 export function useScreenEntryFocus(ready = true) {
   const ref = useRef<View>(null);
   const focused = useScreenFocusedSafe();
@@ -34,7 +34,7 @@ export function useScreenEntryFocus(ready = true) {
       // A screen that fades in (the detail screen after its skeleton) is
       // `visibility: hidden` until its entering animation starts, and focus()
       // on a hidden element does nothing. Retry for a few frames, but only
-      // while focus is still nowhere, so a user who already moved it keeps it.
+      // while focus is still on the page body, so a user who already moved it keeps it.
       if (typeof document === 'undefined') return;
       const active = document.activeElement;
       const unplaced = active === null || active === document.body;

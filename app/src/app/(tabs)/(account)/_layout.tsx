@@ -16,7 +16,7 @@ export default function AccountTabLayout() {
         contentStyle: { backgroundColor: 'transparent' },
         headerShown: !isLg,
         // The account screen renders the username as its h1.
-        headerTitle: ({ children }) => <PlainHeaderTitle>{children}</PlainHeaderTitle>,
+        headerTitle: PlainHeaderTitle,
       }}
     >
       {/* TopNav covers this screen on >=lg web. */}

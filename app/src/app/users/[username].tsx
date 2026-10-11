@@ -176,7 +176,7 @@ export default function UserProfileScreen() {
       <Stack.Screen
         options={{
           title,
-          headerTitle: () => <PlainHeaderTitle>{title}</PlainHeaderTitle>,
+          headerTitle: PlainHeaderTitle,
         }}
       />
       <PageContainer entryFocusReady={!loading}>
