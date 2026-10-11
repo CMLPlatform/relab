@@ -277,7 +277,7 @@ roughly 1.45× the brand scale, which read as a landing page inside a reference 
 - **Body**: Starlight's own default (`--sl-text-base`, 16px), which already matches the brand's
   body step; not an override.
 - **Small** (400, `--sl-text-sm`, 14px): figure captions.
-- **Label** (mono 400, `--sl-text-xs`, 13px): the colophon and NineRLadder tier labels.
+- **Label** (mono 400, `--sl-text-xs`, 13px): the colophon.
 - **Caption** (12px, `--sl-text-2xs`): R-numbers, ladder-end labels; the header's "Docs" cue uses the
   same step in sans.
 

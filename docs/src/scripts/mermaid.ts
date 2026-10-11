@@ -38,7 +38,6 @@ const mermaidThemeVariables = {
   },
 } as const;
 
-const fullSizeUrls = new WeakMap<HTMLElement, string>();
 const FULL_SIZE_CLASS = 'relab-mermaid-full-size';
 
 /**
@@ -48,18 +47,16 @@ const FULL_SIZE_CLASS = 'relab-mermaid-full-size';
  * one. The link opens the SVG at its natural size in a new tab. The copy gets
  * the page ground as its background, so light dark-theme labels stay readable
  * on the tab's white default. Called again after every render (theme swaps),
- * it replaces the previous blob URL.
+ * it revokes the previous blob URL and points the link at the new one.
  */
 function linkFullSizeDiagram(diagram: HTMLElement, theme: keyof typeof mermaidThemeVariables) {
-  const previousUrl = fullSizeUrls.get(diagram);
+  const next = diagram.nextElementSibling;
+  let wrapper = next?.classList.contains(FULL_SIZE_CLASS) ? next : null;
+  const previousUrl = wrapper?.querySelector('a')?.href;
   if (previousUrl) {
     URL.revokeObjectURL(previousUrl);
   }
   const svg = diagram.querySelector('svg');
-  let wrapper = diagram.nextElementSibling;
-  if (!wrapper?.classList.contains(FULL_SIZE_CLASS)) {
-    wrapper = null;
-  }
   if (!svg) {
     wrapper?.remove();
     return;
@@ -77,7 +74,6 @@ function linkFullSizeDiagram(diagram: HTMLElement, theme: keyof typeof mermaidTh
   // well-formed XML for a standalone SVG document to parse.
   const markup = new XMLSerializer().serializeToString(copy);
   const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
-  fullSizeUrls.set(diagram, url);
 
   if (!wrapper) {
     wrapper = document.createElement('p');
