@@ -188,7 +188,7 @@ function AmountChip({
           keyboardType="numeric"
           maxFontSizeMultiplier={2}
           // Fixed width: on web an unsized input takes the browser default (~200px),
-          // which pushed "+" off a phone screen. 56px holds the 5-digit maximum.
+          // which pushes "+" off a phone screen. 56px holds the 5-digit maximum.
           className="text-primary-foreground w-14 text-center py-2 px-1"
           style={amountStyles.input}
           accessibilityLabel="Amount"

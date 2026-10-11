@@ -31,7 +31,7 @@ describe('AncestorTrailHeader', () => {
   });
 
   // A deep component's full trail does not fit beside the back button on a
-  // phone and pushed the current name out of the header.
+  // phone and pushes the current name out of the header.
   it('shows only the direct parent behind an ellipsis in a deep phone trail', async () => {
     (useBreakpoint as jest.Mock).mockReturnValue({ isMd: false, isLg: false });
     const root = { id: 1, name: 'iPhone 12', role: 'product' as const };
