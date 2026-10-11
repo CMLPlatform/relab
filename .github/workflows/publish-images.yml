@@ -115,13 +115,13 @@ jobs:
 
       # Same policy as the scan in ci.yml; suppressions live in .github/trivyignore.yaml.
       - name: Scan image with Trivy
-        uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+        uses: docker://aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
         with:
           args: >-
             image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL --ignorefile .github/trivyignore.yaml ${{ steps.meta.outputs.ref }}
 
       - name: Generate SPDX SBOM
-        uses: docker://aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969
+        uses: docker://aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
         with:
           args: >-
             image --format spdx-json --output ${{ steps.meta.outputs.sbom }} ${{ steps.meta.outputs.ref }}
@@ -165,7 +165,7 @@ jobs:
 
       - name: Keep the SBOM for the release
         if: inputs.tag_name != ''
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ steps.meta.outputs.sbom }}
           path: ${{ steps.meta.outputs.sbom }}
@@ -185,7 +185,7 @@ jobs:
       id-token: write
     steps:
       - name: Download SBOMs
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: sbom-*
           merge-multiple: true
