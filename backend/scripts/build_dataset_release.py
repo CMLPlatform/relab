@@ -564,9 +564,9 @@ def reject_shared_accounts(usernames: Iterable[str]) -> None:
 
 
 ### Pseudonymisation ###
-# Fingerprint of the salt every release so far has used. Empty until the first release
-# pins it: copy the value build logs and commit it. The salt itself must never be committed.
-PINNED_SALT_FINGERPRINT = ""
+# Fingerprint of the salt every release uses, so a changed or swapped salt fails the build.
+# The salt itself must never be committed.
+PINNED_SALT_FINGERPRINT = "f68c10a3e6836648"
 
 # Versioned so the fingerprint scheme can change without looking like a changed salt.
 _SALT_FINGERPRINT_MESSAGE = b"relab-dataset-release-salt-fingerprint-v1"
