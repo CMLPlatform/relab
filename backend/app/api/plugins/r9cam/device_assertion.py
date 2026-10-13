@@ -1,7 +1,7 @@
 """Shared device-assertion verification used by the WebSocket relay and HTTP endpoints.
 
 Both transports accept the same ES256 JWT minted by the Pi (``build_device_assertion``
-in ``relab-rpi-cam-plugin/app/relay/device_jwt.py``): the audience is shared, the
+in ``r9cam/app/relay/device_jwt.py``): the audience is shared, the
 replay-protection namespace in Redis is shared, and the verification logic is
 therefore identical. Keeping it in one place prevents drift between the two
 code paths.
@@ -30,6 +30,10 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 ASSERTION_AUDIENCE = "r9cam-relay"
+# Pis on an r9cam release older than the rename still sign with this audience, so the
+# backend and the Pis can be upgraded in either order.
+# TODO: drop after 2027-01-31, together with the /v1/plugins/rpi-cam/ prefix
+LEGACY_ASSERTION_AUDIENCE = "relab-rpi-cam-relay"
 ASSERTION_ALGORITHMS = ("ES256",)
 REPLAY_KEY_PREFIX = "r9cam:relay_assertion_jti:"
 MAX_ASSERTION_TTL_SECONDS = 5 * 60
@@ -68,7 +72,7 @@ async def verify_device_assertion(assertion: str, camera: Camera, redis: Redis) 
         assertion,
         key=public_key,
         algorithms=list(ASSERTION_ALGORITHMS),
-        audience=ASSERTION_AUDIENCE,
+        audience=[ASSERTION_AUDIENCE, LEGACY_ASSERTION_AUDIENCE],
         options={"require": ["exp", "iat", "iss", "nbf", "jti", "sub"]},
     )
     expected_camera_claim = f"camera:{camera.id}"

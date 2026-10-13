@@ -20,9 +20,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `infra/cloudflare/README.md`.
 - `just images-verify` checks images against `CMLPlatform/r9lab` and still accepts tags built
   before the rename.
-- **Breaking:** cameras paired before this release must pair again, and need the matching r9cam
-  release. The device token audience is now `r9cam-relay`, and the plugin keeps its credentials
-  in `~/.config/r9cam/`.
+- Camera tokens use the audience `r9cam-relay`. The backend still accepts the old
+  `relab-rpi-cam-relay` until 2027-01-31, so the backend and the Pis can be upgraded in either
+  order and paired cameras keep working.
 
 ## [0.5.0] - 2026-10-13
 
