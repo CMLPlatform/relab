@@ -53,7 +53,11 @@ ANONYMIZE: ErasureContent = "anonymize"
 # Owner of anonymized content, so products keep a NOT NULL owner_id. NOTE: `.internal`,
 # not `.invalid`: email-validator rejects `.invalid`, which would make `UserRead.email`
 # unserializable and break the admin user list.
-ANONYMOUS_USER_EMAIL = "anonymous@system.relab.internal"
+ANONYMOUS_USER_EMAIL = "anonymous@system.r9lab.internal"
+# The pre-rename address, which migration 0b5e7c3a9d21 rewrites. Still refused by the
+# erasure guard in case a rolled-back release recreated that row.
+# TODO: drop LEGACY_ANONYMOUS_USER_EMAIL after 2027-01-31
+LEGACY_ANONYMOUS_USER_EMAIL = "anonymous@system.relab.internal"
 
 
 async def get_or_create_anonymous_user(session: AsyncSession) -> User:
@@ -150,7 +154,10 @@ async def require_erasable_account(session: AsyncSession, user: User) -> User:
     # The caller's instance may belong to the auth dependency's own session.
     user = await require_model(session, User, user.id)
 
-    if user.email_canonical == canonicalize_email(ANONYMOUS_USER_EMAIL):
+    if user.email_canonical in {
+        canonicalize_email(ANONYMOUS_USER_EMAIL),
+        canonicalize_email(LEGACY_ANONYMOUS_USER_EMAIL),
+    }:
         msg = "The anonymous system account cannot be deleted."
         raise ConflictError(msg)
 
