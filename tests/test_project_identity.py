@@ -9,6 +9,7 @@ silently repoints every citation on both public sites.
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -128,3 +129,21 @@ def test_committed_sources_still_load() -> None:
     assert identity["licence"] == "AGPL-3.0-or-later"
     assert identity["institution"].startswith("Institute of Environmental Sciences")
     assert identity["funding"]["short"]
+
+
+def test_one_software_name_across_the_citation_surfaces() -> None:
+    """CITATION.cff, codemeta.json and the dataset release's software reference name the software alike.
+
+    Zenodo titles each software version from CITATION.cff, so a second spelling anywhere
+    else splits the citations of one concept DOI.
+    """
+    citation = yaml.safe_load(sync_brand_assets.CITATION_SOURCE.read_text())
+    codemeta = json.loads(sync_brand_assets.CODEMETA_TARGET.read_text())
+    release_script = (sync_brand_assets.ROOT / "backend/scripts/build_dataset_release.py").read_text()
+    dataset_reference = re.search(r'software_title: str = "([^"]+)"', release_script)
+    assert dataset_reference is not None, "build_dataset_release.py no longer declares software_title"
+
+    assert citation["title"].startswith("R9lab")
+    assert codemeta["name"] == citation["title"]
+    assert dataset_reference.group(1) == citation["title"]
+    assert codemeta["version"] == str(citation["version"])

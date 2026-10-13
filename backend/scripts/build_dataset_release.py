@@ -345,6 +345,8 @@ def tally_product_classes(
 class ReleaseMetadata:
     """Everything the archive artefacts are rendered from."""
 
+    # TODO: Simon chooses the dataset title before the first release. It still carries the
+    # pre-rename "Relab" spelling and becomes permanent once the Zenodo record is published.
     title: str = "Relab Teardown Dataset"
     version: str = "1.0"
     year: int = 2026
@@ -358,6 +360,8 @@ class ReleaseMetadata:
     # Provenance links must name one frozen release, so the version DOI of the release the
     # data was exported from comes from --software-doi; the concept record lists them.
     software_concept_doi: str = "10.5281/zenodo.16637742"
+    # Must equal the title in the repository's CITATION.cff (tests/test_project_identity.py).
+    software_title: str = "R9lab - Data Collection Platform"
     software_version_doi: str = "10.5281/zenodo.XXXXXXX"
     affiliation: str = "Institute of Environmental Sciences (CML), Leiden University"
     licence_name: str = "CC BY 4.0"
@@ -1097,7 +1101,7 @@ def render_citation_cff(meta: ReleaseMetadata) -> str:
         *[f"  - {json.dumps(keyword)}" for keyword in meta.keywords],
         "references:",
         "  - type: software",
-        f'    title: "{meta.title} source platform"',
+        f'    title: "{meta.software_title}"',
         "    authors:",
         *[f'      - family-names: "{c.family_names}"\n        given-names: "{c.given_names}"' for c in meta.creators],
         "    identifiers:",

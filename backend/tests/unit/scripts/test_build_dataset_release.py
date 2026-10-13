@@ -1323,3 +1323,12 @@ def test_export_images_copies_local_files_and_skips_remote_ones(tmp_path, monkey
     assert manifest[0]["record_id"] == 7
     assert (manifest[0]["width"], manifest[0]["height"]) == (4, 3)
     assert (tmp_path / manifest[0]["file"]).read_bytes() == source.read_bytes()
+
+
+def test_dataset_citation_names_the_software_it_was_exported_from() -> None:
+    """The dataset's software reference uses the software's own title, not the dataset title."""
+    cff = yaml.safe_load(render_citation_cff(ReleaseMetadata()))
+    software = cff["references"][0]
+    assert software["type"] == "software"
+    assert software["title"] == ReleaseMetadata().software_title
+    assert "Teardown Dataset" not in software["title"]
