@@ -1,4 +1,4 @@
-# R9lab scheduled job: health watchdog. Instance is the environment, e.g. relab-watchdog@prod.
+# R9lab scheduled job: health watchdog. Instance is the environment, e.g. r9lab-watchdog@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -27,4 +27,4 @@ ExecStart=/opt/relab/scripts/run_scheduled.sh watchdog %i
 TimeoutStartSec=900
 
 [Install]
-# Nothing: triggered by relab-watchdog@%i.timer, never enabled directly.
+# Nothing: triggered by r9lab-watchdog@%i.timer, never enabled directly.

@@ -72,7 +72,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
    rather than warning.
 1. Review `dist/dataset-vX.Y/review/` by hand, including `excluded-records.csv` and the rule that
    excluded each record. This directory is not part of the published archive.
-1. The pseudonymisation salt comes from `RELAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or
+1. The pseudonymisation salt comes from `R9LAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or
    `secrets/<env>/dataset_pseudonym_salt`. Keep the same salt for every release so owner pseudonyms
    stay stable across versions.
 1. `uv run python -m scripts.zenodo_deposit --dir dist/dataset-vX.Y` creates or versions a Zenodo

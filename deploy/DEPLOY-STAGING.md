@@ -18,7 +18,7 @@ Set telemetry the same way as prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5). 
 may share the collector; the `env` resource attribute, which Compose derives from `ENVIRONMENT`,
 separates them.
 
-Staging needs **its own** `./bootstrap.sh relab staging` run on the monitoring host: prod's rule
+Staging needs **its own** `./bootstrap.sh r9lab staging` run on the monitoring host: prod's rule
 matches `env="prod"` and does not notice staging going quiet. Run it in the same change that turns
 telemetry on; this host cannot tell you the rule is missing.
 
@@ -41,13 +41,13 @@ The images come from GHCR: a release publishes them, and running the Publish Ima
 hand on any commit publishes that commit as `sha-<short sha>`. Check the tag's provenance from the
 dev host before `tag` pulls it: `just images-verify staging <tag>`. With a restricted deploy key set
 up as for prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.6), `just deploy staging <tag>` on the dev
-host runs the check and the `tag` step together. `RELAB_DEPLOY_HOST` names the ssh alias when it is
-not `relab-staging`.
+host runs the check and the `tag` step together. `R9LAB_DEPLOY_HOST` names the ssh alias when it is
+not `r9lab-staging`.
 
 ClamAV starts unless `MALWARE_SCAN_ENABLED=false` in the root `.env`. It needs 3–4 GiB; staging can
 run without it if the host is short on RAM.
 
-Backups are not started by `up`; they run from `relab-backup@staging.timer`.
+Backups are not started by `up`; they run from `r9lab-backup@staging.timer`.
 
 ### Verify
 
@@ -76,7 +76,7 @@ The test of whether the deploy path works on a clean machine. It also rehearses 
 ```bash
 just backup staging manual                     # tagged, so retention cannot expire it
 just stack staging down YES
-docker volume rm relab_staging_database_data   # destroys staging data — intended
+docker volume rm r9lab_staging_database_data   # destroys staging data — intended
 just stack staging up YES migrations
 ```
 

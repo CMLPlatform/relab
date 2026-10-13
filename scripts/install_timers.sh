@@ -22,14 +22,14 @@ ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 UNIT_DIR="$ROOT_DIR/deploy/systemd"
 SYSTEM_DIR=/etc/systemd/system
 HOST_ENV=/etc/relab/relab.env
-JOBS=(relab-backup relab-backup-maintenance relab-watchdog relab-restore-check)
+JOBS=(r9lab-backup r9lab-backup-maintenance r9lab-watchdog r9lab-restore-check)
 # The account the units run as. Defaults to whoever runs this script; a host with a
 # dedicated sudo-less deploy user sets it, so an operator with sudo can install units
-# that run as that user (`RELAB_UNIT_USER=relab just timers-install prod`).
-UNIT_USER="${RELAB_UNIT_USER:-$(id -un)}"
+# that run as that user (`R9LAB_UNIT_USER=relab just timers-install prod`).
+UNIT_USER="${R9LAB_UNIT_USER:-$(id -un)}"
 UNIT_HOME="$(getent passwd "$UNIT_USER" | cut -d: -f6)"
 [[ -n "$UNIT_HOME" ]] || {
-    echo "error: RELAB_UNIT_USER '$UNIT_USER' is not a local account" >&2
+    echo "error: R9LAB_UNIT_USER '$UNIT_USER' is not a local account" >&2
     exit 2
 }
 
@@ -136,7 +136,7 @@ EOF
     done
 
     echo
-    systemctl list-timers "relab-*@${env}.timer" --all --no-pager
+    systemctl list-timers "r9lab-*@${env}.timer" --all --no-pager
     echo
 
     # An empty ping URL means pinging is off, and the jobs run fine without one, so

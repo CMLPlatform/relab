@@ -1,4 +1,4 @@
-# R9lab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+# R9lab scheduled job: backup repository maintenance. Instance is the environment, e.g. r9lab-backup-maintenance@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -9,15 +9,15 @@
 # host. These units run a writable git checkout as unattended, scheduled, effectively
 # root-level jobs — treat that directory as privileged.
 [Unit]
-Description=R9lab encrypted backup (%i)
+Description=R9lab backup maintenance: retention, integrity check, offsite copy (%i)
 Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
-# Bound retries: at RestartSec=5min systemd's default start-limit window (5 starts in
-# 10s) can never trip. systemd counts every start, successful ones included, so this
-# window must stay shorter than the hourly timer period.
-StartLimitIntervalSec=30min
-StartLimitBurst=3
+# Bound retries: at RestartSec=15min systemd's default start-limit window (5 starts
+# in 10s) can never trip. The window must stay shorter than the daily timer interval —
+# a lockout blocks the timer's own fire too, and only `systemctl reset-failed` clears it.
+StartLimitIntervalSec=4h
+StartLimitBurst=5
 
 [Service]
 Type=oneshot
@@ -28,21 +28,17 @@ WorkingDirectory=/opt/relab
 EnvironmentFile=-/etc/relab/relab.env
 Environment=JUST_BIN=/usr/bin/just
 Environment=PATH=/var/lib/relab/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
-Environment=BACKUP_MAINTENANCE=skip
-ExecStart=/opt/relab/scripts/run_scheduled.sh backup %i
-TimeoutStartSec=1800
+Environment=BACKUP_MAINTENANCE=only
+ExecStart=/opt/relab/scripts/run_scheduled.sh backup-maintenance %i
+TimeoutStartSec=7200
 # `compose run` starts a container that is a child of dockerd, NOT of this unit's
 # cgroup. If systemd SIGKILLs us on timeout, --rm never fires and the container is left
-# holding a plaintext pg_dump, the 0400 secret copies, and internet egress. Reap it.
-ExecStopPost=-/usr/bin/docker rm -f relab-backup-%i
-# Short enough to land well before the next hourly trigger.
+# holding the 0400 secret copies and internet egress. Reap it.
+ExecStopPost=-/usr/bin/docker rm -f r9lab-backup-maintenance-%i
+# A repository that is never pruned or copied offsite degrades quietly, so retry
+# rather than waiting for the next daily run.
 Restart=on-failure
-RestartSec=5min
-# Exit 3 is a guard refusing to archive (emptied uploads volume, collapsed dump, missing
-# environment marker) -- permanent until a human clears it, so retries would just write
-# more snapshots and send more /fail pings for nothing. The next timer fire still tries
-# again. See EXIT_REFUSED in backend/scripts/backup/backup_relab_restic.sh.
-RestartPreventExitStatus=3
+RestartSec=15min
 # Low CPU and I/O priority, but not the `idle` I/O class: under `idle` a host that
 # also runs compute jobs can starve this until its timeout kills it.
 Nice=10
@@ -50,4 +46,4 @@ IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 
 [Install]
-# Nothing: triggered by relab-backup@%i.timer, never enabled directly.
+# Nothing: triggered by r9lab-backup-maintenance@%i.timer, never enabled directly.

@@ -2,7 +2,7 @@
 # The only thing a deploy key may run on this host. Installed as the forced command of
 # the deploy user's authorized_keys entry:
 #
-#   command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... relab-deploy
+#   command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... r9lab-deploy
 #
 # sshd puts what the client asked for in SSH_ORIGINAL_COMMAND; this maps a short allow-list
 # onto the `just` recipes and refuses everything else, so the key cannot open a shell,
@@ -10,7 +10,7 @@
 # host's own (root .env), never an argument: one host serves one environment.
 #
 # From the dev host, over an ssh config alias for the deploy user:
-#   ssh relab-prod pull && ssh relab-prod tag 0.4.0 && ssh relab-prod up migrations
+#   ssh r9lab-prod pull && ssh r9lab-prod tag 0.4.0 && ssh r9lab-prod up migrations
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"

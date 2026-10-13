@@ -623,12 +623,23 @@ def check_salt_fingerprint(salt: str, pinned: str = PINNED_SALT_FINGERPRINT) -> 
     return fingerprint
 
 
-PSEUDONYM_SALT_ENV = "RELAB_PSEUDONYM_SALT"
+PSEUDONYM_SALT_ENV = "R9LAB_PSEUDONYM_SALT"
+# TODO: drop the pre-rename name once no shell profile or CI secret still sets it.
+LEGACY_PSEUDONYM_SALT_ENV = "RELAB_PSEUDONYM_SALT"
 
 
 def read_pseudonym_salt(explicit: str | None) -> str:
-    """Return the pseudonymisation salt from the environment, the CLI, or repo secrets."""
-    if salt := os.environ.get(PSEUDONYM_SALT_ENV):
+    """Return the pseudonymisation salt from the environment, the CLI, or repo secrets.
+
+    The pre-rename variable is still read, but if both names are set they must agree:
+    two different salts would quietly change every pseudonym.
+    """
+    salt = os.environ.get(PSEUDONYM_SALT_ENV)
+    legacy = os.environ.get(LEGACY_PSEUDONYM_SALT_ENV)
+    if salt and legacy and salt != legacy:
+        msg = f"{PSEUDONYM_SALT_ENV} and {LEGACY_PSEUDONYM_SALT_ENV} are both set and differ. Unset the old one."
+        raise SystemExit(msg)
+    if salt := salt or legacy:
         return salt
     if explicit:
         return explicit

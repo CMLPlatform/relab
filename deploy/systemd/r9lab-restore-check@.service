@@ -1,4 +1,4 @@
-# R9lab scheduled job: backup restore verification. Instance is the environment, e.g. relab-restore-check@prod.
+# R9lab scheduled job: backup restore verification. Instance is the environment, e.g. r9lab-restore-check@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -17,7 +17,7 @@ After=docker.service
 # timer at boot at once, collapsing the 02:30/06:00 gap that normally keeps the
 # maintenance prune away from this job's --no-lock restore. A prune deleting pack files
 # mid-restore looks like archive corruption.
-After=relab-backup-maintenance@%i.service
+After=r9lab-backup-maintenance@%i.service
 
 [Service]
 Type=oneshot
@@ -33,10 +33,10 @@ TimeoutStartSec=7200
 # The scratch Postgres container is a child of dockerd, not of this cgroup. If systemd
 # SIGKILLs the job on timeout, no shell trap runs and the container keeps serving a full
 # restored copy of production data. backup_restic_ops.sh passes the deterministic name
-# relab-restore-check-<env> so this can reap it.
-ExecStopPost=-/usr/bin/docker rm -f relab-restore-check-%i
+# r9lab-restore-check-<env> so this can reap it.
+ExecStopPost=-/usr/bin/docker rm -f r9lab-restore-check-%i
 # Same for the uploads restore container, which holds a full copy of the uploads volume.
-ExecStopPost=-/usr/bin/docker rm -f relab-restore-check-%i-uploads
+ExecStopPost=-/usr/bin/docker rm -f r9lab-restore-check-%i-uploads
 # And the restored uploads tree: a full decrypted copy of user uploads that would
 # otherwise sit on the backup filesystem until next month. The path comes from the repo's
 # .env, so the script resolves it -- this subcommand only removes the scratch tree.
@@ -46,4 +46,4 @@ IOSchedulingClass=best-effort
 IOSchedulingPriority=7
 
 [Install]
-# Nothing: triggered by relab-restore-check@%i.timer, never enabled directly.
+# Nothing: triggered by r9lab-restore-check@%i.timer, never enabled directly.

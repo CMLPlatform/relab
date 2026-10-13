@@ -767,6 +767,30 @@ def test_the_abort_message_names_both_fingerprints_and_offers_no_way_on() -> Non
     assert "the original was lost" in message
 
 
+@pytest.mark.parametrize(
+    ("new", "legacy", "expected"),
+    [("s1", None, "s1"), (None, "s1", "s1"), ("s1", "s1", "s1")],
+)
+def test_salt_is_read_from_the_new_or_the_pre_rename_variable(
+    monkeypatch: pytest.MonkeyPatch, new: str | None, legacy: str | None, expected: str
+) -> None:
+    """Either variable name supplies the salt, so a shell set up before the rename still builds."""
+    for name, value in ((release.PSEUDONYM_SALT_ENV, new), (release.LEGACY_PSEUDONYM_SALT_ENV, legacy)):
+        if value is None:
+            monkeypatch.delenv(name, raising=False)
+        else:
+            monkeypatch.setenv(name, value)
+    assert release.read_pseudonym_salt(None) == expected
+
+
+def test_differing_new_and_pre_rename_salts_abort(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two different salts would silently change every pseudonym, so the build refuses."""
+    monkeypatch.setenv(release.PSEUDONYM_SALT_ENV, "s1")
+    monkeypatch.setenv(release.LEGACY_PSEUDONYM_SALT_ENV, "s2")
+    with pytest.raises(SystemExit, match="both set and differ"):
+        release.read_pseudonym_salt(None)
+
+
 def test_fingerprint_does_not_reveal_the_salt() -> None:
     """The fingerprint is committed and printed, so it must not carry the salt."""
     salt = "correct-horse-battery-staple"

@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     # Pinned deliberately. This container reads the entire database and every
     # upload, and is the only service besides cloudflared with a route off-host,
     # so an unreviewed rclone/restic bump is an exfiltration surface. Bump these
-    # on purpose. backup_relab_restic.sh also depends on restic >= 0.17 exit-code
+    # on purpose. backup_r9lab_restic.sh also depends on restic >= 0.17 exit-code
     # semantics (exit 10 = repository does not exist).
     && apt-get install -y --no-install-recommends ca-certificates \
     "rclone=${RCLONE_VERSION}" "restic=${RESTIC_VERSION}" \
@@ -38,14 +38,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 WORKDIR $WORKDIR
 
-COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_relab_restic.sh .
-COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_relab_restic_entrypoint.sh .
+COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_r9lab_restic.sh .
+COPY --chmod=755 --chown=$APP_UID:$APP_UID scripts/backup/backup_r9lab_restic_entrypoint.sh .
 
-ENV BACKUP_SCRIPT=$WORKDIR/backup_relab_restic.sh
+ENV BACKUP_SCRIPT=$WORKDIR/backup_r9lab_restic.sh
 
 USER $APP_USER
 
 # No HEALTHCHECK: this image is a one-shot run by a systemd timer on the host, not
 # a long-running service. Its exit code is the health signal, and `systemctl
 # is-failed` is what the watchdog reads.
-ENTRYPOINT ["./backup_relab_restic_entrypoint.sh"]
+ENTRYPOINT ["./backup_r9lab_restic_entrypoint.sh"]
