@@ -107,9 +107,9 @@ locals {
       # Redis replay protection, and the skip is scoped to just those paths.
       #
       # This is the only rule that skips the managed WAF, so nothing but these four device
-      # paths (under each of local.camera_plugin_paths) may join it. Keyed staging E2E lives in the SBFM-only rule below instead: it
-      # is a header anyone holding the key can send, and the WAF is the control that has to
-      # keep standing behind it.
+      # paths (under each of local.camera_plugin_paths) may join it. Keyed staging E2E
+      # lives in the SBFM-only rule below instead: it is a header anyone holding the key
+      # can send, and the WAF is the control that has to keep standing behind it.
       ref         = "relab_rpi_cam_device_skip_managed_security"
       description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic"
       expression = join(" and ", [

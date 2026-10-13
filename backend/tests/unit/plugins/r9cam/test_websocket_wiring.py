@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 from uuid import uuid4
 
+import pytest
+
 from app.api.plugins.r9cam.routers.pairing import _build_ws_url
 from app.main import app
 
@@ -22,6 +24,8 @@ if TYPE_CHECKING:
 # handed, so renaming the route strands the whole fleet until each one re-pairs. These
 # must fail and be updated knowingly rather than track the constants they mirror.
 RELAY_WS_PATH = "/v1/plugins/r9cam/ws/connect"
+# Cameras paired before the r9cam rename still dial this one.
+LEGACY_RELAY_WS_PATH = "/v1/plugins/rpi-cam/ws/connect"
 CAMERA_ID_QUERY_PARAM = "camera_id"
 _WS_POLICY_VIOLATION = 1008
 
@@ -61,9 +65,10 @@ def _camera_id() -> UUID:
     return uuid4()
 
 
-async def test_the_relay_endpoint_is_reachable_at_its_published_url() -> None:
+@pytest.mark.parametrize("path", [RELAY_WS_PATH, LEGACY_RELAY_WS_PATH])
+async def test_the_relay_endpoint_is_reachable_at_its_published_url(path: str) -> None:
     """A Pi dialling the documented URL with a camera id must reach the relay handler."""
-    sent = await _drive_handshake(RELAY_WS_PATH, f"{CAMERA_ID_QUERY_PARAM}={_camera_id()}")
+    sent = await _drive_handshake(path, f"{CAMERA_ID_QUERY_PARAM}={_camera_id()}")
 
     assert sent == [
         {
