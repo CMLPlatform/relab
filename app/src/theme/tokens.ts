@@ -82,6 +82,9 @@ export function createTokens(scheme: AppScheme, colors: AppColorScale): AppToken
       onMedia: '#fff',
       /** Manila data labels: measurements, IDs, counts (DESIGN.md Data-Label Rule). */
       data: p.accent, // manila
+      // Placeholder text is text, so 4.5:1 on every input fill (dark ui/input sits on a 30%
+      // tint of the input grey), while entered text keeps at least twice its contrast.
+      placeholder: isDark ? '#A0A2AB' : '#686B73',
     },
     surface: {
       sunken: isDark ? colors.card : colors.muted,

@@ -89,6 +89,60 @@ describe('useScreenEntryFocus', () => {
     expect(heading.focus).toHaveBeenCalled();
   });
 
+  // A screen that fades in is hidden for its first frames, and focus() on a
+  // hidden element is ignored. The hook retries until focus lands, and stops
+  // as soon as it does.
+  describe('when the first focus does not take', () => {
+    const globals = globalThis as { document?: unknown };
+    const hadDocument = 'document' in globals;
+    const originalDocument = globals.document;
+    const body = {};
+    const fakeDocument: { body: object; activeElement: unknown } = { body, activeElement: body };
+
+    beforeEach(() => {
+      fakeDocument.activeElement = body;
+      globals.document = fakeDocument;
+    });
+
+    afterEach(() => {
+      if (hadDocument) globals.document = originalDocument;
+      else Reflect.deleteProperty(globals, 'document');
+    });
+
+    it('retries on later frames until the heading holds focus', async () => {
+      mockPlatform('web');
+      const heading = fakeElement();
+      heading.focus.mockImplementationOnce(() => {}); // hidden: ignored
+      heading.focus.mockImplementation(() => {
+        fakeDocument.activeElement = heading;
+      });
+      const root = fakeElement(heading);
+
+      await runEntryFocus(root);
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+
+      expect(heading.focus).toHaveBeenCalledTimes(2);
+    });
+
+    it('leaves focus alone once the user has moved it elsewhere', async () => {
+      mockPlatform('web');
+      const heading = fakeElement();
+      heading.focus.mockImplementation(() => {
+        fakeDocument.activeElement = { other: true };
+      });
+      const root = fakeElement(heading);
+
+      await runEntryFocus(root);
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+
+      expect(heading.focus).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('does nothing when the ref was never attached', async () => {
     mockPlatform('web');
 

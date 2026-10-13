@@ -82,6 +82,24 @@ stops before touching the running stack and prints these steps.
 
 ### Fixed
 
+- In the web app, expanding a component in a product's component list no longer draws its
+  sub-components on top of the rows below it.
+- On a phone, the amount stepper in edit mode fits the screen, and a deeply nested
+  component's header shows its parent and its own name instead of running off the edge.
+- Keyboard and screen-reader focus starts on the record's name when a product or component
+  page opens, instead of at the top of the document.
+- The delete confirmation says that a record's components, and all their photos and files,
+  are deleted with it.
+- The profile and account screens show a total weight under 1 kg in grams ("164 g") instead
+  of a rounded "0.16 kg". The API's `total_weight_kg` now keeps three decimals.
+- A photo taken with a paired camera now counts toward its owner's photo total, and the
+  account screen's counts refresh after a save, delete or capture.
+- Text-field placeholders are lighter, so an example no longer reads as a filled-in value.
+- In edit mode an empty materials list is hidden, since materials are recorded through the
+  API. In view mode an empty list shows a dash.
+- The sign-in screen has a visible "Sign in" heading, the create-account form sits in the
+  page's main region, and on a phone the account and cameras screens have a single top-level
+  heading.
 - When the ClamAV scanner answers an upload with an error, the API log now includes its
   reply, so a rejected upload can be traced to its cause. Clients still see only that
   scanning is unavailable.

@@ -108,13 +108,13 @@ describe('ProductFabControls — view-mode FAB', () => {
   it('labels and announces the FAB by entity role', async () => {
     await render(<ProductFabControls {...baseProps} entityRole="component" />);
 
-    expect(screen.getByRole('button', { name: 'Edit Component' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Edit component' })).toBeOnTheScreen();
   });
 
   it('ignores validation state, which only SaveBar acts on', async () => {
     await render(<ProductFabControls {...baseProps} validationValid={false} isDirty />);
 
-    expect(screen.getByRole('button', { name: 'Edit Product' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Edit product' })).toBeOnTheScreen();
     expect(fabButton().props.accessibilityState.disabled).toBe(false);
   });
 
@@ -130,7 +130,7 @@ describe('ProductFabControls — view-mode FAB', () => {
       <ProductFabControls {...baseProps} isSaving onPrimaryFabPress={onPrimaryFabPress} />,
     );
 
-    expect(screen.getByRole('button', { name: 'Edit Product' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Edit product' })).toBeOnTheScreen();
     expect(fabButton().props.accessibilityState.disabled).toBe(true);
     await fireEvent.press(fabButton());
     expect(onPrimaryFabPress).not.toHaveBeenCalled();

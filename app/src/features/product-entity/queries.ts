@@ -31,4 +31,6 @@ export function invalidateProductQuery(queryClient: QueryClient, productId: numb
   // Camera modules don't know the product's role, so invalidate both keys.
   void queryClient.invalidateQueries({ queryKey: ['baseProduct', productId] });
   void queryClient.invalidateQueries({ queryKey: ['component', productId] });
+  // A capture adds a photo to the owner's count on the account and profile screens.
+  void queryClient.invalidateQueries({ queryKey: ['publicProfile'] });
 }

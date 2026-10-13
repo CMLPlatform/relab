@@ -40,13 +40,14 @@ export default function ImagePlaceholder({
       </View>
       {label ? (
         <AppText
-          variant="label"
+          variant="caption"
           numberOfLines={2}
           style={{
             marginTop: 4,
             // NOTE: scaled to the placeholder's measured height; no ramp step fits every slot.
             fontSize: Math.max(11, Math.min(14, height * 0.06)),
-            color: theme.colors.outline,
+            // Muted ink, not the outline grey: the label is text and needs 4.5:1 on the muted fill.
+            color: theme.colors.mutedForeground,
             textAlign: 'center',
             paddingHorizontal: 8,
           }}

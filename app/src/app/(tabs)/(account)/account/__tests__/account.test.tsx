@@ -1,4 +1,4 @@
-import { act, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 // Imported at the top level, not require()d inside the test: a lazy require
 // charges the screen's whole module-transform cost to the first test, which on
@@ -308,6 +308,9 @@ describe('ProfileTab', () => {
     it('calls updateUser when the email updates switch is toggled', async () => {
       const { findByRole } = await renderProfile();
       const emailSwitch = await findByRole('switch', { name: 'Receive R9lab account updates' });
+      // The switch carries the on/off state; no separate status line repeats it.
+      expect(emailSwitch).not.toBeChecked();
+      expect(screen.queryByText('Currently disabled.')).toBeNull();
       await fireEvent.press(emailSwitch);
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith(

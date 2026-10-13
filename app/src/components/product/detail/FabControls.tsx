@@ -124,9 +124,8 @@ function PrimaryProductFab({
 }) {
   // Edit mode always routes to SaveBar, so this FAB only ever opens the editor:
   // it carries no save, validation, or error-summary state of its own.
-  const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
   // Offline: the mutation is paused, not loading; no spinner.
-  const label = isSaving && isPaused ? QUEUED_OFFLINE_LABEL : `Edit ${titleLabel}`;
+  const label = isSaving && isPaused ? QUEUED_OFFLINE_LABEL : `Edit ${entityRole}`;
 
   return (
     <Fab

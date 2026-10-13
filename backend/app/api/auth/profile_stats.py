@@ -30,8 +30,8 @@ class ProfileStatsData(BaseModel):
 
     @property
     def total_weight_kg(self) -> float:
-        """Return the stored gram total converted to kilograms."""
-        return round(self.total_weight_g / 1000.0, 2)
+        """Return the stored gram total in kilograms, to the gram (three decimals)."""
+        return round(self.total_weight_g / 1000.0, 3)
 
 
 def load_profile_stats(payload: object | None) -> ProfileStatsData:

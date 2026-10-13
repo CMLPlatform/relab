@@ -21,6 +21,7 @@ from app.api.common.form_json import parse_required_json_object
 from app.api.common.ownership import get_user_owned_object
 from app.api.common.routers.dependencies import AsyncSessionDep
 from app.api.common.validation import MultilineUserText
+from app.api.data_collection.crud.profile_stats import recompute_user_profile_stats
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.crud.support_services import image_storage_service
 from app.api.file_storage.crud.support_uploads import validate_upload_size
@@ -190,6 +191,9 @@ async def receive_camera_upload(
         caps_role=UserRole(owner_role) if owner_role else DEFAULT_USER_ROLE,
         quota_user_id=camera.owner_id,
     )
+    # The owner's photo count lives in a stored snapshot, refreshed on every image write.
+    await recompute_user_profile_stats(session, camera.owner_id)
+    await session.commit()
 
     # ImageRead computes the public `image_url` via a model_validator based on
     # the image's storage path. Round-trip through it to reuse that logic.

@@ -83,7 +83,7 @@ test('read mode renders a single Edit action', async () => {
       onPrimaryPress={jest.fn()}
     />,
   );
-  expect(screen.getByText('Edit Product')).toBeTruthy();
+  expect(screen.getByText('Edit product')).toBeTruthy();
 });
 
 test('not owned by me renders nothing', async () => {
@@ -100,7 +100,7 @@ test('not owned by me renders nothing', async () => {
       onPrimaryPress={jest.fn()}
     />,
   );
-  expect(screen.queryByText('Edit Product')).toBeNull();
+  expect(screen.queryByText('Edit product')).toBeNull();
 });
 
 test('dirty edits with invalid validation and no error count block the save press', async () => {
@@ -120,7 +120,7 @@ test('dirty edits with invalid validation and no error count block the save pres
     />,
   );
   expect(screen.getByText('Name is required')).toBeTruthy();
-  await fireEvent.press(screen.getByText('Save Product'));
+  await fireEvent.press(screen.getByText('Save product'));
   expect(onPrimaryPress).not.toHaveBeenCalled();
 });
 
@@ -142,7 +142,7 @@ test('needsAttention state routes the primary button press to the error summary,
       canModerate
     />,
   );
-  await fireEvent.press(screen.getByText('Save Product'));
+  await fireEvent.press(screen.getByText('Save product'));
   expect(onPrimaryPress).not.toHaveBeenCalled();
   expect(onErrorSummaryPress).toHaveBeenCalledTimes(1);
 });
@@ -223,7 +223,7 @@ test('shows the loading spinner while actually saving (not paused)', async () =>
       onPrimaryPress={jest.fn()}
     />,
   );
-  expect(screen.getByText('Save Product')).toBeTruthy();
+  expect(screen.getByText('Save product')).toBeTruthy();
   expect(queryAllHostsByType('ActivityIndicator').length).toBeGreaterThan(0);
 });
 
@@ -241,7 +241,7 @@ test('uses component labels for component pages', async () => {
       onPrimaryPress={jest.fn()}
     />,
   );
-  expect(screen.getByText('Edit Component')).toBeTruthy();
+  expect(screen.getByText('Edit component')).toBeTruthy();
 });
 
 // ProductFabControls routes every editMode render straight to this component
@@ -262,7 +262,7 @@ test('edit mode with nothing unsaved reads Done and stays pressable even while i
       canModerate
     />,
   );
-  expect(screen.queryByText('Save Product')).toBeNull();
+  expect(screen.queryByText('Save product')).toBeNull();
   await fireEvent.press(screen.getByText('Done'));
   expect(onPrimaryPress).toHaveBeenCalledTimes(1);
 });
@@ -285,7 +285,7 @@ test('valid dirty edits save on press', async () => {
       canModerate
     />,
   );
-  await fireEvent.press(screen.getByText('Save Product'));
+  await fireEvent.press(screen.getByText('Save product'));
   expect(onPrimaryPress).toHaveBeenCalledTimes(1);
   expect(onErrorSummaryPress).not.toHaveBeenCalled();
 });
@@ -307,7 +307,7 @@ test('blocks the press while a save is already in flight', async () => {
       canModerate
     />,
   );
-  await fireEvent.press(screen.getByText('Save Product'));
+  await fireEvent.press(screen.getByText('Save product'));
   expect(onPrimaryPress).not.toHaveBeenCalled();
 });
 
@@ -370,7 +370,7 @@ test('blocks the press when invalid with a zero error count', async () => {
       canModerate
     />,
   );
-  await fireEvent.press(screen.getByText('Save Product'));
+  await fireEvent.press(screen.getByText('Save product'));
   expect(onPrimaryPress).not.toHaveBeenCalled();
   expect(onErrorSummaryPress).not.toHaveBeenCalled();
 });
@@ -392,7 +392,7 @@ test('blocks the press with no inline message when the form supplies no validati
       canModerate
     />,
   );
-  await fireEvent.press(screen.getByText('Save Product'));
+  await fireEvent.press(screen.getByText('Save product'));
   expect(onPrimaryPress).not.toHaveBeenCalled();
   expect(screen.queryByText('Name is required')).toBeNull();
 });

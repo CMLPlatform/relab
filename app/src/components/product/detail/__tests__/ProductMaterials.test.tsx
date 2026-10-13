@@ -18,13 +18,28 @@ function withMaterials(materials: Product['materials']): Product {
 
 describe('ProductMaterials', () => {
   // A heading like its Measurements and Circularity notes siblings, not a toggle.
-  it('shows the heading, count and an empty line when nothing is recorded', async () => {
+  it('shows the heading and a dash when nothing is recorded', async () => {
     await renderWithProviders(<ProductMaterials product={withMaterials([])} />);
 
     expect(screen.getByRole('header', { name: 'Materials' })).toBeOnTheScreen();
-    expect(screen.getByText('(0)')).toBeOnTheScreen();
-    expect(screen.getByText('No materials recorded yet.')).toBeOnTheScreen();
+    expect(screen.getByText('—')).toBeOnTheScreen();
+    expect(screen.queryByText('(0)')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+
+  // Materials are recorded through the API only, so an empty list in edit mode
+  // would be a heading with nothing to do under it.
+  it('hides an empty list in edit mode', async () => {
+    await renderWithProviders(<ProductMaterials product={withMaterials([])} editMode />);
+
+    expect(screen.queryByText('Materials')).toBeNull();
+  });
+
+  it('keeps recorded materials in edit mode', async () => {
+    await renderWithProviders(<ProductMaterials product={withMaterials([aluminum])} editMode />);
+
+    expect(screen.getByRole('header', { name: 'Materials' })).toBeOnTheScreen();
+    expect(screen.getByText('Aluminum')).toBeOnTheScreen();
   });
 
   it('lists the recorded quantity, unit and material reference', async () => {
@@ -43,7 +58,7 @@ describe('ProductMaterials', () => {
       <ProductMaterials product={withMaterials([{ ...aluminum, source: undefined }])} />,
     );
 
-    expect(screen.getByText('No reference recorded for this material.')).toBeOnTheScreen();
+    expect(screen.getByText('No reference recorded.')).toBeOnTheScreen();
   });
 
   it('renders nothing for a record whose materials were never loaded', async () => {

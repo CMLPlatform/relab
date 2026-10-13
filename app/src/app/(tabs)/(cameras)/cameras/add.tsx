@@ -41,9 +41,8 @@ function PairingSuccessDialog({
     >
       <View className="items-center gap-3 pt-6">
         <Animated.View
-          entering={ZoomIn.duration(250)
-            .withInitialValues({ transform: [{ scale: 0.92 }] })
-            .reduceMotion(ReduceMotion.System)}
+          // NOTE: a stock preset, no custom initial values (see no-custom-entering-animations.test.ts).
+          entering={ZoomIn.duration(250).reduceMotion(ReduceMotion.System)}
         >
           <Icon name="circle-check-big" size={56} color={theme.tokens.status.success} />
         </Animated.View>

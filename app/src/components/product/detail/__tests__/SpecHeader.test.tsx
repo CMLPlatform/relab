@@ -51,6 +51,12 @@ test('renders no facts row segments for missing data', async () => {
 describe('SpecHeader name field in edit mode', () => {
   const product = { ...baseProduct, name: 'Initial product name' };
 
+  test("names a component's field after the component, not a product", async () => {
+    await render(<SpecHeader product={{ ...product, role: 'component' }} editMode />);
+    expect(screen.getByLabelText('Component name')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Product name')).toBeNull();
+  });
+
   test('renders the name as a title-scale input', async () => {
     await render(<SpecHeader product={product} editMode />);
     const input = screen.getByLabelText('Product name');

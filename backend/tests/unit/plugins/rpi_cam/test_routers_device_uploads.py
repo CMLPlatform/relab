@@ -3,6 +3,7 @@
 from io import BytesIO
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException, UploadFile
@@ -204,6 +205,44 @@ async def test_pushed_image_uses_the_camera_owner_tier(mock_camera: Camera) -> N
 
     assert create.await_args is not None
     assert create.await_args.kwargs["caps_role"] is UserRole.LAB
+
+
+async def test_pushed_image_refreshes_the_owner_profile_stats(mock_camera: Camera) -> None:
+    """A capture counts toward the owner's photo total, as an upload from the app does."""
+    upload = UploadFile(filename="capture.jpg", file=BytesIO(b"jpeg-bytes"))
+    image = MagicMock(id=uuid4())
+    session = MagicMock(scalar=AsyncMock(return_value=None), commit=AsyncMock())
+    recompute = AsyncMock()
+
+    with (
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.get_user_owned_object",
+            new=AsyncMock(),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.image_storage_service.create",
+            new=AsyncMock(return_value=image),
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.recompute_user_profile_stats",
+            new=recompute,
+        ),
+        patch(
+            "app.api.plugins.rpi_cam.routers.camera_interaction.images.ImageRead.model_validate",
+            return_value=MagicMock(image_url="/uploads/images/capture.jpg"),
+        ),
+    ):
+        await receive_camera_upload(
+            camera_id=mock_camera.id,
+            camera=mock_camera,
+            session=session,
+            file=upload,
+            capture_metadata="{}",
+            upload_metadata='{"product_id": 1}',
+        )
+
+    recompute.assert_awaited_once_with(session, mock_camera.owner_id)
+    session.commit.assert_awaited_once()
 
 
 async def test_persists_deterministic_preview_thumbnail_and_returns_url(

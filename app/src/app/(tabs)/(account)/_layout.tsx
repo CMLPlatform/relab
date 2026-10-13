@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
+import { PlainHeaderTitle } from '@/components/base/PlainHeaderTitle';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 /** Account tab stack: one screen, so it keeps the same native stack header as every other tab. */
@@ -10,7 +11,14 @@ export default function AccountTabLayout() {
   // Cross-tab target: replace() would reset every tab's trail.
   const goToProducts = useCallback(() => router.navigate('/products'), [router]);
   return (
-    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' }, headerShown: !isLg }}>
+    <Stack
+      screenOptions={{
+        contentStyle: { backgroundColor: 'transparent' },
+        headerShown: !isLg,
+        // The account screen renders the username as its h1.
+        headerTitle: PlainHeaderTitle,
+      }}
+    >
       {/* TopNav covers this screen on >=lg web. */}
       <Stack.Screen
         name="account/index"

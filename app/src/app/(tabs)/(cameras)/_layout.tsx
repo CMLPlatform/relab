@@ -1,6 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import { useCallback } from 'react';
 import { HeaderBackButton } from '@/components/base/HeaderBackButton';
+import { PlainHeaderTitle } from '@/components/base/PlainHeaderTitle';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 /** Cameras tab stack: list, pairing and camera detail. */
@@ -10,7 +11,14 @@ export default function CamerasTabLayout() {
   // Same-stack target, so replace is safe.
   const goToCameras = useCallback(() => router.replace('/cameras'), [router]);
   return (
-    <Stack screenOptions={{ contentStyle: { backgroundColor: 'transparent' }, headerShown: !isLg }}>
+    <Stack
+      screenOptions={{
+        contentStyle: { backgroundColor: 'transparent' },
+        headerShown: !isLg,
+        // Every cameras screen renders its own h1 (ScreenTitle).
+        headerTitle: PlainHeaderTitle,
+      }}
+    >
       {/* TopNav replaces every stack header on >=lg web; add and detail render a PageHeaderRow there. */}
       <Stack.Screen name="cameras/index" options={{ title: 'My cameras' }} />
       <Stack.Screen

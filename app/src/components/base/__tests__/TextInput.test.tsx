@@ -65,7 +65,7 @@ describe('<TextInput />', () => {
 
     const input = screen.getByTestId('dark-input');
     expect(input).toHaveStyle({ color: getAppTheme('dark').colors.onSurface });
-    expect(input).toHaveProp('placeholderTextColor', getAppTheme('dark').colors.mutedForeground);
+    expect(input).toHaveProp('placeholderTextColor', getAppTheme('dark').tokens.text.placeholder);
 
     jest.mocked(useEffectiveColorScheme).mockReturnValue('light');
   });
