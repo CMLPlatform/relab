@@ -12,7 +12,9 @@ resource "cloudflare_email_routing_settings" "this" {
   support_subaddress = false
 }
 
-# Creates the MX and SPF records Email Routing needs.
+# Creates the MX and SPF records Email Routing needs. Creating it is all it is for: the provider
+# updates it through the per-subdomain endpoint, which answers 404 for the zone apex, and the SPF
+# record gains a sending provider's include by hand afterwards.
 resource "cloudflare_email_routing_dns" "this" {
   count = local.email_enabled ? 1 : 0
 
@@ -20,6 +22,10 @@ resource "cloudflare_email_routing_dns" "this" {
   name    = var.cloudflare_zone_name
 
   depends_on = [cloudflare_email_routing_settings.this]
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "cloudflare_email_routing_address" "destination" {
