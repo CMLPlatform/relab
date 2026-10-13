@@ -8,8 +8,8 @@ which repository you found it in.
 
 | Layer                                                                                    | Licence                                                                         |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Platform software: the code behind the backend, app, website, and this docs site         | [AGPL-3.0-or-later](https://github.com/CMLPlatform/relab/blob/main/LICENSE)     |
-| API specification: the OpenAPI schemas this repository generates, and their client types | [Apache-2.0](https://github.com/CMLPlatform/relab/blob/main/LICENSE-APACHE-2.0) |
+| Platform software: the code behind the backend, app, website, and this docs site         | [AGPL-3.0-or-later](https://github.com/CMLPlatform/r9lab/blob/main/LICENSE)     |
+| API specification: the OpenAPI schemas this repository generates, and their client types | [Apache-2.0](https://github.com/CMLPlatform/r9lab/blob/main/LICENSE-APACHE-2.0) |
 | Site content: the writing on the docs site and on [r9lab.io](https://r9lab.io) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)                       |
 | Curated dataset releases                                                                 | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), planned              |
 
@@ -34,7 +34,7 @@ CC licence, and Apache-2.0 carries an explicit patent grant.
 The carve-out covers the two schemas this repository generates, `openapi.public.json` and
 `openapi.device.json`. `openapi.r9cam.json` (the [RPi camera API](/api/r9cam/)) is fetched
 verbatim from the separate
-[relab-rpi-cam-plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin) repository and carries
+[r9cam](https://github.com/CMLPlatform/r9cam) repository and carries
 whatever licence that project sets, currently Apache-2.0 as well. Check there before reusing it.
 
 ## Dataset releases

@@ -505,7 +505,7 @@ def render_docs_colophon_astro(identity: dict) -> str:
 // {IDENTITY_HEADER}
 ---
 
-<div class="relab-colophon">
+<div class="r9lab-colophon">
   <p>
     <strong>R9lab</strong> — {_escape(identity["department"])}, {_escape(identity["institution"])}.
   </p>

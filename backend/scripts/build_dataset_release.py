@@ -367,7 +367,7 @@ class ReleaseMetadata:
     licence_spdx: str = "CC-BY-4.0"
     licence_url: str = "https://creativecommons.org/licenses/by/4.0/"
     homepage: str = "https://r9lab.io"
-    repository: str = "https://github.com/CMLPlatform/relab"
+    repository: str = "https://github.com/CMLPlatform/r9lab"
     # (product type, base products) pairs for the records in scope, most products first.
     # The build fills this from the data; the description, keywords and README scope
     # derive from it, so no release can claim a product class it does not hold.

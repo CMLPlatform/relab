@@ -59,9 +59,9 @@
   version = "0.0.0"
 
   [project.urls]
-    Homepage   = "https://github.com/CMLPlatform/relab"
-    Issues     = "https://github.com/CMLPlatform/relab/issues"
-    Repository = "https://github.com/CMLPlatform/relab.git"
+    Homepage   = "https://github.com/CMLPlatform/r9lab"
+    Issues     = "https://github.com/CMLPlatform/r9lab/issues"
+    Repository = "https://github.com/CMLPlatform/r9lab.git"
 
 ### Dependency groups
 [dependency-groups]

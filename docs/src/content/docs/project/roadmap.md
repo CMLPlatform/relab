@@ -12,7 +12,7 @@ R9lab focuses on open, FAIR product-level disassembly data. Automation stays
 human-verified: software can suggest, people confirm.
 
 The live work list is tracked in the public
-[GitHub issues](https://github.com/CMLPlatform/relab/issues).
+[GitHub issues](https://github.com/CMLPlatform/r9lab/issues).
 
 ## Near term
 
