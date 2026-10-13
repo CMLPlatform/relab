@@ -27,12 +27,14 @@ staging's own folder; the backup copies to `rclone:surfdrive_staging:`.
 
 ### Moving the host from the relab paths
 
-As [DEPLOY-PROD.md](DEPLOY-PROD.md) 1.7, after the rename window's go/no-go check, but staging has no
-deploy user to rename. Disable the four `r9lab-*@staging` timers, move the ping file the same way
-(`/etc/relab/relab.env` to `/etc/r9lab/r9lab.env`, replacing the empty one the window's
-`timers-install` seeded), and if the checkout's directory is named after relab, move it and update
-`BACKUP_HOST_DIR` if it points inside. Then run `just timers-install staging` and
-`just stack staging up YES` from the moved checkout.
+As [DEPLOY-PROD.md](DEPLOY-PROD.md) 1.7, at the start of the rename window's step 9, before
+`timers-install`, but staging has no deploy user to rename. Stop the stack
+(`just stack staging down YES`), move the checkout if its directory is named after relab, move
+the ping file (`/etc/relab/relab.env` to `/etc/r9lab/r9lab.env`), and if `BACKUP_HOST_DIR` points
+under a renamed directory, move that directory and update the variable. The moved virtualenvs
+still carry the old absolute paths, so run `uv sync --frozen` in the checkout root and
+`uv sync --all-groups --frozen` in `backend/`. Then run `just stack staging up YES` from the moved
+checkout and carry on with step 9 (`just timers-install staging`).
 
 ______________________________________________________________________
 
