@@ -44,8 +44,8 @@ import shutil
 import statistics
 import sys
 from collections import Counter, defaultdict, deque
-from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from dataclasses import dataclass, field, replace
+from datetime import UTC, date, datetime
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -89,6 +89,9 @@ CHECKSUM_FILE = "SHA256SUMS"
 CSV_SUFFIX = ".csv"
 PARQUET_SUFFIX = ".parquet"
 PARQUET_MEDIA_TYPE = "application/vnd.apache.parquet"
+# The unregistered name that mlcroissant and Hugging Face read Parquet by; croissant.json
+# lists it after the registered one so both kinds of reader find a format they know.
+PARQUET_LEGACY_MEDIA_TYPE = "application/x-parquet"
 
 # Bumped when the shape of records.parquet / manifest.csv / reference/ changes.
 SCHEMA_VERSION = "1"
@@ -268,7 +271,18 @@ def field_description(field: pa.Field) -> str:
 
 
 # NOTE: manifest.csv, SHA256SUMS and review/ stay plain text: humans grep them.
-MANIFEST_HEADER = ("file", "record_id", "sha256", "width", "height", "bytes", "format")
+MANIFEST_FILE = "manifest.csv"
+# (column, Croissant type, description), in file order.
+MANIFEST_FIELDS = (
+    ("file", "sc:Text", "Image path inside the archive."),
+    ("record_id", "sc:Integer", "Record the image shows (records.parquet id)."),
+    ("sha256", "sc:Text", "SHA-256 of the image file; also its file name."),
+    ("width", "sc:Integer", "Width in pixels."),
+    ("height", "sc:Integer", "Height in pixels."),
+    ("bytes", "sc:Integer", "File size in bytes."),
+    ("format", "sc:Text", "Image format as Pillow names it, for example JPEG or PNG."),
+)
+MANIFEST_HEADER = tuple(name for name, _, _ in MANIFEST_FIELDS)
 
 
 ### Release metadata ###
@@ -334,6 +348,8 @@ class ReleaseMetadata:
     title: str = "Relab Teardown Dataset"
     version: str = "1.0"
     year: int = 2026
+    # The build date: datePublished in croissant.json, date-released in CITATION.cff.
+    released: date = field(default_factory=lambda: datetime.now(tz=UTC).date())
     # Placeholder until the Zenodo record exists; --doi substitutes the real one.
     doi: str = "10.5281/zenodo.XXXXXXX"
     # Names the salt generation, so two releases can be checked for linkability without the salt.
@@ -1042,7 +1058,7 @@ def _cff_author(name: str, affiliation: str) -> list[str]:
     ]
 
 
-def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
+def render_citation_cff(meta: ReleaseMetadata) -> str:
     """Render the dataset CITATION.cff (distinct from the repository's software one)."""
     lines = [
         "cff-version: 1.2.0",
@@ -1059,7 +1075,6 @@ def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
         ]
     for name in meta.named_lab_contributors:
         lines += _cff_author(name, meta.affiliation)
-    released = stats.collection_end or datetime.now(tz=UTC)
     lines += [
         f'title: "{meta.title}"',
         # JSON strings are valid YAML double-quoted scalars, so a quote in a data-derived
@@ -1070,7 +1085,7 @@ def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
         "  - type: doi",
         f"    value: {meta.doi}",
         "    description: DOI for this dataset release",
-        f"date-released: {released:%Y-%m-%d}",
+        f"date-released: {meta.released.isoformat()}",
         f"url: {meta.homepage}",
         f'license: "{meta.licence_spdx}"',
         "keywords:",
@@ -1118,7 +1133,7 @@ def render_changelog(meta: ReleaseMetadata, stats: BuildStats) -> str:
     """Render CHANGELOG.md."""
     return f"""# Changelog
 
-## v{meta.version} — {datetime.now(tz=UTC):%Y-%m-%d}
+## v{meta.version} — {meta.released.isoformat()}
 
 - First public release: {stats.records} records and {stats.images} images from contributors
   who accepted the contributor terms, licensed under {meta.licence_name}.
@@ -1133,7 +1148,9 @@ def render_changelog(meta: ReleaseMetadata, stats: BuildStats) -> str:
 
 # Croissant field types derive from the Parquet schema so the two cannot drift.
 def _croissant_type(arrow_type: pa.DataType) -> str:
-    """Return the Croissant data type for an Arrow column type."""
+    """Return the Croissant data type for an Arrow column type (a list's item type for a list)."""
+    if pa.types.is_list(arrow_type):
+        return _croissant_type(arrow_type.value_type)
     if pa.types.is_boolean(arrow_type):
         return "sc:Boolean"
     if pa.types.is_integer(arrow_type):
@@ -1145,47 +1162,265 @@ def _croissant_type(arrow_type: pa.DataType) -> str:
     return "sc:Text"
 
 
-def _croissant_record_set(name: str, file_id: str, schema: pa.Schema) -> dict[str, Any]:
+# The Croissant 1.1 JSON-LD context, as mlcroissant 1.1 writes it. A context that differs
+# from the standard one only draws a warning, but a reader resolving terms against it
+# would then disagree with every other Croissant tool.
+CROISSANT_CONTEXT: dict[str, Any] = {
+    "@language": "en",
+    "@vocab": "https://schema.org/",
+    "arrayShape": "cr:arrayShape",
+    "citeAs": "cr:citeAs",
+    "column": "cr:column",
+    "conformsTo": "dct:conformsTo",
+    "containedIn": "cr:containedIn",
+    "cr": "http://mlcommons.org/croissant/",
+    "rai": "http://mlcommons.org/croissant/RAI/",
+    "data": {"@id": "cr:data", "@type": "@json"},
+    "dataType": {"@id": "cr:dataType", "@type": "@vocab"},
+    "dct": "http://purl.org/dc/terms/",
+    "description": {"@container": "@language"},
+    "equivalentProperty": "cr:equivalentProperty",
+    "examples": {"@id": "cr:examples", "@type": "@json"},
+    "extract": "cr:extract",
+    "field": "cr:field",
+    "fileProperty": "cr:fileProperty",
+    "fileObject": "cr:fileObject",
+    "fileSet": "cr:fileSet",
+    "format": "cr:format",
+    "includes": "cr:includes",
+    "isArray": "cr:isArray",
+    "isLiveDataset": "cr:isLiveDataset",
+    "jsonPath": "cr:jsonPath",
+    "key": "cr:key",
+    "md5": "cr:md5",
+    "name": {"@container": "@language"},
+    "parentField": "cr:parentField",
+    "path": "cr:path",
+    "recordSet": "cr:recordSet",
+    "references": "cr:references",
+    "regex": "cr:regex",
+    "repeated": "cr:repeated",
+    "replace": "cr:replace",
+    "samplingRate": "cr:samplingRate",
+    "sc": "https://schema.org/",
+    "separator": "cr:separator",
+    "source": "cr:source",
+    "subField": "cr:subField",
+    "transform": "cr:transform",
+}
+CROISSANT_CONFORMS_TO = "http://mlcommons.org/croissant/1.1"
+CROISSANT_RAI_CONFORMS_TO = "http://mlcommons.org/croissant/RAI/1.0"
+IMAGE_FILE_SET = "image-files"
+# Every file croissant.json describes one by one, each with its SHA-256.
+CROISSANT_FILES = (*(table.path for table in RELEASE_TABLES), MANIFEST_FILE)
+
+
+def _record_set_id(table: ReleaseTable) -> str:
+    """Return a table's record set id: its file name without the folder or suffix."""
+    return Path(table.path).stem
+
+
+def _croissant_field(record_set: str, name: str, data_type: str, description: str, source: dict) -> dict[str, Any]:
+    """Describe one Croissant field."""
+    return {
+        "@type": "cr:Field",
+        "@id": f"{record_set}/{name}",
+        "name": name,
+        "description": description,
+        "dataType": data_type,
+        "source": source,
+    }
+
+
+def _croissant_record_set(table: ReleaseTable) -> dict[str, Any]:
     """Describe one Parquet table as a Croissant record set."""
+    record_set = _record_set_id(table)
+    fields = []
+    for column in table.schema:
+        entry = _croissant_field(
+            record_set,
+            column.name,
+            _croissant_type(column.type),
+            field_description(column),
+            {"fileObject": {"@id": table.path}, "extract": {"column": column.name}},
+        )
+        if pa.types.is_list(column.type):
+            entry["isArray"] = True
+        fields.append(entry)
     return {
         "@type": "cr:RecordSet",
-        "@id": name,
-        "name": name,
+        "@id": record_set,
+        "name": record_set,
+        "description": table.description,
+        "field": fields,
+    }
+
+
+def _manifest_record_set() -> dict[str, Any]:
+    """Describe manifest.csv, whose record_id is the join from an image to its record."""
+    fields = [
+        _croissant_field(
+            "manifest",
+            name,
+            data_type,
+            description,
+            {"fileObject": {"@id": MANIFEST_FILE}, "extract": {"column": name}},
+        )
+        for name, data_type, description in MANIFEST_FIELDS
+    ]
+    fields[MANIFEST_HEADER.index("record_id")]["references"] = {"field": {"@id": "records/id"}}
+    return {
+        "@type": "cr:RecordSet",
+        "@id": "manifest",
+        "name": "manifest",
+        "description": "One row per image file, naming the record it shows.",
+        "key": {"@id": "manifest/file"},
+        "field": fields,
+    }
+
+
+def _images_record_set() -> dict[str, Any]:
+    """Describe the photographs, joined through manifest.csv to the record each one shows."""
+    from_files = {"fileSet": {"@id": IMAGE_FILE_SET}}
+    path = _croissant_field(
+        "images",
+        "file",
+        "sc:Text",
+        "Image path inside the archive, as listed in manifest.csv.",
+        # The regex turns the path object mlcroissant reads into the text manifest.csv holds,
+        # so the join key compares equal.
+        from_files | {"extract": {"fileProperty": "fullpath"}, "transform": {"regex": "^(images/[^/]+)$"}},
+    )
+    # The join keys point at manifest.csv itself, not at the manifest record set:
+    # mlcroissant 1.1 joins file reads, and fails on a join against another record set.
+    from_manifest = {"fileObject": {"@id": MANIFEST_FILE}}
+    path["references"] = from_manifest | {"extract": {"column": "file"}}
+    record_id = _croissant_field(
+        "images",
+        "record_id",
+        "sc:Integer",
+        "Record the photograph shows (records.parquet id).",
+        from_manifest | {"extract": {"column": "record_id"}},
+    )
+    return {
+        "@type": "cr:RecordSet",
+        "@id": "images",
+        "name": "images",
+        "description": "One row per photograph, with the record it shows.",
+        "key": {"@id": "images/file"},
         "field": [
-            {
-                "@type": "cr:Field",
-                "@id": f"{name}/{field.name}",
-                "name": field.name,
-                "description": field_description(field),
-                "dataType": _croissant_type(field.type),
-                "source": {"fileObject": {"@id": file_id}, "extract": {"column": field.name}},
-            }
-            for field in schema
+            path,
+            _croissant_field(
+                "images",
+                "image",
+                "sc:ImageObject",
+                "The photograph.",
+                from_files | {"extract": {"fileProperty": "content"}},
+            ),
+            record_id,
         ],
     }
 
 
-def render_croissant(meta: ReleaseMetadata, stats: BuildStats) -> str:
-    """Render croissant.json (MLCommons Croissant JSON-LD)."""
+def _responsible_ai(meta: ReleaseMetadata, stats: BuildStats) -> dict[str, Any]:
+    """Return the Croissant RAI properties: how the data was made and what it cannot carry."""
+    fields: dict[str, Any] = {
+        "rai:dataCollection": (
+            "Contributors take products apart and document each one in the R9lab app: the product "
+            "and each component as a record in a component tree, with measured mass and dimensions, "
+            "materials, and photographs taken at the bench."
+        ),
+        "rai:dataCollectionType": ["Physical data collection", "Direct measurement"],
+        "rai:dataCollectionMissingData": (
+            "A value the contributor did not record is null, never zero or an empty string. "
+            "Completeness varies by field and by contributor."
+        ),
+        "rai:dataPreprocessingProtocol": [
+            (
+                "Image metadata is cut to an allowlist of capture parameters at upload, and the build "
+                "fails if any other EXIF tag remains."
+            ),
+            "Owner identity is replaced by a keyed hash (HMAC-SHA256) pseudonym; no account data is exported.",
+            (
+                "Records are selected by contributor consent; shared logins and records named as scratch "
+                "work are excluded, and every exclusion is listed for review before publication."
+            ),
+        ],
+        "rai:dataAnnotationProtocol": [
+            (
+                "Contributors assign the product type, materials and component hierarchy in the app while "
+                "documenting a teardown."
+            )
+        ],
+        "rai:dataBiases": [f"{label}: {text}" for label, text in known_biases(meta)],
+        "rai:dataLimitations": [
+            "volume_cm3 is the bounding box the product fits in, not the volume of material in it.",
+            "circularity_properties holds contributor judgement, not measurement.",
+        ],
+        "rai:dataUseCases": [
+            "Image-based classification of products and components.",
+            "Design-for-disassembly and material composition studies.",
+            "Primary product data for life cycle assessment.",
+        ],
+        "rai:personalSensitiveInformation": [
+            (
+                "Contributor identity appears only as a stable pseudonymous code; the release carries no "
+                "account identifiers. Free-text fields are extracted for a manual read-through before "
+                "publication."
+            )
+        ],
+        "rai:dataReleaseMaintenancePlan": (
+            "Each release is a new version under one Zenodo concept record; a published version is "
+            "never edited. Pseudonyms stay comparable between releases that share a salt fingerprint "
+            f"({meta.pseudonym_salt_fingerprint or 'not yet pinned'})."
+        ),
+    }
+    if stats.collection_start is not None and stats.collection_end is not None:
+        fields["rai:dataCollectionTimeframe"] = [stats.collection_start.isoformat(), stats.collection_end.isoformat()]
+    return fields
+
+
+def render_croissant(
+    meta: ReleaseMetadata, stats: BuildStats, digests: Mapping[str, str], image_formats: Sequence[str]
+) -> str:
+    """Render croissant.json (MLCommons Croissant 1.1 JSON-LD, with the RAI extension).
+
+    *digests* maps each path in CROISSANT_FILES to its SHA-256; *image_formats* lists the
+    media types the image files use.
+    """
+    tables = {table.path: table for table in RELEASE_TABLES}
+    distribution: list[dict[str, Any]] = [
+        {
+            "@type": "cr:FileObject",
+            "@id": path,
+            "name": path,
+            "description": tables[path].description if path in tables else "Image file to record lookup.",
+            "contentUrl": path,
+            "encodingFormat": (
+                [PARQUET_MEDIA_TYPE, PARQUET_LEGACY_MEDIA_TYPE] if path.endswith(PARQUET_SUFFIX) else "text/csv"
+            ),
+            "sha256": digests[path],
+        }
+        for path in CROISSANT_FILES
+    ]
+    distribution.append(
+        {
+            "@type": "cr:FileSet",
+            "@id": IMAGE_FILE_SET,
+            "name": IMAGE_FILE_SET,
+            "description": "Photographs, named by the SHA-256 of their own bytes; manifest.csv lists each digest.",
+            "encodingFormat": list(image_formats),
+            "includes": "images/*",
+        }
+    )
     document = {
-        "@context": {
-            "@vocab": "https://schema.org/",
-            "cr": "http://mlcommons.org/croissant/",
-            "sc": "https://schema.org/",
-            "data": {"@id": "cr:data", "@type": "@json"},
-            "dataType": {"@id": "cr:dataType", "@type": "@vocab"},
-            "field": "cr:field",
-            "fileObject": "cr:fileObject",
-            "fileSet": "cr:fileSet",
-            "includes": "cr:includes",
-            "recordSet": "cr:recordSet",
-            "source": "cr:source",
-        },
+        "@context": CROISSANT_CONTEXT,
         "@type": "sc:Dataset",
-        "conformsTo": "http://mlcommons.org/croissant/1.0",
+        "conformsTo": [CROISSANT_CONFORMS_TO, CROISSANT_RAI_CONFORMS_TO],
         "name": meta.title,
         "description": meta.description,
         "version": meta.version,
+        "datePublished": meta.released.isoformat(),
         "license": meta.licence_url,
         "url": meta.homepage,
         "citeAs": meta.attribution,
@@ -1208,51 +1443,37 @@ def render_croissant(meta: ReleaseMetadata, stats: BuildStats) -> str:
         "identifier": f"https://doi.org/{meta.doi}",
         "isBasedOn": f"https://doi.org/{meta.software_version_doi}",
         "temporalCoverage": stats.collection_period,
-        "distribution": [
-            {
-                "@type": "cr:FileObject",
-                "@id": "records.parquet",
-                "name": "records.parquet",
-                "encodingFormat": PARQUET_MEDIA_TYPE,
-                "contentUrl": "records.parquet",
-            },
-            {
-                "@type": "cr:FileObject",
-                "@id": "record_materials.parquet",
-                "name": "record_materials.parquet",
-                "encodingFormat": PARQUET_MEDIA_TYPE,
-                "contentUrl": "record_materials.parquet",
-            },
-            {
-                "@type": "cr:FileObject",
-                "@id": "manifest.csv",
-                "name": "manifest.csv",
-                "encodingFormat": "text/csv",
-                "contentUrl": "manifest.csv",
-            },
-            {
-                "@type": "cr:FileSet",
-                "@id": "images",
-                "name": "images",
-                "encodingFormat": "image/jpeg",
-                "includes": "images/*",
-            },
-        ],
+        **_responsible_ai(meta, stats),
+        "distribution": distribution,
         "recordSet": [
-            _croissant_record_set("records", "records.parquet", RECORDS_SCHEMA),
-            _croissant_record_set("record_materials", "record_materials.parquet", RECORD_MATERIALS_SCHEMA),
+            *(_croissant_record_set(table) for table in RELEASE_TABLES),
+            _manifest_record_set(),
+            _images_record_set(),
         ],
     }
     return json.dumps(document, indent=2) + "\n"
 
 
+def image_media_types(manifest: Iterable[Mapping[str, Any]]) -> list[str]:
+    """Return the media types of the manifest's images, sorted; JPEG when there are none."""
+    # MIME stays empty until Pillow registers its format plugins.
+    PILImage.init()
+    types = {PILImage.MIME.get(str(row["format"]).upper(), "application/octet-stream") for row in manifest}
+    return sorted(types) or ["image/jpeg"]
+
+
 def write_artefacts(out: Path, meta: ReleaseMetadata, stats: BuildStats, record_counts: Mapping[str, int]) -> None:
-    """Write every archive artefact from the one metadata object."""
+    """Write every archive artefact from the one metadata object.
+
+    Runs after the tables and manifest.csv are written: croissant.json carries their checksums.
+    """
     (out / "README.md").write_text(render_readme(meta, stats), encoding="utf-8")
-    (out / "CITATION.cff").write_text(render_citation_cff(meta, stats), encoding="utf-8")
+    (out / "CITATION.cff").write_text(render_citation_cff(meta), encoding="utf-8")
     (out / "CONTRIBUTORS.md").write_text(render_contributors(meta, record_counts), encoding="utf-8")
     (out / "CHANGELOG.md").write_text(render_changelog(meta, stats), encoding="utf-8")
-    (out / "croissant.json").write_text(render_croissant(meta, stats), encoding="utf-8")
+    digests = {path: file_sha256(out / path) for path in CROISSANT_FILES}
+    formats = image_media_types(read_csv(out / MANIFEST_FILE))
+    (out / "croissant.json").write_text(render_croissant(meta, stats, digests, formats), encoding="utf-8")
     shutil.copyfile(ASSETS_DIR / "cc-by-4.0.txt", out / "LICENSE.txt")
 
 
@@ -1460,6 +1681,27 @@ def verify(root: Path) -> list[str]:
     )
     violations += missing_references(categories, "supercategory_id", category_ids, "categories")
     violations += checksum_violations(root)
+    violations += croissant_violations(root)
+    return violations
+
+
+def croissant_violations(root: Path) -> list[str]:
+    """Return one message per croissant.json problem: a stale checksum, or what mlcroissant rejects."""
+    import mlcroissant as mlc  # noqa: PLC0415  # seconds to import; only this check needs it
+
+    path = root / "croissant.json"
+    violations = []
+    for entry in json.loads(path.read_text(encoding="utf-8"))["distribution"]:
+        # Only file objects carry a digest; the image file set relies on manifest.csv.
+        if (expected := entry.get("sha256")) is None:
+            continue
+        target = root / entry["contentUrl"]
+        if not target.is_file() or file_sha256(target) != expected:
+            violations.append(f"croissant.json: sha256 of {entry['contentUrl']} does not match the file")
+    try:
+        mlc.Dataset(jsonld=path)
+    except mlc.ValidationError as error:
+        violations += [f"croissant.json: {line.strip()}" for line in str(error).splitlines() if line.strip()]
     return violations
 
 
@@ -1755,7 +1997,7 @@ async def _build(out: Path, rules: SelectionRules, salt: str, meta: ReleaseMetad
 
     write_parquet(out / "records.parquet", RECORDS_SCHEMA, records)
     write_parquet(out / "record_materials.parquet", RECORD_MATERIALS_SCHEMA, record_materials)
-    write_csv(out / "manifest.csv", MANIFEST_HEADER, ([row[name] for name in MANIFEST_HEADER] for row in manifest))
+    write_csv(out / MANIFEST_FILE, MANIFEST_HEADER, ([row[name] for name in MANIFEST_HEADER] for row in manifest))
 
     # Read back from the frozen table, so the scope text names what the archive ships.
     type_labels = {

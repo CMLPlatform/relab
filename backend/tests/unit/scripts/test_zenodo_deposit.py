@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from scripts import zenodo_deposit as zenodo
-from scripts.build_dataset_release import BuildStats, ReleaseMetadata, render_croissant
+from scripts.build_dataset_release import CROISSANT_FILES, BuildStats, ReleaseMetadata, render_croissant
 from scripts.zenodo_deposit import (
     build_metadata,
     fetch_deposition,
@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 DROPPED = httpx.ConnectError("the connection dropped")
+DIGESTS = dict.fromkeys(CROISSANT_FILES, "0" * 64)
 
 
 def _release_dir(tmp_path: Path) -> Path:
@@ -117,7 +118,9 @@ def test_metadata_is_read_from_the_built_release(tmp_path) -> None:
     meta = ReleaseMetadata(
         version="1.1", product_classes=(("Coffee machines", 4),), software_version_doi="10.5281/zenodo.111"
     )
-    (tmp_path / "croissant.json").write_text(render_croissant(meta, BuildStats(records=4)), encoding="utf-8")
+    (tmp_path / "croissant.json").write_text(
+        render_croissant(meta, BuildStats(records=4), DIGESTS, ["image/jpeg"]), encoding="utf-8"
+    )
 
     metadata = build_metadata(ReleaseMetadata(), read_croissant(tmp_path))
 
