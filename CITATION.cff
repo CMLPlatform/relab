@@ -7,11 +7,6 @@ authors:
     orcid: "https://orcid.org/0009-0006-6953-909X"
     email: "s.n.van.lierde@cml.leidenuniv.nl"
     affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
-  - family-names: "Donati"
-    given-names: "Franco"
-    orcid: "https://orcid.org/0000-0002-8287-2413"
-    email: "f.donati@cml.leidenuniv.nl"
-    affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
 title: "R9lab - Data Collection Platform"
 abstract: "Data collection platform for photographs, bills of materials and measurements of disassembled products, supporting computer vision and life cycle assessment research."
 version: 0.4.0
