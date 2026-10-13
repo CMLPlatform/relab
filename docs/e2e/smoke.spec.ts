@@ -61,7 +61,7 @@ test('diagrams fit their frame and open full size in a new tab', async ({ page }
   await expect(link).toHaveAttribute('href', /^blob:/);
 
   const overflow = await page
-    .locator('.relab-mermaid')
+    .locator('.r9lab-mermaid')
     .first()
     .evaluate((frame) => frame.scrollWidth - frame.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);

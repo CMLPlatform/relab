@@ -249,10 +249,10 @@ describe('initThemeControl', () => {
 });
 
 describe('THEME_META_COLORS', () => {
-  it('stays in sync with --relab-brand-theme-color in brand.css', () => {
+  it('stays in sync with --r9lab-brand-theme-color in brand.css', () => {
     const brandCss = readFileSync('src/styles/brand.css', 'utf8');
     const token = brandCss.match(
-      /--relab-brand-theme-color:\s*light-dark\(\s*([^,\s]+)\s*,\s*([^)\s]+)\s*\)/,
+      /--r9lab-brand-theme-color:\s*light-dark\(\s*([^,\s]+)\s*,\s*([^)\s]+)\s*\)/,
     );
     expect(token).not.toBeNull();
     expect(THEME_META_COLORS.light).toBe(token?.[1]);

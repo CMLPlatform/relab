@@ -50,24 +50,24 @@
 
 :root {
   color-scheme: light dark;
-  --relab-brand-font: "IBM Plex Sans";
-  --relab-brand-font-display: "IBM Plex Serif";
-  --relab-brand-font-mono: "IBM Plex Mono";
-  --relab-brand-primary: light-dark(#1f4c96, #8fb8ff);
-  --relab-brand-primary-strong: light-dark(#143567, #bad3ff);
-  --relab-brand-primary-soft: light-dark(rgba(31, 76, 150, 0.08), rgba(143, 184, 255, 0.14));
-  --relab-brand-accent: light-dark(#8f6212, #e3b95c);
-  --relab-brand-text: light-dark(#16202e, #e9eff8);
+  --r9lab-brand-font: "IBM Plex Sans";
+  --r9lab-brand-font-display: "IBM Plex Serif";
+  --r9lab-brand-font-mono: "IBM Plex Mono";
+  --r9lab-brand-primary: light-dark(#1f4c96, #8fb8ff);
+  --r9lab-brand-primary-strong: light-dark(#143567, #bad3ff);
+  --r9lab-brand-primary-soft: light-dark(rgba(31, 76, 150, 0.08), rgba(143, 184, 255, 0.14));
+  --r9lab-brand-accent: light-dark(#8f6212, #e3b95c);
+  --r9lab-brand-text: light-dark(#16202e, #e9eff8);
   /* Page ground. BRAND_PARITY asserts this token against the palette.json
      background key. */
-  --relab-brand-background: light-dark(#fafbfe, #11141d);
+  --r9lab-brand-background: light-dark(#fafbfe, #11141d);
   /* Cards and panels: the palette.json card and popover keys. www also has its
      own hand-authored surface ramp in tokens.css; repointing that ramp onto
      this token is a separate visual decision. */
-  --relab-brand-surface: light-dark(#f0f3fa, #1a2030);
-  --relab-brand-divider: light-dark(#d9dfe8, #24314a);
-  --relab-brand-surface-wash: light-dark(rgba(245, 247, 250, 0.8), rgba(12, 18, 32, 0.74));
-  --relab-brand-theme-color: light-dark(#edf1f7, #0a0f1a);
+  --r9lab-brand-surface: light-dark(#f0f3fa, #1a2030);
+  --r9lab-brand-divider: light-dark(#d9dfe8, #24314a);
+  --r9lab-brand-surface-wash: light-dark(rgba(245, 247, 250, 0.8), rgba(12, 18, 32, 0.74));
+  --r9lab-brand-theme-color: light-dark(#edf1f7, #0a0f1a);
 }
 
 :root[data-theme="light"] {

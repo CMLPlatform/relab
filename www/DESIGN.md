@@ -287,8 +287,8 @@ preloaded.
 ### The type ramp is a token set
 
 `assets/tokens.json` defines the ramp and `scripts/sync_brand_assets.py` emits it into
-`src/styles/tokens.generated.css` as `--relab-type-{role}-size` / `-line`, plus
-`--relab-type-label-tracking`. Sizes are rem so browser font scaling works (WCAG 1.4.4); line
+`src/styles/tokens.generated.css` as `--r9lab-type-{role}-size` / `-line`, plus
+`--r9lab-type-label-tracking`. Sizes are rem so browser font scaling works (WCAG 1.4.4); line
 heights are unitless ratios.
 
 **Use the token, not a literal.** A new literal `font-size` is drift. The detector flags it; pick a
@@ -385,12 +385,12 @@ boxes around a 1.18rem glyph.
 frosted sticky header was removed because scrolled body text read through it). Depth is a 1px
 hairline, a shade of surface, and space.
 
-The shared brand system reserves one floating tier (`--relab-shadow-overlay` and `--relab-scrim`
+The shared brand system reserves one floating tier (`--r9lab-shadow-overlay` and `--r9lab-scrim`
 in `tokens.generated.css`) for menus, dialogs, sheets, and snackbars. **Nothing on www floats, so
 both tokens are unused here.** A future overlay that needs a shadow uses that token and only that
 token.
 
-The two surface tiers (ground → card) are `--relab-brand-background` and `--relab-brand-surface`.
+The two surface tiers (ground → card) are `--r9lab-brand-background` and `--r9lab-brand-surface`.
 Both are opaque; the one surface that mixes toward transparent is the teardown plate, at 82%, so
 the drafting grid under it reads through.
 
@@ -580,7 +580,7 @@ Everything here is baked at build time and paints without JavaScript.
 - **Don't** write an eyebrow or kicker. A mono uppercase label that restates the heading beneath it
   is chrome; put provenance *under* the title as a caption instead.
 - **Don't** add a `box-shadow` to an inline surface. There are none on this site, and the reserved
-  `--relab-shadow-overlay` tier is for things that genuinely float. Nothing on www does.
+  `--r9lab-shadow-overlay` tier is for things that genuinely float. Nothing on www does.
 - **Don't** reintroduce `backdrop-filter`. The frosted header was removed because body text read
   through it.
 - **Don't** reach for a utility framework. www styles with authored CSS in `src/styles/` plus

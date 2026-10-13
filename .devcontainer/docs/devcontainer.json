@@ -1,10 +1,10 @@
 {
-  "name": "relab-docs",
+  "name": "r9lab-docs",
   "dockerComposeFile": ["../../compose.yaml", "../../compose.dev.yaml"],
   "service": "docs",
   "runServices": ["docs"],
-  "workspaceFolder": "/opt/relab/docs",
-  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "workspaceFolder": "/opt/r9lab/docs",
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/r9lab,type=bind,consistency=cached"],
   "postAttachCommand": "echo 'R9lab docs devcontainer ready.\\nUse this for focused docs work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nDocs: http://127.0.0.1:8012'",
   "features": {
     "ghcr.io/cirolosapio/devcontainers-features/alpine-bash:0.0.3": {},

@@ -23,16 +23,16 @@ const storedStarlightTheme = (): 'light' | 'dark' | null => {
  */
 const BRAND_CSS = `
 .light-mode, .dark-mode {
-  --scalar-font: var(--relab-brand-font), system-ui, sans-serif;
-  --scalar-font-code: var(--relab-brand-font-mono), ui-monospace, monospace;
-  --scalar-background-1: var(--relab-brand-background);
-  --scalar-background-2: var(--relab-brand-surface);
-  --scalar-background-3: var(--relab-brand-divider);
-  --scalar-border-color: var(--relab-brand-divider);
-  --scalar-color-1: var(--relab-brand-text);
-  --scalar-color-2: color-mix(in srgb, var(--relab-brand-text) 82%, var(--relab-brand-background));
-  --scalar-color-3: color-mix(in srgb, var(--relab-brand-text) 68%, var(--relab-brand-background));
-  --scalar-color-accent: var(--relab-brand-primary);
+  --scalar-font: var(--r9lab-brand-font), system-ui, sans-serif;
+  --scalar-font-code: var(--r9lab-brand-font-mono), ui-monospace, monospace;
+  --scalar-background-1: var(--r9lab-brand-background);
+  --scalar-background-2: var(--r9lab-brand-surface);
+  --scalar-background-3: var(--r9lab-brand-divider);
+  --scalar-border-color: var(--r9lab-brand-divider);
+  --scalar-color-1: var(--r9lab-brand-text);
+  --scalar-color-2: color-mix(in srgb, var(--r9lab-brand-text) 82%, var(--r9lab-brand-background));
+  --scalar-color-3: color-mix(in srgb, var(--r9lab-brand-text) 68%, var(--r9lab-brand-background));
+  --scalar-color-accent: var(--r9lab-brand-primary);
 }
 /* Sidebar group toggles and the auth-type picker render under 24px; these
    bring them to the WCAG 2.5.8 minimum. */
@@ -49,7 +49,7 @@ button[id^="headlessui-popover-button"] { min-height: 24px; }
 }
 .dark-mode {
   color-scheme: dark;
-  --scalar-color-red: color-mix(in srgb, #b0316e 50%, var(--relab-brand-text));
+  --scalar-color-red: color-mix(in srgb, #b0316e 50%, var(--r9lab-brand-text));
 }
 `;
 

@@ -9,8 +9,8 @@ const TRAILING_WHITESPACE_PATTERN = /[ \t]+$/g;
 /*
  * NOTE: literal colors because mermaid's parser (khroma) cannot read CSS custom
  * properties or `light-dark()`. Border and text mirror brand.css
- * --relab-brand-primary / --relab-brand-text and `background` mirrors
- * --relab-brand-background; the other surfaces are hand-tuned. If brand.css
+ * --r9lab-brand-primary / --r9lab-brand-text and `background` mirrors
+ * --r9lab-brand-background; the other surfaces are hand-tuned. If brand.css
  * changes, retune these (no machine link).
  */
 const mermaidThemeVariables = {
@@ -23,7 +23,7 @@ const mermaidThemeVariables = {
     tertiaryColor: '#edf0f8',
     // Without this, mermaid's `base` theme derives a pale yellow-green edge-label
     // background (rgba(244,251,217,.5)). Pinned to the diagram frame's tone,
-    // .relab-mermaid's 6% primary over the page ground.
+    // .r9lab-mermaid's 6% primary over the page ground.
     edgeLabelBackground: '#edf0f8',
   },
   dark: {
@@ -38,7 +38,7 @@ const mermaidThemeVariables = {
   },
 } as const;
 
-const FULL_SIZE_CLASS = 'relab-mermaid-full-size';
+const FULL_SIZE_CLASS = 'r9lab-mermaid-full-size';
 
 /**
  * Put a "View full size" link under a rendered diagram.
@@ -131,7 +131,7 @@ const ensureMermaidContainers = () => {
     }
 
     const container = document.createElement('div');
-    container.className = 'relab-mermaid';
+    container.className = 'r9lab-mermaid';
     container.setAttribute('role', 'group');
     container.setAttribute('aria-label', 'Diagram');
     container.dataset.mermaidSource = normalizeMermaidSource(readMermaidSource(sourceElement));
@@ -155,7 +155,7 @@ const renderMermaid = async (force = false): Promise<void> => {
   mermaidRenderPromise = (async () => {
     ensureMermaidContainers();
 
-    const diagrams = Array.from(document.querySelectorAll<HTMLElement>('.relab-mermaid'));
+    const diagrams = Array.from(document.querySelectorAll<HTMLElement>('.r9lab-mermaid'));
     if (diagrams.length === 0) {
       return;
     }
@@ -199,7 +199,7 @@ const renderMermaid = async (force = false): Promise<void> => {
 };
 
 const bindThemeObserver = () => {
-  if (!document.querySelector('.relab-mermaid, .language-mermaid, pre[data-language="mermaid"]')) {
+  if (!document.querySelector('.r9lab-mermaid, .language-mermaid, pre[data-language="mermaid"]')) {
     return;
   }
 

@@ -39,15 +39,15 @@ Current shared assets:
 
 Typography ownership (see [DESIGN.md](DESIGN.md) for the full design system):
 
-- The IBM Plex superfamily is the web/email typeface: Sans (`--relab-brand-font`, UI/body), Serif
-  (`--relab-brand-font-display`, display/brand), Mono (`--relab-brand-font-mono`, data/labels).
+- The IBM Plex superfamily is the web/email typeface: Sans (`--r9lab-brand-font`, UI/body), Serif
+  (`--r9lab-brand-font-display`, display/brand), Mono (`--r9lab-brand-font-mono`, data/labels).
 - WOFF2 files are for docs/www web delivery; italic is browser-synthesized when needed.
 - The Expo app uses platform system fonts (see [DESIGN.md](DESIGN.md)).
 
 Brand primitive ownership:
 
 - `brand.css` owns web font declarations and light/dark brand color anchors.
-- Synced CSS exposes brand variables as `--relab-brand-*` for docs and www.
+- Synced CSS exposes brand variables as `--r9lab-brand-*` for docs and www.
 - Consumer subrepos keep layout, spacing, component styles, shadows, radii, and
   app-specific theme behavior local.
 

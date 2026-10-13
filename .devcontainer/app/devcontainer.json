@@ -1,10 +1,10 @@
 {
-  "name": "relab-app",
+  "name": "r9lab-app",
   "dockerComposeFile": ["../../compose.yaml", "../../compose.dev.yaml"],
   "service": "app",
   "runServices": ["app"],
-  "workspaceFolder": "/opt/relab/app",
-  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "workspaceFolder": "/opt/r9lab/app",
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/r9lab,type=bind,consistency=cached"],
   "overrideCommand": true,
   "postAttachCommand": "echo 'R9lab app devcontainer ready.\\nUse this for focused app work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nApp: http://127.0.0.1:8011'",
   "features": {
