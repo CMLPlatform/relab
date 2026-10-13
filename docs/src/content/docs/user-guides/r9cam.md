@@ -42,8 +42,10 @@ Use this when automatic pairing is unavailable.
 1. **Add a camera in the app.** Go to Cameras > Add Camera > Manual setup. The platform generates
    relay credentials.
 1. **Copy credentials to the Pi.** Save the displayed JSON to
-   `~/.config/relab/relay_credentials.json`, or set the equivalent `RELAY_*` environment variables.
+   `~/.config/r9cam/relay_credentials.json`, or set the equivalent `RELAY_*` environment variables.
 1. **Restart the plugin** if it was already running.
+
+A Pi paired with an older r9cam release must be updated and paired again.
 
 ### Verify the registration
 

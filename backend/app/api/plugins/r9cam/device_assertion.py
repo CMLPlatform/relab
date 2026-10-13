@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-ASSERTION_AUDIENCE = "relab-rpi-cam-relay"
+ASSERTION_AUDIENCE = "r9cam-relay"
 ASSERTION_ALGORITHMS = ("ES256",)
 REPLAY_KEY_PREFIX = "r9cam:relay_assertion_jti:"
 MAX_ASSERTION_TTL_SECONDS = 5 * 60
