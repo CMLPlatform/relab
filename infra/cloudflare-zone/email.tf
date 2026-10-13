@@ -8,6 +8,8 @@ resource "cloudflare_email_routing_settings" "this" {
   count = local.email_enabled ? 1 : 0
 
   zone_id = var.cloudflare_zone_id
+  # Left unset, the provider reads this back as false and fails the apply as inconsistent.
+  support_subaddress = false
 }
 
 # Creates the MX and SPF records Email Routing needs.

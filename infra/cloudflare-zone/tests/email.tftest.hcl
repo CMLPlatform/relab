@@ -29,6 +29,11 @@ run "forwards_info" {
   }
 
   assert {
+    condition     = cloudflare_email_routing_settings.this[0].support_subaddress == false
+    error_message = "support_subaddress must be set: left null, the provider reads back false and fails the apply."
+  }
+
+  assert {
     condition = alltrue([
       length(cloudflare_email_routing_settings.this) == 1,
       length(cloudflare_email_routing_dns.this) == 1,
