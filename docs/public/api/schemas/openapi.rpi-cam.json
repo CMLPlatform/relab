@@ -270,7 +270,7 @@
         "type": "string"
       },
       "CameraProperties": {
-        "description": "Static camera properties from libcamera.\n\nFor more info, see https://libcamera.org/api-html/namespacelibcamera_1_1properties.html.",
+        "description": "Static camera properties from libcamera.\n\nFor more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/property_ids_core.yaml.",
         "properties": {
           "Model": {
             "anyOf": [
@@ -373,7 +373,7 @@
         "type": "object"
       },
       "CaptureMetadata": {
-        "description": "Dynamic capture metadata from libcamera.\n\nFor more info, see https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.",
+        "description": "Dynamic capture metadata from libcamera.\n\nFor more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/control_ids_core.yaml.",
         "properties": {
           "analogue_gain": {
             "anyOf": [
@@ -584,7 +584,7 @@
                 "type": "null"
               }
             ],
-            "description": "Expiration time for queue entries; None for successfully uploaded images.",
+            "description": "When the stored image expires, if the storage backend reports an expiry. None for queued captures, and None today for uploads too, since no sink sets it.",
             "title": "Expires At"
           },
           "image_id": {
