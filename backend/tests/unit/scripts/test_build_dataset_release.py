@@ -289,7 +289,7 @@ def test_parse_checksums_rejects_a_malformed_line() -> None:
 def test_attribution_string_is_verbatim() -> None:
     """The attribution string is fixed copy; it must render exactly as agreed."""
     assert ReleaseMetadata().attribution == (
-        "Relab Teardown Dataset v1.0 (2026). Van Lierde, S. & Donati, F. "
+        "R9lab Teardown Dataset v1.0 (2026). Van Lierde, S. & Donati, F. "
         "Institute of Environmental Sciences (CML), Leiden University. "
         "DOI: 10.5281/zenodo.XXXXXXX. Licensed under CC BY 4.0."
     )
