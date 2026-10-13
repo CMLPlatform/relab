@@ -9,7 +9,7 @@ description: Run the R9lab stack locally with Docker.
 
    ```bash
    git clone https://github.com/CMLPlatform/r9lab
-   cd relab
+   cd r9lab
    ```
 
 1. Install local tooling if you plan to modify code.

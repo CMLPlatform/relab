@@ -47,6 +47,10 @@ resource "github_repository_environment" "publish" {
   }
 
   lifecycle {
+    # Destroying the Environment deletes its hand-set secrets (CLOUDFLARE_API_TOKEN,
+    # FEATURED_PRODUCT_ID). A plan that replaces it, such as one applied before a repository
+    # rename has happened on GitHub, must fail instead.
+    prevent_destroy = true
     precondition {
       condition     = length(var.github_reviewers) > 0
       error_message = "an Environment needs at least one required reviewer: set TF_VAR_github_reviewers."

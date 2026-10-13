@@ -339,7 +339,10 @@ Sites reads the Worker names from the Environment, so for each environment, stag
 
    Expect only `~ update in-place`: `repository` changes on every resource, and `WWW_WORKER` and
    `DOCS_WORKER` take the new names. Stop on any `must be replaced`, add or destroy.
-1. Run Deploy Sites for the environment and approve it: it creates the two new Workers.
+1. Run Deploy Sites for the environment and approve it: it creates the two new Workers. Check
+   both `r9lab-*-<env>` Workers exist (the run is green, or the Workers dashboard lists them)
+   before the next step: its apply deletes each custom domain before recreating it on the new
+   Worker, so a missing Worker leaves the hostname unserved.
 1. `just cloudflare-apply <env>`: expect the two custom domains replaced (`service` changes) and
    nothing else. Then `just cloudflare-apply <env> YES`, and open both hostnames.
 1. The old Workers still hold the old zone's custom domains, which only exist so its redirect

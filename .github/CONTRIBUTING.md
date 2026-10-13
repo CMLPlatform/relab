@@ -61,7 +61,7 @@ and, for the frontend subrepos, Node.js at the version in `.node-version`. Then:
 
 ```bash
 git clone https://github.com/CMLPlatform/r9lab
-cd relab
+cd r9lab
 just setup
 ```
 
