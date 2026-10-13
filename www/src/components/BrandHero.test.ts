@@ -21,11 +21,10 @@ describe('BrandHero', () => {
   it('leads with the thesis and the nutshell', async () => {
     const html = await render();
     const title = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? '';
-    expect(title.replace(/<[^>]+>/g, '').trim()).toBe(
-      'Open product data for circular-economy research',
+    // The thesis reads in full, and the compound never breaks at its hyphen.
+    expect(title.trim()).toMatch(
+      /^Open product data for <span class="nowrap"[^>]*>circular-economy<\/span> research$/,
     );
-    // The compound never breaks at its hyphen.
-    expect(title).toMatch(/<span class="nowrap"[^>]*>circular-economy<\/span>/);
     expect(html).toMatch(/R9lab documents how durable goods come apart/);
   });
 
