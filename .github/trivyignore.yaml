@@ -63,6 +63,20 @@ vulnerabilities:
     expired_at: 2026-11-01
     statement: gRPC-Go xDS server crash DoS; caddy serves no gRPC and loads no xDS config.
 
+  # The caddy:2-alpine binary re-scanned on 2026-10-13: Go 1.26.8 with golang.org/x/net
+  # v0.59.0. These need Go 1.26.9 or x/net 0.60.0, and caddy v2.11.7 (the latest
+  # release) does not carry them. Caddy serves plain HTTP/1.1 only to the tunnel inside
+  # the Compose network: no TLS and no HTTP/2 reach it. Re-check when the digest is bumped.
+  - id: CVE-2026-78667
+    expired_at: 2026-11-01
+    statement: net/http Range header DoS; fixed in Go 1.26.9, no caddy release built with it yet.
+  - id: CVE-2026-78669
+    expired_at: 2026-11-01
+    statement: HTTP/2 SETTINGS flood DoS in net/http and x/net; caddy is reached over HTTP/1.1 only.
+  - id: CVE-2026-97031
+    expired_at: 2026-11-01
+    statement: crypto/tls ECH extension DoS; caddy terminates no TLS, the edge does.
+
 misconfigurations: []
 secrets: []
 licenses: []
