@@ -1,0 +1,43 @@
+{
+  "@context": "https://w3id.org/codemeta/3.0",
+  "@type": "SoftwareSourceCode",
+  "name": "R9lab - Data Collection Platform",
+  "description": "Data collection platform for photographs, bills of materials and measurements of disassembled products, supporting computer vision and life cycle assessment research.",
+  "version": "0.4.0",
+  "identifier": "https://doi.org/10.5281/zenodo.16637742",
+  "codeRepository": "https://github.com/CMLPlatform/relab",
+  "url": "https://r9lab.io",
+  "license": "https://spdx.org/licenses/AGPL-3.0-or-later",
+  "keywords": [
+    "circular economy",
+    "computer vision",
+    "data collection",
+    "industrial ecology",
+    "life cycle assessment",
+    "machine learning"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0009-0006-6953-909X",
+      "givenName": "Simon",
+      "familyName": "van Lierde",
+      "email": "s.n.van.lierde@cml.leidenuniv.nl",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-8287-2413",
+      "givenName": "Franco",
+      "familyName": "Donati",
+      "email": "f.donati@cml.leidenuniv.nl",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      }
+    }
+  ]
+}

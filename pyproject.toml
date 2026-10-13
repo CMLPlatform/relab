@@ -50,6 +50,9 @@
     "www/package.json:\"version\"",
     "backend/app/__version__.py:^version",
     "CITATION.cff:^version",
+    # Generated from CITATION.cff by scripts/sync_brand_assets.py; bumped here too so a
+    # release branch passes `just assets-check` without a re-sync.
+    "codemeta.json:\"version\"",
   ]
   version_provider = "npm"
   version_scheme   = "semver2"

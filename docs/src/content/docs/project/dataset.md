@@ -39,21 +39,21 @@ column a release carries.
 
 Following the [Dublin Core specifications](https://www.dublincore.org/specifications/dublin-core/):
 
-| Element     | Value                                                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Title       | Disassembly dataset of durable goods for circular economy and computer vision applications                                            |
-| Creators    | van Lierde, Simon: <https://orcid.org/0009-0006-6953-909X>                                                                            |
-| Creators    | Donati, Franco: <https://orcid.org/0000-0002-8287-2413>                                                                               |
-| Publisher   | Leiden University. Institute of Environmental Sciences (CML)                                                                          |
-| Subjects    | Computer vision, Circular economy, Remanufacturing, Life cycle assessment, Durable goods                                              |
-| Description | Data collection platform for disassembled power tool images and metadata supporting computer vision tasks for life cycle assessments. |
-| Date        | 2025-03/2026-08 (collection ongoing)                                                                                                  |
-| Types       | Dataset, Image, Software                                                                                                              |
-| Formats     | text/csv, image/jpeg, application/x-python, text/markdown                                                                             |
-| Identifier  | <https://github.com/CMLPlatform/relab>                                                                                                |
-| Language    | en-US                                                                                                                                 |
-| Coverage    | Products: Power tools; Time: 2025-03–2026-08, ongoing; Geographic location: NL                                                        |
-| Rights      | <https://creativecommons.org/licenses/by/4.0/>                                                                                        |
+| Element     | Value                                                                                                                                                                                                      |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title       | Disassembly dataset of durable goods for circular economy and computer vision applications                                                                                                                 |
+| Creators    | van Lierde, Simon: <https://orcid.org/0009-0006-6953-909X>                                                                                                                                                 |
+| Creators    | Donati, Franco: <https://orcid.org/0000-0002-8287-2413>                                                                                                                                                    |
+| Publisher   | Leiden University. Institute of Environmental Sciences (CML)                                                                                                                                               |
+| Subjects    | Computer vision, Circular economy, Remanufacturing, Life cycle assessment, Durable goods                                                                                                                   |
+| Description | Teardown records, bills of materials and photographs of disassembled durable goods, supporting computer vision and life cycle assessment research. Each release's README lists the product types it holds. |
+| Date        | 2025-03/.. (collection ongoing)                                                                                                                                                                            |
+| Types       | Dataset, Image, Software                                                                                                                                                                                   |
+| Formats     | application/vnd.apache.parquet, text/csv, application/ld+json, text/markdown; images keep their upload format (JPEG, PNG, WebP, GIF, TIFF or BMP)                                                          |
+| Identifier  | <https://github.com/CMLPlatform/relab>                                                                                                                                                                     |
+| Language    | en-US                                                                                                                                                                                                      |
+| Coverage    | Products: durable goods, with the product types each release holds listed in its README; Time: 2025-03 onward; Geographic location: NL                                                                     |
+| Rights      | <https://creativecommons.org/licenses/by/4.0/>                                                                                                                                                             |
 
 ## Building and depositing a release
 

@@ -112,7 +112,8 @@ def load_cpv_rows_from_excel(
         df = df[df["external_id"].apply(lambda x: any(x.startswith(prefix) for prefix in section_prefixes))]
 
     # Select only the needed columns and convert to list of dicts
-    return df[["external_id", "name"]].to_dict(orient="records")
+    # pandas-stubs types the keys as Hashable; these are the two column names above.
+    return [{"external_id": row["external_id"], "name": row["name"]} for row in df.to_dict(orient="records")]
 
 
 def get_cpv_parent_id(row: dict[str, Any], available_codes: set[str] | None = None) -> str | None:

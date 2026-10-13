@@ -6,12 +6,21 @@ import httpx
 import pytest
 
 from scripts import zenodo_deposit as zenodo
-from scripts.zenodo_deposit import fetch_deposition, main, release_files, upload_files
+from scripts.build_dataset_release import CROISSANT_FILES, BuildStats, ReleaseMetadata, render_croissant
+from scripts.zenodo_deposit import (
+    build_metadata,
+    fetch_deposition,
+    main,
+    read_croissant,
+    release_files,
+    upload_files,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 DROPPED = httpx.ConnectError("the connection dropped")
+DIGESTS = dict.fromkeys(CROISSANT_FILES, "0" * 64)
 
 
 def _release_dir(tmp_path: Path) -> Path:
@@ -102,3 +111,21 @@ def test_deposition_flag_uploads_into_the_named_draft(tmp_path, monkeypatch) -> 
     monkeypatch.setattr("sys.argv", ["zenodo_deposit", "--dir", str(tmp_path), "--deposition", "42"])
     main()
     assert captured["deposition_id"] == 42
+
+
+def test_metadata_is_read_from_the_built_release(tmp_path) -> None:
+    """The DOI record describes the archive it holds, not the script's defaults."""
+    meta = ReleaseMetadata(
+        version="1.1", product_classes=(("Coffee machines", 4),), software_version_doi="10.5281/zenodo.111"
+    )
+    (tmp_path / "croissant.json").write_text(
+        render_croissant(meta, BuildStats(records=4), DIGESTS, ["image/jpeg"]), encoding="utf-8"
+    )
+
+    metadata = build_metadata(ReleaseMetadata(), read_croissant(tmp_path))
+
+    assert metadata["title"] == f"{meta.title} v1.1"
+    assert metadata["version"] == "1.1"
+    assert "Coffee machines" in metadata["description"]
+    assert "Coffee machines" in metadata["keywords"]
+    assert metadata["related_identifiers"][0]["identifier"] == "10.5281/zenodo.111"
