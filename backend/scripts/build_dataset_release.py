@@ -289,6 +289,43 @@ class Creator:
 # Version DOI of software release v0.2.0, the last one to ship the pilot SQL dump.
 PILOT_DUMP_RELEASE_DOI = "10.5281/zenodo.19703316"
 
+BASE_KEYWORDS = ("circular economy", "computer vision", "life cycle assessment", "product teardown")
+# Zenodo and Croissant keywords are for search, not a full list; the README carries all of them.
+MAX_PRODUCT_TYPE_KEYWORDS = 10
+
+
+def product_type_label(name: str, description: str | None) -> str:
+    """Return the readable name of a product type.
+
+    CPV-seeded types keep the code in the name and the label in the description
+    (``scripts/seed/taxonomies/cpv.py``), so "CPV: 3023741" reads as its label instead.
+    """
+    if name.startswith("CPV:") and description:
+        return description
+    return name
+
+
+def tally_product_classes(
+    records: Iterable[Mapping[str, Any]], type_labels: Mapping[int, str]
+) -> tuple[tuple[tuple[str, int], ...], int]:
+    """Count base products per product type, most first, and the base products with no type.
+
+    Components are left out: the product class of a release is what was taken apart, not
+    the type of each part that came out of it.
+    """
+    counts: Counter[str] = Counter()
+    untyped = 0
+    for record in records:
+        if record["parent_id"] is not None:
+            continue
+        if record["product_type_id"] is None:
+            untyped += 1
+        else:
+            # A dangling id is left for verify() to report, not raised here.
+            type_id = record["product_type_id"]
+            counts[type_labels.get(type_id, f"product type {type_id}")] += 1
+    return tuple(sorted(counts.items(), key=lambda item: (-item[1], item[0]))), untyped
+
 
 @dataclass(frozen=True)
 class ReleaseMetadata:
@@ -312,25 +349,36 @@ class ReleaseMetadata:
     licence_url: str = "https://creativecommons.org/licenses/by/4.0/"
     homepage: str = "https://r9lab.io"
     repository: str = "https://github.com/CMLPlatform/relab"
-    description: str = (
-        "Teardown records and photographs of disassembled power tools, collected at the "
-        "Institute of Environmental Sciences (CML), Leiden University, to support computer "
-        "vision and life cycle assessment research on circular-economy strategies."
-    )
+    # (product type, base products) pairs for the records in scope, most products first.
+    # The build fills this from the data; the description, keywords and README scope
+    # derive from it, so no release can claim a product class it does not hold.
+    product_classes: tuple[tuple[str, int], ...] = ()
+    untyped_products: int = 0
     # Editorial, not derived from any database flag. Other contributors are credited
     # collectively and appear only as pseudonymous codes.
     named_lab_contributors: tuple[str, ...] = ("Oskar Imiolek",)
-    keywords: tuple[str, ...] = (
-        "circular economy",
-        "computer vision",
-        "life cycle assessment",
-        "power tools",
-        "product teardown",
-    )
     creators: tuple[Creator, ...] = (
         Creator("Van Lierde", "Simon", "https://orcid.org/0009-0006-6953-909X"),
         Creator("Donati", "Franco", "https://orcid.org/0000-0002-8287-2413"),
     )
+
+    @property
+    def description(self) -> str:
+        """Return the one-paragraph description, naming every product type in scope."""
+        labels = [label for label, _ in self.product_classes]
+        scope = "disassembled products"
+        if labels:
+            plural = "s" if len(labels) > 1 else ""
+            scope += f" of {len(labels)} product type{plural} ({', '.join(labels)})"
+        return (
+            f"Teardown records and photographs of {scope}, collected at the {self.affiliation}, "
+            "to support computer vision and life cycle assessment research on circular-economy strategies."
+        )
+
+    @property
+    def keywords(self) -> tuple[str, ...]:
+        """Return the fixed subject keywords plus the most frequent product types."""
+        return BASE_KEYWORDS + tuple(label for label, _ in self.product_classes[:MAX_PRODUCT_TYPE_KEYWORDS])
 
     @property
     def attribution(self) -> str:
@@ -842,17 +890,57 @@ async def export_reference_data(session: AsyncSession, reference_dir: Path) -> d
 
 
 ### Archive artefacts ###
+def known_biases(meta: ReleaseMetadata) -> list[tuple[str, str]]:
+    """Return the (label, text) bias notes shared by the README and croissant.json."""
+    if meta.product_classes:
+        count = len(meta.product_classes)
+        product_class = (
+            f"Base products span {count} product type{'s' if count > 1 else ''}, listed under Scope with "
+            "their counts. The counts are uneven, and nothing here generalises to product types the "
+            "release does not hold."
+        )
+    else:
+        product_class = (
+            "No base product carries a product type, so the release does not say which product classes it covers."
+        )
+    return [
+        ("Product class", product_class),
+        ("Geography", "Collected in the Netherlands, from Dutch second-hand and waste streams."),
+        ("Sample size", "Small n. Treat aggregate figures as indicative, not representative."),
+        (
+            "Capture setup",
+            (
+                "Photographs come from a small number of teardown benches and cameras, so background and "
+                "lighting are far more uniform than in the field."
+            ),
+        ),
+    ]
+
+
+def _product_type_table(meta: ReleaseMetadata) -> str:
+    """Render the in-scope product types as a Markdown table, with the untyped count after it."""
+    lines = ["| Product type | Base products |", "| --- | --- |"]
+    lines += [f"| {label.replace('|', r'\|')} | {count} |" for label, count in meta.product_classes]
+    if meta.untyped_products:
+        lines += ["", f"{meta.untyped_products} base product(s) carry no product type."]
+    return "\n".join(lines)
+
+
 def render_readme(meta: ReleaseMetadata, stats: BuildStats) -> str:
     """Render README.md."""
+    biases = "\n".join(f"- **{label}.** {text}" for label, text in known_biases(meta))
     return f"""# {meta.title} v{meta.version}
 
 {meta.description}
 
 ## Scope
 
-Release {meta.version} contains lab-authored records only: teardowns carried out in house at
-CML. Records contributed through the public platform by other accounts are out of scope and
-are not included.
+Release {meta.version} holds the records of contributors who accepted the R9lab contributor
+terms at version {MINIMUM_RELEASE_TERMS_VERSION} or later, the version that grants the publication
+licence. Records of other accounts, of shared workshop logins, and records named as scratch work
+are left out.
+
+{_product_type_table(meta)}
 
 - Records: {stats.records}
 - Images: {stats.images}
@@ -900,11 +988,7 @@ the salt but does not reveal it.
 
 ## Known biases
 
-- **Product class.** Power tools only. Nothing here generalises to other product categories.
-- **Geography.** Collected in the Netherlands, from Dutch second-hand and waste streams.
-- **Sample size.** Small n. Treat aggregate figures as indicative, not representative.
-- **Capture setup.** Photographs come from a small number of teardown benches and cameras,
-  so background and lighting are far more uniform than in the field.
+{biases}
 
 ## Licence
 
@@ -913,7 +997,7 @@ The full text is in `LICENSE.txt`.
 
 ### Trademarks are not licensed
 
-Teardown photographs of power tools show brand marks, logos and model numbers — that is
+Teardown photographs of products show brand marks, logos and model numbers — that is
 unavoidable in the subject matter. The licence covers the images and the data. It grants no
 rights in the trademarks visible in them; CC BY 4.0 says so in section 2(b)(2). Research,
 analysis, model training and publication of results are unaffected. If you intend to use
@@ -978,7 +1062,9 @@ def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
     released = stats.collection_end or datetime.now(tz=UTC)
     lines += [
         f'title: "{meta.title}"',
-        f'abstract: "{meta.description}"',
+        # JSON strings are valid YAML double-quoted scalars, so a quote in a data-derived
+        # product type label cannot break the file.
+        f"abstract: {json.dumps(meta.description)}",
         f'version: "{meta.version}"',
         "identifiers:",
         "  - type: doi",
@@ -988,7 +1074,7 @@ def render_citation_cff(meta: ReleaseMetadata, stats: BuildStats) -> str:
         f"url: {meta.homepage}",
         f'license: "{meta.licence_spdx}"',
         "keywords:",
-        *[f'  - "{keyword}"' for keyword in meta.keywords],
+        *[f"  - {json.dumps(keyword)}" for keyword in meta.keywords],
         "references:",
         "  - type: software",
         f'    title: "{meta.title} source platform"',
@@ -1034,8 +1120,8 @@ def render_changelog(meta: ReleaseMetadata, stats: BuildStats) -> str:
 
 ## v{meta.version} — {datetime.now(tz=UTC):%Y-%m-%d}
 
-- First public release: {stats.records} lab-authored records and {stats.images} images,
-  licensed under {meta.licence_name}.
+- First public release: {stats.records} records and {stats.images} images from contributors
+  who accepted the contributor terms, licensed under {meta.licence_name}.
 - Tabular records plus an image tree, replacing the PostgreSQL dump
   (`RELab-pilot-dataset.sql.zst`) that shipped inside software release v0.2.0
   ({PILOT_DUMP_RELEASE_DOI}). That pilot file is superseded, not retracted.
@@ -1670,6 +1756,14 @@ async def _build(out: Path, rules: SelectionRules, salt: str, meta: ReleaseMetad
     write_parquet(out / "records.parquet", RECORDS_SCHEMA, records)
     write_parquet(out / "record_materials.parquet", RECORD_MATERIALS_SCHEMA, record_materials)
     write_csv(out / "manifest.csv", MANIFEST_HEADER, ([row[name] for name in MANIFEST_HEADER] for row in manifest))
+
+    # Read back from the frozen table, so the scope text names what the archive ships.
+    type_labels = {
+        row["id"]: product_type_label(row["name"], row["description"])
+        for row in read_parquet(out / "reference/product_types.parquet")
+    }
+    classes, untyped = tally_product_classes(records, type_labels)
+    meta = replace(meta, product_classes=classes, untyped_products=untyped)
 
     created = [row["created_at"] for row in records if row["created_at"]]
     stats = BuildStats(

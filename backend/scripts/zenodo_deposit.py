@@ -19,6 +19,7 @@ Typical run, after ``just release-build``::
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import time
@@ -32,7 +33,7 @@ from app.core.logging import setup_logging
 from scripts.build_dataset_release import REVIEW_DIR, ReleaseMetadata, iter_archive_files, verify
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Mapping, Sequence
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -58,12 +59,22 @@ def read_token(sandbox: bool) -> str:  # noqa: FBT001  # single flag, mirrors th
     raise SystemExit(msg)
 
 
-def build_metadata(meta: ReleaseMetadata) -> dict[str, Any]:
-    """Return the Zenodo deposition metadata for *meta*."""
+def read_croissant(directory: Path) -> dict[str, Any]:
+    """Return the built release's croissant.json."""
+    return json.loads((directory / "croissant.json").read_text(encoding="utf-8"))
+
+
+def build_metadata(meta: ReleaseMetadata, croissant: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the Zenodo deposition metadata for a built release.
+
+    What depends on the data or on the build flags (title, version, description, keywords,
+    the software version DOI) is read from the release's own croissant.json, so the record
+    describes the archive it holds. Only the fixed creator list comes from *meta*.
+    """
     return {
-        "title": f"{meta.title} v{meta.version}",
+        "title": f"{croissant['name']} v{croissant['version']}",
         "upload_type": "dataset",
-        "description": meta.description,
+        "description": croissant["description"],
         "creators": [
             {
                 "name": f"{creator.family_names}, {creator.given_names}",
@@ -74,12 +85,12 @@ def build_metadata(meta: ReleaseMetadata) -> dict[str, Any]:
         ],
         "license": "cc-by-4.0",
         "access_right": "open",
-        "version": meta.version,
-        "keywords": list(meta.keywords),
+        "version": croissant["version"],
+        "keywords": list(croissant["keywords"]),
         "related_identifiers": [
             {
                 # Provenance pins the version DOI, not the concept DOI.
-                "identifier": meta.software_version_doi,
+                "identifier": croissant["isBasedOn"].removeprefix("https://doi.org/"),
                 "relation": "isDerivedFrom",
                 "resource_type": "software",
                 "scheme": "doi",
@@ -173,7 +184,7 @@ def deposit(
         upload_files(client, deposition["links"]["bucket"], directory, files)
         response = client.put(
             f"{base}/deposit/depositions/{deposition_id}",
-            json={"metadata": build_metadata(meta)},
+            json={"metadata": build_metadata(meta, read_croissant(directory))},
         )
         response.raise_for_status()
     logger.info(
@@ -202,8 +213,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dir", type=Path, help="built release directory (required unless --publish)")
-    parser.add_argument("--version", default=ReleaseMetadata.version, help="dataset version")
-    parser.add_argument("--doi", default=ReleaseMetadata.doi, help="DOI once the record exists")
     parser.add_argument("--parent", type=int, default=None, help="published record id to add a new version to")
     parser.add_argument(
         "--deposition",
@@ -232,8 +241,7 @@ def main() -> None:
     if args.dir is None:
         msg = "--dir is required."
         raise SystemExit(msg)
-    meta = ReleaseMetadata(version=args.version, doi=args.doi)
-    deposit(args.dir, meta, sandbox=args.sandbox, parent=args.parent, deposition_id=args.deposition)
+    deposit(args.dir, ReleaseMetadata(), sandbox=args.sandbox, parent=args.parent, deposition_id=args.deposition)
 
 
 if __name__ == "__main__":

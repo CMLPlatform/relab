@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+import yaml
 from PIL import Image as PILImage
 from PIL.ExifTags import IFD
 
@@ -52,6 +53,7 @@ from scripts.build_dataset_release import (
     missing_references,
     parse_args,
     parse_checksums,
+    product_type_label,
     provenance_flags,
     pseudonymise,
     read_parquet,
@@ -65,6 +67,7 @@ from scripts.build_dataset_release import (
     select_records,
     selection_rules,
     summarise_owner,
+    tally_product_classes,
     verify,
     write_artefacts,
     write_checksums,
@@ -289,6 +292,87 @@ def test_attribution_substitutes_a_real_doi() -> None:
     meta = ReleaseMetadata(doi="10.5281/zenodo.12345678")
     assert "DOI: 10.5281/zenodo.12345678." in meta.attribution
     assert "XXXXXXX" not in meta.attribution
+
+
+### Scope derived from the data ###
+CLASSES = (("Power drills", 3), ("Vacuum cleaners", 2), ("Coffee machines", 1))
+
+
+def _scoped(**overrides: Any) -> ReleaseMetadata:
+    return ReleaseMetadata(product_classes=CLASSES, **overrides)
+
+
+def test_cpv_product_types_read_as_their_label() -> None:
+    """CPV seeds keep the code in the name; the label in the description is what a reader needs."""
+    assert product_type_label("CPV: 4271", "Power drills") == "Power drills"
+    assert product_type_label("CPV: 4271", None) == "CPV: 4271"
+    assert product_type_label("Laptop", "Portable computers") == "Laptop"
+
+
+def test_tally_counts_base_products_per_type_most_first() -> None:
+    """Components do not make a product class; untyped base products are counted apart."""
+    records = [
+        _record(id=1, parent_id=None, product_type_id=5),
+        _record(id=2, parent_id=None, product_type_id=5),
+        _record(id=3, parent_id=None, product_type_id=6),
+        _record(id=4, parent_id=None, product_type_id=None),
+        _record(id=5, parent_id=1, product_type_id=7),
+    ]
+    classes, untyped = tally_product_classes(records, {5: "Power drills", 6: "Kettles", 7: "Motors"})
+    assert classes == (("Power drills", 2), ("Kettles", 1))
+    assert untyped == 1
+
+
+def test_description_names_every_product_class_in_scope() -> None:
+    """The DOI record must not claim a narrower or wider scope than the data holds."""
+    description = _scoped().description
+    for label, _ in CLASSES:
+        assert label in description
+    assert "3 product types" in description
+
+
+def test_no_scope_text_hardcodes_power_tools() -> None:
+    """A release without power tools must not say it holds only power tools."""
+    meta = ReleaseMetadata(product_classes=(("Coffee machines", 4),))
+    texts = [
+        meta.description,
+        " ".join(meta.keywords),
+        render_readme(meta, BuildStats(records=4, images=1, owners=1)),
+        render_citation_cff(meta, BuildStats(records=4, images=1, owners=1)),
+    ]
+    assert not any("power tool" in text.lower() for text in texts)
+
+
+def test_keywords_add_the_most_frequent_product_types() -> None:
+    """Keywords are for search: the fixed subjects plus the leading product types, capped."""
+    many = tuple((f"Type {index:02d}", 100 - index) for index in range(15))
+    keywords = ReleaseMetadata(product_classes=many).keywords
+    assert keywords[:4] == ("circular economy", "computer vision", "life cycle assessment", "product teardown")
+    assert keywords[4:] == tuple(f"Type {index:02d}" for index in range(10))
+
+
+def test_readme_lists_each_product_type_with_its_count() -> None:
+    """The README carries the full list that the keywords only sample."""
+    readme = render_readme(_scoped(untyped_products=2), BuildStats(records=8, images=1, owners=1))
+    assert "| Power drills | 3 |" in readme
+    assert "| Coffee machines | 1 |" in readme
+    assert "2 base product(s) carry no product type." in readme
+    assert "Base products span 3 product types" in readme
+
+
+def test_readme_scope_states_the_consent_rule_not_a_lab_only_claim() -> None:
+    """Scope is decided by consent, so the README must not promise lab-authored records only."""
+    readme = " ".join(render_readme(_scoped(), BuildStats(records=1, images=1, owners=1)).split())
+    assert f"at version {MINIMUM_RELEASE_TERMS_VERSION} or later" in readme
+    assert "lab-authored" not in readme
+
+
+def test_citation_cff_stays_valid_yaml_with_a_quote_in_a_label() -> None:
+    """Labels come from the database now, so they must not be able to break the file."""
+    meta = ReleaseMetadata(product_classes=(('12" monitors', 1),))
+    cff = yaml.safe_load(render_citation_cff(meta, BuildStats(records=1, images=1, owners=1)))
+    assert '12" monitors' in cff["abstract"]
+    assert '12" monitors' in cff["keywords"]
 
 
 ### Croissant ###
