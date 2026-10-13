@@ -3,7 +3,7 @@
   "@type": "SoftwareSourceCode",
   "name": "R9lab - Data Collection Platform",
   "description": "Data collection platform for photographs, bills of materials and measurements of disassembled products, supporting computer vision and life cycle assessment research.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "identifier": "https://doi.org/10.5281/zenodo.16637742",
   "codeRepository": "https://github.com/CMLPlatform/relab",
   "url": "https://r9lab.io",

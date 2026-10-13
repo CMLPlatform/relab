@@ -7,127 +7,71 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-**Upgrading:** the public domain moves to r9lab.io and the product is called R9lab.
-Everyone signs in again once, because the session cookies are renamed (see Changed).
-Self-hosters set their own `*_PUBLIC_URL`, `EMAIL_*` and `SMTP_*` values in the root `.env`;
-the defaults now point at r9lab.io. Operators of the reference deployment follow the
-zone-move runbook in `infra/cloudflare/README.md`, and now pass the zone to the zone recipes:
-`just cloudflare-zone-plan <zone>` and `just cloudflare-zone-apply <zone>`.
+## [0.5.0] - 2026-10-13
 
-**Upgrading (API clients):** the API base URL is now `https://api.r9lab.io`. The old host only
-redirects (307 or 308) for a transition period. Change the base URL rather than rely on that
-redirect: most HTTP clients drop the `Authorization` header when a redirect moves to another
-host, browsers do not follow redirects on CORS preflight requests, and the session cookies are
-bound to the host that set them.
+The platform moves to r9lab.io and is now called R9lab. The old cml-relab.org addresses
+redirect for now.
 
-**Upgrading:** the Cloudflare tunnel token moves from the host's root `.env` into a secret
-file. On each deploy host, before the next `just stack <env> up`, run from the checkout:
+**Upgrading:**
 
-```bash
-env=prod   # or staging
-grep '^CLOUDFLARE_TUNNEL_TOKEN=' .env | cut -d= -f2- | tr -d "\"'" >"secrets/$env/cloudflare_tunnel_token"
-chmod 644 "secrets/$env/cloudflare_tunnel_token"
-```
+- Everyone signs in again once: the session cookies are renamed.
+- API clients: switch the base URL to `https://api.r9lab.io`. The old host only redirects
+  for a while, and most clients drop the `Authorization` header on a redirect to another host.
+- Self-hosters: set your own `*_PUBLIC_URL`, `EMAIL_*` and `SMTP_*` values in the root `.env`
+  (the defaults now point at r9lab.io), and move the tunnel token out of `.env`:
 
-Then delete the `CLOUDFLARE_TUNNEL_TOKEN` line from `.env`. Until the file exists, `up`
-stops before touching the running stack and prints these steps.
+  ```bash
+  env=prod   # or staging
+  grep '^CLOUDFLARE_TUNNEL_TOKEN=' .env | cut -d= -f2- | tr -d "\"'" >"secrets/$env/cloudflare_tunnel_token"
+  chmod 644 "secrets/$env/cloudflare_tunnel_token"
+  ```
+
+  Then delete the `CLOUDFLARE_TUNNEL_TOKEN` line. `up` refuses to start until the file exists.
+- The zone recipes take the zone: `just cloudflare-zone-plan <zone>`. Moving zones is
+  described in `infra/cloudflare/README.md`.
 
 ### Added
 
-- The zone OpenTofu root keeps one workspace per zone. Both OpenTofu roots refuse a plan whose
-  zone id belongs to another zone.
-- The zone root can redirect every host of a previous zone to the new one
-  (`redirect_to_zone_name`), one environment at a time (`redirect_environments`). The
-  redirects are temporary (302/307) until `redirect_permanent` is set, then permanent
-  (301/308).
-- The zone root can forward mail through Cloudflare Email Routing (`email_forwards`,
-  `cloudflare_account_id`); `r9lab.io.tfvars` forwards `info@r9lab.io`.
-- `just smoke-redirects` checks that the old hosts redirect to the new ones. It sends
-  `TELEMETRY_EDGE_KEY` as `X-Telemetry-Key` for the telemetry probe.
-- On a product or component page, each component row now expands to show its own
-  components, and theirs, as deep as the breakdown goes.
-- The components list shows the total weight of the components, from the weights recorded on
-  each one times its amount. When some components have no weight, it says how many and shows
-  the total as a lower bound.
-- Franco Donati and Marin Visscher are credited as contributors in `codemeta.json`,
-  `.zenodo.json` and the docs colophon.
-- A `.zenodo.json`, generated from `CITATION.cff` and `assets/project.json` by
-  `just assets-sync`, gives Zenodo the title, abstract, authors, contributors and licence for
-  each release. Zenodo reads it in place of
-  `CITATION.cff`, and until now used the old GitHub repository description as the abstract.
+- Component rows expand all the way down the breakdown, and the components list shows their
+  total weight (a lower bound when some weights are missing).
+- OpenTofu can redirect an old zone to a new one, one environment at a time, and forward mail
+  with Cloudflare Email Routing. `just smoke-redirects` checks the redirects.
+- A generated `.zenodo.json` gives Zenodo the right title, abstract, authors and licence, and
+  Franco Donati and Marin Visscher are credited as contributors.
 
 ### Changed
 
-- **Breaking:** the session cookies are renamed to `__Host-r9lab-auth`, `__Host-r9lab-refresh`
-  and `__Host-r9lab-oauth-csrf`. The old names are no longer accepted, so every user signs in
-  again once.
-- The product is called R9lab in all user-facing text. The two-factor issuer label is now
-  "R9lab"; authenticator entries already added keep the old label, and their codes still work.
-- Public URLs and contact addresses default to r9lab.io (`info@r9lab.io`).
-- The edge OpenTofu root defaults to the r9lab.io zone. A transitional `legacy_zone_name`
-  keeps the previous zone's hosts served until the move is done.
+- **Breaking:** the session cookies are now `__Host-r9lab-auth`, `__Host-r9lab-refresh` and
+  `__Host-r9lab-oauth-csrf`. The old names no longer work.
 - **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
-  `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`, `pages`, `links`)
-  instead of a bare list. Pass `page` and `size` to walk the results.
-- `GET /v1/products/{id}/components/tree` answers 400 when a tree has more than 1,000
-  components; use the paged components route for larger products.
-- `GET /v1/products/{id}/components/tree` accepts `recursion_depth` up to 10, as deep as
-  components can nest, instead of 5.
-- Deleting a product, erasing an account with its content, and creating a product with
-  components each take a fixed number of database queries, however many components there are.
-- The privacy policy now says how long backups keep deleted accounts and uploads:
-  up to 13 months, and backups taken by hand before maintenance until we delete them.
-- The web app downloads about 14 KB less JavaScript before its first screen: the image
-  lightbox, measurement cube, capture screen and streaming sheet now load when first shown.
-- Photo uploads finish faster: thumbnails are made from one decode of the original, about
-  four times quicker for a 12 MP photo.
-- The API no longer generates a 2560px image derivative; `thumbnail_urls` tops
-  out at 1600px. Clients that need more, such as a full-screen lightbox on a high-density
-  phone, load the original. Existing 2560px files are removed by the daily storage cleanup,
-  which cuts about a fifth of the space each photo takes.
-- `codemeta.json` uses the CodeMeta 4.0 context.
-- The software citation names Simon van Lierde as its only author. Earlier Zenodo versions
-  also listed Franco Donati as an author; from the next release he is listed as a contributor.
+  `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`,
+  `pages`, `links`) instead of a list. `GET /v1/products/{id}/components/tree` goes 10 levels
+  deep and answers 400 above 1,000 components.
+- The product is called R9lab everywhere, including the authenticator label. Existing
+  authenticator entries keep the old label and still work.
+- Public URLs and the contact address are on r9lab.io (`info@r9lab.io`).
+- Photo uploads are about four times faster, and the 2560px image size is gone:
+  `thumbnail_urls` stops at 1600px, and the daily cleanup removes old 2560px files.
+- The web app loads about 14 KB less JavaScript before the first screen.
+- Deleting products and accounts and creating products with components take a fixed number of
+  database queries.
+- The privacy policy says backups keep deleted data for up to 13 months.
+- The software citation lists Simon van Lierde as author and Franco Donati as contributor.
 
 ### Fixed
 
-- In the web app, expanding a component in a product's component list no longer draws its
-  sub-components on top of the rows below it.
-- On a phone, the amount stepper in edit mode fits the screen, and a deeply nested
-  component's header shows its parent and its own name instead of running off the edge.
-- Keyboard and screen-reader focus starts on the record's name when a product or component
-  page opens, instead of at the top of the document.
-- The delete confirmation says that a record's components, and all their photos and files,
-  are deleted with it.
-- The profile and account screens show a total weight under 1 kg in grams ("164 g") instead
-  of a rounded "0.16 kg". The API's `total_weight_kg` now keeps three decimals.
-- A photo taken with a paired camera now counts toward its owner's photo total, and the
-  account screen's counts refresh after a save, delete or capture.
-- Text-field placeholders are lighter, so an example no longer reads as a filled-in value.
-- In edit mode an empty materials list is hidden, since materials are recorded through the
-  API. In view mode an empty list shows a dash.
-- The sign-in screen has a visible "Sign in" heading, the create-account form sits in the
-  page's main region, and on a phone the account and cameras screens have a single top-level
-  heading.
-- When the ClamAV scanner answers an upload with an error, the API log now includes its
-  reply, so a rejected upload can be traced to its cause. Clients still see only that
-  scanning is unavailable.
-- The deploy watchdog no longer reports a host that runs a release image as drifted
-  because `main` has moved on. With `IMAGE_TAG` set to a version, it checks that the
-  checkout contains that release's git tag, and alerts if the tag is missing or newer
-  than the checkout.
-- Rows on the profile screen, such as "Delete account?", now tint when hovered or pressed
-- The API reference pages no longer request fonts that the docs site's content
-  security policy blocks.
+- Several app layout, focus and heading fixes on web and phone, including the nested
+  component list, the amount stepper and the sign-in heading.
+- Weights under 1 kg show in grams, and photos from a paired camera count toward their owner.
+- The API logs ClamAV's reply when it rejects an upload.
+- The deploy watchdog no longer flags a host on a release image as behind `main`.
+- The API reference no longer loads fonts that the docs CSP blocks.
 
 ### Security
 
-- The docs site now blocks inline scripts other than its own, hashed at build
-  time, instead of allowing any inline script.
-- **Breaking** for self-hosters: the Cloudflare tunnel reads its token from
-  `secrets/<env>/cloudflare_tunnel_token` instead of an environment variable, and runs
-  with a read-only filesystem. `just stack <env> up` refuses to start while a required
-  secret file is missing or empty.
+- The docs site allows only its own hashed inline scripts.
+- **Breaking** for self-hosters: the tunnel reads its token from
+  `secrets/<env>/cloudflare_tunnel_token` and runs with a read-only filesystem.
 
 ## [0.4.0] - 2026-10-02
 
@@ -591,7 +535,8 @@ Initial release of the Relab platform for circular economy and computer vision r
 - Image and video upload for products
 - Raspberry Pi Camera Plugin for remote image capture
 
-[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/CMLPlatform/relab/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/CMLPlatform/relab/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1
