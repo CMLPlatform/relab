@@ -356,19 +356,32 @@ user. Move them during the rename window, at the start of its step 9: after the 
 before `timers-install`, so the scheduled jobs are installed once, from the new path. From the sudo
 account:
 
+Close every shell open as `relab` first, including `sudo -iu relab` sessions in other terminals:
+`usermod` refuses while the user has any process. Run the block as one script so it stops at the
+first failure instead of moving directories for a user that was not renamed:
+
 ```bash
 sudo -u relab just stack prod down YES   # from /opt/relab
-sudo systemctl stop "user@$(id -u relab).service"; pgrep -u relab   # must print nothing
-sudo usermod -l r9lab -d /var/lib/r9lab -m relab && sudo groupmod -n r9lab relab
+bash -euo pipefail <<'EOF'
+sudo systemctl stop "user@$(id -u relab).service"
+test -z "$(pgrep -u relab || true)" || { ps -o pid,etime,cmd -u relab; exit 1; }
+sudo usermod -l r9lab -d /var/lib/r9lab -m relab
+sudo groupmod -n r9lab relab
 sudo mv /opt/relab /opt/r9lab
-sudo install -d -m 0755 /etc/r9lab && sudo mv /etc/relab/relab.env /etc/r9lab/r9lab.env && sudo rmdir /etc/relab
+sudo install -d -m 0755 /etc/r9lab
+sudo mv /etc/relab/relab.env /etc/r9lab/r9lab.env
+sudo rmdir /etc/relab
+# The user's ssh config names its GitHub keys by absolute path under the old home.
+sudo -u r9lab sed -i 's#/var/lib/relab/#/var/lib/r9lab/#' /var/lib/r9lab/.ssh/config
 # The moved virtualenvs still carry the old absolute paths: rebuild them.
 sudo -iu r9lab sh -c 'cd /opt/r9lab && uv sync --frozen && cd backend && uv sync --all-groups --frozen'
+EOF
 ```
 
 `usermod -l` keeps the UID, so other services on the host that run as the deploy user keep working.
 Anything that names the user needs the new name: sudo rules, `sudo -u` commands, a cron or systemd
-`User=` line.
+`User=` line, and any absolute path into its home (its `~/.ssh/config` above). Check with
+`sudo -iu r9lab git -C /opt/r9lab fetch origin`.
 
 If `BACKUP_HOST_DIR` in `.env` points under a renamed directory, move that directory and update the
 variable. Change only the path inside the deploy key's `command="..."` in
