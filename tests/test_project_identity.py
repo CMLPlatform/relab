@@ -151,3 +151,26 @@ def test_one_software_name_across_the_citation_surfaces() -> None:
     assert zenodo["title"] == citation["title"]
     # Zenodo takes the version from the release tag; a copy here would go stale on the next bump.
     assert "version" not in zenodo
+
+
+def test_one_author_list_and_one_contributor_list_across_the_citation_surfaces() -> None:
+    """CITATION.cff, codemeta.json and .zenodo.json cite the same authors and credit the same contributors.
+
+    Contributors are credited, not cited, so none of them may appear among the authors.
+    """
+    citation = yaml.safe_load(sync_brand_assets.CITATION_SOURCE.read_text())
+    codemeta = json.loads(sync_brand_assets.CODEMETA_TARGET.read_text())
+    zenodo = json.loads(sync_brand_assets.ZENODO_TARGET.read_text())
+
+    authors = [(p["family-names"], p["given-names"]) for p in citation["authors"]]
+    assert authors == [("van Lierde", "Simon")]
+    assert [(p["familyName"], p["givenName"]) for p in codemeta["author"]] == authors
+    assert [p["name"] for p in zenodo["creators"]] == [f"{f}, {g}" for f, g in authors]
+
+    contributors = [(p["familyName"], p["givenName"]) for p in codemeta["contributor"]]
+    assert contributors == [("Donati", "Franco"), ("Visscher", "Marin")]
+    assert [p["name"] for p in zenodo["contributors"]] == [f"{f}, {g}" for f, g in contributors]
+    assert [p["orcid"] for p in zenodo["contributors"]] == [
+        p["@id"].removeprefix("https://orcid.org/") for p in codemeta["contributor"]
+    ]
+    assert all(p.get("type") for p in zenodo["contributors"]), "Zenodo rejects a contributor without a type"

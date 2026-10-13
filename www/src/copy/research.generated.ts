@@ -6,7 +6,7 @@
 export const research = {
   "affiliation": "A research platform of the Institute of Environmental Sciences (CML), Leiden University",
   "institution": "Institute of Environmental Sciences (CML), Leiden University",
-  "authors": "Simon van Lierde, Franco Donati and Marin Visscher, Department of Industrial Ecology, CML",
+  "authors": "Simon van Lierde, Department of Industrial Ecology, CML",
   "citationUrl": "https://doi.org/10.5281/zenodo.16637742",
   "doi": "10.5281/zenodo.16637742",
   "licence": "AGPL-3.0-or-later",

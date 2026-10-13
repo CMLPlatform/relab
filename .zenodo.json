@@ -8,16 +8,20 @@
       "name": "van Lierde, Simon",
       "orcid": "0009-0006-6953-909X",
       "affiliation": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
-    },
+    }
+  ],
+  "contributors": [
     {
       "name": "Donati, Franco",
       "orcid": "0000-0002-8287-2413",
-      "affiliation": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      "affiliation": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University",
+      "type": "Supervisor"
     },
     {
       "name": "Visscher, Marin",
       "orcid": "0000-0002-1847-5181",
-      "affiliation": "Resource Engineering, Faculty of Civil Engineering and Geosciences, Delft University of Technology"
+      "affiliation": "Resource Engineering, Faculty of Civil Engineering and Geosciences, Delft University of Technology",
+      "type": "ProjectMember"
     }
   ],
   "license": "agpl-3.0-or-later",

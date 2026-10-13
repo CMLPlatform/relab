@@ -454,6 +454,8 @@ def load_project_identity() -> dict:
         "department": project["department"],
         "authors": f"{joined}, {project['department']}, {project['institutionShort']}",
         "people": [{"name": n, "orcid": p.get("orcid", "")} for n, p in zip(names, people, strict=True)],
+        # Credited, not cited: CFF has no contributor role, so these come from project.json.
+        "contributors": project.get("contributors", []),
         "doi": doi,
         "citationUrl": f"https://doi.org/{doi}",
         "licence": citation["license"],
@@ -494,6 +496,10 @@ def render_docs_colophon_astro(identity: dict) -> str:
             for p in identity["people"]
         ]
     )
+    if identity["contributors"]:
+        people += ", with contributions from " + join_as_sentence(
+            [_escape(f"{p['given-names']} {p['family-names']}") for p in identity["contributors"]]
+        )
     data = identity["dataLicence"]
     return f"""---
 // {IDENTITY_HEADER}
@@ -539,26 +545,40 @@ def render_codemeta_json(identity: dict) -> str:
         "url": citation["url"],
         "license": f"https://spdx.org/licenses/{citation['license']}",
         "keywords": citation.get("keywords", []),
-        "author": [
-            {
-                "@type": "Person",
-                **({"@id": person["orcid"]} if person.get("orcid") else {}),
-                "givenName": person["given-names"],
-                "familyName": person["family-names"],
-                **({"email": person["email"]} if person.get("email") else {}),
-                **(
-                    {"affiliation": {"@type": "Organization", "name": person["affiliation"]}}
-                    if person.get("affiliation")
-                    else {}
-                ),
-            }
-            for person in citation["authors"]
-        ],
+        "author": [_codemeta_person(person) for person in citation["authors"]],
     }
+    if identity["contributors"]:
+        document["contributor"] = [_codemeta_person(person) for person in identity["contributors"]]
     return json.dumps(document, indent=2, ensure_ascii=False) + "\n"
 
 
-def render_zenodo_json() -> str:
+def _codemeta_person(person: dict) -> dict:
+    """Render a CFF-shaped person as a CodeMeta (schema.org) Person."""
+    return {
+        "@type": "Person",
+        **({"@id": person["orcid"]} if person.get("orcid") else {}),
+        "givenName": person["given-names"],
+        "familyName": person["family-names"],
+        **({"email": person["email"]} if person.get("email") else {}),
+        **(
+            {"affiliation": {"@type": "Organization", "name": person["affiliation"]}}
+            if person.get("affiliation")
+            else {}
+        ),
+    }
+
+
+def _zenodo_person(person: dict) -> dict:
+    """Render a CFF-shaped person as a Zenodo creator or contributor: "Family, Given" and a bare ORCID."""
+    return {
+        "name": f"{person['family-names']}, {person['given-names']}",
+        **({"orcid": person["orcid"].removeprefix("https://orcid.org/")} if person.get("orcid") else {}),
+        **({"affiliation": person["affiliation"]} if person.get("affiliation") else {}),
+        **({"type": person["zenodoType"]} if person.get("zenodoType") else {}),
+    }
+
+
+def render_zenodo_json(identity: dict) -> str:
     """Generate .zenodo.json (Zenodo deposit metadata) from CITATION.cff, so the two cannot disagree.
 
     No version or date: Zenodo takes those from the GitHub release, so nothing here needs a
@@ -572,14 +592,12 @@ def render_zenodo_json() -> str:
         "access_right": "open",
         "title": citation["title"],
         "description": citation["abstract"],
-        "creators": [
-            {
-                "name": f"{person['family-names']}, {person['given-names']}",
-                **({"orcid": person["orcid"].removeprefix("https://orcid.org/")} if person.get("orcid") else {}),
-                **({"affiliation": person["affiliation"]} if person.get("affiliation") else {}),
-            }
-            for person in citation["authors"]
-        ],
+        "creators": [_zenodo_person(person) for person in citation["authors"]],
+        **(
+            {"contributors": [_zenodo_person(person) for person in identity["contributors"]]}
+            if identity["contributors"]
+            else {}
+        ),
         "license": citation["license"].lower(),
         "keywords": citation.get("keywords", []),
     }
@@ -593,7 +611,7 @@ def sync_project_identity(*, check: bool) -> list[str]:
         (WWW_RESEARCH_TARGET, render_www_research_ts(identity)),
         (DOCS_COLOPHON_TARGET, render_docs_colophon_astro(identity)),
         (CODEMETA_TARGET, render_codemeta_json(identity)),
-        (ZENODO_TARGET, render_zenodo_json()),
+        (ZENODO_TARGET, render_zenodo_json(identity)),
     )
     return [stale for target, content in outputs if (stale := write_or_check(target, content, check=check))]
 

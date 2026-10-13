@@ -44,7 +44,6 @@ describe('SiteFooter', () => {
     const html = await render();
     expect(html).toContain('Institute of Environmental Sciences (CML), Leiden University');
     expect(html).toContain('Simon van Lierde');
-    expect(html).toContain('Franco Donati');
     expect(html).toContain('Sectorplan Gelden');
   });
 

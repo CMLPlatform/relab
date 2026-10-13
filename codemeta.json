@@ -27,13 +27,14 @@
         "@type": "Organization",
         "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
       }
-    },
+    }
+  ],
+  "contributor": [
     {
       "@type": "Person",
       "@id": "https://orcid.org/0000-0002-8287-2413",
       "givenName": "Franco",
       "familyName": "Donati",
-      "email": "f.donati@cml.leidenuniv.nl",
       "affiliation": {
         "@type": "Organization",
         "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
