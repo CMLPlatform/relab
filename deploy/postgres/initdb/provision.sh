@@ -167,6 +167,24 @@ SELECT format('ALTER TYPE %I.%I OWNER TO %I', n.nspname, t.typname, :'migration_
 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
 WHERE n.nspname = 'public' AND t.typtype = 'e' AND pg_get_userbyid(t.typowner) <> :'migration_user'
 \gexec
+-- A restore with --no-owner leaves everything it creates owned by the superuser,
+-- so routines (relab_unaccent), text search configurations (public.relab) and the
+-- schema itself need the same treatment. Extension members keep their owner.
+-- NOTE: a new kind of object in public (views, domains, text search dictionaries)
+-- must be added here and to the ownership check in smoke_restore_renamed_roles.
+SELECT format('ALTER ROUTINE %I.%I(%s) OWNER TO %I', n.nspname, p.proname,
+              pg_get_function_identity_arguments(p.oid), :'migration_user')
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public' AND pg_get_userbyid(p.proowner) <> :'migration_user'
+  AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid = 'pg_proc'::regclass AND d.objid = p.oid AND d.deptype = 'e')
+\gexec
+SELECT format('ALTER TEXT SEARCH CONFIGURATION %I.%I OWNER TO %I', n.nspname, c.cfgname, :'migration_user')
+FROM pg_ts_config c JOIN pg_namespace n ON n.oid = c.cfgnamespace
+WHERE n.nspname = 'public' AND pg_get_userbyid(c.cfgowner) <> :'migration_user'
+\gexec
+SELECT format('ALTER SCHEMA public OWNER TO %I', :'migration_user')
+WHERE (SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname = 'public') <> :'migration_user'
+\gexec
 
 SELECT format('ALTER DATABASE %I SET search_path = public, extensions, pg_catalog', current_database()) \gexec
 SELECT format('ALTER ROLE %I SET search_path = public, extensions, pg_catalog', :'migration_user') \gexec
