@@ -214,7 +214,7 @@ rose, and slate fill out the seven roles.
 | Rose            | `#fae4ec` | `#b0316e` | `#6e2048` |
 | Slate (neutral) | `#f1f4f8` | `#5a6675` | `#16202e` |
 
-`system-design.mdx`, `rpi-cam.mdx`, and `datamodel.mdx` assign hues by semantic category
+`system-design.mdx`, `r9cam.mdx`, and `datamodel.mdx` assign hues by semantic category
 (`actor`=blue, `backend`=manila, `frontend`=verdigris, `external`=copper, `datastore`=violet,
 `hardware`=rose, `auth`/neutral=slate) through `classDef ... fill:#…,stroke:#…,color:#…` lines
 copied verbatim from this table. The tokens in `tokens.generated.css` and the literals in each

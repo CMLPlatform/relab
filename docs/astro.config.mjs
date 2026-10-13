@@ -46,7 +46,7 @@ const SIDEBAR = [
       { label: 'Data collection', slug: 'user-guides/data-collection' },
       { label: 'Glossary', slug: 'user-guides/glossary' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
-      { label: 'RPi camera setup', slug: 'user-guides/rpi-cam' },
+      { label: 'RPi camera setup', slug: 'user-guides/r9cam' },
       { label: 'Using the API', slug: 'user-guides/api' },
     ],
   },
@@ -60,7 +60,7 @@ const SIDEBAR = [
       { label: 'API structure', slug: 'architecture/api' },
       { label: 'API reference', slug: 'api-reference' },
       { label: 'Authentication', slug: 'architecture/auth' },
-      { label: 'RPi camera plugin', slug: 'architecture/rpi-cam' },
+      { label: 'RPi camera plugin', slug: 'architecture/r9cam' },
     ],
   },
   {
@@ -117,6 +117,12 @@ const site = process.env.PUBLIC_DOCS_URL?.trim() || MODE_SITES[buildMode] || MOD
 
 export default defineConfig({
   site,
+  // Pages renamed with the camera plugin keep their old links working.
+  redirects: {
+    '/user-guides/rpi-cam': '/user-guides/r9cam/',
+    '/architecture/rpi-cam': '/architecture/r9cam/',
+    '/api/rpi-cam': '/api/r9cam/',
+  },
   vite: {
     server: {
       watch: {

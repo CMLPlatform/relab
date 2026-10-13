@@ -111,7 +111,7 @@
 
 [tool.rumdl]
   # Rule set carried over from the docs markdownlint config. MD057 is off because
-  # Starlight route links (../rpi-cam/) are not files; linkinator checks them in
+  # Starlight route links (../r9cam/) are not files; linkinator checks them in
   # docs test:ci. DESIGN.md files are mirrored by tooling and keep their own style.
   disable           = ["MD013", "MD025", "MD033", "MD040", "MD041", "MD057"]
   exclude           = ["node_modules", ".venv", "dist", ".astro", "CHANGELOG.md", "DESIGN.md"]

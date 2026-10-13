@@ -143,7 +143,7 @@ stores these unchanged, without image processing.
 
 An optional Raspberry Pi camera rig that sends photos straight into a record. You set it up once
 per camera, and the integration stays off until you turn it on. See
-[RPi camera integration](/user-guides/rpi-cam/).
+[RPi camera integration](/user-guides/r9cam/).
 
 ### Pairing code
 

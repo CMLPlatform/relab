@@ -20,7 +20,7 @@
       "description": "The RPi camera plugin release whose OpenAPI schema the docs site serves.",
       "customType": "regex",
       "managerFilePatterns": ["/^docs/justfile$/"],
-      "matchStrings": ["rpi_cam_plugin_version := \"(?<currentValue>v[^\"]+)\""],
+      "matchStrings": ["r9cam_plugin_version := \"(?<currentValue>v[^\"]+)\""],
       "depNameTemplate": "CMLPlatform/relab-rpi-cam-plugin",
       "datasourceTemplate": "github-releases"
     }
@@ -100,10 +100,10 @@
       "enabled": false
     },
     {
-      "description": "A plugin bump fails the docs schema check until someone runs `just docs/rpi-cam-schema` on the PR, so it gets its own PR, merged by hand, instead of stalling the weekly group.",
+      "description": "A plugin bump fails the docs schema check until someone runs `just docs/r9cam-schema` on the PR, so it gets its own PR, merged by hand, instead of stalling the weekly group.",
       "matchPackageNames": ["CMLPlatform/relab-rpi-cam-plugin"],
-      "groupName": "rpi-cam plugin schema",
-      "groupSlug": "rpi-cam-plugin-schema",
+      "groupName": "r9cam plugin schema",
+      "groupSlug": "r9cam-plugin-schema",
       "automerge": false
     }
   ]

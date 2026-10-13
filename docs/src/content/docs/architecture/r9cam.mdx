@@ -5,7 +5,7 @@ description: How the R9lab Raspberry Pi camera plugin talks to the backend and a
 
 The optional RPi camera plugin connects camera devices to R9lab for remote capture, HLS preview streaming, and YouTube streaming. The backend is the control plane and default relay path. When the camera and client share a LAN, the app can switch to direct local access for lower-latency preview and capture.
 
-For setup and usage, see the [RPi camera user guide](../../user-guides/rpi-cam/). For endpoints, see the [API reference overview](/api-reference/). For device installation, see the [RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+For setup and usage, see the [RPi camera user guide](../../user-guides/r9cam/). For endpoints, see the [API reference overview](/api-reference/). For device installation, see the [RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
 
 ## System diagram
 
@@ -20,13 +20,13 @@ graph TD
     Researcher["Researcher"] -->|Capture workflow| FrontendApp["Expo app"]
     FrontendApp -->|API requests| MainAPI["FastAPI backend"]
 
-    MainAPI -->|WebSocket relay| RpiCamAPI["RPi camera API"]
-    FrontendApp -.->|LAN direct| RpiCamAPI
-    RpiCamAPI -->|Controls| Camera["Camera hardware"]
+    MainAPI -->|WebSocket relay| R9camAPI["RPi camera API"]
+    FrontendApp -.->|LAN direct| R9camAPI
+    R9camAPI -->|Controls| Camera["Camera hardware"]
 
-    RpiCamAPI -->|HLS preview| FrontendApp
-    RpiCamAPI -.->|Stream egress| YouTube["YouTube API"]
-    RpiCamAPI -->|Image upload| MainAPI
+    R9camAPI -->|HLS preview| FrontendApp
+    R9camAPI -.->|Stream egress| YouTube["YouTube API"]
+    R9camAPI -->|Image upload| MainAPI
 
     GoogleOAuth["Google OAuth"] -.->|User tokens| MainAPI
     MainAPI -.->|Livestream management| YouTube
@@ -57,7 +57,7 @@ graph TD
 
     class YouTube external
     class GoogleOAuth auth
-    class RpiCamAPI,Camera hardware
+    class R9camAPI,Camera hardware
 ```
 
 ## Interaction flow
@@ -142,9 +142,9 @@ sequenceDiagram
 
 The plugin uses three contracts:
 
-- **App REST API**: `/v1/plugins/rpi-cam/cameras/*` for app-facing camera CRUD, status, capture commands, telemetry, local-access bootstrap, and stream controls.
-- **Device REST API**: `/v1/plugins/rpi-cam/device/cameras/*` for Pi-originated callbacks such as image upload, preview thumbnail upload, and self-unpair. These routes authenticate with short-lived device assertions rather than a user session.
-- **Device WebSocket protocol**: `/v1/plugins/rpi-cam/ws/connect` for the persistent outbound relay tunnel from the Pi to the backend. It is not a browser endpoint: the Pi authenticates with a short-lived bearer device assertion, production pairing returns a `wss://` URL, browser `Origin` handshakes are rejected, WebSocket compression is disabled, and frame and queue sizes are bounded.
+- **App REST API**: `/v1/plugins/r9cam/cameras/*` for app-facing camera CRUD, status, capture commands, telemetry, local-access bootstrap, and stream controls.
+- **Device REST API**: `/v1/plugins/r9cam/device/cameras/*` for Pi-originated callbacks such as image upload, preview thumbnail upload, and self-unpair. These routes authenticate with short-lived device assertions rather than a user session.
+- **Device WebSocket protocol**: `/v1/plugins/r9cam/ws/connect` for the persistent outbound relay tunnel from the Pi to the backend. It is not a browser endpoint: the Pi authenticates with a short-lived bearer device assertion, production pairing returns a `wss://` URL, browser `Origin` handshakes are rejected, WebSocket compression is disabled, and frame and queue sizes are bounded.
 
 OpenAPI covers the HTTP routes; see the [API reference overview](/api-reference/). The WebSocket tunnel is not part of the generated REST clients.
 
@@ -168,12 +168,12 @@ The backend sends command envelopes to the device:
 
 The device replies with a matching response envelope. The shared `relab_rpi_cam_models` package owns the envelope schema and the relay allowlist; both the backend and the plugin enforce the allowlist.
 
-Captured image bytes do not travel through the WebSocket. After a capture command succeeds, the Pi uploads the file and metadata directly to `/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`.
+Captured image bytes do not travel through the WebSocket. After a capture command succeeds, the Pi uploads the file and metadata directly to `/v1/plugins/r9cam/device/cameras/{camera_id}/image-upload`.
 
 ### Device callback routes
 
 Pi-originated HTTP callbacks are namespaced to the camera plugin:
 
-- `POST /v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload`
-- `POST /v1/plugins/rpi-cam/device/cameras/{camera_id}/preview-thumbnail-upload`
-- `DELETE /v1/plugins/rpi-cam/device/cameras/{camera_id}/self`
+- `POST /v1/plugins/r9cam/device/cameras/{camera_id}/image-upload`
+- `POST /v1/plugins/r9cam/device/cameras/{camera_id}/preview-thumbnail-upload`
+- `DELETE /v1/plugins/r9cam/device/cameras/{camera_id}/self`

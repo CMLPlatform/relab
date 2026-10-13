@@ -11,7 +11,7 @@ creation and a first record. [Data collection](data-collection/) covers what to 
 disassembly and how to record uncertainty; return to it often. The [Glossary](glossary/) defines
 the terms.
 
-[Hardware](hardware/) and [RPi camera](rpi-cam/) are optional: a phone camera is enough to
+[Hardware](hardware/) and [RPi camera](r9cam/) are optional: a phone camera is enough to
 contribute. [API interaction](api/) covers reading and writing R9lab data from scripts, notebooks,
 or integrations, and assumes you have an account.
 
