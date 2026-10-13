@@ -45,7 +45,9 @@ Use this when automatic pairing is unavailable.
    `~/.config/r9cam/relay_credentials.json`, or set the equivalent `RELAY_*` environment variables.
 1. **Restart the plugin** if it was already running.
 
-A Pi paired with an older r9cam release must be updated and paired again.
+An r9cam release from before the rename kept these credentials in `~/.config/relab/`. Docker
+installs carry them over on update. On a Pi installed without Docker, move the file to
+`~/.config/r9cam/` before you start the updated plugin, or pair the camera again.
 
 ### Verify the registration
 
