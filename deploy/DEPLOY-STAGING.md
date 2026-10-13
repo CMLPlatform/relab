@@ -10,7 +10,7 @@ ______________________________________________________________________
 Same as [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1 with `staging` substituted for `prod`: the
 install guide's "First backup" and "Scheduling backups", then `just timers-install staging`.
 
-Then fill in `PING_WATCHDOG` in `/etc/relab/relab.env` with staging's own healthchecks.io URL.
+Then fill in `PING_WATCHDOG` in `/etc/r9lab/r9lab.env` with staging's own healthchecks.io URL.
 Do not reuse prod's: a shared check cannot tell you which host went quiet. See
 [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.2.
 

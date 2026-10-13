@@ -10,20 +10,20 @@
 # root-level jobs — treat that directory as privileged.
 [Unit]
 Description=R9lab health watchdog (%i)
-Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
+Documentation=file:/opt/r9lab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
 
 [Service]
 Type=oneshot
-User=relab
-WorkingDirectory=/opt/relab
+User=r9lab
+WorkingDirectory=/opt/r9lab
 # Dead-man's-switch URL, one per job. Host-local and never committed; `-` means the
 # file is optional and a missing one simply disables pinging.
-EnvironmentFile=-/etc/relab/relab.env
+EnvironmentFile=-/etc/r9lab/r9lab.env
 Environment=JUST_BIN=/usr/bin/just
-Environment=PATH=/var/lib/relab/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
-ExecStart=/opt/relab/scripts/run_scheduled.sh watchdog %i
+Environment=PATH=/var/lib/r9lab/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
+ExecStart=/opt/r9lab/scripts/run_scheduled.sh watchdog %i
 TimeoutStartSec=900
 
 [Install]

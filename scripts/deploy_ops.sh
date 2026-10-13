@@ -583,7 +583,7 @@ stamp_uploads_volume() {
             exit 1
          fi
          printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0" && echo "marked the uploads volume as [$1]"' \
-        /opt/relab/backend/data/uploads/.relab-volume "$env"
+        /opt/r9lab/backend/data/uploads/.relab-volume "$env"
 }
 
 # The uid every deploy service runs as. Keep in step with x-app-user in
@@ -623,7 +623,7 @@ assert_deploy_mounts_writable() {
     local env="$1" backup_dir failed=0 entry service path target writable
     backup_dir="$(dotenv_value BACKUP_HOST_DIR)"
     local -a mounts=(
-        "api /opt/relab/backend/data/uploads volume:user_uploads"
+        "api /opt/r9lab/backend/data/uploads volume:user_uploads"
         "backup /var/cache/restic volume:restic_cache"
         "backup /restic host:${backup_dir:-./backups}/restic"
     )

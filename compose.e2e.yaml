@@ -24,7 +24,7 @@ services:
       - "127.0.0.1:${E2E_BACKEND_PORT:-18010}:8000"
     volumes:
       # Ensure the backend has access to user uploads (for testing upload functionality with real files)
-      - user_uploads:/opt/relab/backend/data/uploads
+      - user_uploads:/opt/r9lab/backend/data/uploads
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis
@@ -54,7 +54,7 @@ services:
         condition: service_healthy
     volumes:
       # Ensure migrations have access to user uploads (for seeding example images)
-      - user_uploads:/opt/relab/backend-migrations/data/uploads
+      - user_uploads:/opt/r9lab/backend-migrations/data/uploads
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis

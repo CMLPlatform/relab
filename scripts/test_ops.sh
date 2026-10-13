@@ -136,13 +136,13 @@ mount_alert() {
 }
 
 assert_eq "a writable mount is silent" "0|" \
-    "$(mount_alert api /opt/relab/backend/data/uploads volume:user_uploads yes)"
+    "$(mount_alert api /opt/r9lab/backend/data/uploads volume:user_uploads yes)"
 assert_eq "an unwritable named volume names the volume and the chown" \
-    "1|error: the prod stack's api service cannot write /opt/relab/backend/data/uploads as uid 65532.
+    "1|error: the prod stack's api service cannot write /opt/r9lab/backend/data/uploads as uid 65532.
 Docker sets a named volume's ownership only when it first creates the volume, so
 r9lab_prod_user_uploads still belongs to whichever uid created it.
 Fix with: docker run --rm --user 0 -v r9lab_prod_user_uploads:/mnt busybox chown -R 65532:65532 /mnt" \
-    "$(mount_alert api /opt/relab/backend/data/uploads volume:user_uploads no)"
+    "$(mount_alert api /opt/r9lab/backend/data/uploads volume:user_uploads no)"
 assert_eq "an unwritable bind mount asks for a host chown, not a docker one" \
     "1|error: the prod stack's backup service cannot write /restic as uid 65532.
 Docker creates a missing bind-mount directory root-owned.
@@ -599,17 +599,17 @@ rm -f "$ping_env"
 
 ping_alert() {
     local out status
-    out="$(ping_url_alerts prod PING_BACKUP /etc/relab/relab.env "$1" 2>&1)"
+    out="$(ping_url_alerts prod PING_BACKUP /etc/r9lab/r9lab.env "$1" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$out"
 }
 
 assert_eq "filled ping URL is silent" "0|" "$(ping_alert https://hc.example/ping)"
 assert_eq "empty ping URL is reported" \
-    "1|ALERT[prod]: PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "1|ALERT[prod]: PING_BACKUP is empty in /etc/r9lab/r9lab.env; that job's failures are invisible outside this host" \
     "$(ping_alert '')"
 assert_eq "whitespace-only ping URL reads as empty" \
-    "1|ALERT[prod]: PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "1|ALERT[prod]: PING_BACKUP is empty in /etc/r9lab/r9lab.env; that job's failures are invisible outside this host" \
     "$(ping_alert ' ')"
 
 # ---------------------------------------------------------------------------
@@ -1155,7 +1155,7 @@ git_alert() {
 
 assert_eq "dubious ownership names the wrong-user cause, not a missing checkout" \
     "0|ALERT[prod]: the deploy directory is a checkout owned by another user, so this run cannot read it; run it as the account r9lab-watchdog@prod.service runs as, not as root" \
-    "$(git_alert "fatal: detected dubious ownership in repository at '/opt/relab'")"
+    "$(git_alert "fatal: detected dubious ownership in repository at '/opt/r9lab'")"
 assert_eq "a missing git binary is reported as such" \
     "0|ALERT[prod]: git is not on PATH, so deployment drift cannot be measured: bash: line 1: git: command not found" \
     "$(git_alert 'bash: line 1: git: command not found')"

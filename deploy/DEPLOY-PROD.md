@@ -150,10 +150,10 @@ just timers-install prod      # render, install, enable, start (prompts for sudo
 
 The units run as whoever runs that command. On a host with a dedicated, sudo-less deploy user
 (1.6), run it from an account that has sudo and name the deploy user. The units then run as that
-user, it owns `/etc/relab/relab.env`, and the rendered `PATH` finds its per-user `uv`:
+user, it owns `/etc/r9lab/r9lab.env`, and the rendered `PATH` finds its per-user `uv`:
 
 ```bash
-R9LAB_UNIT_USER=relab just timers-install prod
+R9LAB_UNIT_USER=r9lab just timers-install prod
 ```
 
 | Job                             | When             | Catch-up                                                |
@@ -165,7 +165,7 @@ R9LAB_UNIT_USER=relab just timers-install prod
 
 ### How a failed job reaches you
 
-The installer seeds `/etc/relab/relab.env` (mode 0600, never committed) with one dead-man's-switch
+The installer seeds `/etc/r9lab/r9lab.env` (mode 0600, never committed) with one dead-man's-switch
 URL variable per job. Only `PING_WATCHDOG` has to be filled in: the hourly watchdog checks every
 other job's timer state, last result and staleness, and puts a failing job's own output in the
 alert body. The other three are optional; set one to give that job its own healthchecks.io check,
@@ -231,7 +231,7 @@ Wasabi, S3) or a restic REST server with `--append-only`.
 
 ### 1.4 What the watchdog checks
 
-`sudo -u relab just watchdog prod` runs hourly from the timer above; run it by hand after any
+`sudo -u r9lab just watchdog prod` runs hourly from the timer above; run it by hand after any
 change, as the deploy user (1.6) so it sees the checkout the way the timer does. Its timer
 checks read systemd's `Result` of each unit's **last run**, so after fixing a job, clear the alert by
 running the unit (`sudo systemctl reset-failed r9lab-backup-maintenance@prod.service && sudo
@@ -319,21 +319,21 @@ ______________________________________________________________________
 The host runs prod from a checkout nobody edits, as a sudo-less account, and is only ever *reached*
 from the operator's machine; credentials and working trees stay there.
 
-**Run recipes as that account: `sudo -u relab just <recipe> prod`.** Plain `sudo just` runs as
-root, and git refuses a checkout that `relab` owns: the watchdog's drift check then reports the
+**Run recipes as that account: `sudo -u r9lab just <recipe> prod`.** Plain `sudo just` runs as
+root, and git refuses a checkout that `r9lab` owns: the watchdog's drift check then reports the
 directory as not a checkout at all. `just timers-install` is the one exception (1.2). It refuses to
-run as root and calls `sudo` itself, and `relab` is a system account with no password to answer
+run as root and calls `sudo` itself, and `r9lab` is a system account with no password to answer
 that prompt.
 
 ```bash
-sudo useradd --system --create-home --home-dir /var/lib/relab --shell /bin/bash --groups docker relab
-sudo git clone https://github.com/CMLPlatform/relab.git /opt/relab
-sudo chown -R relab:relab /opt/relab
-sudo -u relab sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'   # ~/.local/bin/uv; `uv self update` to move it
-sudo install -o relab -g relab -m 600 <old checkout>/.env /opt/relab/.env
-sudo install -d -o relab -g relab -m 700 /opt/relab/secrets/prod
-sudo install -o relab -g relab -m 644 <old checkout>/secrets/prod/* /opt/relab/secrets/prod/
-R9LAB_UNIT_USER=relab just timers-install prod                            # from /opt/relab, as the sudo account
+sudo useradd --system --create-home --home-dir /var/lib/r9lab --shell /bin/bash --groups docker r9lab
+sudo git clone https://github.com/CMLPlatform/relab.git /opt/r9lab
+sudo chown -R r9lab:r9lab /opt/r9lab
+sudo -u r9lab sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'   # ~/.local/bin/uv; `uv self update` to move it
+sudo install -o r9lab -g r9lab -m 600 <old checkout>/.env /opt/r9lab/.env
+sudo install -d -o r9lab -g r9lab -m 700 /opt/r9lab/secrets/prod
+sudo install -o r9lab -g r9lab -m 644 <old checkout>/secrets/prod/* /opt/r9lab/secrets/prod/
+R9LAB_UNIT_USER=r9lab just timers-install prod                            # from /opt/r9lab, as the sudo account
 ```
 
 Then one key pair on the dev host, used for nothing else, and one `authorized_keys` line for the
@@ -341,13 +341,35 @@ deploy user whose forced command is `scripts/remote_deploy.sh`. The script maps 
 onto the `just` recipes and refuses anything else, so the key cannot open a shell or read a secret:
 
 ```text
-command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... relab-deploy
+command="/opt/r9lab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... r9lab-deploy
 ```
 
 The environment is the host's own root `.env`; it is never an argument. The repository is public,
 so `git pull` over https needs no credential; a private repository would need a read-only GitHub
-deploy key in `/var/lib/relab/.ssh` with the remote switched to ssh. The personal key stays on the
+deploy key in `/var/lib/r9lab/.ssh` with the remote switched to ssh. The personal key stays on the
 sudo account and never on the deploy user.
+
+### 1.7 Moving a host from the relab paths
+
+Hosts set up before the R9lab rename use `/opt/relab`, `/etc/relab/relab.env` and a `relab` deploy
+user. Move them on the day of the rename window, after its go/no-go check, from the sudo account:
+
+```bash
+for job in backup backup-maintenance watchdog restore-check; do sudo systemctl disable --now "r9lab-$job@prod.timer"; done
+sudo systemctl stop "user@$(id -u relab).service"; pgrep -u relab   # must print nothing
+sudo usermod -l r9lab -d /var/lib/r9lab -m relab && sudo groupmod -n r9lab relab
+sudo mv /opt/relab /opt/r9lab
+sudo mv /etc/relab /etc/r9lab && sudo mv /etc/r9lab/relab.env /etc/r9lab/r9lab.env
+```
+
+Then change only the path inside the deploy key's `command="..."` in
+`/var/lib/r9lab/.ssh/authorized_keys`, keeping its option list, and run
+`R9LAB_UNIT_USER=r9lab just timers-install prod` from `/opt/r9lab`. If `BACKUP_HOST_DIR` in `.env`
+points under a renamed directory, move that directory and update the variable. Then run
+`sudo -u r9lab just stack prod up YES` from `/opt/r9lab`, so the bind mounts (secrets, the Alloy
+config, the backup directory) point at the moved files. Check from the dev host: `ssh r9lab-prod status`
+works, `ssh r9lab-prod bogus` is refused, and the next backup, watchdog and restore check runs
+succeed.
 
 ______________________________________________________________________
 
@@ -420,7 +442,8 @@ and the end of prod's window: the hosts follow `main`, and every release from th
 only `r9lab-*` images. Before prod's window, run `./bootstrap.sh r9lab prod` on the monitoring
 host (and `r9lab staging` before staging's) so alerts and dashboards know the new project; remove
 the `relab` pairs afterwards. Prod's units run as the deploy user, so step 8 is
-`R9LAB_UNIT_USER=relab just timers-install prod` from the sudo account.
+`R9LAB_UNIT_USER=<deploy user> just timers-install prod` from the sudo account, naming the user
+the host has at that point (1.7 renames it).
 
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
 stopping the watchdog too, or it pages mid-window. A stopped watchdog cannot then tell you the

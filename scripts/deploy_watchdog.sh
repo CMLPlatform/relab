@@ -520,7 +520,7 @@ fi
 # missing file means this machine runs no timers.
 #
 # Only PING_WATCHDOG is required; the other jobs report through the watchdog.
-host_env_file="${R9LAB_HOST_ENV:-/etc/relab/relab.env}"
+host_env_file="${R9LAB_HOST_ENV:-/etc/r9lab/r9lab.env}"
 if [[ -f "$host_env_file" ]]; then
     ping_var=PING_WATCHDOG
     if ping_value="$(ping_url_value "$host_env_file" "$ping_var")"; then

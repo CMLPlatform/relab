@@ -226,7 +226,7 @@ systemctl list-timers 'r9lab-*@staging.timer'   # confirm NEXT times are schedul
 Run `just timers-install` as yourself, not as `sudo just`: the installer prompts for sudo itself.
 :::
 
-The installer also seeds `/etc/relab/relab.env` with empty `PING_*` URLs. Fill in `PING_WATCHDOG`
+The installer also seeds `/etc/r9lab/r9lab.env` with empty `PING_*` URLs. Fill in `PING_WATCHDOG`
 with a [healthchecks.io](https://healthchecks.io) check URL. The hourly watchdog reports every other
 job's state through it; the other three URLs are optional per-job checks. Until you fill it in, job
 failures are invisible outside the host, and `just watchdog <env>` reports that. So does a host

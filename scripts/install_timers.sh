@@ -21,11 +21,11 @@ fi
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 UNIT_DIR="$ROOT_DIR/deploy/systemd"
 SYSTEM_DIR=/etc/systemd/system
-HOST_ENV=/etc/relab/relab.env
+HOST_ENV=/etc/r9lab/r9lab.env
 JOBS=(r9lab-backup r9lab-backup-maintenance r9lab-watchdog r9lab-restore-check)
 # The account the units run as. Defaults to whoever runs this script; a host with a
 # dedicated sudo-less deploy user sets it, so an operator with sudo can install units
-# that run as that user (`R9LAB_UNIT_USER=relab just timers-install prod`).
+# that run as that user (`R9LAB_UNIT_USER=r9lab just timers-install prod`).
 UNIT_USER="${R9LAB_UNIT_USER:-$(id -un)}"
 UNIT_HOME="$(getent passwd "$UNIT_USER" | cut -d: -f6)"
 [[ -n "$UNIT_HOME" ]] || {
@@ -54,8 +54,8 @@ render_one() {
     just_bin_repl="$(printf '%s' "$just_bin" | sed 's/[&|\\]/\\&/g')"
     # systemd gives the unit no login shell, so a per-user `uv` (the official installer
     # puts it in ~/.local/bin) is only found through this PATH.
-    sed -e "s|/opt/relab|${root_dir_repl}|g" \
-        -e "s|^User=relab$|User=${UNIT_USER}|" \
+    sed -e "s|/opt/r9lab|${root_dir_repl}|g" \
+        -e "s|^User=r9lab$|User=${UNIT_USER}|" \
         -e "s|^Environment=JUST_BIN=.*$|Environment=JUST_BIN=${just_bin_repl}|" \
         -e "s|^Environment=PATH=.*$|Environment=PATH=${UNIT_HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin|" \
         "$file"

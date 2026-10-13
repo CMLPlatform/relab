@@ -48,7 +48,7 @@ services:
       watch:
         - action: sync
           path: ./backend
-          target: /opt/relab/backend
+          target: /opt/r9lab/backend
           ignore:
             - .venv/
             - __pycache__/
@@ -127,31 +127,31 @@ services:
         # runtime config, and rebuild on dependency manifest changes.
         - action: sync
           path: ./docs/src
-          target: /opt/relab/docs/src
+          target: /opt/r9lab/docs/src
         - action: sync
           path: ./docs/public
-          target: /opt/relab/docs/public
+          target: /opt/r9lab/docs/public
         - action: sync
           path: ./docs/site
-          target: /opt/relab/docs/site
+          target: /opt/r9lab/docs/site
         - action: sync
           path: ./docs/scripts
-          target: /opt/relab/docs/scripts
+          target: /opt/r9lab/docs/scripts
         - action: sync
           path: ./docs/astro.config.mjs
-          target: /opt/relab/docs/astro.config.mjs
+          target: /opt/r9lab/docs/astro.config.mjs
         - action: sync
           path: ./docs/tsconfig.json
-          target: /opt/relab/docs/tsconfig.json
+          target: /opt/r9lab/docs/tsconfig.json
         - action: sync
           path: ./docs/README.md
-          target: /opt/relab/docs/README.md
+          target: /opt/r9lab/docs/README.md
         - action: sync
           path: ./docs/biome.jsonc
-          target: /opt/relab/docs/biome.jsonc
+          target: /opt/r9lab/docs/biome.jsonc
         - action: sync
           path: ./docs/playwright.config.ts
-          target: /opt/relab/docs/playwright.config.ts
+          target: /opt/r9lab/docs/playwright.config.ts
         - action: rebuild
           path: ./pnpm-lock.yaml
         - action: rebuild
@@ -176,40 +176,40 @@ services:
         # into large dependency/cache directories on the host and exhaust inotify.
         - action: sync
           path: ./app/src
-          target: /opt/relab/app/src
+          target: /opt/r9lab/app/src
         - action: sync
           path: ./app/config
-          target: /opt/relab/app/config
+          target: /opt/r9lab/app/config
         - action: sync
           path: ./app/scripts
-          target: /opt/relab/app/scripts
+          target: /opt/r9lab/app/scripts
         - action: sync
           path: ./app/app.json
-          target: /opt/relab/app/app.json
+          target: /opt/r9lab/app/app.json
         - action: sync
           path: ./app/babel.config.js
-          target: /opt/relab/app/babel.config.js
+          target: /opt/r9lab/app/babel.config.js
         - action: sync
           path: ./app/biome.jsonc
-          target: /opt/relab/app/biome.jsonc
+          target: /opt/r9lab/app/biome.jsonc
         - action: sync
           path: ./app/eslint.config.mjs
-          target: /opt/relab/app/eslint.config.mjs
+          target: /opt/r9lab/app/eslint.config.mjs
         - action: sync
           path: ./app/expo-env.d.ts
-          target: /opt/relab/app/expo-env.d.ts
+          target: /opt/r9lab/app/expo-env.d.ts
         - action: sync
           path: ./app/jest.config.cjs
-          target: /opt/relab/app/jest.config.cjs
+          target: /opt/r9lab/app/jest.config.cjs
         - action: sync
           path: ./app/playwright.config.ts
-          target: /opt/relab/app/playwright.config.ts
+          target: /opt/r9lab/app/playwright.config.ts
         - action: sync
           path: ./app/README.md
-          target: /opt/relab/app/README.md
+          target: /opt/r9lab/app/README.md
         - action: sync
           path: ./app/tsconfig.json
-          target: /opt/relab/app/tsconfig.json
+          target: /opt/r9lab/app/tsconfig.json
         - action: rebuild
           path: ./pnpm-lock.yaml
         - action: rebuild
@@ -239,25 +239,25 @@ services:
         # Same rule here: explicit source/config syncs only, rebuild for deps.
         - action: sync
           path: ./www/src
-          target: /opt/relab/www/src
+          target: /opt/r9lab/www/src
         - action: sync
           path: ./www/public
-          target: /opt/relab/www/public
+          target: /opt/r9lab/www/public
         - action: sync
           path: ./www/astro.config.ts
-          target: /opt/relab/www/astro.config.ts
+          target: /opt/r9lab/www/astro.config.ts
         - action: sync
           path: ./www/biome.jsonc
-          target: /opt/relab/www/biome.jsonc
+          target: /opt/r9lab/www/biome.jsonc
         - action: sync
           path: ./www/playwright.config.ts
-          target: /opt/relab/www/playwright.config.ts
+          target: /opt/r9lab/www/playwright.config.ts
         - action: sync
           path: ./www/README.md
-          target: /opt/relab/www/README.md
+          target: /opt/r9lab/www/README.md
         - action: sync
           path: ./www/tsconfig.json
-          target: /opt/relab/www/tsconfig.json
+          target: /opt/r9lab/www/tsconfig.json
         - action: rebuild
           path: ./pnpm-lock.yaml
         - action: rebuild

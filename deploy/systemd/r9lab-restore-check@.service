@@ -10,7 +10,7 @@
 # root-level jobs — treat that directory as privileged.
 [Unit]
 Description=R9lab backup restore verification (%i)
-Documentation=file:/opt/relab/deploy/DEPLOY-PROD.md
+Documentation=file:/opt/r9lab/deploy/DEPLOY-PROD.md
 Requires=docker.service
 After=docker.service
 # Ordering only, for when both are queued: after an outage, Persistent=true fires every
@@ -21,14 +21,14 @@ After=r9lab-backup-maintenance@%i.service
 
 [Service]
 Type=oneshot
-User=relab
-WorkingDirectory=/opt/relab
+User=r9lab
+WorkingDirectory=/opt/r9lab
 # Dead-man's-switch URL, one per job. Host-local and never committed; `-` means the
 # file is optional and a missing one simply disables pinging.
-EnvironmentFile=-/etc/relab/relab.env
+EnvironmentFile=-/etc/r9lab/r9lab.env
 Environment=JUST_BIN=/usr/bin/just
-Environment=PATH=/var/lib/relab/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
-ExecStart=/opt/relab/scripts/run_scheduled.sh restore-check %i
+Environment=PATH=/var/lib/r9lab/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
+ExecStart=/opt/r9lab/scripts/run_scheduled.sh restore-check %i
 TimeoutStartSec=7200
 # The scratch Postgres container is a child of dockerd, not of this cgroup. If systemd
 # SIGKILLs the job on timeout, no shell trap runs and the container keeps serving a full
@@ -40,7 +40,7 @@ ExecStopPost=-/usr/bin/docker rm -f r9lab-restore-check-%i-uploads
 # And the restored uploads tree: a full decrypted copy of user uploads that would
 # otherwise sit on the backup filesystem until next month. The path comes from the repo's
 # .env, so the script resolves it -- this subcommand only removes the scratch tree.
-ExecStopPost=-/opt/relab/scripts/backup_restic_ops.sh restore-check-clean %i
+ExecStopPost=-/opt/r9lab/scripts/backup_restic_ops.sh restore-check-clean %i
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
