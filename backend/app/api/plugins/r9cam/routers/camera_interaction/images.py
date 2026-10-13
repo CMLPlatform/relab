@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Annotated
 from anyio import to_thread
 from fastapi import Body, File, Form, HTTPException, UploadFile
 from pydantic import UUID4, PositiveInt
-from relab_rpi_cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
+from r9cam_models import DeviceImageUploadAck, DevicePreviewThumbnailAck
 from sqlalchemy import select
 
 from app.api.auth.dependencies import CurrentActiveVerifiedUserDep

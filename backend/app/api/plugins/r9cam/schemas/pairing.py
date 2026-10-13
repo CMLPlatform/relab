@@ -3,14 +3,13 @@
 import re
 
 from pydantic import BaseModel, Field
-from relab_rpi_cam_models import PairingCode
+from r9cam_models import PairingCode
 
 from app.api.common.validation import MultilineUserText, SingleLineUserText
 
 # ASCII only: a non-ASCII fingerprint makes hmac.compare_digest raise TypeError, an
 # unauthenticated 500. The Pi generates `secrets.token_urlsafe(16)`, which fits.
-# NOTE: belongs on the fingerprint fields in relab-rpi-cam-models; until it moves
-# upstream the register route re-checks it by hand.
+# Same rule as r9cam-models applies to PairingRegisterRequest.rpi_fingerprint.
 FINGERPRINT_PATTERN = re.compile(r"^[A-Za-z0-9._~-]{8,64}$")
 
 

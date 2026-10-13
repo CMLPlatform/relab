@@ -11,7 +11,7 @@ from typing import Any, get_args
 
 from fastapi.routing import APIRoute, iter_route_contexts
 from pydantic import BaseModel
-from relab_rpi_cam_models import LocalAccessInfo
+from r9cam_models import LocalAccessInfo
 
 from app.api.auth.schemas import OAuthAccountRead, UserRead
 from app.api.common.audiences import RouteAudience, route_audiences

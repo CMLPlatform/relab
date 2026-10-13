@@ -6,7 +6,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 from pydantic import UUID4, BaseModel
-from relab_rpi_cam_models.camera import CameraStatusView as CameraStatusDetails
+from r9cam_models.camera import CameraStatusView as CameraStatusDetails
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSONB

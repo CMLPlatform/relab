@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from jwt import InvalidTokenError
 from pydantic import UUID4, ValidationError
-from relab_rpi_cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES, RelayMessageType, RelayResponseEnvelope
+from r9cam_models import RELAY_WS_TEXT_FRAME_LIMIT_BYTES, RelayMessageType, RelayResponseEnvelope
 
 from app.api.common.rate_limiting import RateLimitExceededError, limiter, rate_limit_bucket_key
 from app.api.plugins.r9cam.constants import RELAY_WS_PATH

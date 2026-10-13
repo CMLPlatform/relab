@@ -6,9 +6,8 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
 from pydantic import ValidationError
-from relab_rpi_cam_models import PairingClaimedRecord, PairingRegisterRequest, RelayAuthScheme
+from r9cam_models import PairingClaimedRecord, PairingRegisterRequest, RelayAuthScheme
 
 from app.api.common.rate_limiting import rate_limit_bucket_key
 from app.api.plugins.r9cam.exceptions import PairingCodeAlreadyClaimedError, PairingCodeNotFoundError
@@ -78,27 +77,6 @@ async def test_register_pairing_code_logs_digest_not_raw_code(redis_client: Redi
     payload = json.loads(stored)
     assert payload["public_key_jwk"] == PUBLIC_JWK
     assert payload["key_id"] == KEY_ID
-
-
-async def test_register_pairing_code_rejects_fingerprint_outside_charset(redis_client: Redis) -> None:
-    """A register-time fingerprint outside the poll-side charset must 422 up front.
-
-    PairingRegisterRequest is an external model that only enforces length, so a
-    fingerprint like this would otherwise be stored, then fail every subsequent
-    poll (PairingPollRequest.fingerprint pattern), stranding the Pi.
-    """
-    body = PairingRegisterRequest(
-        code=PAIRING_CODE,
-        rpi_fingerprint="bad fingerprint!",
-        public_key_jwk=PUBLIC_JWK,
-        key_id=KEY_ID,
-    )
-
-    with pytest.raises(HTTPException) as exc_info:
-        await register_pairing_code(body=body, redis=redis_client)
-
-    assert exc_info.value.status_code == 422
-    assert await redis_client.get(f"r9cam:pairing:{PAIRING_CODE}") is None
 
 
 async def test_claim_pairing_code_logs_digest_not_raw_code(redis_client: Redis) -> None:

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from fastapi import HTTPException
 from pydantic import UUID4, BaseModel, PositiveInt, ValidationError
-from relab_rpi_cam_models.stream import StreamMode, StreamView
+from r9cam_models.stream import StreamMode, StreamView
 from sqlalchemy import select
 
 from app.api.auth.models import OAuthAccount

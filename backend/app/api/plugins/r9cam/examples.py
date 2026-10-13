@@ -17,8 +17,8 @@ CAMERA_CREATE_EXAMPLES: list[JsonValue] = [
         "relay_public_key_jwk": {
             "kty": "EC",
             "crv": "P-256",
-            "x": "base64url-x-coordinate",
-            "y": "base64url-y-coordinate",
+            "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+            "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
             "kid": "cam-key-1",
         },
         "relay_key_id": "cam-key-1",

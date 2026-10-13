@@ -10,8 +10,8 @@ Flow:
 import hmac
 import logging
 
-from fastapi import HTTPException, status
-from relab_rpi_cam_models import (
+from fastapi import status
+from r9cam_models import (
     PairingClaimedBootstrap,
     PairingClaimedRecord,
     PairingPendingRecord,
@@ -35,7 +35,7 @@ from app.api.plugins.r9cam.exceptions import (
 )
 from app.api.plugins.r9cam.models import Camera
 from app.api.plugins.r9cam.schemas import CameraCreate, CameraRead
-from app.api.plugins.r9cam.schemas.pairing import FINGERPRINT_PATTERN, PairingClaimRequest, PairingPollRequest
+from app.api.plugins.r9cam.schemas.pairing import PairingClaimRequest, PairingPollRequest
 from app.api.plugins.r9cam.utils.device_contracts import parse_pairing_record
 from app.core.config.core import settings as core_settings
 from app.core.logging import sanitize_log_value
@@ -98,11 +98,6 @@ async def register_pairing_code(
     redis: RedisDep,
 ) -> PairingRegisterResponse:
     """Register a short-lived pairing code and the camera's public device key."""
-    # PairingRegisterRequest (relab_rpi_cam_models) does not enforce the fingerprint
-    # charset that PairingPollRequest does; reject up front rather than on every poll.
-    if not FINGERPRINT_PATTERN.fullmatch(body.rpi_fingerprint):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Invalid fingerprint format.")
-
     key = _pairing_key(body.code)
     payload = PairingPendingRecord(
         rpi_fingerprint=body.rpi_fingerprint,

@@ -404,8 +404,8 @@
               "crv": "P-256",
               "kid": "cam-key-1",
               "kty": "EC",
-              "x": "base64url-x-coordinate",
-              "y": "base64url-y-coordinate"
+              "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+              "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
             }
           }
         ],
@@ -463,7 +463,7 @@
         "type": "string"
       },
       "CameraProperties": {
-        "description": "Static camera properties from libcamera.\n\nFor more info, see https://libcamera.org/api-html/namespacelibcamera_1_1properties.html.",
+        "description": "Static camera properties from libcamera.\n\nFor more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/property_ids_core.yaml.",
         "properties": {
           "Model": {
             "anyOf": [
@@ -830,7 +830,7 @@
         "type": "object"
       },
       "CaptureMetadata": {
-        "description": "Dynamic capture metadata from libcamera.\n\nFor more info, see https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.",
+        "description": "Dynamic capture metadata from libcamera.\n\nFor more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/control_ids_core.yaml.",
         "properties": {
           "analogue_gain": {
             "anyOf": [
@@ -3062,6 +3062,7 @@
         "type": "object"
       },
       "LocalAccessInfo": {
+        "additionalProperties": false,
         "description": "Plugin -> backend -> frontend local direct-connection bootstrap payload.",
         "properties": {
           "candidate_urls": {
@@ -5541,6 +5542,7 @@
           "kid": {
             "anyOf": [
               {
+                "maxLength": 64,
                 "type": "string"
               },
               {
@@ -5557,6 +5559,7 @@
           "use": {
             "anyOf": [
               {
+                "maxLength": 64,
                 "type": "string"
               },
               {
@@ -5566,12 +5569,16 @@
             "title": "Use"
           },
           "x": {
-            "minLength": 1,
+            "maxLength": 64,
+            "minLength": 42,
+            "pattern": "^[A-Za-z0-9_-]+$",
             "title": "X",
             "type": "string"
           },
           "y": {
-            "minLength": 1,
+            "maxLength": 64,
+            "minLength": 42,
+            "pattern": "^[A-Za-z0-9_-]+$",
             "title": "Y",
             "type": "string"
           }

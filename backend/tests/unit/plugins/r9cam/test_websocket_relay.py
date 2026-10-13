@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
-from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL
+from r9cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL
 
 from app.api.plugins.r9cam.runtime.status import get_camera_online_cache_key
 from app.api.plugins.r9cam.websocket import message_relay as relay_mod

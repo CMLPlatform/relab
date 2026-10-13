@@ -8,7 +8,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4
-from relab_rpi_cam_models import RELAY_COMMAND_TIMEOUT_SECONDS, RelayMessageType, build_relay_command
+from r9cam_models import RELAY_COMMAND_TIMEOUT_SECONDS, RelayMessageType, build_relay_command
 
 from app.core.logging import sanitize_log_value
 

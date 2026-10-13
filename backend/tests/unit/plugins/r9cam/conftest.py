@@ -93,8 +93,9 @@ def mock_camera(mock_user: User) -> Camera:
         relay_public_key_jwk=RelayPublicKeyJWK(
             kty="EC",
             crv="P-256",
-            x="x",
-            y="y",
+            # The P-256 base point: a valid curve point in 43-char base64url.
+            x="axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+            y="T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
             kid="test-key-id",
         ).model_dump(),
         relay_key_id="test-key-id",

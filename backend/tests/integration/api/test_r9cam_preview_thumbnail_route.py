@@ -22,7 +22,13 @@ async def owned_camera(db_session: AsyncSession, db_superuser: User) -> Camera:
     camera = Camera(
         name="Bench camera",
         owner_id=db_superuser.id,
-        relay_public_key_jwk={"kty": "EC", "crv": "P-256", "x": "AAA", "y": "BBB", "kid": "preview-key"},
+        relay_public_key_jwk={
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+            "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+            "kid": "preview-key",
+        },
         relay_key_id="preview-key",
     )
     db_session.add(camera)
