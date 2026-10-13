@@ -65,22 +65,33 @@ Before the window:
 - Update monitoring that matches `project="relab"` or the service `relab-api`, so it covers the new
   names before they appear.
 
-The window, staging first. Run every step from the checkout root:
+The window, staging first. Run every step from the checkout root. On a host with a dedicated
+deploy user, steps 1 and 8 run from an account with sudo, and steps 2 to 7 run as the deploy user
+(for example `sudo -u <deploy user> just ...`, and `docker` and `git` the same way), so the checkout
+and `.env` keep their owner. The helper containers in step 4 use the same pinned Alpine
+image as the backup scripts:
+
+```bash
+env=prod   # or staging
+img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_restic_ops.sh)"
+```
 
 1. Stop the scheduled jobs and wait until none is running:
 
    ```bash
-   env=prod   # or staging
    sudo systemctl disable --now "relab-backup@$env.timer" "relab-backup-maintenance@$env.timer" \
        "relab-watchdog@$env.timer" "relab-restore-check@$env.timer"
    systemctl list-units "relab-*@$env.service" --state=active   # wait until this lists nothing
    ```
 
-1. Still on the old release: take a safety backup, record the row counts and the password type of
-   each role, then stop the stack. A manual backup needs PostgreSQL running, so it comes before
-   `down`. Never pass `-v` to `down`: the old volumes are the way back.
+1. Still on the old release: close traffic by stopping the tunnel, take a safety backup, record
+   the row counts and the password type of each role, then stop the stack. With the tunnel down
+   nothing writes, so the counts here are the ones step 7 compares against. A manual backup needs
+   PostgreSQL running, so it comes before `down`. Never pass `-v` to `down`: the old volumes are
+   the way back.
 
    ```bash
+   docker stop "relab_$env-cloudflared-1"
    just backup "$env" manual
    count_rows() {   # container name, database name
        docker exec -i "$1" sh -c "psql -U \"\$POSTGRES_USER\" -d $2 -At" <<'SQL'
@@ -95,9 +106,11 @@ The window, staging first. Run every step from the checkout root:
    just stack "$env" down YES
    ```
 
-1. Check out the new release (`git pull --ff-only`). In the root `.env`, set
-   `COMPOSE_PROJECT_NAME=r9lab_<env>` and rename any `RELAB_*` variable to `R9LAB_*`, keeping its
-   value. Then pull the new images and write the tag: `just stack "$env" tag YES <tag>`.
+1. Keep a copy of the old `.env` (`cp -p .env .env.pre-r9lab`), then check out the new release
+   (`git pull --ff-only`). In the root `.env`, set `COMPOSE_PROJECT_NAME=r9lab_<env>` and rename any
+   `RELAB_*` variable to `R9LAB_*`, keeping its value. Then pull the new images and write the tag:
+   `just stack "$env" tag YES <tag>`. Until step 6, `up`, `migrate`, `rollback` and the backup
+   recipes refuse to run, because the data is still in the `relab_<env>` project.
 
 1. Create the new project's volumes, then copy each old volume into its new one. The copy runs as
    root in a container, so ownership and modes come along; `restic_cache` is skipped because it
@@ -108,12 +121,12 @@ The window, staging first. Run every step from the checkout root:
    volumes="database_data user_uploads cache_data alloy_data clamav_db"
    for v in $volumes; do
        docker volume inspect "relab_${env}_$v" >/dev/null 2>&1 || continue
-       docker run --rm -v "relab_${env}_$v:/from:ro" -v "r9lab_${env}_$v:/to" busybox cp -a /from/. /to/
+       docker run --rm -v "relab_${env}_$v:/from:ro" -v "r9lab_${env}_$v:/to" "$img" cp -a /from/. /to/
    done
    for v in $volumes; do   # each pair of lines must match
        for p in relab r9lab; do
            docker volume inspect "${p}_${env}_$v" >/dev/null 2>&1 || continue
-           docker run --rm -v "${p}_${env}_$v:/v:ro" busybox sh -c \
+           docker run --rm -v "${p}_${env}_$v:/v:ro" "$img" sh -c \
                'echo "$(find /v | wc -l) files, $(find /v -type f -exec stat -c %s {} + | awk "{s+=\$1} END {print s+0}") bytes, root $(stat -c "%u:%g %a" /v), marker $(cat /v/.relab-volume 2>/dev/null)"'
        done
    done
@@ -147,8 +160,8 @@ The window, staging first. Run every step from the checkout root:
    manual` logs that the uploads volume identity check passed; telemetry arrives under the new
    names.
 
-1. Install the new scheduled jobs (`just timers-install "$env"`, with the same `R9LAB_UNIT_USER`
-   as before if you use one; see [Scheduling backups](#scheduling-backups)), check `systemctl list-timers "r9lab-*@$env.timer"`,
+1. From the sudo account, install the new scheduled jobs (`just timers-install "$env"`, with the
+   same `R9LAB_UNIT_USER` as before if you use one; see [Scheduling backups](#scheduling-backups)), check `systemctl list-timers "r9lab-*@$env.timer"`,
    and remove the old unit files:
 
    ```bash
@@ -159,14 +172,13 @@ The window, staging first. Run every step from the checkout root:
 1. Keep the `relab_<env>_*` volumes for two weeks, then remove them with `docker volume rm`.
 
 **Rolling back.** Until traffic reopens in step 7, nothing old was changed: stop the new stack with
-`just stack "$env" down YES`, check out the commit before the rename, restore the old `.env`,
-re-enable the four `relab-*@<env>` timers, and `just stack "$env" up YES` starts the old project on
-its untouched volumes and roles. After traffic reopens, the old volumes miss everything written
-since: fix forward, or restore the new project from its backup.
+`just stack "$env" down YES`, check out the commit before the rename, restore the old `.env`
+(`cp -p .env.pre-r9lab .env`), re-enable the four `relab-*@<env>` timers, and
+`just stack "$env" up YES` starts the old project on its untouched volumes and roles.
 
-Rolling back to any release from before the rename later on also needs that older checkout, not
-only its tag: the current scripts look for `r9lab-*` images, and the older release's scripts and
-`images-verify` know its `relab-*` image names.
+Once traffic has reopened, rolling back past the rename is not supported. An older release runs
+the `relab_<env>` project, whose volumes miss everything written since, and its images look for
+the old database and role names. Fix forward, or restore the new project from its backup.
 
 ## First backup
 

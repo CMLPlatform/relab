@@ -627,8 +627,8 @@ release-publish version:
 # Docker's credentials, so the packages must be public or `docker login ghcr.io` done.
 # NOTE: checks what the tag points at now; a tag moved between this check and the
 # host's pull is not caught. Pin image digests in compose.deploy.yaml if it matters.
-# Tags from before the R9lab rename are published as relab-* images: verify one from a
-# checkout of that release, whose copy of this recipe names them.
+# Tags from before the R9lab rename are published as relab-* images, which this recipe does
+# not check; a checkout of that release can. Deploying one is not supported.
 [group('deploy')]
 [doc('Verify the build provenance of a published image tag before deploying it')]
 images-verify env tag:

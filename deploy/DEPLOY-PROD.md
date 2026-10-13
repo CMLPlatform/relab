@@ -449,10 +449,10 @@ escapes that guarantee: see "A revision that builds an index concurrently" at th
 
 Every release stays published on GHCR under its version (unrelated to the alembic revision, which
 names the schema), so rolling back is pulling an earlier tag. The package pages on GitHub list them.
-Releases from before the R9lab rename are published as `relab-*` images and expect the `relab_prod`
-project: rolling back to one means checking out that release's commit as well as its tag, and
-running its own `images-verify`. Rolling back the rename itself follows "Rolling back" in the install
-guide's "Upgrading across the R9lab rename".
+`rollback` cannot cross the R9lab rename. An older release runs the `relab_prod` project, whose
+volumes stop at the rename window, and its images look for the old database and role names. Before
+the window's go/no-go check its own rollback applies (install guide, "Upgrading across the R9lab
+rename"); after it, fix forward or restore the new project from its backup.
 
 ```bash
 just stack prod rollback YES <tag>                    # code only: the new schema still suits the old code
