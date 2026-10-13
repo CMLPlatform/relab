@@ -43,6 +43,6 @@ def create_http_client(*, transport: AsyncBaseTransport | None = None) -> AsyncC
         transport=transport,
         limits=limits,
         timeout=Timeout(connect=5.0, read=30.0, write=10.0, pool=5.0),
-        headers={"User-Agent": "relab-backend"},
+        headers={"User-Agent": "r9lab-backend"},
         event_hooks={"request": [_enforce_outbound_url_allowlist]},
     )
