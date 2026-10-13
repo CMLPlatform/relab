@@ -132,13 +132,14 @@ def test_committed_sources_still_load() -> None:
 
 
 def test_one_software_name_across_the_citation_surfaces() -> None:
-    """CITATION.cff, codemeta.json and the dataset release's software reference name the software alike.
+    """CITATION.cff, codemeta.json, .zenodo.json and the dataset release name the software alike.
 
-    Zenodo titles each software version from CITATION.cff, so a second spelling anywhere
+    Zenodo titles each software version from .zenodo.json, so a second spelling anywhere
     else splits the citations of one concept DOI.
     """
     citation = yaml.safe_load(sync_brand_assets.CITATION_SOURCE.read_text())
     codemeta = json.loads(sync_brand_assets.CODEMETA_TARGET.read_text())
+    zenodo = json.loads(sync_brand_assets.ZENODO_TARGET.read_text())
     release_script = (sync_brand_assets.ROOT / "backend/scripts/build_dataset_release.py").read_text()
     dataset_reference = re.search(r'software_title: str = "([^"]+)"', release_script)
     assert dataset_reference is not None, "build_dataset_release.py no longer declares software_title"
@@ -147,3 +148,6 @@ def test_one_software_name_across_the_citation_surfaces() -> None:
     assert codemeta["name"] == citation["title"]
     assert dataset_reference.group(1) == citation["title"]
     assert codemeta["version"] == str(citation["version"])
+    assert zenodo["title"] == citation["title"]
+    # Zenodo takes the version from the release tag; a copy here would go stale on the next bump.
+    assert "version" not in zenodo

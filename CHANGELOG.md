@@ -49,6 +49,11 @@ stops before touching the running stack and prints these steps.
 - The components list shows the total weight of the components, from the weights recorded on
   each one times its amount. When some components have no weight, it says how many and shows
   the total as a lower bound.
+- Marin Visscher is listed as an author in `CITATION.cff`, `codemeta.json` and the site
+  colophons.
+- A `.zenodo.json`, generated from `CITATION.cff` by `just assets-sync`, gives Zenodo the
+  title, abstract, authors and licence for each release. Zenodo reads it in place of
+  `CITATION.cff`, and until now used the old GitHub repository description as the abstract.
 
 ### Changed
 
@@ -79,6 +84,7 @@ stops before touching the running stack and prints these steps.
   out at 1600px. Clients that need more, such as a full-screen lightbox on a high-density
   phone, load the original. Existing 2560px files are removed by the daily storage cleanup,
   which cuts about a fifth of the space each photo takes.
+- `codemeta.json` uses the CodeMeta 4.0 context.
 
 ### Fixed
 

@@ -1,5 +1,5 @@
 {
-  "@context": "https://w3id.org/codemeta/3.0",
+  "@context": "https://w3id.org/codemeta/4.0",
   "@type": "SoftwareSourceCode",
   "name": "R9lab - Data Collection Platform",
   "description": "Data collection platform for photographs, bills of materials and measurements of disassembled products, supporting computer vision and life cycle assessment research.",
@@ -37,6 +37,16 @@
       "affiliation": {
         "@type": "Organization",
         "name": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
+      }
+    },
+    {
+      "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-1847-5181",
+      "givenName": "Marin",
+      "familyName": "Visscher",
+      "affiliation": {
+        "@type": "Organization",
+        "name": "Resource Engineering, Faculty of Civil Engineering and Geosciences, Delft University of Technology"
       }
     }
   ]
