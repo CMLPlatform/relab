@@ -2,8 +2,10 @@
 # Run `just --list` to see the recipes in this file.
 # Run from docs/, or from the repo root as `just docs/<recipe>`.
 
-# Source of truth for the RPi camera plugin's OpenAPI schema (sister repo).
-rpi_cam_schema_url := "https://raw.githubusercontent.com/CMLPlatform/relab-rpi-cam-plugin/main/openapi.rpi-cam.json"
+# Source of truth for the RPi camera plugin's OpenAPI schema (sister repo). Pinned to a
+# release so the drift check only fails when the pin moves; Renovate bumps it.
+rpi_cam_plugin_version := "v0.6.2"
+rpi_cam_schema_url := "https://raw.githubusercontent.com/CMLPlatform/relab-rpi-cam-plugin/" + rpi_cam_plugin_version + "/openapi.rpi-cam.json"
 rpi_cam_schema_path := "public/api/schemas/openapi.rpi-cam.json"
 
 import '../playwright.just'

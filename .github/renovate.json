@@ -15,6 +15,16 @@
     "addLabels": ["security"],
     "enabled": true
   },
+  "customManagers": [
+    {
+      "description": "The RPi camera plugin release whose OpenAPI schema the docs site serves.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^docs/justfile$/"],
+      "matchStrings": ["rpi_cam_plugin_version := \"(?<currentValue>v[^\"]+)\""],
+      "depNameTemplate": "CMLPlatform/relab-rpi-cam-plugin",
+      "datasourceTemplate": "github-releases"
+    }
+  ],
   "packageRules": [
     {
       "description": "Once a week, every non-major update lands in one PR that merges itself on green CI; one PR also means no rebasing between PRs that share pnpm-lock.yaml. Majors get a PR each, the same day, merged by hand. Security fixes skip the weekly schedule and the release age: Renovate's vulnerabilityAlerts defaults open them straight away.",
@@ -88,6 +98,13 @@
       "matchManagers": ["pre-commit"],
       "matchPackageNames": ["pre-commit/pre-commit-hooks"],
       "enabled": false
+    },
+    {
+      "description": "A plugin bump fails the docs schema check until someone runs `just docs/rpi-cam-schema` on the PR, so it gets its own PR, merged by hand, instead of stalling the weekly group.",
+      "matchPackageNames": ["CMLPlatform/relab-rpi-cam-plugin"],
+      "groupName": "rpi-cam plugin schema",
+      "groupSlug": "rpi-cam-plugin-schema",
+      "automerge": false
     }
   ]
 }
