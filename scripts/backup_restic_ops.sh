@@ -24,6 +24,11 @@ RESTORE_HOST_GID=""
 . "$ROOT_DIR/scripts/deploy_ops.sh"
 
 restore_cleanup() {
+    # A restore that failed partway leaves tables without owners or grants; restore
+    # them before the API comes back. Idempotent, so harmless after a good restore.
+    if [[ -n "$RESTORE_PG_CONTAINER" ]]; then
+        docker exec "$RESTORE_PG_CONTAINER" bash /docker-entrypoint-initdb.d/provision.sh >/dev/null 2>&1 || true
+    fi
     if [[ "$RESTORE_API_WAS_RUNNING" == true ]]; then
         docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
     fi
@@ -156,9 +161,11 @@ replay_dump() {
     # to keep working. So read the schema out of the archive and create the extension
     # there. It goes in after pre-data because pre-data recreates "public", which
     # would take a pg_trgm installed there with it.
-    local trgm_schema=public
-    if docker exec "$container" pg_restore --section=post-data -f - "$dump" \
-        | grep -q 'extensions\.gin_trgm_ops'; then
+    # Captured first: grep -q exits on the first match, and under pipefail the SIGPIPE
+    # it sends pg_restore would fail the pipeline and pick "public" wrongly.
+    local trgm_schema=public post_data
+    post_data="$(docker exec "$container" pg_restore --section=post-data -f - "$dump")"
+    if grep -q 'extensions\.gin_trgm_ops' <<<"$post_data"; then
         trgm_schema=extensions
     fi
     "${pg_restore[@]}" --section=pre-data
@@ -769,7 +776,7 @@ main() {
             list_snapshots "${2:-}" "${3:-20}"
             ;;
         *)
-            echo "Usage: $0 {docker-smoke-backups|backup-offsite-copy ENV|restore-check ENV|restore ENV YES [SNAPSHOT]|snapshots ENV [COUNT]}" >&2
+            echo "Usage: $0 {docker-smoke-backups|docker-smoke-restore-roles|backup-offsite-copy ENV|restore-check ENV|restore ENV YES [SNAPSHOT]|snapshots ENV [COUNT]}" >&2
             exit 2
             ;;
     esac
