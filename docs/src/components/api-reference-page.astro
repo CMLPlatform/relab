@@ -3,6 +3,7 @@ import { backendApiUrlForMode } from '@/lib/backend-api.ts';
 // The canonical brand tokens; Astro bundles this into the page's own
 // stylesheet. The ?raw copy is only read at build time to derive theme-color.
 import '@/styles/brand.css';
+import '@/styles/tokens.generated.css';
 import brandCss from '@/styles/brand.css?raw';
 
 interface Props {
@@ -124,8 +125,9 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
     align-items: center;
     min-height: 2.1rem;
     padding: 0.35rem 0.65rem;
-    border-radius: var(--radius-control, 6px);
+    border-radius: var(--relab-radius-control);
     color: var(--relab-brand-text);
+    white-space: nowrap;
     font-size: 0.875rem;
     font-weight: 600;
     text-decoration: none;
@@ -153,18 +155,23 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
   }
 
   .api-reference-divider {
+    flex: none;
     width: 1px;
     height: 1.35rem;
     margin-inline: 0.25rem;
     background: var(--relab-nav-border);
   }
 
+  /* One row that scrolls sideways: wrapped, the sticky bar took three rows of
+     a phone screen above Scalar's own header. */
   @media (max-width: 42rem) {
-    .api-reference-divider {
-      flex-basis: 100%;
-      width: 100%;
-      height: 1px;
-      margin: 0.05rem 0;
+    .api-reference-switcher {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .api-reference-switcher a {
+      flex: none;
     }
   }
 
@@ -175,6 +182,6 @@ const pluginReferences = [{ href: '/api/rpi-cam/', label: 'RPi camera API' }];
 
   .api-reference-noscript {
     padding: 1.5rem max(0.75rem, env(safe-area-inset-left));
-    font-size: 0.9375rem;
+    font-size: 1rem;
   }
 </style>

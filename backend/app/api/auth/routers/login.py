@@ -27,7 +27,6 @@ router = APIRouter()
 @router.post(
     "/bearer/login",
     name="auth:bearer.login",
-    tags=["auth"],
     response_model=RefreshTokenResponse | MfaPendingResponse,
     responses=AUTH_ERROR_RESPONSES,
     summary="Login with email and password for bearer-token clients",
@@ -54,7 +53,6 @@ async def bearer_login(
 @router.post(
     "/session/login",
     name="auth:session.login",
-    tags=["auth"],
     response_model=MfaPendingResponse | None,
     responses=AUTH_ERROR_RESPONSES,
     summary="Login with email and password for browser sessions",

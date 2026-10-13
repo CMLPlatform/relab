@@ -6835,12 +6835,12 @@
     }
   },
   "info": {
-    "description": "Data collection app for the R9lab project at CML.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
+    "description": "Data collection app for the R9lab project at the Institute of Environmental Sciences (CML), Leiden University.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
     "license": {
       "identifier": "Apache-2.0",
       "name": "Apache-2.0"
     },
-    "title": "R9lab - Data Collection API",
+    "title": "R9lab \u2013 Data Collection API",
     "version": "1.0.0",
     "x-api-major": "v1",
     "x-api-version": "1.0.0",
@@ -6904,7 +6904,6 @@
         },
         "summary": "Login with email and password for bearer-token clients",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -6957,9 +6956,8 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Auth:Bearer.Logout",
+        "summary": "Log out a bearer-token client",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7011,9 +7009,8 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Auth:Bearer.Refresh",
+        "summary": "Refresh tokens for bearer-token clients",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7112,8 +7109,6 @@
         },
         "summary": "Complete Mfa Challenge",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7160,8 +7155,6 @@
         },
         "summary": "Claim Oauth Mfa Handoff",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7216,8 +7209,6 @@
         ],
         "summary": "Regenerate Recovery Codes",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7272,8 +7263,6 @@
         ],
         "summary": "Confirm Totp Setup",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7321,8 +7310,6 @@
         ],
         "summary": "Disable Totp",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7357,8 +7344,6 @@
         ],
         "summary": "Start Totp Setup",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7405,7 +7390,6 @@
         },
         "summary": "Register a new user",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7584,7 +7568,6 @@
         },
         "summary": "Login with email and password for browser sessions",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7654,9 +7637,8 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Auth:Session.Logout",
+        "summary": "Log out a browser session",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7702,9 +7684,8 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Auth:Session.Refresh",
+        "summary": "Refresh tokens for browser sessions",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7730,9 +7711,8 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Auth:Sessions.Revoke All",
+        "summary": "Revoke every session of the current user",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [

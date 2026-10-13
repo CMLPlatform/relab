@@ -1,5 +1,7 @@
 ---
-// Header brand lockup: the theme-swapped wordmark plus a "Docs" cue.
+// Header brand lockup: the theme-swapped wordmark plus a "Docs" cue. Both
+// wordmarks carry the alt text: the hidden one is display: none, so the link
+// keeps a name in either theme even when the cue is hidden on small screens.
 const { siteTitleHref } = Astro.locals.starlightRoute;
 ---
 
@@ -14,8 +16,7 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
   <img
     class="brand-wordmark light:sl-hidden"
     src="/images/wordmark-dark.svg"
-    alt=""
-    aria-hidden="true"
+    alt="R9lab"
     width="810"
     height="256"
   />
@@ -40,7 +41,7 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
   .brand-docs {
     position: relative;
     padding-inline-start: 0.7rem;
-    font-size: 0.72rem;
+    font-size: var(--sl-text-2xs);
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;

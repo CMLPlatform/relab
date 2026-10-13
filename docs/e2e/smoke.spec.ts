@@ -17,7 +17,7 @@ test('core docs routes render and search UI is present', async ({ page }) => {
 
   await page.goto('/operations/install/');
   await expect(
-    page.getByRole('main').getByRole('heading', { name: 'Installation and self-hosting' }).first(),
+    page.getByRole('main').getByRole('heading', { name: 'Install', exact: true }).first(),
   ).toBeVisible();
 });
 
@@ -53,4 +53,21 @@ test('pages run under the built CSP without violations', async ({ page }) => {
   }
 
   expect(violations).toEqual([]);
+});
+
+test('diagrams fit their frame and open full size in a new tab', async ({ page }) => {
+  await page.goto('/architecture/datamodel/');
+  const link = page.getByRole('link', { name: 'View full size (opens in a new tab)' }).first();
+  await expect(link).toHaveAttribute('href', /^blob:/);
+
+  const overflow = await page
+    .locator('.relab-mermaid')
+    .first()
+    .evaluate((frame) => frame.scrollWidth - frame.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+
+  const popupPromise = page.waitForEvent('popup');
+  await link.click();
+  const popup = await popupPromise;
+  await expect(popup.locator('svg').first()).toBeVisible();
 });

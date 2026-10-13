@@ -28,9 +28,10 @@ __all__ = [
 API_CONTRACT_VERSION = "1.0.0"
 API_MAJOR = "v1"
 
-API_TITLE = "R9lab - Data Collection API"
+API_TITLE = "R9lab \u2013 Data Collection API"  # en dash
 API_DESCRIPTION = (
-    "Data collection app for the R9lab project at CML.\n\n"
+    "Data collection app for the R9lab project at the Institute of Environmental Sciences (CML), "
+    "Leiden University.\n\n"
     "**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write "
     "clients, importers, or integrations against it without inheriting the platform's "
     "copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated "
