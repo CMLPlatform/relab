@@ -13,7 +13,7 @@ type Props = {
   showRpiButton: boolean;
   hasCamerasConfigured: boolean;
   isCapturing: boolean;
-  rpiCamerasLoading: boolean;
+  r9camsLoading: boolean;
   onTakePhoto: () => void;
   onPickImage: () => void;
   onRpiCapture: () => void;
@@ -25,7 +25,7 @@ export function ProductImageEmptyEditState({
   showRpiButton,
   hasCamerasConfigured,
   isCapturing,
-  rpiCamerasLoading,
+  r9camsLoading,
   onTakePhoto,
   onPickImage,
   onRpiCapture,
@@ -35,7 +35,7 @@ export function ProductImageEmptyEditState({
   const styles = createGalleryStyles(theme);
   const rpiCardStyle = [
     styles.emptyActionCard,
-    { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
+    { opacity: isCapturing || r9camsLoading ? 0.5 : 1 },
   ];
   return (
     <View testID="empty-gallery-actions" className="min-h-28 flex-row items-stretch gap-2">
@@ -59,7 +59,7 @@ export function ProductImageEmptyEditState({
         <Pressable
           ref={rpiTriggerRef}
           onPress={onRpiCapture}
-          disabled={isCapturing || rpiCamerasLoading}
+          disabled={isCapturing || r9camsLoading}
           accessibilityRole="button"
           accessibilityLabel={
             hasCamerasConfigured ? 'Capture from RPi camera' : 'Set up RPi camera'
@@ -69,7 +69,7 @@ export function ProductImageEmptyEditState({
         >
           {(state: PressState) => (
             <>
-              {isCapturing || rpiCamerasLoading ? (
+              {isCapturing || r9camsLoading ? (
                 <ActivityIndicator size={32} />
               ) : (
                 <Icon name="camera" size={24} color={palette[theme.scheme].mutedForeground} />

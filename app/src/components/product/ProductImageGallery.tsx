@@ -90,7 +90,7 @@ export default function ProductImageGallery({
           showRpiButton={capture.showRpiButton}
           hasCamerasConfigured={capture.hasCamerasConfigured}
           isCapturing={capture.isCapturing}
-          rpiCamerasLoading={capture.rpiCamerasLoading}
+          r9camsLoading={capture.r9camsLoading}
           onTakePhoto={handleTakePhoto}
           onPickImage={handlePickImage}
           onRpiCapture={actions.requestRpiCapture}
@@ -104,7 +104,7 @@ export default function ProductImageGallery({
           showRpiButton={capture.showRpiButton}
           hasCamerasConfigured={capture.hasCamerasConfigured}
           isCapturing={capture.isCapturing}
-          rpiCamerasLoading={capture.rpiCamerasLoading}
+          r9camsLoading={capture.r9camsLoading}
           onTakePhoto={handleTakePhoto}
           onPickImage={handlePickImage}
           onRpiCapture={actions.requestRpiCapture}

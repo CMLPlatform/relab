@@ -10,8 +10,8 @@ import type { StreamSessionState } from '@/context/streamSession';
 import { invalidateProductQuery } from '@/features/product-entity/queries';
 import { ApiError } from '@/services/api/errors';
 import { addProductVideo } from '@/services/api/products';
-import type { YouTubePrivacyStatus } from '@/services/api/rpiCamera/shared';
-import { startYouTubeStream } from '@/services/api/rpiCamera/streams';
+import type { YouTubePrivacyStatus } from '@/services/api/r9cam/shared';
+import { startYouTubeStream } from '@/services/api/r9cam/streams';
 
 type SetActiveStream = StreamSessionState['setActiveStream'];
 

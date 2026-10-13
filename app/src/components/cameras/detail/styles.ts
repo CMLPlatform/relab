@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import type { EffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraConnectionStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraConnectionStatus } from '@/services/api/r9cam/shared';
 import { MONO_FONT_FAMILY } from '@/theme/tokens';
 
 export const STATUS_LABEL: Record<CameraConnectionStatus, string> = {

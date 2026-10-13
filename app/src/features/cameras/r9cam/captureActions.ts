@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import type { EffectiveConnectionSnapshot } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { logError } from '@/utils/logging';
 
 export function useCameraConnectionSnapshots() {

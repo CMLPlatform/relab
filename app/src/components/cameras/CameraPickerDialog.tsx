@@ -10,12 +10,12 @@ import { dialogTitleStyle } from '@/components/base/dialogStyles';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { PRESS_TINT } from '@/components/base/pressFeedback';
-import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
+import { useCamerasQuery } from '@/features/cameras/r9cam/hooks';
 import {
   resolveEffectiveCameraConnection,
   useEffectiveCameraConnection,
 } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { palette } from '@/theme/palette.generated';
 import { heading } from '@/utils/a11y';

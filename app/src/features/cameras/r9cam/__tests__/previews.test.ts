@@ -1,13 +1,13 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { resolveCameraLivePreview } from '@/features/cameras/rpi/previews';
+import { resolveCameraLivePreview } from '@/features/cameras/r9cam/previews';
 
-jest.mock('@/services/api/rpiCamera/streams', () => ({
+jest.mock('@/services/api/r9cam/streams', () => ({
   __esModule: true,
   buildCameraHlsUrl: jest.fn(
-    (cameraId: string) => `/api/rpi-cameras/${cameraId}/hls/cam-preview/index.m3u8`,
+    (cameraId: string) => `/api/r9cameras/${cameraId}/hls/cam-preview/index.m3u8`,
   ),
 }));
-jest.mock('@/services/api/rpiCamera/access', () => ({
+jest.mock('@/services/api/r9cam/access', () => ({
   __esModule: true,
   buildLocalHlsUrl: jest.fn(
     (baseUrl: string) => `${baseUrl.replace(':8018', ':8888')}/cam-preview/index.m3u8`,
@@ -44,7 +44,7 @@ describe('rpi camera preview helpers', () => {
 
   it('returns the relay HLS URL when no direct connection is available', () => {
     expect(resolveCameraLivePreview('cam-99')).toEqual({
-      hlsUrl: '/api/rpi-cameras/cam-99/hls/cam-preview/index.m3u8',
+      hlsUrl: '/api/r9cameras/cam-99/hls/cam-preview/index.m3u8',
       isLocalStream: false,
     });
   });

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 import { TelemetryBadge } from '@/components/cameras/TelemetryBadge';
-import type { CameraTelemetry } from '@/services/api/rpiCamera/shared';
+import type { CameraTelemetry } from '@/services/api/r9cam/shared';
 import { renderWithProviders } from '@/test-utils/index';
 
 const TEMPERATURE_PATTERN = /°C/;

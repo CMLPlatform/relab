@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook as rntlRenderHook } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { useProductImageGallery } from '@/features/products/useProductImageGallery';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { baseProduct as _base } from '@/test-utils/index';
 import type { Product } from '@/types/Product';
 
@@ -46,7 +46,7 @@ jest.mock('@/context/auth', () => ({
   useAuth: () => ({ user: null }),
 }));
 
-jest.mock('@/features/cameras/rpi/hooks', () => ({
+jest.mock('@/features/cameras/r9cam/hooks', () => ({
   useCamerasQuery: (...args: unknown[]) => mockUseCamerasQuery(...args),
   useCaptureImageMutation: () => ({ mutate: mockCaptureMutate }),
 }));

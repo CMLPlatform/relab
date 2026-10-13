@@ -113,7 +113,7 @@ export const handlers = [
   http.delete(`${API_URL}/oauth/:provider/associate`, () =>
     HttpResponse.json({ message: 'Unlinked' }),
   ),
-  http.get(`${API_URL}/plugins/rpi-cam/cameras/:cameraId/local-access`, () =>
+  http.get(`${API_URL}/plugins/r9cam/cameras/:cameraId/local-access`, () =>
     HttpResponse.json({
       local_api_key: 'test-local-api-key',
       candidate_urls: ['http://192.168.7.1:8018'],

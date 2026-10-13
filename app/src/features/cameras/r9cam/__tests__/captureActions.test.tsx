@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import {
   useCameraCaptureActions,
   useCameraConnectionSnapshots,
-} from '@/features/cameras/rpi/captureActions';
+} from '@/features/cameras/r9cam/captureActions';
 
 describe('camera capture action hooks', () => {
   it('stores effective connection snapshots without rewriting identical values', async () => {

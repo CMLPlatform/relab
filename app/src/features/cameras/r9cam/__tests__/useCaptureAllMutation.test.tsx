@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react-native';
 import type React from 'react';
-import type { CaptureAllResult } from '@/features/cameras/rpi/hooks';
+import type { CaptureAllResult } from '@/features/cameras/r9cam/hooks';
 
-jest.mock('@/services/api/rpiCamera/capture', () => ({
+jest.mock('@/services/api/r9cam/capture', () => ({
   captureImageFromCamera: jest.fn(),
 }));
 
-import { useCaptureAllMutation } from '@/features/cameras/rpi/hooks';
+import { useCaptureAllMutation } from '@/features/cameras/r9cam/hooks';
 // Imports that depend on the mock above MUST come after the jest.mock call.
-import { captureImageFromCamera } from '@/services/api/rpiCamera/capture';
+import { captureImageFromCamera } from '@/services/api/r9cam/capture';
 
 const mockedCapture = jest.mocked(captureImageFromCamera);
 

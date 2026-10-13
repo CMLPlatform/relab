@@ -8,13 +8,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { clampIndex } from '@/components/product/gallery/shared';
 import { useAuth } from '@/context/auth';
-import { useCamerasQuery } from '@/features/cameras/rpi/hooks';
+import { useCamerasQuery } from '@/features/cameras/r9cam/hooks';
 import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { DEFAULT_IMAGE_LIMITS } from '@/services/imageProcessing';
 import type { useProductGalleryMedia, useProductGalleryViewer } from './productGalleryViewer';
-import { buildImportedImages, hasRpiCamerasConfigured } from './productImageGalleryHelpers';
+import { buildImportedImages, hasR9camsConfigured } from './productImageGalleryHelpers';
 
 export function useProductGalleryCaptureState({
   productId,
@@ -30,19 +30,19 @@ export function useProductGalleryCaptureState({
     Platform.OS !== 'web' ||
     (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
   const { enabled: rpiEnabled } = useServerPreferenceToggle('rpi_camera_enabled');
-  const { data: rpiCameras, isLoading: rpiCamerasLoading } = useCamerasQuery(true, {
+  const { data: r9cams, isLoading: r9camsLoading } = useCamerasQuery(true, {
     enabled: rpiEnabled && editMode,
   });
   // NOTE: a draft has no product to attach a capture to, so the button waits for the first save.
   const showRpiButton = rpiEnabled && productId !== null;
-  const hasCamerasConfigured = hasRpiCamerasConfigured(rpiCameras?.length);
+  const hasCamerasConfigured = hasR9camsConfigured(r9cams?.length);
 
   return {
     router,
     feedback,
     isWeb,
     showCameraOption,
-    rpiCamerasLoading,
+    r9camsLoading,
     showRpiButton,
     hasCamerasConfigured,
   };
@@ -60,7 +60,7 @@ export function useProductGalleryCaptureActions({
   const [isCapturing, setIsCapturing] = useState(false);
 
   const handleRpiCapture = useCallback(() => {
-    if (captureState.rpiCamerasLoading) return;
+    if (captureState.r9camsLoading) return;
     if (!captureState.hasCamerasConfigured) {
       captureState.router.navigate('/cameras');
       return;

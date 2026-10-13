@@ -2,18 +2,18 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type React from 'react';
-import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
-import { stopYouTubeStream } from '@/services/api/rpiCamera/streams';
+import { useStopYouTubeStreamMutation } from '@/features/cameras/r9cam/hooks';
+import { stopYouTubeStream } from '@/services/api/r9cam/streams';
 
-jest.mock('@/services/api/rpiCamera/streams', () => ({
+jest.mock('@/services/api/r9cam/streams', () => ({
   stopYouTubeStream: jest.fn(),
-  buildCameraHlsUrl: (id: string) => `/api/rpi-cameras/${id}/hls/cam-preview/index.m3u8`,
+  buildCameraHlsUrl: (id: string) => `/api/r9cameras/${id}/hls/cam-preview/index.m3u8`,
 }));
 
 const mockedStopYouTubeStream = jest.mocked(stopYouTubeStream);
 
 const CAMERA_ID = 'cam-1';
-const STREAM_STATUS_KEY = ['rpiCameraStreamStatus', CAMERA_ID];
+const STREAM_STATUS_KEY = ['r9camStreamStatus', CAMERA_ID];
 const LIVE_STREAM = { status: 'live', videoId: 'yt-123' };
 
 let queryClient: QueryClient;

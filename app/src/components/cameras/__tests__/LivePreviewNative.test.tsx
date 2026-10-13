@@ -24,7 +24,7 @@ jest.mock('@/services/api/auth/authRefresh', () => ({
 
 const mockUseCameraLivePreview = jest.fn();
 
-jest.mock('@/features/cameras/rpi/hooks', () => ({
+jest.mock('@/features/cameras/r9cam/hooks', () => ({
   useCameraLivePreview: (...args: unknown[]) => mockUseCameraLivePreview(...args),
 }));
 

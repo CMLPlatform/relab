@@ -12,30 +12,30 @@ import {
   useClaimPairingMutation,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
-} from '@/features/cameras/rpi/hooks';
+} from '@/features/cameras/r9cam/hooks';
 import {
   deleteCamera,
   fetchCamera,
   fetchCameras,
   updateCamera,
-} from '@/services/api/rpiCamera/cameras';
-import { captureImageFromCamera } from '@/services/api/rpiCamera/capture';
-import { claimPairingCode } from '@/services/api/rpiCamera/pairing';
+} from '@/services/api/r9cam/cameras';
+import { captureImageFromCamera } from '@/services/api/r9cam/capture';
+import { claimPairingCode } from '@/services/api/r9cam/pairing';
 
-jest.mock('@/services/api/rpiCamera/cameras', () => ({
+jest.mock('@/services/api/r9cam/cameras', () => ({
   fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
   updateCamera: jest.fn(),
   deleteCamera: jest.fn(),
 }));
-jest.mock('@/services/api/rpiCamera/capture', () => ({
+jest.mock('@/services/api/r9cam/capture', () => ({
   captureImageFromCamera: jest.fn(),
 }));
-jest.mock('@/services/api/rpiCamera/pairing', () => ({
+jest.mock('@/services/api/r9cam/pairing', () => ({
   claimPairingCode: jest.fn(),
 }));
-jest.mock('@/services/api/rpiCamera/streams', () => ({
-  buildCameraHlsUrl: (id: string) => `/api/rpi-cameras/${id}/hls/cam-preview/index.m3u8`,
+jest.mock('@/services/api/r9cam/streams', () => ({
+  buildCameraHlsUrl: (id: string) => `/api/r9cameras/${id}/hls/cam-preview/index.m3u8`,
 }));
 
 const mockedFetchCameras = jest.mocked(fetchCameras);
@@ -88,9 +88,9 @@ describe('RPi camera query hooks', () => {
       status: { connection: 'online', details: null, last_seen_at: null },
     });
 
-    expect(camerasQueryOptions(true).queryKey).toEqual(['rpiCameras', true, false]);
+    expect(camerasQueryOptions(true).queryKey).toEqual(['r9cams', true, false]);
     expect(camerasQueryOptions(false).staleTime).toBe(60_000);
-    expect(cameraQueryOptions('cam-1', true).queryKey).toEqual(['rpiCamera', 'cam-1', true, false]);
+    expect(cameraQueryOptions('cam-1', true).queryKey).toEqual(['r9cam', 'cam-1', true, false]);
     expect(cameraQueryOptions('cam-1', true).staleTime).toBe(15_000);
 
     await camerasQueryOptions(true).queryFn?.({} as never);
@@ -114,11 +114,11 @@ describe('RPi camera query hooks', () => {
       status: { connection: 'online', details: null, last_seen_at: null },
     });
 
-    expect(camerasQueryOptions().queryKey).toEqual(['rpiCameras', false, false]);
+    expect(camerasQueryOptions().queryKey).toEqual(['r9cams', false, false]);
     expect(camerasQueryOptions().staleTime).toBe(60_000);
     expect(camerasQueryOptions(true).staleTime).toBe(15_000);
 
-    expect(cameraQueryOptions('cam-1').queryKey).toEqual(['rpiCamera', 'cam-1', false, false]);
+    expect(cameraQueryOptions('cam-1').queryKey).toEqual(['r9cam', 'cam-1', false, false]);
     expect(cameraQueryOptions('cam-1').staleTime).toBe(60_000);
     expect(cameraQueryOptions('cam-1', true).staleTime).toBe(15_000);
 
@@ -230,8 +230,8 @@ describe('RPi camera mutation hooks', () => {
     });
 
     expect(mockedUpdateCamera).toHaveBeenCalledWith('cam-2', { name: 'Updated Camera' });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCamera', 'cam-2'] });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCameras'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['r9cam', 'cam-2'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['r9cams'] });
   });
 
   it('invalidates the camera list after deleting a camera or claiming pairing', async () => {
@@ -264,7 +264,7 @@ describe('RPi camera mutation hooks', () => {
       code: 'ABC123',
       camera_name: 'Paired Camera',
     });
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rpiCameras'] });
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['r9cams'] });
   });
 
   it('invalidates the owning product after capturing a camera image', async () => {

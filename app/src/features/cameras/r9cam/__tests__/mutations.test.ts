@@ -6,10 +6,10 @@ import {
   clearOptimisticStreamStatus,
   resolveCaptureImageRequest,
   restoreOptimisticStreamStatus,
-} from '@/features/cameras/rpi/mutations';
-import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera/capture';
+} from '@/features/cameras/r9cam/mutations';
+import { captureImageFromCamera, captureImageLocally } from '@/services/api/r9cam/capture';
 
-jest.mock('@/services/api/rpiCamera/capture', () => ({
+jest.mock('@/services/api/r9cam/capture', () => ({
   __esModule: true,
   captureImageFromCamera: jest.fn(async (cameraId: string, productId: number) => ({
     id: `${cameraId}-${productId}`,
@@ -87,13 +87,13 @@ describe('rpi camera mutation helpers', () => {
 
     const context = await clearOptimisticStreamStatus(queryClient, 'cam-9');
 
-    expect(cancelQueries).toHaveBeenCalledWith({ queryKey: ['rpiCameraStreamStatus', 'cam-9'] });
-    expect(setQueryData).toHaveBeenCalledWith(['rpiCameraStreamStatus', 'cam-9'], null);
+    expect(cancelQueries).toHaveBeenCalledWith({ queryKey: ['r9camStreamStatus', 'cam-9'] });
+    expect(setQueryData).toHaveBeenCalledWith(['r9camStreamStatus', 'cam-9'], null);
     expect(context).toEqual({ previous: { id: 'stream-1' } });
 
     restoreOptimisticStreamStatus(queryClient, 'cam-9', context.previous);
 
-    expect(setQueryData).toHaveBeenCalledWith(['rpiCameraStreamStatus', 'cam-9'], {
+    expect(setQueryData).toHaveBeenCalledWith(['r9camStreamStatus', 'cam-9'], {
       id: 'stream-1',
     });
   });

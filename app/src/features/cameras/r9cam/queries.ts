@@ -1,6 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
-import { fetchCamera, fetchCameras } from '@/services/api/rpiCamera/cameras';
-import { getStreamStatus } from '@/services/api/rpiCamera/streams';
+import { fetchCamera, fetchCameras } from '@/services/api/r9cam/cameras';
+import { getStreamStatus } from '@/services/api/r9cam/streams';
 
 export const cameraListStaleTime = (includeStatus: boolean, includeTelemetry: boolean) => {
   if (includeTelemetry) {
@@ -14,7 +14,7 @@ export const camerasQueryOptions = (
   { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
 ) =>
   queryOptions({
-    queryKey: ['rpiCameras', includeStatus, includeTelemetry] as const,
+    queryKey: ['r9cams', includeStatus, includeTelemetry] as const,
     queryFn: () => fetchCameras(includeStatus, { includeTelemetry }),
     staleTime: cameraListStaleTime(includeStatus, includeTelemetry),
     refetchInterval: includeTelemetry ? 5_000 : false,
@@ -26,7 +26,7 @@ export const cameraQueryOptions = (
   { includeTelemetry = false }: { includeTelemetry?: boolean } = {},
 ) =>
   queryOptions({
-    queryKey: ['rpiCamera', id, includeStatus, includeTelemetry] as const,
+    queryKey: ['r9cam', id, includeStatus, includeTelemetry] as const,
     queryFn: () => fetchCamera(id, includeStatus, { includeTelemetry }),
     enabled: !!id,
     staleTime: cameraListStaleTime(includeStatus, includeTelemetry),
@@ -38,7 +38,7 @@ export const streamStatusQueryOptions = (
   { enabled = true }: { enabled?: boolean } = {},
 ) =>
   queryOptions({
-    queryKey: ['rpiCameraStreamStatus', cameraId] as const,
+    queryKey: ['r9camStreamStatus', cameraId] as const,
     queryFn: () => {
       if (!cameraId) throw new Error('cameraId is required');
       return getStreamStatus(cameraId);

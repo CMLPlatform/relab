@@ -1,8 +1,8 @@
 import { render } from '@testing-library/react-native';
 import { LivePreview } from '@/components/cameras/LivePreview';
-import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
+import { useCameraLivePreview } from '@/features/cameras/r9cam/hooks';
 
-jest.mock('@/features/cameras/rpi/hooks');
+jest.mock('@/features/cameras/r9cam/hooks');
 jest.mock('@/components/cameras/live-preview/previewOverlays', () => ({
   PreviewShell: ({ caption, children }: { caption: string; children: React.ReactNode }) => {
     const React = jest.requireActual<typeof import('react')>('react');

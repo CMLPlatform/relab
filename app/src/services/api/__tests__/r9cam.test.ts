@@ -1,20 +1,20 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { fetchWithAuth } from '@/services/api/auth/authRefresh';
-import { TimeoutError } from '@/services/api/request';
-import { buildLocalHlsUrl, fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
+import { buildLocalHlsUrl, fetchLocalAccessInfo } from '@/services/api/r9cam/access';
 import {
   deleteCamera,
   fetchCamera,
   fetchCameras,
   fetchCameraTelemetry,
   updateCamera,
-} from '@/services/api/rpiCamera/cameras';
+} from '@/services/api/r9cam/cameras';
 import {
   captureImageFromCamera,
   captureImageLocally,
   LOCAL_CAMERA_UNREACHABLE_MESSAGE,
-} from '@/services/api/rpiCamera/capture';
-import { claimPairingCode } from '@/services/api/rpiCamera/pairing';
+} from '@/services/api/r9cam/capture';
+import { claimPairingCode } from '@/services/api/r9cam/pairing';
+import { TimeoutError } from '@/services/api/request';
 import { getErrorMessage } from '@/utils/errors';
 
 jest.mock('@/services/api/auth/authRefresh', () => ({
@@ -23,7 +23,7 @@ jest.mock('@/services/api/auth/authRefresh', () => ({
 
 const mockFetchWithAuth = jest.mocked(fetchWithAuth);
 const PREVIEW_THUMBNAIL_PATH_PATTERN =
-  /\/v1\/plugins\/rpi-cam\/cameras\/cam-1\/preview-thumbnail(\?|$)/;
+  /\/v1\/plugins\/r9cam\/cameras\/cam-1\/preview-thumbnail(\?|$)/;
 const ABSOLUTE_URL_PATTERN = /^https?:\/\//;
 
 function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
@@ -34,7 +34,7 @@ function mockJsonResponse(body: unknown, { ok = true, status = 200 } = {}) {
   } as Response);
 }
 
-describe('rpiCamera API service', () => {
+describe('r9cam API service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -53,7 +53,7 @@ describe('rpiCamera API service', () => {
     ]);
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
-        href: expect.stringContaining('/plugins/rpi-cam/cameras?include_status=true'),
+        href: expect.stringContaining('/plugins/r9cam/cameras?include_status=true'),
       }),
       expect.objectContaining({
         method: 'GET',
@@ -74,7 +74,7 @@ describe('rpiCamera API service', () => {
     });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
       expect.objectContaining({
-        href: expect.stringContaining('/plugins/rpi-cam/cameras/cam-1?include_status=true'),
+        href: expect.stringContaining('/plugins/r9cam/cameras/cam-1?include_status=true'),
       }),
       expect.objectContaining({ method: 'GET' }),
     );
@@ -88,7 +88,7 @@ describe('rpiCamera API service', () => {
 
     expect(result).toEqual({ id: 'cam-3', name: 'Renamed Cam' });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-3'),
+      expect.stringContaining('/plugins/r9cam/cameras/cam-3'),
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify(payload),
@@ -102,7 +102,7 @@ describe('rpiCamera API service', () => {
     await expect(deleteCamera('cam-4')).resolves.toBeUndefined();
 
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-4'),
+      expect.stringContaining('/plugins/r9cam/cameras/cam-4'),
       expect.objectContaining({ method: 'DELETE' }),
     );
   });
@@ -124,7 +124,7 @@ describe('rpiCamera API service', () => {
       description: 'Fresh capture',
     });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-6/captures'),
+      expect.stringContaining('/plugins/r9cam/cameras/cam-6/captures'),
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ product_id: 42 }),
@@ -140,7 +140,7 @@ describe('rpiCamera API service', () => {
 
     expect(result).toEqual({ id: 'cam-8', api_key: 'pair-secret' });
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/pairing/claim'),
+      expect.stringContaining('/plugins/r9cam/pairing/claim'),
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify(payload),
@@ -217,7 +217,7 @@ describe('rpiCamera API service', () => {
       name: 'Desk Cam',
       // The backend now serves previews through an owner-checked API route, not the
       // public /uploads mount, so the resolver must still absolutize this path.
-      preview_thumbnail_url: '/v1/plugins/rpi-cam/cameras/cam-1/preview-thumbnail?v=123',
+      preview_thumbnail_url: '/v1/plugins/r9cam/cameras/cam-1/preview-thumbnail?v=123',
     });
 
     const result = await fetchCamera('cam-1', true);
@@ -274,7 +274,7 @@ describe('rpiCamera API service', () => {
 
     expect(result).toEqual(payload);
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-telemetry/telemetry'),
+      expect.stringContaining('/plugins/r9cam/cameras/cam-telemetry/telemetry'),
       expect.objectContaining({
         method: 'GET',
         headers: expect.objectContaining({ Accept: 'application/json' }),

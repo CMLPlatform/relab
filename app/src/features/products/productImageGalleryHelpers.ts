@@ -45,6 +45,6 @@ export async function buildImportedImages(
   return urls.flatMap((url) => (url === null ? [] : [{ url, description: '' }]));
 }
 
-export function hasRpiCamerasConfigured(cameraCount: number | undefined) {
+export function hasR9camsConfigured(cameraCount: number | undefined) {
   return (cameraCount ?? 0) > 0;
 }

@@ -15,7 +15,7 @@ import { PageContainer } from '@/components/base/PageContainer';
 import { PageHeaderRow } from '@/components/base/PageHeaderRow';
 import { ScreenTitle } from '@/components/base/ScreenTitle';
 import { Separator } from '@/components/base/ui/separator';
-import { RPI_CAM_DOCS_PATH } from '@/config';
+import { R9CAM_DOCS_PATH } from '@/config';
 import { sanitizePairingCode, useAddCameraForm } from '@/features/cameras/useAddCameraForm';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useAppTheme } from '@/theme/appThemeContext';
@@ -147,7 +147,7 @@ export default function AddCameraScreen() {
               </AppText>
             </View>
             <DocsLink
-              path={RPI_CAM_DOCS_PATH}
+              path={R9CAM_DOCS_PATH}
               accessibilityLabel="Read the camera setup guide"
               className="self-start py-1"
             >

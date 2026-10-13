@@ -49,7 +49,7 @@ jest.mock('@/features/cameras/serverPreferenceToggle', () => {
   };
 });
 
-jest.mock('@/features/cameras/rpi/hooks', () => ({
+jest.mock('@/features/cameras/r9cam/hooks', () => ({
   useStopYouTubeStreamMutation: () => ({
     mutate: jest.fn(),
     isPending: false,

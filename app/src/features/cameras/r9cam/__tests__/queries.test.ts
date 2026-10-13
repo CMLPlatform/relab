@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { cameraListStaleTime, streamStatusQueryOptions } from '@/features/cameras/rpi/queries';
-import { getStreamStatus } from '@/services/api/rpiCamera/streams';
+import { cameraListStaleTime, streamStatusQueryOptions } from '@/features/cameras/r9cam/queries';
+import { getStreamStatus } from '@/services/api/r9cam/streams';
 
-jest.mock('@/services/api/rpiCamera/cameras', () => ({
+jest.mock('@/services/api/r9cam/cameras', () => ({
   __esModule: true,
   fetchCameras: jest.fn(),
   fetchCamera: jest.fn(),
 }));
-jest.mock('@/services/api/rpiCamera/streams', () => ({
+jest.mock('@/services/api/r9cam/streams', () => ({
   __esModule: true,
   getStreamStatus: jest.fn(async () => null),
 }));

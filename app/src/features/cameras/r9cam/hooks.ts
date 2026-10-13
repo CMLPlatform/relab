@@ -3,10 +3,10 @@ import { useIsFocused } from 'expo-router';
 import { useMemo } from 'react';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
 import { invalidateProductQuery } from '@/features/product-entity/queries';
-import { deleteCamera, updateCamera } from '@/services/api/rpiCamera/cameras';
-import { claimPairingCode } from '@/services/api/rpiCamera/pairing';
-import type { CameraUpdate, PairingClaimRequest } from '@/services/api/rpiCamera/shared';
-import { stopYouTubeStream } from '@/services/api/rpiCamera/streams';
+import { deleteCamera, updateCamera } from '@/services/api/r9cam/cameras';
+import { claimPairingCode } from '@/services/api/r9cam/pairing';
+import type { CameraUpdate, PairingClaimRequest } from '@/services/api/r9cam/shared';
+import { stopYouTubeStream } from '@/services/api/r9cam/streams';
 import {
   type CaptureAllResult,
   captureFromMultipleCameras,

@@ -1,6 +1,6 @@
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
-import { buildLocalHlsUrl } from '@/services/api/rpiCamera/access';
-import { buildCameraHlsUrl } from '@/services/api/rpiCamera/streams';
+import { buildLocalHlsUrl } from '@/services/api/r9cam/access';
+import { buildCameraHlsUrl } from '@/services/api/r9cam/streams';
 
 export interface CameraLivePreviewResult {
   hlsUrl: string | null;

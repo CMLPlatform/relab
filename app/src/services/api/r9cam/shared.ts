@@ -44,8 +44,8 @@ export interface StartYouTubeStreamParams {
   privacy_status?: YouTubePrivacyStatus;
 }
 
-export const CAMERA_BASE = `${API_URL}/plugins/rpi-cam/cameras`;
-export const PAIRING_BASE = `${API_URL}/plugins/rpi-cam/pairing`;
+export const CAMERA_BASE = `${API_URL}/plugins/r9cam/cameras`;
+export const PAIRING_BASE = `${API_URL}/plugins/r9cam/pairing`;
 
 export function normalizeCameraReadWithStatus<T extends { preview_thumbnail_url?: string | null }>(
   camera: T,

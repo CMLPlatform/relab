@@ -3,7 +3,7 @@ import type * as ImagePicker from 'expo-image-picker';
 import {
   appendCapturedImage,
   buildImportedImages,
-  hasRpiCamerasConfigured,
+  hasR9camsConfigured,
 } from '@/features/products/productImageGalleryHelpers';
 
 const mockProcessImage: jest.Mock = jest.fn();
@@ -18,9 +18,9 @@ describe('productImageGalleryHelpers', () => {
   });
 
   it('detects whether RPi cameras are configured', () => {
-    expect(hasRpiCamerasConfigured(undefined)).toBe(false);
-    expect(hasRpiCamerasConfigured(0)).toBe(false);
-    expect(hasRpiCamerasConfigured(2)).toBe(true);
+    expect(hasR9camsConfigured(undefined)).toBe(false);
+    expect(hasR9camsConfigured(0)).toBe(false);
+    expect(hasR9camsConfigured(2)).toBe(true);
   });
 
   it('appends captured media with normalized API URLs', () => {

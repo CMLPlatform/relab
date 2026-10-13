@@ -1,7 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
-import { captureImageFromCamera, captureImageLocally } from '@/services/api/rpiCamera/capture';
-import type { StreamView } from '@/services/api/rpiCamera/shared';
+import { captureImageFromCamera, captureImageLocally } from '@/services/api/r9cam/capture';
+import type { StreamView } from '@/services/api/r9cam/shared';
 
 export interface CaptureImageParams {
   cameraId: string;
@@ -21,15 +21,15 @@ export interface CaptureAllResult {
 }
 
 export function invalidateCameraListQuery(queryClient: QueryClient) {
-  queryClient.invalidateQueries({ queryKey: ['rpiCameras'] }).catch(() => {});
+  queryClient.invalidateQueries({ queryKey: ['r9cams'] }).catch(() => {});
 }
 
 export function invalidateCameraDetailQuery(queryClient: QueryClient, cameraId: string) {
-  queryClient.invalidateQueries({ queryKey: ['rpiCamera', cameraId] }).catch(() => {});
+  queryClient.invalidateQueries({ queryKey: ['r9cam', cameraId] }).catch(() => {});
 }
 
 export function invalidateCameraStreamStatusQuery(queryClient: QueryClient, cameraId: string) {
-  queryClient.invalidateQueries({ queryKey: ['rpiCameraStreamStatus', cameraId] }).catch(() => {});
+  queryClient.invalidateQueries({ queryKey: ['r9camStreamStatus', cameraId] }).catch(() => {});
 }
 
 export function resolveCaptureImageRequest(
@@ -88,9 +88,9 @@ export async function clearOptimisticStreamStatus(
   queryClient: QueryClient,
   cameraId: string,
 ): Promise<{ previous: StreamView | null | undefined }> {
-  await queryClient.cancelQueries({ queryKey: ['rpiCameraStreamStatus', cameraId] });
-  const previous = queryClient.getQueryData<StreamView | null>(['rpiCameraStreamStatus', cameraId]);
-  queryClient.setQueryData(['rpiCameraStreamStatus', cameraId], null);
+  await queryClient.cancelQueries({ queryKey: ['r9camStreamStatus', cameraId] });
+  const previous = queryClient.getQueryData<StreamView | null>(['r9camStreamStatus', cameraId]);
+  queryClient.setQueryData(['r9camStreamStatus', cameraId], null);
   return { previous };
 }
 
@@ -100,6 +100,6 @@ export function restoreOptimisticStreamStatus(
   previous: StreamView | null | undefined,
 ) {
   if (previous !== undefined) {
-    queryClient.setQueryData(['rpiCameraStreamStatus', cameraId], previous);
+    queryClient.setQueryData(['r9camStreamStatus', cameraId], previous);
   }
 }

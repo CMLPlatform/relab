@@ -34,7 +34,7 @@ export function ProfileIntegrationsSection({
   const styles = createProfileSectionStyles(theme);
   const openDocs = useCallback(() => {
     if (DOCS_URL) {
-      void openExternalUrl(new URL('/user-guides/rpi-cam', DOCS_URL).toString());
+      void openExternalUrl(new URL('/user-guides/r9cam', DOCS_URL).toString());
     }
   }, []);
   return (

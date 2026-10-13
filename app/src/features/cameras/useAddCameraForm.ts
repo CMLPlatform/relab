@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useClaimPairingMutation } from '@/features/cameras/rpi/hooks';
+import { useClaimPairingMutation } from '@/features/cameras/r9cam/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useSingleFlight } from '@/hooks/useSingleFlight';

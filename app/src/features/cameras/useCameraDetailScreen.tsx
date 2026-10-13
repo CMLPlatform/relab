@@ -5,7 +5,7 @@ import {
   useCameraQuery,
   useDeleteCameraMutation,
   useUpdateCameraMutation,
-} from '@/features/cameras/rpi/hooks';
+} from '@/features/cameras/r9cam/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { createCameraDetailActions } from './detailActions';
