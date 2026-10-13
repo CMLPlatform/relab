@@ -352,25 +352,32 @@ sudo account and never on the deploy user.
 ### 1.7 Moving a host from the relab paths
 
 Hosts set up before the R9lab rename use `/opt/relab`, `/etc/relab/relab.env` and a `relab` deploy
-user. Move them on the day of the rename window, after its go/no-go check, from the sudo account:
+user. Move them during the rename window, at the start of its step 9: after the new stack runs and
+before `timers-install`, so the scheduled jobs are installed once, from the new path. From the sudo
+account:
 
 ```bash
-for job in backup backup-maintenance watchdog restore-check; do sudo systemctl disable --now "r9lab-$job@prod.timer"; done
+sudo -u relab just stack prod down YES   # from /opt/relab
 sudo systemctl stop "user@$(id -u relab).service"; pgrep -u relab   # must print nothing
 sudo usermod -l r9lab -d /var/lib/r9lab -m relab && sudo groupmod -n r9lab relab
 sudo mv /opt/relab /opt/r9lab
-# The window's timers-install already seeded an empty /etc/r9lab/r9lab.env: replace it.
-sudo install -d -m 0755 /etc/r9lab && sudo mv -f /etc/relab/relab.env /etc/r9lab/r9lab.env && sudo rmdir /etc/relab
+sudo install -d -m 0755 /etc/r9lab && sudo mv /etc/relab/relab.env /etc/r9lab/r9lab.env && sudo rmdir /etc/relab
+# The moved virtualenvs still carry the old absolute paths: rebuild them.
+sudo -iu r9lab sh -c 'cd /opt/r9lab && uv sync --frozen && cd backend && uv sync --all-groups --frozen'
 ```
 
-Then change only the path inside the deploy key's `command="..."` in
-`/var/lib/r9lab/.ssh/authorized_keys`, keeping its option list, and run
-`R9LAB_UNIT_USER=r9lab just timers-install prod` from `/opt/r9lab`. If `BACKUP_HOST_DIR` in `.env`
-points under a renamed directory, move that directory and update the variable. Then run
+`usermod -l` keeps the UID, so other services on the host that run as the deploy user keep working.
+Anything that names the user needs the new name: sudo rules, `sudo -u` commands, a cron or systemd
+`User=` line.
+
+If `BACKUP_HOST_DIR` in `.env` points under a renamed directory, move that directory and update the
+variable. Change only the path inside the deploy key's `command="..."` in
+`/var/lib/r9lab/.ssh/authorized_keys`, keeping its option list. Then run
 `sudo -u r9lab just stack prod up YES` from `/opt/r9lab`, so the bind mounts (secrets, the Alloy
-config, the backup directory) point at the moved files. Check from the dev host: `ssh r9lab-prod status`
-works, `ssh r9lab-prod bogus` is refused, and the next backup, watchdog and restore check runs
-succeed.
+config, the backup directory) point at the moved files, and carry on with the window's step 9
+(`R9LAB_UNIT_USER=r9lab just timers-install prod` from `/opt/r9lab`). Check from the dev host:
+`ssh r9lab-prod status` works, `ssh r9lab-prod bogus` is refused, and the next backup, watchdog and
+restore check runs succeed.
 
 ______________________________________________________________________
 
@@ -474,9 +481,9 @@ escapes that guarantee: see "A revision that builds an index concurrently" at th
 Every release stays published on GHCR under its version (unrelated to the alembic revision, which
 names the schema), so rolling back is pulling an earlier tag. The package pages on GitHub list them.
 `rollback` cannot cross the R9lab rename. An older release runs the `relab_prod` project, whose
-volumes stop at the rename window, and its images look for the old database and role names. Before
-the window's go/no-go check its own rollback applies (install guide, "Upgrading across the R9lab
-rename"); after it, fix forward or restore the new project from its backup.
+volumes stop at the rename window, and its images look for the old database and role names. Until
+the window's `up` its own rollback applies (install guide, "Upgrading across the R9lab rename");
+after it, fix forward or restore the new project from its backup.
 
 ```bash
 just stack prod rollback YES <tag>                    # code only: the new schema still suits the old code

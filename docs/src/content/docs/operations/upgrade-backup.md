@@ -57,19 +57,15 @@ name (`r9lab-api`). A plain `tag` and `up` would start an empty second stack nex
 so this upgrade is a short window with its own steps. Allow about an hour; copying the volumes
 takes most of it.
 
-Before the window:
-
-- Pull one of the new images on the host (`docker pull ghcr.io/cmlplatform/r9lab-backend:<tag>`)
-  to prove the registry is reachable, and check there is room for a second copy of the volumes
-  (`docker system df -v`).
-- Update monitoring that matches `project="relab"` or the service `relab-api`, so it covers the new
-  names before they appear.
+Before the window, pull one of the new images on the host
+(`docker pull ghcr.io/cmlplatform/r9lab-backend:<tag>`) to prove the registry is reachable, and
+check there is room for a second copy of the volumes (`docker system df -v`).
 
 The window, staging first. Run every step from the checkout root. On a host with a dedicated
-deploy user, steps 1 and 8 run from an account with sudo, and steps 2 to 7 run as the deploy user
+deploy user, steps 1 and 9 run from an account with sudo, and steps 2 to 7 run as the deploy user
 (for example `sudo -u <deploy user> just ...`, and `docker` and `git` the same way), so the checkout
-and `.env` keep their owner. The helper containers in step 4 use the same pinned Alpine
-image as the backup scripts:
+and `.env` keep their owner. Step 8 runs on the monitoring host. The helper containers in step 4
+use the same pinned Alpine image as the backup scripts:
 
 ```bash
 env=prod   # or staging
@@ -86,7 +82,7 @@ img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_r
 
 1. Still on the old release: close traffic by stopping the tunnel, take a safety backup, record
    the row counts and the password type of each role, then stop the stack. With the tunnel down
-   nothing writes, so the counts here are the ones step 7 compares against. A manual backup needs
+   nothing writes, so the counts here are the ones step 5 compares against. A manual backup needs
    PostgreSQL running, so it comes before `down`. Never pass `-v` to `down`: the old volumes are
    the way back.
 
@@ -109,18 +105,21 @@ img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_r
 1. Keep a copy of the old `.env` (`cp -p .env .env.pre-r9lab`), then check out the new release
    (`git pull --ff-only`). In the root `.env`, set `COMPOSE_PROJECT_NAME=r9lab_<env>` and rename any
    `RELAB_*` variable to `R9LAB_*`, keeping its value. Then pull the new images and write the tag:
-   `just stack "$env" tag YES <tag>`. Until step 6, `up`, `migrate`, `rollback` and the backup
-   recipes refuse to run, because the data is still in the `relab_<env>` project.
+   `just stack "$env" tag YES <tag>`. Until step 4 creates the new database volume, `up`,
+   `migrate`, `rollback` and the backup recipes refuse to run, because the data is still in the
+   `relab_<env>` project. After that they run, so start nothing but PostgreSQL until step 6.
 
-1. Create the new project's volumes, then copy each old volume into its new one. The copy runs as
-   root in a container, so ownership and modes come along; `restic_cache` is skipped because it
-   rebuilds itself:
+1. Copy each old volume into a new one. The loop creates each new volume with the labels Compose
+   puts on its own, so Compose adopts it without a warning, and it creates no containers that a
+   later `up` would find stopped. The copy runs as root in a container, so ownership and modes come
+   along; `restic_cache` is skipped because it rebuilds itself:
 
    ```bash
-   bash scripts/deploy_ops.sh stack "$env" compose --profile migrations --profile backups --profile scanning create
    volumes="database_data user_uploads cache_data alloy_data clamav_db"
    for v in $volumes; do
        docker volume inspect "relab_${env}_$v" >/dev/null 2>&1 || continue
+       docker volume create --label "com.docker.compose.project=r9lab_$env" \
+           --label "com.docker.compose.volume=$v" "r9lab_${env}_$v"
        docker run --rm -v "relab_${env}_$v:/from:ro" -v "r9lab_${env}_$v:/to" "$img" cp -a /from/. /to/
    done
    for v in $volumes; do   # each pair of lines must match
@@ -134,7 +133,7 @@ img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_r
 
 1. Start only PostgreSQL and rename the database and roles, before anything else starts:
    `up` creates any role it does not find, and would create empty `r9lab_*` roles next to the old
-   ones.
+   ones. Then compare the row counts with step 2's; the diff must print nothing.
 
    ```bash
    bash scripts/deploy_ops.sh stack "$env" compose up -d --wait postgres
@@ -146,23 +145,32 @@ img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_r
    ALTER ROLE relab_backup RENAME TO r9lab_backup;
    SELECT count(*) AS old_roles_left FROM pg_roles WHERE rolname LIKE 'relab\_%';
    SQL
+   count_rows "r9lab_$env-postgres-1" r9lab_db | diff "rows-before-$env.txt" -
    ```
 
    If the database rename reports other sessions, run it again. If step 2 showed `md5` for a
    role, the rename cleared its password: set it again from `secrets/<env>/` with
    `ALTER ROLE ... PASSWORD`. Roles showing `SCRAM` keep theirs.
 
-1. Start the stack: `just stack "$env" up YES migrations`.
+1. Start the stack: `just stack "$env" up YES migrations`. This starts the tunnel too, so traffic
+   reopens here.
 
-1. Before you reopen traffic, check: `docker compose ls` lists `r9lab_<env>` and no `relab_<env>`;
-   `count_rows "r9lab_$env-postgres-1" r9lab_db | diff "rows-before-$env.txt" -` prints nothing; an
-   account created before the window signs in; an uploaded image loads; `just backup "$env"
-   manual` logs that the uploads volume identity check passed; telemetry arrives under the new
-   names.
+1. Check right away: `docker compose ls` lists `r9lab_<env>` and no `relab_<env>`; an account
+   created before the window signs in; an uploaded image loads; `just backup "$env" manual` logs
+   that the uploads volume identity check passed; telemetry arrives under the new names.
 
-1. From the sudo account, install the new scheduled jobs (`just timers-install "$env"`, with the
-   same `R9LAB_UNIT_USER` as before if you use one; see [Scheduling backups](#scheduling-backups)), check `systemctl list-timers "r9lab-*@$env.timer"`,
-   and remove the old unit files:
+1. On the monitoring host, in its checkout and as the user that owns it, remove `relab/<env>` from
+   the `# COVERS:` line of `config/grafana/alerting/projects.yaml`, then run
+   `HC_JOBS=watchdog ./bootstrap.sh r9lab <env>`. Keep the `PING_WATCHDOG` URL it prints for step
+   9, and delete the old `relab-<env>-*` checks on healthchecks.io.
+
+1. From the sudo account. If the host also moves off the relab paths (`deploy/DEPLOY-PROD.md` 1.7),
+   do that move first, so the scheduled jobs are installed once, from the moved checkout. Then
+   install them (`just timers-install "$env"`, with the same `R9LAB_UNIT_USER` as before if you use
+   one; see [Scheduling backups](#scheduling-backups)), set `PING_WATCHDOG` in
+   `/etc/r9lab/r9lab.env` to the URL from step 8 (the watchdog reports the other jobs, so it is the
+   only one needed), check `systemctl list-timers "r9lab-*@$env.timer"`, and remove the old unit
+   files:
 
    ```bash
    sudo rm /etc/systemd/system/relab-{backup,backup-maintenance,watchdog,restore-check}@.{service,timer}
@@ -171,14 +179,14 @@ img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_r
 
 1. Keep the `relab_<env>_*` volumes for two weeks, then remove them with `docker volume rm`.
 
-**Rolling back.** Until traffic reopens in step 7, nothing old was changed: stop the new stack with
+**Rolling back.** Until `up` in step 6, nothing old was changed: stop the new stack with
 `just stack "$env" down YES`, check out the commit before the rename, restore the old `.env`
 (`cp -p .env.pre-r9lab .env`), re-enable the four `relab-*@<env>` timers, and
 `just stack "$env" up YES` starts the old project on its untouched volumes and roles.
 
-Once traffic has reopened, rolling back past the rename is not supported. An older release runs
-the `relab_<env>` project, whose volumes miss everything written since, and its images look for
-the old database and role names. Fix forward, or restore the new project from its backup.
+After `up`, traffic is open and the new project takes writes the old volumes never see. The same
+steps still work within minutes of `up`, but lose everything written since. Later than that, fix
+forward, or restore the new project from its backup.
 
 ## First backup
 
