@@ -284,13 +284,13 @@ root writes, so the Environment goes first:
    apply fail with "already exists". Import each one first, for example:
 
    ```bash
-   tofu -chdir=infra/cloudflare import -var=environment=<env> github_repository_environment.publish relab:<env>
+   tofu -chdir=infra/cloudflare import -var=environment=<env> github_repository_environment.publish r9lab:<env>
    tofu -chdir=infra/cloudflare import -var=environment=<env> \
-     'github_actions_environment_variable.publish["API_PUBLIC_URL"]' relab:<env>:API_PUBLIC_URL
+     'github_actions_environment_variable.publish["API_PUBLIC_URL"]' r9lab:<env>:API_PUBLIC_URL
    ```
 
-   A branch policy imports as `relab:<env>:<policy id>`; `gh api
-   repos/<owner>/relab/environments/<env>/deployment-branch-policies` lists the ids.
+   A branch policy imports as `r9lab:<env>:<policy id>`; `gh api
+   repos/<owner>/r9lab/environments/<env>/deployment-branch-policies` lists the ids.
 1. Run the Deploy Sites workflow for the environment (Actions -> Deploy Sites -> Run workflow)
    and approve it. It needs the `CLOUDFLARE_API_TOKEN` Environment secret: an account token with
    **Workers Scripts: Edit** on all Workers.
@@ -311,6 +311,51 @@ root writes, so the Environment goes first:
    `docker rm -f relab_<env>-www-1 relab_<env>-docs-1`.
 
 Staging first; prod once staging serves.
+
+## Renaming the repository or the Workers
+
+`var.github_repository` and the Worker names in `hostnames.tf` are plain values: the resource
+addresses stay. Every `github_*` resource here stores the repository's numeric id, and the
+GitHub provider (6.13 and later) compares it on a name change. A renamed repository keeps its id,
+so the plan updates the resources in place; a different repository, or one that does not exist,
+replaces them. That is why this runs only after the rename on GitHub: replacing the Environment
+deletes the secrets set by hand in it (`CLOUDFLARE_API_TOKEN`, `FEATURED_PRODUCT_ID`).
+
+A Workers Custom Domain cannot move between Workers: changing a route's `worker` replaces it, and
+the hostname is unserved for the seconds in between. The new Worker must exist first, and Deploy
+Sites reads the Worker names from the Environment, so for each environment, staging first:
+
+1. Update the Environment alone (prod also names
+   `-target=github_repository_environment_deployment_policy.main`,
+   `-target=github_repository_environment_deployment_policy.release_tag` and
+   `-target=github_repository_ruleset.release_tags`):
+
+   ```bash
+   tofu -chdir=infra/cloudflare workspace select <env>
+   tofu -chdir=infra/cloudflare apply -var=environment=<env> \
+     -target=github_repository_environment.publish \
+     -target=github_actions_environment_variable.publish
+   ```
+
+   Expect only `~ update in-place`: `repository` changes on every resource, and `WWW_WORKER` and
+   `DOCS_WORKER` take the new names. Stop on any `must be replaced`, add or destroy.
+1. Run Deploy Sites for the environment and approve it: it creates the two new Workers. Check
+   both `r9lab-*-<env>` Workers exist (the run is green, or the Workers dashboard lists them)
+   before the next step: its apply deletes each custom domain before recreating it on the new
+   Worker, so a missing Worker leaves the hostname unserved.
+1. `just cloudflare-apply <env>`: expect the two custom domains replaced (`service` changes) and
+   nothing else. Then `just cloudflare-apply <env> YES`, and open both hostnames.
+1. The old Workers still hold the old zone's custom domains, which only exist so its redirect
+   rules have a proxied hostname to fire on. Deleting a Worker deletes those too. For each one
+   (`cml-relab.org` and `docs.` for prod, `web-test.` and `docs-test.` for staging): remove the
+   domain from the old Worker in the dashboard, then add a proxied `AAAA` record for that name
+   pointing at `100::` straight away.
+1. `just smoke-redirects cml-relab.org r9lab.io <env>`, then delete the old Workers.
+
+If a plan in step 1 replaces the Environment anyway (state written before the provider stored
+the id), drop it from state and import it under the new name instead:
+`tofu state rm <address>`, then `tofu import <address> <id>` with the ids from "Moving a hostname
+onto a Worker" above. A ruleset imports as `<repository>:<ruleset id>`.
 
 ## API Token Scopes
 

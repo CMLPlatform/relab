@@ -7,6 +7,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+**Upgrading:**
+
+- The repository is now `CMLPlatform/r9lab`. Point existing checkouts at it:
+  `git remote set-url origin https://github.com/CMLPlatform/r9lab.git`. GitHub redirects the old
+  name for now.
+
+### Changed
+
+- The landing page and docs Workers are named `r9lab-www-<env>` and `r9lab-docs-<env>`.
+  Self-hosters who run the Cloudflare root follow "Renaming the repository or the Workers" in
+  `infra/cloudflare/README.md`.
+- `just images-verify` checks images against `CMLPlatform/r9lab` and still accepts tags built
+  before the rename.
+
 ## [0.5.0] - 2026-10-13
 
 The platform moves to r9lab.io and is now called R9lab. The old cml-relab.org addresses
@@ -124,32 +138,32 @@ their account, export their products, and see a product's bill of materials.
   does not reveal which addresses are registered ([#381])
 - Each backend service gets only the secrets it reads ([#381])
 
-[#274]: https://github.com/CMLPlatform/relab/pull/274
-[#276]: https://github.com/CMLPlatform/relab/pull/276
-[#329]: https://github.com/CMLPlatform/relab/pull/329
-[#334]: https://github.com/CMLPlatform/relab/pull/334
-[#335]: https://github.com/CMLPlatform/relab/pull/335
-[#336]: https://github.com/CMLPlatform/relab/pull/336
-[#339]: https://github.com/CMLPlatform/relab/pull/339
-[#340]: https://github.com/CMLPlatform/relab/pull/340
-[#342]: https://github.com/CMLPlatform/relab/pull/342
-[#346]: https://github.com/CMLPlatform/relab/pull/346
-[#347]: https://github.com/CMLPlatform/relab/pull/347
-[#348]: https://github.com/CMLPlatform/relab/pull/348
-[#349]: https://github.com/CMLPlatform/relab/pull/349
-[#353]: https://github.com/CMLPlatform/relab/pull/353
-[#358]: https://github.com/CMLPlatform/relab/pull/358
-[#360]: https://github.com/CMLPlatform/relab/pull/360
-[#362]: https://github.com/CMLPlatform/relab/pull/362
-[#363]: https://github.com/CMLPlatform/relab/pull/363
-[#364]: https://github.com/CMLPlatform/relab/pull/364
-[#367]: https://github.com/CMLPlatform/relab/pull/367
-[#369]: https://github.com/CMLPlatform/relab/pull/369
-[#370]: https://github.com/CMLPlatform/relab/pull/370
-[#372]: https://github.com/CMLPlatform/relab/pull/372
-[#376]: https://github.com/CMLPlatform/relab/pull/376
-[#380]: https://github.com/CMLPlatform/relab/pull/380
-[#381]: https://github.com/CMLPlatform/relab/pull/381
+[#274]: https://github.com/CMLPlatform/r9lab/pull/274
+[#276]: https://github.com/CMLPlatform/r9lab/pull/276
+[#329]: https://github.com/CMLPlatform/r9lab/pull/329
+[#334]: https://github.com/CMLPlatform/r9lab/pull/334
+[#335]: https://github.com/CMLPlatform/r9lab/pull/335
+[#336]: https://github.com/CMLPlatform/r9lab/pull/336
+[#339]: https://github.com/CMLPlatform/r9lab/pull/339
+[#340]: https://github.com/CMLPlatform/r9lab/pull/340
+[#342]: https://github.com/CMLPlatform/r9lab/pull/342
+[#346]: https://github.com/CMLPlatform/r9lab/pull/346
+[#347]: https://github.com/CMLPlatform/r9lab/pull/347
+[#348]: https://github.com/CMLPlatform/r9lab/pull/348
+[#349]: https://github.com/CMLPlatform/r9lab/pull/349
+[#353]: https://github.com/CMLPlatform/r9lab/pull/353
+[#358]: https://github.com/CMLPlatform/r9lab/pull/358
+[#360]: https://github.com/CMLPlatform/r9lab/pull/360
+[#362]: https://github.com/CMLPlatform/r9lab/pull/362
+[#363]: https://github.com/CMLPlatform/r9lab/pull/363
+[#364]: https://github.com/CMLPlatform/r9lab/pull/364
+[#367]: https://github.com/CMLPlatform/r9lab/pull/367
+[#369]: https://github.com/CMLPlatform/r9lab/pull/369
+[#370]: https://github.com/CMLPlatform/r9lab/pull/370
+[#372]: https://github.com/CMLPlatform/r9lab/pull/372
+[#376]: https://github.com/CMLPlatform/r9lab/pull/376
+[#380]: https://github.com/CMLPlatform/r9lab/pull/380
+[#381]: https://github.com/CMLPlatform/r9lab/pull/381
 
 ## [0.3.2] - 2026-09-10
 
@@ -211,54 +225,54 @@ latency, and makes the release and backup paths fail loudly instead of quietly.
 - The app serves a Content-Security-Policy header ([#202])
 - Cloudflare applies are gated on the plan they apply ([#257])
 
-[#199]: https://github.com/CMLPlatform/relab/pull/199
-[#200]: https://github.com/CMLPlatform/relab/pull/200
-[#201]: https://github.com/CMLPlatform/relab/pull/201
-[#202]: https://github.com/CMLPlatform/relab/pull/202
-[#203]: https://github.com/CMLPlatform/relab/pull/203
-[#204]: https://github.com/CMLPlatform/relab/pull/204
-[#206]: https://github.com/CMLPlatform/relab/pull/206
-[#207]: https://github.com/CMLPlatform/relab/pull/207
-[#208]: https://github.com/CMLPlatform/relab/pull/208
-[#209]: https://github.com/CMLPlatform/relab/pull/209
-[#210]: https://github.com/CMLPlatform/relab/pull/210
-[#214]: https://github.com/CMLPlatform/relab/pull/214
-[#215]: https://github.com/CMLPlatform/relab/pull/215
-[#216]: https://github.com/CMLPlatform/relab/pull/216
-[#217]: https://github.com/CMLPlatform/relab/pull/217
-[#218]: https://github.com/CMLPlatform/relab/pull/218
-[#219]: https://github.com/CMLPlatform/relab/pull/219
-[#221]: https://github.com/CMLPlatform/relab/pull/221
-[#222]: https://github.com/CMLPlatform/relab/pull/222
-[#223]: https://github.com/CMLPlatform/relab/pull/223
-[#224]: https://github.com/CMLPlatform/relab/pull/224
-[#225]: https://github.com/CMLPlatform/relab/pull/225
-[#226]: https://github.com/CMLPlatform/relab/pull/226
-[#227]: https://github.com/CMLPlatform/relab/pull/227
-[#228]: https://github.com/CMLPlatform/relab/pull/228
-[#229]: https://github.com/CMLPlatform/relab/pull/229
-[#230]: https://github.com/CMLPlatform/relab/pull/230
-[#233]: https://github.com/CMLPlatform/relab/pull/233
-[#236]: https://github.com/CMLPlatform/relab/pull/236
-[#237]: https://github.com/CMLPlatform/relab/pull/237
-[#238]: https://github.com/CMLPlatform/relab/pull/238
-[#239]: https://github.com/CMLPlatform/relab/pull/239
-[#241]: https://github.com/CMLPlatform/relab/pull/241
-[#243]: https://github.com/CMLPlatform/relab/pull/243
-[#246]: https://github.com/CMLPlatform/relab/pull/246
-[#247]: https://github.com/CMLPlatform/relab/pull/247
-[#249]: https://github.com/CMLPlatform/relab/pull/249
-[#251]: https://github.com/CMLPlatform/relab/pull/251
-[#254]: https://github.com/CMLPlatform/relab/pull/254
-[#257]: https://github.com/CMLPlatform/relab/pull/257
-[#260]: https://github.com/CMLPlatform/relab/pull/260
-[#261]: https://github.com/CMLPlatform/relab/pull/261
-[#262]: https://github.com/CMLPlatform/relab/pull/262
-[#264]: https://github.com/CMLPlatform/relab/pull/264
-[#268]: https://github.com/CMLPlatform/relab/pull/268
-[#269]: https://github.com/CMLPlatform/relab/pull/269
-[#271]: https://github.com/CMLPlatform/relab/pull/271
-[#272]: https://github.com/CMLPlatform/relab/pull/272
+[#199]: https://github.com/CMLPlatform/r9lab/pull/199
+[#200]: https://github.com/CMLPlatform/r9lab/pull/200
+[#201]: https://github.com/CMLPlatform/r9lab/pull/201
+[#202]: https://github.com/CMLPlatform/r9lab/pull/202
+[#203]: https://github.com/CMLPlatform/r9lab/pull/203
+[#204]: https://github.com/CMLPlatform/r9lab/pull/204
+[#206]: https://github.com/CMLPlatform/r9lab/pull/206
+[#207]: https://github.com/CMLPlatform/r9lab/pull/207
+[#208]: https://github.com/CMLPlatform/r9lab/pull/208
+[#209]: https://github.com/CMLPlatform/r9lab/pull/209
+[#210]: https://github.com/CMLPlatform/r9lab/pull/210
+[#214]: https://github.com/CMLPlatform/r9lab/pull/214
+[#215]: https://github.com/CMLPlatform/r9lab/pull/215
+[#216]: https://github.com/CMLPlatform/r9lab/pull/216
+[#217]: https://github.com/CMLPlatform/r9lab/pull/217
+[#218]: https://github.com/CMLPlatform/r9lab/pull/218
+[#219]: https://github.com/CMLPlatform/r9lab/pull/219
+[#221]: https://github.com/CMLPlatform/r9lab/pull/221
+[#222]: https://github.com/CMLPlatform/r9lab/pull/222
+[#223]: https://github.com/CMLPlatform/r9lab/pull/223
+[#224]: https://github.com/CMLPlatform/r9lab/pull/224
+[#225]: https://github.com/CMLPlatform/r9lab/pull/225
+[#226]: https://github.com/CMLPlatform/r9lab/pull/226
+[#227]: https://github.com/CMLPlatform/r9lab/pull/227
+[#228]: https://github.com/CMLPlatform/r9lab/pull/228
+[#229]: https://github.com/CMLPlatform/r9lab/pull/229
+[#230]: https://github.com/CMLPlatform/r9lab/pull/230
+[#233]: https://github.com/CMLPlatform/r9lab/pull/233
+[#236]: https://github.com/CMLPlatform/r9lab/pull/236
+[#237]: https://github.com/CMLPlatform/r9lab/pull/237
+[#238]: https://github.com/CMLPlatform/r9lab/pull/238
+[#239]: https://github.com/CMLPlatform/r9lab/pull/239
+[#241]: https://github.com/CMLPlatform/r9lab/pull/241
+[#243]: https://github.com/CMLPlatform/r9lab/pull/243
+[#246]: https://github.com/CMLPlatform/r9lab/pull/246
+[#247]: https://github.com/CMLPlatform/r9lab/pull/247
+[#249]: https://github.com/CMLPlatform/r9lab/pull/249
+[#251]: https://github.com/CMLPlatform/r9lab/pull/251
+[#254]: https://github.com/CMLPlatform/r9lab/pull/254
+[#257]: https://github.com/CMLPlatform/r9lab/pull/257
+[#260]: https://github.com/CMLPlatform/r9lab/pull/260
+[#261]: https://github.com/CMLPlatform/r9lab/pull/261
+[#262]: https://github.com/CMLPlatform/r9lab/pull/262
+[#264]: https://github.com/CMLPlatform/r9lab/pull/264
+[#268]: https://github.com/CMLPlatform/r9lab/pull/268
+[#269]: https://github.com/CMLPlatform/r9lab/pull/269
+[#271]: https://github.com/CMLPlatform/r9lab/pull/271
+[#272]: https://github.com/CMLPlatform/r9lab/pull/272
 
 ## [0.3.1] - 2026-09-08
 
@@ -535,11 +549,11 @@ Initial release of the Relab platform for circular economy and computer vision r
 - Image and video upload for products
 - Raspberry Pi Camera Plugin for remote image capture
 
-[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/CMLPlatform/relab/compare/v0.4.0...v0.5.0
-[0.4.0]: https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.4.0
-[0.3.2]: https://github.com/CMLPlatform/relab/compare/v0.3.1...v0.3.2
-[0.3.1]: https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/CMLPlatform/relab/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/CMLPlatform/relab/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/CMLPlatform/relab/releases/tag/v0.1.0
+[Unreleased]: https://github.com/CMLPlatform/r9lab/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/CMLPlatform/r9lab/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/CMLPlatform/r9lab/compare/v0.3.2...v0.4.0
+[0.3.2]: https://github.com/CMLPlatform/r9lab/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/CMLPlatform/r9lab/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/CMLPlatform/r9lab/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/CMLPlatform/r9lab/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/CMLPlatform/r9lab/releases/tag/v0.1.0

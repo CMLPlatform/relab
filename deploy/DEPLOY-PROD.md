@@ -327,7 +327,7 @@ that prompt.
 
 ```bash
 sudo useradd --system --create-home --home-dir /var/lib/r9lab --shell /bin/bash --groups docker r9lab
-sudo git clone https://github.com/CMLPlatform/relab.git /opt/r9lab
+sudo git clone https://github.com/CMLPlatform/r9lab.git /opt/r9lab
 sudo chown -R r9lab:r9lab /opt/r9lab
 sudo -u r9lab sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'   # ~/.local/bin/uv; `uv self update` to move it
 sudo install -o r9lab -g r9lab -m 600 <old checkout>/.env /opt/r9lab/.env

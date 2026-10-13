@@ -35,7 +35,7 @@ These steps run on a host you [configured](/operations/configure/).
    ```
 
    To check first that the tag was built by your fork's workflow, run
-   `GITHUB_REPOSITORY=<your-account>/relab IMAGE_REGISTRY=ghcr.io/<your-account> just images-verify prod <tag>`
+   `GITHUB_REPOSITORY=<your-account>/r9lab IMAGE_REGISTRY=ghcr.io/<your-account> just images-verify prod <tag>`
    from a machine with `gh` logged in.
 
 1. Start the stack.

@@ -84,12 +84,12 @@ if [[ "$mode" == edge ]]; then
     tunnel_name="relab-$env"
     # The live tunnels predate this module and carry their original names, so match on
     # the name the module WILL set as well as the one Cloudflare has today.
-    # Set RELAB_TUNNEL_NAME to point at a tunnel called something else again.
+    # Set R9LAB_TUNNEL_NAME to point at a tunnel called something else again.
     # Prod's tunnel is cml-relab-prod; staging's was cml-relab-test until its first apply
     # renamed it.
     legacy_name="cml-relab-prod"
     [[ "$env" == staging ]] && legacy_name="cml-relab-test"
-    override="${RELAB_TUNNEL_NAME:-}"
+    override="${R9LAB_TUNNEL_NAME:-}"
 
     tunnels="$(api "accounts/$account/cfd_tunnel?is_deleted=false")"
     tunnel_id="$(jq -r --arg new "$tunnel_name" --arg old "$legacy_name" --arg override "$override" \
@@ -101,7 +101,7 @@ if [[ "$mode" == edge ]]; then
         echo "error: no tunnel named $tunnel_name${override:+, $override} or $legacy_name in account $account" >&2
         echo "tunnels that do exist in this account:" >&2
         jq -r '.result[]? | "  \(.name)\t\(.id)\tconnections=\(.connections | length)"' <<<"$tunnels" >&2
-        echo "Re-run with RELAB_TUNNEL_NAME='<name>' once you know which one serves $env." >&2
+        echo "Re-run with R9LAB_TUNNEL_NAME='<name>' once you know which one serves $env." >&2
         exit 1
     fi
 

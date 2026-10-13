@@ -37,7 +37,7 @@ runs:
         name: ci-${{ inputs.flags }}-coverage
         fail_ci_if_error: false
         token: ${{ inputs.token }}
-        slug: CMLPlatform/relab
+        slug: CMLPlatform/r9lab
         disable_search: "true"
         network_prefix: ${{ inputs.network-prefix }}
 
@@ -52,7 +52,7 @@ runs:
         token: ${{ inputs.token }}
         fail_ci_if_error: false
         disable_search: "true"
-        slug: CMLPlatform/relab
+        slug: CMLPlatform/r9lab
 
     - name: Archive coverage report
       if: always()

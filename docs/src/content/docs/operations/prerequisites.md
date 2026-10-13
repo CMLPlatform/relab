@@ -11,7 +11,7 @@ To use R9lab without any local setup, open [app.r9lab.io](https://app.r9lab.io).
 
 These pages cover running the stack yourself: for evaluation, institutional deployment, offline
 use, or local development. For contributor workflow and tooling, see
-[CONTRIBUTING.md](https://github.com/CMLPlatform/relab/blob/main/.github/CONTRIBUTING.md).
+[CONTRIBUTING.md](https://github.com/CMLPlatform/r9lab/blob/main/.github/CONTRIBUTING.md).
 
 The guide runs in order. [Install](/operations/install/) sets up a local stack.
 [Configure](/operations/configure/), [Deploy](/operations/deploy/), and
@@ -28,5 +28,5 @@ server to scheduled backups.
 
 ## Need help?
 
-- Source code: [github.com/CMLPlatform/relab](https://github.com/CMLPlatform/relab)
+- Source code: [github.com/CMLPlatform/r9lab](https://github.com/CMLPlatform/r9lab)
 - Contact: [info@r9lab.io](mailto:info@r9lab.io)

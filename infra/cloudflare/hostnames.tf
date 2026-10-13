@@ -13,7 +13,7 @@ locals {
       www = {
         hostname = local.cloudflare_zone
         origin   = null
-        worker   = "relab-www-prod"
+        worker   = "r9lab-www-prod"
       }
       app = {
         hostname = "app.${local.cloudflare_zone}"
@@ -28,7 +28,7 @@ locals {
       docs = {
         hostname = "docs.${local.cloudflare_zone}"
         origin   = null
-        worker   = "relab-docs-prod"
+        worker   = "r9lab-docs-prod"
       }
     }
 
@@ -36,7 +36,7 @@ locals {
       www = {
         hostname = "web-test.${local.cloudflare_zone}"
         origin   = null
-        worker   = "relab-www-staging"
+        worker   = "r9lab-www-staging"
       }
       app = {
         hostname = "app-test.${local.cloudflare_zone}"
@@ -51,7 +51,7 @@ locals {
       docs = {
         hostname = "docs-test.${local.cloudflare_zone}"
         origin   = null
-        worker   = "relab-docs-staging"
+        worker   = "r9lab-docs-staging"
       }
     }
   }

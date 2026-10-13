@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   // Static assets only, no Worker script. The name is a placeholder: deploy-sites.yml
   // passes --name per environment, and infra/cloudflare binds each one to its hostname.
-  "name": "relab-docs",
+  "name": "r9lab-docs",
   "compatibility_date": "2026-09-01",
   "assets": {
     "directory": "./dist",

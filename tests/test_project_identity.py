@@ -43,7 +43,7 @@ def citation(identifiers: list[dict], authors: list[dict] | None = None) -> dict
         if authors is not None
         else [{"given-names": "Simon", "family-names": "van Lierde", "orcid": "https://orcid.org/x"}],
         "license": "AGPL-3.0-or-later",
-        "repository-code": "https://github.com/CMLPlatform/relab",
+        "repository-code": "https://github.com/CMLPlatform/r9lab",
     }
 
 
@@ -118,8 +118,8 @@ def test_multiple_authors_read_as_a_sentence(sources: Loader) -> None:
 def test_licence_url_is_derived_from_the_repository(sources: Loader) -> None:
     """A trailing slash on repository-code must not produce a double slash."""
     data = citation([{"type": "doi", "value": CONCEPT}])
-    data["repository-code"] = "https://github.com/CMLPlatform/relab/"
-    assert sources(data)["licenceUrl"] == "https://github.com/CMLPlatform/relab/blob/main/LICENSE"
+    data["repository-code"] = "https://github.com/CMLPlatform/r9lab/"
+    assert sources(data)["licenceUrl"] == "https://github.com/CMLPlatform/r9lab/blob/main/LICENSE"
 
 
 def test_committed_sources_still_load() -> None:

@@ -639,7 +639,10 @@ images-verify env tag:
     [[ "$env" =~ ^(prod|staging)$ ]] || { echo "env must be prod or staging, got '$env'" >&2; exit 2; }
     . scripts/deploy_ops.sh
     require_image_tag "$tag"
-    repo="${GITHUB_REPOSITORY:-CMLPlatform/relab}"
+    repos=("${GITHUB_REPOSITORY:-CMLPlatform/r9lab}")
+    # Images built before the repository was renamed are signed by CMLPlatform/relab.
+    # TODO: drop this fallback on/after 2027-01-13, once no deployable tag predates the rename.
+    [[ -z "${GITHUB_REPOSITORY:-}" ]] && repos+=(CMLPlatform/relab)
     registry="${IMAGE_REGISTRY:-ghcr.io/cmlplatform}"
     # Staging deliberately accepts a manual publish of any branch. A release publishes
     # from the event of its tag; a manual prod publish runs on main.
@@ -649,10 +652,19 @@ images-verify env tag:
     fi
     for image in "r9lab-backend:$tag" "r9lab-backend-migrations:$tag" "r9lab-backup:$tag" \
         "r9lab-app:$tag-$env"; do
-        gh attestation verify "oci://$registry/$image" --repo "$repo" \
-            --signer-workflow "$repo/.github/workflows/publish-images.yml" \
-            --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
-        echo "verified $registry/$image"
+        for i in "${!repos[@]}"; do
+            repo="${repos[$i]}"
+            # Only the last candidate's error is shown: a miss on an earlier one is expected.
+            errors=/dev/stderr
+            (( i + 1 < ${#repos[@]} )) && errors=/dev/null
+            if gh attestation verify "oci://$registry/$image" --repo "$repo" \
+                --signer-workflow "$repo/.github/workflows/publish-images.yml" \
+                --deny-self-hosted-runners "${source_ref[@]}" >/dev/null 2>"$errors"; then
+                echo "verified $registry/$image (signed by $repo)"
+                continue 2
+            fi
+        done
+        exit 1
     done
 
 # The release loop's deploy step, from the dev host: verify the tag's provenance, then

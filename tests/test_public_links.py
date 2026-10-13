@@ -3,6 +3,8 @@
 The docs and sites moved to r9lab.io and the public contact is info@r9lab.io. The pages under
 .github/ are dotfiles to most search tools, so a sweep can skip them; `git ls-files` lists them
 like any other tracked file. otel. and grafana. stay on the old zone until monitoring moves.
+The repository itself moved to CMLPlatform/r9lab; GitHub redirects the old name, but only
+until someone creates a repository under it.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 OLD_HOST = re.compile(r"(?<![\w.-])(?!otel\.|grafana\.)(?:[\w-]+\.)*cml-relab\.org")
 OLD_CONTACT = "relab@cml.leidenuniv.nl"
+OLD_REPO = re.compile(r"CMLPlatform/relab(?![\w-])", re.IGNORECASE)
 
 
 def public_pages() -> list[str]:
@@ -37,3 +40,4 @@ def test_page_uses_the_current_domain_and_contact(page: str) -> None:
     text = (ROOT / page).read_text()
     assert not OLD_HOST.findall(text), f"{page}: links the retired domain"
     assert OLD_CONTACT not in text, f"{page}: names the internal contact address; use info@r9lab.io"
+    assert not OLD_REPO.findall(text), f"{page}: links the old repository name; use CMLPlatform/r9lab"

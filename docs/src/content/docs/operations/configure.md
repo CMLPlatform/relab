@@ -22,7 +22,7 @@ describes the topology these steps produce.
 
    - **With OpenTofu:** `infra/cloudflare/` manages the DNS records, the tunnels, and the ingress
      rules. Its
-     [README](https://github.com/CMLPlatform/relab/blob/main/infra/cloudflare/README.md) lists the
+     [README](https://github.com/CMLPlatform/r9lab/blob/main/infra/cloudflare/README.md) lists the
      credentials, the API token scopes, and the state encryption passphrase. With those exported,
      plan and apply per environment:
 

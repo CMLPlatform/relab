@@ -95,9 +95,9 @@ const STARLIGHT_OPTIONS = {
   titleDelimiter: '·',
   lastUpdated: true,
   pagefind: true,
-  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' }],
+  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/r9lab' }],
   editLink: {
-    baseUrl: 'https://github.com/CMLPlatform/relab/edit/main/docs/',
+    baseUrl: 'https://github.com/CMLPlatform/r9lab/edit/main/docs/',
   },
   customCss: CUSTOM_CSS,
   head: HEAD_LINKS,
