@@ -490,9 +490,9 @@ the volume is genuinely empty" in 1.1.
 Look at the sizes before choosing. `latest` is the default and is usually right, but it is wrong
 when the most recent backup is the damage. `just restore` drops schema `public` and replaces it, so
 it refuses to run without `YES`, and it asserts the restored database has rows and not merely tables
-before reporting success. It then re-runs `deploy/postgres/initdb/provision.sh`, because the dump
-does not carry back the default privileges that let `relab_app` read tables future migrations
-create. (`just stack <env> up` runs the same script on every start, so a volume that predates a
+before reporting success. It then re-runs `deploy/postgres/initdb/provision.sh`, because the restore
+skips the dump's owners and grants (so a dump from before a role rename still loads), and the script
+hands ownership to the migration role and restores every grant. (`just stack <env> up` runs the same script on every start, so a volume that predates a
 change to it converges on the next release.)
 
 ### A revision that builds an index concurrently
