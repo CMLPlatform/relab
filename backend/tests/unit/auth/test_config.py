@@ -22,6 +22,8 @@ def test_oauth_redirect_allowlist_defaults_from_app_public_url() -> None:
     assert settings.oauth_allowed_redirect_uris == [
         "https://app.example.com/login",
         "https://app.example.com/account",
+        "r9lab-app://login",
+        "r9lab-app://account",
         "relab-app://login",
         "relab-app://account",
     ]

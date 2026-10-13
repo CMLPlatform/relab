@@ -105,7 +105,7 @@ jest.mock('expo-web-browser', () => ({
 }));
 
 jest.mock('expo-linking', () => ({
-  createURL: jest.fn().mockReturnValue('relab-app://account'),
+  createURL: jest.fn().mockReturnValue('r9lab-app://account'),
   openURL: jest.fn(),
 }));
 
