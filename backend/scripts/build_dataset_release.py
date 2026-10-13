@@ -662,12 +662,17 @@ def read_csv_header(path: Path) -> list[str]:
         return next(csv.reader(handle), [])
 
 
-def _parquet_value(value: object) -> object:
-    """Coerce a database value into something the declared Arrow type accepts."""
+def _parquet_value(value: object, arrow_type: pa.DataType) -> object:
+    """Coerce a database value into something the declared Arrow type accepts.
+
+    A list or set bound for a list column stays a list, sorted so the file is stable between
+    builds. Only a text column gets JSON: pyarrow would split a JSON string bound for a list
+    column into one-character items.
+    """
+    if pa.types.is_list(arrow_type) and isinstance(value, list | tuple | set | frozenset):
+        return sorted(_parquet_value(item, arrow_type.value_type) for item in value)  # ty: ignore[invalid-argument-type]
     if isinstance(value, dict | list):
         return json.dumps(value, sort_keys=True)
-    if isinstance(value, set | frozenset):
-        return sorted(_parquet_value(item) for item in value)  # ty: ignore[invalid-argument-type]
     if isinstance(value, Enum):
         return value.value
     return value
@@ -681,7 +686,7 @@ def write_parquet(path: Path, schema: pa.Schema, rows: Iterable[dict[str, Any]])
     one.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    records = [{name: _parquet_value(row.get(name)) for name in schema.names} for row in rows]
+    records = [{field.name: _parquet_value(row.get(field.name), field.type) for field in schema} for row in rows]
     pq.write_table(pa.Table.from_pylist(records, schema=schema), path, compression="zstd")
 
 

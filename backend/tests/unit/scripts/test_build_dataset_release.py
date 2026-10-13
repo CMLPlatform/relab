@@ -19,6 +19,7 @@ from PIL import Image as PILImage
 from PIL.ExifTags import IFD
 
 from app.api.auth import terms
+from app.api.reference_data.models import TaxonomyDomain
 from app.core.images.processing import process_image_for_storage
 from scripts import build_dataset_release as release
 from scripts.build_dataset_release import (
@@ -672,6 +673,27 @@ def test_parquet_preserves_null_and_integer_types(tmp_path) -> None:
     assert row["amount_in_parent"] == 2
     assert isinstance(row["amount_in_parent"], int)
     assert isinstance(row["height_cm"], float)
+
+
+@pytest.mark.parametrize(
+    "domains",
+    [
+        [TaxonomyDomain.PRODUCTS, TaxonomyDomain.MATERIALS],
+        {TaxonomyDomain.PRODUCTS, TaxonomyDomain.MATERIALS},
+    ],
+)
+def test_parquet_keeps_a_list_column_a_list_of_values(tmp_path, domains) -> None:
+    """Taxonomy.domains arrives as a list of enums; it must not be written as JSON text split into characters."""
+    path = tmp_path / "taxonomies.parquet"
+    write_parquet(path, TAXONOMIES_SCHEMA, [{"id": 1, "name": "CPV", "domains": domains}])
+    assert read_parquet(path)[0]["domains"] == ["materials", "products"]
+
+
+def test_parquet_still_writes_a_json_object_column_as_text(tmp_path) -> None:
+    """circularity_properties is free-form JSON in a text column, and stays text."""
+    path = tmp_path / "records.parquet"
+    write_parquet(path, RECORDS_SCHEMA, [_record(circularity_properties={"recyclability": "high"})])
+    assert read_parquet(path)[0]["circularity_properties"] == '{"recyclability": "high"}'
 
 
 def test_parquet_schema_does_not_shift_when_a_column_is_all_null(tmp_path) -> None:
