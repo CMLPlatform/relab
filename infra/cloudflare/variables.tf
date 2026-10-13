@@ -46,7 +46,7 @@ variable "github_owner" {
 variable "github_repository" {
   description = "Repository whose GitHub Environment holds this environment's image-build URLs."
   type        = string
-  default     = "relab"
+  default     = "r9lab"
 }
 
 variable "github_reviewers" {
