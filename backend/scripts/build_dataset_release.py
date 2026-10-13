@@ -345,9 +345,8 @@ def tally_product_classes(
 class ReleaseMetadata:
     """Everything the archive artefacts are rendered from."""
 
-    # TODO: Simon chooses the dataset title before the first release. It still carries the
-    # pre-rename "Relab" spelling and becomes permanent once the Zenodo record is published.
-    title: str = "Relab Teardown Dataset"
+    # The title becomes permanent once the Zenodo record is published.
+    title: str = "R9lab Teardown Dataset"
     version: str = "1.0"
     year: int = 2026
     # The build date: datePublished in croissant.json, date-released in CITATION.cff.
