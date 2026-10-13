@@ -143,27 +143,29 @@ def _letters() -> dict:
     return load_glyphs(LETTER_FONT, "R9lab" + TAGLINE)
 
 
-def _wordmark(colors: dict, *, ringed: bool = False) -> Composer:
-    """Compose R-9-l-a-b; `ringed` circles the R9 pair."""
+def _wordmark(colors: dict, *, ringed: bool = False, tail: str = "lab") -> Composer:
+    """Compose R-9 plus `tail`; `ringed` circles the R9 pair."""
     letters = _letters()
     c = Composer(letters["upm"])
     c.glyph(letters, "R", colors["letters"])
     c.glyph(load_glyphs(NINE_FONT), "9", colors["nine"], squish=NINE_SQUISH)
     if ringed:
         c.ring(tuple(c.bounds), colors["nine"])  # bounds so far: the R9 pair
-    for ch in "lab":
+    for ch in tail:
         c.glyph(letters, ch, colors["letters"])
     return c
 
 
 def build_set(colors: dict) -> dict[str, str]:
-    """Build the SVG variants (mark, wordmark, logo)."""
+    """Build the SVG variants (mark, wordmark, logo, badge)."""
     mark = Composer(_letters()["upm"])
     mark.glyph(load_glyphs(NINE_FONT), "9", colors["nine"], squish=NINE_SQUISH)
     return {
         "mark": mark.svg("R9lab mark"),
         "wordmark": _wordmark(colors).svg("R9lab"),
         "logo": _wordmark(colors, ringed=True).svg("R9lab"),  # ringed wordmark: the flask successor
+        # The ringed R9 alone: a square avatar for OAuth consent screens and account pictures.
+        "badge": _wordmark(colors, ringed=True, tail="").svg("R9lab"),
     }
 
 

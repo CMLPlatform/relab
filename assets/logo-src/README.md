@@ -26,6 +26,7 @@ consumer copies.
 | `r9lab-mark-adaptive.svg` | the mark with a `prefers-color-scheme` style, for browser-tab favicons |
 | `r9lab-wordmark.svg`      | pure-text `R9lab` lockup                            |
 | `r9lab-logo.svg`          | ringed wordmark: `(R9) lab`, the primary wide logo |
+| `r9lab-badge.svg`         | the ringed `(R9)` alone: square avatars (OAuth consent screens, account pictures) |
 | `r9lab-og.svg`            | 1200×630 social card (wordmark + tagline)           |
 
 Each has a `-dark` counterpart. `scripts/sync_brand_assets.py` (run by `just assets-sync`) renders
