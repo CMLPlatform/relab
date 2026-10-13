@@ -25,6 +25,15 @@ telemetry on; this host cannot tell you the rule is missing.
 Staging's `rclone.conf` defines one remote, `surfdrive_staging`, a SURFdrive share link scoped to
 staging's own folder; the backup copies to `rclone:surfdrive_staging:`.
 
+### Moving the host from the relab paths
+
+As [DEPLOY-PROD.md](DEPLOY-PROD.md) 1.7, after the rename window's go/no-go check, but staging has no
+deploy user to rename. Disable the four `r9lab-*@staging` timers, move the ping file the same way
+(`/etc/relab/relab.env` to `/etc/r9lab/r9lab.env`, replacing the empty one the window's
+`timers-install` seeded), and if the checkout's directory is named after relab, move it and update
+`BACKUP_HOST_DIR` if it points inside. Then run `just timers-install staging` and
+`just stack staging up YES` from the moved checkout.
+
 ______________________________________________________________________
 
 ## Part 2: Routine release

@@ -359,7 +359,8 @@ for job in backup backup-maintenance watchdog restore-check; do sudo systemctl d
 sudo systemctl stop "user@$(id -u relab).service"; pgrep -u relab   # must print nothing
 sudo usermod -l r9lab -d /var/lib/r9lab -m relab && sudo groupmod -n r9lab relab
 sudo mv /opt/relab /opt/r9lab
-sudo mv /etc/relab /etc/r9lab && sudo mv /etc/r9lab/relab.env /etc/r9lab/r9lab.env
+# The window's timers-install already seeded an empty /etc/r9lab/r9lab.env: replace it.
+sudo install -d -m 0755 /etc/r9lab && sudo mv -f /etc/relab/relab.env /etc/r9lab/r9lab.env && sudo rmdir /etc/relab
 ```
 
 Then change only the path inside the deploy key's `command="..."` in
