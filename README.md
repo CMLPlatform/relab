@@ -4,6 +4,7 @@
 
 # R9lab
 
+[![CI](https://github.com/CMLPlatform/relab/actions/workflows/ci.yml/badge.svg)](https://github.com/CMLPlatform/relab/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/github/v/release/CMLPlatform/relab?include_prereleases&filter=v*)](CHANGELOG.md)
 [![License: AGPL-v3+](https://img.shields.io/badge/License-AGPL--v3+-rebeccapurple.svg)](LICENSE)
 [![Data License: CC BY 4.0](https://img.shields.io/badge/Data_License-CC_BY_4.0-rebeccapurple.svg)](https://creativecommons.org/licenses/by/4.0/)
