@@ -7,6 +7,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-13
+
 **Upgrading:** the public domain moves to r9lab.io and the product is called R9lab.
 Everyone signs in again once, because the session cookies are renamed (see Changed).
 Self-hosters set their own `*_PUBLIC_URL`, `EMAIL_*` and `SMTP_*` values in the root `.env`;
@@ -116,7 +118,7 @@ stops before touching the running stack and prints these steps.
   because `main` has moved on. With `IMAGE_TAG` set to a version, it checks that the
   checkout contains that release's git tag, and alerts if the tag is missing or newer
   than the checkout.
-- Rows on the profile screen, such as "Delete account?", now tint when hovered or pressed
+- Rows on the profile screen, such as "Delete account?", now tint when hovered or pressed.
 - The API reference pages no longer request fonts that the docs site's content
   security policy blocks.
 
@@ -591,7 +593,8 @@ Initial release of the Relab platform for circular economy and computer vision r
 - Image and video upload for products
 - Raspberry Pi Camera Plugin for remote image capture
 
-[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/CMLPlatform/relab/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/CMLPlatform/relab/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1
