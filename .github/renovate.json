@@ -21,7 +21,7 @@
       "customType": "regex",
       "managerFilePatterns": ["/^docs/justfile$/"],
       "matchStrings": ["r9cam_plugin_version := \"(?<currentValue>v[^\"]+)\""],
-      "depNameTemplate": "CMLPlatform/relab-rpi-cam-plugin",
+      "depNameTemplate": "CMLPlatform/r9cam",
       "datasourceTemplate": "github-releases"
     }
   ],
@@ -101,9 +101,17 @@
     },
     {
       "description": "A plugin bump fails the docs schema check until someone runs `just docs/r9cam-schema` on the PR, so it gets its own PR, merged by hand, instead of stalling the weekly group.",
-      "matchPackageNames": ["CMLPlatform/relab-rpi-cam-plugin"],
+      "matchPackageNames": ["CMLPlatform/r9cam"],
       "groupName": "r9cam plugin schema",
       "groupSlug": "r9cam-plugin-schema",
+      "automerge": false
+    },
+    {
+      "description": "A Python minor version has to move .tool-versions, backend/.python-version, ruff's target-version and the Docker base images together, and every dependency needs wheels for it. One PR, merged by hand, so CI never tests on a newer Python than the images run.",
+      "matchPackageNames": ["python"],
+      "matchUpdateTypes": ["minor"],
+      "groupName": "python minor",
+      "groupSlug": "python-minor",
       "automerge": false
     }
   ]
