@@ -518,7 +518,6 @@ def test_legacy_usernames_are_lowercased_unless_taken(
 _OLD_ANONYMOUS_EMAIL = "anonymous@system.relab.internal"
 _NEW_ANONYMOUS_EMAIL = "anonymous@system.r9lab.internal"
 _OLD_ANONYMOUS_ID = "00000000-0000-4000-8000-00000000a001"
-_NEW_ANONYMOUS_ID = "00000000-0000-4000-8000-00000000a002"
 
 
 @pytest.mark.migration
