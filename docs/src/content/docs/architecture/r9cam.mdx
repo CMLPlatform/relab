@@ -166,7 +166,7 @@ The backend sends command envelopes to the device:
 }
 ```
 
-The device replies with a matching response envelope. The shared `relab_rpi_cam_models` package owns the envelope schema and the relay allowlist; both the backend and the plugin enforce the allowlist.
+The device replies with a matching response envelope. The shared `r9cam_models` package owns the envelope schema and the relay allowlist; both the backend and the plugin enforce the allowlist.
 
 Captured image bytes do not travel through the WebSocket. After a capture command succeeds, the Pi uploads the file and metadata directly to `/v1/plugins/r9cam/device/cameras/{camera_id}/image-upload`.
 

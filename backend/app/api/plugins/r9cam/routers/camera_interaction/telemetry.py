@@ -9,7 +9,7 @@ for 120s, and returns it. Subsequent polls within 120s hit the cache.
 import logging
 
 from pydantic import UUID4, ValidationError
-from relab_rpi_cam_models.telemetry import TelemetrySnapshot
+from r9cam_models.telemetry import TelemetrySnapshot
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.common.audiences import PublicAPIRouter

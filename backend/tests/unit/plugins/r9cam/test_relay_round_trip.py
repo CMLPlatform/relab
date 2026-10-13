@@ -17,7 +17,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi import HTTPException
-from relab_rpi_cam_models import RelayMessageType
+from r9cam_models import RelayMessageType
 
 from app.api.plugins.r9cam.runtime.status import mark_camera_online
 from app.api.plugins.r9cam.websocket.connection_manager import CameraConnectionManager

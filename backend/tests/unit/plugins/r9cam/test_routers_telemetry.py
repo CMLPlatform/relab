@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from httpx import Response
-from relab_rpi_cam_models.telemetry import TelemetrySnapshot, ThermalState
+from r9cam_models.telemetry import TelemetrySnapshot, ThermalState
 
 from app.api.auth.models import User
 from app.api.plugins.r9cam.constants import HttpMethod

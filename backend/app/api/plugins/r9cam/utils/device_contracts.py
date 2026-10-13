@@ -1,7 +1,7 @@
 """Helpers for the private backend<->plugin device seam."""
 
 from pydantic import TypeAdapter
-from relab_rpi_cam_models import PairingClaimedRecord, PairingPendingRecord
+from r9cam_models import PairingClaimedRecord, PairingPendingRecord
 
 _PAIRING_RECORD_ADAPTER = TypeAdapter(PairingPendingRecord | PairingClaimedRecord)
 

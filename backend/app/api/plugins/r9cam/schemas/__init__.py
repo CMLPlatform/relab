@@ -3,9 +3,9 @@
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from fastapi_filters import FilterField, FilterOperator
-from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
-from relab_rpi_cam_models import DevicePublicKeyJWK
-from relab_rpi_cam_models.telemetry import TelemetrySnapshot
+from pydantic import UUID4, BaseModel, ConfigDict, Field
+from r9cam_models import DevicePublicKeyJWK
+from r9cam_models.telemetry import TelemetrySnapshot
 
 from app.api.auth.models import User
 from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin, filter_field
@@ -62,16 +62,8 @@ class CameraCreate(BaseCreateSchema, CameraBase):
     model_config = ConfigDict(json_schema_extra={"examples": CAMERA_CREATE_EXAMPLES})
 
     relay_public_key_jwk: RelayPublicKeyJWK
+    # The JWK model forbids unknown members, so private key material ("d") is rejected.
     relay_key_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
-
-    @field_validator("relay_public_key_jwk")
-    @classmethod
-    def ensure_public_key_only(cls, value: RelayPublicKeyJWK) -> RelayPublicKeyJWK:
-        """Reject private JWK material if a client accidentally sends it."""
-        if hasattr(value, "d"):
-            msg = "relay_public_key_jwk must not contain private key material."
-            raise ValueError(msg)
-        return value
 
 
 class CameraRead(UUIDIdReadSchemaWithTimeStamp, CameraBase):

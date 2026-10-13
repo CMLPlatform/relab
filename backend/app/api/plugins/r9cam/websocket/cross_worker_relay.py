@@ -28,8 +28,8 @@ import uuid
 from typing import TYPE_CHECKING, cast
 
 import anyio
+from r9cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, relay_command_is_allowed
 from redis.exceptions import RedisError
-from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, relay_command_is_allowed
 
 from app.core.logging import sanitize_log_value
 from app.core.redis import redis_bool, redis_int

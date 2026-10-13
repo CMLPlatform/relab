@@ -74,7 +74,7 @@ image; `--target dev` builds the hot-reload image used by `compose.dev.yaml`.
 - **App contract**: backend routes and OpenAPI are the only app-facing surface.
 - **Device contract**: `/openapi.device.json` documents the device integration surface; the docs
   site hosts the reference.
-- **Private device seam**: `relab-rpi-cam-models` owns the backend\<->plugin transport DTOs
+- **Private device seam**: `r9cam-models` owns the backend\<->plugin transport DTOs
   (pairing, relay envelopes, relay allowlist, local-access bootstrap, upload acknowledgements).
 
 Frontend code consumes the generated OpenAPI types, never the private device-seam DTOs.

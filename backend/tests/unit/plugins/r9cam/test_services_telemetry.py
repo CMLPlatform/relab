@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-from relab_rpi_cam_models.telemetry import TelemetrySnapshot, ThermalState
+from r9cam_models.telemetry import TelemetrySnapshot, ThermalState
 
 from app.api.plugins.r9cam.runtime.status import (
     TELEMETRY_CACHE_PREFIX,

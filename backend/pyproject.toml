@@ -37,7 +37,7 @@
     "sqlalchemy>=2.0.41",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
-    "relab-rpi-cam-models>=0.5.0,<0.6",
+    "r9cam-models>=0.6.0,<0.7",
     # Configuration, validation, and utility types
     "pydantic>=2.12",
     "pydantic-settings>=2.10.1",
@@ -233,7 +233,7 @@ mutation = [
         "pydantic",
         "sqlalchemy",
         "typing.Annotated",
-        "relab_rpi_cam_models",
+        "r9cam_models",
       ]
       runtime-evaluated-base-classes = [
         "fastapi_filters.FilterSet",
@@ -291,7 +291,7 @@ mutation = [
   exclude-newer = "3 days"
 
   [tool.uv.exclude-newer-package]
-    relab-rpi-cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay
+    r9cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay
 
 [tool.mutmut]
   # Scheduled weekly in .github/workflows/ops.yml; run locally with `just mutation`.

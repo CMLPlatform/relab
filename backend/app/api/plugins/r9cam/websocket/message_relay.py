@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from fastapi import HTTPException
 from opentelemetry.propagate import inject
 from pydantic import UUID4
-from relab_rpi_cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, extract_safe_relay_headers, relay_command_is_allowed
+from r9cam_models import RELAY_COMMAND_FORBIDDEN_DETAIL, extract_safe_relay_headers, relay_command_is_allowed
 
 from app.api.plugins.r9cam.relay_response import RelayResponse
 from app.api.plugins.r9cam.runtime.status import get_camera_online_cache_key

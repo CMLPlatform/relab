@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Body
 from pydantic import UUID4, PositiveInt, ValidationError
-from relab_rpi_cam_models.stream import StreamView
+from r9cam_models.stream import StreamView
 
 from app.api.auth.dependencies import CurrentActiveUserDep
 from app.api.auth.services.rate_limiter import API_WRITE_RATE_LIMIT_DEPENDENCY

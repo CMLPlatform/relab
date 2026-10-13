@@ -12,7 +12,7 @@ exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for 
 exclude-newer-span = "P3D"
 
 [options.exclude-newer-package]
-relab-rpi-cam-models = "3000-01-01T00:00:00Z"
+r9cam-models = "3000-01-01T00:00:00Z"
 
 [[package]]
 name = "absl-py"
@@ -2136,6 +2136,18 @@ wheels = [
 ]
 
 [[package]]
+name = "r9cam-models"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ff/07/5d65f56679dfec3f0f844b7cec4320ea47148457fd20f55e7010428741de/r9cam_models-0.6.0.tar.gz", hash = "sha256:331d7cdeacd0cbaec36ff50b5041c8e14c915ca455d5d1d9c19df23b2a02a422", size = 13701, upload-time = "2026-10-13T14:14:15.083Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/97/1a/1c820155b000703f5243ef85a9ea82163c6a7f766fea4cf83c767c712d26/r9cam_models-0.6.0-py3-none-any.whl", hash = "sha256:3866c8a5f233eb3e60a90f621eb1db9e424edfee1ac994ab7dda346909ca1b3d", size = 15886, upload-time = "2026-10-13T14:14:13.809Z" },
+]
+
+[[package]]
 name = "r9lab-backend"
 version = "0.0.0"
 source = { virtual = "." }
@@ -2162,8 +2174,8 @@ dependencies = [
     { name = "pyjwt", extra = ["crypto"] },
     { name = "pyotp" },
     { name = "python-json-logger" },
+    { name = "r9cam-models" },
     { name = "redis" },
-    { name = "relab-rpi-cam-models" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -2244,8 +2256,8 @@ requires-dist = [
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.12.1" },
     { name = "pyotp", specifier = ">=2.9.0" },
     { name = "python-json-logger", specifier = ">=4.1.0" },
+    { name = "r9cam-models", specifier = ">=0.6.0,<0.7" },
     { name = "redis", specifier = ">=5.2.1" },
-    { name = "relab-rpi-cam-models", specifier = ">=0.5.0,<0.6" },
     { name = "sqlalchemy", specifier = ">=2.0.41" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.42.0" },
 ]
@@ -2389,18 +2401,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/51/37a194df7707f92f33173260ba7b221d4ec376419a53babaec50019a2804/regex-2026.9.10-cp315-cp315t-win32.whl", hash = "sha256:5bef622850cf760154719d4e0d74b0a855962432995168e250069899ae12fe8f", size = 274780, upload-time = "2026-09-09T21:00:14.003Z" },
     { url = "https://files.pythonhosted.org/packages/77/12/3227a52970d90908b230f15b2c86df903f49ac72c9eedf4f6e8b5bb5e1a7/regex-2026.9.10-cp315-cp315t-win_amd64.whl", hash = "sha256:07b45ba5c94b8fcb30cb6c56a11f715c57533a3017964504322ea52690a27b72", size = 283936, upload-time = "2026-09-09T21:00:16.275Z" },
     { url = "https://files.pythonhosted.org/packages/f3/bc/c567c5a61671f04d30e83f20b496b465432879196574d051007285576205/regex-2026.9.10-cp315-cp315t-win_arm64.whl", hash = "sha256:f70b9f0e39c2dba1d9da6bf7ef7c377cad7277f8440e9a69be05ede529ff024c", size = 283747, upload-time = "2026-09-09T21:00:19.113Z" },
-]
-
-[[package]]
-name = "relab-rpi-cam-models"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/94/b6/fdbc496ba6f6838230210f3ae59d06a61a009a08c7624f159eae8ac40afd/relab_rpi_cam_models-0.5.0.tar.gz", hash = "sha256:e2b8e50a75b3ea9b506a385e57e3fe51c007f22f4ab007a513ac81368f5b0c70", size = 8315, upload-time = "2026-07-19T22:09:24.359Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7f/83/9d8d8f61f251accc4697e422c3618b83978a5653081b4de12b8e12fd6796/relab_rpi_cam_models-0.5.0-py3-none-any.whl", hash = "sha256:fa3a8d63d380b6c80f68e25aee442114420f62dd1c46f7a9e206c242b342fe3c", size = 10883, upload-time = "2026-07-19T22:09:23.129Z" },
 ]
 
 [[package]]

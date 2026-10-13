@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock
 from uuid import uuid4
 
-import relab_rpi_cam_models as relay_models
+import r9cam_models as relay_models
 
 from app.api.plugins.r9cam.websocket.connection_manager import CameraConnectionManager
 

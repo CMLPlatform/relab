@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from pydantic import UUID4, ValidationError
+from r9cam_models.telemetry import TelemetrySnapshot
 from redis.exceptions import RedisError
-from relab_rpi_cam_models.telemetry import TelemetrySnapshot
 
 from app.api.common.schemas.base import serialize_datetime_with_z
 from app.api.plugins.r9cam.models import CameraConnectionStatus, CameraStatus

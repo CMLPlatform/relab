@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
 
 from pydantic import UUID4, PositiveInt
-from relab_rpi_cam_models.images import ImageCaptureStatus
+from r9cam_models.images import ImageCaptureStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common.ownership import get_user_owned_object

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from fastapi import BackgroundTasks, HTTPException, Query
 from pydantic import UUID4
-from relab_rpi_cam_models import LocalAccessInfo
+from r9cam_models import LocalAccessInfo
 from sqlalchemy import select
 from starlette.responses import FileResponse
 

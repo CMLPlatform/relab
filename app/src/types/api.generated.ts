@@ -3057,8 +3057,8 @@ export interface components {
      *         "crv": "P-256",
      *         "kid": "cam-key-1",
      *         "kty": "EC",
-     *         "x": "base64url-x-coordinate",
-     *         "y": "base64url-y-coordinate"
+     *         "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+     *         "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
      *       }
      *     }
      */
@@ -3087,7 +3087,7 @@ export interface components {
      * CameraProperties
      * @description Static camera properties from libcamera.
      *
-     *     For more info, see https://libcamera.org/api-html/namespacelibcamera_1_1properties.html.
+     *     For more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/property_ids_core.yaml.
      */
     CameraProperties: {
       /** Model */
@@ -3219,7 +3219,7 @@ export interface components {
      * CaptureMetadata
      * @description Dynamic capture metadata from libcamera.
      *
-     *     For more info, see https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.
+     *     For more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/control_ids_core.yaml.
      */
     CaptureMetadata: {
       /**
