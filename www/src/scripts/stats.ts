@@ -22,7 +22,7 @@ interface Measure {
 }
 
 const MEASURES: Measure[] = [
-  { key: 'parts', label: 'Parts', noun: 'components documented' },
+  { key: 'parts', label: 'Components', noun: 'components documented' },
   { key: 'teardowns', label: 'Teardowns', noun: 'products disassembled' },
   { key: 'mass_kg', label: 'Mass', noun: 'logged', fractional: true },
   { key: 'images', label: 'Photos', noun: 'catalogued' },

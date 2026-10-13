@@ -56,8 +56,8 @@
 }
 
 @media (max-width: 760px) {
+  /* Keep the 1rem gutter of the header and footer, so page text lines up with them. */
   .page-shell {
-    width: min(calc(100% - 1.25rem), var(--content-width));
     padding-top: 1.5rem;
     padding-bottom: 2rem;
   }

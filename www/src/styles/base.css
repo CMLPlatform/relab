@@ -67,8 +67,10 @@ select {
   outline-offset: 3px;
 }
 
+/* Mix with the page surface, not white: in dark mode a white mix puts
+   near-white text on a near-white highlight. */
 ::selection {
-  background: color-mix(in srgb, var(--color-primary) 22%, white);
+  background: color-mix(in srgb, var(--color-primary) 22%, var(--color-page-surface));
 }
 
 @media (prefers-reduced-motion: reduce) {
