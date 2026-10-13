@@ -3,15 +3,15 @@
     <mj-title>Email Verification</mj-title>
     {{include:styles}}
   </mj-head>
-  <mj-body background-color="{{brand:--relab-brand-theme-color}}">
+  <mj-body background-color="{{brand:--r9lab-brand-theme-color}}">
     {{include:header}}
 
-    <mj-section background-color="{{brand:--relab-brand-background}}" padding="20px 40px">
+    <mj-section background-color="{{brand:--r9lab-brand-background}}" padding="20px 40px">
       <mj-column>
         <mj-text font-size="16px" padding-bottom="20px"> Hello {{ username }}, </mj-text>
         <mj-text> Please verify your email by clicking the button below: </mj-text>
         <mj-button href="{{verification_link}}" padding="20px 0"> Verify Email Address </mj-button>
-        <mj-text font-size="12px" color="{{brand:--relab-brand-accent}}" padding-top="20px">
+        <mj-text font-size="12px" color="{{brand:--r9lab-brand-accent}}" padding-top="20px">
           Or copy and paste this link in your browser:<br />
           <a href="{{verification_link}}" style="word-break: break-all">{{ verification_link }}</a>
         </mj-text>

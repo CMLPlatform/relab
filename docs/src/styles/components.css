@@ -13,8 +13,8 @@
 .relab-colophon {
   margin-top: 3rem;
   padding-top: 1.2rem;
-  border-top: 1px solid var(--relab-brand-divider);
-  font-family: var(--relab-brand-font-mono), monospace;
+  border-top: 1px solid var(--r9lab-brand-divider);
+  font-family: var(--r9lab-brand-font-mono), monospace;
   font-size: var(--sl-text-xs);
   line-height: 1.6;
   color: var(--sl-color-gray-3);
@@ -39,9 +39,9 @@
   list-style: none;
   margin: 0;
   padding: 1rem 1.1rem;
-  border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--r9lab-brand-primary) 18%, transparent);
   border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--relab-brand-primary) 4%, transparent);
+  background: color-mix(in srgb, var(--r9lab-brand-primary) 4%, transparent);
 }
 
 /* block, not inline-block: markdown folds the newline after the link into a
@@ -52,10 +52,10 @@
 }
 
 .sidebar-pane :where(a[aria-current="page"]) {
-  color: var(--relab-brand-primary-strong);
+  color: var(--r9lab-brand-primary-strong);
   font-weight: 600;
-  background: color-mix(in srgb, var(--relab-brand-primary) 14%, var(--relab-brand-background));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--r9lab-brand-primary) 14%, var(--r9lab-brand-background));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r9lab-brand-primary) 18%, transparent);
 }
 
 .sidebar-pane :where(a[aria-current="page"] span) {
@@ -75,12 +75,12 @@
   box-shadow: none;
 }
 
-.relab-mermaid {
+.r9lab-mermaid {
   margin: 1rem 0 1.5rem;
   padding: 1rem;
   border-radius: var(--radius-card);
-  border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 16%, transparent);
-  background: color-mix(in srgb, var(--relab-brand-primary) 6%, var(--relab-brand-background));
+  border: 1px solid color-mix(in srgb, var(--r9lab-brand-primary) 16%, transparent);
+  background: color-mix(in srgb, var(--r9lab-brand-primary) 6%, var(--r9lab-brand-background));
 }
 
 /* Diagrams break out of the prose column into the content padding, keeping a
@@ -88,11 +88,11 @@
    Desktop only: below this the column is already full width and a break-out
    would cause horizontal scroll. */
 @media (min-width: 72rem) {
-  .relab-mermaid {
-    --relab-mermaid-bleed: calc(var(--sl-content-pad-x) - 0.5rem);
+  .r9lab-mermaid {
+    --r9lab-mermaid-bleed: calc(var(--sl-content-pad-x) - 0.5rem);
 
-    width: calc(100% + 2 * var(--relab-mermaid-bleed));
-    margin-inline: calc(-1 * var(--relab-mermaid-bleed));
+    width: calc(100% + 2 * var(--r9lab-mermaid-bleed));
+    margin-inline: calc(-1 * var(--r9lab-mermaid-bleed));
   }
 }
 
@@ -100,12 +100,12 @@
    an inline max-width, so a wide diagram scales down and a narrow one keeps its
    size. The "View full size" link under each opens it unscaled
    (src/scripts/mermaid.ts). */
-.relab-mermaid svg {
+.r9lab-mermaid svg {
   height: auto;
 }
 
 /* Starlight spaces flow content by margin-top; pull the link up to the frame. */
-.sl-markdown-content .relab-mermaid + .relab-mermaid-full-size {
+.sl-markdown-content .r9lab-mermaid + .r9lab-mermaid-full-size {
   margin-top: -1rem;
   font-size: var(--sl-text-sm);
 }
@@ -123,8 +123,8 @@
    shadow, the brightest thing in the header. It takes the surface token and a
    hairline instead, open or closed. */
 :root[data-theme="dark"] .sl-menu-button {
-  border: 1px solid var(--relab-brand-divider);
-  background-color: var(--relab-brand-surface);
-  color: var(--relab-brand-text);
+  border: 1px solid var(--r9lab-brand-divider);
+  background-color: var(--r9lab-brand-surface);
+  color: var(--r9lab-brand-text);
   box-shadow: none;
 }

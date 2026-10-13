@@ -12,7 +12,7 @@ jest.mock('@/services/storage', () => ({
   isWeb: () => mockIsWeb(),
 }));
 
-const URI = 'https://api.example.org/v1/plugins/rpi-cam/cameras/cam-1/preview-thumbnail?v=1';
+const URI = 'https://api.example.org/v1/plugins/r9cam/cameras/cam-1/preview-thumbnail?v=1';
 
 beforeEach(() => {
   mockGetToken.mockReset();

@@ -13,7 +13,7 @@ import {
   verifyLocalCredentials,
 } from '@/features/cameras/local-connection/shared';
 import { useLocalConnection } from '@/features/cameras/local-connection/useLocalConnection';
-import { fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
+import { fetchLocalAccessInfo } from '@/services/api/r9cam/access';
 
 jest.mock('@/features/cameras/local-connection/shared', () => ({
   __esModule: true,
@@ -33,7 +33,7 @@ jest.mock('@/features/cameras/local-connection/shared', () => ({
   verifyLocalCredentials: jest.fn(async () => true),
 }));
 
-jest.mock('@/services/api/rpiCamera/access', () => ({
+jest.mock('@/services/api/r9cam/access', () => ({
   __esModule: true,
   fetchLocalAccessInfo: jest.fn(async () => null),
 }));

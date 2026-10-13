@@ -32,7 +32,7 @@ jest.mock('@/features/cameras/serverPreferenceToggle', () => ({
   useServerPreferenceToggle: () => mockUseYouTubeIntegration(),
 }));
 
-jest.mock('@/features/cameras/rpi/hooks', () => ({
+jest.mock('@/features/cameras/r9cam/hooks', () => ({
   useStreamStatusQuery: (...args: unknown[]) => mockUseStreamStatusQuery(...args),
   useStopYouTubeStreamMutation: (...args: unknown[]) => mockUseStopYouTubeStreamMutation(...args),
 }));

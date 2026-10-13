@@ -15,7 +15,7 @@ from relab_rpi_cam_models import LocalAccessInfo
 
 from app.api.auth.schemas import OAuthAccountRead, UserRead
 from app.api.common.audiences import RouteAudience, route_audiences
-from app.api.plugins.rpi_cam.schemas import CameraRead
+from app.api.plugins.r9cam.schemas import CameraRead
 from app.main import create_app
 
 # Account-private: email, linked OAuth accounts, preferences, quotas, terms state.
@@ -31,12 +31,19 @@ PRIVATE_MODEL_ROUTES = {
     ("GET", "/v1/oauth/github/associate/callback"),
     ("GET", "/v1/oauth/google/associate/callback"),
     ("GET", "/v1/oauth/google-youtube/associate/callback"),
-    ("GET", "/v1/plugins/rpi-cam/cameras"),
-    ("POST", "/v1/plugins/rpi-cam/cameras"),
-    ("GET", "/v1/plugins/rpi-cam/cameras/{camera_id}"),
-    ("PATCH", "/v1/plugins/rpi-cam/cameras/{camera_id}"),
-    ("GET", "/v1/plugins/rpi-cam/cameras/{camera_id}/local-access"),
-    ("POST", "/v1/plugins/rpi-cam/pairing/claim"),
+    ("GET", "/v1/plugins/r9cam/cameras"),
+    ("POST", "/v1/plugins/r9cam/cameras"),
+    ("GET", "/v1/plugins/r9cam/cameras/{camera_id}"),
+    ("PATCH", "/v1/plugins/r9cam/cameras/{camera_id}"),
+    ("GET", "/v1/plugins/r9cam/cameras/{camera_id}/local-access"),
+    ("POST", "/v1/plugins/r9cam/pairing/claim"),
+}
+# The camera routes are also served under their pre-rename path.
+# TODO: drop /v1/plugins/rpi-cam/ after 2027-01-31
+PRIVATE_MODEL_ROUTES |= {
+    (method, path.replace("/plugins/r9cam/", "/plugins/rpi-cam/"))
+    for method, path in PRIVATE_MODEL_ROUTES
+    if "/plugins/r9cam/" in path
 }
 
 

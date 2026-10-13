@@ -365,10 +365,10 @@ def render_type_tokens_css(type_tokens: dict) -> list[str]:
     lines = []
     for role, metrics in type_tokens.items():
         size_px = metrics["size"]
-        lines.append(f"  --relab-type-{role}-size: {trim(size_px / 16)}rem;")
-        lines.append(f"  --relab-type-{role}-line: {round(metrics['line'] / size_px, 4)};")
+        lines.append(f"  --r9lab-type-{role}-size: {trim(size_px / 16)}rem;")
+        lines.append(f"  --r9lab-type-{role}-line: {round(metrics['line'] / size_px, 4)};")
         if "trackingEm" in metrics:
-            lines.append(f"  --relab-type-{role}-tracking: {metrics['trackingEm']}em;")
+            lines.append(f"  --r9lab-type-{role}-tracking: {metrics['trackingEm']}em;")
     return lines
 
 
@@ -383,14 +383,14 @@ def render_design_tokens_css(tokens: dict) -> str:
     for tier, px in tokens["radius"].items():
         if tier == "full":
             continue  # true pills use border-radius: 9999px inline; no web consumer
-        lines.append(f"  --relab-radius-{tier}: {px}px;")
+        lines.append(f"  --r9lab-radius-{tier}: {px}px;")
     shadow = tokens["shadowOverlay"]
-    lines.append(f"  --relab-shadow-overlay: light-dark({shadow['light']}, {shadow['dark']});")
+    lines.append(f"  --r9lab-shadow-overlay: light-dark({shadow['light']}, {shadow['dark']});")
     scrim = tokens["scrim"]
-    lines.append(f"  --relab-scrim: light-dark({scrim['light']}, {scrim['dark']});")
+    lines.append(f"  --r9lab-scrim: light-dark({scrim['light']}, {scrim['dark']});")
     for hue, values in tokens["chart"].items():
         for part, color in values.items():
-            lines.append(f"  --relab-chart-{hue}-{part}: {color.lower()};")
+            lines.append(f"  --r9lab-chart-{hue}-{part}: {color.lower()};")
     lines.append("}")
     return "\n".join(lines) + "\n"
 
@@ -617,15 +617,15 @@ def sync_project_identity(*, check: bool) -> list[str]:
 
 
 BRAND_PARITY = (
-    # (--relab-brand-* name, palette.json token, schemes-to-check). Text checks
+    # (--r9lab-brand-* name, palette.json token, schemes-to-check). Text checks
     # LIGHT only: dark text intentionally diverges (web #e9eff8 vs app #e2e6ee,
     # documented in DESIGN.md).
-    ("--relab-brand-primary", "primary", ("light", "dark")),
-    ("--relab-brand-primary-strong", "primaryStrong", ("light", "dark")),
-    ("--relab-brand-accent", "accent", ("light", "dark")),
-    ("--relab-brand-text", "foreground", ("light",)),
-    ("--relab-brand-background", "background", ("light", "dark")),
-    ("--relab-brand-surface", "card", ("light", "dark")),
+    ("--r9lab-brand-primary", "primary", ("light", "dark")),
+    ("--r9lab-brand-primary-strong", "primaryStrong", ("light", "dark")),
+    ("--r9lab-brand-accent", "accent", ("light", "dark")),
+    ("--r9lab-brand-text", "foreground", ("light",)),
+    ("--r9lab-brand-background", "background", ("light", "dark")),
+    ("--r9lab-brand-surface", "card", ("light", "dark")),
 )
 
 # Tokens that intentionally exist on one side only. Every entry needs a reason,
@@ -638,13 +638,13 @@ BRAND_PARITY = (
 # (surface). A parity table that only covers the pairs someone remembered to add
 # cannot catch either. Making an unlisted token a hard failure can.
 WEB_ONLY_BRAND_TOKENS = {
-    "--relab-brand-primary-soft": "alpha wash over primary; app composes its own via alpha()",
-    "--relab-brand-surface-wash": "alpha wash; no app counterpart",
-    "--relab-brand-divider": "brand divider #d9dfe8 and palette border #C4C6D0 are different ramps",
-    "--relab-brand-theme-color": "browser chrome colour; the concept does not exist in the app",
-    "--relab-brand-font": "app deliberately uses platform system fonts (DESIGN.md)",
-    "--relab-brand-font-display": "app deliberately uses platform system fonts (DESIGN.md)",
-    "--relab-brand-font-mono": "app resolves mono via Platform.select",
+    "--r9lab-brand-primary-soft": "alpha wash over primary; app composes its own via alpha()",
+    "--r9lab-brand-surface-wash": "alpha wash; no app counterpart",
+    "--r9lab-brand-divider": "brand divider #d9dfe8 and palette border #C4C6D0 are different ramps",
+    "--r9lab-brand-theme-color": "browser chrome colour; the concept does not exist in the app",
+    "--r9lab-brand-font": "app deliberately uses platform system fonts (DESIGN.md)",
+    "--r9lab-brand-font-display": "app deliberately uses platform system fonts (DESIGN.md)",
+    "--r9lab-brand-font-mono": "app resolves mono via Platform.select",
 }
 APP_ONLY_PALETTE_TOKENS = {
     # shadcn/NativeWind vocabulary with no web brand counterpart. Web authors
@@ -666,7 +666,7 @@ APP_ONLY_PALETTE_TOKENS = {
     "state",
     "stateForeground",
 }
-BRAND_TOKEN_DECL = re.compile(r"^\s*(--relab-brand-[a-z-]+):", re.MULTILINE)
+BRAND_TOKEN_DECL = re.compile(r"^\s*(--r9lab-brand-[a-z-]+):", re.MULTILINE)
 
 
 def check_brand_coverage() -> list[str]:
@@ -685,7 +685,7 @@ def check_brand_coverage() -> list[str]:
     ]
     unmapped_palette = [
         f"palette.json '{token}' has no BRAND_PARITY entry and is not in "
-        f"APP_ONLY_PALETTE_TOKENS. Pair it with a --relab-brand-* token, or add it to "
+        f"APP_ONLY_PALETTE_TOKENS. Pair it with a --r9lab-brand-* token, or add it to "
         f"the allowlist with the reason it is app-only."
         for token in sorted(palette["light"])
         if token not in paired_palette and token not in APP_ONLY_PALETTE_TOKENS

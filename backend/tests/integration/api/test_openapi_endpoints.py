@@ -113,6 +113,9 @@ async def test_canonical_openapi_json_can_be_generated(openapi_client: AsyncClie
     assert "x-tagGroups" in payload
     assert payload["info"]["version"] == "1.0.0"
     assert payload["info"]["x-api-major"] == "v1"
+    # The pre-rename camera path is served but undocumented until it is dropped.
+    assert any(path.startswith("/v1/plugins/r9cam/") for path in payload["paths"])
+    assert not any("/plugins/rpi-cam/" in path for path in payload["paths"])
     # The service version is not disclosed on unauthenticated routes; only the API contract version is.
     assert "x-service-version" not in payload["info"]
     paths = payload["paths"]
@@ -139,8 +142,8 @@ async def test_canonical_openapi_json_can_be_generated(openapi_client: AsyncClie
             "/v1/product-types/{product_type_id}/files",
             "/v1/product-types/{product_type_id}/images",
             "/v1/oauth/google/session/authorize",
-            "/v1/plugins/rpi-cam/cameras/{camera_id}/recording-stream",
-            "/v1/plugins/rpi-cam/cameras/{camera_id}/recording-stream/monitor",
+            "/v1/plugins/r9cam/cameras/{camera_id}/recording-stream",
+            "/v1/plugins/r9cam/cameras/{camera_id}/recording-stream/monitor",
         },
     )
 
@@ -210,11 +213,11 @@ async def test_device_openapi_json_filters_to_device_schema(openapi_client: Asyn
     assert "cache-control" not in response.headers
     payload = response.json()
     assert payload["openapi"].startswith("3.")
-    assert "/v1/plugins/rpi-cam/pairing/register" in payload["paths"]
-    assert "/v1/plugins/rpi-cam/pairing/poll" in payload["paths"]
-    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload" in payload["paths"]
-    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/preview-thumbnail-upload" in payload["paths"]
-    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/self" in payload["paths"]
+    assert "/v1/plugins/r9cam/pairing/register" in payload["paths"]
+    assert "/v1/plugins/r9cam/pairing/poll" in payload["paths"]
+    assert "/v1/plugins/r9cam/device/cameras/{camera_id}/image-upload" in payload["paths"]
+    assert "/v1/plugins/r9cam/device/cameras/{camera_id}/preview-thumbnail-upload" in payload["paths"]
+    assert "/v1/plugins/r9cam/device/cameras/{camera_id}/self" in payload["paths"]
     assert "/v1/products" not in payload["paths"]
     assert "/v1/admin/users" not in payload["paths"]
     assert "PairingRegisterResponse" in payload["components"]["schemas"]
@@ -315,13 +318,13 @@ def test_device_schema_ignores_the_upload_path_suffixes() -> None:
     user-facing half of pairing and belongs only in the public schema.
     """
     app = FastAPI()
-    lookalike = PublicAPIRouter(prefix="/v1/plugins/rpi-cam/cameras/{camera_id}")
+    lookalike = PublicAPIRouter(prefix="/v1/plugins/r9cam/cameras/{camera_id}")
 
     @lookalike.post("/image-upload")
     async def _lookalike() -> dict[str, str]:
         return {}
 
-    device = DeviceAPIRouter(prefix="/v1/plugins/rpi-cam/device/cameras/{camera_id}")
+    device = DeviceAPIRouter(prefix="/v1/plugins/r9cam/device/cameras/{camera_id}")
 
     @device.post("/image-upload")
     async def _genuine() -> dict[str, str]:
@@ -332,5 +335,5 @@ def test_device_schema_ignores_the_upload_path_suffixes() -> None:
 
     paths = build_device_openapi(app)["paths"]
 
-    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload" in paths
-    assert "/v1/plugins/rpi-cam/cameras/{camera_id}/image-upload" not in paths
+    assert "/v1/plugins/r9cam/device/cameras/{camera_id}/image-upload" in paths
+    assert "/v1/plugins/r9cam/cameras/{camera_id}/image-upload" not in paths

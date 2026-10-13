@@ -6,7 +6,7 @@ import { AppText } from '@/components/base/AppText';
 import { dialogActionsStyle, dialogTitleStyle } from '@/components/base/dialogStyles';
 import { CameraPickerDialog } from '@/components/cameras/CameraPickerDialog';
 import { LivePreview } from '@/components/cameras/LivePreview';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { heading } from '@/utils/a11y';
 
 type Props = {

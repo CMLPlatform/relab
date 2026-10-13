@@ -10,7 +10,7 @@ and response models, authentication requirements, and schema downloads.
   media, and public research records. Use this unless you are building a device integration.
 - [Device API](/api/device/): the backend-facing API for pairing devices and R9lab plugins with the
   platform.
-- [RPi camera API](/api/rpi-cam/): the local camera service API for status checks, capture
+- [RPi camera API](/api/r9cam/): the local camera service API for status checks, capture
   workflows, and camera-device integration.
 
 ## Licensing

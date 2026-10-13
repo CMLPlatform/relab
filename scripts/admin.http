@@ -48,11 +48,11 @@ Authorization: Bearer {{token}}
 ## RPi cameras -------------------------------------------------------------
 
 ### List paired cameras.
-GET {{baseUrl}}/admin/plugins/rpi-cam/cameras
+GET {{baseUrl}}/admin/plugins/r9cam/cameras
 Authorization: Bearer {{token}}
 
 ### Check a camera's online status.
-GET {{baseUrl}}/admin/plugins/rpi-cam/cameras/REPLACE_CAMERA_ID/status
+GET {{baseUrl}}/admin/plugins/r9cam/cameras/REPLACE_CAMERA_ID/status
 Authorization: Bearer {{token}}
 
 ## Reference data ----------------------------------------------------------

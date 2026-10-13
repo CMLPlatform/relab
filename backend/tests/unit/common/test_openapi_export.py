@@ -42,7 +42,7 @@ def test_export_openapi_schemas_writes_public_and_device_contracts(exported_sche
 
     assert public_schema["openapi"].startswith("3.")
     assert device_schema["openapi"].startswith("3.")
-    assert "/v1/plugins/rpi-cam/pairing/register" in device_schema["paths"]
+    assert "/v1/plugins/r9cam/pairing/register" in device_schema["paths"]
 
 
 def test_public_schema_covers_routes_added_through_sub_routers(exported_schemas: Path) -> None:
@@ -56,27 +56,27 @@ def test_public_schema_covers_routes_added_through_sub_routers(exported_schemas:
         "/v1/auth/validate-email",
         "/v1/oauth/google/session/authorize",
         "/v1/users/me",
-        "/v1/plugins/rpi-cam/pairing/claim",
+        "/v1/plugins/r9cam/pairing/claim",
     } <= public_paths.keys()
     # A device sub-router mounted under a public prefix keeps its own audience.
-    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload" not in public_paths
+    assert "/v1/plugins/r9cam/device/cameras/{camera_id}/image-upload" not in public_paths
     assert "/v1/admin/users" not in public_paths
     # fastapi-users' superuser-by-id routes are dropped from /users entirely;
     # by-id management lives on the audited /admin/users surface.
     assert "/v1/users/{id}" not in public_paths
     # register/poll are Pi-only; they must not leak into the app-facing public schema,
     # even though they share a path prefix with the user-facing claim endpoint.
-    assert "/v1/plugins/rpi-cam/pairing/register" not in public_paths
-    assert "/v1/plugins/rpi-cam/pairing/poll" not in public_paths
+    assert "/v1/plugins/r9cam/pairing/register" not in public_paths
+    assert "/v1/plugins/r9cam/pairing/poll" not in public_paths
 
 
 def test_device_schema_covers_pairing_register_and_poll_only(exported_schemas: Path) -> None:
     """Pairing register/poll are device-only; claim (user-initiated) must not be there."""
     device_paths = json.loads((exported_schemas / "openapi.device.json").read_text(encoding="utf-8"))["paths"]
 
-    assert "/v1/plugins/rpi-cam/pairing/register" in device_paths
-    assert "/v1/plugins/rpi-cam/pairing/poll" in device_paths
-    assert "/v1/plugins/rpi-cam/pairing/claim" not in device_paths
+    assert "/v1/plugins/r9cam/pairing/register" in device_paths
+    assert "/v1/plugins/r9cam/pairing/poll" in device_paths
+    assert "/v1/plugins/r9cam/pairing/claim" not in device_paths
 
 
 @pytest.mark.parametrize("filename", ["openapi.public.json", "openapi.device.json", "openapi.json"])

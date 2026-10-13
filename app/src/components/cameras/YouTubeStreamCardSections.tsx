@@ -5,7 +5,7 @@ import { Card } from '@/components/base/Card';
 import { Icon } from '@/components/base/Icon';
 import { MutedText } from '@/components/base/MutedText';
 import { StatusPill } from '@/components/base/StatusPill';
-import type { StreamView } from '@/services/api/rpiCamera/shared';
+import type { StreamView } from '@/services/api/r9cam/shared';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { memoizeByTheme } from '@/theme/memoizeByTheme';
 import type { AppTheme } from '@/theme/types';

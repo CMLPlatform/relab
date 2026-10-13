@@ -43,4 +43,4 @@ export const DOCS_URL = normalizeOptionalHttpUrl(
 
 // Guide pages linked from more than one screen; single-screen paths stay local.
 export const DATA_COLLECTION_DOCS_PATH = '/user-guides/data-collection';
-export const RPI_CAM_DOCS_PATH = '/user-guides/rpi-cam';
+export const R9CAM_DOCS_PATH = '/user-guides/r9cam';

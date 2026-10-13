@@ -25,7 +25,9 @@ from app.core.secrets import validate_min_secret_bytes
 
 NAME_EMAIL_ADAPTER = TypeAdapter(NameEmail)
 FRONTEND_OAUTH_REDIRECT_PATHS = ("/login", "/account")
-NATIVE_OAUTH_REDIRECT_URIS = ("relab-app://login", "relab-app://account")
+# App builds from before the rename still use the relab-app:// scheme.
+# TODO: drop the relab-app:// redirects after 2027-01-31
+NATIVE_OAUTH_REDIRECT_URIS = ("r9lab-app://login", "r9lab-app://account", "relab-app://login", "relab-app://account")
 OAUTH_ALLOWED_REDIRECT_URIS_FIELD = "oauth_allowed_redirect_uris"
 
 

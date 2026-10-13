@@ -22,7 +22,7 @@ from app.api.auth.roles import (
     upload_quota_bytes_for_role,
     upload_quota_files_for_role,
 )
-from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.r9cam.models import Camera
 from app.core.config.core import settings
 from scripts.seed.factories.models import ProductFactory, ProductTypeFactory, UserFactory
 from tests.fixtures.client import override_authenticated_user
@@ -356,7 +356,7 @@ class TestCameraUploadsFollowTheOwnerAccount:
         PILImage.new("RGB", (8, 8)).save(buffer, format="JPEG")
 
         response = await api_client.post(
-            f"/v1/plugins/rpi-cam/device/cameras/{camera.id}/image-upload",
+            f"/v1/plugins/r9cam/device/cameras/{camera.id}/image-upload",
             headers={"Authorization": f"Bearer {assertion}"},
             files={"file": ("capture.jpg", buffer.getvalue(), "image/jpeg")},
             data={"capture_metadata": "{}", "upload_metadata": json.dumps({"product_id": product.id})},
@@ -375,6 +375,6 @@ class TestCameraUploadsFollowTheOwnerAccount:
 
         with override_authenticated_user(test_app, user, verified=False, optional=False):
             test_app.dependency_overrides[current_active_verified_user] = refuse_unverified
-            response = await api_client.post(f"/v1/plugins/rpi-cam/cameras/{uuid4()}/captures", json={"product_id": 1})
+            response = await api_client.post(f"/v1/plugins/r9cam/cameras/{uuid4()}/captures", json={"product_id": 1})
 
         assert response.status_code == status.HTTP_403_FORBIDDEN, response.text

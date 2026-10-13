@@ -90,13 +90,13 @@ def test_compile_mjml_templates_expands_brand_tokens(
     brand_css.write_text(
         """
         :root {
-          --relab-brand-font: "IBM Plex Sans";
-          --relab-brand-primary: #006783;
+          --r9lab-brand-font: "IBM Plex Sans";
+          --r9lab-brand-primary: #006783;
         }
         """
     )
     (src_dir / "welcome.mjml").write_text(
-        '<mjml><mj-text color="{{brand:--relab-brand-primary}}">{{brand:--relab-brand-font}}</mj-text></mjml>'
+        '<mjml><mj-text color="{{brand:--r9lab-brand-primary}}">{{brand:--r9lab-brand-font}}</mj-text></mjml>'
     )
     compile_mock = mocker.patch.object(
         compile_email_templates_script,

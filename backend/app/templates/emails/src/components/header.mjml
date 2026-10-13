@@ -1,4 +1,4 @@
-<mj-section background-color="{{brand:--relab-brand-background}}" padding="28px 40px 16px">
+<mj-section background-color="{{brand:--r9lab-brand-background}}" padding="28px 40px 16px">
   <mj-column>
     <mj-image
       src="https://r9lab.io/images/wordmark.png"
@@ -15,14 +15,14 @@
       padding-top="10px"
       font-size="11px"
       letter-spacing="2px"
-      color="{{brand:--relab-brand-accent}}"
+      color="{{brand:--r9lab-brand-accent}}"
     >
       CIRCULAR-ECONOMY RESEARCH LAB
     </mj-text>
   </mj-column>
 </mj-section>
-<mj-section background-color="{{brand:--relab-brand-background}}" padding="0 40px">
+<mj-section background-color="{{brand:--r9lab-brand-background}}" padding="0 40px">
   <mj-column>
-    <mj-divider border-color="{{brand:--relab-brand-divider}}" border-width="1px" padding="0" />
+    <mj-divider border-color="{{brand:--r9lab-brand-divider}}" border-width="1px" padding="0" />
   </mj-column>
 </mj-section>

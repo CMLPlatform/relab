@@ -21,7 +21,7 @@ const stageSeconds = Number(__ENV.PERF_STAGE_SECONDS || 20);
 const gapSeconds = Number(__ENV.PERF_STAGE_GAP_SECONDS || 5);
 let nextStartSeconds = 0;
 // How long the fake camera holds its relay socket open; set where its stages are.
-let rpiCamDeviceSeconds = 0;
+let r9camDeviceSeconds = 0;
 
 function stage(rate, preAllocatedVUs) {
   const scenario = {
@@ -136,7 +136,7 @@ if (loginEmail && loginPassword) {
     thresholds[`http_req_duration{upload_size:${size}}`] = [`p(95)<${UPLOAD_THRESHOLDS_MS[size]}`];
   }
 
-  // The rpi_cam relay. A camera is a long-lived WebSocket the device opens, and
+  // The r9cam relay. A camera is a long-lived WebSocket the device opens, and
   // user requests reach it as JSON frames over that socket, so an HTTP latency
   // number alone cannot see it. These stages measure the relay three ways:
   // connection setup (`ws_connecting`), round-trip latency through the socket
@@ -144,44 +144,44 @@ if (loginEmail && loginPassword) {
   // (`http_req_failed`, which a dropped frame or dead socket shows up as a 503).
   // The camera is simulated in k6 itself: it signs the same ES256 device assertion
   // a paired Pi does, so the auth path measured is the real one.
-  scenarios.rpi_cam_ws_connect = { ...stage(Number(__ENV.PERF_RPI_CAM_CONNECT_RATE || 5), 10), exec: "rpiCamWsConnect" };
+  scenarios.r9cam_ws_connect = { ...stage(Number(__ENV.PERF_R9CAM_CONNECT_RATE || 5), 10), exec: "r9camWsConnect" };
   // Measured p95 19 ms in two isolated CI-stack runs; roughly 5x, rounded up to 100.
-  thresholds["ws_connecting{scenario:rpi_cam_ws_connect}"] = ["p(95)<100"];
+  thresholds["ws_connecting{scenario:r9cam_ws_connect}"] = ["p(95)<100"];
 
   // One fake camera stays connected across the relayed stages, from halfway through
   // the gap before them to halfway through the gap after. Connecting any earlier
   // lets a straggling connect-stage socket replace it (the backend keeps one socket
   // per camera); closing any earlier fails the last capture still in flight.
   const relayStartSeconds = nextStartSeconds;
-  scenarios.rpi_cam_telemetry_relay = {
-    ...stage(Number(__ENV.PERF_RPI_CAM_TELEMETRY_RATE || 10), 10),
-    exec: "rpiCamTelemetryRelay",
+  scenarios.r9cam_telemetry_relay = {
+    ...stage(Number(__ENV.PERF_R9CAM_TELEMETRY_RATE || 10), 10),
+    exec: "r9camTelemetryRelay",
   };
-  scenarios.rpi_cam_hls_relay = { ...stage(Number(__ENV.PERF_RPI_CAM_HLS_RATE || 10), 10), exec: "rpiCamHlsRelay" };
-  scenarios.rpi_cam_capture = { ...stage(Number(__ENV.PERF_RPI_CAM_CAPTURE_RATE || 2), 10), exec: "rpiCamCapture" };
+  scenarios.r9cam_hls_relay = { ...stage(Number(__ENV.PERF_R9CAM_HLS_RATE || 10), 10), exec: "r9camHlsRelay" };
+  scenarios.r9cam_capture = { ...stage(Number(__ENV.PERF_R9CAM_CAPTURE_RATE || 2), 10), exec: "r9camCapture" };
   const deviceStartSeconds = relayStartSeconds - gapSeconds / 2;
-  rpiCamDeviceSeconds = nextStartSeconds - gapSeconds / 2 - deviceStartSeconds;
-  scenarios.rpi_cam_device = {
+  r9camDeviceSeconds = nextStartSeconds - gapSeconds / 2 - deviceStartSeconds;
+  scenarios.r9cam_device = {
     executor: "per-vu-iterations",
     vus: 1,
     iterations: 1,
     startTime: `${deviceStartSeconds}s`,
-    maxDuration: `${rpiCamDeviceSeconds + gapSeconds}s`,
-    exec: "rpiCamDevice",
+    maxDuration: `${r9camDeviceSeconds + gapSeconds}s`,
+    exec: "r9camDevice",
   };
   // Roughly 5x the worse of two isolated CI-stack runs (p95 22 / 23 / 125 ms),
   // rounded up to 100.
-  gate("rpi_cam_telemetry_relay", 200);
-  gate("rpi_cam_hls_relay", 200);
-  gate("rpi_cam_capture", 700);
+  gate("r9cam_telemetry_relay", 200);
+  gate("r9cam_hls_relay", 200);
+  gate("r9cam_capture", 700);
 
   // Device-side HTTP, no socket: the Pi's thumbnail worker posting a preview frame.
-  scenarios.rpi_cam_preview_upload = {
-    ...stage(Number(__ENV.PERF_RPI_CAM_PREVIEW_RATE || 3), 10),
-    exec: "rpiCamPreviewUpload",
+  scenarios.r9cam_preview_upload = {
+    ...stage(Number(__ENV.PERF_R9CAM_PREVIEW_RATE || 3), 10),
+    exec: "r9camPreviewUpload",
   };
   // Measured p95 20-25 ms in two isolated CI-stack runs; roughly 5x, rounded up to 100.
-  gate("rpi_cam_preview_upload", 200);
+  gate("r9cam_preview_upload", 200);
 }
 
 export const options = {
@@ -221,7 +221,7 @@ export async function setup() {
   const { kty, crv, x, y } = await crypto.subtle.exportKey("jwk", cameraKeys.publicKey);
   const cameraKeyId = `perf-${Date.now()}`;
   const camera = http.post(
-    `${baseUrl}/v1/plugins/rpi-cam/cameras`,
+    `${baseUrl}/v1/plugins/r9cam/cameras`,
     JSON.stringify({
       name: "perf baseline camera",
       relay_public_key_jwk: { kty, crv, x, y },
@@ -242,7 +242,7 @@ export async function setup() {
   };
 }
 
-// --- rpi_cam fake device ------------------------------------------------------
+// --- r9cam fake device ------------------------------------------------------
 
 const EC_P256 = { name: "ECDSA", namedCurve: "P-256" };
 const wsBaseUrl = baseUrl.replace(/^http/, "ws");
@@ -273,7 +273,7 @@ async function deviceAssertion(camera) {
 }
 
 async function openCameraSocket(camera) {
-  const ws = new WebSocket(`${wsBaseUrl}/v1/plugins/rpi-cam/ws/connect?camera_id=${camera.id}`, null, {
+  const ws = new WebSocket(`${wsBaseUrl}/v1/plugins/r9cam/ws/connect?camera_id=${camera.id}`, null, {
     headers: { Authorization: `Bearer ${await deviceAssertion(camera)}` },
   });
   const opened = await new Promise((resolve) => {
@@ -315,7 +315,7 @@ async function handleRelayCommand(ws, camera, msg) {
     // A real capture: the Pi pushes the image to the backend over HTTPS, then
     // answers the relayed command with the stored image's id.
     const upload = http.post(
-      `${baseUrl}/v1/plugins/rpi-cam/device/cameras/${camera.id}/image-upload`,
+      `${baseUrl}/v1/plugins/r9cam/device/cameras/${camera.id}/image-upload`,
       {
         file: http.file(uploadImages[0].body, "capture.jpg", "image/jpeg"),
         capture_metadata: "{}",
@@ -334,7 +334,7 @@ async function handleRelayCommand(ws, camera, msg) {
 }
 
 // Holds one relay socket open for the relayed stages and serves their commands.
-export async function rpiCamDevice(data) {
+export async function r9camDevice(data) {
   const ws = await openCameraSocket(data.camera);
   if (!ws) {
     return;
@@ -348,21 +348,21 @@ export async function rpiCamDevice(data) {
       await handleRelayCommand(ws, data.camera, msg);
     }
   };
-  setTimeout(() => ws.close(), rpiCamDeviceSeconds * 1000);
+  setTimeout(() => ws.close(), r9camDeviceSeconds * 1000);
 }
 
-export async function rpiCamWsConnect(data) {
+export async function r9camWsConnect(data) {
   const ws = await openCameraSocket(data.camera);
   if (ws) {
     ws.close();
   }
 }
 
-export function rpiCamTelemetryRelay(data) {
+export function r9camTelemetryRelay(data) {
   // force_refresh skips the telemetry cache, so every request crosses the relay.
-  const response = http.get(`${baseUrl}/v1/plugins/rpi-cam/cameras/${data.camera.id}/telemetry?force_refresh=true`, {
+  const response = http.get(`${baseUrl}/v1/plugins/r9cam/cameras/${data.camera.id}/telemetry?force_refresh=true`, {
     headers: { Authorization: `Bearer ${data.token}` },
-    tags: { scenario: "rpi_cam_telemetry_relay" },
+    tags: { scenario: "r9cam_telemetry_relay" },
   });
 
   check(response, {
@@ -371,11 +371,11 @@ export function rpiCamTelemetryRelay(data) {
   });
 }
 
-export function rpiCamHlsRelay(data) {
-  const response = http.get(`${baseUrl}/v1/plugins/rpi-cam/cameras/${data.camera.id}/hls/cam-preview/seg0.mp4`, {
+export function r9camHlsRelay(data) {
+  const response = http.get(`${baseUrl}/v1/plugins/r9cam/cameras/${data.camera.id}/hls/cam-preview/seg0.mp4`, {
     headers: { Authorization: `Bearer ${data.token}` },
     responseType: "binary",
-    tags: { scenario: "rpi_cam_hls_relay" },
+    tags: { scenario: "r9cam_hls_relay" },
   });
 
   check(response, {
@@ -384,13 +384,13 @@ export function rpiCamHlsRelay(data) {
   });
 }
 
-export function rpiCamCapture(data) {
+export function r9camCapture(data) {
   const response = http.post(
-    `${baseUrl}/v1/plugins/rpi-cam/cameras/${data.camera.id}/captures`,
+    `${baseUrl}/v1/plugins/r9cam/cameras/${data.camera.id}/captures`,
     JSON.stringify({ product_id: data.uploadProductId }),
     {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.token}` },
-      tags: { scenario: "rpi_cam_capture" },
+      tags: { scenario: "r9cam_capture" },
     },
   );
 
@@ -399,14 +399,14 @@ export function rpiCamCapture(data) {
   });
 }
 
-export async function rpiCamPreviewUpload(data) {
+export async function r9camPreviewUpload(data) {
   const assertion = await deviceAssertion(data.camera);
   const response = http.post(
-    `${baseUrl}/v1/plugins/rpi-cam/device/cameras/${data.camera.id}/preview-thumbnail-upload`,
+    `${baseUrl}/v1/plugins/r9cam/device/cameras/${data.camera.id}/preview-thumbnail-upload`,
     { file: http.file(uploadImages[0].body, "preview.jpg", "image/jpeg") },
     {
       headers: { Authorization: `Bearer ${assertion}` },
-      tags: { scenario: "rpi_cam_preview_upload" },
+      tags: { scenario: "r9cam_preview_upload" },
     },
   );
 

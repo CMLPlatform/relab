@@ -40,7 +40,7 @@ type Props = {
   showRpiButton: boolean;
   hasCamerasConfigured: boolean;
   isCapturing: boolean;
-  rpiCamerasLoading: boolean;
+  r9camsLoading: boolean;
   onTakePhoto: () => void;
   onPickImage: () => void;
   onRpiCapture: () => void;
@@ -56,7 +56,7 @@ type EditModeOverlayProps = {
   showRpiButton: boolean;
   hasCamerasConfigured: boolean;
   isCapturing: boolean;
-  rpiCamerasLoading: boolean;
+  r9camsLoading: boolean;
   onTakePhoto: () => void;
   onPickImage: () => void;
   onRpiCapture: () => void;
@@ -72,7 +72,7 @@ function EditModeOverlay({
   showRpiButton,
   hasCamerasConfigured,
   isCapturing,
-  rpiCamerasLoading,
+  r9camsLoading,
   onTakePhoto,
   onPickImage,
   onRpiCapture,
@@ -98,7 +98,7 @@ function EditModeOverlay({
             <Pressable
               ref={rpiTriggerRef}
               onPress={onRpiCapture}
-              disabled={isCapturing || rpiCamerasLoading}
+              disabled={isCapturing || r9camsLoading}
               accessibilityRole="button"
               aria-busy={isCapturing}
               accessibilityLabel={
@@ -107,7 +107,7 @@ function EditModeOverlay({
               className="h-11 w-11 items-center justify-center rounded-md"
               style={rpiButtonStyle}
             >
-              {isCapturing || rpiCamerasLoading ? (
+              {isCapturing || r9camsLoading ? (
                 <ActivityIndicator size={18} color={theme.tokens.text.onMedia} />
               ) : (
                 <Icon name="camera" size="md" color={theme.tokens.text.onMedia} />
@@ -149,7 +149,7 @@ export function ProductImageGalleryContent({
   showRpiButton,
   hasCamerasConfigured,
   isCapturing,
-  rpiCamerasLoading,
+  r9camsLoading,
   onTakePhoto,
   onPickImage,
   onRpiCapture,
@@ -170,10 +170,10 @@ export function ProductImageGalleryContent({
   const rpiButtonStyle = useCallback(
     (state: PressState) => [
       styles.overlayIconButton,
-      { opacity: isCapturing || rpiCamerasLoading ? 0.5 : 1 },
+      { opacity: isCapturing || r9camsLoading ? 0.5 : 1 },
       pressFill(state, MEDIA_PRESSED_FILL),
     ],
-    [styles, isCapturing, rpiCamerasLoading],
+    [styles, isCapturing, r9camsLoading],
   );
   const deleteButtonStyle = useCallback(
     // Destructive: the translucent danger fill presses to solid danger.
@@ -248,7 +248,7 @@ export function ProductImageGalleryContent({
           showRpiButton={showRpiButton}
           hasCamerasConfigured={hasCamerasConfigured}
           isCapturing={isCapturing}
-          rpiCamerasLoading={rpiCamerasLoading}
+          r9camsLoading={r9camsLoading}
           onTakePhoto={onTakePhoto}
           onPickImage={onPickImage}
           onRpiCapture={onRpiCapture}

@@ -1,10 +1,10 @@
 {
-  "name": "relab-backend",
+  "name": "r9lab-backend",
   "dockerComposeFile": ["../../compose.yaml", "../../compose.dev.yaml"],
   "service": "api",
   "runServices": ["api", "redis", "postgres"],
-  "workspaceFolder": "/opt/relab/backend",
-  "mounts": ["source=${localWorkspaceFolder},target=/opt/relab,type=bind,consistency=cached"],
+  "workspaceFolder": "/opt/r9lab/backend",
+  "mounts": ["source=${localWorkspaceFolder},target=/opt/r9lab,type=bind,consistency=cached"],
   "overrideCommand": true,
   "postAttachCommand": "echo 'R9lab backend devcontainer ready.\\nUse this for focused backend work; the root full-stack container is the default onboarding path.\\nRun just install if needed, then just dev or just check.\\nAPI: http://127.0.0.1:8010'",
   "features": {

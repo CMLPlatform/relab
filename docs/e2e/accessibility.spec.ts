@@ -66,7 +66,7 @@ test.describe('Accessibility', () => {
     expect(results.violations).toEqual([]);
   });
 
-  for (const path of ['/api/public/', '/api/device/', '/api/rpi-cam/']) {
+  for (const path of ['/api/public/', '/api/device/', '/api/r9cam/']) {
     test(`${path} chrome has no accessibility violations`, async ({ page }) => {
       await page.goto(path);
       // #api-reference is filled client-side by the third-party Scalar bundle;

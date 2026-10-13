@@ -513,3 +513,93 @@ def test_legacy_usernames_are_lowercased_unless_taken(
     finally:
         migration_helper.execute_sql("DELETE FROM \"user\" WHERE lower(username) IN ('legacy_mixed', 'taken_name')")
         command.upgrade(relab_alembic_config, "head")
+
+
+_OLD_ANONYMOUS_EMAIL = "anonymous@system.relab.internal"
+_NEW_ANONYMOUS_EMAIL = "anonymous@system.r9lab.internal"
+_OLD_ANONYMOUS_ID = "00000000-0000-4000-8000-00000000a001"
+
+
+@pytest.mark.migration
+def test_anonymous_account_rename_merges_a_duplicate_row_and_reverts(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """With both system rows present, one row survives under the new address and owns every product.
+
+    Code that knows the new address may create its row before the migration runs; the
+    unique email indexes would otherwise fail the deploy. Downgrade restores the old address.
+    """
+    anonymous_rows = (
+        'SELECT id::text, email, email_canonical, upload_file_count, upload_total_bytes FROM "user"'
+        " WHERE id IN ('00000000-0000-4000-8000-00000000a001', '00000000-0000-4000-8000-00000000a002')"
+    )
+    try:
+        command.downgrade(relab_alembic_config, "f1b8d2a6c3e9")
+        migration_helper.execute_sql(
+            'INSERT INTO "user" (id, email, email_canonical, hashed_password, is_active, is_superuser,'
+            " is_verified, mfa_enabled, upload_file_count, upload_total_bytes) VALUES"
+            " ('00000000-0000-4000-8000-00000000a001',"
+            " 'anonymous@system.relab.internal', 'anonymous@system.relab.internal',"
+            " 'x', false, false, false, false, 1, 100),"
+            " ('00000000-0000-4000-8000-00000000a002',"
+            " 'anonymous@system.r9lab.internal', 'anonymous@system.r9lab.internal',"
+            " 'x', false, false, false, false, 2, 200)"
+        )
+        migration_helper.execute_sql(
+            "INSERT INTO product (name, owner_id) VALUES"
+            " ('anon-old-owned', '00000000-0000-4000-8000-00000000a001'),"
+            " ('anon-new-owned', '00000000-0000-4000-8000-00000000a002')"
+        )
+
+        command.upgrade(relab_alembic_config, "0b5e7c3a9d21")
+
+        rows = [tuple(row) for row in migration_helper.execute_sql(anonymous_rows)]
+        assert rows == [(_OLD_ANONYMOUS_ID, _NEW_ANONYMOUS_EMAIL, _NEW_ANONYMOUS_EMAIL, 3, 300)]
+        owners = migration_helper.execute_sql(
+            "SELECT DISTINCT owner_id::text FROM product WHERE name IN ('anon-old-owned', 'anon-new-owned')"
+        )
+        assert [row[0] for row in owners] == [_OLD_ANONYMOUS_ID]
+
+        command.downgrade(relab_alembic_config, "f1b8d2a6c3e9")
+
+        rows = [tuple(row) for row in migration_helper.execute_sql(anonymous_rows)]
+        assert rows == [(_OLD_ANONYMOUS_ID, _OLD_ANONYMOUS_EMAIL, _OLD_ANONYMOUS_EMAIL, 3, 300)]
+    finally:
+        migration_helper.execute_sql("DELETE FROM product WHERE name IN ('anon-old-owned', 'anon-new-owned')")
+        migration_helper.execute_sql(
+            'DELETE FROM "user" WHERE id IN'
+            " ('00000000-0000-4000-8000-00000000a001', '00000000-0000-4000-8000-00000000a002')"
+        )
+        command.upgrade(relab_alembic_config, "head")
+
+
+@pytest.mark.migration
+def test_anonymous_account_rename_renames_a_lone_old_row_and_reverts(
+    relab_alembic_config: Config, migration_helper: MigrationHelper
+) -> None:
+    """The usual deploy: only the old row exists, so it is renamed in place and downgrade renames it back."""
+    anonymous_row = (
+        "SELECT id::text, email, email_canonical FROM \"user\" WHERE id = '00000000-0000-4000-8000-00000000a001'"
+    )
+    try:
+        command.downgrade(relab_alembic_config, "f1b8d2a6c3e9")
+        migration_helper.execute_sql(
+            'INSERT INTO "user" (id, email, email_canonical, hashed_password, is_active, is_superuser,'
+            " is_verified, mfa_enabled, upload_file_count, upload_total_bytes) VALUES"
+            " ('00000000-0000-4000-8000-00000000a001',"
+            " 'anonymous@system.relab.internal', 'anonymous@system.relab.internal',"
+            " 'x', false, false, false, false, 0, 0)"
+        )
+
+        command.upgrade(relab_alembic_config, "0b5e7c3a9d21")
+
+        rows = [tuple(row) for row in migration_helper.execute_sql(anonymous_row)]
+        assert rows == [(_OLD_ANONYMOUS_ID, _NEW_ANONYMOUS_EMAIL, _NEW_ANONYMOUS_EMAIL)]
+
+        command.downgrade(relab_alembic_config, "f1b8d2a6c3e9")
+
+        rows = [tuple(row) for row in migration_helper.execute_sql(anonymous_row)]
+        assert rows == [(_OLD_ANONYMOUS_ID, _OLD_ANONYMOUS_EMAIL, _OLD_ANONYMOUS_EMAIL)]
+    finally:
+        migration_helper.execute_sql("DELETE FROM \"user\" WHERE id = '00000000-0000-4000-8000-00000000a001'")
+        command.upgrade(relab_alembic_config, "head")

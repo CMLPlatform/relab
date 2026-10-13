@@ -7,7 +7,7 @@ from pydantic import HttpUrl, SecretStr
 from sqlalchemy.dialects import postgresql
 
 from app.api.auth.models import OAuthAccount
-from app.api.plugins.rpi_cam.models import RecordingSession
+from app.api.plugins.r9cam.models import RecordingSession
 from app.core.config.core import CoreSettings
 from app.core.config.models import Environment
 from app.core.crypto import storage

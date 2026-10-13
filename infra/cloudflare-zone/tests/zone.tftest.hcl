@@ -334,3 +334,36 @@ run "zone_id_must_match_zone_name" {
 
   expect_failures = [data.cloudflare_zone.this]
 }
+
+run "camera_device_skip_covers_current_and_legacy_plugin_paths" {
+  command = plan
+
+  # Paired cameras call the pre-rename path until they re-pair, and new ones the r9cam
+  # path; a skip rule missing either leaves those cameras behind a bot challenge.
+  assert {
+    condition = anytrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref == "relab_rpi_cam_device_skip_managed_security" && alltrue([
+        for base in ["/v1/plugins/r9cam", "/v1/plugins/rpi-cam"] : alltrue([
+          strcontains(rule.expression, "\"${base}/pairing/register\""),
+          strcontains(rule.expression, "\"${base}/pairing/poll\""),
+          strcontains(rule.expression, "\"${base}/ws/connect\""),
+          strcontains(rule.expression, "\"${base}/device/cameras/\""),
+        ])
+      ])
+    ])
+    error_message = "the camera device skip rule must match the device paths under both plugin paths."
+  }
+
+  # The skip stays scoped to the device endpoints: no user-facing camera route joins it.
+  assert {
+    condition = alltrue([
+      for rule in cloudflare_ruleset.custom_firewall.rules :
+      rule.ref != "relab_rpi_cam_device_skip_managed_security" || alltrue([
+        for base in ["/v1/plugins/r9cam", "/v1/plugins/rpi-cam"] :
+        !strcontains(rule.expression, "\"${base}/cameras/") && !strcontains(rule.expression, "${base}/pairing/claim")
+      ])
+    ])
+    error_message = "the camera device skip rule must not match user-facing camera routes."
+  }
+}

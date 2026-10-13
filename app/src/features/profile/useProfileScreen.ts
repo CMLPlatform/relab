@@ -4,7 +4,7 @@ import { useDialog } from '@/components/base/dialogContext';
 import { useAuth } from '@/context/auth';
 import { useStreamSession } from '@/context/streamSession';
 import { useThemeMode } from '@/context/themeMode';
-import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
+import { useStopYouTubeStreamMutation } from '@/features/cameras/r9cam/hooks';
 import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useRequireAuth } from '@/hooks/useRequireAuth';

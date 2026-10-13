@@ -16,6 +16,6 @@ def load_models() -> None:
     # and file_storage transitively, registering all cross-module models.
     from app.api.data_collection.models import product as _data_collection_models
 
-    # rpi_cam is self-contained; it only imports auth and common.models which
+    # r9cam is self-contained; it only imports auth and common.models which
     # are already loaded via data_collection above.
-    from app.api.plugins.rpi_cam import models as _rpi_cam_models
+    from app.api.plugins.r9cam import models as _r9cam_models

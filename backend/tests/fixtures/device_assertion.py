@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import jwt
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from app.api.plugins.rpi_cam.device_assertion import ASSERTION_AUDIENCE
+from app.api.plugins.r9cam.device_assertion import ASSERTION_AUDIENCE
 
 if TYPE_CHECKING:
     from uuid import UUID

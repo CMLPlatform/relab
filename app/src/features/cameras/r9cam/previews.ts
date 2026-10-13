@@ -1,0 +1,32 @@
+import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
+import { buildLocalHlsUrl } from '@/services/api/r9cam/access';
+import { buildCameraHlsUrl } from '@/services/api/r9cam/streams';
+
+export interface CameraLivePreviewResult {
+  hlsUrl: string | null;
+  isLocalStream: boolean;
+}
+
+export function resolveCameraLivePreview(
+  cameraId: string | null,
+  {
+    enabled = true,
+    connectionInfo,
+  }: { enabled?: boolean; connectionInfo?: CameraConnectionInfo } = {},
+): CameraLivePreviewResult {
+  if (!(enabled && cameraId)) {
+    return { hlsUrl: null, isLocalStream: false };
+  }
+
+  if (connectionInfo?.mode === 'local' && connectionInfo.localBaseUrl) {
+    return {
+      hlsUrl: buildLocalHlsUrl(connectionInfo.localBaseUrl),
+      isLocalStream: true,
+    };
+  }
+
+  return {
+    hlsUrl: buildCameraHlsUrl(cameraId),
+    isLocalStream: false,
+  };
+}

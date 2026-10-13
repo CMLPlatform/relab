@@ -28,7 +28,7 @@ describe('shouldDehydrateQuery (persisted-cache allowlist)', () => {
   });
 
   it('does not dehydrate a camera/telemetry query', () => {
-    expect(shouldDehydrateQuery(successfulQuery(['rpiCameras', true, true]))).toBe(false);
+    expect(shouldDehydrateQuery(successfulQuery(['r9cams', true, true]))).toBe(false);
   });
 
   it('does not dehydrate a profile query', () => {

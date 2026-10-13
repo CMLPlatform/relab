@@ -85,7 +85,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
 
   /* Each tier is its own flight, set off by a landing (gap and rule). */
   .tier {
-    border-top: 1px solid var(--relab-brand-divider);
+    border-top: 1px solid var(--r9lab-brand-divider);
     padding-top: 0.6rem;
   }
 
@@ -103,19 +103,19 @@ const stepOf = (r: string): number => Number(r.slice(1));
     width: min(22rem, 100%);
     margin-left: calc(var(--step) * var(--stair));
     padding: 0.35rem 0.6rem;
-    border-left: 1px solid var(--relab-brand-divider);
-    border-bottom: 1px solid var(--relab-brand-divider);
+    border-left: 1px solid var(--r9lab-brand-divider);
+    border-bottom: 1px solid var(--r9lab-brand-divider);
     font-size: var(--sl-text-base);
   }
 
   .rung-num {
     flex: none;
     width: 1.7rem;
-    font-family: var(--relab-brand-font-mono), monospace;
+    font-family: var(--r9lab-brand-font-mono), monospace;
     font-size: var(--sl-text-2xs);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.08em;
-    color: var(--relab-brand-accent);
+    color: var(--r9lab-brand-accent);
   }
 
   .rung-name {
@@ -125,7 +125,7 @@ const stepOf = (r: string): number => Number(r.slice(1));
   /* Labels for the two ends of the ladder. */
   .ladder-end {
     margin: 0;
-    font-family: var(--relab-brand-font-mono), monospace;
+    font-family: var(--r9lab-brand-font-mono), monospace;
     font-size: var(--sl-text-2xs);
     letter-spacing: 0.08em;
     text-transform: uppercase;

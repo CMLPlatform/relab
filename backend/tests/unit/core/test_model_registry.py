@@ -98,7 +98,7 @@ def test_all_expected_table_models_are_registered() -> None:
         Product,
     )
     from app.api.file_storage.models import File, Image, Video
-    from app.api.plugins.rpi_cam.models import Camera
+    from app.api.plugins.r9cam.models import Camera
     from app.api.reference_data.models import Category, Material, ProductType, Taxonomy
 
     for model in [

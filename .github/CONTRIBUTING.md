@@ -26,16 +26,16 @@ and the
 [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
 
 1. Clone the repository.
-1. Reopen it in the `relab-fullstack` devcontainer.
+1. Reopen it in the `r9lab-fullstack` devcontainer.
 1. Follow [Docker Development](#docker-development) from inside the container.
 
 | Configuration     | Purpose                                            |
 | ----------------- | -------------------------------------------------- |
-| `relab-fullstack` | primary onboarding path for full stack development |
-| `relab-backend`   | focused backend work                               |
-| `relab-app`       | focused Expo app work                              |
-| `relab-www`       | focused public site work                           |
-| `relab-docs`      | focused docs work                                  |
+| `r9lab-fullstack` | primary onboarding path for full stack development |
+| `r9lab-backend`   | focused backend work                               |
+| `r9lab-app`       | focused Expo app work                              |
+| `r9lab-www`       | focused public site work                           |
+| `r9lab-docs`      | focused docs work                                  |
 
 The dev stack publishes the API on <http://127.0.0.1:8010>, the app on 8011, the docs on 8012, and
 the landing site on 8013, plus PostgreSQL on `5432` and Redis on `6379`, all on localhost.
