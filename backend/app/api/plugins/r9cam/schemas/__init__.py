@@ -1,0 +1,128 @@
+"""Pydantic models used to validate CRUD operations for the Raspberry Pi Camera plugin."""
+
+from typing import TYPE_CHECKING, Any, ClassVar, Self
+
+from fastapi_filters import FilterField, FilterOperator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
+from relab_rpi_cam_models import DevicePublicKeyJWK
+from relab_rpi_cam_models.telemetry import TelemetrySnapshot
+
+from app.api.auth.models import User
+from app.api.common.crud.filtering import BaseFilterSet, RelationshipFilterJoin, filter_field
+from app.api.common.schemas.base import BaseCreateSchema, BaseUpdateSchema, UUIDIdReadSchemaWithTimeStamp
+from app.api.common.validation import MultilineUserText, SingleLineUserText
+from app.api.plugins.r9cam.examples import CAMERA_CREATE_EXAMPLES, CAMERA_READ_EXAMPLES, CAMERA_UPDATE_EXAMPLES
+from app.api.plugins.r9cam.models import Camera, CameraCredentialStatus, CameraStatus
+from app.api.plugins.r9cam.runtime.status import get_camera_statuses
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
+    from redis.asyncio import Redis
+
+
+class CameraBase(BaseModel):
+    """Shared base fields common to all camera schemas."""
+
+    name: SingleLineUserText
+    description: MultilineUserText | None = None
+
+
+class CameraFilter(BaseFilterSet):
+    """FilterSet for Camera filtering."""
+
+    filter_model: ClassVar[type[Camera]] = Camera
+    sortable_fields: ClassVar[tuple[str, ...]] = ("name", "created_at")
+    search_columns: ClassVar[tuple[Any, ...]] = (Camera.name, Camera.description)
+
+    name: FilterField[str] = filter_field([FilterOperator.ilike])
+    description: FilterField[str] = filter_field([FilterOperator.ilike])
+
+
+class CameraFilterWithOwner(CameraFilter):
+    """Camera filters with explicit owner relationship fields."""
+
+    sortable_fields: ClassVar[tuple[str, ...]] = (*CameraFilter.sortable_fields, "owner_email", "owner_username")
+    relationship_joins: ClassVar[tuple[RelationshipFilterJoin, ...]] = (
+        RelationshipFilterJoin("owner_email", (Camera.owner,), User.email),
+        RelationshipFilterJoin("owner_username", (Camera.owner,), User.username),
+    )
+
+    owner_email: FilterField[str] = filter_field([FilterOperator.ilike])
+    owner_username: FilterField[str] = filter_field([FilterOperator.ilike])
+
+
+class RelayPublicKeyJWK(DevicePublicKeyJWK):
+    """Public P-256 JWK registered by an RPi camera."""
+
+
+class CameraCreate(BaseCreateSchema, CameraBase):
+    """Schema for creating a WebSocket-relayed camera."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_CREATE_EXAMPLES})
+
+    relay_public_key_jwk: RelayPublicKeyJWK
+    relay_key_id: str = Field(min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
+
+    @field_validator("relay_public_key_jwk")
+    @classmethod
+    def ensure_public_key_only(cls, value: RelayPublicKeyJWK) -> RelayPublicKeyJWK:
+        """Reject private JWK material if a client accidentally sends it."""
+        if hasattr(value, "d"):
+            msg = "relay_public_key_jwk must not contain private key material."
+            raise ValueError(msg)
+        return value
+
+
+class CameraRead(UUIDIdReadSchemaWithTimeStamp, CameraBase):
+    """Basic Camera Read schema."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_READ_EXAMPLES})
+
+    owner_id: UUID4
+    relay_key_id: str
+    relay_credential_status: CameraCredentialStatus
+
+
+class CameraReadWithStatus(CameraRead):
+    """Schema for camera read with online status."""
+
+    status: CameraStatus
+    telemetry: TelemetrySnapshot | None = None
+    preview_thumbnail_url: str | None = None
+
+    @classmethod
+    async def list_with_status(
+        cls,
+        db_models: Sequence[Camera],
+        redis: Redis,
+        *,
+        include_telemetry: bool = False,
+        preview_thumbnail_urls: Mapping[UUID4, str | None] | None = None,
+    ) -> list[Self]:
+        """Build read models for cameras, fetching their cached status in one Redis round trip."""
+        statuses = await get_camera_statuses(
+            redis, [camera.id for camera in db_models], include_telemetry=include_telemetry
+        )
+        thumbnails = preview_thumbnail_urls or {}
+        return [
+            cls(
+                **camera.model_dump(exclude={"status", "relay_public_key_jwk"}),
+                status=statuses[camera.id][0],
+                telemetry=statuses[camera.id][1],
+                preview_thumbnail_url=thumbnails.get(camera.id),
+            )
+            for camera in db_models
+        ]
+
+
+class CameraUpdate(BaseUpdateSchema):
+    """Schema for updating a camera."""
+
+    model_config = ConfigDict(json_schema_extra={"examples": CAMERA_UPDATE_EXAMPLES})
+
+    name: SingleLineUserText | None = Field(default=None, min_length=2, max_length=100)
+    description: MultilineUserText | None = Field(default=None, max_length=500)
+    relay_public_key_jwk: RelayPublicKeyJWK | None = None
+    relay_key_id: str | None = Field(default=None, min_length=8, max_length=64, pattern=r"^[A-Za-z0-9._~-]+$")
+    relay_credential_status: CameraCredentialStatus | None = None

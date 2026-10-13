@@ -19,7 +19,7 @@ from app.api.auth.dependencies import current_active_superuser_account
 from app.api.auth.models import OAuthAccount, User
 from app.api.common.audit import AuditAction, AuditContext
 from app.api.data_collection.models.product import Product
-from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.r9cam.models import Camera
 from scripts.seed.factories.models import CameraFactory, UserFactory
 
 if TYPE_CHECKING:

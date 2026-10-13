@@ -34,8 +34,8 @@ from app.api.data_collection.crud.storage import (
 )
 from app.api.data_collection.models.product import Product
 from app.api.file_storage.upload_quota import recompute_user_upload_quota
-from app.api.plugins.rpi_cam.models import Camera
-from app.api.plugins.rpi_cam.runtime.preview import get_preview_thumbnail_path, remove_preview_thumbnail
+from app.api.plugins.r9cam.models import Camera
+from app.api.plugins.r9cam.runtime.preview import get_preview_thumbnail_path, remove_preview_thumbnail
 
 if TYPE_CHECKING:
     from pathlib import Path

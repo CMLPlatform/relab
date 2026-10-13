@@ -2308,7 +2308,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras': {
+  '/v1/plugins/r9cam/cameras': {
     parameters: {
       query?: never;
       header?: never;
@@ -2319,24 +2319,24 @@ export interface paths {
      * Get Raspberry Pi cameras of the current user
      * @description Get all Raspberry Pi cameras of the current user.
      */
-    get: operations['get_user_cameras_v1_plugins_rpi_cam_cameras_get'];
+    get: operations['get_user_cameras_v1_plugins_r9cam_cameras_get'];
     put?: never;
     /**
      * Register new Raspberry Pi camera
      * @description Register a new Raspberry Pi camera.
      *
-     *     The normal user flow is /plugins/rpi-cam/pairing/claim. This endpoint is
+     *     The normal user flow is /plugins/r9cam/pairing/claim. This endpoint is
      *     kept as a structured API surface for tests/admin automation and still
      *     requires a public device key.
      */
-    post: operations['register_user_camera_v1_plugins_rpi_cam_cameras_post'];
+    post: operations['register_user_camera_v1_plugins_r9cam_cameras_post'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}': {
+  '/v1/plugins/r9cam/cameras/{camera_id}': {
     parameters: {
       query?: never;
       header?: never;
@@ -2347,24 +2347,24 @@ export interface paths {
      * Get Raspberry Pi camera by ID
      * @description Get single Raspberry Pi camera by ID, if owned by the current user.
      */
-    get: operations['get_user_camera_v1_plugins_rpi_cam_cameras__camera_id__get'];
+    get: operations['get_user_camera_v1_plugins_r9cam_cameras__camera_id__get'];
     put?: never;
     post?: never;
     /**
      * Delete Raspberry Pi camera
      * @description Delete Raspberry Pi camera.
      */
-    delete: operations['delete_user_camera_v1_plugins_rpi_cam_cameras__camera_id__delete'];
+    delete: operations['delete_user_camera_v1_plugins_r9cam_cameras__camera_id__delete'];
     options?: never;
     head?: never;
     /**
      * Update Raspberry Pi camera
      * @description Update Raspberry Pi camera.
      */
-    patch: operations['update_user_camera_v1_plugins_rpi_cam_cameras__camera_id__patch'];
+    patch: operations['update_user_camera_v1_plugins_r9cam_cameras__camera_id__patch'];
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/preview-thumbnail': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/preview-thumbnail': {
     parameters: {
       query?: never;
       header?: never;
@@ -2380,7 +2380,7 @@ export interface paths {
      *     a camera id alone no longer grants a stranger a recent frame. Cached only
      *     privately and revalidated, never long-lived immutable like the public mount.
      */
-    get: operations['get_camera_preview_thumbnail_v1_plugins_rpi_cam_cameras__camera_id__preview_thumbnail_get'];
+    get: operations['get_camera_preview_thumbnail_v1_plugins_r9cam_cameras__camera_id__preview_thumbnail_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2389,7 +2389,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/status': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/status': {
     parameters: {
       query?: never;
       header?: never;
@@ -2400,7 +2400,7 @@ export interface paths {
      * Get Raspberry Pi camera online status
      * @description Get Raspberry Pi camera online status.
      */
-    get: operations['get_user_camera_status_v1_plugins_rpi_cam_cameras__camera_id__status_get'];
+    get: operations['get_user_camera_status_v1_plugins_r9cam_cameras__camera_id__status_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2409,7 +2409,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/local-access': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/local-access': {
     parameters: {
       query?: never;
       header?: never;
@@ -2420,7 +2420,7 @@ export interface paths {
      * Get local direct-connection info for a camera
      * @description Relays GET /system/local-access to the Pi via the WebSocket connection. Returns the local API key and candidate IP addresses so the frontend can auto-configure Ethernet/USB-C direct access without manual key copying. Returns 503 when the camera is offline.
      */
-    get: operations['get_camera_local_access_v1_plugins_rpi_cam_cameras__camera_id__local_access_get'];
+    get: operations['get_camera_local_access_v1_plugins_r9cam_cameras__camera_id__local_access_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2429,7 +2429,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/captures': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/captures': {
     parameters: {
       query?: never;
       header?: never;
@@ -2442,14 +2442,14 @@ export interface paths {
      * Capture a still image with a remote Raspberry Pi Camera
      * @description Capture a still image with a remote Raspberry Pi Camera and store it in the file storage. Send optional parent type and ID in the request body to associate the image with another object.
      */
-    post: operations['capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post'];
+    post: operations['capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/recording-stream': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/recording-stream': {
     parameters: {
       query?: never;
       header?: never;
@@ -2460,24 +2460,24 @@ export interface paths {
      * Get the active YouTube recording stream status
      * @description Fetch the current remote camera stream status from the Raspberry Pi camera plugin.
      */
-    get: operations['get_camera_stream_status_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_get'];
+    get: operations['get_camera_stream_status_v1_plugins_r9cam_cameras__camera_id__recording_stream_get'];
     put?: never;
     /**
      * Start recording to YouTube
      * @description Start a YouTube recording stream.
      */
-    post: operations['start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post'];
+    post: operations['start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post'];
     /**
      * Stop recording to YouTube
      * @description Stop the active YouTube recording and return its video record.
      */
-    delete: operations['stop_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_delete'];
+    delete: operations['stop_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_delete'];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/recording-stream/monitor': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/recording-stream/monitor': {
     parameters: {
       query?: never;
       header?: never;
@@ -2488,7 +2488,7 @@ export interface paths {
      * Get YouTube livestream monitor stream
      * @description Get the YouTube monitor stream for the active backend-owned recording session.
      */
-    get: operations['get_recording_monitor_stream_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_monitor_get'];
+    get: operations['get_recording_monitor_stream_v1_plugins_r9cam_cameras__camera_id__recording_stream_monitor_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2497,7 +2497,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/telemetry': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/telemetry': {
     parameters: {
       query?: never;
       header?: never;
@@ -2508,7 +2508,7 @@ export interface paths {
      * Get a camera's latest telemetry snapshot
      * @description Return the most recent telemetry snapshot for the camera. Backed by a Redis cache with a 120s TTL so mosaic polling does not fan out one relay round-trip per camera on every refresh. Pass ``force_refresh=true`` to bypass the cache and re-fetch from the Pi.
      */
-    get: operations['get_camera_telemetry_v1_plugins_rpi_cam_cameras__camera_id__telemetry_get'];
+    get: operations['get_camera_telemetry_v1_plugins_r9cam_cameras__camera_id__telemetry_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2517,7 +2517,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/cameras/{camera_id}/hls/{hls_path}': {
+  '/v1/plugins/r9cam/cameras/{camera_id}/hls/{hls_path}': {
     parameters: {
       query?: never;
       header?: never;
@@ -2528,7 +2528,7 @@ export interface paths {
      * Proxy LL-HLS playlists and segments from the camera's MediaMTX
      * @description Forward an LL-HLS request to the camera over its WebSocket relay. Playlist requests return ``application/vnd.apple.mpegurl`` text; segment/part requests return binary ``video/mp4`` or ``video/iso.segment``. The frontend simply points ``hls.js`` / ``expo-video`` at this URL and the player walks the manifest on its own.
      */
-    get: operations['proxy_hls_v1_plugins_rpi_cam_cameras__camera_id__hls__hls_path__get'];
+    get: operations['proxy_hls_v1_plugins_r9cam_cameras__camera_id__hls__hls_path__get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2537,7 +2537,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/device/cameras/{camera_id}/self': {
+  '/v1/plugins/r9cam/device/cameras/{camera_id}/self': {
     parameters: {
       query?: never;
       header?: never;
@@ -2551,13 +2551,13 @@ export interface paths {
      * Pi-initiated self-unpair
      * @description Called by the Pi when the user triggers unpair from the local /setup page. Authenticates via the device's ES256 assertion. Deletes the camera from the database so the backend no longer shows it as offline.
      */
-    delete: operations['self_unpair_camera_v1_plugins_rpi_cam_device_cameras__camera_id__self_delete'];
+    delete: operations['self_unpair_camera_v1_plugins_r9cam_device_cameras__camera_id__self_delete'];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload': {
+  '/v1/plugins/r9cam/device/cameras/{camera_id}/image-upload': {
     parameters: {
       query?: never;
       header?: never;
@@ -2570,14 +2570,14 @@ export interface paths {
      * Internal: receive an image pushed directly from a paired Raspberry Pi
      * @description Called by the Pi after a successful capture. Authenticated with a short-lived ES256 device assertion (same credential used by the WebSocket relay). The Pi provides the JPEG body plus two JSON blobs: `capture_metadata` (libcamera metadata) and `upload_metadata` (opaque dict forwarded by whichever caller triggered the capture, typically `{product_id, description}`). The backend stores the image via the normal image storage service and returns a tiny ack envelope the Pi consumes.
      */
-    post: operations['receive_camera_upload_v1_plugins_rpi_cam_device_cameras__camera_id__image_upload_post'];
+    post: operations['receive_camera_upload_v1_plugins_r9cam_device_cameras__camera_id__image_upload_post'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/device/cameras/{camera_id}/preview-thumbnail-upload': {
+  '/v1/plugins/r9cam/device/cameras/{camera_id}/preview-thumbnail-upload': {
     parameters: {
       query?: never;
       header?: never;
@@ -2590,14 +2590,14 @@ export interface paths {
      * Internal: receive a cached preview thumbnail pushed directly from a paired Raspberry Pi
      * @description Called by the Pi's background thumbnail worker. Authenticated with the same short-lived ES256 device assertion used by the WebSocket relay. Stores a deterministic per-camera JPEG cache file for camera-card previews without creating an Image database row.
      */
-    post: operations['receive_preview_thumbnail_upload_v1_plugins_rpi_cam_device_cameras__camera_id__preview_thumbnail_upload_post'];
+    post: operations['receive_preview_thumbnail_upload_v1_plugins_r9cam_device_cameras__camera_id__preview_thumbnail_upload_post'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/pairing/claim': {
+  '/v1/plugins/r9cam/pairing/claim': {
     parameters: {
       query?: never;
       header?: never;
@@ -2615,14 +2615,14 @@ export interface paths {
      *     record and goes on to create the camera. The loser sees a missing key and
      *     gets the same invalid-code error as an unknown code.
      */
-    post: operations['claim_pairing_code_v1_plugins_rpi_cam_pairing_claim_post'];
+    post: operations['claim_pairing_code_v1_plugins_r9cam_pairing_claim_post'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/pairing/register': {
+  '/v1/plugins/r9cam/pairing/register': {
     parameters: {
       query?: never;
       header?: never;
@@ -2635,14 +2635,14 @@ export interface paths {
      * Register a pairing code (called by RPi)
      * @description Register a short-lived pairing code and the camera's public device key.
      */
-    post: operations['register_pairing_code_v1_plugins_rpi_cam_pairing_register_post'];
+    post: operations['register_pairing_code_v1_plugins_r9cam_pairing_register_post'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/plugins/rpi-cam/pairing/poll': {
+  '/v1/plugins/r9cam/pairing/poll': {
     parameters: {
       query?: never;
       header?: never;
@@ -2658,14 +2658,14 @@ export interface paths {
      *     Takes the code and fingerprint in a POST body (not query params) so the
      *     claim credential never reaches proxy/uvicorn access logs.
      */
-    post: operations['poll_pairing_status_v1_plugins_rpi_cam_pairing_poll_post'];
+    post: operations['poll_pairing_status_v1_plugins_r9cam_pairing_poll_post'];
     delete?: never;
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/admin/plugins/rpi-cam/cameras': {
+  '/v1/admin/plugins/r9cam/cameras': {
     parameters: {
       query?: never;
       header?: never;
@@ -2676,7 +2676,7 @@ export interface paths {
      * Get all Raspberry Pi cameras
      * @description Get all Raspberry Pi cameras.
      */
-    get: operations['get_all_cameras_v1_admin_plugins_rpi_cam_cameras_get'];
+    get: operations['get_all_cameras_v1_admin_plugins_r9cam_cameras_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2685,7 +2685,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/v1/admin/plugins/rpi-cam/cameras/{camera_id}': {
+  '/v1/admin/plugins/r9cam/cameras/{camera_id}': {
     parameters: {
       query?: never;
       header?: never;
@@ -2696,20 +2696,20 @@ export interface paths {
      * Get Raspberry Pi camera by ID
      * @description Get single Raspberry Pi camera by ID.
      */
-    get: operations['get_camera_v1_admin_plugins_rpi_cam_cameras__camera_id__get'];
+    get: operations['get_camera_v1_admin_plugins_r9cam_cameras__camera_id__get'];
     put?: never;
     post?: never;
     /**
      * Delete Raspberry Pi camera
      * @description Delete Raspberry Pi camera.
      */
-    delete: operations['delete_camera_v1_admin_plugins_rpi_cam_cameras__camera_id__delete'];
+    delete: operations['delete_camera_v1_admin_plugins_r9cam_cameras__camera_id__delete'];
     options?: never;
     head?: never;
     patch?: never;
     trace?: never;
   };
-  '/v1/admin/plugins/rpi-cam/cameras/{camera_id}/status': {
+  '/v1/admin/plugins/r9cam/cameras/{camera_id}/status': {
     parameters: {
       query?: never;
       header?: never;
@@ -2720,7 +2720,7 @@ export interface paths {
      * Get Raspberry Pi camera online status
      * @description Get Raspberry Pi camera online status.
      */
-    get: operations['get_camera_status_v1_admin_plugins_rpi_cam_cameras__camera_id__status_get'];
+    get: operations['get_camera_status_v1_admin_plugins_r9cam_cameras__camera_id__status_get'];
     put?: never;
     post?: never;
     delete?: never;
@@ -2844,8 +2844,8 @@ export interface components {
        */
       client_secret?: string | null;
     };
-    /** Body_capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post */
-    Body_capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post: {
+    /** Body_capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post */
+    Body_capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post: {
       /**
        * Product Id
        * @description ID of product to associate the image with
@@ -2857,8 +2857,8 @@ export interface components {
        */
       description?: string | null;
     };
-    /** Body_receive_camera_upload_v1_plugins_rpi_cam_device_cameras__camera_id__image_upload_post */
-    Body_receive_camera_upload_v1_plugins_rpi_cam_device_cameras__camera_id__image_upload_post: {
+    /** Body_receive_camera_upload_v1_plugins_r9cam_device_cameras__camera_id__image_upload_post */
+    Body_receive_camera_upload_v1_plugins_r9cam_device_cameras__camera_id__image_upload_post: {
       /**
        * File
        * @description Captured JPEG
@@ -2875,8 +2875,8 @@ export interface components {
        */
       upload_metadata: string;
     };
-    /** Body_receive_preview_thumbnail_upload_v1_plugins_rpi_cam_device_cameras__camera_id__preview_thumbnail_upload_post */
-    Body_receive_preview_thumbnail_upload_v1_plugins_rpi_cam_device_cameras__camera_id__preview_thumbnail_upload_post: {
+    /** Body_receive_preview_thumbnail_upload_v1_plugins_r9cam_device_cameras__camera_id__preview_thumbnail_upload_post */
+    Body_receive_preview_thumbnail_upload_v1_plugins_r9cam_device_cameras__camera_id__preview_thumbnail_upload_post: {
       /**
        * File
        * @description Cached preview JPEG thumbnail
@@ -2898,8 +2898,8 @@ export interface components {
       /** Password */
       password: string;
     };
-    /** Body_start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post */
-    Body_start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post: {
+    /** Body_start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post */
+    Body_start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post: {
       /**
        * Product Id
        * @description ID of product to associate the video with
@@ -11449,7 +11449,7 @@ export interface operations {
       };
     };
   };
-  get_user_cameras_v1_plugins_rpi_cam_cameras_get: {
+  get_user_cameras_v1_plugins_r9cam_cameras_get: {
     parameters: {
       query?: {
         /** @description Include camera online status */
@@ -11491,7 +11491,7 @@ export interface operations {
       };
     };
   };
-  register_user_camera_v1_plugins_rpi_cam_cameras_post: {
+  register_user_camera_v1_plugins_r9cam_cameras_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -11524,7 +11524,7 @@ export interface operations {
       };
     };
   };
-  get_user_camera_v1_plugins_rpi_cam_cameras__camera_id__get: {
+  get_user_camera_v1_plugins_r9cam_cameras__camera_id__get: {
     parameters: {
       query?: {
         /** @description Include camera online status */
@@ -11562,7 +11562,7 @@ export interface operations {
       };
     };
   };
-  delete_user_camera_v1_plugins_rpi_cam_cameras__camera_id__delete: {
+  delete_user_camera_v1_plugins_r9cam_cameras__camera_id__delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -11591,7 +11591,7 @@ export interface operations {
       };
     };
   };
-  update_user_camera_v1_plugins_rpi_cam_cameras__camera_id__patch: {
+  update_user_camera_v1_plugins_r9cam_cameras__camera_id__patch: {
     parameters: {
       query?: never;
       header?: never;
@@ -11626,7 +11626,7 @@ export interface operations {
       };
     };
   };
-  get_camera_preview_thumbnail_v1_plugins_rpi_cam_cameras__camera_id__preview_thumbnail_get: {
+  get_camera_preview_thumbnail_v1_plugins_r9cam_cameras__camera_id__preview_thumbnail_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -11662,7 +11662,7 @@ export interface operations {
       };
     };
   };
-  get_user_camera_status_v1_plugins_rpi_cam_cameras__camera_id__status_get: {
+  get_user_camera_status_v1_plugins_r9cam_cameras__camera_id__status_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -11693,7 +11693,7 @@ export interface operations {
       };
     };
   };
-  get_camera_local_access_v1_plugins_rpi_cam_cameras__camera_id__local_access_get: {
+  get_camera_local_access_v1_plugins_r9cam_cameras__camera_id__local_access_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -11724,7 +11724,7 @@ export interface operations {
       };
     };
   };
-  capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post: {
+  capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -11735,7 +11735,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Body_capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post'];
+        'application/json': components['schemas']['Body_capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post'];
       };
     };
     responses: {
@@ -11759,7 +11759,7 @@ export interface operations {
       };
     };
   };
-  get_camera_stream_status_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_get: {
+  get_camera_stream_status_v1_plugins_r9cam_cameras__camera_id__recording_stream_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -11790,7 +11790,7 @@ export interface operations {
       };
     };
   };
-  start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post: {
+  start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -11801,7 +11801,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Body_start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post'];
+        'application/json': components['schemas']['Body_start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post'];
       };
     };
     responses: {
@@ -11825,7 +11825,7 @@ export interface operations {
       };
     };
   };
-  stop_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_delete: {
+  stop_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -11856,7 +11856,7 @@ export interface operations {
       };
     };
   };
-  get_recording_monitor_stream_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_monitor_get: {
+  get_recording_monitor_stream_v1_plugins_r9cam_cameras__camera_id__recording_stream_monitor_get: {
     parameters: {
       query?: never;
       header?: never;
@@ -11887,7 +11887,7 @@ export interface operations {
       };
     };
   };
-  get_camera_telemetry_v1_plugins_rpi_cam_cameras__camera_id__telemetry_get: {
+  get_camera_telemetry_v1_plugins_r9cam_cameras__camera_id__telemetry_get: {
     parameters: {
       query?: {
         force_refresh?: boolean;
@@ -11920,7 +11920,7 @@ export interface operations {
       };
     };
   };
-  proxy_hls_v1_plugins_rpi_cam_cameras__camera_id__hls__hls_path__get: {
+  proxy_hls_v1_plugins_r9cam_cameras__camera_id__hls__hls_path__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -11952,7 +11952,7 @@ export interface operations {
       };
     };
   };
-  self_unpair_camera_v1_plugins_rpi_cam_device_cameras__camera_id__self_delete: {
+  self_unpair_camera_v1_plugins_r9cam_device_cameras__camera_id__self_delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -11981,7 +11981,7 @@ export interface operations {
       };
     };
   };
-  receive_camera_upload_v1_plugins_rpi_cam_device_cameras__camera_id__image_upload_post: {
+  receive_camera_upload_v1_plugins_r9cam_device_cameras__camera_id__image_upload_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -11992,7 +11992,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'multipart/form-data': components['schemas']['Body_receive_camera_upload_v1_plugins_rpi_cam_device_cameras__camera_id__image_upload_post'];
+        'multipart/form-data': components['schemas']['Body_receive_camera_upload_v1_plugins_r9cam_device_cameras__camera_id__image_upload_post'];
       };
     };
     responses: {
@@ -12016,7 +12016,7 @@ export interface operations {
       };
     };
   };
-  receive_preview_thumbnail_upload_v1_plugins_rpi_cam_device_cameras__camera_id__preview_thumbnail_upload_post: {
+  receive_preview_thumbnail_upload_v1_plugins_r9cam_device_cameras__camera_id__preview_thumbnail_upload_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -12027,7 +12027,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'multipart/form-data': components['schemas']['Body_receive_preview_thumbnail_upload_v1_plugins_rpi_cam_device_cameras__camera_id__preview_thumbnail_upload_post'];
+        'multipart/form-data': components['schemas']['Body_receive_preview_thumbnail_upload_v1_plugins_r9cam_device_cameras__camera_id__preview_thumbnail_upload_post'];
       };
     };
     responses: {
@@ -12051,7 +12051,7 @@ export interface operations {
       };
     };
   };
-  claim_pairing_code_v1_plugins_rpi_cam_pairing_claim_post: {
+  claim_pairing_code_v1_plugins_r9cam_pairing_claim_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -12084,7 +12084,7 @@ export interface operations {
       };
     };
   };
-  register_pairing_code_v1_plugins_rpi_cam_pairing_register_post: {
+  register_pairing_code_v1_plugins_r9cam_pairing_register_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -12117,7 +12117,7 @@ export interface operations {
       };
     };
   };
-  poll_pairing_status_v1_plugins_rpi_cam_pairing_poll_post: {
+  poll_pairing_status_v1_plugins_r9cam_pairing_poll_post: {
     parameters: {
       query?: never;
       header?: never;
@@ -12150,7 +12150,7 @@ export interface operations {
       };
     };
   };
-  get_all_cameras_v1_admin_plugins_rpi_cam_cameras_get: {
+  get_all_cameras_v1_admin_plugins_r9cam_cameras_get: {
     parameters: {
       query?: {
         /** @description Page number */
@@ -12207,7 +12207,7 @@ export interface operations {
       };
     };
   };
-  get_camera_v1_admin_plugins_rpi_cam_cameras__camera_id__get: {
+  get_camera_v1_admin_plugins_r9cam_cameras__camera_id__get: {
     parameters: {
       query?: never;
       header?: never;
@@ -12238,7 +12238,7 @@ export interface operations {
       };
     };
   };
-  delete_camera_v1_admin_plugins_rpi_cam_cameras__camera_id__delete: {
+  delete_camera_v1_admin_plugins_r9cam_cameras__camera_id__delete: {
     parameters: {
       query?: never;
       header?: never;
@@ -12267,7 +12267,7 @@ export interface operations {
       };
     };
   };
-  get_camera_status_v1_admin_plugins_rpi_cam_cameras__camera_id__status_get: {
+  get_camera_status_v1_admin_plugins_r9cam_cameras__camera_id__status_get: {
     parameters: {
       query?: never;
       header?: never;

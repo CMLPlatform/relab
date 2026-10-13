@@ -1,0 +1,135 @@
+"""Unit tests for Raspberry Pi camera CRUD routes."""
+
+from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
+
+from fastapi import BackgroundTasks, HTTPException
+from redis.asyncio import Redis
+
+from app.api.plugins.r9cam.models import Camera, CameraConnectionStatus, CameraStatus
+from app.api.plugins.r9cam.routers.admin import delete_camera
+from app.api.plugins.r9cam.routers.camera_crud import (
+    _notify_camera_unpair,
+    delete_user_camera,
+    self_unpair_camera,
+)
+from app.api.plugins.r9cam.runtime.preview import remove_preview_thumbnail
+
+
+def _fake_redis() -> Redis:
+    """A Redis stand-in for routes that only forward the connection, never call it.
+
+    Every collaborator that would use it is mocked out, so nothing but identity
+    (did the same object make it through unchanged?) needs to hold.
+    """
+    return MagicMock(spec=Redis)
+
+
+async def test_delete_user_camera_schedules_unpair_notification(mock_camera: Camera) -> None:
+    """Deleting a camera should commit first and queue the unpair notification in the background."""
+    session = AsyncMock()
+    background_tasks = MagicMock(spec=BackgroundTasks)
+    redis = _fake_redis()
+
+    with patch("app.api.plugins.r9cam.routers.camera_crud._notify_camera_unpair") as mock_notify:
+        await delete_user_camera(
+            background_tasks=background_tasks,
+            db=session,
+            camera=mock_camera,
+            redis=redis,
+        )
+
+    session.delete.assert_awaited_once_with(mock_camera)
+    session.commit.assert_awaited_once()
+    assert background_tasks.add_task.call_args_list[0].args[0] is mock_notify
+    assert background_tasks.add_task.call_args_list[0].args[1:] == (mock_camera.id, redis)
+    mock_notify.assert_not_called()
+
+
+async def test_notify_camera_unpair_skips_relay_when_camera_is_offline() -> None:
+    """Offline cameras should not wait on relay timeout during delete cleanup."""
+    camera_id = uuid4()
+
+    with (
+        patch(
+            "app.api.plugins.r9cam.routers.camera_crud.fetch_camera_status",
+            new=AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.OFFLINE)),
+        ),
+        patch("app.api.plugins.r9cam.routers.camera_crud.relay_via_websocket", new=AsyncMock()) as relay_mock,
+    ):
+        await _notify_camera_unpair(camera_id, _fake_redis())
+
+    relay_mock.assert_not_awaited()
+
+
+async def test_notify_camera_unpair_relays_when_camera_is_online() -> None:
+    """Online cameras should still receive the best-effort unpair command."""
+    camera_id = uuid4()
+
+    with (
+        patch(
+            "app.api.plugins.r9cam.routers.camera_crud.fetch_camera_status",
+            new=AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.ONLINE)),
+        ),
+        patch("app.api.plugins.r9cam.routers.camera_crud.relay_via_websocket", new=AsyncMock()) as relay_mock,
+    ):
+        redis = _fake_redis()
+        await _notify_camera_unpair(camera_id, redis)
+
+    relay_mock.assert_awaited_once_with(camera_id, "DELETE", "/pairing", redis=redis)
+
+
+async def test_notify_camera_unpair_continues_when_the_relay_fails() -> None:
+    """An unresponsive camera must not block its own deletion.
+
+    The row is already gone by the time this background task runs, so raising here
+    would surface a 500 for a delete that actually succeeded and leave the operator
+    unsure whether to retry.
+    """
+    with (
+        patch(
+            "app.api.plugins.r9cam.routers.camera_crud.fetch_camera_status",
+            new=AsyncMock(return_value=CameraStatus(connection=CameraConnectionStatus.ONLINE)),
+        ),
+        patch(
+            "app.api.plugins.r9cam.routers.camera_crud.relay_via_websocket",
+            new=AsyncMock(side_effect=HTTPException(status_code=503)),
+        ),
+    ):
+        await _notify_camera_unpair(uuid4(), _fake_redis())
+
+
+async def test_self_unpair_removes_the_cached_frame(mock_camera: Camera) -> None:
+    """A Pi that unpairs locally must not leave its last frame readable on the server."""
+    session = AsyncMock()
+
+    with (
+        patch("app.api.plugins.r9cam.routers.camera_crud.remove_preview_thumbnail") as remove_thumbnail,
+        patch(
+            "app.api.plugins.r9cam.routers.camera_crud.get_preview_thumbnail_path",
+            return_value="/previews/frame.jpg",
+        ),
+    ):
+        await self_unpair_camera(camera=mock_camera, db=session)
+
+    remove_thumbnail.assert_called_once_with("/previews/frame.jpg")
+    session.delete.assert_awaited_once_with(mock_camera)
+    session.commit.assert_awaited_once()
+
+
+async def test_admin_delete_camera_removes_the_preview_thumbnail(mock_camera: Camera) -> None:
+    """An admin delete cleans up the same camera artifacts as an owner delete."""
+    session = AsyncMock()
+    background_tasks = MagicMock(spec=BackgroundTasks)
+
+    await delete_camera(
+        _camera_id=mock_camera.id,
+        background_tasks=background_tasks,
+        session=session,
+        camera=mock_camera,
+        redis=_fake_redis(),
+    )
+
+    session.delete.assert_awaited_once_with(mock_camera)
+    queued = [call.args[0] for call in background_tasks.add_task.call_args_list]
+    assert remove_preview_thumbnail in queued

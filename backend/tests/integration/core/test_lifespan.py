@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from httpx import CloseError
 
 from app.api.auth.runtime_dependencies import common_password_checker_from, email_checker_from
-from app.api.plugins.rpi_cam.websocket import runtime_state
+from app.api.plugins.r9cam.websocket import runtime_state
 from app.core import lifecycle
 from app.core.config.core import settings
 from app.core.config.models import Environment
@@ -148,14 +148,14 @@ def patched_runtime_services(config: RuntimePatchConfig | None = None) -> Iterat
         patch("app.core.lifecycle.mount_static_directories") as mount_static,
         patch("app.core.lifecycle.register_favicon_route") as register_favicon,
         patch(
-            "app.api.plugins.rpi_cam.lifecycle.CameraConnectionManager", return_value=mock_camera_manager
+            "app.api.plugins.r9cam.lifecycle.CameraConnectionManager", return_value=mock_camera_manager
         ) as create_camera,
         patch(
             "app.api.file_storage.lifecycle.FileCleanupManager", return_value=mock_file_cleanup_manager
         ) as file_cleanup_cls,
         patch("app.core.lifecycle.create_http_client", return_value=mock_http_client) as create_http_client,
         patch("app.core.lifecycle.close_async_engine") as close_async_engine,
-        patch("app.api.plugins.rpi_cam.lifecycle.set_connection_manager") as set_connection_manager,
+        patch("app.api.plugins.r9cam.lifecycle.set_connection_manager") as set_connection_manager,
     ):
         yield RuntimeMocks(
             redis=mock_redis,
@@ -419,8 +419,8 @@ async def test_shutdown_clears_global_runtime_hooks(runtime_app: FastAPI) -> Non
 
 async def test_clearing_runtime_hooks_does_not_import_connection_manager() -> None:
     """Clearing globals should stay dependency-light for failed startup cleanup."""
-    sys.modules.pop("app.api.plugins.rpi_cam.websocket.connection_manager", None)
+    sys.modules.pop("app.api.plugins.r9cam.websocket.connection_manager", None)
 
     runtime_state.set_connection_manager(None)
 
-    assert "app.api.plugins.rpi_cam.websocket.connection_manager" not in sys.modules
+    assert "app.api.plugins.r9cam.websocket.connection_manager" not in sys.modules

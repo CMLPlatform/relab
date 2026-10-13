@@ -22,7 +22,7 @@ from app.api.data_collection.models.product import (
     MaterialProductLink,
     Product,
 )
-from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.r9cam.models import Camera
 from app.api.reference_data.models import (
     Category,
     Material,

@@ -46,7 +46,7 @@ PUBLIC_TAG_GROUPS: list[dict[str, str | list[str]]] = [
     {"name": "Auth", "tags": ["auth", "users"]},
     {"name": "Reference Data", "tags": ["categories", "taxonomies", "materials", "product-types"]},
     {"name": "Data Collection", "tags": ["products"]},
-    {"name": "Plugins", "tags": ["rpi-cam-management", "rpi-cam-interaction"]},
+    {"name": "Plugins", "tags": ["r9cam-management", "r9cam-interaction"]},
 ]
 FULL_TAG_GROUPS = [*PUBLIC_TAG_GROUPS, ADMIN_TAG_GROUP]
 
@@ -106,7 +106,7 @@ def build_device_openapi(app: FastAPI) -> dict[str, Any]:
     return _build_filtered_openapi(
         app,
         include_route=_is_device_route,
-        tag_groups=[{"name": "Device", "tags": ["rpi-cam-interaction", "RPi Camera Pairing"]}],
+        tag_groups=[{"name": "Device", "tags": ["r9cam-interaction", "RPi Camera Pairing"]}],
     )
 
 
