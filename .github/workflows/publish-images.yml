@@ -40,11 +40,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {service: api, context: ./backend, dockerfile: ./backend/Dockerfile, image: relab-backend}
-          - {service: migrator, context: ./backend, dockerfile: ./backend/Dockerfile.migrations, image: relab-backend-migrations}
-          - {service: relab-backup, context: ./backend, dockerfile: ./backend/Dockerfile.backups, image: relab-backup}
-          - {service: app, env: prod, context: ., dockerfile: ./app/Dockerfile, image: relab-app}
-          - {service: app, env: staging, context: ., dockerfile: ./app/Dockerfile, image: relab-app}
+          - {service: api, context: ./backend, dockerfile: ./backend/Dockerfile, image: r9lab-backend}
+          - {service: migrator, context: ./backend, dockerfile: ./backend/Dockerfile.migrations, image: r9lab-backend-migrations}
+          - {service: r9lab-backup, context: ./backend, dockerfile: ./backend/Dockerfile.backups, image: r9lab-backup}
+          - {service: app, env: prod, context: ., dockerfile: ./app/Dockerfile, image: r9lab-app}
+          - {service: app, env: staging, context: ., dockerfile: ./app/Dockerfile, image: r9lab-app}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

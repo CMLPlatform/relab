@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Everything the database needs that Alembic cannot do as the non-superuser
-# `relab_migrator`: roles and grants, untrusted extensions, object ownership,
+# `r9lab_migrator`: roles and grants, untrusted extensions, object ownership,
 # search paths. Idempotent, and meant to run on EVERY stack start, not only on
 # an empty volume: Postgres runs it from /docker-entrypoint-initdb.d on a fresh
 # data directory, `scripts/deploy_ops.sh stack up` and `just dev-migrate` run it

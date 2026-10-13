@@ -6,8 +6,8 @@
 default:
     @just --list
 
-dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
-ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
+dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p r9lab_dev -f compose.yaml -f compose.dev.yaml"
+ci_compose := "docker compose -p r9lab_test -f compose.yaml -f compose.ci.yaml"
 cloudflare_dir := "infra/cloudflare"
 cloudflare_zone_dir := "infra/cloudflare-zone"
 # Where an apply's reviewed plan waits for its confirming re-run. Gitignored, created
@@ -208,7 +208,7 @@ ci-full: ci audit cloudflare-check docker-smoke test-e2e
 _e2e-backend-up:
     #!/usr/bin/env bash
     set -euo pipefail
-    compose=(docker compose -p relab_e2e -f compose.e2e.yaml)
+    compose=(docker compose -p r9lab_e2e -f compose.e2e.yaml)
     for attempt in 1 2 3; do
         "${compose[@]}" pull --ignore-buildable --quiet && "${compose[@]}" build && break
         [ "$attempt" = 3 ] && exit 1
@@ -219,7 +219,7 @@ _e2e-backend-up:
 
 # Stop the E2E backend stack and remove its volumes
 _e2e-backend-down:
-    docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
+    docker compose -p r9lab_e2e -f compose.e2e.yaml down -v --remove-orphans
 
 # Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down.
 # Requires Docker.
@@ -503,7 +503,7 @@ secrets-restore env file:
 # Docker: Development
 # ============================================================================
 # To watch one service only, call docker compose directly with the same overlays:
-# `docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml up --watch api www`.
+# `docker compose -p r9lab_dev -f compose.yaml -f compose.dev.yaml up --watch api www`.
 
 # Start the development database and cache, then wait for readiness
 [group('dev')]
@@ -627,6 +627,8 @@ release-publish version:
 # Docker's credentials, so the packages must be public or `docker login ghcr.io` done.
 # NOTE: checks what the tag points at now; a tag moved between this check and the
 # host's pull is not caught. Pin image digests in compose.deploy.yaml if it matters.
+# Tags from before the R9lab rename are published as relab-* images, which this recipe does
+# not check; a checkout of that release can. Deploying one is not supported.
 [group('deploy')]
 [doc('Verify the build provenance of a published image tag before deploying it')]
 images-verify env tag:
@@ -645,8 +647,8 @@ images-verify env tag:
     if [[ "$env" == prod ]]; then
         [[ "$tag" == sha-* ]] && source_ref=(--source-ref refs/heads/main) || source_ref=(--source-ref "refs/tags/v$tag")
     fi
-    for image in "relab-backend:$tag" "relab-backend-migrations:$tag" "relab-backup:$tag" \
-        "relab-app:$tag-$env"; do
+    for image in "r9lab-backend:$tag" "r9lab-backend-migrations:$tag" "r9lab-backup:$tag" \
+        "r9lab-app:$tag-$env"; do
         gh attestation verify "oci://$registry/$image" --repo "$repo" \
             --signer-workflow "$repo/.github/workflows/publish-images.yml" \
             --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
@@ -655,13 +657,13 @@ images-verify env tag:
 
 # The release loop's deploy step, from the dev host: verify the tag's provenance, then
 # have the host pull it and write IMAGE_TAG. The host is an ssh config alias for the
-# deploy user's restricted key (DEPLOY-PROD.md Part 1); it defaults to relab-<env>, and
-# RELAB_DEPLOY_HOST names another. Start the stack afterwards with `ssh <host> up migrations`.
+# deploy user's restricted key (DEPLOY-PROD.md Part 1); it defaults to r9lab-<env>, and
+# R9LAB_DEPLOY_HOST names another. Start the stack afterwards with `ssh <host> up migrations`.
 [group('deploy')]
 [doc('Verify an image tag, then have the host pull it over the deploy key')]
 deploy env tag:
     @just images-verify {{ quote(env) }} {{ quote(tag) }}
-    ssh {{ quote(env_var_or_default('RELAB_DEPLOY_HOST', 'relab-' + env)) }} tag {{ quote(tag) }}
+    ssh {{ quote(env_var_or_default('R9LAB_DEPLOY_HOST', 'r9lab-' + env)) }} tag {{ quote(tag) }}
 
 # Run one backup cycle now. This is what the systemd timer calls; see deploy/systemd/.
 # Pass `manual` before a risky operation. Retention keeps `manual` snapshots
@@ -687,7 +689,7 @@ backup-stamp-volume env:
     @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup-stamp-volume
 
 # Backup upkeep only: retention, integrity check, offsite copy — no new snapshot.
-# Run daily by relab-backup-maintenance@<env>.timer; the hourly backup skips this work.
+# Run daily by r9lab-backup-maintenance@<env>.timer; the hourly backup skips this work.
 [group('backup')]
 [doc('Backup upkeep only: retention, integrity check, offsite copy — no new snapshot')]
 backup-maintenance env:
@@ -863,7 +865,7 @@ docker-ci-perf-baseline perf_products="5000":
 docker-perf-capacity mode="mixed" perf_products="5000":
     #!/usr/bin/env bash
     set -euo pipefail
-    project="${COMPOSE_PROJECT_NAME:-relab_capacity}"
+    project="${COMPOSE_PROJECT_NAME:-r9lab_capacity}"
     compose="docker compose -p $project -f compose.yaml -f compose.ci.yaml -f backend/perf/compose.capacity.yaml"
     trap '$compose --profile migrations down -v --remove-orphans' EXIT
     just backend/perf-fixtures

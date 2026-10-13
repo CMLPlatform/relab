@@ -53,7 +53,7 @@ VALIDATION_ENV_VALUES = {
     "EMAIL_FROM": "R9lab <relab@example.test>",
     "EMAIL_REPLY_TO": "relab@example.test",
     "BOOTSTRAP_SUPERUSER_EMAIL": "admin@example.test",
-    "PROJECT": "relab",
+    "PROJECT": "r9lab",
     "ENVIRONMENT": "prod",
     "API_PUBLIC_URL": "https://api.placeholder.test",
     "APP_PUBLIC_URL": "https://app.placeholder.test",
@@ -259,7 +259,7 @@ def deploy_labels(env: str | None) -> tuple[str, ...]:
 
 
 def _rclone_remotes(config: Path) -> list[str]:
-    # Same rule as derive_offsite_repository in backup_relab_restic.sh: a whole line `[name]`.
+    # Same rule as derive_offsite_repository in backup_r9lab_restic.sh: a whole line `[name]`.
     return [m.group(1) for m in (re.fullmatch(r"\[([^\]]*)\]", line) for line in config.read_text().splitlines()) if m]
 
 

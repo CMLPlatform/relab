@@ -10,7 +10,7 @@ ______________________________________________________________________
 Same as [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1 with `staging` substituted for `prod`: the
 install guide's "First backup" and "Scheduling backups", then `just timers-install staging`.
 
-Then fill in `PING_WATCHDOG` in `/etc/relab/relab.env` with staging's own healthchecks.io URL.
+Then fill in `PING_WATCHDOG` in `/etc/r9lab/r9lab.env` with staging's own healthchecks.io URL.
 Do not reuse prod's: a shared check cannot tell you which host went quiet. See
 [DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.2.
 
@@ -18,12 +18,21 @@ Set telemetry the same way as prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.5). 
 may share the collector; the `env` resource attribute, which Compose derives from `ENVIRONMENT`,
 separates them.
 
-Staging needs **its own** `./bootstrap.sh relab staging` run on the monitoring host: prod's rule
+Staging needs **its own** `./bootstrap.sh r9lab staging` run on the monitoring host: prod's rule
 matches `env="prod"` and does not notice staging going quiet. Run it in the same change that turns
 telemetry on; this host cannot tell you the rule is missing.
 
 Staging's `rclone.conf` defines one remote, `surfdrive_staging`, a SURFdrive share link scoped to
 staging's own folder; the backup copies to `rclone:surfdrive_staging:`.
+
+### Moving the host from the relab paths
+
+As [DEPLOY-PROD.md](DEPLOY-PROD.md) 1.7, after the rename window's go/no-go check, but staging has no
+deploy user to rename. Disable the four `r9lab-*@staging` timers, move the ping file the same way
+(`/etc/relab/relab.env` to `/etc/r9lab/r9lab.env`, replacing the empty one the window's
+`timers-install` seeded), and if the checkout's directory is named after relab, move it and update
+`BACKUP_HOST_DIR` if it points inside. Then run `just timers-install staging` and
+`just stack staging up YES` from the moved checkout.
 
 ______________________________________________________________________
 
@@ -41,13 +50,13 @@ The images come from GHCR: a release publishes them, and running the Publish Ima
 hand on any commit publishes that commit as `sha-<short sha>`. Check the tag's provenance from the
 dev host before `tag` pulls it: `just images-verify staging <tag>`. With a restricted deploy key set
 up as for prod ([DEPLOY-PROD.md](DEPLOY-PROD.md) Part 1.6), `just deploy staging <tag>` on the dev
-host runs the check and the `tag` step together. `RELAB_DEPLOY_HOST` names the ssh alias when it is
-not `relab-staging`.
+host runs the check and the `tag` step together. `R9LAB_DEPLOY_HOST` names the ssh alias when it is
+not `r9lab-staging`.
 
 ClamAV starts unless `MALWARE_SCAN_ENABLED=false` in the root `.env`. It needs 3–4 GiB; staging can
 run without it if the host is short on RAM.
 
-Backups are not started by `up`; they run from `relab-backup@staging.timer`.
+Backups are not started by `up`; they run from `r9lab-backup@staging.timer`.
 
 ### Verify
 
@@ -76,7 +85,7 @@ The test of whether the deploy path works on a clean machine. It also rehearses 
 ```bash
 just backup staging manual                     # tagged, so retention cannot expire it
 just stack staging down YES
-docker volume rm relab_staging_database_data   # destroys staging data — intended
+docker volume rm r9lab_staging_database_data   # destroys staging data — intended
 just stack staging up YES migrations
 ```
 

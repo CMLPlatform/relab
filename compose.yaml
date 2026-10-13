@@ -88,7 +88,7 @@ services:
         condition: service_completed_successfully
         required: false
     volumes:
-      - user_uploads:/opt/relab/backend/data/uploads
+      - user_uploads:/opt/r9lab/backend/data/uploads
     environment:
       DATABASE_HOST: postgres # Point to the database service
       DATABASE_PORT: 5432
@@ -121,7 +121,7 @@ services:
         condition: service_healthy
     volumes:
       # Ensure migrations have access to user uploads (for seeding example images)
-      - user_uploads:/opt/relab/backend-migrations/data/uploads
+      - user_uploads:/opt/r9lab/backend-migrations/data/uploads
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis

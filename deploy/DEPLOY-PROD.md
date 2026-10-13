@@ -51,7 +51,7 @@ just backup prod                 # first snapshot carrying the marker
 just timers-install prod         # re-render the units
 ```
 
-`just backup` runs the script baked into the `relab-backup` image that `IMAGE_TAG` names
+`just backup` runs the script baked into the `r9lab-backup` image that `IMAGE_TAG` names
 (`backend/Dockerfile.backups` copies it in), not the one in the checkout. Pull the new code without
 switching the tag and the stamp lands while every guard stays inert: the run archives, the snapshot
 carries the marker, and nothing checks it.
@@ -66,9 +66,9 @@ user-uploads size 355234816 bytes (100% of previous); archiving
 `Dump size ...` with no `user-uploads` line means the container is still on the old image; check
 `IMAGE_TAG` and run it again.
 
-`just backup` has to happen before the next `relab-restore-check@` fires — restore verification
+`just backup` has to happen before the next `r9lab-restore-check@` fires — restore verification
 enforces the marker strictly, so a check landing between the stamp and the first marked snapshot
-fails against the pre-marker one. `systemctl list-timers relab-restore-check@prod` gives the slack.
+fails against the pre-marker one. `systemctl list-timers r9lab-restore-check@prod` gives the slack.
 
 **Dump or uploads tree refused as collapsed:** a run refuses to archive data under half the size of
 the newest snapshot with the same tag. If the shrink is real (a deliberate mass deletion), take one
@@ -81,7 +81,7 @@ RESTIC_MIN_DUMP_RATIO=0 just backup prod
 **Marker missing, and the volume is genuinely empty:** the volume lost its contents or was
 replaced. No `just` recipe restores uploads live (`restore-check` only targets a scratch directory;
 `just restore` is Postgres-only), so restore by hand into the compose-managed volume
-(`relab_prod_user_uploads`); restic's `--target` restores under the absolute backed-up path
+(`r9lab_prod_user_uploads`); restic's `--target` restores under the absolute backed-up path
 (`/data/uploads`), hence the two-step copy below.
 
 Put the scratch directory on the backup disk, not `/tmp` — a full restore there can fill the disk
@@ -89,7 +89,7 @@ Postgres and Docker use, and the watchdog only checks `BACKUP_HOST_DIR`. It must
 65532 (the backup image's uid); `--no-lock` is required because the repository mounts read-only.
 
 ```bash
-BACKUP_IMAGE="ghcr.io/cmlplatform/relab-backup:$(sed -n 's/^IMAGE_TAG=//p' .env)"
+BACKUP_IMAGE="ghcr.io/cmlplatform/r9lab-backup:$(sed -n 's/^IMAGE_TAG=//p' .env)"
 just stack prod down YES
 SCRATCH="${BACKUP_HOST_DIR:-./backups}/uploads-restore"
 mkdir -p "$SCRATCH"
@@ -102,7 +102,7 @@ docker run --rm \
   --entrypoint restic "$BACKUP_IMAGE" \
   restore --no-lock latest --repo /restic --tag user-uploads --target /restore
 docker run --rm \
-  -v relab_prod_user_uploads:/data/uploads \
+  -v r9lab_prod_user_uploads:/data/uploads \
   -v "$SCRATCH:/restore:ro" \
   --entrypoint sh "$BACKUP_IMAGE" -c \
   'rm -rf /data/uploads/* && cp -a /restore/data/uploads/. /data/uploads/'
@@ -116,7 +116,7 @@ backup-stamp-volume prod` cannot fix that (it never overwrites), so rewrite it b
 snapshot was another environment's:
 
 ```bash
-docker run --rm -v relab_prod_user_uploads:/data/uploads --entrypoint sh busybox -c \
+docker run --rm -v r9lab_prod_user_uploads:/data/uploads --entrypoint sh busybox -c \
   'printf prod >/data/uploads/.relab-volume.tmp && mv /data/uploads/.relab-volume.tmp /data/uploads/.relab-volume'
 ```
 
@@ -150,22 +150,22 @@ just timers-install prod      # render, install, enable, start (prompts for sudo
 
 The units run as whoever runs that command. On a host with a dedicated, sudo-less deploy user
 (1.6), run it from an account that has sudo and name the deploy user. The units then run as that
-user, it owns `/etc/relab/relab.env`, and the rendered `PATH` finds its per-user `uv`:
+user, it owns `/etc/r9lab/r9lab.env`, and the rendered `PATH` finds its per-user `uv`:
 
 ```bash
-RELAB_UNIT_USER=relab just timers-install prod
+R9LAB_UNIT_USER=r9lab just timers-install prod
 ```
 
 | Job                             | When             | Catch-up                                                |
 | ------------------------------- | ---------------- | ------------------------------------------------------- |
-| `relab-backup@prod`             | hourly           | yes: an hour missed while the host was off runs at boot |
-| `relab-backup-maintenance@prod` | 02:30 daily      | yes: a night missed while the host was off runs at boot |
-| `relab-watchdog@prod`           | hourly           | no: a missed check self-heals within the hour           |
-| `relab-restore-check@prod`      | 06:00 on the 1st | yes                                                     |
+| `r9lab-backup@prod`             | hourly           | yes: an hour missed while the host was off runs at boot |
+| `r9lab-backup-maintenance@prod` | 02:30 daily      | yes: a night missed while the host was off runs at boot |
+| `r9lab-watchdog@prod`           | hourly           | no: a missed check self-heals within the hour           |
+| `r9lab-restore-check@prod`      | 06:00 on the 1st | yes                                                     |
 
 ### How a failed job reaches you
 
-The installer seeds `/etc/relab/relab.env` (mode 0600, never committed) with one dead-man's-switch
+The installer seeds `/etc/r9lab/r9lab.env` (mode 0600, never committed) with one dead-man's-switch
 URL variable per job. Only `PING_WATCHDOG` has to be filled in: the hourly watchdog checks every
 other job's timer state, last result and staleness, and puts a failing job's own output in the
 alert body. The other three are optional; set one to give that job its own healthchecks.io check,
@@ -231,17 +231,17 @@ Wasabi, S3) or a restic REST server with `--append-only`.
 
 ### 1.4 What the watchdog checks
 
-`sudo -u relab just watchdog prod` runs hourly from the timer above; run it by hand after any
+`sudo -u r9lab just watchdog prod` runs hourly from the timer above; run it by hand after any
 change, as the deploy user (1.6) so it sees the checkout the way the timer does. Its timer
 checks read systemd's `Result` of each unit's **last run**, so after fixing a job, clear the alert by
-running the unit (`sudo systemctl reset-failed relab-backup-maintenance@prod.service && sudo
-systemctl start relab-backup-maintenance@prod.service`), not the `just` recipe, which systemd never
+running the unit (`sudo systemctl reset-failed r9lab-backup-maintenance@prod.service && sudo
+systemctl start r9lab-backup-maintenance@prod.service`), not the `just` recipe, which systemd never
 sees. `reset-failed` also lifts the start-rate limit that a few consecutive timer failures trip,
 which otherwise refuses a manual start too.
 
 That applies to a crash. Exit 3 differs: the unit refused to archive on purpose (an emptied uploads
 volume, a collapsed dump, a missing or mismatched marker), and `RestartPreventExitStatus=3` stops
-`relab-backup@.service` retrying. `reset-failed` clears the alert, not the cause — it refuses again
+`r9lab-backup@.service` retrying. `reset-failed` clears the alert, not the cause — it refuses again
 until the guard's trigger is fixed (see 1.1). It checks:
 
 - every stack service (running, and healthy where a healthcheck exists)
@@ -298,7 +298,7 @@ symptom of a mismatch: every export 403s with a `cf-mitigated` header.
 **Then run `./bootstrap.sh <project> <env>` on the monitoring host, in the same change.** Setting
 the endpoint starts telemetry flowing; bootstrap creates the rule that notices when it *stops*.
 Nothing on this host can tell you that rule is missing. The arguments must match `PROJECT` and
-`ENVIRONMENT`, which the deploy recipes set (`relab` and the recipe's environment); those are the
+`ENVIRONMENT`, which the deploy recipes set (`r9lab` and the recipe's environment); those are the
 label values the rule matches on.
 Bootstrap also prints the `.env` block and the commands that vendor the agent files at a pinned tag.
 
@@ -319,21 +319,21 @@ ______________________________________________________________________
 The host runs prod from a checkout nobody edits, as a sudo-less account, and is only ever *reached*
 from the operator's machine; credentials and working trees stay there.
 
-**Run recipes as that account: `sudo -u relab just <recipe> prod`.** Plain `sudo just` runs as
-root, and git refuses a checkout that `relab` owns: the watchdog's drift check then reports the
+**Run recipes as that account: `sudo -u r9lab just <recipe> prod`.** Plain `sudo just` runs as
+root, and git refuses a checkout that `r9lab` owns: the watchdog's drift check then reports the
 directory as not a checkout at all. `just timers-install` is the one exception (1.2). It refuses to
-run as root and calls `sudo` itself, and `relab` is a system account with no password to answer
+run as root and calls `sudo` itself, and `r9lab` is a system account with no password to answer
 that prompt.
 
 ```bash
-sudo useradd --system --create-home --home-dir /var/lib/relab --shell /bin/bash --groups docker relab
-sudo git clone https://github.com/CMLPlatform/relab.git /opt/relab
-sudo chown -R relab:relab /opt/relab
-sudo -u relab sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'   # ~/.local/bin/uv; `uv self update` to move it
-sudo install -o relab -g relab -m 600 <old checkout>/.env /opt/relab/.env
-sudo install -d -o relab -g relab -m 700 /opt/relab/secrets/prod
-sudo install -o relab -g relab -m 644 <old checkout>/secrets/prod/* /opt/relab/secrets/prod/
-RELAB_UNIT_USER=relab just timers-install prod                            # from /opt/relab, as the sudo account
+sudo useradd --system --create-home --home-dir /var/lib/r9lab --shell /bin/bash --groups docker r9lab
+sudo git clone https://github.com/CMLPlatform/relab.git /opt/r9lab
+sudo chown -R r9lab:r9lab /opt/r9lab
+sudo -u r9lab sh -c 'curl -LsSf https://astral.sh/uv/install.sh | sh'   # ~/.local/bin/uv; `uv self update` to move it
+sudo install -o r9lab -g r9lab -m 600 <old checkout>/.env /opt/r9lab/.env
+sudo install -d -o r9lab -g r9lab -m 700 /opt/r9lab/secrets/prod
+sudo install -o r9lab -g r9lab -m 644 <old checkout>/secrets/prod/* /opt/r9lab/secrets/prod/
+R9LAB_UNIT_USER=r9lab just timers-install prod                            # from /opt/r9lab, as the sudo account
 ```
 
 Then one key pair on the dev host, used for nothing else, and one `authorized_keys` line for the
@@ -341,13 +341,36 @@ deploy user whose forced command is `scripts/remote_deploy.sh`. The script maps 
 onto the `just` recipes and refuses anything else, so the key cannot open a shell or read a secret:
 
 ```text
-command="/opt/relab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... relab-deploy
+command="/opt/r9lab/scripts/remote_deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding ssh-ed25519 AAAA... r9lab-deploy
 ```
 
 The environment is the host's own root `.env`; it is never an argument. The repository is public,
 so `git pull` over https needs no credential; a private repository would need a read-only GitHub
-deploy key in `/var/lib/relab/.ssh` with the remote switched to ssh. The personal key stays on the
+deploy key in `/var/lib/r9lab/.ssh` with the remote switched to ssh. The personal key stays on the
 sudo account and never on the deploy user.
+
+### 1.7 Moving a host from the relab paths
+
+Hosts set up before the R9lab rename use `/opt/relab`, `/etc/relab/relab.env` and a `relab` deploy
+user. Move them on the day of the rename window, after its go/no-go check, from the sudo account:
+
+```bash
+for job in backup backup-maintenance watchdog restore-check; do sudo systemctl disable --now "r9lab-$job@prod.timer"; done
+sudo systemctl stop "user@$(id -u relab).service"; pgrep -u relab   # must print nothing
+sudo usermod -l r9lab -d /var/lib/r9lab -m relab && sudo groupmod -n r9lab relab
+sudo mv /opt/relab /opt/r9lab
+# The window's timers-install already seeded an empty /etc/r9lab/r9lab.env: replace it.
+sudo install -d -m 0755 /etc/r9lab && sudo mv -f /etc/relab/relab.env /etc/r9lab/r9lab.env && sudo rmdir /etc/relab
+```
+
+Then change only the path inside the deploy key's `command="..."` in
+`/var/lib/r9lab/.ssh/authorized_keys`, keeping its option list, and run
+`R9LAB_UNIT_USER=r9lab just timers-install prod` from `/opt/r9lab`. If `BACKUP_HOST_DIR` in `.env`
+points under a renamed directory, move that directory and update the variable. Then run
+`sudo -u r9lab just stack prod up YES` from `/opt/r9lab`, so the bind mounts (secrets, the Alloy
+config, the backup directory) point at the moved files. Check from the dev host: `ssh r9lab-prod status`
+works, `ssh r9lab-prod bogus` is refused, and the next backup, watchdog and restore check runs
+succeed.
 
 ______________________________________________________________________
 
@@ -357,18 +380,18 @@ Before you start: CI green on `main`, you know whether the release contains migr
 (`cd backend && uv run alembic history -r <current>:head`), and you have a fresh backup
 (`just backup prod`).
 
-From the dev host, over the restricted key (`relab-prod` here is an ssh config alias for the
-deploy user on the prod host; `RELAB_DEPLOY_HOST` names a different alias for `just deploy`):
+From the dev host, over the restricted key (`r9lab-prod` here is an ssh config alias for the
+deploy user on the prod host; `R9LAB_DEPLOY_HOST` names a different alias for `just deploy`):
 
 ```bash
-ssh relab-prod pull                 # git pull --ff-only of origin/main, prints the revision
-just deploy prod 0.4.0              # images-verify on the dev host, then `ssh relab-prod tag 0.4.0`
-ssh relab-prod up migrations
+ssh r9lab-prod pull                 # git pull --ff-only of origin/main, prints the revision
+just deploy prod 0.4.0              # images-verify on the dev host, then `ssh r9lab-prod tag 0.4.0`
+ssh r9lab-prod up migrations
 ```
 
 `just deploy` refuses to reach the host unless every image of the tag verifies: release images
 must come from their release tag, which only repository admins and maintainers can create or move
-(the `release tags` ruleset in `infra/cloudflare/github.tf`). `ssh relab-prod` with no command
+(the `release tags` ruleset in `infra/cloudflare/github.tf`). `ssh r9lab-prod` with no command
 prints the allow-list. On the host itself the steps are `git pull --ff-only`, `just stack prod tag
 YES <tag>`, `just stack prod up YES migrations` as the deploy user; run `just images-verify prod
 <tag>` on the dev host first.
@@ -397,7 +420,7 @@ plan and apply, not a dashboard edit.
 
 ### Releases that need a window
 
-Three things stretch a release beyond the time the commands take.
+Four things stretch a release beyond the time the commands take.
 
 **A backfill migration holds the API down for its whole duration.** The `migrations` profile gates
 the API on `service_completed_successfully`. A release whose migrator backfills existing rows
@@ -413,6 +436,16 @@ every backup fails until the matching `chown`. The safety snapshot cannot run af
 effect. The install guide's "Upgrade" section has the commands in the order that works. `up` refuses to
 start while a mount is unwritable and names the volume.
 
+**The R9lab rename is a one-off window.** The release that renames the Compose project,
+database, roles, images and timers to `r9lab` follows the install guide's "Upgrading across the
+R9lab rename" (`upgrade-backup.md`), staging first. Publish no other release between merging it
+and the end of prod's window: the hosts follow `main`, and every release from then on publishes
+only `r9lab-*` images. Before prod's window, run `./bootstrap.sh r9lab prod` on the monitoring
+host (and `r9lab staging` before staging's) so alerts and dashboards know the new project; remove
+the `relab` pairs afterwards. Prod's units run as the deploy user, so step 8 is
+`R9LAB_UNIT_USER=<deploy user> just timers-install prod` from the sudo account, naming the user
+the host has at that point (1.7 renames it).
+
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
 stopping the watchdog too, or it pages mid-window. A stopped watchdog cannot then tell you the
 others are still stopped. The dead man's switch is the backstop: with no ping, the external check
@@ -422,9 +455,9 @@ close the window.
 ### Verify
 
 ```bash
-ssh relab-prod watchdog
-ssh relab-prod status
-ssh relab-prod logs 10m     # non-following; `just stack prod logs` on the host follows
+ssh r9lab-prod watchdog
+ssh r9lab-prod status
+ssh r9lab-prod logs 10m     # non-following; `just stack prod logs` on the host follows
 ```
 
 Then test by hand what automation cannot: one upload, one OAuth login, one product page.
@@ -440,6 +473,10 @@ escapes that guarantee: see "A revision that builds an index concurrently" at th
 
 Every release stays published on GHCR under its version (unrelated to the alembic revision, which
 names the schema), so rolling back is pulling an earlier tag. The package pages on GitHub list them.
+`rollback` cannot cross the R9lab rename. An older release runs the `relab_prod` project, whose
+volumes stop at the rename window, and its images look for the old database and role names. Before
+the window's go/no-go check its own rollback applies (install guide, "Upgrading across the R9lab
+rename"); after it, fix forward or restore the new project from its backup.
 
 ```bash
 just stack prod rollback YES <tag>                    # code only: the new schema still suits the old code
@@ -511,7 +548,7 @@ Two states are possible and they need opposite responses. Tell them apart by ask
 index is valid:
 
 ```bash
-docker compose -p relab_prod exec -T postgres sh -c \
+docker compose -p r9lab_prod exec -T postgres sh -c \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT indexrelid::regclass FROM pg_index WHERE NOT indisvalid"'
 ```
 
@@ -527,7 +564,7 @@ Either way, the drop must be concurrent too, and the re-run is the ordinary migr
 
 ```bash
 just backup prod manual
-docker compose -p relab_prod exec -T postgres sh -c \
+docker compose -p r9lab_prod exec -T postgres sh -c \
     'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP INDEX CONCURRENTLY <index-name>"'
 just stack prod migrate YES
 ```

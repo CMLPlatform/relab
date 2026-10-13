@@ -5,7 +5,7 @@
 # PORT build args. The production builds deploy to Cloudflare Workers
 # (deploy-sites.yml), not as images.
 
-ARG WORKDIR=/opt/relab
+ARG WORKDIR=/opt/r9lab
 ARG SITE
 ARG PORT
 

@@ -1,4 +1,4 @@
-# R9lab scheduled job: encrypted backup. Instance is the environment, e.g. relab-backup@prod.
+# R9lab scheduled job: backup repository maintenance. Instance is the environment, e.g. r9lab-backup-maintenance@prod.
 #
 # Do not install by hand — `just timers-install <env>` renders these for this host
 # (checkout path, deploy user, `just` location) and enables them. The committed values
@@ -9,15 +9,12 @@
 # host. These units run a writable git checkout as unattended, scheduled, effectively
 # root-level jobs — treat that directory as privileged.
 [Unit]
-Description=R9lab encrypted backup schedule (%i)
+Description=R9lab backup maintenance schedule (%i)
 
 [Timer]
-# Hourly snapshot only. Prune, integrity check and the offsite copy run once a day from
-# relab-backup-maintenance@.timer.
-# No RandomizedDelaySec, so the watchdog's staleness check can use a 2h limit.
-# The 30-minute calendar gap to the maintenance timer is not a lock: a long prune can
-# still hold restic's exclusive lock at 03:00, so the backup script passes --retry-lock.
-OnCalendar=hourly
+# Daily, after the hourly snapshots have accumulated. Persistent so a day missed while
+# the host was off still prunes and copies offsite at boot.
+OnCalendar=*-*-* 02:30:00
 Persistent=true
 
 [Install]

@@ -41,11 +41,144 @@ just backup "$env" manual         # tagged, so retention cannot expire it
 just stack "$env" down YES
 # Run as uid 0 in a container, so the host needs no knowledge of where Docker keeps volumes.
 for volume in user_uploads restic_cache; do
-    docker run --rm --user 0 -v "relab_${env}_${volume}:/mnt" \
+    docker run --rm --user 0 -v "r9lab_${env}_${volume}:/mnt" \
         busybox chown -R 65532:65532 /mnt
 done
 just stack "$env" up YES migrations
 ```
+
+## Upgrading across the R9lab rename
+
+One release renames the deployment identifiers from `relab` to `r9lab`: the Compose project
+(`r9lab_<env>`, so every volume and network name), the database and its roles (`r9lab_db`,
+`r9lab_app`, `r9lab_migrator`, `r9lab_backup`), the images (`ghcr.io/cmlplatform/r9lab-*`), the
+scheduled jobs (`r9lab-*@<env>`), the `RELAB_*` variables (`R9LAB_*`) and the telemetry service
+name (`r9lab-api`). A plain `tag` and `up` would start an empty second stack next to the old one,
+so this upgrade is a short window with its own steps. Allow about an hour; copying the volumes
+takes most of it.
+
+Before the window:
+
+- Pull one of the new images on the host (`docker pull ghcr.io/cmlplatform/r9lab-backend:<tag>`)
+  to prove the registry is reachable, and check there is room for a second copy of the volumes
+  (`docker system df -v`).
+- Update monitoring that matches `project="relab"` or the service `relab-api`, so it covers the new
+  names before they appear.
+
+The window, staging first. Run every step from the checkout root. On a host with a dedicated
+deploy user, steps 1 and 8 run from an account with sudo, and steps 2 to 7 run as the deploy user
+(for example `sudo -u <deploy user> just ...`, and `docker` and `git` the same way), so the checkout
+and `.env` keep their owner. The helper containers in step 4 use the same pinned Alpine
+image as the backup scripts:
+
+```bash
+env=prod   # or staging
+img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_restic_ops.sh)"
+```
+
+1. Stop the scheduled jobs and wait until none is running:
+
+   ```bash
+   sudo systemctl disable --now "relab-backup@$env.timer" "relab-backup-maintenance@$env.timer" \
+       "relab-watchdog@$env.timer" "relab-restore-check@$env.timer"
+   systemctl list-units "relab-*@$env.service" --state=active   # wait until this lists nothing
+   ```
+
+1. Still on the old release: close traffic by stopping the tunnel, take a safety backup, record
+   the row counts and the password type of each role, then stop the stack. With the tunnel down
+   nothing writes, so the counts here are the ones step 7 compares against. A manual backup needs
+   PostgreSQL running, so it comes before `down`. Never pass `-v` to `down`: the old volumes are
+   the way back.
+
+   ```bash
+   docker stop "relab_$env-cloudflared-1"
+   just backup "$env" manual
+   count_rows() {   # container name, database name
+       docker exec -i "$1" sh -c "psql -U \"\$POSTGRES_USER\" -d $2 -At" <<'SQL'
+   SELECT table_name, (xpath('/row/c/text()', query_to_xml(format('SELECT count(*) AS c FROM public.%I', table_name), false, true, '')))[1]::text
+   FROM information_schema.tables WHERE table_schema = 'public' AND table_type = 'BASE TABLE' ORDER BY 1;
+   SQL
+   }
+   count_rows "relab_$env-postgres-1" relab_db >"rows-before-$env.txt"
+   docker exec -i "relab_$env-postgres-1" sh -c 'psql -U "$POSTGRES_USER" -d postgres -At' <<'SQL'
+   SELECT rolname, left(rolpassword, 5) FROM pg_authid WHERE rolname LIKE 'relab\_%';
+   SQL
+   just stack "$env" down YES
+   ```
+
+1. Keep a copy of the old `.env` (`cp -p .env .env.pre-r9lab`), then check out the new release
+   (`git pull --ff-only`). In the root `.env`, set `COMPOSE_PROJECT_NAME=r9lab_<env>` and rename any
+   `RELAB_*` variable to `R9LAB_*`, keeping its value. Then pull the new images and write the tag:
+   `just stack "$env" tag YES <tag>`. Until step 6, `up`, `migrate`, `rollback` and the backup
+   recipes refuse to run, because the data is still in the `relab_<env>` project.
+
+1. Create the new project's volumes, then copy each old volume into its new one. The copy runs as
+   root in a container, so ownership and modes come along; `restic_cache` is skipped because it
+   rebuilds itself:
+
+   ```bash
+   bash scripts/deploy_ops.sh stack "$env" compose --profile migrations --profile backups --profile scanning create
+   volumes="database_data user_uploads cache_data alloy_data clamav_db"
+   for v in $volumes; do
+       docker volume inspect "relab_${env}_$v" >/dev/null 2>&1 || continue
+       docker run --rm -v "relab_${env}_$v:/from:ro" -v "r9lab_${env}_$v:/to" "$img" cp -a /from/. /to/
+   done
+   for v in $volumes; do   # each pair of lines must match
+       for p in relab r9lab; do
+           docker volume inspect "${p}_${env}_$v" >/dev/null 2>&1 || continue
+           docker run --rm -v "${p}_${env}_$v:/v:ro" "$img" sh -c \
+               'echo "$(find /v | wc -l) files, $(find /v -type f -exec stat -c %s {} + | awk "{s+=\$1} END {print s+0}") bytes, root $(stat -c "%u:%g %a" /v), marker $(cat /v/.relab-volume 2>/dev/null)"'
+       done
+   done
+   ```
+
+1. Start only PostgreSQL and rename the database and roles, before anything else starts:
+   `up` creates any role it does not find, and would create empty `r9lab_*` roles next to the old
+   ones.
+
+   ```bash
+   bash scripts/deploy_ops.sh stack "$env" compose up -d --wait postgres
+   bash scripts/deploy_ops.sh stack "$env" compose exec -T postgres \
+       sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres' <<'SQL'
+   ALTER DATABASE relab_db RENAME TO r9lab_db;
+   ALTER ROLE relab_app RENAME TO r9lab_app;
+   ALTER ROLE relab_migrator RENAME TO r9lab_migrator;
+   ALTER ROLE relab_backup RENAME TO r9lab_backup;
+   SELECT count(*) AS old_roles_left FROM pg_roles WHERE rolname LIKE 'relab\_%';
+   SQL
+   ```
+
+   If the database rename reports other sessions, run it again. If step 2 showed `md5` for a
+   role, the rename cleared its password: set it again from `secrets/<env>/` with
+   `ALTER ROLE ... PASSWORD`. Roles showing `SCRAM` keep theirs.
+
+1. Start the stack: `just stack "$env" up YES migrations`.
+
+1. Before you reopen traffic, check: `docker compose ls` lists `r9lab_<env>` and no `relab_<env>`;
+   `count_rows "r9lab_$env-postgres-1" r9lab_db | diff "rows-before-$env.txt" -` prints nothing; an
+   account created before the window signs in; an uploaded image loads; `just backup "$env"
+   manual` logs that the uploads volume identity check passed; telemetry arrives under the new
+   names.
+
+1. From the sudo account, install the new scheduled jobs (`just timers-install "$env"`, with the
+   same `R9LAB_UNIT_USER` as before if you use one; see [Scheduling backups](#scheduling-backups)), check `systemctl list-timers "r9lab-*@$env.timer"`,
+   and remove the old unit files:
+
+   ```bash
+   sudo rm /etc/systemd/system/relab-{backup,backup-maintenance,watchdog,restore-check}@.{service,timer}
+   sudo systemctl daemon-reload
+   ```
+
+1. Keep the `relab_<env>_*` volumes for two weeks, then remove them with `docker volume rm`.
+
+**Rolling back.** Until traffic reopens in step 7, nothing old was changed: stop the new stack with
+`just stack "$env" down YES`, check out the commit before the rename, restore the old `.env`
+(`cp -p .env.pre-r9lab .env`), re-enable the four `relab-*@<env>` timers, and
+`just stack "$env" up YES` starts the old project on its untouched volumes and roles.
+
+Once traffic has reopened, rolling back past the rename is not supported. An older release runs
+the `relab_<env>` project, whose volumes miss everything written since, and its images look for
+the old database and role names. Fix forward, or restore the new project from its backup.
 
 ## First backup
 
@@ -86,21 +219,21 @@ checkout path, deploy user, and `just` location, then enables the timers:
 ```bash
 just timers-render                        # inspect what will be installed
 just timers-install staging               # renders, installs, enables
-systemctl list-timers 'relab-*@staging.timer'   # confirm NEXT times are scheduled
+systemctl list-timers 'r9lab-*@staging.timer'   # confirm NEXT times are scheduled
 ```
 
 :::caution
 Run `just timers-install` as yourself, not as `sudo just`: the installer prompts for sudo itself.
 :::
 
-The installer also seeds `/etc/relab/relab.env` with empty `PING_*` URLs. Fill in `PING_WATCHDOG`
+The installer also seeds `/etc/r9lab/r9lab.env` with empty `PING_*` URLs. Fill in `PING_WATCHDOG`
 with a [healthchecks.io](https://healthchecks.io) check URL. The hourly watchdog reports every other
 job's state through it; the other three URLs are optional per-job checks. Until you fill it in, job
 failures are invisible outside the host, and `just watchdog <env>` reports that. So does a host
 without the timers.
 
 With a dedicated deploy user, run the installer from an account with sudo:
-`RELAB_UNIT_USER=<user> just timers-install <env>`.
+`R9LAB_UNIT_USER=<user> just timers-install <env>`.
 
 ## Optional WebDAV offsite backups
 

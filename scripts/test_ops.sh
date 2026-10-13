@@ -93,6 +93,36 @@ assert_eq "env guard: matching environment" allowed "$(env_guard 'ENVIRONMENT=pr
 assert_eq "env guard: other environment blocks" blocked "$(env_guard 'ENVIRONMENT=staging' prod)"
 assert_eq "env guard: missing .env blocks" blocked "$(env_guard '' staging)"
 
+# `stack ENV compose`: hands its arguments to Compose under the r9lab_<env> project.
+compose_passthrough() {
+    # shellcheck disable=SC2317,SC2329 # the stub is called by the code under test
+    run_deploy_compose() { echo "$*"; }
+    stack_command prod compose up -d --wait postgres
+}
+assert_eq "compose action forwards its arguments" "prod up -d --wait postgres" \
+    "$(in_dotenv_dir 'ENVIRONMENT=prod' compose_passthrough)"
+# A host whose data is still in relab_<env> must not get a second, empty r9lab_<env> stack.
+renamed_guard() {
+    local existing="$1" action="$2" out status
+    # shellcheck disable=SC2317,SC2329 # the stubs are called by the code under test
+    docker() { [[ "$1 $2" == "volume inspect" && " $existing " == *" $3 "* ]]; }
+    # shellcheck disable=SC2317,SC2329
+    run_deploy_compose() { echo "compose $*"; }
+    out="$(FORCE=1 in_dotenv_dir 'ENVIRONMENT=prod' stack_command prod "$action" 2>&1)"
+    status=$?
+    [[ "$out" == *"still in the relab_prod Compose project"* ]] && echo "refused $status" || echo "passed"
+}
+assert_eq "pre-rename guard: old volume only refuses migrate" "refused 2" "$(renamed_guard relab_prod_database_data migrate)"
+assert_eq "pre-rename guard: old volume only refuses backup" "refused 2" "$(renamed_guard relab_prod_database_data backup)"
+assert_eq "pre-rename guard: both volumes pass" passed \
+    "$(renamed_guard 'relab_prod_database_data r9lab_prod_database_data' migrate)"
+assert_eq "pre-rename guard: new volume only passes" passed "$(renamed_guard r9lab_prod_database_data migrate)"
+assert_eq "pre-rename guard: fresh host passes" passed "$(renamed_guard '' migrate)"
+assert_eq "pre-rename guard: the window's compose action is not guarded" passed \
+    "$(renamed_guard relab_prod_database_data compose)"
+assert_eq "deploy compose project is r9lab_<env>" "-p r9lab_prod" \
+    "$(in_dotenv_dir 'ENVIRONMENT=prod' compose_args prod | grep -x -A1 -- -p | paste -sd' ')"
+
 # ---------------------------------------------------------------------------
 # `stack ENV up` volume preflight: a mount the container cannot write must stop the
 # deploy and name the chown, because reads and stat still succeed on a wrongly-owned
@@ -106,13 +136,13 @@ mount_alert() {
 }
 
 assert_eq "a writable mount is silent" "0|" \
-    "$(mount_alert api /opt/relab/backend/data/uploads volume:user_uploads yes)"
+    "$(mount_alert api /opt/r9lab/backend/data/uploads volume:user_uploads yes)"
 assert_eq "an unwritable named volume names the volume and the chown" \
-    "1|error: the prod stack's api service cannot write /opt/relab/backend/data/uploads as uid 65532.
+    "1|error: the prod stack's api service cannot write /opt/r9lab/backend/data/uploads as uid 65532.
 Docker sets a named volume's ownership only when it first creates the volume, so
-relab_prod_user_uploads still belongs to whichever uid created it.
-Fix with: docker run --rm --user 0 -v relab_prod_user_uploads:/mnt busybox chown -R 65532:65532 /mnt" \
-    "$(mount_alert api /opt/relab/backend/data/uploads volume:user_uploads no)"
+r9lab_prod_user_uploads still belongs to whichever uid created it.
+Fix with: docker run --rm --user 0 -v r9lab_prod_user_uploads:/mnt busybox chown -R 65532:65532 /mnt" \
+    "$(mount_alert api /opt/r9lab/backend/data/uploads volume:user_uploads no)"
 assert_eq "an unwritable bind mount asks for a host chown, not a docker one" \
     "1|error: the prod stack's backup service cannot write /restic as uid 65532.
 Docker creates a missing bind-mount directory root-owned.
@@ -315,45 +345,45 @@ assert_eq "sha deploy behind main is still reported" "1|ALERT[prod]: deploy chec
 # ---------------------------------------------------------------------------
 timer() {
     local out status
-    out="$(backup_timer_alerts prod relab-backup@prod.timer "$1" "$2" "$3" "$4" 2>&1)"
+    out="$(backup_timer_alerts prod r9lab-backup@prod.timer "$1" "$2" "$3" "$4" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$out"
 }
 
 assert_eq "scheduled and last run fine is silent" "0|" "$(timer enabled active no success)"
 assert_eq "disabled timer is reported" \
-    "1|ALERT[prod]: relab-backup@prod.timer is 'disabled', not 'enabled'; its job is not scheduled" \
+    "1|ALERT[prod]: r9lab-backup@prod.timer is 'disabled', not 'enabled'; its job is not scheduled" \
     "$(timer disabled inactive no success)"
 # The unit files were never installed at all.
 assert_eq "absent timer reads as not installed" \
-    "1|ALERT[prod]: relab-backup@prod.timer is 'not installed', not 'enabled'; its job is not scheduled" \
+    "1|ALERT[prod]: r9lab-backup@prod.timer is 'not installed', not 'enabled'; its job is not scheduled" \
     "$(timer '' '' no '')"
 # The reducer derives the service from the timer name, so the same code covers all three
 # scheduled jobs. restore-check's silent loss goes unnoticed longest (35+ day period).
 restore_timer() {
     local out status
-    out="$(backup_timer_alerts prod relab-restore-check@prod.timer "$1" "$2" "$3" "$4" 2>&1)"
+    out="$(backup_timer_alerts prod r9lab-restore-check@prod.timer "$1" "$2" "$3" "$4" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$out"
 }
 assert_eq "restore-check timer uses its own service name" \
-    "1|ALERT[prod]: last relab-restore-check@prod.service run failed (Result=timeout); see: journalctl -u relab-restore-check@prod.service" \
+    "1|ALERT[prod]: last r9lab-restore-check@prod.service run failed (Result=timeout); see: journalctl -u r9lab-restore-check@prod.service" \
     "$(restore_timer enabled active yes timeout)"
 # `enable` without `--now`, or a timer stopped by hand, leaves is-enabled saying
 # "enabled" while it never fires again.
 assert_eq "enabled but stopped is reported" \
-    "1|ALERT[prod]: relab-backup@prod.timer is enabled but 'inactive'; it will not fire" \
+    "1|ALERT[prod]: r9lab-backup@prod.timer is enabled but 'inactive'; it will not fire" \
     "$(timer enabled inactive no success)"
 assert_eq "failed last run is reported" \
-    "1|ALERT[prod]: last relab-backup@prod.service run failed (Result=exit-code); see: journalctl -u relab-backup@prod.service" \
+    "1|ALERT[prod]: last r9lab-backup@prod.service run failed (Result=exit-code); see: journalctl -u r9lab-backup@prod.service" \
     "$(timer enabled active yes exit-code)"
 # Scheduling and last-run health are independent; both are reported.
 assert_eq "stopped timer and failed run both count" \
-    "2|ALERT[prod]: relab-backup@prod.timer is enabled but 'inactive'; it will not fire
-ALERT[prod]: last relab-backup@prod.service run failed (Result=timeout); see: journalctl -u relab-backup@prod.service" \
+    "2|ALERT[prod]: r9lab-backup@prod.timer is enabled but 'inactive'; it will not fire
+ALERT[prod]: last r9lab-backup@prod.service run failed (Result=timeout); see: journalctl -u r9lab-backup@prod.service" \
     "$(timer enabled inactive yes timeout)"
 assert_eq "unknown Result still reports the failure" \
-    "1|ALERT[prod]: last relab-backup@prod.service run failed (Result=unknown); see: journalctl -u relab-backup@prod.service" \
+    "1|ALERT[prod]: last r9lab-backup@prod.service run failed (Result=unknown); see: journalctl -u r9lab-backup@prod.service" \
     "$(timer enabled active yes '')"
 
 # ---------------------------------------------------------------------------
@@ -408,13 +438,13 @@ assert_eq "a migrator that succeeded with nothing stalled is silent" "0|" "$(gat
 # runs and fails, so nothing is stalled and the deploy otherwise reads as clean.
 assert_eq "a failed migrator is reported even when nothing was stalled" \
     "1|error: the staging migrator did not complete (exit 255); the stack is serving a schema it did not finish migrating
-       read the migration error with: docker logs relab_staging-migrator-1" \
+       read the migration error with: docker logs r9lab_staging-migrator-1" \
     "$(gate 255 '')"
 # A one-shot service that succeeded exits 0 and is `exited`, never `created`.
 assert_eq "a successful migrator with nothing stalled is silent" "0|" "$(gate '' '')"
 assert_eq "a failed migrator names the services it gated" \
     "1|error: the staging migrator did not complete (exit 1), so api, cloudflared never started
-       read the migration error with: docker logs relab_staging-migrator-1" \
+       read the migration error with: docker logs r9lab_staging-migrator-1" \
     "$(gate 1 'api,cloudflared')"
 # Stalled services without a failed migrator is a different fault and must not be
 # reported as a migration failure.
@@ -444,7 +474,7 @@ started() {
 assert_eq "a stale failed migrator is ignored without the migrations profile" "0|" "$(started)"
 assert_eq "a failed migrator is reported when the migrations profile ran it" \
     "1|error: the staging migrator did not complete (exit 1); the stack is serving a schema it did not finish migrating
-       read the migration error with: docker logs relab_staging-migrator-1" \
+       read the migration error with: docker logs r9lab_staging-migrator-1" \
     "$(started --profile migrations)"
 
 # A `ps` that fails or lists nothing cannot show the stack started, so it fails the gate
@@ -569,17 +599,17 @@ rm -f "$ping_env"
 
 ping_alert() {
     local out status
-    out="$(ping_url_alerts prod PING_BACKUP /etc/relab/relab.env "$1" 2>&1)"
+    out="$(ping_url_alerts prod PING_BACKUP /etc/r9lab/r9lab.env "$1" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$out"
 }
 
 assert_eq "filled ping URL is silent" "0|" "$(ping_alert https://hc.example/ping)"
 assert_eq "empty ping URL is reported" \
-    "1|ALERT[prod]: PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "1|ALERT[prod]: PING_BACKUP is empty in /etc/r9lab/r9lab.env; that job's failures are invisible outside this host" \
     "$(ping_alert '')"
 assert_eq "whitespace-only ping URL reads as empty" \
-    "1|ALERT[prod]: PING_BACKUP is empty in /etc/relab/relab.env; that job's failures are invisible outside this host" \
+    "1|ALERT[prod]: PING_BACKUP is empty in /etc/r9lab/r9lab.env; that job's failures are invisible outside this host" \
     "$(ping_alert ' ')"
 
 # ---------------------------------------------------------------------------
@@ -668,7 +698,7 @@ assert_eq "without a launcher the resolved path is kept" "mise/installs/just/1.0
     "$(rendered_just_bin mise/installs/just/1.0.0/just -)"
 
 # ---------------------------------------------------------------------------
-# Offsite repository derivation in backup_relab_restic.sh: the one remote in
+# Offsite repository derivation in backup_r9lab_restic.sh: the one remote in
 # RCLONE_CONFIG, empty path; nothing when the config is absent, empty, or ambiguous.
 # ---------------------------------------------------------------------------
 derived_offsite() {
@@ -676,7 +706,7 @@ derived_offsite() {
     conf="$(mktemp)"
     printf '%s' "$1" >"$conf"
     (
-        eval "$(sed -n "/^derive_offsite_repository()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+        eval "$(sed -n "/^derive_offsite_repository()/,/^}/p" backend/scripts/backup/backup_r9lab_restic.sh)"
         RCLONE_CONFIG="$conf" derive_offsite_repository
     )
     rm -f "$conf"
@@ -687,12 +717,12 @@ assert_eq "offsite: placeholder config derives nothing" "" "$(derived_offsite $'
 assert_eq "offsite: two remotes derive nothing" "" "$(derived_offsite $'[a]\ntype = local\n[b]\ntype = local\n')"
 assert_eq "offsite: no config derives nothing" "" \
     "$(
-        eval "$(sed -n "/^derive_offsite_repository()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+        eval "$(sed -n "/^derive_offsite_repository()/,/^}/p" backend/scripts/backup/backup_r9lab_restic.sh)"
         RCLONE_CONFIG=/nonexistent derive_offsite_repository
     )"
 
 # ---------------------------------------------------------------------------
-# The collapsed-dump guard in backup_relab_restic.sh. An empty database dumps without
+# The collapsed-dump guard in backup_r9lab_restic.sh. An empty database dumps without
 # error, and once archived it becomes the newest snapshot that retention ages the good
 # copies out behind, so the guard rejects the dump before the write.
 # `restic` and the dump file are stubbed; no repository and no docker are involved.
@@ -721,8 +751,8 @@ EOS
             # come from the script itself so a renamed or renumbered exit code fails this
             # harness instead of silently going stale.
             log() { printf "%s\n" "$*"; }
-            eval "$(grep -E "^(EXIT_REFUSED|EXIT_STEP_ERROR|RESTIC_RETRY_LOCK)=" backend/scripts/backup/backup_relab_restic.sh)"
-            eval "$(sed -n "/^assert_not_collapsed()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+            eval "$(grep -E "^(EXIT_REFUSED|EXIT_STEP_ERROR|RESTIC_RETRY_LOCK)=" backend/scripts/backup/backup_r9lab_restic.sh)"
+            eval "$(sed -n "/^assert_not_collapsed()/,/^}/p" backend/scripts/backup/backup_r9lab_restic.sh)"
             assert_not_collapsed "$2" "$(stat -c %s "$1")"
         ' _ "$tmp/dump" "$tag" 2>&1
     )"
@@ -754,7 +784,7 @@ assert_eq "a restic failure skips the dump instead of failing open, and stays re
     "$(collapse_guard postgres 59353 259672 '' 1)"
 
 # ---------------------------------------------------------------------------
-# backup_relab_restic.sh: the uploads volume has to identify itself. Docker recreates a
+# backup_r9lab_restic.sh: the uploads volume has to identify itself. Docker recreates a
 # missing named volume empty and the app refills files/ and images/, so "the directory
 # exists" proves nothing about whose data is in it.
 # ---------------------------------------------------------------------------
@@ -764,7 +794,7 @@ canary_check() {
     # The marker's name comes out of the script, not out of this harness: hardcoding it
     # here would leave all of these green after the real constant is renamed.
     local UPLOADS_CANARY_NAME=""
-    eval "$(grep -m1 '^UPLOADS_CANARY_NAME=' backend/scripts/backup/backup_relab_restic.sh)"
+    eval "$(grep -m1 '^UPLOADS_CANARY_NAME=' backend/scripts/backup/backup_r9lab_restic.sh)"
     tmp="$(mktemp -d)"
     case "$canary_content" in
         '<absent>') ;;
@@ -776,14 +806,14 @@ canary_check() {
         export UPLOADS_DIR="$tmp" UPLOADS_CANARY_NAME
         # `<unset>` is a genuinely absent variable, not the empty string.
         if [[ "$run_env" == "<unset>" ]]; then
-            unset RELAB_ENVIRONMENT
+            unset R9LAB_ENVIRONMENT
         else
-            export RELAB_ENVIRONMENT="$run_env"
+            export R9LAB_ENVIRONMENT="$run_env"
         fi
         bash -c '
             set -euo pipefail
             log() { printf "%s\n" "$*"; }
-            eval "$(sed -n "/^assert_uploads_volume_identity()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+            eval "$(sed -n "/^assert_uploads_volume_identity()/,/^}/p" backend/scripts/backup/backup_r9lab_restic.sh)"
             assert_uploads_volume_identity
         ' 2>&1
     )"
@@ -817,7 +847,7 @@ if [[ "$(id -u)" != 0 ]]; then
     assert_eq "an unreadable marker is refused with a diagnostic, not a bare read error" \
         "1|unreadable" "$(canary_check prod prod 000)"
 fi
-# Dev and CI run without RELAB_ENVIRONMENT, so the check is off rather than failing.
+# Dev and CI run without R9LAB_ENVIRONMENT, so the check is off rather than failing.
 # The guard tests -n, so unset and empty both take this path.
 assert_eq "an empty environment skips the check" "0|skipped" "$(canary_check '<absent>' '')"
 assert_eq "an unset environment skips the check" "0|skipped" "$(canary_check '<absent>' '<unset>')"
@@ -839,7 +869,7 @@ uploads_bytes() {
     out="$(
         UPLOADS_DIR="$tmp" bash -c '
             set -euo pipefail
-            eval "$(sed -n "/^uploads_size()/,/^}/p" backend/scripts/backup/backup_relab_restic.sh)"
+            eval "$(sed -n "/^uploads_size()/,/^}/p" backend/scripts/backup/backup_r9lab_restic.sh)"
             uploads_size
         ' 2>&1
     )"
@@ -850,7 +880,7 @@ uploads_bytes() {
 assert_eq "an emptied tree that kept its directories sizes 0" 0 "$(uploads_bytes 0)"
 assert_eq "file bytes are summed" 3000 "$(uploads_bytes 3000)"
 
-# backup_uploads end to end: restic stubbed, RELAB_ENVIRONMENT unset so identity stands
+# backup_uploads end to end: restic stubbed, R9LAB_ENVIRONMENT unset so identity stands
 # aside. cycle_steps stubs this out, so only here is the real call site checked -- guard
 # asked about `user-uploads`, refusal surfaces as EXIT_REFUSED without archiving.
 uploads_step() {
@@ -862,7 +892,7 @@ uploads_step() {
         UPLOADS_DIR="$tmp/uploads" STUB_ARGS="$tmp/args" STUB_PREV="$prev_bytes" STUB_BACKUP_EXIT="$backup_exit" bash -c '
             set -euo pipefail
             # shellcheck source=/dev/null
-            . backend/scripts/backup/backup_relab_restic.sh
+            . backend/scripts/backup/backup_r9lab_restic.sh
             log() { :; }
             # Arguments go to a file, not stdout: the guard parses stdout as JSON.
             restic() {
@@ -917,7 +947,7 @@ EOS
             POSTGRES_DB=relab DATABASE_BACKUP_USER=backup DATABASE_BACKUP_PASSWORD=x bash -c '
             set -euo pipefail
             # shellcheck source=/dev/null
-            . backend/scripts/backup/backup_relab_restic.sh
+            . backend/scripts/backup/backup_r9lab_restic.sh
             run_cycle auto
         ' 2>&1
     )"
@@ -947,7 +977,7 @@ cycle_steps() {
             SKIP_DATABASE_BACKUP="${2:-false}" SKIP_UPLOAD_BACKUP="${3:-false}"
             refuses="${4:-none}"
             # shellcheck source=/dev/null
-            . backend/scripts/backup/backup_relab_restic.sh
+            . backend/scripts/backup/backup_r9lab_restic.sh
             log() { :; }
             # Signals through exit status; run_cycle tests each rather than letting
             # `set -e` abort, so the other half still archives.
@@ -1033,7 +1063,7 @@ assert_eq "mitigation outranks a success status" "1|ALERT[staging]: telemetry ex
 NOW=1757160000 # fixed epoch so these never depend on the wall clock
 staleness_alert() {
     local out status
-    out="$(timer_staleness_alerts staging relab-restore-check@staging.timer "$1" "$NOW" "$2" 2>&1)"
+    out="$(timer_staleness_alerts staging r9lab-restore-check@staging.timer "$1" "$NOW" "$2" 2>&1)"
     status=$?
     printf '%s|%s' "$status" "$(printf '%s' "$out" | head -n1)"
 }
@@ -1044,10 +1074,10 @@ assert_eq "a timer exactly at its limit is silent" "0|" \
     "$(staleness_alert "$((NOW - 3 * 3600))" 3)"
 # Scheduled, active, last run succeeded, and stopped firing anyway.
 assert_eq "a monthly timer that stopped firing is reported" \
-    "1|ALERT[staging]: relab-restore-check@staging.timer last ran 1440h ago, over its 960h limit; it is scheduled but not firing" \
+    "1|ALERT[staging]: r9lab-restore-check@staging.timer last ran 1440h ago, over its 960h limit; it is scheduled but not firing" \
     "$(staleness_alert "$((NOW - 60 * 24 * 3600))" 960)"
 assert_eq "an hourly timer stuck for a day is reported" \
-    "1|ALERT[staging]: relab-restore-check@staging.timer last ran 24h ago, over its 3h limit; it is scheduled but not firing" \
+    "1|ALERT[staging]: r9lab-restore-check@staging.timer last ran 24h ago, over its 3h limit; it is scheduled but not firing" \
     "$(staleness_alert "$((NOW - 24 * 3600))" 3)"
 # A freshly installed Persistent=true timer has never fired and is not yet due, so it
 # must not alert on every new host.
@@ -1055,7 +1085,7 @@ assert_eq "a timer that has never fired is not an alert" "0|" "$(staleness_alert
 # A LastTriggerUSec that date(1) cannot read switches this check off for every timer at
 # once, so it is reported.
 assert_eq "an unparseable last trigger is reported, not treated as never fired" \
-    "1|ALERT[staging]: cannot parse LastTriggerUSec for relab-restore-check@staging.timer; the staleness check is not running" \
+    "1|ALERT[staging]: cannot parse LastTriggerUSec for r9lab-restore-check@staging.timer; the staleness check is not running" \
     "$(staleness_alert unparseable 960)"
 
 # ---------------------------------------------------------------------------
@@ -1124,8 +1154,8 @@ git_alert() {
 }
 
 assert_eq "dubious ownership names the wrong-user cause, not a missing checkout" \
-    "0|ALERT[prod]: the deploy directory is a checkout owned by another user, so this run cannot read it; run it as the account relab-watchdog@prod.service runs as, not as root" \
-    "$(git_alert "fatal: detected dubious ownership in repository at '/opt/relab'")"
+    "0|ALERT[prod]: the deploy directory is a checkout owned by another user, so this run cannot read it; run it as the account r9lab-watchdog@prod.service runs as, not as root" \
+    "$(git_alert "fatal: detected dubious ownership in repository at '/opt/r9lab'")"
 assert_eq "a missing git binary is reported as such" \
     "0|ALERT[prod]: git is not on PATH, so deployment drift cannot be measured: bash: line 1: git: command not found" \
     "$(git_alert 'bash: line 1: git: command not found')"
