@@ -338,6 +338,12 @@ run "zone_id_must_match_zone_name" {
 run "camera_device_skip_covers_current_and_legacy_plugin_paths" {
   command = plan
 
+  # Pinned literally: the loop below checks the rule against the same local it is built from.
+  assert {
+    condition     = contains(local.camera_plugin_paths, "/v1/plugins/r9cam") && contains(local.camera_plugin_paths, "/v1/plugins/rpi-cam")
+    error_message = "the camera device skip must cover /v1/plugins/r9cam and, until 2027-01-31, /v1/plugins/rpi-cam."
+  }
+
   # Cameras keep the URLs they were given at pairing, so the skip must cover every path in
   # local.camera_plugin_paths; a missing one leaves those cameras behind a bot challenge.
   assert {

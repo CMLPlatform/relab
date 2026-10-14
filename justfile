@@ -558,11 +558,12 @@ dev-migrate:
 #   logs [args...]          follow the logs (arguments replace -f)
 #   migrate YES             run database migrations (staging also seeds dummy data)
 #   rollback YES TAG [REV]  return to an earlier published tag; REV downgrades the schema first
+#   compose ARGS...         run docker compose against the stack, for one-off operator steps
 #
 # State-changing commands take YES (or FORCE=1) to confirm; the script prints the
 # exact form when it is missing.
 [group('deploy')]
-[doc('Operate a deploy stack: `just stack <prod|staging> <up|down|tag|ps|logs|migrate|rollback>`')]
+[doc('Operate a deploy stack: `just stack <prod|staging> <up|down|tag|ps|logs|migrate|rollback|compose>`')]
 [positional-arguments]
 stack env command *args:
     @bash scripts/deploy_ops.sh stack "$@"

@@ -30,7 +30,9 @@ staging's own folder; the backup copies to `rclone:surfdrive_staging:`.
 Follow [DEPLOY-PROD.md](DEPLOY-PROD.md) 1.7 at the start of the rename window's step 9, with
 three differences: staging has no deploy user, so skip the `usermod`, `groupmod` and `sudo -u`
 parts; stop the stack with `just stack staging down YES`; and move the checkout only if its
-directory is named after relab (`/opt/relab-staging` to `/opt/r9lab-staging`). The last step is
+directory is named after relab (`/opt/relab-staging` to `/opt/r9lab-staging`). The moved
+virtualenvs still carry the old absolute paths, so as the checkout owner run `uv sync --frozen` in
+the checkout and `uv sync --all-groups --frozen` in `backend/`. The last step is
 `just stack staging up YES` from the moved checkout, then `just timers-install staging`.
 
 ______________________________________________________________________

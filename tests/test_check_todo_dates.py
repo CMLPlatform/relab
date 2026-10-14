@@ -23,7 +23,15 @@ def test_undated_compat_todo_fails() -> None:
 
 
 def test_plain_todo_passes() -> None:
-    assert not c.scan_lines("f", ["# TODO: add a retry", "we drop the table"], TODAY)
+    assert not c.scan_lines(
+        "f", ["# TODO: add a retry", "we drop the table", "the todo list: remove done items"], TODAY
+    )
+
+
+def test_invalid_date_is_reported() -> None:
+    assert c.scan_lines("f", ["# TODO(drop-by 2027-02-30): x"], TODAY) == [
+        "f:1: drop-by 2027-02-30 is not a valid date"
+    ]
 
 
 def test_trivy_entries_need_scope() -> None:

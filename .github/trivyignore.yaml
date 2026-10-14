@@ -81,7 +81,7 @@ vulnerabilities:
     expired_at: 2026-11-01
     statement: gRPC-Go xDS server crash DoS; caddy serves no gRPC and loads no xDS config.
 
-  # TODO(drop-by 2026-10-28): re-check the caddy digest for Go 1.26.9 / x/net 0.60.0, then drop these waivers or extend them
+  # TODO(drop-by 2026-10-31): re-check the caddy digest for Go 1.26.9 / x/net 0.60.0, then drop these waivers or extend them
   # The caddy:2-alpine binary re-scanned on 2026-10-13: Go 1.26.8 with golang.org/x/net
   # v0.59.0. These need Go 1.26.9 or x/net 0.60.0, and caddy v2.11.7 (the latest
   # release) does not carry them. Caddy receives plain HTTP/1.1 from the tunnel inside

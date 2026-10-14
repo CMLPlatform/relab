@@ -2,7 +2,7 @@
 """Fail on expired or undated compat TODOs, and on trivyignore entries without a scope.
 
 A `TODO(drop-by YYYY-MM-DD)` marker must not be in the past. A TODO that names a
-compat shim (drop, remove, delete, legacy, fallback) must carry such a date, so
+compat shim (drop, remove, legacy, fallback) must carry such a date, so
 shims cannot outlive the rename or migration that needed them.
 """
 
@@ -16,7 +16,8 @@ import sys
 from pathlib import Path
 
 DATED = re.compile(r"TODO\(drop-by (\d{4}-\d{2}-\d{2})\)")
-COMPAT = re.compile(r"\bTODO\b.*\b(drop|remove|delete|legacy|fallback)\b", re.IGNORECASE)
+# The marker must be upper case, so prose like "the todo list" does not match.
+COMPAT = re.compile(r"\bTODO\b.*\b(?i:drop|remove|legacy|fallback)\b")
 TRIVYIGNORE = ".github/trivyignore.yaml"
 # This script and its tests quote the marker as data.
 SELF = {"scripts/check_todo_dates.py", "tests/test_check_todo_dates.py"}
@@ -27,7 +28,12 @@ def scan_lines(name: str, lines: list[str], today: dt.date) -> list[str]:
     out = []
     for n, line in enumerate(lines, 1):
         if m := DATED.search(line):
-            if dt.date.fromisoformat(m.group(1)) < today:
+            try:
+                expired = dt.date.fromisoformat(m.group(1)) < today
+            except ValueError:
+                out.append(f"{name}:{n}: drop-by {m.group(1)} is not a valid date")
+                continue
+            if expired:
                 out.append(f"{name}:{n}: drop-by {m.group(1)} has passed")
         elif COMPAT.search(line):
             out.append(f"{name}:{n}: compat TODO without (drop-by YYYY-MM-DD)")

@@ -18,7 +18,9 @@ RESTORE_PG_CONTAINER=""
 RESTORE_TMP_ROOT=""
 RESTORE_HOST_UID=""
 RESTORE_HOST_GID=""
-# Set once the replay and re-provisioning succeeded; until then the API stays stopped.
+# Set once the replay and re-provisioning succeeded. A failure after the replay started
+# leaves the API stopped; a failure before it touched the database restarts the API.
+RESTORE_REPLAY_STARTED=false
 RESTORE_OK=false
 
 # For dotenv_value and compose_project; deploy_ops.sh dispatches nothing when sourced.
@@ -33,7 +35,7 @@ restore_cleanup() {
     fi
     # After a failed replay the database is half restored, and the API must not serve it.
     if [[ "$RESTORE_API_WAS_RUNNING" == true ]]; then
-        if [[ "$RESTORE_OK" == true ]]; then
+        if [[ "$RESTORE_OK" == true || "$RESTORE_REPLAY_STARTED" == false ]]; then
             docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
         else
             echo "error: the restore failed, so $RESTORE_API_CONTAINER is left stopped on a partly restored database" >&2
@@ -726,6 +728,7 @@ restore_postgres() {
     local pg_user pg_db
     pg_user="$(docker exec "$pg_container" sh -c 'printf %s "${POSTGRES_USER:-postgres}"')"
     pg_db="$(docker exec "$pg_container" sh -c 'printf %s "$POSTGRES_DB"')"
+    RESTORE_REPLAY_STARTED=true
     replay_dump "$pg_container" /tmp/r9lab-restore.dump "$pg_user" "$pg_db"
 
     # The restored objects are owned by the connecting superuser and carry no grants,

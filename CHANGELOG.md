@@ -42,7 +42,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `RELAB_ENVIRONMENT` is gone from `compose.deploy.yaml`; only `R9LAB_ENVIRONMENT` is set.
 - The dataset release build reads only `R9LAB_PSEUDONYM_SALT` (the `RELAB_PSEUDONYM_SALT`
   fallback is removed) and rejects salts shorter than 32 characters.
-- A failed restore leaves the API stopped and prints the command to start it again.
+- A restore that fails while replacing the database leaves the API stopped and prints the
+  command to start it again. A failure before the database is touched restarts the API.
 - Camera tokens use the audience `r9cam-relay`. The backend still accepts the old
   `relab-rpi-cam-relay` until 2027-01-31, so the backend and the Pis can be upgraded in either
   order and paired cameras keep working.

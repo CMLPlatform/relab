@@ -1348,5 +1348,28 @@ done
 out="$(TELEMETRY_EDGE_KEY='' bash scripts/smoke_redirects.sh cml-relab.org r9lab.io stagign 2>&1)"
 assert_eq "an unknown environment fails" "2|env must be prod or staging" "$?|$out"
 
+# ---------------------------------------------------------------------------
+# restore_cleanup: the API comes back after a good restore or a failure before the
+# replay touched the database, and stays stopped after a failed replay.
+# backup_restic_ops.sh runs main when sourced, so only the function is loaded.
+# ---------------------------------------------------------------------------
+eval "$(sed -n '/^restore_cleanup() {/,/^}/p' scripts/backup_restic_ops.sh)"
+api_after_cleanup() {
+    # $1 replay started, $2 restore ok -> "started" or "stopped"
+    (
+        api=stopped
+        # shellcheck disable=SC2329  # called by restore_cleanup
+        docker() { [[ "$1" == start ]] && api=started; }
+        # shellcheck disable=SC2034  # read by restore_cleanup
+        RESTORE_PG_CONTAINER="" RESTORE_TMP_ROOT="" RESTORE_API_CONTAINER=api RESTORE_API_WAS_RUNNING=true \
+            RESTORE_REPLAY_STARTED="$1" RESTORE_OK="$2"
+        restore_cleanup >/dev/null 2>&1
+        echo "$api"
+    )
+}
+assert_eq "a good restore restarts the API" started "$(api_after_cleanup true true)"
+assert_eq "a failure before the replay restarts the API" started "$(api_after_cleanup false false)"
+assert_eq "a failed replay leaves the API stopped" stopped "$(api_after_cleanup true false)"
+
 printf '%s/%s checks passed\n' "$((checks - failures))" "$checks"
 [[ "$failures" -eq 0 ]] || exit 1
