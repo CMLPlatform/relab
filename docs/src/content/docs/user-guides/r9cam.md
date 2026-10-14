@@ -1,11 +1,11 @@
 ---
-title: RPi camera integration
+title: r9cam setup
 description: Set up and use the R9lab Raspberry Pi camera workflow from the platform side.
 ---
 
 This page covers the platform side: pairing a camera, checking that it is online, and using it
 during documentation. For device installation and plugin deployment, use the
-[RPi camera plugin repository](https://github.com/CMLPlatform/relab-rpi-cam-plugin).
+[r9cam repository](https://github.com/CMLPlatform/r9cam).
 
 ## When it's worth setting up
 
@@ -42,8 +42,12 @@ Use this when automatic pairing is unavailable.
 1. **Add a camera in the app.** Go to Cameras > Add Camera > Manual setup. The platform generates
    relay credentials.
 1. **Copy credentials to the Pi.** Save the displayed JSON to
-   `~/.config/relab/relay_credentials.json`, or set the equivalent `RELAY_*` environment variables.
+   `~/.config/r9cam/relay_credentials.json`, or set the equivalent `RELAY_*` environment variables.
 1. **Restart the plugin** if it was already running.
+
+An r9cam release from before the rename kept these credentials in `~/.config/relab/`. Docker
+installs carry them over on update. On a Pi installed without Docker, move the file to
+`~/.config/r9cam/` before you start the updated plugin, or pair the camera again.
 
 ### Verify the registration
 

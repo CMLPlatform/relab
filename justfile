@@ -6,8 +6,10 @@
 default:
     @just --list
 
-dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml"
-ci_compose := "docker compose -p relab_test -f compose.yaml -f compose.ci.yaml"
+# Compose project prefix; scripts/deploy_ops.sh compose_project() builds the same names.
+project_prefix := "r9lab"
+dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p " + project_prefix + "_dev -f compose.yaml -f compose.dev.yaml"
+ci_compose := "docker compose -p " + project_prefix + "_test -f compose.yaml -f compose.ci.yaml"
 cloudflare_dir := "infra/cloudflare"
 cloudflare_zone_dir := "infra/cloudflare-zone"
 # Where an apply's reviewed plan waits for its confirming re-run. Gitignored, created
@@ -108,6 +110,7 @@ check-root:
     uv run ty check
     pnpm run lint
     uv run python scripts/browser_js_policy.py
+    uv run python scripts/check_todo_dates.py
     just assets-check
 
 # Root and subrepo quality checks: lint, typecheck, and format verification.
@@ -208,7 +211,7 @@ ci-full: ci audit cloudflare-check docker-smoke test-e2e
 _e2e-backend-up:
     #!/usr/bin/env bash
     set -euo pipefail
-    compose=(docker compose -p relab_e2e -f compose.e2e.yaml)
+    compose=(docker compose -p {{ project_prefix }}_e2e -f compose.e2e.yaml)
     for attempt in 1 2 3; do
         "${compose[@]}" pull --ignore-buildable --quiet && "${compose[@]}" build && break
         [ "$attempt" = 3 ] && exit 1
@@ -219,7 +222,7 @@ _e2e-backend-up:
 
 # Stop the E2E backend stack and remove its volumes
 _e2e-backend-down:
-    docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
+    docker compose -p {{ project_prefix }}_e2e -f compose.e2e.yaml down -v --remove-orphans
 
 # Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down.
 # Requires Docker.
@@ -411,10 +414,11 @@ _require-cloudflare-env env:
 _require-cloudflare-zone zone:
     #!/usr/bin/env bash
     set -euo pipefail
-    case {{ quote(zone) }} in
-      r9lab.io|cml-relab.org) exit 0 ;;
-      *) echo "zone must be 'r9lab.io' or 'cml-relab.org'" >&2; exit 1 ;;
-    esac
+    # One <zone>.tfvars per managed zone
+    zone={{ quote(zone) }}
+    [[ $zone != */* && -f infra/cloudflare-zone/$zone.tfvars ]] && exit 0
+    echo "zone must be one of: $(basename -s .tfvars -a infra/cloudflare-zone/*.tfvars | paste -sd' ')" >&2
+    exit 1
 
 # Both keys gate a rule with `var.<key> == "" ? [] : [...]`. An unset key does not fail
 # the apply: it drops the rule, and the next plan then reports "No changes", because
@@ -478,6 +482,7 @@ env-inventory:
 deploy-secrets-check:
     @bash scripts/deploy_ops.sh deploy-secrets-check
 
+# TODO(drop-by 2027-01-31): drop the cml-relab.org default with the old-zone redirects
 # Check that every old-zone host redirects to the new zone (REDIRECT_PERMANENT=1 expects 301/308; TELEMETRY_EDGE_KEY enables the otel check)
 [group('deploy')]
 [doc('Smoke-check the old-zone redirects after a cutover step')]
@@ -503,7 +508,7 @@ secrets-restore env file:
 # Docker: Development
 # ============================================================================
 # To watch one service only, call docker compose directly with the same overlays:
-# `docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml up --watch api www`.
+# `docker compose -p r9lab_dev -f compose.yaml -f compose.dev.yaml up --watch api www`.
 
 # Start the development database and cache, then wait for readiness
 [group('dev')]
@@ -553,13 +558,15 @@ dev-migrate:
 #   logs [args...]          follow the logs (arguments replace -f)
 #   migrate YES             run database migrations (staging also seeds dummy data)
 #   rollback YES TAG [REV]  return to an earlier published tag; REV downgrades the schema first
+#   compose ARGS...         run docker compose against the stack, for one-off operator steps
 #
 # State-changing commands take YES (or FORCE=1) to confirm; the script prints the
 # exact form when it is missing.
 [group('deploy')]
-[doc('Operate a deploy stack: `just stack <prod|staging> <up|down|tag|ps|logs|migrate|rollback>`')]
+[doc('Operate a deploy stack: `just stack <prod|staging> <up|down|tag|ps|logs|migrate|rollback|compose>`')]
+[positional-arguments]
 stack env command *args:
-    @bash scripts/deploy_ops.sh stack {{ quote(env) }} {{ quote(command) }} {{ args }}
+    @bash scripts/deploy_ops.sh stack "$@"
 
 # ============================================================================
 # Releases
@@ -627,6 +634,8 @@ release-publish version:
 # Docker's credentials, so the packages must be public or `docker login ghcr.io` done.
 # NOTE: checks what the tag points at now; a tag moved between this check and the
 # host's pull is not caught. Pin image digests in compose.deploy.yaml if it matters.
+# Tags from before the R9lab rename are published as relab-* images, which this recipe does
+# not check; a checkout of that release can. Deploying one is not supported.
 [group('deploy')]
 [doc('Verify the build provenance of a published image tag before deploying it')]
 images-verify env tag:
@@ -637,7 +646,12 @@ images-verify env tag:
     [[ "$env" =~ ^(prod|staging)$ ]] || { echo "env must be prod or staging, got '$env'" >&2; exit 2; }
     . scripts/deploy_ops.sh
     require_image_tag "$tag"
-    repo="${GITHUB_REPOSITORY:-CMLPlatform/relab}"
+    repo="${GITHUB_REPOSITORY:-CMLPlatform/r9lab}"
+    # Built under the r9lab image names but before the repository rename, so signed by
+    # CMLPlatform/relab. Only these exact tags trust the old name, which anyone could
+    # now re-create.
+    # TODO(drop-by 2027-01-13): remove once no host runs or can roll back to these tags.
+    case "$tag" in sha-8697ebf) [[ -n "${GITHUB_REPOSITORY:-}" ]] || repo=CMLPlatform/relab ;; esac
     registry="${IMAGE_REGISTRY:-ghcr.io/cmlplatform}"
     # Staging deliberately accepts a manual publish of any branch. A release publishes
     # from the event of its tag; a manual prod publish runs on main.
@@ -645,23 +659,23 @@ images-verify env tag:
     if [[ "$env" == prod ]]; then
         [[ "$tag" == sha-* ]] && source_ref=(--source-ref refs/heads/main) || source_ref=(--source-ref "refs/tags/v$tag")
     fi
-    for image in "relab-backend:$tag" "relab-backend-migrations:$tag" "relab-backup:$tag" \
-        "relab-app:$tag-$env"; do
+    for image in "r9lab-backend:$tag" "r9lab-backend-migrations:$tag" "r9lab-backup:$tag" \
+        "r9lab-app:$tag-$env"; do
         gh attestation verify "oci://$registry/$image" --repo "$repo" \
             --signer-workflow "$repo/.github/workflows/publish-images.yml" \
             --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
-        echo "verified $registry/$image"
+        echo "verified $registry/$image (signed by $repo)"
     done
 
 # The release loop's deploy step, from the dev host: verify the tag's provenance, then
 # have the host pull it and write IMAGE_TAG. The host is an ssh config alias for the
-# deploy user's restricted key (DEPLOY-PROD.md Part 1); it defaults to relab-<env>, and
-# RELAB_DEPLOY_HOST names another. Start the stack afterwards with `ssh <host> up migrations`.
+# deploy user's restricted key (DEPLOY-PROD.md Part 1); it defaults to r9lab-<env>, and
+# R9LAB_DEPLOY_HOST names another. Start the stack afterwards with `ssh <host> up migrations`.
 [group('deploy')]
 [doc('Verify an image tag, then have the host pull it over the deploy key')]
 deploy env tag:
     @just images-verify {{ quote(env) }} {{ quote(tag) }}
-    ssh {{ quote(env_var_or_default('RELAB_DEPLOY_HOST', 'relab-' + env)) }} tag {{ quote(tag) }}
+    ssh {{ quote(env_var_or_default('R9LAB_DEPLOY_HOST', 'r9lab-' + env)) }} tag {{ quote(tag) }}
 
 # Run one backup cycle now. This is what the systemd timer calls; see deploy/systemd/.
 # Pass `manual` before a risky operation. Retention keeps `manual` snapshots
@@ -687,7 +701,7 @@ backup-stamp-volume env:
     @bash scripts/deploy_ops.sh stack {{ quote(env) }} backup-stamp-volume
 
 # Backup upkeep only: retention, integrity check, offsite copy — no new snapshot.
-# Run daily by relab-backup-maintenance@<env>.timer; the hourly backup skips this work.
+# Run daily by r9lab-backup-maintenance@<env>.timer; the hourly backup skips this work.
 [group('backup')]
 [doc('Backup upkeep only: retention, integrity check, offsite copy — no new snapshot')]
 backup-maintenance env:
@@ -863,7 +877,7 @@ docker-ci-perf-baseline perf_products="5000":
 docker-perf-capacity mode="mixed" perf_products="5000":
     #!/usr/bin/env bash
     set -euo pipefail
-    project="${COMPOSE_PROJECT_NAME:-relab_capacity}"
+    project="${COMPOSE_PROJECT_NAME:-r9lab_capacity}"
     compose="docker compose -p $project -f compose.yaml -f compose.ci.yaml -f backend/perf/compose.capacity.yaml"
     trap '$compose --profile migrations down -v --remove-orphans' EXIT
     just backend/perf-fixtures

@@ -8,8 +8,8 @@ description: Run the R9lab stack locally with Docker.
 1. Clone the repository.
 
    ```bash
-   git clone https://github.com/CMLPlatform/relab
-   cd relab
+   git clone https://github.com/CMLPlatform/r9lab
+   cd r9lab
    ```
 
 1. Install local tooling if you plan to modify code.
@@ -86,8 +86,8 @@ To run the stack for other people on a production or staging host, continue with
 ## Raspberry Pi camera plugin
 
 For camera-assisted capture, install the
-[Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/relab-rpi-cam-plugin) with its
-[install guide](https://github.com/CMLPlatform/relab-rpi-cam-plugin/blob/main/INSTALL.md). The
+[Raspberry Pi Camera Plugin](https://github.com/CMLPlatform/r9cam) with its
+[install guide](https://github.com/CMLPlatform/r9cam/blob/main/INSTALL.md). The
 Pi connects outbound to the backend over a WebSocket relay, so it needs no public IP or port
 forwarding. Set `PAIRING_BACKEND_URL` on the Pi, then pair it as the
 [platform camera guide](/user-guides/r9cam/) describes.

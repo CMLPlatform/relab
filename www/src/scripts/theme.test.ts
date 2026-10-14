@@ -49,6 +49,13 @@ afterEach(() => {
 });
 
 describe('getStoredTheme', () => {
+  it('falls back to the pre-rename storage key', () => {
+    window.localStorage.setItem('relab-theme', 'dark');
+    expect(getStoredTheme()).toBe('dark');
+    window.localStorage.setItem(STORAGE_KEY, 'light');
+    expect(getStoredTheme()).toBe('light');
+  });
+
   it('returns "system" when nothing is stored', () => {
     expect(getStoredTheme()).toBe('system');
   });

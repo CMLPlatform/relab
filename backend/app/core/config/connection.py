@@ -27,11 +27,11 @@ class DatabaseSettings(RelabBaseSettings):
     port: int = Field(default=5432, ge=1, le=65535)
     tls: bool = False
     tls_ca_file: Path | None = None
-    app_user: str = "relab_app"
+    app_user: str = "r9lab_app"
     app_password: SecretStr = SecretStr("")
-    migration_user: str = "relab_migrator"
+    migration_user: str = "r9lab_migrator"
     migration_password: SecretStr = SecretStr("")
-    backup_user: str = "relab_backup"
+    backup_user: str = "r9lab_backup"
     backup_password: SecretStr = SecretStr("")
 
     # ── Bootstrap/admin Postgres credentials (POSTGRES_* env vars) ───────────
@@ -40,7 +40,7 @@ class DatabaseSettings(RelabBaseSettings):
     postgres_password: Annotated[
         SecretStr, Field(validation_alias=AliasChoices("POSTGRES_PASSWORD", "postgres_password"))
     ] = SecretStr("")
-    postgres_db: Annotated[str, Field(validation_alias=AliasChoices("POSTGRES_DB", "postgres_db"))] = "relab_db"
+    postgres_db: Annotated[str, Field(validation_alias=AliasChoices("POSTGRES_DB", "postgres_db"))] = "r9lab_db"
 
     def build_database_url(
         self,

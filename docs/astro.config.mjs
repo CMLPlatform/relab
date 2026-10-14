@@ -46,7 +46,7 @@ const SIDEBAR = [
       { label: 'Data collection', slug: 'user-guides/data-collection' },
       { label: 'Glossary', slug: 'user-guides/glossary' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
-      { label: 'RPi camera setup', slug: 'user-guides/r9cam' },
+      { label: 'r9cam setup', slug: 'user-guides/r9cam' },
       { label: 'Using the API', slug: 'user-guides/api' },
     ],
   },
@@ -60,7 +60,7 @@ const SIDEBAR = [
       { label: 'API structure', slug: 'architecture/api' },
       { label: 'API reference', slug: 'api-reference' },
       { label: 'Authentication', slug: 'architecture/auth' },
-      { label: 'RPi camera plugin', slug: 'architecture/r9cam' },
+      { label: 'r9cam', slug: 'architecture/r9cam' },
     ],
   },
   {
@@ -95,9 +95,9 @@ const STARLIGHT_OPTIONS = {
   titleDelimiter: '·',
   lastUpdated: true,
   pagefind: true,
-  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' }],
+  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/r9lab' }],
   editLink: {
-    baseUrl: 'https://github.com/CMLPlatform/relab/edit/main/docs/',
+    baseUrl: 'https://github.com/CMLPlatform/r9lab/edit/main/docs/',
   },
   customCss: CUSTOM_CSS,
   head: HEAD_LINKS,
@@ -117,7 +117,8 @@ const site = process.env.PUBLIC_DOCS_URL?.trim() || MODE_SITES[buildMode] || MOD
 
 export default defineConfig({
   site,
-  // Pages renamed with the camera plugin keep their old links working.
+  // TODO(drop-by 2027-01-31): drop these redirects once the old rpi-cam links have stopped
+  // arriving (the same date the backend drops its legacy camera paths).
   redirects: {
     '/user-guides/rpi-cam': '/user-guides/r9cam/',
     '/architecture/rpi-cam': '/architecture/r9cam/',

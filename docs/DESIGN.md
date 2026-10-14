@@ -168,7 +168,7 @@ to `www/src/styles/tokens.css`. **Do not hand-edit these values here**; change
   hover and pressed states; mapped to `--sl-color-accent-high`.
 - **Cyanotype Blue, Soft** (`light-dark(rgba(31,76,150,.08), rgba(143,184,255,.14))`,
   `--r9lab-brand-primary-soft`): tinted fills, the active sidebar-link background and the
-  `.relab-card-grid` item background; mapped to `--sl-color-accent-low`.
+  `.r9lab-card-grid` item background; mapped to `--sl-color-accent-low`.
 - **Active sidebar link**: `--r9lab-brand-primary-strong` text on 14% primary mixed into the page
   ground (`components.css`), one rule for both schemes.
 
@@ -334,7 +334,7 @@ The full scale is control 6px, card 8px, overlay 12px, full 9999 (avatars and tr
 *Mirrors assets/DESIGN.md:111 — change it there first.*
 
 Docs draws from the bottom two rungs only. `--radius-control` (6px) sizes the site-title logo image
-and the sidebar active-link box-shadow inset; `--radius-card` (8px) sizes `.relab-card-grid` items
+and the sidebar active-link box-shadow inset; `--radius-card` (8px) sizes `.r9lab-card-grid` items
 and the `.r9lab-mermaid` frame. Borders are 1px hairlines in `--r9lab-brand-divider` or a
 `color-mix()` tint of primary, never heavier. `NineRLadder`'s staircase (see
 [Components](#components)) is the one custom shape: each rung's `border-left` + `border-bottom`
@@ -373,7 +373,7 @@ border 3.5:1 and 5.5:1.
 
 ### Cards (R9lab-authored)
 
-`.relab-card-grid` (`components.css`): an auto-fit grid (`minmax(15rem, 1fr)`) of plain `<li>`
+`.r9lab-card-grid` (`components.css`): an auto-fit grid (`minmax(15rem, 1fr)`) of plain `<li>`
 cards for the landing-page section links. **Shape:** `--radius-card` (8px). **Background:**
 `color-mix(in srgb, var(--r9lab-brand-primary) 4%, transparent)`, not the flat
 `--r9lab-brand-surface` token. **Border:** 1px, `color-mix()` primary at 18%. No hover state:
@@ -381,7 +381,7 @@ cards are plain links.
 
 ### Colophon (R9lab-authored, signature pattern)
 
-`.relab-colophon` (`components.css`, content from `Colophon.generated.astro`) sets research
+`.r9lab-colophon` (`components.css`, content from `Colophon.generated.astro`) sets research
 metadata (affiliation, authors, citation DOI, license, funding, contact) in mono at 13px/1.6, with
 one hairline rule above, no cards and no icons. It replaced a shields.io badge row that loaded four
 third-party images.

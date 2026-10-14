@@ -172,12 +172,12 @@ RATE_LIMIT_EXEMPT_ROUTES = {
     ("POST", "/v1/oauth/google-youtube/associate/authorize"),
     ("DELETE", "/v1/oauth/{provider}/associate"),
 }
-# The camera routes are also served under their pre-rename path.
-# TODO: drop /v1/plugins/rpi-cam/ after 2027-01-31
+# The non-admin camera routes are also served under their pre-rename path.
+# TODO(drop-by 2027-01-31): drop the /v1/plugins/rpi-cam/ prefix
 RATE_LIMIT_EXEMPT_ROUTES |= {
     (method, path.replace("/plugins/r9cam/", "/plugins/rpi-cam/"))
     for method, path in RATE_LIMIT_EXEMPT_ROUTES
-    if "/plugins/r9cam/" in path
+    if path.startswith("/v1/plugins/r9cam/")
 }
 
 

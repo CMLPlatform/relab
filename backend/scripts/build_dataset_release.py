@@ -367,7 +367,7 @@ class ReleaseMetadata:
     licence_spdx: str = "CC-BY-4.0"
     licence_url: str = "https://creativecommons.org/licenses/by/4.0/"
     homepage: str = "https://r9lab.io"
-    repository: str = "https://github.com/CMLPlatform/relab"
+    repository: str = "https://github.com/CMLPlatform/r9lab"
     # (product type, base products) pairs for the records in scope, most products first.
     # The build fills this from the data; the description, keywords and README scope
     # derive from it, so no release can claim a product class it does not hold.
@@ -564,9 +564,9 @@ def reject_shared_accounts(usernames: Iterable[str]) -> None:
 
 
 ### Pseudonymisation ###
-# Fingerprint of the salt every release so far has used. Empty until the first release
-# pins it: copy the value build logs and commit it. The salt itself must never be committed.
-PINNED_SALT_FINGERPRINT = ""
+# Fingerprint of the salt every release uses, so a changed or swapped salt fails the build.
+# The salt itself must never be committed.
+PINNED_SALT_FINGERPRINT = "f68c10a3e6836648"
 
 # Versioned so the fingerprint scheme can change without looking like a changed salt.
 _SALT_FINGERPRINT_MESSAGE = b"relab-dataset-release-salt-fingerprint-v1"
@@ -623,24 +623,40 @@ def check_salt_fingerprint(salt: str, pinned: str = PINNED_SALT_FINGERPRINT) -> 
     return fingerprint
 
 
-PSEUDONYM_SALT_ENV = "RELAB_PSEUDONYM_SALT"
+PSEUDONYM_SALT_ENV = "R9LAB_PSEUDONYM_SALT"
+# The salt fingerprint is public, so a short salt could be guessed offline from it.
+MIN_PSEUDONYM_SALT_LENGTH = 32
+_SALT_GENERATE_HINT = 'python -c "import secrets; print(secrets.token_urlsafe(32))"'
 
 
 def read_pseudonym_salt(explicit: str | None) -> str:
-    """Return the pseudonymisation salt from the environment, the CLI, or repo secrets."""
-    if salt := os.environ.get(PSEUDONYM_SALT_ENV):
-        return salt
-    if explicit:
-        return explicit
-    secrets_dir = get_secrets_dir()
-    salt_file = secrets_dir / "dataset_pseudonym_salt" if secrets_dir else None
-    if salt_file and salt_file.is_file():
-        return salt_file.read_text(encoding="utf-8").strip()
-    msg = (
-        f"No pseudonymisation salt. Set {PSEUDONYM_SALT_ENV}, pass --pseudonym-salt, or write one "
-        "to secrets/<env>/dataset_pseudonym_salt and keep it for every future release."
-    )
-    raise SystemExit(msg)
+    """Return the pseudonymisation salt from the environment, the CLI, or repo secrets.
+
+    The salt must be at least MIN_PSEUDONYM_SALT_LENGTH characters. Generate one with
+    ``python -c "import secrets; print(secrets.token_urlsafe(32))"`` and keep it for every
+    future release.
+    """
+    salt = os.environ.get(PSEUDONYM_SALT_ENV) or explicit
+    if not salt:
+        secrets_dir = get_secrets_dir()
+        salt_file = secrets_dir / "dataset_pseudonym_salt" if secrets_dir else None
+        if salt_file and salt_file.is_file():
+            salt = salt_file.read_text(encoding="utf-8").strip()
+    if not salt:
+        msg = (
+            f"No pseudonymisation salt. Set {PSEUDONYM_SALT_ENV}, pass --pseudonym-salt, or write one "
+            "to secrets/<env>/dataset_pseudonym_salt and keep it for every future release. "
+            f"Generate one with: {_SALT_GENERATE_HINT}"
+        )
+        raise SystemExit(msg)
+    if len(salt) < MIN_PSEUDONYM_SALT_LENGTH:
+        msg = (
+            f"The pseudonymisation salt is {len(salt)} characters; it needs at least "
+            f"{MIN_PSEUDONYM_SALT_LENGTH}, because its fingerprint is public and a short salt can be "
+            f"guessed from it. Generate one with: {_SALT_GENERATE_HINT}"
+        )
+        raise SystemExit(msg)
+    return salt
 
 
 ### CSV helpers ###

@@ -5,7 +5,7 @@
   "description": "Data collection platform for photographs, bills of materials and measurements of disassembled products, supporting computer vision and life cycle assessment research.",
   "version": "0.5.0",
   "identifier": "https://doi.org/10.5281/zenodo.16637742",
-  "codeRepository": "https://github.com/CMLPlatform/relab",
+  "codeRepository": "https://github.com/CMLPlatform/r9lab",
   "url": "https://r9lab.io",
   "license": "https://spdx.org/licenses/AGPL-3.0-or-later",
   "keywords": [

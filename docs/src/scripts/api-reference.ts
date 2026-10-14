@@ -16,10 +16,11 @@ const storedStarlightTheme = (): 'light' | 'dark' | null => {
  * `.light-mode` / `.dark-mode` on the body and its own toggle flips them, so
  * each class pins `color-scheme` and the `light-dark()` brand tokens resolve to
  * the matching half. Secondary text is mixed from the ink so it stays above
- * 4.5:1 on both background steps (Scalar's stock greys sit near 3.3:1). In
+ * 4.5:1 on all three background steps (Scalar's stock greys sit near 3.3:1). In
  * light mode the HTTP-method colours are the chart-palette strokes from
- * DESIGN.md, which clear 4.5:1 on the surface; dark mode keeps Scalar's except
- * red, lightened toward the ink for the same reason.
+ * DESIGN.md, with orange, yellow and red darkened a few percent so they also
+ * clear 4.5:1 on background-3; dark mode keeps Scalar's except red, lightened
+ * toward the ink for the same reason.
  */
 const BRAND_CSS = `
 .light-mode, .dark-mode {
@@ -31,7 +32,7 @@ const BRAND_CSS = `
   --scalar-border-color: var(--r9lab-brand-divider);
   --scalar-color-1: var(--r9lab-brand-text);
   --scalar-color-2: color-mix(in srgb, var(--r9lab-brand-text) 82%, var(--r9lab-brand-background));
-  --scalar-color-3: color-mix(in srgb, var(--r9lab-brand-text) 68%, var(--r9lab-brand-background));
+  --scalar-color-3: color-mix(in srgb, var(--r9lab-brand-text) 72%, var(--r9lab-brand-background));
   --scalar-color-accent: var(--r9lab-brand-primary);
 }
 /* Sidebar group toggles and the auth-type picker render under 24px; these
@@ -42,9 +43,9 @@ button[id^="headlessui-popover-button"] { min-height: 24px; }
   color-scheme: light;
   --scalar-color-green: #0e6b5e;
   --scalar-color-blue: #1f4c96;
-  --scalar-color-orange: #a8542f;
-  --scalar-color-yellow: #8f6212;
-  --scalar-color-red: #b0316e;
+  --scalar-color-orange: #974c2a;
+  --scalar-color-yellow: #815810;
+  --scalar-color-red: #a72f68;
   --scalar-color-purple: #6d4fa3;
 }
 .dark-mode {

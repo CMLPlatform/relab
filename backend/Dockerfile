@@ -4,7 +4,7 @@
 #   - `dev`     → hot-reload dev image (all groups synced)
 #   - `runtime` → slim prod image (default)
 
-ARG WORKDIR=/opt/relab/backend
+ARG WORKDIR=/opt/r9lab/backend
 
 # --- Build stage (prod deps only) ---
 FROM ghcr.io/astral-sh/uv:0.12-python3.14-trixie-slim@sha256:a2657d5b8da6a702204e49b2ed2467597da15fb45eb9fee00304c127dad4b1e9 AS build

@@ -10,7 +10,7 @@
 
 /* Research colophon at the foot of the overview: small mono, one hairline
    above, no cards, no icons. Every paragraph is one label line. */
-.relab-colophon {
+.r9lab-colophon {
   margin-top: 3rem;
   padding-top: 1.2rem;
   border-top: 1px solid var(--r9lab-brand-divider);
@@ -20,22 +20,22 @@
   color: var(--sl-color-gray-3);
 }
 
-.relab-colophon p {
+.r9lab-colophon p {
   margin: 0 0 0.4rem;
 }
 
-.relab-colophon p:last-child {
+.r9lab-colophon p:last-child {
   margin-bottom: 0;
 }
 
-.relab-card-grid > ul {
+.r9lab-card-grid > ul {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 1rem;
   padding-left: 0;
 }
 
-.relab-card-grid > ul > li {
+.r9lab-card-grid > ul > li {
   list-style: none;
   margin: 0;
   padding: 1rem 1.1rem;
@@ -46,7 +46,7 @@
 
 /* block, not inline-block: markdown folds the newline after the link into a
    space, so an inline-block title runs into its description. */
-.relab-card-grid strong:first-child {
+.r9lab-card-grid strong:first-child {
   display: block;
   margin-bottom: 0.35rem;
 }

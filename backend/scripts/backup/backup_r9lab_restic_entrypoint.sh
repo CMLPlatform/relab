@@ -5,9 +5,9 @@
 
 set -euo pipefail
 
-BACKUP_SCRIPT="${BACKUP_SCRIPT:-./backup_relab_restic.sh}"
+BACKUP_SCRIPT="${BACKUP_SCRIPT:-./backup_r9lab_restic.sh}"
 RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-/restic}"
-BACKUP_WORK_DIR="${BACKUP_WORK_DIR:-/tmp/relab-backups}"
+BACKUP_WORK_DIR="${BACKUP_WORK_DIR:-/tmp/r9lab-backups}"
 
 mkdir -p "$RESTIC_REPOSITORY" "$BACKUP_WORK_DIR"
 

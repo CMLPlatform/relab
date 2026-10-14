@@ -60,8 +60,8 @@ Work on one subrepo without Docker. Install [Git](https://git-scm.com/),
 and, for the frontend subrepos, Node.js at the version in `.node-version`. Then:
 
 ```bash
-git clone https://github.com/CMLPlatform/relab
-cd relab
+git clone https://github.com/CMLPlatform/r9lab
+cd r9lab
 just setup
 ```
 

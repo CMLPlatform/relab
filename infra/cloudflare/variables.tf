@@ -46,7 +46,7 @@ variable "github_owner" {
 variable "github_repository" {
   description = "Repository whose GitHub Environment holds this environment's image-build URLs."
   type        = string
-  default     = "relab"
+  default     = "r9lab"
 }
 
 variable "github_reviewers" {
@@ -55,7 +55,8 @@ variable "github_reviewers" {
   default     = []
 }
 
-# TODO: reset to "" once the old zone's redirects are permanent.
+# TODO(drop-by 2027-01-31): delete legacy_zone_name, local.legacy_tunnel_routes, their tests and the
+# old-zone ingress once the old zone's redirects are permanent (README: "Once the old zone").
 variable "legacy_zone_name" {
   description = <<-EOT
     Previous zone whose tunnel hostnames stay in the ingress while its redirect rules go

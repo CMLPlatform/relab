@@ -48,6 +48,23 @@ async def test_empty_jti_rejected() -> None:
     redis.set.assert_not_called()
 
 
+def test_audience_literals_are_pinned() -> None:
+    """Paired Pis sign with these exact strings; changing one locks those cameras out."""
+    assert da.ASSERTION_AUDIENCE == "r9cam-relay"
+    assert da.LEGACY_ASSERTION_AUDIENCE == "relab-rpi-cam-relay"
+
+
+@pytest.mark.parametrize("aud", [da.ASSERTION_AUDIENCE, da.LEGACY_ASSERTION_AUDIENCE])
+async def test_accepts_current_and_legacy_audience(aud: str) -> None:
+    """Pis on a release from before the r9cam rename still sign with the old audience."""
+    camera, private_key = _make_camera()
+    redis = AsyncMock()
+    redis.set.return_value = True
+    assertion = sign_assertion(private_key, camera.id, camera.relay_key_id, aud=aud)
+    payload = await da.verify_device_assertion(assertion, camera, redis)
+    assert payload["aud"] == aud
+
+
 @pytest.mark.parametrize("header_name", ["jwk", "jku", "x5u"])
 async def test_ignores_attacker_supplied_key_headers(header_name: str) -> None:
     """JWT key-source headers must not override the camera's stored public credential."""

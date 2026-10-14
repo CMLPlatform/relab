@@ -18,7 +18,7 @@ identifiers:
     description: Concept DOI for all versions of R9lab
 date-released: 2026-10-13
 url: https://r9lab.io
-repository-code: "https://github.com/CMLPlatform/relab"
+repository-code: "https://github.com/CMLPlatform/r9lab"
 license: "AGPL-3.0-or-later"
 keywords:
   - "circular economy"

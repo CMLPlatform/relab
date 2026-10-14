@@ -79,5 +79,5 @@ dismiss the products welcome card, and screenshot each surface at both viewports
 Tear the stack down when finished:
 
 ```bash
-docker compose -p relab_e2e -f compose.e2e.yaml down -v --remove-orphans
+docker compose -p r9lab_e2e -f compose.e2e.yaml down -v --remove-orphans
 ```

@@ -19,9 +19,12 @@ const { stats, appUrl } = Astro.props;
 const appBase = appUrl.replace(/\/$/, '');
 // The figure is baked at build time, so it carries the date it was counted.
 const asOf = (iso: string) =>
-  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(
-    new Date(iso),
-  );
+  new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+    year: 'numeric',
+  }).format(new Date(iso));
 ---
 
 <section class="brand-hero">

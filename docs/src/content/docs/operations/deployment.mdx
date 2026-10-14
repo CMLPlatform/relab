@@ -30,7 +30,7 @@ graph TD
 
     subgraph Operational ["Optional Operational Services"]
         Migrations[migrator\none-shot on deploy]
-        Backups[relab-backup\npg_dump + uploads to restic]
+        Backups[r9lab-backup\npg_dump + uploads to restic]
         Cloudflared[cloudflared\noutbound tunnel]
         Alloy[alloy\ncontainer stdout collector]
         OTel[external OTLP collector]
@@ -119,11 +119,11 @@ Supported browsers must implement HTTPS, HSTS, Content Security Policy, host-pre
 - PostgreSQL stores the primary application state.
 - Uploaded files and images are stored on disk and served by the backend.
 - Database dumps and user-uploaded files are backed up into an encrypted local restic repository under `BACKUP_HOST_DIR`. The backup container runs as UID/GID `65532`.
-- Backups are host systemd timers, not Compose services. The hourly job takes a snapshot (`relab-backup@.timer`). The daily job runs retention, the integrity check, and the optional offsite copy (`relab-backup-maintenance@.timer`), so the repository is repacked once a day, not 24 times. Losing the host still costs up to a day of data.
+- Backups are host systemd timers, not Compose services. The hourly job takes a snapshot (`r9lab-backup@.timer`). The daily job runs retention, the integrity check, and the optional offsite copy (`r9lab-backup-maintenance@.timer`), so the repository is repacked once a day, not 24 times. Losing the host still costs up to a day of data.
 - Offsite copies use `restic copy` over restic's rclone backend, to the one remote defined in `secrets/<env>/rclone.conf`.
 - A backup refuses to archive a dump or an uploads tree smaller than half the newest stored snapshot of the same tag. Otherwise an empty one could become the newest snapshot and age out the good copies. `RESTIC_MIN_DUMP_RATIO` tunes it; `0` disables it.
-- The uploads volume carries a `.relab-volume` marker naming the environment it belongs to. A backup refuses to archive it if the marker is missing or names another environment. The check is skipped when `RELAB_ENVIRONMENT` is unset, which is the case in dev and CI. Restoring one environment's uploads into another's volume carries the source environment's marker along with it — rewrite the marker for the target afterwards, or every backup there will refuse.
-- Alembic migrations move schema state forward one transaction per revision, so a failed migration leaves the last successful revision in place and a re-run resumes from there. `just stack <env> rollback YES <tag> [<revision>]` returns to an earlier release's published images, and downgrades the schema only when no migration in the range destroyed data; otherwise restore a backup.
+- The uploads volume carries a `.relab-volume` marker naming the environment it belongs to. A backup refuses to archive it if the marker is missing or names another environment. The check is skipped when `R9LAB_ENVIRONMENT` is unset, which is the case in dev and CI. Restoring one environment's uploads into another's volume carries the source environment's marker along with it — rewrite the marker for the target afterwards, or every backup there will refuse.
+- Alembic migrations move schema state forward one transaction per revision, so a failed migration leaves the last successful revision in place and a re-run resumes from there. `just stack <env> rollback YES <tag> [<revision>]` returns to an earlier release's published images, and downgrades the schema only when no migration in the range destroyed data; otherwise restore a backup. It cannot return to a release from before the R9lab rename; see [Upgrading across the R9lab rename](/operations/upgrade-backup/#upgrading-across-the-r9lab-rename).
 - `just restore-check <env>` restores the latest database dump into a disposable Postgres container and verifies that it can be read. It also restores the latest uploads snapshot into a scratch directory to verify it carries real data.
 
 App-owned services run with dropped Linux capabilities, `no-new-privileges`, PID and file descriptor limits, and read-only root filesystems where supported. CI checks Dockerfiles with Trivy and validates the Cloudflare edge IaC with `just cloudflare-check`.

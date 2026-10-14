@@ -219,7 +219,7 @@ just docker-perf-capacity login     # logins only
 PERF_CAPACITY_RATES=200,300,400 just docker-perf-capacity   # pick the steps
 ```
 
-The recipe runs from the repo root under its own Compose project (`relab_capacity`, or
+The recipe runs from the repo root under its own Compose project (`r9lab_capacity`, or
 `COMPOSE_PROJECT_NAME`), so it never touches the CI stack. It layers
 `perf/compose.capacity.yaml` over the CI stack to copy the deploy shape: four workers, a pool of
 3 + 10 overflow per worker, `max_connections=100`, a 6 GiB API memory cap and a concurrency limit

@@ -19,12 +19,12 @@ fi
 
 # How long a snapshot waits for restic's lock. The daily maintenance run holds an
 # exclusive lock while `forget --prune` repacks, and restic's default is to give up
-# immediately. Kept well under relab-backup@.service's TimeoutStartSec=1800.
+# immediately. Kept well under r9lab-backup@.service's TimeoutStartSec=1800.
 RESTIC_RETRY_LOCK="${RESTIC_RETRY_LOCK:-10m}"
 
 # EXIT_REFUSED marks a permanent state (a human must clear it), not a crash: the run
 # continues -- the other half's snapshot, retention, check and offsite copy all still
-# happen -- and only the refused step is skipped. relab-backup@.service lists it in
+# happen -- and only the refused step is skipped. r9lab-backup@.service lists it in
 # RestartPreventExitStatus, so systemd stops retrying an unchanged problem every hour.
 #
 # EXIT_STEP_ERROR is the opposite: the guard itself couldn't run (lock held, tree
@@ -156,7 +156,7 @@ assert_not_collapsed() {
     if ((pct < ratio)); then
         log "ERROR: new ${tag} data is ${pct}% of the previous snapshot (${new_size} vs ${prev_size} bytes)."
         log "ERROR: refusing to archive it -- a collapsed snapshot would age out the good ones."
-        log "ERROR: if this shrink is real, re-run with: RESTIC_MIN_DUMP_RATIO=0 just backup ${RELAB_ENVIRONMENT:-<env>}. See deploy/DEPLOY-PROD.md Part 1.1."
+        log "ERROR: if this shrink is real, re-run with: RESTIC_MIN_DUMP_RATIO=0 just backup ${R9LAB_ENVIRONMENT:-<env>}. See deploy/DEPLOY-PROD.md Part 1.1."
         return "$EXIT_REFUSED"
     fi
     log "${tag} size ${new_size} bytes (${pct}% of previous); archiving"
@@ -166,20 +166,20 @@ assert_not_collapsed() {
 # and empty, and the app refills files/ and images/ at startup, so a directory check
 # alone passes on a volume that lost everything -- or on the wrong environment's volume
 # after a mistyped `-p`, which a size check can't catch at all. Written once by
-# `just backup-init <env>`; unset RELAB_ENVIRONMENT (dev, CI) skips the check.
+# `just backup-init <env>`; unset R9LAB_ENVIRONMENT (dev, CI) skips the check.
 UPLOADS_CANARY_NAME=".relab-volume"
 
 assert_uploads_volume_identity() {
     local canary="${UPLOADS_DIR}/${UPLOADS_CANARY_NAME}" found
     # NOTE: unset means off, so a hand-rolled `docker run` outside compose.deploy.yaml
     # gets no identity check. Deliberate -- dev, CI, and the image smoke run that way.
-    if [[ -z "${RELAB_ENVIRONMENT:-}" ]]; then
-        log "RELAB_ENVIRONMENT is unset; skipping the uploads volume identity check"
+    if [[ -z "${R9LAB_ENVIRONMENT:-}" ]]; then
+        log "R9LAB_ENVIRONMENT is unset; skipping the uploads volume identity check"
         return 0
     fi
 
     if [[ ! -f "$canary" ]]; then
-        log "ERROR: ${canary} is missing, so this is not the ${RELAB_ENVIRONMENT} uploads volume or it has been emptied."
+        log "ERROR: ${canary} is missing, so this is not the ${R9LAB_ENVIRONMENT} uploads volume or it has been emptied."
         log "ERROR: refusing to archive it -- an empty snapshot would age out the good ones. See deploy/DEPLOY-PROD.md Part 1.1 before running backup-stamp-volume."
         return "$EXIT_REFUSED"
     fi
@@ -191,8 +191,8 @@ assert_uploads_volume_identity() {
         return "$EXIT_REFUSED"
     fi
     found="$(tr -d '[:space:]' <"$canary")"
-    if [[ "$found" != "$RELAB_ENVIRONMENT" ]]; then
-        log "ERROR: ${canary} says '${found}' but this run is '${RELAB_ENVIRONMENT}'; refusing to archive another environment's uploads. See deploy/DEPLOY-PROD.md Part 1.1."
+    if [[ "$found" != "$R9LAB_ENVIRONMENT" ]]; then
+        log "ERROR: ${canary} says '${found}' but this run is '${R9LAB_ENVIRONMENT}'; refusing to archive another environment's uploads. See deploy/DEPLOY-PROD.md Part 1.1."
         return "$EXIT_REFUSED"
     fi
 }
@@ -329,7 +329,7 @@ main() {
     export RESTIC_PASSWORD RESTIC_REPOSITORY
     RESTIC_PASSWORD="$(read_secret RESTIC_PASSWORD)"
     RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-/restic}"
-    BACKUP_WORK_DIR="${BACKUP_WORK_DIR:-/tmp/relab-backups}"
+    BACKUP_WORK_DIR="${BACKUP_WORK_DIR:-/tmp/r9lab-backups}"
     UPLOADS_DIR="${UPLOADS_DIR:-/data/uploads}"
 
     mkdir -p "$BACKUP_WORK_DIR"

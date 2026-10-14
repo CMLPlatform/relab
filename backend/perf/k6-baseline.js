@@ -257,7 +257,7 @@ async function deviceAssertion(camera) {
   const signingInput = `${b64({ alg: "ES256", typ: "JWT", kid: camera.keyId })}.${b64({
     iss: issuer,
     sub: issuer,
-    aud: "relab-rpi-cam-relay",
+    aud: "r9cam-relay",
     iat: now,
     nbf: now,
     exp: now + 120,

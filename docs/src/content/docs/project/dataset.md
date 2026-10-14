@@ -50,7 +50,7 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
 | Date        | 2025-03/.. (collection ongoing)                                                                                                                                                                            |
 | Types       | Dataset, Image, Software                                                                                                                                                                                   |
 | Formats     | application/vnd.apache.parquet, text/csv, application/ld+json, text/markdown; images keep their upload format (JPEG, PNG, WebP, GIF, TIFF or BMP)                                                          |
-| Identifier  | <https://github.com/CMLPlatform/relab>                                                                                                                                                                     |
+| Identifier  | <https://github.com/CMLPlatform/r9lab>                                                                                                                                                                     |
 | Language    | en-US                                                                                                                                                                                                      |
 | Coverage    | Products: durable goods, with the product types each release holds listed in its README; Time: 2025-03 onward; Geographic location: NL                                                                     |
 | Rights      | <https://creativecommons.org/licenses/by/4.0/>                                                                                                                                                             |
@@ -72,9 +72,10 @@ Following the [Dublin Core specifications](https://www.dublincore.org/specificat
    rather than warning.
 1. Review `dist/dataset-vX.Y/review/` by hand, including `excluded-records.csv` and the rule that
    excluded each record. This directory is not part of the published archive.
-1. The pseudonymisation salt comes from `RELAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or
+1. The pseudonymisation salt comes from `R9LAB_PSEUDONYM_SALT` (preferred), `--pseudonym-salt`, or
    `secrets/<env>/dataset_pseudonym_salt`. Keep the same salt for every release so owner pseudonyms
-   stay stable across versions.
+   stay stable across versions. The build refuses a salt shorter than 32 characters; make one
+   with `python -c "import secrets; print(secrets.token_urlsafe(32))"`.
 1. `uv run python -m scripts.zenodo_deposit --dir dist/dataset-vX.Y` creates or versions a Zenodo
    *draft*. Add `--deposition <id>` to resume uploading into an existing draft. The token is read
    from `secrets/<env>/zenodo_token` (or `ZENODO_TOKEN` for a one-off run).

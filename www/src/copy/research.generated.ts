@@ -10,6 +10,6 @@ export const research = {
   "citationUrl": "https://doi.org/10.5281/zenodo.16637742",
   "doi": "10.5281/zenodo.16637742",
   "licence": "AGPL-3.0-or-later",
-  "licenceUrl": "https://github.com/CMLPlatform/relab/blob/main/LICENSE",
+  "licenceUrl": "https://github.com/CMLPlatform/r9lab/blob/main/LICENSE",
   "funding": "Leiden University Starter Fund; Depack grant (Leiden University Fund); Sectorplan Gelden"
 } as const;
