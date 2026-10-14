@@ -23,7 +23,7 @@ plugin_router.include_router(pairing_device_router)
 plugin_router.include_router(ws_router)
 
 router = APIRouter()
-
-for base_path, in_schema in ((PLUGIN_PATH, True), (LEGACY_PLUGIN_PATH, False)):
-    router.include_router(plugin_router, prefix=base_path, include_in_schema=in_schema)
-    router.include_router(admin_router, prefix=f"/admin{base_path}", include_in_schema=in_schema)
+router.include_router(plugin_router, prefix=PLUGIN_PATH)
+router.include_router(admin_router, prefix=f"/admin{PLUGIN_PATH}")
+# Only cameras and old app builds call the legacy path; the admin UI never did.
+router.include_router(plugin_router, prefix=LEGACY_PLUGIN_PATH, include_in_schema=False)
