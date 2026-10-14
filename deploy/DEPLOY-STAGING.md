@@ -27,21 +27,18 @@ staging's own folder; the backup copies to `rclone:surfdrive_staging:`.
 
 ### Moving the host from the relab paths
 
-As [DEPLOY-PROD.md](DEPLOY-PROD.md) 1.7, at the start of the rename window's step 9, before
-`timers-install`, but staging has no deploy user to rename. Stop the stack
-(`just stack staging down YES`), move the checkout if its directory is named after relab, move
-the ping file (`/etc/relab/relab.env` to `/etc/r9lab/r9lab.env`), and if `BACKUP_HOST_DIR` points
-under a renamed directory, move that directory and update the variable. The moved virtualenvs
-still carry the old absolute paths, so run `uv sync --frozen` in the checkout root and
-`uv sync --all-groups --frozen` in `backend/`. Then run `just stack staging up YES` from the moved
-checkout and carry on with step 9 (`just timers-install staging`).
+Follow [DEPLOY-PROD.md](DEPLOY-PROD.md) 1.7 at the start of the rename window's step 9, with
+three differences: staging has no deploy user, so skip the `usermod`, `groupmod` and `sudo -u`
+parts; stop the stack with `just stack staging down YES`; and move the checkout only if its
+directory is named after relab (`/opt/relab-staging` to `/opt/r9lab-staging`). The last step is
+`just stack staging up YES` from the moved checkout, then `just timers-install staging`.
 
 ______________________________________________________________________
 
 ## Part 2: Routine release
 
 ```bash
-cd /path/to/relab
+cd /path/to/r9lab
 git fetch origin && git checkout main && git pull --ff-only
 
 just stack staging tag YES <tag>    # a release (0.4.0), or sha-<short sha> from a manual publish
