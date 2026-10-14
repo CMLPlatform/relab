@@ -53,6 +53,23 @@ test.describe('API reference pages', () => {
     );
     await expect(page.getByText('/v1/auth/bearer/login').first()).toBeVisible();
     await expect(page.getByText(/Bearer/i).first()).toBeVisible();
+    // BRAND_CSS targets Scalar internals to reach the WCAG 2.5.8 24px minimum;
+    // a Scalar upgrade that renames them fails here.
+    for (const selector of [
+      '[data-sidebar-id] button[aria-expanded].absolute',
+      'button[id^="headlessui-popover-button"]',
+    ]) {
+      const targets = page.locator(selector);
+      await expect(targets.first()).toBeVisible();
+      for (const box of await Promise.all(
+        (await targets.all()).map((target) => target.boundingBox()),
+      )) {
+        if (selector.startsWith('[data-sidebar-id]')) {
+          expect(box?.width).toBeGreaterThanOrEqual(24);
+        }
+        expect(box?.height).toBeGreaterThanOrEqual(24);
+      }
+    }
     await expect(page.getByText(/Add API/i)).toHaveCount(0);
     await expect(page.getByText(/Open in Scalar/i)).toHaveCount(0);
     await expect(page.getByText(/Scalar Agent/i)).toHaveCount(0);
