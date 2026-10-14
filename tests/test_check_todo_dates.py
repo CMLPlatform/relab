@@ -28,6 +28,10 @@ def test_plain_todo_passes() -> None:
     )
 
 
+def test_documented_format_passes() -> None:
+    assert not c.scan_lines("f", ["Write `TODO(drop-by YYYY-MM-DD): drop the shim` for compat code."], TODAY)
+
+
 def test_invalid_date_is_reported() -> None:
     assert c.scan_lines("f", ["# TODO(drop-by 2027-02-30): x"], TODAY) == [
         "f:1: drop-by 2027-02-30 is not a valid date"

@@ -35,7 +35,8 @@ def scan_lines(name: str, lines: list[str], today: dt.date) -> list[str]:
                 continue
             if expired:
                 out.append(f"{name}:{n}: drop-by {m.group(1)} has passed")
-        elif COMPAT.search(line):
+        # A line that spells out the marker format (docs) is not an undated TODO.
+        elif "TODO(drop-by" not in line and COMPAT.search(line):
             out.append(f"{name}:{n}: compat TODO without (drop-by YYYY-MM-DD)")
     return out
 
