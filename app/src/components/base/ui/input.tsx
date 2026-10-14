@@ -1,16 +1,19 @@
 import { Platform, TextInput } from 'react-native';
 import { WEB_FOCUS_RING } from '@/constants';
+import { useAppTheme } from '@/theme/appThemeContext';
 import { cn } from '@/utils/cn';
 
 function Input({
   className,
   ...props
 }: React.ComponentProps<typeof TextInput> & React.RefAttributes<TextInput>) {
+  const theme = useAppTheme();
   return (
     <TextInput
+      placeholderTextColor={theme.tokens.text.placeholder}
       maxFontSizeMultiplier={2}
       className={cn(
-        'dark:bg-input/30 border-input bg-background text-foreground placeholder:text-input flex min-h-11 w-full min-w-0 flex-row items-center rounded-md border px-3 py-1 text-base leading-5',
+        'dark:bg-input/30 border-input bg-background text-foreground flex min-h-11 w-full min-w-0 flex-row items-center rounded-md border px-3 py-1 text-base leading-5',
         props.editable === false &&
           cn(
             'opacity-50',

@@ -26,7 +26,7 @@ export const apiKeySecureKey = (cameraId: string) => `localConnection_${cameraId
 // The Pi's unauthenticated liveness endpoint. Probing must never carry a credential.
 const LIVENESS_PATH = '/healthz';
 // Plugin releases before the r9cam rename report the old service name.
-// TODO: drop 'relab-rpi-cam' after 2027-01-31
+// TODO(drop-by 2027-01-31): drop the 'relab-rpi-cam' service name
 const R9CAM_SERVICES: ReadonlySet<unknown> = new Set(['r9cam', 'relab-rpi-cam']);
 
 export function buildLocalProbeCandidates(candidateUrls: string[]): string[] {

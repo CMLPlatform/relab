@@ -17,6 +17,14 @@ describe('<TextInput />', () => {
     expect(screen.getByTestId('ui').props.maxFontSizeMultiplier).toBe(2);
   });
 
+  it('colours the ui Input placeholder with the AA placeholder token', async () => {
+    await renderWithProviders(<Input testID="ui-ph" placeholder="Search" />);
+    expect(screen.getByTestId('ui-ph')).toHaveProp(
+      'placeholderTextColor',
+      getAppTheme('light').tokens.text.placeholder,
+    );
+  });
+
   it('caps font scaling at 2x by default and lets callers override', async () => {
     await renderWithProviders(<TextInput testID="a" />);
     expect(screen.getByTestId('a').props.maxFontSizeMultiplier).toBe(2);
