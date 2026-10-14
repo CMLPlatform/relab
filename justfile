@@ -6,8 +6,10 @@
 default:
     @just --list
 
-dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p r9lab_dev -f compose.yaml -f compose.dev.yaml"
-ci_compose := "docker compose -p r9lab_test -f compose.yaml -f compose.ci.yaml"
+# Compose project prefix; scripts/deploy_ops.sh compose_project() builds the same names.
+project_prefix := "r9lab"
+dev_compose := "COMPOSE_DISABLE_ENV_FILE=1 docker compose -p " + project_prefix + "_dev -f compose.yaml -f compose.dev.yaml"
+ci_compose := "docker compose -p " + project_prefix + "_test -f compose.yaml -f compose.ci.yaml"
 cloudflare_dir := "infra/cloudflare"
 cloudflare_zone_dir := "infra/cloudflare-zone"
 # Where an apply's reviewed plan waits for its confirming re-run. Gitignored, created
@@ -208,7 +210,7 @@ ci-full: ci audit cloudflare-check docker-smoke test-e2e
 _e2e-backend-up:
     #!/usr/bin/env bash
     set -euo pipefail
-    compose=(docker compose -p r9lab_e2e -f compose.e2e.yaml)
+    compose=(docker compose -p {{ project_prefix }}_e2e -f compose.e2e.yaml)
     for attempt in 1 2 3; do
         "${compose[@]}" pull --ignore-buildable --quiet && "${compose[@]}" build && break
         [ "$attempt" = 3 ] && exit 1
@@ -219,7 +221,7 @@ _e2e-backend-up:
 
 # Stop the E2E backend stack and remove its volumes
 _e2e-backend-down:
-    docker compose -p r9lab_e2e -f compose.e2e.yaml down -v --remove-orphans
+    docker compose -p {{ project_prefix }}_e2e -f compose.e2e.yaml down -v --remove-orphans
 
 # Full-stack E2E: start the Docker backend, build Expo web, run Playwright, tear down.
 # Requires Docker.
@@ -558,8 +560,9 @@ dev-migrate:
 # exact form when it is missing.
 [group('deploy')]
 [doc('Operate a deploy stack: `just stack <prod|staging> <up|down|tag|ps|logs|migrate|rollback>`')]
+[positional-arguments]
 stack env command *args:
-    @bash scripts/deploy_ops.sh stack {{ quote(env) }} {{ quote(command) }} {{ args }}
+    @bash scripts/deploy_ops.sh stack "$@"
 
 # ============================================================================
 # Releases
@@ -639,10 +642,12 @@ images-verify env tag:
     [[ "$env" =~ ^(prod|staging)$ ]] || { echo "env must be prod or staging, got '$env'" >&2; exit 2; }
     . scripts/deploy_ops.sh
     require_image_tag "$tag"
-    repos=("${GITHUB_REPOSITORY:-CMLPlatform/r9lab}")
-    # Images built before the repository was renamed are signed by CMLPlatform/relab.
-    # TODO: drop this fallback on/after 2027-01-13, once no deployable tag predates the rename.
-    [[ -z "${GITHUB_REPOSITORY:-}" ]] && repos+=(CMLPlatform/relab)
+    repo="${GITHUB_REPOSITORY:-CMLPlatform/r9lab}"
+    # Built under the r9lab image names but before the repository rename, so signed by
+    # CMLPlatform/relab. Only these exact tags trust the old name, which anyone could
+    # now re-create.
+    # TODO(drop-by 2027-01-13): remove once no host runs or can roll back to these tags.
+    case "$tag" in sha-8697ebf) [[ -n "${GITHUB_REPOSITORY:-}" ]] || repo=CMLPlatform/relab ;; esac
     registry="${IMAGE_REGISTRY:-ghcr.io/cmlplatform}"
     # Staging deliberately accepts a manual publish of any branch. A release publishes
     # from the event of its tag; a manual prod publish runs on main.
@@ -652,19 +657,10 @@ images-verify env tag:
     fi
     for image in "r9lab-backend:$tag" "r9lab-backend-migrations:$tag" "r9lab-backup:$tag" \
         "r9lab-app:$tag-$env"; do
-        for i in "${!repos[@]}"; do
-            repo="${repos[$i]}"
-            # Only the last candidate's error is shown: a miss on an earlier one is expected.
-            errors=/dev/stderr
-            (( i + 1 < ${#repos[@]} )) && errors=/dev/null
-            if gh attestation verify "oci://$registry/$image" --repo "$repo" \
-                --signer-workflow "$repo/.github/workflows/publish-images.yml" \
-                --deny-self-hosted-runners "${source_ref[@]}" >/dev/null 2>"$errors"; then
-                echo "verified $registry/$image (signed by $repo)"
-                continue 2
-            fi
-        done
-        exit 1
+        gh attestation verify "oci://$registry/$image" --repo "$repo" \
+            --signer-workflow "$repo/.github/workflows/publish-images.yml" \
+            --deny-self-hosted-runners "${source_ref[@]}" >/dev/null
+        echo "verified $registry/$image (signed by $repo)"
     done
 
 # The release loop's deploy step, from the dev host: verify the tag's provenance, then

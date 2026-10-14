@@ -18,19 +18,27 @@ RESTORE_PG_CONTAINER=""
 RESTORE_TMP_ROOT=""
 RESTORE_HOST_UID=""
 RESTORE_HOST_GID=""
+# Set once the replay and re-provisioning succeeded; until then the API stays stopped.
+RESTORE_OK=false
 
-# Only for dotenv_value; deploy_ops.sh dispatches nothing when sourced.
+# For dotenv_value and compose_project; deploy_ops.sh dispatches nothing when sourced.
 # shellcheck source=scripts/deploy_ops.sh
 . "$ROOT_DIR/scripts/deploy_ops.sh"
 
 restore_cleanup() {
     # A restore that failed partway leaves tables without owners or grants; restore
-    # them before the API comes back. Idempotent, so harmless after a good restore.
+    # them. Idempotent, so harmless after a good restore.
     if [[ -n "$RESTORE_PG_CONTAINER" ]]; then
         docker exec "$RESTORE_PG_CONTAINER" bash /docker-entrypoint-initdb.d/provision.sh >/dev/null 2>&1 || true
     fi
+    # After a failed replay the database is half restored, and the API must not serve it.
     if [[ "$RESTORE_API_WAS_RUNNING" == true ]]; then
-        docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
+        if [[ "$RESTORE_OK" == true ]]; then
+            docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
+        else
+            echo "error: the restore failed, so $RESTORE_API_CONTAINER is left stopped on a partly restored database" >&2
+            echo "       restore again, or once the database is checked, start it with: docker start $RESTORE_API_CONTAINER" >&2
+        fi
     fi
     if [[ -n "$RESTORE_PG_CONTAINER" ]]; then
         docker exec "$RESTORE_PG_CONTAINER" rm -f /tmp/r9lab-restore.dump >/dev/null 2>&1 || true
@@ -114,7 +122,7 @@ build_backup_image() {
 # Build through the CI compose files rather than `docker build`, so the build reuses
 # the `type=gha,scope=migrator` cache the other smoke recipes already populate.
 build_migrator_image() {
-    docker compose -p r9lab_test -f "$ROOT_DIR/compose.yaml" -f "$ROOT_DIR/compose.ci.yaml" build migrator
+    docker compose -p "$(compose_project test)" -f "$ROOT_DIR/compose.yaml" -f "$ROOT_DIR/compose.ci.yaml" build migrator
 }
 
 # A deterministic name can collide with a leftover from a killed run; replace it first.
@@ -271,6 +279,7 @@ smoke_restore_renamed_roles() {
             --entrypoint alembic "$DEPLOY_MIGRATOR_IMAGE" "$@"
     }
 
+    # relab_* are the role names dumps taken before the R9lab rename still carry.
     start_provisioned relab "${ROLES_SMOKE}_old"
     run_alembic relab "${ROLES_SMOKE}_old" upgrade head
     docker exec "${ROLES_SMOKE}_old" psql -U postgres -d r9lab_roles -v ON_ERROR_STOP=1 \
@@ -440,6 +449,7 @@ docker_smoke_backups() {
 -- snapshots; a search_path covering both keeps "%" resolvable either way, the same
 -- way provision.sh sets it for the deployed roles.
 SET search_path = public, extensions;
+-- relab_unaccent keeps its pre-rename name: migrations and old snapshots define it.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM category WHERE relab_unaccent(name) % relab_unaccent('cafe')) THEN
@@ -661,8 +671,9 @@ restore_postgres() {
 
     resolve_backup_paths "$env"
 
-    local pg_container="r9lab_${env}-postgres-1"
-    local api_container="r9lab_${env}-api-1"
+    local pg_container api_container
+    pg_container="$(compose_project "$env")-postgres-1"
+    api_container="$(compose_project "$env")-api-1"
     if ! docker inspect "$pg_container" >/dev/null 2>&1; then
         echo "Postgres container not found: $pg_container (is the stack up?)" >&2
         exit 1
@@ -700,8 +711,8 @@ restore_postgres() {
     echo "Restoring $(basename "$dump_file") into $pg_container"
 
     # The API is the only writer, so stopping it makes the restore a clean swap rather
-    # than a race against live traffic. restore_cleanup restarts it on the way out even
-    # when pg_restore fails.
+    # than a race against live traffic. restore_cleanup restarts it on the way out only
+    # when the restore succeeded.
     if [[ "$(docker inspect -f '{{.State.Running}}' "$api_container" 2>/dev/null)" == "true" ]]; then
         RESTORE_API_WAS_RUNNING=true
         docker stop "$api_container" >/dev/null
@@ -722,6 +733,7 @@ restore_postgres() {
     # is idempotent and already mounted: it hands ownership to the migration role and
     # restores every grant.
     docker exec "$pg_container" bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
+    RESTORE_OK=true
 
     echo "✅ Restored $env from snapshot '$snapshot'"
 }

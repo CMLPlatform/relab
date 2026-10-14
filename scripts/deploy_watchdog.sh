@@ -588,7 +588,7 @@ fi
 # The probe speaks OTLP/HTTP and is skipped when the container exports over gRPC
 # (OTEL_EXPORTER_OTLP_PROTOCOL is an operator input): a POST at a gRPC listener is a
 # permanent false alarm.
-telemetry_container="r9lab_${env}-api-1"
+telemetry_container="$(compose_project "$env")-api-1"
 telemetry_env="$(docker inspect "$telemetry_container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null || true)"
 if [[ "$(docker inspect -f '{{.State.Running}}' "$telemetry_container" 2>/dev/null)" == "true" ]] \
     && grep -q '^OTEL_EXPORTER_OTLP_ENDPOINT=.' <<<"$telemetry_env" \
