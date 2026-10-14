@@ -542,7 +542,7 @@ For a real restore, pick the snapshot and restore it into the live database:
 
 ```bash
 just snapshots prod           # read-only; ids, dates, and dump sizes
-just restore prod YES <id>    # stops the api, restores, restarts it
+just restore prod YES <id>    # stops the api, restores, restarts it; a failed restore leaves it stopped
 ```
 
 These restore Postgres only. User uploads need a separate manual restore; see "Marker missing, and

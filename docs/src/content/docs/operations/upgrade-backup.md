@@ -105,9 +105,9 @@ img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_r
 1. Keep a copy of the old `.env` (`cp -p .env .env.pre-r9lab`), then check out the new release
    (`git pull --ff-only`). In the root `.env`, set `COMPOSE_PROJECT_NAME=r9lab_<env>` and rename any
    `RELAB_*` variable to `R9LAB_*`, keeping its value. Then pull the new images and write the tag:
-   `just stack "$env" tag YES <tag>`. Until step 4 creates the new database volume, `up`,
-   `migrate`, `rollback` and the backup recipes refuse to run, because the data is still in the
-   `relab_<env>` project. After that they run, so start nothing but PostgreSQL until step 6.
+   `just stack "$env" tag YES <tag>`. Until step 4 has created the new database and uploads
+   volumes and the old stack is down, `up`, `migrate`, `rollback` and the backup recipes refuse to
+   run, because the data is still in the `relab_<env>` project. After that they run, so start nothing but PostgreSQL until step 6.
 
 1. Copy each old volume into a new one. The script refuses to run while any `relab_<env>`
    container runs, because a volume that is in use does not copy cleanly. It creates each new

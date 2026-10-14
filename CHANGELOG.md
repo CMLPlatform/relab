@@ -36,8 +36,8 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The landing page and docs Workers are named `r9lab-www-<env>` and `r9lab-docs-<env>`.
   Self-hosters who run the Cloudflare root follow "Renaming the repository or the Workers" in
   `infra/cloudflare/README.md`.
-- `just images-verify` checks images against `CMLPlatform/r9lab`. Only the few `sha-*` images
-  published between the deployment rename and the repository rename still verify against the old
+- `just images-verify` checks images against `CMLPlatform/r9lab`. Only `sha-8697ebf`, published
+  between the deployment rename and the repository rename, still verifies against the old
   repository name.
 - `RELAB_ENVIRONMENT` is gone from `compose.deploy.yaml`; only `R9LAB_ENVIRONMENT` is set.
 - The dataset release build reads only `R9LAB_PSEUDONYM_SALT` (the `RELAB_PSEUDONYM_SALT`
@@ -57,6 +57,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Restoring a backup whose database roles no longer exist (a dump taken before a role rename)
   now works: the restore skips the dump's owners and grants, then hands ownership to the
   migration role and restores every grant.
+- `just stack <env> compose ...` keeps quoted arguments that contain spaces whole.
+- The rename guard also refuses while the old `relab_<env>` project still runs or its uploads
+  volume has not been copied.
 
 ## [0.5.0] - 2026-10-13
 
