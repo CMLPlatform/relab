@@ -108,6 +108,7 @@ check-root:
     uv run ty check
     pnpm run lint
     uv run python scripts/browser_js_policy.py
+    uv run python scripts/check_todo_dates.py
     just assets-check
 
 # Root and subrepo quality checks: lint, typecheck, and format verification.
