@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 ASSERTION_AUDIENCE = "r9cam-relay"
 # Pis on an r9cam release older than the rename still sign with this audience, so the
 # backend and the Pis can be upgraded in either order.
-# TODO: drop after 2027-01-31, together with the /v1/plugins/rpi-cam/ prefix
+# TODO(drop-by 2027-01-31): drop together with the /v1/plugins/rpi-cam/ prefix
 LEGACY_ASSERTION_AUDIENCE = "relab-rpi-cam-relay"
 ASSERTION_ALGORITHMS = ("ES256",)
 REPLAY_KEY_PREFIX = "r9cam:relay_assertion_jti:"

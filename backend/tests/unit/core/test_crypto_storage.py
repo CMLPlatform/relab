@@ -23,6 +23,12 @@ def _set_key(monkeypatch: pytest.MonkeyPatch, key: str) -> None:
     monkeypatch.setattr(storage, "get_data_encryption_key_bytes", lambda: decode_data_encryption_key(key))
 
 
+def test_encrypted_text_prefix_is_pinned() -> None:
+    """The prefix is stored with every value."""
+    # Renaming it makes every stored value undecryptable.
+    assert storage.ENCRYPTED_TEXT_PREFIX == "relab:v2:aesgcm:"
+
+
 def test_encrypt_text_round_trips_and_uses_random_iv(monkeypatch: pytest.MonkeyPatch) -> None:
     """Encrypting the same plaintext twice should produce two decryptable ciphertexts."""
     _set_key(monkeypatch, _b64_key(1))

@@ -56,7 +56,7 @@ ANONYMIZE: ErasureContent = "anonymize"
 ANONYMOUS_USER_EMAIL = "anonymous@system.r9lab.internal"
 # The pre-rename address, which migration 0b5e7c3a9d21 rewrites. Still refused by the
 # erasure guard in case a rolled-back release recreated that row.
-# TODO: drop LEGACY_ANONYMOUS_USER_EMAIL after 2027-01-31
+# TODO(drop-by 2027-01-31): drop LEGACY_ANONYMOUS_USER_EMAIL
 LEGACY_ANONYMOUS_USER_EMAIL = "anonymous@system.relab.internal"
 
 

@@ -39,7 +39,7 @@ PRIVATE_MODEL_ROUTES = {
     ("POST", "/v1/plugins/r9cam/pairing/claim"),
 }
 # The camera routes are also served under their pre-rename path.
-# TODO: drop /v1/plugins/rpi-cam/ after 2027-01-31
+# TODO(drop-by 2027-01-31): drop the /v1/plugins/rpi-cam/ prefix
 PRIVATE_MODEL_ROUTES |= {
     (method, path.replace("/plugins/r9cam/", "/plugins/rpi-cam/"))
     for method, path in PRIVATE_MODEL_ROUTES
