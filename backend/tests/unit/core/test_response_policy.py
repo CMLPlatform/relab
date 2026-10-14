@@ -45,7 +45,7 @@ def _create_policy_app(*, enable_hsts: bool = False, allow_uploads_cross_origin:
     async def admin_users() -> dict[str, str]:
         return {"status": "admin"}
 
-    @app.get("/v1/plugins/rpi-cam/cameras/1/status")
+    @app.get("/v1/plugins/r9cam/cameras/1/status")
     async def camera_control() -> dict[str, str]:
         return {"status": "camera"}
 
@@ -159,7 +159,7 @@ async def test_response_policy_sets_no_cache_headers_for_sensitive_paths() -> No
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         auth_response = await client.get("/v1/auth/session")
         admin_response = await client.get("/v1/admin/users")
-        camera_response = await client.get("/v1/plugins/rpi-cam/cameras/1/status")
+        camera_response = await client.get("/v1/plugins/r9cam/cameras/1/status")
 
     _assert_sensitive_cache_headers(auth_response)
     _assert_sensitive_cache_headers(admin_response)

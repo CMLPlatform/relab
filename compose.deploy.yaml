@@ -4,7 +4,7 @@
 # deploy recipes set it and PROJECT, every other value comes from the root `.env`.
 #
 # Invocation (normally through root just recipes):
-#   ENVIRONMENT=prod PROJECT=relab docker compose -p relab_prod --env-file .env \
+#   ENVIRONMENT=prod PROJECT=r9lab docker compose -p r9lab_prod --env-file .env \
 #                  -f compose.yaml -f compose.deploy.yaml up -d
 
 # --- Reusable fragments ------------------------------------------------------
@@ -78,7 +78,7 @@ x-migrator-runtime-secrets: &migrator-runtime-secrets
 
 services:
   api:
-    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/r9lab-backend:${IMAGE_TAG:?IMAGE_TAG must be set}
     # Deploy hosts pull the published image; see publish-images.yml.
     build: !reset null
     logging: *json-logging
@@ -116,7 +116,7 @@ services:
       # public gRPC path, so a dependency change that flipped the default protocol
       # would silently stop all telemetry.
       OTEL_EXPORTER_OTLP_PROTOCOL: ${OTEL_EXPORTER_OTLP_PROTOCOL:-http/protobuf}
-      OTEL_SERVICE_NAME: relab-api
+      OTEL_SERVICE_NAME: r9lab-api
       # The other identity labels the central stack keys alerts and dashboards on.
       # Alloy stamps project/env on everything IT ships, but the SDK's own traces and
       # metrics bypass Alloy entirely, so without this they arrive attributable to no
@@ -217,7 +217,7 @@ services:
       - scanning
 
   migrator:
-    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-backend-migrations:${IMAGE_TAG:?IMAGE_TAG must be set}
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/r9lab-backend-migrations:${IMAGE_TAG:?IMAGE_TAG must be set}
     # Deploy hosts pull the published image; see publish-images.yml.
     build: !reset null
     logging: *json-logging
@@ -232,7 +232,7 @@ services:
 
   backup:
     # Encrypted logical PostgreSQL + user upload backups.
-    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-backup:${IMAGE_TAG:?IMAGE_TAG must be set}
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/r9lab-backup:${IMAGE_TAG:?IMAGE_TAG must be set}
     logging: *json-logging
     cap_drop:
       - ALL
@@ -243,6 +243,7 @@ services:
     # Without this each `compose run` container gets a fresh random hostname, and
     # restic picks its parent snapshot by (host, paths) — so every run would re-read
     # and re-hash all of /data/uploads instead of taking the metadata shortcut.
+    # Kept through the R9lab rename: a new name would start a fresh parent chain.
     hostname: relab-backup
     security_opt:
       - no-new-privileges:true
@@ -272,20 +273,21 @@ services:
     environment:
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
-      POSTGRES_DB: relab_db
-      DATABASE_BACKUP_USER: relab_backup
+      POSTGRES_DB: r9lab_db
+      DATABASE_BACKUP_USER: r9lab_backup
       DATABASE_BACKUP_PASSWORD_FILE: /run/secrets/database_backup_password
       RESTIC_PASSWORD_FILE: /run/secrets/restic_password
       RESTIC_REPOSITORY: /restic
       RESTIC_CACHE_DIR: /var/cache/restic
       # Lets the run assert the uploads volume is this environment's, not another
-      # stack's after a mistyped -p. Compared against .relab-volume inside the volume.
-      RELAB_ENVIRONMENT: ${ENVIRONMENT:?}
+      # stack's after a mistyped -p. Compared against .relab-volume inside the volume,
+      # a name existing volumes and snapshots already carry.
+      R9LAB_ENVIRONMENT: ${ENVIRONMENT:?}
       XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
-      BACKUP_WORK_DIR: /tmp/relab-backups
+      BACKUP_WORK_DIR: /tmp/r9lab-backups
       # restic counts distinct HOURS that contain a snapshot, so this is only
-      # meaningful with hourly backups (relab-backup@.timer): under daily backups 24
+      # meaningful with hourly backups (r9lab-backup@.timer): under daily backups 24
       # would resolve to 24 distinct DAYS and override the 14 below. 24 keeps one day
       # of hourly granularity; compressed pg_dumps deduplicate poorly, so every extra
       # hour is a near-full copy.
@@ -413,10 +415,10 @@ services:
       # not); the healthcheck runs `pg_isready -U $POSTGRES_USER`, so a mismatch
       # here leaves the service permanently unhealthy. See deploy/DEPLOY-PROD.md.
       POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
-      POSTGRES_DB: relab_db
-      DATABASE_APP_USER: relab_app
-      DATABASE_MIGRATION_USER: relab_migrator
-      DATABASE_BACKUP_USER: relab_backup
+      POSTGRES_DB: r9lab_db
+      DATABASE_APP_USER: r9lab_app
+      DATABASE_MIGRATION_USER: r9lab_migrator
+      DATABASE_BACKUP_USER: r9lab_backup
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
       DATABASE_APP_PASSWORD_FILE: /run/secrets/database_app_password
       DATABASE_MIGRATION_PASSWORD_FILE: /run/secrets/database_migration_password
@@ -428,7 +430,7 @@ services:
       - database_backup_password
 
   app:
-    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/relab-app:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
+    image: ${IMAGE_REGISTRY:-ghcr.io/cmlplatform}/r9lab-app:${IMAGE_TAG:?IMAGE_TAG must be set}-${ENVIRONMENT:?ENVIRONMENT must be set}
     logging: *json-logging
     read_only: true
     user: *app-user

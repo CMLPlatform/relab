@@ -45,7 +45,7 @@ export function TextInput({
         },
         style,
       ]}
-      placeholderTextColor={theme.colors.mutedForeground}
+      placeholderTextColor={theme.tokens.text.placeholder}
       maxFontSizeMultiplier={2}
       {...props}
     >

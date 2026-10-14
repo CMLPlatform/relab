@@ -368,6 +368,10 @@ describe('useProductQueries', () => {
       expect.objectContaining({ queryKey: ['baseProduct', mockSavedId] }),
     );
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
+    // The owner's photo and product counts change with the record.
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['publicProfile'] }),
+    );
   });
 
   it('useSaveProductMutation invalidates the component cache and the parent when saving a component', async () => {
@@ -686,6 +690,9 @@ describe('useProductQueries', () => {
       expect.objectContaining({ queryKey: ['component', 123] }),
     );
     expect(invalidateSpy).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['products'] }));
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['publicProfile'] }),
+    );
   });
 
   // After a restart a queued create has no screen awaiting it, and its form

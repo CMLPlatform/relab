@@ -42,7 +42,7 @@ def test_export_openapi_schemas_writes_public_and_device_contracts(exported_sche
 
     assert public_schema["openapi"].startswith("3.")
     assert device_schema["openapi"].startswith("3.")
-    assert "/v1/plugins/rpi-cam/pairing/register" in device_schema["paths"]
+    assert "/v1/plugins/r9cam/pairing/register" in device_schema["paths"]
 
 
 def test_public_schema_covers_routes_added_through_sub_routers(exported_schemas: Path) -> None:
@@ -56,27 +56,61 @@ def test_public_schema_covers_routes_added_through_sub_routers(exported_schemas:
         "/v1/auth/validate-email",
         "/v1/oauth/google/session/authorize",
         "/v1/users/me",
-        "/v1/plugins/rpi-cam/pairing/claim",
+        "/v1/plugins/r9cam/pairing/claim",
     } <= public_paths.keys()
     # A device sub-router mounted under a public prefix keeps its own audience.
-    assert "/v1/plugins/rpi-cam/device/cameras/{camera_id}/image-upload" not in public_paths
+    assert "/v1/plugins/r9cam/device/cameras/{camera_id}/image-upload" not in public_paths
     assert "/v1/admin/users" not in public_paths
     # fastapi-users' superuser-by-id routes are dropped from /users entirely;
     # by-id management lives on the audited /admin/users surface.
     assert "/v1/users/{id}" not in public_paths
     # register/poll are Pi-only; they must not leak into the app-facing public schema,
     # even though they share a path prefix with the user-facing claim endpoint.
-    assert "/v1/plugins/rpi-cam/pairing/register" not in public_paths
-    assert "/v1/plugins/rpi-cam/pairing/poll" not in public_paths
+    assert "/v1/plugins/r9cam/pairing/register" not in public_paths
+    assert "/v1/plugins/r9cam/pairing/poll" not in public_paths
 
 
 def test_device_schema_covers_pairing_register_and_poll_only(exported_schemas: Path) -> None:
     """Pairing register/poll are device-only; claim (user-initiated) must not be there."""
     device_paths = json.loads((exported_schemas / "openapi.device.json").read_text(encoding="utf-8"))["paths"]
 
-    assert "/v1/plugins/rpi-cam/pairing/register" in device_paths
-    assert "/v1/plugins/rpi-cam/pairing/poll" in device_paths
-    assert "/v1/plugins/rpi-cam/pairing/claim" not in device_paths
+    assert "/v1/plugins/r9cam/pairing/register" in device_paths
+    assert "/v1/plugins/r9cam/pairing/poll" in device_paths
+    assert "/v1/plugins/r9cam/pairing/claim" not in device_paths
+
+
+@pytest.mark.parametrize("filename", ["openapi.public.json", "openapi.device.json", "openapi.json"])
+def test_no_operation_repeats_a_tag(exported_schemas: Path, filename: str) -> None:
+    """A tag listed twice on one operation shows that operation twice in the API reference."""
+    paths = json.loads((exported_schemas / filename).read_text(encoding="utf-8"))["paths"]
+
+    repeated = [
+        f"{method.upper()} {path}: {operation['tags']}"
+        for path, operations in paths.items()
+        for method, operation in operations.items()
+        if len(operation.get("tags", [])) != len(set(operation.get("tags", [])))
+    ]
+    assert repeated == []
+
+
+@pytest.mark.parametrize("action", ["login", "refresh", "logout"])
+def test_auth_transports_have_their_own_summaries(exported_schemas: Path, action: str) -> None:
+    """The bearer and session variants of an auth action must read differently in the reference."""
+    paths = json.loads((exported_schemas / "openapi.public.json").read_text(encoding="utf-8"))["paths"]
+
+    bearer = paths[f"/v1/auth/bearer/{action}"]["post"]["summary"]
+    session = paths[f"/v1/auth/session/{action}"]["post"]["summary"]
+
+    assert "bearer-token" in bearer
+    assert "browser session" in session
+
+
+def test_schema_info_names_the_institute(exported_schemas: Path) -> None:
+    """The reference title uses an en dash and the description spells out CML."""
+    info = json.loads((exported_schemas / "openapi.public.json").read_text(encoding="utf-8"))["info"]
+
+    assert info["title"] == "R9lab \u2013 Data Collection API"
+    assert "Institute of Environmental Sciences (CML), Leiden University" in info["description"]
 
 
 def test_schemas_are_current_detects_stale_schema(

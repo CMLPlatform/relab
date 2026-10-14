@@ -4,7 +4,7 @@ import { useCallback } from 'react';
 import type { FeedbackApi } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
 import type { StreamDialogState } from '@/features/cameras/state';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { startYouTubeStreamFlow } from './streamFlow';
 
 export function useCameraStreamActions({

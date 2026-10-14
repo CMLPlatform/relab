@@ -4,12 +4,31 @@
     "rejects unknown keys, so funding, the dataset licence, and the display forms of the",
     "institution live here instead. Everything CFF DOES model (authors, ORCIDs, DOI, code",
     "licence, repository) is read from CITATION.cff and must not be duplicated here.",
+    "Contributors are credited but are not citation authors. CFF has no contributor role, so",
+    "they live here, in CFF's person fields, and reach codemeta.json, .zenodo.json and the",
+    "docs colophon. zenodoType is a Zenodo deposit contributor type.",
     "Consumed by scripts/sync_brand_assets.py; run `just assets-sync` after editing."
   ],
   "institution": "Institute of Environmental Sciences (CML), Leiden University",
   "institutionShort": "CML",
   "department": "Department of Industrial Ecology",
   "contactEmail": "info@r9lab.io",
+  "contributors": [
+    {
+      "family-names": "Donati",
+      "given-names": "Franco",
+      "orcid": "https://orcid.org/0000-0002-8287-2413",
+      "affiliation": "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University",
+      "zenodoType": "Supervisor"
+    },
+    {
+      "family-names": "Visscher",
+      "given-names": "Marin",
+      "orcid": "https://orcid.org/0000-0002-1847-5181",
+      "affiliation": "Resource Engineering, Faculty of Civil Engineering and Geosciences, Delft University of Technology",
+      "zenodoType": "ProjectMember"
+    }
+  ],
   "dataLicence": {
     "name": "CC BY 4.0",
     "url": "https://creativecommons.org/licenses/by/4.0/",

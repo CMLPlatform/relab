@@ -8,6 +8,11 @@ locals {
     local.edge_routes_by_environment.staging.api.hostname,
   ]))}}"
 
+  # Cameras keep the URLs they were given at pairing, so the device paths are matched under
+  # both the current plugin path and the one from before the r9cam rename.
+  # TODO(drop-by 2027-01-31): drop /v1/plugins/rpi-cam
+  camera_plugin_paths = ["/v1/plugins/r9cam", "/v1/plugins/rpi-cam"]
+
   staging_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [
     for route in values(local.edge_routes_by_environment.staging) : route.hostname
   ]))}}"
@@ -102,26 +107,26 @@ locals {
       # Redis replay protection, and the skip is scoped to just those paths.
       #
       # This is the only rule that skips the managed WAF, so nothing but these four device
-      # paths may join it. Keyed staging E2E lives in the SBFM-only rule below instead: it
-      # is a header anyone holding the key can send, and the WAF is the control that has to
-      # keep standing behind it.
+      # paths (under each of local.camera_plugin_paths) may join it. Keyed staging E2E
+      # lives in the SBFM-only rule below instead: it is a header anyone holding the key
+      # can send, and the WAF is the control that has to keep standing behind it.
       ref         = "relab_rpi_cam_device_skip_managed_security"
       description = "Skip managed WAF and Super Bot Fight Mode for RPi camera device traffic"
       expression = join(" and ", [
         local.api_hosts_expression,
-        "(${join(" or ", [
-          "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/register\")",
-          "(http.request.method eq \"POST\" and http.request.uri.path eq \"/v1/plugins/rpi-cam/pairing/poll\")",
-          "http.request.uri.path eq \"/v1/plugins/rpi-cam/ws/connect\"",
+        "(${join(" or ", flatten([for base in local.camera_plugin_paths : [
+          "(http.request.method eq \"POST\" and http.request.uri.path eq \"${base}/pairing/register\")",
+          "(http.request.method eq \"POST\" and http.request.uri.path eq \"${base}/pairing/poll\")",
+          "http.request.uri.path eq \"${base}/ws/connect\"",
           "(${join(" and ", [
             "http.request.method eq \"POST\"",
-            "starts_with(http.request.uri.path, \"/v1/plugins/rpi-cam/device/cameras/\")",
+            "starts_with(http.request.uri.path, \"${base}/device/cameras/\")",
             "(${join(" or ", [
               "ends_with(http.request.uri.path, \"/image-upload\")",
               "ends_with(http.request.uri.path, \"/preview-thumbnail-upload\")",
             ])})",
           ])})",
-        ])})",
+        ]]))})",
       ])
       action = "skip"
       action_parameters = {

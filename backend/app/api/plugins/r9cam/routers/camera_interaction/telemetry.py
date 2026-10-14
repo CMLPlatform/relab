@@ -1,0 +1,69 @@
+"""Camera telemetry forwarding with Redis caching.
+
+The mosaic dashboard polls one camera's telemetry every ~5s; with the cache,
+those polls cost a Redis GET and no relay round-trip. The first poll (cold
+cache) forwards to the Pi's ``GET /system/telemetry`` endpoint, caches the snapshot
+for 120s, and returns it. Subsequent polls within 120s hit the cache.
+"""
+
+import logging
+
+from pydantic import UUID4, ValidationError
+from r9cam_models.telemetry import TelemetrySnapshot
+
+from app.api.auth.dependencies import CurrentActiveUserDep
+from app.api.common.audiences import PublicAPIRouter
+from app.api.common.routers.dependencies import AsyncSessionDep
+from app.api.plugins.r9cam.constants import HttpMethod
+from app.api.plugins.r9cam.exceptions import InvalidCameraResponseError
+from app.api.plugins.r9cam.runtime.relay import build_camera_request, get_user_owned_camera
+from app.api.plugins.r9cam.runtime.status import get_cached_telemetry, store_telemetry
+from app.core.redis import RedisDep
+
+router = PublicAPIRouter()
+logger = logging.getLogger(__name__)
+
+_TELEMETRY_ENDPOINT = "/system/telemetry"
+
+
+@router.get(
+    "/{camera_id}/telemetry",
+    summary="Get a camera's latest telemetry snapshot",
+    description=(
+        "Return the most recent telemetry snapshot for the camera. Backed by a Redis cache with a 120s "
+        "TTL so mosaic polling does not fan out one relay round-trip per camera on every refresh. "
+        "Pass ``force_refresh=true`` to bypass the cache and re-fetch from the Pi."
+    ),
+)
+async def get_camera_telemetry(
+    camera_id: UUID4,
+    session: AsyncSessionDep,
+    current_user: CurrentActiveUserDep,
+    redis: RedisDep,
+    *,
+    force_refresh: bool = False,
+) -> TelemetrySnapshot:
+    """Return a camera's telemetry snapshot, hitting Redis when possible."""
+    camera = await get_user_owned_camera(session, camera_id, current_user.id, redis)
+
+    if not force_refresh:
+        cached = await get_cached_telemetry(redis, camera_id)
+        if cached is not None:
+            return cached
+
+    # Cache miss or forced refresh: forward to the Pi (503 if offline).
+    camera_request = build_camera_request(camera, redis)
+    response = await camera_request(
+        endpoint=_TELEMETRY_ENDPOINT,
+        method=HttpMethod.GET,
+        error_msg="Failed to fetch camera telemetry",
+    )
+    try:
+        snapshot = TelemetrySnapshot.model_validate(response.json())
+    except ValidationError as exc:
+        raise InvalidCameraResponseError(exc.json()) from exc
+
+    # force_refresh bypasses the cache on write as well as read.
+    if not force_refresh:
+        await store_telemetry(redis, camera_id, snapshot)
+    return snapshot

@@ -44,12 +44,12 @@ All pairings below meet WCAG 4.5:1 against their background in both schemes.
 | primary         | `#1F4C96` | `#8FB8FF` | Brand anchor, actions, links on web                                                     |
 | primary-strong  | `#143567` | `#BAD3FF` | Hover/pressed, emphasis                                                                 |
 | accent          | `#8F6212` | `#E3B95C` | Manila — highlights, live indicators, strategy tags                                     |
-| text            | `#16202E` | `#E2E6EE` | Body text (app; web uses `#E9EFF8` via --relab-brand-text)                              |
+| text            | `#16202E` | `#E2E6EE` | Body text (app; web uses `#E9EFF8` via --r9lab-brand-text)                              |
 | mutedForeground | `#44474F` | `#C4C6D0` | Secondary text (www's `--color-muted` in tokens.css is a distinct page-chrome override) |
 | muted           | `#E0E2EC` | `#44474F` | Muted surface tone behind secondary content                                             |
 | background      | `#FAFBFE` | `#11141D` | Page ground                                                                             |
 | surface         | `#F0F3FA` | `#1A2030` | Cards, panels                                                                           |
-| border          | `#C4C6D0` | `#44474F` | Hairlines, dividers (web uses `#D9DFE8`/`#24314A` via --relab-brand-divider)            |
+| border          | `#C4C6D0` | `#44474F` | Hairlines, dividers (web uses `#D9DFE8`/`#24314A` via --r9lab-brand-divider)            |
 
 The machine sources are `brand.css` (web), `palette.json` (app), and `tokens.json` (the radius,
 shadow, type and chart tables below); this table documents them and is checked by
@@ -60,7 +60,7 @@ The prose names above and the JSON keys are two vocabularies — `primary-strong
 `scripts/sync_brand_assets.py`. `palette.json` also carries `secondary`, `state`, `destructive`
 (`#BA1A1A`), `input` and `ring`, which this table does not restate.
 
-Web consumes these as `--relab-brand-*` custom properties (see brand.css).
+Web consumes these as `--r9lab-brand-*` custom properties (see brand.css).
 The app derives its MD3 colour roles from the same anchors: `primary` maps to
 the MD3 primary pair, `accent` to tertiary, neutrals to the blue-biased
 surface/outline ramp in `app/src/theme/themes.ts`.

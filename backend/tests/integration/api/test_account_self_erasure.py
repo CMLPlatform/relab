@@ -19,7 +19,7 @@ from app.api.auth.services.account_security import RECENT_SIGN_IN_WINDOW
 from app.api.auth.services.session_flow import SESSION_LOGOUT_CLEAR_SITE_DATA
 from app.api.common.audit import AuditAction, AuditContext
 from app.api.data_collection.models.product import Product
-from app.api.plugins.rpi_cam.models import Camera
+from app.api.plugins.r9cam.models import Camera
 from scripts.seed.factories.models import CameraFactory, UserFactory
 from tests.fixtures.auth import totp_code
 from tests.fixtures.client import override_authenticated_user

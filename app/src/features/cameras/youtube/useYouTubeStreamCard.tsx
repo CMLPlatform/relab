@@ -1,6 +1,6 @@
 import { showStreamStopFailed } from '@/components/cameras/streamingFeedback';
 import { useStreamSession } from '@/context/streamSession';
-import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/features/cameras/rpi/hooks';
+import { useStopYouTubeStreamMutation, useStreamStatusQuery } from '@/features/cameras/r9cam/hooks';
 import { useServerPreferenceToggle } from '@/features/cameras/serverPreferenceToggle';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';

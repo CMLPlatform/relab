@@ -6,13 +6,13 @@ import { useAuth } from '@/context/auth';
 import {
   useCameraCaptureActions,
   useCameraConnectionSnapshots,
-} from '@/features/cameras/rpi/captureActions';
-import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/rpi/hooks';
+} from '@/features/cameras/r9cam/captureActions';
+import { useCamerasQuery, useCaptureAllMutation } from '@/features/cameras/r9cam/hooks';
 import { useCameraStreamActions } from '@/features/cameras/youtube/streamActions';
 import { baseProductQueryOptions } from '@/features/product-entity/queries';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { setCamerasHeaderOptions, useCameraScreenData } from './helpers';
 import { useCameraRouteModes } from './routeModes';
 import { useCameraSelectionController, useCameraStreamingController } from './state';

@@ -4,23 +4,29 @@ import asyncio
 import json
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
+import mlcroissant as mlc
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+import yaml
 from PIL import Image as PILImage
 from PIL.ExifTags import IFD
 
 from app.api.auth import terms
+from app.api.reference_data.models import TaxonomyDomain
 from app.core.images.processing import process_image_for_storage
 from scripts import build_dataset_release as release
 from scripts.build_dataset_release import (
     CATEGORIES_SCHEMA,
+    CATEGORY_MATERIAL_LINKS_SCHEMA,
+    CATEGORY_PRODUCT_TYPE_LINKS_SCHEMA,
+    CROISSANT_FILES,
     DEFAULT_EXCLUDED_NAME_WORDS,
     EXCLUSION_HEADER,
     INVENTORY_HEADER,
@@ -29,6 +35,7 @@ from scripts.build_dataset_release import (
     PRODUCT_TYPES_SCHEMA,
     RECORD_MATERIALS_SCHEMA,
     RECORDS_SCHEMA,
+    RELEASE_TABLES,
     REVIEW_DIR,
     SHARED_ACCOUNTS,
     TAXONOMIES_SCHEMA,
@@ -45,13 +52,16 @@ from scripts.build_dataset_release import (
     forbidden_column_names,
     forbidden_values,
     has_release_consent,
+    image_media_types,
     inventory,
     iter_archive_files,
+    known_biases,
     log_exclusion_tally,
     matched_name_word,
     missing_references,
     parse_args,
     parse_checksums,
+    product_type_label,
     provenance_flags,
     pseudonymise,
     read_parquet,
@@ -65,6 +75,7 @@ from scripts.build_dataset_release import (
     select_records,
     selection_rules,
     summarise_owner,
+    tally_product_classes,
     verify,
     write_artefacts,
     write_checksums,
@@ -278,7 +289,7 @@ def test_parse_checksums_rejects_a_malformed_line() -> None:
 def test_attribution_string_is_verbatim() -> None:
     """The attribution string is fixed copy; it must render exactly as agreed."""
     assert ReleaseMetadata().attribution == (
-        "Relab Teardown Dataset v1.0 (2026). Van Lierde, S. & Donati, F. "
+        "R9lab Teardown Dataset v1.0 (2026). Van Lierde, S. & Donati, F. "
         "Institute of Environmental Sciences (CML), Leiden University. "
         "DOI: 10.5281/zenodo.XXXXXXX. Licensed under CC BY 4.0."
     )
@@ -291,9 +302,95 @@ def test_attribution_substitutes_a_real_doi() -> None:
     assert "XXXXXXX" not in meta.attribution
 
 
+### Scope derived from the data ###
+CLASSES = (("Power drills", 3), ("Vacuum cleaners", 2), ("Coffee machines", 1))
+
+
+def _scoped(**overrides: Any) -> ReleaseMetadata:
+    return ReleaseMetadata(product_classes=CLASSES, **overrides)
+
+
+def test_cpv_product_types_read_as_their_label() -> None:
+    """CPV seeds keep the code in the name; the label in the description is what a reader needs."""
+    assert product_type_label("CPV: 4271", "Power drills") == "Power drills"
+    assert product_type_label("CPV: 4271", None) == "CPV: 4271"
+    assert product_type_label("Laptop", "Portable computers") == "Laptop"
+
+
+def test_tally_counts_base_products_per_type_most_first() -> None:
+    """Components do not make a product class; untyped base products are counted apart."""
+    records = [
+        _record(id=1, parent_id=None, product_type_id=5),
+        _record(id=2, parent_id=None, product_type_id=5),
+        _record(id=3, parent_id=None, product_type_id=6),
+        _record(id=4, parent_id=None, product_type_id=None),
+        _record(id=5, parent_id=1, product_type_id=7),
+    ]
+    classes, untyped = tally_product_classes(records, {5: "Power drills", 6: "Kettles", 7: "Motors"})
+    assert classes == (("Power drills", 2), ("Kettles", 1))
+    assert untyped == 1
+
+
+def test_description_names_every_product_class_in_scope() -> None:
+    """The DOI record must not claim a narrower or wider scope than the data holds."""
+    description = _scoped().description
+    for label, _ in CLASSES:
+        assert label in description
+    assert "3 product types" in description
+
+
+def test_no_scope_text_hardcodes_power_tools() -> None:
+    """A release without power tools must not say it holds only power tools."""
+    meta = ReleaseMetadata(product_classes=(("Coffee machines", 4),))
+    texts = [
+        meta.description,
+        " ".join(meta.keywords),
+        render_readme(meta, BuildStats(records=4, images=1, owners=1)),
+        render_citation_cff(meta),
+    ]
+    assert not any("power tool" in text.lower() for text in texts)
+
+
+def test_keywords_add_the_most_frequent_product_types() -> None:
+    """Keywords are for search: the fixed subjects plus the leading product types, capped."""
+    many = tuple((f"Type {index:02d}", 100 - index) for index in range(15))
+    keywords = ReleaseMetadata(product_classes=many).keywords
+    assert keywords[:4] == ("circular economy", "computer vision", "life cycle assessment", "product teardown")
+    assert keywords[4:] == tuple(f"Type {index:02d}" for index in range(10))
+
+
+def test_readme_lists_each_product_type_with_its_count() -> None:
+    """The README carries the full list that the keywords only sample."""
+    readme = render_readme(_scoped(untyped_products=2), BuildStats(records=8, images=1, owners=1))
+    assert "| Power drills | 3 |" in readme
+    assert "| Coffee machines | 1 |" in readme
+    assert "2 base product(s) carry no product type." in readme
+    assert "Base products span 3 product types" in readme
+
+
+def test_readme_scope_states_the_consent_rule_not_a_lab_only_claim() -> None:
+    """Scope is decided by consent, so the README must not promise lab-authored records only."""
+    readme = " ".join(render_readme(_scoped(), BuildStats(records=1, images=1, owners=1)).split())
+    assert f"at version {MINIMUM_RELEASE_TERMS_VERSION} or later" in readme
+    assert "lab-authored" not in readme
+
+
+def test_citation_cff_stays_valid_yaml_with_a_quote_in_a_label() -> None:
+    """Labels come from the database now, so they must not be able to break the file."""
+    meta = ReleaseMetadata(product_classes=(('12" monitors', 1),))
+    cff = yaml.safe_load(render_citation_cff(meta))
+    assert '12" monitors' in cff["abstract"]
+    assert '12" monitors' in cff["keywords"]
+
+
 ### Croissant ###
+DIGESTS = dict.fromkeys(CROISSANT_FILES, "0" * 64)
+
+
 def _croissant(**kwargs: Any) -> dict:
-    return json.loads(render_croissant(ReleaseMetadata(**kwargs), BuildStats(records=3, images=9)))
+    return json.loads(
+        render_croissant(ReleaseMetadata(**kwargs), BuildStats(records=3, images=9), DIGESTS, ["image/jpeg"])
+    )
 
 
 def test_croissant_is_a_dataset_carrying_the_licence() -> None:
@@ -322,10 +419,110 @@ def test_croissant_fields_are_derived_from_the_parquet_schema() -> None:
 def test_croissant_declares_parquet_distributions() -> None:
     """The published tables must be described as Parquet, not as CSV."""
     distribution = {entry["@id"]: entry for entry in _croissant()["distribution"]}
-    assert distribution["records.parquet"]["encodingFormat"] == "application/vnd.apache.parquet"
-    assert distribution["record_materials.parquet"]["encodingFormat"] == "application/vnd.apache.parquet"
+    for table in RELEASE_TABLES:
+        assert "application/vnd.apache.parquet" in distribution[table.path]["encodingFormat"]
+        # mlcroissant and Hugging Face only read Parquet under the unregistered name.
+        assert "application/x-parquet" in distribution[table.path]["encodingFormat"]
     # manifest.csv stays text on purpose; it is an operational file, not a dataset table.
     assert distribution["manifest.csv"]["encodingFormat"] == "text/csv"
+
+
+def test_croissant_conforms_to_1_1_with_the_rai_extension() -> None:
+    """1.1 is the version mlcroissant 1.1 validates against; RAI is declared alongside it."""
+    assert _croissant()["conformsTo"] == [
+        "http://mlcommons.org/croissant/1.1",
+        "http://mlcommons.org/croissant/RAI/1.0",
+    ]
+
+
+def test_croissant_carries_the_release_date() -> None:
+    """DatePublished is required by Croissant 1.1 and matches CITATION.cff's date-released."""
+    meta = ReleaseMetadata(released=date(2026, 11, 2))
+    assert _croissant(released=date(2026, 11, 2))["datePublished"] == "2026-11-02"
+    assert "date-released: 2026-11-02" in render_citation_cff(meta)
+
+
+def test_croissant_describes_every_release_table() -> None:
+    """The file list and record sets come from RELEASE_TABLES, so a new table cannot be missed."""
+    document = _croissant()
+    files = [entry["@id"] for entry in document["distribution"] if entry["@type"] == "cr:FileObject"]
+    assert files == [table.path for table in RELEASE_TABLES] + ["manifest.csv"]
+    record_sets = {entry["@id"]: entry for entry in document["recordSet"]}
+    for table in RELEASE_TABLES:
+        fields = record_sets[Path(table.path).stem]["field"]
+        assert [entry["name"] for entry in fields] == list(table.schema.names)
+    assert {"manifest", "images"} <= record_sets.keys()
+
+
+def test_croissant_marks_list_columns_as_arrays() -> None:
+    """A list column is an array of its item type, not one text value."""
+    record_sets = {entry["@id"]: entry for entry in _croissant()["recordSet"]}
+    domains = next(entry for entry in record_sets["taxonomies"]["field"] if entry["name"] == "domains")
+    assert domains["isArray"] is True
+    assert domains["dataType"] == "sc:Text"
+
+
+def test_croissant_file_objects_carry_the_files_sha256(tmp_path) -> None:
+    """Each described file carries the checksum of the bytes actually in the release."""
+    root = _minimal_release(tmp_path)
+    document = json.loads((root / "croissant.json").read_text(encoding="utf-8"))
+    for entry in document["distribution"]:
+        if entry["@type"] == "cr:FileObject":
+            assert entry["sha256"] == file_sha256(root / entry["contentUrl"])
+
+
+def test_croissant_lists_the_image_formats_in_the_release() -> None:
+    """Images keep their upload format, so the file set names each one present."""
+    manifest = [{"format": "JPEG"}, {"format": "PNG"}, {"format": "JPEG"}]
+    assert image_media_types(manifest) == ["image/jpeg", "image/png"]
+    assert image_media_types([]) == ["image/jpeg"]
+
+
+def test_croissant_rai_biases_repeat_the_readme() -> None:
+    """Machine readers get the same bias notes the README gives people."""
+    meta = ReleaseMetadata(product_classes=(("Kettles", 2),))
+    document = json.loads(render_croissant(meta, BuildStats(), DIGESTS, ["image/jpeg"]))
+    readme = render_readme(meta, BuildStats())
+    for label, text in known_biases(meta):
+        assert f"{label}: {text}" in document["rai:dataBiases"]
+        assert f"**{label}.** {text}" in readme
+    for key in ("rai:dataCollection", "rai:dataLimitations", "rai:personalSensitiveInformation", "rai:dataUseCases"):
+        assert document[key]
+
+
+def test_mlcroissant_accepts_the_generated_metadata(tmp_path) -> None:
+    """The reference validator loads croissant.json with no error and no warning."""
+    dataset = mlc.Dataset(jsonld=_minimal_release(tmp_path) / "croissant.json")
+    assert dataset.metadata.ctx.issues.errors == set()
+    assert dataset.metadata.ctx.issues.warnings == set()
+
+
+def test_images_record_set_joins_each_photo_to_its_record(tmp_path) -> None:
+    """Reading the images record set yields the photograph and the id of the record it shows."""
+    dataset = mlc.Dataset(jsonld=_minimal_release(tmp_path) / "croissant.json")
+    rows = list(dataset.records("images"))
+    assert len(rows) == 1
+    assert rows[0]["images/file"] == b"images/abc.jpg"
+    assert rows[0]["images/record_id"] == 1
+    assert rows[0]["images/image"].size == (64, 48)
+
+
+def test_verify_rejects_a_croissant_checksum_that_no_longer_matches(tmp_path) -> None:
+    """A table rewritten after croissant.json was rendered fails the build."""
+    root = _minimal_release(tmp_path)
+    write_parquet(root / "records.parquet", RECORDS_SCHEMA, [_record()])
+    write_checksums(root)
+    assert verify(root) == ["croissant.json: sha256 of records.parquet does not match the file"]
+
+
+def test_verify_reports_what_mlcroissant_rejects(tmp_path) -> None:
+    """A croissant.json the validator cannot load is a verification failure, not a warning."""
+    root = _minimal_release(tmp_path)
+    document = json.loads((root / "croissant.json").read_text(encoding="utf-8"))
+    document["recordSet"][0]["field"][0]["source"]["fileObject"]["@id"] = "missing.parquet"
+    (root / "croissant.json").write_text(json.dumps(document), encoding="utf-8")
+    write_checksums(root)
+    assert any(line.startswith("croissant.json: ") for line in verify(root))
 
 
 def test_croissant_provenance_pins_the_software_version_doi() -> None:
@@ -411,6 +608,16 @@ def _minimal_release(tmp_path: Path) -> Path:
     write_parquet(reference / "materials.parquet", MATERIALS_SCHEMA, [{"id": 3, "name": "Steel"}])
     write_parquet(reference / "product_types.parquet", PRODUCT_TYPES_SCHEMA, [{"id": 5, "name": "Drill"}])
     write_parquet(reference / "units.parquet", UNITS_SCHEMA, [{"name": "kilogram", "symbol": "kg"}])
+    write_parquet(
+        reference / "category_material_links.parquet",
+        CATEGORY_MATERIAL_LINKS_SCHEMA,
+        [{"category_id": 4, "material_id": 3}],
+    )
+    write_parquet(
+        reference / "category_product_type_links.parquet",
+        CATEGORY_PRODUCT_TYPE_LINKS_SCHEMA,
+        [{"category_id": 4, "product_type_id": 5}],
+    )
     write_artefacts(root, ReleaseMetadata(), BuildStats(records=2, images=1, owners=1), {"owner-abc123": 2})
     write_checksums(root)
     return root
@@ -466,6 +673,27 @@ def test_parquet_preserves_null_and_integer_types(tmp_path) -> None:
     assert row["amount_in_parent"] == 2
     assert isinstance(row["amount_in_parent"], int)
     assert isinstance(row["height_cm"], float)
+
+
+@pytest.mark.parametrize(
+    "domains",
+    [
+        [TaxonomyDomain.PRODUCTS, TaxonomyDomain.MATERIALS],
+        {TaxonomyDomain.PRODUCTS, TaxonomyDomain.MATERIALS},
+    ],
+)
+def test_parquet_keeps_a_list_column_a_list_of_values(tmp_path, domains) -> None:
+    """Taxonomy.domains arrives as a list of enums; it must not be written as JSON text split into characters."""
+    path = tmp_path / "taxonomies.parquet"
+    write_parquet(path, TAXONOMIES_SCHEMA, [{"id": 1, "name": "CPV", "domains": domains}])
+    assert read_parquet(path)[0]["domains"] == ["materials", "products"]
+
+
+def test_parquet_still_writes_a_json_object_column_as_text(tmp_path) -> None:
+    """circularity_properties is free-form JSON in a text column, and stays text."""
+    path = tmp_path / "records.parquet"
+    write_parquet(path, RECORDS_SCHEMA, [_record(circularity_properties={"recyclability": "high"})])
+    assert read_parquet(path)[0]["circularity_properties"] == '{"recyclability": "high"}'
 
 
 def test_parquet_schema_does_not_shift_when_a_column_is_all_null(tmp_path) -> None:
@@ -537,6 +765,32 @@ def test_the_abort_message_names_both_fingerprints_and_offers_no_way_on() -> Non
     assert pinned in message
     assert salt_fingerprint("a-freshly-generated-salt") in message
     assert "the original was lost" in message
+
+
+LONG_SALT = "x" * release.MIN_PSEUDONYM_SALT_LENGTH
+
+
+def test_salt_is_read_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The environment variable supplies the salt and wins over the flag."""
+    monkeypatch.setenv(release.PSEUDONYM_SALT_ENV, LONG_SALT)
+    assert release.read_pseudonym_salt("y" * 40) == LONG_SALT
+
+
+@pytest.mark.parametrize("source", ["env", "flag"])
+def test_short_salt_is_rejected(monkeypatch: pytest.MonkeyPatch, source: str) -> None:
+    """The fingerprint is public, so a short salt could be brute-forced from it."""
+    short = "x" * (release.MIN_PSEUDONYM_SALT_LENGTH - 1)
+    if source == "env":
+        monkeypatch.setenv(release.PSEUDONYM_SALT_ENV, short)
+    else:
+        monkeypatch.delenv(release.PSEUDONYM_SALT_ENV, raising=False)
+    with pytest.raises(SystemExit, match=r"at least 32.*secrets\.token_urlsafe\(32\)"):
+        release.read_pseudonym_salt(short if source == "flag" else None)
+
+
+def test_fingerprint_of_a_known_salt_is_pinned() -> None:
+    """Changing the fingerprint scheme must fail here, not abort a release as a lost salt."""
+    assert salt_fingerprint("the-original-salt") == "a81f293d308624b2"
 
 
 def test_fingerprint_does_not_reveal_the_salt() -> None:
@@ -820,24 +1074,21 @@ def test_contributors_explains_the_codes_are_stable_and_unresolvable() -> None:
 
 def test_named_credit_appears_in_the_dataset_citation_file() -> None:
     """Named credit is editorial release metadata, and CITATION.cff is where it lives."""
-    cff = render_citation_cff(ReleaseMetadata(), BuildStats(records=1, images=1, owners=1))
+    cff = render_citation_cff(ReleaseMetadata())
     assert 'family-names: "Imiolek"' in cff
     assert 'given-names: "Oskar"' in cff
 
 
 def test_named_credit_is_a_build_parameter_not_a_database_flag() -> None:
     """Who is named is decided when the release is cut, so it has to be overridable."""
-    cff = render_citation_cff(
-        ReleaseMetadata(named_lab_contributors=("Ada Lovelace",)),
-        BuildStats(records=1, images=1, owners=1),
-    )
+    cff = render_citation_cff(ReleaseMetadata(named_lab_contributors=("Ada Lovelace",)))
     assert 'family-names: "Lovelace"' in cff
     assert "Imiolek" not in cff
 
 
 def test_naming_nobody_is_allowed() -> None:
     """A release may credit no lab contributor at all; only the dataset authors remain."""
-    cff = render_citation_cff(ReleaseMetadata(named_lab_contributors=()), BuildStats(records=1, images=1, owners=1))
+    cff = render_citation_cff(ReleaseMetadata(named_lab_contributors=()))
     assert "Imiolek" not in cff
     assert 'family-names: "Donati"' in cff
 
@@ -1098,3 +1349,12 @@ def test_export_images_copies_local_files_and_skips_remote_ones(tmp_path, monkey
     assert manifest[0]["record_id"] == 7
     assert (manifest[0]["width"], manifest[0]["height"]) == (4, 3)
     assert (tmp_path / manifest[0]["file"]).read_bytes() == source.read_bytes()
+
+
+def test_dataset_citation_names_the_software_it_was_exported_from() -> None:
+    """The dataset's software reference uses the software's own title, not the dataset title."""
+    cff = yaml.safe_load(render_citation_cff(ReleaseMetadata()))
+    software = cff["references"][0]
+    assert software["type"] == "software"
+    assert software["title"] == ReleaseMetadata().software_title
+    assert "Teardown Dataset" not in software["title"]

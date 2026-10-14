@@ -151,7 +151,6 @@ function CircularityNoteField({
             numberOfLines={3}
             maxLength={500}
             placeholder={example}
-            placeholderTextColor={colors.mutedForeground}
             accessibilityLabel={label}
             className="min-h-20 rounded-md border p-3 text-base"
             style={{

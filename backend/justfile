@@ -157,7 +157,7 @@ datamodel-check:
 
 # Build a publishable dataset release directory. A verification failure aborts the build.
 # Contributor consent decides the scope; --owner only narrows within it.
-# The pseudonym salt comes from $RELAB_PSEUDONYM_SALT, or else from
+# The pseudonym salt comes from $R9LAB_PSEUDONYM_SALT, or else from
 # secrets/<env>/dataset_pseudonym_salt.
 #
 # Usage:     just release-build --software-doi 10.5281/zenodo.NNNNNNN [--out DIR] [--owner USERNAME] [--doi 10.5281/zenodo.NNNNNNN]
@@ -183,7 +183,7 @@ perf-baseline: perf-fixtures
     mkdir -p reports/performance
     k6 run --summary-export reports/performance/latest-k6-summary.json perf/k6-baseline.js
 
-ci_compose := "docker compose -p relab_test -f ../compose.yaml -f ../compose.ci.yaml"
+ci_compose := "docker compose -p r9lab_test -f ../compose.yaml -f ../compose.ci.yaml"
 # Pinned by digest: a moving :latest silently changes the measurement tool
 # between runs, which is the one variable a latency baseline must hold still.
 k6_docker_image := "grafana/k6:2.2.0@sha256:5221b620a4f874faff6e32ba597aa667c058391fe4898b1c6f6377f062c6cdec"
@@ -207,7 +207,7 @@ _perf-ci media_url="" base_url="http://api:8000": perf-fixtures
     mkdir -p reports/performance
     docker run --rm \
         --user "$(id -u):$(id -g)" \
-        --network relab_test_edge \
+        --network r9lab_test_edge \
         -v "$PWD/perf:/perf:ro" \
         -v "$PWD/reports/performance:/reports" \
         -e BASE_URL={{ quote(base_url) }} \

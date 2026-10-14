@@ -5,7 +5,7 @@ import { baseProduct as _base, renderWithProviders, setupUser } from '@/test-uti
 import type { Product } from '@/types/Product';
 
 const existingProduct: Product = { ..._base, id: 42 };
-const DELETE_CONFIRMATION_PATTERN = /Are you sure/;
+const DELETE_CONFIRMATION_PATTERN = /You cannot undo this/;
 
 describe('ProductDelete', () => {
   const user = setupUser();
@@ -40,10 +40,10 @@ describe('ProductDelete', () => {
 
     await user.press(screen.getByText('Delete component'));
 
-    expect(screen.getByText('Delete Component')).toBeOnTheScreen();
+    expect(screen.getByText('Delete this component?')).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Are you sure you want to delete this component? This action cannot be undone.',
+        'This deletes the component with its photos and files. You cannot undo this.',
       ),
     ).toBeOnTheScreen();
   });
@@ -55,8 +55,24 @@ describe('ProductDelete', () => {
 
     await user.press(screen.getByText('Delete product'));
 
-    expect(screen.getByText('Delete Product')).toBeOnTheScreen();
+    expect(screen.getByText('Delete this product?')).toBeOnTheScreen();
     expect(screen.getByText(DELETE_CONFIRMATION_PATTERN)).toBeOnTheScreen();
+  });
+
+  // Deleting a record deletes its whole subtree on the server.
+  it('says that the components under the record go with it', async () => {
+    const product = { ...existingProduct, components: [{ id: 2 }, { id: 3 }] as never };
+    await renderWithProviders(<ProductDelete product={product} editMode={true} />, {
+      withDialog: true,
+    });
+
+    await user.press(screen.getByText('Delete product'));
+
+    expect(
+      screen.getByText(
+        'This also deletes its 2 components, everything recorded under them, and all their photos and files. You cannot undo this.',
+      ),
+    ).toBeOnTheScreen();
   });
 
   it('pressing Cancel in the dialog does not call onDelete', async () => {

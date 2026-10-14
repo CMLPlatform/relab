@@ -1,0 +1,141 @@
+"""In-process registry of active RPi camera WebSocket connections."""
+
+import asyncio
+import contextlib
+import json
+import logging
+import uuid
+from typing import TYPE_CHECKING
+
+from pydantic import UUID4
+from r9cam_models import RELAY_COMMAND_TIMEOUT_SECONDS, RelayMessageType, build_relay_command
+
+from app.core.logging import sanitize_log_value
+
+if TYPE_CHECKING:
+    from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
+
+# The grace period lets the Pi's own timeout response (at RELAY_COMMAND_TIMEOUT_SECONDS)
+# arrive before the backend gives up.
+DEFAULT_COMMAND_TIMEOUT = RELAY_COMMAND_TIMEOUT_SECONDS + 5.0
+
+
+class CameraDisconnectedDuringCommandError(RuntimeError):
+    """A pending command's future was failed because its camera disconnected.
+
+    Distinct from the plain ``RuntimeError`` ``send_command`` raises for "not
+    connected in this worker"; that case should fall through to the
+    cross-worker relay, this one should not (the socket that owned the
+    command died, so there is nothing another worker can bridge to).
+    """
+
+
+class CameraConnectionManager:
+    """Tracks WebSocket connections initiated by RPi cameras and routes commands to them."""
+
+    def __init__(self) -> None:
+        # camera_id → active WebSocket
+        self._connections: dict[UUID4, WebSocket] = {}
+        # msg_id → (owning camera_id, Future[tuple[dict, bytes | None]])
+        self._pending: dict[str, tuple[UUID4, asyncio.Future[tuple[dict, bytes | None]]]] = {}
+
+    # ── Connection lifecycle ──────────────────────────────────────────────────
+
+    async def register(self, camera_id: UUID4, ws: WebSocket) -> None:
+        """Register an active WebSocket connection for a camera.
+
+        If a connection already exists for this camera (e.g. after reconnect), the
+        old WebSocket is closed before the new one is registered so its receive loop
+        exits cleanly instead of becoming an orphan.
+        """
+        existing = self._connections.get(camera_id)
+        if existing is not None:
+            logger.warning("Camera %s reconnected; closing stale connection.", sanitize_log_value(camera_id))
+            with contextlib.suppress(Exception):
+                await existing.close(code=1001)  # 1001 = Going Away
+        self._connections[camera_id] = ws
+        logger.info("Camera %s connected via WebSocket", sanitize_log_value(camera_id))
+
+    def unregister(self, camera_id: UUID4, ws: WebSocket) -> bool:
+        """Remove a camera's connection and fail its pending futures so callers 503 fast.
+
+        Only acts if ``ws`` is still the registered connection; a stale connection's
+        cleanup must not evict a freshly reconnected camera. Returns True if the
+        camera was actually unregistered.
+        """
+        if self._connections.get(camera_id) is not ws:
+            logger.info("Camera %s stale connection closed; newer connection kept.", sanitize_log_value(camera_id))
+            return False
+        del self._connections[camera_id]
+        for owner, future in self._pending.values():
+            if owner == camera_id and not future.done():
+                future.set_exception(
+                    CameraDisconnectedDuringCommandError(f"Camera {camera_id} disconnected during command.")
+                )
+        logger.info("Camera %s disconnected from WebSocket", sanitize_log_value(camera_id))
+        return True
+
+    # ── Command dispatch ──────────────────────────────────────────────────────
+
+    async def send_command(
+        self,
+        camera_id: UUID4,
+        method: str,
+        path: str,
+        params: dict | None = None,
+        body: dict | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> tuple[dict, bytes | None]:
+        """Send a command to the camera and await its response.
+
+        Returns (json_response, binary_bytes). binary_bytes is set when the
+        camera sends a binary frame after the JSON response (e.g. image data).
+        Wrap calls with ``asyncio.timeout()`` to enforce a deadline.
+
+        Raises:
+            RuntimeError: Camera not connected.
+        """
+        ws = self._connections.get(camera_id)
+        if ws is None:
+            msg = f"Camera {camera_id} is not connected via WebSocket."
+            raise RuntimeError(msg)
+
+        msg_id = _new_msg_id()
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[tuple[dict, bytes | None]] = loop.create_future()
+        self._pending[msg_id] = (camera_id, future)
+
+        try:
+            payload = build_relay_command(msg_id, method, path, params, body, headers).model_dump_json()
+            await ws.send_text(payload)
+            return await future
+        finally:
+            self._pending.pop(msg_id, None)
+
+    # ── Called by the receive loop in router.py ───────────────────────────────
+
+    def resolve_json(self, camera_id: UUID4, msg_id: str, data: dict, binary: bytes | None) -> None:
+        """Resolve a pending future with the response from the camera.
+
+        The response must come from the camera that owns the pending command:
+        ``msg_id`` alone is trusted input from the socket, so a frame from a
+        different camera carrying another's msg_id must not resolve it.
+        """
+        entry = self._pending.get(msg_id)
+        if entry and entry[0] == camera_id and not entry[1].done():
+            entry[1].set_result((data, binary))
+
+    async def handle_ping(self, camera_id: UUID4) -> None:
+        """Respond to a ping from the camera."""
+        ws = self._connections.get(camera_id)
+        if ws:
+            await ws.send_text(json.dumps({"type": RelayMessageType.PONG}))
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _new_msg_id() -> str:
+    return str(uuid.uuid4())

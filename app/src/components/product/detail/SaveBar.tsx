@@ -68,7 +68,6 @@ export function SaveBar({
     () => null,
   );
   if (!canModerate) return null;
-  const titleLabel = entityRole === 'component' ? 'Component' : 'Product';
   // Validation only gates a press that would actually save dirty edits, not a
   // plain view->edit toggle.
   const wouldSave = editMode && isDirty;
@@ -167,7 +166,7 @@ export function SaveBar({
             {isQueued
               ? QUEUED_OFFLINE_LABEL
               : (uploadingText ??
-                (editMode ? (isDirty ? `Save ${titleLabel}` : 'Done') : `Edit ${titleLabel}`))}
+                (editMode ? (isDirty ? `Save ${entityRole}` : 'Done') : `Edit ${entityRole}`))}
           </AppButton>
           {uploadingPhotos ? <UploadProgressBar progress={uploadingPhotos} /> : null}
         </View>
@@ -176,10 +175,9 @@ export function SaveBar({
   );
 }
 
-// Rises 12px into place as edit mode begins; leaves faster, by fading.
-const DOCK_ENTER = FadeInDown.duration(200)
-  .withInitialValues({ transform: [{ translateY: 12 }] })
-  .reduceMotion(ReduceMotion.System);
+// Rises into place as edit mode begins; leaves faster, by fading.
+// NOTE: a stock preset, no custom initial values (see no-custom-entering-animations.test.ts).
+const DOCK_ENTER = FadeInDown.duration(200).reduceMotion(ReduceMotion.System);
 const DOCK_EXIT = FadeOut.duration(150).reduceMotion(ReduceMotion.System);
 
 const PROGRESS_STEP = {
@@ -229,8 +227,10 @@ const floatingStyle: ViewStyle = {
   right: 24,
 };
 
+// The phone gutter (PageContainer's px-4), so the button does not sit flush on the screen edge.
 const flowStyle: ViewStyle = {
   width: '100%',
+  paddingHorizontal: 16,
 };
 
 const flowRowStyle: ViewStyle = {

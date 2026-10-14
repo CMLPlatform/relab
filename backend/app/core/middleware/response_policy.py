@@ -23,6 +23,10 @@ SENSITIVE_PATH_PREFIXES = (
     "/v1/oauth",
     "/v1/users",
     "/v1/admin",
+    "/v1/plugins/r9cam/pairing",
+    "/v1/plugins/r9cam/cameras",
+    "/v1/plugins/r9cam/device",
+    # TODO(drop-by 2027-01-31): drop the /v1/plugins/rpi-cam/ prefix
     "/v1/plugins/rpi-cam/pairing",
     "/v1/plugins/rpi-cam/cameras",
     "/v1/plugins/rpi-cam/device",

@@ -7,100 +7,126 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-**Upgrading:** the public domain moves to r9lab.io and the product is called R9lab.
-Everyone signs in again once, because the session cookies are renamed (see Changed).
-Self-hosters set their own `*_PUBLIC_URL`, `EMAIL_*` and `SMTP_*` values in the root `.env`;
-the defaults now point at r9lab.io. Operators of the reference deployment follow the
-zone-move runbook in `infra/cloudflare/README.md`, and now pass the zone to the zone recipes:
-`just cloudflare-zone-plan <zone>` and `just cloudflare-zone-apply <zone>`.
+**Upgrading:**
 
-**Upgrading (API clients):** the API base URL is now `https://api.r9lab.io`. The old host only
-redirects (307 or 308) for a transition period. Change the base URL rather than rely on that
-redirect: most HTTP clients drop the `Authorization` header when a redirect moves to another
-host, browsers do not follow redirects on CORS preflight requests, and the session cookies are
-bound to the host that set them.
-
-**Upgrading:** the Cloudflare tunnel token moves from the host's root `.env` into a secret
-file. On each deploy host, before the next `just stack <env> up`, run from the checkout:
-
-```bash
-env=prod   # or staging
-grep '^CLOUDFLARE_TUNNEL_TOKEN=' .env | cut -d= -f2- | tr -d "\"'" >"secrets/$env/cloudflare_tunnel_token"
-chmod 644 "secrets/$env/cloudflare_tunnel_token"
-```
-
-Then delete the `CLOUDFLARE_TUNNEL_TOKEN` line from `.env`. Until the file exists, `up`
-stops before touching the running stack and prints these steps.
-
-### Added
-
-- The zone OpenTofu root keeps one workspace per zone. Both OpenTofu roots refuse a plan whose
-  zone id belongs to another zone.
-- The zone root can redirect every host of a previous zone to the new one
-  (`redirect_to_zone_name`), one environment at a time (`redirect_environments`). The
-  redirects are temporary (302/307) until `redirect_permanent` is set, then permanent
-  (301/308).
-- The zone root can forward mail through Cloudflare Email Routing (`email_forwards`,
-  `cloudflare_account_id`); `r9lab.io.tfvars` forwards `info@r9lab.io`.
-- `just smoke-redirects` checks that the old hosts redirect to the new ones. It sends
-  `TELEMETRY_EDGE_KEY` as `X-Telemetry-Key` for the telemetry probe.
-- On a product or component page, each component row now expands to show its own
-  components, and theirs, as deep as the breakdown goes.
-- The components list shows the total weight of the components, from the weights recorded on
-  each one times its amount. When some components have no weight, it says how many and shows
-  the total as a lower bound.
+- **Breaking:** the deployment identifiers move from `relab` to `r9lab`. Self-hosters: do not
+  plain-pull this release. Follow "Upgrading across the R9lab rename" in
+  `docs/src/content/docs/operations/upgrade-backup.md` (staging first, about an hour), and
+  `deploy/DEPLOY-PROD.md` 1.7 if the host also moves its paths and deploy user. What changes:
+  - The Compose project is `r9lab_<env>`, so every volume and network is renamed.
+  - The database and roles are `r9lab_db`, `r9lab_app`, `r9lab_migrator` and `r9lab_backup`.
+  - Images are `ghcr.io/cmlplatform/r9lab-*`.
+  - `RELAB_*` variables become `R9LAB_*`.
+  - The systemd units are `r9lab-*@<env>`, the checkout is `/opt/r9lab` and the ping file is
+    `/etc/r9lab/r9lab.env`. The deploy user is `r9lab`.
+  - `up`, `migrate`, `rollback` and the backup recipes stop on a host whose data is still in the
+    `relab_<env>` project.
+  - Rolling back past the rename is not supported once traffic reopens.
+- **Breaking:** `just deploy` uses the ssh alias `r9lab-<env>` by default. Rename your ssh
+  aliases, or set `R9LAB_DEPLOY_HOST`.
+- Developers: run `docker compose -p relab_dev down` (and `relab_test`, `relab_e2e`) before the
+  first `just dev-up`. The old dev database is not carried over, so seed it again. Rebuild the
+  devcontainer: the workspace is now `/opt/r9lab`.
+- The repository is now `CMLPlatform/r9lab`. Point existing checkouts at it:
+  `git remote set-url origin https://github.com/CMLPlatform/r9lab.git`. GitHub redirects the old
+  name for now.
 
 ### Changed
 
-- **Breaking:** the session cookies are renamed to `__Host-r9lab-auth`, `__Host-r9lab-refresh`
-  and `__Host-r9lab-oauth-csrf`. The old names are no longer accepted, so every user signs in
-  again once.
-- The product is called R9lab in all user-facing text. The two-factor issuer label is now
-  "R9lab"; authenticator entries already added keep the old label, and their codes still work.
-- Public URLs and contact addresses default to r9lab.io (`info@r9lab.io`).
-- The edge OpenTofu root defaults to the r9lab.io zone. A transitional `legacy_zone_name`
-  keeps the previous zone's hosts served until the move is done.
-- **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
-  `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`, `pages`, `links`)
-  instead of a bare list. Pass `page` and `size` to walk the results.
-- `GET /v1/products/{id}/components/tree` answers 400 when a tree has more than 1,000
-  components; use the paged components route for larger products.
-- `GET /v1/products/{id}/components/tree` accepts `recursion_depth` up to 10, as deep as
-  components can nest, instead of 5.
-- Deleting a product, erasing an account with its content, and creating a product with
-  components each take a fixed number of database queries, however many components there are.
-- The privacy policy now says how long backups keep deleted accounts and uploads:
-  up to 13 months, and backups taken by hand before maintenance until we delete them.
-- The web app downloads about 14 KB less JavaScript before its first screen: the image
-  lightbox, measurement cube, capture screen and streaming sheet now load when first shown.
-- Photo uploads finish faster: thumbnails are made from one decode of the original, about
-  four times quicker for a 12 MP photo.
-- The API no longer generates a 2560px image derivative; `thumbnail_urls` tops
-  out at 1600px. Clients that need more, such as a full-screen lightbox on a high-density
-  phone, load the original. Existing 2560px files are removed by the daily storage cleanup,
-  which cuts about a fifth of the space each photo takes.
+- The landing page and docs Workers are named `r9lab-www-<env>` and `r9lab-docs-<env>`.
+  Self-hosters who run the Cloudflare root follow "Renaming the repository or the Workers" in
+  `infra/cloudflare/README.md`.
+- `just images-verify` checks images against `CMLPlatform/r9lab`. Only `sha-8697ebf`, published
+  between the deployment rename and the repository rename, still verifies against the old
+  repository name.
+- `RELAB_ENVIRONMENT` is gone from `compose.deploy.yaml`; only `R9LAB_ENVIRONMENT` is set.
+- The dataset release build reads only `R9LAB_PSEUDONYM_SALT` (the `RELAB_PSEUDONYM_SALT`
+  fallback is removed) and rejects salts shorter than 32 characters.
+- A restore that fails while replacing the database leaves the API stopped and prints the
+  command to start it again. A failure before the database is touched restarts the API.
+- Camera tokens use the audience `r9cam-relay`. The backend still accepts the old
+  `relab-rpi-cam-relay` until 2027-01-31, so the backend and the Pis can be upgraded in either
+  order and paired cameras keep working.
+
+### Removed
+
+- The legacy admin path `/v1/admin/plugins/rpi-cam` is no longer served. The device and
+  user-facing legacy camera paths stay until 2027-01-31.
 
 ### Fixed
 
-- When the ClamAV scanner answers an upload with an error, the API log now includes its
-  reply, so a rejected upload can be traced to its cause. Clients still see only that
-  scanning is unavailable.
-- The deploy watchdog no longer reports a host that runs a release image as drifted
-  because `main` has moved on. With `IMAGE_TAG` set to a version, it checks that the
-  checkout contains that release's git tag, and alerts if the tag is missing or newer
-  than the checkout.
-- Rows on the profile screen, such as "Delete account?", now tint when hovered or pressed
-- The API reference pages no longer request fonts that the docs site's content
-  security policy blocks.
+- Restoring a backup whose database roles no longer exist (a dump taken before a role rename)
+  now works: the restore skips the dump's owners and grants, then hands ownership to the
+  migration role and restores every grant.
+- `just stack <env> compose ...` keeps quoted arguments that contain spaces whole.
+- The rename guard also refuses while the old `relab_<env>` project still runs or its uploads
+  volume has not been copied.
+
+## [0.5.0] - 2026-10-13
+
+The platform moves to r9lab.io and is now called R9lab. The old cml-relab.org addresses
+redirect for now.
+
+**Upgrading:**
+
+- Everyone signs in again once: the session cookies are renamed.
+- API clients: switch the base URL to `https://api.r9lab.io`. The old host only redirects
+  for a while, and most clients drop the `Authorization` header on a redirect to another host.
+- Self-hosters: set your own `*_PUBLIC_URL`, `EMAIL_*` and `SMTP_*` values in the root `.env`
+  (the defaults now point at r9lab.io), and move the tunnel token out of `.env`:
+
+  ```bash
+  env=prod   # or staging
+  grep '^CLOUDFLARE_TUNNEL_TOKEN=' .env | cut -d= -f2- | tr -d "\"'" >"secrets/$env/cloudflare_tunnel_token"
+  chmod 644 "secrets/$env/cloudflare_tunnel_token"
+  ```
+
+  Then delete the `CLOUDFLARE_TUNNEL_TOKEN` line. `up` refuses to start until the file exists.
+- The zone recipes take the zone: `just cloudflare-zone-plan <zone>`. Moving zones is
+  described in `infra/cloudflare/README.md`.
+
+### Added
+
+- Component rows expand all the way down the breakdown, and the components list shows their
+  total weight (a lower bound when some weights are missing).
+- OpenTofu can redirect an old zone to a new one, one environment at a time, and forward mail
+  with Cloudflare Email Routing. `just smoke-redirects` checks the redirects.
+- A generated `.zenodo.json` gives Zenodo the right title, abstract, authors and licence, and
+  Franco Donati and Marin Visscher are credited as contributors.
+
+### Changed
+
+- **Breaking:** the session cookies are now `__Host-r9lab-auth`, `__Host-r9lab-refresh` and
+  `__Host-r9lab-oauth-csrf`. The old names no longer work.
+- **Breaking:** `GET /v1/products/{id}/components`, `/v1/categories/tree` and
+  `/v1/categories/{id}/subcategories/tree` return a page (`items`, `total`, `page`, `size`,
+  `pages`, `links`) instead of a list. `GET /v1/products/{id}/components/tree` goes 10 levels
+  deep and answers 400 above 1,000 components.
+- The product is called R9lab everywhere, including the authenticator label. Existing
+  authenticator entries keep the old label and still work.
+- Public URLs and the contact address are on r9lab.io (`info@r9lab.io`).
+- Photo uploads are about four times faster, and the 2560px image size is gone:
+  `thumbnail_urls` stops at 1600px, and the daily cleanup removes old 2560px files.
+- The web app loads about 14 KB less JavaScript before the first screen.
+- Deleting products and accounts and creating products with components take a fixed number of
+  database queries.
+- The privacy policy says backups keep deleted data for up to 13 months.
+- The software citation lists Simon van Lierde as author and Franco Donati as contributor.
+
+### Fixed
+
+- Several app layout, focus and heading fixes on web and phone, including the nested
+  component list, the amount stepper and the sign-in heading.
+- Weights under 1 kg show in grams, and photos from a paired camera count toward their owner.
+- The API logs ClamAV's reply when it rejects an upload.
+- The deploy watchdog no longer flags a host on a release image as behind `main`.
+- The API reference no longer loads fonts that the docs CSP blocks.
 
 ### Security
 
-- The docs site now blocks inline scripts other than its own, hashed at build
-  time, instead of allowing any inline script.
-- **Breaking** for self-hosters: the Cloudflare tunnel reads its token from
-  `secrets/<env>/cloudflare_tunnel_token` instead of an environment variable, and runs
-  with a read-only filesystem. `just stack <env> up` refuses to start while a required
-  secret file is missing or empty.
+- The docs site allows only its own hashed inline scripts.
+- **Breaking** for self-hosters: the tunnel reads its token from
+  `secrets/<env>/cloudflare_tunnel_token` and runs with a read-only filesystem.
 
 ## [0.4.0] - 2026-10-02
 
@@ -153,32 +179,32 @@ their account, export their products, and see a product's bill of materials.
   does not reveal which addresses are registered ([#381])
 - Each backend service gets only the secrets it reads ([#381])
 
-[#274]: https://github.com/CMLPlatform/relab/pull/274
-[#276]: https://github.com/CMLPlatform/relab/pull/276
-[#329]: https://github.com/CMLPlatform/relab/pull/329
-[#334]: https://github.com/CMLPlatform/relab/pull/334
-[#335]: https://github.com/CMLPlatform/relab/pull/335
-[#336]: https://github.com/CMLPlatform/relab/pull/336
-[#339]: https://github.com/CMLPlatform/relab/pull/339
-[#340]: https://github.com/CMLPlatform/relab/pull/340
-[#342]: https://github.com/CMLPlatform/relab/pull/342
-[#346]: https://github.com/CMLPlatform/relab/pull/346
-[#347]: https://github.com/CMLPlatform/relab/pull/347
-[#348]: https://github.com/CMLPlatform/relab/pull/348
-[#349]: https://github.com/CMLPlatform/relab/pull/349
-[#353]: https://github.com/CMLPlatform/relab/pull/353
-[#358]: https://github.com/CMLPlatform/relab/pull/358
-[#360]: https://github.com/CMLPlatform/relab/pull/360
-[#362]: https://github.com/CMLPlatform/relab/pull/362
-[#363]: https://github.com/CMLPlatform/relab/pull/363
-[#364]: https://github.com/CMLPlatform/relab/pull/364
-[#367]: https://github.com/CMLPlatform/relab/pull/367
-[#369]: https://github.com/CMLPlatform/relab/pull/369
-[#370]: https://github.com/CMLPlatform/relab/pull/370
-[#372]: https://github.com/CMLPlatform/relab/pull/372
-[#376]: https://github.com/CMLPlatform/relab/pull/376
-[#380]: https://github.com/CMLPlatform/relab/pull/380
-[#381]: https://github.com/CMLPlatform/relab/pull/381
+[#274]: https://github.com/CMLPlatform/r9lab/pull/274
+[#276]: https://github.com/CMLPlatform/r9lab/pull/276
+[#329]: https://github.com/CMLPlatform/r9lab/pull/329
+[#334]: https://github.com/CMLPlatform/r9lab/pull/334
+[#335]: https://github.com/CMLPlatform/r9lab/pull/335
+[#336]: https://github.com/CMLPlatform/r9lab/pull/336
+[#339]: https://github.com/CMLPlatform/r9lab/pull/339
+[#340]: https://github.com/CMLPlatform/r9lab/pull/340
+[#342]: https://github.com/CMLPlatform/r9lab/pull/342
+[#346]: https://github.com/CMLPlatform/r9lab/pull/346
+[#347]: https://github.com/CMLPlatform/r9lab/pull/347
+[#348]: https://github.com/CMLPlatform/r9lab/pull/348
+[#349]: https://github.com/CMLPlatform/r9lab/pull/349
+[#353]: https://github.com/CMLPlatform/r9lab/pull/353
+[#358]: https://github.com/CMLPlatform/r9lab/pull/358
+[#360]: https://github.com/CMLPlatform/r9lab/pull/360
+[#362]: https://github.com/CMLPlatform/r9lab/pull/362
+[#363]: https://github.com/CMLPlatform/r9lab/pull/363
+[#364]: https://github.com/CMLPlatform/r9lab/pull/364
+[#367]: https://github.com/CMLPlatform/r9lab/pull/367
+[#369]: https://github.com/CMLPlatform/r9lab/pull/369
+[#370]: https://github.com/CMLPlatform/r9lab/pull/370
+[#372]: https://github.com/CMLPlatform/r9lab/pull/372
+[#376]: https://github.com/CMLPlatform/r9lab/pull/376
+[#380]: https://github.com/CMLPlatform/r9lab/pull/380
+[#381]: https://github.com/CMLPlatform/r9lab/pull/381
 
 ## [0.3.2] - 2026-09-10
 
@@ -240,54 +266,54 @@ latency, and makes the release and backup paths fail loudly instead of quietly.
 - The app serves a Content-Security-Policy header ([#202])
 - Cloudflare applies are gated on the plan they apply ([#257])
 
-[#199]: https://github.com/CMLPlatform/relab/pull/199
-[#200]: https://github.com/CMLPlatform/relab/pull/200
-[#201]: https://github.com/CMLPlatform/relab/pull/201
-[#202]: https://github.com/CMLPlatform/relab/pull/202
-[#203]: https://github.com/CMLPlatform/relab/pull/203
-[#204]: https://github.com/CMLPlatform/relab/pull/204
-[#206]: https://github.com/CMLPlatform/relab/pull/206
-[#207]: https://github.com/CMLPlatform/relab/pull/207
-[#208]: https://github.com/CMLPlatform/relab/pull/208
-[#209]: https://github.com/CMLPlatform/relab/pull/209
-[#210]: https://github.com/CMLPlatform/relab/pull/210
-[#214]: https://github.com/CMLPlatform/relab/pull/214
-[#215]: https://github.com/CMLPlatform/relab/pull/215
-[#216]: https://github.com/CMLPlatform/relab/pull/216
-[#217]: https://github.com/CMLPlatform/relab/pull/217
-[#218]: https://github.com/CMLPlatform/relab/pull/218
-[#219]: https://github.com/CMLPlatform/relab/pull/219
-[#221]: https://github.com/CMLPlatform/relab/pull/221
-[#222]: https://github.com/CMLPlatform/relab/pull/222
-[#223]: https://github.com/CMLPlatform/relab/pull/223
-[#224]: https://github.com/CMLPlatform/relab/pull/224
-[#225]: https://github.com/CMLPlatform/relab/pull/225
-[#226]: https://github.com/CMLPlatform/relab/pull/226
-[#227]: https://github.com/CMLPlatform/relab/pull/227
-[#228]: https://github.com/CMLPlatform/relab/pull/228
-[#229]: https://github.com/CMLPlatform/relab/pull/229
-[#230]: https://github.com/CMLPlatform/relab/pull/230
-[#233]: https://github.com/CMLPlatform/relab/pull/233
-[#236]: https://github.com/CMLPlatform/relab/pull/236
-[#237]: https://github.com/CMLPlatform/relab/pull/237
-[#238]: https://github.com/CMLPlatform/relab/pull/238
-[#239]: https://github.com/CMLPlatform/relab/pull/239
-[#241]: https://github.com/CMLPlatform/relab/pull/241
-[#243]: https://github.com/CMLPlatform/relab/pull/243
-[#246]: https://github.com/CMLPlatform/relab/pull/246
-[#247]: https://github.com/CMLPlatform/relab/pull/247
-[#249]: https://github.com/CMLPlatform/relab/pull/249
-[#251]: https://github.com/CMLPlatform/relab/pull/251
-[#254]: https://github.com/CMLPlatform/relab/pull/254
-[#257]: https://github.com/CMLPlatform/relab/pull/257
-[#260]: https://github.com/CMLPlatform/relab/pull/260
-[#261]: https://github.com/CMLPlatform/relab/pull/261
-[#262]: https://github.com/CMLPlatform/relab/pull/262
-[#264]: https://github.com/CMLPlatform/relab/pull/264
-[#268]: https://github.com/CMLPlatform/relab/pull/268
-[#269]: https://github.com/CMLPlatform/relab/pull/269
-[#271]: https://github.com/CMLPlatform/relab/pull/271
-[#272]: https://github.com/CMLPlatform/relab/pull/272
+[#199]: https://github.com/CMLPlatform/r9lab/pull/199
+[#200]: https://github.com/CMLPlatform/r9lab/pull/200
+[#201]: https://github.com/CMLPlatform/r9lab/pull/201
+[#202]: https://github.com/CMLPlatform/r9lab/pull/202
+[#203]: https://github.com/CMLPlatform/r9lab/pull/203
+[#204]: https://github.com/CMLPlatform/r9lab/pull/204
+[#206]: https://github.com/CMLPlatform/r9lab/pull/206
+[#207]: https://github.com/CMLPlatform/r9lab/pull/207
+[#208]: https://github.com/CMLPlatform/r9lab/pull/208
+[#209]: https://github.com/CMLPlatform/r9lab/pull/209
+[#210]: https://github.com/CMLPlatform/r9lab/pull/210
+[#214]: https://github.com/CMLPlatform/r9lab/pull/214
+[#215]: https://github.com/CMLPlatform/r9lab/pull/215
+[#216]: https://github.com/CMLPlatform/r9lab/pull/216
+[#217]: https://github.com/CMLPlatform/r9lab/pull/217
+[#218]: https://github.com/CMLPlatform/r9lab/pull/218
+[#219]: https://github.com/CMLPlatform/r9lab/pull/219
+[#221]: https://github.com/CMLPlatform/r9lab/pull/221
+[#222]: https://github.com/CMLPlatform/r9lab/pull/222
+[#223]: https://github.com/CMLPlatform/r9lab/pull/223
+[#224]: https://github.com/CMLPlatform/r9lab/pull/224
+[#225]: https://github.com/CMLPlatform/r9lab/pull/225
+[#226]: https://github.com/CMLPlatform/r9lab/pull/226
+[#227]: https://github.com/CMLPlatform/r9lab/pull/227
+[#228]: https://github.com/CMLPlatform/r9lab/pull/228
+[#229]: https://github.com/CMLPlatform/r9lab/pull/229
+[#230]: https://github.com/CMLPlatform/r9lab/pull/230
+[#233]: https://github.com/CMLPlatform/r9lab/pull/233
+[#236]: https://github.com/CMLPlatform/r9lab/pull/236
+[#237]: https://github.com/CMLPlatform/r9lab/pull/237
+[#238]: https://github.com/CMLPlatform/r9lab/pull/238
+[#239]: https://github.com/CMLPlatform/r9lab/pull/239
+[#241]: https://github.com/CMLPlatform/r9lab/pull/241
+[#243]: https://github.com/CMLPlatform/r9lab/pull/243
+[#246]: https://github.com/CMLPlatform/r9lab/pull/246
+[#247]: https://github.com/CMLPlatform/r9lab/pull/247
+[#249]: https://github.com/CMLPlatform/r9lab/pull/249
+[#251]: https://github.com/CMLPlatform/r9lab/pull/251
+[#254]: https://github.com/CMLPlatform/r9lab/pull/254
+[#257]: https://github.com/CMLPlatform/r9lab/pull/257
+[#260]: https://github.com/CMLPlatform/r9lab/pull/260
+[#261]: https://github.com/CMLPlatform/r9lab/pull/261
+[#262]: https://github.com/CMLPlatform/r9lab/pull/262
+[#264]: https://github.com/CMLPlatform/r9lab/pull/264
+[#268]: https://github.com/CMLPlatform/r9lab/pull/268
+[#269]: https://github.com/CMLPlatform/r9lab/pull/269
+[#271]: https://github.com/CMLPlatform/r9lab/pull/271
+[#272]: https://github.com/CMLPlatform/r9lab/pull/272
 
 ## [0.3.1] - 2026-09-08
 
@@ -564,10 +590,11 @@ Initial release of the Relab platform for circular economy and computer vision r
 - Image and video upload for products
 - Raspberry Pi Camera Plugin for remote image capture
 
-[Unreleased]: https://github.com/CMLPlatform/relab/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/CMLPlatform/relab/compare/v0.3.2...v0.4.0
-[0.3.2]: https://github.com/CMLPlatform/relab/compare/v0.3.1...v0.3.2
-[0.3.1]: https://github.com/CMLPlatform/relab/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/CMLPlatform/relab/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/CMLPlatform/relab/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/CMLPlatform/relab/releases/tag/v0.1.0
+[Unreleased]: https://github.com/CMLPlatform/r9lab/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/CMLPlatform/r9lab/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/CMLPlatform/r9lab/compare/v0.3.2...v0.4.0
+[0.3.2]: https://github.com/CMLPlatform/r9lab/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/CMLPlatform/r9lab/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/CMLPlatform/r9lab/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/CMLPlatform/r9lab/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/CMLPlatform/r9lab/releases/tag/v0.1.0

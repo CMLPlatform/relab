@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useCaptureImageMutation } from '@/features/cameras/rpi/hooks';
+import { useCaptureImageMutation } from '@/features/cameras/r9cam/hooks';
 import { useEffectiveCameraConnection } from '@/features/cameras/useEffectiveCameraConnection';
 import type { Product } from '@/types/Product';
 import { getErrorMessage } from '@/utils/errors';
@@ -137,7 +137,7 @@ export function useProductImageGallery({
         showCameraOption: captureState.showCameraOption,
         showRpiButton: captureState.showRpiButton,
         hasCamerasConfigured: captureState.hasCamerasConfigured,
-        rpiCamerasLoading: captureState.rpiCamerasLoading,
+        r9camsLoading: captureState.r9camsLoading,
         isCapturing: actions.isCapturing,
       },
       actions: {
@@ -176,7 +176,7 @@ export function useProductImageGallery({
       actions.showPreviousImage,
       actions.syncIndexFromScroll,
       captureState.hasCamerasConfigured,
-      captureState.rpiCamerasLoading,
+      captureState.r9camsLoading,
       captureState.showCameraOption,
       captureState.showRpiButton,
       media.imageCount,

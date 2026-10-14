@@ -17,7 +17,7 @@ describe('WhyRelab', () => {
     // repair guidance, and an assumption the pilot did not test. It named an
     // R-strategy recommendation, which is also analysis the platform never does.
     expect(html).not.toMatch(/R-strategy/);
-    expect(html).toMatch(/designed for, not yet delivered/);
+    expect(html).toMatch(/coming in a later release/);
   });
 
   it('never uses the forbidden brand phrasing', async () => {

@@ -28,9 +28,10 @@ __all__ = [
 API_CONTRACT_VERSION = "1.0.0"
 API_MAJOR = "v1"
 
-API_TITLE = "R9lab - Data Collection API"
+API_TITLE = "R9lab \u2013 Data Collection API"  # en dash
 API_DESCRIPTION = (
-    "Data collection app for the R9lab project at CML.\n\n"
+    "Data collection app for the R9lab project at the Institute of Environmental Sciences (CML), "
+    "Leiden University.\n\n"
     "**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write "
     "clients, importers, or integrations against it without inheriting the platform's "
     "copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated "
@@ -45,7 +46,7 @@ PUBLIC_TAG_GROUPS: list[dict[str, str | list[str]]] = [
     {"name": "Auth", "tags": ["auth", "users"]},
     {"name": "Reference Data", "tags": ["categories", "taxonomies", "materials", "product-types"]},
     {"name": "Data Collection", "tags": ["products"]},
-    {"name": "Plugins", "tags": ["rpi-cam-management", "rpi-cam-interaction"]},
+    {"name": "Plugins", "tags": ["r9cam-management", "r9cam-interaction"]},
 ]
 FULL_TAG_GROUPS = [*PUBLIC_TAG_GROUPS, ADMIN_TAG_GROUP]
 
@@ -105,7 +106,7 @@ def build_device_openapi(app: FastAPI) -> dict[str, Any]:
     return _build_filtered_openapi(
         app,
         include_route=_is_device_route,
-        tag_groups=[{"name": "Device", "tags": ["rpi-cam-interaction", "RPi Camera Pairing"]}],
+        tag_groups=[{"name": "Device", "tags": ["r9cam-interaction", "RPi Camera Pairing"]}],
     )
 
 

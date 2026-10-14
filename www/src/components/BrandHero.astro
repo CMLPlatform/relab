@@ -17,6 +17,14 @@ interface Props {
 
 const { stats, appUrl } = Astro.props;
 const appBase = appUrl.replace(/\/$/, '');
+// The figure is baked at build time, so it carries the date it was counted.
+const asOf = (iso: string) =>
+  new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+    year: 'numeric',
+  }).format(new Date(iso));
 ---
 
 <section class="brand-hero">
@@ -26,7 +34,15 @@ const appBase = appUrl.replace(/\/$/, '');
     <img class="brand-light" src={logoUrl} alt="" width="156" height="84" />
     <img class="brand-dark" src={logoDarkUrl} alt="" width="156" height="84" />
   </div>
-  <h1 class="brand-hero-title">{siteMeta.heroTitle}</h1>
+  {/* Keep each hyphenated compound on one line, so a phone never breaks
+      "circular-economy" at its hyphen. */}
+  <h1 class="brand-hero-title">
+    {
+      siteMeta.heroTitle
+        .split(/(\S+-\S+)/)
+        .map((part) => (part.includes('-') ? <span class="nowrap">{part}</span> : part))
+    }
+  </h1>
   <p class="brand-hero-lead">{siteMeta.heroNutshell}</p>
   {/* Two CTAs: reading takes no account, adding does. Each carries its own cost
       on a second line inside the <a>, so it is part of the accessible name. */}
@@ -56,7 +72,11 @@ const appBase = appUrl.replace(/\/$/, '');
     /* One figure, baked at build time. Hidden until a real number exists;
        StatsPanel below is where a live count lives. */
     <p class="brand-hero-metrics" data-metrics hidden={!stats}>
-      {stats ? `${formatCount(stats.totals.parts)} parts documented` : ''}
+      {
+        stats
+          ? `${formatCount(stats.totals.parts)} components documented, as of ${asOf(stats.generatedAt)}`
+          : ''
+      }
     </p>
   }
   <p class="brand-hero-affiliation">{research.affiliation}</p>
@@ -116,6 +136,10 @@ const appBase = appUrl.replace(/\/$/, '');
     text-wrap: balance;
   }
 
+  .nowrap {
+    white-space: nowrap;
+  }
+
   .brand-hero-lead {
     margin: 0;
     max-width: 48ch;
@@ -146,8 +170,8 @@ const appBase = appUrl.replace(/\/$/, '');
 
   .brand-hero-metrics {
     margin: 0;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: var(--relab-type-data-size);
+    font-family: var(--r9lab-brand-font-mono), monospace;
+    font-size: var(--r9lab-type-data-size);
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }

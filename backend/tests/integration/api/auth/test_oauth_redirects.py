@@ -12,7 +12,8 @@ from ._oauth_support import make_auth_flow
 
 pytestmark = pytest.mark.api
 
-ALLOWED_NATIVE_REDIRECT_URI = "relab-app://login"
+ALLOWED_NATIVE_REDIRECT_URI = "r9lab-app://login"
+LEGACY_NATIVE_REDIRECT_URI = "relab-app://login"
 ALLOWED_WEB_REDIRECT_URI = "https://app.example.com/auth/callback"
 
 
@@ -38,8 +39,8 @@ async def test_authorize_rejects_untrusted_redirect_uri(monkeypatch: pytest.Monk
 
 @pytest.mark.parametrize(
     "redirect_uri",
-    [ALLOWED_WEB_REDIRECT_URI, ALLOWED_NATIVE_REDIRECT_URI],
-    ids=["web", "native"],
+    [ALLOWED_WEB_REDIRECT_URI, ALLOWED_NATIVE_REDIRECT_URI, LEGACY_NATIVE_REDIRECT_URI],
+    ids=["web", "native", "native-legacy"],
 )
 async def test_authorize_accepts_exact_allowlisted_redirect_uri(
     redirect_uri: str, monkeypatch: pytest.MonkeyPatch

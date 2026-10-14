@@ -15,7 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useScreenFocusedSafe } from '@/hooks/useScreenFocused';
-import { fetchLocalAccessInfo } from '@/services/api/rpiCamera/access';
+import { fetchLocalAccessInfo } from '@/services/api/r9cam/access';
 import {
   createInitialLocalConnectionState,
   type LocalConnectionMode,
@@ -164,7 +164,7 @@ export function useLocalConnection(
       // fetchQuery shares the in-flight request. gcTime 0 drops the device key
       // from the cache once it resolves.
       const info = await queryClient.fetchQuery({
-        queryKey: ['rpiCameraLocalAccess', cameraId],
+        queryKey: ['r9camLocalAccess', cameraId],
         queryFn: () => fetchLocalAccessInfo(cameraId),
         staleTime: 0,
         gcTime: 0,

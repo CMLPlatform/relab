@@ -8,7 +8,7 @@ import { Icon } from '@/components/base/Icon';
 import { StatusPill } from '@/components/base/StatusPill';
 import type { StreamSession } from '@/context/streamSession';
 import { useStreamSession } from '@/context/streamSession';
-import { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
+import { useStopYouTubeStreamMutation } from '@/features/cameras/r9cam/hooks';
 import { useAppFeedback } from '@/hooks/useAppFeedback';
 import { useElapsed } from '@/hooks/useElapsed';
 import { openExternalUrl } from '@/services/externalLinks';

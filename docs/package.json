@@ -1,7 +1,7 @@
 {
-  "name": "relab-docs",
+  "name": "r9lab-docs",
   "type": "module",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "license": "AGPL-3.0-or-later",
   "contributors": [
@@ -20,7 +20,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:ci": "pnpm run test && pnpm run build && pnpm run test:e2e && pnpm run test:links",
-    "test:links": "linkinator ./dist --verbosity error --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl' --skip 'doi.org' --skip 'github.com/CMLPlatform/relab/blob/'"
+    "test:links": "linkinator ./dist --verbosity error --skip 'mailto:*' --skip 'images/og.png' --skip 'universiteitleiden.nl' --skip 'doi.org' --skip 'github.com/CMLPlatform/r9lab/blob/'"
   },
   "dependencies": {
     "@astrojs/starlight": "0.42.6",

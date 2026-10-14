@@ -12,6 +12,7 @@ import { Icon } from '@/components/base/Icon';
 import { PRESS_TINT } from '@/components/base/pressFeedback';
 import { TextInput } from '@/components/base/TextInput';
 import { WEBSITE_URL } from '@/config';
+import { useScreenEntryFocus } from '@/hooks/useScreenEntryFocus';
 import {
   type NewAccountFormValues,
   PASSWORD_MIN_LENGTH,
@@ -408,6 +409,7 @@ type NewAccountLayoutProps = {
 export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayoutProps) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
+  const entryRef = useScreenEntryFocus();
   return (
     // The keyboard-controller KeyboardAvoidingView AuthScreen uses, so the focused field stays visible.
     <KeyboardAvoidingView behavior="padding" style={styles.flex}>
@@ -419,7 +421,9 @@ export function NewAccountLayout({ children, onNavigateToLogin }: NewAccountLayo
         {/* An intrinsic cap rather than a breakpoint: the column fills narrow screens
             and stops growing past a readable measure, so there's no width at which the
             layout jumps. */}
-        <View className="w-full max-w-[480px]">{children}</View>
+        <View ref={entryRef} role="main" className="w-full max-w-[480px]">
+          {children}
+        </View>
 
         {/* In the flow, not pinned over it: mt-auto drops it to the bottom of a tall
             screen, and on a short one it follows the form instead of covering the

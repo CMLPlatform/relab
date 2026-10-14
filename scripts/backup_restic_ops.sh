@@ -3,9 +3,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-relab-backups-smoke}"
+DEPLOY_BACKUP_IMAGE="${DEPLOY_BACKUP_IMAGE:-r9lab-backups-smoke}"
 # Built by build_migrator_image below; compose names it "<project>-<service>".
-DEPLOY_MIGRATOR_IMAGE="${DEPLOY_MIGRATOR_IMAGE:-relab_test-migrator}"
+DEPLOY_MIGRATOR_IMAGE="${DEPLOY_MIGRATOR_IMAGE:-r9lab_test-migrator}"
 POSTGRES_IMAGE="${POSTGRES_IMAGE:-postgres:18@sha256:78481659c47e862334611ccdaf7c369c986b3046da9857112f3b309114a65fb4}"
 # Runs as root on the deploy host for chown/mkdir/rm on bind mounts, so pinned by digest.
 ALPINE_IMAGE="${ALPINE_IMAGE:-alpine:3.22@sha256:5291449c3df73caf6ed85e649dec1b9e818b39a5d8c871e97afc13e9cd5e8fa8}"
@@ -18,17 +18,32 @@ RESTORE_PG_CONTAINER=""
 RESTORE_TMP_ROOT=""
 RESTORE_HOST_UID=""
 RESTORE_HOST_GID=""
+# Set once the replay and re-provisioning succeeded. A failure after the replay started
+# leaves the API stopped; a failure before it touched the database restarts the API.
+RESTORE_REPLAY_STARTED=false
+RESTORE_OK=false
 
-# Only for dotenv_value; deploy_ops.sh dispatches nothing when sourced.
+# For dotenv_value and compose_project; deploy_ops.sh dispatches nothing when sourced.
 # shellcheck source=scripts/deploy_ops.sh
 . "$ROOT_DIR/scripts/deploy_ops.sh"
 
 restore_cleanup() {
+    # A restore that failed partway leaves tables without owners or grants; restore
+    # them. Idempotent, so harmless after a good restore.
+    if [[ -n "$RESTORE_PG_CONTAINER" ]]; then
+        docker exec "$RESTORE_PG_CONTAINER" bash /docker-entrypoint-initdb.d/provision.sh >/dev/null 2>&1 || true
+    fi
+    # After a failed replay the database is half restored, and the API must not serve it.
     if [[ "$RESTORE_API_WAS_RUNNING" == true ]]; then
-        docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
+        if [[ "$RESTORE_OK" == true || "$RESTORE_REPLAY_STARTED" == false ]]; then
+            docker start "$RESTORE_API_CONTAINER" >/dev/null 2>&1 || true
+        else
+            echo "error: the restore failed, so $RESTORE_API_CONTAINER is left stopped on a partly restored database" >&2
+            echo "       restore again, or once the database is checked, start it with: docker start $RESTORE_API_CONTAINER" >&2
+        fi
     fi
     if [[ -n "$RESTORE_PG_CONTAINER" ]]; then
-        docker exec "$RESTORE_PG_CONTAINER" rm -f /tmp/relab-restore.dump >/dev/null 2>&1 || true
+        docker exec "$RESTORE_PG_CONTAINER" rm -f /tmp/r9lab-restore.dump >/dev/null 2>&1 || true
     fi
     if [[ -n "$RESTORE_TMP_ROOT" && -d "$RESTORE_TMP_ROOT" ]]; then
         docker run --rm -v "$RESTORE_TMP_ROOT:/work" --entrypoint chown "$ALPINE_IMAGE" \
@@ -109,7 +124,7 @@ build_backup_image() {
 # Build through the CI compose files rather than `docker build`, so the build reuses
 # the `type=gha,scope=migrator` cache the other smoke recipes already populate.
 build_migrator_image() {
-    docker compose -p relab_test -f "$ROOT_DIR/compose.yaml" -f "$ROOT_DIR/compose.ci.yaml" build migrator
+    docker compose -p "$(compose_project test)" -f "$ROOT_DIR/compose.yaml" -f "$ROOT_DIR/compose.ci.yaml" build migrator
 }
 
 # A deterministic name can collide with a leftover from a killed run; replace it first.
@@ -130,14 +145,14 @@ reap_stale_container() {
 # container, then assert schema AND rows landed. One function for the smoke test and
 # the live restore, so the sequence CI exercises is the sequence an operator runs.
 # Args: <container> <dump path inside the container> <db user> <db name>
-#       [extra pg_restore args...]
+# Owners and ACLs are not restored: a dump names roles that may no longer exist
+# (renamed or on another cluster), and provision.sh re-owns and re-grants afterwards.
 replay_dump() {
     local container="$1" dump="$2" user="$3" db="$4"
-    shift 4
     # -i: the assertion below is fed on stdin, and without it psql reads EOF, runs
     # nothing and exits 0 -- an assertion that never fails because it never runs.
     local -a psql=(docker exec -i "$container" psql -U "$user" -d "$db" -v ON_ERROR_STOP=1)
-    local -a pg_restore=(docker exec "$container" pg_restore "$@" -U "$user" -d "$db" "$dump")
+    local -a pg_restore=(docker exec "$container" pg_restore --no-owner --no-acl -U "$user" -d "$db" "$dump")
     # The dump is taken with --schema=public and so recreates the schema itself;
     # pre-creating it here makes pg_restore fail on "schema public already exists".
     # Extensions other than pg_trgm live in the "extensions" schema, which the drop
@@ -156,9 +171,11 @@ replay_dump() {
     # to keep working. So read the schema out of the archive and create the extension
     # there. It goes in after pre-data because pre-data recreates "public", which
     # would take a pg_trgm installed there with it.
-    local trgm_schema=public
-    if docker exec "$container" pg_restore --section=post-data -f - "$dump" \
-        | grep -q 'extensions\.gin_trgm_ops'; then
+    # Captured first: grep -q exits on the first match, and under pipefail the SIGPIPE
+    # it sends pg_restore would fail the pipeline and pick "public" wrongly.
+    local trgm_schema=public post_data
+    post_data="$(docker exec "$container" pg_restore --section=post-data -f - "$dump")"
+    if grep -q 'extensions\.gin_trgm_ops' <<<"$post_data"; then
         trgm_schema=extensions
     fi
     "${pg_restore[@]}" --section=pre-data
@@ -178,7 +195,7 @@ verify_postgres_restore() {
     mkdir -p "$work_dir/restore"
     # The backup image runs as uid 65532, so the restore bind mount must be writable by it.
     docker run --rm -v "$work_dir/restore:/work" --entrypoint chown "$ALPINE_IMAGE" -R 65532:65532 /work
-    RESTORE_CONTAINER="${4:-relab_restore_smoke_$(date +%s)_$$}"
+    RESTORE_CONTAINER="${4:-r9lab_restore_smoke_$(date +%s)_$$}"
     reap_stale_container "$RESTORE_CONTAINER"
 
     docker run --rm \
@@ -202,12 +219,12 @@ verify_postgres_restore() {
     # query goes through `docker exec`, so it needs no network.
     docker run -d --name "$RESTORE_CONTAINER" --network none \
         -e POSTGRES_PASSWORD=restore-password \
-        -e POSTGRES_DB=relab_restore \
+        -e POSTGRES_DB=r9lab_restore \
         "$POSTGRES_IMAGE" >/dev/null
 
     local restore_ready=false
     for _ in {1..60}; do
-        if docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -c 'SELECT 1;' \
+        if docker exec "$RESTORE_CONTAINER" psql -U postgres -d r9lab_restore -v ON_ERROR_STOP=1 -c 'SELECT 1;' \
             >/dev/null 2>&1; then
             restore_ready=true
             break
@@ -219,16 +236,95 @@ verify_postgres_restore() {
         exit 1
     fi
 
-    docker cp "$dump_file" "$RESTORE_CONTAINER:/tmp/relab.dump"
-    # --no-acl: the dump carries GRANTs/ALTER DEFAULT PRIVILEGES for roles
-    # (relab_app, relab_migrator, relab_backup) that don't exist on a scratch
-    # cluster; ACLs are irrelevant to a restorability check.
-    replay_dump "$RESTORE_CONTAINER" /tmp/relab.dump postgres relab_restore --no-owner --no-acl
+    docker cp "$dump_file" "$RESTORE_CONTAINER:/tmp/r9lab.dump"
+    replay_dump "$RESTORE_CONTAINER" /tmp/r9lab.dump postgres r9lab_restore
+}
+
+ROLES_SMOKE="r9lab_roles_smoke_$$"
+
+roles_smoke_cleanup() {
+    docker rm -fv "${ROLES_SMOKE}_old" "${ROLES_SMOKE}_new" >/dev/null 2>&1 || true
+    docker network rm "$ROLES_SMOKE" >/dev/null 2>&1 || true
+    rm -rf "${ROLES_SMOKE_DIR:-}"
+}
+
+# Proves a dump taken under roles that no longer exist restores, ends up owned by the
+# migration role, and can still be migrated down and up by that role. Needs Docker.
+smoke_restore_renamed_roles() {
+    ROLES_SMOKE_DIR="$(mktemp -d)"
+    docker network create "$ROLES_SMOKE" >/dev/null
+    build_migrator_image
+
+    # Start a fresh cluster whose roles are named "$1_*"; provision.sh runs from initdb.
+    start_provisioned() {
+        docker run -d --name "$2" --network "$ROLES_SMOKE" \
+            -v "$ROOT_DIR/deploy/postgres/initdb/provision.sh:/docker-entrypoint-initdb.d/provision.sh:ro" \
+            -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres-password -e POSTGRES_DB=r9lab_roles \
+            -e DATABASE_APP_USER="$1_app" -e DATABASE_APP_PASSWORD=app-password \
+            -e DATABASE_MIGRATION_USER="$1_migrator" -e DATABASE_MIGRATION_PASSWORD=migrator-password \
+            -e DATABASE_BACKUP_USER="$1_backup" -e DATABASE_BACKUP_PASSWORD=backup-password \
+            "$POSTGRES_IMAGE" >/dev/null
+        # initdb restarts the server once; wait for the final, TCP-listening one.
+        for _ in {1..90}; do
+            docker exec "$2" pg_isready -h "$2" -U postgres -d r9lab_roles >/dev/null 2>&1 && return 0
+            sleep 1
+        done
+        echo "Postgres container $2 did not become ready" >&2
+        return 1
+    }
+    run_alembic() { # <role prefix> <container> <alembic args...>
+        local prefix="$1" host="$2"
+        shift 2
+        docker run --rm --network "$ROLES_SMOKE" --env-file "$ROOT_DIR/backend/.env.test" \
+            -e DATABASE_HOST="$host" -e POSTGRES_DB=r9lab_roles \
+            -e DATABASE_MIGRATION_USER="${prefix}_migrator" -e DATABASE_MIGRATION_PASSWORD=migrator-password \
+            --entrypoint alembic "$DEPLOY_MIGRATOR_IMAGE" "$@"
+    }
+
+    # relab_* are the role names dumps taken before the R9lab rename still carry.
+    start_provisioned relab "${ROLES_SMOKE}_old"
+    run_alembic relab "${ROLES_SMOKE}_old" upgrade head
+    docker exec "${ROLES_SMOKE}_old" psql -U postgres -d r9lab_roles -v ON_ERROR_STOP=1 \
+        -c "INSERT INTO taxonomy (name, domains) VALUES ('Smoke', ARRAY['PRODUCTS']::taxonomydomain[]);"
+    docker exec "${ROLES_SMOKE}_old" pg_dump -U postgres -d r9lab_roles --format=custom --schema=public \
+        -f /tmp/roles.dump
+    docker cp "${ROLES_SMOKE}_old:/tmp/roles.dump" "$ROLES_SMOKE_DIR/roles.dump"
+
+    # Fresh cluster with different role names: the dump's owners do not exist here.
+    start_provisioned r9lab "${ROLES_SMOKE}_new"
+    docker cp "$ROLES_SMOKE_DIR/roles.dump" "${ROLES_SMOKE}_new:/tmp/roles.dump"
+    replay_dump "${ROLES_SMOKE}_new" /tmp/roles.dump postgres r9lab_roles
+    docker exec "${ROLES_SMOKE}_new" bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
+
+    # Every object in public, the schema itself included, must belong to the migrator.
+    local strays
+    strays="$(
+        docker exec -i "${ROLES_SMOKE}_new" psql -U postgres -d r9lab_roles -tA -v ON_ERROR_STOP=1 -f - <<'SQL'
+SELECT 'schema public' FROM pg_namespace WHERE nspname = 'public' AND pg_get_userbyid(nspowner) <> 'r9lab_migrator'
+UNION ALL SELECT 'table ' || tablename FROM pg_tables WHERE schemaname = 'public' AND tableowner <> 'r9lab_migrator'
+UNION ALL SELECT 'sequence ' || sequencename FROM pg_sequences WHERE schemaname = 'public' AND sequenceowner <> 'r9lab_migrator'
+UNION ALL SELECT 'type ' || typname FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public' AND t.typtype = 'e' AND pg_get_userbyid(t.typowner) <> 'r9lab_migrator'
+UNION ALL SELECT 'function ' || p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND pg_get_userbyid(p.proowner) <> 'r9lab_migrator'
+UNION ALL SELECT 'text search config ' || c.cfgname FROM pg_ts_config c JOIN pg_namespace n ON n.oid = c.cfgnamespace
+    WHERE n.nspname = 'public' AND pg_get_userbyid(c.cfgowner) <> 'r9lab_migrator';
+SQL
+    )"
+    if [[ -n "$strays" ]]; then
+        printf 'Objects not owned by r9lab_migrator after restore:\n%s\n' "$strays" >&2
+        return 1
+    fi
+
+    # The point of owning everything: the migrator can run DDL on it.
+    run_alembic r9lab "${ROLES_SMOKE}_new" downgrade -1
+    run_alembic r9lab "${ROLES_SMOKE}_new" upgrade head
+    echo "✅ Restore with renamed roles smoke test passed"
 }
 
 docker_smoke_backups() {
     tmp_root="$(mktemp -d)"
-    network="relab_backup_smoke_$(date +%s)"
+    network="r9lab_backup_smoke_$(date +%s)"
     postgres_container="${network}_postgres"
     host_uid="$(id -u)"
     host_gid="$(id -g)"
@@ -236,6 +332,7 @@ docker_smoke_backups() {
     cleanup() {
         docker rm -fv "$postgres_container" >/dev/null 2>&1 || true
         docker rm -fv "$RESTORE_CONTAINER" >/dev/null 2>&1 || true
+        roles_smoke_cleanup
         docker network rm "$network" >/dev/null 2>&1 || true
         docker run --rm -v "$tmp_root:/work" --entrypoint chown "$ALPINE_IMAGE" -R "$host_uid:$host_gid" /work \
             >/dev/null 2>&1 || true
@@ -254,31 +351,31 @@ docker_smoke_backups() {
     docker network create "$network" >/dev/null
     docker run -d --name "$postgres_container" --network "$network" \
         -e POSTGRES_PASSWORD=postgres-password \
-        -e POSTGRES_DB=relab_smoke \
+        -e POSTGRES_DB=r9lab_smoke \
         "$POSTGRES_IMAGE" >/dev/null
 
     for _ in {1..60}; do
-        if docker exec "$postgres_container" psql -U postgres -d relab_smoke -v ON_ERROR_STOP=1 -c 'SELECT 1;' \
+        if docker exec "$postgres_container" psql -U postgres -d r9lab_smoke -v ON_ERROR_STOP=1 -c 'SELECT 1;' \
             >/dev/null 2>&1; then
             break
         fi
         sleep 1
     done
 
-    docker exec "$postgres_container" psql -U postgres -d relab_smoke -v ON_ERROR_STOP=1 \
-        -c "CREATE ROLE relab_backup LOGIN PASSWORD 'backup-password';" \
-        -c "GRANT pg_read_all_data TO relab_backup;"
+    docker exec "$postgres_container" psql -U postgres -d r9lab_smoke -v ON_ERROR_STOP=1 \
+        -c "CREATE ROLE r9lab_backup LOGIN PASSWORD 'backup-password';" \
+        -c "GRANT pg_read_all_data TO r9lab_backup;"
 
     # Migrate the scratch database to Alembic head instead of hand-rolling a table: the
     # dump then carries the real schema, so replay_dump's extension list is exercised by
     # every extension a migration installs, not just the ones someone remembered.
     # .env.test supplies the settings alembic's env.py loads; the role overrides point it
-    # at the scratch cluster's bootstrap superuser, which has no relab_* roles.
+    # at the scratch cluster's bootstrap superuser, which has no r9lab_* roles.
     build_migrator_image
     docker run --rm --network "$network" \
         --env-file "$ROOT_DIR/backend/.env.test" \
         -e DATABASE_HOST="$postgres_container" \
-        -e POSTGRES_DB=relab_smoke \
+        -e POSTGRES_DB=r9lab_smoke \
         -e DATABASE_MIGRATION_USER=postgres \
         -e DATABASE_MIGRATION_PASSWORD=postgres-password \
         --entrypoint alembic \
@@ -286,7 +383,7 @@ docker_smoke_backups() {
 
     # One row per table the restore assertions read. The diacritic makes the search
     # assertion below fail unless unaccent survived the round trip.
-    docker exec "$postgres_container" psql -U postgres -d relab_smoke -v ON_ERROR_STOP=1 \
+    docker exec "$postgres_container" psql -U postgres -d r9lab_smoke -v ON_ERROR_STOP=1 \
         -c "INSERT INTO \"user\" (id, email, email_canonical, hashed_password, is_active, is_superuser, is_verified, mfa_enabled)
             VALUES (gen_random_uuid(), 'smoke@example.com', 'smoke@example.com', 'not-a-real-hash',
                     true, false, true, false);" \
@@ -310,9 +407,9 @@ docker_smoke_backups() {
         -v "$tmp_root/offsite:/offsite" \
         -v "$tmp_root/rclone/rclone.conf:/run/secrets/rclone.conf:ro" \
         -e DATABASE_HOST="$postgres_container" \
-        -e DATABASE_BACKUP_USER=relab_backup \
+        -e DATABASE_BACKUP_USER=r9lab_backup \
         -e DATABASE_BACKUP_PASSWORD=backup-password \
-        -e POSTGRES_DB=relab_smoke \
+        -e POSTGRES_DB=r9lab_smoke \
         -e RESTIC_PASSWORD=smoke-password \
         -e RESTIC_OFFSITE_REPOSITORY=rclone:offsite:/offsite \
         -e RCLONE_CONFIG=/run/secrets/rclone.conf \
@@ -343,17 +440,18 @@ docker_smoke_backups() {
     printf 'smoke-password\n' >"$tmp_root/restic_password"
     chmod 0444 "$tmp_root/restic_password"
     verify_postgres_restore "$tmp_root/restic" "$tmp_root/restic_password" "$tmp_root"
-    # No environment marker here: the smoke runs without RELAB_ENVIRONMENT, the same way
+    # No environment marker here: the smoke runs without R9LAB_ENVIRONMENT, the same way
     # dev does, so this asserts the file count only.
     verify_uploads_restore "$tmp_root/restic" "$tmp_root/restic_password" "$tmp_root"
 
     # Present is not the same as functional: exercise the unaccented trigram path and
     # assert the restore landed on the same revision the checkout migrates to.
-    docker exec -i "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -v ON_ERROR_STOP=1 -f - <<'SQL'
+    docker exec -i "$RESTORE_CONTAINER" psql -U postgres -d r9lab_restore -v ON_ERROR_STOP=1 -f - <<'SQL'
 -- pg_trgm sits in "extensions" since revision 4a672549f270 and in "public" in older
 -- snapshots; a search_path covering both keeps "%" resolvable either way, the same
 -- way provision.sh sets it for the deployed roles.
 SET search_path = public, extensions;
+-- relab_unaccent keeps its pre-rename name: migrations and old snapshots define it.
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM category WHERE relab_unaccent(name) % relab_unaccent('cafe')) THEN
@@ -363,12 +461,14 @@ END $$;
 SQL
 
     expected_head="$(docker run --rm --entrypoint alembic "$DEPLOY_MIGRATOR_IMAGE" heads | awk '{print $1}')"
-    restored_head="$(docker exec "$RESTORE_CONTAINER" psql -U postgres -d relab_restore -tAc \
+    restored_head="$(docker exec "$RESTORE_CONTAINER" psql -U postgres -d r9lab_restore -tAc \
         'SELECT version_num FROM alembic_version')"
     if [[ "$restored_head" != "$expected_head" ]]; then
         echo "Restored alembic_version is '$restored_head', expected head '$expected_head'" >&2
         exit 1
     fi
+
+    smoke_restore_renamed_roles
 
     echo "✅ Restic backups smoke test passed"
 }
@@ -402,7 +502,7 @@ backup_offsite_copy() {
     )
 
     # The container derives the repository from the config's one remote
-    # (backup_relab_restic.sh derive_offsite_repository).
+    # (backup_r9lab_restic.sh derive_offsite_repository).
     install -m 0444 "$rclone_config" "$tmp_root/rclone.conf"
     docker_args+=(
         -v "$tmp_root/rclone.conf:/run/secrets/rclone.conf:ro"
@@ -422,7 +522,7 @@ backup_offsite_copy() {
 # SIGKILL.
 verify_uploads_restore() {
     local repo="$1" password_file="$2" scratch="$3" expect_env="${4:-}"
-    local container="${5:-relab_uploads_restore_$(date +%s)_$$}"
+    local container="${5:-r9lab_uploads_restore_$(date +%s)_$$}"
     local target="$scratch/uploads-restore"
 
     # Created and chowned in a container: the backup image runs as uid 65532, and on a
@@ -464,7 +564,7 @@ verify_uploads_restore() {
     echo "Restored $file_count uploaded files from the newest user-uploads snapshot"
 }
 
-# Remove the restore-check scratch tree. Called from relab-restore-check@.service's
+# Remove the restore-check scratch tree. Called from r9lab-restore-check@.service's
 # ExecStopPost since a SIGKILL skips the trap and would leave a decrypted uploads copy on
 # disk; runs in a container because the tree belongs to the backup image's uid.
 # Args: <backup root>.
@@ -537,12 +637,12 @@ backup_restore_smoke() {
         return 1
     fi
 
-    # Deterministic container name: relab-restore-check@.service reaps it by name in
+    # Deterministic container name: r9lab-restore-check@.service reaps it by name in
     # ExecStopPost when systemd kills this job on timeout (see verify_postgres_restore).
     verify_postgres_restore "$DEPLOY_RESTIC_REPOSITORY" "$tmp_root/restic_password" "$tmp_root" \
-        "relab-restore-check-$env"
+        "r9lab-restore-check-$env"
     verify_uploads_restore "$DEPLOY_RESTIC_REPOSITORY" "$tmp_root/restic_password" "$uploads_root" "$env" \
-        "relab-restore-check-$env-uploads"
+        "r9lab-restore-check-$env-uploads"
 
     echo "✅ Backup restore smoke test passed"
 }
@@ -573,8 +673,9 @@ restore_postgres() {
 
     resolve_backup_paths "$env"
 
-    local pg_container="relab_${env}-postgres-1"
-    local api_container="relab_${env}-api-1"
+    local pg_container api_container
+    pg_container="$(compose_project "$env")-postgres-1"
+    api_container="$(compose_project "$env")-api-1"
     if ! docker inspect "$pg_container" >/dev/null 2>&1; then
         echo "Postgres container not found: $pg_container (is the stack up?)" >&2
         exit 1
@@ -612,29 +713,30 @@ restore_postgres() {
     echo "Restoring $(basename "$dump_file") into $pg_container"
 
     # The API is the only writer, so stopping it makes the restore a clean swap rather
-    # than a race against live traffic. restore_cleanup restarts it on the way out even
-    # when pg_restore fails.
+    # than a race against live traffic. restore_cleanup restarts it on the way out only
+    # when the restore succeeded.
     if [[ "$(docker inspect -f '{{.State.Running}}' "$api_container" 2>/dev/null)" == "true" ]]; then
         RESTORE_API_WAS_RUNNING=true
         docker stop "$api_container" >/dev/null
     fi
 
-    docker cp "$dump_file" "$pg_container:/tmp/relab-restore.dump"
+    docker cp "$dump_file" "$pg_container:/tmp/r9lab-restore.dump"
 
-    # The same replay as the smoke test, so CI has exercised this sequence. This path
-    # keeps ACLs: relab_app/relab_migrator/relab_backup exist here, and dropping their
-    # grants would leave the API unable to read its own tables.
+    # The same replay as the smoke test, so CI has exercised this sequence. Owners and
+    # grants come from provision.sh below, not from the dump, so a dump that names roles
+    # this cluster no longer has still restores.
     local pg_user pg_db
     pg_user="$(docker exec "$pg_container" sh -c 'printf %s "${POSTGRES_USER:-postgres}"')"
     pg_db="$(docker exec "$pg_container" sh -c 'printf %s "$POSTGRES_DB"')"
-    replay_dump "$pg_container" /tmp/relab-restore.dump "$pg_user" "$pg_db"
+    RESTORE_REPLAY_STARTED=true
+    replay_dump "$pg_container" /tmp/r9lab-restore.dump "$pg_user" "$pg_db"
 
-    # DROP SCHEMA public CASCADE also took the ALTER DEFAULT PRIVILEGES rows that
-    # give relab_app access to tables future migrations create, and a
-    # --schema=public dump does not carry them back. Existing tables keep their
-    # grants, so the API works until the next migration adds a table. provision.sh
-    # is idempotent and already mounted, so run it again.
+    # The restored objects are owned by the connecting superuser and carry no grants,
+    # and DROP SCHEMA public CASCADE took the default privileges with it. provision.sh
+    # is idempotent and already mounted: it hands ownership to the migration role and
+    # restores every grant.
     docker exec "$pg_container" bash /docker-entrypoint-initdb.d/provision.sh >/dev/null
+    RESTORE_OK=true
 
     echo "✅ Restored $env from snapshot '$snapshot'"
 }
@@ -666,13 +768,17 @@ main() {
         docker-smoke-backups)
             docker_smoke_backups
             ;;
+        docker-smoke-restore-roles)
+            trap roles_smoke_cleanup EXIT
+            smoke_restore_renamed_roles
+            ;;
         backup-offsite-copy)
             backup_offsite_copy "${2:-staging}"
             ;;
         restore-check)
             backup_restore_smoke "${2:-prod}"
             ;;
-        # Not for operators: ExecStopPost in relab-restore-check@.service calls this after
+        # Not for operators: ExecStopPost in r9lab-restore-check@.service calls this after
         # a SIGKILL, since BACKUP_HOST_DIR comes from the repo's .env, not the unit itself.
         restore-check-clean)
             resolve_backup_paths "${2:-prod}"
@@ -685,7 +791,7 @@ main() {
             list_snapshots "${2:-}" "${3:-20}"
             ;;
         *)
-            echo "Usage: $0 {docker-smoke-backups|backup-offsite-copy ENV|restore-check ENV|restore ENV YES [SNAPSHOT]|snapshots ENV [COUNT]}" >&2
+            echo "Usage: $0 {docker-smoke-backups|docker-smoke-restore-roles|backup-offsite-copy ENV|restore-check ENV|restore ENV YES [SNAPSHOT]|snapshots ENV [COUNT]}" >&2
             exit 2
             ;;
     esac

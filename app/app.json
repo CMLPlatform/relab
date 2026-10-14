@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "relab-app",
-    "slug": "relab-app",
-    "version": "0.4.0",
+    "name": "R9lab",
+    "slug": "r9lab-app",
+    "version": "0.5.0",
     "orientation": "portrait",
     "icon": "./src/assets/images/favicon.png",
-    "scheme": "relab-app",
+    "scheme": "r9lab-app",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -24,7 +24,7 @@
         "foregroundImage": "./src/assets/images/favicon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.cml.relabFrontendApp",
+      "package": "io.r9lab.app",
       "allowBackup": false
     },
     "web": {

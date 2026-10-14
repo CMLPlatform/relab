@@ -20,7 +20,11 @@ async function render(props: Record<string, unknown> = {}): Promise<string> {
 describe('BrandHero', () => {
   it('leads with the thesis and the nutshell', async () => {
     const html = await render();
-    expect(html).toContain('Open product data for circular-economy research');
+    const title = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? '';
+    // The thesis reads in full, and the compound never breaks at its hyphen.
+    expect(title.trim()).toMatch(
+      /^Open product data for <span class="nowrap"[^>]*>circular-economy<\/span> research$/,
+    );
     expect(html).toMatch(/R9lab documents how durable goods come apart/);
   });
 
@@ -59,7 +63,7 @@ describe('BrandHero', () => {
   it('shows one headline figure, not a triad, and omits it without stats', async () => {
     const html = await render();
     expect(html).toContain('data-metrics');
-    expect(html).toContain('1,600 parts documented');
+    expect(html).toContain('1,600 components documented, as of 17 Jul 2026');
     // An interpunct-separated totals line reads as decoration.
     expect(html).not.toContain('teardowns ·');
 
@@ -68,7 +72,7 @@ describe('BrandHero', () => {
     const withoutStats = await render({ stats: null });
     expect(withoutStats).toContain('data-metrics');
     expect(withoutStats).toMatch(/<p[^>]*data-metrics[^>]*hidden/);
-    expect(withoutStats).not.toMatch(/parts documented/);
+    expect(withoutStats).not.toMatch(/components documented/);
   });
 
   it('names the institution behind the platform above the fold', async () => {

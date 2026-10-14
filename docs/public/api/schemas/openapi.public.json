@@ -119,7 +119,7 @@
         "title": "Body_auth_session_login_v1_auth_session_login_post",
         "type": "object"
       },
-      "Body_capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post": {
+      "Body_capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post": {
         "properties": {
           "description": {
             "anyOf": [
@@ -144,7 +144,7 @@
         "required": [
           "product_id"
         ],
-        "title": "Body_capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post",
+        "title": "Body_capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post",
         "type": "object"
       },
       "Body_reset_forgot_password_v1_auth_forgot_password_post": {
@@ -179,7 +179,7 @@
         "title": "Body_reset_reset_password_v1_auth_reset_password_post",
         "type": "object"
       },
-      "Body_start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post": {
+      "Body_start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post": {
         "properties": {
           "description": {
             "anyOf": [
@@ -222,7 +222,7 @@
         "required": [
           "product_id"
         ],
-        "title": "Body_start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post",
+        "title": "Body_start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post",
         "type": "object"
       },
       "Body_upload_component_file_v1_components__component_id__files_post": {
@@ -404,8 +404,8 @@
               "crv": "P-256",
               "kid": "cam-key-1",
               "kty": "EC",
-              "x": "base64url-x-coordinate",
-              "y": "base64url-y-coordinate"
+              "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+              "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU"
             }
           }
         ],
@@ -463,7 +463,7 @@
         "type": "string"
       },
       "CameraProperties": {
-        "description": "Static camera properties from libcamera.\n\nFor more info, see https://libcamera.org/api-html/namespacelibcamera_1_1properties.html.",
+        "description": "Static camera properties from libcamera.\n\nFor more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/property_ids_core.yaml.",
         "properties": {
           "Model": {
             "anyOf": [
@@ -830,7 +830,7 @@
         "type": "object"
       },
       "CaptureMetadata": {
-        "description": "Dynamic capture metadata from libcamera.\n\nFor more info, see https://libcamera.org/api-html/namespacelibcamera_1_1controls.html.",
+        "description": "Dynamic capture metadata from libcamera.\n\nFor more info, see https://github.com/raspberrypi/libcamera/blob/main/src/libcamera/control_ids_core.yaml.",
         "properties": {
           "analogue_gain": {
             "anyOf": [
@@ -3062,6 +3062,7 @@
         "type": "object"
       },
       "LocalAccessInfo": {
+        "additionalProperties": false,
         "description": "Plugin -> backend -> frontend local direct-connection bootstrap payload.",
         "properties": {
           "candidate_urls": {
@@ -5541,6 +5542,7 @@
           "kid": {
             "anyOf": [
               {
+                "maxLength": 64,
                 "type": "string"
               },
               {
@@ -5557,6 +5559,7 @@
           "use": {
             "anyOf": [
               {
+                "maxLength": 64,
                 "type": "string"
               },
               {
@@ -5566,12 +5569,16 @@
             "title": "Use"
           },
           "x": {
-            "minLength": 1,
+            "maxLength": 64,
+            "minLength": 42,
+            "pattern": "^[A-Za-z0-9_-]+$",
             "title": "X",
             "type": "string"
           },
           "y": {
-            "minLength": 1,
+            "maxLength": 64,
+            "minLength": 42,
+            "pattern": "^[A-Za-z0-9_-]+$",
             "title": "Y",
             "type": "string"
           }
@@ -6835,12 +6842,12 @@
     }
   },
   "info": {
-    "description": "Data collection app for the R9lab project at CML.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
+    "description": "Data collection app for the R9lab project at the Institute of Environmental Sciences (CML), Leiden University.\n\n**Licensing.** This API specification is licensed Apache-2.0 so that anyone may write clients, importers, or integrations against it without inheriting the platform's copyleft. The R9lab platform software itself remains AGPL-3.0-or-later, and curated dataset releases are licensed CC BY 4.0.",
     "license": {
       "identifier": "Apache-2.0",
       "name": "Apache-2.0"
     },
-    "title": "R9lab - Data Collection API",
+    "title": "R9lab \u2013 Data Collection API",
     "version": "1.0.0",
     "x-api-major": "v1",
     "x-api-version": "1.0.0",
@@ -6904,7 +6911,6 @@
         },
         "summary": "Login with email and password for bearer-token clients",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -6957,9 +6963,8 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Auth:Bearer.Logout",
+        "summary": "Log out a bearer-token client",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7011,9 +7016,8 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Auth:Bearer.Refresh",
+        "summary": "Refresh tokens for bearer-token clients",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7112,8 +7116,6 @@
         },
         "summary": "Complete Mfa Challenge",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7160,8 +7162,6 @@
         },
         "summary": "Claim Oauth Mfa Handoff",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7216,8 +7216,6 @@
         ],
         "summary": "Regenerate Recovery Codes",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7272,8 +7270,6 @@
         ],
         "summary": "Confirm Totp Setup",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7321,8 +7317,6 @@
         ],
         "summary": "Disable Totp",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7357,8 +7351,6 @@
         ],
         "summary": "Start Totp Setup",
         "tags": [
-          "auth",
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7405,7 +7397,6 @@
         },
         "summary": "Register a new user",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7584,7 +7575,6 @@
         },
         "summary": "Login with email and password for browser sessions",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7654,9 +7644,8 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Auth:Session.Logout",
+        "summary": "Log out a browser session",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7702,9 +7691,8 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Auth:Session.Refresh",
+        "summary": "Refresh tokens for browser sessions",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -7730,9 +7718,8 @@
             "APIKeyCookie": []
           }
         ],
-        "summary": "Auth:Sessions.Revoke All",
+        "summary": "Revoke every session of the current user",
         "tags": [
-          "auth",
           "auth"
         ],
         "x-audience": [
@@ -12735,10 +12722,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras": {
+    "/v1/plugins/r9cam/cameras": {
       "get": {
         "description": "Get all Raspberry Pi cameras of the current user.",
-        "operationId": "get_user_cameras_v1_plugins_rpi_cam_cameras_get",
+        "operationId": "get_user_cameras_v1_plugins_r9cam_cameras_get",
         "parameters": [
           {
             "description": "Include camera online status",
@@ -12895,7 +12882,7 @@
                       "type": "array"
                     }
                   ],
-                  "title": "Response Get User Cameras V1 Plugins Rpi Cam Cameras Get"
+                  "title": "Response Get User Cameras V1 Plugins R9Cam Cameras Get"
                 }
               }
             },
@@ -12922,7 +12909,7 @@
         ],
         "summary": "Get Raspberry Pi cameras of the current user",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -12930,8 +12917,8 @@
         ]
       },
       "post": {
-        "description": "Register a new Raspberry Pi camera.\n\nThe normal user flow is /plugins/rpi-cam/pairing/claim. This endpoint is\nkept as a structured API surface for tests/admin automation and still\nrequires a public device key.",
-        "operationId": "register_user_camera_v1_plugins_rpi_cam_cameras_post",
+        "description": "Register a new Raspberry Pi camera.\n\nThe normal user flow is /plugins/r9cam/pairing/claim. This endpoint is\nkept as a structured API surface for tests/admin automation and still\nrequires a public device key.",
+        "operationId": "register_user_camera_v1_plugins_r9cam_cameras_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -12974,7 +12961,7 @@
         ],
         "summary": "Register new Raspberry Pi camera",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -12982,10 +12969,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}": {
+    "/v1/plugins/r9cam/cameras/{camera_id}": {
       "delete": {
         "description": "Delete Raspberry Pi camera.",
-        "operationId": "delete_user_camera_v1_plugins_rpi_cam_cameras__camera_id__delete",
+        "operationId": "delete_user_camera_v1_plugins_r9cam_cameras__camera_id__delete",
         "parameters": [
           {
             "in": "path",
@@ -13023,7 +13010,7 @@
         ],
         "summary": "Delete Raspberry Pi camera",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -13032,7 +13019,7 @@
       },
       "get": {
         "description": "Get single Raspberry Pi camera by ID, if owned by the current user.",
-        "operationId": "get_user_camera_v1_plugins_rpi_cam_cameras__camera_id__get",
+        "operationId": "get_user_camera_v1_plugins_r9cam_cameras__camera_id__get",
         "parameters": [
           {
             "in": "path",
@@ -13092,7 +13079,7 @@
                       "$ref": "#/components/schemas/CameraReadWithStatus"
                     }
                   ],
-                  "title": "Response Get User Camera V1 Plugins Rpi Cam Cameras  Camera Id  Get"
+                  "title": "Response Get User Camera V1 Plugins R9Cam Cameras  Camera Id  Get"
                 }
               }
             },
@@ -13119,7 +13106,7 @@
         ],
         "summary": "Get Raspberry Pi camera by ID",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -13128,7 +13115,7 @@
       },
       "patch": {
         "description": "Update Raspberry Pi camera.",
-        "operationId": "update_user_camera_v1_plugins_rpi_cam_cameras__camera_id__patch",
+        "operationId": "update_user_camera_v1_plugins_r9cam_cameras__camera_id__patch",
         "parameters": [
           {
             "in": "path",
@@ -13183,7 +13170,7 @@
         ],
         "summary": "Update Raspberry Pi camera",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -13191,10 +13178,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/captures": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/captures": {
       "post": {
         "description": "Capture a still image with a remote Raspberry Pi Camera and store it in the file storage. Send optional parent type and ID in the request body to associate the image with another object.",
-        "operationId": "capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post",
+        "operationId": "capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post",
         "parameters": [
           {
             "in": "path",
@@ -13211,7 +13198,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_capture_image_v1_plugins_rpi_cam_cameras__camera_id__captures_post"
+                "$ref": "#/components/schemas/Body_capture_image_v1_plugins_r9cam_cameras__camera_id__captures_post"
               }
             }
           },
@@ -13249,7 +13236,7 @@
         ],
         "summary": "Capture a still image with a remote Raspberry Pi Camera",
         "tags": [
-          "rpi-cam-interaction"
+          "r9cam-interaction"
         ],
         "x-audience": [
           "public",
@@ -13257,10 +13244,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/hls/{hls_path}": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/hls/{hls_path}": {
       "get": {
         "description": "Forward an LL-HLS request to the camera over its WebSocket relay. Playlist requests return ``application/vnd.apple.mpegurl`` text; segment/part requests return binary ``video/mp4`` or ``video/iso.segment``. The frontend simply points ``hls.js`` / ``expo-video`` at this URL and the player walks the manifest on its own.",
-        "operationId": "proxy_hls_v1_plugins_rpi_cam_cameras__camera_id__hls__hls_path__get",
+        "operationId": "proxy_hls_v1_plugins_r9cam_cameras__camera_id__hls__hls_path__get",
         "parameters": [
           {
             "in": "path",
@@ -13312,7 +13299,7 @@
         ],
         "summary": "Proxy LL-HLS playlists and segments from the camera's MediaMTX",
         "tags": [
-          "rpi-cam-interaction"
+          "r9cam-interaction"
         ],
         "x-audience": [
           "public",
@@ -13320,10 +13307,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/local-access": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/local-access": {
       "get": {
         "description": "Relays GET /system/local-access to the Pi via the WebSocket connection. Returns the local API key and candidate IP addresses so the frontend can auto-configure Ethernet/USB-C direct access without manual key copying. Returns 503 when the camera is offline.",
-        "operationId": "get_camera_local_access_v1_plugins_rpi_cam_cameras__camera_id__local_access_get",
+        "operationId": "get_camera_local_access_v1_plugins_r9cam_cameras__camera_id__local_access_get",
         "parameters": [
           {
             "in": "path",
@@ -13368,7 +13355,7 @@
         ],
         "summary": "Get local direct-connection info for a camera",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -13376,10 +13363,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/preview-thumbnail": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/preview-thumbnail": {
       "get": {
         "description": "Serve the owner's cached preview thumbnail.\n\nOwner-checked (``UserOwnedCameraDep`` 404s for non-owners) and served off the\nprivate preview directory rather than the public ``/uploads/images`` mount, so\na camera id alone no longer grants a stranger a recent frame. Cached only\nprivately and revalidated, never long-lived immutable like the public mount.",
-        "operationId": "get_camera_preview_thumbnail_v1_plugins_rpi_cam_cameras__camera_id__preview_thumbnail_get",
+        "operationId": "get_camera_preview_thumbnail_v1_plugins_r9cam_cameras__camera_id__preview_thumbnail_get",
         "parameters": [
           {
             "in": "path",
@@ -13420,7 +13407,7 @@
         ],
         "summary": "Get a camera's cached preview thumbnail",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -13428,10 +13415,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/recording-stream": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/recording-stream": {
       "delete": {
         "description": "Stop the active YouTube recording and return its video record.",
-        "operationId": "stop_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_delete",
+        "operationId": "stop_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_delete",
         "parameters": [
           {
             "in": "path",
@@ -13476,7 +13463,7 @@
         ],
         "summary": "Stop recording to YouTube",
         "tags": [
-          "rpi-cam-interaction"
+          "r9cam-interaction"
         ],
         "x-audience": [
           "public",
@@ -13485,7 +13472,7 @@
       },
       "get": {
         "description": "Fetch the current remote camera stream status from the Raspberry Pi camera plugin.",
-        "operationId": "get_camera_stream_status_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_get",
+        "operationId": "get_camera_stream_status_v1_plugins_r9cam_cameras__camera_id__recording_stream_get",
         "parameters": [
           {
             "in": "path",
@@ -13530,7 +13517,7 @@
         ],
         "summary": "Get the active YouTube recording stream status",
         "tags": [
-          "rpi-cam-interaction"
+          "r9cam-interaction"
         ],
         "x-audience": [
           "public",
@@ -13539,7 +13526,7 @@
       },
       "post": {
         "description": "Start a YouTube recording stream.",
-        "operationId": "start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post",
+        "operationId": "start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post",
         "parameters": [
           {
             "in": "path",
@@ -13556,7 +13543,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_start_recording_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_post"
+                "$ref": "#/components/schemas/Body_start_recording_v1_plugins_r9cam_cameras__camera_id__recording_stream_post"
               }
             }
           },
@@ -13594,7 +13581,7 @@
         ],
         "summary": "Start recording to YouTube",
         "tags": [
-          "rpi-cam-interaction"
+          "r9cam-interaction"
         ],
         "x-audience": [
           "public",
@@ -13602,10 +13589,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/recording-stream/monitor": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/recording-stream/monitor": {
       "get": {
         "description": "Get the YouTube monitor stream for the active backend-owned recording session.",
-        "operationId": "get_recording_monitor_stream_v1_plugins_rpi_cam_cameras__camera_id__recording_stream_monitor_get",
+        "operationId": "get_recording_monitor_stream_v1_plugins_r9cam_cameras__camera_id__recording_stream_monitor_get",
         "parameters": [
           {
             "in": "path",
@@ -13650,7 +13637,7 @@
         ],
         "summary": "Get YouTube livestream monitor stream",
         "tags": [
-          "rpi-cam-interaction"
+          "r9cam-interaction"
         ],
         "x-audience": [
           "public",
@@ -13658,10 +13645,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/status": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/status": {
       "get": {
         "description": "Get Raspberry Pi camera online status.",
-        "operationId": "get_user_camera_status_v1_plugins_rpi_cam_cameras__camera_id__status_get",
+        "operationId": "get_user_camera_status_v1_plugins_r9cam_cameras__camera_id__status_get",
         "parameters": [
           {
             "in": "path",
@@ -13706,7 +13693,7 @@
         ],
         "summary": "Get Raspberry Pi camera online status",
         "tags": [
-          "rpi-cam-management"
+          "r9cam-management"
         ],
         "x-audience": [
           "public",
@@ -13714,10 +13701,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/cameras/{camera_id}/telemetry": {
+    "/v1/plugins/r9cam/cameras/{camera_id}/telemetry": {
       "get": {
         "description": "Return the most recent telemetry snapshot for the camera. Backed by a Redis cache with a 120s TTL so mosaic polling does not fan out one relay round-trip per camera on every refresh. Pass ``force_refresh=true`` to bypass the cache and re-fetch from the Pi.",
-        "operationId": "get_camera_telemetry_v1_plugins_rpi_cam_cameras__camera_id__telemetry_get",
+        "operationId": "get_camera_telemetry_v1_plugins_r9cam_cameras__camera_id__telemetry_get",
         "parameters": [
           {
             "in": "path",
@@ -13772,7 +13759,7 @@
         ],
         "summary": "Get a camera's latest telemetry snapshot",
         "tags": [
-          "rpi-cam-interaction"
+          "r9cam-interaction"
         ],
         "x-audience": [
           "public",
@@ -13780,10 +13767,10 @@
         ]
       }
     },
-    "/v1/plugins/rpi-cam/pairing/claim": {
+    "/v1/plugins/r9cam/pairing/claim": {
       "post": {
         "description": "Claim a pairing code and create a WebSocket-relayed camera.\n\nThe pending record is consumed atomically (GETDEL) so two concurrent claims\nof the same code cannot both succeed: only the winner observes the pending\nrecord and goes on to create the camera. The loser sees a missing key and\ngets the same invalid-code error as an unknown code.",
-        "operationId": "claim_pairing_code_v1_plugins_rpi_cam_pairing_claim_post",
+        "operationId": "claim_pairing_code_v1_plugins_r9cam_pairing_claim_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -21230,8 +21217,8 @@
     {
       "name": "Plugins",
       "tags": [
-        "rpi-cam-management",
-        "rpi-cam-interaction"
+        "r9cam-management",
+        "r9cam-interaction"
       ]
     }
   ]

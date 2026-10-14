@@ -225,7 +225,7 @@ const assembly = teardown?.photos[0] ?? null;
           {/* Never a silent cap: say what was left out. */}
           {withheld > 0 && (
             <p class="blueprint-extract" data-extract>
-              {`Showing the ${shown.length} heaviest of ${parts.length} recorded parts`}
+              {`Showing the ${shown.length} heaviest of ${parts.length} recorded components`}
             </p>
           )}
         </div>
@@ -291,8 +291,8 @@ const assembly = teardown?.photos[0] ?? null;
   /* Record provenance caption. */
   .blueprint-provenance {
     margin: 0;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: var(--relab-type-caption-size);
+    font-family: var(--r9lab-brand-font-mono), monospace;
+    font-size: var(--r9lab-type-caption-size);
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }
@@ -301,8 +301,8 @@ const assembly = teardown?.photos[0] ?? null;
   .blueprint-open {
     position: relative;
     justify-self: start;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: var(--relab-type-caption-size);
+    font-family: var(--r9lab-brand-font-mono), monospace;
+    font-size: var(--r9lab-type-caption-size);
     color: var(--color-primary);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
@@ -327,8 +327,8 @@ const assembly = teardown?.photos[0] ?? null;
   /* Same caption register as the provenance line. */
   .blueprint-extract {
     margin: -0.2rem 0 0;
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: var(--relab-type-micro-size);
+    font-family: var(--r9lab-brand-font-mono), monospace;
+    font-size: var(--r9lab-type-micro-size);
     font-variant-numeric: tabular-nums;
     color: var(--color-muted);
   }
@@ -342,7 +342,7 @@ const assembly = teardown?.photos[0] ?? null;
 
   .blueprint-title {
     margin: 0;
-    font-size: var(--relab-type-title-size);
+    font-size: var(--r9lab-type-title-size);
     color: var(--color-on-surface);
   }
 
@@ -352,8 +352,8 @@ const assembly = teardown?.photos[0] ?? null;
     padding: 0.2rem 0.55rem;
     border: 1px solid var(--color-page-border);
     border-radius: var(--radius-control);
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: var(--relab-type-micro-size);
+    font-family: var(--r9lab-brand-font-mono), monospace;
+    font-size: var(--r9lab-type-micro-size);
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--color-muted);
@@ -383,7 +383,7 @@ const assembly = teardown?.photos[0] ?? null;
     border: 1px solid var(--color-page-border);
     border-radius: var(--radius-control);
     background: color-mix(in srgb, var(--color-surface-raised) 82%, transparent);
-    font-size: var(--relab-type-body-size);
+    font-size: var(--r9lab-type-body-size);
   }
 
   .blueprint-parts--plates > li {
@@ -434,14 +434,14 @@ const assembly = teardown?.photos[0] ?? null;
 
   .blueprint-parts--plates .blueprint-part-name {
     grid-column: 1 / -1;
-    font-size: var(--relab-type-caption-size);
+    font-size: var(--r9lab-type-caption-size);
     line-height: 1.3;
     overflow-wrap: anywhere;
   }
 
   .blueprint-parts--plates .blueprint-part-mass {
     grid-column: 1 / -1;
-    font-size: var(--relab-type-micro-size);
+    font-size: var(--r9lab-type-micro-size);
     color: var(--color-muted);
   }
 
@@ -513,8 +513,8 @@ const assembly = teardown?.photos[0] ?? null;
     border-bottom: 1px solid var(--color-page-border);
     border-bottom-right-radius: calc(var(--radius-control) - 2px);
     background: var(--color-surface-raised);
-    font-family: var(--relab-brand-font-mono), monospace;
-    font-size: var(--relab-type-micro-size);
+    font-family: var(--r9lab-brand-font-mono), monospace;
+    font-size: var(--r9lab-type-micro-size);
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
     color: var(--color-muted);
@@ -694,7 +694,7 @@ const assembly = teardown?.photos[0] ?? null;
     align-items: baseline;
     gap: 1rem;
     padding: 0 0.65rem 0 1.6rem;
-    font-size: var(--relab-type-caption-size);
+    font-size: var(--r9lab-type-caption-size);
   }
 
   /* Subcomponents open inside the plate's frame: same floor as the summary,
@@ -710,7 +710,7 @@ const assembly = teardown?.photos[0] ?? null;
     flex-wrap: wrap;
     gap: 0 0.6rem;
     padding: 0 0 0 0.3rem;
-    font-size: var(--relab-type-micro-size);
+    font-size: var(--r9lab-type-micro-size);
   }
 
   .blueprint-subpart-name {
@@ -718,7 +718,7 @@ const assembly = teardown?.photos[0] ?? null;
   }
 
   .blueprint-part-mass {
-    font-family: var(--relab-brand-font-mono), monospace;
+    font-family: var(--r9lab-brand-font-mono), monospace;
     font-variant-numeric: tabular-nums;
     color: var(--color-on-surface);
     white-space: nowrap;

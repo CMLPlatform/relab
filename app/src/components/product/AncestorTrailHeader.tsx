@@ -24,12 +24,29 @@ export function AncestorTrailHeader({
   // The phone header has ~260px beside the back button; the lg page header row
   // spans the content column, so names there need not be cut to a stub.
   const { isLg } = useBreakpoint();
-  const perCrumbLimit = isLg ? 36 : ancestors.length > 1 ? 14 : 20;
+  // Two crumbs plus the current name already fill the phone header, so deeper
+  // records show only their direct parent there, behind an ellipsis. The
+  // parent's own trail reaches the rest, and the lg header shows them all.
+  const collapsed = !isLg && ancestors.length > 1;
+  const shown = collapsed ? ancestors.slice(-1) : ancestors;
+  const perCrumbLimit = isLg ? 36 : 20;
   return (
     <View
       style={{ maxWidth: isLg ? 720 : 260, flexDirection: 'row', alignItems: 'center', gap: 6 }}
     >
-      {ancestors.map((crumb) => (
+      {collapsed ? (
+        <View
+          aria-hidden
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          testID="ancestor-trail-ellipsis"
+        >
+          <AppText variant="caption" className="text-muted-foreground">
+            …
+          </AppText>
+          <Icon name="chevron-right" size="sm" color={theme.colors.mutedForeground} />
+        </View>
+      ) : null}
+      {shown.map((crumb) => (
         <TrailCrumb
           key={crumb.id}
           crumb={crumb}

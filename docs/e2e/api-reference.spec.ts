@@ -40,19 +40,36 @@ test.describe('API reference pages', () => {
     await expect(apiNav.getByRole('separator')).toBeVisible();
     await expect(apiNav.getByRole('link', { exact: true, name: 'RPi camera API' })).toHaveAttribute(
       'href',
-      '/api/rpi-cam/',
+      '/api/r9cam/',
     );
     // Starlight chrome must not leak into the standalone reference pages; the
     // sidebar and search that do render belong to Scalar.
     await expect(page.locator('site-search')).toHaveCount(0);
     await expect(page.getByRole('navigation', { name: 'Main' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'R9lab - Data Collection API' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'R9lab – Data Collection API' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Download OpenAPI Document' })).toHaveAttribute(
       'href',
       '/api/schemas/openapi.public.json',
     );
     await expect(page.getByText('/v1/auth/bearer/login').first()).toBeVisible();
     await expect(page.getByText(/Bearer/i).first()).toBeVisible();
+    // BRAND_CSS targets Scalar internals to reach the WCAG 2.5.8 24px minimum;
+    // a Scalar upgrade that renames them fails here.
+    for (const selector of [
+      '[data-sidebar-id] button[aria-expanded].absolute',
+      'button[id^="headlessui-popover-button"]',
+    ]) {
+      const targets = page.locator(selector);
+      await expect(targets.first()).toBeVisible();
+      for (const box of await Promise.all(
+        (await targets.all()).map((target) => target.boundingBox()),
+      )) {
+        if (selector.startsWith('[data-sidebar-id]')) {
+          expect(box?.width).toBeGreaterThanOrEqual(24);
+        }
+        expect(box?.height).toBeGreaterThanOrEqual(24);
+      }
+    }
     await expect(page.getByText(/Add API/i)).toHaveCount(0);
     await expect(page.getByText(/Open in Scalar/i)).toHaveCount(0);
     await expect(page.getByText(/Scalar Agent/i)).toHaveCount(0);
@@ -68,7 +85,7 @@ test.describe('API reference pages', () => {
       'href',
       '/api/schemas/openapi.device.json',
     );
-    await expect(page.getByText('/v1/plugins/rpi-cam/pairing/register').first()).toBeVisible();
+    await expect(page.getByText('/v1/plugins/r9cam/pairing/register').first()).toBeVisible();
     await expect(page.getByText(/Add API/i)).toHaveCount(0);
     await expect(page.getByText(/Open in Scalar/i)).toHaveCount(0);
     await expect(page.getByText(/Scalar Agent/i)).toHaveCount(0);
@@ -77,7 +94,7 @@ test.describe('API reference pages', () => {
   });
 
   test('RPi camera API reference renders from the committed docs schema', async ({ page }) => {
-    await page.goto('/api/rpi-cam/');
+    await page.goto('/api/r9cam/');
 
     await expect(page).toHaveTitle('R9lab RPi camera API · R9lab docs');
     await expect(page.getByRole('heading', { name: 'Get camera status' })).toBeVisible();
@@ -117,9 +134,9 @@ test.describe('API reference discoverability', () => {
 
   for (const path of [
     '/user-guides/api/',
-    '/user-guides/rpi-cam/',
+    '/user-guides/r9cam/',
     '/architecture/api/',
-    '/architecture/rpi-cam/',
+    '/architecture/r9cam/',
   ]) {
     test(`${path} links to the API reference overview`, async ({ page }) => {
       await page.goto(path);
@@ -129,6 +146,13 @@ test.describe('API reference discoverability', () => {
           .getByRole('link', { exact: true, name: 'API reference overview' })
           .first(),
       ).toHaveAttribute('href', '/api-reference/');
+    });
+  }
+
+  for (const section of ['user-guides', 'architecture', 'api']) {
+    test(`/${section}/rpi-cam/ redirects to the r9cam page`, async ({ page }) => {
+      await page.goto(`/${section}/rpi-cam/`);
+      await expect(page).toHaveURL(`/${section}/r9cam/`);
     });
   }
 });

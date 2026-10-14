@@ -28,11 +28,11 @@ def _database_role_kwargs() -> dict[str, DatabaseSettings]:
     """Return a DatabaseSettings with valid split-role credentials for production-like settings."""
     return {
         "database": DatabaseSettings(
-            app_user="relab_app",
+            app_user="r9lab_app",
             app_password=SecretStr("app-password"),
-            migration_user="relab_migrator",
+            migration_user="r9lab_migrator",
             migration_password=SecretStr("migration-password"),
-            backup_user="relab_backup",
+            backup_user="r9lab_backup",
             backup_password=SecretStr("backup-password"),
         )
     }
@@ -202,8 +202,8 @@ def test_dos_hardening_defaults_are_conservative() -> None:
     assert settings.api_write_rate_limit == "120/minute"
     assert settings.api_upload_rate_limit == "30/minute"
     assert settings.api_export_rate_limit == "10/minute"
-    assert settings.rpi_cam_ws_auth_rate_limit == "10/minute"
-    assert settings.rpi_cam_ws_binary_frame_limit_bytes == 10_485_760
+    assert settings.r9cam_ws_auth_rate_limit == "10/minute"
+    assert settings.r9cam_ws_binary_frame_limit_bytes == 10_485_760
     assert settings.trusted_proxy_cidrs == ("127.0.0.0/8", "::1/128")
 
 
@@ -271,7 +271,7 @@ def test_build_database_url_preserves_reserved_password_characters() -> None:
         ),
     )
 
-    url = settings.database.build_database_url("asyncpg", "relab_db")
+    url = settings.database.build_database_url("asyncpg", "r9lab_db")
     parsed = make_url(url)
 
     assert parsed.drivername == "postgresql+asyncpg"
@@ -279,7 +279,7 @@ def test_build_database_url_preserves_reserved_password_characters() -> None:
     assert parsed.password == "p@ss:word/with?chars"
     assert parsed.host == "database.internal"
     assert parsed.port == 5432
-    assert parsed.database == "relab_db"
+    assert parsed.database == "r9lab_db"
 
 
 def test_cache_url_preserves_reserved_password_characters() -> None:
@@ -312,9 +312,9 @@ def test_database_urls_use_least_privilege_roles() -> None:
         environment=Environment.DEV,
         database=DatabaseSettings(
             host="database.internal",
-            app_user="relab_app",
+            app_user="r9lab_app",
             app_password=SecretStr("app-password"),
-            migration_user="relab_migrator",
+            migration_user="r9lab_migrator",
             migration_password=SecretStr("migration-password"),
         ),
     )
@@ -322,9 +322,9 @@ def test_database_urls_use_least_privilege_roles() -> None:
     async_url = make_url(settings.database.async_url)
     migration_url = make_url(settings.database.sync_migration_url)
 
-    assert async_url.username == "relab_app"
+    assert async_url.username == "r9lab_app"
     assert async_url.password == "app-password"
-    assert migration_url.username == "relab_migrator"
+    assert migration_url.username == "r9lab_migrator"
     assert migration_url.password == "migration-password"
 
 
@@ -338,9 +338,9 @@ def test_database_role_passwords_can_load_from_secret_files(tmp_path: Path) -> N
     db = DatabaseSettings(
         _env_file=None,
         _secrets_dir=tmp_path,
-        app_user="relab_app",
-        migration_user="relab_migrator",
-        backup_user="relab_backup",
+        app_user="r9lab_app",
+        migration_user="r9lab_migrator",
+        backup_user="r9lab_backup",
     )
     redis = RedisSettings(_env_file=None, _secrets_dir=tmp_path)
     settings = CoreSettings(
@@ -411,9 +411,9 @@ def test_production_can_load_runtime_passwords_from_secret_files(
     db = DatabaseSettings(
         _env_file=None,
         _secrets_dir=tmp_path,
-        app_user="relab_app",
-        migration_user="relab_migrator",
-        backup_user="relab_backup",
+        app_user="r9lab_app",
+        migration_user="r9lab_migrator",
+        backup_user="r9lab_backup",
     )
     redis = RedisSettings(_env_file=None, _secrets_dir=tmp_path)
 
@@ -442,11 +442,11 @@ def test_production_rejects_missing_redis_secret_file(tmp_path: Path) -> None:
     db = DatabaseSettings(
         _env_file=None,
         _secrets_dir=tmp_path,
-        app_user="relab_app",
+        app_user="r9lab_app",
         app_password=SecretStr("app-secret"),
-        migration_user="relab_migrator",
+        migration_user="r9lab_migrator",
         migration_password=SecretStr("migration-secret"),
-        backup_user="relab_backup",
+        backup_user="r9lab_backup",
         backup_password=SecretStr("backup-secret"),
     )
 
@@ -504,11 +504,11 @@ def test_async_database_connect_args_verify_full_uses_ssl_context() -> None:
     settings = CoreSettings(
         **_production_core_settings_kwargs(
             database=DatabaseSettings(
-                app_user="relab_app",
+                app_user="r9lab_app",
                 app_password=SecretStr("app-password"),
-                migration_user="relab_migrator",
+                migration_user="r9lab_migrator",
                 migration_password=SecretStr("migration-password"),
-                backup_user="relab_backup",
+                backup_user="r9lab_backup",
                 backup_password=SecretStr("backup-password"),
                 tls=True,
             )
@@ -607,7 +607,7 @@ def test_production_rejects_duplicate_database_runtime_roles() -> None:
     """Production database runtime, migration, and backup roles must be distinct."""
     base_db = _database_role_kwargs()["database"]
     dup_overrides = base_db.model_dump()
-    dup_overrides["migration_user"] = "relab_app"
+    dup_overrides["migration_user"] = "r9lab_app"
     dup_db = DatabaseSettings(**dup_overrides)
     with pytest.raises(ValidationError, match="Database app, migration, and backup users must be distinct"):
         CoreSettings(**_production_core_settings_kwargs(database=dup_db))

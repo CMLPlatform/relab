@@ -41,37 +41,45 @@ const SIDEBAR = [
   {
     label: 'Guides',
     items: [
+      { label: 'Guides overview', slug: 'user-guides' },
       { label: 'Getting started', slug: 'user-guides/getting-started' },
       { label: 'Data collection', slug: 'user-guides/data-collection' },
       { label: 'Glossary', slug: 'user-guides/glossary' },
       { label: 'Hardware', slug: 'user-guides/hardware' },
-      { label: 'RPi camera', slug: 'user-guides/rpi-cam' },
-      { label: 'API', slug: 'user-guides/api' },
+      { label: 'r9cam setup', slug: 'user-guides/r9cam' },
+      { label: 'Using the API', slug: 'user-guides/api' },
     ],
   },
   {
     label: 'Architecture',
     items: [
+      { label: 'Architecture overview', slug: 'architecture' },
       { label: 'System design', slug: 'architecture/system-design' },
       { label: 'App navigation flow', slug: 'architecture/app-flow' },
       { label: 'Data model', slug: 'architecture/datamodel' },
       { label: 'API structure', slug: 'architecture/api' },
       { label: 'API reference', slug: 'api-reference' },
       { label: 'Authentication', slug: 'architecture/auth' },
-      { label: 'RPi camera plugin', slug: 'architecture/rpi-cam' },
+      { label: 'r9cam', slug: 'architecture/r9cam' },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { label: 'Install and self-host', slug: 'operations/install' },
-      { label: 'Deployment', slug: 'operations/deployment' },
+      { label: 'Prerequisites', slug: 'operations/prerequisites' },
+      { label: 'Install', slug: 'operations/install' },
+      { label: 'Configure', slug: 'operations/configure' },
+      { label: 'Deploy', slug: 'operations/deploy' },
+      { label: 'Upgrade and backup', slug: 'operations/upgrade-backup' },
+      { label: 'Deployment and operations', slug: 'operations/deployment' },
       { label: 'Security and hardening', slug: 'operations/security' },
     ],
   },
   {
     label: 'Project',
     items: [
+      { label: 'Project context', slug: 'project' },
+      { label: 'The 9R framework', slug: 'project/9r-framework' },
       { label: 'Use cases', slug: 'project/use-cases' },
       { label: 'Roadmap', slug: 'project/roadmap' },
       { label: 'Dataset', slug: 'project/dataset' },
@@ -87,9 +95,9 @@ const STARLIGHT_OPTIONS = {
   titleDelimiter: '·',
   lastUpdated: true,
   pagefind: true,
-  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/relab' }],
+  social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/CMLPlatform/r9lab' }],
   editLink: {
-    baseUrl: 'https://github.com/CMLPlatform/relab/edit/main/docs/',
+    baseUrl: 'https://github.com/CMLPlatform/r9lab/edit/main/docs/',
   },
   customCss: CUSTOM_CSS,
   head: HEAD_LINKS,
@@ -109,6 +117,13 @@ const site = process.env.PUBLIC_DOCS_URL?.trim() || MODE_SITES[buildMode] || MOD
 
 export default defineConfig({
   site,
+  // TODO(drop-by 2027-01-31): drop these redirects once the old rpi-cam links have stopped
+  // arriving (the same date the backend drops its legacy camera paths).
+  redirects: {
+    '/user-guides/rpi-cam': '/user-guides/r9cam/',
+    '/architecture/rpi-cam': '/architecture/r9cam/',
+    '/api/rpi-cam': '/api/r9cam/',
+  },
   vite: {
     server: {
       watch: {

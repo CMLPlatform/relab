@@ -1,6 +1,8 @@
 // biome-ignore-all lint/style/useGlobalThis: window is the correct reference for browser DOM APIs (localStorage/matchMedia); happy-dom exposes these on window, not globalThis.
-const STORAGE_KEY = 'relab-theme';
-// Mirrors --relab-brand-theme-color in src/styles/brand.css (a meta tag cannot
+const STORAGE_KEY = 'r9lab-theme';
+// TODO(drop-by 2027-01-31): drop the relab-theme fallback
+const LEGACY_STORAGE_KEY = 'relab-theme';
+// Mirrors --r9lab-brand-theme-color in src/styles/brand.css (a meta tag cannot
 // read the CSS light-dark() token); theme.test.ts pins the two against drift.
 const THEME_META_COLORS = { light: '#edf1f7', dark: '#0a0f1a' } as const;
 const THEMES = ['system', 'light', 'dark'] as const;
@@ -12,7 +14,7 @@ function isThemeName(value: string | null | undefined): value is ThemeName {
 }
 
 function getStoredTheme(storage: Storage = window.localStorage): ThemeName {
-  const storedTheme = storage.getItem(STORAGE_KEY);
+  const storedTheme = storage.getItem(STORAGE_KEY) ?? storage.getItem(LEGACY_STORAGE_KEY);
   if (isThemeName(storedTheme)) {
     return storedTheme;
   }

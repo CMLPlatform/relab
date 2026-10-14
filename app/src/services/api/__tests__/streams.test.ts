@@ -5,7 +5,7 @@ import {
   getStreamStatus,
   startYouTubeStream,
   stopYouTubeStream,
-} from '@/services/api/rpiCamera/streams';
+} from '@/services/api/r9cam/streams';
 
 jest.mock('@/services/api/auth/authRefresh', () => ({
   fetchWithAuth: jest.fn(),
@@ -29,14 +29,14 @@ function mockResponse({
   } as Response);
 }
 
-describe('rpiCamera streams service', () => {
+describe('r9cam streams service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('builds the relay HLS playlist URL for a camera preview', () => {
     expect(buildCameraHlsUrl('cam-live')).toContain(
-      '/plugins/rpi-cam/cameras/cam-live/hls/cam-preview/index.m3u8',
+      '/plugins/r9cam/cameras/cam-live/hls/cam-preview/index.m3u8',
     );
   });
 
@@ -56,7 +56,7 @@ describe('rpiCamera streams service', () => {
     ).resolves.toEqual(payload);
 
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-1/recording-stream'),
+      expect.stringContaining('/plugins/r9cam/cameras/cam-1/recording-stream'),
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -113,7 +113,7 @@ describe('rpiCamera streams service', () => {
     await expect(getStreamStatus('cam-4')).resolves.toEqual(payload);
 
     expect(mockFetchWithAuth).toHaveBeenCalledWith(
-      expect.stringContaining('/plugins/rpi-cam/cameras/cam-4/recording-stream'),
+      expect.stringContaining('/plugins/r9cam/cameras/cam-4/recording-stream'),
       expect.objectContaining({
         method: 'GET',
         headers: { Accept: 'application/json' },

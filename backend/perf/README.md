@@ -16,11 +16,11 @@ A small `k6` suite that catches latency regressions in common backend paths and 
 | `media_url_read`    | media URL      | `PERF_MEDIA_URL` set                           |
 | `product_create_write` | `POST /v1/products` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
 | `image_upload_write` | `POST /v1/products/{id}/images` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
-| `rpi_cam_ws_connect` | camera relay WebSocket handshake | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
-| `rpi_cam_telemetry_relay` | `GET .../cameras/{id}/telemetry?force_refresh=true` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
-| `rpi_cam_hls_relay` | `GET .../cameras/{id}/hls/{segment}` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
-| `rpi_cam_capture` | `POST .../cameras/{id}/captures` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
-| `rpi_cam_preview_upload` | `POST .../device/cameras/{id}/preview-thumbnail-upload` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
+| `r9cam_ws_connect` | camera relay WebSocket handshake | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
+| `r9cam_telemetry_relay` | `GET .../cameras/{id}/telemetry?force_refresh=true` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
+| `r9cam_hls_relay` | `GET .../cameras/{id}/hls/{segment}` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
+| `r9cam_capture` | `POST .../cameras/{id}/captures` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
+| `r9cam_preview_upload` | `POST .../device/cameras/{id}/preview-thumbnail-upload` | `PERF_USER_EMAIL` and `PERF_USER_PASSWORD` set |
 
 `just docker-ci-perf-baseline` fills the gated inputs itself. It reads the first seeded product's
 `thumbnail_url` from the running stack into `PERF_MEDIA_URL`, and fails rather than silently
@@ -79,16 +79,16 @@ and a shared runner in the number.
 device opens, and user requests reach it as frames over that socket. An HTTP latency number alone
 cannot see it, so for the relay a regression is any of these:
 
-- **Connection setup**: `ws_connecting` p95 in `rpi_cam_ws_connect`. Each iteration signs a fresh
+- **Connection setup**: `ws_connecting` p95 in `r9cam_ws_connect`. Each iteration signs a fresh
   device assertion and opens a socket, so this measures the handshake plus the ES256 verification,
   the replay check in Redis and the camera lookup.
-- **Round-trip latency**: `http_req_duration` p95 of a relayed request. `rpi_cam_telemetry_relay`
-  carries a small JSON response, `rpi_cam_hls_relay` an 87 KB binary frame, and `rpi_cam_capture`
+- **Round-trip latency**: `http_req_duration` p95 of a relayed request. `r9cam_telemetry_relay`
+  carries a small JSON response, `r9cam_hls_relay` an 87 KB binary frame, and `r9cam_capture`
   the full capture path: the relayed command, the device's image push and the stored image.
 - **Dropped or failed relay**: `http_req_failed` in those stages. A lost frame or a dead socket
   surfaces as a 503 once the relay times out.
 
-The camera is simulated in k6 itself rather than by `scripts/plugins/rpi_cam/webcam_fake_camera.py`,
+The camera is simulated in k6 itself rather than by `scripts/plugins/r9cam/webcam_fake_camera.py`,
 which needs a webcam and predates device assertions. `setup()` registers a camera with a fresh P-256
 key, and the fake device signs the same ES256 assertion a paired Pi does, so the auth path is the
 real one. One device VU holds the relay socket open for the three relayed stages and answers their
@@ -96,7 +96,7 @@ commands, from halfway through the gap before them to halfway through the gap af
 keeps one socket per camera, so connecting earlier lets a straggling connect-stage socket replace
 it, and closing earlier fails the last capture still in flight.
 
-`rpi_cam_preview_upload` needs no socket: it is the device-side HTTP push of a preview thumbnail.
+`r9cam_preview_upload` needs no socket: it is the device-side HTTP push of a preview thumbnail.
 Concurrent camera count is not measured; the suite runs one camera. WebSocket authentication is
 rate-limited outside `dev` and `testing`, so run the relay stages against the CI stack, not a
 deployed backend.
@@ -132,7 +132,7 @@ The committed values carry roughly 5x headroom over an isolated run on a quiet d
 absorbs a slower shared CI runner while still catching a real regression; the previous values sat
 5-8x above *contended* numbers and would only have tripped on a catastrophic one.
 
-The `rpi_cam_*` thresholds come from two isolated runs of the CI stack on a developer host, not a
+The `r9cam_*` thresholds come from two isolated runs of the CI stack on a developer host, not a
 GitHub runner, so treat them as provisional until the next workflow artifact refreshes them.
 
 ## Recommended Target
@@ -193,8 +193,8 @@ just perf-baseline
 - `PERF_DETAIL_RATE`, `PERF_COMPONENTS_RATE`, `PERF_REFERENCE_RATE`, `PERF_UPLOAD_RATE`
 - `PERF_PRODUCT_LIST_RATE`, `PERF_LIVE_RATE`, `PERF_LOGIN_RATE`, `PERF_MEDIA_RATE`,
   `PERF_SEARCH_RATE`, `PERF_CREATE_RATE`: requests per second per scenario
-- `PERF_RPI_CAM_CONNECT_RATE`, `PERF_RPI_CAM_TELEMETRY_RATE`, `PERF_RPI_CAM_HLS_RATE`,
-  `PERF_RPI_CAM_CAPTURE_RATE`, `PERF_RPI_CAM_PREVIEW_RATE`: the same, for the camera stages
+- `PERF_R9CAM_CONNECT_RATE`, `PERF_R9CAM_TELEMETRY_RATE`, `PERF_R9CAM_HLS_RATE`,
+  `PERF_R9CAM_CAPTURE_RATE`, `PERF_R9CAM_PREVIEW_RATE`: the same, for the camera stages
 
 ## Recommended Baseline Inputs
 
@@ -219,7 +219,7 @@ just docker-perf-capacity login     # logins only
 PERF_CAPACITY_RATES=200,300,400 just docker-perf-capacity   # pick the steps
 ```
 
-The recipe runs from the repo root under its own Compose project (`relab_capacity`, or
+The recipe runs from the repo root under its own Compose project (`r9lab_capacity`, or
 `COMPOSE_PROJECT_NAME`), so it never touches the CI stack. It layers
 `perf/compose.capacity.yaml` over the CI stack to copy the deploy shape: four workers, a pool of
 3 + 10 overflow per worker, `max_connections=100`, a 6 GiB API memory cap and a concurrency limit

@@ -160,7 +160,7 @@ are separated by a rule and by `padding-block`, and carry no fill or radius of t
 one surface on the site has a frame, the teardown schedule, because it is a document reproduced
 inside a document.
 
-Prose is capped at a real measure (44rem for read-mode pages, 48–80ch for individual blocks).
+Prose is capped at a real measure (40rem for read-mode pages, 48–80ch for individual blocks).
 Figures are set in tabular mono and every heading in IBM Plex Serif, so the type register tells
 you whether you are reading a claim or a measurement. Motion exists only where it reports
 something: a figure refreshing, a bar being measured, a schedule dealing itself out, a brand mark
@@ -287,8 +287,8 @@ preloaded.
 ### The type ramp is a token set
 
 `assets/tokens.json` defines the ramp and `scripts/sync_brand_assets.py` emits it into
-`src/styles/tokens.generated.css` as `--relab-type-{role}-size` / `-line`, plus
-`--relab-type-label-tracking`. Sizes are rem so browser font scaling works (WCAG 1.4.4); line
+`src/styles/tokens.generated.css` as `--r9lab-type-{role}-size` / `-line`, plus
+`--r9lab-type-label-tracking`. Sizes are rem so browser font scaling works (WCAG 1.4.4); line
 heights are unitless ratios.
 
 **Use the token, not a literal.** A new literal `font-size` is drift. The detector flags it; pick a
@@ -326,7 +326,7 @@ viewport, not per step.
   teardown panel, and the stat tile values.
 - **Subhead** (Serif 600, `heading` token = 1.1875rem, 1.1): section `h3`.
 - **Body** (Sans 400, `1rem`/`1.625`): landing-page prose, footer copy. Blocks cap at 48–80ch;
-  read-mode pages cap the whole column at 44rem, near the 75-character comfort ceiling.
+  read-mode pages cap the whole column at 40rem, about 80 characters a line.
 - **Body Compact** (Sans 400, `0.95rem`/`1.62`): read-mode pages and the denser landing blocks. A
   density tier, labelled as such in `tokens.css`.
 - **Label** (Mono 400, `0.8125rem`, `+0.1em`, uppercase, muted): phase names, colophon terms, the
@@ -358,8 +358,8 @@ ID, a count, a mass, a date, a licence term. Prose is never set in mono to look 
 
 The site is a single centred column, not a grid system. `--frame-width` is 1280px and
 `--content-width` 1248px; the page shell is `min(100% - 2rem, 1248px)` with `2.75rem` of vertical
-padding, tightening to `min(100% - 1.25rem, …)` and `1.5rem`/`2rem` below 760px. The sticky header
-and the footer are full-bleed bars whose inner content aligns to that same column.
+padding, tightening to `1.5rem`/`2rem` below 760px. The 1rem gutter holds at every width. The
+sticky header and the footer are full-bleed bars whose inner content aligns to that same column.
 
 Sections use `padding-block: 3rem` (2rem below 760px) and a 1px hairline `border-top`. The grid
 gap is `0` so the rule falls in the middle of the space. The first section in a shell drops both
@@ -385,12 +385,12 @@ boxes around a 1.18rem glyph.
 frosted sticky header was removed because scrolled body text read through it). Depth is a 1px
 hairline, a shade of surface, and space.
 
-The shared brand system reserves one floating tier (`--relab-shadow-overlay` and `--relab-scrim`
+The shared brand system reserves one floating tier (`--r9lab-shadow-overlay` and `--r9lab-scrim`
 in `tokens.generated.css`) for menus, dialogs, sheets, and snackbars. **Nothing on www floats, so
 both tokens are unused here.** A future overlay that needs a shadow uses that token and only that
 token.
 
-The two surface tiers (ground → card) are `--relab-brand-background` and `--relab-brand-surface`.
+The two surface tiers (ground → card) are `--r9lab-brand-background` and `--r9lab-brand-surface`.
 Both are opaque; the one surface that mixes toward transparent is the teardown plate, at 82%, so
 the drafting grid under it reads through.
 
@@ -446,7 +446,7 @@ as an unexposed frame rather than a hole.
 ### Chips
 
 - **Style:** Hairline border, 6px radius, small uppercase mono in muted ink, `0.2rem 0.55rem`
-  padding. Used for the product-type tag on the featured record and the "repeats per part" marker
+  padding. Used for the product-type tag on the featured record and the "repeats" marker
   on the looping method phase.
 - **State:** Static. Chips on www are labels, not filters. No selected state exists.
 
@@ -580,7 +580,7 @@ Everything here is baked at build time and paints without JavaScript.
 - **Don't** write an eyebrow or kicker. A mono uppercase label that restates the heading beneath it
   is chrome; put provenance *under* the title as a caption instead.
 - **Don't** add a `box-shadow` to an inline surface. There are none on this site, and the reserved
-  `--relab-shadow-overlay` tier is for things that genuinely float. Nothing on www does.
+  `--r9lab-shadow-overlay` tier is for things that genuinely float. Nothing on www does.
 - **Don't** reintroduce `backdrop-filter`. The frosted header was removed because body text read
   through it.
 - **Don't** reach for a utility framework. www styles with authored CSS in `src/styles/` plus

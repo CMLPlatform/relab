@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # Reducer for check 2, in a variable so scripts/test_ops.sh can drive the real code
-# instead of a copy. Reports every tag (per backend/scripts/backup/backup_relab_restic.sh)
+# instead of a copy. Reports every tag (per backend/scripts/backup/backup_r9lab_restic.sh)
 # with its own age, oldest first, rather than a bare min(): a guard refusal now leaves one
 # half fresh routinely, and the alert has to name which half is stale.
 SNAPSHOT_AGE_PY='
@@ -124,7 +124,7 @@ deployment_drift_alerts() {
 # while never firing again.
 backup_timer_alerts() {
     local env="$1" timer="$2" enabled="$3" active="$4" failed="$5" result="$6"
-    # The service name follows from the timer name for every relab-*@ unit, so the
+    # The service name follows from the timer name for every r9lab-*@ unit, so the
     # same reducer covers backup, watchdog and restore-check alike.
     local service="${timer%.timer}.service"
     local found=0
@@ -264,7 +264,7 @@ git_checkout_alert() {
     local env="$1" git_error="$2"
     case "$git_error" in
         *"dubious ownership"*)
-            echo "ALERT[$env]: the deploy directory is a checkout owned by another user, so this run cannot read it; run it as the account relab-watchdog@${env}.service runs as, not as root" >&2
+            echo "ALERT[$env]: the deploy directory is a checkout owned by another user, so this run cannot read it; run it as the account r9lab-watchdog@${env}.service runs as, not as root" >&2
             ;;
         *"command not found"* | *"No such file or directory"*)
             echo "ALERT[$env]: git is not on PATH, so deployment drift cannot be measured: ${git_error}" >&2
@@ -472,18 +472,18 @@ else
     # window does not alert. The two hourly jobs carry no RandomizedDelaySec, so one
     # missed cycle of slack is enough; the daily and monthly ones jitter and get more.
     # Keys are QUOTED deliberately: an unquoted associative-array subscript is an
-    # arithmetic context, so `[relab-backup]` is read as a subtraction and shfmt
-    # reformats it to `[relab - backup]`. Every key then evaluates to 0 and every
+    # arithmetic context, so `[r9lab-backup]` is read as a subtraction and shfmt
+    # reformats it to `[r9lab - backup]`. Every key then evaluates to 0 and every
     # lookup fails under `set -u`.
     declare -A job_max_age_hours=(
-        ["relab-backup"]=2
-        ["relab-backup-maintenance"]=26
-        ["relab-watchdog"]=2
-        ["relab-restore-check"]=960
+        ["r9lab-backup"]=2
+        ["r9lab-backup-maintenance"]=26
+        ["r9lab-watchdog"]=2
+        ["r9lab-restore-check"]=960
     )
     now_epoch="$(date +%s)"
 
-    for job in relab-backup relab-backup-maintenance relab-watchdog relab-restore-check; do
+    for job in r9lab-backup r9lab-backup-maintenance r9lab-watchdog r9lab-restore-check; do
         unit_timer="${job}@${env}.timer"
         unit_service="${job}@${env}.service"
         # All read-only queries; none need privilege. `|| true` because each of these
@@ -520,7 +520,7 @@ fi
 # missing file means this machine runs no timers.
 #
 # Only PING_WATCHDOG is required; the other jobs report through the watchdog.
-host_env_file="${RELAB_HOST_ENV:-/etc/relab/relab.env}"
+host_env_file="${R9LAB_HOST_ENV:-/etc/r9lab/r9lab.env}"
 if [[ -f "$host_env_file" ]]; then
     ping_var=PING_WATCHDOG
     if ping_value="$(ping_url_value "$host_env_file" "$ping_var")"; then
@@ -588,7 +588,7 @@ fi
 # The probe speaks OTLP/HTTP and is skipped when the container exports over gRPC
 # (OTEL_EXPORTER_OTLP_PROTOCOL is an operator input): a POST at a gRPC listener is a
 # permanent false alarm.
-telemetry_container="relab_${env}-api-1"
+telemetry_container="$(compose_project "$env")-api-1"
 telemetry_env="$(docker inspect "$telemetry_container" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null || true)"
 if [[ "$(docker inspect -f '{{.State.Running}}' "$telemetry_container" 2>/dev/null)" == "true" ]] \
     && grep -q '^OTEL_EXPORTER_OTLP_ENDPOINT=.' <<<"$telemetry_env" \

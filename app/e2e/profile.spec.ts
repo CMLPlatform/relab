@@ -21,7 +21,6 @@ const LOGIN_URL_PATTERN = /login/;
 const ONBOARDING_OR_PRODUCTS_URL_PATTERN = /onboarding|products/;
 // The profile page is served at the /account route.
 const PROFILE_URL_PATTERN = /account/;
-const EMAIL_UPDATES_STATUS_PATTERN = /Currently (enabled|disabled)\./;
 // Matches AccountSections.tsx's ProfileLinkedAccountsSection titles exactly
 // (lowercase "account" in the not-yet-linked case; see its own unit test).
 const GOOGLE_LINK_PATTERN = /^(Link Google account|Unlink Google)$/;
@@ -84,9 +83,9 @@ test.describe('Profile: content', () => {
     );
   });
 
-  test('email updates status text is displayed', async ({ page }) => {
+  test('email updates switch is displayed', async ({ page }) => {
     await loginAndGoToProfile(page);
-    await expect(page.getByText(EMAIL_UPDATES_STATUS_PATTERN)).toBeVisible({
+    await expect(page.getByRole('switch', { name: 'Receive R9lab account updates' })).toBeVisible({
       timeout: 10_000,
     });
   });

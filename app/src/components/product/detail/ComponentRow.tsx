@@ -109,7 +109,7 @@ export function ComponentRow({ component, enabled, onDuplicate }: Props) {
               {displayName}
             </AppText>
             {component.productTypeName ? (
-              <AppText variant="label" className="text-muted-foreground">
+              <AppText variant="caption" className="text-muted-foreground">
                 {component.productTypeName}
               </AppText>
             ) : null}
@@ -162,10 +162,9 @@ export function ComponentRow({ component, enabled, onDuplicate }: Props) {
   );
 }
 
-// Starts 8px up, under the row it hangs from, and drops into place.
-const CHILDREN_ENTER = FadeInUp.duration(200)
-  .withInitialValues({ transform: [{ translateY: -8 }] })
-  .reduceMotion(ReduceMotion.System);
+// Starts just above, under the row it hangs from, and drops into place.
+// NOTE: a stock preset, no custom initial values (see no-custom-entering-animations.test.ts).
+const CHILDREN_ENTER = FadeInUp.duration(200).reduceMotion(ReduceMotion.System);
 
 /** Drops down out of the row it belongs to, so the new rows read as its children. */
 function ChildrenReveal({ children }: { children: ReactNode }) {
@@ -182,7 +181,7 @@ function ChildrenReveal({ children }: { children: ReactNode }) {
 function ExpandedNote({ text }: { text: string }) {
   return (
     <View className="min-h-11 justify-center">
-      <AppText variant="label" className="text-muted-foreground">
+      <AppText variant="caption" className="text-muted-foreground">
         {text}
       </AppText>
     </View>

@@ -1,19 +1,24 @@
 # Trivy allowlist for image vulnerability and IaC/config scans.
 #
 # Trivy's YAML ignore format is still experimental, so workflows pass this file
-# explicitly. Every entry must include an expiry and a clear statement.
+# explicitly. Every entry must include an expiry, a clear statement, and `paths` or
+# `purls` (scripts/check_todo_dates.py): the file is shared by every image scan, and an
+# unscoped id would also hide the finding in the backup and postgres images.
 vulnerabilities:
   # The caddy:2-alpine binary is built against Go 1.26.3; these need 1.26.4+,
   # which upstream had not shipped when reviewed on 2026-07-13, nor when re-checked
   # on 2026-10-02 (caddy v2.11.4, the pinned digest is still the latest). Re-check
   # whenever the caddy:2-alpine digest is bumped.
   - id: CVE-2026-27145
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: Go stdlib DoS; fixed in Go 1.26.4, no caddy release built with it yet.
   - id: CVE-2026-39822
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: Go os.Root symlink traversal; caddy serves a fixed static /srv root, no user-controlled paths.
   - id: CVE-2026-42504
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: Go MIME header DoS; fixed in Go 1.26.4, no caddy release built with it yet.
 
@@ -24,44 +29,75 @@ vulnerabilities:
   # fixed static /srv root behind the edge, with no DNS resolver, no gRPC/xDS, no
   # templates, and no XML or ASN.1 decoding. Re-check when the digest is bumped.
   - id: CVE-2026-33818
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: Go encoding/asn1 recursion DoS; the static file server decodes no ASN.1.
   - id: CVE-2026-39821
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: x/net/idna Punycode label handling; no IDNA-based authorization decisions here.
   - id: CVE-2026-46600
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: x/net/dns/dnsmessage parser DoS; caddy runs no DNS resolver in this image.
   - id: CVE-2026-56852
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: x/text invalid-UTF-8 DoS; fixed in x/text 0.39.0, no caddy build carries it yet.
   - id: CVE-2026-56853
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: net/http cleartext HTTP/2 DoS; h2c is not enabled, TLS terminates at the edge.
   - id: CVE-2026-56858
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: html/template XSS via pathological input; caddy renders no templates here.
   - id: CVE-2026-56859
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: encoding/xml recursion DoS; the static file server decodes no XML.
   - id: CVE-2026-56860
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: net/url quadratic path parsing DoS; fixed in Go 1.26.6, no caddy release built with it yet.
   - id: CVE-2026-56862
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: crypto/tls KeyUpdate DoS; fixed in Go 1.26.6, no caddy release built with it yet.
   - id: CVE-2026-56854
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: x/crypto/ssh source-address bypass; caddy runs no SSH server, and the image exposes only HTTP.
   - id: GHSA-hrxh-6v49-42gf
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: gRPC-Go xDS RBAC and HTTP/2 flaws; caddy serves no gRPC and loads no xDS config.
   - id: CVE-2026-84304
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: gRPC-Go HTTP/2 DATA-frame memory exhaustion; caddy runs no gRPC server in this image.
   - id: CVE-2026-84445
+    paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
     statement: gRPC-Go xDS server crash DoS; caddy serves no gRPC and loads no xDS config.
+
+  # TODO(drop-by 2026-10-31): re-check the caddy digest for Go 1.26.9 / x/net 0.60.0, then drop these waivers or extend them
+  # The caddy:2-alpine binary re-scanned on 2026-10-13: Go 1.26.8 with golang.org/x/net
+  # v0.59.0. These need Go 1.26.9 or x/net 0.60.0, and caddy v2.11.7 (the latest
+  # release) does not carry them. Caddy receives plain HTTP/1.1 from the tunnel inside
+  # the Compose network: no TLS and no HTTP/2 reach it. Re-check when the digest is bumped.
+  - id: CVE-2026-78667
+    paths: ["usr/bin/caddy"]
+    expired_at: 2026-11-01
+    statement: net/http Range header DoS, reachable; file_server answers Range requests and the edge forwards them for the uncached paths (index.html, no-store files). The worst case is CPU load in the app container, which serves only static files; the API runs in its own container. Fixed in Go 1.26.9 (2026-10-08), no caddy release built with it yet.
+  - id: CVE-2026-78669
+    paths: ["usr/bin/caddy"]
+    expired_at: 2026-11-01
+    statement: HTTP/2 SETTINGS flood DoS in net/http and x/net; caddy is reached over HTTP/1.1 only.
+  - id: CVE-2026-97031
+    paths: ["usr/bin/caddy"]
+    expired_at: 2026-11-01
+    statement: crypto/tls ECH extension DoS; caddy terminates no TLS, the edge does.
 
 misconfigurations: []
 secrets: []

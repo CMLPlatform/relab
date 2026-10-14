@@ -18,7 +18,7 @@ import {
   type EffectiveConnectionSnapshot,
   useEffectiveCameraConnection,
 } from '@/features/cameras/useEffectiveCameraConnection';
-import type { CameraReadWithStatus } from '@/services/api/rpiCamera/shared';
+import type { CameraReadWithStatus } from '@/services/api/r9cam/shared';
 import { useAppTheme } from '@/theme/appThemeContext';
 import { createCameraScreenStyles } from './styles';
 

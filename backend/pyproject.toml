@@ -14,7 +14,7 @@
   keywords = ["automated-lca", "circular-economy", "computer-vision"]
   license = { text = "AGPL-3.0-or-later" }
   maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
-  name = "relab-backend"
+  name = "r9lab-backend"
   readme = "README.md"
 
   ## Dependencies and version constraints
@@ -37,7 +37,7 @@
     "sqlalchemy>=2.0.41",
     # Shared application models and outbound integrations
     "httpx[http2]>=0.28.1",
-    "relab-rpi-cam-models>=0.5.0,<0.6",
+    "r9cam-models>=0.6.0,<0.7",
     # Configuration, validation, and utility types
     "pydantic>=2.12",
     "pydantic-settings>=2.10.1",
@@ -59,9 +59,9 @@
   version = "0.0.0"
 
   [project.urls]
-    Homepage   = "https://github.com/CMLPlatform/relab"
-    Issues     = "https://github.com/CMLPlatform/relab/issues"
-    Repository = "https://github.com/CMLPlatform/relab.git"
+    Homepage   = "https://github.com/CMLPlatform/r9lab"
+    Issues     = "https://github.com/CMLPlatform/r9lab/issues"
+    Repository = "https://github.com/CMLPlatform/r9lab.git"
 
 ### Dependency groups
 [dependency-groups]
@@ -84,10 +84,10 @@
     "polyfactory>=2.15.0", # Modern factories with Pydantic v2 support
   ]
 
-  # Typed-table writer for the one-off dataset release build script
-  dataset-release = ["pyarrow>=21.0.0"]
+  # Typed-table writer and Croissant validator for the one-off dataset release build script
+  dataset-release = ["mlcroissant>=1.1.1", "pyarrow>=21.0.0"]
 
-  # Heavy deps for scripts/plugins/rpi_cam/webcam_fake_camera.py (local dev only)
+  # Heavy deps for scripts/plugins/r9cam/webcam_fake_camera.py (local dev only)
   fake-camera = ["opencv-python-headless>=4.0", "websockets>=14.0"]
 
   # Unit and integration test dependencies
@@ -233,7 +233,7 @@ mutation = [
         "pydantic",
         "sqlalchemy",
         "typing.Annotated",
-        "relab_rpi_cam_models",
+        "r9cam_models",
       ]
       runtime-evaluated-base-classes = [
         "fastapi_filters.FilterSet",
@@ -291,7 +291,7 @@ mutation = [
   exclude-newer = "3 days"
 
   [tool.uv.exclude-newer-package]
-    relab-rpi-cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay
+    r9cam-models = "3000-01-01T00:00:00Z" # self-managed package, exempt from the supply-chain delay
 
 [tool.mutmut]
   # Scheduled weekly in .github/workflows/ops.yml; run locally with `just mutation`.

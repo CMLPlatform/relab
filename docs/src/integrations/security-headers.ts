@@ -80,7 +80,7 @@ export function inlineScriptHashes(pages: string[]): string[] {
 export function securityHeaders(apiUrl: string | undefined): AstroIntegration {
   const origin = apiUrl?.trim() ? new URL(apiUrl.trim()).origin : null;
   return {
-    name: 'relab:security-headers',
+    name: 'r9lab:security-headers',
     hooks: {
       'astro:build:done': async ({ dir }) => {
         const files = await readdir(dir, { recursive: true });

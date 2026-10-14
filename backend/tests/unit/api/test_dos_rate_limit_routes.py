@@ -15,7 +15,7 @@ from app.api.data_collection.routers.component_core_routers import component_cor
 from app.api.data_collection.routers.component_media_routers import component_media_router
 from app.api.data_collection.routers.product_mutation_routers import product_mutation_router
 from app.api.data_collection.routers.product_read_routers import product_read_router
-from app.api.plugins.rpi_cam.routers.camera_interaction.images import device_router as rpi_cam_device_image_router
+from app.api.plugins.r9cam.routers.camera_interaction.images import device_router as r9cam_device_image_router
 from app.api.reference_data.routers.admin_materials import router as material_router
 from app.api.reference_data.routers.admin_product_types import router as product_type_router
 from app.main import create_app
@@ -115,14 +115,14 @@ def test_reference_data_upload_routes_are_rate_limited() -> None:
     )
 
 
-def test_rpi_cam_device_upload_routes_are_rate_limited() -> None:
+def test_r9cam_device_upload_routes_are_rate_limited() -> None:
     """Device-pushed upload routes should have the same upload DoS guard."""
     _assert_rate_limited(
-        _route(rpi_cam_device_image_router, "/{camera_id}/image-upload", "POST"),
+        _route(r9cam_device_image_router, "/{camera_id}/image-upload", "POST"),
         "api_upload_rate_limit",
     )
     _assert_rate_limited(
-        _route(rpi_cam_device_image_router, "/{camera_id}/preview-thumbnail-upload", "POST"),
+        _route(r9cam_device_image_router, "/{camera_id}/preview-thumbnail-upload", "POST"),
         "api_upload_rate_limit",
     )
 
@@ -163,14 +163,21 @@ RATE_LIMIT_EXEMPT_ROUTES = {
     ("POST", "/v1/admin/users/{user_id}/mfa/reset"),
     ("PUT", "/v1/admin/users/{user_id}/role"),
     ("DELETE", "/v1/admin/users/{user_id}"),
-    ("DELETE", "/v1/admin/plugins/rpi-cam/cameras/{camera_id}"),
+    ("DELETE", "/v1/admin/plugins/r9cam/cameras/{camera_id}"),
     # Device-authenticated: needs a fresh ES256 assertion from a paired camera's key.
-    ("DELETE", "/v1/plugins/rpi-cam/device/cameras/{camera_id}/self"),
+    ("DELETE", "/v1/plugins/r9cam/device/cameras/{camera_id}/self"),
     # Charged to the per-account guess budget (account_guess_budget) before any work.
     ("POST", "/v1/oauth/github/associate/authorize"),
     ("POST", "/v1/oauth/google/associate/authorize"),
     ("POST", "/v1/oauth/google-youtube/associate/authorize"),
     ("DELETE", "/v1/oauth/{provider}/associate"),
+}
+# The non-admin camera routes are also served under their pre-rename path.
+# TODO(drop-by 2027-01-31): drop the /v1/plugins/rpi-cam/ prefix
+RATE_LIMIT_EXEMPT_ROUTES |= {
+    (method, path.replace("/plugins/r9cam/", "/plugins/rpi-cam/"))
+    for method, path in RATE_LIMIT_EXEMPT_ROUTES
+    if path.startswith("/v1/plugins/r9cam/")
 }
 
 
@@ -236,11 +243,11 @@ def test_public_tree_reads_are_rate_limited() -> None:
     } == set()
 
 
-def test_rpi_cam_capture_spends_the_upload_budget() -> None:
+def test_r9cam_capture_spends_the_upload_budget() -> None:
     """A camera capture stores a full-size photo, so it is charged like an upload."""
     dependant = next(
         dependant
         for method, path, dependant in _mutating_routes()
-        if (method, path) == ("POST", "/v1/plugins/rpi-cam/cameras/{camera_id}/captures")
+        if (method, path) == ("POST", "/v1/plugins/r9cam/cameras/{camera_id}/captures")
     )
     assert "api_upload_rate_limit" in _all_dependency_names(dependant)

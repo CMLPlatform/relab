@@ -39,13 +39,13 @@ describe('OAuth URL validation', () => {
 
   it('accepts callbacks whose scheme host and path match the generated redirect URI', () => {
     expect(
-      isExpectedOAuthCallbackUrl('relab-app://account#status=success', 'relab-app://account'),
+      isExpectedOAuthCallbackUrl('r9lab-app://account#status=success', 'r9lab-app://account'),
     ).toBe(true);
   });
 
   it('parses OAuth MFA handoff callback data from URL fragments', () => {
     expect(
-      parseOAuthCallbackUrl('relab-app://login#status=mfa_required&mfa_handoff=handoff-token'),
+      parseOAuthCallbackUrl('r9lab-app://login#status=mfa_required&mfa_handoff=handoff-token'),
     ).toEqual({
       status: 'mfa_required',
       mfaHandoff: 'handoff-token',
@@ -53,7 +53,7 @@ describe('OAuth URL validation', () => {
   });
 
   it('parses OAuth error callback data from URL fragments', () => {
-    expect(parseOAuthCallbackUrl('relab-app://login#status=error&error=access_denied')).toEqual({
+    expect(parseOAuthCallbackUrl('r9lab-app://login#status=error&error=access_denied')).toEqual({
       status: 'error',
       error: 'access_denied',
     });
@@ -69,20 +69,20 @@ describe('OAuth URL validation', () => {
     expect(
       isExpectedOAuthCallbackUrl(
         'https://example.com/account#status=success',
-        'relab-app://account',
+        'r9lab-app://account',
       ),
     ).toBe(false);
     expect(
-      isExpectedOAuthCallbackUrl('relab-app://login#status=success', 'relab-app://account'),
+      isExpectedOAuthCallbackUrl('r9lab-app://login#status=success', 'r9lab-app://account'),
     ).toBe(false);
-    expect(isExpectedOAuthCallbackUrl('not a url', 'relab-app://account')).toBe(false);
+    expect(isExpectedOAuthCallbackUrl('not a url', 'r9lab-app://account')).toBe(false);
   });
 });
 
 describe('buildOAuthAuthorizeUrl', () => {
   it('percent-encodes the redirect URI so a custom scheme survives the query string', () => {
-    expect(buildOAuthAuthorizeUrl('/auth/google/authorize', 'relab-app://account')).toBe(
-      '/auth/google/authorize?redirect_uri=relab-app%3A%2F%2Faccount',
+    expect(buildOAuthAuthorizeUrl('/auth/google/authorize', 'r9lab-app://account')).toBe(
+      '/auth/google/authorize?redirect_uri=r9lab-app%3A%2F%2Faccount',
     );
   });
 });
@@ -174,14 +174,14 @@ describe('openOAuthBrowserSession', () => {
   });
 
   it('returns the browser session result', async () => {
-    openAuthSessionAsync.mockResolvedValueOnce({ type: 'success', url: 'relab-app://account' });
+    openAuthSessionAsync.mockResolvedValueOnce({ type: 'success', url: 'r9lab-app://account' });
 
     await expect(
-      openOAuthBrowserSession('https://github.com/login/oauth/authorize', 'relab-app://account'),
-    ).resolves.toEqual({ type: 'success', url: 'relab-app://account' });
+      openOAuthBrowserSession('https://github.com/login/oauth/authorize', 'r9lab-app://account'),
+    ).resolves.toEqual({ type: 'success', url: 'r9lab-app://account' });
     expect(openAuthSessionAsync).toHaveBeenCalledWith(
       'https://github.com/login/oauth/authorize',
-      'relab-app://account',
+      'r9lab-app://account',
     );
   });
 
@@ -190,7 +190,7 @@ describe('openOAuthBrowserSession', () => {
   it('rejects once the timeout elapses', async () => {
     openAuthSessionAsync.mockReturnValueOnce(new Promise(() => {}));
 
-    const pending = openOAuthBrowserSession('https://github.com/login', 'relab-app://account', 50);
+    const pending = openOAuthBrowserSession('https://github.com/login', 'r9lab-app://account', 50);
     const assertion = expect(pending).rejects.toThrow(TIMED_OUT_PATTERN);
     jest.advanceTimersByTime(50);
     await assertion;
@@ -199,7 +199,7 @@ describe('openOAuthBrowserSession', () => {
   it('clears the timeout once the session settles, leaving no pending timer', async () => {
     openAuthSessionAsync.mockResolvedValueOnce({ type: 'cancel' });
 
-    await openOAuthBrowserSession('https://github.com/login', 'relab-app://account', 50);
+    await openOAuthBrowserSession('https://github.com/login', 'r9lab-app://account', 50);
 
     expect(jest.getTimerCount()).toBe(0);
   });

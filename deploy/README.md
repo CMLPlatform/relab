@@ -7,7 +7,8 @@ routine release loop, and recovery:
 - [DEPLOY-STAGING.md](DEPLOY-STAGING.md): staging
 
 Public self-hosting documentation is the install guide in the docs subrepo
-(`docs/src/content/docs/operations/install.md`); the runbooks link to it rather than repeat it.
+(`docs/src/content/docs/operations/`, from `prerequisites.md` to `upgrade-backup.md`); the runbooks
+link to it rather than repeat it.
 
 Rehearse on staging before prod. The two hosts share `compose.deploy.yaml`, so a step that has only
 ever run on prod has never been tested.

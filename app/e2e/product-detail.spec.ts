@@ -257,7 +257,7 @@ test.describe('Product creation', () => {
     // The record exists: the status line says so and the button closes, not saves.
     await expect(page.getByTestId('save-status')).toHaveText(SAVED_STATUS_PATTERN);
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Save Product' })).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Save product' })).toBeHidden();
   });
 
   test('discarding the capture draft returns to the products page', async ({ page }) => {
@@ -359,7 +359,7 @@ test.describe('Product detail: edit mode', () => {
       page.getByRole('button', { name: 'Add photos from gallery' }).click(),
     ]);
     await chooser.setFiles('e2e/fixtures/test-image.png');
-    await expect(page.getByRole('button', { name: 'Save Product' })).toBeVisible({
+    await expect(page.getByRole('button', { name: 'Save product' })).toBeVisible({
       timeout: 20_000,
     });
 
@@ -469,7 +469,7 @@ test.describe('Product detail: image upload', () => {
         (r) => r.request().method() === 'POST' && PRODUCT_IMAGE_UPLOAD_PATH_PATTERN.test(r.url()),
         { timeout: 30_000 },
       ),
-      page.getByRole('button', { name: 'Save Product' }).click(),
+      page.getByRole('button', { name: 'Save product' }).click(),
     ]);
     expect(upload.status()).toBeLessThan(300);
 

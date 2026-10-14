@@ -47,7 +47,7 @@ MODULES = (
     Module("reference-data", "Reference data", "app.api.reference_data"),
     Module("data-collection", "Data collection", "app.api.data_collection"),
     Module("file-storage", "File storage", "app.api.file_storage"),
-    Module("camera-plugin", "Camera plugin", "app.api.plugins.rpi_cam"),
+    Module("camera-plugin", "Camera plugin", "app.api.plugins.r9cam"),
 )
 
 

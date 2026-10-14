@@ -14,7 +14,7 @@
   keywords = ["automated-lca", "circular-economy", "computer-vision"]
   license = { text = "AGPL-3.0-or-later" }
   maintainers = [{ name = "Simon van Lierde", email = "s.n.van.lierde@cml.leidenuniv.nl" }]
-  name = "relab"
+  name = "r9lab"
   readme = "README.md"
 
   ## Dependencies and version constraints
@@ -50,6 +50,9 @@
     "www/package.json:\"version\"",
     "backend/app/__version__.py:^version",
     "CITATION.cff:^version",
+    # Generated from CITATION.cff by scripts/sync_brand_assets.py; bumped here too so a
+    # release branch passes `just assets-check` without a re-sync.
+    "codemeta.json:\"version\"",
   ]
   version_provider = "npm"
   version_scheme   = "semver2"
@@ -108,7 +111,7 @@
 
 [tool.rumdl]
   # Rule set carried over from the docs markdownlint config. MD057 is off because
-  # Starlight route links (../rpi-cam/) are not files; linkinator checks them in
+  # Starlight route links (../r9cam/) are not files; linkinator checks them in
   # docs test:ci. DESIGN.md files are mirrored by tooling and keep their own style.
   disable           = ["MD013", "MD025", "MD033", "MD040", "MD041", "MD057"]
   exclude           = ["node_modules", ".venv", "dist", ".astro", "CHANGELOG.md", "DESIGN.md"]

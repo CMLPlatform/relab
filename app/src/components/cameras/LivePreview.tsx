@@ -8,8 +8,8 @@ import {
 } from '@/components/cameras/live-preview/previewOverlays';
 import { WebHlsVideo } from '@/components/cameras/live-preview/WebHlsVideo';
 import type { CameraConnectionInfo } from '@/features/cameras/local-connection/useLocalConnection';
-import { useCameraLivePreview } from '@/features/cameras/rpi/hooks';
-import type { CameraRead } from '@/services/api/rpiCamera/shared';
+import { useCameraLivePreview } from '@/features/cameras/r9cam/hooks';
+import type { CameraRead } from '@/services/api/r9cam/shared';
 import { isWeb } from '@/services/storage';
 
 /**

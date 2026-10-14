@@ -10,61 +10,56 @@
 
 /* Research colophon at the foot of the overview: small mono, one hairline
    above, no cards, no icons. Every paragraph is one label line. */
-.relab-colophon {
+.r9lab-colophon {
   margin-top: 3rem;
   padding-top: 1.2rem;
-  border-top: 1px solid var(--relab-brand-divider);
-  font-family: var(--relab-brand-font-mono), monospace;
-  font-size: 0.8125rem;
+  border-top: 1px solid var(--r9lab-brand-divider);
+  font-family: var(--r9lab-brand-font-mono), monospace;
+  font-size: var(--sl-text-xs);
   line-height: 1.6;
   color: var(--sl-color-gray-3);
 }
 
-.relab-colophon p {
+.r9lab-colophon p {
   margin: 0 0 0.4rem;
 }
 
-.relab-colophon p:last-child {
+.r9lab-colophon p:last-child {
   margin-bottom: 0;
 }
 
-.relab-card-grid > ul {
+.r9lab-card-grid > ul {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 1rem;
   padding-left: 0;
 }
 
-.relab-card-grid > ul > li {
+.r9lab-card-grid > ul > li {
   list-style: none;
   margin: 0;
   padding: 1rem 1.1rem;
-  border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--r9lab-brand-primary) 18%, transparent);
   border-radius: var(--radius-card);
-  background: color-mix(in srgb, var(--relab-brand-primary) 4%, transparent);
+  background: color-mix(in srgb, var(--r9lab-brand-primary) 4%, transparent);
 }
 
 /* block, not inline-block: markdown folds the newline after the link into a
    space, so an inline-block title runs into its description. */
-.relab-card-grid strong:first-child {
+.r9lab-card-grid strong:first-child {
   display: block;
   margin-bottom: 0.35rem;
 }
 
 .sidebar-pane :where(a[aria-current="page"]) {
-  color: rgb(18, 49, 75);
-  font-weight: 700;
-  background: color-mix(in srgb, var(--relab-brand-primary) 14%, white 86%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--relab-brand-primary) 18%, transparent);
+  color: var(--r9lab-brand-primary-strong);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--r9lab-brand-primary) 14%, var(--r9lab-brand-background));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r9lab-brand-primary) 18%, transparent);
 }
 
 .sidebar-pane :where(a[aria-current="page"] span) {
   color: inherit;
-}
-
-:root[data-theme="dark"] .sidebar-pane :where(a[aria-current="page"]) {
-  color: rgb(234, 247, 255);
-  background: color-mix(in srgb, var(--relab-brand-primary) 22%, rgba(15, 23, 42, 0.9) 78%);
 }
 
 /* Expressive Code's `pre` computes overflow-x: visible here, so long lines
@@ -74,33 +69,62 @@
   overflow-x: auto;
 }
 
-.relab-mermaid {
-  margin: 1rem 0 1.5rem;
-  padding: 1rem;
-  overflow-x: auto;
-  border-radius: var(--radius-card);
-  border: 1px solid color-mix(in srgb, var(--relab-brand-primary) 16%, transparent);
-  background: color-mix(in srgb, white 88%, var(--relab-brand-primary) 6%);
+/* Inline surfaces stay flat (DESIGN.md, Elevation): Starlight's prev/next
+   cards drop their stock drop shadow. */
+.pagination-links a {
+  box-shadow: none;
 }
 
-/* Diagrams break out of the prose column. Desktop only: below this the column
-   is already full width and a break-out would cause horizontal scroll. */
+.r9lab-mermaid {
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border-radius: var(--radius-card);
+  border: 1px solid color-mix(in srgb, var(--r9lab-brand-primary) 16%, transparent);
+  background: color-mix(in srgb, var(--r9lab-brand-primary) 6%, var(--r9lab-brand-background));
+}
+
+/* Diagrams break out of the prose column into the content padding, keeping a
+   0.5rem gutter so the frame never slides under the sidebar or the TOC column.
+   Desktop only: below this the column is already full width and a break-out
+   would cause horizontal scroll. */
 @media (min-width: 72rem) {
-  .relab-mermaid {
-    width: calc(100% + 4.5rem);
-    margin-inline: -2.25rem;
+  .r9lab-mermaid {
+    --r9lab-mermaid-bleed: calc(var(--sl-content-pad-x) - 0.5rem);
+
+    width: calc(100% + 2 * var(--r9lab-mermaid-bleed));
+    margin-inline: calc(-1 * var(--r9lab-mermaid-bleed));
   }
 }
 
-:root[data-theme="dark"] .relab-mermaid {
-  background: rgba(13, 23, 34, 0.88);
+/* Diagrams fit the frame: mermaid emits width="100%" with the natural width as
+   an inline max-width, so a wide diagram scales down and a narrow one keeps its
+   size. The "View full size" link under each opens it unscaled
+   (src/scripts/mermaid.ts). */
+.r9lab-mermaid svg {
+  height: auto;
 }
 
-/* Diagrams scroll rather than shrink. Mermaid emits width="100%" with the
-   natural size only as an inline `max-width`; a `min-width: 100%` here would
-   force the SVG to fit and only ever scale down. The width cannot be recovered
-   in CSS (a percent-sized SVG has no intrinsic width), so
-   pinDiagramToIntrinsicWidth() in src/scripts/mermaid.ts sets it after render. */
-.relab-mermaid svg {
-  max-width: none;
+/* Starlight spaces flow content by margin-top; pull the link up to the frame. */
+.sl-markdown-content .r9lab-mermaid + .r9lab-mermaid-full-size {
+  margin-top: -1rem;
+  font-size: var(--sl-text-sm);
+}
+
+/* Danger asides are flat (DESIGN.md, Elevation): a red hairline and red text on
+   the page ground instead of Starlight's filled red panel. On the ground,
+   red-high text is 9.2:1 light / 12.1:1 dark and the red border 3.5:1 / 5.5:1. */
+.starlight-aside--danger {
+  border: 1px solid var(--sl-color-red);
+  background-color: var(--sl-color-bg);
+  color: var(--sl-color-red-high);
+}
+
+/* Starlight draws the dark-theme menu button as a white disc with a drop
+   shadow, the brightest thing in the header. It takes the surface token and a
+   hairline instead, open or closed. */
+:root[data-theme="dark"] .sl-menu-button {
+  border: 1px solid var(--r9lab-brand-divider);
+  background-color: var(--r9lab-brand-surface);
+  color: var(--r9lab-brand-text);
+  box-shadow: none;
 }

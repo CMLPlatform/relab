@@ -18,16 +18,18 @@ RESET_PASSWORD_PATH = password_reset.RESET_PASSWORD_PATH
 # The verify and reset routers below are built by fastapi-users, and the UserManager
 # hooks they call receive only a Request. This is how the transactional mail those
 # hooks send reaches the response's background tasks instead of blocking it.
+# The tag is set here only: FastAPI appends tags from every level without deduplicating,
+# and a repeated tag lists the operation twice in the API reference.
 router = PublicAPIRouter(prefix="/auth", tags=["auth"], dependencies=[Depends(attach_background_tasks)])
 
 router.include_router(login.router)
 
 # Custom registration route
-router.include_router(register.router, tags=["auth"])
+router.include_router(register.router)
 
 # Refresh token and multi-device session management
-router.include_router(refresh.router, tags=["auth"], dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY])
-router.include_router(mfa.router, tags=["auth"])
+router.include_router(refresh.router, dependencies=[API_WRITE_RATE_LIMIT_DEPENDENCY])
+router.include_router(mfa.router)
 
 # Verification and password reset routes
 verify_router = fastapi_user_manager.get_verify_router(user_schema=UserRead)

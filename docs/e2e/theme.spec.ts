@@ -4,7 +4,7 @@ const HEADER_LOGO_NAME = /r9lab/i;
 
 // The page ground is a flat brand token, not a backdrop image: the blurred
 // bg-*.jpg wallpaper was removed because it taxed the contrast of every line of
-// body text on a reading surface. These are --relab-brand-surface resolved per
+// body text on a reading surface. These are --r9lab-brand-surface resolved per
 // scheme, so the test fails both if the theme stops switching and if the ground
 // drifts off the brand background token.
 const GROUND = { light: 'rgb(250, 251, 254)', dark: 'rgb(17, 20, 29)' } as const;

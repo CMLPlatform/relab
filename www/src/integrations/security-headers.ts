@@ -63,7 +63,7 @@ export function headersFile(apiOrigin: string | null): string {
 export function securityHeaders(apiUrl: string | undefined): AstroIntegration {
   const origin = apiUrl?.trim() ? new URL(apiUrl.trim()).origin : null;
   return {
-    name: 'relab:security-headers',
+    name: 'r9lab:security-headers',
     hooks: {
       'astro:build:done': async ({ dir }) => {
         await writeFile(new URL('_headers', dir), headersFile(origin));

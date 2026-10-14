@@ -7,7 +7,7 @@
 # on the host, so that Playwright runs on the host and can freely reach the
 # backend service on localhost.
 
-name: relab_e2e
+name: r9lab_e2e
 
 services:
   api:
@@ -24,7 +24,7 @@ services:
       - "127.0.0.1:${E2E_BACKEND_PORT:-18010}:8000"
     volumes:
       # Ensure the backend has access to user uploads (for testing upload functionality with real files)
-      - user_uploads:/opt/relab/backend/data/uploads
+      - user_uploads:/opt/r9lab/backend/data/uploads
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis
@@ -54,7 +54,7 @@ services:
         condition: service_healthy
     volumes:
       # Ensure migrations have access to user uploads (for seeding example images)
-      - user_uploads:/opt/relab/backend-migrations/data/uploads
+      - user_uploads:/opt/r9lab/backend-migrations/data/uploads
     environment:
       DATABASE_HOST: postgres
       REDIS_HOST: redis
@@ -95,7 +95,7 @@ services:
     # `default` or api and migrator cannot reach it.
     networks: [default]
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -h localhost -U postgres -d relab_e2e_db" ]
+      test: [ "CMD-SHELL", "pg_isready -h localhost -U postgres -d r9lab_e2e_db" ]
       interval: 10s
       timeout: 5s
       start_period: 5s

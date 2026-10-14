@@ -4,7 +4,7 @@ import { useDialog } from '@/components/base/dialogContext';
 import { Icon } from '@/components/base/Icon';
 import { Text } from '@/components/base/ui/text';
 import { useAppTheme } from '@/theme/appThemeContext';
-import { entityLabel, entityLabelTitle, type Product } from '@/types/Product';
+import { entityLabel, type Product } from '@/types/Product';
 
 interface Props {
   product: Product;
@@ -16,12 +16,11 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
   const dialog = useDialog();
   const { colors } = useAppTheme();
   const label = entityLabel(product);
-  const titleLabel = entityLabelTitle(product);
 
   const onPressDelete = () => {
     dialog.alert({
-      title: `Delete ${titleLabel}`,
-      message: `Are you sure you want to delete this ${label}? This action cannot be undone.`,
+      title: `Delete this ${label}?`,
+      message: deleteMessage(product),
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Delete', style: 'destructive', onPress: onDelete },
@@ -42,6 +41,21 @@ export default function ProductDelete({ product, editMode, onDelete }: Props) {
       <Text>Delete {label}</Text>
     </AppButton>
   );
+}
+
+/**
+ * The dialog message names what goes with the record: the server deletes the
+ * whole subtree and every photo and file in it.
+ */
+function deleteMessage(product: Product): string {
+  if (product.components === undefined) {
+    return `This deletes the ${entityLabel(product)}, any components under it, and all their photos and files. You cannot undo this.`;
+  }
+  const count = product.components.length;
+  if (count === 0)
+    return `This deletes the ${entityLabel(product)} with its photos and files. You cannot undo this.`;
+  const children = count === 1 ? '1 component' : `${count} components`;
+  return `This also deletes its ${children}, everything recorded under them, and all their photos and files. You cannot undo this.`;
 }
 
 const styles = {

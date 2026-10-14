@@ -11,4 +11,4 @@ import { initThemeControl } from "@/scripts/theme.ts";
 const scriptOrigin = "https://cdn.jsdelivr.net/npm/example";
 
 // ok: cdn-runtime-reference
-const badgeUrl = "https://img.shields.io/codecov/c/github/CMLPlatform/relab";
+const badgeUrl = "https://img.shields.io/codecov/c/github/CMLPlatform/r9lab";

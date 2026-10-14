@@ -114,7 +114,7 @@ Google and GitHub support session-cookie callbacks, bearer-token callbacks, and 
 
 Google and GitHub use the backend-mediated flow on all platforms.
 
-Callbacks use a CSRF cookie and signed state token. Frontend redirect targets must exactly match the backend allowlist derived from `APP_PUBLIC_URL` (`/login` and `/account`) plus the fixed native app redirects (`relab-app://login` and `relab-app://account`). Entries are normalized as `scheme://host/path` and must not contain credentials, query strings, or fragments. Provider callback URLs are versioned under `/v1/oauth` and must be registered with each provider:
+Callbacks use a CSRF cookie and signed state token. Frontend redirect targets must exactly match the backend allowlist derived from `APP_PUBLIC_URL` (`/login` and `/account`) plus the fixed native app redirects (`r9lab-app://login` and `r9lab-app://account`; app builds from before the rename still use `relab-app://`, accepted until 2027-01-31). Entries are normalized as `scheme://host/path` and must not contain credentials, query strings, or fragments. Provider callback URLs are versioned under `/v1/oauth` and must be registered with each provider:
 
 - `https://api.r9lab.io/v1/oauth/google/session/callback`
 - `https://api.r9lab.io/v1/oauth/google/associate/callback`

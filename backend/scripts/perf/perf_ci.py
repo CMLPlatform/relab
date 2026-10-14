@@ -21,14 +21,14 @@ SCENARIOS = (
     "media_url_read",
     "product_create_write",
     "image_upload_write",
-    "rpi_cam_ws_connect",
-    "rpi_cam_telemetry_relay",
-    "rpi_cam_hls_relay",
-    "rpi_cam_capture",
-    "rpi_cam_preview_upload",
+    "r9cam_ws_connect",
+    "r9cam_telemetry_relay",
+    "r9cam_hls_relay",
+    "r9cam_capture",
+    "r9cam_preview_upload",
 )
 # The latency metric each scenario is thresholded on, when it is not http_req_duration.
-SCENARIO_METRICS = {"rpi_cam_ws_connect": "ws_connecting"}
+SCENARIO_METRICS = {"r9cam_ws_connect": "ws_connecting"}
 
 
 def _load_metrics() -> dict[str, Any]:

@@ -1,14 +1,24 @@
 ---
 
+import { getPublicSiteConfig } from '@/config/public.ts';
 import Layout from '@/layouts/Layout.astro';
+
+const appBase = getPublicSiteConfig().appUrl.replace(/\/$/, '');
 ---
 
 <Layout title="Page not found" description="The page you requested could not be found." noIndex={true}>
   <section class="empty-state">
     <h1>Page not found</h1>
-    <p>Try the homepage.</p>
+    <p>The address may be mistyped, or the page may have moved.</p>
     <div class="button-row">
       <a href="/" class="btn btn-primary">Back to homepage</a>
+      <a
+        href={`${appBase}/products`}
+        class="btn btn-outline"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Browse the records<span class="visually-hidden"> (opens in new tab)</span></a
+      >
     </div>
   </section>
 </Layout>

@@ -150,7 +150,7 @@ and `largeUrl`; pager, lightbox, and prefetch read those two fields.
 `just codegen` regenerates `src/types/api.generated.ts` from the committed `src/types/openapi.json`
 (see [Data Flow](#data-flow)), so it needs no running backend. The generated file is the only
 supported frontend contract for the RPi camera integration; do not import or re-declare the
-`relab-rpi-cam-models` Python package in frontend code.
+`r9cam-models` Python package in frontend code.
 
 ## Common Commands
 

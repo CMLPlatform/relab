@@ -40,13 +40,17 @@ resource "github_repository_environment" "publish" {
   # a release deploys staging's sites, and prod's follow once someone has checked
   # staging and approved. Staging needs it while its CLOUDFLARE_API_TOKEN holds
   # Workers Scripts: Edit on all Workers, a grant not scoped to one environment.
-  # TODO: drop staging's reviewer once each Environment's token is limited to its own
+  # TODO(drop-by 2027-01-31): drop staging's reviewer once each Environment's token is limited to its own
   # Workers.
   reviewers {
     users = [for user in data.github_user.reviewer : user.id]
   }
 
   lifecycle {
+    # Destroying the Environment deletes its hand-set secrets (CLOUDFLARE_API_TOKEN,
+    # FEATURED_PRODUCT_ID). A plan that replaces it, such as one applied before a repository
+    # rename has happened on GitHub, must fail instead.
+    prevent_destroy = true
     precondition {
       condition     = length(var.github_reviewers) > 0
       error_message = "an Environment needs at least one required reviewer: set TF_VAR_github_reviewers."

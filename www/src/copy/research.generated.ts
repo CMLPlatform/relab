@@ -6,10 +6,10 @@
 export const research = {
   "affiliation": "A research platform of the Institute of Environmental Sciences (CML), Leiden University",
   "institution": "Institute of Environmental Sciences (CML), Leiden University",
-  "authors": "Simon van Lierde and Franco Donati, Department of Industrial Ecology, CML",
+  "authors": "Simon van Lierde, Department of Industrial Ecology, CML",
   "citationUrl": "https://doi.org/10.5281/zenodo.16637742",
   "doi": "10.5281/zenodo.16637742",
   "licence": "AGPL-3.0-or-later",
-  "licenceUrl": "https://github.com/CMLPlatform/relab/blob/main/LICENSE",
+  "licenceUrl": "https://github.com/CMLPlatform/r9lab/blob/main/LICENSE",
   "funding": "Leiden University Starter Fund; Depack grant (Leiden University Fund); Sectorplan Gelden"
 } as const;

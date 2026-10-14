@@ -5,13 +5,13 @@
 
 :root {
   /* Radius scale (assets/DESIGN.md). Docs has no floating surface, so no overlay tier. */
-  --radius-control: var(--relab-radius-control);
-  --radius-card: var(--relab-radius-card);
+  --radius-control: var(--r9lab-radius-control);
+  --radius-card: var(--r9lab-radius-card);
 }
 
 :root {
   /* Starlight's 54rem default put prose at ~106 characters a line. Wide mermaid
-     diagrams break out of the column instead (.relab-mermaid, components.css). */
+     diagrams break out of the column instead (.r9lab-mermaid, components.css). */
   --sl-content-width: 45rem;
 
   /* Heading ramp from assets/DESIGN.md's web type scale: display 38, h2 24,
@@ -23,24 +23,24 @@
   --sl-text-h4: 1.0625rem;
 
   /* Starlight composes its code/mono stack from this token */
-  --sl-font-mono: var(--relab-brand-font-mono);
+  --sl-font-mono: var(--r9lab-brand-font-mono);
 
   /* Starlight's "accent" is its INTERACTION colour (links, active nav, focus
      rings), not the R9lab manila accent. It maps to the primary family;
-     --relab-brand-accent here would turn every link manila, which DESIGN.md's
+     --r9lab-brand-accent here would turn every link manila, which DESIGN.md's
      accent rule forbids. */
-  --sl-color-accent-low: var(--relab-brand-primary-soft);
-  --sl-color-accent: var(--relab-brand-primary);
-  --sl-color-accent-high: var(--relab-brand-primary-strong);
+  --sl-color-accent-low: var(--r9lab-brand-primary-soft);
+  --sl-color-accent: var(--r9lab-brand-primary);
+  --sl-color-accent-high: var(--r9lab-brand-primary-strong);
 }
 
 html,
 body {
-  font-family: var(--relab-brand-font), sans-serif;
+  font-family: var(--r9lab-brand-font), sans-serif;
 }
 
 body {
-  color: var(--relab-brand-text);
+  color: var(--r9lab-brand-text);
 }
 
 /* Flat page ground from the brand token. Starlight declares --sl-color-bg inside
@@ -48,14 +48,14 @@ body {
    outranks it whatever the source order. color-scheme is set per data-theme in
    brand.css. */
 :root {
-  --sl-color-bg: var(--relab-brand-background);
+  --sl-color-bg: var(--r9lab-brand-background);
   /* Chrome one faint step off the page ground, in the blue family; Starlight's
      stock grey (#f6f7f9 / #23262f) reads as a mismatched band on a flat ground.
      color-mix lands on the correct side of the ground in both schemes. */
   --sl-color-bg-sidebar: color-mix(
     in srgb,
-    var(--relab-brand-primary) 5%,
-    var(--relab-brand-background)
+    var(--r9lab-brand-primary) 5%,
+    var(--r9lab-brand-background)
   );
   --sl-color-bg-nav: var(--sl-color-bg-sidebar);
 }
@@ -66,11 +66,11 @@ h3,
 h4,
 .site-title,
 .hero {
-  font-family: var(--relab-brand-font-display), Georgia, serif;
+  font-family: var(--r9lab-brand-font-display), Georgia, serif;
   /* serif carries its own width; tighter tracking than this reads cramped */
   letter-spacing: -0.01em;
 }
 
 a {
-  color: var(--relab-brand-primary);
+  color: var(--r9lab-brand-primary);
 }

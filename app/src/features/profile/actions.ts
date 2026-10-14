@@ -3,7 +3,7 @@ import { useCallback, useRef } from 'react';
 import type { View } from 'react-native';
 import type { useAuth } from '@/context/auth';
 import type { StreamSessionState } from '@/context/streamSession';
-import type { useStopYouTubeStreamMutation } from '@/features/cameras/rpi/hooks';
+import type { useStopYouTubeStreamMutation } from '@/features/cameras/r9cam/hooks';
 import type { useAppFeedback } from '@/hooks/useAppFeedback';
 import { logout, revokeAllSessions } from '@/services/api/auth/authLogin';
 import {

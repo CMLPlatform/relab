@@ -29,6 +29,7 @@ router = APIRouter()
 @router.post(
     "/bearer/refresh",
     name="auth:bearer.refresh",
+    summary="Refresh tokens for bearer-token clients",
     response_model=RefreshTokenResponse,
 )
 async def refresh_access_token(
@@ -54,6 +55,7 @@ async def refresh_access_token(
 @router.post(
     "/session/refresh",
     name="auth:session.refresh",
+    summary="Refresh tokens for browser sessions",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def refresh_access_token_cookie(
@@ -81,6 +83,7 @@ async def refresh_access_token_cookie(
 @router.post(
     "/bearer/logout",
     name="auth:bearer.logout",
+    summary="Log out a bearer-token client",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def logout_bearer(
@@ -103,6 +106,7 @@ async def logout_bearer(
 @router.post(
     "/session/logout",
     name="auth:session.logout",
+    summary="Log out a browser session",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def logout_session(
@@ -127,6 +131,7 @@ async def logout_session(
 @router.post(
     "/sessions/revoke-all",
     name="auth:sessions.revoke_all",
+    summary="Revoke every session of the current user",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def revoke_all_sessions(

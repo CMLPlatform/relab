@@ -1,0 +1,88 @@
+"""Centralized OpenAPI examples for the Raspberry Pi Camera plugin."""
+
+from typing import TYPE_CHECKING
+
+from pydantic import JsonValue
+
+from app.api.common.openapi_examples import openapi_example, openapi_examples
+
+if TYPE_CHECKING:
+    from fastapi.openapi.models import Example
+
+
+CAMERA_CREATE_EXAMPLES: list[JsonValue] = [
+    {
+        "name": "Workbench Camera",
+        "description": "Ceiling-mounted camera above the teardown bench",
+        "relay_public_key_jwk": {
+            "kty": "EC",
+            "crv": "P-256",
+            "x": "axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpY",
+            "y": "T-NC4v4af5uO5-tKfA-eFivOM1drMV7Oy7ZAaDe_UfU",
+            "kid": "cam-key-1",
+        },
+        "relay_key_id": "cam-key-1",
+    }
+]
+
+CAMERA_READ_EXAMPLES: list[JsonValue] = [
+    {
+        "id": "12345678-cc4e-405c-8553-7806424de2a1",
+        "name": "Workbench Camera",
+        "description": "Ceiling-mounted camera above the teardown bench",
+        "owner_id": "87654321-cc4e-405c-8553-7806424de2a1",
+        "relay_key_id": "cam-key-1",
+        "relay_credential_status": "active",
+        "created_at": "2026-04-28T10:00:00Z",
+        "updated_at": "2026-04-28T10:00:00Z",
+    }
+]
+
+CAMERA_UPDATE_EXAMPLES: list[JsonValue] = [
+    {
+        "description": "Camera assigned to the repairability bench",
+    }
+]
+
+CAMERA_INCLUDE_STATUS_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    disabled=openapi_example(value=False, summary="Return camera metadata only"),
+    enabled=openapi_example(value=True, summary="Include current online status"),
+)
+
+CAMERA_FORCE_REFRESH_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    cached=openapi_example(value=False, summary="Use cached status when available"),
+    refresh=openapi_example(value=True, summary="Bypass cache and query the camera directly"),
+)
+
+CAMERA_MODE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    photo=openapi_example("photo", summary="Initialize the camera for still capture"),
+    video=openapi_example("video", summary="Initialize the camera for streaming or recording"),
+)
+
+CAMERA_CAPTURE_IMAGE_PRODUCT_ID_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    product_id=openapi_example(42, summary="Associate the captured image with a product")
+)
+
+CAMERA_CAPTURE_IMAGE_DESCRIPTION_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    image_description=openapi_example("Top-down capture from the first dismantling step", summary="Custom caption")
+)
+
+CAMERA_START_RECORDING_PRODUCT_ID_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    product_id=openapi_example(42, summary="Associate the recording with a product")
+)
+
+CAMERA_START_RECORDING_TITLE_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    custom_title=openapi_example("Vacuum cleaner teardown recording", summary="Custom YouTube title")
+)
+
+CAMERA_START_RECORDING_DESCRIPTION_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    custom_description=openapi_example(
+        "Full teardown recording for the repairability workflow.",
+        summary="Custom YouTube description",
+    )
+)
+
+CAMERA_START_RECORDING_PRIVACY_OPENAPI_EXAMPLES: dict[str, Example] = openapi_examples(
+    private=openapi_example("private", summary="Only visible to the authenticated account"),
+    unlisted=openapi_example("unlisted", summary="Anyone with the link can watch"),
+)

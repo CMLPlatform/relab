@@ -22,6 +22,12 @@ telemetry_overlay_args() {
     fi
 }
 
+# The Compose project for an environment (prod, staging, dev, test, e2e). Container
+# and volume names are derived from it, so every caller goes through here.
+compose_project() {
+    printf 'r9lab_%s\n' "$1"
+}
+
 host_overlay_args() {
     if [[ -f compose.host.yaml ]]; then
         printf '%s\n' -f compose.host.yaml
@@ -70,12 +76,12 @@ compose_args() {
 
     # The recipe's environment, not the .env's, selects images and secrets; the .env
     # ENVIRONMENT only guards the recipe (require_dotenv_environment).
-    local -a assignments=(PROJECT=relab "ENVIRONMENT=$env")
+    local -a assignments=(PROJECT=r9lab "ENVIRONMENT=$env")
     # Set only by pull_image_tag, to fetch a tag before the .env names it.
     if [[ -n "${DEPLOY_IMAGE_TAG:-}" ]]; then
         assignments+=("IMAGE_TAG=$DEPLOY_IMAGE_TAG")
     fi
-    printf '%s\n' env "${unset_flags[@]}" "${assignments[@]}" docker compose -p "relab_$env" --env-file "$root_env_file" -f compose.yaml -f compose.deploy.yaml
+    printf '%s\n' env "${unset_flags[@]}" "${assignments[@]}" docker compose -p "$(compose_project "$env")" --env-file "$root_env_file" -f compose.yaml -f compose.deploy.yaml
     telemetry_overlay_args "$root_env_file"
     host_overlay_args
 }
@@ -120,8 +126,8 @@ compose_config() {
     uv run python scripts/env_policy.py validation-env "$validation_env"
 
     local env
-    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml config >/dev/null
-    docker compose -p relab_test -f compose.yaml -f compose.ci.yaml config >/dev/null
+    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p "$(compose_project dev)" -f compose.yaml -f compose.dev.yaml config >/dev/null
+    docker compose -p "$(compose_project test)" -f compose.yaml -f compose.ci.yaml config >/dev/null
     for env in staging prod; do
         run_deploy_compose "$env" --env-file "$validation_env" config >/dev/null
         run_deploy_compose "$env" --env-file "$validation_env" --profile backups --profile migrations config >/dev/null
@@ -135,7 +141,7 @@ compose_config() {
         "${base_args[@]}" -f compose.telemetry.gpu.yml config >/dev/null
     done
     local e2e_config="$tmp_root/e2e.json"
-    docker compose -p relab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"
+    docker compose -p "$(compose_project e2e)" -f compose.e2e.yaml config --format json >"$e2e_config"
     uv run python scripts/env_policy.py e2e-compose-check "$e2e_config"
 
     echo "✅ Compose configurations validated"
@@ -150,7 +156,7 @@ validate_deploy_secret_paths() {
 
     local validation_env="$tmp_root/validation.env"
     uv run python scripts/env_policy.py validation-env "$validation_env"
-    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
+    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p "$(compose_project dev)" -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
     render_compose_json prod "$validation_env" "$tmp_root/prod.json" backups migrations
     render_compose_json staging "$validation_env" "$tmp_root/staging.json" backups migrations
     uv run python scripts/env_policy.py secrets-check \
@@ -279,7 +285,7 @@ deploy_secrets_template() {
     uv run python scripts/env_policy.py validation-env "$validation_env"
 
     if [[ "$env" == "dev" ]]; then
-        COMPOSE_DISABLE_ENV_FILE=1 docker compose -p relab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/$env.json"
+        COMPOSE_DISABLE_ENV_FILE=1 docker compose -p "$(compose_project dev)" -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/$env.json"
     else
         render_compose_json "$env" "$validation_env" "$tmp_root/$env.json" backups migrations
     fi
@@ -339,7 +345,7 @@ deploy_secrets_export() {
         exit 1
     }
 
-    echo "# relab $env secrets, exported $(date -I)"
+    echo "# r9lab $env secrets, exported $(date -I)"
     echo "# Restore with: just secrets-restore $env <file>"
     echo "# This recreates secrets/$env/ (dir mode 700, files mode 644) from this block."
     echo "# Treat this note as a live credential; store it only in the password manager."
@@ -575,6 +581,7 @@ write_image_tag() {
 stamp_uploads_volume() {
     local env="$1"
     # shellcheck disable=SC2016  # $0/$1 are the inner sh's args, not this shell's
+    # .relab-volume keeps its pre-rename name: existing volumes and snapshots carry it.
     run_deploy_compose "$env" run --rm --no-deps -T --entrypoint sh api -c \
         'if test -s "$0"; then
             found=$(tr -d "[:space:]" <"$0")
@@ -583,7 +590,7 @@ stamp_uploads_volume() {
             exit 1
          fi
          printf "%s\n" "$1" >"$0.tmp" && mv "$0.tmp" "$0" && echo "marked the uploads volume as [$1]"' \
-        /opt/relab/backend/data/uploads/.relab-volume "$env"
+        /opt/r9lab/backend/data/uploads/.relab-volume "$env"
 }
 
 # The uid every deploy service runs as. Keep in step with x-app-user in
@@ -601,8 +608,8 @@ mount_writability_alert() {
     case "$target" in
         volume:*)
             echo "Docker sets a named volume's ownership only when it first creates the volume, so" >&2
-            echo "relab_${env}_${target#volume:} still belongs to whichever uid created it." >&2
-            echo "Fix with: docker run --rm --user 0 -v relab_${env}_${target#volume:}:/mnt" \
+            echo "$(compose_project "$env")_${target#volume:} still belongs to whichever uid created it." >&2
+            echo "Fix with: docker run --rm --user 0 -v $(compose_project "$env")_${target#volume:}:/mnt" \
                 "busybox chown -R $DEPLOY_APP_UID:$DEPLOY_APP_UID /mnt" >&2
             ;;
         host:*)
@@ -623,7 +630,7 @@ assert_deploy_mounts_writable() {
     local env="$1" backup_dir failed=0 entry service path target writable
     backup_dir="$(dotenv_value BACKUP_HOST_DIR)"
     local -a mounts=(
-        "api /opt/relab/backend/data/uploads volume:user_uploads"
+        "api /opt/r9lab/backend/data/uploads volume:user_uploads"
         "backup /var/cache/restic volume:restic_cache"
         "backup /restic host:${backup_dir:-./backups}/restic"
     )
@@ -668,7 +675,7 @@ stack_gate_alerts() {
             # migration failure either way.
             echo "error: the $env migrator did not complete (exit $migrator_exit); the stack is serving a schema it did not finish migrating" >&2
         fi
-        echo "       read the migration error with: docker logs relab_${env}-migrator-1" >&2
+        echo "       read the migration error with: docker logs $(compose_project "$env")-migrator-1" >&2
     else
         echo "error: the $env stack left ${stalled//,/, } created but not running" >&2
         echo "       inspect with: just stack $env ps" >&2
@@ -720,6 +727,30 @@ rollback_downgrade_alert() {
     echo "       or, once the error above is fixed, retry: just stack $env rollback YES $tag $revision" >&2
 }
 
+# A host whose data still lives in the pre-rename relab_<env> project would get a second,
+# empty r9lab_<env> stack beside it. Refuses while the old project still runs, or while
+# either data volume exists only under the old name. A new volume next to an old one
+# passes: that is the state the move itself leaves behind. The rename window moves the
+# data with `stack <env> compose`, which this does not guard.
+# TODO(drop-by 2027-01-31): remove once no host has relab_<env> volumes or containers left.
+require_renamed_project() {
+    local env="$1" old="relab_$1" new volume
+    new="$(compose_project "$env")"
+    if [[ -n "$(docker ps -q --filter "label=com.docker.compose.project=$old")" ]]; then
+        echo "error: the $old Compose project is still running; stop it before starting $new" >&2
+        echo "       move it first: install guide, \"Upgrading across the R9lab rename\" (docs/src/content/docs/operations/upgrade-backup.md)" >&2
+        exit 2
+    fi
+    for volume in database_data user_uploads; do
+        if docker volume inspect "${old}_$volume" >/dev/null 2>&1 \
+            && ! docker volume inspect "${new}_$volume" >/dev/null 2>&1; then
+            echo "error: the $env $volume is still in the $old Compose project; starting $new would create an empty stack beside it" >&2
+            echo "       move it first: install guide, \"Upgrading across the R9lab rename\" (docs/src/content/docs/operations/upgrade-backup.md)" >&2
+            exit 2
+        fi
+    done
+}
+
 stack_command() {
     local env="$1"
     local action="$2"
@@ -733,6 +764,9 @@ stack_command() {
             ;;
     esac
     require_dotenv_environment "$env"
+    case "$action" in
+        backup | backup-init | backup-stamp-volume | backup-maintenance) require_renamed_project "$env" ;;
+    esac
 
     case "$action" in
         up)
@@ -747,6 +781,7 @@ stack_command() {
             # by a systemd timer (deploy/systemd/), not a long-running container.
             add_scanning_profile_from_dotenv
             require_confirmation "start the $env stack" "just stack $env up YES [profiles...]" "FORCE=1 just stack $env up [profiles...]"
+            require_renamed_project "$env"
             # No pull: `tag` and `rollback` pulled every image IMAGE_TAG names, and a
             # re-pull here would let a tag moved on GHCR since then replace them on a
             # plain restart. Compose still pulls an image that is missing locally, such
@@ -776,7 +811,7 @@ stack_command() {
             # A host crash or dockerd death can skip ExecStopPost and leave the previous
             # run's container holding the name, which would then block every later run.
             # Same guard verify_postgres_restore uses for its deterministic name.
-            docker rm -f "relab-backup-$env" >/dev/null 2>&1 || true
+            docker rm -f "r9lab-backup-$env" >/dev/null 2>&1 || true
             # BACKUP_MANUAL tags this run's snapshots `manual`, which retention keeps
             # unconditionally. Set by `just backup <env> manual`, never by the timer.
             # RESTIC_MIN_DUMP_RATIO passes through only when the caller set it, so the
@@ -785,7 +820,7 @@ stack_command() {
                 -e "BACKUP_MANUAL=${BACKUP_MANUAL:-false}" \
                 -e "BACKUP_MAINTENANCE=${BACKUP_MAINTENANCE:-auto}" \
                 -e RESTIC_MIN_DUMP_RATIO \
-                --name "relab-backup-$env" backup
+                --name "r9lab-backup-$env" backup
             ;;
         backup-init)
             # One-time provisioning: backup runs never initialize, so an empty directory
@@ -803,10 +838,10 @@ stack_command() {
         backup-maintenance)
             # Retention, integrity check and offsite copy, without taking a snapshot.
             # The hourly backup timer skips all three; this is where they happen.
-            docker rm -f "relab-backup-maintenance-$env" >/dev/null 2>&1 || true
+            docker rm -f "r9lab-backup-maintenance-$env" >/dev/null 2>&1 || true
             run_deploy_compose "$env" --profile backups run --rm --no-deps -T \
                 -e "BACKUP_MAINTENANCE=only" \
-                --name "relab-backup-maintenance-$env" backup
+                --name "r9lab-backup-maintenance-$env" backup
             ;;
         down)
             parse_profiles "$env" "migrations backups scanning" "$@"
@@ -842,6 +877,7 @@ stack_command() {
             local tag="${2:-}" revision="${3:-}"
             require_image_tag "$tag"
             require_confirmation_command "roll the $env stack back to $tag" "just stack $env rollback YES $tag" "FORCE=1 just stack $env rollback _ $tag" "${1:-}"
+            require_renamed_project "$env"
             pull_image_tag "$env" "$tag"
             if [[ -n "$revision" ]]; then
                 # Both steps use the CURRENT migrator image: only the code being rolled
@@ -861,12 +897,19 @@ stack_command() {
             # `up -d` returning 0 is not proof the stack started; see stack_gate_alerts.
             assert_stack_started "$env"
             ;;
+        compose)
+            # `just stack <env> compose <args>`: any Compose command against this stack's
+            # project, files and overlays, for one-off operator steps no action covers
+            # (creating the volumes before a copy, starting only postgres).
+            run_deploy_compose "$env" "$@"
+            ;;
         migrate)
             DEPLOY_CONFIRMED=false
             if [[ "${1:-}" == "YES" ]]; then
                 DEPLOY_CONFIRMED=true
             fi
             require_confirmation "run $env database migrations" "just stack $env migrate YES" "FORCE=1 just stack $env migrate"
+            require_renamed_project "$env"
             # `up migrator` exits 0 even when the migration fails; `run --rm` propagates
             # the migrator's exit code.
             run_deploy_compose "$env" --profile migrations run --rm migrator

@@ -9,6 +9,7 @@ silently repoints every citation on both public sites.
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING
 
 import pytest
@@ -42,7 +43,7 @@ def citation(identifiers: list[dict], authors: list[dict] | None = None) -> dict
         if authors is not None
         else [{"given-names": "Simon", "family-names": "van Lierde", "orcid": "https://orcid.org/x"}],
         "license": "AGPL-3.0-or-later",
-        "repository-code": "https://github.com/CMLPlatform/relab",
+        "repository-code": "https://github.com/CMLPlatform/r9lab",
     }
 
 
@@ -117,8 +118,8 @@ def test_multiple_authors_read_as_a_sentence(sources: Loader) -> None:
 def test_licence_url_is_derived_from_the_repository(sources: Loader) -> None:
     """A trailing slash on repository-code must not produce a double slash."""
     data = citation([{"type": "doi", "value": CONCEPT}])
-    data["repository-code"] = "https://github.com/CMLPlatform/relab/"
-    assert sources(data)["licenceUrl"] == "https://github.com/CMLPlatform/relab/blob/main/LICENSE"
+    data["repository-code"] = "https://github.com/CMLPlatform/r9lab/"
+    assert sources(data)["licenceUrl"] == "https://github.com/CMLPlatform/r9lab/blob/main/LICENSE"
 
 
 def test_committed_sources_still_load() -> None:
@@ -128,3 +129,48 @@ def test_committed_sources_still_load() -> None:
     assert identity["licence"] == "AGPL-3.0-or-later"
     assert identity["institution"].startswith("Institute of Environmental Sciences")
     assert identity["funding"]["short"]
+
+
+def test_one_software_name_across_the_citation_surfaces() -> None:
+    """CITATION.cff, codemeta.json, .zenodo.json and the dataset release name the software alike.
+
+    Zenodo titles each software version from .zenodo.json, so a second spelling anywhere
+    else splits the citations of one concept DOI.
+    """
+    citation = yaml.safe_load(sync_brand_assets.CITATION_SOURCE.read_text())
+    codemeta = json.loads(sync_brand_assets.CODEMETA_TARGET.read_text())
+    zenodo = json.loads(sync_brand_assets.ZENODO_TARGET.read_text())
+    release_script = (sync_brand_assets.ROOT / "backend/scripts/build_dataset_release.py").read_text()
+    dataset_reference = re.search(r'software_title: str = "([^"]+)"', release_script)
+    assert dataset_reference is not None, "build_dataset_release.py no longer declares software_title"
+
+    assert citation["title"].startswith("R9lab")
+    assert codemeta["name"] == citation["title"]
+    assert dataset_reference.group(1) == citation["title"]
+    assert codemeta["version"] == str(citation["version"])
+    assert zenodo["title"] == citation["title"]
+    # Zenodo takes the version from the release tag; a copy here would go stale on the next bump.
+    assert "version" not in zenodo
+
+
+def test_one_author_list_and_one_contributor_list_across_the_citation_surfaces() -> None:
+    """CITATION.cff, codemeta.json and .zenodo.json cite the same authors and credit the same contributors.
+
+    Contributors are credited, not cited, so none of them may appear among the authors.
+    """
+    citation = yaml.safe_load(sync_brand_assets.CITATION_SOURCE.read_text())
+    codemeta = json.loads(sync_brand_assets.CODEMETA_TARGET.read_text())
+    zenodo = json.loads(sync_brand_assets.ZENODO_TARGET.read_text())
+
+    authors = [(p["family-names"], p["given-names"]) for p in citation["authors"]]
+    assert authors == [("van Lierde", "Simon")]
+    assert [(p["familyName"], p["givenName"]) for p in codemeta["author"]] == authors
+    assert [p["name"] for p in zenodo["creators"]] == [f"{f}, {g}" for f, g in authors]
+
+    contributors = [(p["familyName"], p["givenName"]) for p in codemeta["contributor"]]
+    assert contributors == [("Donati", "Franco"), ("Visscher", "Marin")]
+    assert [p["name"] for p in zenodo["contributors"]] == [f"{f}, {g}" for f, g in contributors]
+    assert [p["orcid"] for p in zenodo["contributors"]] == [
+        p["@id"].removeprefix("https://orcid.org/") for p in codemeta["contributor"]
+    ]
+    assert all(p.get("type") for p in zenodo["contributors"]), "Zenodo rejects a contributor without a type"

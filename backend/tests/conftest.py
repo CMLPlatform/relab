@@ -58,7 +58,7 @@ pytest_plugins = [
     "tests.fixtures.redis",
 ]
 
-_DEFAULT_TEST_DB_NAME = "test_relab"
+_DEFAULT_TEST_DB_NAME = "test_r9lab"
 _MASTER_WORKER = "master"
 _SAFE_DB_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 

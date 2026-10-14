@@ -34,7 +34,7 @@ export function ProfileIntegrationsSection({
   const styles = createProfileSectionStyles(theme);
   const openDocs = useCallback(() => {
     if (DOCS_URL) {
-      void openExternalUrl(new URL('/user-guides/rpi-cam', DOCS_URL).toString());
+      void openExternalUrl(new URL('/user-guides/r9cam', DOCS_URL).toString());
     }
   }, []);
   return (
@@ -45,7 +45,7 @@ export function ProfileIntegrationsSection({
         </View>
         <View className="flex-1">
           <AppText className="font-semibold">RPi Camera</AppText>
-          <AppText className="mt-px text-[13px] text-muted-foreground">
+          <AppText variant="caption" className="mt-px text-muted-foreground">
             Capture images with a Raspberry Pi camera during disassembly.{' '}
             <AppText className="underline" style={styles.docsLink} onPress={openDocs}>
               Learn more
@@ -75,7 +75,7 @@ export function ProfileIntegrationsSection({
           </View>
           <View className="flex-1">
             <AppText className="font-semibold">YouTube Live</AppText>
-            <AppText className="mt-px text-[13px] text-muted-foreground">
+            <AppText variant="caption" className="mt-px text-muted-foreground">
               {youtubeAuthPending
                 ? 'Connecting to Google…'
                 : 'Stream product sessions live to YouTube.'}
