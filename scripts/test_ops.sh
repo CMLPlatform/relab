@@ -103,14 +103,20 @@ assert_eq "compose action forwards its arguments" "prod up -d --wait postgres" \
     "$(in_dotenv_dir 'ENVIRONMENT=prod' compose_passthrough)"
 # A host whose data is still in relab_<env> must not get a second, empty r9lab_<env> stack.
 renamed_guard() {
-    local existing="$1" action="$2" out status
+    local existing="$1" action="$2" running="${3:-}" out status
     # shellcheck disable=SC2317,SC2329 # the stubs are called by the code under test
-    docker() { [[ "$1 $2" == "volume inspect" && " $existing " == *" $3 "* ]]; }
+    docker() {
+        case "$1 $2" in
+            "volume inspect") [[ " $existing " == *" $3 "* ]] ;;
+            "ps -q") [[ "$4" == "label=com.docker.compose.project=$running" ]] && echo 0123abcd || true ;;
+            *) return 1 ;;
+        esac
+    }
     # shellcheck disable=SC2317,SC2329
     run_deploy_compose() { echo "compose $*"; }
     out="$(FORCE=1 in_dotenv_dir 'ENVIRONMENT=prod' stack_command prod "$action" 2>&1)"
     status=$?
-    [[ "$out" == *"still in the relab_prod Compose project"* ]] && echo "refused $status" || echo "passed"
+    [[ "$out" == *"relab_prod Compose project"* ]] && echo "refused $status" || echo "passed"
 }
 assert_eq "pre-rename guard: old volume only refuses migrate" "refused 2" "$(renamed_guard relab_prod_database_data migrate)"
 assert_eq "pre-rename guard: old volume only refuses backup" "refused 2" "$(renamed_guard relab_prod_database_data backup)"
@@ -120,6 +126,27 @@ assert_eq "pre-rename guard: new volume only passes" passed "$(renamed_guard r9l
 assert_eq "pre-rename guard: fresh host passes" passed "$(renamed_guard '' migrate)"
 assert_eq "pre-rename guard: the window's compose action is not guarded" passed \
     "$(renamed_guard relab_prod_database_data compose)"
+assert_eq "pre-rename guard: a running old project refuses beside fresh new volumes" "refused 2" \
+    "$(renamed_guard 'relab_prod_database_data r9lab_prod_database_data' up relab_prod)"
+assert_eq "pre-rename guard: uploads left in the old project refuse" "refused 2" \
+    "$(renamed_guard 'relab_prod_database_data relab_prod_user_uploads r9lab_prod_database_data' migrate)"
+assert_eq "pre-rename guard: both volumes moved pass" passed \
+    "$(renamed_guard 'relab_prod_database_data relab_prod_user_uploads r9lab_prod_database_data r9lab_prod_user_uploads' migrate)"
+# Every Compose project name goes through compose_project(), so none is spelled out.
+assert_eq "no literal r9lab_ compose project outside compose_project()" "" \
+    "$(grep -nE -- '-p "?r9lab_' scripts/*.sh justfile | grep -vE '^scripts/test_ops.sh:|^[^:]+:[0-9]+:[[:space:]]*#')"
+# `just stack` must hand each argument through intact, spaces included.
+if command -v just >/dev/null; then
+    stack_args() {
+        local dir
+        dir="$(mktemp -d)"
+        mkdir "$dir/scripts"
+        printf '%s\n' 'printf "[%s]" "$@"' >"$dir/scripts/deploy_ops.sh"
+        just --justfile justfile --working-directory "$dir" stack prod compose exec "a b" "c"
+        rm -rf "$dir"
+    }
+    assert_eq "just stack keeps a quoted argument whole" "[stack][prod][compose][exec][a b][c]" "$(stack_args)"
+fi
 assert_eq "deploy compose project is r9lab_<env>" "-p r9lab_prod" \
     "$(in_dotenv_dir 'ENVIRONMENT=prod' compose_args prod | grep -x -A1 -- -p | paste -sd' ')"
 
