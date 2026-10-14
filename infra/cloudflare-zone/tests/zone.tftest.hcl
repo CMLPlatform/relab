@@ -338,13 +338,19 @@ run "zone_id_must_match_zone_name" {
 run "camera_device_skip_covers_current_and_legacy_plugin_paths" {
   command = plan
 
-  # Paired cameras call the pre-rename path until they re-pair, and new ones the r9cam
-  # path; a skip rule missing either leaves those cameras behind a bot challenge.
+  # Pinned literally: the loop below checks the rule against the same local it is built from.
+  assert {
+    condition     = contains(local.camera_plugin_paths, "/v1/plugins/r9cam") && contains(local.camera_plugin_paths, "/v1/plugins/rpi-cam")
+    error_message = "the camera device skip must cover /v1/plugins/r9cam and, until 2027-01-31, /v1/plugins/rpi-cam."
+  }
+
+  # Cameras keep the URLs they were given at pairing, so the skip must cover every path in
+  # local.camera_plugin_paths; a missing one leaves those cameras behind a bot challenge.
   assert {
     condition = anytrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref == "relab_rpi_cam_device_skip_managed_security" && alltrue([
-        for base in ["/v1/plugins/r9cam", "/v1/plugins/rpi-cam"] : alltrue([
+        for base in local.camera_plugin_paths : alltrue([
           strcontains(rule.expression, "\"${base}/pairing/register\""),
           strcontains(rule.expression, "\"${base}/pairing/poll\""),
           strcontains(rule.expression, "\"${base}/ws/connect\""),
@@ -360,7 +366,7 @@ run "camera_device_skip_covers_current_and_legacy_plugin_paths" {
     condition = alltrue([
       for rule in cloudflare_ruleset.custom_firewall.rules :
       rule.ref != "relab_rpi_cam_device_skip_managed_security" || alltrue([
-        for base in ["/v1/plugins/r9cam", "/v1/plugins/rpi-cam"] :
+        for base in local.camera_plugin_paths :
         !strcontains(rule.expression, "\"${base}/cameras/") && !strcontains(rule.expression, "${base}/pairing/claim")
       ])
     ])

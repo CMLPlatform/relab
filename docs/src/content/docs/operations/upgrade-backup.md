@@ -105,44 +105,61 @@ img="$(sed -n 's/^ALPINE_IMAGE="${ALPINE_IMAGE:-\(.*\)}"$/\1/p' scripts/backup_r
 1. Keep a copy of the old `.env` (`cp -p .env .env.pre-r9lab`), then check out the new release
    (`git pull --ff-only`). In the root `.env`, set `COMPOSE_PROJECT_NAME=r9lab_<env>` and rename any
    `RELAB_*` variable to `R9LAB_*`, keeping its value. Then pull the new images and write the tag:
-   `just stack "$env" tag YES <tag>`. Until step 4 creates the new database volume, `up`,
-   `migrate`, `rollback` and the backup recipes refuse to run, because the data is still in the
-   `relab_<env>` project. After that they run, so start nothing but PostgreSQL until step 6.
+   `just stack "$env" tag YES <tag>`. Until step 4 has created the new database and uploads
+   volumes and the old stack is down, `up`, `migrate`, `rollback` and the backup recipes refuse to
+   run, because the data is still in the `relab_<env>` project. After that they run, so start nothing but PostgreSQL until step 6.
 
-1. Copy each old volume into a new one. The loop creates each new volume with the labels Compose
-   puts on its own, so Compose adopts it without a warning, and it creates no containers that a
-   later `up` would find stopped. The copy runs as root in a container, so ownership and modes come
-   along; `restic_cache` is skipped because it rebuilds itself:
+1. Copy each old volume into a new one. The script refuses to run while any `relab_<env>`
+   container runs, because a volume that is in use does not copy cleanly. It creates each new
+   volume with the labels Compose puts on its own, so Compose adopts it without a warning, and it
+   creates no containers that a later `up` would find stopped. The copy runs as root in a
+   container, so ownership and modes come along; `restic_cache` is skipped because it rebuilds
+   itself. The script stops at the first failure, and you can run it again: a second run copies
+   over the first. It prints the file count, byte count and root ownership of each pair and exits
+   non-zero when the two differ:
 
    ```bash
-   volumes="database_data user_uploads cache_data alloy_data clamav_db"
-   for v in $volumes; do
+   env="$env" img="$img" bash -euo pipefail <<'EOF'
+   running="$(docker ps -q --filter "name=^relab_${env}-")"
+   test -z "$running" || { echo "relab_$env containers still run: stop them first" >&2; exit 1; }
+   summary() {   # volume name
+       docker run --rm -v "$1:/v:ro" "$img" sh -c \
+           'echo "$(find /v | wc -l) files, $(find /v -type f -exec stat -c %s {} + | awk "{s+=\$1} END {print s+0}") bytes, root $(stat -c "%u:%g %a" /v), marker $(cat /v/.relab-volume 2>/dev/null)"'
+   }
+   for v in database_data user_uploads cache_data alloy_data clamav_db; do
        docker volume inspect "relab_${env}_$v" >/dev/null 2>&1 || continue
        docker volume create --label "com.docker.compose.project=r9lab_$env" \
-           --label "com.docker.compose.volume=$v" "r9lab_${env}_$v"
+           --label "com.docker.compose.volume=$v" "r9lab_${env}_$v" >/dev/null
        docker run --rm -v "relab_${env}_$v:/from:ro" -v "r9lab_${env}_$v:/to" "$img" cp -a /from/. /to/
+       old="$(summary "relab_${env}_$v")"
+       new="$(summary "r9lab_${env}_$v")"
+       echo "$v: $new"
+       test "$old" = "$new" || { echo "$v differs from the old volume: $old" >&2; exit 1; }
    done
-   for v in $volumes; do   # each pair of lines must match
-       for p in relab r9lab; do
-           docker volume inspect "${p}_${env}_$v" >/dev/null 2>&1 || continue
-           docker run --rm -v "${p}_${env}_$v:/v:ro" "$img" sh -c \
-               'echo "$(find /v | wc -l) files, $(find /v -type f -exec stat -c %s {} + | awk "{s+=\$1} END {print s+0}") bytes, root $(stat -c "%u:%g %a" /v), marker $(cat /v/.relab-volume 2>/dev/null)"'
-       done
-   done
+   EOF
    ```
 
 1. Start only PostgreSQL and rename the database and roles, before anything else starts:
    `up` creates any role it does not find, and would create empty `r9lab_*` roles next to the old
-   ones. Then compare the row counts with step 2's; the diff must print nothing.
+   ones. Each rename runs only if the old name still exists, so you can run the block again after
+   a failure. Then compare the row counts with step 2's; the diff must print nothing.
 
    ```bash
    bash scripts/deploy_ops.sh stack "$env" compose up -d --wait postgres
    bash scripts/deploy_ops.sh stack "$env" compose exec -T postgres \
        sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres' <<'SQL'
-   ALTER DATABASE relab_db RENAME TO r9lab_db;
-   ALTER ROLE relab_app RENAME TO r9lab_app;
-   ALTER ROLE relab_migrator RENAME TO r9lab_migrator;
-   ALTER ROLE relab_backup RENAME TO r9lab_backup;
+   DO $$
+   DECLARE r text;
+   BEGIN
+       IF EXISTS (SELECT 1 FROM pg_database WHERE datname = 'relab_db') THEN
+           ALTER DATABASE relab_db RENAME TO r9lab_db;
+       END IF;
+       FOREACH r IN ARRAY ARRAY['app', 'migrator', 'backup'] LOOP
+           IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'relab_' || r) THEN
+               EXECUTE format('ALTER ROLE %I RENAME TO %I', 'relab_' || r, 'r9lab_' || r);
+           END IF;
+       END LOOP;
+   END $$;
    SELECT count(*) AS old_roles_left FROM pg_roles WHERE rolname LIKE 'relab\_%';
    SQL
    count_rows "r9lab_$env-postgres-1" r9lab_db | diff "rows-before-$env.txt" -

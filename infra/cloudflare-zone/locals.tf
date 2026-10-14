@@ -10,7 +10,7 @@ locals {
 
   # Cameras keep the URLs they were given at pairing, so the device paths are matched under
   # both the current plugin path and the one from before the r9cam rename.
-  # TODO: drop /v1/plugins/rpi-cam after 2027-01-31
+  # TODO(drop-by 2027-01-31): drop /v1/plugins/rpi-cam
   camera_plugin_paths = ["/v1/plugins/r9cam", "/v1/plugins/rpi-cam"]
 
   staging_hosts_expression = "http.host in {${join(" ", formatlist("\"%s\"", [

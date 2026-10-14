@@ -252,8 +252,11 @@ the move, so an apply that leaves it unset still serves the old hosts.
       the redirect apply, while the codes are still 302/307: apply the old zone without
       `redirect_to_zone_name` (revert its committed tfvars first if it already lists the
       environment), then revert the `.env`.
-2. Once the old zone's redirects are permanent, export `TF_VAR_legacy_zone_name=''` and apply each
-   environment again to drop the legacy ingress rules.
+2. Once the old zone's redirects are permanent (301/308, checked with `REDIRECT_PERMANENT=1 just
+   smoke-redirects`), export `TF_VAR_legacy_zone_name=''` and apply each environment again to
+   drop the legacy ingress rules. Then change the variable's default to `""`. After that,
+   delete the variable, `local.legacy_tunnel_routes`, their tests and the old-zone ingress,
+   by 2027-01-31.
 
 `generate-imports.sh` defaults to the new zone. To adopt resources on the old one, export
 `TF_VAR_cloudflare_zone_name=cml-relab.org` and its zone id first, and `TF_VAR_legacy_zone_name=''`

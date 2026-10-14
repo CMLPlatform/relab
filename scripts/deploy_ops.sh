@@ -22,6 +22,12 @@ telemetry_overlay_args() {
     fi
 }
 
+# The Compose project for an environment (prod, staging, dev, test, e2e). Container
+# and volume names are derived from it, so every caller goes through here.
+compose_project() {
+    printf 'r9lab_%s\n' "$1"
+}
+
 host_overlay_args() {
     if [[ -f compose.host.yaml ]]; then
         printf '%s\n' -f compose.host.yaml
@@ -75,7 +81,7 @@ compose_args() {
     if [[ -n "${DEPLOY_IMAGE_TAG:-}" ]]; then
         assignments+=("IMAGE_TAG=$DEPLOY_IMAGE_TAG")
     fi
-    printf '%s\n' env "${unset_flags[@]}" "${assignments[@]}" docker compose -p "r9lab_$env" --env-file "$root_env_file" -f compose.yaml -f compose.deploy.yaml
+    printf '%s\n' env "${unset_flags[@]}" "${assignments[@]}" docker compose -p "$(compose_project "$env")" --env-file "$root_env_file" -f compose.yaml -f compose.deploy.yaml
     telemetry_overlay_args "$root_env_file"
     host_overlay_args
 }
@@ -120,8 +126,8 @@ compose_config() {
     uv run python scripts/env_policy.py validation-env "$validation_env"
 
     local env
-    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p r9lab_dev -f compose.yaml -f compose.dev.yaml config >/dev/null
-    docker compose -p r9lab_test -f compose.yaml -f compose.ci.yaml config >/dev/null
+    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p "$(compose_project dev)" -f compose.yaml -f compose.dev.yaml config >/dev/null
+    docker compose -p "$(compose_project test)" -f compose.yaml -f compose.ci.yaml config >/dev/null
     for env in staging prod; do
         run_deploy_compose "$env" --env-file "$validation_env" config >/dev/null
         run_deploy_compose "$env" --env-file "$validation_env" --profile backups --profile migrations config >/dev/null
@@ -135,7 +141,7 @@ compose_config() {
         "${base_args[@]}" -f compose.telemetry.gpu.yml config >/dev/null
     done
     local e2e_config="$tmp_root/e2e.json"
-    docker compose -p r9lab_e2e -f compose.e2e.yaml config --format json >"$e2e_config"
+    docker compose -p "$(compose_project e2e)" -f compose.e2e.yaml config --format json >"$e2e_config"
     uv run python scripts/env_policy.py e2e-compose-check "$e2e_config"
 
     echo "✅ Compose configurations validated"
@@ -150,7 +156,7 @@ validate_deploy_secret_paths() {
 
     local validation_env="$tmp_root/validation.env"
     uv run python scripts/env_policy.py validation-env "$validation_env"
-    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p r9lab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
+    COMPOSE_DISABLE_ENV_FILE=1 docker compose -p "$(compose_project dev)" -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/dev.json"
     render_compose_json prod "$validation_env" "$tmp_root/prod.json" backups migrations
     render_compose_json staging "$validation_env" "$tmp_root/staging.json" backups migrations
     uv run python scripts/env_policy.py secrets-check \
@@ -279,7 +285,7 @@ deploy_secrets_template() {
     uv run python scripts/env_policy.py validation-env "$validation_env"
 
     if [[ "$env" == "dev" ]]; then
-        COMPOSE_DISABLE_ENV_FILE=1 docker compose -p r9lab_dev -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/$env.json"
+        COMPOSE_DISABLE_ENV_FILE=1 docker compose -p "$(compose_project dev)" -f compose.yaml -f compose.dev.yaml --profile migrations config --format json >"$tmp_root/$env.json"
     else
         render_compose_json "$env" "$validation_env" "$tmp_root/$env.json" backups migrations
     fi
@@ -575,6 +581,7 @@ write_image_tag() {
 stamp_uploads_volume() {
     local env="$1"
     # shellcheck disable=SC2016  # $0/$1 are the inner sh's args, not this shell's
+    # .relab-volume keeps its pre-rename name: existing volumes and snapshots carry it.
     run_deploy_compose "$env" run --rm --no-deps -T --entrypoint sh api -c \
         'if test -s "$0"; then
             found=$(tr -d "[:space:]" <"$0")
@@ -601,8 +608,8 @@ mount_writability_alert() {
     case "$target" in
         volume:*)
             echo "Docker sets a named volume's ownership only when it first creates the volume, so" >&2
-            echo "r9lab_${env}_${target#volume:} still belongs to whichever uid created it." >&2
-            echo "Fix with: docker run --rm --user 0 -v r9lab_${env}_${target#volume:}:/mnt" \
+            echo "$(compose_project "$env")_${target#volume:} still belongs to whichever uid created it." >&2
+            echo "Fix with: docker run --rm --user 0 -v $(compose_project "$env")_${target#volume:}:/mnt" \
                 "busybox chown -R $DEPLOY_APP_UID:$DEPLOY_APP_UID /mnt" >&2
             ;;
         host:*)
@@ -668,7 +675,7 @@ stack_gate_alerts() {
             # migration failure either way.
             echo "error: the $env migrator did not complete (exit $migrator_exit); the stack is serving a schema it did not finish migrating" >&2
         fi
-        echo "       read the migration error with: docker logs r9lab_${env}-migrator-1" >&2
+        echo "       read the migration error with: docker logs $(compose_project "$env")-migrator-1" >&2
     else
         echo "error: the $env stack left ${stalled//,/, } created but not running" >&2
         echo "       inspect with: just stack $env ps" >&2
@@ -721,17 +728,27 @@ rollback_downgrade_alert() {
 }
 
 # A host whose data still lives in the pre-rename relab_<env> project would get a second,
-# empty r9lab_<env> stack beside it. The rename window moves the data with `stack <env>
-# compose`, which this does not guard.
-# TODO: drop once no host has relab_<env> volumes left.
+# empty r9lab_<env> stack beside it. Refuses while the old project still runs, or while
+# either data volume exists only under the old name. A new volume next to an old one
+# passes: that is the state the move itself leaves behind. The rename window moves the
+# data with `stack <env> compose`, which this does not guard.
+# TODO(drop-by 2027-01-31): remove once no host has relab_<env> volumes or containers left.
 require_renamed_project() {
-    local env="$1"
-    if docker volume inspect "relab_${env}_database_data" >/dev/null 2>&1 \
-        && ! docker volume inspect "r9lab_${env}_database_data" >/dev/null 2>&1; then
-        echo "error: the $env data is still in the relab_$env Compose project; starting r9lab_$env would create an empty stack beside it" >&2
+    local env="$1" old="relab_$1" new volume
+    new="$(compose_project "$env")"
+    if [[ -n "$(docker ps -q --filter "label=com.docker.compose.project=$old")" ]]; then
+        echo "error: the $old Compose project is still running; stop it before starting $new" >&2
         echo "       move it first: install guide, \"Upgrading across the R9lab rename\" (docs/src/content/docs/operations/upgrade-backup.md)" >&2
         exit 2
     fi
+    for volume in database_data user_uploads; do
+        if docker volume inspect "${old}_$volume" >/dev/null 2>&1 \
+            && ! docker volume inspect "${new}_$volume" >/dev/null 2>&1; then
+            echo "error: the $env $volume is still in the $old Compose project; starting $new would create an empty stack beside it" >&2
+            echo "       move it first: install guide, \"Upgrading across the R9lab rename\" (docs/src/content/docs/operations/upgrade-backup.md)" >&2
+            exit 2
+        fi
+    done
 }
 
 stack_command() {

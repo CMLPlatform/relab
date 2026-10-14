@@ -4,9 +4,11 @@
 
 # Source of truth for the RPi camera plugin's OpenAPI schema (sister repo). Pinned to a
 # release so the drift check only fails when the pin moves; Renovate bumps it.
-# TODO: once CMLPlatform/r9cam publishes its first release with openapi.r9cam.json, set the
-# repo to CMLPlatform/r9cam, the file to openapi.r9cam.json and the version to that release,
-# and rename the Renovate depName and matchPackageNames in .github/renovate.json to match.
+# NOTE: the committed schema text is knowingly stale: it still carries the pre-rename names,
+# because the newest release (v0.6.2) predates the rename and ships openapi.rpi-cam.json.
+# TODO(drop-by 2027-01-31): once CMLPlatform/r9cam publishes a release with openapi.r9cam.json,
+# set the repo to CMLPlatform/r9cam, the file to openapi.r9cam.json and the version to that
+# release, and rename the Renovate depName and matchPackageNames in .github/renovate.json.
 r9cam_plugin_repo := "CMLPlatform/relab-rpi-cam-plugin"
 r9cam_plugin_version := "v0.6.2"
 r9cam_schema_file := "openapi.rpi-cam.json"

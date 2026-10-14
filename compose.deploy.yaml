@@ -243,6 +243,7 @@ services:
     # Without this each `compose run` container gets a fresh random hostname, and
     # restic picks its parent snapshot by (host, paths) — so every run would re-read
     # and re-hash all of /data/uploads instead of taking the metadata shortcut.
+    # Kept through the R9lab rename: a new name would start a fresh parent chain.
     hostname: relab-backup
     security_opt:
       - no-new-privileges:true
@@ -279,11 +280,9 @@ services:
       RESTIC_REPOSITORY: /restic
       RESTIC_CACHE_DIR: /var/cache/restic
       # Lets the run assert the uploads volume is this environment's, not another
-      # stack's after a mistyped -p. Compared against .relab-volume inside the volume.
+      # stack's after a mistyped -p. Compared against .relab-volume inside the volume,
+      # a name existing volumes and snapshots already carry.
       R9LAB_ENVIRONMENT: ${ENVIRONMENT:?}
-      # Images built before the r9lab rename read the old name.
-      # TODO: drop RELAB_ENVIRONMENT once no deployed IMAGE_TAG predates the rename.
-      RELAB_ENVIRONMENT: ${ENVIRONMENT:?}
       XDG_CACHE_HOME: /tmp/xdg-cache
       UPLOADS_DIR: /data/uploads
       BACKUP_WORK_DIR: /tmp/r9lab-backups

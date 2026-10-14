@@ -291,7 +291,8 @@ TELEMETRY_EDGE_KEY=<edge key>
 OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 ```
 
-`TELEMETRY_EDGE_KEY` is shared by every CML project shipping to `otel.`, so rotate it together with
+The collector keeps its `cml-relab.org` name: the monitoring stack publishes it there, and
+`scripts/env_policy.py` checks `.env.example` for that name. `TELEMETRY_EDGE_KEY` is shared by every CML project shipping to `otel.`, so rotate it together with
 `TF_VAR_telemetry_edge_key` in `infra/cloudflare-zone` and every other spoke's `.env`. The
 symptom of a mismatch: every export 403s with a `cf-mitigated` header.
 
@@ -358,21 +359,26 @@ account:
 
 Close every shell open as `relab` first, including `sudo -iu relab` sessions in other terminals:
 `usermod` refuses while the user has any process. Run the block as one script so it stops at the
-first failure instead of moving directories for a user that was not renamed:
+first failure instead of moving directories for a user that was not renamed. Each step checks that
+its old name still exists, so you can run the block again after a failure:
 
 ```bash
-sudo -u relab just stack prod down YES   # from /opt/relab
 bash -euo pipefail <<'EOF'
-sudo systemctl stop "user@$(id -u relab).service"
-test -z "$(pgrep -u relab || true)" || { ps -o pid,etime,cmd -u relab; exit 1; }
-sudo usermod -l r9lab -d /var/lib/r9lab -m relab
-sudo groupmod -n r9lab relab
-sudo mv /opt/relab /opt/r9lab
+if id -u relab >/dev/null 2>&1; then
+    (cd /opt/relab && sudo -u relab just stack prod down YES)
+    sudo systemctl stop "user@$(id -u relab).service"
+    test -z "$(pgrep -u relab || true)" || { ps -o pid,etime,cmd -u relab; exit 1; }
+    sudo usermod -l r9lab -d /var/lib/r9lab -m relab
+fi
+if getent group relab >/dev/null; then sudo groupmod -n r9lab relab; fi
+if test -d /opt/relab; then sudo mv /opt/relab /opt/r9lab; fi
 sudo install -d -m 0755 /etc/r9lab
-sudo mv /etc/relab/relab.env /etc/r9lab/r9lab.env
-sudo rmdir /etc/relab
+if test -f /etc/relab/relab.env; then sudo mv /etc/relab/relab.env /etc/r9lab/r9lab.env; fi
+if test -d /etc/relab; then sudo rmdir /etc/relab; fi
 # The user's ssh config names its GitHub keys by absolute path under the old home.
-sudo -u r9lab sed -i 's#/var/lib/relab/#/var/lib/r9lab/#' /var/lib/r9lab/.ssh/config
+if test -f /var/lib/r9lab/.ssh/config; then
+    sudo -u r9lab sed -i 's#/var/lib/relab/#/var/lib/r9lab/#' /var/lib/r9lab/.ssh/config
+fi
 # The moved virtualenvs still carry the old absolute paths: rebuild them.
 sudo -iu r9lab sh -c 'cd /opt/r9lab && uv sync --frozen && cd backend && uv sync --all-groups --frozen'
 EOF
@@ -456,14 +462,13 @@ every backup fails until the matching `chown`. The safety snapshot cannot run af
 effect. The install guide's "Upgrade" section has the commands in the order that works. `up` refuses to
 start while a mount is unwritable and names the volume.
 
-**The R9lab rename is a one-off window.** The release that renames the Compose project,
-database, roles, images and timers to `r9lab` follows the install guide's "Upgrading across the
-R9lab rename" (`upgrade-backup.md`), staging first. Publish no other release between merging it
-and the end of prod's window: the hosts follow `main`, and every release from then on publishes
-only `r9lab-*` images. Before prod's window, run `./bootstrap.sh r9lab prod` on the monitoring
-host (and `r9lab staging` before staging's) so alerts and dashboards know the new project; remove
-the `relab` pairs afterwards. Prod's units run as the deploy user, so step 8 is
-`R9LAB_UNIT_USER=<deploy user> just timers-install prod` from the sudo account, naming the user
+**The R9lab rename is a one-off window.** Follow "Upgrading across the R9lab rename" in the
+install guide (`upgrade-backup.md`), staging first, and 1.7 for the host move. Publish no other
+release between merging the rename and the end of prod's window: the hosts follow `main`, and
+every release from then on publishes only `r9lab-*` images. Before each window, run
+`./bootstrap.sh r9lab <env>` on the monitoring host so alerts and dashboards know the new
+project, and remove the `relab` pairs afterwards. Prod's units run as the deploy user, so step 9
+is `R9LAB_UNIT_USER=<deploy user> just timers-install prod` from the sudo account, naming the user
 the host has at that point (1.7 renames it).
 
 **Restart every timer you stopped.** Stopping the backup and maintenance timers for a window means
@@ -493,10 +498,9 @@ escapes that guarantee: see "A revision that builds an index concurrently" at th
 
 Every release stays published on GHCR under its version (unrelated to the alembic revision, which
 names the schema), so rolling back is pulling an earlier tag. The package pages on GitHub list them.
-`rollback` cannot cross the R9lab rename. An older release runs the `relab_prod` project, whose
-volumes stop at the rename window, and its images look for the old database and role names. Until
-the window's `up` its own rollback applies (install guide, "Upgrading across the R9lab rename");
-after it, fix forward or restore the new project from its backup.
+`rollback` cannot cross the R9lab rename: an older release runs the `relab_prod` project, which
+the rename window left behind. The window has its own rollback ("Upgrading across the R9lab
+rename" in the install guide); after traffic reopens, fix forward or restore from backup.
 
 ```bash
 just stack prod rollback YES <tag>                    # code only: the new schema still suits the old code
@@ -538,7 +542,7 @@ For a real restore, pick the snapshot and restore it into the live database:
 
 ```bash
 just snapshots prod           # read-only; ids, dates, and dump sizes
-just restore prod YES <id>    # stops the api, restores, restarts it
+just restore prod YES <id>    # stops the api, restores, restarts it; a failed restore leaves it stopped
 ```
 
 These restore Postgres only. User uploads need a separate manual restore; see "Marker missing, and

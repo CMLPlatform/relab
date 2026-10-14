@@ -9,6 +9,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 **Upgrading:**
 
+- **Breaking:** the deployment identifiers move from `relab` to `r9lab`. Self-hosters: do not
+  plain-pull this release. Follow "Upgrading across the R9lab rename" in
+  `docs/src/content/docs/operations/upgrade-backup.md` (staging first, about an hour), and
+  `deploy/DEPLOY-PROD.md` 1.7 if the host also moves its paths and deploy user. What changes:
+  - The Compose project is `r9lab_<env>`, so every volume and network is renamed.
+  - The database and roles are `r9lab_db`, `r9lab_app`, `r9lab_migrator` and `r9lab_backup`.
+  - Images are `ghcr.io/cmlplatform/r9lab-*`.
+  - `RELAB_*` variables become `R9LAB_*`.
+  - The systemd units are `r9lab-*@<env>`, the checkout is `/opt/r9lab` and the ping file is
+    `/etc/r9lab/r9lab.env`. The deploy user is `r9lab`.
+  - `up`, `migrate`, `rollback` and the backup recipes stop on a host whose data is still in the
+    `relab_<env>` project.
+  - Rolling back past the rename is not supported once traffic reopens.
+- **Breaking:** `just deploy` uses the ssh alias `r9lab-<env>` by default. Rename your ssh
+  aliases, or set `R9LAB_DEPLOY_HOST`.
+- Developers: run `docker compose -p relab_dev down` (and `relab_test`, `relab_e2e`) before the
+  first `just dev-up`. The old dev database is not carried over, so seed it again. Rebuild the
+  devcontainer: the workspace is now `/opt/r9lab`.
 - The repository is now `CMLPlatform/r9lab`. Point existing checkouts at it:
   `git remote set-url origin https://github.com/CMLPlatform/r9lab.git`. GitHub redirects the old
   name for now.
@@ -18,11 +36,31 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The landing page and docs Workers are named `r9lab-www-<env>` and `r9lab-docs-<env>`.
   Self-hosters who run the Cloudflare root follow "Renaming the repository or the Workers" in
   `infra/cloudflare/README.md`.
-- `just images-verify` checks images against `CMLPlatform/r9lab` and still accepts tags built
-  before the rename.
+- `just images-verify` checks images against `CMLPlatform/r9lab`. Only `sha-8697ebf`, published
+  between the deployment rename and the repository rename, still verifies against the old
+  repository name.
+- `RELAB_ENVIRONMENT` is gone from `compose.deploy.yaml`; only `R9LAB_ENVIRONMENT` is set.
+- The dataset release build reads only `R9LAB_PSEUDONYM_SALT` (the `RELAB_PSEUDONYM_SALT`
+  fallback is removed) and rejects salts shorter than 32 characters.
+- A restore that fails while replacing the database leaves the API stopped and prints the
+  command to start it again. A failure before the database is touched restarts the API.
 - Camera tokens use the audience `r9cam-relay`. The backend still accepts the old
   `relab-rpi-cam-relay` until 2027-01-31, so the backend and the Pis can be upgraded in either
   order and paired cameras keep working.
+
+### Removed
+
+- The legacy admin path `/v1/admin/plugins/rpi-cam` is no longer served. The device and
+  user-facing legacy camera paths stay until 2027-01-31.
+
+### Fixed
+
+- Restoring a backup whose database roles no longer exist (a dump taken before a role rename)
+  now works: the restore skips the dump's owners and grants, then hands ownership to the
+  migration role and restores every grant.
+- `just stack <env> compose ...` keeps quoted arguments that contain spaces whole.
+- The rename guard also refuses while the old `relab_<env>` project still runs or its uploads
+  volume has not been copied.
 
 ## [0.5.0] - 2026-10-13
 

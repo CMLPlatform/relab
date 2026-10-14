@@ -400,7 +400,7 @@ def assert_telemetry_examples_use_department_contract() -> None:
     contents = (ROOT / ".env.example").read_text(encoding="utf-8")
     # The hostname is owned by CMLPlatform/monitoring, whose infra/main.tf declares a
     # `cloudflare_dns_record.otel` for `otel.<domain>` and routes it to the collector's
-    # HTTP receiver.
+    # HTTP receiver. It stays on cml-relab.org after the R9lab rename.
     require(
         "OTEL_EXPORTER_OTLP_ENDPOINT=https://otel.cml-relab.org" in contents,
         ".env.example: OTEL example must use otel.cml-relab.org, the hostname the monitoring stack actually publishes",
@@ -482,7 +482,7 @@ def docker_compose_config_missing(required_name: str) -> subprocess.CompletedPro
                 docker,
                 "compose",
                 "-p",
-                "relab_env_policy",
+                "r9lab_env_policy",
                 "--env-file",
                 env_file.name,
                 "-f",

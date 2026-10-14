@@ -130,5 +130,9 @@ async def test_camera_routes_answer_on_current_and_legacy_path(
     response = await api_client_superuser.get(f"/v1{plugin_path}/cameras/{camera_id}")
     assert response.status_code == status.HTTP_200_OK
 
-    response = await api_client_superuser.get(f"/v1/admin{plugin_path}/cameras/{camera_id}")
+    response = await api_client_superuser.get(f"/v1/admin/plugins/r9cam/cameras/{camera_id}")
     assert response.status_code == status.HTTP_200_OK
+
+    # The admin routes were never called on the old path, so they are not served there.
+    response = await api_client_superuser.get(f"/v1/admin/plugins/rpi-cam/cameras/{camera_id}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
