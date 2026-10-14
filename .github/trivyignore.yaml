@@ -89,7 +89,7 @@ vulnerabilities:
   - id: CVE-2026-78667
     paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
-    statement: net/http Range header DoS; file_server answers Range requests over HTTP/1.1 and the edge forwards them, so this is reachable. Accepted because the root is static and cached at the edge; re-check when Go 1.26.9 ships.
+    statement: net/http Range header DoS, reachable; file_server answers Range requests and the edge forwards them for the uncached paths (index.html, no-store files). The worst case is CPU load in the app container, which serves only static files; the API runs in its own container. Fixed in Go 1.26.9 (2026-10-08), no caddy release built with it yet.
   - id: CVE-2026-78669
     paths: ["usr/bin/caddy"]
     expired_at: 2026-11-01
