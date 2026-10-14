@@ -463,6 +463,7 @@ def load_project_identity() -> dict:
         "dataLicence": project["dataLicence"],
         "funding": project["funding"],
         "contactEmail": project["contactEmail"],
+        "citation": citation,
     }
 
 
@@ -531,9 +532,7 @@ def render_codemeta_json(identity: dict) -> str:
     The version line is also bumped by `cz bump` (commitizen version_files), in the same
     format this writes, so a release bump leaves the file in sync.
     """
-    import yaml  # noqa: PLC0415  (deferred so image-only syncs need no YAML parser)
-
-    citation = yaml.safe_load(CITATION_SOURCE.read_text())
+    citation = identity["citation"]
     document = {
         "@context": "https://w3id.org/codemeta/4.0",
         "@type": "SoftwareSourceCode",
@@ -584,9 +583,7 @@ def render_zenodo_json(identity: dict) -> str:
     No version or date: Zenodo takes those from the GitHub release, so nothing here needs a
     bump. Zenodo licence ids are the lower-case SPDX ids.
     """
-    import yaml  # noqa: PLC0415  (deferred so image-only syncs need no YAML parser)
-
-    citation = yaml.safe_load(CITATION_SOURCE.read_text())
+    citation = identity["citation"]
     document = {
         "upload_type": "software",
         "access_right": "open",
