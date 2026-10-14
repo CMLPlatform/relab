@@ -411,10 +411,11 @@ _require-cloudflare-env env:
 _require-cloudflare-zone zone:
     #!/usr/bin/env bash
     set -euo pipefail
-    case {{ quote(zone) }} in
-      r9lab.io|cml-relab.org) exit 0 ;;
-      *) echo "zone must be 'r9lab.io' or 'cml-relab.org'" >&2; exit 1 ;;
-    esac
+    # One <zone>.tfvars per managed zone
+    zone={{ quote(zone) }}
+    [[ $zone != */* && -f infra/cloudflare-zone/$zone.tfvars ]] && exit 0
+    echo "zone must be one of: $(basename -s .tfvars -a infra/cloudflare-zone/*.tfvars | paste -sd' ')" >&2
+    exit 1
 
 # Both keys gate a rule with `var.<key> == "" ? [] : [...]`. An unset key does not fail
 # the apply: it drops the rule, and the next plan then reports "No changes", because
@@ -478,6 +479,7 @@ env-inventory:
 deploy-secrets-check:
     @bash scripts/deploy_ops.sh deploy-secrets-check
 
+# TODO(drop-by 2027-01-31): drop the cml-relab.org default with the old-zone redirects
 # Check that every old-zone host redirects to the new zone (REDIRECT_PERMANENT=1 expects 301/308; TELEMETRY_EDGE_KEY enables the otel check)
 [group('deploy')]
 [doc('Smoke-check the old-zone redirects after a cutover step')]

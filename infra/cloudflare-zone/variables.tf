@@ -78,7 +78,7 @@ variable "redirect_to_zone_name" {
   }
 }
 
-# TODO: drop redirect_environments once both environments are cut over; the redirect
+# TODO(drop-by 2027-01-31): drop redirect_environments once both environments are cut over; the redirect
 # ruleset itself stays for at least a year after that.
 variable "redirect_environments" {
   description = <<-EOT
