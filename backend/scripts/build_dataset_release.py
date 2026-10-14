@@ -624,34 +624,39 @@ def check_salt_fingerprint(salt: str, pinned: str = PINNED_SALT_FINGERPRINT) -> 
 
 
 PSEUDONYM_SALT_ENV = "R9LAB_PSEUDONYM_SALT"
-# TODO: drop the pre-rename name once no shell profile or CI secret still sets it.
-LEGACY_PSEUDONYM_SALT_ENV = "RELAB_PSEUDONYM_SALT"
+# The salt fingerprint is public, so a short salt could be guessed offline from it.
+MIN_PSEUDONYM_SALT_LENGTH = 32
+_SALT_GENERATE_HINT = 'python -c "import secrets; print(secrets.token_urlsafe(32))"'
 
 
 def read_pseudonym_salt(explicit: str | None) -> str:
     """Return the pseudonymisation salt from the environment, the CLI, or repo secrets.
 
-    The pre-rename variable is still read, but if both names are set they must agree:
-    two different salts would quietly change every pseudonym.
+    The salt must be at least MIN_PSEUDONYM_SALT_LENGTH characters. Generate one with
+    ``python -c "import secrets; print(secrets.token_urlsafe(32))"`` and keep it for every
+    future release.
     """
-    salt = os.environ.get(PSEUDONYM_SALT_ENV)
-    legacy = os.environ.get(LEGACY_PSEUDONYM_SALT_ENV)
-    if salt and legacy and salt != legacy:
-        msg = f"{PSEUDONYM_SALT_ENV} and {LEGACY_PSEUDONYM_SALT_ENV} are both set and differ. Unset the old one."
+    salt = os.environ.get(PSEUDONYM_SALT_ENV) or explicit
+    if not salt:
+        secrets_dir = get_secrets_dir()
+        salt_file = secrets_dir / "dataset_pseudonym_salt" if secrets_dir else None
+        if salt_file and salt_file.is_file():
+            salt = salt_file.read_text(encoding="utf-8").strip()
+    if not salt:
+        msg = (
+            f"No pseudonymisation salt. Set {PSEUDONYM_SALT_ENV}, pass --pseudonym-salt, or write one "
+            "to secrets/<env>/dataset_pseudonym_salt and keep it for every future release. "
+            f"Generate one with: {_SALT_GENERATE_HINT}"
+        )
         raise SystemExit(msg)
-    if salt := salt or legacy:
-        return salt
-    if explicit:
-        return explicit
-    secrets_dir = get_secrets_dir()
-    salt_file = secrets_dir / "dataset_pseudonym_salt" if secrets_dir else None
-    if salt_file and salt_file.is_file():
-        return salt_file.read_text(encoding="utf-8").strip()
-    msg = (
-        f"No pseudonymisation salt. Set {PSEUDONYM_SALT_ENV}, pass --pseudonym-salt, or write one "
-        "to secrets/<env>/dataset_pseudonym_salt and keep it for every future release."
-    )
-    raise SystemExit(msg)
+    if len(salt) < MIN_PSEUDONYM_SALT_LENGTH:
+        msg = (
+            f"The pseudonymisation salt is {len(salt)} characters; it needs at least "
+            f"{MIN_PSEUDONYM_SALT_LENGTH}, because its fingerprint is public and a short salt can be "
+            f"guessed from it. Generate one with: {_SALT_GENERATE_HINT}"
+        )
+        raise SystemExit(msg)
+    return salt
 
 
 ### CSV helpers ###

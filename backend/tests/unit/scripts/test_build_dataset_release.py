@@ -767,28 +767,30 @@ def test_the_abort_message_names_both_fingerprints_and_offers_no_way_on() -> Non
     assert "the original was lost" in message
 
 
-@pytest.mark.parametrize(
-    ("new", "legacy", "expected"),
-    [("s1", None, "s1"), (None, "s1", "s1"), ("s1", "s1", "s1")],
-)
-def test_salt_is_read_from_the_new_or_the_pre_rename_variable(
-    monkeypatch: pytest.MonkeyPatch, new: str | None, legacy: str | None, expected: str
-) -> None:
-    """Either variable name supplies the salt, so a shell set up before the rename still builds."""
-    for name, value in ((release.PSEUDONYM_SALT_ENV, new), (release.LEGACY_PSEUDONYM_SALT_ENV, legacy)):
-        if value is None:
-            monkeypatch.delenv(name, raising=False)
-        else:
-            monkeypatch.setenv(name, value)
-    assert release.read_pseudonym_salt(None) == expected
+LONG_SALT = "x" * release.MIN_PSEUDONYM_SALT_LENGTH
 
 
-def test_differing_new_and_pre_rename_salts_abort(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Two different salts would silently change every pseudonym, so the build refuses."""
-    monkeypatch.setenv(release.PSEUDONYM_SALT_ENV, "s1")
-    monkeypatch.setenv(release.LEGACY_PSEUDONYM_SALT_ENV, "s2")
-    with pytest.raises(SystemExit, match="both set and differ"):
-        release.read_pseudonym_salt(None)
+def test_salt_is_read_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The environment variable supplies the salt and wins over the flag."""
+    monkeypatch.setenv(release.PSEUDONYM_SALT_ENV, LONG_SALT)
+    assert release.read_pseudonym_salt("y" * 40) == LONG_SALT
+
+
+@pytest.mark.parametrize("source", ["env", "flag"])
+def test_short_salt_is_rejected(monkeypatch: pytest.MonkeyPatch, source: str) -> None:
+    """The fingerprint is public, so a short salt could be brute-forced from it."""
+    short = "x" * (release.MIN_PSEUDONYM_SALT_LENGTH - 1)
+    if source == "env":
+        monkeypatch.setenv(release.PSEUDONYM_SALT_ENV, short)
+    else:
+        monkeypatch.delenv(release.PSEUDONYM_SALT_ENV, raising=False)
+    with pytest.raises(SystemExit, match=r"at least 32.*secrets\.token_urlsafe\(32\)"):
+        release.read_pseudonym_salt(short if source == "flag" else None)
+
+
+def test_fingerprint_of_a_known_salt_is_pinned() -> None:
+    """Changing the fingerprint scheme must fail here, not abort a release as a lost salt."""
+    assert salt_fingerprint("the-original-salt") == "a81f293d308624b2"
 
 
 def test_fingerprint_does_not_reveal_the_salt() -> None:
