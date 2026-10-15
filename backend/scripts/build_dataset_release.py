@@ -360,7 +360,7 @@ class ReleaseMetadata:
     # data was exported from comes from --software-doi; the concept record lists them.
     software_concept_doi: str = "10.5281/zenodo.16637742"
     # Must equal the title in the repository's CITATION.cff (tests/test_project_identity.py).
-    software_title: str = "R9lab - Data Collection Platform"
+    software_title: str = "R9lab: an open research platform for product disassembly data"
     software_version_doi: str = "10.5281/zenodo.XXXXXXX"
     affiliation: str = "Institute of Environmental Sciences (CML), Leiden University"
     licence_name: str = "CC BY 4.0"
