@@ -7,8 +7,8 @@ authors:
     orcid: "https://orcid.org/0009-0006-6953-909X"
     email: "s.n.van.lierde@cml.leidenuniv.nl"
     affiliation: "Department of Industrial Ecology, Institute of Environmental Sciences (CML), Leiden University"
-title: "R9lab - Data Collection Platform"
-abstract: "Data collection platform for photographs, bills of materials and measurements of disassembled products, supporting computer vision and life cycle assessment research."
+title: "R9lab: an open research platform for product disassembly data"
+abstract: "R9lab is an open-source research platform for recording how durable products are built and how they come apart. Users break a product down into components and record materials, weight, dimensions, photographs and notes on recyclability, disassemblability and remanufacturability. The records are to be released as a citable dataset under CC BY 4.0. It is built to turn the routine work of repairers, refurbishers and recyclers into primary data for industrial ecology and circular economy research, such as life cycle assessment and computer vision."
 version: 0.5.0
 identifiers:
   # The concept DOI always resolves to the newest release, which is what a "cite this
@@ -22,8 +22,11 @@ repository-code: "https://github.com/CMLPlatform/r9lab"
 license: "AGPL-3.0-or-later"
 keywords:
   - "circular economy"
-  - "computer vision"
-  - "data collection"
   - "industrial ecology"
+  - "product disassembly"
+  - "bill of materials"
   - "life cycle assessment"
-  - "machine learning"
+  - "open data"
+  - "research data"
+  - "citizen science"
+  - "computer vision"
