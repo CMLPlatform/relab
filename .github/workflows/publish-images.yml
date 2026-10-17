@@ -115,13 +115,13 @@ jobs:
 
       # Same policy as the scan in ci.yml; suppressions live in .github/trivyignore.yaml.
       - name: Scan image with Trivy
-        uses: docker://aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
         with:
           args: >-
             image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL --ignorefile .github/trivyignore.yaml ${{ steps.meta.outputs.ref }}
 
       - name: Generate SPDX SBOM
-        uses: docker://aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
+        uses: docker://aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
         with:
           args: >-
             image --format spdx-json --output ${{ steps.meta.outputs.sbom }} ${{ steps.meta.outputs.ref }}
